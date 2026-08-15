@@ -19,6 +19,7 @@ Describe documentation, localization, accessibility, privacy, security, migratio
 - [ ] The change stays within confirmed scope and the active milestone.
 - [ ] Tests prove behavior and persisted outcomes at the appropriate levels.
 - [ ] Canonical documentation and locale resources are updated where needed.
+- [ ] Data-format documentation, schemas, mappings, migrations, and synthetic contract evidence agree with every affected data representation.
 - [ ] No real exports, derived personal data, credentials, private email addresses, or machine-local paths are included.
 - [ ] New fixtures are independently constructed, synthetic, minimal, and documented.
 - [ ] New dependencies and assets have compatible licenses and recorded provenance.

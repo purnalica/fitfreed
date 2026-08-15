@@ -4,7 +4,7 @@
 
 FitFreed is in product definition and technical evaluation. There is no runnable application yet. Contributions are currently most useful when they improve verified requirements, architecture evidence, synthetic compatibility scenarios, contributor automation, or the path to the first vertical slice.
 
-Review the [requirements](docs/requirements.md), [roadmap](docs/roadmap.md), and [repository content policy](docs/repository-content-policy.md) before starting work.
+Review the [requirements](docs/requirements.md), [roadmap](docs/roadmap.md), [data format documentation](docs/data-formats/README.md), and [repository content policy](docs/repository-content-policy.md) before starting work.
 
 ## Before proposing a change
 
@@ -46,6 +46,7 @@ If a defect can only be reproduced with private data, describe the structural co
 - Keep provider parsing and terminology inside source adapters and their compatibility documentation.
 - Keep domain and application code independent of the UI, persistence, operating system, and provider formats.
 - Protect logical identity, reconciliation, idempotency, provenance, and recovery as explicit behavior.
+- Update provider references, FitFreed specifications, mappings, schemas, migrations, and synthetic contract evidence together with any data-contract change.
 - Prefer a complete vertical slice over disconnected layer work.
 - Test user-visible and persisted outcomes, including error and recovery paths.
 - Keep developer and continuous-integration commands equivalent.

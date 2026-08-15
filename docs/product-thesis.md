@@ -51,8 +51,10 @@ This strengthens the broader case for tools that let people use connected-device
 - Naming and identity should evoke portability, data rights, reclamation, or practical freedom without tying the product to a single regulation, region, or provider.
 - The provider-neutral domain model and importer boundaries are essential product features, not merely implementation preferences.
 - Import coverage, unsupported information, provenance, and transformations must be visible and explainable.
+- When providers do not publish an adequate export-format specification, the project must document the observed structure openly with synthetic examples so possession of the files does not remain dependent on private reverse engineering.
+- External format references must separate official guarantees, clean-room observations, and FitFreed interpretations. FitFreed-owned formats are held to a stronger standard: their complete, normative, versioned contracts must evolve with the implementation.
 - Core use must remain local-first, offline-capable, and free of mandatory accounts or hosted services.
-- Open normalized-data export, portable backups, documented schemas, and recoverable migrations are architectural obligations so the application does not become another silo.
+- Open normalized-data export, portable backups, documented canonical and persistence schemas, source-to-canonical mappings, and recoverable migrations are architectural obligations so the application does not become another silo.
 - User and contributor documentation must explain both how the product works and why durable control over personal data matters.
 
 ## Authoritative sources

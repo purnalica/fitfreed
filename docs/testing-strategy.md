@@ -62,7 +62,7 @@ E2E tests verify persisted outcomes and recovered state, not only visible contro
 
 ## Fixture strategy
 
-Synthetic fixtures will be generated from explicitly documented scenarios. The fixture catalog will include:
+Synthetic fixtures will be generated from the explicitly documented [`testing/synthetic-import-scenarios.md`](testing/synthetic-import-scenarios.md) contract. The fixture catalog will include:
 
 - Minimal valid exports for each supported file family and historical variant.
 - Multiple related records and high-resolution samples at bounded test sizes.

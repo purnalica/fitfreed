@@ -48,6 +48,7 @@ Polar Flow is the first importer, not the product identity. Later importers may 
 - [Active Milestone 0 plan](docs/plans/milestone-0.md)
 - [Technology evaluation protocol](docs/technology-evaluation.md)
 - [Product thesis](docs/product-thesis.md)
+- [Data format documentation](docs/data-formats/README.md)
 - [Source integration architecture](docs/architecture/source-integration.md)
 - [Quality targets](docs/quality-targets.md)
 - [Testing strategy](docs/testing-strategy.md)

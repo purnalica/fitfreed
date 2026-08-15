@@ -22,18 +22,24 @@ Milestone 0 ends with decisions and executable plans, not production feature imp
 
 ### Increment M0.2 — Source compatibility and domain discovery
 
+**Status:** complete.
+
 **Outcome:** the Polar Flow export is described structurally without publishing private values, and its external concepts are separated from FitFreed's domain language and identity rules.
 
 **Work:**
 
 1. Build a local structural inventory of every detected file family, top-level shape, cardinality pattern, historical variant, relationship, size class, and high-resolution series.
-2. Classify source concepts by candidate FitFreed bounded context and identify external terms that must remain inside the anti-corruption layer.
-3. Define import vocabulary covering artifact, archive, file, source record, normalized observation, domain entity, import operation, coverage, provenance, reconciliation, and conflict.
-4. Define candidate logical identities and overlap rules for the first vertical concept without generalizing unverified identities across all data families.
-5. Specify independently constructed synthetic scenarios for valid, duplicate, overlapping, amended, unknown, malformed, unsafe, interrupted, and resource-limit cases.
-6. Record unsupported or uncertain mappings as explicit compatibility questions rather than silently flattening them.
+2. Search for and assess official provider documentation, recording exactly which structures are guaranteed, partially described, or undocumented.
+3. Classify source concepts by candidate FitFreed bounded context and identify external terms that must remain inside the anti-corruption layer.
+4. Define import vocabulary covering artifact, archive, file, source record, normalized observation, domain entity, import operation, coverage, provenance, reconciliation, and conflict.
+5. Define candidate logical identities and overlap rules for the first vertical concept without generalizing unverified identities across all data families.
+6. Establish the normative specification structure for FitFreed's canonical model and source-to-canonical mappings, including how machine-readable schemas and contract tests remain synchronized with implementation.
+7. Specify independently constructed synthetic scenarios for valid, duplicate, overlapping, amended, unknown, malformed, unsafe, interrupted, and resource-limit cases.
+8. Record unsupported or uncertain mappings as explicit compatibility questions rather than silently flattening them.
 
-**Exit evidence:** a provider-format compatibility structure, ubiquitous-language document, bounded-context proposal, import-state model, and synthetic fixture specification containing no private values or private data-set fingerprints.
+**Exit evidence:** a provider-format compatibility structure, normative FitFreed data-specification structure, ubiquitous-language document, bounded-context proposal, import-state model, and synthetic fixture specification containing no private values or private data-set fingerprints.
+
+**Evidence:** [`../data-formats/README.md`](../data-formats/README.md), [`../data-formats/providers/polar-flow.md`](../data-formats/providers/polar-flow.md), [`../domain/ubiquitous-language.md`](../domain/ubiquitous-language.md), [`../domain/bounded-contexts.md`](../domain/bounded-contexts.md), [`../domain/daily-activity.md`](../domain/daily-activity.md), [`../architecture/import-lifecycle.md`](../architecture/import-lifecycle.md), and [`../testing/synthetic-import-scenarios.md`](../testing/synthetic-import-scenarios.md). The complete structural inventory and analysis utilities remain local under the private-data policy; only reviewed, non-identifying structural conclusions enter the cited documents.
 
 ### Increment M0.3 — Integrated technology evaluation
 

@@ -35,6 +35,7 @@ The active detailed plan is [`plans/milestone-0.md`](plans/milestone-0.md). Tech
 - Confirmed product thesis linking GDPR-enabled portability, open-source software, and meaningful user freedom.
 - The approved `FitFreed` identity and a legally precise public narrative that express that thesis without implying a compliance service or regulatory affiliation.
 - Safe inventory of the real Polar Flow export format.
+- Open provider-format reference and a normative documentation structure for every FitFreed-owned data representation.
 - Initial ubiquitous language and candidate bounded contexts.
 - Decisions that materially shape the MVP: users, privacy, supported platforms, core exploration outcome, storage expectations, original-data retention, open normalized-data export, portable backup, and accessibility target.
 - Vendor-neutral domain boundaries and a source-import contract proven by the Polar Flow adapter without speculative runtime plug-in infrastructure.
@@ -70,6 +71,7 @@ The active detailed plan is [`plans/milestone-0.md`](plans/milestone-0.md). Tech
 
 - A clean clone follows one documented path to build, test, run, and package the application.
 - The first user-visible vertical slice imports a small synthetic Polar ZIP through the production source adapter and application use cases, maps at least one provider-neutral concept, persists it, and displays one useful historical result.
+- The first source family, source-to-canonical mapping, canonical concept, and persistence schema are completely specified and checked against the implementation with synthetic contract evidence.
 - Any headless import driver exercises the same application use cases as the desktop interface and does not become a parallel product or business-logic path.
 - Clean Architecture dependency rules are automatically verified.
 - The application runs in `en-US` and `es-ES` with translation validation.
@@ -86,7 +88,7 @@ The active detailed plan is [`plans/milestone-0.md`](plans/milestone-0.md). Tech
 
 **Dependency:** Milestone 1 capabilities required by the agreed MVP journey.
 
-**Scope:** the complete journey in `requirements.md`: Polar Flow ZIP import; coverage reporting; provider-neutral local persistence; activity, training, sleep, and recovery exploration; period filtering and comparison; idempotent and cumulative reimport; actionable recovery; both initial locales; user documentation; a privately distributed unsigned macOS alpha package; and safe notification and cryptographic verification of private alpha updates.
+**Scope:** the complete journey in `requirements.md`: Polar Flow ZIP import; coverage reporting; provider-neutral local persistence; activity, training, sleep, and recovery exploration; period filtering and comparison; idempotent and cumulative reimport; actionable recovery; both initial locales; complete specifications for every provider and FitFreed data representation implemented by the MVP; user documentation; a privately distributed unsigned macOS alpha package; and safe notification and cryptographic verification of private alpha updates.
 
 **Exit criteria:** the confirmed MVP journey and applicable acceptance criteria in `requirements.md` pass through real entry points and the budgets in `quality-targets.md` are satisfied.
 

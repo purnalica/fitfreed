@@ -235,6 +235,23 @@ All user-facing features included in the first release will be available in Engl
 - Exploration and reports will normally use provider-neutral concepts while allowing users to inspect source attribution when it is relevant.
 - Cross-source reconciliation will remain separate from source parsing so future imports cannot silently merge semantically different records.
 
+### FR-019 — Open export-format reference
+
+- For each supported provider export, the project will identify and link any adequate official format specification.
+- When no adequate official specification exists, FitFreed will publish a clean-room, observation-based reference covering file families, naming patterns, structural shapes, fields, types, relationships, known semantics, historical variants, compatibility status, and unresolved questions needed to use the export independently.
+- The reference will distinguish official guarantees from observed behavior and FitFreed interpretations, identify when evidence was last verified, and evolve alongside importer compatibility.
+- Published examples and schemas will be independently constructed and synthetic. No real record, value, route, identifier, timestamp sequence, or private data-set fingerprint will be copied into the reference.
+- This documentation is a product outcome of practical data liberation, not merely internal importer documentation.
+
+### FR-020 — Open FitFreed data specifications
+
+- Every data representation owned by FitFreed will be documented completely and versioned alongside its implementation. This includes the provider-neutral canonical model, the portable export format, and implementation-specific persisted schemas and migrations.
+- The normative canonical and portable-format specifications will define entities, value objects, fields, types, units, optionality, cardinality, identities, relationships, invariants, provenance, time and time-zone rules, enumerations, compatibility behavior, and known information loss.
+- Each source importer will document how supported external fields map into the canonical model, including transformations, derived values, ignored information, ambiguity, and loss.
+- Machine-readable schemas will be provided wherever the representation permits them. Automated contract tests will verify schemas, synthetic examples, migrations, and importer mappings against the implementation.
+- Documentation will distinguish the stable portable contract from replaceable persistence details. A storage engine or internal schema will not silently become the only way to recover a user's normalized data.
+- No new or changed FitFreed data field, mapping, migration, or portable representation will be complete until its corresponding specification and compatibility status are updated.
+
 ## Confirmed MVP scope
 
 The MVP is a private unsigned macOS alpha that provides one complete user journey:
@@ -247,6 +264,8 @@ The MVP is a private unsigned macOS alpha that provides one complete user journe
 6. Filter the history, open detail views, and compare selected periods through a visual report.
 7. Reimport the same archive without duplicates and import a later overlapping archive cumulatively.
 8. Receive actionable guidance for invalid, partial, unsupported, interrupted, or failed imports.
+
+The MVP also publishes the Polar Flow export-format reference required by FR-019 for every file family evaluated by the importer, including explicit gaps and unsupported structures. It publishes the FitFreed specifications required by FR-020 for every canonical concept, mapping, persisted schema, migration, and portable representation implemented by the MVP.
 
 The MVP explicitly excludes:
 

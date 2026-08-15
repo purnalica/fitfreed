@@ -2,7 +2,7 @@
 
 ## Status
 
-Confirmed architectural direction. Detailed types and bounded-context ownership will be refined during Milestone 0 domain design.
+Confirmed architectural direction. The current bounded-context proposal is documented in [`../domain/bounded-contexts.md`](../domain/bounded-contexts.md), and the import consistency proposal is documented in [`import-lifecycle.md`](import-lifecycle.md).
 
 ## Decision
 
@@ -96,7 +96,7 @@ A runtime plug-in system is not required to prove importer independence. The MVP
 
 ## Pending decisions
 
-- Exact bounded-context ownership of import, activity, training, sleep, recovery, and reporting concepts.
+- Acceptance or refinement of the candidate context boundaries after the first vertical concept exercises their contracts.
 - Canonical units and time-zone semantics.
 - Controlled representation of genuinely source-specific observations.
 - Cross-source reconciliation and user-visible conflict handling.

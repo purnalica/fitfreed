@@ -16,7 +16,7 @@ Documentation evolves in the same reviewed increment as the product, architectur
 | Durable architecture decisions and their rationale | `docs/architecture/decisions/` |
 | User installation, import, exploration, update, recovery, privacy, and removal guidance | Versioned user-documentation sources selected with the application stack |
 | Contributor setup, build, run, test, package, and release workflows | `README.md`, `CONTRIBUTING.md`, and versioned developer documentation |
-| Supported provider formats and mapping limitations | Versioned compatibility documentation owned by each importer |
+| Provider exports, canonical data, source mappings, portable exports, persistence schemas, and migrations | [`docs/data-formats/`](data-formats/) |
 | Security, support, governance, and community behavior | Root community health files |
 | Temporary or external research inputs | Ignored local research directories under `docs/reports/` or `.local/` |
 
@@ -68,4 +68,5 @@ An increment is documentation-complete when:
 2. Documented commands and examples have verification evidence.
 3. Architectural consequences are reflected in current thematic documentation and, when required, an ADR.
 4. User-visible behavior and recovery paths are documented for every supported locale and release channel in scope.
-5. No private data, secrets, machine-local paths, or unlicensed assets appear in published material.
+5. Affected data contracts, mappings, schemas, migrations, and synthetic examples agree with automated contract evidence.
+6. No private data, secrets, machine-local paths, or unlicensed assets appear in published material.

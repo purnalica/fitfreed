@@ -20,6 +20,7 @@
 - Do not replace a provider silo with an application silo: preserve local-first use, documented portability, provenance, recoverability, and a supported exit path.
 - Update the canonical documentation in the same change whenever behavior, architecture, installation, operation, or contribution procedures change.
 - Follow `docs/documentation-policy.md`; user, developer, operational, compatibility, and architecture documentation are part of the acceptance criteria for every affected increment.
+- Follow `docs/data-formats/README.md`; every provider format and every FitFreed-owned canonical, mapping, portable, persistence, and migration contract must remain completely documented and verified with synthetic contract evidence.
 - Record durable structural decisions as ADRs under `docs/architecture/decisions/` and update current thematic architecture in the same change.
 - Never add the provided Polar Flow export or any derived personal data to the repository.
 - Keep the product name, visual identity, domain model, and general product language vendor-neutral.
