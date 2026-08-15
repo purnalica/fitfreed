@@ -30,6 +30,6 @@ if git -C "$repository_root" rev-parse --verify HEAD >/dev/null 2>&1; then
     --no-banner \
     --no-color \
     --redact \
-    --log-opts="--all" \
+    --log-opts="--branches --remotes --tags" \
     "$repository_root"
 fi

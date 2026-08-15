@@ -90,7 +90,17 @@ if git -C "$repository_root" rev-parse --verify HEAD >/dev/null 2>&1; then
       report_failure "Git history" "author or committer email is not a GitHub noreply address"
       break
     fi
-  done < <(git -C "$repository_root" log --all --format='%ae%n%ce')
+  done < <(git -C "$repository_root" log --branches --remotes --tags --format='%ae%n%ce')
+
+  while IFS= read -r tagger_identity; do
+    [[ -z "$tagger_identity" ]] && continue
+    tagger_email="${tagger_identity##*<}"
+    tagger_email="${tagger_email%>*}"
+    if [[ "$tagger_email" != *@users.noreply.github.com ]]; then
+      report_failure "Git tags" "tagger email is not a GitHub noreply address"
+      break
+    fi
+  done < <(git -C "$repository_root" for-each-ref --format='%(taggeremail)' refs/tags)
 fi
 
 if (( failure_count > 0 )); then

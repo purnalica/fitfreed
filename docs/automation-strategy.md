@@ -78,10 +78,12 @@ Commands will compose smaller versioned tasks, return meaningful exit codes, avo
 
 Repository-safety automation begins before the application stack is selected:
 
-- `scripts/check-repository-content.sh` checks candidate files and public Git metadata for local paths, personal export names, email disclosure, credential-shaped content, unreviewed binaries, and other publication-policy violations.
-- `scripts/run-secret-scan.sh` scans both candidate working-tree content and complete Git history using a checksum-verified, pinned Gitleaks CLI.
+- `scripts/check-repository-content.sh` checks candidate files and publishable branch, remote, and tag metadata for local paths, personal export names, email disclosure, credential-shaped content, unreviewed binaries, and other publication-policy violations.
+- `scripts/run-secret-scan.sh` scans both candidate working-tree content and complete branch, remote, and tag history using a checksum-verified, pinned Gitleaks CLI.
 - `scripts/check-initial-publication.sh` enforces the reviewed initial allowlist, staged scope, repository-local public-safe Git identity, expected remote, content checks, secret scans, and staged diff integrity.
 - `.github/workflows/repository-safety.yml` runs the content and secret checks with complete history and a SHA-pinned checkout action.
+
+Local tool-managed Git notes are not part of a normal branch or tag publication and are excluded from publication-metadata checks. Any workflow that intentionally publishes another ref namespace must add that namespace to the same checks before publication.
 
 ## Human approval boundaries
 

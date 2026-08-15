@@ -51,6 +51,7 @@
 - Continue through planned in-scope work without asking whether to proceed.
 - Create a focused local commit whenever a coherent increment passes its applicable verification gates. Do not batch unrelated completed increments into one commit.
 - After each verified commit, scan the complete outgoing range and perform a normal fast-forward push to `origin/main`. This standing authority does not permit force-push, tags, releases, other branches or remotes, or repository-setting changes.
+- SSH authentication uses Secretive and may be denied or wait while the project owner is away. Keep push attempts bounded; if authentication is unavailable, record synchronization as pending and continue local commits and useful in-scope work. Retry later unless confirmed remote state is strictly required by the active objective.
 - Resolve ordinary reversible technical decisions through evidence and document material trade-offs.
 - Diagnose failures to their root cause and continue safe in-scope work.
 - Pause only at a documented human intervention gate when no safe in-scope path remains.

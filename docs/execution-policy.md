@@ -53,6 +53,7 @@ A necessary pause reports:
 - A project-owner reply, correction, or non-blocking question does not pause the active plan. Incorporate it and continue with the next safe in-scope operation in the same working session.
 - Do not end a working session by handing routine next steps back to the project owner. Continue executing them until a documented human intervention gate is reached or the agreed objective is complete.
 - Progress reports are informational and never require an acknowledgement before execution continues.
+- SSH authentication is provided locally through Secretive and may require the project owner to be present. Remote synchronization is best-effort and non-blocking: attempt an authorized push with a bounded wait, then record it as pending and continue local commits and in-scope work if authentication is denied or stalls. Retry later without treating the unavailable key as a human intervention gate unless the current objective strictly requires confirmed remote state.
 
 ## Repository and private-data boundaries
 
