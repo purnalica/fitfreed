@@ -4,6 +4,8 @@
 
 Active Milestone 0 protocol. No application language, desktop framework, UI framework, persistence engine, analytical store, charting library, or test driver has been selected.
 
+The dated [`research/technology-paper-screen.md`](research/technology-paper-screen.md) advances Tauri and Electron to equivalent integrated spikes, with SQLite as the transactional baseline and DuckDB as the comparative analytical candidate. This narrows evaluation but makes no selection.
+
 ## Decision boundary
 
 Technology selection covers an integrated desktop delivery system:
