@@ -20,12 +20,14 @@ docs/automation-strategy.md
 docs/documentation-policy.md
 docs/execution-policy.md
 docs/naming.md
+docs/plans/milestone-0.md
 docs/product-thesis.md
 docs/quality-targets.md
 docs/repository-content-policy.md
 docs/requirements.md
 docs/research/external-feasibility-analysis-assessment.md
 docs/roadmap.md
+docs/technology-evaluation.md
 docs/testing-strategy.md
 scripts/check-initial-publication.sh
 scripts/check-repository-content.sh

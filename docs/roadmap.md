@@ -10,6 +10,8 @@ This document is the canonical source for product sequencing and milestone bound
 
 Detailed execution plans will be created per milestone and linked from this roadmap. Implementation issues will derive from those plans rather than replacing them.
 
+The active detailed plan is [`plans/milestone-0.md`](plans/milestone-0.md). Technology evidence follows [`technology-evaluation.md`](technology-evaluation.md).
+
 ## Planning principles
 
 - Deliver the smallest responsible MVP as the first usable product milestone.
