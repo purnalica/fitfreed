@@ -1,0 +1,16 @@
+# Architecture Decision Records
+
+This directory contains durable FitFreed architecture decisions. Read [the documentation policy](../../documentation-policy.md) for the distinction between decision history and current thematic architecture.
+
+## Workflow
+
+1. Copy `template.md` to the next monotonically numbered `NNNN-short-title.md` file.
+2. Set the status to `Proposed` while credible structural alternatives are being evaluated.
+3. Link evidence, prototypes, benchmarks, requirements, and affected architecture documents.
+4. Change the status to `Accepted` only when the decision owner has the required evidence and authority.
+5. Update current thematic architecture in the same change.
+6. Never rewrite an accepted decision to make it appear current. Create a new ADR and mark the old one `Superseded by ADR NNNN`.
+
+## Index
+
+No architecture decision has been accepted yet. Confirmed product constraints remain in `docs/requirements.md`; candidate technology choices remain open until Milestone 0 evidence supports them.

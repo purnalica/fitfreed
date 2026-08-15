@@ -1,0 +1,49 @@
+name: Feature proposal
+description: Propose a bounded product or contributor-experience outcome.
+title: "[Proposal]: "
+labels:
+  - proposal
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Explain the user or contributor problem without prescribing an implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: Describe observable success and who benefits.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence and alternatives
+      description: Provide relevant evidence and structural alternatives considered. Do not include personal exports or derived values.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Import and compatibility
+        - Exploration and visualization
+        - Reports and export
+        - Installation and updates
+        - Accessibility and localization
+        - Contributor experience
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope confirmation
+      options:
+        - label: I have checked the requirements, roadmap, and existing issues for this outcome.
+          required: true
+        - label: This proposal contains no real or derived personal data.
+          required: true

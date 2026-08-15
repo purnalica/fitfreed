@@ -1,0 +1,107 @@
+# Testing Strategy
+
+## Purpose
+
+Automated testing is the primary source of evidence that the product behaves correctly, preserves user data, respects architectural boundaries, and remains safe to change. Unit, integration, and end-to-end tests have distinct responsibilities and are all required.
+
+## Principles
+
+- Test behavior, invariants, contracts, and user outcomes rather than internal structure.
+- Use the lowest test level that can prove a behavior reliably; use higher levels to prove boundaries and journeys that lower levels cannot establish.
+- Keep tests deterministic, isolated, diagnosable, and executable through documented commands.
+- Use synthetic data only. Preserve relevant shape and edge cases without retaining personal values from the reference export.
+- A green test suite is required but not sufficient: acceptance also requires realistic evaluation, documentation, and architecture evidence.
+- Never delete or weaken an assertion merely because production structure changed. Preserve the protected behavior through an appropriate observation path.
+- Never disable strict test-double validation or hide flaky behavior through unconditional retries.
+
+## Test levels
+
+### Unit tests
+
+**Purpose:** prove domain behavior and application decisions quickly and precisely.
+
+**Primary scope:**
+
+- Entities, value objects, aggregates, and domain services.
+- Logical identity, reconciliation, conflict rules, and idempotency.
+- Calculations, time ranges, units, locale-independent semantics, and classifications.
+- Format-version selection and normalized error models.
+- Use-case orchestration through test-controlled ports.
+
+**Excluded:** concrete databases, ZIP readers, JSON libraries, operating-system APIs, update services, and graphical interfaces.
+
+### Integration tests
+
+**Purpose:** prove concrete adapters and contracts against real supporting technology.
+
+**Primary scope:**
+
+- ZIP validation, safe extraction or streaming, JSON parsing, and schema variants.
+- Anti-corruption mapping from Polar Flow structures to domain inputs.
+- Database constraints, transactions, migrations, queries, rollback, and restart behavior.
+- Import fingerprints, provenance, overlap reconciliation, and retry behavior.
+- Localization catalogs, placeholders, plural rules, and fallback.
+- Update metadata, signature validation, artifact selection, and migration coordination.
+- Packaging and operating-system integration where a complete UI journey is unnecessary.
+
+### End-to-end tests
+
+**Purpose:** prove that release-shaped desktop applications support complete user journeys.
+
+**Primary scope:**
+
+- Install, first run, language selection, and empty-state guidance.
+- Import through the file picker with realistic synthetic ZIP archives.
+- Reimport, cumulative import, interruption, failure recovery, and persisted restart.
+- Exploration, filtering, reports, visualizations, all included controls, and accessible alternatives.
+- `en-US` and `es-ES` behavior, including text expansion and locale-aware formatting.
+- Update availability, postponement, download, verification, installation, migration, and recovery.
+- Removal behavior and explicit treatment of the user's data library.
+
+E2E tests verify persisted outcomes and recovered state, not only visible controls.
+
+## Fixture strategy
+
+Synthetic fixtures will be generated from explicitly documented scenarios. The fixture catalog will include:
+
+- Minimal valid exports for each supported file family and historical variant.
+- Multiple related records and high-resolution samples at bounded test sizes.
+- Exact duplicate archives and logically equivalent exports with different file identities.
+- Older and newer overlapping exports, amended entities, and deterministic conflicts.
+- Unknown file families, unknown fields, unsupported versions, malformed JSON, unsafe paths, decompression-limit violations, and interrupted streams.
+- Empty, partial, and internally inconsistent exports.
+- Database baselines for every supported migration path.
+
+Large-scale performance fixtures will be generated during the test and excluded from version control.
+
+## Execution layers
+
+The concrete commands will be selected with the technology stack. The required execution model is:
+
+1. **Developer fast loop:** formatting, static analysis, architecture rules, unit tests, and focused integration tests.
+2. **Pull-request gate:** all unit tests, integration tests, documentation and localization validation, security checks, and a focused E2E journey set.
+3. **Main-branch confidence:** broader E2E, migration, import-compatibility, and performance scenarios.
+4. **Release gate:** signed release-shaped packages, clean installation, platform E2E matrix, supported-version upgrades, failed-update recovery, and removal.
+
+Local and continuous-integration workflows will invoke the same underlying commands.
+
+## Failure policy
+
+- Diagnose failures to their root cause before changing production or test code.
+- Preserve the behavior originally protected by a test when adapting it to structural changes.
+- Treat flaky tests as defects. Record ownership, reproduce the timing or state dependency, and correct the cause.
+- Quarantine is permitted only as a visible, time-bounded safety measure with an owner and restoration criterion; it cannot make a required quality gate appear healthy.
+- Do not accept release artifacts when a required platform, migration, or E2E path is unverified.
+- Treat clean installation and every supported update path as release blockers, including deliberately interrupted installation and migration scenarios.
+- Verify that every failed update leaves a usable previous version or completes the documented automated recovery path without data loss.
+- Keep unsigned macOS MVP alpha artifacts out of public release tests and channels; validate the first public macOS release with Developer ID, notarization, Gatekeeper, installation, and update E2E paths.
+
+## Pending decisions
+
+- Concrete test frameworks and desktop automation driver.
+- Supported operating-system matrix and distribution of E2E execution.
+- Validation of the provisional performance budgets and final reference-hardware profiles.
+- Accessibility conformance tooling and manual audit cadence.
+- Exact performance-benchmark hardware after the minimum macOS support decision.
+- Mutation-testing policy for critical domain rules.
+- Minimum supported upgrade baselines and migration matrix.

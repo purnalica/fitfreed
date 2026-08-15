@@ -1,0 +1,22 @@
+# Operating-system metadata
+.DS_Store
+
+# IDE-local metadata
+.idea/
+*.iml
+
+# Downloaded local project tools
+.tools/
+
+# Local research and working material
+.local/
+docs/reports/
+
+# Local secrets and environment overrides
+.env
+.env.*
+!.env.example
+
+# Personal vendor exports must never enter version control
+polar-user-data-export_*/
+polar-user-data-export_*.zip
