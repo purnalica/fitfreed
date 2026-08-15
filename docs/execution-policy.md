@@ -18,13 +18,14 @@ Execution continues without asking for routine confirmation when work involves:
 - Running documented local checks and non-destructive diagnostics.
 - Selecting the next planned increment after the current increment meets its acceptance gate.
 - Creating a focused local commit after a coherent increment passes its applicable documentation, privacy, security, and quality checks.
+- Pushing each verified commit with a normal fast-forward push to the exact `origin/main` target after the complete outgoing range passes repository, secret, and identity checks.
 
 ## Human intervention gates
 
 Execution pauses only for:
 
 1. **Product authority:** changing confirmed scope, priorities, acceptance criteria, supported platforms, licensing, governance, or another product decision with materially different outcomes.
-2. **External publication:** creating or changing a public repository, pushing unpublished history, publishing packages or releases, withdrawing a release, or communicating externally as the project owner.
+2. **External publication beyond the standing push authority:** creating or changing a public repository, pushing to another remote or branch, force-pushing, publishing packages or releases, withdrawing a release, or communicating externally as the project owner.
 3. **Credentials and legal identity:** GitHub identity, Apple Developer membership, signing keys, notarization credentials, translation-platform accounts, domains, or acceptance of third-party legal terms.
 4. **Destructive or irreversible action:** deleting or irreversibly migrating user data, rewriting shared history, replacing published artifacts, or removing external resources.
 5. **Security or privacy exception:** weakening a confirmed control, exposing personal data, granting broad access, or accepting a known supply-chain risk.
@@ -58,7 +59,8 @@ A necessary pause reports:
 - Private reference exports may be read only when they have been explicitly supplied for local analysis. They may not be modified, copied into the workspace, committed, or published.
 - Project files and non-destructive local verification may be created or changed within the active task and confirmed scope.
 - The project owner has authorized focused local commits throughout autonomous execution. Each commit must contain one coherent verified increment, use public-safe identity metadata, and pass the repository publication safeguards before creation.
-- Creating tags or pushing commits remains a separate external-publication action that requires explicit authority for the exact target.
+- The project owner has authorized a normal push to `origin/main` after every verified commit. The complete outgoing range must pass content, secret, and identity checks immediately before each push.
+- Creating tags, force-pushing, pushing another target, publishing releases or packages, or changing remote settings remains a separate action that requires explicit authority.
 - Creating or changing external repositories, packages, releases, update channels, or public communications requires explicit authority for the exact target and action.
 - Credentials, signing identities, notarization access, and destructive personal-data operations remain separate human gates.
 

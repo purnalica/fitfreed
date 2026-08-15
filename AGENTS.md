@@ -50,10 +50,11 @@
 - Follow `docs/execution-policy.md` as the canonical autonomy and intervention policy.
 - Continue through planned in-scope work without asking whether to proceed.
 - Create a focused local commit whenever a coherent increment passes its applicable verification gates. Do not batch unrelated completed increments into one commit.
+- After each verified commit, scan the complete outgoing range and perform a normal fast-forward push to `origin/main`. This standing authority does not permit force-push, tags, releases, other branches or remotes, or repository-setting changes.
 - Resolve ordinary reversible technical decisions through evidence and document material trade-offs.
 - Diagnose failures to their root cause and continue safe in-scope work.
 - Pause only at a documented human intervention gate when no safe in-scope path remains.
-- Never treat autonomy as permission to change scope, weaken constraints, publish externally, use credentials, create tags, push commits, or perform destructive actions without the required authority. Focused local commits are explicitly authorized by the project owner.
+- Never treat autonomy as permission to change scope, weaken constraints, publish releases or packages, use credentials, create tags, force-push, push another target, or perform destructive actions without the required authority. Focused local commits and normal pushes to `origin/main` are explicitly authorized by the project owner.
 - Preserve cryptographic verification of update artifacts even while the macOS MVP lacks Apple code signing and notarization.
 - Block publication when clean installation, any supported update path, interrupted-update recovery, or data preservation has not been verified with release-shaped artifacts.
 
@@ -81,7 +82,7 @@
 
 ## Git and GitHub Email Privacy
 
-- The local repository and private `purnalica/fitfreed` remote exist. Creating commits, tags, pushes, or public history still requires an explicit project-owner request; autonomy alone does not grant that authority.
+- The local repository and private `purnalica/fitfreed` remote exist. Focused local commits and normal fast-forward pushes to `origin/main` are authorized after the applicable gates pass. Tags, force-pushes, other targets, public release artifacts, and remote-setting changes are not authorized by that standing permission.
 - Stage the first public history through an explicit reviewed allowlist. Do not use a broad `git add .` for initial publication.
 - Never use or publish a private personal email address in commits, tags, signatures, trailers, package metadata, documentation, fixtures, logs, generated artifacts, issues, pull requests, or release materials.
 - Use the GitHub-provided `noreply` address associated with the intended account for repository-local `user.email`.

@@ -81,7 +81,7 @@ Milestone 0 ends with decisions and executable plans, not production feature imp
 
 - Continue autonomously between increments; pause only at a gate in `docs/execution-policy.md`.
 - Commit each coherent increment only after its applicable tests, documentation, privacy, security, and repository-content checks pass.
-- Do not push, tag, publish, sign, notarize, or alter external repository settings without explicit authority.
+- Push each verified commit normally to `origin/main` under the standing project-owner authority. Do not force-push, tag, publish releases or packages, sign, notarize, use another target, or alter external repository settings without separate authority.
 - Keep private exports and every derived value outside candidate repository content and diagnostic output.
 - Prefer representative evidence over framework claims and end-to-end behavior over isolated demonstrations.
 - Update this plan when sequencing or evidence changes; update requirements first if product scope changes.
