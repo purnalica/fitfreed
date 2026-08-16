@@ -6,6 +6,9 @@ import { ZipFile } from "yazl";
 
 const outputDirectory = path.resolve(process.argv[2] ?? ".artifacts/e2e/fixtures");
 const fixedTime = new Date("2000-01-01T00:00:00.000Z");
+const uuidA = "11111111-2222-4333-8444-555555555555";
+const uuidB = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
+const uuidC = "12345678-90ab-4cde-8f01-234567890abc";
 
 async function createArchive(name, entries) {
   const outputPath = path.join(outputDirectory, name);
@@ -29,28 +32,31 @@ async function createArchive(name, entries) {
 await mkdir(outputDirectory, { recursive: true });
 await createArchive("invalid.zip", [
   [
-    "activity-2026-01-01-invalid.json",
+    `activity-2026-01-01-${uuidC}.json`,
     '{"date":"2026-01-01","summary":{"stepCount":-1}}',
   ],
 ]);
 await createArchive("valid.zip", [
   [
-    "activity-2026-01-01-a.json",
+    `activity-2026-01-01-${uuidA}.json`,
     '{"date":"2026-01-01","summary":{"stepCount":3100}}',
   ],
   [
-    "activity-2026-01-02-a.json",
+    `activity-2026-01-02-${uuidA}.json`,
     '{"date":"2026-01-02","summary":{"stepCount":4200}}',
   ],
-  ["activity-2026-01-03-a.json", '{"date":"2026-01-03"}'],
+  [`activity-2026-01-03-${uuidA}.json`, '{"date":"2026-01-03"}'],
+  [`account-data-42-${uuidA}.json`, '{"exportVersion":"synthetic"}'],
+  [`profile-picture-42-LARGE-${uuidA}.data`, "synthetic image"],
+  [`future-family-42-${uuidA}.json`, "{}"],
 ]);
 await createArchive("overlap.zip", [
   [
-    "activity-2026-01-02-b.json",
+    `activity-2026-01-02-${uuidB}.json`,
     '{"date":"2026-01-02","summary":{"stepCount":4200}}',
   ],
   [
-    "activity-2026-01-04-b.json",
+    `activity-2026-01-04-${uuidB}.json`,
     '{"date":"2026-01-04","summary":{"stepCount":5300}}',
   ],
 ]);

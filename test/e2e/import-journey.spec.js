@@ -157,9 +157,9 @@ describe("packaged FitFreed import journey", () => {
     await waitForNotice("Import completed: 3 recognized, 3 new");
     await expectCoverage([
       ["3", "Supported"],
-      ["0", "Unsupported"],
-      ["0", "Deliberately ignored"],
-      ["0", "Unrecognized"],
+      ["1", "Unsupported"],
+      ["1", "Deliberately ignored"],
+      ["1", "Unrecognized"],
       ["0", "Invalid"],
     ]);
     await expectHistory([
@@ -172,9 +172,9 @@ describe("packaged FitFreed import journey", () => {
     await expect($("#outcome-heading")).toHaveText(spanish.outcome.heading);
     await expectCoverage([
       ["3", spanish.outcome.supported],
-      ["0", spanish.outcome.unsupported],
-      ["0", spanish.outcome.ignored],
-      ["0", spanish.outcome.unrecognized],
+      ["1", spanish.outcome.unsupported],
+      ["1", spanish.outcome.ignored],
+      ["1", spanish.outcome.unrecognized],
       ["0", spanish.outcome.invalid],
     ]);
     const hasHorizontalOverflow = await browser.execute(

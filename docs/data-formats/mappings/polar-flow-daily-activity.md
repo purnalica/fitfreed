@@ -8,7 +8,7 @@ This mapping defines FitFreed behavior. It does not claim that Polar guarantees 
 
 ## Recognition boundary
 
-The adapter examines safe regular files at the ZIP root. A filename beginning with `activity-` and ending with `.json` is recognized as a daily activity artifact. Directories, symbolic links, encrypted members, duplicate names, nested paths, absolute paths, and members that exceed configured resource limits reject the package before mapping.
+The adapter examines safe regular files at the ZIP root. Only `activity-{YYYY-MM-DD}-{UUID}.json` with the complete observed lexical token shapes is recognized as a daily activity artifact. A prefix match or malformed near miss is unrecognized. Directories, symbolic links, encrypted members, duplicate names, nested paths, absolute paths, and members that exceed configured resource limits reject the package before mapping.
 
 Filename tokens are used only for family recognition. They do not provide canonical identity, date, provenance identity, or ordering. The JSON `date` is currently not cross-checked against the filename date token.
 
@@ -27,7 +27,7 @@ Unknown JSON fields are accepted and ignored by mapping version 1. `exportVersio
 
 ## Coverage, provenance, failure, and atomicity
 
-Every safe ZIP-root member receives one artifact-coverage classification when assessment completes. Successfully mapped activity artifacts are `supported`; recognized activity artifacts with malformed JSON, an invalid or missing `date`, or an invalid mapped value are `invalid`; files outside the recognition boundary are currently `unrecognized`. Field-level omissions inside a supported activity artifact do not create additional artifact rows.
+Every safe ZIP-root member receives one artifact-coverage classification when assessment completes. Successfully mapped activity artifacts are `supported`; recognized activity artifacts with malformed JSON, an invalid or missing `date`, or an invalid mapped value are `invalid`. Other complete known Polar Flow grammars are `unsupported` or `deliberately-ignored` according to the provider registry, while unfamiliar and malformed names are `unrecognized`. Field-level omissions inside a supported activity artifact do not create additional artifact rows.
 
 Mapping reads one expanded artifact at a time before the canonical visibility transaction. Each mapped observation carries its artifact locator, artifact SHA-256, `json-root` source-record locator, provider, adapter version, and this mapping version into reconciliation. Reconciliation stores a provenance row for create, equivalent, enrichment, preservation, and conflict decisions.
 
@@ -39,8 +39,8 @@ The canonical (`originId`, `localDate`) identity drives overlap reconciliation. 
 
 ## Compatibility limits
 
-The adapter does not yet detect `exportVersion`, historical family variants, or a stable real account identity. It persists complete file-level coverage for the current synthetic recognition boundary, but it does not yet classify the full set of real Polar Flow export families. Real-export MVP compatibility therefore remains open.
+The adapter does not yet detect `exportVersion`, validate historical daily-activity variants, or resolve a stable real account identity. The executable filename registry covers every family observed in the current reference, but a recognized name does not imply that its JSON structure or semantics are supported. Real-export MVP compatibility therefore remains open.
 
 ## Synthetic evidence
 
-Integration tests independently construct ZIP and JSON inputs for valid, absent, invalid, overlapping, conflicting, repeated, cancelled, interrupted, duplicate-name, unsafe-path, symbolic-link, and compression-limit cases in [`../../../src-tauri/src/infrastructure.rs`](../../../src-tauri/src/infrastructure.rs). No example is copied from a personal export.
+Integration tests independently construct ZIP and JSON inputs with full fictional filename grammars for valid, absent, invalid, overlapping, conflicting, repeated, cancelled, interrupted, duplicate-name, unsafe-path, symbolic-link, known-family, ignored-family, unknown-family, and compression-limit cases in [`../../../src-tauri/src/infrastructure.rs`](../../../src-tauri/src/infrastructure.rs). No example is copied from a personal export.

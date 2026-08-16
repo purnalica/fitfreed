@@ -24,6 +24,8 @@ Every scenario has:
 
 Version-controlled definitions stay small and reviewable. Large histories, sample series, entry-count limits, and compression-limit inputs are generated deterministically during verification and excluded from version control.
 
+Provider artifact names use the complete documented lexical grammar with obviously fictional numeric, date, partition, and UUID-shaped tokens. Short convenience suffixes are invalid fixtures because they bypass the same family-detection boundary used for real packages.
+
 ## Core scenario catalog
 
 | ID | Scenario | Required evidence |

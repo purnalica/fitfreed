@@ -49,19 +49,22 @@ This registry is the public coverage index. Detailed shapes, fields, identities,
 
 | Family | Observed artifact role | MVP evaluation status |
 |---|---|---|
-| Account and profile | Account attributes, profile, preferences, and profile pictures | Discovery in progress |
-| Devices | Active and archived products, registrations, and device settings | Discovery in progress |
-| Daily activity | Daily summaries, activity samples, heart-rate samples, and inactivity events | Discovery in progress |
-| Beat-to-beat samples | Partitioned high-resolution physiological samples | Discovery in progress; detailed exploration excluded from MVP |
-| Training | Sessions, exercises, laps, zones, routes, and sample series | Discovery in progress; full-resolution and route exploration excluded from MVP |
-| Planning | Calendar entries, targets, favorites, programs, and personal events | Discovery in progress |
-| Sleep | Sleep timing, phases, interruptions, continuity, and scores | Discovery in progress |
-| Recovery | Nightly recovery measurements, recommendations, and related physiological observations | Discovery in progress |
-| Tests | Fitness and orthostatic test results | Discovery in progress |
-| Physical evolution | Historical physical measurements and thresholds | Discovery in progress |
-| Sport configuration | Sport profiles, zones, units, and reminders | Discovery in progress |
+| Account and profile | Account attributes, profile, preferences, and profile pictures | Account data is recognized but unsupported pending source-subject resolution; sensitive profile and picture artifacts are deliberately ignored by the MVP |
+| Devices | Active and archived products, registrations, and device settings | Recognized and unsupported |
+| Daily activity | Daily summaries, activity samples, and inactivity events | Filename grammar and canonical step-count mapping supported by version 1; real source-subject resolution remains open |
+| Continuous heart rate | Partitioned high-resolution daily heart-rate samples | Recognized and deliberately ignored because full-resolution physiological exploration is excluded from the MVP |
+| Beat-to-beat samples | Partitioned high-resolution physiological samples | Recognized and deliberately ignored because full-resolution physiological exploration is excluded from the MVP |
+| Training | Sessions, exercises, laps, zones, routes, and sample series | Recognized and unsupported; summary support is planned, while routes and full-resolution samples are excluded from the MVP |
+| Planning | Calendar entries, targets, favorites, programs, and personal events | Recognized and unsupported |
+| Sleep | Sleep timing, phases, interruptions, continuity, and scores | Recognized and unsupported pending the sleep increment |
+| Recovery | Nightly recovery measurements, recommendations, and related physiological observations | Recognized and unsupported pending the recovery increment |
+| Tests | Fitness and orthostatic test results | Recognized and unsupported |
+| Physical evolution | Historical physical measurements and thresholds | Recognized inside unsupported account, activity, calendar, and training structures; no separate artifact grammar is claimed |
+| Sport configuration | Sport profiles, zones, units, and reminders | Recognized and unsupported |
 
 An artifact that is recognized but unsupported will remain visible as unsupported. An unfamiliar artifact will be reported as unrecognized. Neither state is equivalent to a successful import.
+
+The executable registry matches the complete observed lexical filename grammars, including date, numeric, month, partition, size, and UUID-shaped tokens. A prefix match, shortened synthetic suffix, nested path, or malformed near miss does not claim family compatibility. Strict filename recognition does not establish that delivery tokens are stable identifiers or that the JSON root and fields are valid; those are separate family checks.
 
 ## Observed filename grammars and roots
 

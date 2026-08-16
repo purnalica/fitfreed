@@ -18,6 +18,8 @@ The private reference export is local acceptance input, never a fixture or publi
 
 ## Increment M2.1 — Real-package assessment and source-subject safety
 
+**Status:** in progress. The strict provider-owned filename registry now distinguishes the observed supported, unsupported, deliberately ignored, and unrecognized family boundaries; source-subject resolution and structural compatibility remain open.
+
 **Outcome:** the production application can assess a compatible real Polar Flow ZIP, resolve one library-local source subject without a fixed synthetic identity, import the supported daily-activity boundary, and explain the status of every archive member.
 
 **Work:**

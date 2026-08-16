@@ -17,7 +17,8 @@ await mkdir(path.dirname(outputPath), { recursive: true });
 
 for (let index = 0; index < entryCount; index += 1) {
   const date = new Date(startDate + index * 86_400_000).toISOString().slice(0, 10);
-  const token = String(index).padStart(5, "0");
+  const token = index.toString(16).padStart(12, "0");
+  const artifactId = `00000000-0000-4000-8000-${token}`;
   const prefix = Buffer.from(
     `{"date":"${date}","summary":{"stepCount":${(index * 7919) % 40_000}},"syntheticPadding":"`,
   );
@@ -26,7 +27,7 @@ for (let index = 0; index < entryCount; index += 1) {
   expandedBytes += size;
   zip.addReadStream(
     Readable.from([prefix, padding, suffix]),
-    `activity-${date}-${token}.json`,
+    `activity-${date}-${artifactId}.json`,
     {
       size,
       mtime: fixedTime,

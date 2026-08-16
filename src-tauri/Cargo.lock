@@ -1094,6 +1094,7 @@ dependencies = [
  "fitfreed-application",
  "fitfreed-domain",
  "libc",
+ "regex",
  "rusqlite",
  "serde",
  "serde_json",

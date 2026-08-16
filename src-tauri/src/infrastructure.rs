@@ -23,6 +23,10 @@ use fitfreed_domain::{
     ExistingObservation, ImportOperationState, ImportOutcome, ImportReport, ReconciliationDecision,
 };
 
+mod polar_flow;
+
+use polar_flow::assess_artifact;
+
 const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
@@ -300,7 +304,7 @@ fn execute_import(
         0,
         archive_entries,
     ));
-    let recognized_artifacts = validate_archive(&mut archive, cancellation, on_progress)?;
+    let processable_artifacts = validate_archive(&mut archive, cancellation, on_progress)?;
     timings.archive_validation_milliseconds = milliseconds(validation_started.elapsed());
     set_total_artifacts(connection, operation_id, archive_entries)?;
     transition_operation(
@@ -320,25 +324,26 @@ fn execute_import(
     on_progress(ImportProgress::artifacts(
         ImportPhase::Importing,
         0,
-        recognized_artifacts,
+        processable_artifacts,
     ));
 
-    let mut mapped_artifacts = Vec::with_capacity(recognized_artifacts);
+    let mut mapped_artifacts = Vec::with_capacity(processable_artifacts);
     let mut first_invalid = None;
-    let mut processed_recognized = 0;
+    let mut processed_artifacts = 0;
     for index in 0..archive.len() {
         ensure_not_cancelled(cancellation)?;
         let mut member = archive.by_index(index)?;
         let locator = member.name().to_owned();
-        if !is_activity_artifact(&locator) {
+        let assessment = assess_artifact(&locator);
+        if assessment.classification != ArtifactClassification::Supported {
             record_artifact_coverage(
                 connection,
                 operation_id,
                 &locator,
+                assessment.family,
+                assessment.classification,
                 None,
-                ArtifactClassification::Unrecognized,
-                None,
-                "unrecognized-artifact-family",
+                assessment.reason_code,
             )?;
             continue;
         }
@@ -354,10 +359,10 @@ fn execute_import(
                     connection,
                     operation_id,
                     &locator,
-                    Some("polar-flow-daily-activity"),
-                    ArtifactClassification::Supported,
+                    assessment.family,
+                    assessment.classification,
                     Some(&artifact_sha256),
-                    "mapped",
+                    assessment.reason_code,
                 )?;
                 mapped_artifacts.push(mapped);
             }
@@ -366,7 +371,7 @@ fn execute_import(
                     connection,
                     operation_id,
                     &locator,
-                    Some("polar-flow-daily-activity"),
+                    assessment.family,
                     ArtifactClassification::Invalid,
                     Some(&artifact_sha256),
                     "invalid-supported-artifact",
@@ -376,11 +381,11 @@ fn execute_import(
                 }
             }
         }
-        processed_recognized += 1;
+        processed_artifacts += 1;
         on_progress(ImportProgress::artifacts(
             ImportPhase::Importing,
-            processed_recognized,
-            recognized_artifacts,
+            processed_artifacts,
+            processable_artifacts,
         ));
     }
     refresh_operation_coverage(connection, operation_id)?;
@@ -405,7 +410,7 @@ fn execute_import(
     on_progress(ImportProgress::artifacts(
         ImportPhase::Committing,
         mapped_artifacts.len(),
-        recognized_artifacts,
+        processable_artifacts,
     ));
 
     let transaction_started = Instant::now();
@@ -992,7 +997,7 @@ fn validate_archive(
     let mut names = HashSet::new();
     let mut total_size = 0_u64;
     let total_entries = archive.len();
-    let mut recognized_artifacts = 0;
+    let mut processable_artifacts = 0;
     for index in 0..archive.len() {
         ensure_not_cancelled(cancellation)?;
         let member = archive.by_index(index)?;
@@ -1029,8 +1034,8 @@ fn validate_archive(
                 "expanded archive exceeds {MAX_TOTAL_BYTES} bytes"
             )));
         }
-        if is_activity_artifact(&name) {
-            recognized_artifacts += 1;
+        if assess_artifact(&name).classification == ArtifactClassification::Supported {
+            processable_artifacts += 1;
         }
         let completed = index + 1;
         if completed % 100 == 0 || completed == total_entries {
@@ -1041,7 +1046,7 @@ fn validate_archive(
             ));
         }
     }
-    Ok(recognized_artifacts)
+    Ok(processable_artifacts)
 }
 
 fn validate_central_directory_names(path: &Path) -> Result<()> {
@@ -1441,10 +1446,6 @@ fn ensure_not_cancelled(cancellation: &AtomicBool) -> Result<()> {
     }
 }
 
-fn is_activity_artifact(name: &str) -> bool {
-    name.starts_with("activity-") && name.ends_with(".json")
-}
-
 pub struct SqlitePolarFlowArchiveImporter {
     database_path: PathBuf,
     origin_id: String,
@@ -1575,11 +1576,11 @@ mod tests {
             "initial.zip",
             &[
                 (
-                    "activity-2026-01-02-source.json",
+                    "activity-2026-01-02-11111111-2222-4333-8444-555555555555.json",
                     r#"{"date":"2026-01-02","summary":{"stepCount":4200}}"#,
                 ),
                 (
-                    "activity-2026-01-01-source.json",
+                    "activity-2026-01-01-11111111-2222-4333-8444-555555555555.json",
                     r#"{"date":"2026-01-01","summary":{"stepCount":3100}}"#,
                 ),
             ],
@@ -1617,14 +1618,17 @@ mod tests {
             "coverage.zip",
             &[
                 (
-                    "activity-2026-01-01-source.json",
+                    "activity-2026-01-01-11111111-2222-4333-8444-555555555555.json",
                     r#"{"date":"2026-01-01","summary":{"stepCount":3100}}"#,
                 ),
                 (
-                    "activity-2026-01-02-source.json",
+                    "activity-2026-01-02-11111111-2222-4333-8444-555555555555.json",
                     r#"{"date":"2026-01-02","summary":{"stepCount":4200}}"#,
                 ),
-                ("account-data.json", r#"{"exported":true}"#),
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"exportVersion":"synthetic"}"#,
+                ),
             ],
         );
 
@@ -1666,16 +1670,17 @@ mod tests {
                 true,
                 3,
                 2,
-                0,
-                0,
                 1,
+                0,
+                0,
                 0,
             )
         );
 
         let mut coverage_statement = connection
             .prepare(
-                "SELECT artifact_locator, classification, source_artifact_sha256
+                "SELECT artifact_locator, artifact_family, classification,
+                        source_artifact_sha256, reason_code
                  FROM import_artifact_coverage ORDER BY artifact_locator",
             )
             .expect("coverage query");
@@ -1683,18 +1688,22 @@ mod tests {
             .query_map([], |row| {
                 Ok((
                     row.get::<_, String>(0)?,
-                    row.get::<_, String>(1)?,
-                    row.get::<_, Option<String>>(2)?,
+                    row.get::<_, Option<String>>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, Option<String>>(3)?,
+                    row.get::<_, String>(4)?,
                 ))
             })
             .expect("coverage rows")
             .collect::<std::result::Result<Vec<_>, _>>()
             .expect("coverage collection");
         assert_eq!(coverage.len(), 3);
-        assert_eq!(coverage[0].1, "unrecognized");
-        assert_eq!(coverage[1].1, "supported");
-        assert_eq!(coverage[2].1, "supported");
-        assert!(coverage[1].2.as_ref().is_some_and(|hash| hash.len() == 64));
+        assert_eq!(coverage[0].1, Some("polar-flow-account-data".to_owned()));
+        assert_eq!(coverage[0].2, "unsupported");
+        assert_eq!(coverage[0].4, "known-family-not-yet-supported");
+        assert_eq!(coverage[1].2, "supported");
+        assert_eq!(coverage[2].2, "supported");
+        assert!(coverage[1].3.as_ref().is_some_and(|hash| hash.len() == 64));
 
         let provenance = connection
             .query_row(
@@ -1738,7 +1747,8 @@ mod tests {
         assert!(outcome.coverage_complete);
         assert_eq!(outcome.coverage.total, 3);
         assert_eq!(outcome.coverage.supported, 2);
-        assert_eq!(outcome.coverage.unrecognized, 1);
+        assert_eq!(outcome.coverage.unsupported, 1);
+        assert_eq!(outcome.coverage.unrecognized, 0);
         assert_eq!(outcome.report.new_observations, 2);
         assert!(outcome.canonical_history_changed);
     }
@@ -1750,7 +1760,7 @@ mod tests {
             "repeat-evidence.zip",
             &[
                 (
-                    "activity-2026-01-08-source.json",
+                    "activity-2026-01-08-11111111-2222-4333-8444-555555555555.json",
                     r#"{"date":"2026-01-08"}"#,
                 ),
                 ("unknown.json", r#"{"value":1}"#),
@@ -1805,7 +1815,7 @@ mod tests {
         let archive = harness.archive(
             "profiled.zip",
             &[(
-                "activity-2026-01-03-source.json",
+                "activity-2026-01-03-11111111-2222-4333-8444-555555555555.json",
                 r#"{"date":"2026-01-03","summary":{"stepCount":5100}}"#,
             )],
         );
@@ -1832,11 +1842,11 @@ mod tests {
             "progress.zip",
             &[
                 (
-                    "activity-2026-01-04-source.json",
+                    "activity-2026-01-04-11111111-2222-4333-8444-555555555555.json",
                     r#"{"date":"2026-01-04","summary":{"stepCount":6100}}"#,
                 ),
                 (
-                    "activity-2026-01-05-source.json",
+                    "activity-2026-01-05-11111111-2222-4333-8444-555555555555.json",
                     r#"{"date":"2026-01-05","summary":{"stepCount":7200}}"#,
                 ),
             ],
@@ -1887,11 +1897,11 @@ mod tests {
             "cancel.zip",
             &[
                 (
-                    "activity-2026-01-06-source.json",
+                    "activity-2026-01-06-11111111-2222-4333-8444-555555555555.json",
                     r#"{"date":"2026-01-06","summary":{"stepCount":8300}}"#,
                 ),
                 (
-                    "activity-2026-01-07-source.json",
+                    "activity-2026-01-07-11111111-2222-4333-8444-555555555555.json",
                     r#"{"date":"2026-01-07","summary":{"stepCount":9400}}"#,
                 ),
             ],
@@ -1960,9 +1970,12 @@ mod tests {
         let baseline = harness.archive(
             "baseline.zip",
             &[
-                ("activity-2026-02-01-a.json", r#"{"date":"2026-02-01"}"#),
                 (
-                    "activity-2026-02-02-a.json",
+                    "activity-2026-02-01-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"date":"2026-02-01"}"#,
+                ),
+                (
+                    "activity-2026-02-02-11111111-2222-4333-8444-555555555555.json",
                     r#"{"date":"2026-02-02","summary":{"stepCount":1000}}"#,
                 ),
             ],
@@ -1973,15 +1986,15 @@ mod tests {
             "overlap.zip",
             &[
                 (
-                    "activity-2026-02-01-b.json",
+                    "activity-2026-02-01-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
                     r#"{"date":"2026-02-01","summary":{"stepCount":900}}"#,
                 ),
                 (
-                    "activity-2026-02-02-b.json",
+                    "activity-2026-02-02-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
                     r#"{"date":"2026-02-02","summary":{"stepCount":1000}}"#,
                 ),
                 (
-                    "activity-2026-02-03-b.json",
+                    "activity-2026-02-03-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
                     r#"{"date":"2026-02-03","summary":{"stepCount":1500}}"#,
                 ),
             ],
@@ -1995,7 +2008,7 @@ mod tests {
         let competing = harness.archive(
             "competing.zip",
             &[(
-                "activity-2026-02-02-c.json",
+                "activity-2026-02-02-12345678-90ab-4cde-8f01-234567890abc.json",
                 r#"{"date":"2026-02-02","summary":{"stepCount":2000}}"#,
             )],
         );
@@ -2005,7 +2018,10 @@ mod tests {
 
         let less_complete = harness.archive(
             "less-complete.zip",
-            &[("activity-2026-02-02-d.json", r#"{"date":"2026-02-02"}"#)],
+            &[(
+                "activity-2026-02-02-fedcba98-7654-4321-8fed-cba987654321.json",
+                r#"{"date":"2026-02-02"}"#,
+            )],
         );
         let preserved_report =
             import_archive(&harness.database(), &less_complete, "polar:synthetic")
@@ -2051,11 +2067,11 @@ mod tests {
             "interrupted.zip",
             &[
                 (
-                    "activity-2026-03-01-a.json",
+                    "activity-2026-03-01-11111111-2222-4333-8444-555555555555.json",
                     r#"{"date":"2026-03-01","summary":{"stepCount":100}}"#,
                 ),
                 (
-                    "activity-2026-03-02-a.json",
+                    "activity-2026-03-02-11111111-2222-4333-8444-555555555555.json",
                     r#"{"date":"2026-03-02","summary":{"stepCount":200}}"#,
                 ),
             ],
@@ -2124,11 +2140,11 @@ mod tests {
             "invalid.zip",
             &[
                 (
-                    "activity-2026-04-01-a.json",
+                    "activity-2026-04-01-11111111-2222-4333-8444-555555555555.json",
                     r#"{"date":"2026-04-01","summary":{"stepCount":100}}"#,
                 ),
                 (
-                    "activity-2026-04-02-a.json",
+                    "activity-2026-04-02-11111111-2222-4333-8444-555555555555.json",
                     r#"{"date":"not-a-date","summary":{"stepCount":200}}"#,
                 ),
             ],
@@ -2178,7 +2194,7 @@ mod tests {
         let archive = harness.archive(
             "unsafe.zip",
             &[(
-                "../activity-2026-05-01-a.json",
+                "../activity-2026-05-01-11111111-2222-4333-8444-555555555555.json",
                 r#"{"date":"2026-05-01","summary":{"stepCount":100}}"#,
             )],
         );
@@ -2253,12 +2269,18 @@ mod tests {
         let archive = harness.archive(
             "duplicate.zip",
             &[
-                ("activity-2026-05-02-a.json", r#"{"date":"2026-05-02"}"#),
-                ("activity-2026-05-02-b.json", r#"{"date":"2026-05-02"}"#),
+                (
+                    "activity-2026-05-02-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"date":"2026-05-02"}"#,
+                ),
+                (
+                    "activity-2026-05-02-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    r#"{"date":"2026-05-02"}"#,
+                ),
             ],
         );
-        let original = b"activity-2026-05-02-b.json";
-        let replacement = b"activity-2026-05-02-a.json";
+        let original = b"activity-2026-05-02-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json";
+        let replacement = b"activity-2026-05-02-11111111-2222-4333-8444-555555555555.json";
         let mut bytes = std::fs::read(&archive).expect("ZIP bytes");
         for offset in 0..=bytes.len() - original.len() {
             if &bytes[offset..offset + original.len()] == original {
@@ -2279,7 +2301,10 @@ mod tests {
         let content = format!(r#"{{"date":"2026-05-03","padding":"{padding}"}}"#);
         let archive = harness.archive(
             "compression-ratio.zip",
-            &[("activity-2026-05-03-a.json", &content)],
+            &[(
+                "activity-2026-05-03-11111111-2222-4333-8444-555555555555.json",
+                &content,
+            )],
         );
 
         let error = import_archive(&harness.database(), &archive, "polar:synthetic")
@@ -2292,7 +2317,10 @@ mod tests {
         let harness = Harness::new();
         let archive = harness.archive(
             "symlink.zip",
-            &[("activity-2026-05-04-a.json", r#"{"date":"2026-05-04"}"#)],
+            &[(
+                "activity-2026-05-04-11111111-2222-4333-8444-555555555555.json",
+                r#"{"date":"2026-05-04"}"#,
+            )],
         );
         let mut bytes = std::fs::read(&archive).expect("ZIP bytes");
         let central_offset = bytes
@@ -2315,9 +2343,18 @@ mod tests {
         let archive = harness.archive(
             "range.zip",
             &[
-                ("activity-2026-06-01-a.json", r#"{"date":"2026-06-01"}"#),
-                ("activity-2026-06-02-b.json", r#"{"date":"2026-06-02"}"#),
-                ("activity-2026-06-03-c.json", r#"{"date":"2026-06-03"}"#),
+                (
+                    "activity-2026-06-01-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"date":"2026-06-01"}"#,
+                ),
+                (
+                    "activity-2026-06-02-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    r#"{"date":"2026-06-02"}"#,
+                ),
+                (
+                    "activity-2026-06-03-12345678-90ab-4cde-8f01-234567890abc.json",
+                    r#"{"date":"2026-06-03"}"#,
+                ),
             ],
         );
         import_archive(&harness.database(), &archive, "polar:synthetic").expect("range import");
@@ -2718,7 +2755,7 @@ mod tests {
         let archive = harness.archive(
             "backup-source.zip",
             &[(
-                "activity-2026-07-01-a.json",
+                "activity-2026-07-01-11111111-2222-4333-8444-555555555555.json",
                 r#"{"date":"2026-07-01","summary":{"stepCount":3210}}"#,
             )],
         );
