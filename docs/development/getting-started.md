@@ -27,12 +27,15 @@ npm run test:fast
 | Outcome | Command |
 |---|---|
 | Diagnose the development environment | `npm run doctor` |
+| Audit production and build dependencies | `npm run audit:dependencies` |
 | Run the desktop application in development | `npm run tauri -- dev` |
 | Verify architecture boundaries | `npm run check:architecture` |
 | Verify canonical, mapping, and persistence contracts | `npm run check:data-contracts` |
+| Verify release identity and version contracts | `npm run check:release-contracts` |
 | Verify locale catalogs | `npm run check:i18n` |
 | Verify reduced-motion presentation contracts | `npm run check:ui-contracts` |
 | Run presentation tests | `npm test` |
+| Run project automation tests | `npm run test:scripts` |
 | Run all Rust tests | `npm run test:rust` |
 | Run the fast contributor lane | `npm run test:fast` |
 | Check Rust formatting | `npm run format:check` |

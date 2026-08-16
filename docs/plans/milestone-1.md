@@ -91,7 +91,7 @@ Hosted evidence: commit `pre-purge` passed the [portable and packaged macOS lane
 
 ## Increment M1.5 — Contributor and user documentation
 
-**Status:** locally complete; hosted clean-clone confirmation pending. Documentation is navigable by audience; the supported environment, setup, architecture, tests, fixtures, debugging, packaging, localization, data contracts, privacy boundaries, contribution flow, current user journey, safety boundary, and unavailable alpha capabilities are explicit and versioned.
+**Status:** complete. Documentation is navigable by audience; the supported environment, setup, architecture, tests, fixtures, debugging, packaging, localization, data contracts, privacy boundaries, contribution flow, current user journey, safety boundary, and unavailable alpha capabilities are explicit and versioned. The documented environment and verification entry points pass from a clean GitHub Actions checkout on both Ubuntu and macOS.
 
 **Outcome:** a new contributor and a development evaluator can complete the current Milestone 1 journeys without private maintainer knowledge. Alpha-user documentation evolves with the real-data, installation, backup, recovery, and update behavior that enters Milestone 2; unavailable behavior is never documented as usable.
 
@@ -104,11 +104,13 @@ Hosted evidence: commit `pre-purge` passed the [portable and packaged macOS lane
 
 **Acceptance evidence:** clean-clone and packaged-journey walkthroughs pass using only versioned instructions and synthetic data.
 
-Local evidence on 2026-08-16: the environment doctor passed against the pinned macOS toolchain; all 158 local documentation links passed; and the documented `npm run verify:full` entry point passed architecture, data-contract, documentation, translation, reduced-motion, presentation, Rust, formatting, lint, packaged E2E, production-package, and test-instrumentation exclusion gates. Hosted clean-checkout evidence remains pending for this increment.
+Local evidence on 2026-08-16: the environment doctor passed against the pinned macOS toolchain; all 158 local documentation links passed; and the documented `npm run verify:full` entry point passed architecture, data-contract, documentation, translation, reduced-motion, presentation, Rust, formatting, lint, packaged E2E, production-package, and test-instrumentation exclusion gates.
+
+Hosted evidence: commit `pre-purge` passed the [portable and packaged macOS lanes](https://github.com/purnalica/fitfreed/actions/runs/31959478613) and the independent [repository content and secret scan](https://github.com/purnalica/fitfreed/actions/runs/31959478681).
 
 ## Increment M1.6 — Release-shaped installation and recovery
 
-**Status:** pending.
+**Status:** in progress. ADR 0003 defines the proposed package, integrity, ecosystem-specific SBOM, manifest, and isolated installation evidence boundary; implementation and clean-checkout verification remain open.
 
 **Outcome:** Milestone 1 produces a private development package and release-draft input whose installation and failure behavior are verified without publishing an unsigned binary.
 

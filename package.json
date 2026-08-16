@@ -2,6 +2,16 @@
   "name": "fitfreed",
   "private": true,
   "version": "0.1.0",
+  "description": "A local-first open-source fitness data explorer",
+  "license": "GPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/purnalica/fitfreed"
+  },
+  "overrides": {
+    "@puppeteer/browsers": "3.2.0",
+    "serialize-javascript": "7.1.0"
+  },
   "type": "module",
   "packageManager": "npm@10.9.2",
   "engines": {
@@ -12,12 +22,14 @@
     "doctor": "scripts/check-development-environment.sh",
     "dev": "vite",
     "build": "tsc && vite build",
+    "audit:dependencies": "npm audit --audit-level=high",
     "check:architecture": "node scripts/check-rust-architecture.mjs",
     "check:data-contracts": "node scripts/check-data-contracts.mjs",
     "check:docs": "node scripts/check-markdown-links.mjs",
     "check:i18n": "node scripts/check-translations.mjs",
     "check:ui-contracts": "node scripts/check-ui-contracts.mjs",
     "check:production-bundle": "scripts/check-production-bundle.sh",
+    "check:release-contracts": "node scripts/check-release-contracts.mjs",
     "format:check": "cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check",
     "lint:rust": "npm run icons && cargo clippy --manifest-path src-tauri/Cargo.toml --workspace --all-targets --all-features -- -D warnings",
     "icons": "tauri icon assets/brand/fitfreed-icon.svg --output src-tauri/icons",
@@ -29,10 +41,11 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:rust": "npm run icons && cargo test --manifest-path src-tauri/Cargo.toml --workspace --all-features",
-    "test:fast": "npm run check:architecture && npm run check:data-contracts && npm run check:docs && npm run check:i18n && npm run check:ui-contracts && npm test && npm run test:rust",
+    "test:fast": "npm run check:architecture && npm run check:data-contracts && npm run check:release-contracts && npm run check:docs && npm run check:i18n && npm run check:ui-contracts && npm run test:scripts && npm test && npm run test:rust",
+    "test:scripts": "node --test scripts/*.test.mjs",
     "test:e2e": "wdio run wdio.conf.js",
     "verify:e2e": "npm run build:e2e && npm run test:e2e",
-    "verify:full": "npm run doctor && npm run test:fast && npm run lint:rust && npm run format:check && npm run verify:e2e && npm run package && npm run check:production-bundle",
+    "verify:full": "npm run doctor && npm run audit:dependencies && npm run test:fast && npm run lint:rust && npm run format:check && npm run verify:e2e && npm run package && npm run check:production-bundle",
     "tauri": "tauri"
   },
   "dependencies": {

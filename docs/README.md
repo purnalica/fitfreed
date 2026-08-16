@@ -24,6 +24,7 @@ FitFreed does not have a supported alpha release yet. The current executable fou
 - [Roadmap](roadmap.md) defines outcome order and milestone boundaries.
 - [Active Milestone 1 plan](plans/milestone-1.md) defines the current implementation sequence and evidence.
 - [Architecture decision records](architecture/decisions/README.md) preserve durable structural decisions.
+- [Release delivery architecture](architecture/release-delivery.md) separates private evidence preparation from publication authority.
 - [Product thesis](product-thesis.md) explains the GDPR-enabled portability and open-source freedom argument without presenting FitFreed as legal advice or a compliance product.
 
 ## Documentation ownership

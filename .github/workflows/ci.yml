@@ -44,6 +44,9 @@ jobs:
       - name: Verify data contracts
         run: npm run check:data-contracts
 
+      - name: Verify release contracts
+        run: npm run check:release-contracts
+
       - name: Verify translation catalogs
         run: npm run check:i18n
 
@@ -56,6 +59,9 @@ jobs:
       - name: Test the presentation
         run: npm test
 
+      - name: Test project automation
+        run: npm run test:scripts
+
       - name: Build the presentation
         run: npm run build
 
@@ -65,8 +71,8 @@ jobs:
       - name: Test domain and application crates
         run: cargo test --manifest-path src-tauri/Cargo.toml -p fitfreed-domain -p fitfreed-application
 
-      - name: Audit production JavaScript dependencies
-        run: npm audit --omit=dev --audit-level=high
+      - name: Audit JavaScript production and build dependencies
+        run: npm run audit:dependencies
 
   packaged-macos-e2e:
     name: Packaged macOS E2E
