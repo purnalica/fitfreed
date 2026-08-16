@@ -20,6 +20,10 @@ for command in dd ditto hdiutil node shasum sqlite3; do
 done
 
 repository_root="$(git rev-parse --show-toplevel)"
+expected_schema_version="$(
+  node "$repository_root/scripts/check-data-contracts.mjs" |
+    node -e 'let input=""; process.stdin.on("data", chunk => input += chunk); process.stdin.on("end", () => process.stdout.write(String(JSON.parse(input).schemaVersion)))'
+)"
 if [[ $# -eq 1 ]]; then
   release_directory="$(cd "$1" && pwd -P)"
 else
@@ -54,7 +58,7 @@ launch_application() {
   for _ in {1..200}; do
     if [[ -f "$library_path" ]]; then
       schema_version="$(sqlite3 "$library_path" 'PRAGMA user_version;' 2>/dev/null || true)"
-      if [[ "$schema_version" == "3" ]]; then
+      if [[ "$schema_version" == "$expected_schema_version" ]]; then
         break
       fi
     fi
@@ -69,8 +73,8 @@ launch_application() {
     wait "$application_pid" >/dev/null 2>&1 || true
   fi
   application_pid=""
-  if [[ "$schema_version" != "3" ]]; then
-    printf 'Installed application did not initialize storage schema 3.\n' >&2
+  if [[ "$schema_version" != "$expected_schema_version" ]]; then
+    printf 'Installed application did not initialize storage schema %s.\n' "$expected_schema_version" >&2
     sed -n '1,80p' "$launch_log" >&2
     exit 1
   fi
@@ -131,7 +135,7 @@ launch_application
 removed_application="$verification_root/removed/FitFreed.app"
 mkdir -p "$(dirname "$removed_application")"
 mv "$destination" "$removed_application"
-if [[ ! -f "$library_path" || "$(sqlite3 "$library_path" 'PRAGMA user_version;')" != "3" ]]; then
+if [[ ! -f "$library_path" || "$(sqlite3 "$library_path" 'PRAGMA user_version;')" != "$expected_schema_version" ]]; then
   printf 'Removing the isolated application removed or damaged its separate library.\n' >&2
   exit 1
 fi
