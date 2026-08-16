@@ -32,9 +32,10 @@ if (JSON.stringify(migrationVersions) !== JSON.stringify(expectedVersions)) {
   );
 }
 
-const persistencePath = "docs/data-formats/persistence/sqlite-v1.md";
-const persistence = read(persistencePath);
 for (const migration of migrations) {
+  const version = Number(migration.slice(0, 4));
+  const persistencePath = `docs/data-formats/persistence/sqlite-v${version}.md`;
+  const persistence = read(persistencePath);
   if (!persistence.includes(migration)) {
     throw new Error(`${persistencePath} does not reference ${migration}`);
   }
@@ -47,6 +48,31 @@ for (const migration of migrations) {
       if (columnMatch) requireMention(persistence, columnMatch[1], persistencePath);
     }
   }
+}
+
+const currentPersistencePath = `docs/data-formats/persistence/sqlite-v${schemaVersion}.md`;
+const currentPersistence = read(currentPersistencePath);
+for (const contractValue of [
+  "polar-flow",
+  "polar-flow-archive@1",
+  "polar-flow-daily-activity@1",
+  "assessing",
+  "planned",
+  "staging",
+  "reconciling",
+  "committing",
+  "recovering",
+  "completed",
+  "rejected",
+  "cancelled",
+  "failed",
+  "supported",
+  "unsupported",
+  "deliberately-ignored",
+  "unrecognized",
+  "invalid",
+]) {
+  requireMention(currentPersistence, contractValue, currentPersistencePath);
 }
 
 const domainPath = "src-tauri/crates/fitfreed-domain/src/lib.rs";
@@ -71,7 +97,10 @@ for (const targetField of ["originId", "localDate", "stepCount"]) {
 
 const indexPath = "docs/data-formats/README.md";
 const index = read(indexPath);
-for (const contractPath of [canonicalPath, mappingPath, persistencePath]) {
+const persistencePaths = expectedVersions.map(
+  (version) => `docs/data-formats/persistence/sqlite-v${version}.md`,
+);
+for (const contractPath of [canonicalPath, mappingPath, ...persistencePaths]) {
   const relativeContract = path.relative(path.dirname(indexPath), contractPath);
   if (!index.includes(relativeContract)) {
     throw new Error(`${indexPath} does not index ${relativeContract}`);
@@ -79,5 +108,5 @@ for (const contractPath of [canonicalPath, mappingPath, persistencePath]) {
 }
 
 process.stdout.write(
-  `${JSON.stringify({ schemaVersion, migrations, canonicalFields: 3, mappingFields: 6 })}\n`,
+  `${JSON.stringify({ schemaVersion, migrations, persistencePaths, canonicalFields: 3, mappingFields: 6 })}\n`,
 );

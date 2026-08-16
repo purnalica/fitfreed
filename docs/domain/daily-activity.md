@@ -1,8 +1,8 @@
-# Daily Activity Domain Candidate
+# Daily Activity Domain
 
 ## Status
 
-Proposed first vertical concept for Milestone 1. This is a domain-design candidate, not yet a released canonical data-format version. Acceptance depends on the technology spike and synthetic contract proof.
+Implemented first vertical concept for Milestone 1. The deliberately small accepted version is normative in the [canonical daily activity specification](../data-formats/canonical/daily-activity.md); the broader components and open decisions below remain design candidates rather than implied support.
 
 ## Why this concept is first
 
@@ -10,13 +10,13 @@ Daily activity can deliver a useful longitudinal view with a smaller semantic su
 
 Selecting it does not make the provider's activity JSON a domain aggregate. Physical-information snapshots and sleep-derived summary fields found in that artifact belong to separate mappings and cannot be copied into daily activity merely because they share a file.
 
-## Candidate model
+## Model direction
 
 ### Daily Activity Observation
 
 A provider-neutral account of activity attributed by one observation origin to one local calendar day.
 
-**Candidate identity:** `ObservationOriginId + LocalDate`.
+**Implemented identity:** `ObservationOriginId + LocalDate`.
 
 The origin component is required because two providers can report different or overlapping activity for the same person and date. They are not semantic duplicates merely because the dates match. Cross-origin comparison or composition belongs to an explicit insight or later reconciliation policy.
 
@@ -31,7 +31,7 @@ Candidate components:
 
 The canonical specification will use semantic field names and explicit units. A source field whose unit, scale, or meaning has not been established remains unsupported or source-specific; it is not normalized by guesswork.
 
-## Candidate invariants
+## Invariants and planned extensions
 
 1. One origin has at most one visible daily activity observation for a local date.
 2. The local date is preserved independently of the computer's current time zone.
@@ -42,7 +42,7 @@ The canonical specification will use semantic field names and explicit units. A 
 7. Physical-information snapshots and source-derived sleep fields do not become daily activity components.
 8. Every component retains traceable source and mapping provenance without exposing personal values in diagnostics.
 
-## Candidate reconciliation
+## Reconciliation
 
 For the same candidate identity:
 
@@ -59,7 +59,7 @@ The evaluated Polar Flow export contains one observed activity artifact per sour
 
 This evidence supports a candidate and synthetic tests, not a universal provider guarantee. The public structural reference and its open questions live in [`../data-formats/providers/polar-flow.md`](../data-formats/providers/polar-flow.md).
 
-## Required contract evidence before acceptance
+## Remaining contract evidence for the broader model
 
 - A normative canonical field and unit specification with machine-readable schema where applicable.
 - A Polar-to-canonical mapping table covering every activity source field, including physical and sleep fields that map elsewhere or remain unsupported.

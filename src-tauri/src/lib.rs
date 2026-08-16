@@ -4,7 +4,9 @@ mod presentation;
 use std::path::{Path, PathBuf};
 
 use fitfreed_application::{ImportCoordinator, ImportProgress};
-use infrastructure::{SqliteActivityLibrary, SqlitePolarFlowArchiveImporter};
+use infrastructure::{
+    recover_interrupted_imports, SqliteActivityLibrary, SqlitePolarFlowArchiveImporter,
+};
 use presentation::{DailyActivityDto, ImportProgressDto, ImportReportDto};
 use tauri::{ipc::Channel, AppHandle, Manager, State};
 
@@ -73,6 +75,11 @@ pub fn run() {
         .plugin(tauri_plugin_wdio_webdriver::init())
         .plugin(tauri_plugin_wdio::init());
     builder
+        .setup(|app| {
+            let library_path = database_path(app.handle()).map_err(std::io::Error::other)?;
+            recover_interrupted_imports(&library_path)?;
+            Ok(())
+        })
         .manage(ImportCoordinator::default())
         .invoke_handler(tauri::generate_handler![
             import_archive,

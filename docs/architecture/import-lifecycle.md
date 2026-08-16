@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed Milestone 0 baseline. [ADR 0002](decisions/0002-select-sqlite-storage.md) selects SQLite as the single system of record; this document defines the import behavior and the transaction boundaries that its adapter must implement.
+Implemented Milestone 1 lifecycle foundation. [ADR 0002](decisions/0002-select-sqlite-storage.md) selects SQLite as the single system of record. Schema version 2 implements durable states, terminal outcomes, coverage, provenance, an atomic visibility boundary, and startup recovery for the current daily-activity slice. User-visible outcome exploration and broader provider-family handling remain later increments.
 
 ## Goal
 
@@ -20,6 +20,7 @@ stateDiagram-v2
     Planned --> Staging: integration approved
     Planned --> Committing: exact-repeat fast path
     Planned --> Cancelled: user cancellation
+    Planned --> Failed: system failure
     Staging --> Reconciling: all supported candidates mapped
     Staging --> Rejected: invalid supported content
     Staging --> Failed: system failure
@@ -29,17 +30,20 @@ stateDiagram-v2
     Reconciling --> Failed: system failure
     Reconciling --> Cancelled: user cancellation
     Committing --> Completed: visibility boundary succeeds
-    Committing --> Recovering: process interruption
-    Recovering --> Completed: commit confirmed
-    Recovering --> RolledBack: previous state restored
-    RolledBack --> Failed: recovery outcome recorded
+    Committing --> Failed: rollback confirmed in process
+    Assessing --> Recovering: startup after interruption
+    Planned --> Recovering: startup after interruption
+    Staging --> Recovering: startup after interruption
+    Reconciling --> Recovering: startup after interruption
+    Committing --> Recovering: startup after interruption
+    Recovering --> Failed: rollback outcome recorded
     Rejected --> [*]
     Cancelled --> [*]
     Failed --> [*]
     Completed --> [*]
 ```
 
-`Assessing`, `Planned`, `Staging`, `Reconciling`, `Committing`, and `Recovering` are durable non-terminal states. `Completed`, `Rejected`, `Cancelled`, and `Failed` are terminal outcomes. A terminal operation is immutable except for separately recorded diagnostic or support annotations that cannot change its claimed data effect.
+`Assessing`, `Planned`, `Staging`, `Reconciling`, `Committing`, and `Recovering` are durable non-terminal states. `Completed`, `Rejected`, `Cancelled`, and `Failed` are terminal outcomes. Domain rules reject undefined transitions and every transition out of a terminal state. Version 2 has no mutable terminal annotation mechanism.
 
 ## Phase contracts
 
@@ -89,21 +93,16 @@ The visibility boundary atomically publishes:
 - accepted canonical changes;
 - provenance linking those changes to source evidence and mapping versions;
 - reconciliation decisions and unresolved conflicts;
-- final artifact and family coverage;
+- the completed state that makes the already prepared complete coverage final;
 - the completed import outcome.
 
-The implementation may stage data outside one long database transaction, but the visible switch is atomic. The selected storage architecture must demonstrate this property for multi-gigabyte packages rather than relying on a transaction that holds all parsed content in memory.
+The implementation persists coverage under a non-terminal operation and maps the current bounded daily-activity candidates outside one long database transaction. The visible switch is atomic. Larger high-resolution families still require measured bounded staging rather than retaining their parsed content in memory.
 
 Cancellation requested after committing begins is deferred until the atomic boundary resolves. The interface explains this brief non-cancellable phase.
 
 ### 6. Recovering
 
-On startup, the application resolves every interrupted commit before exposing the library. Recovery must prove one of two states:
-
-- the complete new canonical state and completed outcome are visible; or
-- the previous complete state is restored and a failed outcome records the recovery.
-
-An ambiguous state blocks normal library writes and presents actionable recovery guidance. It never guesses that the import completed.
+On startup, the application resolves every non-terminal operation before exposing the library. Version 2 can prove the result without guessing: canonical changes and the transition to `Completed` share one SQLite transaction, so a surviving non-terminal row means the prior complete canonical state was retained. Recovery moves the operation through `Recovering` to `Failed`, records `interrupted` and `canonical-transaction-rolled-back`, and removes no source evidence needed to explain the outcome.
 
 ## Progress and outcomes
 
@@ -142,8 +141,7 @@ Public diagnostics use opaque operation references and sanitized aggregates. Det
 
 ## Pending decisions
 
-- SQLite staging representation and the exact short transaction used for atomic visibility.
-- Whether resumable staging is worth its privacy, versioning, and cleanup complexity for the MVP.
+- Bounded SQLite staging for high-resolution families and whether resumability is worth its privacy, versioning, and cleanup complexity.
 - The exact cancellation granularity and resource budgets after representative synthetic measurements.
 - Family-specific exceptions, if any, to package-level atomicity for supported mappings.
 - Retention duration and user controls for completed import operations and detailed provenance.

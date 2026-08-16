@@ -25,17 +25,21 @@ Filename tokens are used only for family recognition. They do not provide canoni
 
 Unknown JSON fields are accepted and ignored by mapping version 1. `exportVersion`, `physicalInformation`, `samples`, and every `summary` field other than `stepCount` are deliberately not mapped by this version. Their presence does not imply support, and their values do not affect reconciliation.
 
-## Failure and atomicity
+## Coverage, provenance, failure, and atomicity
 
-Malformed JSON, an invalid or missing `date`, and an invalid mapped value reject the import. Mapping and reconciliation run inside the current walking-skeleton transaction, so an error, cancellation, or injected interruption exposes no canonical changes or completed import operation.
+Every safe ZIP-root member receives one artifact-coverage classification when assessment completes. Successfully mapped activity artifacts are `supported`; recognized activity artifacts with malformed JSON, an invalid or missing `date`, or an invalid mapped value are `invalid`; files outside the recognition boundary are currently `unrecognized`. Field-level omissions inside a supported activity artifact do not create additional artifact rows.
+
+Mapping reads one expanded artifact at a time before the canonical visibility transaction. Each mapped observation carries its artifact locator, artifact SHA-256, `json-root` source-record locator, provider, adapter version, and this mapping version into reconciliation. Reconciliation stores a provenance row for create, equivalent, enrichment, preservation, and conflict decisions.
+
+Any invalid supported artifact rejects the complete package after coverage has been recorded. Cancellation, rejection, failure, or injected transaction interruption exposes no canonical changes. Accepted canonical observations, provenance, conflicts, reconciliation counts, and the completed import outcome become visible in one SQLite transaction.
 
 ## Reimport behavior
 
-The canonical (`originId`, `localDate`) identity drives overlap reconciliation. Byte-identical packages use a SHA-256 fast path and record another completed exact-repeat operation without parsing their artifacts again. Different package bytes still reconcile by canonical identity using the rules in the canonical specification.
+The canonical (`originId`, `localDate`) identity drives overlap reconciliation. Byte-identical packages use a SHA-256 fast path only when an earlier completed operation has complete coverage. A new completed operation links to that evidence and copies its artifact coverage without parsing or duplicating canonical history. Different package bytes still reconcile by canonical identity using the rules in the canonical specification.
 
 ## Compatibility limits
 
-The adapter does not yet detect `exportVersion`, historical family variants, or a stable real account identity. It reports only recognized daily activity counts; full supported, ignored, unrecognized, and invalid artifact coverage remains required before real-export MVP compatibility.
+The adapter does not yet detect `exportVersion`, historical family variants, or a stable real account identity. It persists complete file-level coverage for the current synthetic recognition boundary, but it does not yet classify the full set of real Polar Flow export families. Real-export MVP compatibility therefore remains open.
 
 ## Synthetic evidence
 

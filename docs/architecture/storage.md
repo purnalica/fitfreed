@@ -4,7 +4,7 @@
 
 Current architecture after [ADR 0002](decisions/0002-select-sqlite-storage.md). SQLite is the only storage engine in the application and the authoritative local-library format. It does not replace the documented portable FitFreed data contract.
 
-The exact implemented schema and compatibility boundary are documented in the [SQLite version 1 persistence specification](../data-formats/persistence/sqlite-v1.md).
+The current implemented schema and compatibility boundary are documented in the [SQLite version 2 persistence specification](../data-formats/persistence/sqlite-v2.md). The [version 1 specification](../data-formats/persistence/sqlite-v1.md) remains immutable migration history.
 
 ## Ownership
 
@@ -23,7 +23,8 @@ Caches that can be discarded without changing observable truth may live outside 
 
 - One application-owned writer serializes migrations, visible imports, projection publication, and destructive library operations.
 - Import assessment, ZIP access, decoding, mapping, and most reconciliation work remain outside the short visibility transaction when this can be done without weakening package-level atomicity.
-- The visibility transaction publishes canonical changes, provenance, reconciliation decisions, coverage, projection invalidation, and the terminal import outcome together.
+- Assessment may persist coverage under a non-terminal operation so cancellation and rejection remain explainable. Consumers expose it as a final outcome only after the operation becomes terminal.
+- The visibility transaction publishes canonical changes, provenance, reconciliation decisions, conflicts, and the completed operation together. Its completed state makes the already prepared complete coverage final at the same logical boundary.
 - Cancellation is accepted before the visibility transaction and deferred while that atomic boundary resolves.
 - Readers never observe a terminal import outcome without its complete canonical effect.
 
@@ -32,7 +33,7 @@ Caches that can be discarded without changing observable truth may live outside 
 - Every schema migration is an immutable ordered asset with forward migration and compatibility tests from every released schema.
 - Schema version changes occur inside the same transaction as their DDL and data transformation.
 - A migration that could make the previous application unable to read the library requires a verified pre-migration backup.
-- Startup resolves interrupted imports, migrations, projection rebuilds, and maintenance before allowing new writes.
+- Startup resolves interrupted imports before allowing new writes. In schema version 2, any surviving non-terminal state moves through recovery to a failed outcome because canonical publication and completion are one transaction.
 - Backup artifacts are reopened through the normal adapter and pass SQLite integrity checking before success is reported.
 
 ## Query model

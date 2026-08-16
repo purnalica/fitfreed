@@ -53,7 +53,7 @@ Evidence: the successful run above exercised every required lane. The preceding 
 
 ## Increment M1.3 — Transactional library foundation
 
-**Status:** in progress. Schema version 1 is now an immutable numbered migration with fail-closed creation, transactional rollback, backup evidence, and normative canonical, mapping, and persistence specifications. Durable non-terminal outcomes, complete artifact coverage, mapping versions, and detailed provenance remain open.
+**Status:** complete. Immutable schema versions 1 and 2 now provide fail-closed creation and upgrade, durable lifecycle and terminal outcomes, complete artifact coverage, source and mapping versions, detailed reconciliation provenance, atomic canonical visibility, startup recovery, and backup evidence.
 
 **Outcome:** SQLite storage and migrations implement the provider-neutral application ports with recoverable lifecycle behavior.
 
@@ -65,6 +65,8 @@ Evidence: the successful run above exercised every required lane. The preceding 
 4. Keep SQLite and migration types outside the domain and application layers.
 
 **Acceptance evidence:** unit and adapter integration suites prove the domain policy and persistence contract independently; restart-shaped tests recover a consistent library after each supported failure.
+
+Local evidence on 2026-08-16: 24 Rust tests passed across domain, application, migration, and adapter boundaries; architecture, data-contract, documentation, localization, presentation, formatting, and lint checks passed; the instrumented macOS application completed its packaged E2E import, cancellation, repeat, cumulative, accessibility, and restart journey; and the production application and DMG passed the test-instrumentation exclusion check.
 
 ## Increment M1.4 — Localized vertical journey
 
