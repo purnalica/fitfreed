@@ -153,6 +153,23 @@ pub struct ActivityOverview {
     pub series: Vec<ActivitySeriesOverview>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ActivitySeriesComparison {
+    pub series_ref: String,
+    pub baseline: ActivitySeriesSummary,
+    pub comparison: ActivitySeriesSummary,
+    pub total_step_change: Option<i128>,
+    pub average_step_change: Option<i128>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ActivityComparison {
+    pub available_range: Option<ActivityDateRange>,
+    pub baseline_range: Option<ActivityDateRange>,
+    pub comparison_range: Option<ActivityDateRange>,
+    pub series: Vec<ActivitySeriesComparison>,
+}
+
 pub trait ArchiveImportPort {
     fn import_archive(
         &self,
@@ -276,37 +293,11 @@ pub fn query_activity_overview(
         });
     };
 
-    let earliest = parse_activity_date(&available_range.from)
-        .map_err(|reason| ApplicationError::Query(reason.to_owned()))?;
-    let latest = parse_activity_date(&available_range.through)
-        .map_err(|reason| ApplicationError::Query(reason.to_owned()))?;
-    if earliest > latest {
-        return Err(ApplicationError::Query(
-            "activity bounds are not ordered".to_owned(),
-        ));
-    }
+    let (earliest, latest) = parse_activity_bounds(&available_range)?;
 
     let (window_start, window_end, selected_range) = match requested_range {
         Some(range) => {
-            let from =
-                parse_activity_date(&range.from).map_err(ApplicationError::InvalidActivityRange)?;
-            let through = parse_activity_date(&range.through)
-                .map_err(ApplicationError::InvalidActivityRange)?;
-            if from > through {
-                return Err(ApplicationError::InvalidActivityRange(
-                    "range dates are not ordered",
-                ));
-            }
-            if from < earliest || through > latest {
-                return Err(ApplicationError::InvalidActivityRange(
-                    "range is outside available activity history",
-                ));
-            }
-            if through.signed_duration_since(from).num_days() + 1 > MAX_ACTIVITY_RANGE_DAYS {
-                return Err(ApplicationError::InvalidActivityRange(
-                    "range exceeds 366 inclusive calendar days",
-                ));
-            }
+            let (from, through) = validate_activity_range(&range, earliest, latest)?;
             (from, through, range)
         }
         None => {
@@ -332,6 +323,123 @@ pub fn query_activity_overview(
         selected_range: Some(selected_range),
         series,
     })
+}
+
+pub fn query_activity_comparison(
+    port: &dyn ActivityLibraryPort,
+    baseline_range: ActivityDateRange,
+    comparison_range: ActivityDateRange,
+) -> Result<ActivityComparison, ApplicationError> {
+    let Some(available_range) = port.activity_bounds().map_err(ApplicationError::Query)? else {
+        return Ok(ActivityComparison {
+            available_range: None,
+            baseline_range: None,
+            comparison_range: None,
+            series: Vec::new(),
+        });
+    };
+    let (earliest, latest) = parse_activity_bounds(&available_range)?;
+    let (baseline_from, baseline_through) =
+        validate_activity_range(&baseline_range, earliest, latest)?;
+    let (comparison_from, comparison_through) =
+        validate_activity_range(&comparison_range, earliest, latest)?;
+    let origins = port.activity_origins().map_err(ApplicationError::Query)?;
+    let baseline_activities = port
+        .query_activity(&baseline_range)
+        .map_err(ApplicationError::Query)?;
+    let comparison_activities = port
+        .query_activity(&comparison_range)
+        .map_err(ApplicationError::Query)?;
+    let baseline_series = build_activity_series(
+        baseline_from,
+        baseline_through,
+        origins.clone(),
+        baseline_activities,
+    )?;
+    let comparison_series = build_activity_series(
+        comparison_from,
+        comparison_through,
+        origins,
+        comparison_activities,
+    )?;
+    let series = baseline_series
+        .into_iter()
+        .zip(comparison_series)
+        .map(|(baseline, comparison)| {
+            if baseline.series_ref != comparison.series_ref {
+                return Err(ApplicationError::Query(
+                    "activity comparison origins are not aligned".to_owned(),
+                ));
+            }
+            Ok(ActivitySeriesComparison {
+                series_ref: baseline.series_ref,
+                total_step_change: optional_change(
+                    baseline.summary.total_step_count,
+                    comparison.summary.total_step_count,
+                ),
+                average_step_change: optional_change(
+                    baseline.summary.average_step_count,
+                    comparison.summary.average_step_count,
+                ),
+                baseline: baseline.summary,
+                comparison: comparison.summary,
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(ActivityComparison {
+        available_range: Some(available_range),
+        baseline_range: Some(baseline_range),
+        comparison_range: Some(comparison_range),
+        series,
+    })
+}
+
+fn optional_change(baseline: Option<i128>, comparison: Option<i128>) -> Option<i128> {
+    baseline
+        .zip(comparison)
+        .map(|(from, through)| through - from)
+}
+
+fn parse_activity_bounds(
+    available_range: &ActivityDateRange,
+) -> Result<(NaiveDate, NaiveDate), ApplicationError> {
+    let earliest = parse_activity_date(&available_range.from)
+        .map_err(|reason| ApplicationError::Query(reason.to_owned()))?;
+    let latest = parse_activity_date(&available_range.through)
+        .map_err(|reason| ApplicationError::Query(reason.to_owned()))?;
+    if earliest > latest {
+        return Err(ApplicationError::Query(
+            "activity bounds are not ordered".to_owned(),
+        ));
+    }
+    Ok((earliest, latest))
+}
+
+fn validate_activity_range(
+    range: &ActivityDateRange,
+    earliest: NaiveDate,
+    latest: NaiveDate,
+) -> Result<(NaiveDate, NaiveDate), ApplicationError> {
+    let from = parse_activity_date(&range.from).map_err(ApplicationError::InvalidActivityRange)?;
+    let through =
+        parse_activity_date(&range.through).map_err(ApplicationError::InvalidActivityRange)?;
+    if from > through {
+        return Err(ApplicationError::InvalidActivityRange(
+            "range dates are not ordered",
+        ));
+    }
+    if from < earliest || through > latest {
+        return Err(ApplicationError::InvalidActivityRange(
+            "range is outside available activity history",
+        ));
+    }
+    if through.signed_duration_since(from).num_days() + 1 > MAX_ACTIVITY_RANGE_DAYS {
+        return Err(ApplicationError::InvalidActivityRange(
+            "range exceeds 366 inclusive calendar days",
+        ));
+    }
+    Ok((from, through))
 }
 
 fn parse_activity_date(value: &str) -> Result<NaiveDate, &'static str> {
@@ -704,6 +812,85 @@ mod tests {
     }
 
     #[test]
+    fn compares_two_activity_periods_per_origin_without_hiding_coverage() {
+        struct ComparisonPort;
+
+        impl ActivityLibraryPort for ComparisonPort {
+            fn activity_bounds(&self) -> Result<Option<ActivityDateRange>, String> {
+                Ok(Some(ActivityDateRange {
+                    from: "2026-01-01".to_owned(),
+                    through: "2026-01-10".to_owned(),
+                }))
+            }
+
+            fn activity_origins(&self) -> Result<Vec<String>, String> {
+                Ok(vec!["origin-b".to_owned(), "origin-a".to_owned()])
+            }
+
+            fn query_activity(
+                &self,
+                range: &ActivityDateRange,
+            ) -> Result<Vec<DailyActivity>, String> {
+                match (range.from.as_str(), range.through.as_str()) {
+                    ("2026-01-01", "2026-01-02") => Ok(vec![
+                        DailyActivity {
+                            origin_id: "origin-a".to_owned(),
+                            local_date: "2026-01-01".to_owned(),
+                            step_count: Some(100),
+                        },
+                        DailyActivity {
+                            origin_id: "origin-a".to_owned(),
+                            local_date: "2026-01-02".to_owned(),
+                            step_count: None,
+                        },
+                    ]),
+                    ("2026-01-04", "2026-01-05") => Ok(vec![
+                        DailyActivity {
+                            origin_id: "origin-a".to_owned(),
+                            local_date: "2026-01-04".to_owned(),
+                            step_count: Some(150),
+                        },
+                        DailyActivity {
+                            origin_id: "origin-a".to_owned(),
+                            local_date: "2026-01-05".to_owned(),
+                            step_count: Some(250),
+                        },
+                    ]),
+                    _ => panic!("unexpected comparison range"),
+                }
+            }
+        }
+
+        let comparison = query_activity_comparison(
+            &ComparisonPort,
+            ActivityDateRange {
+                from: "2026-01-01".to_owned(),
+                through: "2026-01-02".to_owned(),
+            },
+            ActivityDateRange {
+                from: "2026-01-04".to_owned(),
+                through: "2026-01-05".to_owned(),
+            },
+        )
+        .expect("activity comparison");
+
+        assert_eq!(comparison.series.len(), 2);
+        let origin_a = &comparison.series[0];
+        assert_eq!(origin_a.series_ref, "origin-a");
+        assert_eq!(origin_a.baseline.total_step_count, Some(100));
+        assert_eq!(origin_a.baseline.unavailable_step_days, 1);
+        assert_eq!(origin_a.comparison.total_step_count, Some(400));
+        assert_eq!(origin_a.total_step_change, Some(300));
+        assert_eq!(origin_a.average_step_change, Some(100));
+
+        let origin_b = &comparison.series[1];
+        assert_eq!(origin_b.baseline.missing_days, 2);
+        assert_eq!(origin_b.comparison.missing_days, 2);
+        assert_eq!(origin_b.total_step_change, None);
+        assert_eq!(origin_b.average_step_change, None);
+    }
+
+    #[test]
     fn rejects_invalid_out_of_bounds_and_oversized_explicit_activity_ranges() {
         struct RangeValidationPort;
 
@@ -750,7 +937,18 @@ mod tests {
             },
         ] {
             assert!(matches!(
-                query_activity_overview(&RangeValidationPort, Some(range)),
+                query_activity_overview(&RangeValidationPort, Some(range.clone())),
+                Err(ApplicationError::InvalidActivityRange(_))
+            ));
+            assert!(matches!(
+                query_activity_comparison(
+                    &RangeValidationPort,
+                    range,
+                    ActivityDateRange {
+                        from: "2026-01-01".to_owned(),
+                        through: "2026-01-02".to_owned(),
+                    },
+                ),
                 Err(ApplicationError::InvalidActivityRange(_))
             ));
         }
@@ -782,6 +980,26 @@ mod tests {
             ActivityOverview {
                 available_range: None,
                 selected_range: None,
+                series: Vec::new(),
+            }
+        );
+        assert_eq!(
+            query_activity_comparison(
+                &EmptyActivityPort,
+                ActivityDateRange {
+                    from: "2026-01-01".to_owned(),
+                    through: "2026-01-02".to_owned(),
+                },
+                ActivityDateRange {
+                    from: "2026-01-03".to_owned(),
+                    through: "2026-01-04".to_owned(),
+                },
+            )
+            .expect("empty comparison"),
+            ActivityComparison {
+                available_range: None,
+                baseline_range: None,
+                comparison_range: None,
                 series: Vec::new(),
             }
         );

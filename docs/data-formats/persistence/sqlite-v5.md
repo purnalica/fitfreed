@@ -21,7 +21,7 @@ The existing `daily_activity` primary key remains (`origin_id`, `local_date`) an
 
 ## Query responsibility
 
-The SQLite adapter returns canonical activity bounds, the ordered distinct origin catalog, and range facts through the provider-neutral application port. Keeping origins independent of range facts lets Insights represent a selected period with no observations as missing dates for every known origin. SQLite does not validate user-selected ranges or calculate gaps, totals, averages, detail labels, or visual scales. Those rules belong to the versioned [daily activity overview read model](../insights/daily-activity-overview-v2.md).
+The SQLite adapter returns canonical activity bounds, the ordered distinct origin catalog, and range facts through the provider-neutral application port. Keeping origins independent of range facts lets Insights represent a selected period with no observations as missing dates for every known origin. The overview and comparison use the same inclusive query path; SQLite does not validate user-selected ranges or calculate gaps, totals, averages, changes, detail labels, or visual scales. Those rules belong to the versioned [daily activity overview](../insights/daily-activity-overview-v2.md) and [comparison](../insights/daily-activity-comparison-v1.md) read models.
 
 ## Verification evidence
 

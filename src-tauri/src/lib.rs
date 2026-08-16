@@ -9,8 +9,8 @@ use infrastructure::{
     SqliteLocalePreferences, SqlitePolarFlowArchiveImporter,
 };
 use presentation::{
-    ActivityDateRangeDto, ActivityOverviewDto, CommandErrorDto, ImportOutcomeDto,
-    ImportProgressDto, ImportReportDto,
+    ActivityComparisonDto, ActivityDateRangeDto, ActivityOverviewDto, CommandErrorDto,
+    ImportOutcomeDto, ImportProgressDto, ImportReportDto,
 };
 use tauri::{ipc::Channel, AppHandle, Manager, State};
 
@@ -57,6 +57,23 @@ fn query_activity_overview(
     fitfreed_application::query_activity_overview(&library, requested_range.map(Into::into))
         .map(ActivityOverviewDto::from)
         .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn query_activity_comparison(
+    app: AppHandle,
+    baseline_range: ActivityDateRangeDto,
+    comparison_range: ActivityDateRangeDto,
+) -> Result<ActivityComparisonDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let library = SqliteActivityLibrary::new(path);
+    fitfreed_application::query_activity_comparison(
+        &library,
+        baseline_range.into(),
+        comparison_range.into(),
+    )
+    .map(ActivityComparisonDto::from)
+    .map_err(CommandErrorDto::from)
 }
 
 #[tauri::command]
@@ -123,6 +140,7 @@ pub fn run() {
             import_archive,
             cancel_import,
             query_activity_overview,
+            query_activity_comparison,
             query_latest_import_outcome,
             load_locale,
             save_locale

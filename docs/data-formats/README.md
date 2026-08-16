@@ -61,6 +61,7 @@ Directories are created with their first real contract; empty specifications are
 - [Polar Flow daily activity mapping](mappings/polar-flow-daily-activity.md)
 - [Daily activity overview read model version 1](insights/daily-activity-overview-v1.md)
 - [Daily activity overview read model version 2](insights/daily-activity-overview-v2.md)
+- [Daily activity comparison read model version 1](insights/daily-activity-comparison-v1.md)
 - [SQLite schema version 1](persistence/sqlite-v1.md)
 - [SQLite schema version 2](persistence/sqlite-v2.md)
 - [SQLite schema version 3](persistence/sqlite-v3.md)

@@ -71,6 +71,7 @@ async function setActivityRange(from, through) {
       "value",
     ).set;
     inputs.forEach((input, index) => {
+      if (index >= values.length) return;
       setValue.call(input, values[index]);
       input.dispatchEvent(new Event("input", { bubbles: true }));
       input.dispatchEvent(new Event("change", { bubbles: true }));
@@ -79,6 +80,27 @@ async function setActivityRange(from, through) {
   const inputs = await $$("input[type='date']");
   await expect(inputs[0]).toHaveValue(from);
   await expect(inputs[1]).toHaveValue(through);
+}
+
+async function setComparisonRanges(baselineFrom, baselineThrough, comparisonFrom, comparisonThrough) {
+  const values = [baselineFrom, baselineThrough, comparisonFrom, comparisonThrough];
+  await browser.execute((nextValues) => {
+    const inputs = document.querySelectorAll(".activity-comparison input[type='date']");
+    const setValue = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    ).set;
+    inputs.forEach((input, index) => {
+      setValue.call(input, nextValues[index]);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  }, values);
+  const inputs = await $$(".activity-comparison input[type='date']");
+  expect(inputs).toHaveLength(4);
+  for (let index = 0; index < values.length; index += 1) {
+    await expect(inputs[index]).toHaveValue(values[index]);
+  }
 }
 
 function formatLocalDate(locale, value) {
@@ -413,6 +435,25 @@ describe("packaged FitFreed import journey", () => {
       ["Jan 5, 2026", "5,300", "Step total available"],
     ]);
 
+    await setComparisonRanges("2026-01-01", "2026-01-02", "2026-01-04", "2026-01-05");
+    await $("aria/Compare periods").click();
+    await expect($("#activity-comparison-heading")).toHaveText("Period comparison");
+    const comparisonRows = await $$(".activity-comparison-result table tbody tr");
+    expect(comparisonRows).toHaveLength(5);
+    const expectedComparison = [
+      ["Total steps", "7,300", "5,300", "-2,000"],
+      ["Average per day with steps", "3,650", "5,300", "+1,650"],
+      ["Days with step totals", "2", "1", "-1"],
+      ["Observed days without a step total", "0", "0", "0"],
+      ["Days with no observation", "0", "1", "+1"],
+    ];
+    for (let index = 0; index < expectedComparison.length; index += 1) {
+      const cells = await comparisonRows[index].$$("th, td");
+      for (let cellIndex = 0; cellIndex < expectedComparison[index].length; cellIndex += 1) {
+        await expect(cells[cellIndex]).toHaveText(expectedComparison[index][cellIndex]);
+      }
+    }
+
     await selectLocale("es-ES");
     await expectHistory([
       [formatLocalDate("es-ES", "2026-01-01"), "3100", spanish.activity.available],
@@ -428,6 +469,9 @@ describe("packaged FitFreed import journey", () => {
     await expect($("#activity-detail-heading")).toHaveText(spanish.activity.detailHeading);
     const spanishDetailValues = await $$(".activity-detail dd");
     await expect(spanishDetailValues[1]).toHaveText(spanish.activity.missing);
+    await expect($("#activity-comparison-heading")).toHaveText(
+      spanish.activity.comparison.resultHeading,
+    );
     await browser.execute(() => {
       document.documentElement.style.fontSize = "200%";
     });
@@ -441,6 +485,8 @@ describe("packaged FitFreed import journey", () => {
       document.documentElement.style.fontSize = "";
     });
     await $("aria/Cerrar detalle").click();
+    await $("aria/Borrar comparación").click();
+    expect(await $$(".activity-comparison-result")).toHaveLength(0);
 
     await browser.reloadSession();
     await expect($("h1")).toHaveText(spanish.title);

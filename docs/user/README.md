@@ -2,9 +2,9 @@
 
 ## Current availability
 
-FitFreed has an executable development preview but no supported alpha release. It is not ready for a real personal export. Current builds demonstrate import safety, source-subject correlation, reconciliation, localized family coverage, and persisted gap-aware daily range exploration with detail using independently generated synthetic ZIP packages. One private reference export has passed the privacy-safe compatibility predicate; that evidence does not establish universal compatibility or open the alpha boundary.
+FitFreed has an executable development preview but no supported alpha release. It is not ready for a real personal export. Current builds demonstrate import safety, source-subject correlation, reconciliation, localized family coverage, and persisted gap-aware daily range exploration, detail, and two-period comparison using independently generated synthetic ZIP packages. One private reference export has passed the privacy-safe compatibility predicate; that evidence does not establish universal compatibility or open the alpha boundary.
 
-The [development preview guide](development-preview.md) is the only current application walkthrough. It identifies the documented compatibility shape, synthetic runnable steps, expected range and detail results, and missing product capabilities.
+The [development preview guide](development-preview.md) is the only current application walkthrough. It identifies the documented compatibility shape, synthetic runnable steps, expected range, detail, and comparison results, and missing product capabilities.
 
 The [private development package guide](private-development-packages.md) explains integrity verification and the unsigned evaluation boundary. It does not turn a development package into a supported release.
 

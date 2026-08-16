@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented canonical concept and Milestone 2 Insights range exploration. The deliberately small accepted canonical version is normative in the [canonical daily activity specification](../data-formats/canonical/daily-activity.md). The provider-neutral [overview read model version 2](../data-formats/insights/daily-activity-overview-v2.md) selects the latest 30 local dates by default or a validated explicit range of up to 366 dates, keeps origins separate, discloses unavailable and missing days, and supports a daily-detail projection. The broader components and open decisions below remain design candidates rather than implied support.
+Implemented canonical concept and Milestone 2 Insights range exploration and comparison. The deliberately small accepted canonical version is normative in the [canonical daily activity specification](../data-formats/canonical/daily-activity.md). The provider-neutral [overview read model version 2](../data-formats/insights/daily-activity-overview-v2.md) selects the latest 30 local dates by default or a validated explicit range of up to 366 dates, keeps origins separate, discloses unavailable and missing days, and supports a daily-detail projection. [Comparison version 1](../data-formats/insights/daily-activity-comparison-v1.md) compares two validated periods per origin with exact changes and explicit coverage. The broader components and open decisions below remain design candidates rather than implied support.
 
 ## Why this concept is first
 
@@ -68,7 +68,7 @@ This evidence supports a candidate and synthetic tests, not a universal provider
 - Domain tests for identity, invariants, equivalence, enrichment, and conflict.
 - Adapter tests proving filename date agreement is validation evidence but the filename token is not identity.
 - Persistence tests proving one visible observation per origin/date and atomic reimport.
-- Period-comparison evidence beyond the implemented overview, custom range, and daily detail.
+- Performance evidence for overview filtering, two-period comparison, and responsive rendering at the documented scale boundary.
 
 ## Open decisions
 

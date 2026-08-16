@@ -3,43 +3,15 @@ import { Channel, invoke } from "@tauri-apps/api/core";
 import "./App.css";
 import { chooseZipArchive } from "./infrastructure/archive-picker";
 import { catalogs, type Locale } from "./locales/catalogs";
+import { ActivityComparisonPanel } from "./presentation/ActivityComparisonPanel";
+import type {
+  ActivityDateRange,
+  ActivityDayAvailability,
+  ActivityOverview,
+} from "./presentation/activity-insights";
+import { commandErrorCode } from "./presentation/command-error";
 
 type CountMessageKey = keyof (typeof catalogs)["en-US"]["counts"];
-
-interface ActivityDateRange {
-  from: string;
-  through: string;
-}
-
-type ActivityDayAvailability = "available" | "unavailable" | "missing";
-
-interface ActivityDayInsight {
-  localDate: string;
-  stepCount: string | null;
-  availability: ActivityDayAvailability;
-}
-
-interface ActivitySeriesSummary {
-  calendarDays: number;
-  observedDays: number;
-  availableStepDays: number;
-  unavailableStepDays: number;
-  missingDays: number;
-  totalStepCount: string | null;
-  averageStepCount: string | null;
-}
-
-interface ActivitySeriesOverview {
-  seriesRef: string;
-  summary: ActivitySeriesSummary;
-  days: ActivityDayInsight[];
-}
-
-interface ActivityOverview {
-  availableRange: ActivityDateRange | null;
-  selectedRange: ActivityDateRange | null;
-  series: ActivitySeriesOverview[];
-}
 
 interface ImportReport {
   exactRepeat: boolean;
@@ -92,10 +64,6 @@ interface ImportOutcome {
   recoveryNote: string | null;
 }
 
-interface CommandError {
-  code?: string;
-}
-
 type ImportPhase =
   | "fingerprinting"
   | "validating"
@@ -111,14 +79,6 @@ interface ImportProgress {
   completedBytes: number;
   totalBytes: number | null;
   cancellable: boolean;
-}
-
-function commandErrorCode(reason: unknown): string {
-  if (reason && typeof reason === "object" && "code" in reason) {
-    const code = (reason as CommandError).code;
-    if (typeof code === "string") return code;
-  }
-  return "unexpected";
 }
 
 function systemLocale(): Locale {
@@ -755,6 +715,16 @@ function App() {
                   })}
                 </ul>
               </section>
+            )}
+            {activityOverview.availableRange && activityOverview.selectedRange && (
+              <ActivityComparisonPanel
+                key={`${activityOverview.selectedRange.from}:${activityOverview.selectedRange.through}`}
+                availableRange={activityOverview.availableRange}
+                initialRange={activityOverview.selectedRange}
+                locale={locale}
+                messages={messages}
+                onError={setErrorCode}
+              />
             )}
           </>
         )}

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/activity-comparison-query-v1.schema.json",
+  "title": "FitFreed daily activity comparison query version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["baselineRange", "comparisonRange"],
+  "properties": {
+    "baselineRange": { "$ref": "#/$defs/range" },
+    "comparisonRange": { "$ref": "#/$defs/range" }
+  },
+  "$defs": {
+    "localDate": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "through"],
+      "properties": {
+        "from": { "$ref": "#/$defs/localDate" },
+        "through": { "$ref": "#/$defs/localDate" }
+      }
+    }
+  }
+}

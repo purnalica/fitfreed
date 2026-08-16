@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use fitfreed_application::{
-    ActivityDateRange, ActivityDayAvailability, ActivityDayInsight, ActivityOverview,
-    ActivitySeriesOverview, ActivitySeriesSummary, ApplicationError, ImportPhase, ImportProgress,
+    ActivityComparison, ActivityDateRange, ActivityDayAvailability, ActivityDayInsight,
+    ActivityOverview, ActivitySeriesComparison, ActivitySeriesOverview, ActivitySeriesSummary,
+    ApplicationError, ImportPhase, ImportProgress,
 };
 use fitfreed_domain::{
     ArtifactCoverageSummary, ArtifactFamilyCoverage, ImportOutcome, ImportReport,
@@ -149,6 +150,48 @@ impl From<ActivityOverview> for ActivityOverviewDto {
                 .into_iter()
                 .map(ActivitySeriesOverviewDto::from)
                 .collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ActivitySeriesComparisonDto {
+    series_ref: String,
+    baseline: ActivitySeriesSummaryDto,
+    comparison: ActivitySeriesSummaryDto,
+    total_step_change: Option<String>,
+    average_step_change: Option<String>,
+}
+
+impl From<ActivitySeriesComparison> for ActivitySeriesComparisonDto {
+    fn from(series: ActivitySeriesComparison) -> Self {
+        Self {
+            series_ref: series.series_ref,
+            baseline: series.baseline.into(),
+            comparison: series.comparison.into(),
+            total_step_change: series.total_step_change.map(|value| value.to_string()),
+            average_step_change: series.average_step_change.map(|value| value.to_string()),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ActivityComparisonDto {
+    available_range: Option<ActivityDateRangeDto>,
+    baseline_range: Option<ActivityDateRangeDto>,
+    comparison_range: Option<ActivityDateRangeDto>,
+    series: Vec<ActivitySeriesComparisonDto>,
+}
+
+impl From<ActivityComparison> for ActivityComparisonDto {
+    fn from(comparison: ActivityComparison) -> Self {
+        Self {
+            available_range: comparison.available_range.map(Into::into),
+            baseline_range: comparison.baseline_range.map(Into::into),
+            comparison_range: comparison.comparison_range.map(Into::into),
+            series: comparison.series.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -333,6 +376,49 @@ mod tests {
                 from: "2025-12-30".to_owned(),
                 through: "2026-01-02".to_owned(),
             }
+        );
+    }
+
+    #[test]
+    fn serializes_activity_comparison_changes_as_exact_signed_decimal_text() {
+        let summary = ActivitySeriesSummary {
+            calendar_days: 2,
+            observed_days: 2,
+            available_step_days: 2,
+            unavailable_step_days: 0,
+            missing_days: 0,
+            total_step_count: Some(18_446_744_073_709_551_614),
+            average_step_count: Some(9_223_372_036_854_775_807),
+        };
+        let comparison = ActivityComparison {
+            available_range: Some(ActivityDateRange {
+                from: "2026-01-01".to_owned(),
+                through: "2026-01-05".to_owned(),
+            }),
+            baseline_range: Some(ActivityDateRange {
+                from: "2026-01-01".to_owned(),
+                through: "2026-01-02".to_owned(),
+            }),
+            comparison_range: Some(ActivityDateRange {
+                from: "2026-01-04".to_owned(),
+                through: "2026-01-05".to_owned(),
+            }),
+            series: vec![ActivitySeriesComparison {
+                series_ref: "synthetic-origin".to_owned(),
+                baseline: summary.clone(),
+                comparison: summary,
+                total_step_change: Some(9_223_372_036_854_775_808),
+                average_step_change: Some(-9_223_372_036_854_775_808),
+            }],
+        };
+
+        let json = serde_json::to_value(ActivityComparisonDto::from(comparison))
+            .expect("activity comparison JSON");
+
+        assert_eq!(json["series"][0]["totalStepChange"], "9223372036854775808");
+        assert_eq!(
+            json["series"][0]["averageStepChange"],
+            "-9223372036854775808"
         );
     }
 

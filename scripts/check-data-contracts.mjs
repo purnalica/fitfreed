@@ -270,6 +270,95 @@ if (validateActivityOverviewV2(oversizedActivityOverview)) {
   throw new Error(`${activityOverviewV2SchemaPath} accepted 367 daily entries`);
 }
 
+const activityComparisonPath = "docs/data-formats/insights/daily-activity-comparison-v1.md";
+const activityComparison = read(activityComparisonPath);
+for (const field of [
+  "baselineRange",
+  "comparisonRange",
+  "availableRange",
+  "series",
+  "seriesRef",
+  "baseline",
+  "comparison",
+  "calendarDays",
+  "observedDays",
+  "availableStepDays",
+  "unavailableStepDays",
+  "missingDays",
+  "totalStepCount",
+  "averageStepCount",
+  "totalStepChange",
+  "averageStepChange",
+]) {
+  requireMention(activityComparison, field, activityComparisonPath);
+}
+const activityComparisonQuerySchemaPath = "schemas/activity-comparison-query-v1.schema.json";
+const activityComparisonQuerySchema = JSON.parse(read(activityComparisonQuerySchemaPath));
+const validateActivityComparisonQuery = ajv.compile(activityComparisonQuerySchema);
+const syntheticActivityComparisonQuery = {
+  baselineRange: { from: "2026-01-01", through: "2026-01-02" },
+  comparisonRange: { from: "2026-01-04", through: "2026-01-05" },
+};
+if (!validateActivityComparisonQuery(syntheticActivityComparisonQuery)) {
+  throw new Error(
+    `${activityComparisonQuerySchemaPath} rejected its synthetic query: ${ajv.errorsText(validateActivityComparisonQuery.errors)}`,
+  );
+}
+for (const invalidQuery of [
+  { baselineRange: syntheticActivityComparisonQuery.baselineRange },
+  { ...syntheticActivityComparisonQuery, provider: "synthetic" },
+  {
+    ...syntheticActivityComparisonQuery,
+    comparisonRange: { from: "2026-02-30", through: "2026-03-01" },
+  },
+]) {
+  if (validateActivityComparisonQuery(invalidQuery)) {
+    throw new Error(`${activityComparisonQuerySchemaPath} accepted an invalid query`);
+  }
+}
+const activityComparisonSchemaPath = "schemas/activity-comparison-v1.schema.json";
+const activityComparisonSchema = JSON.parse(read(activityComparisonSchemaPath));
+const validateActivityComparison = ajv.compile(activityComparisonSchema);
+const syntheticSummary = {
+  calendarDays: 2,
+  observedDays: 2,
+  availableStepDays: 2,
+  unavailableStepDays: 0,
+  missingDays: 0,
+  totalStepCount: "3000",
+  averageStepCount: "1500",
+};
+const syntheticActivityComparison = {
+  availableRange: { from: "2026-01-01", through: "2026-01-05" },
+  ...syntheticActivityComparisonQuery,
+  series: [{
+    seriesRef: "synthetic-origin",
+    baseline: syntheticSummary,
+    comparison: {
+      ...syntheticSummary,
+      observedDays: 1,
+      availableStepDays: 1,
+      missingDays: 1,
+      totalStepCount: "5000",
+      averageStepCount: "5000",
+    },
+    totalStepChange: "2000",
+    averageStepChange: "3500",
+  }],
+};
+if (!validateActivityComparison(syntheticActivityComparison)) {
+  throw new Error(
+    `${activityComparisonSchemaPath} rejected its synthetic response: ${ajv.errorsText(validateActivityComparison.errors)}`,
+  );
+}
+for (const invalidChange of ["-0", "+1", "01"]) {
+  const invalidComparison = structuredClone(syntheticActivityComparison);
+  invalidComparison.series[0].totalStepChange = invalidChange;
+  if (validateActivityComparison(invalidComparison)) {
+    throw new Error(`${activityComparisonSchemaPath} accepted invalid change ${invalidChange}`);
+  }
+}
+
 const indexPath = "docs/data-formats/README.md";
 const index = read(indexPath);
 for (const contractPath of [
@@ -277,6 +366,7 @@ for (const contractPath of [
   mappingPath,
   activityOverviewPath,
   activityOverviewV2Path,
+  activityComparisonPath,
   ...persistencePaths,
 ]) {
   const relativeContract = path.relative(path.dirname(indexPath), contractPath);
@@ -286,5 +376,5 @@ for (const contractPath of [
 }
 
 process.stdout.write(
-  `${JSON.stringify({ schemaVersion, sourceAdapterVersion, migrations, persistencePaths, activityOverviewSchemas: [activityOverviewSchemaPath, activityOverviewQueryV2SchemaPath, activityOverviewV2SchemaPath], canonicalFields: 3, mappingFields: 6 })}\n`,
+  `${JSON.stringify({ schemaVersion, sourceAdapterVersion, migrations, persistencePaths, activityOverviewSchemas: [activityOverviewSchemaPath, activityOverviewQueryV2SchemaPath, activityOverviewV2SchemaPath], activityComparisonSchemas: [activityComparisonQuerySchemaPath, activityComparisonSchemaPath], canonicalFields: 3, mappingFields: 6 })}\n`,
 );

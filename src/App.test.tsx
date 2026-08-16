@@ -31,6 +31,19 @@ interface TestActivityOverview {
   }>;
 }
 
+interface TestActivityComparison {
+  availableRange: { from: string; through: string } | null;
+  baselineRange: { from: string; through: string } | null;
+  comparisonRange: { from: string; through: string } | null;
+  series: Array<{
+    seriesRef: string;
+    baseline: TestActivityOverview["series"][number]["summary"];
+    comparison: TestActivityOverview["series"][number]["summary"];
+    totalStepChange: string | null;
+    averageStepChange: string | null;
+  }>;
+}
+
 function emptyActivityOverview(): TestActivityOverview {
   return { availableRange: null, selectedRange: null, series: [] };
 }
@@ -62,6 +75,39 @@ function activityOverview(days: TestActivityDay[]): TestActivityOverview {
         averageStepCount: average?.toString() ?? null,
       },
       days,
+    }],
+  };
+}
+
+function activityComparison(
+  baselineDays: TestActivityDay[],
+  comparisonDays: TestActivityDay[],
+): TestActivityComparison {
+  const baseline = activityOverview(baselineDays);
+  const comparison = activityOverview(comparisonDays);
+  const baselineSummary = baseline.series[0].summary;
+  const comparisonSummary = comparison.series[0].summary;
+  const change = (from: string | null, through: string | null) =>
+    from === null || through === null ? null : (BigInt(through) - BigInt(from)).toString();
+  return {
+    availableRange: {
+      from: baselineDays[0].localDate,
+      through: comparisonDays.at(-1)!.localDate,
+    },
+    baselineRange: baseline.selectedRange,
+    comparisonRange: comparison.selectedRange,
+    series: [{
+      seriesRef: "synthetic-origin",
+      baseline: baselineSummary,
+      comparison: comparisonSummary,
+      totalStepChange: change(
+        baselineSummary.totalStepCount,
+        comparisonSummary.totalStepCount,
+      ),
+      averageStepChange: change(
+        baselineSummary.averageStepCount,
+        comparisonSummary.averageStepCount,
+      ),
     }],
   };
 }
@@ -530,6 +576,82 @@ describe("FitFreed import interface", () => {
     expect(through).toHaveValue("2026-01-05");
     expect(within(screen.getByRole("table", { name: "Daily activity overview" }))
       .getAllByRole("row")).toHaveLength(6);
+  });
+
+  it("compares two entered periods with exact changes and visible coverage", async () => {
+    const overview = activityOverview([
+      { localDate: "2026-01-01", stepCount: "1000", availability: "available" },
+      { localDate: "2026-01-02", stepCount: "2000", availability: "available" },
+      { localDate: "2026-01-03", stepCount: null, availability: "missing" },
+      { localDate: "2026-01-04", stepCount: "2000", availability: "available" },
+      { localDate: "2026-01-05", stepCount: "3000", availability: "available" },
+    ]);
+    const comparison = activityComparison(
+      overview.series[0].days.slice(0, 2),
+      overview.series[0].days.slice(3, 5),
+    );
+    comparison.availableRange = overview.availableRange;
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_activity_overview") return Promise.resolve(overview);
+      if (command === "query_activity_comparison") return Promise.resolve(comparison);
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      if (command === "load_locale") return Promise.resolve("en-US");
+      if (command === "save_locale") return Promise.resolve();
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+
+    const baselineFrom = await screen.findByLabelText("Baseline from");
+    const baselineThrough = screen.getByLabelText("Baseline through");
+    const comparisonFrom = screen.getByLabelText("Comparison from");
+    const comparisonThrough = screen.getByLabelText("Comparison through");
+    for (const [input, value] of [
+      [baselineFrom, "2026-01-01"],
+      [baselineThrough, "2026-01-02"],
+      [comparisonFrom, "2026-01-04"],
+      [comparisonThrough, "2026-01-05"],
+    ] as const) {
+      await user.clear(input);
+      await user.type(input, value);
+    }
+    await user.click(screen.getByRole("button", { name: "Compare periods" }));
+
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
+      "query_activity_comparison",
+      {
+        baselineRange: { from: "2026-01-01", through: "2026-01-02" },
+        comparisonRange: { from: "2026-01-04", through: "2026-01-05" },
+      },
+    ));
+    const result = screen.getByRole("region", { name: "Period comparison" });
+    expect(within(result).getByText(
+      "Changes use only days with step totals. Review both periods’ coverage.",
+    )).toBeVisible();
+    const comparisonTable = within(result).getByRole("table", { name: "Period comparison" });
+    const rows = within(comparisonTable).getAllByRole("row");
+    expect(within(rows[1]).getByText("3,000")).toBeVisible();
+    expect(within(rows[1]).getByText("5,000")).toBeVisible();
+    expect(within(rows[1]).getByText("+2,000")).toBeVisible();
+    expect(within(rows[2]).getByText("+1,000")).toBeVisible();
+    expect(within(rows[3]).getAllByText("2")).toHaveLength(2);
+
+    const comparisonQueryCount = mocks.invoke.mock.calls.filter(
+      ([command]) => command === "query_activity_comparison",
+    ).length;
+    await user.clear(baselineFrom);
+    await user.type(baselineFrom, "2026-01-03");
+    await user.click(screen.getByRole("button", { name: "Compare periods" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Choose ordered comparison periods inside the available history, up to 366 days each.",
+    );
+    expect(mocks.invoke.mock.calls.filter(
+      ([command]) => command === "query_activity_comparison",
+    )).toHaveLength(comparisonQueryCount);
+    expect(screen.getByRole("region", { name: "Period comparison" })).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Clear comparison" }));
+    expect(screen.queryByRole("region", { name: "Period comparison" })).not.toBeInTheDocument();
   });
 
   it("keeps import disabled after a cancelled picker and enables it for a selected ZIP", async () => {
