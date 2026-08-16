@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed Milestone 0 baseline. It defines behavior and consistency independently of the persistence technology selected later in Milestone 0.
+Proposed Milestone 0 baseline. [ADR 0002](decisions/0002-select-sqlite-storage.md) selects SQLite as the single system of record; this document defines the import behavior and the transaction boundaries that its adapter must implement.
 
 ## Goal
 
@@ -142,7 +142,7 @@ Public diagnostics use opaque operation references and sanitized aggregates. Det
 
 ## Pending decisions
 
-- Persistence mechanism used to implement staging and atomic visibility.
+- SQLite staging representation and the exact short transaction used for atomic visibility.
 - Whether resumable staging is worth its privacy, versioning, and cleanup complexity for the MVP.
 - The exact cancellation granularity and resource budgets after representative synthetic measurements.
 - Family-specific exceptions, if any, to package-level atomicity for supported mappings.

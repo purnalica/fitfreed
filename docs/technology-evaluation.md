@@ -2,7 +2,7 @@
 
 ## Status
 
-Active Milestone 0 protocol. [ADR 0001](architecture/decisions/0001-select-tauri-application-stack.md) selects Tauri 2, a Rust core, and a TypeScript and React presentation layer. Persistence, analytical storage, visualization, and test-driver decisions remain open.
+Active Milestone 0 protocol. [ADR 0001](architecture/decisions/0001-select-tauri-application-stack.md) selects Tauri 2, a Rust core, and a TypeScript and React presentation layer. [ADR 0002](architecture/decisions/0002-select-sqlite-storage.md) selects bundled SQLite as the single system of record and rejects an additional analytical engine without a measured budget failure. Visualization and test-driver decisions remain open.
 
 The dated [`research/technology-paper-screen.md`](research/technology-paper-screen.md) advanced Tauri and Electron to equivalent integrated spikes, with SQLite as the transactional baseline and DuckDB as the comparative analytical candidate. The [`research/technology-spike-2026-08-15.md`](research/technology-spike-2026-08-15.md) checkpoint records correctness, scale, packaging, footprint, security, localization, developer-experience, and rejected-alternative evidence. Remaining gates determine release readiness and the outstanding component decisions; they no longer preserve a parallel Electron implementation.
 

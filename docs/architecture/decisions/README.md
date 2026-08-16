@@ -14,5 +14,6 @@ This directory contains durable FitFreed architecture decisions. Read [the docum
 ## Index
 
 - [ADR 0001: Select the Tauri application stack](0001-select-tauri-application-stack.md) — Accepted on 2026-08-16.
+- [ADR 0002: Select SQLite as the single system of record](0002-select-sqlite-storage.md) — Accepted on 2026-08-16.
 
-Confirmed product constraints remain in `docs/requirements.md`. Storage, visualization, test-driver, and update-implementation choices remain open until their Milestone 0 evidence supports separate decisions.
+Confirmed product constraints remain in `docs/requirements.md`. Visualization, test-driver, and update-implementation choices remain open until their Milestone 0 evidence supports separate decisions.

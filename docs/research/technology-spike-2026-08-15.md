@@ -102,7 +102,27 @@ Two Node runs experienced material read-and-decode slowdowns; the median remains
 
 Both paths meet the applicable provisional import, repeat, memory, and query budgets on this hardware and scenario. Rust is approximately five times faster on first import and uses approximately one tenth of the peak resident memory. Node hashes the small compressed archive faster on the exact-repeat path. No conclusion about realistic multi-gigabyte archive fingerprinting follows from that repeat result.
 
-SQLite persisted the complete scenario and served the measured range query with ample margin. This establishes SQLite as the transactional baseline for the current vertical concept. It does not yet eliminate DuckDB for million-sample analytical workloads; the padding field is intentionally unsupported content, not a time-series model or representative analytical query.
+SQLite persisted the complete scenario and served the measured range query with ample margin. The padding field is intentionally unsupported content, so a separate structured scenario evaluated million-sample analytical workloads before the storage decision.
+
+## Structured analytical storage scenario
+
+The independently generated scenario contains 1,000 training sessions distributed across ten years and four fictional sport classifications. Each session has 5,000 one-second samples with deterministic heart-rate and speed values, for a total of five million samples. It contains no value, distribution, timestamp sequence, sport history, or aggregate derived from the private reference export.
+
+SQLite uses one session table with a date and sport index and one `WITHOUT ROWID` sample table keyed by session and offset. One WAL transaction inserted the complete history and checkpointed it. The resulting database occupied 84.3 MiB. Preparation took 1.989 seconds with 10.1 MiB peak resident memory.
+
+Fifteen warm executions per query produced:
+
+| Product-shaped query | Result rows | Median | p95 | Applicable budget |
+|---|---:|---:|---:|---:|
+| Indexed default dashboard by month and sport | 480 | 0.22 ms | 0.56 ms | 500 ms |
+| Annual heart-rate-zone totals from raw samples | 4 | 106.0 ms | 107.9 ms | 500 ms |
+| One-session ten-second downsampling | 500 | 0.64 ms | 0.72 ms | 500 ms |
+| Decade monthly trend from all raw samples | 120 | 1,294 ms | 1,334 ms | 2 s with loading state |
+| Two two-year periods compared by sport from raw samples | 8 | 925.8 ms | 949.9 ms | 2 s with loading state |
+
+The query process peaked at 14.4 MiB resident memory. The two whole-history queries require a loading state and cancellation under the quality targets, even though they remain within the complex-visualization budget. Production projections should make common reports faster, but this worst-case raw-scan evidence shows no MVP query failure that would justify a second engine. The hardware and warm-cache limitations still apply, so minimum-profile verification remains a release gate.
+
+[ADR 0002](../architecture/decisions/0002-select-sqlite-storage.md) therefore selects bundled SQLite as the single system of record. DuckDB was not added to the application or contributor toolchain because the protocol requires measured value to exceed its additional schema, migration, consistency, backup, packaging, and recovery cost.
 
 ## Packaging and launch evidence
 
@@ -151,15 +171,14 @@ Both implementations now apply schema version 1 inside a SQLite transaction. A f
 3. Verify the Tauri background-import boundary and prove progress, cancellation, and responsiveness during the large scenario.
 4. Exercise cryptographically signed update metadata, authentic-artifact verification, tamper rejection, interrupted update recovery, and the unsigned-alpha notification path.
 5. Turn the demonstrated transactional migration and backup behavior into versioned migration assets, then verify restart-shaped backup and recovery.
-6. Generate representative structured sample series and compare SQLite with DuckDB only on queries that could justify the second engine.
-7. Repeat large measurements on or constrained to the reference memory profile with a realistic-compression archive using the demonstrated phase-level timing fields.
-8. Complete online vulnerability and exact distributable-content inventories, then automate license enforcement and notices.
-9. Install the standard Rust formatter component and pass formatting checks.
+6. Repeat large measurements on or constrained to the reference memory profile with a realistic-compression archive using the demonstrated phase-level timing fields.
+7. Complete online vulnerability and exact distributable-content inventories, then automate license enforcement and notices.
+8. Install the standard Rust formatter component and pass formatting checks.
 
 ## Decision outcome
 
 [ADR 0001](../architecture/decisions/0001-select-tauri-application-stack.md) accepts Tauri because its common import path is substantially smaller, faster, and more memory-efficient; its capability model is explicit; and its official updater has a mandatory signature model. Electron retains historical advantages in warm packaging speed, a single primary application language, Chromium consistency, and mature web tooling, but its footprint, generated-tooling friction, release-candidate SQLite binding, update asymmetry, and unverified packaged worker path are meaningful costs.
 
-SQLite is the leading system of record. A second analytical engine has no measured justification yet.
+[ADR 0002](../architecture/decisions/0002-select-sqlite-storage.md) accepts SQLite as the single system of record. A second analytical engine has no measured justification and is not part of the selected stack.
 
 The remaining gates can still trigger reconsideration, block a release, or determine separate storage, test, and update ADRs. They do not justify preserving a parallel Electron codebase.

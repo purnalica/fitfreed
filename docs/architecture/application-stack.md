@@ -11,6 +11,7 @@ Current architecture after [ADR 0001](decisions/0001-select-tauri-application-st
 | Domain | Rust without desktop, persistence, ZIP, JSON, or provider-framework dependencies | FitFreed concepts, identities, value objects, invariants, and reconciliation policy |
 | Application | Rust | Use cases, input and output ports, transaction intent, progress, cancellation, and provider-neutral DTOs |
 | Source and infrastructure adapters | Rust | Provider decoding, ZIP and JSON access, persistence, migrations, backup, update service, and operating-system integrations |
+| Storage | Bundled SQLite through a Rust adapter | Authoritative local library, migrations, backup, indexes, and rebuildable projections |
 | Desktop host | Tauri 2 | Process lifecycle, windowing, native dialogs, capabilities, command registration, packaging, and update integration |
 | Presentation | TypeScript and React | Localized interaction, accessible visualization, view state, and command invocation |
 
@@ -31,4 +32,4 @@ The initial desktop distribution uses one Tauri application process and its mana
 
 The repository will pin supported Rust and Node versions and expose one documented command for each fast check, full verification, application launch, package build, and release-shaped test. A clean clone must not require private data, proprietary services, or undocumented global tooling.
 
-Storage, visualization, E2E-driver, and updater implementation decisions will receive separate ADRs when their evidence is complete.
+Storage is defined by [ADR 0002](decisions/0002-select-sqlite-storage.md). Visualization, E2E-driver, and updater implementation decisions will receive separate ADRs when their evidence is complete.

@@ -51,6 +51,7 @@ Polar Flow is the first importer, not the product identity. Later importers may 
 - [Data format documentation](docs/data-formats/README.md)
 - [Source integration architecture](docs/architecture/source-integration.md)
 - [Application stack architecture](docs/architecture/application-stack.md)
+- [Storage architecture](docs/architecture/storage.md)
 - [Quality targets](docs/quality-targets.md)
 - [Testing strategy](docs/testing-strategy.md)
 - [Automation strategy](docs/automation-strategy.md)
@@ -58,7 +59,7 @@ Polar Flow is the first importer, not the product identity. Later importers may 
 - [Architecture decision records](docs/architecture/decisions/README.md)
 - [Repository content policy](docs/repository-content-policy.md)
 
-The application stack is selected in [ADR 0001](docs/architecture/decisions/0001-select-tauri-application-stack.md). Storage, release-shaped testing, update, and visualization decisions remain in progress. Build and run instructions will be added only when the production executable foundation exists and the commands can be verified from a clean clone.
+The application stack is selected in [ADR 0001](docs/architecture/decisions/0001-select-tauri-application-stack.md), and SQLite is selected as the single system of record in [ADR 0002](docs/architecture/decisions/0002-select-sqlite-storage.md). Release-shaped testing, update, and visualization decisions remain in progress. Build and run instructions will be added only when the production executable foundation exists and the commands can be verified from a clean clone.
 
 ## Contributing
 

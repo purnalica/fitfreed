@@ -43,7 +43,7 @@ Milestone 0 ends with decisions and executable plans, not production feature imp
 
 ### Increment M0.3 — Integrated technology evaluation
 
-**Status:** in progress. [ADR 0001](../architecture/decisions/0001-select-tauri-application-stack.md) accepts Tauri 2 with a Rust core and TypeScript and React presentation. Release-shaped E2E, accessibility, responsive background import, signed-update, migration-recovery, analytical-query, storage-selection, and dependency-automation gates remain open.
+**Status:** in progress. [ADR 0001](../architecture/decisions/0001-select-tauri-application-stack.md) accepts Tauri 2 with a Rust core and TypeScript and React presentation. [ADR 0002](../architecture/decisions/0002-select-sqlite-storage.md) accepts SQLite as the single system of record. Release-shaped E2E, accessibility, responsive background import, signed-update, migration-recovery, minimum-hardware, and dependency-automation gates remain open.
 
 **Outcome:** one desktop application family and one storage architecture have demonstrated the complete release-shaped path required by the first vertical slice.
 
