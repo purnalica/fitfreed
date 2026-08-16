@@ -1,0 +1,215 @@
+use std::{
+    path::Path,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    },
+};
+
+use thiserror::Error;
+
+use fitfreed_domain::{DailyActivity, ImportReport};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ImportPhase {
+    Fingerprinting,
+    Validating,
+    Importing,
+    Committing,
+    Completed,
+    Cancelled,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ImportProgress {
+    pub phase: ImportPhase,
+    pub completed_artifacts: usize,
+    pub total_artifacts: Option<usize>,
+    pub completed_bytes: u64,
+    pub total_bytes: Option<u64>,
+    pub cancellable: bool,
+}
+
+impl ImportProgress {
+    pub fn phase(phase: ImportPhase) -> Self {
+        Self {
+            phase,
+            completed_artifacts: 0,
+            total_artifacts: None,
+            completed_bytes: 0,
+            total_bytes: None,
+            cancellable: !matches!(
+                phase,
+                ImportPhase::Committing | ImportPhase::Completed | ImportPhase::Cancelled
+            ),
+        }
+    }
+
+    pub fn fingerprinting(completed_bytes: u64, total_bytes: u64) -> Self {
+        Self {
+            completed_bytes,
+            total_bytes: Some(total_bytes),
+            ..Self::phase(ImportPhase::Fingerprinting)
+        }
+    }
+
+    pub fn artifacts(phase: ImportPhase, completed: usize, total: usize) -> Self {
+        Self {
+            completed_artifacts: completed,
+            total_artifacts: Some(total),
+            ..Self::phase(phase)
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct ImportPhaseTimings {
+    pub fingerprint_milliseconds: f64,
+    pub database_setup_milliseconds: f64,
+    pub repeat_lookup_milliseconds: f64,
+    pub archive_validation_milliseconds: f64,
+    pub read_decode_map_milliseconds: f64,
+    pub reconciliation_milliseconds: f64,
+    pub transaction_control_milliseconds: f64,
+    pub total_milliseconds: f64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ProfiledImport {
+    pub report: ImportReport,
+    pub timings: ImportPhaseTimings,
+}
+
+pub trait ArchiveImportPort {
+    fn import_archive(
+        &self,
+        archive_path: &Path,
+        cancellation: &AtomicBool,
+        on_progress: &mut dyn FnMut(ImportProgress),
+    ) -> Result<ImportReport, String>;
+}
+
+pub trait ActivityLibraryPort {
+    fn query_activity(&self) -> Result<Vec<DailyActivity>, String>;
+}
+
+#[derive(Debug, Error)]
+pub enum ApplicationError {
+    #[error("another import is already active")]
+    ImportAlreadyActive,
+    #[error("import coordination failed: {0}")]
+    Coordination(String),
+    #[error("{0}")]
+    Import(String),
+    #[error("library query failed: {0}")]
+    Query(String),
+}
+
+#[derive(Clone, Default)]
+pub struct ImportCoordinator {
+    active_cancellation: Arc<Mutex<Option<Arc<AtomicBool>>>>,
+}
+
+impl ImportCoordinator {
+    fn begin(&self) -> Result<Arc<AtomicBool>, ApplicationError> {
+        let mut active = self
+            .active_cancellation
+            .lock()
+            .map_err(|error| ApplicationError::Coordination(error.to_string()))?;
+        if active.is_some() {
+            return Err(ApplicationError::ImportAlreadyActive);
+        }
+        let cancellation = Arc::new(AtomicBool::new(false));
+        *active = Some(Arc::clone(&cancellation));
+        Ok(cancellation)
+    }
+
+    pub fn cancel(&self) -> Result<bool, ApplicationError> {
+        let active = self
+            .active_cancellation
+            .lock()
+            .map_err(|error| ApplicationError::Coordination(error.to_string()))?;
+        if let Some(cancellation) = active.as_ref() {
+            cancellation.store(true, Ordering::Relaxed);
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    fn finish(&self, cancellation: &Arc<AtomicBool>) -> Result<(), ApplicationError> {
+        let mut active = self
+            .active_cancellation
+            .lock()
+            .map_err(|error| ApplicationError::Coordination(error.to_string()))?;
+        if active
+            .as_ref()
+            .is_some_and(|current| Arc::ptr_eq(current, cancellation))
+        {
+            *active = None;
+        }
+        Ok(())
+    }
+}
+
+pub fn import_archive(
+    port: &dyn ArchiveImportPort,
+    coordinator: &ImportCoordinator,
+    archive_path: &Path,
+    on_progress: &mut dyn FnMut(ImportProgress),
+) -> Result<ImportReport, ApplicationError> {
+    let cancellation = coordinator.begin()?;
+    let result = port
+        .import_archive(archive_path, &cancellation, on_progress)
+        .map_err(ApplicationError::Import);
+    coordinator.finish(&cancellation)?;
+    result
+}
+
+pub fn query_activity(
+    port: &dyn ActivityLibraryPort,
+) -> Result<Vec<DailyActivity>, ApplicationError> {
+    port.query_activity().map_err(ApplicationError::Query)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct ControlledImportPort;
+
+    impl ArchiveImportPort for ControlledImportPort {
+        fn import_archive(
+            &self,
+            _archive_path: &Path,
+            cancellation: &AtomicBool,
+            _on_progress: &mut dyn FnMut(ImportProgress),
+        ) -> Result<ImportReport, String> {
+            assert!(!cancellation.load(Ordering::Relaxed));
+            Ok(ImportReport::assessed())
+        }
+    }
+
+    #[test]
+    fn coordinates_one_import_and_releases_the_slot_after_execution() {
+        let coordinator = ImportCoordinator::default();
+        let mut progress = |_| {};
+
+        import_archive(
+            &ControlledImportPort,
+            &coordinator,
+            Path::new("synthetic.zip"),
+            &mut progress,
+        )
+        .expect("first import");
+
+        assert!(!coordinator.cancel().expect("no active import"));
+        import_archive(
+            &ControlledImportPort,
+            &coordinator,
+            Path::new("synthetic.zip"),
+            &mut progress,
+        )
+        .expect("subsequent import");
+    }
+}

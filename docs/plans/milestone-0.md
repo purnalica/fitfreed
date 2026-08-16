@@ -10,6 +10,12 @@ Produce enough verified product, source-format, domain, architecture, technology
 
 Milestone 0 ends with decisions and executable plans, not production feature implementation. Disposable technology experiments remain local; durable evidence, decisions, synthetic scenarios, and selected implementation foundations enter version control.
 
+## Selected-foundation transition
+
+An ignored technology spike may exist only while alternatives are being compared. Once an ADR selects that stack, no new product behavior may be added to the ignored implementation. Any remaining release-shaped verification must run against the versioned application foundation and becomes part of the Milestone 1 acceptance path.
+
+The Tauri spike crossed this boundary when ADR 0001 was accepted. Promotion of its live behavior, tests, fixtures, and automation into the versioned product is therefore the first Milestone 1 increment. Generated output, logs, private measurements, and superseded experiments remain local.
+
 ## Execution order
 
 ### Increment M0.1 — Repository and OSS foundation
@@ -43,7 +49,7 @@ Milestone 0 ends with decisions and executable plans, not production feature imp
 
 ### Increment M0.3 — Integrated technology evaluation
 
-**Status:** in progress. [ADR 0001](../architecture/decisions/0001-select-tauri-application-stack.md) accepts Tauri 2 with a Rust core and TypeScript and React presentation. [ADR 0002](../architecture/decisions/0002-select-sqlite-storage.md) accepts SQLite as the single system of record. Release-shaped E2E, accessibility, responsive background import, signed-update, migration-recovery, minimum-hardware, and dependency-automation gates remain open.
+**Status:** selection complete. [ADR 0001](../architecture/decisions/0001-select-tauri-application-stack.md) accepts Tauri 2 with a Rust core and TypeScript and React presentation. [ADR 0002](../architecture/decisions/0002-select-sqlite-storage.md) accepts SQLite as the single system of record. The release-shaped E2E, accessibility, responsive background import, signed-update, migration-recovery, minimum-hardware, and dependency-automation gates remain mandatory, but must now execute against the versioned foundation rather than extend a disposable spike.
 
 **Outcome:** one desktop application family and one storage architecture have demonstrated the complete release-shaped path required by the first vertical slice.
 
@@ -76,6 +82,8 @@ Milestone 0 ends with decisions and executable plans, not production feature imp
 
 ### Increment M0.5 — Milestone 1 implementation plan
 
+**Status:** in progress. The initial versioned plan is [`milestone-1.md`](milestone-1.md).
+
 **Outcome:** the first production-shaped vertical slice can be implemented in small commits and evaluated through a real desktop entry point.
 
 **Work:**
@@ -84,8 +92,10 @@ Milestone 0 ends with decisions and executable plans, not production feature imp
 2. Break the slice into behavior-first increments with unit, integration, E2E, documentation, packaging, and recovery evidence.
 3. Map every increment to requirements and define its acceptance commands.
 4. Confirm that a clean clone can reach each evaluation point without private data or undocumented maintainer state.
+5. Define separate, versioned documentation workstreams: contributor onboarding verified from a clean clone, and localized user guidance verified against the packaged installation, import, exploration, privacy, update, recovery, and troubleshooting journeys.
+6. Define a mandatory GitHub Actions macOS E2E lane that builds the instrumented package, generates independent synthetic fixtures, exercises the packaged application, and retains safe diagnostic evidence on failure.
 
-**Exit evidence:** reviewed Milestone 1 plan, traceable acceptance criteria, synthetic inputs, and no unresolved decision blocking implementation.
+**Exit evidence:** reviewed Milestone 1 plan, traceable acceptance criteria, synthetic inputs, explicit user and contributor documentation deliverables with acceptance walkthroughs, and no unresolved decision blocking implementation.
 
 ## Cross-cutting rules
 

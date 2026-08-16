@@ -85,6 +85,14 @@ The concrete commands will be selected with the technology stack. The required e
 
 Local and continuous-integration workflows will invoke the same underlying commands.
 
+### Initial continuous-integration distribution
+
+- GitHub Actions runs platform-independent fast and full checks for pull requests and `main`.
+- A mandatory macOS job builds the instrumented Tauri package and executes the focused packaged E2E journey with independently generated synthetic fixtures.
+- Test-only WebDriver plugins and capabilities are feature-gated. A separate packaging assertion proves that they are absent from the production application.
+- Privacy-safe failure reports, logs, and screenshots are retained as short-lived workflow artifacts. Application libraries, private paths, real exports, and derived personal values are never uploaded.
+- The packaged E2E gate remains failed or pending until it succeeds in automation; inability to execute it in a local host is not accepted evidence.
+
 ## Failure policy
 
 - Diagnose failures to their root cause before changing production or test code.
@@ -98,8 +106,8 @@ Local and continuous-integration workflows will invoke the same underlying comma
 
 ## Pending decisions
 
-- Concrete test frameworks and desktop automation driver.
-- Supported operating-system matrix and distribution of E2E execution.
+- Final acceptance of the Tauri WebDriverIO driver after the versioned macOS workflow proves the complete journey reliably.
+- Linux and Windows E2E runner distribution when those platforms enter implementation.
 - Validation of the provisional performance budgets and final reference-hardware profiles.
 - Accessibility conformance tooling and manual audit cadence.
 - Exact performance-benchmark hardware after the minimum macOS support decision.

@@ -2,7 +2,7 @@
 
 ## Status
 
-Initial planning baseline. Product discovery is active and implementation has not started. The functional MVP scope is confirmed; remaining Milestone 0 decisions must now validate its implementation path.
+Milestone 1 implementation is active. The functional MVP scope and selected Tauri and SQLite foundation are confirmed; remaining architecture and release gates are being proved through the versioned walking skeleton.
 
 ## Purpose
 
@@ -10,7 +10,7 @@ This document is the canonical source for product sequencing and milestone bound
 
 Detailed execution plans will be created per milestone and linked from this roadmap. Implementation issues will derive from those plans rather than replacing them.
 
-The active detailed plan is [`plans/milestone-0.md`](plans/milestone-0.md). Technology evidence follows [`technology-evaluation.md`](technology-evaluation.md).
+The Milestone 0 closure plan is [`plans/milestone-0.md`](plans/milestone-0.md). The versioned implementation transition is defined by [`plans/milestone-1.md`](plans/milestone-1.md). Technology evidence follows [`technology-evaluation.md`](technology-evaluation.md).
 
 ## Planning principles
 

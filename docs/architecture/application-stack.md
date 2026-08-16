@@ -15,6 +15,8 @@ Current architecture after [ADR 0001](decisions/0001-select-tauri-application-st
 | Desktop host | Tauri 2 | Process lifecycle, windowing, native dialogs, capabilities, command registration, packaging, and update integration |
 | Presentation | TypeScript and React | Localized interaction, accessible visualization, view state, and command invocation |
 
+The current physical modules and compile-time boundaries are documented in the [module map](module-map.md).
+
 ## Dependency rules
 
 - Dependencies point inward from Tauri, React, and infrastructure adapters toward application ports and the domain.
@@ -26,7 +28,7 @@ Current architecture after [ADR 0001](decisions/0001-select-tauri-application-st
 
 ## Process boundary
 
-The initial desktop distribution uses one Tauri application process and its managed blocking-task runtime. Import use cases execute on blocking workers rather than the UI event path. The production design must prove bounded concurrency, atomic visibility, cancellation semantics, and shutdown recovery before this boundary is accepted for the walking skeleton.
+The initial desktop distribution uses one Tauri application process and its managed blocking-task runtime. Import use cases execute on blocking workers rather than the UI event path. Application coordination permits one active import; adapter tests prove atomic visibility and cancellation rollback. Packaged timing, shutdown, and restart recovery remain mandatory hosted-E2E gates.
 
 ## Contributor contract
 

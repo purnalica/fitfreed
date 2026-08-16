@@ -2,9 +2,11 @@
 
 ## Current project stage
 
-FitFreed is establishing its Milestone 0 architecture baseline and implementation plan. Tauri 2, a Rust core, and a TypeScript and React presentation layer are selected, but there is no production application yet. Contributions are currently most useful when they improve verified requirements, architecture evidence, synthetic compatibility scenarios, contributor automation, or the path to the first vertical slice.
+FitFreed is implementing its Milestone 1 executable foundation with Tauri 2, Rust, TypeScript, React, and SQLite. The versioned walking skeleton is not an alpha release and accepts synthetic development fixtures only. Contributions are currently most useful when they complete a bounded vertical behavior together with its architecture, tests, data contracts, localization, user guidance, and contributor automation.
 
 Review the [requirements](docs/requirements.md), [roadmap](docs/roadmap.md), [data format documentation](docs/data-formats/README.md), and [repository content policy](docs/repository-content-policy.md) before starting work.
+
+Follow the [contributor setup](docs/development/getting-started.md) to install the pinned toolchains and run the same commands as continuous integration.
 
 ## Before proposing a change
 

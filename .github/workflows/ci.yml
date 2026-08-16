@@ -1,0 +1,106 @@
+name: Continuous integration
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Portable quality checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Use the supported Node.js version
+        uses: actions/setup-node@1e60f620b9541d7c243d52f351b6b2dfca3f7ff # v4.0.3
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked JavaScript dependencies
+        run: npm ci
+
+      - name: Verify architecture boundaries
+        run: npm run check:architecture
+
+      - name: Verify translation catalogs
+        run: npm run check:i18n
+
+      - name: Verify documentation links
+        run: npm run check:docs
+
+      - name: Test the presentation
+        run: npm test
+
+      - name: Build the presentation
+        run: npm run build
+
+      - name: Verify Rust formatting
+        run: npm run format:check
+
+      - name: Test domain and application crates
+        run: cargo test --manifest-path src-tauri/Cargo.toml -p fitfreed-domain -p fitfreed-application
+
+      - name: Audit production JavaScript dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+  packaged-macos-e2e:
+    name: Packaged macOS E2E
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Use the supported Node.js version
+        uses: actions/setup-node@1e60f620b9541d7c243d52f351b6b2dfca3f7ff # v4.0.3
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked JavaScript dependencies
+        run: npm ci
+
+      - name: Run the complete fast verification lane
+        run: npm run test:fast
+
+      - name: Verify Rust formatting and lint rules
+        run: |
+          npm run format:check
+          npm run lint:rust
+
+      - name: Build the production package
+        run: npm run package
+
+      - name: Reject test instrumentation in the production package
+        run: npm run check:production-bundle
+
+      - name: Build and test the instrumented package
+        run: npm run verify:e2e
+
+      - name: Retain privacy-safe failure evidence
+        if: failure()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: packaged-macos-e2e-failure
+          path: .artifacts/e2e/evidence
+          if-no-files-found: warn
+          retention-days: 7

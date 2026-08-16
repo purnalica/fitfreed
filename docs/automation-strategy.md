@@ -27,6 +27,8 @@ Automation reduces contributor friction, prevents undocumented maintainer knowle
 
 ### Continuous integration
 
+GitHub Actions is the selected continuous-integration provider for the GitHub-hosted repository. The first product workflow will combine platform-independent checks with a mandatory macOS packaged-E2E job. Local and hosted execution will call the same versioned project commands; the workflow will not encode a parallel test path.
+
 - Change-scope detection without skipping required dependency checks.
 - Unit, integration, E2E, migration, performance, packaging, and platform matrices.
 - Code quality, dependency-boundary, security, license, secret, and supply-chain checks.
@@ -110,7 +112,7 @@ Explicit approval remains required for:
 ## Pending decisions
 
 - Primary cross-platform task runner and environment provisioning approach.
-- Continuous-integration provider and supported runner matrix.
+- Linux and Windows runner expansion after their platform milestones begin.
 - Release-channel and artifact-promotion model.
 - Dependency-update and scheduled-maintenance tooling.
 - Collaborative translation platform and synchronization mechanism.

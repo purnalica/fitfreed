@@ -4,7 +4,7 @@
 
 FitFreed is a local-first desktop application for turning personal fitness-platform exports into an understandable, durable history that can be explored beyond the source platform.
 
-> **Project status:** Milestone 0 architecture baseline and implementation planning. The Tauri application stack is selected; no production application or release exists yet.
+> **Project status:** Milestone 1 executable foundation. A versioned Tauri walking skeleton imports independently constructed synthetic daily-activity data through Clean Architecture boundaries. It is not an alpha release and must not yet be used with real personal exports.
 
 ## Why FitFreed exists
 
@@ -45,7 +45,10 @@ Polar Flow is the first importer, not the product identity. Later importers may 
 
 - [Product requirements](docs/requirements.md)
 - [Product roadmap](docs/roadmap.md)
-- [Active Milestone 0 plan](docs/plans/milestone-0.md)
+- [Active Milestone 1 plan](docs/plans/milestone-1.md)
+- [Contributor setup](docs/development/getting-started.md)
+- [Development preview guide](docs/user/development-preview.md)
+- [Architecture module map](docs/architecture/module-map.md)
 - [Technology evaluation protocol](docs/technology-evaluation.md)
 - [Product thesis](docs/product-thesis.md)
 - [Data format documentation](docs/data-formats/README.md)
@@ -59,7 +62,7 @@ Polar Flow is the first importer, not the product identity. Later importers may 
 - [Architecture decision records](docs/architecture/decisions/README.md)
 - [Repository content policy](docs/repository-content-policy.md)
 
-The application stack is selected in [ADR 0001](docs/architecture/decisions/0001-select-tauri-application-stack.md), and SQLite is selected as the single system of record in [ADR 0002](docs/architecture/decisions/0002-select-sqlite-storage.md). Release-shaped testing, update, and visualization decisions remain in progress. Build and run instructions will be added only when the production executable foundation exists and the commands can be verified from a clean clone.
+The application stack is selected in [ADR 0001](docs/architecture/decisions/0001-select-tauri-application-stack.md), and SQLite is selected as the single system of record in [ADR 0002](docs/architecture/decisions/0002-select-sqlite-storage.md). Release-shaped E2E, dependency, update, and visualization gates remain in progress. Build, test, and package commands are documented in the contributor setup.
 
 ## Contributing
 

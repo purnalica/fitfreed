@@ -4,7 +4,7 @@
 
 Evidence was recorded on 2026-08-15 and extended on 2026-08-16. [ADR 0001](../architecture/decisions/0001-select-tauri-application-stack.md) selects Tauri 2, a Rust core, and a TypeScript and React presentation layer. The unresolved release-shaped gates below remain required implementation and release-readiness evidence; selection does not imply that they have passed.
 
-Disposable source, generated archives, databases, application bundles, private keys, and raw measurements remain under ignored local storage. This document contains only independently generated scenario definitions, sanitized measurements, conclusions, and limitations.
+Rejected-candidate source, generated archives, databases, application bundles, private keys, and raw measurements remain outside version control. The selected Tauri behavior, tests, fixture generators, and packaging configuration were promoted into the versioned product foundation on 2026-08-16; the ignored Tauri spike was then removed. This document contains only independently generated scenario definitions, sanitized measurements, conclusions, and limitations.
 
 ## Evaluated paths
 
@@ -24,7 +24,7 @@ The two paper-screen finalists implement the same narrow vertical scenario:
 
 The Tauri path uses Rust, `rusqlite` with bundled SQLite, and the Tauri command boundary. The Electron path uses TypeScript, the Node `node:sqlite` module, a sandboxed preload bridge, sender-validated IPC, and Electron Forge.
 
-Neither disposable core is the production Clean Architecture module structure. The spike keeps framework imports out of the import and persistence modules, but the selected implementation must move those modules behind explicit domain and application ports.
+Neither original disposable core was the production Clean Architecture module structure. The promoted foundation now uses separate `fitfreed-domain` and `fitfreed-application` Cargo crates, concrete infrastructure adapters, transport DTOs, and a thin Tauri host. Cargo manifests and a metadata check enforce the inward dependency direction; further decomposition of the first infrastructure adapter continues with the vertical slice.
 
 ## Environment
 
@@ -58,6 +58,8 @@ Each core passes twelve equivalent automated integration tests:
 The Rust preflight parses standard and ZIP64 central directories because the selected `zip` crate otherwise collapses duplicate names before callers can inspect them. This dependency behavior is now explicit evidence rather than a hidden ambiguity.
 
 Every large run also reported exactly 10,000 recognized artifacts, 10,000 new canonical observations, and successful exact-repeat detection. The scenario uses no personal data and no value, identifier, route, timestamp sequence, or aggregate fingerprint from the private reference export.
+
+The promoted foundation passes sixteen Rust tests: one pure domain reconciliation test, one application coordination test, and fourteen adapter integration tests covering the historical behaviors above plus ordered progress and cancellation rollback. Four headless presentation tests verify locale switching, native-dialog cancellation, selected-package state, responsive progress, cancellation, invalid input, result reporting, multiple records, exact reimport, and restored history. This evidence is versioned and runs without a graphical session.
 
 ## Generated scale scenario
 
@@ -134,7 +136,7 @@ The query process peaked at 14.4 MiB resident memory. The two whole-history quer
 
 Both official toolchains produced macOS application bundles without an Apple Developer identity. Electron's bundle is ad-hoc signed by its packaging path. Tauri was built with signing disabled; its Mach-O executable retained a linker-generated ad-hoc signature, while the bundle had no sealed-resource signature.
 
-Adding a Cargo benchmark under `src/bin` exposed a release-shaped packaging regression: with two discovered binary targets and no explicit default, Tauri packaged `benchmark` as `CFBundleExecutable`. The resulting 2,732 KiB bundle was not an application and failed structural signature verification. The benchmark was moved to a Cargo example and the package now declares `default-run = "tauri"`. A clean package then contained an arm64 `Contents/MacOS/tauri` executable, the expected identifier and resources, and the 12,468 KiB allocated size above. This failure justifies an automated bundle-content assertion in the production packaging gate.
+Adding a Cargo benchmark under `src/bin` exposed a release-shaped packaging regression: with two discovered binary targets and no explicit default, Tauri packaged `benchmark` as `CFBundleExecutable`. The resulting 2,732 KiB bundle was not an application and failed structural signature verification. The benchmark was moved to a Cargo example and the spike declared an explicit default. The promoted package now declares `default-run = "fitfreed"`, contains `Contents/MacOS/fitfreed`, and uses `org.fitfreed.desktop`. A versioned bundle assertion verifies those values and rejects test-only WebDriver strings in the production executable.
 
 Manual Tauri inspection confirmed application launch, switching from the default English interface to Spanish, native control rendering, and the empty-library state. It also exposed a real layout defect: the original single-row import controls compressed the selected-path region and truncated its message too aggressively. The disposable interface was adjusted to a two-row responsive layout; the revised bundle still requires inspection.
 
@@ -142,11 +144,11 @@ Automated screen capture was unavailable in the local terminal host. The Electro
 
 ## Developer-experience evidence
 
-The Tauri generator produced a current React and TypeScript setup. The minimal Rust profile required a separate `rustfmt` component, which is not yet installed. Tauri also invokes `cargo metadata` by executable name before honoring its documented build runner option, so the Homebrew `rustup` proxies had to be linked into the normal executable path. With dependencies present, Rust tests complete in seconds; a warm release bundle still recompiles the application crate and took 13.35 seconds in the corrected package run.
+The Tauri generator produced a current React and TypeScript setup. The promoted repository pins Node.js, npm, Rust, `rustfmt`, and Clippy; formatting, linting, architecture, translation, presentation, and Rust test commands now pass from the repository root. Tauri invokes `cargo metadata` by executable name before honoring its documented build runner option, so the Rustup proxies must remain available in the normal executable path. With dependencies present, tests complete in seconds; release packaging still performs an optimized application build.
 
 The Electron generator completed with Forge 7.11.2 and Electron 43.4.0, but its first-party Vite integration is officially marked experimental. The generated TypeScript constraint was `~4.5.4`, which could not parse current Node type declarations. Moving to TypeScript 5.8 also required updating the generated TypeScript ESLint packages. Vite 5 did not recognize the newer `node:sqlite` built-in automatically, so the main-process build needed an explicit Rollup external. These are reproducible setup repairs, not application defects, but they weaken the clean-clone baseline.
 
-The Tauri npm lock contains 134 package entries: 6 non-development and 128 development entries. Its normal Rust dependency graph contains 220 unique crate names in this spike. The Electron npm lock contains 828 package entries: 8 non-development and 820 development entries, predominantly Forge and packaging tooling, in addition to the bundled Chromium runtime. The Electron install reported security advisories during dependency changes, but the online audit endpoint was unavailable afterward; the cached offline result is not accepted as evidence that the advisories are resolved.
+The selection-time Tauri npm lock contained 134 package entries before release-shaped presentation and WebDriver tooling was added; the promoted locked installation contains 645 packages. Its normal Rust dependency graph contained 220 unique crate names in the spike. The Electron npm lock contained 828 package entries, predominantly Forge and packaging tooling, in addition to the bundled Chromium runtime. The current Tauri installation reports fifteen npm advisories in the complete development tree: one moderate and fourteen high. The affected chains are not yet authoritatively inventoried because the advisory endpoint is unavailable in the restricted host; deprecated `glob` and `inflight` instances are reachable through the WebdriverIO/Mocha development path. A production-only audit is configured in CI, but it has not yet run and does not close the separate development-tooling gate.
 
 The resolved macOS Tauri graph declares MIT, Apache-2.0, BSD, MPL-2.0, Unicode-3.0, Zlib, Unlicense, CC0, and compatible compound expressions; no GPL-incompatible dependency was identified. The Electron application's production npm tree contains MIT and Apache-2.0 dependencies. This is selection evidence, not the production notice artifact: automated license policy, exact distributable contents, source-offer obligations, and release notices remain required.
 
@@ -156,24 +158,24 @@ Primary evidence: [Electron 43 stack](https://www.electronjs.org/blog/electron-4
 
 ## Security and responsiveness observations
 
-Both interfaces apply a restrictive content security policy. The Electron window explicitly enables context isolation and sandboxing, disables Node integration, exposes only three operations through the preload bridge, validates the sender frame, and retains the selected archive path in the main process. Tauri grants only core, file-dialog open, and opener capability sets, and exposes two commands.
+Both interfaces apply a restrictive content security policy. The Electron window explicitly enables context isolation and sandboxing, disables Node integration, exposes only three operations through the preload bridge, validates the sender frame, and retains the selected archive path in the main process. Tauri grants only core, file-dialog open, and opener capability sets. The promoted host exposes import, cancellation, and query commands; test-only WebDriver permissions exist only in a separate feature-gated build configuration.
 
 Both spike cores enforce entry-count, per-entry expanded-size, total expanded-size, compression-ratio, root-only name, duplicate-name, symbolic-link, and encryption policies. Synthetic tests cover duplicates, symbolic links, and extreme compression ratios. Encrypted fixtures across producers, malformed standard and ZIP64 central directories, decoded-name normalization collisions, and cumulative CPU budgets remain required container-contract scenarios.
 
-The Tauri command dispatches import work through its blocking-task runtime, and the Electron host built the import core as a dedicated `worker_threads` entry. Core tests and all three Electron Vite entries compiled, but Electron Forge did not recopy the runtime, so inclusion of the worker in its historical `.app` was not verified. The measurements prove core throughput, not interface responsiveness, progress, or cancellation. The selected Tauri implementation must prove that import work cannot starve interaction and that progress and cancellation meet their budgets.
+The Tauri command dispatches import work through its blocking-task runtime, and the Electron host built the import core as a dedicated `worker_threads` entry. Core tests and all three Electron Vite entries compiled, but Electron Forge did not recopy the runtime, so inclusion of the worker in its historical `.app` was not verified. The promoted Rust tests prove ordered phases, non-cancellable commit, terminal cancellation, and atomic rollback. Presentation tests prove that language selection remains interactive while import is pending and that cancellation feedback restores the interface. The cancellation-scale packaged timing budgets still require the macOS E2E job.
+
+The first packaged WebDriverIO session successfully launched the embedded WebKit driver and inspected the application, but failed while selecting the Spanish `<option>`. Root-cause inspection found that the embedded macOS driver implements option clicks as `el.click()` without updating the parent `<select>` or dispatching `change`, so React never received the event. The E2E journey now uses WebDriver script execution to apply the native select value and dispatch standard `input` and `change` events while preserving the visible locale assertion. The complete packaged journey has not yet passed; it is a mandatory GitHub Actions macOS gate, not accepted evidence.
 
 Both implementations now apply schema version 1 inside a SQLite transaction. A fault injected after DDL but before the version commit leaves schema version 0 and no visible partial tables; the next migration succeeds. Each path also creates a separate backup and reopens it through the normal query path. Production still requires migrations as immutable versioned assets, pre-migration backup policy, restart-shaped recovery, and compatibility tests from every released schema.
 
 ## Remaining implementation and decision gates
 
-1. Run the revised Tauri bundle and inspect it with keyboard navigation and VoiceOver.
-2. Drive the packaged critical journey with Tauri's release-shaped E2E tooling, including locale switching, real field interaction, persistence after restart, reimport, all buttons, validation, multiple records, and recovery.
-3. Verify the Tauri background-import boundary and prove progress, cancellation, and responsiveness during the large scenario.
-4. Exercise cryptographically signed update metadata, authentic-artifact verification, tamper rejection, interrupted update recovery, and the unsigned-alpha notification path.
-5. Turn the demonstrated transactional migration and backup behavior into versioned migration assets, then verify restart-shaped backup and recovery.
-6. Repeat large measurements on or constrained to the reference memory profile with a realistic-compression archive using the demonstrated phase-level timing fields.
-7. Complete online vulnerability and exact distributable-content inventories, then automate license enforcement and notices.
-8. Install the standard Rust formatter component and pass formatting checks.
+1. Pass the versioned GitHub Actions macOS packaged journey, including locale switching, real control interaction, persistence after restart, reimport, cancellation budgets, validation, multiple records, accessibility automation, and recovery; prove the final DMG in the same hosted lane.
+2. Inspect the packaged interface with keyboard navigation and VoiceOver; this complements rather than replaces the automated gate.
+3. Exercise cryptographically signed update metadata, authentic-artifact verification, tamper rejection, interrupted update recovery, and the unsigned-alpha notification path.
+4. Turn the demonstrated transactional migration and backup behavior into immutable versioned migration assets, then verify restart-shaped backup and recovery.
+5. Repeat large measurements on or constrained to the reference memory profile with a realistic-compression archive using the demonstrated phase-level timing fields.
+6. Resolve or explicitly replace vulnerable development-tooling chains, complete exact distributable-content inventories, and automate license enforcement and notices.
 
 ## Decision outcome
 

@@ -8,6 +8,16 @@
 # Downloaded local project tools
 .tools/
 
+# Generated application and test output
+node_modules/
+dist/
+.artifacts/
+src-tauri/target/
+src-tauri/gen/
+src-tauri/icons/
+logs/
+*.log
+
 # Local research and working material
 .local/
 docs/reports/

@@ -1,0 +1,91 @@
+# Milestone 1 Execution Plan
+
+## Status
+
+Active as of 2026-08-16. The selected Tauri foundation has been promoted from the disposable evaluation area and this plan is now the canonical implementation sequence. It refines Milestone 1 in the product roadmap without changing the MVP scope.
+
+## Objective
+
+Create a production-shaped, versioned application that can be built, tested, packaged, localized, and evaluated from a clean clone. The first vertical slice imports independently constructed Polar Flow daily-activity artifacts through a provider adapter, reconciles them into a provider-neutral library, and presents persisted history through the desktop application.
+
+No product source, behavioral test, required fixture generator, or continuous-integration entry point may depend on ignored spike content or private exports.
+
+## Increment M1.1 — Promote the selected foundation
+
+**Status:** in progress. Product source, tests, fixtures, brand assets, toolchains, and packaging configuration are versioned; local and hosted acceptance gates are being completed.
+
+**Outcome:** the selected application becomes the single versioned source of truth.
+
+**Work:**
+
+1. Inventory every spike artifact and incoming reference before moving or retiring it.
+2. Promote live source, lockfiles, packaging configuration, synthetic fixture generators, unit tests, integration tests, presentation tests, and packaged E2E tests into the tracked application.
+3. Remove spike language, template branding, generated output, logs, and unused template assets.
+4. Establish explicit domain, application, infrastructure, source-adapter, Tauri-host, and React-presentation boundaries with dependencies pointing inward.
+5. Add an automated architecture check that prevents domain and application code from importing provider, persistence, archive, JSON, desktop, or operating-system adapters.
+6. Retire the local Tauri spike only after no live reference or unique required artifact remains.
+
+**Acceptance evidence:** tracked source has no `.local` dependency; formatting, static analysis, architecture, unit, integration, presentation, packaging, and repository-safety checks pass.
+
+## Increment M1.2 — Reproducible GitHub Actions verification
+
+**Status:** in progress. The portable and packaged macOS jobs are versioned; successful execution from the published commit remains required.
+
+**Outcome:** contributors and the default branch receive automated evidence without requiring the project owner to run local commands.
+
+**Work:**
+
+1. Provide versioned local entry points for setup, fast verification, full verification, synthetic fixture generation, production packaging, instrumented E2E packaging, and packaged E2E execution.
+2. Add a GitHub Actions pull-request and `main` workflow with least-privilege read access and bounded timeouts.
+3. Run deterministic frontend tests and Rust domain, application, adapter, migration, formatting, lint, architecture, documentation, localization, repository-content, and secret checks.
+4. Run a macOS job that installs only declared toolchains and locked dependencies, generates independent synthetic fixtures, builds the Tauri application with test-only WebDriver capabilities, and drives the packaged application through the release-shaped E2E journey.
+5. Verify language switching, every included control, invalid input, background progress, cancellation, exact reimport, cumulative import, accessible output, persisted restart, and recovery behavior.
+6. Publish privacy-safe logs, test reports, and screenshots as short-lived failure artifacts. Never upload a database, selected filesystem path, real export, credential, or personal value.
+7. Prove that the production package excludes WebDriver commands, permissions, and test-only plugins.
+
+**Acceptance evidence:** the same documented commands pass locally and in GitHub Actions; the macOS E2E job passes from a clean checkout; a deliberately broken journey makes the required check fail with usable diagnostics; no manual command relay is part of the workflow.
+
+An environment limitation never waives this gate. Until GitHub Actions produces successful packaged E2E evidence, the increment remains open.
+
+## Increment M1.3 — Transactional library foundation
+
+**Outcome:** SQLite storage and migrations implement the provider-neutral application ports with recoverable lifecycle behavior.
+
+**Work:**
+
+1. Convert the demonstrated schema into immutable versioned migrations.
+2. Persist import operations, provenance, daily-activity observations, and conflicts transactionally.
+3. Verify first creation, exact repeat, overlap, enrichment, preservation, conflict, cancellation rollback, injected interruption, backup, restart, and unsupported future schema behavior.
+4. Keep SQLite and migration types outside the domain and application layers.
+
+**Acceptance evidence:** unit and adapter integration suites prove the domain policy and persistence contract independently; restart-shaped tests recover a consistent library after each supported failure.
+
+## Increment M1.4 — Localized vertical journey
+
+**Outcome:** the packaged application provides the first useful import-to-history journey in `en-US` and `es-ES`.
+
+**Work:**
+
+1. Move interface text into validated locale resources compatible with collaborative translation tools.
+2. Present import selection, coverage, progress, cancellation, actionable errors, daily history, and accessible visual comparison.
+3. Verify keyboard operation, semantic structure, locale-aware formatting, text expansion, and reduced-motion behavior.
+4. Keep provider names at the import boundary and provider-neutral concepts in the library and presentation contracts.
+
+**Acceptance evidence:** component and packaged E2E suites verify both locales and the persisted journey; accessibility automation has no accepted critical or serious violation; any required manual audit is recorded separately and does not replace automation.
+
+## Increment M1.5 — Contributor and user documentation
+
+**Outcome:** a new contributor and an alpha user can complete their primary journeys without private maintainer knowledge.
+
+**Work:**
+
+1. Document prerequisites, setup, architecture navigation, commands, tests, fixtures, debugging, packaging, localization, data contracts, privacy boundaries, and contribution workflow.
+2. Document installation, first launch, ZIP import, history exploration, language selection, backup, recovery, update notices, privacy, and troubleshooting for users.
+3. Validate contributor instructions from a clean clone and user instructions against the packaged application.
+4. Keep documentation changes in the same increment as the behavior they describe.
+
+**Acceptance evidence:** clean-clone and packaged-journey walkthroughs pass using only versioned instructions and synthetic data.
+
+## Cross-cutting completion rule
+
+An increment is incomplete while any applicable unit, integration, E2E, packaging, documentation, localization, architecture, privacy, security, installation, update, or recovery evidence is absent or failing. Environment friction must be fixed or moved to a reproducible automated lane; it never converts a required check into an optional one.

@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0.00 0.00 32.00 32.00" width="32" height="32" role="img" aria-label="FitFreed"><title>FitFreed</title>
+<!-- Square favicon that preserves pixels at 16px and adapts to the system theme. -->
+<style>:root{color-scheme:light dark}.ink{fill:#151D2C}.freed{fill:#6C4DF6}@media (prefers-color-scheme:dark){.ink{fill:#F5F7FB}.freed{fill:#8E7BFF}}</style><g transform="translate(2.56,4.23) scale(0.13927)"><rect x="0" y="0" width="34" height="176" rx="2" class="ink"/><rect x="0" y="0" width="132" height="34" rx="2" class="ink"/><rect x="0" y="68" width="110" height="34" rx="2" class="ink"/><rect x="145" y="-7" width="48" height="34" rx="2" class="freed"/></g>
+</svg>

@@ -1,0 +1,11 @@
+[package]
+name = "fitfreed-application"
+version = "0.1.0"
+edition = "2021"
+description = "FitFreed application use cases and ports"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/purnalica/fitfreed"
+
+[dependencies]
+fitfreed-domain = { path = "../fitfreed-domain" }
+thiserror = "2"

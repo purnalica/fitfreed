@@ -1,0 +1,138 @@
+import fs from "node:fs";
+import path from "node:path";
+
+import AxeBuilder from "@axe-core/webdriverio";
+
+const spanish = JSON.parse(
+  fs.readFileSync(new URL("../../src/locales/es-ES.json", import.meta.url), "utf8"),
+);
+const fixtureDirectory = process.env.FITFREED_E2E_FIXTURE_DIRECTORY;
+const largeArchive = process.env.FITFREED_E2E_LARGE_ARCHIVE;
+
+async function waitForNotice(fragment, timeout = 10_000) {
+  await browser.waitUntil(
+    async () => {
+      const notices = await $$("[role='status']");
+      const texts = await Promise.all(notices.map((notice) => notice.getText()));
+      return texts.some((text) => text.includes(fragment));
+    },
+    { timeout, timeoutMsg: `status did not contain ${fragment}` },
+  );
+}
+
+async function selectArchive(dialogMock, archivePath) {
+  await dialogMock.mockReturnValue(archivePath);
+  await $("aria/Choose ZIP package").click();
+  await expect($(".path")).toHaveText(archivePath);
+}
+
+async function selectLocale(locale) {
+  await browser.execute((nextLocale) => {
+    const select = document.querySelector("select");
+    const setValue = Object.getOwnPropertyDescriptor(
+      window.HTMLSelectElement.prototype,
+      "value",
+    ).set;
+    setValue.call(select, nextLocale);
+    select.dispatchEvent(new Event("input", { bubbles: true }));
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  }, locale);
+  await expect($("select")).toHaveValue(locale);
+}
+
+async function expectHistory(expectedRows) {
+  await browser.waitUntil(async () => (await $$("tbody tr")).length === expectedRows.length, {
+    timeout: 10_000,
+    timeoutMsg: `history did not contain ${expectedRows.length} rows`,
+  });
+  const rows = await $$("tbody tr");
+  for (let index = 0; index < expectedRows.length; index += 1) {
+    const cells = await rows[index].$$("td");
+    await expect(cells[0]).toHaveText(expectedRows[index][0]);
+    await expect(cells[1]).toHaveText(expectedRows[index][1]);
+  }
+}
+
+describe("packaged FitFreed import journey", () => {
+  it("covers validation, cancellation, reimport, cumulative import, accessibility, and restart", async () => {
+    await expect($("h1")).toHaveText("Your fitness history belongs to you");
+    await expect($("aria/Import selected package")).toBeDisabled();
+
+    await selectLocale("es-ES");
+    await expect($("h1")).toHaveText(spanish.title);
+    await selectLocale("en-US");
+    await expect($("h1")).toHaveText("Your fitness history belongs to you");
+
+    const dialogMock = await browser.tauri.mock("plugin:dialog|open");
+    await dialogMock.mockReturnValue(null);
+    await $("aria/Choose ZIP package").click();
+    await expect($(".path")).toHaveText("No package selected");
+    await expect($("aria/Import selected package")).toBeDisabled();
+
+    await selectArchive(dialogMock, largeArchive);
+    const progressStartedAt = Date.now();
+    await $("aria/Import selected package").click();
+    await $("#progress-heading").waitForDisplayed({ timeout: 1_000 });
+    expect(Date.now() - progressStartedAt).toBeLessThanOrEqual(1_000);
+
+    await selectLocale("es-ES");
+    await expect($("h1")).toHaveText(spanish.title);
+    const cancel = await $("button.cancel");
+    await cancel.waitForDisplayed({ timeout: 1_000 });
+    const cancellationStartedAt = Date.now();
+    await cancel.click();
+    await $("button.cancel").waitForEnabled({ reverse: true, timeout: 1_000 });
+    expect(Date.now() - cancellationStartedAt).toBeLessThanOrEqual(1_000);
+    await waitForNotice(spanish.phases.cancelled, 5_000);
+    await $("button.primary").waitForEnabled({ timeout: 5_000 });
+    expect(Date.now() - cancellationStartedAt).toBeLessThanOrEqual(5_000);
+    expect(await $$("tbody tr")).toHaveLength(0);
+
+    await selectLocale("en-US");
+    await selectArchive(dialogMock, path.join(fixtureDirectory, "invalid.zip"));
+    await $("aria/Import selected package").click();
+    const alert = await $("[role='alert']");
+    await alert.waitForDisplayed();
+    await expect(alert).toHaveText(expect.stringContaining("stepCount cannot be negative"));
+    expect(await $$("tbody tr")).toHaveLength(0);
+
+    await selectArchive(dialogMock, path.join(fixtureDirectory, "valid.zip"));
+    await $("aria/Import selected package").click();
+    await waitForNotice("Import completed: 3 recognized, 3 new");
+    await expectHistory([
+      ["2026-01-01", "3,100"],
+      ["2026-01-02", "4,200"],
+      ["2026-01-03", "Not available"],
+    ]);
+
+    const accessibility = await new AxeBuilder({ client: browser }).analyze();
+    expect(accessibility.violations).toEqual([]);
+
+    await $("aria/Import selected package").click();
+    await waitForNotice("Exact package repeat; history was not duplicated.");
+    await expectHistory([
+      ["2026-01-01", "3,100"],
+      ["2026-01-02", "4,200"],
+      ["2026-01-03", "Not available"],
+    ]);
+
+    await selectArchive(dialogMock, path.join(fixtureDirectory, "overlap.zip"));
+    await $("aria/Import selected package").click();
+    await waitForNotice("Import completed: 2 recognized, 1 new");
+    await expectHistory([
+      ["2026-01-01", "3,100"],
+      ["2026-01-02", "4,200"],
+      ["2026-01-03", "Not available"],
+      ["2026-01-04", "5,300"],
+    ]);
+
+    await browser.reloadSession();
+    await expect($("h1")).toHaveText("Your fitness history belongs to you");
+    await expectHistory([
+      ["2026-01-01", "3,100"],
+      ["2026-01-02", "4,200"],
+      ["2026-01-03", "Not available"],
+      ["2026-01-04", "5,300"],
+    ]);
+  });
+});

@@ -1,0 +1,44 @@
+[package]
+name = "fitfreed"
+version = "0.1.0"
+description = "A local-first open-source fitness data explorer"
+authors = ["FitFreed contributors"]
+license = "GPL-3.0-or-later"
+repository = "https://github.com/purnalica/fitfreed"
+default-run = "fitfreed"
+edition = "2021"
+
+[workspace]
+members = ["crates/fitfreed-application", "crates/fitfreed-domain"]
+resolver = "2"
+
+[lib]
+# A distinct library name avoids a collision with the desktop binary on Windows.
+name = "fitfreed_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[features]
+e2e = ["dep:tauri-plugin-wdio", "dep:tauri-plugin-wdio-webdriver"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+fitfreed-application = { path = "crates/fitfreed-application" }
+fitfreed-domain = { path = "crates/fitfreed-domain" }
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-wdio = { version = "1", optional = true }
+tauri-plugin-wdio-webdriver = { version = "1", optional = true }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = "0.4"
+libc = "0.2"
+rusqlite = { version = "0.37", features = ["backup", "bundled"] }
+sha2 = "0.10"
+thiserror = "2"
+zip = { version = "4", default-features = false, features = ["deflate"] }
+
+[dev-dependencies]
+tempfile = "3"

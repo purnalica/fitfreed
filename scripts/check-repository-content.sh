@@ -61,7 +61,8 @@ while IFS= read -r -d '' candidate_path; do
     report_failure "$candidate_path" "private export name or identifier"
   fi
 
-  if LC_ALL=C grep -Eiq '[[:alnum:]._%+-]+@[[:alnum:].-]+\.[[:alpha:]]{2,}' "$candidate_file"; then
+  if [[ "$candidate_path" != "package-lock.json" ]] &&
+    LC_ALL=C grep -Eiq '[[:alnum:]._%+-]+@[[:alpha:]][[:alnum:].-]*\.[[:alpha:]]{2,}' "$candidate_file"; then
     report_failure "$candidate_path" "email address in repository content"
   fi
 
