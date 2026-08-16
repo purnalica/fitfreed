@@ -2,7 +2,7 @@
 
 ## Status
 
-Active cross-layer scenario contract. The Tauri fixture generator implements the current daily-activity and coverage slice; family-specific fields and expected canonical entities are added with each mapping.
+Active cross-layer scenario contract. The Tauri fixture generator implements the current activity, training, and coverage journey; family-specific fields and expected canonical entities are added with each mapping.
 
 ## Purpose
 
@@ -60,6 +60,7 @@ Production-path fixtures include exactly one obvious non-address fictional accou
 | `SYN-026` | Schema migration and reimport | Data created by every supported library schema migrates, remains queryable, and reconciles correctly with a later package. |
 | `SYN-027` | Gap-aware daily activity overview | One selected range contains an available step total, an observation with no step total, and a date with no observation; exact summaries and both localized accessible representations preserve all three states. |
 | `SYN-028` | Training summary exploration | Multiple sessions exercise ordered range filtering, exact duration and energy, optional distance and heart-rate coverage, neutral type availability, detail, comparison, localization, and restart without exposing opaque references. |
+| `SYN-029` | Split sleep history | Result and optional score artifacts exercise source-assigned dates, offset boundaries, declared arithmetic, staged and non-staged variants, enrichment, preservation, conflicts, invalid relationships, migration, querying, and restart. |
 
 ## Family contract matrix
 
@@ -78,6 +79,8 @@ No family is marked supported until its format reference, mapping specification,
 The implemented daily-activity matrix covers an absent or null summary, absent or null step count, zero, a non-negative integer, ignored unknown fields and `exportVersion` shapes, invalid roots, missing or invalid dates, invalid summary and step-count types, filename/content date mismatch, duplicate logical dates in both archive orders, and reassessment after an adapter-version change.
 
 The implemented training-session matrix covers a minimal summary, absent optional measurements, one and multiple child exercises, fractional timestamp normalization, official duration and distance limits, invalid null and field shapes, filename/content start mismatch, duplicate source identity, ignored route and sample detail, source-subject-scoped identity, equivalent reimport, newer amendment, older preservation, equal-revision conflict, provenance, query recovery, and interrupted version 5 migration. Application and transport tests cover default and explicit ranges, multi-origin separation, exact duration and energy arithmetic, optional distance and measurement coverage, invalid facts, comparisons, and empty libraries. Component tests distinguish loading, empty, and failed reads; enter ranges; open and close detail; compare periods; clear results; reject invalid input without discarding valid history; change locale; and reload multiple sessions. The packaged journey exercises multiple sessions, missing optional metrics, an amendment, cumulative addition, every training control, both locales, exact repeat, accessibility, 200% text sizing, and restart without exposing source references.
+
+The implemented sleep import matrix covers a result without a score, a later score enrichment, an omitted retained score, changed known score conflict, staged and non-staged structures, phase arithmetic, empty and missing timelines, midnight and daylight-saving offset boundaries, source-assigned dates, rating and stage enumerations, duplicate dates in each split family, orphan scores, invalid score ranges, persistence provenance, restart querying, and interrupted version 6 migration. The sleep Insights and packaged presentation portions of `SYN-029` remain active work.
 
 ## Test-layer use
 

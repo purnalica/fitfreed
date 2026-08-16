@@ -75,6 +75,8 @@ Local Insights evidence on 2026-08-17: 16 presentation tests and the packaged ma
 
 ## Increment M2.4 — Sleep history
 
+**Status:** import-to-storage slice complete locally; provider-neutral Insights, transport, visual exploration, comparison, and their performance evidence remain active. The provider reference, canonical sleep-period version 1, split-artifact mapping version 1, adapter version 5, and schema version 7 define and implement source-assigned identity, offset boundaries, declared duration arithmetic, optional phases and scores, strict information-only enrichment, preservation, conflicts, provenance, and indexed restart-safe persistence. The mapping explicitly excludes an observed final out-of-period wake marker while rejecting every other out-of-span transition. It does not infer precedence from ZIP or import order.
+
 **Outcome:** users can explore canonical sleep episodes and trends while distinguishing primary sleep records from activity-family sleep summaries.
 
 **Work:**
@@ -84,7 +86,9 @@ Local Insights evidence on 2026-08-17: 16 presentation tests and the packaged ma
 3. Add transactional mapping, persistence, queries, migrations, coverage, detail, trend, and comparison behavior.
 4. Expose gaps and unsupported sleep content rather than synthesizing certainty from absent records.
 
-**Acceptance evidence:** synthetic fixtures cover midnight and daylight-saving boundaries, split artifacts, absent scores, amendments, conflicts, invalid intervals, partial coverage, and restart. Exact visual values, accessible alternatives, both locales, and applicable performance budgets pass through real entry points.
+**Acceptance evidence:** synthetic fixtures cover midnight and daylight-saving boundaries, split artifacts, absent scores, information-only enrichments, preservation, conflicts, invalid intervals, partial coverage, and restart. Exact visual values, accessible alternatives, both locales, and applicable performance budgets pass through real entry points.
+
+Local import-to-storage evidence on 2026-08-17: schema, mapping, documentation, architecture, release, localization, and UI contract checks passed with 269 local documentation links and complete 277-message `en-US` and `es-ES` catalogs. Eleven automation tests, 16 React component tests, and 87 Rust domain, application, adapter, persistence, migration, host, and presentation tests passed together with strict Clippy and formatting. The packaged macOS journey imported synthetic split sleep results and scores, explained both supported families in both locales, retained the established activity and training journeys, passed automated accessibility, reimport, restart, and existing performance gates, and produced the development application and disk image. The privacy-minimized private-reference predicate passed for activity, training, sleep, one opaque origin, complete coverage, and exact repeat without emitting or retaining source paths, values, dates, identifiers, counts, durations, coverage distribution, or fingerprints. This evidence closes the import-to-storage slice only; it does not close M2.4.
 
 ## Increment M2.5 — Recovery history
 

@@ -29,6 +29,8 @@ const canonicalKeys = [...catalogs[0].entries.keys()].sort();
 const coverageReasonCodes = [
   "mapped",
   "mapped-summary",
+  "mapped-sleep-periods",
+  "mapped-sleep-scores",
   "source-subject-claim",
   "known-family-not-yet-supported",
   "mvp-excludes-sensitive-profile",
@@ -40,6 +42,9 @@ const coverageReasonCodes = [
   "filename-content-start-mismatch",
   "duplicate-daily-activity-date",
   "duplicate-training-session-id",
+  "duplicate-sleep-result-date",
+  "duplicate-sleep-score-date",
+  "orphan-sleep-score-date",
   "invalid-source-subject-evidence",
 ];
 

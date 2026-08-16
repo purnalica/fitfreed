@@ -15,6 +15,8 @@ const UUID_PATTERN: &str =
 pub(super) enum SupportedArtifact {
     AccountData,
     DailyActivity,
+    SleepResult,
+    SleepScore,
     TrainingSession,
 }
 
@@ -187,15 +189,17 @@ static ARTIFACT_RULES: LazyLock<Vec<ArtifactRule>> = LazyLock::new(|| {
             "polar-flow-personal-events",
             Unsupported,
         ),
-        rule(
+        supported_rule(
             format!(r"^sleep_result_{NUMERIC_PATTERN}-{UUID_PATTERN}\.json$"),
             "polar-flow-sleep-result",
-            Unsupported,
+            SupportedArtifact::SleepResult,
+            "mapped-sleep-periods",
         ),
-        rule(
+        supported_rule(
             format!(r"^sleep_score_{NUMERIC_PATTERN}-{UUID_PATTERN}\.json$"),
             "polar-flow-sleep-score",
-            Unsupported,
+            SupportedArtifact::SleepScore,
+            "mapped-sleep-scores",
         ),
         rule(
             format!(r"^sport-profiles-{NUMERIC_PATTERN}-{UUID_PATTERN}\.json$"),
@@ -299,16 +303,35 @@ mod tests {
     }
 
     #[test]
-    fn distinguishes_known_unsupported_mvp_families() {
+    fn classifies_supported_split_sleep_artifacts() {
         let cases = [
             (
                 format!("sleep_result_42-{UUID_A}.json"),
                 "polar-flow-sleep-result",
+                SupportedArtifact::SleepResult,
             ),
             (
                 format!("sleep_score_42-{UUID_A}.json"),
                 "polar-flow-sleep-score",
+                SupportedArtifact::SleepScore,
             ),
+        ];
+
+        for (name, expected_family, supported_artifact) in cases {
+            let assessment = assess_artifact(&name);
+            assert_eq!(assessment.family, Some(expected_family), "{name}");
+            assert_eq!(
+                assessment.classification,
+                ArtifactClassification::Supported,
+                "{name}",
+            );
+            assert_eq!(assessment.supported_artifact, Some(supported_artifact));
+        }
+    }
+
+    #[test]
+    fn distinguishes_known_unsupported_mvp_families() {
+        let cases = [
             (
                 format!("nightly_recovery_42-{UUID_A}.json"),
                 "polar-flow-nightly-recovery",

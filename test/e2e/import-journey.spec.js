@@ -332,10 +332,10 @@ describe("packaged FitFreed import journey", () => {
 
     await selectArchive(dialogMock, path.join(fixtureDirectory, "valid.zip"));
     await $("aria/Import selected package").click();
-    await waitForNotice("Import completed: 6 recognized, 5 new");
+    await waitForNotice("Import completed: 8 recognized, 6 new");
     await expectCoverage([
-      ["6", "Supported"],
-      ["1", "Unsupported"],
+      ["8", "Supported"],
+      ["0", "Unsupported"],
       ["1", "Deliberately ignored"],
       ["1", "Unrecognized"],
       ["0", "Invalid"],
@@ -347,13 +347,6 @@ describe("packaged FitFreed import journey", () => {
         count: "1",
         reason: "The file does not match a known data family.",
         action: "Keep the original ZIP and report the compatibility problem.",
-      },
-      {
-        family: "Sleep results",
-        classification: "Unsupported",
-        count: "1",
-        reason: "The data family is recognized but is not imported by this version.",
-        action: "Keep the original ZIP for a future version.",
       },
       {
         family: "Profile picture",
@@ -375,6 +368,20 @@ describe("packaged FitFreed import journey", () => {
         count: "3",
         reason: "The data is mapped into the current library.",
         action: "No action is needed.",
+      },
+      {
+        family: "Sleep results",
+        classification: "Supported",
+        count: "1",
+        reason: "Sleep periods, phases, and interruptions are mapped; alarm behavior and source-only metadata stay only in the original ZIP.",
+        action: "Keep the original ZIP if you need the excluded sleep details.",
+      },
+      {
+        family: "Sleep scores",
+        classification: "Supported",
+        count: "1",
+        reason: "Sleep score components are mapped; scoring baselines stay only in the original ZIP.",
+        action: "Keep the original ZIP if you need the excluded scoring context.",
       },
       {
         family: "Training sessions",
@@ -429,8 +436,8 @@ describe("packaged FitFreed import journey", () => {
     await selectLocale("es-ES");
     await expect($("#outcome-heading")).toHaveText(spanish.outcome.heading);
     await expectCoverage([
-      ["6", spanish.outcome.supported],
-      ["1", spanish.outcome.unsupported],
+      ["8", spanish.outcome.supported],
+      ["0", spanish.outcome.unsupported],
       ["1", spanish.outcome.ignored],
       ["1", spanish.outcome.unrecognized],
       ["0", spanish.outcome.invalid],
@@ -441,12 +448,6 @@ describe("packaged FitFreed import journey", () => {
         classification: spanish.outcome.familyClassifications.unrecognized,
         count: "1",
         ...spanish.outcome.coverageExplanations["unrecognized-artifact-family"],
-      },
-      {
-        family: spanish.outcome.familyNames["polar-flow-sleep-result"],
-        classification: spanish.outcome.familyClassifications.unsupported,
-        count: "1",
-        ...spanish.outcome.coverageExplanations["known-family-not-yet-supported"],
       },
       {
         family: spanish.outcome.familyNames["polar-flow-profile-picture"],
@@ -465,6 +466,18 @@ describe("packaged FitFreed import journey", () => {
         classification: spanish.outcome.familyClassifications.supported,
         count: "3",
         ...spanish.outcome.coverageExplanations.mapped,
+      },
+      {
+        family: spanish.outcome.familyNames["polar-flow-sleep-result"],
+        classification: spanish.outcome.familyClassifications.supported,
+        count: "1",
+        ...spanish.outcome.coverageExplanations["mapped-sleep-periods"],
+      },
+      {
+        family: spanish.outcome.familyNames["polar-flow-sleep-score"],
+        classification: spanish.outcome.familyClassifications.supported,
+        count: "1",
+        ...spanish.outcome.coverageExplanations["mapped-sleep-scores"],
       },
       {
         family: spanish.outcome.familyNames["polar-flow-training-session"],

@@ -21,6 +21,72 @@ pub struct TrainingSession {
     pub exercise_count: Option<usize>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SleepStage {
+    Wake,
+    Rem,
+    Light,
+    Deep,
+    Unrecognized,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SleepStageTransition {
+    pub offset_milliseconds: i64,
+    pub stage: SleepStage,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SleepPhaseSummary {
+    pub wake_milliseconds: i64,
+    pub rem_milliseconds: i64,
+    pub light_milliseconds: i64,
+    pub deep_milliseconds: i64,
+    pub unrecognized_milliseconds: i64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct SleepScore {
+    pub overall: f64,
+    pub own_target_duration: f64,
+    pub recommended_duration: f64,
+    pub continuity: f64,
+    pub efficiency: f64,
+    pub rem: f64,
+    pub deep: f64,
+    pub long_interruptions: f64,
+    pub duration: f64,
+    pub solidity: f64,
+    pub regeneration: f64,
+    pub relative_rating: Option<i64>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct SleepPeriod {
+    pub origin_id: String,
+    pub sleep_date: String,
+    pub started_at: String,
+    pub ended_at: String,
+    pub span_milliseconds: i64,
+    pub asleep_milliseconds: i64,
+    pub interruption_milliseconds: i64,
+    pub long_interruption_milliseconds: i64,
+    pub short_interruption_milliseconds: i64,
+    pub interruption_count: i64,
+    pub long_interruption_count: i64,
+    pub short_interruption_count: i64,
+    pub efficiency_percent: f64,
+    pub continuity_index: f64,
+    pub continuity_class: i64,
+    pub sleep_goal_milliseconds: Option<i64>,
+    pub self_reported_rating: Option<i64>,
+    pub cycle_count: Option<usize>,
+    pub recording_ended_by_power_loss: Option<bool>,
+    pub phase_summary: Option<SleepPhaseSummary>,
+    pub stage_transitions: Option<Vec<SleepStageTransition>>,
+    pub score: Option<SleepScore>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportReport {
     pub exact_repeat: bool,
@@ -273,6 +339,127 @@ pub fn decide_training_session_reconciliation(
     }
 }
 
+pub fn decide_sleep_period_reconciliation(
+    existing: Option<&SleepPeriod>,
+    incoming: &SleepPeriod,
+) -> ReconciliationDecision {
+    let Some(existing) = existing else {
+        return ReconciliationDecision::Create;
+    };
+    if existing == incoming {
+        return ReconciliationDecision::Equivalent;
+    }
+    if !same_required_sleep_facts(existing, incoming) {
+        return ReconciliationDecision::Conflict;
+    }
+
+    let optional_changes = [
+        optional_change(
+            &existing.sleep_goal_milliseconds,
+            &incoming.sleep_goal_milliseconds,
+        ),
+        optional_change(
+            &existing.self_reported_rating,
+            &incoming.self_reported_rating,
+        ),
+        optional_change(&existing.cycle_count, &incoming.cycle_count),
+        optional_change(
+            &existing.recording_ended_by_power_loss,
+            &incoming.recording_ended_by_power_loss,
+        ),
+        optional_change(&existing.phase_summary, &incoming.phase_summary),
+        optional_change(&existing.stage_transitions, &incoming.stage_transitions),
+        sleep_score_change(&existing.score, &incoming.score),
+        sleep_score_relative_rating_change(&existing.score, &incoming.score),
+    ];
+    let adds_information = optional_changes.contains(&OptionalChange::Added);
+    let removes_information = optional_changes.contains(&OptionalChange::Removed);
+    let changes_information = optional_changes.contains(&OptionalChange::Changed);
+
+    match (adds_information, removes_information, changes_information) {
+        (true, false, false) => ReconciliationDecision::Enrich,
+        (false, true, false) => ReconciliationDecision::Preserve,
+        _ => ReconciliationDecision::Conflict,
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum OptionalChange {
+    Unchanged,
+    Added,
+    Removed,
+    Changed,
+}
+
+fn optional_change<T: PartialEq>(existing: &Option<T>, incoming: &Option<T>) -> OptionalChange {
+    match (existing, incoming) {
+        (None, None) => OptionalChange::Unchanged,
+        (None, Some(_)) => OptionalChange::Added,
+        (Some(_), None) => OptionalChange::Removed,
+        (Some(existing), Some(incoming)) if existing == incoming => OptionalChange::Unchanged,
+        (Some(_), Some(_)) => OptionalChange::Changed,
+    }
+}
+
+fn sleep_score_change(
+    existing: &Option<SleepScore>,
+    incoming: &Option<SleepScore>,
+) -> OptionalChange {
+    match (existing, incoming) {
+        (None, None) => OptionalChange::Unchanged,
+        (None, Some(_)) => OptionalChange::Added,
+        (Some(_), None) => OptionalChange::Removed,
+        (Some(existing), Some(incoming)) if same_required_sleep_score(existing, incoming) => {
+            OptionalChange::Unchanged
+        }
+        (Some(_), Some(_)) => OptionalChange::Changed,
+    }
+}
+
+fn sleep_score_relative_rating_change(
+    existing: &Option<SleepScore>,
+    incoming: &Option<SleepScore>,
+) -> OptionalChange {
+    match (existing, incoming) {
+        (Some(existing), Some(incoming)) => {
+            optional_change(&existing.relative_rating, &incoming.relative_rating)
+        }
+        _ => OptionalChange::Unchanged,
+    }
+}
+
+fn same_required_sleep_score(existing: &SleepScore, incoming: &SleepScore) -> bool {
+    existing.overall == incoming.overall
+        && existing.own_target_duration == incoming.own_target_duration
+        && existing.recommended_duration == incoming.recommended_duration
+        && existing.continuity == incoming.continuity
+        && existing.efficiency == incoming.efficiency
+        && existing.rem == incoming.rem
+        && existing.deep == incoming.deep
+        && existing.long_interruptions == incoming.long_interruptions
+        && existing.duration == incoming.duration
+        && existing.solidity == incoming.solidity
+        && existing.regeneration == incoming.regeneration
+}
+
+fn same_required_sleep_facts(existing: &SleepPeriod, incoming: &SleepPeriod) -> bool {
+    existing.origin_id == incoming.origin_id
+        && existing.sleep_date == incoming.sleep_date
+        && existing.started_at == incoming.started_at
+        && existing.ended_at == incoming.ended_at
+        && existing.span_milliseconds == incoming.span_milliseconds
+        && existing.asleep_milliseconds == incoming.asleep_milliseconds
+        && existing.interruption_milliseconds == incoming.interruption_milliseconds
+        && existing.long_interruption_milliseconds == incoming.long_interruption_milliseconds
+        && existing.short_interruption_milliseconds == incoming.short_interruption_milliseconds
+        && existing.interruption_count == incoming.interruption_count
+        && existing.long_interruption_count == incoming.long_interruption_count
+        && existing.short_interruption_count == incoming.short_interruption_count
+        && existing.efficiency_percent == incoming.efficiency_percent
+        && existing.continuity_index == incoming.continuity_index
+        && existing.continuity_class == incoming.continuity_class
+}
+
 pub fn decide_reconciliation(
     existing: ExistingObservation,
     incoming_step_count: Option<i64>,
@@ -313,6 +500,33 @@ mod tests {
         }
     }
 
+    fn sleep_period() -> SleepPeriod {
+        SleepPeriod {
+            origin_id: "synthetic-origin".to_owned(),
+            sleep_date: "2026-01-03".to_owned(),
+            started_at: "2026-01-02T22:30:00+01:00".to_owned(),
+            ended_at: "2026-01-03T06:30:00+01:00".to_owned(),
+            span_milliseconds: 28_800_000,
+            asleep_milliseconds: 27_000_000,
+            interruption_milliseconds: 1_800_000,
+            long_interruption_milliseconds: 1_200_000,
+            short_interruption_milliseconds: 600_000,
+            interruption_count: 4,
+            long_interruption_count: 1,
+            short_interruption_count: 3,
+            efficiency_percent: 93.75,
+            continuity_index: 4.2,
+            continuity_class: 4,
+            sleep_goal_milliseconds: None,
+            self_reported_rating: None,
+            cycle_count: None,
+            recording_ended_by_power_loss: None,
+            phase_summary: None,
+            stage_transitions: None,
+            score: None,
+        }
+    }
+
     #[test]
     fn reconciles_training_sessions_using_canonical_equality_and_revision_order() {
         let existing = training_session(3_600_000);
@@ -345,6 +559,77 @@ mod tests {
                 ReconciliationDecision::Conflict
             );
         }
+    }
+
+    #[test]
+    fn reconciles_unordered_sleep_periods_without_silent_replacement() {
+        let existing = sleep_period();
+        let mut enriched = existing.clone();
+        enriched.sleep_goal_milliseconds = Some(28_800_000);
+        enriched.score = Some(SleepScore {
+            overall: 82.0,
+            own_target_duration: 80.0,
+            recommended_duration: 78.0,
+            continuity: 84.0,
+            efficiency: 86.0,
+            rem: 76.0,
+            deep: 81.0,
+            long_interruptions: 79.0,
+            duration: 79.0,
+            solidity: 83.0,
+            regeneration: 78.5,
+            relative_rating: None,
+        });
+        let mut changed = existing.clone();
+        changed.span_milliseconds += 30_000;
+        let mut mixed = enriched.clone();
+        mixed.sleep_goal_milliseconds = None;
+        mixed.self_reported_rating = Some(4);
+        let mut score_rating_added = enriched.clone();
+        score_rating_added
+            .score
+            .as_mut()
+            .expect("score")
+            .relative_rating = Some(4);
+        let mut score_rating_removed = score_rating_added.clone();
+        score_rating_removed
+            .score
+            .as_mut()
+            .expect("score")
+            .relative_rating = None;
+
+        assert_eq!(
+            decide_sleep_period_reconciliation(None, &existing),
+            ReconciliationDecision::Create
+        );
+        assert_eq!(
+            decide_sleep_period_reconciliation(Some(&existing), &existing),
+            ReconciliationDecision::Equivalent
+        );
+        assert_eq!(
+            decide_sleep_period_reconciliation(Some(&existing), &enriched),
+            ReconciliationDecision::Enrich
+        );
+        assert_eq!(
+            decide_sleep_period_reconciliation(Some(&enriched), &existing),
+            ReconciliationDecision::Preserve
+        );
+        assert_eq!(
+            decide_sleep_period_reconciliation(Some(&existing), &changed),
+            ReconciliationDecision::Conflict
+        );
+        assert_eq!(
+            decide_sleep_period_reconciliation(Some(&enriched), &mixed),
+            ReconciliationDecision::Conflict
+        );
+        assert_eq!(
+            decide_sleep_period_reconciliation(Some(&enriched), &score_rating_added),
+            ReconciliationDecision::Enrich
+        );
+        assert_eq!(
+            decide_sleep_period_reconciliation(Some(&score_rating_added), &score_rating_removed),
+            ReconciliationDecision::Preserve
+        );
     }
 
     #[test]

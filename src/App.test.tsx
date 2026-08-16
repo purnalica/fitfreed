@@ -300,9 +300,9 @@ describe("FitFreed import interface", () => {
   it("explains family coverage with localized reasons and next actions without source locators", async () => {
     const latestOutcome = importOutcome({
       coverage: {
-        total: 11,
-        supported: 4,
-        unsupported: 1,
+        total: 13,
+        supported: 7,
+        unsupported: 0,
         deliberatelyIgnored: 1,
         unrecognized: 1,
         invalid: 4,
@@ -334,14 +334,26 @@ describe("FitFreed import interface", () => {
         },
         {
           familyCode: "polar-flow-sleep-result",
-          classification: "unsupported",
-          reasonCode: "known-family-not-yet-supported",
+          classification: "supported",
+          reasonCode: "mapped-sleep-periods",
+          artifactCount: 1,
+        },
+        {
+          familyCode: "polar-flow-sleep-score",
+          classification: "supported",
+          reasonCode: "mapped-sleep-scores",
           artifactCount: 1,
         },
         {
           familyCode: "polar-flow-profile-picture",
           classification: "deliberately-ignored",
           reasonCode: "mvp-excludes-profile-picture",
+          artifactCount: 1,
+        },
+        {
+          familyCode: "polar-flow-account-data",
+          classification: "supported",
+          reasonCode: "source-subject-claim",
           artifactCount: 1,
         },
         {
@@ -370,7 +382,7 @@ describe("FitFreed import interface", () => {
     render(<App />);
 
     const coverage = await screen.findByRole("table", { name: "Coverage by data family" });
-    expect(within(coverage).getAllByRole("row")).toHaveLength(9);
+    expect(within(coverage).getAllByRole("row")).toHaveLength(11);
     expect(within(coverage).getByRole("row", {
       name: /Daily activity Invalid 1 Reason: Recognized content failed validation\. Next action: Keep the original ZIP and report the compatibility problem/,
     })).toBeVisible();
@@ -384,6 +396,12 @@ describe("FitFreed import interface", () => {
       name: /Daily activity Invalid 2 Reason: The package contains more than one daily activity record for the same date\. Next action: Request a new export or report the compatibility problem/,
     })).toBeVisible();
     expect(within(coverage).getByRole("row", {
+      name: /Sleep results Supported 1 Reason: Sleep periods, phases, and interruptions are mapped; alarm behavior and source-only metadata stay only in the original ZIP\. Next action: Keep the original ZIP if you need the excluded sleep details/,
+    })).toBeVisible();
+    expect(within(coverage).getByRole("row", {
+      name: /Sleep scores Supported 1 Reason: Sleep score components are mapped; scoring baselines stay only in the original ZIP\. Next action: Keep the original ZIP if you need the excluded scoring context/,
+    })).toBeVisible();
+    expect(within(coverage).getByRole("row", {
       name: /Training sessions Supported 1 Reason: The session summary is mapped; routes and full-resolution details stay only in the original ZIP\. Next action: Keep the original ZIP if you need the excluded training details/,
     })).toBeVisible();
     expect(screen.queryByText(/activity-2026-01-01/)).not.toBeInTheDocument();
@@ -395,6 +413,12 @@ describe("FitFreed import interface", () => {
     })).toBeVisible();
     expect(within(spanishCoverage).getByRole("row", {
       name: /Actividad diaria No válido 2 Motivo: El paquete contiene más de un registro de actividad diaria para la misma fecha\. Siguiente acción: Solicita una nueva exportación o comunica el problema de compatibilidad/,
+    })).toBeVisible();
+    expect(within(spanishCoverage).getByRole("row", {
+      name: /Resultados del sueño Compatible 1 Motivo: Se incorporan los periodos, las fases y las interrupciones del sueño; el comportamiento de las alarmas y los metadatos exclusivos del origen permanecen únicamente en el ZIP original\. Siguiente acción: Conserva el ZIP original si necesitas los detalles del sueño excluidos/,
+    })).toBeVisible();
+    expect(within(spanishCoverage).getByRole("row", {
+      name: /Puntuaciones del sueño Compatible 1 Motivo: Se incorporan los componentes de la puntuación del sueño; las referencias de puntuación permanecen únicamente en el ZIP original\. Siguiente acción: Conserva el ZIP original si necesitas el contexto de puntuación excluido/,
     })).toBeVisible();
     expect(within(spanishCoverage).getByRole("row", {
       name: /Sesiones de entrenamiento Compatible 1 Motivo: Se incorpora el resumen de la sesión; las rutas y los detalles a resolución completa permanecen únicamente en el ZIP original\. Siguiente acción: Conserva el ZIP original si necesitas los detalles de entrenamiento excluidos/,

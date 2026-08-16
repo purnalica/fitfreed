@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented Milestone 1 lifecycle foundation with the Milestone 2 source-subject and multi-family extensions. [ADR 0002](decisions/0002-select-sqlite-storage.md) selects SQLite as the single system of record. Schema version 2 implements durable states, terminal outcomes, coverage, provenance, an atomic visibility boundary, and startup recovery; schema version 4 adds library-scoped source-subject correlation under [ADR 0005](decisions/0005-use-library-scoped-source-subject-correlation.md); schema version 5 adds an activity range-query index; schema version 6 adds training-summary revision reconciliation and a distinct amendment outcome without weakening the visibility boundary. The desktop presents localized terminal summaries, five-category totals, a privacy-safe family breakdown with reasons and next actions, subject-correlation failures, and gap-aware default or explicit daily ranges with daily detail.
+Implemented Milestone 1 lifecycle foundation with the Milestone 2 source-subject and multi-family extensions. [ADR 0002](decisions/0002-select-sqlite-storage.md) selects SQLite as the single system of record. Schema version 2 implements durable states, terminal outcomes, coverage, provenance, an atomic visibility boundary, and startup recovery; schema version 4 adds library-scoped source-subject correlation under [ADR 0005](decisions/0005-use-library-scoped-source-subject-correlation.md); schema version 5 adds an activity range-query index; schema version 6 adds training-summary revision reconciliation and a distinct amendment outcome; schema version 7 adds split-artifact sleep joining and reconciliation without weakening the visibility boundary. The desktop presents localized terminal summaries, five-category totals, a privacy-safe family breakdown with reasons and next actions, subject-correlation failures, and provider-neutral activity and training Insights.
 
 ## Goal
 
@@ -69,7 +69,7 @@ An exact package fingerprint may take a fast path that avoids repeated parsing o
 
 ### 3. Staging
 
-Supported artifacts are streamed through their source adapter. Structural validation and the anti-corruption layer produce typed normalized observations and local provenance locators in bounded batches.
+Supported artifacts are streamed through their source adapter. Structural validation and the anti-corruption layer produce typed normalized observations and local provenance locators in bounded batches. Relationships between separately exported artifacts, such as sleep results and scores, are validated and joined completely before any candidate becomes visible.
 
 Staged candidates are not queryable as fitness history. Temporary state is private, bounded, permission-restricted, and either resumable under an exact implementation/version contract or safely disposable. Raw personal values never enter general application logs, public diagnostics, or test snapshots.
 
@@ -97,7 +97,7 @@ The visibility boundary atomically publishes:
 - the completed state that makes the already prepared complete coverage final;
 - the completed import outcome.
 
-The implementation persists coverage under a non-terminal operation and maps the current bounded daily-activity candidates outside one long database transaction. The visible switch is atomic. Larger high-resolution families still require measured bounded staging rather than retaining their parsed content in memory.
+The implementation persists coverage under a non-terminal operation and maps the current bounded activity, training-summary, and sleep candidates outside one long database transaction. Split sleep artifacts are assembled only after both supported families validate. The visible switch is atomic. Larger high-resolution families still require measured bounded staging rather than retaining their parsed content in memory.
 
 Cancellation requested after committing begins is deferred until the atomic boundary resolves. The interface explains this brief non-cancellable phase.
 

@@ -5,13 +5,17 @@ use std::{
     fs::File,
     io::{self, Read, Seek, SeekFrom},
     path::{Path, PathBuf},
-    sync::atomic::{AtomicBool, Ordering},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        LazyLock,
+    },
     time::{Duration, Instant},
 };
 
-use chrono::{NaiveDate, NaiveDateTime, Timelike};
+use chrono::{DateTime, NaiveDate, NaiveDateTime, SecondsFormat, Timelike};
+use regex::Regex;
 use rusqlite::{
-    params, types::Type, Connection, Error as SqliteError, OptionalExtension, Transaction,
+    params, types::Type, Connection, Error as SqliteError, OptionalExtension, Row, Transaction,
 };
 use serde::{
     de::{IgnoredAny, SeqAccess, Visitor},
@@ -29,10 +33,11 @@ use fitfreed_application::{
     ProfiledImport, TrainingDateRange, TrainingLibraryPort,
 };
 use fitfreed_domain::{
-    decide_reconciliation, decide_training_session_reconciliation, ArtifactClassification,
-    ArtifactCoverageSummary, ArtifactFamilyCoverage, DailyActivity, ExistingObservation,
-    ImportOperationState, ImportOutcome, ImportReport, ReconciliationDecision, RevisionOrder,
-    TrainingSession,
+    decide_reconciliation, decide_sleep_period_reconciliation,
+    decide_training_session_reconciliation, ArtifactClassification, ArtifactCoverageSummary,
+    ArtifactFamilyCoverage, DailyActivity, ExistingObservation, ImportOperationState,
+    ImportOutcome, ImportReport, ReconciliationDecision, RevisionOrder, SleepPeriod,
+    SleepPhaseSummary, SleepScore, SleepStage, SleepStageTransition, TrainingSession,
 };
 
 mod polar_flow;
@@ -50,18 +55,20 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 6;
+const SCHEMA_VERSION: i64 = 7;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
 const SCHEMA_V4: &str = include_str!("../migrations/0004_source_subject.sql");
 const SCHEMA_V5: &str = include_str!("../migrations/0005_activity_query_index.sql");
 const SCHEMA_V6: &str = include_str!("../migrations/0006_training_session_summary.sql");
+const SCHEMA_V7: &str = include_str!("../migrations/0007_sleep_period.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
-const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@4";
+const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@5";
 const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@1";
 const DAILY_ACTIVITY_MAPPING_VERSION: &str = "polar-flow-daily-activity@1";
 const TRAINING_SESSION_MAPPING_VERSION: &str = "polar-flow-training-session@1";
+const SLEEP_MAPPING_VERSION: &str = "polar-flow-sleep@1";
 
 #[derive(Debug, Error)]
 pub enum ImportError {
@@ -108,6 +115,8 @@ pub enum ImportError {
     InvalidActivityLibrary(String),
     #[error("invalid training library: {0}")]
     InvalidTrainingLibrary(String),
+    #[error("invalid sleep library: {0}")]
+    InvalidSleepLibrary(String),
     #[error("invalid persisted non-negative count in {column}: {value}")]
     InvalidPersistedCount { column: &'static str, value: i64 },
     #[error("invalid persisted locale preference: {0}")]
@@ -232,6 +241,125 @@ struct PolarTrainingSession {
     exercises: SourceOptional<ExerciseCollection>,
 }
 
+#[derive(Debug, Deserialize)]
+struct PolarSleepResultEntry {
+    night: String,
+    evaluation: PolarSleepEvaluation,
+    #[serde(rename = "sleepResult")]
+    sleep_result: PolarSleepResult,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PolarSleepEvaluation {
+    sleep_type: String,
+    sleep_span: String,
+    asleep_duration: String,
+    age: f64,
+    analysis: PolarSleepAnalysis,
+    interruptions: PolarSleepInterruptions,
+    #[serde(default)]
+    phase_durations: SourceOptional<PolarSleepPhaseDurations>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PolarSleepAnalysis {
+    efficiency_percent: f64,
+    continuity_index: f64,
+    continuity_class: i64,
+    #[serde(rename = "feedback")]
+    _feedback: i64,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PolarSleepInterruptions {
+    total_duration: String,
+    long_duration: String,
+    short_duration: String,
+    total_count: i64,
+    long_count: i64,
+    short_count: i64,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PolarSleepPhaseDurations {
+    wake: String,
+    rem: String,
+    light: String,
+    deep: String,
+    unknown: String,
+    rem_percentage: f64,
+    deep_percentage: f64,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PolarSleepResult {
+    hypnogram: PolarHypnogram,
+    #[serde(default)]
+    sleep_cycles: SourceOptional<PolarSleepCycles>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PolarHypnogram {
+    sleep_start: String,
+    sleep_end: String,
+    rating: String,
+    #[serde(default)]
+    sleep_goal: SourceOptional<String>,
+    #[serde(default)]
+    battery_ran_out: SourceOptional<bool>,
+    #[serde(default)]
+    sleep_state_changes: SourceOptional<Vec<PolarSleepStateChange>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct PolarSleepCycles {
+    cycles: PolarSleepCycleCollection,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PolarSleepCycleCollection {
+    sleep_cycle_models: ExerciseCollection,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PolarSleepStateChange {
+    offset_from_start: String,
+    state: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PolarSleepScoreEntry {
+    night: String,
+    sleep_score_result: PolarSleepScoreResult,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PolarSleepScoreResult {
+    sleep_score: f64,
+    sleep_time_own_target_score: f64,
+    sleep_time_recommendation_score: f64,
+    continuity_score: f64,
+    efficiency_score: f64,
+    rem_score: f64,
+    n3_score: f64,
+    long_interruptions_score: f64,
+    group_duration_score: f64,
+    group_solidity_score: f64,
+    group_refresh_score: f64,
+    #[serde(default)]
+    score_rate: SourceOptional<i64>,
+}
+
 #[derive(Debug)]
 struct MappedArtifact {
     locator: String,
@@ -245,6 +373,29 @@ struct MappedTrainingArtifact {
     sha256: String,
     source_modified_at_utc: String,
     observation: TrainingSession,
+}
+
+#[derive(Debug)]
+struct MappedSleepResultArtifact {
+    locator: String,
+    sha256: String,
+    periods: Vec<SleepPeriod>,
+}
+
+#[derive(Debug)]
+struct MappedSleepScoreArtifact {
+    locator: String,
+    sha256: String,
+    scores: Vec<(String, SleepScore)>,
+}
+
+#[derive(Debug)]
+struct MappedSleepPeriod {
+    result_locator: String,
+    result_sha256: String,
+    score_locator: Option<String>,
+    score_sha256: Option<String>,
+    observation: SleepPeriod,
 }
 
 struct ResolvedSourceSubject {
@@ -560,6 +711,8 @@ fn execute_import(
 
     let mut mapped_artifacts = Vec::with_capacity(processable_artifacts);
     let mut mapped_training_artifacts = Vec::new();
+    let mut mapped_sleep_result_artifacts = Vec::new();
+    let mut mapped_sleep_score_artifacts = Vec::new();
     let mut first_invalid = None;
     let mut processed_artifacts = 0;
     for index in 0..archive.len() {
@@ -696,6 +849,76 @@ fn execute_import(
                     }
                 }
             }
+            SupportedArtifact::SleepResult => {
+                let decode_started = Instant::now();
+                let bytes = read_bytes(&mut member, &locator, cancellation)?;
+                let artifact_sha256 = sha256_bytes(&bytes);
+                let mapped = decode_sleep_results(origin_id, &locator, &artifact_sha256, &bytes);
+                timings.read_decode_map_milliseconds += milliseconds(decode_started.elapsed());
+                match mapped {
+                    Ok(mapped) => {
+                        record_artifact_coverage(
+                            connection,
+                            operation_id,
+                            &locator,
+                            assessment.family,
+                            assessment.classification,
+                            Some(&artifact_sha256),
+                            assessment.reason_code,
+                        )?;
+                        mapped_sleep_result_artifacts.push(mapped);
+                    }
+                    Err(error) => {
+                        record_artifact_coverage(
+                            connection,
+                            operation_id,
+                            &locator,
+                            assessment.family,
+                            ArtifactClassification::Invalid,
+                            Some(&artifact_sha256),
+                            "invalid-supported-artifact",
+                        )?;
+                        if first_invalid.is_none() {
+                            first_invalid = Some(error);
+                        }
+                    }
+                }
+            }
+            SupportedArtifact::SleepScore => {
+                let decode_started = Instant::now();
+                let bytes = read_bytes(&mut member, &locator, cancellation)?;
+                let artifact_sha256 = sha256_bytes(&bytes);
+                let mapped = decode_sleep_scores(&locator, &artifact_sha256, &bytes);
+                timings.read_decode_map_milliseconds += milliseconds(decode_started.elapsed());
+                match mapped {
+                    Ok(mapped) => {
+                        record_artifact_coverage(
+                            connection,
+                            operation_id,
+                            &locator,
+                            assessment.family,
+                            assessment.classification,
+                            Some(&artifact_sha256),
+                            assessment.reason_code,
+                        )?;
+                        mapped_sleep_score_artifacts.push(mapped);
+                    }
+                    Err(error) => {
+                        record_artifact_coverage(
+                            connection,
+                            operation_id,
+                            &locator,
+                            assessment.family,
+                            ArtifactClassification::Invalid,
+                            Some(&artifact_sha256),
+                            "invalid-supported-artifact",
+                        )?;
+                        if first_invalid.is_none() {
+                            first_invalid = Some(error);
+                        }
+                    }
+                }
+            }
         }
         processed_artifacts += 1;
         on_progress(ImportProgress::artifacts(
@@ -720,6 +943,20 @@ fn execute_import(
             first_invalid = Some(error);
         }
     }
+    let mapped_sleep_periods = match assemble_sleep_periods(
+        connection,
+        operation_id,
+        mapped_sleep_result_artifacts,
+        mapped_sleep_score_artifacts,
+    ) {
+        Ok(periods) => periods,
+        Err(error) => {
+            if first_invalid.is_none() {
+                first_invalid = Some(error);
+            }
+            Vec::new()
+        }
+    };
     refresh_operation_coverage(connection, operation_id)?;
     if let Some(error) = first_invalid {
         return Err(error);
@@ -741,7 +978,7 @@ fn execute_import(
     )?;
     on_progress(ImportProgress::artifacts(
         ImportPhase::Committing,
-        mapped_artifacts.len() + mapped_training_artifacts.len(),
+        processed_artifacts,
         processable_artifacts,
     ));
 
@@ -750,7 +987,10 @@ fn execute_import(
     timings.transaction_control_milliseconds += milliseconds(transaction_started.elapsed());
     let mut report = ImportReport::assessed();
     report.recognized_artifacts = processable_artifacts;
-    if !mapped_artifacts.is_empty() || !mapped_training_artifacts.is_empty() {
+    if !mapped_artifacts.is_empty()
+        || !mapped_training_artifacts.is_empty()
+        || !mapped_sleep_periods.is_empty()
+    {
         if let Some(subject) = resolved_subject.as_ref() {
             persist_source_subject(&transaction, operation_id, &subject.resolution)?;
         }
@@ -770,6 +1010,18 @@ fn execute_import(
         if interrupt_after == Some(mapped_artifacts.len() + training_index + 1) {
             return Err(ImportError::InjectedInterruption(
                 mapped_artifacts.len() + training_index + 1,
+            ));
+        }
+    }
+    for (sleep_index, period) in mapped_sleep_periods.iter().enumerate() {
+        let reconciliation_started = Instant::now();
+        reconcile_sleep_period(&transaction, operation_id, period, &mut report)?;
+        timings.reconciliation_milliseconds += milliseconds(reconciliation_started.elapsed());
+        if interrupt_after
+            == Some(mapped_artifacts.len() + mapped_training_artifacts.len() + sleep_index + 1)
+        {
+            return Err(ImportError::InjectedInterruption(
+                mapped_artifacts.len() + mapped_training_artifacts.len() + sleep_index + 1,
             ));
         }
     }
@@ -868,6 +1120,32 @@ pub fn query_activity(database_path: &Path) -> Result<Vec<DailyActivity>> {
 
 pub fn query_training_sessions(database_path: &Path) -> Result<Vec<TrainingSession>> {
     query_training_between(database_path, None, None)
+}
+
+pub fn query_sleep_periods(database_path: &Path) -> Result<Vec<SleepPeriod>> {
+    let connection = Connection::open(database_path)?;
+    ensure_schema(&connection)?;
+    let identities = {
+        let mut statement = connection.prepare(
+            "SELECT origin_id, sleep_date
+             FROM sleep_period
+             ORDER BY sleep_date, origin_id",
+        )?;
+        let rows = statement.query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?;
+        rows.collect::<std::result::Result<Vec<_>, _>>()?
+    };
+    identities
+        .into_iter()
+        .map(|(origin_id, sleep_date)| {
+            load_sleep_period(&connection, &origin_id, &sleep_date)?.ok_or_else(|| {
+                ImportError::InvalidSleepLibrary(
+                    "sleep identity disappeared during a local read".to_owned(),
+                )
+            })
+        })
+        .collect()
 }
 
 pub fn query_training_bounds(database_path: &Path) -> Result<Option<TrainingDateRange>> {
@@ -1304,7 +1582,10 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         if version < 5 {
             connection.execute_batch(SCHEMA_V5)?;
         }
-        connection.execute_batch(SCHEMA_V6)?;
+        if version < 6 {
+            connection.execute_batch(SCHEMA_V6)?;
+        }
+        connection.execute_batch(SCHEMA_V7)?;
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
         }
@@ -1535,6 +1816,147 @@ fn invalidate_duplicate_training_sessions(
     }))
 }
 
+fn assemble_sleep_periods(
+    connection: &Connection,
+    operation_id: i64,
+    result_artifacts: Vec<MappedSleepResultArtifact>,
+    score_artifacts: Vec<MappedSleepScoreArtifact>,
+) -> Result<Vec<MappedSleepPeriod>> {
+    let mut result_locators_by_date: HashMap<String, Vec<String>> = HashMap::new();
+    for artifact in &result_artifacts {
+        for period in &artifact.periods {
+            result_locators_by_date
+                .entry(period.sleep_date.clone())
+                .or_default()
+                .push(artifact.locator.clone());
+        }
+    }
+    let duplicate_result_locators = result_locators_by_date
+        .values()
+        .filter(|locators| locators.len() > 1)
+        .flatten()
+        .cloned()
+        .collect::<HashSet<_>>();
+    mark_sleep_coverage_invalid(
+        connection,
+        operation_id,
+        &duplicate_result_locators,
+        "duplicate-sleep-result-date",
+    )?;
+
+    let mut score_locators_by_date: HashMap<String, Vec<String>> = HashMap::new();
+    for artifact in &score_artifacts {
+        for (sleep_date, _) in &artifact.scores {
+            score_locators_by_date
+                .entry(sleep_date.clone())
+                .or_default()
+                .push(artifact.locator.clone());
+        }
+    }
+    let duplicate_score_locators = score_locators_by_date
+        .values()
+        .filter(|locators| locators.len() > 1)
+        .flatten()
+        .cloned()
+        .collect::<HashSet<_>>();
+    mark_sleep_coverage_invalid(
+        connection,
+        operation_id,
+        &duplicate_score_locators,
+        "duplicate-sleep-score-date",
+    )?;
+
+    let result_dates = result_locators_by_date.keys().collect::<HashSet<_>>();
+    let orphan_score_locators = score_locators_by_date
+        .iter()
+        .filter(|(sleep_date, _)| !result_dates.contains(sleep_date))
+        .flat_map(|(_, locators)| locators.iter().cloned())
+        .collect::<HashSet<_>>();
+    mark_sleep_coverage_invalid(
+        connection,
+        operation_id,
+        &orphan_score_locators,
+        "orphan-sleep-score-date",
+    )?;
+
+    if !duplicate_result_locators.is_empty()
+        || !duplicate_score_locators.is_empty()
+        || !orphan_score_locators.is_empty()
+    {
+        let (reason, reason_code) = if !duplicate_result_locators.is_empty() {
+            (
+                "package contains duplicate sleep-result identities",
+                "duplicate-sleep-result-date",
+            )
+        } else if !duplicate_score_locators.is_empty() {
+            (
+                "package contains duplicate sleep-score identities",
+                "duplicate-sleep-score-date",
+            )
+        } else {
+            (
+                "package contains a sleep score without a matching result",
+                "orphan-sleep-score-date",
+            )
+        };
+        return Err(ImportError::InvalidArtifact {
+            artifact: "polar-flow-sleep".to_owned(),
+            reason: reason.to_owned(),
+            reason_code,
+        });
+    }
+
+    let mut periods_by_date = HashMap::new();
+    for artifact in result_artifacts {
+        for period in artifact.periods {
+            periods_by_date.insert(
+                period.sleep_date.clone(),
+                MappedSleepPeriod {
+                    result_locator: artifact.locator.clone(),
+                    result_sha256: artifact.sha256.clone(),
+                    score_locator: None,
+                    score_sha256: None,
+                    observation: period,
+                },
+            );
+        }
+    }
+    for artifact in score_artifacts {
+        for (sleep_date, score) in artifact.scores {
+            let period = periods_by_date
+                .get_mut(&sleep_date)
+                .expect("orphan scores were rejected before assembly");
+            period.score_locator = Some(artifact.locator.clone());
+            period.score_sha256 = Some(artifact.sha256.clone());
+            period.observation.score = Some(score);
+        }
+    }
+    let mut periods = periods_by_date.into_values().collect::<Vec<_>>();
+    periods.sort_by(|left, right| {
+        left.observation
+            .sleep_date
+            .cmp(&right.observation.sleep_date)
+    });
+    Ok(periods)
+}
+
+fn mark_sleep_coverage_invalid(
+    connection: &Connection,
+    operation_id: i64,
+    locators: &HashSet<String>,
+    reason_code: &'static str,
+) -> Result<()> {
+    for locator in locators {
+        connection.execute(
+            "UPDATE import_artifact_coverage
+             SET classification = 'invalid', reason_code = ?3
+             WHERE import_operation_id = ?1 AND artifact_locator = ?2",
+            params![operation_id, locator, reason_code],
+        )?;
+    }
+    Ok(())
+}
+
 fn refresh_operation_coverage(connection: &Connection, operation_id: i64) -> Result<()> {
     connection.execute(
         "UPDATE import_operation
@@ -1711,6 +2133,7 @@ fn terminal_code(error: &ImportError) -> &'static str {
         | ImportError::InvalidPersistedLocale(_) => "invalid-persisted-import-outcome",
         ImportError::InvalidActivityLibrary(_) => "invalid-activity-library",
         ImportError::InvalidTrainingLibrary(_) => "invalid-training-library",
+        ImportError::InvalidSleepLibrary(_) => "invalid-sleep-library",
         ImportError::InvalidCorrelationKeyLength(_) => "invalid-library-correlation-state",
         ImportError::InvalidSourceSubjectClaim => "invalid-source-subject-evidence",
         ImportError::SourceSubjectConflict => "source-subject-confirmation-required",
@@ -2146,6 +2569,500 @@ fn decode_training_session(
     })
 }
 
+static ISO_DURATION_PATTERN: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r"^P(?:(?<days>[0-9]+)D)?(?:T(?:(?<hours>[0-9]+)H)?(?:(?<minutes>[0-9]+)M)?(?:(?<seconds>[0-9]+)(?:\.(?<fraction>[0-9]{1,9}))?S)?)?$",
+    )
+    .expect("valid ISO duration pattern")
+});
+
+fn invalid_sleep_artifact(artifact: &str, reason: impl Into<String>) -> ImportError {
+    ImportError::InvalidArtifact {
+        artifact: artifact.to_owned(),
+        reason: reason.into(),
+        reason_code: "invalid-supported-artifact",
+    }
+}
+
+fn parse_duration_milliseconds(value: &str, field: &'static str, artifact: &str) -> Result<i64> {
+    if value.ends_with('T') {
+        return Err(invalid_sleep_artifact(
+            artifact,
+            format!("{field} has an empty time component"),
+        ));
+    }
+    let captures = ISO_DURATION_PATTERN.captures(value).ok_or_else(|| {
+        invalid_sleep_artifact(
+            artifact,
+            format!("{field} is not a supported ISO 8601 duration"),
+        )
+    })?;
+    let component = |name: &str| -> Result<i64> {
+        captures.name(name).map_or(Ok(0), |matched| {
+            matched.as_str().parse::<i64>().map_err(|error| {
+                invalid_sleep_artifact(artifact, format!("{field} is too large: {error}"))
+            })
+        })
+    };
+    if ["days", "hours", "minutes", "seconds"]
+        .iter()
+        .all(|name| captures.name(name).is_none())
+    {
+        return Err(invalid_sleep_artifact(
+            artifact,
+            format!("{field} has no duration component"),
+        ));
+    }
+    let days = component("days")?;
+    let hours = component("hours")?;
+    let minutes = component("minutes")?;
+    let seconds = component("seconds")?;
+    let whole_seconds = days
+        .checked_mul(86_400)
+        .and_then(|value| {
+            hours
+                .checked_mul(3_600)
+                .and_then(|part| value.checked_add(part))
+        })
+        .and_then(|value| {
+            minutes
+                .checked_mul(60)
+                .and_then(|part| value.checked_add(part))
+        })
+        .and_then(|value| value.checked_add(seconds))
+        .ok_or_else(|| invalid_sleep_artifact(artifact, format!("{field} overflows")))?;
+    let fraction_milliseconds = captures.name("fraction").map_or(Ok(0_i64), |matched| {
+        let fraction = matched.as_str();
+        if fraction.len() > 3 && !fraction[3..].bytes().all(|digit| digit == b'0') {
+            return Err(invalid_sleep_artifact(
+                artifact,
+                format!("{field} is not representable in whole milliseconds"),
+            ));
+        }
+        let prefix = &fraction[..fraction.len().min(3)];
+        let parsed = prefix.parse::<i64>().map_err(|error| {
+            invalid_sleep_artifact(artifact, format!("invalid {field} fraction: {error}"))
+        })?;
+        Ok(parsed * 10_i64.pow((3 - prefix.len()) as u32))
+    })?;
+    whole_seconds
+        .checked_mul(1_000)
+        .and_then(|value| value.checked_add(fraction_milliseconds))
+        .ok_or_else(|| invalid_sleep_artifact(artifact, format!("{field} overflows")))
+}
+
+fn checked_sleep_sum(artifact: &str, label: &str, values: &[i64]) -> Result<i64> {
+    values.iter().try_fold(0_i64, |total, value| {
+        total.checked_add(*value).ok_or_else(|| {
+            invalid_sleep_artifact(artifact, format!("{label} arithmetic overflows"))
+        })
+    })
+}
+
+fn map_sleep_stage(state: &str, artifact: &str) -> Result<SleepStage> {
+    match state {
+        "WAKE" => Ok(SleepStage::Wake),
+        "REM" => Ok(SleepStage::Rem),
+        "NONREM1" | "NONREM2" => Ok(SleepStage::Light),
+        "NONREM3" => Ok(SleepStage::Deep),
+        "WS_UNKNOWN" => Ok(SleepStage::Unrecognized),
+        _ => Err(invalid_sleep_artifact(
+            artifact,
+            "sleep stage is not supported by mapping version 1",
+        )),
+    }
+}
+
+fn map_sleep_rating(rating: &str, artifact: &str) -> Result<Option<i64>> {
+    match rating {
+        "UNKNOWN" => Ok(None),
+        "SLEPT_BAD" => Ok(Some(1)),
+        "SLEPT_QUITE_BAD" => Ok(Some(2)),
+        "SLEPT_NEITHER_BAD_NOR_WELL" => Ok(Some(3)),
+        "SLEPT_QUITE_WELL" => Ok(Some(4)),
+        "SLEPT_WELL" => Ok(Some(5)),
+        _ => Err(invalid_sleep_artifact(
+            artifact,
+            "sleep rating is not supported by mapping version 1",
+        )),
+    }
+}
+
+fn map_sleep_result(
+    origin_id: &str,
+    source: PolarSleepResultEntry,
+    artifact: &str,
+) -> Result<SleepPeriod> {
+    let PolarSleepResultEntry {
+        night,
+        evaluation,
+        sleep_result,
+    } = source;
+    NaiveDate::parse_from_str(&night, "%Y-%m-%d").map_err(|error| {
+        invalid_sleep_artifact(artifact, format!("invalid sleep date: {error}"))
+    })?;
+    let PolarSleepEvaluation {
+        sleep_type,
+        sleep_span,
+        asleep_duration,
+        age,
+        analysis,
+        interruptions,
+        phase_durations,
+    } = evaluation;
+    if sleep_type.trim().is_empty() || !age.is_finite() {
+        return Err(invalid_sleep_artifact(
+            artifact,
+            "sleep type and evaluation age must be structurally valid",
+        ));
+    }
+    let PolarSleepAnalysis {
+        efficiency_percent,
+        continuity_index,
+        continuity_class,
+        _feedback: _,
+    } = analysis;
+    if !efficiency_percent.is_finite() || !(0.0..=100.0).contains(&efficiency_percent) {
+        return Err(invalid_sleep_artifact(
+            artifact,
+            "efficiencyPercent is outside the documented range",
+        ));
+    }
+    if !continuity_index.is_finite() || !(0.0..=5.0).contains(&continuity_index) {
+        return Err(invalid_sleep_artifact(
+            artifact,
+            "continuityIndex is outside the documented range",
+        ));
+    }
+    if !(0..=5).contains(&continuity_class) {
+        return Err(invalid_sleep_artifact(
+            artifact,
+            "continuityClass is outside the documented range",
+        ));
+    }
+
+    let span_milliseconds =
+        parse_duration_milliseconds(&sleep_span, "evaluation.sleepSpan", artifact)?;
+    let asleep_milliseconds =
+        parse_duration_milliseconds(&asleep_duration, "evaluation.asleepDuration", artifact)?;
+    let interruption_milliseconds = parse_duration_milliseconds(
+        &interruptions.total_duration,
+        "evaluation.interruptions.totalDuration",
+        artifact,
+    )?;
+    let long_interruption_milliseconds = parse_duration_milliseconds(
+        &interruptions.long_duration,
+        "evaluation.interruptions.longDuration",
+        artifact,
+    )?;
+    let short_interruption_milliseconds = parse_duration_milliseconds(
+        &interruptions.short_duration,
+        "evaluation.interruptions.shortDuration",
+        artifact,
+    )?;
+    if interruptions.total_count < 0
+        || interruptions.long_count < 0
+        || interruptions.short_count < 0
+    {
+        return Err(invalid_sleep_artifact(
+            artifact,
+            "interruption counts cannot be negative",
+        ));
+    }
+    if checked_sleep_sum(
+        artifact,
+        "sleep span",
+        &[asleep_milliseconds, interruption_milliseconds],
+    )? != span_milliseconds
+        || checked_sleep_sum(
+            artifact,
+            "interruption duration",
+            &[
+                long_interruption_milliseconds,
+                short_interruption_milliseconds,
+            ],
+        )? != interruption_milliseconds
+        || checked_sleep_sum(
+            artifact,
+            "interruption count",
+            &[interruptions.long_count, interruptions.short_count],
+        )? != interruptions.total_count
+    {
+        return Err(invalid_sleep_artifact(
+            artifact,
+            "declared sleep duration or interruption arithmetic is inconsistent",
+        ));
+    }
+
+    let PolarSleepResult {
+        hypnogram,
+        sleep_cycles,
+    } = sleep_result;
+    let started_at = DateTime::parse_from_rfc3339(&hypnogram.sleep_start).map_err(|error| {
+        invalid_sleep_artifact(artifact, format!("invalid sleepStart: {error}"))
+    })?;
+    let ended_at = DateTime::parse_from_rfc3339(&hypnogram.sleep_end)
+        .map_err(|error| invalid_sleep_artifact(artifact, format!("invalid sleepEnd: {error}")))?;
+    if ended_at <= started_at {
+        return Err(invalid_sleep_artifact(
+            artifact,
+            "sleepEnd must be later than sleepStart",
+        ));
+    }
+    let started_at = started_at.to_rfc3339_opts(SecondsFormat::AutoSi, false);
+    let ended_at = ended_at.to_rfc3339_opts(SecondsFormat::AutoSi, false);
+    let sleep_goal_milliseconds = hypnogram
+        .sleep_goal
+        .into_option()
+        .map(|value| parse_duration_milliseconds(&value, "sleepGoal", artifact))
+        .transpose()?;
+    let self_reported_rating = map_sleep_rating(&hypnogram.rating, artifact)?;
+    let recording_ended_by_power_loss = hypnogram.battery_ran_out.into_option();
+
+    let phase_summary = phase_durations
+        .into_option()
+        .map(|phases| {
+            if !phases.rem_percentage.is_finite()
+                || !(0.0..=100.0).contains(&phases.rem_percentage)
+                || !phases.deep_percentage.is_finite()
+                || !(0.0..=100.0).contains(&phases.deep_percentage)
+            {
+                return Err(invalid_sleep_artifact(
+                    artifact,
+                    "phase percentages are outside the documented range",
+                ));
+            }
+            let summary = SleepPhaseSummary {
+                wake_milliseconds: parse_duration_milliseconds(
+                    &phases.wake,
+                    "phaseDurations.wake",
+                    artifact,
+                )?,
+                rem_milliseconds: parse_duration_milliseconds(
+                    &phases.rem,
+                    "phaseDurations.rem",
+                    artifact,
+                )?,
+                light_milliseconds: parse_duration_milliseconds(
+                    &phases.light,
+                    "phaseDurations.light",
+                    artifact,
+                )?,
+                deep_milliseconds: parse_duration_milliseconds(
+                    &phases.deep,
+                    "phaseDurations.deep",
+                    artifact,
+                )?,
+                unrecognized_milliseconds: parse_duration_milliseconds(
+                    &phases.unknown,
+                    "phaseDurations.unknown",
+                    artifact,
+                )?,
+            };
+            let phase_span = checked_sleep_sum(
+                artifact,
+                "phase duration",
+                &[
+                    summary.wake_milliseconds,
+                    summary.rem_milliseconds,
+                    summary.light_milliseconds,
+                    summary.deep_milliseconds,
+                    summary.unrecognized_milliseconds,
+                ],
+            )?;
+            let phase_asleep = checked_sleep_sum(
+                artifact,
+                "asleep phase duration",
+                &[
+                    summary.rem_milliseconds,
+                    summary.light_milliseconds,
+                    summary.deep_milliseconds,
+                    summary.unrecognized_milliseconds,
+                ],
+            )?;
+            if phase_span != span_milliseconds || phase_asleep != asleep_milliseconds {
+                return Err(invalid_sleep_artifact(
+                    artifact,
+                    "phase durations are inconsistent with the declared period",
+                ));
+            }
+            Ok(summary)
+        })
+        .transpose()?;
+
+    let stage_transitions = hypnogram
+        .sleep_state_changes
+        .into_option()
+        .map(|changes| {
+            let mut transitions = Vec::with_capacity(changes.len());
+            let mut previous_offset = None;
+            let change_count = changes.len();
+            for (index, change) in changes.into_iter().enumerate() {
+                let offset_milliseconds = parse_duration_milliseconds(
+                    &change.offset_from_start,
+                    "sleepStateChanges.offsetFromStart",
+                    artifact,
+                )?;
+                if offset_milliseconds > span_milliseconds {
+                    if index + 1 == change_count && change.state == "WAKE" {
+                        continue;
+                    }
+                    return Err(invalid_sleep_artifact(
+                        artifact,
+                        "only a final wake marker may exceed the declared span",
+                    ));
+                }
+                if previous_offset.is_some_and(|previous| offset_milliseconds < previous) {
+                    return Err(invalid_sleep_artifact(
+                        artifact,
+                        "sleep-state offsets must be non-decreasing",
+                    ));
+                }
+                previous_offset = Some(offset_milliseconds);
+                transitions.push(SleepStageTransition {
+                    offset_milliseconds,
+                    stage: map_sleep_stage(&change.state, artifact)?,
+                });
+            }
+            if transitions
+                .first()
+                .is_some_and(|transition| transition.offset_milliseconds != 0)
+            {
+                return Err(invalid_sleep_artifact(
+                    artifact,
+                    "a non-empty sleep-state timeline must start at zero",
+                ));
+            }
+            Ok(transitions)
+        })
+        .transpose()?;
+
+    Ok(SleepPeriod {
+        origin_id: origin_id.to_owned(),
+        sleep_date: night,
+        started_at,
+        ended_at,
+        span_milliseconds,
+        asleep_milliseconds,
+        interruption_milliseconds,
+        long_interruption_milliseconds,
+        short_interruption_milliseconds,
+        interruption_count: interruptions.total_count,
+        long_interruption_count: interruptions.long_count,
+        short_interruption_count: interruptions.short_count,
+        efficiency_percent,
+        continuity_index,
+        continuity_class,
+        sleep_goal_milliseconds,
+        self_reported_rating,
+        cycle_count: sleep_cycles
+            .into_option()
+            .map(|cycles| cycles.cycles.sleep_cycle_models.0),
+        recording_ended_by_power_loss,
+        phase_summary,
+        stage_transitions,
+        score: None,
+    })
+}
+
+fn map_sleep_score(source: PolarSleepScoreEntry, artifact: &str) -> Result<(String, SleepScore)> {
+    NaiveDate::parse_from_str(&source.night, "%Y-%m-%d").map_err(|error| {
+        invalid_sleep_artifact(artifact, format!("invalid score date: {error}"))
+    })?;
+    let score = source.sleep_score_result;
+    let values = [
+        score.sleep_score,
+        score.sleep_time_own_target_score,
+        score.sleep_time_recommendation_score,
+        score.continuity_score,
+        score.efficiency_score,
+        score.rem_score,
+        score.n3_score,
+        score.long_interruptions_score,
+        score.group_duration_score,
+        score.group_solidity_score,
+        score.group_refresh_score,
+    ];
+    if values
+        .iter()
+        .any(|value| !value.is_finite() || !(1.0..=100.0).contains(value))
+    {
+        return Err(invalid_sleep_artifact(
+            artifact,
+            "sleep scores are outside the documented range",
+        ));
+    }
+    let relative_rating = score.score_rate.into_option();
+    if relative_rating.is_some_and(|value| !(1..=5).contains(&value)) {
+        return Err(invalid_sleep_artifact(
+            artifact,
+            "scoreRate is outside the documented range",
+        ));
+    }
+    Ok((
+        source.night,
+        SleepScore {
+            overall: score.sleep_score,
+            own_target_duration: score.sleep_time_own_target_score,
+            recommended_duration: score.sleep_time_recommendation_score,
+            continuity: score.continuity_score,
+            efficiency: score.efficiency_score,
+            rem: score.rem_score,
+            deep: score.n3_score,
+            long_interruptions: score.long_interruptions_score,
+            duration: score.group_duration_score,
+            solidity: score.group_solidity_score,
+            regeneration: score.group_refresh_score,
+            relative_rating,
+        },
+    ))
+}
+
+fn decode_sleep_results(
+    origin_id: &str,
+    artifact_locator: &str,
+    artifact_sha256: &str,
+    bytes: &[u8],
+) -> Result<MappedSleepResultArtifact> {
+    let source: Vec<PolarSleepResultEntry> =
+        serde_json::from_slice(bytes).map_err(|error| ImportError::InvalidArtifact {
+            artifact: artifact_locator.to_owned(),
+            reason: error.to_string(),
+            reason_code: "invalid-supported-artifact",
+        })?;
+    let periods = source
+        .into_iter()
+        .map(|entry| map_sleep_result(origin_id, entry, artifact_locator))
+        .collect::<Result<Vec<_>>>()?;
+    Ok(MappedSleepResultArtifact {
+        locator: artifact_locator.to_owned(),
+        sha256: artifact_sha256.to_owned(),
+        periods,
+    })
+}
+
+fn decode_sleep_scores(
+    artifact_locator: &str,
+    artifact_sha256: &str,
+    bytes: &[u8],
+) -> Result<MappedSleepScoreArtifact> {
+    let source: Vec<PolarSleepScoreEntry> =
+        serde_json::from_slice(bytes).map_err(|error| ImportError::InvalidArtifact {
+            artifact: artifact_locator.to_owned(),
+            reason: error.to_string(),
+            reason_code: "invalid-supported-artifact",
+        })?;
+    let scores = source
+        .into_iter()
+        .map(|entry| map_sleep_score(entry, artifact_locator))
+        .collect::<Result<Vec<_>>>()?;
+    Ok(MappedSleepScoreArtifact {
+        locator: artifact_locator.to_owned(),
+        sha256: artifact_sha256.to_owned(),
+        scores,
+    })
+}
+
 fn reconcile(
     transaction: &Transaction<'_>,
     operation_id: i64,
@@ -2423,6 +3340,474 @@ fn reconcile_training_session(
                 ReconciliationDecision::Create
                     | ReconciliationDecision::Equivalent
                     | ReconciliationDecision::Amend
+            ),
+        ],
+    )?;
+    report.record(decision);
+    Ok(())
+}
+
+#[derive(Debug)]
+struct PersistedSleepPeriod {
+    origin_id: String,
+    sleep_date: String,
+    started_at: String,
+    ended_at: String,
+    span_milliseconds: i64,
+    asleep_milliseconds: i64,
+    interruption_milliseconds: i64,
+    long_interruption_milliseconds: i64,
+    short_interruption_milliseconds: i64,
+    interruption_count: i64,
+    long_interruption_count: i64,
+    short_interruption_count: i64,
+    efficiency_percent: f64,
+    continuity_index: f64,
+    continuity_class: i64,
+    sleep_goal_milliseconds: Option<i64>,
+    self_reported_rating: Option<i64>,
+    cycle_count: Option<i64>,
+    recording_ended_by_power_loss: Option<i64>,
+    phase_wake_milliseconds: Option<i64>,
+    phase_rem_milliseconds: Option<i64>,
+    phase_light_milliseconds: Option<i64>,
+    phase_deep_milliseconds: Option<i64>,
+    phase_unrecognized_milliseconds: Option<i64>,
+    stage_timeline_available: i64,
+    score_overall: Option<f64>,
+    score_own_target_duration: Option<f64>,
+    score_recommended_duration: Option<f64>,
+    score_continuity: Option<f64>,
+    score_efficiency: Option<f64>,
+    score_rem: Option<f64>,
+    score_deep: Option<f64>,
+    score_long_interruptions: Option<f64>,
+    score_duration: Option<f64>,
+    score_solidity: Option<f64>,
+    score_regeneration: Option<f64>,
+    score_relative_rating: Option<i64>,
+}
+
+fn read_persisted_sleep_period(row: &Row<'_>) -> rusqlite::Result<PersistedSleepPeriod> {
+    Ok(PersistedSleepPeriod {
+        origin_id: row.get(0)?,
+        sleep_date: row.get(1)?,
+        started_at: row.get(2)?,
+        ended_at: row.get(3)?,
+        span_milliseconds: row.get(4)?,
+        asleep_milliseconds: row.get(5)?,
+        interruption_milliseconds: row.get(6)?,
+        long_interruption_milliseconds: row.get(7)?,
+        short_interruption_milliseconds: row.get(8)?,
+        interruption_count: row.get(9)?,
+        long_interruption_count: row.get(10)?,
+        short_interruption_count: row.get(11)?,
+        efficiency_percent: row.get(12)?,
+        continuity_index: row.get(13)?,
+        continuity_class: row.get(14)?,
+        sleep_goal_milliseconds: row.get(15)?,
+        self_reported_rating: row.get(16)?,
+        cycle_count: row.get(17)?,
+        recording_ended_by_power_loss: row.get(18)?,
+        phase_wake_milliseconds: row.get(19)?,
+        phase_rem_milliseconds: row.get(20)?,
+        phase_light_milliseconds: row.get(21)?,
+        phase_deep_milliseconds: row.get(22)?,
+        phase_unrecognized_milliseconds: row.get(23)?,
+        stage_timeline_available: row.get(24)?,
+        score_overall: row.get(25)?,
+        score_own_target_duration: row.get(26)?,
+        score_recommended_duration: row.get(27)?,
+        score_continuity: row.get(28)?,
+        score_efficiency: row.get(29)?,
+        score_rem: row.get(30)?,
+        score_deep: row.get(31)?,
+        score_long_interruptions: row.get(32)?,
+        score_duration: row.get(33)?,
+        score_solidity: row.get(34)?,
+        score_regeneration: row.get(35)?,
+        score_relative_rating: row.get(36)?,
+    })
+}
+
+fn required_sleep_component<T>(value: Option<T>, column: &'static str) -> Result<T> {
+    value.ok_or_else(|| {
+        ImportError::InvalidSleepLibrary(format!(
+            "{column} is unavailable inside a present optional group"
+        ))
+    })
+}
+
+fn load_sleep_period(
+    connection: &Connection,
+    origin_id: &str,
+    sleep_date: &str,
+) -> Result<Option<SleepPeriod>> {
+    let persisted = connection
+        .query_row(
+            "SELECT origin_id, sleep_date, started_at, ended_at,
+                    span_milliseconds, asleep_milliseconds,
+                    interruption_milliseconds, long_interruption_milliseconds,
+                    short_interruption_milliseconds, interruption_count,
+                    long_interruption_count, short_interruption_count,
+                    efficiency_percent, continuity_index, continuity_class,
+                    sleep_goal_milliseconds, self_reported_rating, cycle_count,
+                    recording_ended_by_power_loss, phase_wake_milliseconds,
+                    phase_rem_milliseconds, phase_light_milliseconds,
+                    phase_deep_milliseconds, phase_unrecognized_milliseconds,
+                    stage_timeline_available, score_overall,
+                    score_own_target_duration, score_recommended_duration,
+                    score_continuity, score_efficiency, score_rem, score_deep,
+                    score_long_interruptions, score_duration, score_solidity,
+                    score_regeneration, score_relative_rating
+             FROM sleep_period
+             WHERE origin_id = ?1 AND sleep_date = ?2",
+            params![origin_id, sleep_date],
+            read_persisted_sleep_period,
+        )
+        .optional()?;
+    let Some(persisted) = persisted else {
+        return Ok(None);
+    };
+
+    let cycle_count = persisted
+        .cycle_count
+        .map(|value| persisted_count(value, "sleep_period.cycle_count"))
+        .transpose()?;
+    let recording_ended_by_power_loss = match persisted.recording_ended_by_power_loss {
+        None => None,
+        Some(0) => Some(false),
+        Some(1) => Some(true),
+        Some(value) => {
+            return Err(ImportError::InvalidSleepLibrary(format!(
+                "invalid recording_ended_by_power_loss value: {value}"
+            )))
+        }
+    };
+    let stage_timeline_available = match persisted.stage_timeline_available {
+        0 => false,
+        1 => true,
+        value => {
+            return Err(ImportError::InvalidSleepLibrary(format!(
+                "invalid stage_timeline_available value: {value}"
+            )))
+        }
+    };
+
+    let phase_summary = persisted
+        .phase_wake_milliseconds
+        .map(|wake_milliseconds| -> Result<SleepPhaseSummary> {
+            Ok(SleepPhaseSummary {
+                wake_milliseconds,
+                rem_milliseconds: required_sleep_component(
+                    persisted.phase_rem_milliseconds,
+                    "phase_rem_milliseconds",
+                )?,
+                light_milliseconds: required_sleep_component(
+                    persisted.phase_light_milliseconds,
+                    "phase_light_milliseconds",
+                )?,
+                deep_milliseconds: required_sleep_component(
+                    persisted.phase_deep_milliseconds,
+                    "phase_deep_milliseconds",
+                )?,
+                unrecognized_milliseconds: required_sleep_component(
+                    persisted.phase_unrecognized_milliseconds,
+                    "phase_unrecognized_milliseconds",
+                )?,
+            })
+        })
+        .transpose()?;
+    let score = persisted
+        .score_overall
+        .map(|overall| -> Result<SleepScore> {
+            Ok(SleepScore {
+                overall,
+                own_target_duration: required_sleep_component(
+                    persisted.score_own_target_duration,
+                    "score_own_target_duration",
+                )?,
+                recommended_duration: required_sleep_component(
+                    persisted.score_recommended_duration,
+                    "score_recommended_duration",
+                )?,
+                continuity: required_sleep_component(
+                    persisted.score_continuity,
+                    "score_continuity",
+                )?,
+                efficiency: required_sleep_component(
+                    persisted.score_efficiency,
+                    "score_efficiency",
+                )?,
+                rem: required_sleep_component(persisted.score_rem, "score_rem")?,
+                deep: required_sleep_component(persisted.score_deep, "score_deep")?,
+                long_interruptions: required_sleep_component(
+                    persisted.score_long_interruptions,
+                    "score_long_interruptions",
+                )?,
+                duration: required_sleep_component(persisted.score_duration, "score_duration")?,
+                solidity: required_sleep_component(persisted.score_solidity, "score_solidity")?,
+                regeneration: required_sleep_component(
+                    persisted.score_regeneration,
+                    "score_regeneration",
+                )?,
+                relative_rating: persisted.score_relative_rating,
+            })
+        })
+        .transpose()?;
+    let stage_transitions = if stage_timeline_available {
+        let mut statement = connection.prepare(
+            "SELECT offset_milliseconds, stage
+             FROM sleep_stage_transition
+             WHERE origin_id = ?1 AND sleep_date = ?2
+             ORDER BY position",
+        )?;
+        let rows = statement
+            .query_map(params![persisted.origin_id, persisted.sleep_date], |row| {
+                Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?))
+            })?;
+        let mut transitions = Vec::new();
+        for row in rows {
+            let (offset_milliseconds, stage) = row?;
+            let stage = match stage.as_str() {
+                "wake" => SleepStage::Wake,
+                "rem" => SleepStage::Rem,
+                "light" => SleepStage::Light,
+                "deep" => SleepStage::Deep,
+                "unrecognized" => SleepStage::Unrecognized,
+                _ => {
+                    return Err(ImportError::InvalidSleepLibrary(format!(
+                        "invalid persisted sleep stage: {stage}"
+                    )))
+                }
+            };
+            transitions.push(SleepStageTransition {
+                offset_milliseconds,
+                stage,
+            });
+        }
+        Some(transitions)
+    } else {
+        None
+    };
+
+    Ok(Some(SleepPeriod {
+        origin_id: persisted.origin_id,
+        sleep_date: persisted.sleep_date,
+        started_at: persisted.started_at,
+        ended_at: persisted.ended_at,
+        span_milliseconds: persisted.span_milliseconds,
+        asleep_milliseconds: persisted.asleep_milliseconds,
+        interruption_milliseconds: persisted.interruption_milliseconds,
+        long_interruption_milliseconds: persisted.long_interruption_milliseconds,
+        short_interruption_milliseconds: persisted.short_interruption_milliseconds,
+        interruption_count: persisted.interruption_count,
+        long_interruption_count: persisted.long_interruption_count,
+        short_interruption_count: persisted.short_interruption_count,
+        efficiency_percent: persisted.efficiency_percent,
+        continuity_index: persisted.continuity_index,
+        continuity_class: persisted.continuity_class,
+        sleep_goal_milliseconds: persisted.sleep_goal_milliseconds,
+        self_reported_rating: persisted.self_reported_rating,
+        cycle_count,
+        recording_ended_by_power_loss,
+        phase_summary,
+        stage_transitions,
+        score,
+    }))
+}
+
+fn sleep_stage_code(stage: SleepStage) -> &'static str {
+    match stage {
+        SleepStage::Wake => "wake",
+        SleepStage::Rem => "rem",
+        SleepStage::Light => "light",
+        SleepStage::Deep => "deep",
+        SleepStage::Unrecognized => "unrecognized",
+    }
+}
+
+fn persist_sleep_period(transaction: &Transaction<'_>, period: &SleepPeriod) -> Result<()> {
+    let phase = period.phase_summary.as_ref();
+    let score = period.score.as_ref();
+    transaction.execute(
+        "INSERT INTO sleep_period (
+             origin_id, sleep_date, started_at, ended_at, span_milliseconds,
+             asleep_milliseconds, interruption_milliseconds,
+             long_interruption_milliseconds, short_interruption_milliseconds,
+             interruption_count, long_interruption_count, short_interruption_count,
+             efficiency_percent, continuity_index, continuity_class,
+             sleep_goal_milliseconds, self_reported_rating, cycle_count,
+             recording_ended_by_power_loss, phase_wake_milliseconds,
+             phase_rem_milliseconds, phase_light_milliseconds,
+             phase_deep_milliseconds, phase_unrecognized_milliseconds,
+             stage_timeline_available, score_overall, score_own_target_duration,
+             score_recommended_duration, score_continuity, score_efficiency,
+             score_rem, score_deep, score_long_interruptions, score_duration,
+             score_solidity, score_regeneration, score_relative_rating
+         ) VALUES (
+             ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13,
+             ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25,
+             ?26, ?27, ?28, ?29, ?30, ?31, ?32, ?33, ?34, ?35, ?36, ?37
+         ) ON CONFLICT (origin_id, sleep_date) DO UPDATE SET
+             started_at = excluded.started_at,
+             ended_at = excluded.ended_at,
+             span_milliseconds = excluded.span_milliseconds,
+             asleep_milliseconds = excluded.asleep_milliseconds,
+             interruption_milliseconds = excluded.interruption_milliseconds,
+             long_interruption_milliseconds = excluded.long_interruption_milliseconds,
+             short_interruption_milliseconds = excluded.short_interruption_milliseconds,
+             interruption_count = excluded.interruption_count,
+             long_interruption_count = excluded.long_interruption_count,
+             short_interruption_count = excluded.short_interruption_count,
+             efficiency_percent = excluded.efficiency_percent,
+             continuity_index = excluded.continuity_index,
+             continuity_class = excluded.continuity_class,
+             sleep_goal_milliseconds = excluded.sleep_goal_milliseconds,
+             self_reported_rating = excluded.self_reported_rating,
+             cycle_count = excluded.cycle_count,
+             recording_ended_by_power_loss = excluded.recording_ended_by_power_loss,
+             phase_wake_milliseconds = excluded.phase_wake_milliseconds,
+             phase_rem_milliseconds = excluded.phase_rem_milliseconds,
+             phase_light_milliseconds = excluded.phase_light_milliseconds,
+             phase_deep_milliseconds = excluded.phase_deep_milliseconds,
+             phase_unrecognized_milliseconds = excluded.phase_unrecognized_milliseconds,
+             stage_timeline_available = excluded.stage_timeline_available,
+             score_overall = excluded.score_overall,
+             score_own_target_duration = excluded.score_own_target_duration,
+             score_recommended_duration = excluded.score_recommended_duration,
+             score_continuity = excluded.score_continuity,
+             score_efficiency = excluded.score_efficiency,
+             score_rem = excluded.score_rem,
+             score_deep = excluded.score_deep,
+             score_long_interruptions = excluded.score_long_interruptions,
+             score_duration = excluded.score_duration,
+             score_solidity = excluded.score_solidity,
+             score_regeneration = excluded.score_regeneration,
+             score_relative_rating = excluded.score_relative_rating",
+        params![
+            period.origin_id,
+            period.sleep_date,
+            period.started_at,
+            period.ended_at,
+            period.span_milliseconds,
+            period.asleep_milliseconds,
+            period.interruption_milliseconds,
+            period.long_interruption_milliseconds,
+            period.short_interruption_milliseconds,
+            period.interruption_count,
+            period.long_interruption_count,
+            period.short_interruption_count,
+            period.efficiency_percent,
+            period.continuity_index,
+            period.continuity_class,
+            period.sleep_goal_milliseconds,
+            period.self_reported_rating,
+            period.cycle_count.map(|value| value as i64),
+            period.recording_ended_by_power_loss,
+            phase.map(|value| value.wake_milliseconds),
+            phase.map(|value| value.rem_milliseconds),
+            phase.map(|value| value.light_milliseconds),
+            phase.map(|value| value.deep_milliseconds),
+            phase.map(|value| value.unrecognized_milliseconds),
+            period.stage_transitions.is_some(),
+            score.map(|value| value.overall),
+            score.map(|value| value.own_target_duration),
+            score.map(|value| value.recommended_duration),
+            score.map(|value| value.continuity),
+            score.map(|value| value.efficiency),
+            score.map(|value| value.rem),
+            score.map(|value| value.deep),
+            score.map(|value| value.long_interruptions),
+            score.map(|value| value.duration),
+            score.map(|value| value.solidity),
+            score.map(|value| value.regeneration),
+            score.and_then(|value| value.relative_rating),
+        ],
+    )?;
+    transaction.execute(
+        "DELETE FROM sleep_stage_transition
+         WHERE origin_id = ?1 AND sleep_date = ?2",
+        params![period.origin_id, period.sleep_date],
+    )?;
+    if let Some(transitions) = &period.stage_transitions {
+        for (position, transition) in transitions.iter().enumerate() {
+            transaction.execute(
+                "INSERT INTO sleep_stage_transition (
+                     origin_id, sleep_date, position, offset_milliseconds, stage
+                 ) VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![
+                    period.origin_id,
+                    period.sleep_date,
+                    position as i64,
+                    transition.offset_milliseconds,
+                    sleep_stage_code(transition.stage),
+                ],
+            )?;
+        }
+    }
+    Ok(())
+}
+
+fn reconcile_sleep_period(
+    transaction: &Transaction<'_>,
+    operation_id: i64,
+    mapped: &MappedSleepPeriod,
+    report: &mut ImportReport,
+) -> Result<()> {
+    let period = &mapped.observation;
+    let existing = load_sleep_period(transaction, &period.origin_id, &period.sleep_date)?;
+    let decision = decide_sleep_period_reconciliation(existing.as_ref(), period);
+    match decision {
+        ReconciliationDecision::Create | ReconciliationDecision::Enrich => {
+            persist_sleep_period(transaction, period)?;
+        }
+        ReconciliationDecision::Equivalent | ReconciliationDecision::Preserve => {}
+        ReconciliationDecision::Conflict => {
+            transaction.execute(
+                "INSERT INTO sleep_period_conflict (
+                     import_operation_id, origin_id, sleep_date,
+                     result_artifact_locator, score_artifact_locator, mapping_version
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![
+                    operation_id,
+                    period.origin_id,
+                    period.sleep_date,
+                    mapped.result_locator,
+                    mapped.score_locator,
+                    SLEEP_MAPPING_VERSION,
+                ],
+            )?;
+        }
+        ReconciliationDecision::Amend => {
+            return Err(ImportError::InvalidReconciliationDecision("sleep period"));
+        }
+    }
+    transaction.execute(
+        "INSERT INTO sleep_period_provenance (
+             origin_id, sleep_date, import_operation_id,
+             result_artifact_locator, result_artifact_sha256,
+             score_artifact_locator, score_artifact_sha256, source_provider,
+             source_adapter_version, mapping_version, reconciliation_decision,
+             contributes_to_visible_state
+         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+        params![
+            period.origin_id,
+            period.sleep_date,
+            operation_id,
+            mapped.result_locator,
+            mapped.result_sha256,
+            mapped.score_locator,
+            mapped.score_sha256,
+            SOURCE_PROVIDER,
+            SOURCE_ADAPTER_VERSION,
+            SLEEP_MAPPING_VERSION,
+            reconciliation_decision_code(decision),
+            matches!(
+                decision,
+                ReconciliationDecision::Create
+                    | ReconciliationDecision::Equivalent
+                    | ReconciliationDecision::Enrich
             ),
         ],
     )?;
@@ -2715,6 +4100,139 @@ mod tests {
         }
     }
 
+    fn staged_sleep_result_json(night: &str) -> String {
+        format!(
+            r#"[{{
+                "night":"{night}",
+                "evaluation":{{
+                    "sleepType":"SLEEP_PLUS_STAGES",
+                    "sleepSpan":"PT8H",
+                    "asleepDuration":"PT7H30M",
+                    "age":40.5,
+                    "analysis":{{
+                        "efficiencyPercent":93.75,
+                        "continuityIndex":4.2,
+                        "continuityClass":4,
+                        "feedback":11111
+                    }},
+                    "interruptions":{{
+                        "totalDuration":"PT30M",
+                        "longDuration":"PT20M",
+                        "shortDuration":"PT10M",
+                        "totalCount":3,
+                        "longCount":1,
+                        "shortCount":2
+                    }},
+                    "phaseDurations":{{
+                        "wake":"PT30M",
+                        "rem":"PT1H30M",
+                        "light":"PT4H",
+                        "deep":"PT1H30M",
+                        "unknown":"PT30M",
+                        "remPercentage":20.0,
+                        "deepPercentage":20.0
+                    }}
+                }},
+                "sleepResult":{{
+                    "hypnogram":{{
+                        "sleepStart":"2026-03-28T22:30:00+01:00",
+                        "sleepEnd":"2026-03-29T07:30:00+02:00",
+                        "rating":"SLEPT_QUITE_WELL",
+                        "sleepGoal":"PT8H",
+                        "batteryRanOut":false,
+                        "alarmSnoozeTimes":[],
+                        "birthday":"1985-01-01",
+                        "deviceId":"synthetic-device",
+                        "sleepStartOffset":0,
+                        "sleepEndOffset":0,
+                        "sleepStateChanges":[
+                            {{"offsetFromStart":"PT0S","state":"WAKE"}},
+                            {{"offsetFromStart":"PT30M","state":"NONREM2"}},
+                            {{"offsetFromStart":"PT2H","state":"NONREM3"}},
+                            {{"offsetFromStart":"PT3H30M","state":"REM"}},
+                            {{"offsetFromStart":"PT7H30M","state":"WS_UNKNOWN"}}
+                        ]
+                    }},
+                    "sleepCycles":{{
+                        "cycles":{{
+                            "sleepCycleModels":[
+                                {{"secondsFromSleepStart":0,"sleepDepthStart":2}},
+                                {{"secondsFromSleepStart":14400,"sleepDepthStart":3}}
+                            ]
+                        }}
+                    }}
+                }}
+            }}]"#
+        )
+    }
+
+    fn basic_sleep_result_json(night: &str) -> String {
+        format!(
+            r#"[{{
+                "night":"{night}",
+                "evaluation":{{
+                    "sleepType":"SLEEP_PLUS",
+                    "sleepSpan":"PT8H",
+                    "asleepDuration":"PT7H30M",
+                    "age":40,
+                    "analysis":{{
+                        "efficiencyPercent":93.75,
+                        "continuityIndex":4,
+                        "continuityClass":4,
+                        "feedback":11111
+                    }},
+                    "interruptions":{{
+                        "totalDuration":"PT30M",
+                        "longDuration":"PT20M",
+                        "shortDuration":"PT10M",
+                        "totalCount":3,
+                        "longCount":1,
+                        "shortCount":2
+                    }}
+                }},
+                "sleepResult":{{
+                    "hypnogram":{{
+                        "sleepStart":"2026-01-02T22:30:00-05:00",
+                        "sleepEnd":"2026-01-03T06:30:00-05:00",
+                        "rating":"UNKNOWN",
+                        "alarmSnoozeTimes":[],
+                        "birthday":"1985-01-01",
+                        "deviceId":"synthetic-device",
+                        "sleepStartOffset":0,
+                        "sleepEndOffset":0,
+                        "sleepStateChanges":[]
+                    }}
+                }}
+            }}]"#
+        )
+    }
+
+    fn sleep_score_json(night: &str, overall: f64) -> String {
+        format!(
+            r#"[{{
+                "night":"{night}",
+                "sleepScoreBaselines":{{
+                    "sleepTimeAverageMinutes":450,
+                    "longInterruptionsAverageTimeMinutes":20
+                }},
+                "sleepScoreResult":{{
+                    "sleepScore":{overall},
+                    "sleepTimeOwnTargetScore":80,
+                    "sleepTimeRecommendationScore":78,
+                    "continuityScore":84,
+                    "efficiencyScore":86,
+                    "remScore":76,
+                    "n3Score":81,
+                    "longInterruptionsScore":79,
+                    "groupDurationScore":79,
+                    "groupSolidityScore":83,
+                    "groupRefreshScore":78.5,
+                    "scoreRate":4
+                }}
+            }}]"#
+        )
+    }
+
     #[test]
     fn imports_queries_and_repeats_without_duplicates() {
         let harness = Harness::new();
@@ -2874,6 +4392,410 @@ mod tests {
         assert!(!table_names.iter().any(|name| {
             name.contains("route") || name.contains("sample") || name.contains("waypoint")
         }));
+    }
+
+    #[test]
+    fn imports_split_sleep_history_with_offsets_phases_scores_and_restart() {
+        let harness = Harness::new();
+        let result_json = staged_sleep_result_json("2026-03-29");
+        let score_json = sleep_score_json("2026-03-29", 82.0);
+        let archive = harness.archive(
+            "sleep-history.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-sleep-claim"}"#,
+                ),
+                (
+                    "sleep_result_42-11111111-2222-4333-8444-555555555555.json",
+                    &result_json,
+                ),
+                (
+                    "sleep_score_42-11111111-2222-4333-8444-555555555555.json",
+                    &score_json,
+                ),
+            ],
+        );
+
+        let report =
+            import_polar_archive(&harness.database(), &archive).expect("sleep history import");
+
+        assert_eq!(report.recognized_artifacts, 3);
+        assert_eq!(report.new_observations, 1);
+        let history = query_sleep_periods(&harness.database()).expect("sleep history");
+        assert_eq!(history.len(), 1);
+        let period = &history[0];
+        assert_eq!(period.origin_id.len(), 32);
+        assert_eq!(period.sleep_date, "2026-03-29");
+        assert_eq!(period.started_at, "2026-03-28T22:30:00+01:00");
+        assert_eq!(period.ended_at, "2026-03-29T07:30:00+02:00");
+        assert_eq!(period.span_milliseconds, 28_800_000);
+        assert_eq!(period.asleep_milliseconds, 27_000_000);
+        assert_eq!(period.self_reported_rating, Some(4));
+        assert_eq!(period.cycle_count, Some(2));
+        assert_eq!(period.recording_ended_by_power_loss, Some(false));
+        assert_eq!(
+            period.phase_summary,
+            Some(SleepPhaseSummary {
+                wake_milliseconds: 1_800_000,
+                rem_milliseconds: 5_400_000,
+                light_milliseconds: 14_400_000,
+                deep_milliseconds: 5_400_000,
+                unrecognized_milliseconds: 1_800_000,
+            })
+        );
+        assert_eq!(period.stage_transitions.as_ref().map(Vec::len), Some(5));
+        assert_eq!(
+            period
+                .stage_transitions
+                .as_ref()
+                .and_then(|transitions| transitions.last())
+                .map(|transition| (transition.offset_milliseconds, transition.stage)),
+            Some((27_000_000, SleepStage::Unrecognized))
+        );
+        let score = period.score.as_ref().expect("sleep score");
+        assert_eq!(score.overall, 82.0);
+        assert_eq!(score.regeneration, 78.5);
+        assert_eq!(score.relative_rating, Some(4));
+
+        let reopened = query_sleep_periods(&harness.database()).expect("reopened sleep history");
+        assert_eq!(reopened, history);
+        let outcome = query_latest_import_outcome(&harness.database())
+            .expect("sleep outcome query")
+            .expect("sleep outcome");
+        assert!(outcome.artifact_families.iter().any(|family| {
+            family.family_code.as_deref() == Some("polar-flow-sleep-result")
+                && family.classification == ArtifactClassification::Supported
+                && family.reason_code == "mapped-sleep-periods"
+        }));
+        assert!(outcome.artifact_families.iter().any(|family| {
+            family.family_code.as_deref() == Some("polar-flow-sleep-score")
+                && family.classification == ArtifactClassification::Supported
+                && family.reason_code == "mapped-sleep-scores"
+        }));
+
+        let connection = Connection::open(harness.database()).expect("database");
+        let provenance = connection
+            .query_row(
+                "SELECT source_provider, source_adapter_version, mapping_version,
+                        reconciliation_decision, contributes_to_visible_state,
+                        length(result_artifact_sha256), length(score_artifact_sha256)
+                 FROM sleep_period_provenance",
+                [],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                        row.get::<_, String>(3)?,
+                        row.get::<_, bool>(4)?,
+                        row.get::<_, i64>(5)?,
+                        row.get::<_, i64>(6)?,
+                    ))
+                },
+            )
+            .expect("sleep provenance");
+        assert_eq!(
+            provenance,
+            (
+                SOURCE_PROVIDER.to_owned(),
+                SOURCE_ADAPTER_VERSION.to_owned(),
+                SLEEP_MAPPING_VERSION.to_owned(),
+                "create".to_owned(),
+                true,
+                64,
+                64,
+            )
+        );
+    }
+
+    #[test]
+    fn keeps_sleep_progress_bounded_by_source_artifacts() {
+        let harness = Harness::new();
+        let first = basic_sleep_result_json("2026-01-03");
+        let second = basic_sleep_result_json("2026-01-04");
+        let third = staged_sleep_result_json("2026-03-29");
+        let result_json = format!(
+            "[{},{},{}]",
+            &first[1..first.len() - 1],
+            &second[1..second.len() - 1],
+            &third[1..third.len() - 1]
+        );
+        let archive = harness.archive(
+            "sleep-progress.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-sleep-progress-claim"}"#,
+                ),
+                (
+                    "sleep_result_42-11111111-2222-4333-8444-555555555555.json",
+                    &result_json,
+                ),
+            ],
+        );
+        let cancellation = AtomicBool::new(false);
+        let mut progress = Vec::new();
+
+        let report = import_polar_archive_with_progress(
+            &harness.database(),
+            &archive,
+            &cancellation,
+            |event| progress.push(event),
+        )
+        .expect("multi-period sleep import");
+
+        assert_eq!(report.recognized_artifacts, 2);
+        assert_eq!(report.new_observations, 3);
+        let committing = progress
+            .iter()
+            .find(|event| event.phase == ImportPhase::Committing)
+            .expect("committing progress");
+        assert_eq!(committing.completed_artifacts, 2);
+        assert_eq!(committing.total_artifacts, Some(2));
+        assert!(progress.iter().all(|event| {
+            event
+                .total_artifacts
+                .is_none_or(|total| event.completed_artifacts <= total)
+        }));
+    }
+
+    #[test]
+    fn enriches_missing_sleep_scores_and_preserves_unordered_conflicts() {
+        let harness = Harness::new();
+        let result_json = basic_sleep_result_json("2026-01-03");
+        let score_json = sleep_score_json("2026-01-03", 82.0);
+        let changed_score_json = sleep_score_json("2026-01-03", 90.0);
+        let package = |name: &str, result_token: &str, score: Option<(&str, &str)>| {
+            let result_locator = format!("sleep_result_42-{result_token}.json");
+            let mut entries = vec![
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-sleep-reimport-claim"}"#,
+                ),
+                (result_locator.as_str(), result_json.as_str()),
+            ];
+            let score_locator;
+            if let Some((token, json)) = score {
+                score_locator = format!("sleep_score_42-{token}.json");
+                entries.push((score_locator.as_str(), json));
+            }
+            harness.archive(name, &entries)
+        };
+        let initial = package(
+            "sleep-initial.zip",
+            "11111111-2222-4333-8444-555555555555",
+            None,
+        );
+        let enriched = package(
+            "sleep-enriched.zip",
+            "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+            Some(("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", &score_json)),
+        );
+        let conflicting = package(
+            "sleep-conflict.zip",
+            "12345678-90ab-4cde-8f01-234567890abc",
+            Some(("12345678-90ab-4cde-8f01-234567890abc", &changed_score_json)),
+        );
+        let reduced = package(
+            "sleep-reduced.zip",
+            "abcdefab-cdef-4abc-8def-abcdefabcdef",
+            None,
+        );
+
+        let created =
+            import_polar_archive(&harness.database(), &initial).expect("create sleep period");
+        let enriched =
+            import_polar_archive(&harness.database(), &enriched).expect("enrich sleep period");
+        let conflicted =
+            import_polar_archive(&harness.database(), &conflicting).expect("retain sleep conflict");
+        let preserved = import_polar_archive(&harness.database(), &reduced)
+            .expect("preserve complete sleep period");
+
+        assert_eq!(created.new_observations, 1);
+        assert_eq!(enriched.enriched_observations, 1);
+        assert_eq!(conflicted.conflicts, 1);
+        assert_eq!(preserved.preserved_observations, 1);
+        let history = query_sleep_periods(&harness.database()).expect("sleep history");
+        assert_eq!(history.len(), 1);
+        assert_eq!(
+            history[0].score.as_ref().map(|score| score.overall),
+            Some(82.0)
+        );
+
+        let connection = Connection::open(harness.database()).expect("database");
+        let decisions = connection
+            .prepare(
+                "SELECT reconciliation_decision, contributes_to_visible_state
+                 FROM sleep_period_provenance ORDER BY id",
+            )
+            .expect("sleep decisions query")
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, bool>(1)?))
+            })
+            .expect("sleep decision rows")
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .expect("sleep decisions");
+        assert_eq!(
+            decisions,
+            vec![
+                ("create".to_owned(), true),
+                ("enrich".to_owned(), true),
+                ("conflict".to_owned(), false),
+                ("preserve".to_owned(), false),
+            ]
+        );
+        assert_eq!(
+            connection
+                .query_row("SELECT COUNT(*) FROM sleep_period_conflict", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .expect("sleep conflict count"),
+            1
+        );
+    }
+
+    #[test]
+    fn rejects_duplicate_and_orphan_sleep_records_atomically() {
+        let cases = [
+            (
+                "duplicate-sleep.zip",
+                vec![
+                    (
+                        "sleep_result_42-11111111-2222-4333-8444-555555555555.json".to_owned(),
+                        basic_sleep_result_json("2026-01-03"),
+                    ),
+                    (
+                        "sleep_result_42-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json".to_owned(),
+                        basic_sleep_result_json("2026-01-03"),
+                    ),
+                ],
+                "duplicate-sleep-result-date",
+            ),
+            (
+                "orphan-sleep-score.zip",
+                vec![(
+                    "sleep_score_42-11111111-2222-4333-8444-555555555555.json".to_owned(),
+                    sleep_score_json("2026-01-03", 82.0),
+                )],
+                "orphan-sleep-score-date",
+            ),
+        ];
+
+        for (archive_name, records, reason_code) in cases {
+            let harness = Harness::new();
+            let mut entries = vec![(
+                "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                r#"{"username":"fixture-invalid-sleep-claim"}"#,
+            )];
+            entries.extend(
+                records
+                    .iter()
+                    .map(|(locator, json)| (locator.as_str(), json.as_str())),
+            );
+            let archive = harness.archive(archive_name, &entries);
+
+            let error = import_polar_archive(&harness.database(), &archive)
+                .expect_err("invalid split sleep history");
+            assert!(matches!(
+                error,
+                ImportError::InvalidArtifact {
+                    reason_code: actual,
+                    ..
+                } if actual == reason_code
+            ));
+            assert!(query_sleep_periods(&harness.database())
+                .expect("empty sleep history")
+                .is_empty());
+            let outcome = query_latest_import_outcome(&harness.database())
+                .expect("sleep rejection outcome query")
+                .expect("sleep rejection outcome");
+            assert_eq!(outcome.state, ImportOperationState::Rejected);
+            assert!(outcome.artifact_families.iter().any(|family| {
+                family.classification == ArtifactClassification::Invalid
+                    && family.reason_code == reason_code
+            }));
+        }
+    }
+
+    #[test]
+    fn validates_sleep_shape_arithmetic_timeline_and_score_ranges() {
+        let result_locator = "sleep_result_42-11111111-2222-4333-8444-555555555555.json";
+        let score_locator = "sleep_score_42-11111111-2222-4333-8444-555555555555.json";
+        let hash = "0".repeat(64);
+        let staged = staged_sleep_result_json("2026-03-29");
+        let mapped =
+            decode_sleep_results("synthetic-origin", result_locator, &hash, staged.as_bytes())
+                .expect("valid staged sleep result");
+        assert_eq!(mapped.periods.len(), 1);
+        assert!(mapped.periods[0].phase_summary.is_some());
+        assert_eq!(
+            mapped.periods[0].stage_transitions.as_ref().map(Vec::len),
+            Some(5)
+        );
+
+        let basic = basic_sleep_result_json("2026-01-03");
+        let mapped_basic =
+            decode_sleep_results("synthetic-origin", result_locator, &hash, basic.as_bytes())
+                .expect("valid basic sleep result");
+        assert_eq!(mapped_basic.periods[0].phase_summary, None);
+        assert_eq!(mapped_basic.periods[0].sleep_goal_milliseconds, None);
+        assert_eq!(mapped_basic.periods[0].stage_transitions, Some(Vec::new()));
+
+        let terminal_wake = staged.replacen(
+            r#"{"offsetFromStart":"PT7H30M","state":"WS_UNKNOWN"}"#,
+            r#"{"offsetFromStart":"PT7H30M","state":"WS_UNKNOWN"},
+                            {"offsetFromStart":"PT8H30M","state":"WAKE"}"#,
+            1,
+        );
+        let mapped_terminal_wake = decode_sleep_results(
+            "synthetic-origin",
+            result_locator,
+            &hash,
+            terminal_wake.as_bytes(),
+        )
+        .expect("valid out-of-period terminal wake marker");
+        assert_eq!(
+            mapped_terminal_wake.periods[0]
+                .stage_transitions
+                .as_ref()
+                .map(Vec::len),
+            Some(5)
+        );
+
+        for invalid in [
+            staged.replacen("\"sleepSpan\":\"PT8H\"", "\"sleepSpan\":\"PT7H\"", 1),
+            staged.replacen("\"sleepSpan\":\"PT8H\"", "\"sleepSpan\":\"P1DT\"", 1),
+            staged.replacen("\"state\":\"NONREM2\"", "\"state\":\"FUTURE\"", 1),
+            staged.replacen(
+                r#"{"offsetFromStart":"PT7H30M","state":"WS_UNKNOWN"}"#,
+                r#"{"offsetFromStart":"PT8H30M","state":"WS_UNKNOWN"}"#,
+                1,
+            ),
+            staged.replacen(
+                "\"sleepEnd\":\"2026-03-29T07:30:00+02:00\"",
+                "\"sleepEnd\":\"2026-03-28T20:00:00+01:00\"",
+                1,
+            ),
+        ] {
+            assert!(decode_sleep_results(
+                "synthetic-origin",
+                result_locator,
+                &hash,
+                invalid.as_bytes(),
+            )
+            .is_err());
+        }
+        let valid_score = sleep_score_json("2026-03-29", 82.0);
+        assert_eq!(
+            decode_sleep_scores(score_locator, &hash, valid_score.as_bytes())
+                .expect("valid sleep score")
+                .scores
+                .len(),
+            1
+        );
+        let invalid_score = sleep_score_json("2026-03-29", 101.0);
+        assert!(decode_sleep_scores(score_locator, &hash, invalid_score.as_bytes()).is_err());
     }
 
     #[test]
@@ -3251,8 +5173,8 @@ mod tests {
                 MAPPING_SET_VERSION.to_owned(),
                 true,
                 4,
-                3,
-                1,
+                4,
+                0,
                 0,
                 0,
                 0,
@@ -3287,8 +5209,8 @@ mod tests {
         assert_eq!(coverage[1].2, "supported");
         assert_eq!(coverage[2].2, "supported");
         assert_eq!(coverage[3].1, Some("polar-flow-sleep-result".to_owned()));
-        assert_eq!(coverage[3].2, "unsupported");
-        assert_eq!(coverage[3].4, "known-family-not-yet-supported");
+        assert_eq!(coverage[3].2, "supported");
+        assert_eq!(coverage[3].4, "mapped-sleep-periods");
         assert!(coverage[1].3.as_ref().is_some_and(|hash| hash.len() == 64));
 
         let provenance = connection
@@ -3332,18 +5254,12 @@ mod tests {
         assert_eq!(outcome.source_provider, SOURCE_PROVIDER);
         assert!(outcome.coverage_complete);
         assert_eq!(outcome.coverage.total, 4);
-        assert_eq!(outcome.coverage.supported, 3);
-        assert_eq!(outcome.coverage.unsupported, 1);
+        assert_eq!(outcome.coverage.supported, 4);
+        assert_eq!(outcome.coverage.unsupported, 0);
         assert_eq!(outcome.coverage.unrecognized, 0);
         assert_eq!(
             outcome.artifact_families,
             vec![
-                ArtifactFamilyCoverage {
-                    family_code: Some("polar-flow-sleep-result".to_owned()),
-                    classification: ArtifactClassification::Unsupported,
-                    reason_code: "known-family-not-yet-supported".to_owned(),
-                    artifact_count: 1,
-                },
                 ArtifactFamilyCoverage {
                     family_code: Some("polar-flow-account-data".to_owned()),
                     classification: ArtifactClassification::Supported,
@@ -3355,6 +5271,12 @@ mod tests {
                     classification: ArtifactClassification::Supported,
                     reason_code: "mapped".to_owned(),
                     artifact_count: 2,
+                },
+                ArtifactFamilyCoverage {
+                    family_code: Some("polar-flow-sleep-result".to_owned()),
+                    classification: ArtifactClassification::Supported,
+                    reason_code: "mapped-sleep-periods".to_owned(),
+                    artifact_count: 1,
                 },
             ]
         );
@@ -3381,7 +5303,7 @@ mod tests {
                     r#"{"date":"2026-01-02","summary":{"stepCount":-1}}"#,
                 ),
                 (
-                    "sleep_result_42-11111111-2222-4333-8444-555555555555.json",
+                    "nightly_recovery_42-11111111-2222-4333-8444-555555555555.json",
                     r#"[]"#,
                 ),
                 (
@@ -3419,7 +5341,7 @@ mod tests {
                     artifact_count: 1,
                 },
                 ArtifactFamilyCoverage {
-                    family_code: Some("polar-flow-sleep-result".to_owned()),
+                    family_code: Some("polar-flow-nightly-recovery".to_owned()),
                     classification: ArtifactClassification::Unsupported,
                     reason_code: "known-family-not-yet-supported".to_owned(),
                     artifact_count: 1,
@@ -4037,6 +5959,11 @@ mod tests {
             .find(|event| event.phase == ImportPhase::Committing)
             .expect("committing progress");
         assert!(!committing.cancellable);
+        assert!(progress.iter().all(|event| {
+            event
+                .total_artifacts
+                .is_none_or(|total| event.completed_artifacts <= total)
+        }));
         let completed = progress.last().expect("terminal progress");
         assert_eq!(completed.phase, ImportPhase::Completed);
         assert!(!completed.cancellable);
@@ -4718,6 +6645,80 @@ mod tests {
                 )
                 .expect("migrated amendment count"),
             0
+        );
+    }
+
+    #[test]
+    fn upgrades_version_six_with_sleep_storage_atomically() {
+        let harness = Harness::new();
+        let connection = Connection::open(harness.database()).expect("database");
+        connection
+            .execute_batch("PRAGMA foreign_keys = ON;")
+            .expect("foreign keys");
+        for (schema, label) in [
+            (SCHEMA_V1, "version one"),
+            (SCHEMA_V2, "version two"),
+            (SCHEMA_V3, "version three"),
+            (SCHEMA_V4, "version four"),
+            (SCHEMA_V5, "version five"),
+            (SCHEMA_V6, "version six"),
+        ] {
+            connection
+                .execute_batch(schema)
+                .unwrap_or_else(|error| panic!("{label} schema: {error}"));
+        }
+        connection
+            .pragma_update(None, "user_version", 6)
+            .expect("version six marker");
+
+        let error = migrate_schema(&connection, true).expect_err("interrupted version seven");
+        assert!(matches!(error, ImportError::InjectedMigrationInterruption));
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("retained schema version"),
+            6
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_schema
+                     WHERE type = 'table' AND name LIKE 'sleep_%'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("rolled-back sleep tables"),
+            0
+        );
+
+        migrate_schema(&connection, false).expect("version seven migration");
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("current schema version"),
+            SCHEMA_VERSION
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_schema
+                     WHERE type = 'table' AND name LIKE 'sleep_%'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("sleep tables"),
+            4
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_schema
+                     WHERE type = 'index' AND name LIKE 'sleep_%'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("sleep indexes"),
+            3
         );
     }
 

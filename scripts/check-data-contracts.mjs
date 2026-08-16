@@ -53,7 +53,7 @@ for (const migration of migrations) {
     const [, table, body] = tableMatch;
     requireMention(persistence, table, persistencePath);
     for (const line of body.split("\n")) {
-      const columnMatch = line.match(/^ {4}([a-z_][a-z0-9_]*) (?:BLOB|INTEGER|TEXT)\b/);
+      const columnMatch = line.match(/^ {4}([a-z_][a-z0-9_]*) (?:BLOB|INTEGER|REAL|TEXT)\b/);
       if (columnMatch) requireMention(persistence, columnMatch[1], persistencePath);
     }
   }
@@ -69,9 +69,11 @@ for (const contractValue of [
   "polar-flow-archive@2",
   "polar-flow-archive@3",
   "polar-flow-archive@4",
+  "polar-flow-archive@5",
   "polar-flow-mapping-set@1",
   "polar-flow-daily-activity@1",
   "polar-flow-training-session@1",
+  "polar-flow-sleep@1",
   "assessing",
   "planned",
   "staging",
@@ -112,6 +114,25 @@ const trainingCanonical = read(trainingCanonicalPath);
 for (const fieldMatch of trainingSessionMatch[1].matchAll(/pub ([a-z_]+):/g)) {
   const camelCase = fieldMatch[1].replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
   requireMention(trainingCanonical, camelCase, trainingCanonicalPath);
+}
+
+const sleepCanonicalPath = "docs/data-formats/canonical/sleep-period.md";
+const sleepCanonical = read(sleepCanonicalPath);
+for (const structure of [
+  "SleepPeriod",
+  "SleepPhaseSummary",
+  "SleepStageTransition",
+  "SleepScore",
+]) {
+  const structureMatch = domain.match(new RegExp(`pub struct ${structure} \\{([\\s\\S]*?)\\n\\}`));
+  if (!structureMatch) throw new Error(`${domainPath} has no ${structure}`);
+  for (const fieldMatch of structureMatch[1].matchAll(/pub ([a-z_]+):/g)) {
+    const camelCase = fieldMatch[1].replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    requireMention(sleepCanonical, camelCase, sleepCanonicalPath);
+  }
+}
+for (const stage of ["wake", "rem", "light", "deep", "unrecognized"]) {
+  requireMention(sleepCanonical, stage, sleepCanonicalPath);
 }
 
 const mappingPath = "docs/data-formats/mappings/polar-flow-daily-activity.md";
@@ -166,6 +187,68 @@ for (const targetField of [
   "exerciseCount",
 ]) {
   requireMention(trainingMapping, targetField, trainingMappingPath);
+}
+
+const sleepMappingPath = "docs/data-formats/mappings/polar-flow-sleep.md";
+const sleepMapping = read(sleepMappingPath);
+for (const contractValue of [
+  sourceAdapterVersion,
+  "polar-flow-mapping-set@1",
+  "polar-flow-sleep@1",
+]) {
+  requireMention(sleepMapping, contractValue, sleepMappingPath);
+}
+for (const sourceField of [
+  "night",
+  "sleepResult.hypnogram.sleepStart",
+  "sleepResult.hypnogram.sleepEnd",
+  "evaluation.sleepSpan",
+  "evaluation.asleepDuration",
+  "evaluation.interruptions.totalDuration",
+  "evaluation.interruptions.longDuration",
+  "evaluation.interruptions.shortDuration",
+  "evaluation.interruptions.totalCount",
+  "evaluation.interruptions.longCount",
+  "evaluation.interruptions.shortCount",
+  "evaluation.analysis.efficiencyPercent",
+  "evaluation.analysis.continuityIndex",
+  "evaluation.analysis.continuityClass",
+  "sleepResult.hypnogram.sleepGoal",
+  "sleepResult.hypnogram.rating",
+  "sleepResult.hypnogram.batteryRanOut",
+  "evaluation.phaseDurations",
+  "sleepResult.hypnogram.sleepStateChanges",
+  "sleepResult.sleepCycles.cycles.sleepCycleModels",
+  "sleepScoreResult.sleepScore",
+  "sleepScoreResult.scoreRate",
+]) {
+  requireMention(sleepMapping, sourceField, sleepMappingPath);
+}
+for (const targetField of [
+  "originId",
+  "sleepDate",
+  "startedAt",
+  "endedAt",
+  "spanMilliseconds",
+  "asleepMilliseconds",
+  "interruptionMilliseconds",
+  "longInterruptionMilliseconds",
+  "shortInterruptionMilliseconds",
+  "interruptionCount",
+  "longInterruptionCount",
+  "shortInterruptionCount",
+  "efficiencyPercent",
+  "continuityIndex",
+  "continuityClass",
+  "sleepGoalMilliseconds",
+  "selfReportedRating",
+  "cycleCount",
+  "recordingEndedByPowerLoss",
+  "phaseSummary",
+  "stageTransitions",
+  "score",
+]) {
+  requireMention(sleepMapping, targetField, sleepMappingPath);
 }
 
 const activityOverviewPath = "docs/data-formats/insights/daily-activity-overview-v1.md";
@@ -593,7 +676,9 @@ const indexPath = "docs/data-formats/README.md";
 const index = read(indexPath);
 for (const contractPath of [
   canonicalPath,
+  sleepCanonicalPath,
   mappingPath,
+  sleepMappingPath,
   activityOverviewPath,
   activityOverviewV2Path,
   activityComparisonPath,
@@ -608,5 +693,5 @@ for (const contractPath of [
 }
 
 process.stdout.write(
-  `${JSON.stringify({ schemaVersion, sourceAdapterVersion, migrations, persistencePaths, activityOverviewSchemas: [activityOverviewSchemaPath, activityOverviewQueryV2SchemaPath, activityOverviewV2SchemaPath], activityComparisonSchemas: [activityComparisonQuerySchemaPath, activityComparisonSchemaPath], trainingOverviewSchemas: [trainingOverviewQuerySchemaPath, trainingOverviewSchemaPath], trainingComparisonSchemas: [trainingComparisonQuerySchemaPath, trainingComparisonSchemaPath], canonicalFields: 3, mappingFields: 6 })}\n`,
+  `${JSON.stringify({ schemaVersion, sourceAdapterVersion, migrations, persistencePaths, activityOverviewSchemas: [activityOverviewSchemaPath, activityOverviewQueryV2SchemaPath, activityOverviewV2SchemaPath], activityComparisonSchemas: [activityComparisonQuerySchemaPath, activityComparisonSchemaPath], trainingOverviewSchemas: [trainingOverviewQuerySchemaPath, trainingOverviewSchemaPath], trainingComparisonSchemas: [trainingComparisonQuerySchemaPath, trainingComparisonSchemaPath], canonicalFields: 56, mappingFields: 75 })}\n`,
 );

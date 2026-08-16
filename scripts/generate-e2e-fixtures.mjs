@@ -41,6 +41,99 @@ function trainingSession({
   });
 }
 
+function sleepResult(night) {
+  return JSON.stringify([
+    {
+      night,
+      evaluation: {
+        sleepType: "SLEEP_PLUS_STAGES",
+        sleepSpan: "PT8H",
+        asleepDuration: "PT7H30M",
+        age: 40,
+        analysis: {
+          efficiencyPercent: 93.75,
+          continuityIndex: 4.2,
+          continuityClass: 4,
+          feedback: 11111,
+        },
+        interruptions: {
+          totalDuration: "PT30M",
+          longDuration: "PT20M",
+          shortDuration: "PT10M",
+          totalCount: 3,
+          longCount: 1,
+          shortCount: 2,
+        },
+        phaseDurations: {
+          wake: "PT30M",
+          rem: "PT1H30M",
+          light: "PT4H",
+          deep: "PT1H30M",
+          unknown: "PT30M",
+          remPercentage: 20,
+          deepPercentage: 20,
+        },
+      },
+      sleepResult: {
+        hypnogram: {
+          sleepStart: "2026-01-05T22:30:00+01:00",
+          sleepEnd: "2026-01-06T06:30:00+01:00",
+          sleepStartOffset: 0,
+          sleepEndOffset: 0,
+          rating: "SLEPT_QUITE_WELL",
+          sleepGoal: "PT8H",
+          birthday: "1985-01-01",
+          deviceId: "synthetic-device",
+          batteryRanOut: false,
+          alarmSnoozeTimes: [],
+          sleepStateChanges: [
+            { offsetFromStart: "PT0S", state: "WAKE" },
+            { offsetFromStart: "PT30M", state: "NONREM2" },
+            { offsetFromStart: "PT2H", state: "NONREM3" },
+            { offsetFromStart: "PT3H30M", state: "REM" },
+            { offsetFromStart: "PT7H30M", state: "WS_UNKNOWN" },
+            { offsetFromStart: "PT8H30M", state: "WAKE" },
+          ],
+        },
+        sleepCycles: {
+          cycles: {
+            sleepCycleModels: [
+              { secondsFromSleepStart: 0, sleepDepthStart: 2 },
+              { secondsFromSleepStart: 14_400, sleepDepthStart: 3 },
+            ],
+          },
+        },
+      },
+    },
+  ]);
+}
+
+function sleepScore(night) {
+  return JSON.stringify([
+    {
+      night,
+      sleepScoreBaselines: {
+        sleepTimeAverageMinutes: 450,
+        longInterruptionsAverageTimeMinutes: 20,
+      },
+      sleepScoreResult: {
+        sleepScore: 82,
+        sleepTimeOwnTargetScore: 80,
+        sleepTimeRecommendationScore: 78,
+        continuityScore: 84,
+        efficiencyScore: 86,
+        remScore: 76,
+        n3Score: 81,
+        longInterruptionsScore: 79,
+        groupDurationScore: 79,
+        groupSolidityScore: 83,
+        groupRefreshScore: 78.5,
+        scoreRate: 4,
+      },
+    },
+  ]);
+}
+
 async function createArchive(name, entries) {
   const outputPath = path.join(outputDirectory, name);
   const zip = new ZipFile();
@@ -114,7 +207,8 @@ await createArchive("valid.zip", [
       exerciseCount: 0,
     }),
   ],
-  [`sleep_result_42-${uuidA}.json`, "[]"],
+  [`sleep_result_42-${uuidA}.json`, sleepResult("2026-01-06")],
+  [`sleep_score_42-${uuidA}.json`, sleepScore("2026-01-06")],
   [`profile-picture-42-LARGE-${uuidA}.data`, "synthetic image"],
   [`future-family-42-${uuidA}.json`, "{}"],
 ]);

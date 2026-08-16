@@ -2,7 +2,7 @@ use std::{env, path::Path, process::ExitCode};
 
 use fitfreed_domain::ImportOperationState;
 use fitfreed_lib::infrastructure::{
-    profile_polar_import_archive, query_activity, query_latest_import_outcome,
+    profile_polar_import_archive, query_activity, query_latest_import_outcome, query_sleep_periods,
     query_training_sessions,
 };
 use serde_json::json;
@@ -57,24 +57,35 @@ fn main() -> ExitCode {
         );
         return ExitCode::FAILURE;
     };
+    let Ok(sleep_history) = query_sleep_periods(&database_path) else {
+        println!(
+            "{}",
+            json!({ "accepted": false, "code": "sleep-history-unavailable" })
+        );
+        return ExitCode::FAILURE;
+    };
     let Ok(repeated) = profile_polar_import_archive(&database_path, Path::new(archive)) else {
         return report_failure(&database_path);
     };
     let first_origin = history
         .first()
         .map(|item| item.origin_id.as_str())
-        .or_else(|| training_history.first().map(|item| item.origin_id.as_str()));
+        .or_else(|| training_history.first().map(|item| item.origin_id.as_str()))
+        .or_else(|| sleep_history.first().map(|item| item.origin_id.as_str()));
     let one_origin = first_origin.is_some_and(|origin| {
         history.iter().all(|item| item.origin_id == origin)
             && training_history.iter().all(|item| item.origin_id == origin)
+            && sleep_history.iter().all(|item| item.origin_id == origin)
     });
     let activity_history_available = !history.is_empty();
     let training_history_available = !training_history.is_empty();
+    let sleep_history_available = !sleep_history.is_empty();
     let accepted = first_outcome.state == ImportOperationState::Completed
         && first_outcome.coverage_complete
         && repeated.report.exact_repeat
         && activity_history_available
         && training_history_available
+        && sleep_history_available
         && one_origin;
 
     println!(
@@ -85,6 +96,7 @@ fn main() -> ExitCode {
             "coverageComplete": first_outcome.coverage_complete,
             "activityHistoryAvailable": activity_history_available,
             "trainingHistoryAvailable": training_history_available,
+            "sleepHistoryAvailable": sleep_history_available,
             "oneOpaqueOrigin": one_origin,
             "exactRepeat": repeated.report.exact_repeat,
         })

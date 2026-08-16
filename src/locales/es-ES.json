@@ -223,6 +223,14 @@
         "reason": "Se incorpora el resumen de la sesión; las rutas y los detalles a resolución completa permanecen únicamente en el ZIP original.",
         "action": "Conserva el ZIP original si necesitas los detalles de entrenamiento excluidos."
       },
+      "mapped-sleep-periods": {
+        "reason": "Se incorporan los periodos, las fases y las interrupciones del sueño; el comportamiento de las alarmas y los metadatos exclusivos del origen permanecen únicamente en el ZIP original.",
+        "action": "Conserva el ZIP original si necesitas los detalles del sueño excluidos."
+      },
+      "mapped-sleep-scores": {
+        "reason": "Se incorporan los componentes de la puntuación del sueño; las referencias de puntuación permanecen únicamente en el ZIP original.",
+        "action": "Conserva el ZIP original si necesitas el contexto de puntuación excluido."
+      },
       "source-subject-claim": {
         "reason": "Los datos solo se usan para vincular paquetes de la misma cuenta del proveedor.",
         "action": "No es necesaria ninguna acción."
@@ -266,6 +274,18 @@
       "duplicate-training-session-id": {
         "reason": "El paquete contiene más de una sesión de entrenamiento con la misma identidad de origen.",
         "action": "Solicita una nueva exportación o comunica el problema de compatibilidad."
+      },
+      "duplicate-sleep-result-date": {
+        "reason": "El paquete contiene más de un resultado del sueño para la misma fecha asignada por el origen.",
+        "action": "Solicita una nueva exportación o comunica el problema de compatibilidad."
+      },
+      "duplicate-sleep-score-date": {
+        "reason": "El paquete contiene más de una puntuación del sueño para la misma fecha asignada por el origen.",
+        "action": "Solicita una nueva exportación o comunica el problema de compatibilidad."
+      },
+      "orphan-sleep-score-date": {
+        "reason": "El paquete contiene una puntuación del sueño sin su resultado del sueño correspondiente.",
+        "action": "Usa el ZIP original de la exportación completa o comunica el problema de compatibilidad."
       },
       "invalid-source-subject-evidence": {
         "reason": "No se han podido validar los datos de la cuenta del proveedor.",

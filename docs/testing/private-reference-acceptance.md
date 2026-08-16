@@ -20,11 +20,11 @@ The command emits one JSON object containing only:
 - acceptance and terminal state;
 - a fixed privacy-safe terminal code on failure;
 - whether coverage completed;
-- whether daily-activity and training history are each present;
+- whether daily-activity, training, and sleep history are each present;
 - whether all supported history used one opaque origin; and
 - exact-repeat behavior.
 
-Exit status `0` requires a completed first import, complete artifact coverage, non-empty daily-activity and training history under one opaque origin, and a successful exact-repeat fast path. Any other result keeps the current private-reference acceptance open.
+Exit status `0` requires a completed first import, complete artifact coverage, non-empty daily-activity, training, and sleep history under one opaque origin, and a successful exact-repeat fast path. Any other result keeps the current private-reference acceptance open.
 
 ## Evidence handling
 

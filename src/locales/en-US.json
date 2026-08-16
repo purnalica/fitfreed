@@ -223,6 +223,14 @@
         "reason": "The session summary is mapped; routes and full-resolution details stay only in the original ZIP.",
         "action": "Keep the original ZIP if you need the excluded training details."
       },
+      "mapped-sleep-periods": {
+        "reason": "Sleep periods, phases, and interruptions are mapped; alarm behavior and source-only metadata stay only in the original ZIP.",
+        "action": "Keep the original ZIP if you need the excluded sleep details."
+      },
+      "mapped-sleep-scores": {
+        "reason": "Sleep score components are mapped; scoring baselines stay only in the original ZIP.",
+        "action": "Keep the original ZIP if you need the excluded scoring context."
+      },
       "source-subject-claim": {
         "reason": "The data is used only to link packages from the same provider account.",
         "action": "No action is needed."
@@ -266,6 +274,18 @@
       "duplicate-training-session-id": {
         "reason": "The package contains more than one training session with the same source identity.",
         "action": "Request a new export or report the compatibility problem."
+      },
+      "duplicate-sleep-result-date": {
+        "reason": "The package contains more than one sleep result for the same source-assigned date.",
+        "action": "Request a new export or report the compatibility problem."
+      },
+      "duplicate-sleep-score-date": {
+        "reason": "The package contains more than one sleep score for the same source-assigned date.",
+        "action": "Request a new export or report the compatibility problem."
+      },
+      "orphan-sleep-score-date": {
+        "reason": "The package contains a sleep score without its corresponding sleep result.",
+        "action": "Use the original complete export ZIP or report the compatibility problem."
       },
       "invalid-source-subject-evidence": {
         "reason": "The provider account evidence could not be validated.",

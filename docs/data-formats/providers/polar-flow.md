@@ -2,7 +2,7 @@
 
 ## Status
 
-Discovery baseline, last verified on 2026-08-16. Polar Flow is the only provider export in MVP scope.
+Discovery baseline, last verified on 2026-08-17. Polar Flow is the only provider export in MVP scope.
 
 This reference describes the personal-data export archive, not the Polar AccessLink API and not the separate export of an individual training session. It contains no copied personal record, personal value, exact source path, archive count, archive size, timestamp sequence, route, identifier, or other private data-set fingerprint.
 
@@ -19,7 +19,7 @@ The adequacy test requires public documentation of the archive layout, artifact 
 | [How to download all your data from Polar Flow](https://support.polar.com/us-en/how-to-download-all-your-data-from-polar-flow) | The request and download workflow and a high-level description of export contents | ZIP layout, filenames, JSON schemas, field semantics, relationships, versions, and compatibility rules |
 | [Export training sessions from Polar Flow](https://support.polar.com/us-en/export-training-sessions-flow) | Separate export options for individual training sessions | The account-level personal-data export contract |
 | [Polar AccessLink API](https://www.polar.com/accesslink-api/) | A developer API for accessing selected Polar data | The personal-data export archive contract |
-| [Polar AccessLink Dynamic API](https://www.polar.com/polar-api-v4/) | The public `TrainingSession` field contract, units, time semantics, nested structures, and separate authenticated sports catalogue that correspond to the observed training-session artifacts | The takeout ZIP layout, filename grammar, archive compatibility guarantees, or inclusion of the sports catalogue in a takeout |
+| [Polar AccessLink Dynamic API](https://www.polar.com/polar-api-v4/) | Public training-session and sleep contracts, including units, time semantics, sleep phases, interruptions, ratings, scores, and separate authenticated catalogues that correspond to parts of the observed artifacts | The takeout ZIP layout, filename grammar, split sleep-artifact relationship, historical export variants, or archive compatibility guarantees |
 | [Polar's official GitHub organization](https://github.com/polarofficial) | Public SDKs, examples, and API-related projects | A complete personal-data export specification found by this review |
 
 This conclusion is deliberately time-bounded. A later official specification takes precedence for facts within its stated scope, while historical observations remain relevant to archives produced before that specification.
@@ -57,7 +57,7 @@ This registry is the public coverage index. Detailed shapes, fields, identities,
 | Beat-to-beat samples | Partitioned high-resolution physiological samples | Recognized and deliberately ignored because full-resolution physiological exploration is excluded from the MVP |
 | Training | Sessions, exercises, laps, zones, routes, and sample series | Session summaries are supported; routes, full-resolution samples, laps, zones, and nested exercise measurements are deliberately not persisted by summary mapping version 1 |
 | Planning | Calendar entries, targets, favorites, programs, and personal events | Recognized and unsupported |
-| Sleep | Sleep timing, phases, interruptions, continuity, and scores | Recognized and unsupported pending the sleep increment |
+| Sleep | Sleep timing, phases, interruptions, continuity, and scores | Result and score arrays are supported by mapping version 1; compatibility remains limited to the evaluated split-artifact structure and documented API correspondence |
 | Recovery | Nightly recovery measurements, recommendations, and related physiological observations | Recognized and unsupported pending the recovery increment |
 | Tests | Fitness and orthostatic test results | Recognized and unsupported |
 | Physical evolution | Historical physical measurements and thresholds | Recognized inside unsupported account, activity, calendar, and training structures; no separate artifact grammar is claimed |
@@ -193,6 +193,82 @@ Local start and stop values are parsed without using the computer's current time
 Training-summary version 1 deliberately does not persist `latitude`, `longitude`, nested route waypoints, interval samples, transition samples, RR samples, laps, zones, notes, comments, physical information, device identifiers, or product metadata. Ignoring those fields is known loss in the canonical summary, not evidence that the original ZIP lacks them. The archive member remains classified as supported when its summary is valid; excluded nested content does not become a second successful artifact and is disclosed by the mapping contract.
 
 The normative transformation is specified in the [Polar Flow training-session mapping](../mappings/polar-flow-training-session.md). The provider reference remains descriptive evidence and does not define FitFreed behavior by itself.
+
+## Sleep family
+
+### Artifact relationship and record identity
+
+**Evidence: Observed.** Sleep history is split across one result-array grammar and one score-array grammar. Both arrays use a required `night` calendar-date string. Each evaluated array contains at most one entry for a given `night`; every evaluated score date references a result date, while some result dates have no score. Delivery filename tokens do not appear as record fields and have no established identity meaning.
+
+**Evidence: Interpretation.** The supported source identity candidate is the resolved source subject plus exact `night`. It is a source-assigned date, not a date derived from the local component of `sleepStart` or `sleepEnd`: evaluated start and end boundaries may fall on the assigned date or the preceding date. An export containing multiple result or score entries for the same source subject and `night` is incompatible with mapping version 1.
+
+### Sleep-result structure
+
+Each evaluated result artifact is an array of objects with required `night`, `evaluation`, and `sleepResult` members. Optionality below describes the evaluated package, not a cross-export guarantee.
+
+| Path | Evidence | Observed type and optionality | Established meaning or limitation |
+|---|---|---|---|
+| `night` | Official correspondence and observed | required date string | Source-assigned sleep date. The Dynamic API names the corresponding concept `sleepDate`. |
+| `sleepResult.hypnogram.sleepStart` | Official correspondence and observed | required offset date-time string | Local sleep-start boundary with an explicit numeric UTC offset. |
+| `sleepResult.hypnogram.sleepEnd` | Official correspondence and observed | required offset date-time string | Local sleep-end boundary with an explicit numeric UTC offset. |
+| `sleepResult.hypnogram.sleepStartOffset` | Official correspondence and observed | required integer | The Dynamic API documents a similarly named seconds field used for sleep trimming, but the takeout field omits the unit suffix and its arithmetic relationship is not established. |
+| `sleepResult.hypnogram.sleepEndOffset` | Official correspondence and observed | required integer | Same limitation as the start offset. |
+| `sleepResult.hypnogram.rating` | Official correspondence and observed | required string enumeration | Self-reported sleep rating. Observed values are members of the current official rating enumeration without its API prefix. |
+| `sleepResult.hypnogram.sleepGoal` | Official correspondence and observed | required ISO 8601 duration string | User-selected sleep-duration goal. |
+| `sleepResult.hypnogram.birthday` | Official correspondence and observed | required date string | Sensitive scoring input; it belongs to physical history rather than canonical sleep identity. |
+| `sleepResult.hypnogram.deviceId` | Official correspondence and observed | required string | Sensitive source device reference; no public value is retained in this reference. |
+| `sleepResult.hypnogram.batteryRanOut` | Official correspondence and observed | required boolean | Source indication that device power ended during the recording. |
+| `sleepResult.hypnogram.alarmSnoozeTimes` | Official correspondence and observed | required array | Alarm behavior; element values are not part of the supported canonical sleep contract. |
+| `sleepResult.hypnogram.sleepStateChanges[]` | Official correspondence and observed | required ordered object array | Sleep-state transitions expressed as an ISO 8601 duration offset plus a state enumeration. The official Dynamic API describes the list but does not establish a takeout offset boundary. |
+| `sleepResult.sleepCycles` | Official correspondence and observed | optional object | Present for the evaluated staged-sleep variant. Its takeout nesting differs from the current API array. |
+| `sleepResult.sleepCycles.cycles.sleepCycleModels[]` | Observed | object array when cycles are present | Each item has numeric `secondsFromSleepStart` and `sleepDepthStart`; exact depth semantics are not established by the takeout. |
+| `evaluation.sleepType` | Official correspondence and observed | required string | Evaluated values distinguish historical result variants, but current API descriptions conflict with observed phase availability and are not treated as a stable export contract. |
+| `evaluation.sleepSpan` | Official correspondence and observed | required ISO 8601 duration | Declared span including interruptions. It does not always equal the difference between the recorded boundary instants. |
+| `evaluation.asleepDuration` | Official correspondence and observed | required ISO 8601 duration | Declared time asleep. |
+| `evaluation.age` | Observed | required number | Source algorithm input; it is not canonical sleep identity. |
+| `evaluation.analysis.efficiencyPercent` | Official correspondence and observed | required number | Sleep efficiency percentage. Evaluated values agree with asleep duration divided by declared span within source precision. |
+| `evaluation.analysis.continuityIndex` | Official correspondence and observed | required number | Continuity index on the official 0-to-5 scale. |
+| `evaluation.analysis.continuityClass` | Official correspondence and observed | required integer | Source continuity classification on the official 0-to-5 scale. |
+| `evaluation.analysis.feedback` | Official correspondence and observed | required integer in the takeout | The current API documents a five-character encoded feedback string. The type difference is historical compatibility evidence and the takeout integer is not decoded by mapping version 1. |
+| `evaluation.interruptions` | Official correspondence and observed | required object | Total, long, and short ISO 8601 durations plus corresponding integer counts. |
+| `evaluation.phaseDurations` | Official correspondence and observed | optional object | Present for every evaluated staged-sleep entry and absent for the evaluated earlier variant. |
+| `evaluation.phaseDurations.wake` | Official correspondence and observed | duration string when phase data exists | Wake time inside the sleep span. |
+| `evaluation.phaseDurations.rem` | Official correspondence and observed | duration string when phase data exists | REM sleep duration. |
+| `evaluation.phaseDurations.light` | Official correspondence and observed | duration string when phase data exists | Light non-REM duration. |
+| `evaluation.phaseDurations.deep` | Official correspondence and observed | duration string when phase data exists | Deep non-REM duration. |
+| `evaluation.phaseDurations.unknown` | Official correspondence and observed | duration string when phase data exists | Unrecognized phase duration. |
+| `evaluation.phaseDurations.remPercentage` | Official correspondence and observed | number when phase data exists | Source-calculated percentage; no independent takeout denominator contract is established. |
+| `evaluation.phaseDurations.deepPercentage` | Official correspondence and observed | number when phase data exists | Source-calculated percentage with the same limitation. |
+
+The evaluated arithmetic is internally coherent: asleep plus interruption durations equals the declared span; long plus short interruptions equals the total; phase durations total the span; and non-wake phases total asleep duration. These are compatibility findings for the evaluated package and mapping version 1 validation rules, not a claim that malformed future data should be repaired automatically.
+
+The Dynamic API documents wake, REM, three non-REM levels, and unknown states. The takeout uses corresponding shorter names. FitFreed combines non-REM levels 1 and 2 as light sleep, maps level 3 to deep sleep, and retains unknown time explicitly.
+
+**Evidence: Observed.** Every evaluated transition that affects the declared span is ordered inside that span. Some sequences append one final `WAKE` transition after the span; no evaluated sequence has another out-of-span form. **Evidence: Interpretation.** Mapping version 1 treats that final wake transition as an out-of-period terminal marker, excludes it from the canonical in-period timeline, and rejects any other out-of-span transition rather than generalizing from one package.
+
+### Sleep-score structure
+
+Each evaluated score artifact is an array of objects with required `night`, `sleepScoreResult`, and `sleepScoreBaselines` members. `sleepScoreResult` corresponds to the current official score model while the separate artifact and baseline object are not an officially documented takeout contract.
+
+| Path | Evidence | Observed type and optionality | Established meaning or limitation |
+|---|---|---|---|
+| `sleepScoreResult.sleepScore` | Official correspondence and observed | required number | Overall score on the official 1-to-100 scale. |
+| `sleepScoreResult.sleepTimeOwnTargetScore` | Official correspondence and observed | required number | Duration component relative to the user's own goal. |
+| `sleepScoreResult.sleepTimeRecommendationScore` | Official correspondence and observed | required number | Duration component relative to a source recommendation. |
+| `sleepScoreResult.continuityScore` | Official correspondence and observed | required number | Continuity component score. |
+| `sleepScoreResult.efficiencyScore` | Official correspondence and observed | required number | Efficiency component score. |
+| `sleepScoreResult.remScore` | Official correspondence and observed | required number | REM component score. |
+| `sleepScoreResult.n3Score` | Official correspondence and observed | required number | Deep non-REM component score. |
+| `sleepScoreResult.longInterruptionsScore` | Official correspondence and observed | required number | Long-interruption component score. The current API uses the longer `longInterruptionsTimeScore` name. |
+| `sleepScoreResult.groupDurationScore` | Official correspondence and observed | required number | Aggregate duration-theme score. |
+| `sleepScoreResult.groupSolidityScore` | Official correspondence and observed | required number | Aggregate solidity-theme score. |
+| `sleepScoreResult.groupRefreshScore` | Official correspondence and observed | required number | Aggregate regeneration or refresh-theme score. |
+| `sleepScoreResult.scoreRate` | Official correspondence and observed | optional integer | Five-point comparison with the user's source-defined usual level. |
+| `sleepScoreBaselines.sleepTimeAverageMinutes` | Observed | required integer | Source baseline duration average in minutes. |
+| `sleepScoreBaselines.longInterruptionsAverageTimeMinutes` | Observed | required integer | Source baseline long-interruption average in minutes. |
+| remaining `sleepScoreBaselines` fields | Observed | optional numbers | Baseline score and phase-percentage values. Their lookback window and source revision semantics are not established by the takeout. |
+
+The score arrays contain no observed per-record creation or modification timestamp. Changed content for an existing identity cannot be ordered safely by import time, ZIP order, or delivery filename. The normative join, validation, known-loss, and reconciliation behavior is defined by [Polar Flow sleep mapping version 1](../mappings/polar-flow-sleep.md).
 
 ## Family documentation template
 
