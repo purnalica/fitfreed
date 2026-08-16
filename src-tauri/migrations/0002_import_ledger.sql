@@ -1,4 +1,4 @@
-DROP INDEX import_operation_package_sha256;
+DROP INDEX IF EXISTS import_operation_package_sha256;
 
 ALTER TABLE import_operation RENAME TO import_operation_v1;
 ALTER TABLE daily_activity RENAME TO daily_activity_v1;

@@ -2435,6 +2435,77 @@ mod tests {
     }
 
     #[test]
+    fn migrates_precontract_version_one_library_without_the_later_index() {
+        let harness = Harness::new();
+        let database_path = harness.database();
+        let connection = Connection::open(&database_path).expect("database");
+        connection
+            .execute_batch(
+                "CREATE TABLE daily_activity (
+                     origin_id TEXT NOT NULL,
+                     local_date TEXT NOT NULL,
+                     step_count INTEGER,
+                     provenance_sha256 TEXT NOT NULL,
+                     PRIMARY KEY (origin_id, local_date)
+                 );
+                 CREATE TABLE activity_conflict (
+                     id INTEGER PRIMARY KEY,
+                     origin_id TEXT NOT NULL,
+                     local_date TEXT NOT NULL,
+                     existing_step_count INTEGER,
+                     incoming_step_count INTEGER,
+                     package_sha256 TEXT NOT NULL
+                 );
+                 CREATE TABLE import_operation (
+                     id INTEGER PRIMARY KEY,
+                     package_sha256 TEXT NOT NULL,
+                     completed INTEGER NOT NULL,
+                     exact_repeat INTEGER NOT NULL,
+                     recognized_artifacts INTEGER NOT NULL,
+                     new_observations INTEGER NOT NULL,
+                     equivalent_observations INTEGER NOT NULL,
+                     enriched_observations INTEGER NOT NULL,
+                     preserved_observations INTEGER NOT NULL,
+                     conflicts INTEGER NOT NULL
+                 );
+                 INSERT INTO import_operation (
+                     package_sha256, completed, exact_repeat, recognized_artifacts,
+                     new_observations, equivalent_observations, enriched_observations,
+                     preserved_observations, conflicts
+                 ) VALUES (
+                     printf('%064d', 1), 1, 0, 1, 1, 0, 0, 0, 0
+                 );
+                 INSERT INTO daily_activity (
+                     origin_id, local_date, step_count, provenance_sha256
+                 ) VALUES (
+                     'polar:precontract', '2025-12-30', 3210, printf('%064d', 1)
+                 );
+                 PRAGMA user_version = 1;",
+            )
+            .expect("precontract version one library");
+
+        migrate_schema(&connection, false).expect("compatible migration");
+
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("schema version"),
+            SCHEMA_VERSION
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT step_count FROM daily_activity
+                     WHERE origin_id = 'polar:precontract' AND local_date = '2025-12-30'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("preserved daily activity"),
+            3210
+        );
+    }
+
+    #[test]
     fn rolls_back_an_interrupted_version_two_upgrade_and_recovers() {
         let harness = Harness::new();
         let database_path = harness.database();

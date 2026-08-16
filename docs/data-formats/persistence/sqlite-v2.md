@@ -9,6 +9,7 @@ Version 2 is produced by applying the immutable [`0002_import_ledger.sql`](../..
 ## Compatibility and recovery
 
 - Versions 0 and 1 migrate forward to version 2. Version 2 opens without migration. A later or otherwise unsupported version is rejected without modification.
+- Developer libraries created by the executable foundation before schema version 1 became a documented contract used the same columns without the later lookup index and constraints. Version 2 accepts that exact precontract shape, treats the missing index as compatible, and preserves its rows through the normal version 1 transformation.
 - Version 1 observations, conflicts, and completed operations are retained. Evidence that version 1 never recorded is marked unavailable; it is not inferred.
 - A migrated version 1 operation has incomplete coverage, null timestamps, and `legacy-v1-unknown` adapter and mapping versions.
 - A startup recovery pass moves any non-terminal operation through `recovering` to `failed`. Because canonical changes and `completed` are committed in one SQLite transaction, a surviving non-terminal row proves that no partial canonical result became visible.
@@ -127,7 +128,7 @@ Version 2 can persist `user-cancelled`, `invalid-zip-container`, `invalid-suppor
 
 ## Verification evidence
 
-Domain tests enforce lifecycle transition and terminal-state rules. Adapter integration tests cover clean creation, version 1 migration, migration rollback, complete mixed coverage, detailed provenance for every reconciliation decision, exact-repeat evidence linking, rejection, cancellation, injected interruption, startup recovery, future-schema rejection, backup, and canonical queryability in [`../../../src-tauri/src/infrastructure.rs`](../../../src-tauri/src/infrastructure.rs).
+Domain tests enforce lifecycle transition and terminal-state rules. Adapter integration tests cover clean creation, documented and precontract version 1 migration, migration rollback, complete mixed coverage, detailed provenance for every reconciliation decision, exact-repeat evidence linking, rejection, cancellation, injected interruption, startup recovery, future-schema rejection, backup, and canonical queryability in [`../../../src-tauri/src/infrastructure.rs`](../../../src-tauri/src/infrastructure.rs).
 
 ## Known version 2 limitations
 
