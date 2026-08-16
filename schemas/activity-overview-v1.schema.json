@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/activity-overview-v1.schema.json",
+  "title": "FitFreed daily activity overview version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["availableRange", "selectedRange", "series"],
+  "properties": {
+    "availableRange": { "$ref": "#/$defs/optionalRange" },
+    "selectedRange": { "$ref": "#/$defs/optionalRange" },
+    "series": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/series" }
+    }
+  },
+  "$defs": {
+    "localDate": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "through"],
+      "properties": {
+        "from": { "$ref": "#/$defs/localDate" },
+        "through": { "$ref": "#/$defs/localDate" }
+      }
+    },
+    "optionalRange": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/range" }
+      ]
+    },
+    "decimalStepCount": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$"
+    },
+    "optionalDecimalStepCount": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/decimalStepCount" }
+      ]
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "calendarDays",
+        "observedDays",
+        "availableStepDays",
+        "unavailableStepDays",
+        "missingDays",
+        "totalStepCount",
+        "averageStepCount"
+      ],
+      "properties": {
+        "calendarDays": { "type": "integer", "minimum": 1, "maximum": 30 },
+        "observedDays": { "type": "integer", "minimum": 0, "maximum": 30 },
+        "availableStepDays": { "type": "integer", "minimum": 0, "maximum": 30 },
+        "unavailableStepDays": { "type": "integer", "minimum": 0, "maximum": 30 },
+        "missingDays": { "type": "integer", "minimum": 0, "maximum": 30 },
+        "totalStepCount": { "$ref": "#/$defs/optionalDecimalStepCount" },
+        "averageStepCount": { "$ref": "#/$defs/optionalDecimalStepCount" }
+      }
+    },
+    "day": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["localDate", "stepCount", "availability"],
+      "properties": {
+        "localDate": { "$ref": "#/$defs/localDate" },
+        "stepCount": { "$ref": "#/$defs/optionalDecimalStepCount" },
+        "availability": { "enum": ["available", "unavailable", "missing"] }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "availability": { "const": "available" } },
+            "required": ["availability"]
+          },
+          "then": {
+            "properties": { "stepCount": { "$ref": "#/$defs/decimalStepCount" } }
+          },
+          "else": {
+            "properties": { "stepCount": { "type": "null" } }
+          }
+        }
+      ]
+    },
+    "series": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["seriesRef", "summary", "days"],
+      "properties": {
+        "seriesRef": { "type": "string", "minLength": 1 },
+        "summary": { "$ref": "#/$defs/summary" },
+        "days": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 30,
+          "items": { "$ref": "#/$defs/day" }
+        }
+      }
+    }
+  }
+}

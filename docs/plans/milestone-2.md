@@ -40,7 +40,7 @@ Hosted evidence: commit `pre-purge` passed the [portable, private-release, insta
 
 ## Increment M2.2 — Daily-activity exploration and comparison
 
-**Status:** active. The first vertical slice will establish the provider-neutral Insights range and read-model contracts before replacing the walking-skeleton history view. Canonical daily activity remains at version 1 until additional source-field meaning and units are established; undocumented calories, distance, metabolic, and sleep-summary values will not enter the model speculatively.
+**Status:** active. The first vertical overview slice is locally complete pending hosted gates. The version 1 Insights contract selects the latest 30 local dates, keeps observation origins separate, distinguishes available values, unavailable values, and missing observations, and calculates exact totals and rounded averages. Schema version 5 adds its date-first query index; the responsive localized presentation provides a visual series and exact accessible table. Canonical daily activity remains at version 1 until additional source-field meaning and units are established; undocumented calories, distance, metabolic, and sleep-summary values do not enter the model speculatively. Interactive range filtering, detail, comparison, and their performance evidence remain open within this increment.
 
 **Outcome:** imported daily activity provides the first genuinely useful real-history dashboard, detail view, filter, and visual period comparison.
 

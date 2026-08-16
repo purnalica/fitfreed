@@ -15,8 +15,9 @@ use thiserror::Error;
 use zip::ZipArchive;
 
 use fitfreed_application::{
-    ActivityLibraryPort, ArchiveImportPort, ImportOutcomeLibraryPort, ImportPhase,
-    ImportPhaseTimings, ImportProgress, LocalePreference, LocalePreferencePort, ProfiledImport,
+    ActivityDateRange, ActivityLibraryPort, ArchiveImportPort, ImportOutcomeLibraryPort,
+    ImportPhase, ImportPhaseTimings, ImportProgress, LocalePreference, LocalePreferencePort,
+    ProfiledImport,
 };
 use fitfreed_domain::{
     decide_reconciliation, ArtifactClassification, ArtifactCoverageSummary, ArtifactFamilyCoverage,
@@ -36,11 +37,12 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 4;
+const SCHEMA_VERSION: i64 = 5;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
 const SCHEMA_V4: &str = include_str!("../migrations/0004_source_subject.sql");
+const SCHEMA_V5: &str = include_str!("../migrations/0005_activity_query_index.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
 const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@3";
 const DAILY_ACTIVITY_MAPPING_VERSION: &str = "polar-flow-daily-activity@1";
@@ -86,6 +88,8 @@ pub enum ImportError {
     InvalidPersistedOperationState(String),
     #[error("invalid persisted artifact classification: {0}")]
     InvalidPersistedArtifactClassification(String),
+    #[error("invalid activity library: {0}")]
+    InvalidActivityLibrary(String),
     #[error("invalid persisted non-negative count in {column}: {value}")]
     InvalidPersistedCount { column: &'static str, value: i64 },
     #[error("invalid persisted locale preference: {0}")]
@@ -683,6 +687,28 @@ pub fn query_activity(database_path: &Path) -> Result<Vec<DailyActivity>> {
     query_activity_between(database_path, None, None)
 }
 
+pub fn query_activity_bounds(database_path: &Path) -> Result<Option<ActivityDateRange>> {
+    let connection = Connection::open(database_path)?;
+    ensure_schema(&connection)?;
+    let (from, through) = connection.query_row(
+        "SELECT MIN(local_date), MAX(local_date) FROM daily_activity",
+        [],
+        |row| {
+            Ok((
+                row.get::<_, Option<String>>(0)?,
+                row.get::<_, Option<String>>(1)?,
+            ))
+        },
+    )?;
+    match (from, through) {
+        (None, None) => Ok(None),
+        (Some(from), Some(through)) => Ok(Some(ActivityDateRange { from, through })),
+        _ => Err(ImportError::InvalidActivityLibrary(
+            "activity bounds are incomplete".to_owned(),
+        )),
+    }
+}
+
 pub fn query_activity_between(
     database_path: &Path,
     from: Option<&str>,
@@ -964,7 +990,10 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         if version < 3 {
             connection.execute_batch(SCHEMA_V3)?;
         }
-        connection.execute_batch(SCHEMA_V4)?;
+        if version < 4 {
+            connection.execute_batch(SCHEMA_V4)?;
+        }
+        connection.execute_batch(SCHEMA_V5)?;
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
         }
@@ -1333,6 +1362,7 @@ fn terminal_code(error: &ImportError) -> &'static str {
         | ImportError::InvalidPersistedArtifactClassification(_)
         | ImportError::InvalidPersistedCount { .. }
         | ImportError::InvalidPersistedLocale(_) => "invalid-persisted-import-outcome",
+        ImportError::InvalidActivityLibrary(_) => "invalid-activity-library",
         ImportError::InvalidCorrelationKeyLength(_) => "invalid-library-correlation-state",
         ImportError::InvalidSourceSubjectClaim => "invalid-source-subject-evidence",
         ImportError::SourceSubjectConflict => "source-subject-confirmation-required",
@@ -1853,8 +1883,20 @@ impl SqliteActivityLibrary {
 }
 
 impl ActivityLibraryPort for SqliteActivityLibrary {
-    fn query_activity(&self) -> std::result::Result<Vec<DailyActivity>, String> {
-        query_activity(&self.database_path).map_err(|error| error.to_string())
+    fn activity_bounds(&self) -> std::result::Result<Option<ActivityDateRange>, String> {
+        query_activity_bounds(&self.database_path).map_err(|error| error.to_string())
+    }
+
+    fn query_activity(
+        &self,
+        range: &ActivityDateRange,
+    ) -> std::result::Result<Vec<DailyActivity>, String> {
+        query_activity_between(
+            &self.database_path,
+            Some(range.from.as_str()),
+            Some(range.through.as_str()),
+        )
+        .map_err(|error| error.to_string())
     }
 }
 
@@ -3295,6 +3337,10 @@ mod tests {
     #[test]
     fn filters_history_by_inclusive_local_date_range() {
         let harness = Harness::new();
+        assert_eq!(
+            query_activity_bounds(&harness.database()).expect("empty activity bounds"),
+            None
+        );
         let archive = harness.archive(
             "range.zip",
             &[
@@ -3314,6 +3360,13 @@ mod tests {
         );
         import_archive(&harness.database(), &archive, "polar:synthetic").expect("range import");
 
+        assert_eq!(
+            query_activity_bounds(&harness.database()).expect("activity bounds"),
+            Some(ActivityDateRange {
+                from: "2026-06-01".to_owned(),
+                through: "2026-06-03".to_owned(),
+            })
+        );
         let filtered =
             query_activity_between(&harness.database(), Some("2026-06-02"), Some("2026-06-03"))
                 .expect("filtered history");
@@ -3323,6 +3376,102 @@ mod tests {
                 .map(|item| item.local_date.as_str())
                 .collect::<Vec<_>>(),
             vec!["2026-06-02", "2026-06-03"]
+        );
+
+        let connection = Connection::open(harness.database()).expect("database");
+        let query_plan = connection
+            .query_row(
+                "EXPLAIN QUERY PLAN
+                 SELECT origin_id, local_date, step_count
+                 FROM daily_activity
+                 WHERE local_date >= '2026-06-02' AND local_date <= '2026-06-03'
+                 ORDER BY local_date, origin_id",
+                [],
+                |row| row.get::<_, String>(3),
+            )
+            .expect("activity range query plan");
+        assert!(query_plan.contains("daily_activity_local_date_origin"));
+    }
+
+    #[test]
+    fn upgrades_version_four_with_the_activity_range_index_atomically() {
+        let harness = Harness::new();
+        let database_path = harness.database();
+        let connection = Connection::open(&database_path).expect("database");
+        connection
+            .execute_batch("PRAGMA foreign_keys = ON;")
+            .expect("foreign keys");
+        connection
+            .execute_batch(SCHEMA_V1)
+            .expect("version one schema");
+        connection
+            .execute_batch(SCHEMA_V2)
+            .expect("version two schema");
+        connection
+            .execute_batch(SCHEMA_V3)
+            .expect("version three schema");
+        connection
+            .execute_batch(SCHEMA_V4)
+            .expect("version four schema");
+        connection
+            .pragma_update(None, "user_version", 4)
+            .expect("version four marker");
+        connection
+            .execute(
+                "INSERT INTO daily_activity (origin_id, local_date, step_count)
+                 VALUES ('synthetic-origin', '2026-06-01', 1234)",
+                [],
+            )
+            .expect("version four activity");
+
+        let error = migrate_schema(&connection, true).expect_err("interrupted upgrade");
+        assert!(matches!(error, ImportError::InjectedMigrationInterruption));
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("retained schema version"),
+            4
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_master
+                     WHERE type = 'index' AND name = 'daily_activity_local_date_origin'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("rolled-back index count"),
+            0
+        );
+
+        migrate_schema(&connection, false).expect("recovered upgrade");
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("upgraded schema version"),
+            SCHEMA_VERSION
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_master
+                     WHERE type = 'index' AND name = 'daily_activity_local_date_origin'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("activity range index count"),
+            1
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT step_count FROM daily_activity
+                     WHERE origin_id = 'synthetic-origin' AND local_date = '2026-06-01'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("preserved activity"),
+            1234
         );
     }
 

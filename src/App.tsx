@@ -6,10 +6,39 @@ import { catalogs, type Locale } from "./locales/catalogs";
 
 type CountMessageKey = keyof (typeof catalogs)["en-US"]["counts"];
 
-interface DailyActivity {
-  originId: string;
+interface ActivityDateRange {
+  from: string;
+  through: string;
+}
+
+type ActivityDayAvailability = "available" | "unavailable" | "missing";
+
+interface ActivityDayInsight {
   localDate: string;
-  stepCount: number | null;
+  stepCount: string | null;
+  availability: ActivityDayAvailability;
+}
+
+interface ActivitySeriesSummary {
+  calendarDays: number;
+  observedDays: number;
+  availableStepDays: number;
+  unavailableStepDays: number;
+  missingDays: number;
+  totalStepCount: string | null;
+  averageStepCount: string | null;
+}
+
+interface ActivitySeriesOverview {
+  seriesRef: string;
+  summary: ActivitySeriesSummary;
+  days: ActivityDayInsight[];
+}
+
+interface ActivityOverview {
+  availableRange: ActivityDateRange | null;
+  selectedRange: ActivityDateRange | null;
+  series: ActivitySeriesOverview[];
 }
 
 interface ImportReport {
@@ -114,7 +143,7 @@ function App() {
   const [localeReady, setLocaleReady] = useState(false);
   const [localeSaving, setLocaleSaving] = useState(false);
   const [archivePath, setArchivePath] = useState<string>();
-  const [activities, setActivities] = useState<DailyActivity[]>([]);
+  const [activityOverview, setActivityOverview] = useState<ActivityOverview>();
   const [outcome, setOutcome] = useState<ImportOutcome>();
   const [progress, setProgress] = useState<ImportProgress>();
   const [busy, setBusy] = useState(false);
@@ -127,10 +156,15 @@ function App() {
     () => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }),
     [locale],
   );
-  const maxSteps = Math.max(...activities.map((item) => item.stepCount ?? 0), 1);
+  const maxSteps = activityOverview?.series
+    .flatMap((series) => series.days)
+    .reduce((maximum, day) => {
+      const value = day.stepCount === null ? 0n : BigInt(day.stepCount);
+      return value > maximum ? value : maximum;
+    }, 1n) ?? 1n;
 
   async function refresh() {
-    setActivities(await invoke<DailyActivity[]>("query_activity"));
+    setActivityOverview(await invoke<ActivityOverview>("query_activity_overview"));
   }
 
   async function refreshOutcome() {
@@ -295,6 +329,20 @@ function App() {
     return explanations[reasonCode] ?? explanations.unknown;
   }
 
+  function formatStepCount(value: string | null): string {
+    return value === null ? messages.unavailable : number.format(BigInt(value));
+  }
+
+  function stepBarWidth(value: string | null): string {
+    if (value === null) return "0%";
+    const basisPoints = (BigInt(value) * 10_000n) / maxSteps;
+    return `${Number(basisPoints) / 100}%`;
+  }
+
+  function activityAvailability(availability: ActivityDayAvailability): string {
+    return messages.activity[availability];
+  }
+
   return (
     <main>
       <header className="hero">
@@ -450,42 +498,104 @@ function App() {
         </p>
       )}
 
-      <section aria-labelledby="history-heading">
-        <h2 id="history-heading">{messages.history}</h2>
-        {activities.length === 0 ? (
-          <p>{messages.empty}</p>
+      <section aria-labelledby="activity-heading">
+        <h2 id="activity-heading">{messages.activity.heading}</h2>
+        {!activityOverview || activityOverview.series.length === 0 ? (
+          <p>{messages.activity.empty}</p>
         ) : (
-          <div className="history-grid">
-            <figure aria-labelledby="chart-caption">
-              <figcaption id="chart-caption">{messages.visual}</figcaption>
-              <ol className="chart">
-                {activities.map((activity) => (
-                  <li key={`${activity.originId}:${activity.localDate}`}>
-                    <time dateTime={activity.localDate}>{date.format(localDate(activity.localDate))}</time>
-                    <span className="track" aria-hidden="true">
-                      <span
-                        className="bar"
-                        style={{ width: `${((activity.stepCount ?? 0) / maxSteps) * 100}%` }}
-                      />
-                    </span>
-                    <strong>{activity.stepCount === null ? "—" : number.format(activity.stepCount)}</strong>
+          <>
+            {activityOverview.selectedRange && (
+              <p className="activity-range">
+                <strong>{messages.activity.selectedRange}:</strong>{" "}
+                <time dateTime={activityOverview.selectedRange.from}>
+                  {date.format(localDate(activityOverview.selectedRange.from))}
+                </time>{" "}
+                {messages.activity.rangeSeparator}{" "}
+                <time dateTime={activityOverview.selectedRange.through}>
+                  {date.format(localDate(activityOverview.selectedRange.through))}
+                </time>
+                {activityOverview.availableRange && (
+                  <span>
+                    {" · "}<strong>{messages.activity.availableRange}:</strong>{" "}
+                    <time dateTime={activityOverview.availableRange.from}>
+                      {date.format(localDate(activityOverview.availableRange.from))}
+                    </time>{" "}
+                    {messages.activity.rangeSeparator}{" "}
+                    <time dateTime={activityOverview.availableRange.through}>
+                      {date.format(localDate(activityOverview.availableRange.through))}
+                    </time>
+                  </span>
+                )}
+              </p>
+            )}
+            {activityOverview.series.map((series, seriesIndex) => (
+              <section className="activity-series" key={series.seriesRef}>
+                {activityOverview.series.length > 1 && (
+                  <h3>{messages.activity.series} {number.format(seriesIndex + 1)}</h3>
+                )}
+                <ul className="activity-summary" aria-label={messages.activity.heading}>
+                  <li>
+                    <strong>{formatStepCount(series.summary.totalStepCount)}</strong>
+                    <span>{messages.activity.totalSteps}</span>
                   </li>
-                ))}
-              </ol>
-            </figure>
-            <table>
-              <caption className="sr-only">{messages.history}</caption>
-              <thead><tr><th scope="col">{messages.date}</th><th scope="col">{messages.steps}</th></tr></thead>
-              <tbody>
-                {activities.map((activity) => (
-                  <tr key={`${activity.originId}:${activity.localDate}`}>
-                    <td><time dateTime={activity.localDate}>{date.format(localDate(activity.localDate))}</time></td>
-                    <td>{activity.stepCount === null ? messages.unavailable : number.format(activity.stepCount)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                  <li>
+                    <strong>{formatStepCount(series.summary.averageStepCount)}</strong>
+                    <span>{messages.activity.averageSteps}</span>
+                  </li>
+                  <li>
+                    <strong>{number.format(series.summary.availableStepDays)}</strong>
+                    <span>{messages.activity.availableDays}</span>
+                  </li>
+                  <li>
+                    <strong>{number.format(series.summary.unavailableStepDays)}</strong>
+                    <span>{messages.activity.unavailableDays}</span>
+                  </li>
+                  <li>
+                    <strong>{number.format(series.summary.missingDays)}</strong>
+                    <span>{messages.activity.missingDays}</span>
+                  </li>
+                </ul>
+                <div className="history-grid">
+                  <figure>
+                    <figcaption>{messages.activity.visual}</figcaption>
+                    <ol className="chart">
+                      {series.days.map((day) => (
+                        <li key={day.localDate}>
+                          <time dateTime={day.localDate}>{date.format(localDate(day.localDate))}</time>
+                          <span className="track" aria-hidden="true">
+                            {day.stepCount !== null && (
+                              <span className="bar" style={{ width: stepBarWidth(day.stepCount) }} />
+                            )}
+                          </span>
+                          <strong>{day.stepCount === null ? "—" : formatStepCount(day.stepCount)}</strong>
+                          <span className="day-status">{activityAvailability(day.availability)}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </figure>
+                  <table>
+                    <caption className="sr-only">{messages.activity.heading}</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">{messages.date}</th>
+                        <th scope="col">{messages.steps}</th>
+                        <th scope="col">{messages.activity.availability}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {series.days.map((day) => (
+                        <tr key={day.localDate}>
+                          <td><time dateTime={day.localDate}>{date.format(localDate(day.localDate))}</time></td>
+                          <td>{formatStepCount(day.stepCount)}</td>
+                          <td>{activityAvailability(day.availability)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            ))}
+          </>
         )}
       </section>
     </main>

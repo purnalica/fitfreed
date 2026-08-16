@@ -1,6 +1,8 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import Ajv2020 from "ajv/dist/2020.js";
+import addFormats from "ajv-formats";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -109,9 +111,78 @@ for (const targetField of ["originId", "localDate", "stepCount"]) {
   requireMention(mapping, targetField, mappingPath);
 }
 
+const activityOverviewPath = "docs/data-formats/insights/daily-activity-overview-v1.md";
+const activityOverview = read(activityOverviewPath);
+for (const field of [
+  "availableRange",
+  "selectedRange",
+  "series",
+  "seriesRef",
+  "summary",
+  "days",
+  "localDate",
+  "stepCount",
+  "availability",
+  "calendarDays",
+  "observedDays",
+  "availableStepDays",
+  "unavailableStepDays",
+  "missingDays",
+  "totalStepCount",
+  "averageStepCount",
+  "available",
+  "unavailable",
+  "missing",
+]) {
+  requireMention(activityOverview, field, activityOverviewPath);
+}
+const activityOverviewSchemaPath = "schemas/activity-overview-v1.schema.json";
+const activityOverviewSchema = JSON.parse(read(activityOverviewSchemaPath));
+const ajv = new Ajv2020({ allErrors: true, strict: true });
+addFormats(ajv);
+const validateActivityOverview = ajv.compile(activityOverviewSchema);
+const syntheticActivityOverview = {
+  availableRange: { from: "2026-01-01", through: "2026-01-03" },
+  selectedRange: { from: "2026-01-01", through: "2026-01-03" },
+  series: [
+    {
+      seriesRef: "synthetic-origin",
+      summary: {
+        calendarDays: 3,
+        observedDays: 2,
+        availableStepDays: 1,
+        unavailableStepDays: 1,
+        missingDays: 1,
+        totalStepCount: "9007199254740993",
+        averageStepCount: "9007199254740993",
+      },
+      days: [
+        { localDate: "2026-01-01", stepCount: "9007199254740993", availability: "available" },
+        { localDate: "2026-01-02", stepCount: null, availability: "missing" },
+        { localDate: "2026-01-03", stepCount: null, availability: "unavailable" },
+      ],
+    },
+  ],
+};
+if (!validateActivityOverview(syntheticActivityOverview)) {
+  throw new Error(
+    `${activityOverviewSchemaPath} rejected its synthetic contract: ${ajv.errorsText(validateActivityOverview.errors)}`,
+  );
+}
+const invalidActivityOverview = structuredClone(syntheticActivityOverview);
+invalidActivityOverview.series[0].days[1].stepCount = "0";
+if (validateActivityOverview(invalidActivityOverview)) {
+  throw new Error(`${activityOverviewSchemaPath} accepted a step count for a missing day`);
+}
+
 const indexPath = "docs/data-formats/README.md";
 const index = read(indexPath);
-for (const contractPath of [canonicalPath, mappingPath, ...persistencePaths]) {
+for (const contractPath of [
+  canonicalPath,
+  mappingPath,
+  activityOverviewPath,
+  ...persistencePaths,
+]) {
   const relativeContract = path.relative(path.dirname(indexPath), contractPath);
   if (!index.includes(relativeContract)) {
     throw new Error(`${indexPath} does not index ${relativeContract}`);
@@ -119,5 +190,5 @@ for (const contractPath of [canonicalPath, mappingPath, ...persistencePaths]) {
 }
 
 process.stdout.write(
-  `${JSON.stringify({ schemaVersion, sourceAdapterVersion, migrations, persistencePaths, canonicalFields: 3, mappingFields: 6 })}\n`,
+  `${JSON.stringify({ schemaVersion, sourceAdapterVersion, migrations, persistencePaths, activityOverviewSchema: activityOverviewSchemaPath, canonicalFields: 3, mappingFields: 6 })}\n`,
 );

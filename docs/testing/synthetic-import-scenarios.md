@@ -58,6 +58,7 @@ Production-path fixtures include exactly one obvious non-address fictional accou
 | `SYN-024` | Mixed coverage package | Supported, unsupported, ignored, unrecognized, and invalid artifacts produce deterministic family-level counts, localized reasons and next actions, and no silent category or exposed locator. |
 | `SYN-025` | Generated realistic scale | Streaming import, bounded memory, progress, cancellation, persistence, and representative queries meet validated budgets. |
 | `SYN-026` | Schema migration and reimport | Data created by every supported library schema migrates, remains queryable, and reconciles correctly with a later package. |
+| `SYN-027` | Gap-aware daily activity overview | One selected range contains an available step total, an observation with no step total, and a date with no observation; exact summaries and both localized accessible representations preserve all three states. |
 
 ## Family contract matrix
 

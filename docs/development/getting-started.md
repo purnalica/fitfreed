@@ -60,7 +60,7 @@ The unsigned macOS production application and DMG are generated under `src-tauri
 ## Architecture navigation
 
 - `src-tauri/crates/fitfreed-domain` contains provider-neutral concepts and reconciliation policy and has no dependencies.
-- `src-tauri/crates/fitfreed-application` contains use cases, ports, progress, and cancellation coordination and depends only on the domain and its error helper.
+- `src-tauri/crates/fitfreed-application` contains use cases, ports, provider-neutral Insights calculations, progress, and cancellation coordination and depends only on the domain, calendar arithmetic, and its error helper.
 - `src-tauri/src/infrastructure.rs` contains the Polar Flow ZIP/JSON adapter and SQLite adapter demonstrated by the first vertical slice.
 - `src-tauri/src/lib.rs` and `presentation.rs` are the Tauri host and serialized transport boundary.
 - `src` contains the React presentation, its desktop archive-picker adapter, and test-only presentation instrumentation; localized copy exists only under `src/locales`.

@@ -37,6 +37,22 @@ for (const declaration of motionDeclarations) {
   }
 }
 
+const darkQuery = "@media (prefers-color-scheme: dark)";
+const darkStart = stylesheet.indexOf(darkQuery);
+if (darkStart < 0) throw new Error("App.css must define the dark appearance boundary");
+const nextMediaStart = stylesheet.indexOf("@media", darkStart + darkQuery.length);
+const darkBlock = stylesheet.slice(
+  darkStart,
+  nextMediaStart < 0 ? stylesheet.length : nextMediaStart,
+);
+for (const selector of [".eyebrow", ".notice", ".error"]) {
+  const escapedSelector = selector.replace(".", "\\.");
+  const foregroundRule = new RegExp(`${escapedSelector}\\s*\\{[^}]*\\bcolor:`);
+  if (!foregroundRule.test(darkBlock)) {
+    throw new Error(`${selector} must define a dark-appearance foreground color`);
+  }
+}
+
 process.stdout.write(
-  `${JSON.stringify({ motionDeclarations: motionDeclarations.length, reducedMotionBoundary: true })}\n`,
+  `${JSON.stringify({ motionDeclarations: motionDeclarations.length, reducedMotionBoundary: true, darkContrastOverrides: 3 })}\n`,
 );

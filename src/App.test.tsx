@@ -7,6 +7,65 @@ import { catalogs } from "./locales/catalogs";
 
 const spanish = catalogs["es-ES"];
 
+interface TestActivityDay {
+  localDate: string;
+  stepCount: string | null;
+  availability: "available" | "unavailable" | "missing";
+}
+
+interface TestActivityOverview {
+  availableRange: { from: string; through: string } | null;
+  selectedRange: { from: string; through: string } | null;
+  series: Array<{
+    seriesRef: string;
+    summary: {
+      calendarDays: number;
+      observedDays: number;
+      availableStepDays: number;
+      unavailableStepDays: number;
+      missingDays: number;
+      totalStepCount: string | null;
+      averageStepCount: string | null;
+    };
+    days: TestActivityDay[];
+  }>;
+}
+
+function emptyActivityOverview(): TestActivityOverview {
+  return { availableRange: null, selectedRange: null, series: [] };
+}
+
+function activityOverview(days: TestActivityDay[]): TestActivityOverview {
+  const available = days.filter((day) => day.availability === "available");
+  const unavailable = days.filter((day) => day.availability === "unavailable");
+  const missing = days.filter((day) => day.availability === "missing");
+  const total = available.reduce(
+    (sum, day) => sum + BigInt(day.stepCount ?? "0"),
+    0n,
+  );
+  const average = available.length > 0
+    ? (total + BigInt(available.length) / 2n) / BigInt(available.length)
+    : null;
+  const range = { from: days[0].localDate, through: days.at(-1)!.localDate };
+  return {
+    availableRange: range,
+    selectedRange: range,
+    series: [{
+      seriesRef: "synthetic-origin",
+      summary: {
+        calendarDays: days.length,
+        observedDays: available.length + unavailable.length,
+        availableStepDays: available.length,
+        unavailableStepDays: unavailable.length,
+        missingDays: missing.length,
+        totalStepCount: available.length > 0 ? total.toString() : null,
+        averageStepCount: average?.toString() ?? null,
+      },
+      days,
+    }],
+  };
+}
+
 function importOutcome(overrides: Record<string, unknown> = {}) {
   return {
     operationRef: "synthetic-operation",
@@ -67,7 +126,7 @@ afterEach(() => {
 function emptyLibrary(initialLocale: "en-US" | "es-ES" | null = "en-US") {
   let storedLocale = initialLocale;
   mocks.invoke.mockImplementation((command, arguments_) => {
-    if (command === "query_activity") return Promise.resolve([]);
+    if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
     if (command === "query_latest_import_outcome") return Promise.resolve(null);
     if (command === "load_locale") return Promise.resolve(storedLocale);
     if (command === "save_locale") {
@@ -144,7 +203,7 @@ describe("FitFreed import interface", () => {
       ],
     });
     mocks.invoke.mockImplementation((command) => {
-      if (command === "query_activity") return Promise.resolve([]);
+      if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(latestOutcome);
       if (command === "load_locale") return Promise.resolve("en-US");
       if (command === "save_locale") return Promise.resolve();
@@ -182,7 +241,7 @@ describe("FitFreed import interface", () => {
   it("explains a changed source-subject claim without exposing identity evidence", async () => {
     let latestOutcome: ReturnType<typeof importOutcome> | null = null;
     mocks.invoke.mockImplementation((command) => {
-      if (command === "query_activity") return Promise.resolve([]);
+      if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(latestOutcome);
       if (command === "load_locale") return Promise.resolve("en-US");
       if (command === "save_locale") return Promise.resolve();
@@ -279,7 +338,7 @@ describe("FitFreed import interface", () => {
   it("keeps the operating-system locale for the session when first-run persistence fails", async () => {
     vi.spyOn(window.navigator, "languages", "get").mockReturnValue(["es-ES"]);
     mocks.invoke.mockImplementation((command) => {
-      if (command === "query_activity") return Promise.resolve([]);
+      if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
       if (command === "load_locale") return Promise.resolve(null);
       if (command === "save_locale") {
@@ -299,7 +358,7 @@ describe("FitFreed import interface", () => {
 
   it("restores the previous locale when persistence fails", async () => {
     mocks.invoke.mockImplementation((command) => {
-      if (command === "query_activity") return Promise.resolve([]);
+      if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
       if (command === "load_locale") return Promise.resolve("en-US");
       if (command === "save_locale") {
@@ -341,7 +400,7 @@ describe("FitFreed import interface", () => {
       },
     });
     mocks.invoke.mockImplementation((command) => {
-      if (command === "query_activity") return Promise.resolve([]);
+      if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(singularOutcome);
       if (command === "load_locale") return Promise.resolve("es-ES");
       throw new Error(`Unexpected command: ${command}`);
@@ -353,6 +412,50 @@ describe("FitFreed import interface", () => {
       `${spanish.completed}: 1 ${spanish.counts.recognized.one}, 1 ${spanish.counts.created.one}, 1 ${spanish.counts.enriched.one}, 1 ${spanish.counts.equivalent.one}, 1 ${spanish.counts.preserved.one}, 1 ${spanish.counts.conflicts.one}.`,
     );
     expect(screen.getByText(`${spanish.outcome.artifactsClassified.one}.`)).toBeVisible();
+  });
+
+  it("renders exact gap-aware activity insight values and localized availability", async () => {
+    const overview = activityOverview([
+      {
+        localDate: "2026-01-01",
+        stepCount: "9007199254740993",
+        availability: "available",
+      },
+      { localDate: "2026-01-02", stepCount: null, availability: "missing" },
+      { localDate: "2026-01-03", stepCount: null, availability: "unavailable" },
+    ]);
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_activity_overview") return Promise.resolve(overview);
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      if (command === "load_locale") return Promise.resolve("en-US");
+      if (command === "save_locale") return Promise.resolve();
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+
+    const summary = await screen.findByRole("list", { name: "Daily activity overview" });
+    const total = within(summary).getByText("Total steps").closest("li");
+    const average = within(summary).getByText("Average per day with steps").closest("li");
+    const missing = within(summary).getByText("Days with no observation").closest("li");
+    expect(total).not.toBeNull();
+    expect(average).not.toBeNull();
+    expect(missing).not.toBeNull();
+    expect(within(total!).getByText("9,007,199,254,740,993")).toBeVisible();
+    expect(within(average!).getByText("9,007,199,254,740,993")).toBeVisible();
+    expect(within(missing!).getByText("1")).toBeVisible();
+
+    const history = screen.getByRole("table", { name: "Daily activity overview" });
+    const rows = within(history).getAllByRole("row");
+    expect(rows).toHaveLength(4);
+    expect(within(rows[2]).getByText("No observation")).toBeVisible();
+    expect(within(rows[3]).getByText("Observation available; step total unavailable")).toBeVisible();
+
+    await user.selectOptions(screen.getByRole("combobox", { name: "Language" }), "es-ES");
+    const spanishHistory = screen.getByRole("table", { name: spanish.activity.heading });
+    const spanishRows = within(spanishHistory).getAllByRole("row");
+    expect(within(spanishRows[2]).getByText(spanish.activity.missing)).toBeVisible();
+    expect(within(spanishRows[3]).getByText(spanish.activity.unavailable)).toBeVisible();
   });
 
   it("keeps import disabled after a cancelled picker and enables it for a selected ZIP", async () => {
@@ -377,7 +480,7 @@ describe("FitFreed import interface", () => {
     let onProgress: { onmessage?: (message: unknown) => void } | undefined;
     let latestOutcome: ReturnType<typeof importOutcome> | null = null;
     mocks.invoke.mockImplementation((command, arguments_) => {
-      if (command === "query_activity") return Promise.resolve([]);
+      if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(latestOutcome);
       if (command === "load_locale") return Promise.resolve("en-US");
       if (command === "save_locale") return Promise.resolve();
@@ -433,16 +536,16 @@ describe("FitFreed import interface", () => {
   });
 
   it("renders validation errors, complete reports, multiple records, exact repeats, and restored history", async () => {
-    const history = [
-      { originId: "polar:synthetic", localDate: "2026-01-01", stepCount: 3100 },
-      { originId: "polar:synthetic", localDate: "2026-01-02", stepCount: 4200 },
-      { originId: "polar:synthetic", localDate: "2026-01-03", stepCount: null },
-    ];
-    let storedHistory: typeof history = [];
+    const history = activityOverview([
+      { localDate: "2026-01-01", stepCount: "3100", availability: "available" },
+      { localDate: "2026-01-02", stepCount: "4200", availability: "available" },
+      { localDate: "2026-01-03", stepCount: null, availability: "unavailable" },
+    ]);
+    let storedHistory = emptyActivityOverview();
     let importAttempt = 0;
     let latestOutcome: ReturnType<typeof importOutcome> | null = null;
     mocks.invoke.mockImplementation((command, arguments_) => {
-      if (command === "query_activity") return Promise.resolve(storedHistory);
+      if (command === "query_activity_overview") return Promise.resolve(storedHistory);
       if (command === "query_latest_import_outcome") return Promise.resolve(latestOutcome);
       if (command === "load_locale") return Promise.resolve("en-US");
       if (command === "save_locale") return Promise.resolve();

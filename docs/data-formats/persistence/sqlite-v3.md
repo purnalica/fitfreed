@@ -2,7 +2,7 @@
 
 ## Status and boundary
 
-Current local-library schema. Version 3 is the cumulative version 2 library plus the locale preference introduced by the immutable [`0003_locale_preference.sql`](../../../src-tauri/migrations/0003_locale_preference.sql) migration. The canonical fitness model and portable export remain separate contracts.
+Historical local-library schema superseded by later immutable migrations. Version 3 is the cumulative version 2 library plus the locale preference introduced by the immutable [`0003_locale_preference.sql`](../../../src-tauri/migrations/0003_locale_preference.sql) migration. The canonical fitness model and portable export remain separate contracts.
 
 SQLite `PRAGMA user_version` stores value 3 after migration. New libraries apply [`0001_initial.sql`](../../../src-tauri/migrations/0001_initial.sql), [`0002_import_ledger.sql`](../../../src-tauri/migrations/0002_import_ledger.sql), and `0003_locale_preference.sql` in one transaction. Existing versions 1 and 2 apply only the later ordered assets they lack. Any migration error or injected interruption rolls back the DDL, data transformation, and version marker together.
 

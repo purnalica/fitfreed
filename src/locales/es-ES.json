@@ -1,6 +1,6 @@
 {
   "title": "Tu historial deportivo te pertenece",
-  "intro": "Importa un paquete sintético de Polar Flow creado de forma independiente y explora un historial diario independiente del proveedor.",
+  "intro": "Importa una exportación de datos compatible de Polar Flow y explora un historial independiente del proveedor que permanece en este ordenador.",
   "importHeading": "Importación",
   "language": "Idioma",
   "localeEnglish": "Inglés (Estados Unidos)",
@@ -26,6 +26,24 @@
   "steps": "Pasos",
   "unavailable": "No disponible",
   "visual": "Comparación visual de pasos",
+  "activity": {
+    "heading": "Resumen de actividad diaria",
+    "empty": "Todavía no hay actividad diaria importada.",
+    "selectedRange": "Periodo seleccionado",
+    "availableRange": "Historial disponible",
+    "rangeSeparator": "a",
+    "series": "Origen de actividad",
+    "totalSteps": "Pasos totales",
+    "averageSteps": "Media por día con pasos",
+    "availableDays": "Días con total de pasos",
+    "unavailableDays": "Días observados sin total de pasos",
+    "missingDays": "Días sin observación",
+    "visual": "Pasos diarios del periodo seleccionado",
+    "availability": "Disponibilidad",
+    "available": "Total de pasos disponible",
+    "unavailable": "Observación disponible; total de pasos no disponible",
+    "missing": "Sin observación"
+  },
   "exactRepeat": "El paquete es una repetición exacta; el historial no se ha duplicado.",
   "completed": "Importación completada",
   "counts": {

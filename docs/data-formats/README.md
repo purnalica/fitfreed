@@ -11,6 +11,7 @@ This directory is the canonical index for every machine-readable data contract t
 | Provider export | The provider where an adequate public specification exists; otherwise clean-room observation | Descriptive, with every statement labeled by evidence level | Each importer declares exactly what it recognizes, maps, ignores, or rejects |
 | FitFreed canonical model | FitFreed | Normative and provider-neutral | Domain versions evolve through explicit compatibility rules |
 | Source-to-canonical mapping | FitFreed | Normative for importer behavior | Every supported source field has a documented outcome |
+| FitFreed insight read model | FitFreed | Normative, provider-neutral, and question-specific | Report calculations, gaps, ordering, and transport versions evolve explicitly |
 | FitFreed portable export | FitFreed | Normative, open, and independently implementable | Versions, deprecations, and migration paths preserve user exit |
 | Persistence schema | FitFreed implementation | Exact but explicitly non-portable | Every schema version and migration is documented and tested |
 | Release evidence | FitFreed | Normative, machine-verifiable, and free of user data | Every staged package identifies its source, compatibility, inventories, and integrity |
@@ -46,6 +47,7 @@ Documentation, schemas, fixtures, implementation, and migrations form one change
 - [`providers/`](providers/) contains descriptive references for source exports.
 - `canonical/` will contain normative domain specifications as concepts enter implementation.
 - `mappings/` will contain normative source-to-canonical mapping tables for supported importers.
+- `insights/` contains normative query and report read models derived from canonical facts.
 - `portable/` will contain the normative FitFreed export specification before portable export is implemented.
 - `persistence/` will contain implementation schema and migration references once a storage architecture is selected.
 - `release/` contains machine-readable release evidence contracts; it never contains generated packages or user data.
@@ -57,8 +59,10 @@ Directories are created with their first real contract; empty specifications are
 - [Polar Flow personal data export](providers/polar-flow.md)
 - [Canonical daily activity](canonical/daily-activity.md)
 - [Polar Flow daily activity mapping](mappings/polar-flow-daily-activity.md)
+- [Daily activity overview read model version 1](insights/daily-activity-overview-v1.md)
 - [SQLite schema version 1](persistence/sqlite-v1.md)
 - [SQLite schema version 2](persistence/sqlite-v2.md)
 - [SQLite schema version 3](persistence/sqlite-v3.md)
 - [SQLite schema version 4](persistence/sqlite-v4.md)
+- [SQLite schema version 5](persistence/sqlite-v5.md)
 - [Release manifest version 1](release/release-manifest-v1.md)

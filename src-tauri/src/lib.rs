@@ -9,7 +9,7 @@ use infrastructure::{
     SqliteLocalePreferences, SqlitePolarFlowArchiveImporter,
 };
 use presentation::{
-    CommandErrorDto, DailyActivityDto, ImportOutcomeDto, ImportProgressDto, ImportReportDto,
+    ActivityOverviewDto, CommandErrorDto, ImportOutcomeDto, ImportProgressDto, ImportReportDto,
 };
 use tauri::{ipc::Channel, AppHandle, Manager, State};
 
@@ -47,11 +47,11 @@ fn cancel_import(coordinator: State<'_, ImportCoordinator>) -> Result<bool, Comm
 }
 
 #[tauri::command]
-fn query_activity(app: AppHandle) -> Result<Vec<DailyActivityDto>, CommandErrorDto> {
+fn query_activity_overview(app: AppHandle) -> Result<ActivityOverviewDto, CommandErrorDto> {
     let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     let library = SqliteActivityLibrary::new(path);
-    fitfreed_application::query_activity(&library)
-        .map(|activities| activities.into_iter().map(DailyActivityDto::from).collect())
+    fitfreed_application::query_default_activity_overview(&library)
+        .map(ActivityOverviewDto::from)
         .map_err(CommandErrorDto::from)
 }
 
@@ -118,7 +118,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             import_archive,
             cancel_import,
-            query_activity,
+            query_activity_overview,
             query_latest_import_outcome,
             load_locale,
             save_locale

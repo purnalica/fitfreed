@@ -1116,6 +1116,7 @@ dependencies = [
 name = "fitfreed-application"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "fitfreed-domain",
  "thiserror 2.0.20",
 ]

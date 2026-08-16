@@ -4,7 +4,7 @@
 
 Current architecture after [ADR 0002](decisions/0002-select-sqlite-storage.md). SQLite is the only storage engine in the application and the authoritative local-library format. It does not replace the documented portable FitFreed data contract.
 
-The current implemented schema and compatibility boundary are documented in the [SQLite version 4 persistence specification](../data-formats/persistence/sqlite-v4.md), which extends the version 3 locale preference with library-scoped source-subject state. Earlier specifications remain immutable migration history.
+The current implemented schema and compatibility boundary are documented in the [SQLite version 5 persistence specification](../data-formats/persistence/sqlite-v5.md). It preserves the version 4 library-scoped source-subject state and adds the date-first canonical activity query index used by Insights. Earlier specifications remain immutable migration history.
 
 ## Ownership
 
@@ -39,6 +39,8 @@ Caches that can be discarded without changing observable truth may live outside 
 ## Source-subject correlation
 
 [ADR 0005](decisions/0005-use-library-scoped-source-subject-correlation.md) and schema version 4 give the library an opaque observation-origin catalog, a per-library correlation key, versioned source-subject evidence digests, and an optional resolved-origin link on import operations. Raw provider claims are transient and never stored.
+
+Schema version 5 adds only `daily_activity_local_date_origin`, an index ordered by local date and origin for bounded Insights reads. SQLite returns canonical facts and bounds; gap disclosure and report aggregates remain application-owned rules.
 
 New origin and evidence rows become durable only inside the same visibility transaction as canonical history and operation completion. Existing development origins migrate as unverified origins without invented evidence. Exact-repeat lookup may inherit an origin only from a completed operation whose correlation state is verified; an old package fingerprint alone cannot authorize subject resolution.
 

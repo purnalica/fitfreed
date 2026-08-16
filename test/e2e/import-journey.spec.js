@@ -81,6 +81,18 @@ async function expectHistory(expectedRows) {
     const cells = await rows[index].$$("td");
     await expect(cells[0]).toHaveText(expectedRows[index][0]);
     await expect(cells[1]).toHaveText(expectedRows[index][1]);
+    await expect(cells[2]).toHaveText(expectedRows[index][2]);
+  }
+}
+
+async function expectActivitySummary(expectedItems) {
+  const items = await $$(".activity-summary li");
+  expect(items).toHaveLength(expectedItems.length);
+  for (let index = 0; index < expectedItems.length; index += 1) {
+    const value = await items[index].$("strong");
+    const label = await items[index].$("span");
+    await expect(value).toHaveText(expectedItems[index][0]);
+    await expect(label).toHaveText(expectedItems[index][1]);
   }
 }
 
@@ -231,9 +243,16 @@ describe("packaged FitFreed import journey", () => {
       },
     ]);
     await expectHistory([
-      ["Jan 1, 2026", "3,100"],
-      ["Jan 2, 2026", "4,200"],
-      ["Jan 3, 2026", "Not available"],
+      ["Jan 1, 2026", "3,100", "Step total available"],
+      ["Jan 2, 2026", "4,200", "Step total available"],
+      ["Jan 3, 2026", "Not available", "Observation available; step total unavailable"],
+    ]);
+    await expectActivitySummary([
+      ["7,300", "Total steps"],
+      ["3,650", "Average per day with steps"],
+      ["2", "Days with step totals"],
+      ["1", "Observed days without a step total"],
+      ["0", "Days with no observation"],
     ]);
 
     await selectLocale("es-ES");
@@ -295,37 +314,47 @@ describe("packaged FitFreed import journey", () => {
     await $("aria/Import selected package").click();
     await waitForNotice("Exact package repeat; history was not duplicated.");
     await expectHistory([
-      ["Jan 1, 2026", "3,100"],
-      ["Jan 2, 2026", "4,200"],
-      ["Jan 3, 2026", "Not available"],
+      ["Jan 1, 2026", "3,100", "Step total available"],
+      ["Jan 2, 2026", "4,200", "Step total available"],
+      ["Jan 3, 2026", "Not available", "Observation available; step total unavailable"],
     ]);
 
     await selectArchive(dialogMock, path.join(fixtureDirectory, "overlap.zip"));
     await $("aria/Import selected package").click();
     await waitForNotice("Import completed: 3 recognized, 1 new");
     await expectHistory([
-      ["Jan 1, 2026", "3,100"],
-      ["Jan 2, 2026", "4,200"],
-      ["Jan 3, 2026", "Not available"],
-      ["Jan 4, 2026", "5,300"],
+      ["Jan 1, 2026", "3,100", "Step total available"],
+      ["Jan 2, 2026", "4,200", "Step total available"],
+      ["Jan 3, 2026", "Not available", "Observation available; step total unavailable"],
+      ["Jan 4, 2026", "Not available", "No observation"],
+      ["Jan 5, 2026", "5,300", "Step total available"],
+    ]);
+    await expectActivitySummary([
+      ["12,600", "Total steps"],
+      ["4,200", "Average per day with steps"],
+      ["3", "Days with step totals"],
+      ["1", "Observed days without a step total"],
+      ["1", "Days with no observation"],
     ]);
 
     await selectLocale("es-ES");
     await expectHistory([
-      [formatLocalDate("es-ES", "2026-01-01"), "3100"],
-      [formatLocalDate("es-ES", "2026-01-02"), "4200"],
-      [formatLocalDate("es-ES", "2026-01-03"), spanish.unavailable],
-      [formatLocalDate("es-ES", "2026-01-04"), "5300"],
+      [formatLocalDate("es-ES", "2026-01-01"), "3100", spanish.activity.available],
+      [formatLocalDate("es-ES", "2026-01-02"), "4200", spanish.activity.available],
+      [formatLocalDate("es-ES", "2026-01-03"), spanish.unavailable, spanish.activity.unavailable],
+      [formatLocalDate("es-ES", "2026-01-04"), spanish.unavailable, spanish.activity.missing],
+      [formatLocalDate("es-ES", "2026-01-05"), "5300", spanish.activity.available],
     ]);
 
     await browser.reloadSession();
     await expect($("h1")).toHaveText(spanish.title);
     await expect($("#outcome-heading")).toHaveText(spanish.outcome.heading);
     await expectHistory([
-      [formatLocalDate("es-ES", "2026-01-01"), "3100"],
-      [formatLocalDate("es-ES", "2026-01-02"), "4200"],
-      [formatLocalDate("es-ES", "2026-01-03"), spanish.unavailable],
-      [formatLocalDate("es-ES", "2026-01-04"), "5300"],
+      [formatLocalDate("es-ES", "2026-01-01"), "3100", spanish.activity.available],
+      [formatLocalDate("es-ES", "2026-01-02"), "4200", spanish.activity.available],
+      [formatLocalDate("es-ES", "2026-01-03"), spanish.unavailable, spanish.activity.unavailable],
+      [formatLocalDate("es-ES", "2026-01-04"), spanish.unavailable, spanish.activity.missing],
+      [formatLocalDate("es-ES", "2026-01-05"), "5300", spanish.activity.available],
     ]);
   });
 });

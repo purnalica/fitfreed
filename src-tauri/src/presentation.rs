@@ -1,8 +1,11 @@
 use serde::Serialize;
 
-use fitfreed_application::{ApplicationError, ImportPhase, ImportProgress};
+use fitfreed_application::{
+    ActivityDateRange, ActivityDayAvailability, ActivityDayInsight, ActivityOverview,
+    ActivitySeriesOverview, ActivitySeriesSummary, ApplicationError, ImportPhase, ImportProgress,
+};
 use fitfreed_domain::{
-    ArtifactCoverageSummary, ArtifactFamilyCoverage, DailyActivity, ImportOutcome, ImportReport,
+    ArtifactCoverageSummary, ArtifactFamilyCoverage, ImportOutcome, ImportReport,
 };
 
 #[derive(Debug, Serialize)]
@@ -34,18 +37,108 @@ impl From<ApplicationError> for CommandErrorDto {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct DailyActivityDto {
-    origin_id: String,
-    local_date: String,
-    step_count: Option<i64>,
+pub struct ActivityDateRangeDto {
+    from: String,
+    through: String,
 }
 
-impl From<DailyActivity> for DailyActivityDto {
-    fn from(activity: DailyActivity) -> Self {
+impl From<ActivityDateRange> for ActivityDateRangeDto {
+    fn from(range: ActivityDateRange) -> Self {
         Self {
-            origin_id: activity.origin_id,
-            local_date: activity.local_date,
-            step_count: activity.step_count,
+            from: range.from,
+            through: range.through,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ActivityDayInsightDto {
+    local_date: String,
+    step_count: Option<String>,
+    availability: &'static str,
+}
+
+impl From<ActivityDayInsight> for ActivityDayInsightDto {
+    fn from(day: ActivityDayInsight) -> Self {
+        Self {
+            local_date: day.local_date,
+            step_count: day.step_count.map(|value| value.to_string()),
+            availability: match day.availability {
+                ActivityDayAvailability::Available => "available",
+                ActivityDayAvailability::Unavailable => "unavailable",
+                ActivityDayAvailability::Missing => "missing",
+            },
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ActivitySeriesSummaryDto {
+    calendar_days: usize,
+    observed_days: usize,
+    available_step_days: usize,
+    unavailable_step_days: usize,
+    missing_days: usize,
+    total_step_count: Option<String>,
+    average_step_count: Option<String>,
+}
+
+impl From<ActivitySeriesSummary> for ActivitySeriesSummaryDto {
+    fn from(summary: ActivitySeriesSummary) -> Self {
+        Self {
+            calendar_days: summary.calendar_days,
+            observed_days: summary.observed_days,
+            available_step_days: summary.available_step_days,
+            unavailable_step_days: summary.unavailable_step_days,
+            missing_days: summary.missing_days,
+            total_step_count: summary.total_step_count.map(|value| value.to_string()),
+            average_step_count: summary.average_step_count.map(|value| value.to_string()),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ActivitySeriesOverviewDto {
+    series_ref: String,
+    summary: ActivitySeriesSummaryDto,
+    days: Vec<ActivityDayInsightDto>,
+}
+
+impl From<ActivitySeriesOverview> for ActivitySeriesOverviewDto {
+    fn from(series: ActivitySeriesOverview) -> Self {
+        Self {
+            series_ref: series.series_ref,
+            summary: series.summary.into(),
+            days: series
+                .days
+                .into_iter()
+                .map(ActivityDayInsightDto::from)
+                .collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ActivityOverviewDto {
+    available_range: Option<ActivityDateRangeDto>,
+    selected_range: Option<ActivityDateRangeDto>,
+    series: Vec<ActivitySeriesOverviewDto>,
+}
+
+impl From<ActivityOverview> for ActivityOverviewDto {
+    fn from(overview: ActivityOverview) -> Self {
+        Self {
+            available_range: overview.available_range.map(ActivityDateRangeDto::from),
+            selected_range: overview.selected_range.map(ActivityDateRangeDto::from),
+            series: overview
+                .series
+                .into_iter()
+                .map(ActivitySeriesOverviewDto::from)
+                .collect(),
         }
     }
 }
@@ -215,6 +308,64 @@ mod tests {
     use fitfreed_domain::{ArtifactClassification, ArtifactFamilyCoverage, ImportOperationState};
 
     use super::*;
+
+    #[test]
+    fn serializes_activity_insights_with_exact_decimal_counts_and_stable_availability() {
+        let overview = ActivityOverview {
+            available_range: Some(ActivityDateRange {
+                from: "2026-01-01".to_owned(),
+                through: "2026-01-03".to_owned(),
+            }),
+            selected_range: Some(ActivityDateRange {
+                from: "2026-01-01".to_owned(),
+                through: "2026-01-03".to_owned(),
+            }),
+            series: vec![ActivitySeriesOverview {
+                series_ref: "synthetic-origin".to_owned(),
+                summary: ActivitySeriesSummary {
+                    calendar_days: 3,
+                    observed_days: 2,
+                    available_step_days: 1,
+                    unavailable_step_days: 1,
+                    missing_days: 1,
+                    total_step_count: Some(9_223_372_036_854_775_807),
+                    average_step_count: Some(9_223_372_036_854_775_807),
+                },
+                days: vec![
+                    ActivityDayInsight {
+                        local_date: "2026-01-01".to_owned(),
+                        step_count: Some(i64::MAX),
+                        availability: ActivityDayAvailability::Available,
+                    },
+                    ActivityDayInsight {
+                        local_date: "2026-01-02".to_owned(),
+                        step_count: None,
+                        availability: ActivityDayAvailability::Unavailable,
+                    },
+                    ActivityDayInsight {
+                        local_date: "2026-01-03".to_owned(),
+                        step_count: None,
+                        availability: ActivityDayAvailability::Missing,
+                    },
+                ],
+            }],
+        };
+
+        let json = serde_json::to_value(ActivityOverviewDto::from(overview))
+            .expect("activity overview JSON");
+
+        assert_eq!(
+            json["series"][0]["summary"]["totalStepCount"],
+            "9223372036854775807"
+        );
+        assert_eq!(
+            json["series"][0]["days"][0]["stepCount"],
+            "9223372036854775807"
+        );
+        assert_eq!(json["series"][0]["days"][0]["availability"], "available");
+        assert_eq!(json["series"][0]["days"][1]["availability"], "unavailable");
+        assert_eq!(json["series"][0]["days"][2]["availability"], "missing");
+    }
 
     #[test]
     fn serializes_family_coverage_as_stable_privacy_safe_codes() {

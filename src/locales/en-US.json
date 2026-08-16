@@ -1,6 +1,6 @@
 {
   "title": "Your fitness history belongs to you",
-  "intro": "Import an independently created synthetic Polar Flow package and explore a provider-neutral daily history.",
+  "intro": "Import a compatible Polar Flow data export and explore a provider-neutral history that stays on this computer.",
   "importHeading": "Import",
   "language": "Language",
   "localeEnglish": "English (US)",
@@ -26,6 +26,24 @@
   "steps": "Steps",
   "unavailable": "Not available",
   "visual": "Visual step comparison",
+  "activity": {
+    "heading": "Daily activity overview",
+    "empty": "No imported daily activity yet.",
+    "selectedRange": "Selected range",
+    "availableRange": "Available history",
+    "rangeSeparator": "to",
+    "series": "Activity source",
+    "totalSteps": "Total steps",
+    "averageSteps": "Average per day with steps",
+    "availableDays": "Days with step totals",
+    "unavailableDays": "Observed days without a step total",
+    "missingDays": "Days with no observation",
+    "visual": "Daily steps in the selected range",
+    "availability": "Availability",
+    "available": "Step total available",
+    "unavailable": "Observation available; step total unavailable",
+    "missing": "No observation"
+  },
   "exactRepeat": "Exact package repeat; history was not duplicated.",
   "completed": "Import completed",
   "counts": {

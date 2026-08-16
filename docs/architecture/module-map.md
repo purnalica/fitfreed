@@ -18,7 +18,7 @@ flowchart LR
 | Module | Owns | May depend on |
 |---|---|---|
 | `fitfreed-domain` | Provider-neutral observations, identities, invariants, and reconciliation decisions | Rust standard library only |
-| `fitfreed-application` | Use cases, input/output ports, progress, cancellation, and application failures | `fitfreed-domain`, `thiserror` |
+| `fitfreed-application` | Use cases, input/output ports, Insights range and report rules, progress, cancellation, and application failures | `fitfreed-domain`, `chrono`, `thiserror` |
 | `infrastructure` | ZIP safety, Polar Flow decoding, anti-corruption mapping, SQLite transactions, migrations, backup, and concrete port implementations | Application and domain crates plus adapter libraries |
 | Tauri host and transport | Native lifecycle, command registration, blocking-worker dispatch, capabilities, and serialized DTO mapping | Application ports, concrete adapters, Tauri, and serialization |
 | React presentation | Localized interaction, accessible visualization, and view state | Transport contracts exposed by the Tauri host |
@@ -28,4 +28,6 @@ The architecture check reads Cargo metadata and rejects adapter, serialization, 
 
 ## Milestone 1 foundation and MVP transition
 
-The completed foundation recognizes a deliberately small daily-activity shape. Its current canonical concept, source mapping, persistence schema, artifact-family registry, and library-scoped source-subject correlation are indexed in the [data format documentation](../data-formats/README.md). The production host no longer supplies an identity: the Polar adapter extracts a versioned account claim and the library resolves an opaque observation origin. The application queries terminal outcomes through a dedicated provider-neutral read port. Infrastructure groups the persisted coverage evidence without exposing locators, the transport serializes stable codes and counts, and React owns localized family names, reasons, and next actions. Richer daily activity, historical real-export compatibility, and the remaining MVP capabilities enter through the same boundaries under the [Milestone 2 plan](../plans/milestone-2.md).
+The production adapter recognizes the documented daily-activity shape, resolves a library-scoped source subject, and records complete family coverage. The application now owns the first provider-neutral Insights read model: it selects the latest 30 local dates, keeps observation origins separate, discloses missing and unavailable days, and calculates exact totals and rounded averages from canonical facts returned by an indexed port. SQLite owns bounds and inclusive fact retrieval but no report rule. The Tauri transport encodes step counts as decimal strings to preserve 64-bit and aggregate precision in JavaScript. React owns localized labels, locale-aware formatting, responsive visual scaling, and the exact accessible table alternative.
+
+The current canonical concept, source mapping, persistence schema, artifact-family registry, Insights read model, and source-subject correlation are indexed in the [data format documentation](../data-formats/README.md). Filtering, detail selection, comparison, richer daily activity, and the remaining MVP capabilities enter through the same boundaries under the [Milestone 2 plan](../plans/milestone-2.md).

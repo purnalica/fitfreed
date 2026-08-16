@@ -7,5 +7,6 @@ license = "GPL-3.0-or-later"
 repository = "https://github.com/purnalica/fitfreed"
 
 [dependencies]
+chrono = { version = "0.4", default-features = false, features = ["std"] }
 fitfreed-domain = { path = "../fitfreed-domain" }
 thiserror = "2"

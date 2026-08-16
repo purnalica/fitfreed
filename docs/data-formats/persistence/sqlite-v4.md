@@ -2,7 +2,7 @@
 
 ## Status and boundary
 
-Current local-library schema. Version 4 extends the immutable [version 3 schema](sqlite-v3.md) with the library-scoped source-subject correlation state accepted by [ADR 0005](../../architecture/decisions/0005-use-library-scoped-source-subject-correlation.md). The canonical fitness model and portable export remain separate contracts.
+Historical local-library schema superseded by [version 5](sqlite-v5.md). Version 4 extends the immutable [version 3 schema](sqlite-v3.md) with the library-scoped source-subject correlation state accepted by [ADR 0005](../../architecture/decisions/0005-use-library-scoped-source-subject-correlation.md). The canonical fitness model and portable export remain separate contracts.
 
 SQLite `PRAGMA user_version` stores value 4 after migration. New libraries apply all migrations through [`0004_source_subject.sql`](../../../src-tauri/migrations/0004_source_subject.sql) in one transaction. Existing versions 1, 2, and 3 apply only the ordered assets they lack. Any migration error or injected interruption rolls back the DDL, data transformation, generated key, and version marker together.
 

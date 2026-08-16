@@ -44,7 +44,7 @@ function rejectBoundaryTerms(relativePath, forbiddenTerms) {
 }
 
 requireDependencies("fitfreed-domain", []);
-requireDependencies("fitfreed-application", ["fitfreed-domain", "thiserror"]);
+requireDependencies("fitfreed-application", ["chrono", "fitfreed-domain", "thiserror"]);
 
 const forbiddenAdapterTerms = [
   "tauri",
@@ -62,9 +62,9 @@ rejectBoundaryTerms(
 );
 rejectBoundaryTerms(
   "src-tauri/crates/fitfreed-application/src/lib.rs",
-  forbiddenAdapterTerms,
+  forbiddenAdapterTerms.filter((term) => term !== "chrono"),
 );
 
 process.stdout.write(
-  `${JSON.stringify({ domainDependencies: [], applicationDependencies: ["fitfreed-domain", "thiserror"] })}\n`,
+  `${JSON.stringify({ domainDependencies: [], applicationDependencies: ["chrono", "fitfreed-domain", "thiserror"] })}\n`,
 );

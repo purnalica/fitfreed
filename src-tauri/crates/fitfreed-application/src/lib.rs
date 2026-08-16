@@ -1,4 +1,5 @@
 use std::{
+    collections::BTreeMap,
     path::Path,
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -6,6 +7,7 @@ use std::{
     },
 };
 
+use chrono::{Days, NaiveDate};
 use thiserror::Error;
 
 use fitfreed_domain::{DailyActivity, ImportOutcome, ImportReport};
@@ -103,6 +105,53 @@ pub struct ProfiledImport {
     pub timings: ImportPhaseTimings,
 }
 
+const DEFAULT_ACTIVITY_WINDOW_DAYS: u64 = 30;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ActivityDateRange {
+    pub from: String,
+    pub through: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ActivityDayAvailability {
+    Available,
+    Unavailable,
+    Missing,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ActivityDayInsight {
+    pub local_date: String,
+    pub step_count: Option<i64>,
+    pub availability: ActivityDayAvailability,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ActivitySeriesSummary {
+    pub calendar_days: usize,
+    pub observed_days: usize,
+    pub available_step_days: usize,
+    pub unavailable_step_days: usize,
+    pub missing_days: usize,
+    pub total_step_count: Option<i128>,
+    pub average_step_count: Option<i128>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ActivitySeriesOverview {
+    pub series_ref: String,
+    pub summary: ActivitySeriesSummary,
+    pub days: Vec<ActivityDayInsight>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ActivityOverview {
+    pub available_range: Option<ActivityDateRange>,
+    pub selected_range: Option<ActivityDateRange>,
+    pub series: Vec<ActivitySeriesOverview>,
+}
+
 pub trait ArchiveImportPort {
     fn import_archive(
         &self,
@@ -113,7 +162,8 @@ pub trait ArchiveImportPort {
 }
 
 pub trait ActivityLibraryPort {
-    fn query_activity(&self) -> Result<Vec<DailyActivity>, String>;
+    fn activity_bounds(&self) -> Result<Option<ActivityDateRange>, String>;
+    fn query_activity(&self, range: &ActivityDateRange) -> Result<Vec<DailyActivity>, String>;
 }
 
 pub trait ImportOutcomeLibraryPort {
@@ -204,10 +254,152 @@ pub fn import_archive(
     result
 }
 
-pub fn query_activity(
+pub fn query_default_activity_overview(
     port: &dyn ActivityLibraryPort,
-) -> Result<Vec<DailyActivity>, ApplicationError> {
-    port.query_activity().map_err(ApplicationError::Query)
+) -> Result<ActivityOverview, ApplicationError> {
+    let Some(available_range) = port.activity_bounds().map_err(ApplicationError::Query)? else {
+        return Ok(ActivityOverview {
+            available_range: None,
+            selected_range: None,
+            series: Vec::new(),
+        });
+    };
+
+    let earliest = parse_activity_date(&available_range.from)?;
+    let latest = parse_activity_date(&available_range.through)?;
+    if earliest > latest {
+        return Err(ApplicationError::Query(
+            "activity bounds are not ordered".to_owned(),
+        ));
+    }
+    let window_start = latest
+        .checked_sub_days(Days::new(DEFAULT_ACTIVITY_WINDOW_DAYS - 1))
+        .unwrap_or(earliest)
+        .max(earliest);
+    let selected_range = ActivityDateRange {
+        from: window_start.format("%Y-%m-%d").to_string(),
+        through: latest.format("%Y-%m-%d").to_string(),
+    };
+    let activities = port
+        .query_activity(&selected_range)
+        .map_err(ApplicationError::Query)?;
+    let series = build_activity_series(window_start, latest, activities)?;
+
+    Ok(ActivityOverview {
+        available_range: Some(available_range),
+        selected_range: Some(selected_range),
+        series,
+    })
+}
+
+fn parse_activity_date(value: &str) -> Result<NaiveDate, ApplicationError> {
+    let parsed = NaiveDate::parse_from_str(value, "%Y-%m-%d")
+        .map_err(|_| ApplicationError::Query("activity date is invalid".to_owned()))?;
+    if parsed.format("%Y-%m-%d").to_string() != value {
+        return Err(ApplicationError::Query(
+            "activity date is not canonical".to_owned(),
+        ));
+    }
+    Ok(parsed)
+}
+
+fn build_activity_series(
+    from: NaiveDate,
+    through: NaiveDate,
+    activities: Vec<DailyActivity>,
+) -> Result<Vec<ActivitySeriesOverview>, ApplicationError> {
+    let mut observations = BTreeMap::<String, BTreeMap<NaiveDate, Option<i64>>>::new();
+    for activity in activities {
+        let local_date = parse_activity_date(&activity.local_date)?;
+        if local_date < from || local_date > through {
+            return Err(ApplicationError::Query(
+                "activity query returned a date outside its range".to_owned(),
+            ));
+        }
+        if activity.step_count.is_some_and(|value| value < 0) {
+            return Err(ApplicationError::Query(
+                "activity query returned a negative step count".to_owned(),
+            ));
+        }
+        let replaced = observations
+            .entry(activity.origin_id)
+            .or_default()
+            .insert(local_date, activity.step_count);
+        if replaced.is_some() {
+            return Err(ApplicationError::Query(
+                "activity query returned a duplicate logical observation".to_owned(),
+            ));
+        }
+    }
+
+    observations
+        .into_iter()
+        .map(|(series_ref, observations)| {
+            build_activity_series_overview(series_ref, from, through, observations)
+        })
+        .collect()
+}
+
+fn build_activity_series_overview(
+    series_ref: String,
+    from: NaiveDate,
+    through: NaiveDate,
+    observations: BTreeMap<NaiveDate, Option<i64>>,
+) -> Result<ActivitySeriesOverview, ApplicationError> {
+    let mut days = Vec::new();
+    let mut available_step_days = 0;
+    let mut unavailable_step_days = 0;
+    let mut missing_days = 0;
+    let mut total_step_count = 0_i128;
+    let mut current = from;
+
+    loop {
+        let (step_count, availability) = match observations.get(&current) {
+            Some(Some(step_count)) => {
+                available_step_days += 1;
+                total_step_count += i128::from(*step_count);
+                (Some(*step_count), ActivityDayAvailability::Available)
+            }
+            Some(None) => {
+                unavailable_step_days += 1;
+                (None, ActivityDayAvailability::Unavailable)
+            }
+            None => {
+                missing_days += 1;
+                (None, ActivityDayAvailability::Missing)
+            }
+        };
+        days.push(ActivityDayInsight {
+            local_date: current.format("%Y-%m-%d").to_string(),
+            step_count,
+            availability,
+        });
+        if current == through {
+            break;
+        }
+        current = current.checked_add_days(Days::new(1)).ok_or_else(|| {
+            ApplicationError::Query("activity range exceeds the supported calendar".to_owned())
+        })?;
+    }
+
+    let total_step_count = (available_step_days > 0).then_some(total_step_count);
+    let average_step_count = total_step_count.map(|total| {
+        (total + i128::try_from(available_step_days).unwrap_or_default() / 2)
+            / i128::try_from(available_step_days).unwrap_or(1)
+    });
+    Ok(ActivitySeriesOverview {
+        series_ref,
+        summary: ActivitySeriesSummary {
+            calendar_days: days.len(),
+            observed_days: available_step_days + unavailable_step_days,
+            available_step_days,
+            unavailable_step_days,
+            missing_days,
+            total_step_count,
+            average_step_count,
+        },
+        days,
+    })
 }
 
 pub fn query_latest_import_outcome(
@@ -238,6 +430,11 @@ mod tests {
 
     struct ControlledImportPort;
 
+    struct ControlledActivityPort {
+        bounds: Option<ActivityDateRange>,
+        activities: Vec<DailyActivity>,
+    }
+
     struct ControlledOutcomePort;
 
     struct ControlledLocalePort;
@@ -251,6 +448,18 @@ mod tests {
         ) -> Result<ImportReport, String> {
             assert!(!cancellation.load(Ordering::Relaxed));
             Ok(ImportReport::assessed())
+        }
+    }
+
+    impl ActivityLibraryPort for ControlledActivityPort {
+        fn activity_bounds(&self) -> Result<Option<ActivityDateRange>, String> {
+            Ok(self.bounds.clone())
+        }
+
+        fn query_activity(&self, range: &ActivityDateRange) -> Result<Vec<DailyActivity>, String> {
+            assert_eq!(range.from, "2026-01-17");
+            assert_eq!(range.through, "2026-02-15");
+            Ok(self.activities.clone())
         }
     }
 
@@ -300,6 +509,204 @@ mod tests {
             query_latest_import_outcome(&ControlledOutcomePort).expect("outcome query"),
             None
         );
+    }
+
+    #[test]
+    fn builds_a_gap_aware_default_activity_overview_without_combining_origins() {
+        let overview = query_default_activity_overview(&ControlledActivityPort {
+            bounds: Some(ActivityDateRange {
+                from: "2026-01-01".to_owned(),
+                through: "2026-02-15".to_owned(),
+            }),
+            activities: vec![
+                DailyActivity {
+                    origin_id: "origin-b".to_owned(),
+                    local_date: "2026-01-17".to_owned(),
+                    step_count: Some(50),
+                },
+                DailyActivity {
+                    origin_id: "origin-a".to_owned(),
+                    local_date: "2026-01-17".to_owned(),
+                    step_count: Some(100),
+                },
+                DailyActivity {
+                    origin_id: "origin-a".to_owned(),
+                    local_date: "2026-01-18".to_owned(),
+                    step_count: None,
+                },
+                DailyActivity {
+                    origin_id: "origin-a".to_owned(),
+                    local_date: "2026-01-20".to_owned(),
+                    step_count: Some(201),
+                },
+            ],
+        })
+        .expect("activity overview");
+
+        assert_eq!(
+            overview.available_range,
+            Some(ActivityDateRange {
+                from: "2026-01-01".to_owned(),
+                through: "2026-02-15".to_owned(),
+            })
+        );
+        assert_eq!(
+            overview.selected_range,
+            Some(ActivityDateRange {
+                from: "2026-01-17".to_owned(),
+                through: "2026-02-15".to_owned(),
+            })
+        );
+        assert_eq!(overview.series.len(), 2);
+
+        let origin_a = &overview.series[0];
+        assert_eq!(origin_a.series_ref, "origin-a");
+        assert_eq!(origin_a.summary.calendar_days, 30);
+        assert_eq!(origin_a.summary.observed_days, 3);
+        assert_eq!(origin_a.summary.available_step_days, 2);
+        assert_eq!(origin_a.summary.unavailable_step_days, 1);
+        assert_eq!(origin_a.summary.missing_days, 27);
+        assert_eq!(origin_a.summary.total_step_count, Some(301));
+        assert_eq!(origin_a.summary.average_step_count, Some(151));
+        assert_eq!(origin_a.days.len(), 30);
+        assert_eq!(
+            origin_a.days[0].availability,
+            ActivityDayAvailability::Available
+        );
+        assert_eq!(
+            origin_a.days[1].availability,
+            ActivityDayAvailability::Unavailable
+        );
+        assert_eq!(
+            origin_a.days[2].availability,
+            ActivityDayAvailability::Missing
+        );
+        assert_eq!(origin_a.days[3].step_count, Some(201));
+
+        let origin_b = &overview.series[1];
+        assert_eq!(origin_b.series_ref, "origin-b");
+        assert_eq!(origin_b.summary.observed_days, 1);
+        assert_eq!(origin_b.summary.missing_days, 29);
+        assert_eq!(origin_b.summary.total_step_count, Some(50));
+    }
+
+    #[test]
+    fn returns_an_empty_activity_overview_without_querying_a_range() {
+        struct EmptyActivityPort;
+
+        impl ActivityLibraryPort for EmptyActivityPort {
+            fn activity_bounds(&self) -> Result<Option<ActivityDateRange>, String> {
+                Ok(None)
+            }
+
+            fn query_activity(
+                &self,
+                _range: &ActivityDateRange,
+            ) -> Result<Vec<DailyActivity>, String> {
+                panic!("an empty library has no range to query")
+            }
+        }
+
+        assert_eq!(
+            query_default_activity_overview(&EmptyActivityPort).expect("empty overview"),
+            ActivityOverview {
+                available_range: None,
+                selected_range: None,
+                series: Vec::new(),
+            }
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_or_reversed_activity_bounds_without_querying_facts() {
+        struct InvalidBoundsPort(ActivityDateRange);
+
+        impl ActivityLibraryPort for InvalidBoundsPort {
+            fn activity_bounds(&self) -> Result<Option<ActivityDateRange>, String> {
+                Ok(Some(self.0.clone()))
+            }
+
+            fn query_activity(
+                &self,
+                _range: &ActivityDateRange,
+            ) -> Result<Vec<DailyActivity>, String> {
+                panic!("invalid bounds must stop before fact retrieval")
+            }
+        }
+
+        for bounds in [
+            ActivityDateRange {
+                from: "2026-02-30".to_owned(),
+                through: "2026-03-01".to_owned(),
+            },
+            ActivityDateRange {
+                from: "2026-03-02".to_owned(),
+                through: "2026-03-01".to_owned(),
+            },
+        ] {
+            assert!(matches!(
+                query_default_activity_overview(&InvalidBoundsPort(bounds)),
+                Err(ApplicationError::Query(_))
+            ));
+        }
+    }
+
+    #[test]
+    fn rejects_invalid_activity_facts_instead_of_building_a_partial_overview() {
+        struct InvalidFactsPort(Vec<DailyActivity>);
+
+        impl ActivityLibraryPort for InvalidFactsPort {
+            fn activity_bounds(&self) -> Result<Option<ActivityDateRange>, String> {
+                Ok(Some(ActivityDateRange {
+                    from: "2026-01-01".to_owned(),
+                    through: "2026-01-03".to_owned(),
+                }))
+            }
+
+            fn query_activity(
+                &self,
+                _range: &ActivityDateRange,
+            ) -> Result<Vec<DailyActivity>, String> {
+                Ok(self.0.clone())
+            }
+        }
+
+        let invalid_cases = [
+            vec![DailyActivity {
+                origin_id: "origin".to_owned(),
+                local_date: "2026-02-30".to_owned(),
+                step_count: Some(1),
+            }],
+            vec![DailyActivity {
+                origin_id: "origin".to_owned(),
+                local_date: "2025-12-31".to_owned(),
+                step_count: Some(1),
+            }],
+            vec![DailyActivity {
+                origin_id: "origin".to_owned(),
+                local_date: "2026-01-01".to_owned(),
+                step_count: Some(-1),
+            }],
+            vec![
+                DailyActivity {
+                    origin_id: "origin".to_owned(),
+                    local_date: "2026-01-01".to_owned(),
+                    step_count: Some(1),
+                },
+                DailyActivity {
+                    origin_id: "origin".to_owned(),
+                    local_date: "2026-01-01".to_owned(),
+                    step_count: Some(1),
+                },
+            ],
+        ];
+
+        for activities in invalid_cases {
+            assert!(matches!(
+                query_default_activity_overview(&InvalidFactsPort(activities)),
+                Err(ApplicationError::Query(_))
+            ));
+        }
     }
 
     #[test]

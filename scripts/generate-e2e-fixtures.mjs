@@ -69,8 +69,8 @@ await createArchive("overlap.zip", [
     '{"date":"2026-01-02","summary":{"stepCount":4200}}',
   ],
   [
-    `activity-2026-01-04-${uuidB}.json`,
-    '{"date":"2026-01-04","summary":{"stepCount":5300}}',
+    `activity-2026-01-05-${uuidB}.json`,
+    '{"date":"2026-01-05","summary":{"stepCount":5300}}',
   ],
 ]);
 

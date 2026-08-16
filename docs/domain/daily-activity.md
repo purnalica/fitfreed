@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented first vertical concept for Milestone 1. The deliberately small accepted version is normative in the [canonical daily activity specification](../data-formats/canonical/daily-activity.md); the broader components and open decisions below remain design candidates rather than implied support.
+Implemented canonical concept and first Milestone 2 Insights overview. The deliberately small accepted canonical version is normative in the [canonical daily activity specification](../data-formats/canonical/daily-activity.md). The provider-neutral [overview read model](../data-formats/insights/daily-activity-overview-v1.md) selects the latest 30 local dates, keeps origins separate, and discloses unavailable and missing days. The broader components and open decisions below remain design candidates rather than implied support.
 
 ## Why this concept is first
 
@@ -41,6 +41,7 @@ The canonical specification will use semantic field names and explicit units. A 
 6. Counts and durations cannot be negative; additional value ranges require documented source semantics rather than assumptions.
 7. Physical-information snapshots and source-derived sleep fields do not become daily activity components.
 8. Every component retains traceable source and mapping provenance without exposing personal values in diagnostics.
+9. Insights never combine observations from different origins implicitly; each origin remains a separate series until an explicit user-controlled composition policy exists.
 
 ## Reconciliation
 
@@ -67,12 +68,11 @@ This evidence supports a candidate and synthetic tests, not a universal provider
 - Domain tests for identity, invariants, equivalence, enrichment, and conflict.
 - Adapter tests proving filename date agreement is validation evidence but the filename token is not identity.
 - Persistence tests proving one visible observation per origin/date and atomic reimport.
-- A localized desktop journey that imports a synthetic package and displays a useful daily history with explicit gaps.
+- Interactive custom-range, detail, and period-comparison evidence beyond the implemented default overview.
 
 ## Open decisions
 
-- The stable evidence and user-recovery flow used to match a Polar source subject across packages.
 - Canonical units and precision for every supported summary and sample value.
 - Source-local sample rollover behavior and handling of daylight-saving gaps or repetitions.
 - Whether sample-source classifications have provider-neutral meaning or remain source-specific observations.
-- Whether an MVP insight presents multiple origins separately or defines a user-controlled composition policy.
+- The source-attribution label and explicit composition controls required before a user can compare or combine multiple origins.
