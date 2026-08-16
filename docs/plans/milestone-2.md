@@ -56,6 +56,8 @@ Hosted evidence: commit `pre-purge` passed the [portable, private-release, insta
 
 ## Increment M2.3 — Training-session summaries
 
+**Status:** active. The source, canonical, aggregate, identity, revision, local-time, unit, privacy, and known-loss contracts are specified for summary version 1. Adapter version 4 and schema version 6 implement the import-to-storage slice with summary-only validation, source-subject-scoped identity, duplicate rejection, amendment ordering, provenance, conflicts, and chronological querying. The packaged import journey covers localized summary-only coverage, create, exact repeat, later amendment, and restart through production entry points. The privacy-minimized private-reference predicate passes for both daily activity and training under one opaque origin. Training application read models, Insights UI, training-specific accessibility and performance evidence, and hosted execution remain pending. Polar's current Dynamic API provides official field semantics but its authenticated sports catalogue is absent from the evaluated takeout, so sport references remain explicitly unresolved rather than guessed.
+
 **Outcome:** the same history can be explored by provider-neutral training sessions without importing route geometry or full-resolution samples into the MVP experience.
 
 **Work:**
@@ -66,6 +68,8 @@ Hosted evidence: commit `pre-purge` passed the [portable, private-release, insta
 4. Add training overview, filtering, detail, and period-comparison contributions to the established Insights contracts.
 
 **Acceptance evidence:** synthetic variants cover equivalent, amended, conflicting, malformed, missing-relationship, time-zone, unknown-enumeration, and unsupported high-resolution cases. Unit, integration, migration, UI, packaged E2E, documentation, localization, accessibility, and query-budget gates pass.
+
+Local import-to-storage evidence on 2026-08-16: contract and documentation checks passed schema version 6, adapter version 4, both complete 195-message locale catalogs, and 250 local links. Four domain, 11 application, 58 adapter, persistence, migration, and host tests, 14 presentation tests, strict Clippy, formatting, dependency audit, repository-content inspection, and secret scanning passed. The production bundle excluded test capabilities. The packaged macOS journey passed training-summary coverage in both locales, initial creation, exact repeat, later amendment, retained daily history, accessibility, restart, and the existing activity rendering budgets. The private-reference verifier passed its boolean-only activity, training, opaque-origin, coverage, and exact-repeat predicate without emitting counts, durations, paths, identifiers, dates, or values. This evidence closes the import-to-storage slice only; it does not close the training Insights increment.
 
 ## Increment M2.4 — Sleep history
 

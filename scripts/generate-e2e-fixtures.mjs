@@ -10,6 +10,25 @@ const uuidA = "11111111-2222-4333-8444-555555555555";
 const uuidB = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
 const uuidC = "12345678-90ab-4cde-8f01-234567890abc";
 const syntheticUsername = "fixture-primary-claim";
+const syntheticTrainingSessionId = "fixture-training-session";
+
+function trainingSession(modified, distanceMeters) {
+  return JSON.stringify({
+    identifier: { id: syntheticTrainingSessionId },
+    created: "2026-01-04T08:00:00.000",
+    modified,
+    startTime: "2026-01-04T06:15:00",
+    stopTime: "2026-01-04T07:15:00",
+    timezoneOffsetMinutes: 60,
+    durationMillis: 3_600_000,
+    distanceMeters,
+    calories: 600,
+    hrAvg: 142,
+    hrMax: 171,
+    sport: { id: "99" },
+    exercises: [{ syntheticExcludedDetail: true }],
+  });
+}
 
 async function createArchive(name, entries) {
   const outputPath = path.join(outputDirectory, name);
@@ -55,6 +74,10 @@ await createArchive("valid.zip", [
     `account-data-42-${uuidA}.json`,
     JSON.stringify({ exportVersion: "synthetic", username: syntheticUsername }),
   ],
+  [
+    `training-session_2026-01-04T06-15-00_42-${uuidA}.json`,
+    trainingSession("2026-01-04T08:05:00.000", 10_000),
+  ],
   [`sleep_result_42-${uuidA}.json`, "[]"],
   [`profile-picture-42-LARGE-${uuidA}.data`, "synthetic image"],
   [`future-family-42-${uuidA}.json`, "{}"],
@@ -71,6 +94,10 @@ await createArchive("overlap.zip", [
   [
     `activity-2026-01-05-${uuidB}.json`,
     '{"date":"2026-01-05","summary":{"stepCount":5300}}',
+  ],
+  [
+    `training-session_2026-01-04T06-15-00_77-${uuidB}.json`,
+    trainingSession("2026-01-04T09:00:00.000", 10_500),
   ],
 ]);
 

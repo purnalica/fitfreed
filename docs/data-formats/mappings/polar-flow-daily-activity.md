@@ -46,7 +46,7 @@ This is a precise compatibility claim for the evaluated shapes, not a guarantee 
 
 Every safe ZIP-root member receives one artifact-coverage classification when assessment completes. A structurally valid account-data claim and successfully mapped activity artifacts are `supported`; malformed account data and recognized activity artifacts with malformed JSON, an invalid or missing `date`, or an invalid mapped value are `invalid`. Other complete known Polar Flow grammars are `unsupported` or `deliberately-ignored` according to the provider registry, while unfamiliar and malformed names are `unrecognized`. Field-level omissions inside a supported activity artifact do not create additional artifact rows.
 
-Mapping reads one expanded artifact at a time before the canonical visibility transaction. Each mapped observation carries its artifact locator, artifact SHA-256, `json-root` source-record locator, provider, adapter version, and this mapping version into reconciliation. Reconciliation stores a provenance row for create, equivalent, enrichment, preservation, and conflict decisions.
+Mapping reads one expanded artifact at a time before the canonical visibility transaction. Each mapped observation carries its artifact locator, artifact SHA-256, `json-root` source-record locator, provider, adapter version `polar-flow-archive@4`, and this mapping version into reconciliation. Reconciliation stores a provenance row for create, equivalent, enrichment, preservation, and conflict decisions. Import operations record the combined `polar-flow-mapping-set@1` contract while daily-activity provenance retains the more specific `polar-flow-daily-activity@1` mapping.
 
 Any invalid supported artifact rejects the complete package after coverage has been recorded. Cancellation, rejection, failure, or injected transaction interruption exposes no canonical changes. Accepted canonical observations, provenance, conflicts, reconciliation counts, and the completed import outcome become visible in one SQLite transaction.
 
@@ -56,7 +56,7 @@ The canonical (`originId`, `localDate`) identity drives overlap reconciliation. 
 
 ## Compatibility limits
 
-Adapter version `polar-flow-archive@3` implements the shape-based matrix, filename/content consistency, duplicate-identity rejection, version-scoped exact-repeat reuse, and source-subject resolution under [ADR 0005](../../architecture/decisions/0005-use-library-scoped-source-subject-correlation.md). Recognition still does not imply that every JSON structure or semantic variant is supported. The privacy-safe acceptance predicate has passed against the supplied reference export, but one evaluated package cannot establish universal historical compatibility.
+Adapter version `polar-flow-archive@4` implements the shape-based matrix, filename/content consistency, duplicate-identity rejection, version-scoped exact-repeat reuse, and source-subject resolution under [ADR 0005](../../architecture/decisions/0005-use-library-scoped-source-subject-correlation.md). Recognition still does not imply that every JSON structure or semantic variant is supported. The privacy-safe acceptance predicate has passed against the supplied reference export, but one evaluated package cannot establish universal historical compatibility.
 
 ## Synthetic evidence
 

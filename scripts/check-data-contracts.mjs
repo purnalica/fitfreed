@@ -68,7 +68,10 @@ for (const contractValue of [
   "polar-flow-archive@1",
   "polar-flow-archive@2",
   "polar-flow-archive@3",
+  "polar-flow-archive@4",
+  "polar-flow-mapping-set@1",
   "polar-flow-daily-activity@1",
+  "polar-flow-training-session@1",
   "assessing",
   "planned",
   "staging",
@@ -84,6 +87,7 @@ for (const contractValue of [
   "deliberately-ignored",
   "unrecognized",
   "invalid",
+  "amend",
   "en-US",
   "es-ES",
 ]) {
@@ -101,6 +105,15 @@ for (const fieldMatch of dailyActivityMatch[1].matchAll(/pub ([a-z_]+):/g)) {
   requireMention(canonical, camelCase, canonicalPath);
 }
 
+const trainingSessionMatch = domain.match(/pub struct TrainingSession \{([\s\S]*?)\n\}/);
+if (!trainingSessionMatch) throw new Error(`${domainPath} has no TrainingSession`);
+const trainingCanonicalPath = "docs/data-formats/canonical/training-session.md";
+const trainingCanonical = read(trainingCanonicalPath);
+for (const fieldMatch of trainingSessionMatch[1].matchAll(/pub ([a-z_]+):/g)) {
+  const camelCase = fieldMatch[1].replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+  requireMention(trainingCanonical, camelCase, trainingCanonicalPath);
+}
+
 const mappingPath = "docs/data-formats/mappings/polar-flow-daily-activity.md";
 const mapping = read(mappingPath);
 requireMention(mapping, sourceAdapterVersion, mappingPath);
@@ -109,6 +122,50 @@ for (const sourceField of ["date", "summary", "summary.stepCount"]) {
 }
 for (const targetField of ["originId", "localDate", "stepCount"]) {
   requireMention(mapping, targetField, mappingPath);
+}
+
+
+const trainingMappingPath = "docs/data-formats/mappings/polar-flow-training-session.md";
+const trainingMapping = read(trainingMappingPath);
+for (const contractValue of [
+  sourceAdapterVersion,
+  "polar-flow-mapping-set@1",
+  "polar-flow-training-session@1",
+]) {
+  requireMention(trainingMapping, contractValue, trainingMappingPath);
+}
+for (const sourceField of [
+  "identifier.id",
+  "created",
+  "modified",
+  "startTime",
+  "stopTime",
+  "timezoneOffsetMinutes",
+  "durationMillis",
+  "distanceMeters",
+  "calories",
+  "hrAvg",
+  "hrMax",
+  "sport.id",
+  "exercises",
+]) {
+  requireMention(trainingMapping, sourceField, trainingMappingPath);
+}
+for (const targetField of [
+  "originId",
+  "sessionId",
+  "startedAtLocal",
+  "stoppedAtLocal",
+  "utcOffsetMinutes",
+  "durationMilliseconds",
+  "distanceMeters",
+  "energyKilocalories",
+  "averageHeartRateBpm",
+  "maximumHeartRateBpm",
+  "sportRef",
+  "exerciseCount",
+]) {
+  requireMention(trainingMapping, targetField, trainingMappingPath);
 }
 
 const activityOverviewPath = "docs/data-formats/insights/daily-activity-overview-v1.md";

@@ -19,6 +19,7 @@ interface ImportReport {
   newObservations: number;
   equivalentObservations: number;
   enrichedObservations: number;
+  amendedObservations: number;
   preservedObservations: number;
   conflicts: number;
 }
@@ -313,7 +314,7 @@ function App() {
       const form = plural.select(value) === "one" ? "one" : "other";
       return `${number.format(value)} ${messages.counts[key][form]}`;
     };
-    return `${messages.completed}: ${count(latest.report.recognizedArtifacts, "recognized")}, ${count(latest.report.newObservations, "created")}, ${count(latest.report.enrichedObservations, "enriched")}, ${count(latest.report.equivalentObservations, "equivalent")}, ${count(latest.report.preservedObservations, "preserved")}, ${count(latest.report.conflicts, "conflicts")}.`;
+    return `${messages.completed}: ${count(latest.report.recognizedArtifacts, "recognized")}, ${count(latest.report.newObservations, "created")}, ${count(latest.report.enrichedObservations, "enriched")}, ${count(latest.report.amendedObservations, "amended")}, ${count(latest.report.equivalentObservations, "equivalent")}, ${count(latest.report.preservedObservations, "preserved")}, ${count(latest.report.conflicts, "conflicts")}.`;
   }
 
   function providerName(provider: string): string {

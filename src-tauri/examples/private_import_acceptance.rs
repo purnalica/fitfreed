@@ -1,10 +1,11 @@
 use std::{env, path::Path, process::ExitCode};
 
-use fitfreed_domain::{ArtifactCoverageSummary, ImportOperationState};
+use fitfreed_domain::ImportOperationState;
 use fitfreed_lib::infrastructure::{
     profile_polar_import_archive, query_activity, query_latest_import_outcome,
+    query_training_sessions,
 };
-use serde_json::{json, Value};
+use serde_json::json;
 use tempfile::tempdir;
 
 fn main() -> ExitCode {
@@ -32,7 +33,7 @@ fn main() -> ExitCode {
     };
     let database_path = directory.path().join("private-acceptance.sqlite");
 
-    let Ok(first) = profile_polar_import_archive(&database_path, Path::new(archive)) else {
+    let Ok(_) = profile_polar_import_archive(&database_path, Path::new(archive)) else {
         return report_failure(&database_path);
     };
     let Ok(Some(first_outcome)) = query_latest_import_outcome(&database_path) else {
@@ -49,15 +50,31 @@ fn main() -> ExitCode {
         );
         return ExitCode::FAILURE;
     };
+    let Ok(training_history) = query_training_sessions(&database_path) else {
+        println!(
+            "{}",
+            json!({ "accepted": false, "code": "training-history-unavailable" })
+        );
+        return ExitCode::FAILURE;
+    };
     let Ok(repeated) = profile_polar_import_archive(&database_path, Path::new(archive)) else {
         return report_failure(&database_path);
     };
-    let one_origin = history
+    let first_origin = history
         .first()
-        .is_none_or(|first| history.iter().all(|item| item.origin_id == first.origin_id));
+        .map(|item| item.origin_id.as_str())
+        .or_else(|| training_history.first().map(|item| item.origin_id.as_str()));
+    let one_origin = first_origin.is_some_and(|origin| {
+        history.iter().all(|item| item.origin_id == origin)
+            && training_history.iter().all(|item| item.origin_id == origin)
+    });
+    let activity_history_available = !history.is_empty();
+    let training_history_available = !training_history.is_empty();
     let accepted = first_outcome.state == ImportOperationState::Completed
         && first_outcome.coverage_complete
         && repeated.report.exact_repeat
+        && activity_history_available
+        && training_history_available
         && one_origin;
 
     println!(
@@ -66,15 +83,10 @@ fn main() -> ExitCode {
             "accepted": accepted,
             "state": first_outcome.state.code(),
             "coverageComplete": first_outcome.coverage_complete,
-            "coverage": coverage_json(&first_outcome.coverage),
-            "recognizedArtifacts": first.report.recognized_artifacts,
-            "newObservations": first.report.new_observations,
-            "conflicts": first.report.conflicts,
-            "historyObservations": history.len(),
+            "activityHistoryAvailable": activity_history_available,
+            "trainingHistoryAvailable": training_history_available,
             "oneOpaqueOrigin": one_origin,
             "exactRepeat": repeated.report.exact_repeat,
-            "firstImportMilliseconds": first.timings.total_milliseconds,
-            "exactRepeatMilliseconds": repeated.timings.total_milliseconds,
         })
     );
     if accepted {
@@ -93,19 +105,7 @@ fn report_failure(database_path: &Path) -> ExitCode {
             "state": outcome.as_ref().map(|value| value.state.code()),
             "terminalCode": outcome.as_ref().and_then(|value| value.terminal_code.as_deref()),
             "coverageComplete": outcome.as_ref().is_some_and(|value| value.coverage_complete),
-            "coverage": outcome.as_ref().map(|value| coverage_json(&value.coverage)),
         })
     );
     ExitCode::FAILURE
-}
-
-fn coverage_json(coverage: &ArtifactCoverageSummary) -> Value {
-    json!({
-        "total": coverage.total,
-        "supported": coverage.supported,
-        "unsupported": coverage.unsupported,
-        "deliberatelyIgnored": coverage.deliberately_ignored,
-        "unrecognized": coverage.unrecognized,
-        "invalid": coverage.invalid,
-    })
 }

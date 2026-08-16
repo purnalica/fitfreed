@@ -5,6 +5,22 @@ pub struct DailyActivity {
     pub step_count: Option<i64>,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct TrainingSession {
+    pub origin_id: String,
+    pub session_id: String,
+    pub started_at_local: String,
+    pub stopped_at_local: String,
+    pub utc_offset_minutes: Option<i32>,
+    pub duration_milliseconds: i64,
+    pub distance_meters: Option<f64>,
+    pub energy_kilocalories: Option<i64>,
+    pub average_heart_rate_bpm: Option<i64>,
+    pub maximum_heart_rate_bpm: Option<i64>,
+    pub sport_ref: Option<String>,
+    pub exercise_count: Option<usize>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportReport {
     pub exact_repeat: bool,
@@ -12,6 +28,7 @@ pub struct ImportReport {
     pub new_observations: usize,
     pub equivalent_observations: usize,
     pub enriched_observations: usize,
+    pub amended_observations: usize,
     pub preserved_observations: usize,
     pub conflicts: usize,
 }
@@ -183,6 +200,7 @@ impl ImportReport {
             new_observations: 0,
             equivalent_observations: 0,
             enriched_observations: 0,
+            amended_observations: 0,
             preserved_observations: 0,
             conflicts: 0,
         }
@@ -195,6 +213,7 @@ impl ImportReport {
             new_observations: 0,
             equivalent_observations: 0,
             enriched_observations: 0,
+            amended_observations: 0,
             preserved_observations: 0,
             conflicts: 0,
         }
@@ -205,6 +224,7 @@ impl ImportReport {
             ReconciliationDecision::Create => self.new_observations += 1,
             ReconciliationDecision::Equivalent => self.equivalent_observations += 1,
             ReconciliationDecision::Enrich => self.enriched_observations += 1,
+            ReconciliationDecision::Amend => self.amended_observations += 1,
             ReconciliationDecision::Preserve => self.preserved_observations += 1,
             ReconciliationDecision::Conflict => self.conflicts += 1,
         }
@@ -222,8 +242,35 @@ pub enum ReconciliationDecision {
     Create,
     Equivalent,
     Enrich,
+    Amend,
     Preserve,
     Conflict,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RevisionOrder {
+    Older,
+    Equal,
+    Newer,
+    Unorderable,
+}
+
+pub fn decide_training_session_reconciliation(
+    existing: Option<&TrainingSession>,
+    incoming: &TrainingSession,
+    revision_order: RevisionOrder,
+) -> ReconciliationDecision {
+    let Some(existing) = existing else {
+        return ReconciliationDecision::Create;
+    };
+    if existing == incoming {
+        return ReconciliationDecision::Equivalent;
+    }
+    match revision_order {
+        RevisionOrder::Newer => ReconciliationDecision::Amend,
+        RevisionOrder::Older => ReconciliationDecision::Preserve,
+        RevisionOrder::Equal | RevisionOrder::Unorderable => ReconciliationDecision::Conflict,
+    }
 }
 
 pub fn decide_reconciliation(
@@ -248,6 +295,57 @@ pub fn decide_reconciliation(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn training_session(duration_milliseconds: i64) -> TrainingSession {
+        TrainingSession {
+            origin_id: "synthetic-origin".to_owned(),
+            session_id: "synthetic-session".to_owned(),
+            started_at_local: "2026-01-02T10:30:00".to_owned(),
+            stopped_at_local: "2026-01-02T11:30:00".to_owned(),
+            utc_offset_minutes: Some(60),
+            duration_milliseconds,
+            distance_meters: Some(10_000.5),
+            energy_kilocalories: Some(650),
+            average_heart_rate_bpm: Some(145),
+            maximum_heart_rate_bpm: Some(178),
+            sport_ref: Some("synthetic-sport".to_owned()),
+            exercise_count: Some(1),
+        }
+    }
+
+    #[test]
+    fn reconciles_training_sessions_using_canonical_equality_and_revision_order() {
+        let existing = training_session(3_600_000);
+        let equivalent = existing.clone();
+        let amended = training_session(3_700_000);
+
+        assert_eq!(
+            decide_training_session_reconciliation(None, &equivalent, RevisionOrder::Unorderable),
+            ReconciliationDecision::Create
+        );
+        assert_eq!(
+            decide_training_session_reconciliation(
+                Some(&existing),
+                &equivalent,
+                RevisionOrder::Older
+            ),
+            ReconciliationDecision::Equivalent
+        );
+        assert_eq!(
+            decide_training_session_reconciliation(Some(&existing), &amended, RevisionOrder::Newer),
+            ReconciliationDecision::Amend
+        );
+        assert_eq!(
+            decide_training_session_reconciliation(Some(&existing), &amended, RevisionOrder::Older),
+            ReconciliationDecision::Preserve
+        );
+        for order in [RevisionOrder::Equal, RevisionOrder::Unorderable] {
+            assert_eq!(
+                decide_training_session_reconciliation(Some(&existing), &amended, order),
+                ReconciliationDecision::Conflict
+            );
+        }
+    }
 
     #[test]
     fn classifies_every_daily_activity_reconciliation_outcome() {

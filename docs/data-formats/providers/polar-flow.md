@@ -2,7 +2,7 @@
 
 ## Status
 
-Discovery baseline, last verified on 2026-08-15. Polar Flow is the only provider export in MVP scope.
+Discovery baseline, last verified on 2026-08-16. Polar Flow is the only provider export in MVP scope.
 
 This reference describes the personal-data export archive, not the Polar AccessLink API and not the separate export of an individual training session. It contains no copied personal record, personal value, exact source path, archive count, archive size, timestamp sequence, route, identifier, or other private data-set fingerprint.
 
@@ -19,6 +19,7 @@ The adequacy test requires public documentation of the archive layout, artifact 
 | [How to download all your data from Polar Flow](https://support.polar.com/us-en/how-to-download-all-your-data-from-polar-flow) | The request and download workflow and a high-level description of export contents | ZIP layout, filenames, JSON schemas, field semantics, relationships, versions, and compatibility rules |
 | [Export training sessions from Polar Flow](https://support.polar.com/us-en/export-training-sessions-flow) | Separate export options for individual training sessions | The account-level personal-data export contract |
 | [Polar AccessLink API](https://www.polar.com/accesslink-api/) | A developer API for accessing selected Polar data | The personal-data export archive contract |
+| [Polar AccessLink Dynamic API](https://www.polar.com/polar-api-v4/) | The public `TrainingSession` field contract, units, time semantics, nested structures, and separate authenticated sports catalogue that correspond to the observed training-session artifacts | The takeout ZIP layout, filename grammar, archive compatibility guarantees, or inclusion of the sports catalogue in a takeout |
 | [Polar's official GitHub organization](https://github.com/polarofficial) | Public SDKs, examples, and API-related projects | A complete personal-data export specification found by this review |
 
 This conclusion is deliberately time-bounded. A later official specification takes precedence for facts within its stated scope, while historical observations remain relevant to archives produced before that specification.
@@ -54,7 +55,7 @@ This registry is the public coverage index. Detailed shapes, fields, identities,
 | Daily activity | Daily summaries, activity samples, and inactivity events | Filename grammar, source-subject correlation, filename/content date consistency, duplicate-date rejection, and the documented shape-based canonical step-count mapping are supported; compatibility is limited to the evaluated structural matrix |
 | Continuous heart rate | Partitioned high-resolution daily heart-rate samples | Recognized and deliberately ignored because full-resolution physiological exploration is excluded from the MVP |
 | Beat-to-beat samples | Partitioned high-resolution physiological samples | Recognized and deliberately ignored because full-resolution physiological exploration is excluded from the MVP |
-| Training | Sessions, exercises, laps, zones, routes, and sample series | Recognized and unsupported; summary support is planned, while routes and full-resolution samples are excluded from the MVP |
+| Training | Sessions, exercises, laps, zones, routes, and sample series | Session summaries are supported; routes, full-resolution samples, laps, zones, and nested exercise measurements are deliberately not persisted by summary mapping version 1 |
 | Planning | Calendar entries, targets, favorites, programs, and personal events | Recognized and unsupported |
 | Sleep | Sleep timing, phases, interruptions, continuity, and scores | Recognized and unsupported pending the sleep increment |
 | Recovery | Nightly recovery measurements, recommendations, and related physiological observations | Recognized and unsupported pending the recovery increment |
@@ -148,6 +149,50 @@ The absence of a time-zone identifier means the date and source-local sample tim
 The evaluated export alone cannot prove a provider-stable account key. The source-subject contract introduced by Polar adapter version 2 and retained by version 3 therefore requires exactly one account-data artifact with a non-empty string `username`, applies exact versioned matching, and passes the transient value to the library-scoped resolver defined by [ADR 0005](../../architecture/decisions/0005-use-library-scoped-source-subject-correlation.md). The raw value is never canonical identity or stored correlation state. A changed or unmatched claim fails closed; no filename token is promoted to identity evidence.
 
 The implemented walking-skeleton transformation is specified normatively in the [Polar Flow daily activity mapping](../mappings/polar-flow-daily-activity.md). This provider reference remains descriptive evidence and does not define FitFreed behavior by itself.
+
+## Training-session family
+
+### Structural contract
+
+The public Polar AccessLink Dynamic API now specifies the same `TrainingSession` object and field names observed in the personal-data export. It is **Official** evidence for those field meanings, types, units, and nested contracts. It is not evidence for the ZIP container, delivery filename, cross-export identifier stability, or which optional fields a particular takeout includes. Those aspects remain **Observed** or **Unknown**.
+
+Each evaluated training-session artifact is an object. The `identifier.id`, `created`, `modified`, `startTime`, `stopTime`, and `durationMillis` fields are present in every evaluated artifact. `identifier.id` is a non-empty string and is unique within the evaluated package; it is not restricted to a UUID lexical form. The filename timestamp matches `startTime` to whole-second precision in the evaluated package. Cross-export stability of `identifier.id` remains unproven by the single-package observation.
+
+| Path | Evidence | Type and optionality | Established meaning or limitation |
+|---|---|---|---|
+| `identifier.id` | Official and observed | non-empty string; containing object is optional in the official API and present in every evaluated artifact | Polar training-session reference. FitFreed requires it for supported summary identity and scopes it to the resolved source subject. |
+| `created` | Official and observed | required string | ISO 8601 creation time with UTC semantics. The evaluated representation uses millisecond precision without an explicit offset marker. |
+| `modified` | Official and observed | required string | ISO 8601 last-modification time with UTC semantics. It is source revision evidence, not the time of the training. |
+| `startTime` | Official and observed | required string | ISO 8601 local date-time in the user's local time zone. The evaluated representation uses whole-second precision and no embedded offset. |
+| `stopTime` | Official and observed | required string | ISO 8601 local date-time. FitFreed preserves it independently from the declared duration. |
+| `timezoneOffsetMinutes` | Official and observed | optional signed integer | Offset from UTC in minutes. Absence is unknown offset, not zero. |
+| `durationMillis` | Official and observed | required non-negative integer | Declared session duration in milliseconds. Evaluated sessions include cases where it is equal to, shorter than, and longer than the local wall-clock difference, so it must not be derived from `startTime` and `stopTime`. |
+| `distanceMeters` | Official and observed | optional finite non-negative number | Distance in metres. Absence means unavailable and is distinct from zero. |
+| `calories` | Official and observed | optional non-negative integer | Expended energy in kilocalories. Absence means unavailable and is distinct from zero. |
+| `hrAvg` | Official and observed | optional non-negative integer | Average heart rate in beats per minute. |
+| `hrMax` | Official and observed | optional non-negative integer | Maximum heart rate in beats per minute. Every comparable evaluated pair has `hrAvg <= hrMax`. |
+| `sport.id` | Official and observed | optional string reference | Identifier in Polar's separately managed sports catalogue. The evaluated takeout contains decimal-shaped references but no catalogue that resolves them to public names. |
+| `exercises` | Official and observed | optional array | Nested exercise summaries. Absence, one exercise, and multiple exercises are observed. A single nested exercise is not assumed equivalent to the session aggregate. |
+
+The official contract also defines optional names, notes, device and product references, feelings, coordinates, energy-source percentages, recovery time, targets, training benefit and load, tests, hills, comments, exercise statistics, laps, zones, routes, and sample series. They remain outside training-summary version 1 until their domain meaning, privacy boundary, relationship, or product use is specified.
+
+### Relationships and variants
+
+**Evidence: Official and observed.** A session is the aggregate root and `exercises` is an optional child collection. The evaluated package contains sessions without the collection, single-exercise sessions, and multiple-exercise sessions. For single-exercise sessions, aggregate start, stop, duration, distance, and other summary values may agree or differ from the child. Multiple exercises may use different sport references. FitFreed therefore maps the aggregate fields directly and never substitutes, sums, or otherwise derives them from exercises.
+
+The optional top-level `sport.id` is present for the evaluated single- and multiple-exercise variants and absent for the evaluated no-exercise variant. When both the aggregate and every exercise have sport references, evaluated single-exercise references agree with the aggregate, while evaluated multiple-exercise sessions may contain different child references. These observations describe compatibility evidence rather than a universal invariant.
+
+Polar documents an authenticated `/v4/data/sports/list` catalogue that resolves sport identifiers to names and parent sports. That catalogue is not present in the evaluated takeout, and the observed `sport-profiles` artifact contains user settings keyed by a different source field rather than the required identifier-to-name catalogue. Training-summary version 1 preserves the aggregate sport reference as opaque source classification evidence. It does not publish, guess, or present a sport name from that value.
+
+### Identity, revision, time, and loss implications
+
+**Evidence: Interpretation.** The supported source identity candidate is the resolved source subject plus exact `identifier.id`. The delivery filename UUID, filename timestamp, artifact hash, import order, and nested exercise identifiers are not session identity. Reimport safety treats a later record with the same identity and equivalent content as equivalent. Source `modified` ordering is revision evidence: a newer differing record is an amendment, an older differing record is preserved without rollback, and equal or unorderable revision evidence with differing canonical content is a conflict.
+
+Local start and stop values are parsed without using the computer's current time zone. The optional offset is preserved separately. When it is present, an absolute instant may be calculated as local time minus the documented offset; when it is absent, FitFreed must not invent an instant or a time zone. Calendar grouping uses the preserved local start date.
+
+Training-summary version 1 deliberately does not persist `latitude`, `longitude`, nested route waypoints, interval samples, transition samples, RR samples, laps, zones, notes, comments, physical information, device identifiers, or product metadata. Ignoring those fields is known loss in the canonical summary, not evidence that the original ZIP lacks them. The archive member remains classified as supported when its summary is valid; excluded nested content does not become a second successful artifact and is disclosed by the mapping contract.
+
+The normative transformation is specified in the [Polar Flow training-session mapping](../mappings/polar-flow-training-session.md). The provider reference remains descriptive evidence and does not define FitFreed behavior by itself.
 
 ## Family documentation template
 

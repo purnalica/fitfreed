@@ -28,6 +28,7 @@ const catalogs = localeFiles.map((file) => {
 const canonicalKeys = [...catalogs[0].entries.keys()].sort();
 const coverageReasonCodes = [
   "mapped",
+  "mapped-summary",
   "source-subject-claim",
   "known-family-not-yet-supported",
   "mvp-excludes-sensitive-profile",
@@ -36,7 +37,9 @@ const coverageReasonCodes = [
   "unrecognized-artifact-family",
   "invalid-supported-artifact",
   "filename-content-date-mismatch",
+  "filename-content-start-mismatch",
   "duplicate-daily-activity-date",
+  "duplicate-training-session-id",
   "invalid-source-subject-evidence",
 ];
 

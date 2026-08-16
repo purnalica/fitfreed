@@ -2,7 +2,7 @@
 
 ## Status and boundary
 
-Current local-library schema. Version 5 extends the immutable [version 4 schema](sqlite-v4.md) with the date-first canonical daily-activity query index required by the Insights overview. It changes no canonical field, stored value, identity, provenance, source-subject state, import behavior, or portable contract.
+Historical local-library schema superseded by [version 6](sqlite-v6.md). Version 5 extends the immutable [version 4 schema](sqlite-v4.md) with the date-first canonical daily-activity query index required by the Insights overview. It changes no canonical field, stored value, identity, provenance, source-subject state, import behavior, or portable contract.
 
 SQLite `PRAGMA user_version` stores value 5 after migration. New libraries apply all migrations through [`0005_activity_query_index.sql`](../../../src-tauri/migrations/0005_activity_query_index.sql) in one transaction. Existing versions apply only the ordered assets they lack. Any migration error or injected interruption rolls back the index and version marker together.
 

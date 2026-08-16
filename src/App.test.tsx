@@ -117,8 +117,8 @@ function importOutcome(overrides: Record<string, unknown> = {}) {
     operationRef: "synthetic-operation",
     state: "completed",
     sourceProvider: "polar-flow",
-    sourceAdapterVersion: "polar-flow-archive@3",
-    mappingVersion: "polar-flow-daily-activity@1",
+    sourceAdapterVersion: "polar-flow-archive@4",
+    mappingVersion: "polar-flow-mapping-set@1",
     exactRepeat: false,
     coverageComplete: true,
     coverage: {
@@ -136,6 +136,7 @@ function importOutcome(overrides: Record<string, unknown> = {}) {
       newObservations: 3,
       equivalentObservations: 0,
       enrichedObservations: 0,
+      amendedObservations: 0,
       preservedObservations: 0,
       conflicts: 0,
     },
@@ -196,8 +197,8 @@ describe("FitFreed import interface", () => {
   it("explains family coverage with localized reasons and next actions without source locators", async () => {
     const latestOutcome = importOutcome({
       coverage: {
-        total: 10,
-        supported: 3,
+        total: 11,
+        supported: 4,
         unsupported: 1,
         deliberatelyIgnored: 1,
         unrecognized: 1,
@@ -246,6 +247,12 @@ describe("FitFreed import interface", () => {
           reasonCode: "mapped",
           artifactCount: 3,
         },
+        {
+          familyCode: "polar-flow-training-session",
+          classification: "supported",
+          reasonCode: "mapped-summary",
+          artifactCount: 1,
+        },
       ],
     });
     mocks.invoke.mockImplementation((command) => {
@@ -259,7 +266,7 @@ describe("FitFreed import interface", () => {
     render(<App />);
 
     const coverage = await screen.findByRole("table", { name: "Coverage by data family" });
-    expect(within(coverage).getAllByRole("row")).toHaveLength(8);
+    expect(within(coverage).getAllByRole("row")).toHaveLength(9);
     expect(within(coverage).getByRole("row", {
       name: /Daily activity Invalid 1 Reason: Recognized content failed validation\. Next action: Keep the original ZIP and report the compatibility problem/,
     })).toBeVisible();
@@ -272,6 +279,9 @@ describe("FitFreed import interface", () => {
     expect(within(coverage).getByRole("row", {
       name: /Daily activity Invalid 2 Reason: The package contains more than one daily activity record for the same date\. Next action: Request a new export or report the compatibility problem/,
     })).toBeVisible();
+    expect(within(coverage).getByRole("row", {
+      name: /Training sessions Supported 1 Reason: The session summary is mapped; routes and full-resolution details stay only in the original ZIP\. Next action: Keep the original ZIP if you need the excluded training details/,
+    })).toBeVisible();
     expect(screen.queryByText(/activity-2026-01-01/)).not.toBeInTheDocument();
 
     await user.selectOptions(screen.getByRole("combobox", { name: "Language" }), "es-ES");
@@ -281,6 +291,9 @@ describe("FitFreed import interface", () => {
     })).toBeVisible();
     expect(within(spanishCoverage).getByRole("row", {
       name: /Actividad diaria No válido 2 Motivo: El paquete contiene más de un registro de actividad diaria para la misma fecha\. Siguiente acción: Solicita una nueva exportación o comunica el problema de compatibilidad/,
+    })).toBeVisible();
+    expect(within(spanishCoverage).getByRole("row", {
+      name: /Sesiones de entrenamiento Compatible 1 Motivo: Se incorpora el resumen de la sesión; las rutas y los detalles a resolución completa permanecen únicamente en el ZIP original\. Siguiente acción: Conserva el ZIP original si necesitas los detalles de entrenamiento excluidos/,
     })).toBeVisible();
   });
 
@@ -309,6 +322,7 @@ describe("FitFreed import interface", () => {
             newObservations: 0,
             equivalentObservations: 0,
             enrichedObservations: 0,
+            amendedObservations: 0,
             preservedObservations: 0,
             conflicts: 0,
           },
@@ -441,6 +455,7 @@ describe("FitFreed import interface", () => {
         newObservations: 1,
         equivalentObservations: 1,
         enrichedObservations: 1,
+        amendedObservations: 1,
         preservedObservations: 1,
         conflicts: 1,
       },
@@ -455,7 +470,7 @@ describe("FitFreed import interface", () => {
     render(<App />);
 
     expect(await screen.findByRole("status")).toHaveTextContent(
-      `${spanish.completed}: 1 ${spanish.counts.recognized.one}, 1 ${spanish.counts.created.one}, 1 ${spanish.counts.enriched.one}, 1 ${spanish.counts.equivalent.one}, 1 ${spanish.counts.preserved.one}, 1 ${spanish.counts.conflicts.one}.`,
+      `${spanish.completed}: 1 ${spanish.counts.recognized.one}, 1 ${spanish.counts.created.one}, 1 ${spanish.counts.enriched.one}, 1 ${spanish.counts.amended.one}, 1 ${spanish.counts.equivalent.one}, 1 ${spanish.counts.preserved.one}, 1 ${spanish.counts.conflicts.one}.`,
     );
     expect(screen.getByText(`${spanish.outcome.artifactsClassified.one}.`)).toBeVisible();
   });
@@ -764,6 +779,7 @@ describe("FitFreed import interface", () => {
               newObservations: 0,
               equivalentObservations: 0,
               enrichedObservations: 0,
+              amendedObservations: 0,
               preservedObservations: 0,
               conflicts: 0,
             },
@@ -789,6 +805,7 @@ describe("FitFreed import interface", () => {
             newObservations: 3,
             equivalentObservations: 0,
             enrichedObservations: 0,
+            amendedObservations: 0,
             preservedObservations: 0,
             conflicts: 0,
           });
@@ -802,6 +819,7 @@ describe("FitFreed import interface", () => {
             newObservations: 0,
             equivalentObservations: 0,
             enrichedObservations: 0,
+            amendedObservations: 0,
             preservedObservations: 0,
             conflicts: 0,
           },
@@ -812,6 +830,7 @@ describe("FitFreed import interface", () => {
           newObservations: 0,
           equivalentObservations: 0,
           enrichedObservations: 0,
+          amendedObservations: 0,
           preservedObservations: 0,
           conflicts: 0,
         });
@@ -825,7 +844,7 @@ describe("FitFreed import interface", () => {
     await chooseArchive(user, "/synthetic/invalid.zip");
     await user.click(screen.getByRole("button", { name: "Import selected package" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "This package contains daily activity that FitFreed cannot validate",
+      "This package contains recognized data that FitFreed cannot validate. Keep the original ZIP and report the compatibility problem; no history was changed.",
     );
     expect(screen.getByRole("heading", { name: "Package coverage" })).toBeVisible();
     expect(screen.getByText("2 / 2")).toBeVisible();

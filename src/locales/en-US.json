@@ -77,6 +77,7 @@
     "recognized": { "one": "recognized", "other": "recognized" },
     "created": { "one": "new", "other": "new" },
     "enriched": { "one": "enriched", "other": "enriched" },
+    "amended": { "one": "amended", "other": "amended" },
     "equivalent": { "one": "equivalent", "other": "equivalent" },
     "preserved": { "one": "preserved", "other": "preserved" },
     "conflicts": { "one": "conflict", "other": "conflicts" }
@@ -142,6 +143,10 @@
         "reason": "The data is mapped into the current library.",
         "action": "No action is needed."
       },
+      "mapped-summary": {
+        "reason": "The session summary is mapped; routes and full-resolution details stay only in the original ZIP.",
+        "action": "Keep the original ZIP if you need the excluded training details."
+      },
       "source-subject-claim": {
         "reason": "The data is used only to link packages from the same provider account.",
         "action": "No action is needed."
@@ -178,6 +183,14 @@
         "reason": "The package contains more than one daily activity record for the same date.",
         "action": "Request a new export or report the compatibility problem."
       },
+      "filename-content-start-mismatch": {
+        "reason": "The training-session filename time and the session start time disagree.",
+        "action": "Keep the original ZIP and report the compatibility problem."
+      },
+      "duplicate-training-session-id": {
+        "reason": "The package contains more than one training session with the same source identity.",
+        "action": "Request a new export or report the compatibility problem."
+      },
       "invalid-source-subject-evidence": {
         "reason": "The provider account evidence could not be validated.",
         "action": "Use the original complete export ZIP or report the compatibility problem."
@@ -197,7 +210,7 @@
     "failedSummary": "Import failed; no partial history was published."
   },
   "errors": {
-    "invalid-supported-artifact": "This package contains daily activity that FitFreed cannot validate. Keep the original ZIP and report the compatibility problem; no history was changed.",
+    "invalid-supported-artifact": "This package contains recognized data that FitFreed cannot validate. Keep the original ZIP and report the compatibility problem; no history was changed.",
     "invalid-source-subject-evidence": "FitFreed cannot establish which provider account this package belongs to. Choose the original complete export ZIP; no history was changed.",
     "source-subject-confirmation-required": "This package has different or changed account evidence. FitFreed will not merge it with the existing history automatically. Keep the ZIP until account separation and recovery are available; existing history was preserved.",
     "invalid-library-correlation-state": "FitFreed cannot verify this library's account-correlation state. Do not import again until the library has been preserved and the problem has been investigated.",

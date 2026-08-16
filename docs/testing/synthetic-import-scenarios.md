@@ -76,6 +76,8 @@ No family is marked supported until its format reference, mapping specification,
 
 The implemented daily-activity matrix covers an absent or null summary, absent or null step count, zero, a non-negative integer, ignored unknown fields and `exportVersion` shapes, invalid roots, missing or invalid dates, invalid summary and step-count types, filename/content date mismatch, duplicate logical dates in both archive orders, and reassessment after an adapter-version change.
 
+The implemented training-session import-to-storage matrix covers a minimal summary, absent optional measurements, one and multiple child exercises, fractional timestamp normalization, official duration and distance limits, invalid null and field shapes, filename/content start mismatch, duplicate source identity, ignored route and sample detail, source-subject-scoped identity, equivalent reimport, newer amendment, older preservation, equal-revision conflict, provenance, query recovery, and interrupted version 5 migration. The packaged import journey additionally covers localized summary-only coverage, initial creation, exact repeat, later amendment, and restart. Training Insights values, controls, accessibility, and performance variants remain open until the training presentation slice exists.
+
 ## Test-layer use
 
 - **Schema and contract checks** validate source definitions and expected outputs against published machine-readable schemas.

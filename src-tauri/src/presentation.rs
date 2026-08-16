@@ -204,6 +204,7 @@ pub struct ImportReportDto {
     new_observations: usize,
     equivalent_observations: usize,
     enriched_observations: usize,
+    amended_observations: usize,
     preserved_observations: usize,
     conflicts: usize,
 }
@@ -216,6 +217,7 @@ impl From<ImportReport> for ImportReportDto {
             new_observations: report.new_observations,
             equivalent_observations: report.equivalent_observations,
             enriched_observations: report.enriched_observations,
+            amended_observations: report.amended_observations,
             preserved_observations: report.preserved_observations,
             conflicts: report.conflicts,
         }

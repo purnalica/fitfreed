@@ -64,6 +64,8 @@ Proposed Milestone 0 baseline. Terms become confirmed as their owning bounded co
 
 The initial product vocabulary includes **Daily Activity Observation**, **Training Session**, **Sleep Period**, **Recovery Observation**, **Physical Measurement**, **Fitness Test**, **Training Target**, **Device Registration**, and **Sport Profile**. Their precise identities, values, relationships, and invariants are defined only when evidence supports a canonical specification; source field names are not definitions.
 
+A **Training Session** is a source-scoped aggregate summary of one recorded workout. Its declared duration is independent of local wall-clock subtraction. Child exercises, laps, routes, and samples are not substitute aggregate identities. An unresolved **Sport Reference** is opaque same-source classification evidence, never a human-readable name or cross-provider taxonomy by itself.
+
 The first candidate concept is specified in [`daily-activity.md`](daily-activity.md).
 
 ## Insight language

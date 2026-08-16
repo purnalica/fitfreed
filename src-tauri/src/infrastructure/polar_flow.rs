@@ -5,6 +5,7 @@ use regex::Regex;
 
 const DATE_PATTERN: &str = r"[0-9]{4}-[0-9]{2}-[0-9]{2}";
 const DATE_LENGTH: usize = 10;
+const TRAINING_START_LENGTH: usize = 19;
 const TIME_PATTERN: &str = r"[0-9]{2}-[0-9]{2}-[0-9]{2}";
 const NUMERIC_PATTERN: &str = r"[0-9]+";
 const UUID_PATTERN: &str =
@@ -14,6 +15,7 @@ const UUID_PATTERN: &str =
 pub(super) enum SupportedArtifact {
     AccountData,
     DailyActivity,
+    TrainingSession,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -200,12 +202,13 @@ static ARTIFACT_RULES: LazyLock<Vec<ArtifactRule>> = LazyLock::new(|| {
             "polar-flow-sport-profiles",
             Unsupported,
         ),
-        rule(
+        supported_rule(
             format!(
                 r"^training-session_{DATE_PATTERN}T{TIME_PATTERN}_(?:{NUMERIC_PATTERN}|{UUID_PATTERN})-{UUID_PATTERN}\.json$"
             ),
             "polar-flow-training-session",
-            Unsupported,
+            SupportedArtifact::TrainingSession,
+            "mapped-summary",
         ),
         rule(
             format!(r"^training-target-{DATE_PATTERN}-{NUMERIC_PATTERN}-{UUID_PATTERN}\.json$"),
@@ -232,6 +235,11 @@ pub(super) fn assess_artifact(name: &str) -> ArtifactAssessment {
 
 pub(super) fn daily_activity_filename_date(name: &str) -> Option<&str> {
     name.strip_prefix("activity-")?.get(..DATE_LENGTH)
+}
+
+pub(super) fn training_session_filename_start(name: &str) -> Option<&str> {
+    name.strip_prefix("training-session_")?
+        .get(..TRAINING_START_LENGTH)
 }
 
 #[cfg(test)]
@@ -270,16 +278,29 @@ mod tests {
     }
 
     #[test]
+    fn classifies_training_sessions_as_supported_summaries() {
+        for name in [
+            format!("training-session_2026-01-02T10-30-00_42-{UUID_A}.json"),
+            format!("training-session_2026-01-02T10-30-00_{UUID_A}-{UUID_B}.json"),
+        ] {
+            let assessment = assess_artifact(&name);
+            assert_eq!(assessment.family, Some("polar-flow-training-session"));
+            assert_eq!(assessment.classification, ArtifactClassification::Supported);
+            assert_eq!(assessment.reason_code, "mapped-summary");
+            assert_eq!(
+                assessment.supported_artifact,
+                Some(SupportedArtifact::TrainingSession)
+            );
+            assert_eq!(
+                training_session_filename_start(&name),
+                Some("2026-01-02T10-30-00")
+            );
+        }
+    }
+
+    #[test]
     fn distinguishes_known_unsupported_mvp_families() {
         let cases = [
-            (
-                format!("training-session_2026-01-02T10-30-00_42-{UUID_A}.json"),
-                "polar-flow-training-session",
-            ),
-            (
-                format!("training-session_2026-01-02T10-30-00_{UUID_A}-{UUID_B}.json"),
-                "polar-flow-training-session",
-            ),
             (
                 format!("sleep_result_42-{UUID_A}.json"),
                 "polar-flow-sleep-result",

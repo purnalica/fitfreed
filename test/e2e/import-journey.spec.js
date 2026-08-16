@@ -210,7 +210,7 @@ describe("packaged FitFreed import journey", () => {
     const alert = await $("[role='alert']");
     await alert.waitForDisplayed();
     await expect(alert).toHaveText(
-      expect.stringContaining("contains daily activity that FitFreed cannot validate"),
+      expect.stringContaining("contains recognized data that FitFreed cannot validate"),
     );
     await expect($("#outcome-heading")).toHaveText("Latest import outcome");
     await expectCoverage([
@@ -240,9 +240,9 @@ describe("packaged FitFreed import journey", () => {
 
     await selectArchive(dialogMock, path.join(fixtureDirectory, "valid.zip"));
     await $("aria/Import selected package").click();
-    await waitForNotice("Import completed: 4 recognized, 3 new");
+    await waitForNotice("Import completed: 5 recognized, 4 new");
     await expectCoverage([
-      ["4", "Supported"],
+      ["5", "Supported"],
       ["1", "Unsupported"],
       ["1", "Deliberately ignored"],
       ["1", "Unrecognized"],
@@ -284,6 +284,13 @@ describe("packaged FitFreed import journey", () => {
         reason: "The data is mapped into the current library.",
         action: "No action is needed.",
       },
+      {
+        family: "Training sessions",
+        classification: "Supported",
+        count: "1",
+        reason: "The session summary is mapped; routes and full-resolution details stay only in the original ZIP.",
+        action: "Keep the original ZIP if you need the excluded training details.",
+      },
     ]);
     await expectHistory([
       ["Jan 1, 2026", "3,100", "Step total available"],
@@ -301,7 +308,7 @@ describe("packaged FitFreed import journey", () => {
     await selectLocale("es-ES");
     await expect($("#outcome-heading")).toHaveText(spanish.outcome.heading);
     await expectCoverage([
-      ["4", spanish.outcome.supported],
+      ["5", spanish.outcome.supported],
       ["1", spanish.outcome.unsupported],
       ["1", spanish.outcome.ignored],
       ["1", spanish.outcome.unrecognized],
@@ -338,6 +345,12 @@ describe("packaged FitFreed import journey", () => {
         count: "3",
         ...spanish.outcome.coverageExplanations.mapped,
       },
+      {
+        family: spanish.outcome.familyNames["polar-flow-training-session"],
+        classification: spanish.outcome.familyClassifications.supported,
+        count: "1",
+        ...spanish.outcome.coverageExplanations["mapped-summary"],
+      },
     ]);
     await browser.execute(() => {
       document.documentElement.style.fontSize = "200%";
@@ -364,7 +377,9 @@ describe("packaged FitFreed import journey", () => {
 
     await selectArchive(dialogMock, path.join(fixtureDirectory, "overlap.zip"));
     await $("aria/Import selected package").click();
-    await waitForNotice("Import completed: 3 recognized, 1 new");
+    await waitForNotice(
+      "Import completed: 4 recognized, 1 new, 0 enriched, 1 amended, 1 equivalent",
+    );
     await expectHistory([
       ["Jan 1, 2026", "3,100", "Step total available"],
       ["Jan 2, 2026", "4,200", "Step total available"],
@@ -494,6 +509,26 @@ describe("packaged FitFreed import journey", () => {
     await browser.reloadSession();
     await expect($("h1")).toHaveText(spanish.title);
     await expect($("#outcome-heading")).toHaveText(spanish.outcome.heading);
+    await expectFamilyCoverage([
+      {
+        family: spanish.outcome.familyNames["polar-flow-account-data"],
+        classification: spanish.outcome.familyClassifications.supported,
+        count: "1",
+        ...spanish.outcome.coverageExplanations["source-subject-claim"],
+      },
+      {
+        family: spanish.outcome.familyNames["polar-flow-daily-activity"],
+        classification: spanish.outcome.familyClassifications.supported,
+        count: "2",
+        ...spanish.outcome.coverageExplanations.mapped,
+      },
+      {
+        family: spanish.outcome.familyNames["polar-flow-training-session"],
+        classification: spanish.outcome.familyClassifications.supported,
+        count: "1",
+        ...spanish.outcome.coverageExplanations["mapped-summary"],
+      },
+    ]);
     await expectHistory([
       [formatLocalDate("es-ES", "2026-01-01"), "3100", spanish.activity.available],
       [formatLocalDate("es-ES", "2026-01-02"), "4200", spanish.activity.available],
