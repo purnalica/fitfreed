@@ -2,7 +2,7 @@
 
 ## Status
 
-Milestone 1 implementation is active. The functional MVP scope and selected Tauri and SQLite foundation are confirmed; remaining architecture and release gates are being proved through the versioned walking skeleton.
+Milestone 1 is complete. The production-shaped Tauri and SQLite foundation, architecture, localized vertical slice, contributor path, continuous integration, and private macOS release-evidence boundary have passed their acceptance gates. Milestone 2 MVP implementation is active.
 
 ## Purpose
 
@@ -10,7 +10,7 @@ This document is the canonical source for product sequencing and milestone bound
 
 Detailed execution plans will be created per milestone and linked from this roadmap. Implementation issues will derive from those plans rather than replacing them.
 
-The Milestone 0 closure plan is [`plans/milestone-0.md`](plans/milestone-0.md). The versioned implementation transition is defined by [`plans/milestone-1.md`](plans/milestone-1.md). Technology evidence follows [`technology-evaluation.md`](technology-evaluation.md).
+The Milestone 0 closure plan is [`plans/milestone-0.md`](plans/milestone-0.md). The completed foundation plan is [`plans/milestone-1.md`](plans/milestone-1.md). The active MVP sequence is [`plans/milestone-2.md`](plans/milestone-2.md). Technology evidence follows [`technology-evaluation.md`](technology-evaluation.md).
 
 ## Planning principles
 

@@ -96,9 +96,10 @@ A runtime plug-in system is not required to prove importer independence. The MVP
 
 ## Pending decisions
 
-- Acceptance or refinement of the candidate context boundaries after the first vertical concept exercises their contracts.
 - Canonical units and time-zone semantics.
 - Controlled representation of genuinely source-specific observations.
 - Cross-source reconciliation and user-visible conflict handling.
 - Original-artifact and unsupported-field retention policy.
 - Importer packaging and discovery model after the MVP.
+
+[ADR 0004](decisions/0004-adopt-capability-and-lifecycle-bounded-contexts.md) accepts the capability and lifecycle context boundaries after the daily-activity vertical exercised them. Later evidence may refine physical modules without changing context ownership; a conflicting ownership model requires a superseding decision.

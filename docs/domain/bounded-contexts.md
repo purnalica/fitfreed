@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed Milestone 0 context map. It applies Clean Architecture within each context and keeps provider models outside the canonical fitness domain. Context boundaries will be accepted only after the first vertical concept proves their contracts.
+Accepted foundation as of 2026-08-16. [ADR 0004](../architecture/decisions/0004-adopt-capability-and-lifecycle-bounded-contexts.md) records the decision and Milestone 1 vertical evidence. Clean Architecture applies within and between these ownership boundaries, while physical module splits remain evidence-driven.
 
 ## Context map
 
@@ -83,7 +83,7 @@ Localization, accessibility, privacy, diagnostics, application updates, packagin
 ## Decisions still requiring evidence
 
 - Whether Fitness History remains one bounded context or later splits along independently evolving capabilities.
-- Which first canonical concept best proves the Source Translation → Import Control → Fitness History → Insights path.
 - Where source-specific but user-valuable observations live when no shared canonical concept is established.
-- The exact consistency boundary between an import operation, provenance, and visible canonical history.
 - The separation between portable export and full-library backup representations.
+
+Canonical daily activity proved the first complete Source Translation → Import Control → Fitness History → Insights path. The accepted import consistency boundary stages candidates and provenance under one durable operation, applies Fitness History reconciliation, and exposes canonical changes only through the committing transaction; [import lifecycle architecture](../architecture/import-lifecycle.md) is the current authority for that behavior.

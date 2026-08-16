@@ -2,7 +2,7 @@
 
 ## Status
 
-Active as of 2026-08-16. The selected Tauri foundation has been promoted from the disposable evaluation area and this plan is now the canonical implementation sequence. It refines Milestone 1 in the product roadmap without changing the MVP scope.
+Complete as of 2026-08-16. All six increments passed their local and hosted acceptance gates. The [Milestone 2 plan](milestone-2.md) is now the canonical implementation sequence for the MVP.
 
 ## Objective
 
@@ -110,7 +110,7 @@ Hosted evidence: commit `pre-purge` passed the [portable and packaged macOS lane
 
 ## Increment M1.6 — Release-shaped installation and recovery
 
-**Status:** locally complete; hosted clean-checkout confirmation pending. ADR 0003 defines the proposed package, integrity, ecosystem-specific SBOM, manifest, and isolated installation evidence boundary. The versioned preparation and real-DMG verification workflows now implement that boundary without publishing artifacts.
+**Status:** complete. Accepted ADR 0003 defines the package, integrity, ecosystem-specific SBOM, manifest, and isolated installation evidence boundary. The versioned preparation and real-DMG verification workflows implement that boundary without publishing artifacts.
 
 **Outcome:** Milestone 1 produces a private development package and release-draft input whose installation and failure behavior are verified without publishing an unsigned binary.
 
@@ -124,7 +124,9 @@ Hosted evidence: commit `pre-purge` passed the [portable and packaged macOS lane
 
 **Acceptance evidence:** the versioned preparation and installation-recovery workflows pass locally and in the mandatory macOS GitHub Actions lane; generated artifacts contain no test instrumentation, personal data, credentials, or private paths; no unsigned package is uploaded to a public release channel.
 
-Local evidence on 2026-08-16: a clean temporary Git revision produced the production application and DMG, one npm and three Cargo CycloneDX 1.5 documents, the version 1 release manifest, checksums, and draft notes. All direct production dependencies and declared licenses passed; development dependencies, test instrumentation, absolute repository paths, and `file://` references were absent. The real DMG passed pre-mount integrity verification, isolated installation, uninstrumented first launch with schema 3, corrupted-image rejection before the mount command, byte-preservation of the existing application and library, relaunch, and application-removal/library-retention checks. The same test exposed and now covers migration from the exact precontract version 1 developer-library shape. Hosted evidence remains pending.
+Local evidence on 2026-08-16: a clean temporary Git revision produced the production application and DMG, one npm and three Cargo CycloneDX 1.5 documents, the version 1 release manifest, checksums, and draft notes. All direct production dependencies and declared licenses passed; development dependencies, test instrumentation, absolute repository paths, and `file://` references were absent. The real DMG passed pre-mount integrity verification, isolated installation, uninstrumented first launch with schema 3, corrupted-image rejection before the mount command, byte-preservation of the existing application and library, relaunch, and application-removal/library-retention checks. The same test exposed and now covers migration from the exact precontract version 1 developer-library shape.
+
+Hosted evidence: commit `pre-purge` passed the [portable, private-release, installation-recovery, and packaged macOS lanes](https://github.com/purnalica/fitfreed/actions/runs/31962305420) and the independent [repository content and secret scan](https://github.com/purnalica/fitfreed/actions/runs/31962305515).
 
 ## Cross-cutting completion rule
 

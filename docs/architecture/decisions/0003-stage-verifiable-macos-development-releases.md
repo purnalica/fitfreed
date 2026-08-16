@@ -1,6 +1,6 @@
 # ADR 0003: Stage verifiable macOS development releases
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-08-16
 - **Decision owners:** FitFreed maintainers
 - **Related requirements:** [Product requirements](../../requirements.md)
