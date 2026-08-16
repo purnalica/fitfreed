@@ -4,7 +4,7 @@
 
 FitFreed is a local-first desktop application for turning personal fitness-platform exports into an understandable, durable history that can be explored beyond the source platform.
 
-> **Project status:** Milestone 1 is complete and Milestone 2 MVP capability work is in progress. The versioned Tauri application has a documented Polar Flow daily-activity compatibility boundary, complete package-family reporting, source-subject-safe reimport, and a provider-neutral gap-aware overview. One private reference export has passed the privacy-safe acceptance predicate, but the application is not an alpha release and must not yet be used with real personal exports.
+> **Project status:** Milestone 1 is complete and Milestone 2 MVP capability work is in progress. The versioned Tauri application has a documented Polar Flow daily-activity compatibility boundary, complete package-family reporting, source-subject-safe reimport, and provider-neutral gap-aware range exploration with daily detail. One private reference export has passed the privacy-safe acceptance predicate, but the application is not an alpha release and must not yet be used with real personal exports.
 
 FitFreed is experimental software provided without warranty. Use it at your own risk and read the [project disclaimer](DISCLAIMER.md) before running any build.
 

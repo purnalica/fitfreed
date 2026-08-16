@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { Channel, invoke } from "@tauri-apps/api/core";
 import "./App.css";
 import { chooseZipArchive } from "./infrastructure/archive-picker";
@@ -144,6 +144,10 @@ function App() {
   const [localeSaving, setLocaleSaving] = useState(false);
   const [archivePath, setArchivePath] = useState<string>();
   const [activityOverview, setActivityOverview] = useState<ActivityOverview>();
+  const [rangeFrom, setRangeFrom] = useState("");
+  const [rangeThrough, setRangeThrough] = useState("");
+  const [rangeLoading, setRangeLoading] = useState(false);
+  const [selectedActivityDate, setSelectedActivityDate] = useState<string>();
   const [outcome, setOutcome] = useState<ImportOutcome>();
   const [progress, setProgress] = useState<ImportProgress>();
   const [busy, setBusy] = useState(false);
@@ -163,8 +167,14 @@ function App() {
       return value > maximum ? value : maximum;
     }, 1n) ?? 1n;
 
-  async function refresh() {
-    setActivityOverview(await invoke<ActivityOverview>("query_activity_overview"));
+  async function refresh(requestedRange: ActivityDateRange | null = null) {
+    const overview = await invoke<ActivityOverview>("query_activity_overview", {
+      requestedRange,
+    });
+    setActivityOverview(overview);
+    setRangeFrom(overview.selectedRange?.from ?? "");
+    setRangeThrough(overview.selectedRange?.through ?? "");
+    setSelectedActivityDate(undefined);
   }
 
   async function refreshOutcome() {
@@ -274,6 +284,45 @@ function App() {
     }
   }
 
+  function rangeIsValid(): boolean {
+    const available = activityOverview?.availableRange;
+    if (!available || !rangeFrom || !rangeThrough || rangeFrom > rangeThrough) return false;
+    if (rangeFrom < available.from || rangeThrough > available.through) return false;
+    const inclusiveDays = Math.floor(
+      (localDate(rangeThrough).getTime() - localDate(rangeFrom).getTime()) / 86_400_000,
+    ) + 1;
+    return inclusiveDays <= 366;
+  }
+
+  async function applyActivityRange(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!rangeIsValid()) {
+      setErrorCode("invalid-activity-range");
+      return;
+    }
+    setRangeLoading(true);
+    setErrorCode(undefined);
+    try {
+      await refresh({ from: rangeFrom, through: rangeThrough });
+    } catch (reason) {
+      setErrorCode(commandErrorCode(reason));
+    } finally {
+      setRangeLoading(false);
+    }
+  }
+
+  async function resetActivityRange() {
+    setRangeLoading(true);
+    setErrorCode(undefined);
+    try {
+      await refresh();
+    } catch (reason) {
+      setErrorCode(commandErrorCode(reason));
+    } finally {
+      setRangeLoading(false);
+    }
+  }
+
   const artifactProgress = progress?.totalArtifacts
     ? (progress.completedArtifacts / progress.totalArtifacts) * 100
     : undefined;
@@ -341,6 +390,10 @@ function App() {
 
   function activityAvailability(availability: ActivityDayAvailability): string {
     return messages.activity[availability];
+  }
+
+  function detailButtonLabel(localDateValue: string): string {
+    return `${messages.activity.viewDetails} ${date.format(localDate(localDateValue))}`;
   }
 
   return (
@@ -504,6 +557,56 @@ function App() {
           <p>{messages.activity.empty}</p>
         ) : (
           <>
+            {activityOverview.availableRange && activityOverview.selectedRange && (
+              <form
+                className="activity-filter"
+                aria-labelledby="activity-filter-heading"
+                aria-busy={rangeLoading}
+                onSubmit={(event) => void applyActivityRange(event)}
+              >
+                <div>
+                  <h3 id="activity-filter-heading">{messages.activity.filterHeading}</h3>
+                  <p>{messages.activity.rangeHelp}</p>
+                </div>
+                <label>
+                  <span>{messages.activity.from}</span>
+                  <input
+                    type="date"
+                    min={activityOverview.availableRange.from}
+                    max={activityOverview.availableRange.through}
+                    value={rangeFrom}
+                    onChange={(event) => setRangeFrom(event.target.value)}
+                    disabled={rangeLoading}
+                    required
+                  />
+                </label>
+                <label>
+                  <span>{messages.activity.through}</span>
+                  <input
+                    type="date"
+                    min={activityOverview.availableRange.from}
+                    max={activityOverview.availableRange.through}
+                    value={rangeThrough}
+                    onChange={(event) => setRangeThrough(event.target.value)}
+                    disabled={rangeLoading}
+                    required
+                  />
+                </label>
+                <div className="activity-filter-actions">
+                  <button type="submit" disabled={rangeLoading}>
+                    {rangeLoading ? messages.activity.applyingRange : messages.activity.applyRange}
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => void resetActivityRange()}
+                    disabled={rangeLoading}
+                  >
+                    {messages.activity.latestWindow}
+                  </button>
+                </div>
+              </form>
+            )}
             {activityOverview.selectedRange && (
               <p className="activity-range">
                 <strong>{messages.activity.selectedRange}:</strong>{" "}
@@ -561,7 +664,14 @@ function App() {
                     <ol className="chart">
                       {series.days.map((day) => (
                         <li key={day.localDate}>
-                          <time dateTime={day.localDate}>{date.format(localDate(day.localDate))}</time>
+                          <button
+                            type="button"
+                            className="detail-button"
+                            aria-label={detailButtonLabel(day.localDate)}
+                            onClick={() => setSelectedActivityDate(day.localDate)}
+                          >
+                            <time dateTime={day.localDate}>{date.format(localDate(day.localDate))}</time>
+                          </button>
                           <span className="track" aria-hidden="true">
                             {day.stepCount !== null && (
                               <span className="bar" style={{ width: stepBarWidth(day.stepCount) }} />
@@ -585,7 +695,16 @@ function App() {
                     <tbody>
                       {series.days.map((day) => (
                         <tr key={day.localDate}>
-                          <td><time dateTime={day.localDate}>{date.format(localDate(day.localDate))}</time></td>
+                          <td>
+                            <button
+                              type="button"
+                              className="detail-button"
+                              aria-label={detailButtonLabel(day.localDate)}
+                              onClick={() => setSelectedActivityDate(day.localDate)}
+                            >
+                              <time dateTime={day.localDate}>{date.format(localDate(day.localDate))}</time>
+                            </button>
+                          </td>
                           <td>{formatStepCount(day.stepCount)}</td>
                           <td>{activityAvailability(day.availability)}</td>
                         </tr>
@@ -595,6 +714,48 @@ function App() {
                 </div>
               </section>
             ))}
+            {selectedActivityDate && (
+              <section className="activity-detail" aria-labelledby="activity-detail-heading">
+                <div className="activity-detail-heading">
+                  <div>
+                    <h3 id="activity-detail-heading">{messages.activity.detailHeading}</h3>
+                    <time dateTime={selectedActivityDate}>
+                      {date.format(localDate(selectedActivityDate))}
+                    </time>
+                  </div>
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => setSelectedActivityDate(undefined)}
+                  >
+                    {messages.activity.closeDetail}
+                  </button>
+                </div>
+                <ul>
+                  {activityOverview.series.map((series, seriesIndex) => {
+                    const day = series.days.find(
+                      (candidate) => candidate.localDate === selectedActivityDate,
+                    );
+                    if (!day) return null;
+                    return (
+                      <li key={series.seriesRef}>
+                        <h4>{messages.activity.series} {number.format(seriesIndex + 1)}</h4>
+                        <dl>
+                          <div>
+                            <dt>{messages.steps}</dt>
+                            <dd>{formatStepCount(day.stepCount)}</dd>
+                          </div>
+                          <div>
+                            <dt>{messages.activity.availability}</dt>
+                            <dd>{activityAvailability(day.availability)}</dd>
+                          </div>
+                        </dl>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            )}
           </>
         )}
       </section>

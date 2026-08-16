@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented canonical concept and first Milestone 2 Insights overview. The deliberately small accepted canonical version is normative in the [canonical daily activity specification](../data-formats/canonical/daily-activity.md). The provider-neutral [overview read model](../data-formats/insights/daily-activity-overview-v1.md) selects the latest 30 local dates, keeps origins separate, and discloses unavailable and missing days. The broader components and open decisions below remain design candidates rather than implied support.
+Implemented canonical concept and Milestone 2 Insights range exploration. The deliberately small accepted canonical version is normative in the [canonical daily activity specification](../data-formats/canonical/daily-activity.md). The provider-neutral [overview read model version 2](../data-formats/insights/daily-activity-overview-v2.md) selects the latest 30 local dates by default or a validated explicit range of up to 366 dates, keeps origins separate, discloses unavailable and missing days, and supports a daily-detail projection. The broader components and open decisions below remain design candidates rather than implied support.
 
 ## Why this concept is first
 
@@ -68,7 +68,7 @@ This evidence supports a candidate and synthetic tests, not a universal provider
 - Domain tests for identity, invariants, equivalence, enrichment, and conflict.
 - Adapter tests proving filename date agreement is validation evidence but the filename token is not identity.
 - Persistence tests proving one visible observation per origin/date and atomic reimport.
-- Interactive custom-range, detail, and period-comparison evidence beyond the implemented default overview.
+- Period-comparison evidence beyond the implemented overview, custom range, and daily detail.
 
 ## Open decisions
 

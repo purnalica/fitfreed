@@ -175,12 +175,108 @@ if (validateActivityOverview(invalidActivityOverview)) {
   throw new Error(`${activityOverviewSchemaPath} accepted a step count for a missing day`);
 }
 
+const activityOverviewV2Path = "docs/data-formats/insights/daily-activity-overview-v2.md";
+const activityOverviewV2 = read(activityOverviewV2Path);
+for (const field of [
+  "requestedRange",
+  "availableRange",
+  "selectedRange",
+  "series",
+  "seriesRef",
+  "summary",
+  "days",
+  "localDate",
+  "stepCount",
+  "availability",
+  "calendarDays",
+  "observedDays",
+  "availableStepDays",
+  "unavailableStepDays",
+  "missingDays",
+  "totalStepCount",
+  "averageStepCount",
+  "available",
+  "unavailable",
+  "missing",
+  "invalid-activity-range",
+]) {
+  requireMention(activityOverviewV2, field, activityOverviewV2Path);
+}
+const activityOverviewV2SchemaPath = "schemas/activity-overview-v2.schema.json";
+const activityOverviewV2Schema = JSON.parse(read(activityOverviewV2SchemaPath));
+const validateActivityOverviewV2 = ajv.compile(activityOverviewV2Schema);
+const activityOverviewQueryV2SchemaPath = "schemas/activity-overview-query-v2.schema.json";
+const activityOverviewQueryV2Schema = JSON.parse(read(activityOverviewQueryV2SchemaPath));
+const validateActivityOverviewQueryV2 = ajv.compile(activityOverviewQueryV2Schema);
+for (const query of [
+  { requestedRange: null },
+  { requestedRange: { from: "2025-12-30", through: "2026-01-02" } },
+]) {
+  if (!validateActivityOverviewQueryV2(query)) {
+    throw new Error(
+      `${activityOverviewQueryV2SchemaPath} rejected a valid query: ${ajv.errorsText(validateActivityOverviewQueryV2.errors)}`,
+    );
+  }
+}
+for (const query of [
+  {},
+  { requestedRange: { from: "2026-02-30", through: "2026-03-01" } },
+  { requestedRange: null, provider: "synthetic" },
+]) {
+  if (validateActivityOverviewQueryV2(query)) {
+    throw new Error(`${activityOverviewQueryV2SchemaPath} accepted an invalid query`);
+  }
+}
+const firstLongDate = Date.UTC(2024, 0, 1);
+const longDays = Array.from({ length: 366 }, (_, index) => ({
+  localDate: new Date(firstLongDate + index * 86_400_000).toISOString().slice(0, 10),
+  stepCount: null,
+  availability: "missing",
+}));
+const longActivityOverview = {
+  availableRange: { from: longDays[0].localDate, through: longDays.at(-1).localDate },
+  selectedRange: { from: longDays[0].localDate, through: longDays.at(-1).localDate },
+  series: [{
+    seriesRef: "synthetic-origin",
+    summary: {
+      calendarDays: 366,
+      observedDays: 0,
+      availableStepDays: 0,
+      unavailableStepDays: 0,
+      missingDays: 366,
+      totalStepCount: null,
+      averageStepCount: null,
+    },
+    days: longDays,
+  }],
+};
+if (!validateActivityOverviewV2(longActivityOverview)) {
+  throw new Error(
+    `${activityOverviewV2SchemaPath} rejected its maximum range: ${ajv.errorsText(validateActivityOverviewV2.errors)}`,
+  );
+}
+if (validateActivityOverview(longActivityOverview)) {
+  throw new Error(`${activityOverviewSchemaPath} accepted the version 2 maximum range`);
+}
+const oversizedActivityOverview = structuredClone(longActivityOverview);
+oversizedActivityOverview.series[0].days.push({
+  localDate: "2025-01-01",
+  stepCount: null,
+  availability: "missing",
+});
+oversizedActivityOverview.series[0].summary.calendarDays = 367;
+oversizedActivityOverview.series[0].summary.missingDays = 367;
+if (validateActivityOverviewV2(oversizedActivityOverview)) {
+  throw new Error(`${activityOverviewV2SchemaPath} accepted 367 daily entries`);
+}
+
 const indexPath = "docs/data-formats/README.md";
 const index = read(indexPath);
 for (const contractPath of [
   canonicalPath,
   mappingPath,
   activityOverviewPath,
+  activityOverviewV2Path,
   ...persistencePaths,
 ]) {
   const relativeContract = path.relative(path.dirname(indexPath), contractPath);
@@ -190,5 +286,5 @@ for (const contractPath of [
 }
 
 process.stdout.write(
-  `${JSON.stringify({ schemaVersion, sourceAdapterVersion, migrations, persistencePaths, activityOverviewSchema: activityOverviewSchemaPath, canonicalFields: 3, mappingFields: 6 })}\n`,
+  `${JSON.stringify({ schemaVersion, sourceAdapterVersion, migrations, persistencePaths, activityOverviewSchemas: [activityOverviewSchemaPath, activityOverviewQueryV2SchemaPath, activityOverviewV2SchemaPath], canonicalFields: 3, mappingFields: 6 })}\n`,
 );

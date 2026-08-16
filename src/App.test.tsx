@@ -458,6 +458,80 @@ describe("FitFreed import interface", () => {
     expect(within(spanishRows[3]).getByText(spanish.activity.unavailable)).toBeVisible();
   });
 
+  it("filters an inclusive range, rejects invalid input, resets it, and opens daily detail", async () => {
+    const complete = activityOverview([
+      { localDate: "2026-01-01", stepCount: "1000", availability: "available" },
+      { localDate: "2026-01-02", stepCount: "2000", availability: "available" },
+      { localDate: "2026-01-03", stepCount: null, availability: "unavailable" },
+      { localDate: "2026-01-04", stepCount: null, availability: "missing" },
+      { localDate: "2026-01-05", stepCount: "5000", availability: "available" },
+    ]);
+    const filtered = activityOverview([
+      { localDate: "2026-01-02", stepCount: "2000", availability: "available" },
+      { localDate: "2026-01-03", stepCount: null, availability: "unavailable" },
+      { localDate: "2026-01-04", stepCount: null, availability: "missing" },
+    ]);
+    filtered.availableRange = complete.availableRange;
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "query_activity_overview") {
+        return Promise.resolve(arguments_?.requestedRange ? filtered : complete);
+      }
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      if (command === "load_locale") return Promise.resolve("en-US");
+      if (command === "save_locale") return Promise.resolve();
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+
+    const from = await screen.findByLabelText("From");
+    const through = screen.getByLabelText("Through");
+    expect(from).toHaveValue("2026-01-01");
+    expect(through).toHaveValue("2026-01-05");
+
+    await user.clear(from);
+    await user.type(from, "2026-01-02");
+    await user.clear(through);
+    await user.type(through, "2026-01-04");
+    await user.click(screen.getByRole("button", { name: "Apply range" }));
+
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith("query_activity_overview", {
+      requestedRange: { from: "2026-01-02", through: "2026-01-04" },
+    }));
+    expect(within(screen.getByRole("table", { name: "Daily activity overview" }))
+      .getAllByRole("row")).toHaveLength(4);
+
+    const detailButtons = screen.getAllByRole("button", {
+      name: "View details for Jan 3, 2026",
+    });
+    await user.click(detailButtons.at(-1)!);
+    const detail = screen.getByRole("region", { name: "Daily detail" });
+    expect(within(detail).getByText("Jan 3, 2026")).toBeVisible();
+    expect(within(detail).getByText("Observation available; step total unavailable")).toBeVisible();
+    expect(within(detail).getByText("Not available")).toBeVisible();
+    await user.click(within(detail).getByRole("button", { name: "Close detail" }));
+    expect(screen.queryByRole("region", { name: "Daily detail" })).not.toBeInTheDocument();
+
+    const rangeQueryCount = mocks.invoke.mock.calls.filter(
+      ([command]) => command === "query_activity_overview",
+    ).length;
+    await user.clear(from);
+    await user.type(from, "2026-01-05");
+    await user.click(screen.getByRole("button", { name: "Apply range" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Choose an ordered range inside the available history, up to 366 days.",
+    );
+    expect(mocks.invoke.mock.calls.filter(
+      ([command]) => command === "query_activity_overview",
+    )).toHaveLength(rangeQueryCount);
+
+    await user.click(screen.getByRole("button", { name: "Latest 30 days" }));
+    await waitFor(() => expect(from).toHaveValue("2026-01-01"));
+    expect(through).toHaveValue("2026-01-05");
+    expect(within(screen.getByRole("table", { name: "Daily activity overview" }))
+      .getAllByRole("row")).toHaveLength(6);
+  });
+
   it("keeps import disabled after a cancelled picker and enables it for a selected ZIP", async () => {
     emptyLibrary();
     const user = userEvent.setup();

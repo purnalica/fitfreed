@@ -106,6 +106,7 @@ pub struct ProfiledImport {
 }
 
 const DEFAULT_ACTIVITY_WINDOW_DAYS: u64 = 30;
+const MAX_ACTIVITY_RANGE_DAYS: i64 = 366;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActivityDateRange {
@@ -163,6 +164,7 @@ pub trait ArchiveImportPort {
 
 pub trait ActivityLibraryPort {
     fn activity_bounds(&self) -> Result<Option<ActivityDateRange>, String>;
+    fn activity_origins(&self) -> Result<Vec<String>, String>;
     fn query_activity(&self, range: &ActivityDateRange) -> Result<Vec<DailyActivity>, String>;
 }
 
@@ -185,6 +187,8 @@ pub enum ApplicationError {
     Import(String),
     #[error("library query failed: {0}")]
     Query(String),
+    #[error("invalid activity range: {0}")]
+    InvalidActivityRange(&'static str),
     #[error("import outcome query failed: {0}")]
     OutcomeQuery(String),
     #[error("locale preference query failed: {0}")]
@@ -257,6 +261,13 @@ pub fn import_archive(
 pub fn query_default_activity_overview(
     port: &dyn ActivityLibraryPort,
 ) -> Result<ActivityOverview, ApplicationError> {
+    query_activity_overview(port, None)
+}
+
+pub fn query_activity_overview(
+    port: &dyn ActivityLibraryPort,
+    requested_range: Option<ActivityDateRange>,
+) -> Result<ActivityOverview, ApplicationError> {
     let Some(available_range) = port.activity_bounds().map_err(ApplicationError::Query)? else {
         return Ok(ActivityOverview {
             available_range: None,
@@ -265,25 +276,56 @@ pub fn query_default_activity_overview(
         });
     };
 
-    let earliest = parse_activity_date(&available_range.from)?;
-    let latest = parse_activity_date(&available_range.through)?;
+    let earliest = parse_activity_date(&available_range.from)
+        .map_err(|reason| ApplicationError::Query(reason.to_owned()))?;
+    let latest = parse_activity_date(&available_range.through)
+        .map_err(|reason| ApplicationError::Query(reason.to_owned()))?;
     if earliest > latest {
         return Err(ApplicationError::Query(
             "activity bounds are not ordered".to_owned(),
         ));
     }
-    let window_start = latest
-        .checked_sub_days(Days::new(DEFAULT_ACTIVITY_WINDOW_DAYS - 1))
-        .unwrap_or(earliest)
-        .max(earliest);
-    let selected_range = ActivityDateRange {
-        from: window_start.format("%Y-%m-%d").to_string(),
-        through: latest.format("%Y-%m-%d").to_string(),
+
+    let (window_start, window_end, selected_range) = match requested_range {
+        Some(range) => {
+            let from =
+                parse_activity_date(&range.from).map_err(ApplicationError::InvalidActivityRange)?;
+            let through = parse_activity_date(&range.through)
+                .map_err(ApplicationError::InvalidActivityRange)?;
+            if from > through {
+                return Err(ApplicationError::InvalidActivityRange(
+                    "range dates are not ordered",
+                ));
+            }
+            if from < earliest || through > latest {
+                return Err(ApplicationError::InvalidActivityRange(
+                    "range is outside available activity history",
+                ));
+            }
+            if through.signed_duration_since(from).num_days() + 1 > MAX_ACTIVITY_RANGE_DAYS {
+                return Err(ApplicationError::InvalidActivityRange(
+                    "range exceeds 366 inclusive calendar days",
+                ));
+            }
+            (from, through, range)
+        }
+        None => {
+            let from = latest
+                .checked_sub_days(Days::new(DEFAULT_ACTIVITY_WINDOW_DAYS - 1))
+                .unwrap_or(earliest)
+                .max(earliest);
+            let range = ActivityDateRange {
+                from: from.format("%Y-%m-%d").to_string(),
+                through: latest.format("%Y-%m-%d").to_string(),
+            };
+            (from, latest, range)
+        }
     };
+    let origins = port.activity_origins().map_err(ApplicationError::Query)?;
     let activities = port
         .query_activity(&selected_range)
         .map_err(ApplicationError::Query)?;
-    let series = build_activity_series(window_start, latest, activities)?;
+    let series = build_activity_series(window_start, window_end, origins, activities)?;
 
     Ok(ActivityOverview {
         available_range: Some(available_range),
@@ -292,13 +334,11 @@ pub fn query_default_activity_overview(
     })
 }
 
-fn parse_activity_date(value: &str) -> Result<NaiveDate, ApplicationError> {
-    let parsed = NaiveDate::parse_from_str(value, "%Y-%m-%d")
-        .map_err(|_| ApplicationError::Query("activity date is invalid".to_owned()))?;
+fn parse_activity_date(value: &str) -> Result<NaiveDate, &'static str> {
+    let parsed =
+        NaiveDate::parse_from_str(value, "%Y-%m-%d").map_err(|_| "activity date is invalid")?;
     if parsed.format("%Y-%m-%d").to_string() != value {
-        return Err(ApplicationError::Query(
-            "activity date is not canonical".to_owned(),
-        ));
+        return Err("activity date is not canonical");
     }
     Ok(parsed)
 }
@@ -306,11 +346,30 @@ fn parse_activity_date(value: &str) -> Result<NaiveDate, ApplicationError> {
 fn build_activity_series(
     from: NaiveDate,
     through: NaiveDate,
+    origins: Vec<String>,
     activities: Vec<DailyActivity>,
 ) -> Result<Vec<ActivitySeriesOverview>, ApplicationError> {
     let mut observations = BTreeMap::<String, BTreeMap<NaiveDate, Option<i64>>>::new();
+    for origin in origins {
+        if origin.is_empty() {
+            return Err(ApplicationError::Query(
+                "activity query returned an empty origin".to_owned(),
+            ));
+        }
+        if observations.insert(origin, BTreeMap::new()).is_some() {
+            return Err(ApplicationError::Query(
+                "activity query returned a duplicate origin".to_owned(),
+            ));
+        }
+    }
+    if observations.is_empty() {
+        return Err(ApplicationError::Query(
+            "activity bounds exist without an origin".to_owned(),
+        ));
+    }
     for activity in activities {
-        let local_date = parse_activity_date(&activity.local_date)?;
+        let local_date = parse_activity_date(&activity.local_date)
+            .map_err(|reason| ApplicationError::Query(reason.to_owned()))?;
         if local_date < from || local_date > through {
             return Err(ApplicationError::Query(
                 "activity query returned a date outside its range".to_owned(),
@@ -321,10 +380,10 @@ fn build_activity_series(
                 "activity query returned a negative step count".to_owned(),
             ));
         }
-        let replaced = observations
-            .entry(activity.origin_id)
-            .or_default()
-            .insert(local_date, activity.step_count);
+        let origin = observations.get_mut(&activity.origin_id).ok_or_else(|| {
+            ApplicationError::Query("activity query returned an unknown origin".to_owned())
+        })?;
+        let replaced = origin.insert(local_date, activity.step_count);
         if replaced.is_some() {
             return Err(ApplicationError::Query(
                 "activity query returned a duplicate logical observation".to_owned(),
@@ -454,6 +513,10 @@ mod tests {
     impl ActivityLibraryPort for ControlledActivityPort {
         fn activity_bounds(&self) -> Result<Option<ActivityDateRange>, String> {
             Ok(self.bounds.clone())
+        }
+
+        fn activity_origins(&self) -> Result<Vec<String>, String> {
+            Ok(vec!["origin-a".to_owned(), "origin-b".to_owned()])
         }
 
         fn query_activity(&self, range: &ActivityDateRange) -> Result<Vec<DailyActivity>, String> {
@@ -591,12 +654,119 @@ mod tests {
     }
 
     #[test]
+    fn builds_an_explicit_activity_range_when_every_selected_date_is_missing() {
+        struct ExplicitRangePort;
+
+        impl ActivityLibraryPort for ExplicitRangePort {
+            fn activity_bounds(&self) -> Result<Option<ActivityDateRange>, String> {
+                Ok(Some(ActivityDateRange {
+                    from: "2024-01-01".to_owned(),
+                    through: "2026-01-31".to_owned(),
+                }))
+            }
+
+            fn activity_origins(&self) -> Result<Vec<String>, String> {
+                Ok(vec!["origin-a".to_owned()])
+            }
+
+            fn query_activity(
+                &self,
+                range: &ActivityDateRange,
+            ) -> Result<Vec<DailyActivity>, String> {
+                assert_eq!(range.from, "2025-12-30");
+                assert_eq!(range.through, "2026-01-02");
+                Ok(Vec::new())
+            }
+        }
+
+        let overview = query_activity_overview(
+            &ExplicitRangePort,
+            Some(ActivityDateRange {
+                from: "2025-12-30".to_owned(),
+                through: "2026-01-02".to_owned(),
+            }),
+        )
+        .expect("explicit activity overview");
+
+        assert_eq!(
+            overview.selected_range,
+            Some(ActivityDateRange {
+                from: "2025-12-30".to_owned(),
+                through: "2026-01-02".to_owned(),
+            })
+        );
+        assert_eq!(overview.series[0].summary.calendar_days, 4);
+        assert_eq!(overview.series[0].summary.missing_days, 4);
+        assert!(overview.series[0]
+            .days
+            .iter()
+            .all(|day| day.availability == ActivityDayAvailability::Missing));
+    }
+
+    #[test]
+    fn rejects_invalid_out_of_bounds_and_oversized_explicit_activity_ranges() {
+        struct RangeValidationPort;
+
+        impl ActivityLibraryPort for RangeValidationPort {
+            fn activity_bounds(&self) -> Result<Option<ActivityDateRange>, String> {
+                Ok(Some(ActivityDateRange {
+                    from: "2024-01-01".to_owned(),
+                    through: "2026-12-31".to_owned(),
+                }))
+            }
+
+            fn activity_origins(&self) -> Result<Vec<String>, String> {
+                panic!("invalid ranges must stop before origin retrieval")
+            }
+
+            fn query_activity(
+                &self,
+                _range: &ActivityDateRange,
+            ) -> Result<Vec<DailyActivity>, String> {
+                panic!("invalid ranges must stop before fact retrieval")
+            }
+        }
+
+        for range in [
+            ActivityDateRange {
+                from: "2026-02-30".to_owned(),
+                through: "2026-03-01".to_owned(),
+            },
+            ActivityDateRange {
+                from: "2026-03-02".to_owned(),
+                through: "2026-03-01".to_owned(),
+            },
+            ActivityDateRange {
+                from: "2023-12-31".to_owned(),
+                through: "2024-01-01".to_owned(),
+            },
+            ActivityDateRange {
+                from: "2026-12-31".to_owned(),
+                through: "2027-01-01".to_owned(),
+            },
+            ActivityDateRange {
+                from: "2025-01-01".to_owned(),
+                through: "2026-01-02".to_owned(),
+            },
+        ] {
+            assert!(matches!(
+                query_activity_overview(&RangeValidationPort, Some(range)),
+                Err(ApplicationError::InvalidActivityRange(_))
+            ));
+        }
+    }
+
+    #[test]
     fn returns_an_empty_activity_overview_without_querying_a_range() {
         struct EmptyActivityPort;
 
         impl ActivityLibraryPort for EmptyActivityPort {
             fn activity_bounds(&self) -> Result<Option<ActivityDateRange>, String> {
                 Ok(None)
+            }
+
+            fn activity_origins(&self) -> Result<Vec<String>, String> {
+                panic!("an empty library has no origins to query")
             }
 
             fn query_activity(
@@ -624,6 +794,10 @@ mod tests {
         impl ActivityLibraryPort for InvalidBoundsPort {
             fn activity_bounds(&self) -> Result<Option<ActivityDateRange>, String> {
                 Ok(Some(self.0.clone()))
+            }
+
+            fn activity_origins(&self) -> Result<Vec<String>, String> {
+                panic!("invalid bounds must stop before origin retrieval")
             }
 
             fn query_activity(
@@ -661,6 +835,10 @@ mod tests {
                     from: "2026-01-01".to_owned(),
                     through: "2026-01-03".to_owned(),
                 }))
+            }
+
+            fn activity_origins(&self) -> Result<Vec<String>, String> {
+                Ok(vec!["origin".to_owned()])
             }
 
             fn query_activity(
@@ -704,6 +882,62 @@ mod tests {
         for activities in invalid_cases {
             assert!(matches!(
                 query_default_activity_overview(&InvalidFactsPort(activities)),
+                Err(ApplicationError::Query(_))
+            ));
+        }
+    }
+
+    #[test]
+    fn rejects_inconsistent_activity_origin_catalogs() {
+        struct InvalidOriginPort {
+            origins: Vec<String>,
+            activities: Vec<DailyActivity>,
+        }
+
+        impl ActivityLibraryPort for InvalidOriginPort {
+            fn activity_bounds(&self) -> Result<Option<ActivityDateRange>, String> {
+                Ok(Some(ActivityDateRange {
+                    from: "2026-01-01".to_owned(),
+                    through: "2026-01-01".to_owned(),
+                }))
+            }
+
+            fn activity_origins(&self) -> Result<Vec<String>, String> {
+                Ok(self.origins.clone())
+            }
+
+            fn query_activity(
+                &self,
+                _range: &ActivityDateRange,
+            ) -> Result<Vec<DailyActivity>, String> {
+                Ok(self.activities.clone())
+            }
+        }
+
+        for port in [
+            InvalidOriginPort {
+                origins: Vec::new(),
+                activities: Vec::new(),
+            },
+            InvalidOriginPort {
+                origins: vec![String::new()],
+                activities: Vec::new(),
+            },
+            InvalidOriginPort {
+                origins: vec!["origin".to_owned(), "origin".to_owned()],
+                activities: Vec::new(),
+            },
+            InvalidOriginPort {
+                origins: vec!["known-origin".to_owned()],
+                activities: vec![DailyActivity {
+                    origin_id: "unknown-origin".to_owned(),
+                    local_date: "2026-01-01".to_owned(),
+                    step_count: Some(1),
+                }],
+            },
+        ] {
+            assert!(matches!(
+                query_activity_overview(&port, None),
                 Err(ApplicationError::Query(_))
             ));
         }

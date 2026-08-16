@@ -709,6 +709,19 @@ pub fn query_activity_bounds(database_path: &Path) -> Result<Option<ActivityDate
     }
 }
 
+pub fn query_activity_origins(database_path: &Path) -> Result<Vec<String>> {
+    let connection = Connection::open(database_path)?;
+    ensure_schema(&connection)?;
+    let mut statement = connection.prepare(
+        "SELECT DISTINCT origin_id
+         FROM daily_activity
+         ORDER BY origin_id",
+    )?;
+    let rows = statement.query_map([], |row| row.get(0))?;
+    rows.collect::<std::result::Result<Vec<_>, _>>()
+        .map_err(ImportError::from)
+}
+
 pub fn query_activity_between(
     database_path: &Path,
     from: Option<&str>,
@@ -1885,6 +1898,10 @@ impl SqliteActivityLibrary {
 impl ActivityLibraryPort for SqliteActivityLibrary {
     fn activity_bounds(&self) -> std::result::Result<Option<ActivityDateRange>, String> {
         query_activity_bounds(&self.database_path).map_err(|error| error.to_string())
+    }
+
+    fn activity_origins(&self) -> std::result::Result<Vec<String>, String> {
+        query_activity_origins(&self.database_path).map_err(|error| error.to_string())
     }
 
     fn query_activity(
@@ -3367,6 +3384,9 @@ mod tests {
                 through: "2026-06-03".to_owned(),
             })
         );
+        let origins = query_activity_origins(&harness.database()).expect("activity origins");
+        assert_eq!(origins.len(), 1);
+        assert!(!origins[0].is_empty());
         let filtered =
             query_activity_between(&harness.database(), Some("2026-06-02"), Some("2026-06-03"))
                 .expect("filtered history");

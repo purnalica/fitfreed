@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use fitfreed_application::{
     ActivityDateRange, ActivityDayAvailability, ActivityDayInsight, ActivityOverview,
@@ -27,6 +27,7 @@ impl From<ApplicationError> for CommandErrorDto {
             ApplicationError::Coordination(_) => "import-coordination-failed",
             ApplicationError::Import(_) => "import-failed",
             ApplicationError::Query(_) => "library-query-failed",
+            ApplicationError::InvalidActivityRange(_) => "invalid-activity-range",
             ApplicationError::OutcomeQuery(_) => "outcome-query-failed",
             ApplicationError::PreferenceQuery(_) => "preference-query-failed",
             ApplicationError::PreferenceUpdate(_) => "preference-update-failed",
@@ -35,11 +36,20 @@ impl From<ApplicationError> for CommandErrorDto {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ActivityDateRangeDto {
     from: String,
     through: String,
+}
+
+impl From<ActivityDateRangeDto> for ActivityDateRange {
+    fn from(range: ActivityDateRangeDto) -> Self {
+        Self {
+            from: range.from,
+            through: range.through,
+        }
+    }
 }
 
 impl From<ActivityDateRange> for ActivityDateRangeDto {
@@ -308,6 +318,23 @@ mod tests {
     use fitfreed_domain::{ArtifactClassification, ArtifactFamilyCoverage, ImportOperationState};
 
     use super::*;
+
+    #[test]
+    fn deserializes_an_activity_range_without_interpreting_local_dates_in_transport() {
+        let dto: ActivityDateRangeDto = serde_json::from_value(serde_json::json!({
+            "from": "2025-12-30",
+            "through": "2026-01-02"
+        }))
+        .expect("activity range DTO");
+
+        assert_eq!(
+            ActivityDateRange::from(dto),
+            ActivityDateRange {
+                from: "2025-12-30".to_owned(),
+                through: "2026-01-02".to_owned(),
+            }
+        );
+    }
 
     #[test]
     fn serializes_activity_insights_with_exact_decimal_counts_and_stable_availability() {

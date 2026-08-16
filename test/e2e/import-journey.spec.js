@@ -63,6 +63,24 @@ async function selectLocale(locale) {
   await expect($("select")).toHaveValue(locale);
 }
 
+async function setActivityRange(from, through) {
+  await browser.execute((values) => {
+    const inputs = document.querySelectorAll("input[type='date']");
+    const setValue = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    ).set;
+    inputs.forEach((input, index) => {
+      setValue.call(input, values[index]);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  }, [from, through]);
+  const inputs = await $$("input[type='date']");
+  await expect(inputs[0]).toHaveValue(from);
+  await expect(inputs[1]).toHaveValue(through);
+}
+
 function formatLocalDate(locale, value) {
   const [year, month, day] = value.split("-").map(Number);
   return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }).format(
@@ -337,6 +355,64 @@ describe("packaged FitFreed import journey", () => {
       ["1", "Days with no observation"],
     ]);
 
+    await setActivityRange("2026-01-02", "2026-01-04");
+    await $("aria/Apply range").click();
+    await expectHistory([
+      ["Jan 2, 2026", "4,200", "Step total available"],
+      ["Jan 3, 2026", "Not available", "Observation available; step total unavailable"],
+      ["Jan 4, 2026", "Not available", "No observation"],
+    ]);
+    await expectActivitySummary([
+      ["4,200", "Total steps"],
+      ["4,200", "Average per day with steps"],
+      ["1", "Days with step totals"],
+      ["1", "Observed days without a step total"],
+      ["1", "Days with no observation"],
+    ]);
+
+    const detailButtons = await $$('button[aria-label="View details for Jan 3, 2026"]');
+    expect(detailButtons).toHaveLength(2);
+    await detailButtons[1].click();
+    await expect($("#activity-detail-heading")).toHaveText("Daily detail");
+    const detailValues = await $$(".activity-detail dd");
+    await expect(detailValues[0]).toHaveText("Not available");
+    await expect(detailValues[1]).toHaveText(
+      "Observation available; step total unavailable",
+    );
+    await $("aria/Close detail").click();
+    expect(await $$(".activity-detail")).toHaveLength(0);
+
+    await setActivityRange("2026-01-04", "2026-01-04");
+    await $("aria/Apply range").click();
+    await expectHistory([
+      ["Jan 4, 2026", "Not available", "No observation"],
+    ]);
+    await expectActivitySummary([
+      ["Not available", "Total steps"],
+      ["Not available", "Average per day with steps"],
+      ["0", "Days with step totals"],
+      ["0", "Observed days without a step total"],
+      ["1", "Days with no observation"],
+    ]);
+
+    await setActivityRange("2026-01-05", "2026-01-04");
+    await $("aria/Apply range").click();
+    await expect($("[role='alert']")).toHaveText(
+      "Choose an ordered range inside the available history, up to 366 days.",
+    );
+    await expectHistory([
+      ["Jan 4, 2026", "Not available", "No observation"],
+    ]);
+
+    await $("aria/Latest 30 days").click();
+    await expectHistory([
+      ["Jan 1, 2026", "3,100", "Step total available"],
+      ["Jan 2, 2026", "4,200", "Step total available"],
+      ["Jan 3, 2026", "Not available", "Observation available; step total unavailable"],
+      ["Jan 4, 2026", "Not available", "No observation"],
+      ["Jan 5, 2026", "5,300", "Step total available"],
+    ]);
+
     await selectLocale("es-ES");
     await expectHistory([
       [formatLocalDate("es-ES", "2026-01-01"), "3100", spanish.activity.available],
@@ -345,6 +421,26 @@ describe("packaged FitFreed import journey", () => {
       [formatLocalDate("es-ES", "2026-01-04"), spanish.unavailable, spanish.activity.missing],
       [formatLocalDate("es-ES", "2026-01-05"), "5300", spanish.activity.available],
     ]);
+    const spanishDetailLabel = `${spanish.activity.viewDetails} ${formatLocalDate("es-ES", "2026-01-04")}`;
+    const spanishDetailButtons = await $$(`button[aria-label="${spanishDetailLabel}"]`);
+    expect(spanishDetailButtons).toHaveLength(2);
+    await spanishDetailButtons[0].click();
+    await expect($("#activity-detail-heading")).toHaveText(spanish.activity.detailHeading);
+    const spanishDetailValues = await $$(".activity-detail dd");
+    await expect(spanishDetailValues[1]).toHaveText(spanish.activity.missing);
+    await browser.execute(() => {
+      document.documentElement.style.fontSize = "200%";
+    });
+    const detailHasHorizontalOverflow = await browser.execute(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    );
+    expect(detailHasHorizontalOverflow).toBe(false);
+    const detailAccessibility = await new AxeBuilder({ client: browser }).setLegacyMode().analyze();
+    expect(detailAccessibility.violations).toEqual([]);
+    await browser.execute(() => {
+      document.documentElement.style.fontSize = "";
+    });
+    await $("aria/Cerrar detalle").click();
 
     await browser.reloadSession();
     await expect($("h1")).toHaveText(spanish.title);
