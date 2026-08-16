@@ -12,7 +12,7 @@ No product source, behavioral test, required fixture generator, or continuous-in
 
 ## Increment M1.1 — Promote the selected foundation
 
-**Status:** in progress. Product source, tests, fixtures, brand assets, toolchains, and packaging configuration are versioned; local and hosted acceptance gates are being completed.
+**Status:** complete. Product source, tests, fixtures, brand assets, toolchains, and packaging configuration are versioned and pass the local and hosted acceptance gates.
 
 **Outcome:** the selected application becomes the single versioned source of truth.
 
@@ -27,9 +27,11 @@ No product source, behavioral test, required fixture generator, or continuous-in
 
 **Acceptance evidence:** tracked source has no `.local` dependency; formatting, static analysis, architecture, unit, integration, presentation, packaging, and repository-safety checks pass.
 
+Evidence: commit `pre-purge` passed the [portable, production-package, and packaged macOS E2E gates](https://github.com/purnalica/fitfreed/actions/runs/31954424171) and the independent [repository content and secret scan](https://github.com/purnalica/fitfreed/actions/runs/31954424164).
+
 ## Increment M1.2 — Reproducible GitHub Actions verification
 
-**Status:** in progress. The portable and packaged macOS jobs are versioned; successful execution from the published commit remains required.
+**Status:** complete. The portable and packaged macOS jobs pass from a clean checkout without manual command relay.
 
 **Outcome:** contributors and the default branch receive automated evidence without requiring the project owner to run local commands.
 
@@ -45,7 +47,9 @@ No product source, behavioral test, required fixture generator, or continuous-in
 
 **Acceptance evidence:** the same documented commands pass locally and in GitHub Actions; the macOS E2E job passes from a clean checkout; a deliberately broken journey makes the required check fail with usable diagnostics; no manual command relay is part of the workflow.
 
-An environment limitation never waives this gate. Until GitHub Actions produces successful packaged E2E evidence, the increment remains open.
+An environment limitation never waives this gate. This increment remained open until GitHub Actions produced successful packaged E2E evidence.
+
+Evidence: the successful run above exercised every required lane. The preceding [genuinely failing packaged journey](https://github.com/purnalica/fitfreed/actions/runs/31953109344) provided stronger evidence than the planned synthetic break: it failed the required check at the picker boundary and retained a privacy-safe screenshot and tool logs before the corrected run passed.
 
 ## Increment M1.3 — Transactional library foundation
 
