@@ -65,6 +65,7 @@ describe("FitFreed import interface", () => {
 
     mocks.open.mockResolvedValue(null);
     await user.click(screen.getByRole("button", { name: "Choose ZIP package" }));
+    await waitFor(() => expect(mocks.open).toHaveBeenCalledOnce());
     expect(screen.getByRole("button", { name: "Import selected package" })).toBeDisabled();
 
     await chooseArchive(user, "/synthetic/valid.zip");

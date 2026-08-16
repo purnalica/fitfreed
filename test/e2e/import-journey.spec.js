@@ -13,16 +13,38 @@ async function waitForNotice(fragment, timeout = 10_000) {
   await browser.waitUntil(
     async () => {
       const notices = await $$("[role='status']");
-      const texts = await Promise.all(notices.map((notice) => notice.getText()));
-      return texts.some((text) => text.includes(fragment));
+      for (const notice of notices) {
+        if ((await notice.getText()).includes(fragment)) return true;
+      }
+      return false;
     },
     { timeout, timeoutMsg: `status did not contain ${fragment}` },
   );
 }
 
-async function selectArchive(dialogMock, archivePath) {
-  await dialogMock.mockReturnValue(archivePath);
+async function openArchivePicker(dialogMock, selectedPath) {
+  await dialogMock.mockReturnValue(selectedPath);
+  await dialogMock.update();
+  const expectedCallCount = dialogMock.mock.calls.length + 1;
   await $("aria/Choose ZIP package").click();
+  await browser.waitUntil(
+    async () => {
+      await dialogMock.update();
+      return dialogMock.mock.calls.length >= expectedCallCount;
+    },
+    { timeout: 10_000, timeoutMsg: "archive picker was not invoked" },
+  );
+  expect(dialogMock.mock.calls[expectedCallCount - 1][0]).toEqual({
+    options: {
+      multiple: false,
+      directory: false,
+      filters: [{ name: "ZIP", extensions: ["zip"] }],
+    },
+  });
+}
+
+async function selectArchive(dialogMock, archivePath) {
+  await openArchivePicker(dialogMock, archivePath);
   await expect($(".path")).toHaveText(archivePath);
 }
 
@@ -64,8 +86,7 @@ describe("packaged FitFreed import journey", () => {
     await expect($("h1")).toHaveText("Your fitness history belongs to you");
 
     const dialogMock = await browser.tauri.mock("plugin:dialog|open");
-    await dialogMock.mockReturnValue(null);
-    await $("aria/Choose ZIP package").click();
+    await openArchivePicker(dialogMock, null);
     await expect($(".path")).toHaveText("No package selected");
     await expect($("aria/Import selected package")).toBeDisabled();
 
@@ -81,7 +102,13 @@ describe("packaged FitFreed import journey", () => {
     await cancel.waitForDisplayed({ timeout: 1_000 });
     const cancellationStartedAt = Date.now();
     await cancel.click();
-    await $("button.cancel").waitForEnabled({ reverse: true, timeout: 1_000 });
+    await browser.waitUntil(
+      async () => {
+        const cancellationButtons = await $$("button.cancel");
+        return cancellationButtons.length === 0 || !(await cancellationButtons[0].isEnabled());
+      },
+      { timeout: 1_000, timeoutMsg: "cancellation control remained enabled" },
+    );
     expect(Date.now() - cancellationStartedAt).toBeLessThanOrEqual(1_000);
     await waitForNotice(spanish.phases.cancelled, 5_000);
     await $("button.primary").waitForEnabled({ timeout: 5_000 });
@@ -105,7 +132,7 @@ describe("packaged FitFreed import journey", () => {
       ["2026-01-03", "Not available"],
     ]);
 
-    const accessibility = await new AxeBuilder({ client: browser }).analyze();
+    const accessibility = await new AxeBuilder({ client: browser }).setLegacyMode().analyze();
     expect(accessibility.violations).toEqual([]);
 
     await $("aria/Import selected package").click();

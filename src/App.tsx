@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Channel, invoke } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-dialog";
 import "./App.css";
+import { chooseZipArchive } from "./infrastructure/archive-picker";
 import { catalogs, type Locale } from "./locales/catalogs";
 
 interface DailyActivity {
@@ -59,11 +59,7 @@ function App() {
   }, []);
 
   async function chooseArchive() {
-    const selected = await open({
-      multiple: false,
-      directory: false,
-      filters: [{ name: "ZIP", extensions: ["zip"] }],
-    });
+    const selected = await chooseZipArchive();
     if (typeof selected === "string") {
       setArchivePath(selected);
       setReport(undefined);

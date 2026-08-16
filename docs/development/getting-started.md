@@ -47,13 +47,15 @@ Generated application, database, fixture, log, screenshot, icon, and bundle outp
 - `src-tauri/crates/fitfreed-application` contains use cases, ports, progress, and cancellation coordination and depends only on the domain and its error helper.
 - `src-tauri/src/infrastructure.rs` contains the Polar Flow ZIP/JSON adapter and SQLite adapter demonstrated by the first vertical slice.
 - `src-tauri/src/lib.rs` and `presentation.rs` are the Tauri host and serialized transport boundary.
-- `src` contains the React presentation; localized copy exists only under `src/locales`.
+- `src` contains the React presentation, its desktop archive-picker adapter, and test-only presentation instrumentation; localized copy exists only under `src/locales`.
 
 The detailed dependency map is [`../architecture/module-map.md`](../architecture/module-map.md), and the machine-readable contract index is [`../data-formats/README.md`](../data-formats/README.md). Source-format, canonical-format, mapping, or persistence changes must update their normative documentation and synthetic contract evidence in the same increment.
 
 ## Continuous integration
 
 GitHub Actions runs portable quality checks and a mandatory macOS packaged-E2E job for pull requests and `main`. The macOS job builds a normal production package first and rejects WebDriver instrumentation before building the separate test variant. It then drives the packaged application through validation, progress, cancellation, both locales, exact and cumulative reimport, accessibility, and persisted restart.
+
+The instrumented build routes only the archive-picker adapter to WebdriverIO's dialog mock because the embedded macOS WebView exposes Tauri globals through a non-configurable proxy. The E2E test waits for the recorded picker call before observing its result. Normal development and production builds use Tauri's native dialog directly, and the production-bundle check rejects both Rust and presentation WebDriver markers.
 
 When E2E fails, the job retains only synthetic screenshots and tool logs for seven days. It never uploads the generated library, fixture paths, real exports, or personal values.
 

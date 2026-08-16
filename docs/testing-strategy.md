@@ -90,6 +90,8 @@ Local and continuous-integration workflows will invoke the same underlying comma
 - GitHub Actions runs platform-independent fast and full checks for pull requests and `main`.
 - A mandatory macOS job builds the instrumented Tauri package and executes the focused packaged E2E journey with independently generated synthetic fixtures.
 - Test-only WebDriver plugins and capabilities are feature-gated. A separate packaging assertion proves that they are absent from the production application.
+- The instrumented presentation replaces only the operating-system archive-picker boundary with the WebdriverIO mock registry. Tests synchronize on the recorded dialog invocation before asserting cancellation or selection; unchanged initial UI state is not accepted as evidence that the picker completed.
+- Axe runs in its single-context legacy mode because the embedded macOS driver does not support the auxiliary browser window used by Axe's multi-context algorithm. The rule engine and violation assertions remain enabled.
 - Privacy-safe failure reports, logs, and screenshots are retained as short-lived workflow artifacts. Application libraries, private paths, real exports, and derived personal values are never uploaded.
 - The packaged E2E gate remains failed or pending until it succeeds in automation; inability to execute it in a local host is not accepted evidence.
 
