@@ -2,7 +2,7 @@
 
 ## Important boundary
 
-The current application is a development foundation, not an alpha release. It proves a synthetic daily-activity import and history journey. Do not use a real personal export yet: source-subject identity, coverage reporting, complete mappings, recovery guidance, and the full MVP privacy contract are still under implementation.
+The current application is a development foundation, not an alpha release. It proves a synthetic daily-activity import and history journey. Do not use a real personal export yet: source-subject identity, coverage reporting, complete mappings, recovery guidance, and the full MVP privacy contract are still under implementation. Read the project-wide [disclaimer](../../DISCLAIMER.md) before running any build.
 
 ## Run the synthetic journey
 

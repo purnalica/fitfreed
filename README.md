@@ -6,6 +6,8 @@ FitFreed is a local-first desktop application for turning personal fitness-platf
 
 > **Project status:** Milestone 1 executable foundation. A versioned Tauri walking skeleton imports independently constructed synthetic daily-activity data through Clean Architecture boundaries. It is not an alpha release and must not yet be used with real personal exports.
 
+FitFreed is experimental software provided without warranty. Use it at your own risk and read the [project disclaimer](DISCLAIMER.md) before running any build.
+
 ## Why FitFreed exists
 
 Downloading personal data is necessary but not sufficient. A ZIP archive full of machine-readable files provides little practical freedom without trustworthy software that can interpret, reconcile, visualize, preserve, and export the information.
@@ -61,6 +63,8 @@ Polar Flow is the first importer, not the product identity. Later importers may 
 - [Documentation policy](docs/documentation-policy.md)
 - [Architecture decision records](docs/architecture/decisions/README.md)
 - [Repository content policy](docs/repository-content-policy.md)
+- [Project disclaimer](DISCLAIMER.md)
+- [Security policy](SECURITY.md)
 
 The application stack is selected in [ADR 0001](docs/architecture/decisions/0001-select-tauri-application-stack.md), and SQLite is selected as the single system of record in [ADR 0002](docs/architecture/decisions/0002-select-sqlite-storage.md). Release-shaped E2E, dependency, update, and visualization gates remain in progress. Build, test, and package commands are documented in the contributor setup.
 
