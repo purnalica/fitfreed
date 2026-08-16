@@ -2,7 +2,7 @@
 
 ## Status
 
-Milestone 0 baseline. Scenario structures are technology-neutral until the application stack and fixture tooling are selected. Family-specific fields and expected canonical entities are added with each implemented mapping.
+Active cross-layer scenario contract. The Tauri fixture generator implements the current daily-activity and coverage slice; family-specific fields and expected canonical entities are added with each mapping.
 
 ## Purpose
 
@@ -55,7 +55,7 @@ Production-path fixtures include exactly one obvious non-address fictional accou
 | `SYN-021` | Cancellation by durable phase | Cancellation during assessment, staging, or reconciliation exposes no canonical changes and cleans or records staging according to policy. |
 | `SYN-022` | Process interruption by durable phase | Restart resolves assessment/staging safely and proves either complete commit or rollback for an interrupted visibility boundary. |
 | `SYN-023` | Artifact-order and batch-size permutations | Property-based permutations produce the same coverage, decisions, and canonical result. |
-| `SYN-024` | Mixed coverage package | Supported, unsupported, ignored, and unrecognized artifacts produce one internally consistent outcome with no silent category. |
+| `SYN-024` | Mixed coverage package | Supported, unsupported, ignored, unrecognized, and invalid artifacts produce deterministic family-level counts, localized reasons and next actions, and no silent category or exposed locator. |
 | `SYN-025` | Generated realistic scale | Streaming import, bounded memory, progress, cancellation, persistence, and representative queries meet validated budgets. |
 | `SYN-026` | Schema migration and reimport | Data created by every supported library schema migrates, remains queryable, and reconciles correctly with a later package. |
 

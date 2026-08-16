@@ -33,6 +33,20 @@ interface ArtifactCoverageSummary {
   invalid: number;
 }
 
+type ArtifactClassification =
+  | "supported"
+  | "unsupported"
+  | "deliberately-ignored"
+  | "unrecognized"
+  | "invalid";
+
+interface ArtifactFamilyCoverage {
+  familyCode: string | null;
+  classification: ArtifactClassification;
+  reasonCode: string;
+  artifactCount: number;
+}
+
 interface ImportOutcome {
   operationRef: string;
   state: ImportOutcomeState;
@@ -42,6 +56,7 @@ interface ImportOutcome {
   exactRepeat: boolean;
   coverageComplete: boolean;
   coverage: ArtifactCoverageSummary;
+  artifactFamilies: ArtifactFamilyCoverage[];
   report: ImportReport;
   canonicalHistoryChanged: boolean;
   terminalCode: string | null;
@@ -262,6 +277,24 @@ function App() {
     return provider === "polar-flow" ? messages.outcome.polarFlow : provider;
   }
 
+  function classificationName(classification: ArtifactClassification): string {
+    return messages.outcome.familyClassifications[classification];
+  }
+
+  function familyName(familyCode: string | null): string {
+    if (familyCode === null) return messages.outcome.unrecognizedFamily;
+    const familyNames = messages.outcome.familyNames as Record<string, string>;
+    return familyNames[familyCode] ?? familyCode;
+  }
+
+  function coverageExplanation(reasonCode: string) {
+    const explanations = messages.outcome.coverageExplanations as Record<
+      string,
+      { reason: string; action: string }
+    >;
+    return explanations[reasonCode] ?? explanations.unknown;
+  }
+
   return (
     <main>
       <header className="hero">
@@ -365,6 +398,50 @@ function App() {
             <li><strong>{number.format(outcome.coverage.unrecognized)}</strong><span>{messages.outcome.unrecognized}</span></li>
             <li><strong>{number.format(outcome.coverage.invalid)}</strong><span>{messages.outcome.invalid}</span></li>
           </ul>
+          {outcome.artifactFamilies.length > 0 && (
+            <>
+              <h3 id="family-coverage-heading">{messages.outcome.familyCoverageHeading}</h3>
+              <table className="family-coverage-table">
+                <caption className="sr-only">{messages.outcome.familyCoverageHeading}</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">{messages.outcome.familyColumn}</th>
+                    <th scope="col">{messages.outcome.classificationColumn}</th>
+                    <th scope="col">{messages.outcome.artifactCountColumn}</th>
+                    <th scope="col">{messages.outcome.explanationColumn}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {outcome.artifactFamilies.map((family) => {
+                    const explanation = coverageExplanation(family.reasonCode);
+                    return (
+                      <tr key={`${family.familyCode ?? "unrecognized"}:${family.classification}:${family.reasonCode}`}>
+                        <th scope="row" data-label={messages.outcome.familyColumn}>
+                          {familyName(family.familyCode)}
+                        </th>
+                        <td data-label={messages.outcome.classificationColumn}>
+                          {classificationName(family.classification)}
+                        </td>
+                        <td data-label={messages.outcome.artifactCountColumn}>
+                          {number.format(family.artifactCount)}
+                        </td>
+                        <td data-label={messages.outcome.explanationColumn}>
+                          <p>
+                            <strong>{messages.outcome.reasonLabel}:</strong>{" "}
+                            {explanation.reason}
+                          </p>
+                          <p>
+                            <strong>{messages.outcome.nextActionLabel}:</strong>{" "}
+                            {explanation.action}
+                          </p>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </>
+          )}
         </section>
       )}
       {visibleErrorCode && (

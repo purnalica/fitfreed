@@ -62,7 +62,7 @@ This registry is the public coverage index. Detailed shapes, fields, identities,
 | Physical evolution | Historical physical measurements and thresholds | Recognized inside unsupported account, activity, calendar, and training structures; no separate artifact grammar is claimed |
 | Sport configuration | Sport profiles, zones, units, and reminders | Recognized and unsupported |
 
-An artifact that is recognized but unsupported will remain visible as unsupported. An unfamiliar artifact will be reported as unrecognized. Neither state is equivalent to a successful import.
+An artifact that is recognized but unsupported will remain visible as unsupported. An unfamiliar artifact will be reported as unrecognized. Recognized content that fails its structural contract is invalid, while a deliberately excluded family retains its explicit policy reason. None of these states is equivalent to a successful import. The desktop groups these results by family, classification, and reason and provides localized next actions without displaying archive filenames or personal values.
 
 The executable registry matches the complete observed lexical filename grammars, including date, numeric, month, partition, size, and UUID-shaped tokens. A prefix match, shortened synthetic suffix, nested path, or malformed near miss does not claim family compatibility. Strict filename recognition does not establish that delivery tokens are stable identifiers or that the JSON root and fields are valid; those are separate family checks.
 

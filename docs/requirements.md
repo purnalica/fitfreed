@@ -181,7 +181,7 @@ The format is not homogeneous: it combines JSON objects and collections, singlet
 
 ### FR-008 — Explicit format coverage
 
-Every detected file family will be classified as supported, deliberately ignored, or unrecognized. The import result will report this classification; no file will be silently discarded.
+Every archive artifact will be classified as supported, unsupported, deliberately ignored, unrecognized, or invalid. The import result will report aggregate coverage and a family-level breakdown with a localized reason and next action; no file will be silently discarded and no source locator or personal value will be exposed by that view.
 
 ### FR-009 — Evolutionary compatibility
 
@@ -258,7 +258,7 @@ The MVP is a private unsigned macOS alpha that provides one complete user journe
 
 1. Launch the application in `en-US` or `es-ES`.
 2. Select and import a Polar Flow takeout ZIP archive directly.
-3. Inspect phased progress and a coverage report that distinguishes supported, deliberately ignored, and unrecognized data.
+3. Inspect phased progress and a coverage report that distinguishes supported, unsupported, deliberately ignored, unrecognized, and invalid data, then explains each data family and the applicable next action.
 4. Persist normalized data locally and recover it after restarting the application.
 5. Explore a longitudinal dashboard covering daily activity, training sessions, sleep, and recovery.
 6. Filter the history, open detail views, and compare selected periods through a visual report.

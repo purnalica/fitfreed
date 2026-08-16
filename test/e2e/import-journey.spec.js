@@ -71,15 +71,30 @@ function formatLocalDate(locale, value) {
 }
 
 async function expectHistory(expectedRows) {
-  await browser.waitUntil(async () => (await $$("tbody tr")).length === expectedRows.length, {
+  const historyRows = ".history-grid table tbody tr";
+  await browser.waitUntil(async () => (await $$(historyRows)).length === expectedRows.length, {
     timeout: 10_000,
     timeoutMsg: `history did not contain ${expectedRows.length} rows`,
   });
-  const rows = await $$("tbody tr");
+  const rows = await $$(historyRows);
   for (let index = 0; index < expectedRows.length; index += 1) {
     const cells = await rows[index].$$("td");
     await expect(cells[0]).toHaveText(expectedRows[index][0]);
     await expect(cells[1]).toHaveText(expectedRows[index][1]);
+  }
+}
+
+async function expectFamilyCoverage(expectedRows) {
+  const rows = await $$(".family-coverage-table tbody tr");
+  expect(rows).toHaveLength(expectedRows.length);
+  for (let index = 0; index < expectedRows.length; index += 1) {
+    const family = await rows[index].$("th");
+    const cells = await rows[index].$$("td");
+    await expect(family).toHaveText(expectedRows[index].family);
+    await expect(cells[0]).toHaveText(expectedRows[index].classification);
+    await expect(cells[1]).toHaveText(expectedRows[index].count);
+    await expect(cells[2]).toHaveText(expect.stringContaining(expectedRows[index].reason));
+    await expect(cells[2]).toHaveText(expect.stringContaining(expectedRows[index].action));
   }
 }
 
@@ -132,7 +147,7 @@ describe("packaged FitFreed import journey", () => {
     await waitForNotice(spanish.phases.cancelled, 5_000);
     await $("button.primary").waitForEnabled({ timeout: 5_000 });
     expect(Date.now() - cancellationStartedAt).toBeLessThanOrEqual(5_000);
-    expect(await $$("tbody tr")).toHaveLength(0);
+    expect(await $$(".history-grid table tbody tr")).toHaveLength(0);
 
     await selectLocale("en-US");
     await selectArchive(dialogMock, path.join(fixtureDirectory, "invalid.zip"));
@@ -150,7 +165,23 @@ describe("packaged FitFreed import journey", () => {
       ["0", "Unrecognized"],
       ["1", "Invalid"],
     ]);
-    expect(await $$("tbody tr")).toHaveLength(0);
+    await expectFamilyCoverage([
+      {
+        family: "Daily activity",
+        classification: "Invalid",
+        count: "1",
+        reason: "Recognized content failed validation.",
+        action: "Keep the original ZIP and report the compatibility problem.",
+      },
+      {
+        family: "Account data",
+        classification: "Supported",
+        count: "1",
+        reason: "The data is used only to link packages from the same provider account.",
+        action: "No action is needed.",
+      },
+    ]);
+    expect(await $$(".history-grid table tbody tr")).toHaveLength(0);
 
     await selectArchive(dialogMock, path.join(fixtureDirectory, "valid.zip"));
     await $("aria/Import selected package").click();
@@ -161,6 +192,43 @@ describe("packaged FitFreed import journey", () => {
       ["1", "Deliberately ignored"],
       ["1", "Unrecognized"],
       ["0", "Invalid"],
+    ]);
+    await expectFamilyCoverage([
+      {
+        family: "Unrecognized data",
+        classification: "Unrecognized",
+        count: "1",
+        reason: "The file does not match a known data family.",
+        action: "Keep the original ZIP and report the compatibility problem.",
+      },
+      {
+        family: "Sleep results",
+        classification: "Unsupported",
+        count: "1",
+        reason: "The data family is recognized but is not imported by this version.",
+        action: "Keep the original ZIP for a future version.",
+      },
+      {
+        family: "Profile picture",
+        classification: "Deliberately ignored",
+        count: "1",
+        reason: "Profile pictures are intentionally excluded from the MVP.",
+        action: "Keep the original ZIP if the picture matters to you.",
+      },
+      {
+        family: "Account data",
+        classification: "Supported",
+        count: "1",
+        reason: "The data is used only to link packages from the same provider account.",
+        action: "No action is needed.",
+      },
+      {
+        family: "Daily activity",
+        classification: "Supported",
+        count: "3",
+        reason: "The data is mapped into the current library.",
+        action: "No action is needed.",
+      },
     ]);
     await expectHistory([
       ["Jan 1, 2026", "3,100"],
@@ -177,10 +245,48 @@ describe("packaged FitFreed import journey", () => {
       ["1", spanish.outcome.unrecognized],
       ["0", spanish.outcome.invalid],
     ]);
+    await expectFamilyCoverage([
+      {
+        family: spanish.outcome.unrecognizedFamily,
+        classification: spanish.outcome.familyClassifications.unrecognized,
+        count: "1",
+        ...spanish.outcome.coverageExplanations["unrecognized-artifact-family"],
+      },
+      {
+        family: spanish.outcome.familyNames["polar-flow-sleep-result"],
+        classification: spanish.outcome.familyClassifications.unsupported,
+        count: "1",
+        ...spanish.outcome.coverageExplanations["known-family-not-yet-supported"],
+      },
+      {
+        family: spanish.outcome.familyNames["polar-flow-profile-picture"],
+        classification: spanish.outcome.familyClassifications["deliberately-ignored"],
+        count: "1",
+        ...spanish.outcome.coverageExplanations["mvp-excludes-profile-picture"],
+      },
+      {
+        family: spanish.outcome.familyNames["polar-flow-account-data"],
+        classification: spanish.outcome.familyClassifications.supported,
+        count: "1",
+        ...spanish.outcome.coverageExplanations["source-subject-claim"],
+      },
+      {
+        family: spanish.outcome.familyNames["polar-flow-daily-activity"],
+        classification: spanish.outcome.familyClassifications.supported,
+        count: "3",
+        ...spanish.outcome.coverageExplanations.mapped,
+      },
+    ]);
+    await browser.execute(() => {
+      document.documentElement.style.fontSize = "200%";
+    });
     const hasHorizontalOverflow = await browser.execute(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
     );
     expect(hasHorizontalOverflow).toBe(false);
+    await browser.execute(() => {
+      document.documentElement.style.fontSize = "";
+    });
     await selectLocale("en-US");
 
     const accessibility = await new AxeBuilder({ client: browser }).setLegacyMode().analyze();

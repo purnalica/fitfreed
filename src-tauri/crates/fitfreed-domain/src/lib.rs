@@ -118,6 +118,17 @@ pub enum ArtifactClassification {
 }
 
 impl ArtifactClassification {
+    pub const fn from_code(code: &str) -> Option<Self> {
+        match code.as_bytes() {
+            b"supported" => Some(Self::Supported),
+            b"unsupported" => Some(Self::Unsupported),
+            b"deliberately-ignored" => Some(Self::DeliberatelyIgnored),
+            b"unrecognized" => Some(Self::Unrecognized),
+            b"invalid" => Some(Self::Invalid),
+            _ => None,
+        }
+    }
+
     pub const fn code(self) -> &'static str {
         match self {
             Self::Supported => "supported",
@@ -140,6 +151,14 @@ pub struct ArtifactCoverageSummary {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ArtifactFamilyCoverage {
+    pub family_code: Option<String>,
+    pub classification: ArtifactClassification,
+    pub reason_code: String,
+    pub artifact_count: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportOutcome {
     pub operation_ref: String,
     pub state: ImportOperationState,
@@ -149,6 +168,7 @@ pub struct ImportOutcome {
     pub exact_repeat: bool,
     pub coverage_complete: bool,
     pub coverage: ArtifactCoverageSummary,
+    pub artifact_families: Vec<ArtifactFamilyCoverage>,
     pub report: ImportReport,
     pub canonical_history_changed: bool,
     pub terminal_code: Option<String>,
@@ -251,6 +271,25 @@ mod tests {
             decide_reconciliation(ExistingObservation::Present(Some(1_000)), Some(2_000)),
             ReconciliationDecision::Conflict
         );
+    }
+
+    #[test]
+    fn round_trips_every_artifact_classification_code() {
+        let classifications = [
+            ArtifactClassification::Supported,
+            ArtifactClassification::Unsupported,
+            ArtifactClassification::DeliberatelyIgnored,
+            ArtifactClassification::Unrecognized,
+            ArtifactClassification::Invalid,
+        ];
+
+        for classification in classifications {
+            assert_eq!(
+                ArtifactClassification::from_code(classification.code()),
+                Some(classification)
+            );
+        }
+        assert_eq!(ArtifactClassification::from_code("future"), None);
     }
 
     #[test]

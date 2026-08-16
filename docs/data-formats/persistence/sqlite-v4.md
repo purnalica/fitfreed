@@ -68,6 +68,19 @@ Polar import operations that apply this contract record source adapter version `
 - An interrupted upgrade retains the previous schema version and contains no partially generated correlation key, origin catalog, evidence table, or operation column.
 - Backup and normal reopen verification include the generated correlation state through the same SQLite integrity boundary.
 
+## Current terminal-outcome read model
+
+The provider-neutral terminal outcome includes `artifactFamilies`, derived from the version 2 coverage ledger without a schema projection table. Each entry has:
+
+| Field | Type | Contract |
+|---|---|---|
+| `familyCode` | string or null | Stable provider-family code; null means that no known family matched. |
+| `classification` | string | One of `supported`, `unsupported`, `deliberately-ignored`, `unrecognized`, or `invalid`. |
+| `reasonCode` | string | Stable privacy-safe reason copied from persisted coverage evidence. |
+| `artifactCount` | non-negative integer | Number of operation artifacts with the same family, classification, and reason. |
+
+The read query does not select or serialize `artifact_locator` or `source_artifact_sha256`. Entries are ordered by user attention: invalid, unrecognized, unsupported, deliberately ignored, then supported; ties use family and reason codes. An exact-repeat operation retains the earlier family reason codes because its separate `exactRepeat` field already explains why parsing was skipped.
+
 ## Verification evidence
 
-Migration integration tests cover clean creation, key length, empty origin state, legacy-origin preservation, operation backfill, rollback and recovery from versions 1, 2, and 3, and rejection of future schemas. Resolver integration tests cover scoped digest separation, first origin creation, same-claim lookup, conflicting claims, atomic persistence, and the absence of raw evidence from stored state and diagnostics.
+Migration integration tests cover clean creation, key length, empty origin state, legacy-origin preservation, operation backfill, rollback and recovery from versions 1, 2, and 3, and rejection of future schemas. Resolver integration tests cover scoped digest separation, first origin creation, same-claim lookup, conflicting claims, atomic persistence, and the absence of raw evidence from stored state and diagnostics. Outcome tests cover grouping and ordering across every classification, retention across exact repeats, stable transport serialization, and exclusion of locators.

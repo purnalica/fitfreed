@@ -48,6 +48,8 @@ The correlation key remains part of protected backup state so a restored library
 
 Canonical tables protect identity and invariants. Indexes and derived projections serve product queries; they are designed from measured use cases and remain rebuildable from authoritative state.
 
+The latest-outcome read adapter derives family coverage by grouping `import_artifact_coverage` on nullable family code, classification, and reason code. It returns only those stable codes and a validated non-negative count; it never returns artifact locators or source hashes to the host. Exact-repeat operations copy the original classification reasons because repeat status is already represented by the operation itself and must not replace the explanation of each family.
+
 Queries expected to exceed 500 ms expose a loading state and remain cancellable. A required query that exceeds its 2-second complex-visualization budget after appropriate indexing and projection design is a storage-architecture reconsideration trigger.
 
 ## Operational decisions still to verify

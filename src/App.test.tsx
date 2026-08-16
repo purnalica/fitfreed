@@ -24,6 +24,7 @@ function importOutcome(overrides: Record<string, unknown> = {}) {
       unrecognized: 0,
       invalid: 0,
     },
+    artifactFamilies: [],
     report: {
       exactRepeat: false,
       recognizedArtifacts: 3,
@@ -87,6 +88,76 @@ async function chooseArchive(user: ReturnType<typeof userEvent.setup>, path: str
 }
 
 describe("FitFreed import interface", () => {
+  it("explains family coverage with localized reasons and next actions without source locators", async () => {
+    const latestOutcome = importOutcome({
+      coverage: {
+        total: 7,
+        supported: 3,
+        unsupported: 1,
+        deliberatelyIgnored: 1,
+        unrecognized: 1,
+        invalid: 1,
+      },
+      artifactFamilies: [
+        {
+          familyCode: "polar-flow-daily-activity",
+          classification: "invalid",
+          reasonCode: "invalid-supported-artifact",
+          artifactCount: 1,
+        },
+        {
+          familyCode: null,
+          classification: "unrecognized",
+          reasonCode: "unrecognized-artifact-family",
+          artifactCount: 1,
+        },
+        {
+          familyCode: "polar-flow-sleep-result",
+          classification: "unsupported",
+          reasonCode: "known-family-not-yet-supported",
+          artifactCount: 1,
+        },
+        {
+          familyCode: "polar-flow-profile-picture",
+          classification: "deliberately-ignored",
+          reasonCode: "mvp-excludes-profile-picture",
+          artifactCount: 1,
+        },
+        {
+          familyCode: "polar-flow-daily-activity",
+          classification: "supported",
+          reasonCode: "mapped",
+          artifactCount: 3,
+        },
+      ],
+    });
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_activity") return Promise.resolve([]);
+      if (command === "query_latest_import_outcome") return Promise.resolve(latestOutcome);
+      if (command === "load_locale") return Promise.resolve("en-US");
+      if (command === "save_locale") return Promise.resolve();
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+
+    const coverage = await screen.findByRole("table", { name: "Coverage by data family" });
+    expect(within(coverage).getAllByRole("row")).toHaveLength(6);
+    expect(within(coverage).getByRole("row", {
+      name: /Daily activity Invalid 1 Reason: Recognized content failed validation\. Next action: Keep the original ZIP and report the compatibility problem/,
+    })).toBeVisible();
+    expect(within(coverage).getByRole("row", {
+      name: /Unrecognized data Unrecognized 1 Reason: The file does not match a known data family\. Next action: Keep the original ZIP and report the compatibility problem/,
+    })).toBeVisible();
+    expect(screen.queryByText(/activity-2026-01-01/)).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByRole("combobox", { name: "Language" }), "es-ES");
+    const spanishCoverage = screen.getByRole("table", { name: "Cobertura por familia de datos" });
+    expect(within(spanishCoverage).getByRole("row", {
+      name: /Actividad diaria No válido 1 Motivo: El contenido reconocido no ha superado la validación\. Siguiente acción: Conserva el ZIP original y comunica el problema de compatibilidad/,
+    })).toBeVisible();
+  });
+
   it("explains a changed source-subject claim without exposing identity evidence", async () => {
     let latestOutcome: ReturnType<typeof importOutcome> | null = null;
     mocks.invoke.mockImplementation((command) => {

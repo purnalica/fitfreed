@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented Milestone 1 lifecycle foundation with the Milestone 2 source-subject extension. [ADR 0002](decisions/0002-select-sqlite-storage.md) selects SQLite as the single system of record. Schema version 2 implements durable states, terminal outcomes, coverage, provenance, an atomic visibility boundary, and startup recovery; schema version 4 adds library-scoped source-subject correlation under [ADR 0005](decisions/0005-use-library-scoped-source-subject-correlation.md). The desktop presents localized terminal summaries, five-category coverage, and privacy-safe subject-correlation failures for the current daily-activity slice.
+Implemented Milestone 1 lifecycle foundation with the Milestone 2 source-subject extension. [ADR 0002](decisions/0002-select-sqlite-storage.md) selects SQLite as the single system of record. Schema version 2 implements durable states, terminal outcomes, coverage, provenance, an atomic visibility boundary, and startup recovery; schema version 4 adds library-scoped source-subject correlation under [ADR 0005](decisions/0005-use-library-scoped-source-subject-correlation.md). The desktop presents localized terminal summaries, five-category totals, a privacy-safe family breakdown with reasons and next actions, and subject-correlation failures for the current daily-activity slice.
 
 ## Goal
 
@@ -114,11 +114,12 @@ Every terminal outcome includes:
 - package recognition and adapter/mapping version;
 - exact-repeat status;
 - coverage grouped by supported, unsupported, deliberately ignored, unrecognized, and invalid;
+- a deterministic family-level breakdown containing only the family code, classification, reason code, and artifact count;
 - counts of reconciliation decisions without personal values;
 - warnings, conflicts, or failures with recovery guidance;
 - whether canonical history changed and whether temporary state was removed.
 
-Public diagnostics use opaque operation references and sanitized aggregates. Detailed local provenance remains protected as personal-library data.
+The family breakdown prioritizes invalid, unrecognized, unsupported, and deliberately ignored content before supported content. Presentation translates stable family, classification, and reason codes into an explanation and next action. Public diagnostics use opaque operation references and sanitized aggregates. Archive locators, source hashes, account evidence, and detailed local provenance remain protected as personal-library data.
 
 ## Reimport invariants
 

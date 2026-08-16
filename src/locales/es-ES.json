@@ -53,6 +53,87 @@
     "ignored": "Ignorados deliberadamente",
     "unrecognized": "No reconocidos",
     "invalid": "No válidos",
+    "familyCoverageHeading": "Cobertura por familia de datos",
+    "familyColumn": "Familia de datos",
+    "classificationColumn": "Estado",
+    "artifactCountColumn": "Elementos",
+    "explanationColumn": "Explicación",
+    "reasonLabel": "Motivo",
+    "nextActionLabel": "Siguiente acción",
+    "unrecognizedFamily": "Datos no reconocidos",
+    "familyClassifications": {
+      "supported": "Compatible",
+      "unsupported": "No compatible",
+      "deliberately-ignored": "Ignorado deliberadamente",
+      "unrecognized": "No reconocido",
+      "invalid": "No válido"
+    },
+    "familyNames": {
+      "polar-flow-account-data": "Datos de la cuenta",
+      "polar-flow-account-profile": "Perfil de la cuenta",
+      "polar-flow-beat-to-beat-samples": "Muestras latido a latido",
+      "polar-flow-calendar-items": "Elementos del calendario",
+      "polar-flow-continuous-heart-rate": "Frecuencia cardíaca continua",
+      "polar-flow-daily-activity": "Actividad diaria",
+      "polar-flow-event-training-programs": "Programas de entrenamiento para eventos",
+      "polar-flow-favourite-targets": "Objetivos favoritos",
+      "polar-flow-fitness-level-snapshots": "Instantáneas del nivel de forma",
+      "polar-flow-fitness-test-result": "Resultados de pruebas de forma física",
+      "polar-flow-general-training-programs": "Programas generales de entrenamiento",
+      "polar-flow-nightly-recovery": "Recuperación nocturna",
+      "polar-flow-nightly-recovery-blob": "Detalles de recuperación nocturna",
+      "polar-flow-orthostatic-test-result": "Resultados de pruebas ortostáticas",
+      "polar-flow-personal-events": "Eventos personales",
+      "polar-flow-products-devices": "Productos y dispositivos",
+      "polar-flow-profile-picture": "Imagen de perfil",
+      "polar-flow-sleep-result": "Resultados del sueño",
+      "polar-flow-sleep-score": "Puntuaciones del sueño",
+      "polar-flow-sport-profiles": "Perfiles deportivos",
+      "polar-flow-training-session": "Sesiones de entrenamiento",
+      "polar-flow-training-target": "Objetivos de entrenamiento"
+    },
+    "coverageExplanations": {
+      "mapped": {
+        "reason": "Los datos se incorporan a la biblioteca actual.",
+        "action": "No es necesaria ninguna acción."
+      },
+      "source-subject-claim": {
+        "reason": "Los datos solo se usan para vincular paquetes de la misma cuenta del proveedor.",
+        "action": "No es necesaria ninguna acción."
+      },
+      "known-family-not-yet-supported": {
+        "reason": "La familia de datos se reconoce, pero esta versión no la importa.",
+        "action": "Conserva el ZIP original para una versión futura."
+      },
+      "mvp-excludes-sensitive-profile": {
+        "reason": "Los detalles sensibles del perfil se excluyen deliberadamente del MVP.",
+        "action": "Conserva el ZIP original si estos detalles son importantes para ti."
+      },
+      "mvp-excludes-profile-picture": {
+        "reason": "Las imágenes de perfil se excluyen deliberadamente del MVP.",
+        "action": "Conserva el ZIP original si la imagen es importante para ti."
+      },
+      "mvp-excludes-full-resolution-physiology": {
+        "reason": "Las muestras fisiológicas a resolución completa se excluyen deliberadamente del MVP.",
+        "action": "Conserva el ZIP original para una futura importación especializada."
+      },
+      "unrecognized-artifact-family": {
+        "reason": "El archivo no coincide con ninguna familia de datos conocida.",
+        "action": "Conserva el ZIP original y comunica el problema de compatibilidad."
+      },
+      "invalid-supported-artifact": {
+        "reason": "El contenido reconocido no ha superado la validación.",
+        "action": "Conserva el ZIP original y comunica el problema de compatibilidad."
+      },
+      "invalid-source-subject-evidence": {
+        "reason": "No se han podido validar los datos de la cuenta del proveedor.",
+        "action": "Usa el ZIP original de la exportación completa o comunica el problema de compatibilidad."
+      },
+      "unknown": {
+        "reason": "Esta versión no dispone de una explicación traducida para el motivo registrado.",
+        "action": "Conserva el ZIP original y comunica el problema de compatibilidad."
+      }
+    },
     "states": {
       "completed": "Completada",
       "rejected": "Rechazada",

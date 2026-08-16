@@ -53,6 +53,87 @@
     "ignored": "Deliberately ignored",
     "unrecognized": "Unrecognized",
     "invalid": "Invalid",
+    "familyCoverageHeading": "Coverage by data family",
+    "familyColumn": "Data family",
+    "classificationColumn": "Status",
+    "artifactCountColumn": "Artifacts",
+    "explanationColumn": "Explanation",
+    "reasonLabel": "Reason",
+    "nextActionLabel": "Next action",
+    "unrecognizedFamily": "Unrecognized data",
+    "familyClassifications": {
+      "supported": "Supported",
+      "unsupported": "Unsupported",
+      "deliberately-ignored": "Deliberately ignored",
+      "unrecognized": "Unrecognized",
+      "invalid": "Invalid"
+    },
+    "familyNames": {
+      "polar-flow-account-data": "Account data",
+      "polar-flow-account-profile": "Account profile",
+      "polar-flow-beat-to-beat-samples": "Beat-to-beat samples",
+      "polar-flow-calendar-items": "Calendar items",
+      "polar-flow-continuous-heart-rate": "Continuous heart rate",
+      "polar-flow-daily-activity": "Daily activity",
+      "polar-flow-event-training-programs": "Event training programs",
+      "polar-flow-favourite-targets": "Favorite targets",
+      "polar-flow-fitness-level-snapshots": "Fitness level snapshots",
+      "polar-flow-fitness-test-result": "Fitness test results",
+      "polar-flow-general-training-programs": "General training programs",
+      "polar-flow-nightly-recovery": "Nightly recovery",
+      "polar-flow-nightly-recovery-blob": "Nightly recovery details",
+      "polar-flow-orthostatic-test-result": "Orthostatic test results",
+      "polar-flow-personal-events": "Personal events",
+      "polar-flow-products-devices": "Products and devices",
+      "polar-flow-profile-picture": "Profile picture",
+      "polar-flow-sleep-result": "Sleep results",
+      "polar-flow-sleep-score": "Sleep scores",
+      "polar-flow-sport-profiles": "Sport profiles",
+      "polar-flow-training-session": "Training sessions",
+      "polar-flow-training-target": "Training targets"
+    },
+    "coverageExplanations": {
+      "mapped": {
+        "reason": "The data is mapped into the current library.",
+        "action": "No action is needed."
+      },
+      "source-subject-claim": {
+        "reason": "The data is used only to link packages from the same provider account.",
+        "action": "No action is needed."
+      },
+      "known-family-not-yet-supported": {
+        "reason": "The data family is recognized but is not imported by this version.",
+        "action": "Keep the original ZIP for a future version."
+      },
+      "mvp-excludes-sensitive-profile": {
+        "reason": "Sensitive profile details are intentionally excluded from the MVP.",
+        "action": "Keep the original ZIP if these details matter to you."
+      },
+      "mvp-excludes-profile-picture": {
+        "reason": "Profile pictures are intentionally excluded from the MVP.",
+        "action": "Keep the original ZIP if the picture matters to you."
+      },
+      "mvp-excludes-full-resolution-physiology": {
+        "reason": "Full-resolution physiological samples are intentionally excluded from the MVP.",
+        "action": "Keep the original ZIP for a future specialist import."
+      },
+      "unrecognized-artifact-family": {
+        "reason": "The file does not match a known data family.",
+        "action": "Keep the original ZIP and report the compatibility problem."
+      },
+      "invalid-supported-artifact": {
+        "reason": "Recognized content failed validation.",
+        "action": "Keep the original ZIP and report the compatibility problem."
+      },
+      "invalid-source-subject-evidence": {
+        "reason": "The provider account evidence could not be validated.",
+        "action": "Use the original complete export ZIP or report the compatibility problem."
+      },
+      "unknown": {
+        "reason": "This version has no localized explanation for the recorded reason.",
+        "action": "Keep the original ZIP and report the compatibility problem."
+      }
+    },
     "states": {
       "completed": "Completed",
       "rejected": "Rejected",

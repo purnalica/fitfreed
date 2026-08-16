@@ -19,8 +19,9 @@ use fitfreed_application::{
     ImportPhaseTimings, ImportProgress, LocalePreference, LocalePreferencePort, ProfiledImport,
 };
 use fitfreed_domain::{
-    decide_reconciliation, ArtifactClassification, ArtifactCoverageSummary, DailyActivity,
-    ExistingObservation, ImportOperationState, ImportOutcome, ImportReport, ReconciliationDecision,
+    decide_reconciliation, ArtifactClassification, ArtifactCoverageSummary, ArtifactFamilyCoverage,
+    DailyActivity, ExistingObservation, ImportOperationState, ImportOutcome, ImportReport,
+    ReconciliationDecision,
 };
 
 mod polar_flow;
@@ -79,6 +80,8 @@ pub enum ImportError {
     },
     #[error("invalid persisted import-operation state: {0}")]
     InvalidPersistedOperationState(String),
+    #[error("invalid persisted artifact classification: {0}")]
+    InvalidPersistedArtifactClassification(String),
     #[error("invalid persisted non-negative count in {column}: {value}")]
     InvalidPersistedCount { column: &'static str, value: i64 },
     #[error("invalid persisted locale preference: {0}")]
@@ -123,6 +126,7 @@ struct ResolvedSourceSubject {
 }
 
 struct PersistedImportOutcome {
+    operation_id: i64,
     operation_ref: String,
     state: String,
     source_provider: String,
@@ -693,7 +697,7 @@ pub fn query_latest_import_outcome(database_path: &Path) -> Result<Option<Import
     ensure_schema(&connection)?;
     let persisted = connection
         .query_row(
-            "SELECT operation_ref, state, source_provider, source_adapter_version,
+            "SELECT id, operation_ref, state, source_provider, source_adapter_version,
                     mapping_version, exact_repeat, coverage_complete, total_artifacts,
                     supported_artifacts, unsupported_artifacts, ignored_artifacts,
                     unrecognized_artifacts, invalid_artifacts, recognized_artifacts,
@@ -706,37 +710,91 @@ pub fn query_latest_import_outcome(database_path: &Path) -> Result<Option<Import
             [],
             |row| {
                 Ok(PersistedImportOutcome {
-                    operation_ref: row.get(0)?,
-                    state: row.get(1)?,
-                    source_provider: row.get(2)?,
-                    source_adapter_version: row.get(3)?,
-                    mapping_version: row.get(4)?,
-                    exact_repeat: row.get(5)?,
-                    coverage_complete: row.get(6)?,
-                    total_artifacts: row.get(7)?,
-                    supported_artifacts: row.get(8)?,
-                    unsupported_artifacts: row.get(9)?,
-                    ignored_artifacts: row.get(10)?,
-                    unrecognized_artifacts: row.get(11)?,
-                    invalid_artifacts: row.get(12)?,
-                    recognized_artifacts: row.get(13)?,
-                    new_observations: row.get(14)?,
-                    equivalent_observations: row.get(15)?,
-                    enriched_observations: row.get(16)?,
-                    preserved_observations: row.get(17)?,
-                    conflicts: row.get(18)?,
-                    canonical_history_changed: row.get(19)?,
-                    terminal_code: row.get(20)?,
-                    recovery_note: row.get(21)?,
+                    operation_id: row.get(0)?,
+                    operation_ref: row.get(1)?,
+                    state: row.get(2)?,
+                    source_provider: row.get(3)?,
+                    source_adapter_version: row.get(4)?,
+                    mapping_version: row.get(5)?,
+                    exact_repeat: row.get(6)?,
+                    coverage_complete: row.get(7)?,
+                    total_artifacts: row.get(8)?,
+                    supported_artifacts: row.get(9)?,
+                    unsupported_artifacts: row.get(10)?,
+                    ignored_artifacts: row.get(11)?,
+                    unrecognized_artifacts: row.get(12)?,
+                    invalid_artifacts: row.get(13)?,
+                    recognized_artifacts: row.get(14)?,
+                    new_observations: row.get(15)?,
+                    equivalent_observations: row.get(16)?,
+                    enriched_observations: row.get(17)?,
+                    preserved_observations: row.get(18)?,
+                    conflicts: row.get(19)?,
+                    canonical_history_changed: row.get(20)?,
+                    terminal_code: row.get(21)?,
+                    recovery_note: row.get(22)?,
                 })
             },
         )
         .optional()?;
 
-    persisted.map(import_outcome_from_persistence).transpose()
+    persisted
+        .map(|persisted| {
+            let artifact_families =
+                query_artifact_family_coverage(&connection, persisted.operation_id)?;
+            import_outcome_from_persistence(persisted, artifact_families)
+        })
+        .transpose()
 }
 
-fn import_outcome_from_persistence(persisted: PersistedImportOutcome) -> Result<ImportOutcome> {
+fn query_artifact_family_coverage(
+    connection: &Connection,
+    operation_id: i64,
+) -> Result<Vec<ArtifactFamilyCoverage>> {
+    let mut statement = connection.prepare(
+        "SELECT artifact_family, classification, reason_code, COUNT(*)
+         FROM import_artifact_coverage
+         WHERE import_operation_id = ?1
+         GROUP BY artifact_family, classification, reason_code
+         ORDER BY CASE classification
+                    WHEN 'invalid' THEN 0
+                    WHEN 'unrecognized' THEN 1
+                    WHEN 'unsupported' THEN 2
+                    WHEN 'deliberately-ignored' THEN 3
+                    WHEN 'supported' THEN 4
+                    ELSE 5
+                  END,
+                  artifact_family IS NULL,
+                  artifact_family,
+                  reason_code",
+    )?;
+    let rows = statement.query_map([operation_id], |row| {
+        Ok((
+            row.get::<_, Option<String>>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, String>(2)?,
+            row.get::<_, i64>(3)?,
+        ))
+    })?;
+
+    rows.map(|row| {
+        let (family_code, classification, reason_code, artifact_count) = row?;
+        let classification = ArtifactClassification::from_code(&classification)
+            .ok_or_else(|| ImportError::InvalidPersistedArtifactClassification(classification))?;
+        Ok(ArtifactFamilyCoverage {
+            family_code,
+            classification,
+            reason_code,
+            artifact_count: persisted_count(artifact_count, "family_artifact_count")?,
+        })
+    })
+    .collect()
+}
+
+fn import_outcome_from_persistence(
+    persisted: PersistedImportOutcome,
+    artifact_families: Vec<ArtifactFamilyCoverage>,
+) -> Result<ImportOutcome> {
     let state = ImportOperationState::from_code(&persisted.state)
         .ok_or_else(|| ImportError::InvalidPersistedOperationState(persisted.state.clone()))?;
     Ok(ImportOutcome {
@@ -761,6 +819,7 @@ fn import_outcome_from_persistence(persisted: PersistedImportOutcome) -> Result<
             )?,
             invalid: persisted_count(persisted.invalid_artifacts, "invalid_artifacts")?,
         },
+        artifact_families,
         report: ImportReport {
             exact_repeat: persisted.exact_repeat,
             recognized_artifacts: persisted_count(
@@ -1091,7 +1150,7 @@ fn complete_exact_repeat(
              source_artifact_sha256, reason_code
          )
          SELECT ?1, artifact_locator, artifact_family, classification,
-                source_artifact_sha256, 'reused-exact-package-evidence'
+                source_artifact_sha256, reason_code
          FROM import_artifact_coverage
          WHERE import_operation_id = ?2",
         params![operation_id, repeated_operation_id],
@@ -1208,6 +1267,7 @@ fn terminal_code(error: &ImportError) -> &'static str {
         ImportError::InjectedMigrationInterruption => "migration-interrupted",
         ImportError::OutcomePersistence { .. } => "outcome-persistence-failure",
         ImportError::InvalidPersistedOperationState(_)
+        | ImportError::InvalidPersistedArtifactClassification(_)
         | ImportError::InvalidPersistedCount { .. }
         | ImportError::InvalidPersistedLocale(_) => "invalid-persisted-import-outcome",
         ImportError::InvalidCorrelationKeyLength(_) => "invalid-library-correlation-state",
@@ -1823,6 +1883,19 @@ mod tests {
         let repeated = import_archive(&harness.database(), &archive, "polar:synthetic")
             .expect("repeat import");
         assert!(repeated.exact_repeat);
+        let repeat_outcome = query_latest_import_outcome(&harness.database())
+            .expect("repeat outcome query")
+            .expect("repeat outcome");
+        assert!(repeat_outcome.exact_repeat);
+        assert_eq!(
+            repeat_outcome.artifact_families,
+            vec![ArtifactFamilyCoverage {
+                family_code: Some("polar-flow-daily-activity".to_owned()),
+                classification: ArtifactClassification::Supported,
+                reason_code: "mapped".to_owned(),
+                artifact_count: 2,
+            }]
+        );
         assert_eq!(
             query_activity(&harness.database()).expect("history"),
             vec![
@@ -1986,8 +2059,115 @@ mod tests {
         assert_eq!(outcome.coverage.supported, 3);
         assert_eq!(outcome.coverage.unsupported, 1);
         assert_eq!(outcome.coverage.unrecognized, 0);
+        assert_eq!(
+            outcome.artifact_families,
+            vec![
+                ArtifactFamilyCoverage {
+                    family_code: Some("polar-flow-sleep-result".to_owned()),
+                    classification: ArtifactClassification::Unsupported,
+                    reason_code: "known-family-not-yet-supported".to_owned(),
+                    artifact_count: 1,
+                },
+                ArtifactFamilyCoverage {
+                    family_code: Some("polar-flow-account-data".to_owned()),
+                    classification: ArtifactClassification::Supported,
+                    reason_code: "source-subject-claim".to_owned(),
+                    artifact_count: 1,
+                },
+                ArtifactFamilyCoverage {
+                    family_code: Some("polar-flow-daily-activity".to_owned()),
+                    classification: ArtifactClassification::Supported,
+                    reason_code: "mapped".to_owned(),
+                    artifact_count: 2,
+                },
+            ]
+        );
         assert_eq!(outcome.report.new_observations, 2);
         assert!(outcome.canonical_history_changed);
+    }
+
+    #[test]
+    fn exposes_sanitized_family_coverage_for_every_classification() {
+        let harness = Harness::new();
+        let archive = harness.archive(
+            "every-coverage-class.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-primary-claim"}"#,
+                ),
+                (
+                    "activity-2026-01-01-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"date":"2026-01-01","summary":{"stepCount":3100}}"#,
+                ),
+                (
+                    "activity-2026-01-02-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"date":"2026-01-02","summary":{"stepCount":-1}}"#,
+                ),
+                (
+                    "sleep_result_42-11111111-2222-4333-8444-555555555555.json",
+                    r#"[]"#,
+                ),
+                (
+                    "profile-picture-42-LARGE-11111111-2222-4333-8444-555555555555.data",
+                    "synthetic image",
+                ),
+                (
+                    "future-family-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{}"#,
+                ),
+            ],
+        );
+
+        import_polar_archive(&harness.database(), &archive)
+            .expect_err("invalid daily activity rejects import");
+
+        let outcome = query_latest_import_outcome(&harness.database())
+            .expect("outcome query")
+            .expect("rejected outcome");
+        assert_eq!(outcome.state, ImportOperationState::Rejected);
+        assert!(outcome.coverage_complete);
+        assert_eq!(
+            outcome.artifact_families,
+            vec![
+                ArtifactFamilyCoverage {
+                    family_code: Some("polar-flow-daily-activity".to_owned()),
+                    classification: ArtifactClassification::Invalid,
+                    reason_code: "invalid-supported-artifact".to_owned(),
+                    artifact_count: 1,
+                },
+                ArtifactFamilyCoverage {
+                    family_code: None,
+                    classification: ArtifactClassification::Unrecognized,
+                    reason_code: "unrecognized-artifact-family".to_owned(),
+                    artifact_count: 1,
+                },
+                ArtifactFamilyCoverage {
+                    family_code: Some("polar-flow-sleep-result".to_owned()),
+                    classification: ArtifactClassification::Unsupported,
+                    reason_code: "known-family-not-yet-supported".to_owned(),
+                    artifact_count: 1,
+                },
+                ArtifactFamilyCoverage {
+                    family_code: Some("polar-flow-profile-picture".to_owned()),
+                    classification: ArtifactClassification::DeliberatelyIgnored,
+                    reason_code: "mvp-excludes-profile-picture".to_owned(),
+                    artifact_count: 1,
+                },
+                ArtifactFamilyCoverage {
+                    family_code: Some("polar-flow-account-data".to_owned()),
+                    classification: ArtifactClassification::Supported,
+                    reason_code: "source-subject-claim".to_owned(),
+                    artifact_count: 1,
+                },
+                ArtifactFamilyCoverage {
+                    family_code: Some("polar-flow-daily-activity".to_owned()),
+                    classification: ArtifactClassification::Supported,
+                    reason_code: "mapped".to_owned(),
+                    artifact_count: 1,
+                },
+            ]
+        );
     }
 
     #[test]
