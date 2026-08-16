@@ -54,6 +54,8 @@ A necessary pause reports:
 - Do not end a working session by handing routine next steps back to the project owner. Continue executing them until a documented human intervention gate is reached or the agreed objective is complete.
 - Progress reports are informational and never require an acknowledgement before execution continues.
 - SSH authentication is provided locally through Secretive and may require the project owner to be present. Remote synchronization is best-effort and non-blocking: attempt an authorized push with a bounded wait, then record it as pending and continue local commits and in-scope work if authentication is denied or stalls. Retry later without treating the unavailable key as a human intervention gate unless the current objective strictly requires confirmed remote state.
+- An explicit project-owner instruction to suspend pushes while unavailable overrides the normal synchronization policy. Do not attempt another push until a later project-owner message lifts the suspension; continue safe local work and record synchronization as pending.
+- If repository metadata is temporarily read-only, do not bypass the restriction. Keep verified changes in the working tree, continue work that does not require Git metadata writes, and resume focused commits when repository write access returns.
 
 ## Repository and private-data boundaries
 
