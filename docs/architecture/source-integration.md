@@ -80,6 +80,14 @@ Normalized information will retain the minimum metadata required to:
 - Explain source-specific limitations or mapping decisions.
 - Prevent silent merging of semantically different observations.
 
+### Source-subject correlation
+
+[ADR 0005](decisions/0005-use-library-scoped-source-subject-correlation.md) defines the accepted correlation boundary. A provider adapter extracts one versioned strong claim and passes it to a library-owned resolver without promoting that value into canonical identity. The resolver returns an opaque, library-local observation origin or a privacy-safe rejection.
+
+The Polar Flow MVP requires exactly one structurally valid account-data username claim. The raw value exists only while resolving the import. Persistence retains a library-scoped HMAC-SHA-256 digest and its opaque origin; canonical observations receive only that origin. Filename tokens, package fingerprints, mutable profile values, artifact UUIDs, and the number of existing subjects are never identity fallbacks.
+
+An equal scoped claim reuses its origin. Missing, malformed, multiple, changed, unmatched, or contradictory claims fail closed whenever safe automatic correlation cannot be proved. Public diagnostics expose fixed codes and aggregates, not raw claims, digests, or identity-bearing filenames.
+
 ### Evolution
 
 A new provider may reveal a domain concept not previously modeled. Adding that concept is a legitimate domain evolution when it provides user value; it is not a reason to prebuild speculative abstractions during the Polar-only MVP.
@@ -101,5 +109,6 @@ A runtime plug-in system is not required to prove importer independence. The MVP
 - Cross-source reconciliation and user-visible conflict handling.
 - Original-artifact and unsupported-field retention policy.
 - Importer packaging and discovery model after the MVP.
+- User-controlled recovery for a changed provider identifier and multiple accounts from one provider.
 
 [ADR 0004](decisions/0004-adopt-capability-and-lifecycle-bounded-contexts.md) accepts the capability and lifecycle context boundaries after the daily-activity vertical exercised them. Later evidence may refine physical modules without changing context ownership; a conflicting ownership model requires a superseding decision.

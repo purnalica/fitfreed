@@ -4,7 +4,7 @@
 
 FitFreed is a local-first desktop application for turning personal fitness-platform exports into an understandable, durable history that can be explored beyond the source platform.
 
-> **Project status:** Milestone 1 executable foundation. A versioned Tauri walking skeleton imports independently constructed synthetic daily-activity data through Clean Architecture boundaries. It is not an alpha release and must not yet be used with real personal exports.
+> **Project status:** Milestone 1 executable foundation complete; Milestone 2 MVP capability work in progress. A versioned Tauri application imports independently constructed synthetic daily-activity data through Clean Architecture boundaries. It is not an alpha release and must not yet be used with real personal exports.
 
 FitFreed is experimental software provided without warranty. Use it at your own risk and read the [project disclaimer](DISCLAIMER.md) before running any build.
 
@@ -48,7 +48,7 @@ Polar Flow is the first importer, not the product identity. Later importers may 
 - [Documentation by audience](docs/README.md)
 - [Product requirements](docs/requirements.md)
 - [Product roadmap](docs/roadmap.md)
-- [Active Milestone 1 plan](docs/plans/milestone-1.md)
+- [Active Milestone 2 plan](docs/plans/milestone-2.md)
 - [Contributor setup](docs/development/getting-started.md)
 - [Contributor troubleshooting](docs/development/troubleshooting.md)
 - [Localization guide](docs/development/localization.md)

@@ -56,7 +56,8 @@ The application reads the selected package without changing canonical history:
 3. enforce entry-path, link, compression, size, count, nesting, and resource limits;
 4. detect the source provider and applicable adapter version;
 5. classify artifacts and derive a package assessment;
-6. persist enough non-personal operation metadata to explain rejection or resume policy.
+6. resolve a strong provider claim to an opaque observation origin under [ADR 0005](decisions/0005-use-library-scoped-source-subject-correlation.md); and
+7. persist enough non-personal operation metadata to explain rejection or resume policy.
 
 Assessment never trusts the filename extension, MIME declaration, archive paths, or compressed sizes alone.
 
@@ -64,7 +65,7 @@ Assessment never trusts the filename extension, MIME declaration, archive paths,
 
 The import plan fixes the adapter and mapping versions, artifact classification, intended work, resource budgets, and coverage baseline. It is deterministic for the same package bytes and application compatibility version.
 
-An exact package fingerprint may take a fast path that avoids repeated parsing. The new import operation still records an explainable completed outcome and links to the earlier evidence; exact byte identity is not reused as logical identity for a different package.
+An exact package fingerprint may take a fast path that avoids repeated parsing only when the earlier completed operation has complete coverage and a verified observation origin. The new import operation still records an explainable completed outcome and links to the earlier evidence; exact byte identity is not reused as logical identity for a different package or as a substitute for missing legacy subject evidence.
 
 ### 3. Staging
 

@@ -36,7 +36,7 @@ Every stored canonical value retains the SHA-256 fingerprint of the package that
 
 Version 1 contains only the daily step total. It does not yet model activity samples, calories, distance, inactivity, source-local time ranges, physical information, or source-format versions. Adding a field or changing identity, missing-value, date, unit, or reconciliation semantics requires a new canonical contract version and corresponding mapping, persistence, migration, and synthetic evidence.
 
-The stable source-subject identifier for repeated real Polar Flow exports is not yet established. The current application host supplies a synthetic development origin. Real-export import cannot be considered compatible until source-subject resolution is specified and verified.
+The application host still supplies a synthetic development origin, so real-export import is not yet compatible. [ADR 0005](../../architecture/decisions/0005-use-library-scoped-source-subject-correlation.md) now defines the required replacement: canonical `originId` is an opaque library-local observation origin resolved from versioned, library-scoped provider evidence. The provider claim and its digest are not canonical fields. Implementation, migration, and acceptance evidence remain open in Milestone 2.
 
 ## Automated evidence
 

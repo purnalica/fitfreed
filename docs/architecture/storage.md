@@ -36,6 +36,14 @@ Caches that can be discarded without changing observable truth may live outside 
 - Startup resolves interrupted imports before allowing new writes. In schema version 2, any surviving non-terminal state moves through recovery to a failed outcome because canonical publication and completion are one transaction.
 - Backup artifacts are reopened through the normal adapter and pass SQLite integrity checking before success is reported.
 
+## Accepted source-subject evolution
+
+[ADR 0005](decisions/0005-use-library-scoped-source-subject-correlation.md) requires the next schema to own an opaque observation-origin catalog, a per-library correlation key, versioned source-subject evidence digests, and an optional resolved-origin link on import operations. Raw provider claims are transient and never stored.
+
+New origin and evidence rows become durable only inside the same visibility transaction as canonical history and operation completion. Existing development origins migrate as unverified origins without invented evidence. Exact-repeat lookup may inherit an origin only from a completed operation whose correlation state is verified; an old package fingerprint alone cannot authorize subject resolution.
+
+The correlation key remains part of protected backup state so a restored library preserves reimport behavior. A scoped digest is still sensitive metadata and is excluded from public diagnostics and the normalized portable export unless a later versioned contract explicitly requires it.
+
 ## Query model
 
 Canonical tables protect identity and invariants. Indexes and derived projections serve product queries; they are designed from measured use cases and remain rebuildable from authoritative state.
