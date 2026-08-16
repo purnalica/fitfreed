@@ -3,14 +3,14 @@ import path from "node:path";
 
 import AxeBuilder from "@axe-core/webdriverio";
 
-import { runActivityPerformanceJourney } from "./support/activity-performance.js";
+import { runInsightsPerformanceJourney } from "./support/insights-performance.js";
 
 const spanish = JSON.parse(
   fs.readFileSync(new URL("../../src/locales/es-ES.json", import.meta.url), "utf8"),
 );
 const fixtureDirectory = process.env.FITFREED_E2E_FIXTURE_DIRECTORY;
 const largeArchive = process.env.FITFREED_E2E_LARGE_ARCHIVE;
-const activityPerformanceArchive = process.env.FITFREED_E2E_ACTIVITY_PERFORMANCE_ARCHIVE;
+const insightsPerformanceArchive = process.env.FITFREED_E2E_INSIGHTS_PERFORMANCE_ARCHIVE;
 
 async function waitForNotice(fragment, timeout = 10_000) {
   await browser.waitUntil(
@@ -113,6 +113,16 @@ function formatLocalDate(locale, value) {
   );
 }
 
+async function formatBrowserTrainingLocalDateTime(locale, value) {
+  return browser.execute(({ requestedLocale, localDateTime }) => new Intl.DateTimeFormat(
+    requestedLocale,
+    { dateStyle: "medium", timeStyle: "medium", timeZone: "UTC" },
+  ).format(new Date(`${localDateTime}Z`)), {
+    requestedLocale: locale,
+    localDateTime: value,
+  });
+}
+
 async function expectHistory(expectedRows) {
   const historyRows = ".history-grid table tbody tr";
   await browser.waitUntil(async () => (await $$(historyRows)).length === expectedRows.length, {
@@ -136,6 +146,88 @@ async function expectActivitySummary(expectedItems) {
     const label = await items[index].$("span");
     await expect(value).toHaveText(expectedItems[index][0]);
     await expect(label).toHaveText(expectedItems[index][1]);
+  }
+}
+
+async function setTrainingRange(from, through) {
+  const values = [from, through];
+  await browser.execute((nextValues) => {
+    const inputs = document.querySelectorAll(".training-filter input[type='date']");
+    const setValue = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    ).set;
+    inputs.forEach((input, index) => {
+      setValue.call(input, nextValues[index]);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  }, values);
+  const inputs = await $$(".training-filter input[type='date']");
+  expect(inputs).toHaveLength(2);
+  for (let index = 0; index < values.length; index += 1) {
+    await expect(inputs[index]).toHaveValue(values[index]);
+  }
+}
+
+async function setTrainingComparisonRanges(
+  baselineFrom,
+  baselineThrough,
+  comparisonFrom,
+  comparisonThrough,
+) {
+  const values = [baselineFrom, baselineThrough, comparisonFrom, comparisonThrough];
+  await browser.execute((nextValues) => {
+    const inputs = document.querySelectorAll(".training-comparison input[type='date']");
+    const setValue = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    ).set;
+    inputs.forEach((input, index) => {
+      setValue.call(input, nextValues[index]);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  }, values);
+  const inputs = await $$(".training-comparison input[type='date']");
+  expect(inputs).toHaveLength(4);
+  for (let index = 0; index < values.length; index += 1) {
+    await expect(inputs[index]).toHaveValue(values[index]);
+  }
+}
+
+async function expectTrainingRows(expectedRows) {
+  const selector = ".training-history-grid table tbody tr";
+  await browser.waitUntil(async () => (await $$(selector)).length === expectedRows.length, {
+    timeout: 10_000,
+    timeoutMsg: `training history did not contain ${expectedRows.length} rows`,
+  });
+  const rows = await $$(selector);
+  for (let index = 0; index < expectedRows.length; index += 1) {
+    const cells = await rows[index].$$("td");
+    for (let cellIndex = 0; cellIndex < expectedRows[index].length; cellIndex += 1) {
+      await expect(cells[cellIndex]).toHaveText(expectedRows[index][cellIndex]);
+    }
+  }
+}
+
+async function expectTrainingSummary(expectedItems) {
+  const items = await $$(".training-summary li");
+  expect(items).toHaveLength(expectedItems.length);
+  for (let index = 0; index < expectedItems.length; index += 1) {
+    await expect(items[index].$("strong")).toHaveText(expectedItems[index][0]);
+    await expect(items[index].$("span")).toHaveText(expectedItems[index][1]);
+  }
+}
+
+async function expectTrainingComparison(expectedRows) {
+  const rows = await $$(".training-comparison-result table tbody tr");
+  expect(rows).toHaveLength(expectedRows.length);
+  for (let index = 0; index < expectedRows.length; index += 1) {
+    const cells = await rows[index].$$("th, td");
+    for (let cellIndex = 0; cellIndex < expectedRows[index].length; cellIndex += 1) {
+      await expect(cells[cellIndex]).toHaveText(expectedRows[index][cellIndex]);
+    }
   }
 }
 
@@ -240,9 +332,9 @@ describe("packaged FitFreed import journey", () => {
 
     await selectArchive(dialogMock, path.join(fixtureDirectory, "valid.zip"));
     await $("aria/Import selected package").click();
-    await waitForNotice("Import completed: 5 recognized, 4 new");
+    await waitForNotice("Import completed: 6 recognized, 5 new");
     await expectCoverage([
-      ["5", "Supported"],
+      ["6", "Supported"],
       ["1", "Unsupported"],
       ["1", "Deliberately ignored"],
       ["1", "Unrecognized"],
@@ -287,7 +379,7 @@ describe("packaged FitFreed import journey", () => {
       {
         family: "Training sessions",
         classification: "Supported",
-        count: "1",
+        count: "2",
         reason: "The session summary is mapped; routes and full-resolution details stay only in the original ZIP.",
         action: "Keep the original ZIP if you need the excluded training details.",
       },
@@ -304,11 +396,40 @@ describe("packaged FitFreed import journey", () => {
       ["1", "Observed days without a step total"],
       ["0", "Days with no observation"],
     ]);
+    const enJan4Start = await formatBrowserTrainingLocalDateTime(
+      "en-US",
+      "2026-01-04T06:15:00",
+    );
+    const enJan4Stop = await formatBrowserTrainingLocalDateTime(
+      "en-US",
+      "2026-01-04T07:15:00",
+    );
+    const enJan5Start = await formatBrowserTrainingLocalDateTime(
+      "en-US",
+      "2026-01-05T18:00:00",
+    );
+    const enJan6Start = await formatBrowserTrainingLocalDateTime(
+      "en-US",
+      "2026-01-06T07:30:00",
+    );
+    await expectTrainingRows([
+      [enJan5Start, "30 min", "Not available", "Not available"],
+      [enJan4Start, "1 h", "10,000 m", "600 kcal"],
+    ]);
+    await expectTrainingSummary([
+      ["2 sessions", "Sessions"],
+      ["2 training days", "Training days"],
+      ["1 h 30 min", "Total duration"],
+      ["10,000 m", "Recorded distance · 1 of 2"],
+      ["600 kcal", "Recorded energy · 1 of 2"],
+      ["1 of 2", "Sessions with heart rate"],
+    ]);
+    await expect($("body")).not.toHaveText(expect.stringContaining("fixture-training-session"));
 
     await selectLocale("es-ES");
     await expect($("#outcome-heading")).toHaveText(spanish.outcome.heading);
     await expectCoverage([
-      ["5", spanish.outcome.supported],
+      ["6", spanish.outcome.supported],
       ["1", spanish.outcome.unsupported],
       ["1", spanish.outcome.ignored],
       ["1", spanish.outcome.unrecognized],
@@ -348,9 +469,33 @@ describe("packaged FitFreed import journey", () => {
       {
         family: spanish.outcome.familyNames["polar-flow-training-session"],
         classification: spanish.outcome.familyClassifications.supported,
-        count: "1",
+        count: "2",
         ...spanish.outcome.coverageExplanations["mapped-summary"],
       },
+    ]);
+    const esJan4Start = await formatBrowserTrainingLocalDateTime(
+      "es-ES",
+      "2026-01-04T06:15:00",
+    );
+    const esJan5Start = await formatBrowserTrainingLocalDateTime(
+      "es-ES",
+      "2026-01-05T18:00:00",
+    );
+    const esJan6Start = await formatBrowserTrainingLocalDateTime(
+      "es-ES",
+      "2026-01-06T07:30:00",
+    );
+    await expectTrainingRows([
+      [esJan5Start, "30 min", spanish.unavailable, spanish.unavailable],
+      [esJan4Start, "1 h", "10.000 m", "600 kcal"],
+    ]);
+    await expectTrainingSummary([
+      ["2 sesiones", spanish.training.sessionCount],
+      ["2 días de entrenamiento", spanish.training.trainingDays],
+      ["1 h 30 min", spanish.training.totalDuration],
+      ["10.000 m", `${spanish.training.totalDistance} · 1 de 2`],
+      ["600 kcal", `${spanish.training.totalEnergy} · 1 de 2`],
+      ["1 de 2", spanish.training.heartRateCoverage],
     ]);
     await browser.execute(() => {
       document.documentElement.style.fontSize = "200%";
@@ -374,11 +519,15 @@ describe("packaged FitFreed import journey", () => {
       ["Jan 2, 2026", "4,200", "Step total available"],
       ["Jan 3, 2026", "Not available", "Observation available; step total unavailable"],
     ]);
+    await expectTrainingRows([
+      [enJan5Start, "30 min", "Not available", "Not available"],
+      [enJan4Start, "1 h", "10,000 m", "600 kcal"],
+    ]);
 
     await selectArchive(dialogMock, path.join(fixtureDirectory, "overlap.zip"));
     await $("aria/Import selected package").click();
     await waitForNotice(
-      "Import completed: 4 recognized, 1 new, 0 enriched, 1 amended, 1 equivalent",
+      "Import completed: 5 recognized, 2 new, 0 enriched, 1 amended, 1 equivalent",
     );
     await expectHistory([
       ["Jan 1, 2026", "3,100", "Step total available"],
@@ -393,6 +542,19 @@ describe("packaged FitFreed import journey", () => {
       ["3", "Days with step totals"],
       ["1", "Observed days without a step total"],
       ["1", "Days with no observation"],
+    ]);
+    await expectTrainingRows([
+      [enJan6Start, "45 min", "5,000 m", "300 kcal"],
+      [enJan5Start, "30 min", "Not available", "Not available"],
+      [enJan4Start, "1 h", "10,500 m", "600 kcal"],
+    ]);
+    await expectTrainingSummary([
+      ["3 sessions", "Sessions"],
+      ["3 training days", "Training days"],
+      ["2 h 15 min", "Total duration"],
+      ["15,500 m", "Recorded distance · 2 of 3"],
+      ["900 kcal", "Recorded energy · 2 of 3"],
+      ["2 of 3", "Sessions with heart rate"],
     ]);
 
     await setActivityRange("2026-01-02", "2026-01-04");
@@ -472,6 +634,85 @@ describe("packaged FitFreed import journey", () => {
       }
     }
 
+    const trainingDetailButtons = await $$('button[aria-label^="View training details for"]');
+    expect(trainingDetailButtons).toHaveLength(3);
+    await trainingDetailButtons[2].click();
+    await expect($("#training-detail-heading")).toHaveText("Training detail");
+    const trainingDetailValues = await $$(".training-detail dd");
+    const expectedTrainingDetail = [
+      enJan4Start,
+      enJan4Stop,
+      "UTC+01:00",
+      "1 h",
+      "10,500 m",
+      "600 kcal",
+      "142 bpm",
+      "171 bpm",
+      "Recorded training type",
+      "1",
+    ];
+    expect(trainingDetailValues).toHaveLength(expectedTrainingDetail.length);
+    for (let index = 0; index < expectedTrainingDetail.length; index += 1) {
+      await expect(trainingDetailValues[index]).toHaveText(expectedTrainingDetail[index]);
+    }
+    await $("aria/Close training detail").click();
+    expect(await $$(".training-detail")).toHaveLength(0);
+
+    await setTrainingRange("2026-01-05", "2026-01-05");
+    await $(".training-filter button[type='submit']").click();
+    await expectTrainingRows([
+      [enJan5Start, "30 min", "Not available", "Not available"],
+    ]);
+    await expectTrainingSummary([
+      ["1 session", "Sessions"],
+      ["1 training day", "Training days"],
+      ["30 min", "Total duration"],
+      ["Not available", "Recorded distance · 0 of 1"],
+      ["Not available", "Recorded energy · 0 of 1"],
+      ["0 of 1", "Sessions with heart rate"],
+    ]);
+    await $('button[aria-label^="View training details for"]').click();
+    const unavailableTrainingDetail = await $$(".training-detail dd");
+    await expect(unavailableTrainingDetail[4]).toHaveText("Not available");
+    await expect(unavailableTrainingDetail[8]).toHaveText("Training type not available");
+    await expect(unavailableTrainingDetail[9]).toHaveText("0");
+    await $("aria/Close training detail").click();
+
+    await setTrainingRange("2026-01-06", "2026-01-05");
+    await $(".training-filter button[type='submit']").click();
+    await expect($("[role='alert']")).toHaveText(
+      "Choose an ordered training range inside the available history, up to 366 days.",
+    );
+    await expectTrainingRows([
+      [enJan5Start, "30 min", "Not available", "Not available"],
+    ]);
+
+    await $("aria/Latest 30-day window").click();
+    await expectTrainingRows([
+      [enJan6Start, "45 min", "5,000 m", "300 kcal"],
+      [enJan5Start, "30 min", "Not available", "Not available"],
+      [enJan4Start, "1 h", "10,500 m", "600 kcal"],
+    ]);
+
+    await setTrainingComparisonRanges(
+      "2026-01-04",
+      "2026-01-04",
+      "2026-01-05",
+      "2026-01-05",
+    );
+    await $(".training-comparison button[type='submit']").click();
+    await expect($("#training-comparison-heading")).toHaveText("Training period comparison");
+    await expectTrainingComparison([
+      ["Sessions", "1", "1", "0"],
+      ["Training days", "1", "1", "0"],
+      ["Total duration", "1 h", "30 min", "−30 min"],
+      ["Recorded distance", "10,500 m", "Not available", "Not available"],
+      ["Recorded energy", "600 kcal", "Not available", "Not available"],
+      ["Sessions with distance", "1", "0", "-1"],
+      ["Sessions with energy", "1", "0", "-1"],
+      ["Sessions with heart rate", "1", "0", "-1"],
+    ]);
+
     await selectLocale("es-ES");
     await expectHistory([
       [formatLocalDate("es-ES", "2026-01-01"), "3100", spanish.activity.available],
@@ -490,6 +731,30 @@ describe("packaged FitFreed import journey", () => {
     await expect($("#activity-comparison-heading")).toHaveText(
       spanish.activity.comparison.resultHeading,
     );
+    await expectTrainingRows([
+      [esJan6Start, "45 min", "5000 m", "300 kcal"],
+      [esJan5Start, "30 min", spanish.unavailable, spanish.unavailable],
+      [esJan4Start, "1 h", "10.500 m", "600 kcal"],
+    ]);
+    await expectTrainingSummary([
+      ["3 sesiones", spanish.training.sessionCount],
+      ["3 días de entrenamiento", spanish.training.trainingDays],
+      ["2 h 15 min", spanish.training.totalDuration],
+      ["15.500 m", `${spanish.training.totalDistance} · 2 de 3`],
+      ["900 kcal", `${spanish.training.totalEnergy} · 2 de 3`],
+      ["2 de 3", spanish.training.heartRateCoverage],
+    ]);
+    await expect($("#training-comparison-heading")).toHaveText(
+      spanish.training.comparison.resultHeading,
+    );
+    const spanishTrainingDetailButtons = await $$('button[aria-label^="Ver detalles del entrenamiento del"]');
+    expect(spanishTrainingDetailButtons).toHaveLength(3);
+    await spanishTrainingDetailButtons[2].click();
+    await expect($("#training-detail-heading")).toHaveText(spanish.training.detailHeading);
+    const spanishTrainingDetailValues = await $$(".training-detail dd");
+    await expect(spanishTrainingDetailValues[4]).toHaveText("10.500 m");
+    await expect(spanishTrainingDetailValues[6]).toHaveText("142 ppm");
+    await expect(spanishTrainingDetailValues[8]).toHaveText(spanish.training.recordedType);
     await browser.execute(() => {
       document.documentElement.style.fontSize = "200%";
     });
@@ -503,8 +768,11 @@ describe("packaged FitFreed import journey", () => {
       document.documentElement.style.fontSize = "";
     });
     await $("aria/Cerrar detalle").click();
-    await $("aria/Borrar comparación").click();
+    await $("aria/Cerrar detalle del entrenamiento").click();
+    await $(".activity-comparison-result button.secondary").click();
+    await $(".training-comparison-result button.secondary").click();
     expect(await $$(".activity-comparison-result")).toHaveLength(0);
+    expect(await $$(".training-comparison-result")).toHaveLength(0);
 
     await browser.reloadSession();
     await expect($("h1")).toHaveText(spanish.title);
@@ -525,7 +793,7 @@ describe("packaged FitFreed import journey", () => {
       {
         family: spanish.outcome.familyNames["polar-flow-training-session"],
         classification: spanish.outcome.familyClassifications.supported,
-        count: "1",
+        count: "2",
         ...spanish.outcome.coverageExplanations["mapped-summary"],
       },
     ]);
@@ -536,12 +804,17 @@ describe("packaged FitFreed import journey", () => {
       [formatLocalDate("es-ES", "2026-01-04"), spanish.unavailable, spanish.activity.missing],
       [formatLocalDate("es-ES", "2026-01-05"), "5300", spanish.activity.available],
     ]);
+    await expectTrainingRows([
+      [esJan6Start, "45 min", "5000 m", "300 kcal"],
+      [esJan5Start, "30 min", spanish.unavailable, spanish.unavailable],
+      [esJan4Start, "1 h", "10.500 m", "600 kcal"],
+    ]);
 
   });
 
-  it("meets activity filtering, comparison, and maximum rendering budgets", async () => {
-    await runActivityPerformanceJourney({
-      archivePath: activityPerformanceArchive,
+  it("meets activity and training filtering, comparison, and rendering budgets", async () => {
+    await runInsightsPerformanceJourney({
+      archivePath: insightsPerformanceArchive,
       selectArchive,
       selectLocale,
     });

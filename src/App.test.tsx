@@ -44,6 +44,58 @@ interface TestActivityComparison {
   }>;
 }
 
+interface TestTrainingSession {
+  sessionRef: string;
+  startedAtLocal: string;
+  stoppedAtLocal: string;
+  utcOffsetMinutes: number | null;
+  durationMilliseconds: string;
+  distanceMeters: number | null;
+  energyKilocalories: string | null;
+  averageHeartRateBpm: string | null;
+  maximumHeartRateBpm: string | null;
+  sportRef: string | null;
+  exerciseCount: number | null;
+}
+
+interface TestTrainingSummary {
+  calendarDays: number;
+  trainingDays: number;
+  sessionCount: number;
+  totalDurationMilliseconds: string;
+  distanceSessionCount: number;
+  totalDistanceMeters: number | null;
+  energySessionCount: number;
+  totalEnergyKilocalories: string | null;
+  heartRateSessionCount: number;
+}
+
+interface TestTrainingOverview {
+  availableRange: { from: string; through: string } | null;
+  selectedRange: { from: string; through: string } | null;
+  series: Array<{
+    seriesRef: string;
+    summary: TestTrainingSummary;
+    sessions: TestTrainingSession[];
+  }>;
+}
+
+interface TestTrainingComparison {
+  availableRange: { from: string; through: string } | null;
+  baselineRange: { from: string; through: string } | null;
+  comparisonRange: { from: string; through: string } | null;
+  series: Array<{
+    seriesRef: string;
+    baseline: TestTrainingSummary;
+    comparison: TestTrainingSummary;
+    sessionCountChange: string;
+    trainingDayChange: string;
+    durationMillisecondsChange: string;
+    distanceMetersChange: number | null;
+    energyKilocaloriesChange: string | null;
+  }>;
+}
+
 function emptyActivityOverview(): TestActivityOverview {
   return { availableRange: null, selectedRange: null, series: [] };
 }
@@ -112,6 +164,56 @@ function activityComparison(
   };
 }
 
+function emptyTrainingOverview(): TestTrainingOverview {
+  return { availableRange: null, selectedRange: null, series: [] };
+}
+
+function trainingOverview(
+  sessions: TestTrainingSession[],
+  selectedRange = { from: "2026-01-01", through: "2026-01-31" },
+): TestTrainingOverview {
+  const calendarDays = Math.floor(
+    (Date.parse(`${selectedRange.through}T00:00:00Z`)
+      - Date.parse(`${selectedRange.from}T00:00:00Z`)) / 86_400_000,
+  ) + 1;
+  const trainingDays = new Set(sessions.map((session) => session.startedAtLocal.slice(0, 10))).size;
+  const duration = sessions.reduce(
+    (total, session) => total + BigInt(session.durationMilliseconds),
+    0n,
+  );
+  const distances = sessions
+    .map((session) => session.distanceMeters)
+    .filter((value): value is number => value !== null);
+  const energies = sessions
+    .map((session) => session.energyKilocalories)
+    .filter((value): value is string => value !== null);
+  return {
+    availableRange: { from: "2026-01-01", through: "2026-01-31" },
+    selectedRange,
+    series: [{
+      seriesRef: "synthetic-origin",
+      summary: {
+        calendarDays,
+        trainingDays,
+        sessionCount: sessions.length,
+        totalDurationMilliseconds: duration.toString(),
+        distanceSessionCount: distances.length,
+        totalDistanceMeters: distances.length > 0
+          ? distances.reduce((total, value) => total + value, 0)
+          : null,
+        energySessionCount: energies.length,
+        totalEnergyKilocalories: energies.length > 0
+          ? energies.reduce((total, value) => total + BigInt(value), 0n).toString()
+          : null,
+        heartRateSessionCount: sessions.filter(
+          (session) => session.averageHeartRateBpm !== null || session.maximumHeartRateBpm !== null,
+        ).length,
+      },
+      sessions,
+    }],
+  };
+}
+
 function importOutcome(overrides: Record<string, unknown> = {}) {
   return {
     operationRef: "synthetic-operation",
@@ -174,6 +276,7 @@ function emptyLibrary(initialLocale: "en-US" | "es-ES" | null = "en-US") {
   let storedLocale = initialLocale;
   mocks.invoke.mockImplementation((command, arguments_) => {
     if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
+    if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
     if (command === "query_latest_import_outcome") return Promise.resolve(null);
     if (command === "load_locale") return Promise.resolve(storedLocale);
     if (command === "save_locale") {
@@ -257,6 +360,7 @@ describe("FitFreed import interface", () => {
     });
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
+      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(latestOutcome);
       if (command === "load_locale") return Promise.resolve("en-US");
       if (command === "save_locale") return Promise.resolve();
@@ -301,6 +405,7 @@ describe("FitFreed import interface", () => {
     let latestOutcome: ReturnType<typeof importOutcome> | null = null;
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
+      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(latestOutcome);
       if (command === "load_locale") return Promise.resolve("en-US");
       if (command === "save_locale") return Promise.resolve();
@@ -399,6 +504,7 @@ describe("FitFreed import interface", () => {
     vi.spyOn(window.navigator, "languages", "get").mockReturnValue(["es-ES"]);
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
+      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
       if (command === "load_locale") return Promise.resolve(null);
       if (command === "save_locale") {
@@ -419,6 +525,7 @@ describe("FitFreed import interface", () => {
   it("restores the previous locale when persistence fails", async () => {
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
+      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
       if (command === "load_locale") return Promise.resolve("en-US");
       if (command === "save_locale") {
@@ -462,6 +569,7 @@ describe("FitFreed import interface", () => {
     });
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
+      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(singularOutcome);
       if (command === "load_locale") return Promise.resolve("es-ES");
       throw new Error(`Unexpected command: ${command}`);
@@ -487,6 +595,7 @@ describe("FitFreed import interface", () => {
     ]);
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_activity_overview") return Promise.resolve(overview);
+      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
       if (command === "load_locale") return Promise.resolve("en-US");
       if (command === "save_locale") return Promise.resolve();
@@ -537,6 +646,7 @@ describe("FitFreed import interface", () => {
       if (command === "query_activity_overview") {
         return Promise.resolve(arguments_?.requestedRange ? filtered : complete);
       }
+      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
       if (command === "load_locale") return Promise.resolve("en-US");
       if (command === "save_locale") return Promise.resolve();
@@ -608,6 +718,7 @@ describe("FitFreed import interface", () => {
     comparison.availableRange = overview.availableRange;
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_activity_overview") return Promise.resolve(overview);
+      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_activity_comparison") return Promise.resolve(comparison);
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
       if (command === "load_locale") return Promise.resolve("en-US");
@@ -692,6 +803,7 @@ describe("FitFreed import interface", () => {
     let latestOutcome: ReturnType<typeof importOutcome> | null = null;
     mocks.invoke.mockImplementation((command, arguments_) => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
+      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(latestOutcome);
       if (command === "load_locale") return Promise.resolve("en-US");
       if (command === "save_locale") return Promise.resolve();
@@ -757,6 +869,7 @@ describe("FitFreed import interface", () => {
     let latestOutcome: ReturnType<typeof importOutcome> | null = null;
     mocks.invoke.mockImplementation((command, arguments_) => {
       if (command === "query_activity_overview") return Promise.resolve(storedHistory);
+      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(latestOutcome);
       if (command === "load_locale") return Promise.resolve("en-US");
       if (command === "save_locale") return Promise.resolve();
@@ -871,5 +984,205 @@ describe("FitFreed import interface", () => {
     render(<App />);
     await waitFor(() => expect(screen.getAllByRole("row")).toHaveLength(4));
     expect(screen.queryByText("5,300")).not.toBeInTheDocument();
+  });
+
+  it("distinguishes loading, empty, and unavailable training history", async () => {
+    let resolveTraining: (overview: TestTrainingOverview) => void = () => undefined;
+    const pendingTraining = new Promise<TestTrainingOverview>((resolve) => {
+      resolveTraining = resolve;
+    });
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
+      if (command === "query_training_overview") return pendingTraining;
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      if (command === "load_locale") return Promise.resolve("en-US");
+      if (command === "save_locale") return Promise.resolve();
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const view = render(<App />);
+    const training = await screen.findByRole("region", { name: "Training history" });
+    expect(within(training).getByText("Loading training history…")).toBeVisible();
+    expect(within(training).queryByText("No imported training sessions yet."))
+      .not.toBeInTheDocument();
+
+    resolveTraining(emptyTrainingOverview());
+    expect(await within(training).findByText("No imported training sessions yet.")).toBeVisible();
+
+    view.unmount();
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
+      if (command === "query_training_overview") {
+        return Promise.reject({ code: "library-query-failed" });
+      }
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      if (command === "load_locale") return Promise.resolve("en-US");
+      if (command === "save_locale") return Promise.resolve();
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    render(<App />);
+    const unavailable = await screen.findByRole("region", { name: "Training history" });
+    expect(await within(unavailable).findByText("Training history could not be loaded."))
+      .toBeVisible();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "FitFreed could not read fitness history.",
+    );
+  });
+
+  it("explores, filters, details, compares, localizes, and reloads training sessions", async () => {
+    const earlier: TestTrainingSession = {
+      sessionRef: "earlier-session",
+      startedAtLocal: "2026-01-18T08:00:00",
+      stoppedAtLocal: "2026-01-18T08:30:01.001",
+      utcOffsetMinutes: null,
+      durationMilliseconds: "1801001",
+      distanceMeters: null,
+      energyKilocalories: "250",
+      averageHeartRateBpm: null,
+      maximumHeartRateBpm: null,
+      sportRef: null,
+      exerciseCount: null,
+    };
+    const later: TestTrainingSession = {
+      sessionRef: "later-session",
+      startedAtLocal: "2026-01-20T09:00:00",
+      stoppedAtLocal: "2026-01-20T10:00:00",
+      utcOffsetMinutes: 60,
+      durationMilliseconds: "3600000",
+      distanceMeters: 5000.25,
+      energyKilocalories: "500",
+      averageHeartRateBpm: "140",
+      maximumHeartRateBpm: "170",
+      sportRef: "opaque-sport-a",
+      exerciseCount: 1,
+    };
+    const fullOverview = trainingOverview([later, earlier]);
+    const filteredOverview = trainingOverview(
+      [later],
+      { from: "2026-01-20", through: "2026-01-20" },
+    );
+    const baseline = trainingOverview(
+      [earlier],
+      { from: "2026-01-18", through: "2026-01-18" },
+    ).series[0].summary;
+    const comparison = trainingOverview(
+      [later],
+      { from: "2026-01-20", through: "2026-01-20" },
+    ).series[0].summary;
+    const comparisonResult: TestTrainingComparison = {
+      availableRange: fullOverview.availableRange,
+      baselineRange: { from: "2026-01-18", through: "2026-01-18" },
+      comparisonRange: { from: "2026-01-20", through: "2026-01-20" },
+      series: [{
+        seriesRef: "synthetic-origin",
+        baseline,
+        comparison,
+        sessionCountChange: "0",
+        trainingDayChange: "0",
+        durationMillisecondsChange: "1798999",
+        distanceMetersChange: null,
+        energyKilocaloriesChange: "250",
+      }],
+    };
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
+      if (command === "query_training_overview") {
+        return Promise.resolve(
+          arguments_.requestedRange?.from === "2026-01-20"
+            ? filteredOverview
+            : fullOverview,
+        );
+      }
+      if (command === "query_training_comparison") return Promise.resolve(comparisonResult);
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      if (command === "load_locale") return Promise.resolve("en-US");
+      if (command === "save_locale") return Promise.resolve();
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    const view = render(<App />);
+    const training = await screen.findByRole("region", { name: "Training history" });
+
+    expect(within(training).getByText("2 sessions")).toBeVisible();
+    expect(within(training).getByText("2 training days")).toBeVisible();
+    expect(within(training).getAllByRole("button", { name: /View training details/ }))
+      .toHaveLength(2);
+    expect(within(training).queryByText("opaque-sport-a")).not.toBeInTheDocument();
+
+    await user.click(
+      within(training).getAllByRole("button", { name: /View training details/ })[0],
+    );
+    const detail = within(training).getByRole("region", { name: "Training detail" });
+    expect(within(detail).getByText("5,000.25 m")).toBeVisible();
+    expect(within(detail).getByText("140 bpm")).toBeVisible();
+    expect(within(detail).getByText("Recorded training type")).toBeVisible();
+    await user.click(within(detail).getByRole("button", { name: "Close training detail" }));
+    expect(within(training).queryByRole("region", { name: "Training detail" }))
+      .not.toBeInTheDocument();
+
+    const filter = within(training).getByRole("form", { name: "Explore a training period" });
+    await user.clear(within(filter).getByLabelText("From"));
+    await user.type(within(filter).getByLabelText("From"), "2026-01-20");
+    await user.clear(within(filter).getByLabelText("Through"));
+    await user.type(within(filter).getByLabelText("Through"), "2026-01-20");
+    await user.click(within(filter).getByRole("button", { name: "Apply training period" }));
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith("query_training_overview", {
+      requestedRange: { from: "2026-01-20", through: "2026-01-20" },
+    }));
+    expect(within(training).getAllByRole("button", { name: /View training details/ }))
+      .toHaveLength(1);
+
+    await user.click(within(filter).getByRole("button", { name: "Latest 30-day window" }));
+    await waitFor(() => expect(within(training)
+      .getAllByRole("button", { name: /View training details/ })).toHaveLength(2));
+
+    const comparisonForm = within(training).getByRole("form", {
+      name: "Compare training periods",
+    });
+    const comparisonInputs = [
+      [within(comparisonForm).getByLabelText("Baseline period start"), "2026-01-18"],
+      [within(comparisonForm).getByLabelText("Baseline period end"), "2026-01-18"],
+      [within(comparisonForm).getByLabelText("Comparison period start"), "2026-01-20"],
+      [within(comparisonForm).getByLabelText("Comparison period end"), "2026-01-20"],
+    ] as const;
+    for (const [input, value] of comparisonInputs) {
+      await user.clear(input);
+      await user.type(input, value);
+    }
+    await user.click(within(comparisonForm).getByRole("button", { name: "Compare periods" }));
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
+      "query_training_comparison",
+      {
+        baselineRange: { from: "2026-01-18", through: "2026-01-18" },
+        comparisonRange: { from: "2026-01-20", through: "2026-01-20" },
+      },
+    ));
+    const comparisonRegion = within(training).getByRole("region", {
+      name: "Training period comparison",
+    });
+    expect(within(comparisonRegion).getByText("+250 kcal")).toBeVisible();
+    expect(within(comparisonRegion).getAllByText("Not available").length).toBeGreaterThan(0);
+    await user.click(within(comparisonRegion).getByRole("button", { name: "Clear comparison" }));
+    expect(within(training).queryByRole("region", { name: "Training period comparison" }))
+      .not.toBeInTheDocument();
+
+    await user.clear(within(filter).getByLabelText("From"));
+    await user.type(within(filter).getByLabelText("From"), "2026-01-21");
+    await user.clear(within(filter).getByLabelText("Through"));
+    await user.type(within(filter).getByLabelText("Through"), "2026-01-20");
+    await user.click(within(filter).getByRole("button", { name: "Apply training period" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Choose an ordered training range inside the available history, up to 366 days.",
+    );
+    expect(within(training).getAllByRole("button", { name: /View training details/ }))
+      .toHaveLength(2);
+
+    await user.selectOptions(screen.getByRole("combobox", { name: "Language" }), "es-ES");
+    expect(screen.getByRole("region", { name: "Historial de entrenamientos" })).toBeVisible();
+
+    view.unmount();
+    render(<App />);
+    const restored = await screen.findByRole("region", { name: "Training history" });
+    expect(within(restored).getAllByRole("button", { name: /View training details/ }))
+      .toHaveLength(2);
   });
 });

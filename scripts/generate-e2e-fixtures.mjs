@@ -10,23 +10,34 @@ const uuidA = "11111111-2222-4333-8444-555555555555";
 const uuidB = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
 const uuidC = "12345678-90ab-4cde-8f01-234567890abc";
 const syntheticUsername = "fixture-primary-claim";
-const syntheticTrainingSessionId = "fixture-training-session";
-
-function trainingSession(modified, distanceMeters) {
+function trainingSession({
+  id,
+  created,
+  modified,
+  startTime,
+  stopTime,
+  durationMillis,
+  distanceMeters,
+  calories,
+  hrAvg,
+  hrMax,
+  sportId,
+  exerciseCount,
+}) {
   return JSON.stringify({
-    identifier: { id: syntheticTrainingSessionId },
-    created: "2026-01-04T08:00:00.000",
+    identifier: { id },
+    created,
     modified,
-    startTime: "2026-01-04T06:15:00",
-    stopTime: "2026-01-04T07:15:00",
+    startTime,
+    stopTime,
     timezoneOffsetMinutes: 60,
-    durationMillis: 3_600_000,
-    distanceMeters,
-    calories: 600,
-    hrAvg: 142,
-    hrMax: 171,
-    sport: { id: "99" },
-    exercises: [{ syntheticExcludedDetail: true }],
+    durationMillis,
+    ...(distanceMeters === undefined ? {} : { distanceMeters }),
+    ...(calories === undefined ? {} : { calories }),
+    ...(hrAvg === undefined ? {} : { hrAvg }),
+    ...(hrMax === undefined ? {} : { hrMax }),
+    ...(sportId === undefined ? {} : { sport: { id: sportId } }),
+    exercises: Array.from({ length: exerciseCount }, () => ({ syntheticExcludedDetail: true })),
   });
 }
 
@@ -76,7 +87,32 @@ await createArchive("valid.zip", [
   ],
   [
     `training-session_2026-01-04T06-15-00_42-${uuidA}.json`,
-    trainingSession("2026-01-04T08:05:00.000", 10_000),
+    trainingSession({
+      id: "fixture-training-session-a",
+      created: "2026-01-04T08:00:00.000",
+      modified: "2026-01-04T08:05:00.000",
+      startTime: "2026-01-04T06:15:00",
+      stopTime: "2026-01-04T07:15:00",
+      durationMillis: 3_600_000,
+      distanceMeters: 10_000,
+      calories: 600,
+      hrAvg: 142,
+      hrMax: 171,
+      sportId: "99",
+      exerciseCount: 1,
+    }),
+  ],
+  [
+    `training-session_2026-01-05T18-00-00_42-${uuidA}.json`,
+    trainingSession({
+      id: "fixture-training-session-b",
+      created: "2026-01-05T19:00:00.000",
+      modified: "2026-01-05T19:00:00.000",
+      startTime: "2026-01-05T18:00:00",
+      stopTime: "2026-01-05T18:30:00",
+      durationMillis: 1_800_000,
+      exerciseCount: 0,
+    }),
   ],
   [`sleep_result_42-${uuidA}.json`, "[]"],
   [`profile-picture-42-LARGE-${uuidA}.data`, "synthetic image"],
@@ -97,7 +133,37 @@ await createArchive("overlap.zip", [
   ],
   [
     `training-session_2026-01-04T06-15-00_77-${uuidB}.json`,
-    trainingSession("2026-01-04T09:00:00.000", 10_500),
+    trainingSession({
+      id: "fixture-training-session-a",
+      created: "2026-01-04T08:00:00.000",
+      modified: "2026-01-04T09:00:00.000",
+      startTime: "2026-01-04T06:15:00",
+      stopTime: "2026-01-04T07:15:00",
+      durationMillis: 3_600_000,
+      distanceMeters: 10_500,
+      calories: 600,
+      hrAvg: 142,
+      hrMax: 171,
+      sportId: "99",
+      exerciseCount: 1,
+    }),
+  ],
+  [
+    `training-session_2026-01-06T07-30-00_77-${uuidB}.json`,
+    trainingSession({
+      id: "fixture-training-session-c",
+      created: "2026-01-06T09:00:00.000",
+      modified: "2026-01-06T09:00:00.000",
+      startTime: "2026-01-06T07:30:00",
+      stopTime: "2026-01-06T08:15:00",
+      durationMillis: 2_700_000,
+      distanceMeters: 5_000,
+      calories: 300,
+      hrAvg: 130,
+      hrMax: 155,
+      sportId: "99",
+      exerciseCount: 2,
+    }),
   ],
 ]);
 

@@ -42,8 +42,8 @@ npm run test:fast
 | Run Clippy with warnings denied | `npm run lint:rust` |
 | Generate independent E2E fixtures | `npm run fixture:e2e` |
 | Generate the cancellation-scale fixture | `npm run fixture:large` |
-| Generate the activity performance fixture | `npm run fixture:activity-performance` |
-| Verify daily-activity read-model performance | `npm run benchmark:activity` |
+| Generate the Insights performance fixture | `npm run fixture:insights-performance` |
+| Verify activity and training read-model performance | `npm run benchmark:insights` |
 | Build the unsigned production package | `npm run package` |
 | Install the pinned local release evidence tool | `npm run install:release-tools` |
 | Prepare release-shaped private evidence | `npm run prepare:development-release -- 0.1.0` |
@@ -57,7 +57,7 @@ The unsigned macOS production application and DMG are generated under `src-tauri
 
 ## Synthetic fixture workflow
 
-`npm run fixture:e2e` generates the current valid, invalid, and cumulative-overlap ZIP packages under `.artifacts/e2e/fixtures`. `npm run fixture:large` generates the local entry-count and cancellation scenario, while `npm run fixture:activity-performance` generates the two-year packaged-UI performance history. None of their output is added to Git. The behavioral source of truth is the [synthetic import scenario specification](../testing/synthetic-import-scenarios.md); every implemented scenario must keep its generator, expected outcome, data-format documentation, and tests consistent.
+`npm run fixture:e2e` generates the current valid, invalid, and cumulative-overlap ZIP packages under `.artifacts/e2e/fixtures`. `npm run fixture:large` generates the local entry-count and cancellation scenario, while `npm run fixture:insights-performance` generates the two-year packaged-UI activity and training performance history. None of their output is added to Git. The behavioral source of truth is the [synthetic import scenario specification](../testing/synthetic-import-scenarios.md); every implemented scenario must keep its generator, expected outcome, data-format documentation, and tests consistent.
 
 ## Architecture navigation
 
@@ -77,7 +77,7 @@ The [private release preparation guide](release-preparation.md) owns the clean-r
 
 ## Continuous integration
 
-GitHub Actions runs portable quality checks and a mandatory macOS packaged-E2E job for pull requests and `main`. The macOS job verifies activity read-model performance, prepares and installation-tests a normal private production package, and then builds the separate test variant. It drives the packaged application through validation, progress, cancellation, both locales, exact and cumulative reimport, accessibility, persisted restart, and in-WebView activity performance budgets.
+GitHub Actions runs portable quality checks and a mandatory macOS packaged-E2E job for pull requests and `main`. The macOS job verifies activity and training read-model performance, prepares and installation-tests a normal private production package, and then builds the separate test variant. It drives the packaged application through validation, progress, cancellation, both locales, exact and cumulative reimport, accessibility, persisted restart, and in-WebView activity and training performance budgets.
 
 The instrumented build routes only the archive-picker adapter to WebdriverIO's dialog mock because the embedded macOS WebView exposes Tauri globals through a non-configurable proxy. The E2E test waits for the recorded picker call before observing its result. Normal development and production builds use Tauri's native dialog directly, and the production-bundle check rejects both Rust and presentation WebDriver markers.
 

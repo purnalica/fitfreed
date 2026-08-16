@@ -4,6 +4,7 @@ import "./App.css";
 import { chooseZipArchive } from "./infrastructure/archive-picker";
 import { catalogs, type Locale } from "./locales/catalogs";
 import { ActivityComparisonPanel } from "./presentation/ActivityComparisonPanel";
+import { TrainingInsightsPanel } from "./presentation/TrainingInsightsPanel";
 import type {
   ActivityDateRange,
   ActivityDayAvailability,
@@ -109,6 +110,7 @@ function App() {
   const [rangeThrough, setRangeThrough] = useState("");
   const [rangeLoading, setRangeLoading] = useState(false);
   const [selectedActivityDate, setSelectedActivityDate] = useState<string>();
+  const [trainingRefreshToken, setTrainingRefreshToken] = useState(0);
   const [outcome, setOutcome] = useState<ImportOutcome>();
   const [progress, setProgress] = useState<ImportProgress>();
   const [busy, setBusy] = useState(false);
@@ -213,6 +215,7 @@ function App() {
       onProgress.onmessage = setProgress;
       await invoke<ImportReport>("import_archive", { archivePath, onProgress });
       await refresh();
+      setTrainingRefreshToken((current) => current + 1);
       await refreshOutcome();
     } catch (reason) {
       const code = commandErrorCode(reason);
@@ -730,6 +733,12 @@ function App() {
           </>
         )}
       </section>
+      <TrainingInsightsPanel
+        locale={locale}
+        messages={messages}
+        refreshToken={trainingRefreshToken}
+        onError={setErrorCode}
+      />
     </main>
   );
 }

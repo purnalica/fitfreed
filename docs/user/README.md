@@ -2,9 +2,9 @@
 
 ## Current availability
 
-FitFreed has an executable development preview but no supported alpha release. It is not ready for a real personal export. Current builds demonstrate import safety, source-subject correlation, reconciliation, localized family coverage, persisted gap-aware daily range exploration, detail, and two-period comparison using independently generated synthetic ZIP packages. Training-session summaries now import into the local canonical library with routes and full-resolution detail excluded, but their Insights view is still under construction. One private reference export passed the earlier daily-activity privacy-safe compatibility predicate; training acceptance and that evidence's broader reproducibility remain open and do not establish universal compatibility or open the alpha boundary.
+FitFreed has an executable development preview but no supported alpha release. It is not ready for general use with real personal exports. Current builds demonstrate import safety, source-subject correlation, reconciliation, localized family coverage, persisted daily-activity and training range exploration, detail, and two-period comparison using independently generated synthetic ZIP packages. Training views use session summaries while routes and full-resolution detail remain excluded. One private reference export passed privacy-minimized activity, training-summary, origin-correlation, coverage, and exact-repeat predicates; that single evaluation does not establish universal compatibility or open the alpha boundary.
 
-The [development preview guide](development-preview.md) is the only current application walkthrough. It identifies the documented compatibility shape, synthetic runnable steps, expected range, detail, and comparison results, and missing product capabilities.
+The [development preview guide](development-preview.md) is the only current application walkthrough. It identifies the documented compatibility shape, synthetic runnable steps, expected activity and training range, detail, and comparison results, and missing product capabilities.
 
 The [private development package guide](private-development-packages.md) explains integrity verification and the unsigned evaluation boundary. It does not turn a development package into a supported release.
 
