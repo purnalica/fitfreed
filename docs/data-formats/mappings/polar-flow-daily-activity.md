@@ -1,0 +1,42 @@
+# Polar Flow Daily Activity to Canonical Daily Activity
+
+## Status and authority
+
+Normative mapping version 1 for the implemented walking skeleton. The external structure is described by the [Polar Flow export reference](../providers/polar-flow.md); the target meaning is defined by the [canonical daily activity specification](../canonical/daily-activity.md).
+
+This mapping defines FitFreed behavior. It does not claim that Polar guarantees the observed source format.
+
+## Recognition boundary
+
+The adapter examines safe regular files at the ZIP root. A filename beginning with `activity-` and ending with `.json` is recognized as a daily activity artifact. Directories, symbolic links, encrypted members, duplicate names, nested paths, absolute paths, and members that exceed configured resource limits reject the package before mapping.
+
+Filename tokens are used only for family recognition. They do not provide canonical identity, date, provenance identity, or ordering. The JSON `date` is currently not cross-checked against the filename date token.
+
+## Field mapping
+
+| Source input | Validation and transformation | Canonical output | Information loss |
+|---|---|---|---|
+| Adapter-supplied source-subject identity | Required by the adapter boundary; no filename token is substituted. | `originId` | Real Polar source-subject resolution is not implemented. |
+| `date` | Required JSON string parsed as a valid `YYYY-MM-DD` calendar date; preserved verbatim after validation. | `localDate` | No time-zone identifier exists at this level. |
+| `summary` absent or null | Accepted. | `stepCount` = null | Other daily summary information is not mapped. |
+| `summary.stepCount` absent or null | Accepted. | `stepCount` = null | Absence and explicit null currently produce the same canonical value. |
+| `summary.stepCount` integer greater than or equal to zero | Preserved as a signed 64-bit integer. | `stepCount` | No transformation. |
+| `summary.stepCount` negative, fractional, string, boolean, object, or out of range | Reject the complete package as invalid supported content. | none | No partial canonical state is published. |
+
+Unknown JSON fields are accepted and ignored by mapping version 1. `exportVersion`, `physicalInformation`, `samples`, and every `summary` field other than `stepCount` are deliberately not mapped by this version. Their presence does not imply support, and their values do not affect reconciliation.
+
+## Failure and atomicity
+
+Malformed JSON, an invalid or missing `date`, and an invalid mapped value reject the import. Mapping and reconciliation run inside the current walking-skeleton transaction, so an error, cancellation, or injected interruption exposes no canonical changes or completed import operation.
+
+## Reimport behavior
+
+The canonical (`originId`, `localDate`) identity drives overlap reconciliation. Byte-identical packages use a SHA-256 fast path and record another completed exact-repeat operation without parsing their artifacts again. Different package bytes still reconcile by canonical identity using the rules in the canonical specification.
+
+## Compatibility limits
+
+The adapter does not yet detect `exportVersion`, historical family variants, or a stable real account identity. It reports only recognized daily activity counts; full supported, ignored, unrecognized, and invalid artifact coverage remains required before real-export MVP compatibility.
+
+## Synthetic evidence
+
+Integration tests independently construct ZIP and JSON inputs for valid, absent, invalid, overlapping, conflicting, repeated, cancelled, interrupted, duplicate-name, unsafe-path, symbolic-link, and compression-limit cases in [`../../../src-tauri/src/infrastructure.rs`](../../../src-tauri/src/infrastructure.rs). No example is copied from a personal export.

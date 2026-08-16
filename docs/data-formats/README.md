@@ -53,3 +53,6 @@ Directories are created with their first real contract; empty specifications are
 ## Current references
 
 - [Polar Flow personal data export](providers/polar-flow.md)
+- [Canonical daily activity](canonical/daily-activity.md)
+- [Polar Flow daily activity mapping](mappings/polar-flow-daily-activity.md)
+- [SQLite schema version 1](persistence/sqlite-v1.md)

@@ -38,6 +38,9 @@ jobs:
       - name: Verify architecture boundaries
         run: npm run check:architecture
 
+      - name: Verify data contracts
+        run: npm run check:data-contracts
+
       - name: Verify translation catalogs
         run: npm run check:i18n
 

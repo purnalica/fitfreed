@@ -27,4 +27,4 @@ The architecture check reads Cargo metadata and rejects adapter, serialization, 
 
 ## Current vertical-slice limitation
 
-The first promoted slice recognizes a deliberately small synthetic daily-activity shape. Stable Polar subject identity, complete coverage reporting, normative mappings, richer daily activity, and the remaining MVP contexts are not implied by this foundation. They enter through the provider adapter and application ports without weakening the dependency direction above.
+The first promoted slice recognizes a deliberately small synthetic daily-activity shape. Its current canonical concept, source mapping, and persistence schema are indexed in the [data format documentation](../data-formats/README.md). Stable Polar subject identity, complete coverage reporting, richer daily activity, and the remaining MVP contexts are not implied by this foundation. They enter through the provider adapter and application ports without weakening the dependency direction above.

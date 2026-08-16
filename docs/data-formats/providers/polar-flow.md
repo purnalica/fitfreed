@@ -144,6 +144,8 @@ The absence of a time-zone identifier means the date and source-local sample tim
 
 The stable Polar account key required to correlate the source subject across export packages is still an open compatibility question. No filename token is promoted to that role without evidence.
 
+The implemented walking-skeleton transformation is specified normatively in the [Polar Flow daily activity mapping](../mappings/polar-flow-daily-activity.md). This provider reference remains descriptive evidence and does not define FitFreed behavior by itself.
+
 ## Family documentation template
 
 Each supported family will document:

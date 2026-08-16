@@ -27,34 +27,7 @@ const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
 const SCHEMA_VERSION: i64 = 1;
-const SCHEMA_V1: &str = "
-    CREATE TABLE IF NOT EXISTS daily_activity (
-        origin_id TEXT NOT NULL,
-        local_date TEXT NOT NULL,
-        step_count INTEGER,
-        provenance_sha256 TEXT NOT NULL,
-        PRIMARY KEY (origin_id, local_date)
-    );
-    CREATE TABLE IF NOT EXISTS activity_conflict (
-        id INTEGER PRIMARY KEY,
-        origin_id TEXT NOT NULL,
-        local_date TEXT NOT NULL,
-        existing_step_count INTEGER,
-        incoming_step_count INTEGER,
-        package_sha256 TEXT NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS import_operation (
-        id INTEGER PRIMARY KEY,
-        package_sha256 TEXT NOT NULL,
-        completed INTEGER NOT NULL,
-        exact_repeat INTEGER NOT NULL,
-        recognized_artifacts INTEGER NOT NULL,
-        new_observations INTEGER NOT NULL,
-        equivalent_observations INTEGER NOT NULL,
-        enriched_observations INTEGER NOT NULL,
-        preserved_observations INTEGER NOT NULL,
-        conflicts INTEGER NOT NULL
-    );";
+const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 
 #[derive(Debug, Error)]
 pub enum ImportError {
@@ -835,11 +808,11 @@ mod tests {
             }
         }
 
-        fn database(&self) -> std::path::PathBuf {
+        fn database(&self) -> PathBuf {
             self.directory.path().join("fitfreed.sqlite")
         }
 
-        fn archive(&self, name: &str, entries: &[(&str, &str)]) -> std::path::PathBuf {
+        fn archive(&self, name: &str, entries: &[(&str, &str)]) -> PathBuf {
             let path = self.directory.path().join(name);
             let file = File::create(&path).expect("archive file");
             let mut writer = ZipWriter::new(file);
@@ -1267,6 +1240,55 @@ mod tests {
             .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
             .expect("recovered schema version");
         assert_eq!(recovered_version, SCHEMA_VERSION);
+    }
+
+    #[test]
+    fn rejects_unversioned_database_with_incompatible_schema_objects() {
+        let harness = Harness::new();
+        let database_path = harness.database();
+        let connection = Connection::open(&database_path).expect("database");
+        connection
+            .execute_batch("CREATE TABLE daily_activity (unexpected TEXT NOT NULL);")
+            .expect("incompatible table");
+
+        migrate_schema(&connection, false).expect_err("incompatible unversioned database");
+
+        let version = connection
+            .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+            .expect("schema version");
+        assert_eq!(version, 0);
+        let migration_tables = connection
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master
+                 WHERE type = 'table'
+                   AND name IN ('activity_conflict', 'import_operation')",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .expect("migration table count");
+        assert_eq!(migration_tables, 0);
+    }
+
+    #[test]
+    fn rejects_future_schema_without_downgrading_it() {
+        let harness = Harness::new();
+        let database_path = harness.database();
+        let connection = Connection::open(&database_path).expect("database");
+        let future_version = SCHEMA_VERSION + 1;
+        connection
+            .pragma_update(None, "user_version", future_version)
+            .expect("future schema version");
+
+        let error = query_activity(&database_path).expect_err("unsupported future schema");
+
+        assert!(matches!(
+            error,
+            ImportError::UnsupportedSchemaVersion(version) if version == future_version
+        ));
+        let retained_version = connection
+            .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+            .expect("retained schema version");
+        assert_eq!(retained_version, future_version);
     }
 
     #[test]

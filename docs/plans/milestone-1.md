@@ -49,6 +49,8 @@ An environment limitation never waives this gate. Until GitHub Actions produces 
 
 ## Increment M1.3 — Transactional library foundation
 
+**Status:** in progress. Schema version 1 is now an immutable numbered migration with fail-closed creation, transactional rollback, backup evidence, and normative canonical, mapping, and persistence specifications. Durable non-terminal outcomes, complete artifact coverage, mapping versions, and detailed provenance remain open.
+
 **Outcome:** SQLite storage and migrations implement the provider-neutral application ports with recoverable lifecycle behavior.
 
 **Work:**

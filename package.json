@@ -12,6 +12,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "check:architecture": "node scripts/check-rust-architecture.mjs",
+    "check:data-contracts": "node scripts/check-data-contracts.mjs",
     "check:docs": "node scripts/check-markdown-links.mjs",
     "check:i18n": "node scripts/check-translations.mjs",
     "check:production-bundle": "scripts/check-production-bundle.sh",
@@ -26,7 +27,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:rust": "npm run icons && cargo test --manifest-path src-tauri/Cargo.toml --workspace --all-features",
-    "test:fast": "npm run check:architecture && npm run check:docs && npm run check:i18n && npm test && npm run test:rust",
+    "test:fast": "npm run check:architecture && npm run check:data-contracts && npm run check:docs && npm run check:i18n && npm test && npm run test:rust",
     "test:e2e": "wdio run wdio.conf.js",
     "verify:e2e": "npm run build:e2e && npm run test:e2e",
     "tauri": "tauri"

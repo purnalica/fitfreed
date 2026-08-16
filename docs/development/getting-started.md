@@ -27,6 +27,7 @@ npm run test:fast
 |---|---|
 | Run the desktop application in development | `npm run tauri -- dev` |
 | Verify architecture boundaries | `npm run check:architecture` |
+| Verify canonical, mapping, and persistence contracts | `npm run check:data-contracts` |
 | Verify locale catalogs | `npm run check:i18n` |
 | Run presentation tests | `npm test` |
 | Run all Rust tests | `npm run test:rust` |
@@ -48,7 +49,7 @@ Generated application, database, fixture, log, screenshot, icon, and bundle outp
 - `src-tauri/src/lib.rs` and `presentation.rs` are the Tauri host and serialized transport boundary.
 - `src` contains the React presentation; localized copy exists only under `src/locales`.
 
-The detailed dependency map is [`../architecture/module-map.md`](../architecture/module-map.md). Source-format and canonical-format changes must update their normative documentation and synthetic contract evidence in the same increment.
+The detailed dependency map is [`../architecture/module-map.md`](../architecture/module-map.md), and the machine-readable contract index is [`../data-formats/README.md`](../data-formats/README.md). Source-format, canonical-format, mapping, or persistence changes must update their normative documentation and synthetic contract evidence in the same increment.
 
 ## Continuous integration
 
