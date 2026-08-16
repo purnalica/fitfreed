@@ -15,16 +15,18 @@ Install the Xcode command-line tools and a Rustup installation before setup. Nod
 From the repository root:
 
 ```sh
+npm run doctor
 npm ci
 npm run test:fast
 ```
 
-`npm ci` installs the exact JavaScript graph from `package-lock.json`. The fast lane verifies compile-enforced architecture boundaries, translation catalogs, presentation behavior, and all Rust workspace tests.
+`npm run doctor` checks the supported Node.js and npm ranges, pinned Rust toolchain, required Rust components, and the macOS Xcode command-line toolchain without requiring installed project dependencies. `npm ci` installs the exact JavaScript graph from `package-lock.json`. The fast lane verifies compile-enforced architecture boundaries, translation catalogs, presentation behavior, and all Rust workspace tests.
 
 ## Primary commands
 
 | Outcome | Command |
 |---|---|
+| Diagnose the development environment | `npm run doctor` |
 | Run the desktop application in development | `npm run tauri -- dev` |
 | Verify architecture boundaries | `npm run check:architecture` |
 | Verify canonical, mapping, and persistence contracts | `npm run check:data-contracts` |
@@ -39,8 +41,15 @@ npm run test:fast
 | Generate the cancellation-scale fixture | `npm run fixture:large` |
 | Build the unsigned production package | `npm run package` |
 | Build and run the instrumented packaged E2E journey | `npm run verify:e2e` |
+| Run every current local acceptance gate | `npm run verify:full` |
 
 Generated application, database, fixture, log, screenshot, icon, and bundle output is ignored. Never replace the synthetic generators with a real provider export or a record copied from one.
+
+The unsigned macOS production application and DMG are generated under `src-tauri/target/release/bundle/`. The separate E2E build is instrumented and must never be distributed. `npm run verify:full` finishes by rebuilding and checking the production package so the retained bundle is not the instrumented variant.
+
+## Synthetic fixture workflow
+
+`npm run fixture:e2e` generates the current valid, invalid, and cumulative-overlap ZIP packages under `.artifacts/e2e/fixtures`. `npm run fixture:large` generates the local entry-count and cancellation scenario without adding its output to Git. The behavioral source of truth is the [synthetic import scenario specification](../testing/synthetic-import-scenarios.md); every implemented scenario must keep its generator, expected outcome, data-format documentation, and tests consistent.
 
 ## Architecture navigation
 
@@ -62,9 +71,4 @@ The instrumented build routes only the archive-picker adapter to WebdriverIO's d
 
 When E2E fails, the job retains only synthetic screenshots and tool logs for seven days. It never uploads the generated library, fixture paths, real exports, or personal values.
 
-## Troubleshooting
-
-- If Rust reports a missing toolchain component, run `rustup show` from the repository root and confirm that Rustup can install the pinned `rustfmt` and Clippy components.
-- If `npm ci` changes `package-lock.json`, the installed npm version does not match the supported baseline or the lockfile was already inconsistent. Do not commit an unexplained lockfile rewrite.
-- If packaging selects the wrong executable, verify `default-run = "fitfreed"` and run `npm run check:production-bundle` after the package build.
-- Treat a flaky or environment-dependent test as a defect. Reproduce and correct its state, timing, or platform dependency; do not remove the assertion or silently skip the gate.
+The [troubleshooting guide](troubleshooting.md) is the canonical failure guide. It maps common symptoms to their owning boundary and lists privacy-safe escalation evidence.

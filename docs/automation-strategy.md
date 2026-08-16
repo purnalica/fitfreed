@@ -78,6 +78,8 @@ The selected technology stack will define the concrete command runner. Regardles
 
 Commands will compose smaller versioned tasks, return meaningful exit codes, avoid hidden global state, and identify generated outputs.
 
+The current executable entry points are `npm run doctor` for prerequisite diagnosis, `npm run test:fast` for the contributor loop, `npm run verify:e2e` for the instrumented packaged journey, and `npm run verify:full` for every local acceptance gate followed by a clean production package. Continuous integration invokes the same underlying versioned tasks as separate diagnosable steps.
+
 Repository-safety automation begins before the application stack is selected:
 
 - `scripts/check-repository-content.sh` checks candidate files and publishable branch, remote, and tag metadata for local paths, personal export names, email disclosure, credential-shaped content, unreviewed binaries, and other publication-policy violations.

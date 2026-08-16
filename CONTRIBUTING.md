@@ -23,7 +23,7 @@ Small corrections that preserve confirmed behavior and scope do not require a se
 1. Create a focused branch from the current default branch.
 2. Make the smallest complete change that proves its intended outcome.
 3. Add or update behavioral tests and canonical documentation in the same change.
-4. Run the documented fast and full verification commands once they exist.
+4. Run `npm run test:fast` during development and `npm run verify:full` before proposing the completed change.
 5. Review the complete diff for personal data, secrets, generated files, dependency licenses, and unrelated changes.
 6. Open a pull request using the repository template and report any verification that could not be executed.
 

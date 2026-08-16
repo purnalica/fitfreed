@@ -72,7 +72,7 @@ Hosted evidence: commit `pre-purge` passed the [portable and packaged macOS lane
 
 ## Increment M1.4 — Localized vertical journey
 
-**Status:** locally complete; hosted confirmation pending. The desktop journey reads terminal outcomes through a provider-neutral application port and presents localized status, source, history effect, complete five-category coverage, and sanitized actionable failures. Locale selection is durable in schema version 3, first-run resolution follows the operating-system preference order with an `en-US` fallback, and dates, numbers, count forms, text expansion, and reduced motion are verified.
+**Status:** complete. The desktop journey reads terminal outcomes through a provider-neutral application port and presents localized status, source, history effect, complete five-category coverage, and sanitized actionable failures. Locale selection is durable in schema version 3, first-run resolution follows the operating-system preference order with an `en-US` fallback, and dates, numbers, count forms, text expansion, and reduced motion are verified.
 
 **Outcome:** the packaged application provides the first useful import-to-history journey in `en-US` and `es-ES`.
 
@@ -87,9 +87,13 @@ Hosted evidence: commit `pre-purge` passed the [portable and packaged macOS lane
 
 Local evidence on 2026-08-16: 9 presentation tests and 28 Rust tests passed; architecture, all three persistence contracts, documentation links, translation structure, reduced-motion containment, TypeScript compilation, Rust formatting, and Clippy passed; the packaged macOS E2E journey passed validation, complete outcome coverage, cancellation, exact and cumulative reimport, locale-aware dates and numbers, Spanish text expansion, accessibility, and Spanish preference restoration after process restart; and the production application and DMG passed the test-instrumentation exclusion check.
 
+Hosted evidence: commit `pre-purge` passed the [portable and packaged macOS lanes](https://github.com/purnalica/fitfreed/actions/runs/31958828208) and the independent [repository content and secret scan](https://github.com/purnalica/fitfreed/actions/runs/31958828204).
+
 ## Increment M1.5 — Contributor and user documentation
 
-**Outcome:** a new contributor and an alpha user can complete their primary journeys without private maintainer knowledge.
+**Status:** locally complete; hosted clean-clone confirmation pending. Documentation is navigable by audience; the supported environment, setup, architecture, tests, fixtures, debugging, packaging, localization, data contracts, privacy boundaries, contribution flow, current user journey, safety boundary, and unavailable alpha capabilities are explicit and versioned.
+
+**Outcome:** a new contributor and a development evaluator can complete the current Milestone 1 journeys without private maintainer knowledge. Alpha-user documentation evolves with the real-data, installation, backup, recovery, and update behavior that enters Milestone 2; unavailable behavior is never documented as usable.
 
 **Work:**
 
@@ -99,6 +103,24 @@ Local evidence on 2026-08-16: 9 presentation tests and 28 Rust tests passed; arc
 4. Keep documentation changes in the same increment as the behavior they describe.
 
 **Acceptance evidence:** clean-clone and packaged-journey walkthroughs pass using only versioned instructions and synthetic data.
+
+Local evidence on 2026-08-16: the environment doctor passed against the pinned macOS toolchain; all 158 local documentation links passed; and the documented `npm run verify:full` entry point passed architecture, data-contract, documentation, translation, reduced-motion, presentation, Rust, formatting, lint, packaged E2E, production-package, and test-instrumentation exclusion gates. Hosted clean-checkout evidence remains pending for this increment.
+
+## Increment M1.6 — Release-shaped installation and recovery
+
+**Status:** pending.
+
+**Outcome:** Milestone 1 produces a private development package and release-draft input whose installation and failure behavior are verified without publishing an unsigned binary.
+
+**Work:**
+
+1. Add one versioned release-preparation entry point that produces the production package, checksums, dependency and license evidence, software bill of materials, provenance inputs, and draft release notes from an explicit reviewed version.
+2. Verify clean installation, first launch, retained library state, removal boundaries, and a deliberately failed or interrupted installation using release-shaped macOS artifacts.
+3. Prove that installation failure leaves the previous application usable and never deletes or partially migrates the user's library.
+4. Document package locations, private evaluation handling, installation diagnostics, recovery, and the unsigned and non-notarized distribution boundary.
+5. Keep release publication, tags, signing credentials, notarization, and public update channels behind their existing human authority gates.
+
+**Acceptance evidence:** the versioned preparation and installation-recovery workflows pass locally and in the mandatory macOS GitHub Actions lane; generated artifacts contain no test instrumentation, personal data, credentials, or private paths; no unsigned package is uploaded to a public release channel.
 
 ## Cross-cutting completion rule
 

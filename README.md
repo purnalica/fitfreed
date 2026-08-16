@@ -45,11 +45,14 @@ Polar Flow is the first importer, not the product identity. Later importers may 
 
 ## Current documentation
 
+- [Documentation by audience](docs/README.md)
 - [Product requirements](docs/requirements.md)
 - [Product roadmap](docs/roadmap.md)
 - [Active Milestone 1 plan](docs/plans/milestone-1.md)
 - [Contributor setup](docs/development/getting-started.md)
+- [Contributor troubleshooting](docs/development/troubleshooting.md)
 - [Localization guide](docs/development/localization.md)
+- [User documentation status](docs/user/README.md)
 - [Development preview guide](docs/user/development-preview.md)
 - [Architecture module map](docs/architecture/module-map.md)
 - [Technology evaluation protocol](docs/technology-evaluation.md)

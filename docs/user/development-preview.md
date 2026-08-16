@@ -19,6 +19,14 @@ The current application is a development foundation, not an alpha release. It pr
 
 The generated fixtures contain only independently constructed fictional values. The local SQLite library remains in the operating system's FitFreed application-data directory. Development E2E runs use an isolated generated library under `.artifacts` instead.
 
+## Troubleshooting this preview
+
+- If the import action is unavailable, select a ZIP package first. Canceling the file picker intentionally keeps the action unavailable.
+- The generated `invalid.zip` package is expected to be rejected. Use `valid.zip` for the successful journey and preserve the visible rejection evidence when diagnosing a regression.
+- If FitFreed reports that the local library is unavailable, stop importing and preserve the application-data directory. Do not delete or edit the SQLite file as a recovery attempt.
+- If a selected language cannot be saved, the application keeps the operating-system language for first-run initialization or restores the previous explicit language. Restart before trying the selection again.
+- Use the [contributor troubleshooting guide](../development/troubleshooting.md) for build, test, package, or E2E failures.
+
 ## Expected limitations
 
 - Only the synthetic daily summary shape exercised by the first vertical slice is supported.

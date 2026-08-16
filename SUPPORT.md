@@ -2,11 +2,11 @@
 
 ## Current availability
 
-FitFreed has no runnable application or supported release yet. End-user installation and data-import support will begin with the first evaluation build and will be documented for that exact version.
+FitFreed has a runnable development foundation but no supported alpha release. Current support covers contributor setup and the independently generated synthetic journey documented in the [development preview guide](docs/user/development-preview.md). Real personal exports, end-user installation, and update support will begin only with a version that explicitly documents and verifies those boundaries.
 
 ## Where requests belong
 
-- Reproducible defects and bounded feature proposals belong in GitHub Issues when the relevant templates are available.
+- Reproducible defects and bounded feature proposals belong in GitHub Issues using the relevant repository template.
 - Security vulnerabilities follow [SECURITY.md](SECURITY.md) and must not be reported publicly.
 - Conduct incidents follow [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 - General provider-account, export-request, legal, medical, training, or device-support questions are outside project support.
