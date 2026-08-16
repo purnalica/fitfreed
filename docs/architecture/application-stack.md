@@ -1,0 +1,34 @@
+# Application Stack Architecture
+
+## Status
+
+Current architecture after [ADR 0001](decisions/0001-select-tauri-application-stack.md). This document describes dependency ownership; it does not make Tauri or React the product architecture.
+
+## Layer ownership
+
+| Area | Selected technology | Architectural responsibility |
+|---|---|---|
+| Domain | Rust without desktop, persistence, ZIP, JSON, or provider-framework dependencies | FitFreed concepts, identities, value objects, invariants, and reconciliation policy |
+| Application | Rust | Use cases, input and output ports, transaction intent, progress, cancellation, and provider-neutral DTOs |
+| Source and infrastructure adapters | Rust | Provider decoding, ZIP and JSON access, persistence, migrations, backup, update service, and operating-system integrations |
+| Desktop host | Tauri 2 | Process lifecycle, windowing, native dialogs, capabilities, command registration, packaging, and update integration |
+| Presentation | TypeScript and React | Localized interaction, accessible visualization, view state, and command invocation |
+
+## Dependency rules
+
+- Dependencies point inward from Tauri, React, and infrastructure adapters toward application ports and the domain.
+- Domain and application modules do not import Tauri, React, provider schemas, database APIs, archive APIs, or operating-system APIs.
+- Tauri commands are thin inbound adapters. They validate transport input, invoke one use case, translate failures, and return serializable provider-neutral results.
+- The renderer receives only the data required by a view. It never receives filesystem paths, database handles, provider JSON, or unrestricted native authority.
+- Provider names and schemas remain in source adapters and compatibility documentation.
+- Long-running import work executes outside the UI event path and reports explicit progress and cancellation outcomes through application ports.
+
+## Process boundary
+
+The initial desktop distribution uses one Tauri application process and its managed blocking-task runtime. Import use cases execute on blocking workers rather than the UI event path. The production design must prove bounded concurrency, atomic visibility, cancellation semantics, and shutdown recovery before this boundary is accepted for the walking skeleton.
+
+## Contributor contract
+
+The repository will pin supported Rust and Node versions and expose one documented command for each fast check, full verification, application launch, package build, and release-shaped test. A clean clone must not require private data, proprietary services, or undocumented global tooling.
+
+Storage, visualization, E2E-driver, and updater implementation decisions will receive separate ADRs when their evidence is complete.

@@ -2,7 +2,7 @@
 
 ## Current project stage
 
-FitFreed is in product definition and technical evaluation. There is no runnable application yet. Contributions are currently most useful when they improve verified requirements, architecture evidence, synthetic compatibility scenarios, contributor automation, or the path to the first vertical slice.
+FitFreed is establishing its Milestone 0 architecture baseline and implementation plan. Tauri 2, a Rust core, and a TypeScript and React presentation layer are selected, but there is no production application yet. Contributions are currently most useful when they improve verified requirements, architecture evidence, synthetic compatibility scenarios, contributor automation, or the path to the first vertical slice.
 
 Review the [requirements](docs/requirements.md), [roadmap](docs/roadmap.md), [data format documentation](docs/data-formats/README.md), and [repository content policy](docs/repository-content-policy.md) before starting work.
 

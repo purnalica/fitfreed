@@ -4,7 +4,7 @@
 
 FitFreed is a local-first desktop application for turning personal fitness-platform exports into an understandable, durable history that can be explored beyond the source platform.
 
-> **Project status:** product definition and technical evaluation. No runnable application or release exists yet.
+> **Project status:** Milestone 0 architecture baseline and implementation planning. The Tauri application stack is selected; no production application or release exists yet.
 
 ## Why FitFreed exists
 
@@ -50,6 +50,7 @@ Polar Flow is the first importer, not the product identity. Later importers may 
 - [Product thesis](docs/product-thesis.md)
 - [Data format documentation](docs/data-formats/README.md)
 - [Source integration architecture](docs/architecture/source-integration.md)
+- [Application stack architecture](docs/architecture/application-stack.md)
 - [Quality targets](docs/quality-targets.md)
 - [Testing strategy](docs/testing-strategy.md)
 - [Automation strategy](docs/automation-strategy.md)
@@ -57,7 +58,7 @@ Polar Flow is the first importer, not the product identity. Later importers may 
 - [Architecture decision records](docs/architecture/decisions/README.md)
 - [Repository content policy](docs/repository-content-policy.md)
 
-Technology selection and the detailed Milestone 0 execution plan are still in progress. Build and run instructions will be added only when an executable foundation exists and the commands can be verified from a clean clone.
+The application stack is selected in [ADR 0001](docs/architecture/decisions/0001-select-tauri-application-stack.md). Storage, release-shaped testing, update, and visualization decisions remain in progress. Build and run instructions will be added only when the production executable foundation exists and the commands can be verified from a clean clone.
 
 ## Contributing
 

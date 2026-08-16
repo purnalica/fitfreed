@@ -10,7 +10,7 @@ Build a cross-platform desktop application that imports personal activity, train
 
 The product is vendor-neutral and multi-source by design. Polar Flow will be the only data source supported by the MVP; later importers may support Garmin and other platforms without turning any provider into the product's identity.
 
-The application is named **FitFreed** and will be an open-source project published on GitHub under the `fitfreed` repository slug. Its programming language and development framework are still to be decided.
+The application is named **FitFreed** and will be an open-source project published on GitHub under the `fitfreed` repository slug. [ADR 0001](architecture/decisions/0001-select-tauri-application-stack.md) selects Tauri 2, a Rust core, and a TypeScript and React presentation layer.
 
 The architecture will follow Clean Architecture and Domain-Driven Design (DDD).
 
