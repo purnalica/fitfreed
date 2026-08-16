@@ -5,9 +5,12 @@ use std::path::{Path, PathBuf};
 
 use fitfreed_application::{ImportCoordinator, ImportProgress};
 use infrastructure::{
-    recover_interrupted_imports, SqliteActivityLibrary, SqlitePolarFlowArchiveImporter,
+    recover_interrupted_imports, SqliteActivityLibrary, SqliteImportOutcomeLibrary,
+    SqlitePolarFlowArchiveImporter,
 };
-use presentation::{DailyActivityDto, ImportProgressDto, ImportReportDto};
+use presentation::{
+    CommandErrorDto, DailyActivityDto, ImportOutcomeDto, ImportProgressDto, ImportReportDto,
+};
 use tauri::{ipc::Channel, AppHandle, Manager, State};
 
 #[tauri::command]
@@ -16,8 +19,9 @@ async fn import_archive(
     coordinator: State<'_, ImportCoordinator>,
     archive_path: String,
     on_progress: Channel<ImportProgressDto>,
-) -> Result<ImportReportDto, String> {
-    let database_path = database_path(&app)?;
+) -> Result<ImportReportDto, CommandErrorDto> {
+    let database_path =
+        database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     let coordinator = coordinator.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         let importer =
@@ -32,23 +36,35 @@ async fn import_archive(
             &mut report_progress,
         )
         .map(ImportReportDto::from)
-        .map_err(|error| error.to_string())
+        .map_err(CommandErrorDto::from)
     })
     .await
-    .map_err(|error| error.to_string())?
+    .map_err(|_| CommandErrorDto::new("desktop-task-failed"))?
 }
 
 #[tauri::command]
-fn cancel_import(coordinator: State<'_, ImportCoordinator>) -> Result<bool, String> {
-    coordinator.cancel().map_err(|error| error.to_string())
+fn cancel_import(coordinator: State<'_, ImportCoordinator>) -> Result<bool, CommandErrorDto> {
+    coordinator.cancel().map_err(CommandErrorDto::from)
 }
 
 #[tauri::command]
-fn query_activity(app: AppHandle) -> Result<Vec<DailyActivityDto>, String> {
-    let library = SqliteActivityLibrary::new(database_path(&app)?);
+fn query_activity(app: AppHandle) -> Result<Vec<DailyActivityDto>, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let library = SqliteActivityLibrary::new(path);
     fitfreed_application::query_activity(&library)
         .map(|activities| activities.into_iter().map(DailyActivityDto::from).collect())
-        .map_err(|error| error.to_string())
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn query_latest_import_outcome(
+    app: AppHandle,
+) -> Result<Option<ImportOutcomeDto>, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let library = SqliteImportOutcomeLibrary::new(path);
+    fitfreed_application::query_latest_import_outcome(&library)
+        .map(|outcome| outcome.map(ImportOutcomeDto::from))
+        .map_err(CommandErrorDto::from)
 }
 
 fn database_path(app: &AppHandle) -> Result<PathBuf, String> {
@@ -84,7 +100,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             import_archive,
             cancel_import,
-            query_activity
+            query_activity,
+            query_latest_import_outcome
         ])
         .run(tauri::generate_context!())
         .expect("failed to run FitFreed");

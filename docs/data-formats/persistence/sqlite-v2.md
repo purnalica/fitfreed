@@ -131,4 +131,4 @@ Domain tests enforce lifecycle transition and terminal-state rules. Adapter inte
 
 ## Known version 2 limitations
 
-Version 2 does not yet resolve a stable real Polar subject identity, retain original artifacts, expose warnings as a separate collection, persist resumable staging batches, or provide the stable portable FitFreed export. The current provider adapter recognizes only the independently constructed daily-activity slice documented by mapping version 1. User-visible coverage and recovery guidance enter through the next presentation increment; the persisted evidence already exists independently of that interface.
+Version 2 does not yet resolve a stable real Polar subject identity, retain original artifacts, expose warnings as a separate collection, persist resumable staging batches, or provide the stable portable FitFreed export. The current provider adapter recognizes only the independently constructed daily-activity slice documented by mapping version 1. The presentation reads terminal outcome summaries and recovery codes through a provider-neutral application port; detailed artifact locators and provenance remain protected local-library evidence.

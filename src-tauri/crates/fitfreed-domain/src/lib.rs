@@ -31,6 +31,22 @@ pub enum ImportOperationState {
 }
 
 impl ImportOperationState {
+    pub const fn from_code(code: &str) -> Option<Self> {
+        match code.as_bytes() {
+            b"assessing" => Some(Self::Assessing),
+            b"planned" => Some(Self::Planned),
+            b"staging" => Some(Self::Staging),
+            b"reconciling" => Some(Self::Reconciling),
+            b"committing" => Some(Self::Committing),
+            b"recovering" => Some(Self::Recovering),
+            b"completed" => Some(Self::Completed),
+            b"rejected" => Some(Self::Rejected),
+            b"cancelled" => Some(Self::Cancelled),
+            b"failed" => Some(Self::Failed),
+            _ => None,
+        }
+    }
+
     pub const fn code(self) -> &'static str {
         match self {
             Self::Assessing => "assessing",
@@ -111,6 +127,32 @@ impl ArtifactClassification {
             Self::Invalid => "invalid",
         }
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ArtifactCoverageSummary {
+    pub total: usize,
+    pub supported: usize,
+    pub unsupported: usize,
+    pub deliberately_ignored: usize,
+    pub unrecognized: usize,
+    pub invalid: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ImportOutcome {
+    pub operation_ref: String,
+    pub state: ImportOperationState,
+    pub source_provider: String,
+    pub source_adapter_version: String,
+    pub mapping_version: String,
+    pub exact_repeat: bool,
+    pub coverage_complete: bool,
+    pub coverage: ArtifactCoverageSummary,
+    pub report: ImportReport,
+    pub canonical_history_changed: bool,
+    pub terminal_code: Option<String>,
+    pub recovery_note: Option<String>,
 }
 
 impl ImportReport {
@@ -235,5 +277,10 @@ mod tests {
         assert!(!Assessing.is_terminal());
         assert!(!Assessing.can_transition_to(Completed));
         assert!(!Staging.can_transition_to(Completed));
+        assert_eq!(
+            ImportOperationState::from_code("completed"),
+            Some(Completed)
+        );
+        assert_eq!(ImportOperationState::from_code("unknown"), None);
     }
 }

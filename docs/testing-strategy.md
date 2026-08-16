@@ -108,7 +108,6 @@ Local and continuous-integration workflows will invoke the same underlying comma
 
 ## Pending decisions
 
-- Final acceptance of the Tauri WebDriverIO driver after the versioned macOS workflow proves the complete journey reliably.
 - Linux and Windows E2E runner distribution when those platforms enter implementation.
 - Validation of the provisional performance budgets and final reference-hardware profiles.
 - Accessibility conformance tooling and manual audit cadence.

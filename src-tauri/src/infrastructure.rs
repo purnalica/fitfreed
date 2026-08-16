@@ -15,12 +15,12 @@ use thiserror::Error;
 use zip::ZipArchive;
 
 use fitfreed_application::{
-    ActivityLibraryPort, ArchiveImportPort, ImportPhase, ImportPhaseTimings, ImportProgress,
-    ProfiledImport,
+    ActivityLibraryPort, ArchiveImportPort, ImportOutcomeLibraryPort, ImportPhase,
+    ImportPhaseTimings, ImportProgress, ProfiledImport,
 };
 use fitfreed_domain::{
-    decide_reconciliation, ArtifactClassification, DailyActivity, ExistingObservation,
-    ImportOperationState, ImportReport, ReconciliationDecision,
+    decide_reconciliation, ArtifactClassification, ArtifactCoverageSummary, DailyActivity,
+    ExistingObservation, ImportOperationState, ImportOutcome, ImportReport, ReconciliationDecision,
 };
 
 const MAX_ARCHIVE_ENTRIES: usize = 10_000;
@@ -67,6 +67,10 @@ pub enum ImportError {
         import_error: String,
         persistence_error: String,
     },
+    #[error("invalid persisted import-operation state: {0}")]
+    InvalidPersistedOperationState(String),
+    #[error("invalid persisted non-negative count in {column}: {value}")]
+    InvalidPersistedCount { column: &'static str, value: i64 },
 }
 
 pub type Result<T> = std::result::Result<T, ImportError>;
@@ -88,6 +92,31 @@ struct MappedArtifact {
     locator: String,
     sha256: String,
     observation: DailyActivity,
+}
+
+struct PersistedImportOutcome {
+    operation_ref: String,
+    state: String,
+    source_provider: String,
+    source_adapter_version: String,
+    mapping_version: String,
+    exact_repeat: bool,
+    coverage_complete: bool,
+    total_artifacts: i64,
+    supported_artifacts: i64,
+    unsupported_artifacts: i64,
+    ignored_artifacts: i64,
+    unrecognized_artifacts: i64,
+    invalid_artifacts: i64,
+    recognized_artifacts: i64,
+    new_observations: i64,
+    equivalent_observations: i64,
+    enriched_observations: i64,
+    preserved_observations: i64,
+    conflicts: i64,
+    canonical_history_changed: bool,
+    terminal_code: Option<String>,
+    recovery_note: Option<String>,
 }
 
 pub fn import_archive(
@@ -431,6 +460,110 @@ pub fn query_activity_between(
         .map_err(ImportError::from)
 }
 
+pub fn query_latest_import_outcome(database_path: &Path) -> Result<Option<ImportOutcome>> {
+    let connection = Connection::open(database_path)?;
+    ensure_schema(&connection)?;
+    let persisted = connection
+        .query_row(
+            "SELECT operation_ref, state, source_provider, source_adapter_version,
+                    mapping_version, exact_repeat, coverage_complete, total_artifacts,
+                    supported_artifacts, unsupported_artifacts, ignored_artifacts,
+                    unrecognized_artifacts, invalid_artifacts, recognized_artifacts,
+                    new_observations, equivalent_observations, enriched_observations,
+                    preserved_observations, conflicts, canonical_history_changed,
+                    terminal_code, recovery_note
+             FROM import_operation
+             WHERE state IN ('completed', 'rejected', 'cancelled', 'failed')
+             ORDER BY id DESC LIMIT 1",
+            [],
+            |row| {
+                Ok(PersistedImportOutcome {
+                    operation_ref: row.get(0)?,
+                    state: row.get(1)?,
+                    source_provider: row.get(2)?,
+                    source_adapter_version: row.get(3)?,
+                    mapping_version: row.get(4)?,
+                    exact_repeat: row.get(5)?,
+                    coverage_complete: row.get(6)?,
+                    total_artifacts: row.get(7)?,
+                    supported_artifacts: row.get(8)?,
+                    unsupported_artifacts: row.get(9)?,
+                    ignored_artifacts: row.get(10)?,
+                    unrecognized_artifacts: row.get(11)?,
+                    invalid_artifacts: row.get(12)?,
+                    recognized_artifacts: row.get(13)?,
+                    new_observations: row.get(14)?,
+                    equivalent_observations: row.get(15)?,
+                    enriched_observations: row.get(16)?,
+                    preserved_observations: row.get(17)?,
+                    conflicts: row.get(18)?,
+                    canonical_history_changed: row.get(19)?,
+                    terminal_code: row.get(20)?,
+                    recovery_note: row.get(21)?,
+                })
+            },
+        )
+        .optional()?;
+
+    persisted.map(import_outcome_from_persistence).transpose()
+}
+
+fn import_outcome_from_persistence(persisted: PersistedImportOutcome) -> Result<ImportOutcome> {
+    let state = ImportOperationState::from_code(&persisted.state)
+        .ok_or_else(|| ImportError::InvalidPersistedOperationState(persisted.state.clone()))?;
+    Ok(ImportOutcome {
+        operation_ref: persisted.operation_ref,
+        state,
+        source_provider: persisted.source_provider,
+        source_adapter_version: persisted.source_adapter_version,
+        mapping_version: persisted.mapping_version,
+        exact_repeat: persisted.exact_repeat,
+        coverage_complete: persisted.coverage_complete,
+        coverage: ArtifactCoverageSummary {
+            total: persisted_count(persisted.total_artifacts, "total_artifacts")?,
+            supported: persisted_count(persisted.supported_artifacts, "supported_artifacts")?,
+            unsupported: persisted_count(persisted.unsupported_artifacts, "unsupported_artifacts")?,
+            deliberately_ignored: persisted_count(
+                persisted.ignored_artifacts,
+                "ignored_artifacts",
+            )?,
+            unrecognized: persisted_count(
+                persisted.unrecognized_artifacts,
+                "unrecognized_artifacts",
+            )?,
+            invalid: persisted_count(persisted.invalid_artifacts, "invalid_artifacts")?,
+        },
+        report: ImportReport {
+            exact_repeat: persisted.exact_repeat,
+            recognized_artifacts: persisted_count(
+                persisted.recognized_artifacts,
+                "recognized_artifacts",
+            )?,
+            new_observations: persisted_count(persisted.new_observations, "new_observations")?,
+            equivalent_observations: persisted_count(
+                persisted.equivalent_observations,
+                "equivalent_observations",
+            )?,
+            enriched_observations: persisted_count(
+                persisted.enriched_observations,
+                "enriched_observations",
+            )?,
+            preserved_observations: persisted_count(
+                persisted.preserved_observations,
+                "preserved_observations",
+            )?,
+            conflicts: persisted_count(persisted.conflicts, "conflicts")?,
+        },
+        canonical_history_changed: persisted.canonical_history_changed,
+        terminal_code: persisted.terminal_code,
+        recovery_note: persisted.recovery_note,
+    })
+}
+
+fn persisted_count(value: i64, column: &'static str) -> Result<usize> {
+    usize::try_from(value).map_err(|_| ImportError::InvalidPersistedCount { column, value })
+}
+
 pub fn backup_database(source_path: &Path, backup_path: &Path) -> Result<()> {
     let source = Connection::open(source_path)?;
     ensure_schema(&source)?;
@@ -748,7 +881,7 @@ fn persist_terminal_error(
         [operation_id],
         |row| row.get::<_, String>(0),
     )?;
-    let current = operation_state_from_code(&current_code).ok_or_else(|| {
+    let current = ImportOperationState::from_code(&current_code).ok_or_else(|| {
         ImportError::InvalidOperationTransition {
             from: current_code.clone(),
             to: target.code().to_owned(),
@@ -786,22 +919,6 @@ fn persist_terminal_error(
     Ok(())
 }
 
-fn operation_state_from_code(code: &str) -> Option<ImportOperationState> {
-    match code {
-        "assessing" => Some(ImportOperationState::Assessing),
-        "planned" => Some(ImportOperationState::Planned),
-        "staging" => Some(ImportOperationState::Staging),
-        "reconciling" => Some(ImportOperationState::Reconciling),
-        "committing" => Some(ImportOperationState::Committing),
-        "recovering" => Some(ImportOperationState::Recovering),
-        "completed" => Some(ImportOperationState::Completed),
-        "rejected" => Some(ImportOperationState::Rejected),
-        "cancelled" => Some(ImportOperationState::Cancelled),
-        "failed" => Some(ImportOperationState::Failed),
-        _ => None,
-    }
-}
-
 fn terminal_code(error: &ImportError) -> &'static str {
     match error {
         ImportError::Io(_) => "archive-io-failure",
@@ -817,6 +934,8 @@ fn terminal_code(error: &ImportError) -> &'static str {
         ImportError::InjectedInterruption(_) => "interrupted",
         ImportError::InjectedMigrationInterruption => "migration-interrupted",
         ImportError::OutcomePersistence { .. } => "outcome-persistence-failure",
+        ImportError::InvalidPersistedOperationState(_)
+        | ImportError::InvalidPersistedCount { .. } => "invalid-persisted-import-outcome",
     }
 }
 
@@ -1336,6 +1455,22 @@ impl ActivityLibraryPort for SqliteActivityLibrary {
     }
 }
 
+pub struct SqliteImportOutcomeLibrary {
+    database_path: PathBuf,
+}
+
+impl SqliteImportOutcomeLibrary {
+    pub fn new(database_path: PathBuf) -> Self {
+        Self { database_path }
+    }
+}
+
+impl ImportOutcomeLibraryPort for SqliteImportOutcomeLibrary {
+    fn latest_import_outcome(&self) -> std::result::Result<Option<ImportOutcome>, String> {
+        query_latest_import_outcome(&self.database_path).map_err(|error| error.to_string())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::io::Write;
@@ -1536,6 +1671,18 @@ mod tests {
                 "create".to_owned(),
             )
         );
+
+        let outcome = query_latest_import_outcome(&harness.database())
+            .expect("outcome query")
+            .expect("latest outcome");
+        assert_eq!(outcome.state, ImportOperationState::Completed);
+        assert_eq!(outcome.source_provider, SOURCE_PROVIDER);
+        assert!(outcome.coverage_complete);
+        assert_eq!(outcome.coverage.total, 3);
+        assert_eq!(outcome.coverage.supported, 2);
+        assert_eq!(outcome.coverage.unrecognized, 1);
+        assert_eq!(outcome.report.new_observations, 2);
+        assert!(outcome.canonical_history_changed);
     }
 
     #[test]

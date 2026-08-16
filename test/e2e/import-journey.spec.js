@@ -75,8 +75,19 @@ async function expectHistory(expectedRows) {
   }
 }
 
+async function expectCoverage(expectedItems) {
+  const items = await $$(".coverage-summary li");
+  expect(items).toHaveLength(expectedItems.length);
+  for (let index = 0; index < expectedItems.length; index += 1) {
+    const count = await items[index].$("strong");
+    const label = await items[index].$("span");
+    await expect(count).toHaveText(expectedItems[index][0]);
+    await expect(label).toHaveText(expectedItems[index][1]);
+  }
+}
+
 describe("packaged FitFreed import journey", () => {
-  it("covers validation, cancellation, reimport, cumulative import, accessibility, and restart", async () => {
+  it("covers validation, outcomes, coverage, cancellation, reimport, accessibility, and restart", async () => {
     await expect($("h1")).toHaveText("Your fitness history belongs to you");
     await expect($("aria/Import selected package")).toBeDisabled();
 
@@ -120,17 +131,45 @@ describe("packaged FitFreed import journey", () => {
     await $("aria/Import selected package").click();
     const alert = await $("[role='alert']");
     await alert.waitForDisplayed();
-    await expect(alert).toHaveText(expect.stringContaining("stepCount cannot be negative"));
+    await expect(alert).toHaveText(
+      expect.stringContaining("contains daily activity that FitFreed cannot validate"),
+    );
+    await expect($("#outcome-heading")).toHaveText("Latest import outcome");
+    await expectCoverage([
+      ["0", "Supported"],
+      ["0", "Unsupported"],
+      ["0", "Deliberately ignored"],
+      ["0", "Unrecognized"],
+      ["1", "Invalid"],
+    ]);
     expect(await $$("tbody tr")).toHaveLength(0);
 
     await selectArchive(dialogMock, path.join(fixtureDirectory, "valid.zip"));
     await $("aria/Import selected package").click();
     await waitForNotice("Import completed: 3 recognized, 3 new");
+    await expectCoverage([
+      ["3", "Supported"],
+      ["0", "Unsupported"],
+      ["0", "Deliberately ignored"],
+      ["0", "Unrecognized"],
+      ["0", "Invalid"],
+    ]);
     await expectHistory([
       ["2026-01-01", "3,100"],
       ["2026-01-02", "4,200"],
       ["2026-01-03", "Not available"],
     ]);
+
+    await selectLocale("es-ES");
+    await expect($("#outcome-heading")).toHaveText(spanish.outcome.heading);
+    await expectCoverage([
+      ["3", spanish.outcome.supported],
+      ["0", spanish.outcome.unsupported],
+      ["0", spanish.outcome.ignored],
+      ["0", spanish.outcome.unrecognized],
+      ["0", spanish.outcome.invalid],
+    ]);
+    await selectLocale("en-US");
 
     const accessibility = await new AxeBuilder({ client: browser }).setLegacyMode().analyze();
     expect(accessibility.violations).toEqual([]);

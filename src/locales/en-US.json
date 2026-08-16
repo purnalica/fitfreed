@@ -33,5 +33,49 @@
   "enriched": "enriched",
   "equivalent": "equivalent",
   "preserved": "preserved",
-  "conflicts": "conflicts"
+  "conflicts": "conflicts",
+  "outcome": {
+    "heading": "Latest import outcome",
+    "status": "Status",
+    "provider": "Source",
+    "polarFlow": "Polar Flow",
+    "historyEffect": "History effect",
+    "historyChanged": "Canonical history changed",
+    "historyUnchanged": "Canonical history unchanged",
+    "coverageHeading": "Package coverage",
+    "artifactsClassified": "artifacts classified",
+    "coverageComplete": "Every package artifact was classified.",
+    "coverageIncomplete": "Coverage is incomplete because processing stopped before every artifact was classified.",
+    "supported": "Supported",
+    "unsupported": "Unsupported",
+    "ignored": "Deliberately ignored",
+    "unrecognized": "Unrecognized",
+    "invalid": "Invalid",
+    "states": {
+      "completed": "Completed",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled",
+      "failed": "Failed"
+    },
+    "rejectedSummary": "Import rejected; no history was changed.",
+    "failedSummary": "Import failed; no partial history was published."
+  },
+  "errors": {
+    "invalid-supported-artifact": "This package contains daily activity that FitFreed cannot validate. Keep the original ZIP and report the compatibility problem; no history was changed.",
+    "invalid-zip-container": "This is not a supported ZIP container. Choose the original export ZIP without repacking it.",
+    "unsafe-archive-member": "The package contains an unsafe file layout. Keep the original ZIP and report the compatibility problem; FitFreed did not extract it.",
+    "duplicate-archive-member": "The package contains duplicate file names and cannot be imported safely. Request a new export or report the compatibility problem.",
+    "archive-resource-limit": "The package exceeds a safety limit. Keep the original ZIP and report its approximate size so compatibility can be assessed safely.",
+    "archive-io-failure": "FitFreed could not read the ZIP. Move it to a local readable folder and try again.",
+    "database-failure": "FitFreed could not update the local library. Restart the application and retry; if it fails again, preserve the library before reporting the problem.",
+    "interrupted": "The previous import was interrupted and rolled back. Retry the original ZIP; existing history was preserved.",
+    "import-already-active": "Another import is already active. Cancel it or wait for it to finish before retrying.",
+    "import-coordination-failed": "FitFreed could not coordinate the import. Restart the application before retrying.",
+    "library-unavailable": "The local library is unavailable. Restart FitFreed; if the problem persists, preserve the application data before reporting it.",
+    "library-query-failed": "FitFreed could not read daily history. Restart the application and try again.",
+    "outcome-query-failed": "FitFreed could not read the latest import outcome. Restart the application and verify the library before importing again.",
+    "desktop-task-failed": "The desktop import task stopped unexpectedly. Restart FitFreed and retry the original ZIP.",
+    "import-failed": "The import could not be completed. Retry once; if it fails again, keep the original ZIP and report the problem.",
+    "unexpected": "FitFreed encountered an unexpected local error. Restart the application before retrying."
+  }
 }

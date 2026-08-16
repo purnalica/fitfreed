@@ -33,5 +33,49 @@
   "enriched": "enriquecidos",
   "equivalent": "equivalentes",
   "preserved": "conservados",
-  "conflicts": "conflictos"
+  "conflicts": "conflictos",
+  "outcome": {
+    "heading": "Resultado de la última importación",
+    "status": "Estado",
+    "provider": "Origen",
+    "polarFlow": "Polar Flow",
+    "historyEffect": "Efecto sobre el historial",
+    "historyChanged": "El historial canónico ha cambiado",
+    "historyUnchanged": "El historial canónico no ha cambiado",
+    "coverageHeading": "Cobertura del paquete",
+    "artifactsClassified": "artefactos clasificados",
+    "coverageComplete": "Todos los artefactos del paquete han sido clasificados.",
+    "coverageIncomplete": "La cobertura está incompleta porque el procesamiento se detuvo antes de clasificar todos los artefactos.",
+    "supported": "Compatibles",
+    "unsupported": "No compatibles",
+    "ignored": "Ignorados deliberadamente",
+    "unrecognized": "No reconocidos",
+    "invalid": "No válidos",
+    "states": {
+      "completed": "Completada",
+      "rejected": "Rechazada",
+      "cancelled": "Cancelada",
+      "failed": "Fallida"
+    },
+    "rejectedSummary": "Importación rechazada; no se ha modificado el historial.",
+    "failedSummary": "La importación ha fallado; no se ha publicado ningún historial parcial."
+  },
+  "errors": {
+    "invalid-supported-artifact": "El paquete contiene actividad diaria que FitFreed no puede validar. Conserva el ZIP original e informa del problema de compatibilidad; el historial no se ha modificado.",
+    "invalid-zip-container": "El contenedor ZIP no es compatible. Selecciona el ZIP original de la exportación sin volver a empaquetarlo.",
+    "unsafe-archive-member": "El paquete contiene una estructura de archivos insegura. Conserva el ZIP original e informa del problema de compatibilidad; FitFreed no lo ha extraído.",
+    "duplicate-archive-member": "El paquete contiene nombres de archivo duplicados y no se puede importar con seguridad. Solicita una nueva exportación o informa del problema de compatibilidad.",
+    "archive-resource-limit": "El paquete supera un límite de seguridad. Conserva el ZIP original e indica su tamaño aproximado para poder evaluar la compatibilidad con seguridad.",
+    "archive-io-failure": "FitFreed no ha podido leer el ZIP. Muévelo a una carpeta local con permiso de lectura e inténtalo de nuevo.",
+    "database-failure": "FitFreed no ha podido actualizar la biblioteca local. Reinicia la aplicación e inténtalo de nuevo; si vuelve a fallar, conserva la biblioteca antes de informar del problema.",
+    "interrupted": "La importación anterior se interrumpió y se revirtió. Vuelve a intentarlo con el ZIP original; el historial existente se ha conservado.",
+    "import-already-active": "Ya hay otra importación activa. Cancélala o espera a que termine antes de volver a intentarlo.",
+    "import-coordination-failed": "FitFreed no ha podido coordinar la importación. Reinicia la aplicación antes de volver a intentarlo.",
+    "library-unavailable": "La biblioteca local no está disponible. Reinicia FitFreed; si el problema persiste, conserva los datos de la aplicación antes de informar de él.",
+    "library-query-failed": "FitFreed no ha podido leer el historial diario. Reinicia la aplicación e inténtalo de nuevo.",
+    "outcome-query-failed": "FitFreed no ha podido leer el resultado de la última importación. Reinicia la aplicación y verifica la biblioteca antes de volver a importar.",
+    "desktop-task-failed": "La tarea de importación de escritorio se ha detenido de forma inesperada. Reinicia FitFreed y vuelve a intentarlo con el ZIP original.",
+    "import-failed": "La importación no se ha podido completar. Inténtalo una vez más; si vuelve a fallar, conserva el ZIP original e informa del problema.",
+    "unexpected": "FitFreed ha encontrado un error local inesperado. Reinicia la aplicación antes de volver a intentarlo."
+  }
 }

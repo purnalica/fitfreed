@@ -7,6 +7,39 @@ import { catalogs } from "./locales/catalogs";
 
 const spanish = catalogs["es-ES"];
 
+function importOutcome(overrides: Record<string, unknown> = {}) {
+  return {
+    operationRef: "synthetic-operation",
+    state: "completed",
+    sourceProvider: "polar-flow",
+    sourceAdapterVersion: "polar-flow-archive@1",
+    mappingVersion: "polar-flow-daily-activity@1",
+    exactRepeat: false,
+    coverageComplete: true,
+    coverage: {
+      total: 3,
+      supported: 3,
+      unsupported: 0,
+      deliberatelyIgnored: 0,
+      unrecognized: 0,
+      invalid: 0,
+    },
+    report: {
+      exactRepeat: false,
+      recognizedArtifacts: 3,
+      newObservations: 3,
+      equivalentObservations: 0,
+      enrichedObservations: 0,
+      preservedObservations: 0,
+      conflicts: 0,
+    },
+    canonicalHistoryChanged: true,
+    terminalCode: null,
+    recoveryNote: null,
+    ...overrides,
+  };
+}
+
 const mocks = vi.hoisted(() => ({
   invoke: vi.fn(),
   open: vi.fn(),
@@ -32,6 +65,7 @@ afterEach(() => {
 function emptyLibrary() {
   mocks.invoke.mockImplementation((command) => {
     if (command === "query_activity") return Promise.resolve([]);
+    if (command === "query_latest_import_outcome") return Promise.resolve(null);
     throw new Error(`Unexpected command: ${command}`);
   });
 }
@@ -73,10 +107,12 @@ describe("FitFreed import interface", () => {
   });
 
   it("shows progress, remains interactive, and cancels without exposing history", async () => {
-    let rejectImport: ((reason: string) => void) | undefined;
+    let rejectImport: ((reason?: unknown) => void) | undefined;
     let onProgress: { onmessage?: (message: unknown) => void } | undefined;
+    let latestOutcome: ReturnType<typeof importOutcome> | null = null;
     mocks.invoke.mockImplementation((command, arguments_) => {
       if (command === "query_activity") return Promise.resolve([]);
+      if (command === "query_latest_import_outcome") return Promise.resolve(latestOutcome);
       if (command === "import_archive") {
         onProgress = arguments_.onProgress;
         onProgress?.onmessage?.({
@@ -92,6 +128,12 @@ describe("FitFreed import interface", () => {
         });
       }
       if (command === "cancel_import") {
+        latestOutcome = importOutcome({
+          state: "cancelled",
+          coverageComplete: false,
+          canonicalHistoryChanged: false,
+          terminalCode: "user-cancelled",
+        });
         onProgress?.onmessage?.({
           phase: "cancelled",
           completedArtifacts: 0,
@@ -100,7 +142,7 @@ describe("FitFreed import interface", () => {
           totalBytes: null,
           cancellable: false,
         });
-        rejectImport?.("import cancelled");
+        rejectImport?.({ code: "import-failed" });
         return Promise.resolve(true);
       }
       throw new Error(`Unexpected command: ${command}`);
@@ -130,11 +172,37 @@ describe("FitFreed import interface", () => {
     ];
     let storedHistory: typeof history = [];
     let importAttempt = 0;
+    let latestOutcome: ReturnType<typeof importOutcome> | null = null;
     mocks.invoke.mockImplementation((command, arguments_) => {
       if (command === "query_activity") return Promise.resolve(storedHistory);
+      if (command === "query_latest_import_outcome") return Promise.resolve(latestOutcome);
       if (command === "import_archive") {
         importAttempt += 1;
-        if (importAttempt === 1) return Promise.reject("stepCount cannot be negative");
+        if (importAttempt === 1) {
+          latestOutcome = importOutcome({
+            state: "rejected",
+            coverage: {
+              total: 2,
+              supported: 1,
+              unsupported: 0,
+              deliberatelyIgnored: 0,
+              unrecognized: 0,
+              invalid: 1,
+            },
+            report: {
+              exactRepeat: false,
+              recognizedArtifacts: 2,
+              newObservations: 0,
+              equivalentObservations: 0,
+              enrichedObservations: 0,
+              preservedObservations: 0,
+              conflicts: 0,
+            },
+            canonicalHistoryChanged: false,
+            terminalCode: "invalid-supported-artifact",
+          });
+          return Promise.reject({ code: "import-failed" });
+        }
         arguments_.onProgress.onmessage({
           phase: "completed",
           completedArtifacts: 3,
@@ -145,6 +213,7 @@ describe("FitFreed import interface", () => {
         });
         if (importAttempt === 2) {
           storedHistory = history;
+          latestOutcome = importOutcome();
           return Promise.resolve({
             exactRepeat: false,
             recognizedArtifacts: 3,
@@ -155,6 +224,19 @@ describe("FitFreed import interface", () => {
             conflicts: 0,
           });
         }
+        latestOutcome = importOutcome({
+          exactRepeat: true,
+          canonicalHistoryChanged: false,
+          report: {
+            exactRepeat: true,
+            recognizedArtifacts: 3,
+            newObservations: 0,
+            equivalentObservations: 0,
+            enrichedObservations: 0,
+            preservedObservations: 0,
+            conflicts: 0,
+          },
+        });
         return Promise.resolve({
           exactRepeat: true,
           recognizedArtifacts: 0,
@@ -173,11 +255,20 @@ describe("FitFreed import interface", () => {
 
     await chooseArchive(user, "/synthetic/invalid.zip");
     await user.click(screen.getByRole("button", { name: "Import selected package" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("stepCount cannot be negative");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "This package contains daily activity that FitFreed cannot validate",
+    );
+    expect(screen.getByRole("heading", { name: "Package coverage" })).toBeVisible();
+    expect(screen.getByText("2 / 2")).toBeVisible();
+    const rejectedCoverage = screen.getByRole("list", { name: "Package coverage" });
+    const invalidCoverage = within(rejectedCoverage).getByText("Invalid").closest("li");
+    expect(invalidCoverage).not.toBeNull();
+    expect(within(invalidCoverage!).getByText("1")).toBeVisible();
 
     await chooseArchive(user, "/synthetic/valid.zip");
     await user.click(screen.getByRole("button", { name: "Import selected package" }));
     expect(await screen.findByRole("status")).toHaveTextContent("Import completed: 3 recognized, 3 new");
+    expect(screen.getByText("Every package artifact was classified.")).toBeVisible();
     const rows = screen.getAllByRole("row");
     expect(rows).toHaveLength(4);
     expect(within(rows[1]).getByText("2026-01-01")).toBeVisible();

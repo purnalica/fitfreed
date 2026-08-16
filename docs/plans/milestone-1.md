@@ -68,7 +68,11 @@ Evidence: the successful run above exercised every required lane. The preceding 
 
 Local evidence on 2026-08-16: 24 Rust tests passed across domain, application, migration, and adapter boundaries; architecture, data-contract, documentation, localization, presentation, formatting, and lint checks passed; the instrumented macOS application completed its packaged E2E import, cancellation, repeat, cumulative, accessibility, and restart journey; and the production application and DMG passed the test-instrumentation exclusion check.
 
+Hosted evidence: commit `pre-purge` passed the [portable and packaged macOS lanes](https://github.com/purnalica/fitfreed/actions/runs/31957244656) and the independent [repository content and secret scan](https://github.com/purnalica/fitfreed/actions/runs/31957244658).
+
 ## Increment M1.4 — Localized vertical journey
+
+**Status:** in progress. The desktop journey now reads terminal outcomes through a provider-neutral application port and presents localized status, source, history effect, complete five-category coverage, and sanitized actionable failures. Persistent locale selection and the remaining locale-format and text-expansion evidence are still open.
 
 **Outcome:** the packaged application provides the first useful import-to-history journey in `en-US` and `es-ES`.
 

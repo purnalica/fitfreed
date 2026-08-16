@@ -20,6 +20,36 @@ interface ImportReport {
   conflicts: number;
 }
 
+type ImportOutcomeState = "completed" | "rejected" | "cancelled" | "failed";
+
+interface ArtifactCoverageSummary {
+  total: number;
+  supported: number;
+  unsupported: number;
+  deliberatelyIgnored: number;
+  unrecognized: number;
+  invalid: number;
+}
+
+interface ImportOutcome {
+  operationRef: string;
+  state: ImportOutcomeState;
+  sourceProvider: string;
+  sourceAdapterVersion: string;
+  mappingVersion: string;
+  exactRepeat: boolean;
+  coverageComplete: boolean;
+  coverage: ArtifactCoverageSummary;
+  report: ImportReport;
+  canonicalHistoryChanged: boolean;
+  terminalCode: string | null;
+  recoveryNote: string | null;
+}
+
+interface CommandError {
+  code?: string;
+}
+
 type ImportPhase =
   | "fingerprinting"
   | "validating"
@@ -37,15 +67,23 @@ interface ImportProgress {
   cancellable: boolean;
 }
 
+function commandErrorCode(reason: unknown): string {
+  if (reason && typeof reason === "object" && "code" in reason) {
+    const code = (reason as CommandError).code;
+    if (typeof code === "string") return code;
+  }
+  return "unexpected";
+}
+
 function App() {
   const [locale, setLocale] = useState<Locale>("en-US");
   const [archivePath, setArchivePath] = useState<string>();
   const [activities, setActivities] = useState<DailyActivity[]>([]);
-  const [report, setReport] = useState<ImportReport>();
+  const [outcome, setOutcome] = useState<ImportOutcome>();
   const [progress, setProgress] = useState<ImportProgress>();
   const [busy, setBusy] = useState(false);
   const [cancelRequested, setCancelRequested] = useState(false);
-  const [error, setError] = useState<string>();
+  const [errorCode, setErrorCode] = useState<string>();
   const messages = catalogs[locale];
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const maxSteps = Math.max(...activities.map((item) => item.stepCount ?? 0), 1);
@@ -54,16 +92,22 @@ function App() {
     setActivities(await invoke<DailyActivity[]>("query_activity"));
   }
 
+  async function refreshOutcome() {
+    const latest = await invoke<ImportOutcome | null>("query_latest_import_outcome");
+    setOutcome(latest ?? undefined);
+    return latest ?? undefined;
+  }
+
   useEffect(() => {
-    refresh().catch((reason) => setError(String(reason)));
+    refresh().catch((reason) => setErrorCode(commandErrorCode(reason)));
+    refreshOutcome().catch((reason) => setErrorCode(commandErrorCode(reason)));
   }, []);
 
   async function chooseArchive() {
     const selected = await chooseZipArchive();
     if (typeof selected === "string") {
       setArchivePath(selected);
-      setReport(undefined);
-      setError(undefined);
+      setErrorCode(undefined);
     }
   }
 
@@ -72,16 +116,27 @@ function App() {
     setBusy(true);
     setCancelRequested(false);
     setProgress(undefined);
-    setError(undefined);
+    setErrorCode(undefined);
+    setOutcome(undefined);
     try {
       const onProgress = new Channel<ImportProgress>();
       onProgress.onmessage = setProgress;
-      const outcome = await invoke<ImportReport>("import_archive", { archivePath, onProgress });
-      setReport(outcome);
+      await invoke<ImportReport>("import_archive", { archivePath, onProgress });
       await refresh();
+      await refreshOutcome();
     } catch (reason) {
-      if (!String(reason).includes("import cancelled")) {
-        setError(String(reason));
+      const code = commandErrorCode(reason);
+      if (code === "import-failed") {
+        try {
+          const latest = await refreshOutcome();
+          if (latest && (latest.state === "rejected" || latest.state === "failed")) {
+            setErrorCode(latest.terminalCode ?? code);
+          }
+        } catch (outcomeReason) {
+          setErrorCode(commandErrorCode(outcomeReason));
+        }
+      } else {
+        setErrorCode(code);
       }
     } finally {
       setBusy(false);
@@ -96,7 +151,7 @@ function App() {
       if (!accepted) setCancelRequested(false);
     } catch (reason) {
       setCancelRequested(false);
-      setError(String(reason));
+      setErrorCode(commandErrorCode(reason));
     }
   }
 
@@ -107,6 +162,31 @@ function App() {
     ? (progress.completedBytes / progress.totalBytes) * 100
     : undefined;
   const progressValue = artifactProgress ?? byteProgress;
+  const classifiedArtifacts = outcome
+    ? outcome.coverage.supported +
+      outcome.coverage.unsupported +
+      outcome.coverage.deliberatelyIgnored +
+      outcome.coverage.unrecognized +
+      outcome.coverage.invalid
+    : 0;
+  const visibleErrorCode =
+    errorCode ??
+    (outcome && (outcome.state === "rejected" || outcome.state === "failed")
+      ? outcome.terminalCode ?? "unexpected"
+      : undefined);
+  const errorMessages = messages.errors as Record<string, string>;
+
+  function outcomeSummary(latest: ImportOutcome): string {
+    if (latest.state === "cancelled") return messages.cancelled;
+    if (latest.state === "rejected") return messages.outcome.rejectedSummary;
+    if (latest.state === "failed") return messages.outcome.failedSummary;
+    if (latest.exactRepeat) return messages.exactRepeat;
+    return `${messages.completed}: ${latest.report.recognizedArtifacts} ${messages.recognized}, ${latest.report.newObservations} ${messages.created}, ${latest.report.enrichedObservations} ${messages.enriched}, ${latest.report.equivalentObservations} ${messages.equivalent}, ${latest.report.preservedObservations} ${messages.preserved}, ${latest.report.conflicts} ${messages.conflicts}.`;
+  }
+
+  function providerName(provider: string): string {
+    return provider === "polar-flow" ? messages.outcome.polarFlow : provider;
+  }
 
   return (
     <main>
@@ -156,18 +236,60 @@ function App() {
           )}
         </section>
       )}
-      {progress?.phase === "cancelled" && !busy && (
+      {progress?.phase === "cancelled" && !busy && outcome?.state !== "cancelled" && (
         <p className="notice" role="status" aria-live="polite">{messages.cancelled}</p>
       )}
 
-      {report && (
-        <p className="notice" role="status" aria-live="polite">
-          {report.exactRepeat
-            ? messages.exactRepeat
-            : `${messages.completed}: ${report.recognizedArtifacts} ${messages.recognized}, ${report.newObservations} ${messages.created}, ${report.enrichedObservations} ${messages.enriched}, ${report.equivalentObservations} ${messages.equivalent}, ${report.preservedObservations} ${messages.preserved}, ${report.conflicts} ${messages.conflicts}.`}
+      {outcome && (
+        <section className="outcome-panel" aria-labelledby="outcome-heading">
+          <h2 id="outcome-heading">{messages.outcome.heading}</h2>
+          <p className="notice" role="status" aria-live="polite">
+            {outcomeSummary(outcome)}
+          </p>
+          <dl className="outcome-metadata">
+            <div>
+              <dt>{messages.outcome.status}</dt>
+              <dd>{messages.outcome.states[outcome.state]}</dd>
+            </div>
+            <div>
+              <dt>{messages.outcome.provider}</dt>
+              <dd>{providerName(outcome.sourceProvider)}</dd>
+            </div>
+            <div>
+              <dt>{messages.outcome.historyEffect}</dt>
+              <dd>
+                {outcome.canonicalHistoryChanged
+                  ? messages.outcome.historyChanged
+                  : messages.outcome.historyUnchanged}
+              </dd>
+            </div>
+          </dl>
+          <h3 id="coverage-heading">{messages.outcome.coverageHeading}</h3>
+          <p>
+            <strong>
+              {number.format(classifiedArtifacts)} / {number.format(outcome.coverage.total)}
+            </strong>{" "}
+            <span>{messages.outcome.artifactsClassified}.</span>{" "}
+            <span>
+              {outcome.coverageComplete
+                ? messages.outcome.coverageComplete
+                : messages.outcome.coverageIncomplete}
+            </span>
+          </p>
+          <ul className="coverage-summary" aria-labelledby="coverage-heading">
+            <li><strong>{number.format(outcome.coverage.supported)}</strong><span>{messages.outcome.supported}</span></li>
+            <li><strong>{number.format(outcome.coverage.unsupported)}</strong><span>{messages.outcome.unsupported}</span></li>
+            <li><strong>{number.format(outcome.coverage.deliberatelyIgnored)}</strong><span>{messages.outcome.ignored}</span></li>
+            <li><strong>{number.format(outcome.coverage.unrecognized)}</strong><span>{messages.outcome.unrecognized}</span></li>
+            <li><strong>{number.format(outcome.coverage.invalid)}</strong><span>{messages.outcome.invalid}</span></li>
+          </ul>
+        </section>
+      )}
+      {visibleErrorCode && (
+        <p className="error" role="alert">
+          {errorMessages[visibleErrorCode] ?? messages.errors.unexpected}
         </p>
       )}
-      {error && <p className="error" role="alert">{error}</p>}
 
       <section aria-labelledby="history-heading">
         <h2 id="history-heading">{messages.history}</h2>

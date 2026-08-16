@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented Milestone 1 lifecycle foundation. [ADR 0002](decisions/0002-select-sqlite-storage.md) selects SQLite as the single system of record. Schema version 2 implements durable states, terminal outcomes, coverage, provenance, an atomic visibility boundary, and startup recovery for the current daily-activity slice. User-visible outcome exploration and broader provider-family handling remain later increments.
+Implemented Milestone 1 lifecycle foundation. [ADR 0002](decisions/0002-select-sqlite-storage.md) selects SQLite as the single system of record. Schema version 2 implements durable states, terminal outcomes, coverage, provenance, an atomic visibility boundary, and startup recovery for the current daily-activity slice. The desktop presents localized terminal summaries and complete five-category coverage for that slice; detailed provenance exploration and broader provider-family handling remain later increments.
 
 ## Goal
 

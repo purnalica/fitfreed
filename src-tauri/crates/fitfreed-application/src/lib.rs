@@ -8,7 +8,7 @@ use std::{
 
 use thiserror::Error;
 
-use fitfreed_domain::{DailyActivity, ImportReport};
+use fitfreed_domain::{DailyActivity, ImportOutcome, ImportReport};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ImportPhase {
@@ -93,6 +93,10 @@ pub trait ActivityLibraryPort {
     fn query_activity(&self) -> Result<Vec<DailyActivity>, String>;
 }
 
+pub trait ImportOutcomeLibraryPort {
+    fn latest_import_outcome(&self) -> Result<Option<ImportOutcome>, String>;
+}
+
 #[derive(Debug, Error)]
 pub enum ApplicationError {
     #[error("another import is already active")]
@@ -103,6 +107,8 @@ pub enum ApplicationError {
     Import(String),
     #[error("library query failed: {0}")]
     Query(String),
+    #[error("import outcome query failed: {0}")]
+    OutcomeQuery(String),
 }
 
 #[derive(Clone, Default)]
@@ -172,11 +178,20 @@ pub fn query_activity(
     port.query_activity().map_err(ApplicationError::Query)
 }
 
+pub fn query_latest_import_outcome(
+    port: &dyn ImportOutcomeLibraryPort,
+) -> Result<Option<ImportOutcome>, ApplicationError> {
+    port.latest_import_outcome()
+        .map_err(ApplicationError::OutcomeQuery)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     struct ControlledImportPort;
+
+    struct ControlledOutcomePort;
 
     impl ArchiveImportPort for ControlledImportPort {
         fn import_archive(
@@ -187,6 +202,12 @@ mod tests {
         ) -> Result<ImportReport, String> {
             assert!(!cancellation.load(Ordering::Relaxed));
             Ok(ImportReport::assessed())
+        }
+    }
+
+    impl ImportOutcomeLibraryPort for ControlledOutcomePort {
+        fn latest_import_outcome(&self) -> Result<Option<ImportOutcome>, String> {
+            Ok(None)
         }
     }
 
@@ -211,5 +232,13 @@ mod tests {
             &mut progress,
         )
         .expect("subsequent import");
+    }
+
+    #[test]
+    fn queries_the_latest_outcome_through_a_dedicated_read_port() {
+        assert_eq!(
+            query_latest_import_outcome(&ControlledOutcomePort).expect("outcome query"),
+            None
+        );
     }
 }
