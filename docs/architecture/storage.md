@@ -4,7 +4,7 @@
 
 Current architecture after [ADR 0002](decisions/0002-select-sqlite-storage.md). SQLite is the only storage engine in the application and the authoritative local-library format. It does not replace the documented portable FitFreed data contract.
 
-The current implemented schema and compatibility boundary are documented in the [SQLite version 3 persistence specification](../data-formats/persistence/sqlite-v3.md), which extends the version 2 import ledger with a durable locale preference. Earlier specifications remain immutable migration history.
+The current implemented schema and compatibility boundary are documented in the [SQLite version 4 persistence specification](../data-formats/persistence/sqlite-v4.md), which extends the version 3 locale preference with library-scoped source-subject state. Earlier specifications remain immutable migration history.
 
 ## Ownership
 
@@ -36,9 +36,9 @@ Caches that can be discarded without changing observable truth may live outside 
 - Startup resolves interrupted imports before allowing new writes. In schema version 2, any surviving non-terminal state moves through recovery to a failed outcome because canonical publication and completion are one transaction.
 - Backup artifacts are reopened through the normal adapter and pass SQLite integrity checking before success is reported.
 
-## Accepted source-subject evolution
+## Source-subject correlation
 
-[ADR 0005](decisions/0005-use-library-scoped-source-subject-correlation.md) requires the next schema to own an opaque observation-origin catalog, a per-library correlation key, versioned source-subject evidence digests, and an optional resolved-origin link on import operations. Raw provider claims are transient and never stored.
+[ADR 0005](decisions/0005-use-library-scoped-source-subject-correlation.md) and schema version 4 give the library an opaque observation-origin catalog, a per-library correlation key, versioned source-subject evidence digests, and an optional resolved-origin link on import operations. Raw provider claims are transient and never stored.
 
 New origin and evidence rows become durable only inside the same visibility transaction as canonical history and operation completion. Existing development origins migrate as unverified origins without invented evidence. Exact-repeat lookup may inherit an origin only from a completed operation whose correlation state is verified; an old package fingerprint alone cannot authorize subject resolution.
 

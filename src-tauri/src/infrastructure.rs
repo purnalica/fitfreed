@@ -24,19 +24,24 @@ use fitfreed_domain::{
 };
 
 mod polar_flow;
+mod source_subject;
 
-use polar_flow::assess_artifact;
+use polar_flow::{assess_artifact, SupportedArtifact};
+use source_subject::{
+    persist_source_subject, resolve_source_subject, SourceSubjectClaim, SourceSubjectResolution,
+};
 
 const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 3;
+const SCHEMA_VERSION: i64 = 4;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
+const SCHEMA_V4: &str = include_str!("../migrations/0004_source_subject.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
-const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@1";
+const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@2";
 const DAILY_ACTIVITY_MAPPING_VERSION: &str = "polar-flow-daily-activity@1";
 
 #[derive(Debug, Error)]
@@ -49,7 +54,7 @@ pub enum ImportError {
     InvalidContainer(String),
     #[error("database failure: {0}")]
     Database(#[from] rusqlite::Error),
-    #[error("invalid activity artifact {artifact}: {reason}")]
+    #[error("invalid supported artifact {artifact}: {reason}")]
     InvalidArtifact { artifact: String, reason: String },
     #[error("unsafe archive member: {0}")]
     UnsafeMember(String),
@@ -78,6 +83,12 @@ pub enum ImportError {
     InvalidPersistedCount { column: &'static str, value: i64 },
     #[error("invalid persisted locale preference: {0}")]
     InvalidPersistedLocale(String),
+    #[error("invalid library correlation-key length: {0}")]
+    InvalidCorrelationKeyLength(usize),
+    #[error("source-subject evidence is missing or invalid")]
+    InvalidSourceSubjectClaim,
+    #[error("source-subject evidence does not match the verified provider origin")]
+    SourceSubjectConflict,
 }
 
 pub type Result<T> = std::result::Result<T, ImportError>;
@@ -86,6 +97,11 @@ pub type Result<T> = std::result::Result<T, ImportError>;
 struct PolarActivity {
     date: String,
     summary: Option<PolarSummary>,
+}
+
+#[derive(Deserialize)]
+struct PolarAccountData {
+    username: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -99,6 +115,11 @@ struct MappedArtifact {
     locator: String,
     sha256: String,
     observation: DailyActivity,
+}
+
+struct ResolvedSourceSubject {
+    artifact_locator: String,
+    resolution: SourceSubjectResolution,
 }
 
 struct PersistedImportOutcome {
@@ -126,7 +147,8 @@ struct PersistedImportOutcome {
     recovery_note: Option<String>,
 }
 
-pub fn import_archive(
+#[cfg(test)]
+fn import_archive(
     database_path: &Path,
     archive_path: &Path,
     origin_id: &str,
@@ -134,7 +156,28 @@ pub fn import_archive(
     Ok(profile_import_archive(database_path, archive_path, origin_id)?.report)
 }
 
-pub fn import_archive_with_progress<F>(
+pub fn import_polar_archive(database_path: &Path, archive_path: &Path) -> Result<ImportReport> {
+    Ok(profile_polar_import_archive(database_path, archive_path)?.report)
+}
+
+pub fn profile_polar_import_archive(
+    database_path: &Path,
+    archive_path: &Path,
+) -> Result<ProfiledImport> {
+    let cancellation = AtomicBool::new(false);
+    let mut ignore_progress = |_| {};
+    profile_import_archive_with_controls(
+        database_path,
+        archive_path,
+        None,
+        None,
+        &cancellation,
+        &mut ignore_progress,
+    )
+}
+
+#[cfg(test)]
+fn import_archive_with_progress<F>(
     database_path: &Path,
     archive_path: &Path,
     origin_id: &str,
@@ -147,7 +190,7 @@ where
     let result = profile_import_archive_with_controls(
         database_path,
         archive_path,
-        origin_id,
+        Some(origin_id),
         None,
         cancellation,
         &mut on_progress,
@@ -170,7 +213,43 @@ where
     }
 }
 
-pub fn profile_import_archive(
+pub fn import_polar_archive_with_progress<F>(
+    database_path: &Path,
+    archive_path: &Path,
+    cancellation: &AtomicBool,
+    mut on_progress: F,
+) -> Result<ImportReport>
+where
+    F: FnMut(ImportProgress),
+{
+    let result = profile_import_archive_with_controls(
+        database_path,
+        archive_path,
+        None,
+        None,
+        cancellation,
+        &mut on_progress,
+    );
+
+    match result {
+        Ok(profiled) => {
+            on_progress(ImportProgress::artifacts(
+                ImportPhase::Completed,
+                profiled.report.recognized_artifacts,
+                profiled.report.recognized_artifacts,
+            ));
+            Ok(profiled.report)
+        }
+        Err(ImportError::Cancelled) => {
+            on_progress(ImportProgress::phase(ImportPhase::Cancelled));
+            Err(ImportError::Cancelled)
+        }
+        Err(error) => Err(error),
+    }
+}
+
+#[cfg(test)]
+fn profile_import_archive(
     database_path: &Path,
     archive_path: &Path,
     origin_id: &str,
@@ -180,7 +259,7 @@ pub fn profile_import_archive(
     profile_import_archive_with_controls(
         database_path,
         archive_path,
-        origin_id,
+        Some(origin_id),
         None,
         &cancellation,
         &mut ignore_progress,
@@ -199,7 +278,7 @@ fn import_archive_with_interruption(
     Ok(profile_import_archive_with_controls(
         database_path,
         archive_path,
-        origin_id,
+        Some(origin_id),
         interrupt_after,
         &cancellation,
         &mut ignore_progress,
@@ -210,7 +289,7 @@ fn import_archive_with_interruption(
 fn profile_import_archive_with_controls(
     database_path: &Path,
     archive_path: &Path,
-    origin_id: &str,
+    fixed_origin_id: Option<&str>,
     interrupt_after: Option<usize>,
     cancellation: &AtomicBool,
     on_progress: &mut dyn FnMut(ImportProgress),
@@ -227,7 +306,7 @@ fn profile_import_archive_with_controls(
         &mut connection,
         operation_id,
         archive_path,
-        origin_id,
+        fixed_origin_id,
         interrupt_after,
         cancellation,
         on_progress,
@@ -259,7 +338,7 @@ fn execute_import(
     connection: &mut Connection,
     operation_id: i64,
     archive_path: &Path,
-    origin_id: &str,
+    fixed_origin_id: Option<&str>,
     interrupt_after: Option<usize>,
     cancellation: &AtomicBool,
     on_progress: &mut dyn FnMut(ImportProgress),
@@ -271,7 +350,8 @@ fn execute_import(
     attach_package_fingerprint(connection, operation_id, &package_sha256)?;
 
     let lookup_started = Instant::now();
-    let completed_operation = completed_package_operation(connection, &package_sha256)?;
+    let completed_operation =
+        completed_package_operation(connection, &package_sha256, fixed_origin_id.is_none())?;
     timings.repeat_lookup_milliseconds = milliseconds(lookup_started.elapsed());
     if let Some(repeated_operation_id) = completed_operation {
         ensure_not_cancelled(cancellation)?;
@@ -307,6 +387,25 @@ fn execute_import(
     let processable_artifacts = validate_archive(&mut archive, cancellation, on_progress)?;
     timings.archive_validation_milliseconds = milliseconds(validation_started.elapsed());
     set_total_artifacts(connection, operation_id, archive_entries)?;
+    let subject_resolution_started = Instant::now();
+    let resolved_subject = if fixed_origin_id.is_none() {
+        Some(resolve_polar_package_subject(
+            connection,
+            operation_id,
+            &mut archive,
+            cancellation,
+        )?)
+    } else {
+        None
+    };
+    timings.read_decode_map_milliseconds += milliseconds(subject_resolution_started.elapsed());
+    let origin_id = fixed_origin_id.unwrap_or_else(|| {
+        resolved_subject
+            .as_ref()
+            .expect("automatic imports resolve a source subject")
+            .resolution
+            .origin_id()
+    });
     transition_operation(
         connection,
         operation_id,
@@ -348,36 +447,77 @@ fn execute_import(
             continue;
         }
 
-        let decode_started = Instant::now();
-        let bytes = read_bytes(&mut member, &locator, cancellation)?;
-        let artifact_sha256 = sha256_bytes(&bytes);
-        let mapped = decode_activity(origin_id, &locator, &artifact_sha256, bytes);
-        timings.read_decode_map_milliseconds += milliseconds(decode_started.elapsed());
-        match mapped {
-            Ok(mapped) => {
-                record_artifact_coverage(
-                    connection,
-                    operation_id,
-                    &locator,
-                    assessment.family,
-                    assessment.classification,
-                    Some(&artifact_sha256),
-                    assessment.reason_code,
-                )?;
-                mapped_artifacts.push(mapped);
+        match assessment
+            .supported_artifact
+            .expect("supported registry entries have an executable kind")
+        {
+            SupportedArtifact::AccountData => {
+                let was_resolved = resolved_subject
+                    .as_ref()
+                    .is_some_and(|subject| subject.artifact_locator == locator);
+                if !was_resolved {
+                    let bytes = read_bytes(&mut member, &locator, cancellation)?;
+                    let artifact_sha256 = sha256_bytes(&bytes);
+                    match decode_account_data(&locator, &bytes) {
+                        Ok(_) => record_artifact_coverage(
+                            connection,
+                            operation_id,
+                            &locator,
+                            assessment.family,
+                            assessment.classification,
+                            Some(&artifact_sha256),
+                            assessment.reason_code,
+                        )?,
+                        Err(error) => {
+                            record_artifact_coverage(
+                                connection,
+                                operation_id,
+                                &locator,
+                                assessment.family,
+                                ArtifactClassification::Invalid,
+                                Some(&artifact_sha256),
+                                "invalid-source-subject-evidence",
+                            )?;
+                            if first_invalid.is_none() {
+                                first_invalid = Some(error);
+                            }
+                        }
+                    }
+                }
             }
-            Err(error) => {
-                record_artifact_coverage(
-                    connection,
-                    operation_id,
-                    &locator,
-                    assessment.family,
-                    ArtifactClassification::Invalid,
-                    Some(&artifact_sha256),
-                    "invalid-supported-artifact",
-                )?;
-                if first_invalid.is_none() {
-                    first_invalid = Some(error);
+            SupportedArtifact::DailyActivity => {
+                let decode_started = Instant::now();
+                let bytes = read_bytes(&mut member, &locator, cancellation)?;
+                let artifact_sha256 = sha256_bytes(&bytes);
+                let mapped = decode_activity(origin_id, &locator, &artifact_sha256, bytes);
+                timings.read_decode_map_milliseconds += milliseconds(decode_started.elapsed());
+                match mapped {
+                    Ok(mapped) => {
+                        record_artifact_coverage(
+                            connection,
+                            operation_id,
+                            &locator,
+                            assessment.family,
+                            assessment.classification,
+                            Some(&artifact_sha256),
+                            assessment.reason_code,
+                        )?;
+                        mapped_artifacts.push(mapped);
+                    }
+                    Err(error) => {
+                        record_artifact_coverage(
+                            connection,
+                            operation_id,
+                            &locator,
+                            assessment.family,
+                            ArtifactClassification::Invalid,
+                            Some(&artifact_sha256),
+                            "invalid-supported-artifact",
+                        )?;
+                        if first_invalid.is_none() {
+                            first_invalid = Some(error);
+                        }
+                    }
                 }
             }
         }
@@ -417,11 +557,16 @@ fn execute_import(
     let transaction = connection.transaction()?;
     timings.transaction_control_milliseconds += milliseconds(transaction_started.elapsed());
     let mut report = ImportReport::assessed();
+    report.recognized_artifacts = processable_artifacts;
+    if !mapped_artifacts.is_empty() {
+        if let Some(subject) = resolved_subject.as_ref() {
+            persist_source_subject(&transaction, operation_id, &subject.resolution)?;
+        }
+    }
     for (index, artifact) in mapped_artifacts.iter().enumerate() {
         let reconciliation_started = Instant::now();
         reconcile(&transaction, operation_id, artifact, &mut report)?;
         timings.reconciliation_milliseconds += milliseconds(reconciliation_started.elapsed());
-        report.recognized_artifacts += 1;
         if interrupt_after == Some(index + 1) {
             return Err(ImportError::InjectedInterruption(index + 1));
         }
@@ -432,6 +577,81 @@ fn execute_import(
     transaction.commit()?;
     timings.transaction_control_milliseconds += milliseconds(finalization_started.elapsed());
     Ok(report)
+}
+
+fn resolve_polar_package_subject(
+    connection: &Connection,
+    operation_id: i64,
+    archive: &mut ZipArchive<File>,
+    cancellation: &AtomicBool,
+) -> Result<ResolvedSourceSubject> {
+    let mut account_indices = Vec::new();
+    for index in 0..archive.len() {
+        let member = archive.by_index(index)?;
+        if assess_artifact(member.name()).supported_artifact == Some(SupportedArtifact::AccountData)
+        {
+            account_indices.push(index);
+        }
+    }
+    if account_indices.len() != 1 {
+        return Err(ImportError::InvalidSourceSubjectClaim);
+    }
+
+    let mut member = archive.by_index(account_indices[0])?;
+    let artifact_locator = member.name().to_owned();
+    let assessment = assess_artifact(&artifact_locator);
+    let bytes = read_bytes(&mut member, &artifact_locator, cancellation)?;
+    let artifact_sha256 = sha256_bytes(&bytes);
+    let account = match decode_account_data(&artifact_locator, &bytes) {
+        Ok(account) => account,
+        Err(_) => {
+            record_artifact_coverage(
+                connection,
+                operation_id,
+                &artifact_locator,
+                assessment.family,
+                ArtifactClassification::Invalid,
+                Some(&artifact_sha256),
+                "invalid-source-subject-evidence",
+            )?;
+            return Err(ImportError::InvalidSourceSubjectClaim);
+        }
+    };
+    record_artifact_coverage(
+        connection,
+        operation_id,
+        &artifact_locator,
+        assessment.family,
+        assessment.classification,
+        Some(&artifact_sha256),
+        assessment.reason_code,
+    )?;
+    let claim = SourceSubjectClaim::new(
+        SOURCE_PROVIDER,
+        "account-username",
+        "exact-v1",
+        account.username.as_bytes(),
+    );
+    let resolution = resolve_source_subject(connection, &claim)?;
+    Ok(ResolvedSourceSubject {
+        artifact_locator,
+        resolution,
+    })
+}
+
+fn decode_account_data(artifact_locator: &str, bytes: &[u8]) -> Result<PolarAccountData> {
+    let account: PolarAccountData =
+        serde_json::from_slice(bytes).map_err(|_| ImportError::InvalidArtifact {
+            artifact: artifact_locator.to_owned(),
+            reason: "account-data root or username is invalid".to_owned(),
+        })?;
+    if account.username.is_empty() {
+        return Err(ImportError::InvalidArtifact {
+            artifact: artifact_locator.to_owned(),
+            reason: "account-data username is empty".to_owned(),
+        });
+    }
+    Ok(account)
 }
 
 fn milliseconds(duration: Duration) -> f64 {
@@ -665,7 +885,10 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         if version < 2 {
             connection.execute_batch(SCHEMA_V2)?;
         }
-        connection.execute_batch(SCHEMA_V3)?;
+        if version < 3 {
+            connection.execute_batch(SCHEMA_V3)?;
+        }
+        connection.execute_batch(SCHEMA_V4)?;
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
         }
@@ -723,15 +946,20 @@ fn attach_package_fingerprint(
 fn completed_package_operation(
     connection: &Connection,
     package_sha256: &str,
+    require_verified_origin: bool,
 ) -> Result<Option<i64>> {
     connection
         .query_row(
-            "SELECT id FROM import_operation
-             WHERE package_sha256 = ?1
-               AND state = 'completed'
-               AND coverage_complete = 1
-             ORDER BY id LIMIT 1",
-            [package_sha256],
+            "SELECT operation.id
+             FROM import_operation operation
+             LEFT JOIN observation_origin origin
+               ON origin.id = operation.observation_origin_id
+             WHERE operation.package_sha256 = ?1
+               AND operation.state = 'completed'
+               AND operation.coverage_complete = 1
+               AND (?2 = 0 OR origin.correlation_state = 'verified')
+             ORDER BY operation.id LIMIT 1",
+            params![package_sha256, require_verified_origin],
             |row| row.get(0),
         )
         .optional()
@@ -883,6 +1111,7 @@ fn complete_exact_repeat(
              unrecognized_artifacts = source.unrecognized_artifacts,
              invalid_artifacts = source.invalid_artifacts,
              recognized_artifacts = source.recognized_artifacts,
+             observation_origin_id = source.observation_origin_id,
              canonical_history_changed = 0,
              temporary_state_removed = 1
          FROM import_operation source
@@ -914,7 +1143,9 @@ fn persist_terminal_error(
         | ImportError::InvalidArtifact { .. }
         | ImportError::UnsafeMember(_)
         | ImportError::DuplicateMember(_)
-        | ImportError::ResourceLimit(_) => ImportOperationState::Rejected,
+        | ImportError::ResourceLimit(_)
+        | ImportError::InvalidSourceSubjectClaim
+        | ImportError::SourceSubjectConflict => ImportOperationState::Rejected,
         _ => ImportOperationState::Failed,
     };
     let transaction = connection.transaction()?;
@@ -979,6 +1210,9 @@ fn terminal_code(error: &ImportError) -> &'static str {
         ImportError::InvalidPersistedOperationState(_)
         | ImportError::InvalidPersistedCount { .. }
         | ImportError::InvalidPersistedLocale(_) => "invalid-persisted-import-outcome",
+        ImportError::InvalidCorrelationKeyLength(_) => "invalid-library-correlation-state",
+        ImportError::InvalidSourceSubjectClaim => "invalid-source-subject-evidence",
+        ImportError::SourceSubjectConflict => "source-subject-confirmation-required",
     }
 }
 
@@ -1448,15 +1682,11 @@ fn ensure_not_cancelled(cancellation: &AtomicBool) -> Result<()> {
 
 pub struct SqlitePolarFlowArchiveImporter {
     database_path: PathBuf,
-    origin_id: String,
 }
 
 impl SqlitePolarFlowArchiveImporter {
-    pub fn new(database_path: PathBuf, origin_id: String) -> Self {
-        Self {
-            database_path,
-            origin_id,
-        }
+    pub fn new(database_path: PathBuf) -> Self {
+        Self { database_path }
     }
 }
 
@@ -1467,10 +1697,9 @@ impl ArchiveImportPort for SqlitePolarFlowArchiveImporter {
         cancellation: &AtomicBool,
         on_progress: &mut dyn FnMut(ImportProgress),
     ) -> std::result::Result<ImportReport, String> {
-        import_archive_with_progress(
+        import_polar_archive_with_progress(
             &self.database_path,
             archive_path,
-            &self.origin_id,
             cancellation,
             on_progress,
         )
@@ -1627,7 +1856,11 @@ mod tests {
                 ),
                 (
                     "account-data-42-11111111-2222-4333-8444-555555555555.json",
-                    r#"{"exportVersion":"synthetic"}"#,
+                    r#"{"exportVersion":"synthetic","username":"fixture-primary-claim"}"#,
+                ),
+                (
+                    "sleep_result_42-11111111-2222-4333-8444-555555555555.json",
+                    r#"[]"#,
                 ),
             ],
         );
@@ -1668,8 +1901,8 @@ mod tests {
                 SOURCE_ADAPTER_VERSION.to_owned(),
                 DAILY_ACTIVITY_MAPPING_VERSION.to_owned(),
                 true,
+                4,
                 3,
-                2,
                 1,
                 0,
                 0,
@@ -1697,12 +1930,16 @@ mod tests {
             .expect("coverage rows")
             .collect::<std::result::Result<Vec<_>, _>>()
             .expect("coverage collection");
-        assert_eq!(coverage.len(), 3);
+        assert_eq!(coverage.len(), 4);
         assert_eq!(coverage[0].1, Some("polar-flow-account-data".to_owned()));
-        assert_eq!(coverage[0].2, "unsupported");
-        assert_eq!(coverage[0].4, "known-family-not-yet-supported");
+        assert_eq!(coverage[0].2, "supported");
+        assert_eq!(coverage[0].4, "source-subject-claim");
+        assert!(coverage[0].3.as_ref().is_some_and(|hash| hash.len() == 64));
         assert_eq!(coverage[1].2, "supported");
         assert_eq!(coverage[2].2, "supported");
+        assert_eq!(coverage[3].1, Some("polar-flow-sleep-result".to_owned()));
+        assert_eq!(coverage[3].2, "unsupported");
+        assert_eq!(coverage[3].4, "known-family-not-yet-supported");
         assert!(coverage[1].3.as_ref().is_some_and(|hash| hash.len() == 64));
 
         let provenance = connection
@@ -1745,12 +1982,253 @@ mod tests {
         assert_eq!(outcome.state, ImportOperationState::Completed);
         assert_eq!(outcome.source_provider, SOURCE_PROVIDER);
         assert!(outcome.coverage_complete);
-        assert_eq!(outcome.coverage.total, 3);
-        assert_eq!(outcome.coverage.supported, 2);
+        assert_eq!(outcome.coverage.total, 4);
+        assert_eq!(outcome.coverage.supported, 3);
         assert_eq!(outcome.coverage.unsupported, 1);
         assert_eq!(outcome.coverage.unrecognized, 0);
         assert_eq!(outcome.report.new_observations, 2);
         assert!(outcome.canonical_history_changed);
+    }
+
+    #[test]
+    fn resolves_one_opaque_subject_across_different_overlapping_packages() {
+        let harness = Harness::new();
+        let first_package = harness.archive(
+            "subject-first.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"exportVersion":"synthetic","username":"fixture-primary-claim"}"#,
+                ),
+                (
+                    "activity-2026-01-01-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"date":"2026-01-01","summary":{"stepCount":3100}}"#,
+                ),
+            ],
+        );
+        let overlapping_package = harness.archive(
+            "subject-overlap.zip",
+            &[
+                (
+                    "account-data-77-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    r#"{"exportVersion":"synthetic-later","username":"fixture-primary-claim"}"#,
+                ),
+                (
+                    "activity-2026-01-01-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    r#"{"date":"2026-01-01","summary":{"stepCount":3100}}"#,
+                ),
+                (
+                    "activity-2026-01-02-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    r#"{"date":"2026-01-02","summary":{"stepCount":4200}}"#,
+                ),
+            ],
+        );
+
+        let first = import_polar_archive(&harness.database(), &first_package)
+            .expect("first subject import");
+        let repeated = import_polar_archive(&harness.database(), &first_package)
+            .expect("exact subject repeat");
+        let overlap = import_polar_archive(&harness.database(), &overlapping_package)
+            .expect("overlapping subject import");
+        let history = query_activity(&harness.database()).expect("history");
+
+        assert_eq!(first.recognized_artifacts, 2);
+        assert_eq!(first.new_observations, 1);
+        assert!(repeated.exact_repeat);
+        assert_eq!(overlap.recognized_artifacts, 3);
+        assert_eq!(overlap.equivalent_observations, 1);
+        assert_eq!(overlap.new_observations, 1);
+        assert_eq!(history.len(), 2);
+        assert_eq!(history[0].origin_id, history[1].origin_id);
+        assert_eq!(history[0].origin_id.len(), 32);
+        assert!(!history[0].origin_id.contains("polar"));
+
+        let connection = Connection::open(harness.database()).expect("database");
+        assert_eq!(
+            connection
+                .query_row("SELECT COUNT(*) FROM observation_origin", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .expect("origin count"),
+            1
+        );
+        assert_eq!(
+            connection
+                .query_row("SELECT COUNT(*) FROM source_subject_evidence", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .expect("evidence count"),
+            1
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(DISTINCT observation_origin_id)
+                     FROM import_operation WHERE state = 'completed'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("operation-origin count"),
+            1
+        );
+    }
+
+    #[test]
+    fn rejects_a_different_subject_claim_without_changing_existing_history() {
+        let harness = Harness::new();
+        let first_package = harness.archive(
+            "subject-first.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-primary-claim"}"#,
+                ),
+                (
+                    "activity-2026-01-01-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"date":"2026-01-01","summary":{"stepCount":3100}}"#,
+                ),
+            ],
+        );
+        let conflicting_package = harness.archive(
+            "subject-conflict.zip",
+            &[
+                (
+                    "account-data-77-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    r#"{"username":"fixture-other-claim"}"#,
+                ),
+                (
+                    "activity-2026-01-02-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    r#"{"date":"2026-01-02","summary":{"stepCount":4200}}"#,
+                ),
+            ],
+        );
+        import_polar_archive(&harness.database(), &first_package).expect("first subject import");
+
+        let error = import_polar_archive(&harness.database(), &conflicting_package)
+            .expect_err("different source subject");
+
+        assert!(matches!(error, ImportError::SourceSubjectConflict));
+        let preserved_history = query_activity(&harness.database()).expect("preserved history");
+        assert_eq!(preserved_history.len(), 1);
+        assert_eq!(preserved_history[0].local_date, "2026-01-01");
+        assert_eq!(preserved_history[0].step_count, Some(3100));
+        let outcome = query_latest_import_outcome(&harness.database())
+            .expect("outcome")
+            .expect("latest outcome");
+        assert_eq!(outcome.state, ImportOperationState::Rejected);
+        assert_eq!(
+            outcome.terminal_code,
+            Some("source-subject-confirmation-required".to_owned())
+        );
+        assert!(!outcome.canonical_history_changed);
+    }
+
+    #[test]
+    fn does_not_use_a_legacy_package_fingerprint_as_source_subject_evidence() {
+        let harness = Harness::new();
+        let archive = harness.archive(
+            "legacy-package.zip",
+            &[(
+                "activity-2026-01-01-11111111-2222-4333-8444-555555555555.json",
+                r#"{"date":"2026-01-01","summary":{"stepCount":3100}}"#,
+            )],
+        );
+        import_archive(&harness.database(), &archive, "polar:legacy-development")
+            .expect("legacy development import");
+
+        let error = import_polar_archive(&harness.database(), &archive)
+            .expect_err("automatic import without source-subject evidence");
+
+        assert!(matches!(error, ImportError::InvalidSourceSubjectClaim));
+        let outcome = query_latest_import_outcome(&harness.database())
+            .expect("outcome")
+            .expect("latest outcome");
+        assert_eq!(outcome.state, ImportOperationState::Rejected);
+        assert!(!outcome.exact_repeat);
+        assert_eq!(
+            outcome.terminal_code,
+            Some("invalid-source-subject-evidence".to_owned())
+        );
+        assert_eq!(
+            query_activity(&harness.database())
+                .expect("preserved legacy history")
+                .len(),
+            1
+        );
+    }
+
+    #[test]
+    fn rejects_multiple_or_malformed_account_claims_without_creating_subject_state() {
+        let cases = [
+            (
+                "multiple-accounts.zip",
+                vec![
+                    (
+                        "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                        r#"{"username":"fixture-primary-claim"}"#,
+                    ),
+                    (
+                        "account-data-77-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                        r#"{"username":"fixture-other-claim"}"#,
+                    ),
+                    (
+                        "activity-2026-01-01-11111111-2222-4333-8444-555555555555.json",
+                        r#"{"date":"2026-01-01"}"#,
+                    ),
+                ],
+            ),
+            (
+                "malformed-account.zip",
+                vec![
+                    (
+                        "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                        r#"{"username":42}"#,
+                    ),
+                    (
+                        "activity-2026-01-01-11111111-2222-4333-8444-555555555555.json",
+                        r#"{"date":"2026-01-01"}"#,
+                    ),
+                ],
+            ),
+        ];
+
+        for (archive_name, entries) in cases {
+            let harness = Harness::new();
+            let archive = harness.archive(archive_name, &entries);
+
+            let error = import_polar_archive(&harness.database(), &archive)
+                .expect_err("invalid account claim");
+
+            assert!(matches!(error, ImportError::InvalidSourceSubjectClaim));
+            assert!(query_activity(&harness.database())
+                .expect("empty history")
+                .is_empty());
+            let connection = Connection::open(harness.database()).expect("database");
+            assert_eq!(
+                connection
+                    .query_row("SELECT COUNT(*) FROM observation_origin", [], |row| {
+                        row.get::<_, i64>(0)
+                    })
+                    .expect("origin count"),
+                0
+            );
+            assert_eq!(
+                connection
+                    .query_row("SELECT COUNT(*) FROM source_subject_evidence", [], |row| {
+                        row.get::<_, i64>(0)
+                    })
+                    .expect("evidence count"),
+                0
+            );
+            let outcome = query_latest_import_outcome(&harness.database())
+                .expect("outcome")
+                .expect("latest outcome");
+            assert_eq!(outcome.state, ImportOperationState::Rejected);
+            assert_eq!(
+                outcome.terminal_code,
+                Some("invalid-source-subject-evidence".to_owned())
+            );
+        }
     }
 
     #[test]
@@ -2401,6 +2879,160 @@ mod tests {
     }
 
     #[test]
+    fn creates_library_scoped_source_subject_state_without_inventing_an_origin() {
+        let harness = Harness::new();
+        let connection = Connection::open(harness.database()).expect("database");
+
+        ensure_schema(&connection).expect("current schema");
+
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT length(correlation_key) FROM library_identity WHERE id = 1",
+                    [],
+                    |row| { row.get::<_, i64>(0) }
+                )
+                .expect("library correlation key length"),
+            32
+        );
+        assert_eq!(
+            connection
+                .query_row("SELECT COUNT(*) FROM observation_origin", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .expect("observation-origin count"),
+            0
+        );
+        assert_eq!(
+            connection
+                .query_row("SELECT COUNT(*) FROM source_subject_evidence", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .expect("source-subject evidence count"),
+            0
+        );
+    }
+
+    #[test]
+    fn migrates_version_three_history_as_unverified_and_rolls_back_interruption() {
+        let harness = Harness::new();
+        let database_path = harness.database();
+        let connection = Connection::open(&database_path).expect("database");
+        connection
+            .execute_batch("PRAGMA foreign_keys = ON;")
+            .expect("foreign keys");
+        connection
+            .execute_batch(SCHEMA_V1)
+            .expect("version one schema");
+        connection
+            .execute_batch(SCHEMA_V2)
+            .expect("version two schema");
+        connection
+            .execute_batch(SCHEMA_V3)
+            .expect("version three schema");
+        connection
+            .pragma_update(None, "user_version", 3)
+            .expect("version three marker");
+        let operation_id = begin_operation(&connection).expect("legacy operation");
+        connection
+            .execute(
+                "INSERT INTO daily_activity (origin_id, local_date, step_count)
+                 VALUES ('polar:legacy-v3', '2025-12-29', 1234)",
+                [],
+            )
+            .expect("legacy activity");
+        connection
+            .execute(
+                "INSERT INTO daily_activity_provenance (
+                     origin_id, local_date, import_operation_id, artifact_locator,
+                     source_record_locator, source_artifact_sha256, source_provider,
+                     source_adapter_version, mapping_version, reconciliation_decision,
+                     contributes_to_visible_state
+                 ) VALUES (
+                     'polar:legacy-v3', '2025-12-29', ?1, 'legacy-v3', 'json-root',
+                     NULL, 'polar-flow', 'legacy-v3', 'legacy-v3',
+                     'unavailable-for-migrated-v1', 1
+                 )",
+                [operation_id],
+            )
+            .expect("legacy provenance");
+
+        let error = migrate_schema(&connection, true).expect_err("interrupted upgrade");
+        assert!(matches!(error, ImportError::InjectedMigrationInterruption));
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("retained schema version"),
+            3
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_master
+                     WHERE type = 'table' AND name = 'library_identity'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("rolled-back table count"),
+            0
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info('import_operation')
+                     WHERE name = 'observation_origin_id'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("rolled-back column count"),
+            0
+        );
+
+        migrate_schema(&connection, false).expect("recovered upgrade");
+
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT source_provider, correlation_state
+                     FROM observation_origin WHERE id = 'polar:legacy-v3'",
+                    [],
+                    |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+                )
+                .expect("legacy observation origin"),
+            ("polar-flow".to_owned(), "legacy-unverified".to_owned())
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT observation_origin_id FROM import_operation WHERE id = ?1",
+                    [operation_id],
+                    |row| row.get::<_, String>(0),
+                )
+                .expect("backfilled operation origin"),
+            "polar:legacy-v3"
+        );
+        assert_eq!(
+            connection
+                .query_row("SELECT COUNT(*) FROM source_subject_evidence", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .expect("invented evidence count"),
+            0
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT step_count FROM daily_activity
+                     WHERE origin_id = 'polar:legacy-v3' AND local_date = '2025-12-29'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("preserved activity"),
+            1234
+        );
+    }
+
+    #[test]
     fn rejects_unversioned_database_with_incompatible_schema_objects() {
         let harness = Harness::new();
         let database_path = harness.database();
@@ -2754,12 +3386,18 @@ mod tests {
         let harness = Harness::new();
         let archive = harness.archive(
             "backup-source.zip",
-            &[(
-                "activity-2026-07-01-11111111-2222-4333-8444-555555555555.json",
-                r#"{"date":"2026-07-01","summary":{"stepCount":3210}}"#,
-            )],
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-backup-claim"}"#,
+                ),
+                (
+                    "activity-2026-07-01-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"date":"2026-07-01","summary":{"stepCount":3210}}"#,
+                ),
+            ],
         );
-        import_archive(&harness.database(), &archive, "polar:synthetic").expect("source import");
+        import_polar_archive(&harness.database(), &archive).expect("source import");
         let backup_path = harness.directory.path().join("fitfreed-backup.sqlite");
 
         backup_database(&harness.database(), &backup_path).expect("database backup");
@@ -2768,6 +3406,24 @@ mod tests {
             query_activity(&backup_path).expect("backup history"),
             query_activity(&harness.database()).expect("source history")
         );
+
+        let overlap = harness.archive(
+            "backup-overlap.zip",
+            &[
+                (
+                    "account-data-77-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    r#"{"username":"fixture-backup-claim"}"#,
+                ),
+                (
+                    "activity-2026-07-02-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    r#"{"date":"2026-07-02","summary":{"stepCount":4321}}"#,
+                ),
+            ],
+        );
+        import_polar_archive(&backup_path, &overlap).expect("backup overlap import");
+        let backup_history = query_activity(&backup_path).expect("expanded backup history");
+        assert_eq!(backup_history.len(), 2);
+        assert_eq!(backup_history[0].origin_id, backup_history[1].origin_id);
     }
 
     #[test]

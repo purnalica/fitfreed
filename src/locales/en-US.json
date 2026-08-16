@@ -64,6 +64,9 @@
   },
   "errors": {
     "invalid-supported-artifact": "This package contains daily activity that FitFreed cannot validate. Keep the original ZIP and report the compatibility problem; no history was changed.",
+    "invalid-source-subject-evidence": "FitFreed cannot establish which provider account this package belongs to. Choose the original complete export ZIP; no history was changed.",
+    "source-subject-confirmation-required": "This package has different or changed account evidence. FitFreed will not merge it with the existing history automatically. Keep the ZIP until account separation and recovery are available; existing history was preserved.",
+    "invalid-library-correlation-state": "FitFreed cannot verify this library's account-correlation state. Do not import again until the library has been preserved and the problem has been investigated.",
     "invalid-zip-container": "This is not a supported ZIP container. Choose the original export ZIP without repacking it.",
     "unsafe-archive-member": "The package contains an unsafe file layout. Keep the original ZIP and report the compatibility problem; FitFreed did not extract it.",
     "duplicate-archive-member": "The package contains duplicate file names and cannot be imported safely. Request a new export or report the compatibility problem.",

@@ -144,7 +144,7 @@ describe("packaged FitFreed import journey", () => {
     );
     await expect($("#outcome-heading")).toHaveText("Latest import outcome");
     await expectCoverage([
-      ["0", "Supported"],
+      ["1", "Supported"],
       ["0", "Unsupported"],
       ["0", "Deliberately ignored"],
       ["0", "Unrecognized"],
@@ -154,9 +154,9 @@ describe("packaged FitFreed import journey", () => {
 
     await selectArchive(dialogMock, path.join(fixtureDirectory, "valid.zip"));
     await $("aria/Import selected package").click();
-    await waitForNotice("Import completed: 3 recognized, 3 new");
+    await waitForNotice("Import completed: 4 recognized, 3 new");
     await expectCoverage([
-      ["3", "Supported"],
+      ["4", "Supported"],
       ["1", "Unsupported"],
       ["1", "Deliberately ignored"],
       ["1", "Unrecognized"],
@@ -171,7 +171,7 @@ describe("packaged FitFreed import journey", () => {
     await selectLocale("es-ES");
     await expect($("#outcome-heading")).toHaveText(spanish.outcome.heading);
     await expectCoverage([
-      ["3", spanish.outcome.supported],
+      ["4", spanish.outcome.supported],
       ["1", spanish.outcome.unsupported],
       ["1", spanish.outcome.ignored],
       ["1", spanish.outcome.unrecognized],
@@ -196,7 +196,7 @@ describe("packaged FitFreed import journey", () => {
 
     await selectArchive(dialogMock, path.join(fixtureDirectory, "overlap.zip"));
     await $("aria/Import selected package").click();
-    await waitForNotice("Import completed: 2 recognized, 1 new");
+    await waitForNotice("Import completed: 3 recognized, 1 new");
     await expectHistory([
       ["Jan 1, 2026", "3,100"],
       ["Jan 2, 2026", "4,200"],

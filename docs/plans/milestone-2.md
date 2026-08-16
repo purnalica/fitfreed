@@ -18,7 +18,7 @@ The private reference export is local acceptance input, never a fixture or publi
 
 ## Increment M2.1 — Real-package assessment and source-subject safety
 
-**Status:** in progress. The strict provider-owned filename registry now distinguishes the observed supported, unsupported, deliberately ignored, and unrecognized family boundaries. [ADR 0005](../architecture/decisions/0005-use-library-scoped-source-subject-correlation.md) accepts library-scoped source-subject correlation; its schema, implementation, and structural compatibility evidence remain open.
+**Status:** in progress. The strict provider-owned filename registry distinguishes the observed supported, unsupported, deliberately ignored, and unrecognized family boundaries. [ADR 0005](../architecture/decisions/0005-use-library-scoped-source-subject-correlation.md), schema version 4, the production adapter, localized failure guidance, and synthetic reimport evidence implement library-scoped source-subject correlation. The privacy-safe local acceptance predicate passed against the supplied read-only reference ZIP on 2026-08-16 without versioning its output. Historical compatibility remains limited to the evaluated structure, and the localized family-level coverage view remains open.
 
 **Outcome:** the production application can assess a compatible real Polar Flow ZIP, resolve one library-local source subject without a fixed synthetic identity, import the supported daily-activity boundary, and explain the status of every archive member.
 

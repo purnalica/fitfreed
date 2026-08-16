@@ -24,8 +24,7 @@ async fn import_archive(
         database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     let coordinator = coordinator.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
-        let importer =
-            SqlitePolarFlowArchiveImporter::new(database_path, "polar:synthetic".to_owned());
+        let importer = SqlitePolarFlowArchiveImporter::new(database_path);
         let mut report_progress = |progress: ImportProgress| {
             let _ = on_progress.send(progress.into());
         };

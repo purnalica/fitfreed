@@ -60,4 +60,5 @@ Directories are created with their first real contract; empty specifications are
 - [SQLite schema version 1](persistence/sqlite-v1.md)
 - [SQLite schema version 2](persistence/sqlite-v2.md)
 - [SQLite schema version 3](persistence/sqlite-v3.md)
+- [SQLite schema version 4](persistence/sqlite-v4.md)
 - [Release manifest version 1](release/release-manifest-v1.md)

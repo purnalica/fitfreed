@@ -2,7 +2,7 @@
 
 ## Important boundary
 
-The current application is a development foundation, not an alpha release. It proves a synthetic daily-activity import, explainable outcome, and history journey. Do not use a real personal export yet: source-subject identity, complete real-export family coverage and mappings, and the full MVP privacy contract are still under implementation. Read the project-wide [disclaimer](../../DISCLAIMER.md) before running any build.
+The current application is a development foundation, not an alpha release. It proves source-subject-safe synthetic daily-activity import, explainable outcomes, reimport, and history exploration. Do not use a real personal export yet: historical format compatibility, broader mappings, reference-export acceptance, backup recovery, and the full MVP privacy contract are still under implementation. Read the project-wide [disclaimer](../../DISCLAIMER.md) before running any build.
 
 ## Run the synthetic journey
 
@@ -30,7 +30,7 @@ The generated fixtures contain only independently constructed fictional values. 
 ## Expected limitations
 
 - Only the synthetic daily summary shape exercised by the first vertical slice is supported.
-- Complete real-export provider-family coverage, source identity, training, sleep, recovery, filtering, comparisons, user-controlled backup, portable export, and updates are not implemented yet.
+- Historical real-export compatibility, training, sleep, recovery, filtering, comparisons, user-controlled backup, portable export, and updates are not implemented yet.
 - The visible coverage is exact for the current synthetic daily-activity recognition boundary; it is not a claim that real Polar Flow takeouts are fully supported.
 - The package is unsigned and must not be published as a public release.
 

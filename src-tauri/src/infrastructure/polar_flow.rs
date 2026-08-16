@@ -10,10 +10,17 @@ const UUID_PATTERN: &str =
     r"[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum SupportedArtifact {
+    AccountData,
+    DailyActivity,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) struct ArtifactAssessment {
     pub family: Option<&'static str>,
     pub classification: ArtifactClassification,
     pub reason_code: &'static str,
+    pub supported_artifact: Option<SupportedArtifact>,
 }
 
 struct ArtifactRule {
@@ -27,6 +34,7 @@ impl ArtifactRule {
         family: &'static str,
         classification: ArtifactClassification,
         reason_code: &'static str,
+        supported_artifact: Option<SupportedArtifact>,
     ) -> Self {
         Self {
             pattern: Regex::new(&pattern).expect("valid Polar Flow artifact grammar"),
@@ -34,6 +42,7 @@ impl ArtifactRule {
                 family: Some(family),
                 classification,
                 reason_code,
+                supported_artifact,
             },
         }
     }
@@ -52,40 +61,60 @@ fn rule(
             unreachable!("registry rules describe known valid families")
         }
     };
-    ArtifactRule::new(pattern, family, classification, reason_code)
+    ArtifactRule::new(pattern, family, classification, reason_code, None)
+}
+
+fn supported_rule(
+    pattern: String,
+    family: &'static str,
+    supported_artifact: SupportedArtifact,
+    reason_code: &'static str,
+) -> ArtifactRule {
+    ArtifactRule::new(
+        pattern,
+        family,
+        ArtifactClassification::Supported,
+        reason_code,
+        Some(supported_artifact),
+    )
 }
 
 static ARTIFACT_RULES: LazyLock<Vec<ArtifactRule>> = LazyLock::new(|| {
-    use ArtifactClassification::{DeliberatelyIgnored, Supported, Unsupported};
+    use ArtifactClassification::{DeliberatelyIgnored, Unsupported};
 
     vec![
-        rule(
+        supported_rule(
             format!(r"^activity-{DATE_PATTERN}-{UUID_PATTERN}\.json$"),
             "polar-flow-daily-activity",
-            Supported,
+            SupportedArtifact::DailyActivity,
+            "mapped",
         ),
-        rule(
+        supported_rule(
             format!(r"^account-data-{NUMERIC_PATTERN}-{UUID_PATTERN}\.json$"),
             "polar-flow-account-data",
-            Unsupported,
+            SupportedArtifact::AccountData,
+            "source-subject-claim",
         ),
         ArtifactRule::new(
             format!(r"^account-profile-{NUMERIC_PATTERN}-{UUID_PATTERN}\.json$"),
             "polar-flow-account-profile",
             DeliberatelyIgnored,
             "mvp-excludes-sensitive-profile",
+            None,
         ),
         ArtifactRule::new(
             format!(r"^profile-picture-{NUMERIC_PATTERN}-[A-Za-z0-9]+-{UUID_PATTERN}\.data$"),
             "polar-flow-profile-picture",
             DeliberatelyIgnored,
             "mvp-excludes-profile-picture",
+            None,
         ),
         ArtifactRule::new(
             format!(r"^247ohr_{NUMERIC_PATTERN}_(?:0[1-9]|1[0-2])-{UUID_PATTERN}\.json$"),
             "polar-flow-continuous-heart-rate",
             DeliberatelyIgnored,
             "mvp-excludes-full-resolution-physiology",
+            None,
         ),
         ArtifactRule::new(
             format!(
@@ -94,6 +123,7 @@ static ARTIFACT_RULES: LazyLock<Vec<ArtifactRule>> = LazyLock::new(|| {
             "polar-flow-beat-to-beat-samples",
             DeliberatelyIgnored,
             "mvp-excludes-full-resolution-physiology",
+            None,
         ),
         rule(
             format!(r"^calendar-items-{NUMERIC_PATTERN}-{UUID_PATTERN}\.json$"),
@@ -193,6 +223,7 @@ pub(super) fn assess_artifact(name: &str) -> ArtifactAssessment {
                 family: None,
                 classification: ArtifactClassification::Unrecognized,
                 reason_code: "unrecognized-artifact-family",
+                supported_artifact: None,
             },
             |rule| rule.assessment,
         )
@@ -212,6 +243,23 @@ mod tests {
         assert_eq!(assessment.family, Some("polar-flow-daily-activity"));
         assert_eq!(assessment.classification, ArtifactClassification::Supported);
         assert_eq!(assessment.reason_code, "mapped");
+        assert_eq!(
+            assessment.supported_artifact,
+            Some(SupportedArtifact::DailyActivity)
+        );
+    }
+
+    #[test]
+    fn classifies_account_data_as_supported_source_subject_evidence() {
+        let assessment = assess_artifact(&format!("account-data-42-{UUID_A}.json"));
+
+        assert_eq!(assessment.family, Some("polar-flow-account-data"));
+        assert_eq!(assessment.classification, ArtifactClassification::Supported);
+        assert_eq!(assessment.reason_code, "source-subject-claim");
+        assert_eq!(
+            assessment.supported_artifact,
+            Some(SupportedArtifact::AccountData)
+        );
     }
 
     #[test]
@@ -281,7 +329,6 @@ mod tests {
     #[test]
     fn recognizes_the_remaining_observed_registry_without_claiming_support() {
         let cases = [
-            format!("account-data-42-{UUID_A}.json"),
             format!("calendar-items-42-{UUID_A}.json"),
             format!("favourite-targets-42-{UUID_A}.json"),
             format!("fitness-test-results-42-2026-01-02-10-30-00-000-{UUID_A}.json"),

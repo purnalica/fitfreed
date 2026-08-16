@@ -5,7 +5,7 @@ use std::{
 };
 
 use fitfreed_application::ImportPhaseTimings;
-use fitfreed_lib::infrastructure::{profile_import_archive, query_activity_between};
+use fitfreed_lib::infrastructure::{profile_polar_import_archive, query_activity_between};
 use serde_json::{json, Value};
 
 fn main() {
@@ -18,13 +18,13 @@ fn main() {
     }
 
     let started = Instant::now();
-    let first = profile_import_archive(database_path, Path::new(archive), "polar:synthetic")
-        .expect("large import");
+    let first =
+        profile_polar_import_archive(database_path, Path::new(archive)).expect("large import");
     let first_import = started.elapsed();
 
     let repeat_started = Instant::now();
-    let repeat = profile_import_archive(database_path, Path::new(archive), "polar:synthetic")
-        .expect("exact repeat");
+    let repeat =
+        profile_polar_import_archive(database_path, Path::new(archive)).expect("exact repeat");
     let exact_repeat = repeat_started.elapsed();
 
     let mut query_timings = Vec::new();

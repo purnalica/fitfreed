@@ -44,7 +44,7 @@ for (const migration of migrations) {
     const [, table, body] = tableMatch;
     requireMention(persistence, table, persistencePath);
     for (const line of body.split("\n")) {
-      const columnMatch = line.match(/^ {4}([a-z_][a-z0-9_]*) (?:INTEGER|TEXT)\b/);
+      const columnMatch = line.match(/^ {4}([a-z_][a-z0-9_]*) (?:BLOB|INTEGER|TEXT)\b/);
       if (columnMatch) requireMention(persistence, columnMatch[1], persistencePath);
     }
   }
@@ -57,6 +57,7 @@ const persistenceCorpus = persistencePaths.map(read).join("\n");
 for (const contractValue of [
   "polar-flow",
   "polar-flow-archive@1",
+  "polar-flow-archive@2",
   "polar-flow-daily-activity@1",
   "assessing",
   "planned",

@@ -17,6 +17,7 @@ FitFreed does not have a supported alpha release yet. The current executable fou
 - Follow the active [Milestone 2 MVP execution plan](plans/milestone-2.md) for increment boundaries and acceptance gates.
 - Use [private release preparation](development/release-preparation.md) for clean-revision package and installation evidence.
 - Use the [troubleshooting guide](development/troubleshooting.md) when a documented command fails.
+- Use [private reference export acceptance](testing/private-reference-acceptance.md) only for the explicitly supplied local compatibility input.
 - Read the [module map](architecture/module-map.md), [testing strategy](testing-strategy.md), and [data-contract index](data-formats/README.md) before changing product behavior.
 - Follow the [localization guide](development/localization.md) for interface copy or language support.
 - Follow [CONTRIBUTING.md](../CONTRIBUTING.md) and the [repository content policy](repository-content-policy.md) before proposing or publishing a change.
@@ -25,7 +26,7 @@ FitFreed does not have a supported alpha release yet. The current executable fou
 
 - [Requirements](requirements.md) define confirmed scope and acceptance.
 - [Roadmap](roadmap.md) defines outcome order and milestone boundaries.
-- [Active Milestone 1 plan](plans/milestone-1.md) defines the current implementation sequence and evidence.
+- [Active Milestone 2 plan](plans/milestone-2.md) defines the current implementation sequence and evidence.
 - [Architecture decision records](architecture/decisions/README.md) preserve durable structural decisions.
 - [Release delivery architecture](architecture/release-delivery.md) separates private evidence preparation from publication authority.
 - [Product thesis](product-thesis.md) explains the GDPR-enabled portability and open-source freedom argument without presenting FitFreed as legal advice or a compliance product.

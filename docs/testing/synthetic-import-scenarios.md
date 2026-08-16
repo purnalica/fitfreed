@@ -26,6 +26,8 @@ Version-controlled definitions stay small and reviewable. Large histories, sampl
 
 Provider artifact names use the complete documented lexical grammar with obviously fictional numeric, date, partition, and UUID-shaped tokens. Short convenience suffixes are invalid fixtures because they bypass the same family-detection boundary used for real packages.
 
+Production-path fixtures include exactly one obvious non-address fictional account-data username. Reimport fixtures vary delivery-only numeric and UUID-shaped filename tokens while retaining or deliberately changing the private claim. Tests assert only opaque origins, fixed outcome codes, and aggregate counts; raw claims and scoped digests never enter snapshots, logs, or hosted artifacts.
+
 ## Core scenario catalog
 
 | ID | Scenario | Required evidence |

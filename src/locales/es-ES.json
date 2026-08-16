@@ -64,6 +64,9 @@
   },
   "errors": {
     "invalid-supported-artifact": "El paquete contiene actividad diaria que FitFreed no puede validar. Conserva el ZIP original e informa del problema de compatibilidad; el historial no se ha modificado.",
+    "invalid-source-subject-evidence": "FitFreed no puede determinar a qué cuenta del proveedor pertenece este paquete. Selecciona el ZIP original de la exportación completa; el historial no se ha modificado.",
+    "source-subject-confirmation-required": "Este paquete contiene indicios de una cuenta distinta o modificada. FitFreed no lo combinará automáticamente con el historial existente. Conserva el ZIP hasta que estén disponibles la separación y la recuperación de cuentas; el historial existente se ha conservado.",
+    "invalid-library-correlation-state": "FitFreed no puede verificar el estado de correlación de cuentas de esta biblioteca. No vuelvas a importar hasta haber conservado la biblioteca e investigado el problema.",
     "invalid-zip-container": "El contenedor ZIP no es compatible. Selecciona el ZIP original de la exportación sin volver a empaquetarlo.",
     "unsafe-archive-member": "El paquete contiene una estructura de archivos insegura. Conserva el ZIP original e informa del problema de compatibilidad; FitFreed no lo ha extraído.",
     "duplicate-archive-member": "El paquete contiene nombres de archivo duplicados y no se puede importar con seguridad. Solicita una nueva exportación o informa del problema de compatibilidad.",

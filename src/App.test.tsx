@@ -12,7 +12,7 @@ function importOutcome(overrides: Record<string, unknown> = {}) {
     operationRef: "synthetic-operation",
     state: "completed",
     sourceProvider: "polar-flow",
-    sourceAdapterVersion: "polar-flow-archive@1",
+    sourceAdapterVersion: "polar-flow-archive@2",
     mappingVersion: "polar-flow-daily-activity@1",
     exactRepeat: false,
     coverageComplete: true,
@@ -87,6 +87,60 @@ async function chooseArchive(user: ReturnType<typeof userEvent.setup>, path: str
 }
 
 describe("FitFreed import interface", () => {
+  it("explains a changed source-subject claim without exposing identity evidence", async () => {
+    let latestOutcome: ReturnType<typeof importOutcome> | null = null;
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_activity") return Promise.resolve([]);
+      if (command === "query_latest_import_outcome") return Promise.resolve(latestOutcome);
+      if (command === "load_locale") return Promise.resolve("en-US");
+      if (command === "save_locale") return Promise.resolve();
+      if (command === "import_archive") {
+        latestOutcome = importOutcome({
+          state: "rejected",
+          coverageComplete: false,
+          coverage: {
+            total: 2,
+            supported: 1,
+            unsupported: 0,
+            deliberatelyIgnored: 0,
+            unrecognized: 0,
+            invalid: 0,
+          },
+          report: {
+            exactRepeat: false,
+            recognizedArtifacts: 1,
+            newObservations: 0,
+            equivalentObservations: 0,
+            enrichedObservations: 0,
+            preservedObservations: 0,
+            conflicts: 0,
+          },
+          canonicalHistoryChanged: false,
+          terminalCode: "source-subject-confirmation-required",
+        });
+        return Promise.reject({ code: "import-failed" });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByText("No imported daily activity yet.");
+    await chooseArchive(user, "/synthetic/different-subject.zip");
+
+    await user.click(screen.getByRole("button", { name: "Import selected package" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "FitFreed will not merge it with the existing history automatically",
+    );
+    expect(screen.getByText("Import rejected; no history was changed.")).toBeVisible();
+    expect(screen.queryByText(/fixture-(?:primary|other)-claim/)).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByRole("combobox", { name: "Language" }), "es-ES");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "FitFreed no lo combinará automáticamente con el historial existente",
+    );
+  });
+
   it("persists an explicit locale and restores every visible message after remount", async () => {
     const preferences = emptyLibrary();
     const user = userEvent.setup();

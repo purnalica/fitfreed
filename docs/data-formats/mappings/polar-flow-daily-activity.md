@@ -16,7 +16,7 @@ Filename tokens are used only for family recognition. They do not provide canoni
 
 | Source input | Validation and transformation | Canonical output | Information loss |
 |---|---|---|---|
-| Adapter-supplied source-subject identity | Required by the adapter boundary; no filename token is substituted. | `originId` | Real Polar source-subject resolution is not implemented. |
+| Exact version 1 account-data username claim | Resolved through a library-scoped HMAC-SHA-256 digest; raw value is discarded after resolution. No filename token is substituted. | `originId` | The target is an opaque random library-local observation origin, not the claim or digest. |
 | `date` | Required JSON string parsed as a valid `YYYY-MM-DD` calendar date; preserved verbatim after validation. | `localDate` | No time-zone identifier exists at this level. |
 | `summary` absent or null | Accepted. | `stepCount` = null | Other daily summary information is not mapped. |
 | `summary.stepCount` absent or null | Accepted. | `stepCount` = null | Absence and explicit null currently produce the same canonical value. |
@@ -27,7 +27,7 @@ Unknown JSON fields are accepted and ignored by mapping version 1. `exportVersio
 
 ## Coverage, provenance, failure, and atomicity
 
-Every safe ZIP-root member receives one artifact-coverage classification when assessment completes. Successfully mapped activity artifacts are `supported`; recognized activity artifacts with malformed JSON, an invalid or missing `date`, or an invalid mapped value are `invalid`. Other complete known Polar Flow grammars are `unsupported` or `deliberately-ignored` according to the provider registry, while unfamiliar and malformed names are `unrecognized`. Field-level omissions inside a supported activity artifact do not create additional artifact rows.
+Every safe ZIP-root member receives one artifact-coverage classification when assessment completes. A structurally valid account-data claim and successfully mapped activity artifacts are `supported`; malformed account data and recognized activity artifacts with malformed JSON, an invalid or missing `date`, or an invalid mapped value are `invalid`. Other complete known Polar Flow grammars are `unsupported` or `deliberately-ignored` according to the provider registry, while unfamiliar and malformed names are `unrecognized`. Field-level omissions inside a supported activity artifact do not create additional artifact rows.
 
 Mapping reads one expanded artifact at a time before the canonical visibility transaction. Each mapped observation carries its artifact locator, artifact SHA-256, `json-root` source-record locator, provider, adapter version, and this mapping version into reconciliation. Reconciliation stores a provenance row for create, equivalent, enrichment, preservation, and conflict decisions.
 
@@ -39,7 +39,7 @@ The canonical (`originId`, `localDate`) identity drives overlap reconciliation. 
 
 ## Compatibility limits
 
-The adapter does not yet detect `exportVersion`, validate historical daily-activity variants, or resolve a stable real account identity. The executable filename registry covers every family observed in the current reference, but a recognized name does not imply that its JSON structure or semantics are supported. Real-export MVP compatibility therefore remains open.
+The adapter does not yet interpret `exportVersion` or validate historical daily-activity variants. Adapter version `polar-flow-archive@2` resolves one source subject under [ADR 0005](../../architecture/decisions/0005-use-library-scoped-source-subject-correlation.md), but recognition still does not imply that every JSON structure or semantic variant is supported. Privacy-safe acceptance against the supplied reference export remains an explicit Milestone 2 gate.
 
 ## Synthetic evidence
 

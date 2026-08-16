@@ -36,7 +36,7 @@ Every stored canonical value retains the SHA-256 fingerprint of the package that
 
 Version 1 contains only the daily step total. It does not yet model activity samples, calories, distance, inactivity, source-local time ranges, physical information, or source-format versions. Adding a field or changing identity, missing-value, date, unit, or reconciliation semantics requires a new canonical contract version and corresponding mapping, persistence, migration, and synthetic evidence.
 
-The application host still supplies a synthetic development origin, so real-export import is not yet compatible. [ADR 0005](../../architecture/decisions/0005-use-library-scoped-source-subject-correlation.md) now defines the required replacement: canonical `originId` is an opaque library-local observation origin resolved from versioned, library-scoped provider evidence. The provider claim and its digest are not canonical fields. Implementation, migration, and acceptance evidence remain open in Milestone 2.
+[ADR 0005](../../architecture/decisions/0005-use-library-scoped-source-subject-correlation.md) is implemented by the production import path: canonical `originId` is an opaque library-local observation origin resolved from versioned, library-scoped provider evidence. The provider claim and its digest are not canonical fields. Historical source-format compatibility and privacy-safe reference-export acceptance remain open in Milestone 2, so this is not yet a released real-export compatibility claim.
 
 ## Automated evidence
 
