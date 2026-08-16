@@ -23,7 +23,9 @@ If the fast lane passes, run the smallest command that owns the failing boundary
 | Missing translation or plural structure | Locale catalog | Run `npm run check:i18n` and compare the affected key with canonical `en-US`. |
 | Presentation behavior failure | React presentation | Run `npm test`; preserve the user behavior protected by the failing assertion. |
 | Rust behavior failure | Domain, application, or adapter | Run `npm run test:rust` and diagnose the first causal failure before editing production code. |
+| Daily-activity read-model p95 exceeds its budget | SQLite query or application calculation | Run `npm run benchmark:activity`; retain the synthetic scale, host, run policy, and per-interaction JSON fields, then isolate query and calculation time without changing the budget. |
 | Packaged picker, restart, or accessibility failure | Desktop E2E boundary | Run `npm run verify:e2e` and inspect `.artifacts/e2e/evidence`. The WebdriverIO service embeds its driver; a global `tauri-driver` is not required. |
+| Packaged activity p95 exceeds its budget | Tauri transport, React update, or WebView rendering | Compare the packaged JSON with `npm run benchmark:activity`. Investigate only the remaining transport and render boundary after confirming the read-model result; WebDriver transport is outside the timed interval. |
 | Production package contains test capabilities | Packaging boundary | Rebuild with `npm run package`, then run `npm run check:production-bundle`. Do not distribute the instrumented E2E package. |
 
 ## Generated and private state

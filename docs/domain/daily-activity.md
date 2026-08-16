@@ -68,7 +68,7 @@ This evidence supports a candidate and synthetic tests, not a universal provider
 - Domain tests for identity, invariants, equivalence, enrichment, and conflict.
 - Adapter tests proving filename date agreement is validation evidence but the filename token is not identity.
 - Persistence tests proving one visible observation per origin/date and atomic reimport.
-- Performance evidence for overview filtering, two-period comparison, and responsive rendering at the documented scale boundary.
+- Performance evidence for every added field and sample projection at representative scale; the current step-only overview, comparison, and responsive-rendering gates do not cover a richer model.
 
 ## Open decisions
 

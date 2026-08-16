@@ -51,6 +51,7 @@ Polar Flow is the first importer, not the product identity. Later importers may 
 - [Active Milestone 2 plan](docs/plans/milestone-2.md)
 - [Contributor setup](docs/development/getting-started.md)
 - [Contributor troubleshooting](docs/development/troubleshooting.md)
+- [Performance benchmark guide](docs/development/performance-benchmarks.md)
 - [Localization guide](docs/development/localization.md)
 - [User documentation status](docs/user/README.md)
 - [Development preview guide](docs/user/development-preview.md)

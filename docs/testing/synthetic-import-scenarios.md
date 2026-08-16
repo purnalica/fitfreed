@@ -85,6 +85,8 @@ The implemented daily-activity matrix covers an absent or null summary, absent o
 - **E2E tests** use the same scenario definitions through the packaged desktop entry point and verify visible coverage, guidance, persistence, exploration, and both locales.
 - **Performance tests** expand deterministic generators to recorded scales without committing generated personal-like histories.
 
+The current `SYN-025` daily-activity slice has two complementary generated envelopes. The release-mode read-model benchmark creates ten years and four opaque origins directly in a temporary production-schema library to isolate indexed queries and application calculations. The packaged journey imports a two-year, one-origin provider archive with available, unavailable, and missing dates before measuring Tauri, React, and WebView filtering and comparison. Their exact methods and limits are documented in the [performance benchmark guide](../development/performance-benchmarks.md).
+
 ## Review safeguards
 
 - Fixture pull requests explain independent construction and identify the public format section they exercise.

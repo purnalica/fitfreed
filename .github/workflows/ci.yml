@@ -111,6 +111,9 @@ jobs:
           npm run format:check
           npm run lint:rust
 
+      - name: Verify daily activity performance budgets
+        run: npm run benchmark:activity
+
       - name: Prepare the private development release evidence
         run: npm run prepare:development-release -- "$FITFREED_RELEASE_VERSION"
 

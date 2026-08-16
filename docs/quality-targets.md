@@ -90,3 +90,5 @@ The MVP additionally requires:
 - Continuous integration protects fast regression budgets; scheduled or release workflows run large-scale and platform-specific scenarios.
 - Results are compared to a versioned baseline and identify the responsible phase or query.
 - Measurements never publish personal data, raw routes, identifiers, or sensitive diagnostic values.
+
+The implemented daily-activity gates, synthetic scales, percentile policy, timed boundaries, machine profile output, and interpretation limits are documented in the [performance benchmark guide](development/performance-benchmarks.md).

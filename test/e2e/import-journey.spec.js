@@ -3,11 +3,14 @@ import path from "node:path";
 
 import AxeBuilder from "@axe-core/webdriverio";
 
+import { runActivityPerformanceJourney } from "./support/activity-performance.js";
+
 const spanish = JSON.parse(
   fs.readFileSync(new URL("../../src/locales/es-ES.json", import.meta.url), "utf8"),
 );
 const fixtureDirectory = process.env.FITFREED_E2E_FIXTURE_DIRECTORY;
 const largeArchive = process.env.FITFREED_E2E_LARGE_ARCHIVE;
+const activityPerformanceArchive = process.env.FITFREED_E2E_ACTIVITY_PERFORMANCE_ARCHIVE;
 
 async function waitForNotice(fragment, timeout = 10_000) {
   await browser.waitUntil(
@@ -162,7 +165,7 @@ async function expectCoverage(expectedItems) {
 }
 
 describe("packaged FitFreed import journey", () => {
-  it("covers validation, outcomes, coverage, cancellation, reimport, accessibility, and restart", async () => {
+  it("covers validation, outcomes, coverage, cancellation, reimport, accessibility, performance, and restart", async () => {
     await expect($("h1")).toHaveText("Your fitness history belongs to you");
     await expect($("aria/Import selected package")).toBeDisabled();
 
@@ -498,5 +501,14 @@ describe("packaged FitFreed import journey", () => {
       [formatLocalDate("es-ES", "2026-01-04"), spanish.unavailable, spanish.activity.missing],
       [formatLocalDate("es-ES", "2026-01-05"), "5300", spanish.activity.available],
     ]);
+
+  });
+
+  it("meets activity filtering, comparison, and maximum rendering budgets", async () => {
+    await runActivityPerformanceJourney({
+      archivePath: activityPerformanceArchive,
+      selectArchive,
+      selectLocale,
+    });
   });
 });

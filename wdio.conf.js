@@ -9,6 +9,9 @@ process.env.FITFREED_E2E_DATABASE_PATH ??= path.resolve(
 );
 process.env.FITFREED_E2E_FIXTURE_DIRECTORY ??= path.resolve(".artifacts/e2e/fixtures");
 process.env.FITFREED_E2E_LARGE_ARCHIVE ??= path.resolve(".artifacts/e2e/large.zip");
+process.env.FITFREED_E2E_ACTIVITY_PERFORMANCE_ARCHIVE ??= path.resolve(
+  ".artifacts/e2e/activity-performance.zip",
+);
 
 export const config = {
   runner: "local",

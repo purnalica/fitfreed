@@ -17,6 +17,7 @@ FitFreed does not have a supported alpha release yet. The current executable fou
 - Follow the active [Milestone 2 MVP execution plan](plans/milestone-2.md) for increment boundaries and acceptance gates.
 - Use [private release preparation](development/release-preparation.md) for clean-revision package and installation evidence.
 - Use the [troubleshooting guide](development/troubleshooting.md) when a documented command fails.
+- Use the [performance benchmark guide](development/performance-benchmarks.md) for synthetic scales, timed boundaries, budgets, and regression evidence.
 - Use [private reference export acceptance](testing/private-reference-acceptance.md) only for the explicitly supplied local compatibility input.
 - Read the [module map](architecture/module-map.md), [testing strategy](testing-strategy.md), and [data-contract index](data-formats/README.md) before changing product behavior.
 - Follow the [localization guide](development/localization.md) for interface copy or language support.

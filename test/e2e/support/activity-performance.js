@@ -1,0 +1,287 @@
+import { execFileSync } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+
+const applicationVersion = JSON.parse(
+  fs.readFileSync(new URL("../../../package.json", import.meta.url), "utf8"),
+).version;
+const firstDate = Date.UTC(2024, 0, 1);
+const calendarDays = 731;
+const warmUpRuns = 4;
+
+function dateValue(value) {
+  const [year, month, day] = value.split("-").map(Number);
+  return Date.UTC(year, month - 1, day);
+}
+
+function formatLocalDate(value) {
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: "UTC" }).format(
+    new Date(dateValue(value)),
+  );
+}
+
+function inclusiveDays(from, through) {
+  return Math.floor((dateValue(through) - dateValue(from)) / 86_400_000) + 1;
+}
+
+function syntheticPeriodTotal(from, through) {
+  const fromIndex = Math.floor((dateValue(from) - firstDate) / 86_400_000);
+  const throughIndex = Math.floor((dateValue(through) - firstDate) / 86_400_000);
+  let total = 0n;
+  for (let index = fromIndex; index <= throughIndex; index += 1) {
+    const boundary = index === 0 || index === calendarDays - 1;
+    if (!boundary && index % 23 === 0) continue;
+    if (index % 19 === 0) continue;
+    total += BigInt((index * 7_919) % 40_000);
+  }
+  return new Intl.NumberFormat("en-US").format(total);
+}
+
+function storedObservationCount() {
+  return Array.from({ length: calendarDays }, (_, index) => index)
+    .filter((index) => index === 0 || index === calendarDays - 1 || index % 23 !== 0)
+    .length;
+}
+
+function percentile(values, requested) {
+  const sorted = [...values].sort((left, right) => left - right);
+  return sorted[Math.ceil((sorted.length - 1) * requested)];
+}
+
+function roundedMilliseconds(value) {
+  return Math.round(value * 1_000) / 1_000;
+}
+
+function measurementEvidence(timings, budget) {
+  const p95 = percentile(timings, 0.95);
+  return {
+    runs: timings.length,
+    medianMilliseconds: roundedMilliseconds(percentile(timings, 0.50)),
+    p95Milliseconds: roundedMilliseconds(p95),
+    maximumMilliseconds: roundedMilliseconds(Math.max(...timings)),
+    p95BudgetMilliseconds: budget,
+    passed: p95 <= budget,
+  };
+}
+
+function safeCommand(program, arguments_) {
+  try {
+    return execFileSync(program, arguments_, { encoding: "utf8" }).trim();
+  } catch {
+    return null;
+  }
+}
+
+function evidence(measurements) {
+  const storage = fs.statfsSync(".");
+  return {
+    schemaVersion: 1,
+    runtime: "packaged-macos-webview",
+    applicationVersion,
+    sourceRevision: safeCommand("git", ["rev-parse", "HEAD"]),
+    host: {
+      operatingSystem: os.platform(),
+      operatingSystemVersion: safeCommand("sw_vers", ["-productVersion"]) ?? os.release(),
+      architecture: os.arch(),
+      deviceModel: safeCommand("sysctl", ["-n", "hw.model"]),
+      processor: os.cpus()[0]?.model ?? null,
+      totalMemoryBytes: os.totalmem(),
+      freeStorageBytes: Number(storage.bavail) * Number(storage.bsize),
+    },
+    scenario: {
+      generator: "independently-authored-deterministic",
+      from: "2024-01-01",
+      through: "2025-12-31",
+      calendarDays,
+      origins: 1,
+    },
+    method: {
+      warmUpRunsPerInteraction: warmUpRuns,
+      commonMeasuredRuns: 20,
+      maximumMeasuredRuns: 7,
+      percentile: "sorted zero-based index ceil((n - 1) * 0.95)",
+      scope: "packaged Tauri command, React update, and rendered exact table",
+    },
+    measurements,
+  };
+}
+
+async function applyActivityRange(from, through) {
+  const input = {
+    from,
+    through,
+    expectedRows: inclusiveDays(from, through),
+    expectedFirstDate: formatLocalDate(from),
+  };
+  const result = await browser.executeAsync((expected, done) => {
+    const inputs = document.querySelectorAll(".activity-filter input[type='date']");
+    const setValue = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    ).set;
+    [expected.from, expected.through].forEach((value, index) => {
+      setValue.call(inputs[index], value);
+      inputs[index].dispatchEvent(new Event("input", { bubbles: true }));
+      inputs[index].dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    const started = window.performance.now();
+    document.querySelector(".activity-filter button[type='submit']").click();
+    function observeResult() {
+      const rows = document.querySelectorAll(".history-grid table tbody tr");
+      const renderedFirstDate = rows[0]?.querySelector("td")?.textContent;
+      if (
+        rows.length === expected.expectedRows
+        && renderedFirstDate === expected.expectedFirstDate
+      ) {
+        requestAnimationFrame(() => done({
+          duration: window.performance.now() - started,
+          error: null,
+        }));
+        return;
+      }
+      if (window.performance.now() - started > 5_000) {
+        done({ duration: null, error: "activity range was not rendered" });
+        return;
+      }
+      requestAnimationFrame(observeResult);
+    }
+    requestAnimationFrame(observeResult);
+  }, input);
+  if (result.error) throw new Error(`${result.error}: ${from} through ${through}`);
+  return result.duration;
+}
+
+async function compareActivityRanges(ranges) {
+  const input = {
+    ...ranges,
+    expectedBaselineTotal: syntheticPeriodTotal(
+      ranges.baselineFrom,
+      ranges.baselineThrough,
+    ),
+  };
+  const result = await browser.executeAsync((expected, done) => {
+    const inputs = document.querySelectorAll(".activity-comparison input[type='date']");
+    const setValue = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    ).set;
+    [
+      expected.baselineFrom,
+      expected.baselineThrough,
+      expected.comparisonFrom,
+      expected.comparisonThrough,
+    ].forEach((value, index) => {
+      setValue.call(inputs[index], value);
+      inputs[index].dispatchEvent(new Event("input", { bubbles: true }));
+      inputs[index].dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    const started = window.performance.now();
+    document.querySelector(".activity-comparison button[type='submit']").click();
+    function observeResult() {
+      const cells = document.querySelectorAll(
+        ".activity-comparison-result table tbody tr:first-child th, "
+        + ".activity-comparison-result table tbody tr:first-child td",
+      );
+      if (cells.length === 4 && cells[1].textContent === expected.expectedBaselineTotal) {
+        requestAnimationFrame(() => done({
+          duration: window.performance.now() - started,
+          error: null,
+        }));
+        return;
+      }
+      if (window.performance.now() - started > 5_000) {
+        done({ duration: null, error: "activity comparison was not rendered" });
+        return;
+      }
+      requestAnimationFrame(observeResult);
+    }
+    requestAnimationFrame(observeResult);
+  }, input);
+  if (result.error) throw new Error(result.error);
+  return result.duration;
+}
+
+async function waitForDailyActivityCoverage() {
+  const expectedCount = storedObservationCount();
+  await browser.waitUntil(async () => {
+    const rows = await $$(".family-coverage-table tbody tr");
+    for (const row of rows) {
+      if ((await row.$("th").getText()) !== "Daily activity") continue;
+      const cells = await row.$$("td");
+      return (await cells[1].getText()) === String(expectedCount);
+    }
+    return false;
+  }, { timeout: 30_000, timeoutMsg: "performance history import did not complete" });
+}
+
+async function measureAlternating(executions, scenarios, operation) {
+  const timings = [];
+  for (let index = 0; index < executions; index += 1) {
+    timings.push(await operation(scenarios[index % scenarios.length]));
+  }
+  return timings;
+}
+
+export async function runActivityPerformanceJourney({ archivePath, selectArchive, selectLocale }) {
+  await selectLocale("en-US");
+  const dialogMock = await browser.tauri.mock("plugin:dialog|open");
+  await selectArchive(dialogMock, archivePath);
+  await $("aria/Import selected package").click();
+  await waitForDailyActivityCoverage();
+
+  const commonRanges = [
+    ["2025-01-01", "2025-01-30"],
+    ["2025-02-01", "2025-03-02"],
+  ];
+  const filterRange = ([from, through]) => applyActivityRange(from, through);
+  await measureAlternating(warmUpRuns, commonRanges, filterRange);
+  const commonFilterTimings = await measureAlternating(20, commonRanges, filterRange);
+
+  const maximumRanges = [
+    ["2024-01-01", "2024-12-31"],
+    ["2024-12-31", "2025-12-31"],
+  ];
+  await measureAlternating(warmUpRuns, maximumRanges, filterRange);
+  const maximumFilterTimings = await measureAlternating(7, maximumRanges, filterRange);
+  await browser.execute(() => {
+    document.documentElement.style.fontSize = "200%";
+  });
+  const maximumRangeHasNoHorizontalOverflow = await browser.execute(
+    () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+  );
+  expect(maximumRangeHasNoHorizontalOverflow).toBe(true);
+  await browser.execute(() => {
+    document.documentElement.style.fontSize = "";
+  });
+
+  const comparisonRanges = [
+    {
+      baselineFrom: "2024-01-01",
+      baselineThrough: "2024-01-30",
+      comparisonFrom: "2024-02-01",
+      comparisonThrough: "2024-03-01",
+    },
+    {
+      baselineFrom: "2024-04-01",
+      baselineThrough: "2024-04-30",
+      comparisonFrom: "2024-05-01",
+      comparisonThrough: "2024-05-30",
+    },
+  ];
+  await measureAlternating(warmUpRuns, comparisonRanges, compareActivityRanges);
+  const commonComparisonTimings = await measureAlternating(
+    20,
+    comparisonRanges,
+    compareActivityRanges,
+  );
+
+  const measurements = {
+    commonFilter: measurementEvidence(commonFilterTimings, 500),
+    maximumFilter: measurementEvidence(maximumFilterTimings, 2_000),
+    commonComparison: measurementEvidence(commonComparisonTimings, 500),
+  };
+  process.stdout.write(`${JSON.stringify(evidence(measurements))}\n`);
+  expect(measurements.commonFilter.passed).toBe(true);
+  expect(measurements.maximumFilter.passed).toBe(true);
+  expect(measurements.commonComparison.passed).toBe(true);
+}
