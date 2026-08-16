@@ -416,6 +416,179 @@ for (const invalidChange of ["-0", "+1", "01"]) {
   }
 }
 
+const trainingOverviewPath = "docs/data-formats/insights/training-overview-v1.md";
+const trainingOverview = read(trainingOverviewPath);
+for (const field of [
+  "requestedRange",
+  "availableRange",
+  "selectedRange",
+  "series",
+  "seriesRef",
+  "summary",
+  "sessions",
+  "sessionRef",
+  "startedAtLocal",
+  "stoppedAtLocal",
+  "utcOffsetMinutes",
+  "durationMilliseconds",
+  "distanceMeters",
+  "energyKilocalories",
+  "averageHeartRateBpm",
+  "maximumHeartRateBpm",
+  "sportRef",
+  "exerciseCount",
+  "calendarDays",
+  "trainingDays",
+  "sessionCount",
+  "totalDurationMilliseconds",
+  "distanceSessionCount",
+  "totalDistanceMeters",
+  "energySessionCount",
+  "totalEnergyKilocalories",
+  "heartRateSessionCount",
+  "invalid-training-range",
+]) {
+  requireMention(trainingOverview, field, trainingOverviewPath);
+}
+const trainingOverviewQuerySchemaPath = "schemas/training-overview-query-v1.schema.json";
+const trainingOverviewQuerySchema = JSON.parse(read(trainingOverviewQuerySchemaPath));
+const validateTrainingOverviewQuery = ajv.compile(trainingOverviewQuerySchema);
+for (const query of [
+  { requestedRange: null },
+  { requestedRange: { from: "2026-01-01", through: "2026-01-31" } },
+]) {
+  if (!validateTrainingOverviewQuery(query)) {
+    throw new Error(
+      `${trainingOverviewQuerySchemaPath} rejected a valid query: ${ajv.errorsText(validateTrainingOverviewQuery.errors)}`,
+    );
+  }
+}
+for (const query of [
+  {},
+  { requestedRange: { from: "2026-02-30", through: "2026-03-01" } },
+  { requestedRange: null, provider: "synthetic" },
+]) {
+  if (validateTrainingOverviewQuery(query)) {
+    throw new Error(`${trainingOverviewQuerySchemaPath} accepted an invalid query`);
+  }
+}
+const trainingSummary = {
+  calendarDays: 31,
+  trainingDays: 2,
+  sessionCount: 2,
+  totalDurationMilliseconds: "5400000",
+  distanceSessionCount: 1,
+  totalDistanceMeters: 5000.25,
+  energySessionCount: 2,
+  totalEnergyKilocalories: "750",
+  heartRateSessionCount: 1,
+};
+const syntheticTrainingOverview = {
+  availableRange: { from: "2026-01-01", through: "2026-01-31" },
+  selectedRange: { from: "2026-01-01", through: "2026-01-31" },
+  series: [{
+    seriesRef: "synthetic-origin",
+    summary: trainingSummary,
+    sessions: [{
+      sessionRef: "synthetic-session",
+      startedAtLocal: "2026-01-20T09:00:00.123",
+      stoppedAtLocal: "2026-01-20T10:00:00.123",
+      utcOffsetMinutes: 60,
+      durationMilliseconds: "3600000",
+      distanceMeters: 5000.25,
+      energyKilocalories: "500",
+      averageHeartRateBpm: "140",
+      maximumHeartRateBpm: "170",
+      sportRef: "synthetic-sport",
+      exerciseCount: 1,
+    }],
+  }],
+};
+const trainingOverviewSchemaPath = "schemas/training-overview-v1.schema.json";
+const trainingOverviewSchema = JSON.parse(read(trainingOverviewSchemaPath));
+const validateTrainingOverview = ajv.compile(trainingOverviewSchema);
+if (!validateTrainingOverview(syntheticTrainingOverview)) {
+  throw new Error(
+    `${trainingOverviewSchemaPath} rejected its synthetic response: ${ajv.errorsText(validateTrainingOverview.errors)}`,
+  );
+}
+const invalidTrainingOverview = structuredClone(syntheticTrainingOverview);
+invalidTrainingOverview.series[0].sessions[0].durationMilliseconds = "01";
+if (validateTrainingOverview(invalidTrainingOverview)) {
+  throw new Error(`${trainingOverviewSchemaPath} accepted a non-canonical duration`);
+}
+
+const trainingComparisonPath = "docs/data-formats/insights/training-comparison-v1.md";
+const trainingComparison = read(trainingComparisonPath);
+for (const field of [
+  "baselineRange",
+  "comparisonRange",
+  "availableRange",
+  "seriesRef",
+  "baseline",
+  "comparison",
+  "sessionCountChange",
+  "trainingDayChange",
+  "durationMillisecondsChange",
+  "distanceMetersChange",
+  "energyKilocaloriesChange",
+]) {
+  requireMention(trainingComparison, field, trainingComparisonPath);
+}
+const trainingComparisonQuerySchemaPath = "schemas/training-comparison-query-v1.schema.json";
+const trainingComparisonQuerySchema = JSON.parse(read(trainingComparisonQuerySchemaPath));
+const validateTrainingComparisonQuery = ajv.compile(trainingComparisonQuerySchema);
+const syntheticTrainingComparisonQuery = {
+  baselineRange: { from: "2026-01-01", through: "2026-01-02" },
+  comparisonRange: { from: "2026-01-04", through: "2026-01-05" },
+};
+if (!validateTrainingComparisonQuery(syntheticTrainingComparisonQuery)) {
+  throw new Error(
+    `${trainingComparisonQuerySchemaPath} rejected its synthetic query: ${ajv.errorsText(validateTrainingComparisonQuery.errors)}`,
+  );
+}
+for (const invalidQuery of [
+  { baselineRange: syntheticTrainingComparisonQuery.baselineRange },
+  { ...syntheticTrainingComparisonQuery, provider: "synthetic" },
+  {
+    ...syntheticTrainingComparisonQuery,
+    comparisonRange: { from: "2026-02-30", through: "2026-03-01" },
+  },
+]) {
+  if (validateTrainingComparisonQuery(invalidQuery)) {
+    throw new Error(`${trainingComparisonQuerySchemaPath} accepted an invalid query`);
+  }
+}
+const trainingComparisonSchemaPath = "schemas/training-comparison-v1.schema.json";
+const trainingComparisonSchema = JSON.parse(read(trainingComparisonSchemaPath));
+const validateTrainingComparison = ajv.compile(trainingComparisonSchema);
+const syntheticTrainingComparison = {
+  availableRange: { from: "2026-01-01", through: "2026-01-05" },
+  ...syntheticTrainingComparisonQuery,
+  series: [{
+    seriesRef: "synthetic-origin",
+    baseline: trainingSummary,
+    comparison: { ...trainingSummary, sessionCount: 3, trainingDays: 3 },
+    sessionCountChange: "1",
+    trainingDayChange: "1",
+    durationMillisecondsChange: "0",
+    distanceMetersChange: -500.25,
+    energyKilocaloriesChange: null,
+  }],
+};
+if (!validateTrainingComparison(syntheticTrainingComparison)) {
+  throw new Error(
+    `${trainingComparisonSchemaPath} rejected its synthetic response: ${ajv.errorsText(validateTrainingComparison.errors)}`,
+  );
+}
+for (const invalidChange of ["-0", "+1", "01"]) {
+  const invalidComparison = structuredClone(syntheticTrainingComparison);
+  invalidComparison.series[0].sessionCountChange = invalidChange;
+  if (validateTrainingComparison(invalidComparison)) {
+    throw new Error(`${trainingComparisonSchemaPath} accepted invalid change ${invalidChange}`);
+  }
+}
+
 const indexPath = "docs/data-formats/README.md";
 const index = read(indexPath);
 for (const contractPath of [
@@ -424,6 +597,8 @@ for (const contractPath of [
   activityOverviewPath,
   activityOverviewV2Path,
   activityComparisonPath,
+  trainingOverviewPath,
+  trainingComparisonPath,
   ...persistencePaths,
 ]) {
   const relativeContract = path.relative(path.dirname(indexPath), contractPath);
@@ -433,5 +608,5 @@ for (const contractPath of [
 }
 
 process.stdout.write(
-  `${JSON.stringify({ schemaVersion, sourceAdapterVersion, migrations, persistencePaths, activityOverviewSchemas: [activityOverviewSchemaPath, activityOverviewQueryV2SchemaPath, activityOverviewV2SchemaPath], activityComparisonSchemas: [activityComparisonQuerySchemaPath, activityComparisonSchemaPath], canonicalFields: 3, mappingFields: 6 })}\n`,
+  `${JSON.stringify({ schemaVersion, sourceAdapterVersion, migrations, persistencePaths, activityOverviewSchemas: [activityOverviewSchemaPath, activityOverviewQueryV2SchemaPath, activityOverviewV2SchemaPath], activityComparisonSchemas: [activityComparisonQuerySchemaPath, activityComparisonSchemaPath], trainingOverviewSchemas: [trainingOverviewQuerySchemaPath, trainingOverviewSchemaPath], trainingComparisonSchemas: [trainingComparisonQuerySchemaPath, trainingComparisonSchemaPath], canonicalFields: 3, mappingFields: 6 })}\n`,
 );

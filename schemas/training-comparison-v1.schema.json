@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-comparison-v1.schema.json",
+  "title": "FitFreed training comparison version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["availableRange", "baselineRange", "comparisonRange", "series"],
+  "properties": {
+    "availableRange": { "$ref": "training-overview-v1.schema.json#/$defs/optionalRange" },
+    "baselineRange": { "$ref": "training-overview-v1.schema.json#/$defs/optionalRange" },
+    "comparisonRange": { "$ref": "training-overview-v1.schema.json#/$defs/optionalRange" },
+    "series": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/series" }
+    }
+  },
+  "$defs": {
+    "signedDecimal": {
+      "type": "string",
+      "pattern": "^(0|-?[1-9][0-9]*)$"
+    },
+    "optionalSignedDecimal": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/signedDecimal" }
+      ]
+    },
+    "optionalSignedDistance": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "number" }
+      ]
+    },
+    "series": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "seriesRef",
+        "baseline",
+        "comparison",
+        "sessionCountChange",
+        "trainingDayChange",
+        "durationMillisecondsChange",
+        "distanceMetersChange",
+        "energyKilocaloriesChange"
+      ],
+      "properties": {
+        "seriesRef": { "type": "string", "minLength": 1 },
+        "baseline": { "$ref": "training-overview-v1.schema.json#/$defs/summary" },
+        "comparison": { "$ref": "training-overview-v1.schema.json#/$defs/summary" },
+        "sessionCountChange": { "$ref": "#/$defs/signedDecimal" },
+        "trainingDayChange": { "$ref": "#/$defs/signedDecimal" },
+        "durationMillisecondsChange": { "$ref": "#/$defs/signedDecimal" },
+        "distanceMetersChange": { "$ref": "#/$defs/optionalSignedDistance" },
+        "energyKilocaloriesChange": { "$ref": "#/$defs/optionalSignedDecimal" }
+      }
+    }
+  }
+}

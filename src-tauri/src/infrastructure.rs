@@ -21,10 +21,12 @@ use sha2::{Digest, Sha256};
 use thiserror::Error;
 use zip::ZipArchive;
 
+#[cfg(test)]
+use fitfreed_application::query_default_training_overview;
 use fitfreed_application::{
     ActivityDateRange, ActivityLibraryPort, ArchiveImportPort, ImportOutcomeLibraryPort,
     ImportPhase, ImportPhaseTimings, ImportProgress, LocalePreference, LocalePreferencePort,
-    ProfiledImport,
+    ProfiledImport, TrainingDateRange, TrainingLibraryPort,
 };
 use fitfreed_domain::{
     decide_reconciliation, decide_training_session_reconciliation, ArtifactClassification,
@@ -104,6 +106,8 @@ pub enum ImportError {
     InvalidPersistedArtifactClassification(String),
     #[error("invalid activity library: {0}")]
     InvalidActivityLibrary(String),
+    #[error("invalid training library: {0}")]
+    InvalidTrainingLibrary(String),
     #[error("invalid persisted non-negative count in {column}: {value}")]
     InvalidPersistedCount { column: &'static str, value: i64 },
     #[error("invalid persisted locale preference: {0}")]
@@ -863,6 +867,51 @@ pub fn query_activity(database_path: &Path) -> Result<Vec<DailyActivity>> {
 }
 
 pub fn query_training_sessions(database_path: &Path) -> Result<Vec<TrainingSession>> {
+    query_training_between(database_path, None, None)
+}
+
+pub fn query_training_bounds(database_path: &Path) -> Result<Option<TrainingDateRange>> {
+    let connection = Connection::open(database_path)?;
+    ensure_schema(&connection)?;
+    let (from, through) = connection.query_row(
+        "SELECT substr(MIN(started_at_local), 1, 10),
+                substr(MAX(started_at_local), 1, 10)
+         FROM training_session",
+        [],
+        |row| {
+            Ok((
+                row.get::<_, Option<String>>(0)?,
+                row.get::<_, Option<String>>(1)?,
+            ))
+        },
+    )?;
+    match (from, through) {
+        (None, None) => Ok(None),
+        (Some(from), Some(through)) => Ok(Some(TrainingDateRange { from, through })),
+        _ => Err(ImportError::InvalidTrainingLibrary(
+            "training bounds are incomplete".to_owned(),
+        )),
+    }
+}
+
+pub fn query_training_origins(database_path: &Path) -> Result<Vec<String>> {
+    let connection = Connection::open(database_path)?;
+    ensure_schema(&connection)?;
+    let mut statement = connection.prepare(
+        "SELECT DISTINCT origin_id
+         FROM training_session
+         ORDER BY origin_id",
+    )?;
+    let rows = statement.query_map([], |row| row.get(0))?;
+    rows.collect::<std::result::Result<Vec<_>, _>>()
+        .map_err(ImportError::from)
+}
+
+pub fn query_training_between(
+    database_path: &Path,
+    from: Option<&str>,
+    through: Option<&str>,
+) -> Result<Vec<TrainingSession>> {
     let connection = Connection::open(database_path)?;
     ensure_schema(&connection)?;
     let mut statement = connection.prepare(
@@ -871,9 +920,11 @@ pub fn query_training_sessions(database_path: &Path) -> Result<Vec<TrainingSessi
                 energy_kilocalories, average_heart_rate_bpm, maximum_heart_rate_bpm,
                 sport_ref, exercise_count
          FROM training_session
+         WHERE (?1 IS NULL OR started_at_local >= ?1 || 'T')
+           AND (?2 IS NULL OR started_at_local <= ?2 || 'T23:59:59.999999999')
          ORDER BY started_at_local, origin_id, session_id",
     )?;
-    let rows = statement.query_map([], |row| {
+    let rows = statement.query_map(params![from, through], |row| {
         Ok((
             row.get::<_, String>(0)?,
             row.get::<_, String>(1)?,
@@ -1659,6 +1710,7 @@ fn terminal_code(error: &ImportError) -> &'static str {
         | ImportError::InvalidPersistedCount { .. }
         | ImportError::InvalidPersistedLocale(_) => "invalid-persisted-import-outcome",
         ImportError::InvalidActivityLibrary(_) => "invalid-activity-library",
+        ImportError::InvalidTrainingLibrary(_) => "invalid-training-library",
         ImportError::InvalidCorrelationKeyLength(_) => "invalid-library-correlation-state",
         ImportError::InvalidSourceSubjectClaim => "invalid-source-subject-evidence",
         ImportError::SourceSubjectConflict => "source-subject-confirmation-required",
@@ -2556,6 +2608,38 @@ impl ActivityLibraryPort for SqliteActivityLibrary {
     }
 }
 
+pub struct SqliteTrainingLibrary {
+    database_path: PathBuf,
+}
+
+impl SqliteTrainingLibrary {
+    pub fn new(database_path: PathBuf) -> Self {
+        Self { database_path }
+    }
+}
+
+impl TrainingLibraryPort for SqliteTrainingLibrary {
+    fn training_bounds(&self) -> std::result::Result<Option<TrainingDateRange>, String> {
+        query_training_bounds(&self.database_path).map_err(|error| error.to_string())
+    }
+
+    fn training_origins(&self) -> std::result::Result<Vec<String>, String> {
+        query_training_origins(&self.database_path).map_err(|error| error.to_string())
+    }
+
+    fn query_training(
+        &self,
+        range: &TrainingDateRange,
+    ) -> std::result::Result<Vec<TrainingSession>, String> {
+        query_training_between(
+            &self.database_path,
+            Some(range.from.as_str()),
+            Some(range.through.as_str()),
+        )
+        .map_err(|error| error.to_string())
+    }
+}
+
 pub struct SqliteImportOutcomeLibrary {
     database_path: PathBuf,
 }
@@ -2750,6 +2834,34 @@ mod tests {
                 exercise_count: Some(1),
             }]
         );
+        assert_eq!(
+            query_training_bounds(&harness.database()).expect("training bounds"),
+            Some(TrainingDateRange {
+                from: "2026-01-02".to_owned(),
+                through: "2026-01-02".to_owned(),
+            })
+        );
+        assert_eq!(
+            query_training_origins(&harness.database()).expect("training origins"),
+            vec![history[0].origin_id.clone()]
+        );
+        assert_eq!(
+            query_training_between(&harness.database(), Some("2026-01-02"), Some("2026-01-02"))
+                .expect("training range"),
+            history
+        );
+        assert!(query_training_between(
+            &harness.database(),
+            Some("2026-01-03"),
+            Some("2026-01-03")
+        )
+        .expect("empty training range")
+        .is_empty());
+        let library = SqliteTrainingLibrary::new(harness.database());
+        let overview = query_default_training_overview(&library).expect("training read model");
+        assert_eq!(overview.series.len(), 1);
+        assert_eq!(overview.series[0].summary.session_count, 1);
+        assert_eq!(overview.series[0].sessions.len(), 1);
 
         let connection = Connection::open(harness.database()).expect("database");
         let table_names = connection

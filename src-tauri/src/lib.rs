@@ -6,11 +6,12 @@ use std::path::{Path, PathBuf};
 use fitfreed_application::{ImportCoordinator, ImportProgress, LocalePreference};
 use infrastructure::{
     recover_interrupted_imports, SqliteActivityLibrary, SqliteImportOutcomeLibrary,
-    SqliteLocalePreferences, SqlitePolarFlowArchiveImporter,
+    SqliteLocalePreferences, SqlitePolarFlowArchiveImporter, SqliteTrainingLibrary,
 };
 use presentation::{
     ActivityComparisonDto, ActivityDateRangeDto, ActivityOverviewDto, CommandErrorDto,
-    ImportOutcomeDto, ImportProgressDto, ImportReportDto,
+    ImportOutcomeDto, ImportProgressDto, ImportReportDto, TrainingComparisonDto,
+    TrainingDateRangeDto, TrainingOverviewDto,
 };
 use tauri::{ipc::Channel, AppHandle, Manager, State};
 
@@ -73,6 +74,35 @@ fn query_activity_comparison(
         comparison_range.into(),
     )
     .map(ActivityComparisonDto::from)
+    .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn query_training_overview(
+    app: AppHandle,
+    requested_range: Option<TrainingDateRangeDto>,
+) -> Result<TrainingOverviewDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let library = SqliteTrainingLibrary::new(path);
+    fitfreed_application::query_training_overview(&library, requested_range.map(Into::into))
+        .map(TrainingOverviewDto::from)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn query_training_comparison(
+    app: AppHandle,
+    baseline_range: TrainingDateRangeDto,
+    comparison_range: TrainingDateRangeDto,
+) -> Result<TrainingComparisonDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let library = SqliteTrainingLibrary::new(path);
+    fitfreed_application::query_training_comparison(
+        &library,
+        baseline_range.into(),
+        comparison_range.into(),
+    )
+    .map(TrainingComparisonDto::from)
     .map_err(CommandErrorDto::from)
 }
 
@@ -141,6 +171,8 @@ pub fn run() {
             cancel_import,
             query_activity_overview,
             query_activity_comparison,
+            query_training_overview,
+            query_training_comparison,
             query_latest_import_outcome,
             load_locale,
             save_locale

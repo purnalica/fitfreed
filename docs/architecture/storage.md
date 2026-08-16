@@ -44,6 +44,8 @@ Schema version 5 adds only `daily_activity_local_date_origin`, an index ordered 
 
 Schema version 6 adds training summaries keyed by origin and source-scoped session identity. Source `modified` time remains persistence and provenance control state rather than a canonical training fact. A later valid revision atomically amends the visible summary; older evidence cannot roll it back and equal revision evidence with different content becomes an explicit conflict. The import operation records an adapter-wide mapping-set version while each provenance row retains its family-specific mapping version.
 
+The training Insights adapter derives earliest and latest local start dates, an ordered distinct origin catalog, and inclusive bounded session facts through `training_session_start_origin`. Date selection is lexical over the canonical local date-time representation and remains independent of the computer time zone. SQLite does not aggregate durations, optional measurements, training days, or comparison changes; those provider-neutral rules belong to the application read models.
+
 New origin and evidence rows become durable only inside the same visibility transaction as canonical history and operation completion. Existing development origins migrate as unverified origins without invented evidence. Exact-repeat lookup may inherit an origin only from a completed operation whose correlation state is verified; an old package fingerprint alone cannot authorize subject resolution.
 
 Exact-repeat reuse is additionally scoped to the current source provider, adapter version, and mapping version. Identical bytes are reassessed after any compatibility-contract change, so a previous outcome cannot bypass validation added by a newer adapter.

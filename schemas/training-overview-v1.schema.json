@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-overview-v1.schema.json",
+  "title": "FitFreed training overview version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["availableRange", "selectedRange", "series"],
+  "properties": {
+    "availableRange": { "$ref": "#/$defs/optionalRange" },
+    "selectedRange": { "$ref": "#/$defs/optionalRange" },
+    "series": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/series" }
+    }
+  },
+  "$defs": {
+    "localDate": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "localDateTime": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?$"
+    },
+    "range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "through"],
+      "properties": {
+        "from": { "$ref": "#/$defs/localDate" },
+        "through": { "$ref": "#/$defs/localDate" }
+      }
+    },
+    "optionalRange": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/range" }
+      ]
+    },
+    "unsignedDecimal": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$"
+    },
+    "optionalUnsignedDecimal": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/unsignedDecimal" }
+      ]
+    },
+    "optionalDistance": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "number", "minimum": 0 }
+      ]
+    },
+    "optionalString": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "string", "minLength": 1 }
+      ]
+    },
+    "optionalInteger": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "integer", "minimum": 0 }
+      ]
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "calendarDays",
+        "trainingDays",
+        "sessionCount",
+        "totalDurationMilliseconds",
+        "distanceSessionCount",
+        "totalDistanceMeters",
+        "energySessionCount",
+        "totalEnergyKilocalories",
+        "heartRateSessionCount"
+      ],
+      "properties": {
+        "calendarDays": { "type": "integer", "minimum": 1, "maximum": 366 },
+        "trainingDays": { "type": "integer", "minimum": 0, "maximum": 366 },
+        "sessionCount": { "type": "integer", "minimum": 0 },
+        "totalDurationMilliseconds": { "$ref": "#/$defs/unsignedDecimal" },
+        "distanceSessionCount": { "type": "integer", "minimum": 0 },
+        "totalDistanceMeters": { "$ref": "#/$defs/optionalDistance" },
+        "energySessionCount": { "type": "integer", "minimum": 0 },
+        "totalEnergyKilocalories": { "$ref": "#/$defs/optionalUnsignedDecimal" },
+        "heartRateSessionCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "session": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sessionRef",
+        "startedAtLocal",
+        "stoppedAtLocal",
+        "utcOffsetMinutes",
+        "durationMilliseconds",
+        "distanceMeters",
+        "energyKilocalories",
+        "averageHeartRateBpm",
+        "maximumHeartRateBpm",
+        "sportRef",
+        "exerciseCount"
+      ],
+      "properties": {
+        "sessionRef": { "type": "string", "minLength": 1 },
+        "startedAtLocal": { "$ref": "#/$defs/localDateTime" },
+        "stoppedAtLocal": { "$ref": "#/$defs/localDateTime" },
+        "utcOffsetMinutes": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "integer", "minimum": -2147483648, "maximum": 2147483647 }
+          ]
+        },
+        "durationMilliseconds": { "$ref": "#/$defs/unsignedDecimal" },
+        "distanceMeters": { "$ref": "#/$defs/optionalDistance" },
+        "energyKilocalories": { "$ref": "#/$defs/optionalUnsignedDecimal" },
+        "averageHeartRateBpm": { "$ref": "#/$defs/optionalUnsignedDecimal" },
+        "maximumHeartRateBpm": { "$ref": "#/$defs/optionalUnsignedDecimal" },
+        "sportRef": { "$ref": "#/$defs/optionalString" },
+        "exerciseCount": { "$ref": "#/$defs/optionalInteger" }
+      }
+    },
+    "series": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["seriesRef", "summary", "sessions"],
+      "properties": {
+        "seriesRef": { "type": "string", "minLength": 1 },
+        "summary": { "$ref": "#/$defs/summary" },
+        "sessions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/session" }
+        }
+      }
+    }
+  }
+}

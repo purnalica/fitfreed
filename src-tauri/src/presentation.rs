@@ -3,7 +3,9 @@ use serde::{Deserialize, Serialize};
 use fitfreed_application::{
     ActivityComparison, ActivityDateRange, ActivityDayAvailability, ActivityDayInsight,
     ActivityOverview, ActivitySeriesComparison, ActivitySeriesOverview, ActivitySeriesSummary,
-    ApplicationError, ImportPhase, ImportProgress,
+    ApplicationError, ImportPhase, ImportProgress, TrainingComparison, TrainingDateRange,
+    TrainingOverview, TrainingSeriesComparison, TrainingSeriesOverview, TrainingSeriesSummary,
+    TrainingSessionInsight,
 };
 use fitfreed_domain::{
     ArtifactCoverageSummary, ArtifactFamilyCoverage, ImportOutcome, ImportReport,
@@ -29,6 +31,7 @@ impl From<ApplicationError> for CommandErrorDto {
             ApplicationError::Import(_) => "import-failed",
             ApplicationError::Query(_) => "library-query-failed",
             ApplicationError::InvalidActivityRange(_) => "invalid-activity-range",
+            ApplicationError::InvalidTrainingRange(_) => "invalid-training-range",
             ApplicationError::OutcomeQuery(_) => "outcome-query-failed",
             ApplicationError::PreferenceQuery(_) => "preference-query-failed",
             ApplicationError::PreferenceUpdate(_) => "preference-update-failed",
@@ -183,6 +186,187 @@ pub struct ActivityComparisonDto {
     baseline_range: Option<ActivityDateRangeDto>,
     comparison_range: Option<ActivityDateRangeDto>,
     series: Vec<ActivitySeriesComparisonDto>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingDateRangeDto {
+    from: String,
+    through: String,
+}
+
+impl From<TrainingDateRangeDto> for TrainingDateRange {
+    fn from(range: TrainingDateRangeDto) -> Self {
+        Self {
+            from: range.from,
+            through: range.through,
+        }
+    }
+}
+
+impl From<TrainingDateRange> for TrainingDateRangeDto {
+    fn from(range: TrainingDateRange) -> Self {
+        Self {
+            from: range.from,
+            through: range.through,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSessionInsightDto {
+    session_ref: String,
+    started_at_local: String,
+    stopped_at_local: String,
+    utc_offset_minutes: Option<i32>,
+    duration_milliseconds: String,
+    distance_meters: Option<f64>,
+    energy_kilocalories: Option<String>,
+    average_heart_rate_bpm: Option<String>,
+    maximum_heart_rate_bpm: Option<String>,
+    sport_ref: Option<String>,
+    exercise_count: Option<usize>,
+}
+
+impl From<TrainingSessionInsight> for TrainingSessionInsightDto {
+    fn from(session: TrainingSessionInsight) -> Self {
+        Self {
+            session_ref: session.session_ref,
+            started_at_local: session.started_at_local,
+            stopped_at_local: session.stopped_at_local,
+            utc_offset_minutes: session.utc_offset_minutes,
+            duration_milliseconds: session.duration_milliseconds.to_string(),
+            distance_meters: session.distance_meters,
+            energy_kilocalories: session.energy_kilocalories.map(|value| value.to_string()),
+            average_heart_rate_bpm: session
+                .average_heart_rate_bpm
+                .map(|value| value.to_string()),
+            maximum_heart_rate_bpm: session
+                .maximum_heart_rate_bpm
+                .map(|value| value.to_string()),
+            sport_ref: session.sport_ref,
+            exercise_count: session.exercise_count,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSeriesSummaryDto {
+    calendar_days: usize,
+    training_days: usize,
+    session_count: usize,
+    total_duration_milliseconds: String,
+    distance_session_count: usize,
+    total_distance_meters: Option<f64>,
+    energy_session_count: usize,
+    total_energy_kilocalories: Option<String>,
+    heart_rate_session_count: usize,
+}
+
+impl From<TrainingSeriesSummary> for TrainingSeriesSummaryDto {
+    fn from(summary: TrainingSeriesSummary) -> Self {
+        Self {
+            calendar_days: summary.calendar_days,
+            training_days: summary.training_days,
+            session_count: summary.session_count,
+            total_duration_milliseconds: summary.total_duration_milliseconds.to_string(),
+            distance_session_count: summary.distance_session_count,
+            total_distance_meters: summary.total_distance_meters,
+            energy_session_count: summary.energy_session_count,
+            total_energy_kilocalories: summary
+                .total_energy_kilocalories
+                .map(|value| value.to_string()),
+            heart_rate_session_count: summary.heart_rate_session_count,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSeriesOverviewDto {
+    series_ref: String,
+    summary: TrainingSeriesSummaryDto,
+    sessions: Vec<TrainingSessionInsightDto>,
+}
+
+impl From<TrainingSeriesOverview> for TrainingSeriesOverviewDto {
+    fn from(series: TrainingSeriesOverview) -> Self {
+        Self {
+            series_ref: series.series_ref,
+            summary: series.summary.into(),
+            sessions: series.sessions.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingOverviewDto {
+    available_range: Option<TrainingDateRangeDto>,
+    selected_range: Option<TrainingDateRangeDto>,
+    series: Vec<TrainingSeriesOverviewDto>,
+}
+
+impl From<TrainingOverview> for TrainingOverviewDto {
+    fn from(overview: TrainingOverview) -> Self {
+        Self {
+            available_range: overview.available_range.map(Into::into),
+            selected_range: overview.selected_range.map(Into::into),
+            series: overview.series.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSeriesComparisonDto {
+    series_ref: String,
+    baseline: TrainingSeriesSummaryDto,
+    comparison: TrainingSeriesSummaryDto,
+    session_count_change: String,
+    training_day_change: String,
+    duration_milliseconds_change: String,
+    distance_meters_change: Option<f64>,
+    energy_kilocalories_change: Option<String>,
+}
+
+impl From<TrainingSeriesComparison> for TrainingSeriesComparisonDto {
+    fn from(series: TrainingSeriesComparison) -> Self {
+        Self {
+            series_ref: series.series_ref,
+            baseline: series.baseline.into(),
+            comparison: series.comparison.into(),
+            session_count_change: series.session_count_change.to_string(),
+            training_day_change: series.training_day_change.to_string(),
+            duration_milliseconds_change: series.duration_milliseconds_change.to_string(),
+            distance_meters_change: series.distance_meters_change,
+            energy_kilocalories_change: series
+                .energy_kilocalories_change
+                .map(|value| value.to_string()),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingComparisonDto {
+    available_range: Option<TrainingDateRangeDto>,
+    baseline_range: Option<TrainingDateRangeDto>,
+    comparison_range: Option<TrainingDateRangeDto>,
+    series: Vec<TrainingSeriesComparisonDto>,
+}
+
+impl From<TrainingComparison> for TrainingComparisonDto {
+    fn from(comparison: TrainingComparison) -> Self {
+        Self {
+            available_range: comparison.available_range.map(Into::into),
+            baseline_range: comparison.baseline_range.map(Into::into),
+            comparison_range: comparison.comparison_range.map(Into::into),
+            series: comparison.series.into_iter().map(Into::into).collect(),
+        }
+    }
 }
 
 impl From<ActivityComparison> for ActivityComparisonDto {
@@ -480,6 +664,89 @@ mod tests {
         assert_eq!(json["series"][0]["days"][0]["availability"], "available");
         assert_eq!(json["series"][0]["days"][1]["availability"], "unavailable");
         assert_eq!(json["series"][0]["days"][2]["availability"], "missing");
+    }
+
+    #[test]
+    fn serializes_training_insights_without_losing_exact_integer_measurements() {
+        let summary = TrainingSeriesSummary {
+            calendar_days: 2,
+            training_days: 1,
+            session_count: 1,
+            total_duration_milliseconds: 18_446_744_073_709_551_614,
+            distance_session_count: 1,
+            total_distance_meters: Some(10_000.5),
+            energy_session_count: 1,
+            total_energy_kilocalories: Some(9_223_372_036_854_775_808),
+            heart_rate_session_count: 1,
+        };
+        let overview = TrainingOverview {
+            available_range: Some(TrainingDateRange {
+                from: "2026-01-01".to_owned(),
+                through: "2026-01-02".to_owned(),
+            }),
+            selected_range: Some(TrainingDateRange {
+                from: "2026-01-01".to_owned(),
+                through: "2026-01-02".to_owned(),
+            }),
+            series: vec![TrainingSeriesOverview {
+                series_ref: "synthetic-origin".to_owned(),
+                summary: summary.clone(),
+                sessions: vec![TrainingSessionInsight {
+                    session_ref: "synthetic-session".to_owned(),
+                    started_at_local: "2026-01-01T10:00:00".to_owned(),
+                    stopped_at_local: "2026-01-01T11:00:00".to_owned(),
+                    utc_offset_minutes: Some(60),
+                    duration_milliseconds: i64::MAX,
+                    distance_meters: Some(10_000.5),
+                    energy_kilocalories: Some(i64::MAX),
+                    average_heart_rate_bpm: Some(145),
+                    maximum_heart_rate_bpm: Some(178),
+                    sport_ref: Some("synthetic-sport".to_owned()),
+                    exercise_count: Some(1),
+                }],
+            }],
+        };
+        let comparison = TrainingComparison {
+            available_range: overview.available_range.clone(),
+            baseline_range: overview.selected_range.clone(),
+            comparison_range: overview.selected_range.clone(),
+            series: vec![TrainingSeriesComparison {
+                series_ref: "synthetic-origin".to_owned(),
+                baseline: summary.clone(),
+                comparison: summary,
+                session_count_change: -9_223_372_036_854_775_808,
+                training_day_change: 9_223_372_036_854_775_808,
+                duration_milliseconds_change: -18_446_744_073_709_551_614,
+                distance_meters_change: Some(500.25),
+                energy_kilocalories_change: Some(9_223_372_036_854_775_808),
+            }],
+        };
+
+        let overview_json =
+            serde_json::to_value(TrainingOverviewDto::from(overview)).expect("training JSON");
+        let comparison_json = serde_json::to_value(TrainingComparisonDto::from(comparison))
+            .expect("training comparison JSON");
+
+        assert_eq!(
+            overview_json["series"][0]["summary"]["totalDurationMilliseconds"],
+            "18446744073709551614"
+        );
+        assert_eq!(
+            overview_json["series"][0]["sessions"][0]["durationMilliseconds"],
+            "9223372036854775807"
+        );
+        assert_eq!(
+            overview_json["series"][0]["sessions"][0]["energyKilocalories"],
+            "9223372036854775807"
+        );
+        assert_eq!(
+            comparison_json["series"][0]["durationMillisecondsChange"],
+            "-18446744073709551614"
+        );
+        assert_eq!(
+            comparison_json["series"][0]["energyKilocaloriesChange"],
+            "9223372036854775808"
+        );
     }
 
     #[test]
