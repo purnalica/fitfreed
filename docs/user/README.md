@@ -6,6 +6,8 @@ FitFreed has an executable development foundation but no supported alpha release
 
 The [development preview guide](development-preview.md) is the only current application walkthrough. It identifies the supported synthetic shape, runnable steps, expected results, and missing product capabilities.
 
+The [private development package guide](private-development-packages.md) explains integrity verification and the unsigned evaluation boundary. It does not turn a development package into a supported release.
+
 ## Safety boundary
 
 - Read the [project disclaimer](../../DISCLAIMER.md) before running a build.

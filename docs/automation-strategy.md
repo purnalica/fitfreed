@@ -27,7 +27,7 @@ Automation reduces contributor friction, prevents undocumented maintainer knowle
 
 ### Continuous integration
 
-GitHub Actions is the selected continuous-integration provider for the GitHub-hosted repository. The first product workflow will combine platform-independent checks with a mandatory macOS packaged-E2E job. Local and hosted execution will call the same versioned project commands; the workflow will not encode a parallel test path.
+GitHub Actions is the selected continuous-integration provider for the GitHub-hosted repository. The product workflow combines platform-independent checks with a mandatory macOS packaged-E2E and private-release-evidence job. Local and hosted execution call the same versioned project commands; the workflow does not encode a parallel test path.
 
 - Change-scope detection without skipping required dependency checks.
 - Unit, integration, E2E, migration, performance, packaging, and platform matrices.
@@ -78,7 +78,7 @@ The selected technology stack will define the concrete command runner. Regardles
 
 Commands will compose smaller versioned tasks, return meaningful exit codes, avoid hidden global state, and identify generated outputs.
 
-The current executable entry points are `npm run doctor` for prerequisite diagnosis, `npm run test:fast` for the contributor loop, `npm run verify:e2e` for the instrumented packaged journey, and `npm run verify:full` for every local acceptance gate followed by a clean production package. Continuous integration invokes the same underlying versioned tasks as separate diagnosable steps.
+The current executable entry points are `npm run doctor` for prerequisite diagnosis, `npm run test:fast` for the contributor loop, `npm run verify:e2e` for the instrumented packaged journey, and `npm run verify:full` for every local acceptance gate followed by a clean production package. `npm run prepare:development-release -- <version>` requires a clean commit and creates private production artifacts, SBOMs, checksums, a manifest, and draft notes; `npm run verify:development-release` exercises integrity, installation, first launch, failure, relaunch, and removal boundaries. Continuous integration invokes the same underlying versioned tasks as separate diagnosable steps and never uploads the unsigned package.
 
 Repository-safety automation begins before the application stack is selected:
 

@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/release-manifest-v1.schema.json",
+  "title": "FitFreed release manifest version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "schemaVersion",
+    "release",
+    "target",
+    "application",
+    "generators",
+    "artifacts"
+  ],
+  "properties": {
+    "format": { "const": "org.fitfreed.release-manifest" },
+    "schemaVersion": { "const": 1 },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "revision", "generatedAt", "channel", "signed", "notarized"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+        },
+        "revision": { "type": "string", "pattern": "^[0-9a-f]{40,64}$" },
+        "generatedAt": { "type": "string", "format": "date-time" },
+        "channel": { "const": "private-development" },
+        "signed": { "const": false },
+        "notarized": { "const": false }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["os", "architecture"],
+      "properties": {
+        "os": { "const": "macos" },
+        "architecture": { "enum": ["aarch64", "x86_64"] }
+      }
+    },
+    "application": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "productName",
+        "bundleIdentifier",
+        "executable",
+        "storageSchemaVersion"
+      ],
+      "properties": {
+        "productName": { "const": "FitFreed" },
+        "bundleIdentifier": { "const": "org.fitfreed.desktop" },
+        "executable": { "const": "fitfreed" },
+        "storageSchemaVersion": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "generators": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cargoCycloneDx", "npmCycloneDx", "tauri"],
+      "properties": {
+        "cargoCycloneDx": { "type": "string", "minLength": 1 },
+        "npmCycloneDx": { "type": "string", "minLength": 1 },
+        "tauri": { "type": "string", "minLength": 1 }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "allOf": [
+        {
+          "contains": {
+            "type": "object",
+            "required": ["kind"],
+            "properties": { "kind": { "const": "macos-application-bundle" } }
+          }
+        },
+        {
+          "contains": {
+            "type": "object",
+            "required": ["kind"],
+            "properties": { "kind": { "const": "macos-disk-image" } }
+          }
+        },
+        {
+          "contains": {
+            "type": "object",
+            "required": ["kind"],
+            "properties": { "kind": { "const": "cyclonedx-sbom" } }
+          }
+        }
+      ],
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "kind", "size", "sha256"],
+        "properties": {
+          "path": {
+            "type": "string",
+            "pattern": "^[^/]+$"
+          },
+          "kind": {
+            "enum": ["macos-application-bundle", "macos-disk-image", "cyclonedx-sbom"]
+          },
+          "size": { "type": "integer", "minimum": 0 },
+          "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+        }
+      }
+    }
+  }
+}

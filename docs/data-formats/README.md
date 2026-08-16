@@ -13,6 +13,7 @@ This directory is the canonical index for every machine-readable data contract t
 | Source-to-canonical mapping | FitFreed | Normative for importer behavior | Every supported source field has a documented outcome |
 | FitFreed portable export | FitFreed | Normative, open, and independently implementable | Versions, deprecations, and migration paths preserve user exit |
 | Persistence schema | FitFreed implementation | Exact but explicitly non-portable | Every schema version and migration is documented and tested |
+| Release evidence | FitFreed | Normative, machine-verifiable, and free of user data | Every staged package identifies its source, compatibility, inventories, and integrity |
 
 The canonical model, portable export, and persistence schema are related but not interchangeable. Domain meaning belongs to the canonical specification. The portable format is the stable user-facing interchange contract. A persistence schema may change for implementation reasons and must never be the only recovery path.
 
@@ -47,6 +48,7 @@ Documentation, schemas, fixtures, implementation, and migrations form one change
 - `mappings/` will contain normative source-to-canonical mapping tables for supported importers.
 - `portable/` will contain the normative FitFreed export specification before portable export is implemented.
 - `persistence/` will contain implementation schema and migration references once a storage architecture is selected.
+- `release/` contains machine-readable release evidence contracts; it never contains generated packages or user data.
 
 Directories are created with their first real contract; empty specifications are not used as placeholders.
 
@@ -58,3 +60,4 @@ Directories are created with their first real contract; empty specifications are
 - [SQLite schema version 1](persistence/sqlite-v1.md)
 - [SQLite schema version 2](persistence/sqlite-v2.md)
 - [SQLite schema version 3](persistence/sqlite-v3.md)
+- [Release manifest version 1](release/release-manifest-v1.md)

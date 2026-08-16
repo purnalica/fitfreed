@@ -10,6 +10,9 @@ on:
 permissions:
   contents: read
 
+env:
+  FITFREED_RELEASE_VERSION: 0.1.0
+
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -45,7 +48,7 @@ jobs:
         run: npm run check:data-contracts
 
       - name: Verify release contracts
-        run: npm run check:release-contracts
+        run: npm run check:release-contracts -- "$FITFREED_RELEASE_VERSION"
 
       - name: Verify translation catalogs
         run: npm run check:i18n
@@ -97,6 +100,9 @@ jobs:
       - name: Install locked JavaScript dependencies
         run: npm ci
 
+      - name: Install the pinned local release evidence tool
+        run: npm run install:release-tools
+
       - name: Run the complete fast verification lane
         run: npm run test:fast
 
@@ -105,11 +111,11 @@ jobs:
           npm run format:check
           npm run lint:rust
 
-      - name: Build the production package
-        run: npm run package
+      - name: Prepare the private development release evidence
+        run: npm run prepare:development-release -- "$FITFREED_RELEASE_VERSION"
 
-      - name: Reject test instrumentation in the production package
-        run: npm run check:production-bundle
+      - name: Verify installation and failure boundaries
+        run: npm run verify:development-release
 
       - name: Build and test the instrumented package
         run: npm run verify:e2e

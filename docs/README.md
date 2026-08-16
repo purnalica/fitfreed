@@ -7,12 +7,14 @@
 FitFreed does not have a supported alpha release yet. The current executable foundation accepts independently constructed synthetic data only.
 
 - Read the [development preview guide](user/development-preview.md) for the complete runnable journey.
+- Read [private development packages](user/private-development-packages.md) before handling unsigned package evidence.
 - Read the [user-documentation status](user/README.md) before opening any build.
 - Read the project [disclaimer](../DISCLAIMER.md) and [support boundary](../SUPPORT.md).
 
 ### Contributing
 
 - Start with the [contributor setup](development/getting-started.md).
+- Use [private release preparation](development/release-preparation.md) for clean-revision package and installation evidence.
 - Use the [troubleshooting guide](development/troubleshooting.md) when a documented command fails.
 - Read the [module map](architecture/module-map.md), [testing strategy](testing-strategy.md), and [data-contract index](data-formats/README.md) before changing product behavior.
 - Follow the [localization guide](development/localization.md) for interface copy or language support.

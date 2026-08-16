@@ -80,6 +80,9 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
   elif ! xcrun --find clang >/dev/null 2>&1; then
     report_failure "the active Xcode developer directory does not provide clang"
   fi
+  for command in ditto hdiutil plutil shasum sqlite3 strings; do
+    require_command "$command" || true
+  done
 fi
 
 if (( failure_count > 0 )); then

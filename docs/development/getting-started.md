@@ -20,7 +20,7 @@ npm ci
 npm run test:fast
 ```
 
-`npm run doctor` checks the supported Node.js and npm ranges, pinned Rust toolchain, required Rust components, and the macOS Xcode command-line toolchain without requiring installed project dependencies. `npm ci` installs the exact JavaScript graph from `package-lock.json`. The fast lane verifies compile-enforced architecture boundaries, translation catalogs, presentation behavior, and all Rust workspace tests.
+`npm run doctor` checks the supported Node.js and npm ranges, pinned Rust toolchain, required Rust components, macOS Xcode command-line toolchain, and native packaging and installation-verification commands without requiring installed project dependencies. `npm ci` installs the exact JavaScript graph from `package-lock.json`. The fast lane verifies compile-enforced architecture boundaries, translation catalogs, presentation behavior, and all Rust workspace tests.
 
 ## Primary commands
 
@@ -43,6 +43,9 @@ npm run test:fast
 | Generate independent E2E fixtures | `npm run fixture:e2e` |
 | Generate the cancellation-scale fixture | `npm run fixture:large` |
 | Build the unsigned production package | `npm run package` |
+| Install the pinned local release evidence tool | `npm run install:release-tools` |
+| Prepare release-shaped private evidence | `npm run prepare:development-release -- 0.1.0` |
+| Verify macOS installation and failure boundaries | `npm run verify:development-release` |
 | Build and run the instrumented packaged E2E journey | `npm run verify:e2e` |
 | Run every current local acceptance gate | `npm run verify:full` |
 
@@ -66,9 +69,11 @@ The detailed dependency map is [`../architecture/module-map.md`](../architecture
 
 The [localization guide](localization.md) documents locale resolution, durable preferences, formatting, translation-catalog rules, and the complete acceptance path for adding a language.
 
+The [private release preparation guide](release-preparation.md) owns the clean-revision package and installation evidence lane. It remains separate from `verify:full` because preparation must bind its output to a clean, reviewable commit.
+
 ## Continuous integration
 
-GitHub Actions runs portable quality checks and a mandatory macOS packaged-E2E job for pull requests and `main`. The macOS job builds a normal production package first and rejects WebDriver instrumentation before building the separate test variant. It then drives the packaged application through validation, progress, cancellation, both locales, exact and cumulative reimport, accessibility, and persisted restart.
+GitHub Actions runs portable quality checks and a mandatory macOS packaged-E2E job for pull requests and `main`. The macOS job prepares and installation-tests a normal private production package before building the separate test variant. It then drives the packaged application through validation, progress, cancellation, both locales, exact and cumulative reimport, accessibility, and persisted restart.
 
 The instrumented build routes only the archive-picker adapter to WebdriverIO's dialog mock because the embedded macOS WebView exposes Tauri globals through a non-configurable proxy. The E2E test waits for the recorded picker call before observing its result. Normal development and production builds use Tauri's native dialog directly, and the production-bundle check rejects both Rust and presentation WebDriver markers.
 
