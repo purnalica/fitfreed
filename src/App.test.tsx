@@ -58,16 +58,26 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
   mocks.invoke.mockReset();
   mocks.open.mockReset();
 });
 
-function emptyLibrary() {
-  mocks.invoke.mockImplementation((command) => {
+function emptyLibrary(initialLocale: "en-US" | "es-ES" | null = "en-US") {
+  let storedLocale = initialLocale;
+  mocks.invoke.mockImplementation((command, arguments_) => {
     if (command === "query_activity") return Promise.resolve([]);
     if (command === "query_latest_import_outcome") return Promise.resolve(null);
+    if (command === "load_locale") return Promise.resolve(storedLocale);
+    if (command === "save_locale") {
+      storedLocale = arguments_.locale;
+      return Promise.resolve();
+    }
     throw new Error(`Unexpected command: ${command}`);
   });
+  return {
+    locale: () => storedLocale,
+  };
 }
 
 async function chooseArchive(user: ReturnType<typeof userEvent.setup>, path: string) {
@@ -77,18 +87,126 @@ async function chooseArchive(user: ReturnType<typeof userEvent.setup>, path: str
 }
 
 describe("FitFreed import interface", () => {
-  it("switches every visible message between the supported locales", async () => {
-    emptyLibrary();
+  it("persists an explicit locale and restores every visible message after remount", async () => {
+    const preferences = emptyLibrary();
     const user = userEvent.setup();
-    render(<App />);
+    const view = render(<App />);
 
     expect(await screen.findByRole("heading", { name: "Your fitness history belongs to you" })).toBeVisible();
-    await user.selectOptions(screen.getByRole("combobox", { name: "Language" }), "es-ES");
+    const language = screen.getByRole("combobox", { name: "Language" });
+    await waitFor(() => expect(language).toBeEnabled());
+    await user.selectOptions(language, "es-ES");
 
     expect(screen.getByRole("heading", { name: spanish.title })).toBeVisible();
     expect(screen.getByRole("heading", { name: spanish.importHeading })).toBeVisible();
     expect(screen.getByRole("button", { name: spanish.choose })).toBeEnabled();
     expect(screen.getByText(spanish.empty)).toBeVisible();
+    await waitFor(() => expect(preferences.locale()).toBe("es-ES"));
+
+    view.unmount();
+    render(<App />);
+    expect(await screen.findByRole("heading", { name: spanish.title })).toBeVisible();
+  });
+
+  it("initializes the first supported operating-system language on first run", async () => {
+    vi.spyOn(window.navigator, "languages", "get").mockReturnValue(["fr-FR", "es-MX"]);
+    const preferences = emptyLibrary(null);
+
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: spanish.title })).toBeVisible();
+    await waitFor(() => expect(preferences.locale()).toBe("es-ES"));
+  });
+
+  it("falls back to English when the operating system has no supported language", async () => {
+    vi.spyOn(window.navigator, "languages", "get").mockReturnValue(["fr-FR", "de-DE"]);
+    const preferences = emptyLibrary(null);
+
+    render(<App />);
+
+    expect(
+      await screen.findByRole("heading", { name: "Your fitness history belongs to you" }),
+    ).toBeVisible();
+    await waitFor(() => expect(preferences.locale()).toBe("en-US"));
+  });
+
+  it("keeps the operating-system locale for the session when first-run persistence fails", async () => {
+    vi.spyOn(window.navigator, "languages", "get").mockReturnValue(["es-ES"]);
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_activity") return Promise.resolve([]);
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      if (command === "load_locale") return Promise.resolve(null);
+      if (command === "save_locale") {
+        return Promise.reject({ code: "preference-update-failed" });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: spanish.title })).toBeVisible();
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      spanish.errors["preference-initialization-failed"],
+    );
+    expect(screen.getByRole("combobox", { name: spanish.language })).toBeEnabled();
+  });
+
+  it("restores the previous locale when persistence fails", async () => {
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_activity") return Promise.resolve([]);
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      if (command === "load_locale") return Promise.resolve("en-US");
+      if (command === "save_locale") {
+        return Promise.reject({ code: "preference-update-failed" });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    const language = await screen.findByRole("combobox", { name: "Language" });
+    await waitFor(() => expect(language).toBeEnabled());
+
+    await user.selectOptions(language, "es-ES");
+
+    await waitFor(() => expect(screen.getByRole("combobox", { name: "Language" })).toHaveValue("en-US"));
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "could not save the selected language",
+    );
+  });
+
+  it("uses locale plural rules for import and coverage counts", async () => {
+    const singularOutcome = importOutcome({
+      coverage: {
+        total: 1,
+        supported: 1,
+        unsupported: 0,
+        deliberatelyIgnored: 0,
+        unrecognized: 0,
+        invalid: 0,
+      },
+      report: {
+        exactRepeat: false,
+        recognizedArtifacts: 1,
+        newObservations: 1,
+        equivalentObservations: 1,
+        enrichedObservations: 1,
+        preservedObservations: 1,
+        conflicts: 1,
+      },
+    });
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_activity") return Promise.resolve([]);
+      if (command === "query_latest_import_outcome") return Promise.resolve(singularOutcome);
+      if (command === "load_locale") return Promise.resolve("es-ES");
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    render(<App />);
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      `${spanish.completed}: 1 ${spanish.counts.recognized.one}, 1 ${spanish.counts.created.one}, 1 ${spanish.counts.enriched.one}, 1 ${spanish.counts.equivalent.one}, 1 ${spanish.counts.preserved.one}, 1 ${spanish.counts.conflicts.one}.`,
+    );
+    expect(screen.getByText(`${spanish.outcome.artifactsClassified.one}.`)).toBeVisible();
   });
 
   it("keeps import disabled after a cancelled picker and enables it for a selected ZIP", async () => {
@@ -98,7 +216,9 @@ describe("FitFreed import interface", () => {
     await screen.findByText("No imported daily activity yet.");
 
     mocks.open.mockResolvedValue(null);
-    await user.click(screen.getByRole("button", { name: "Choose ZIP package" }));
+    const choose = screen.getByRole("button", { name: "Choose ZIP package" });
+    choose.focus();
+    await user.keyboard("[Enter]");
     await waitFor(() => expect(mocks.open).toHaveBeenCalledOnce());
     expect(screen.getByRole("button", { name: "Import selected package" })).toBeDisabled();
 
@@ -113,6 +233,8 @@ describe("FitFreed import interface", () => {
     mocks.invoke.mockImplementation((command, arguments_) => {
       if (command === "query_activity") return Promise.resolve([]);
       if (command === "query_latest_import_outcome") return Promise.resolve(latestOutcome);
+      if (command === "load_locale") return Promise.resolve("en-US");
+      if (command === "save_locale") return Promise.resolve();
       if (command === "import_archive") {
         onProgress = arguments_.onProgress;
         onProgress?.onmessage?.({
@@ -176,6 +298,8 @@ describe("FitFreed import interface", () => {
     mocks.invoke.mockImplementation((command, arguments_) => {
       if (command === "query_activity") return Promise.resolve(storedHistory);
       if (command === "query_latest_import_outcome") return Promise.resolve(latestOutcome);
+      if (command === "load_locale") return Promise.resolve("en-US");
+      if (command === "save_locale") return Promise.resolve();
       if (command === "import_archive") {
         importAttempt += 1;
         if (importAttempt === 1) {
@@ -271,7 +395,7 @@ describe("FitFreed import interface", () => {
     expect(screen.getByText("Every package artifact was classified.")).toBeVisible();
     const rows = screen.getAllByRole("row");
     expect(rows).toHaveLength(4);
-    expect(within(rows[1]).getByText("2026-01-01")).toBeVisible();
+    expect(within(rows[1]).getByText("Jan 1, 2026")).toBeVisible();
     expect(within(rows[1]).getByText("3,100")).toBeVisible();
     expect(within(rows[3]).getByText("Not available")).toBeVisible();
 

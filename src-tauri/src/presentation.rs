@@ -23,6 +23,8 @@ impl From<ApplicationError> for CommandErrorDto {
             ApplicationError::Import(_) => "import-failed",
             ApplicationError::Query(_) => "library-query-failed",
             ApplicationError::OutcomeQuery(_) => "outcome-query-failed",
+            ApplicationError::PreferenceQuery(_) => "preference-query-failed",
+            ApplicationError::PreferenceUpdate(_) => "preference-update-failed",
         };
         Self::new(code)
     }

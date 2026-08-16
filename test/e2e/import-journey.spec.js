@@ -49,6 +49,7 @@ async function selectArchive(dialogMock, archivePath) {
 }
 
 async function selectLocale(locale) {
+  await $("select").waitForEnabled({ timeout: 10_000 });
   await browser.execute((nextLocale) => {
     const select = document.querySelector("select");
     const setValue = Object.getOwnPropertyDescriptor(
@@ -60,6 +61,13 @@ async function selectLocale(locale) {
     select.dispatchEvent(new Event("change", { bubbles: true }));
   }, locale);
   await expect($("select")).toHaveValue(locale);
+}
+
+function formatLocalDate(locale, value) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }).format(
+    new Date(Date.UTC(year, month - 1, day)),
+  );
 }
 
 async function expectHistory(expectedRows) {
@@ -155,9 +163,9 @@ describe("packaged FitFreed import journey", () => {
       ["0", "Invalid"],
     ]);
     await expectHistory([
-      ["2026-01-01", "3,100"],
-      ["2026-01-02", "4,200"],
-      ["2026-01-03", "Not available"],
+      ["Jan 1, 2026", "3,100"],
+      ["Jan 2, 2026", "4,200"],
+      ["Jan 3, 2026", "Not available"],
     ]);
 
     await selectLocale("es-ES");
@@ -169,6 +177,10 @@ describe("packaged FitFreed import journey", () => {
       ["0", spanish.outcome.unrecognized],
       ["0", spanish.outcome.invalid],
     ]);
+    const hasHorizontalOverflow = await browser.execute(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    );
+    expect(hasHorizontalOverflow).toBe(false);
     await selectLocale("en-US");
 
     const accessibility = await new AxeBuilder({ client: browser }).setLegacyMode().analyze();
@@ -177,28 +189,37 @@ describe("packaged FitFreed import journey", () => {
     await $("aria/Import selected package").click();
     await waitForNotice("Exact package repeat; history was not duplicated.");
     await expectHistory([
-      ["2026-01-01", "3,100"],
-      ["2026-01-02", "4,200"],
-      ["2026-01-03", "Not available"],
+      ["Jan 1, 2026", "3,100"],
+      ["Jan 2, 2026", "4,200"],
+      ["Jan 3, 2026", "Not available"],
     ]);
 
     await selectArchive(dialogMock, path.join(fixtureDirectory, "overlap.zip"));
     await $("aria/Import selected package").click();
     await waitForNotice("Import completed: 2 recognized, 1 new");
     await expectHistory([
-      ["2026-01-01", "3,100"],
-      ["2026-01-02", "4,200"],
-      ["2026-01-03", "Not available"],
-      ["2026-01-04", "5,300"],
+      ["Jan 1, 2026", "3,100"],
+      ["Jan 2, 2026", "4,200"],
+      ["Jan 3, 2026", "Not available"],
+      ["Jan 4, 2026", "5,300"],
+    ]);
+
+    await selectLocale("es-ES");
+    await expectHistory([
+      [formatLocalDate("es-ES", "2026-01-01"), "3100"],
+      [formatLocalDate("es-ES", "2026-01-02"), "4200"],
+      [formatLocalDate("es-ES", "2026-01-03"), spanish.unavailable],
+      [formatLocalDate("es-ES", "2026-01-04"), "5300"],
     ]);
 
     await browser.reloadSession();
-    await expect($("h1")).toHaveText("Your fitness history belongs to you");
+    await expect($("h1")).toHaveText(spanish.title);
+    await expect($("#outcome-heading")).toHaveText(spanish.outcome.heading);
     await expectHistory([
-      ["2026-01-01", "3,100"],
-      ["2026-01-02", "4,200"],
-      ["2026-01-03", "Not available"],
-      ["2026-01-04", "5,300"],
+      [formatLocalDate("es-ES", "2026-01-01"), "3100"],
+      [formatLocalDate("es-ES", "2026-01-02"), "4200"],
+      [formatLocalDate("es-ES", "2026-01-03"), spanish.unavailable],
+      [formatLocalDate("es-ES", "2026-01-04"), "5300"],
     ]);
   });
 });

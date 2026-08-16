@@ -50,8 +50,10 @@ for (const migration of migrations) {
   }
 }
 
-const currentPersistencePath = `docs/data-formats/persistence/sqlite-v${schemaVersion}.md`;
-const currentPersistence = read(currentPersistencePath);
+const persistencePaths = expectedVersions.map(
+  (version) => `docs/data-formats/persistence/sqlite-v${version}.md`,
+);
+const persistenceCorpus = persistencePaths.map(read).join("\n");
 for (const contractValue of [
   "polar-flow",
   "polar-flow-archive@1",
@@ -71,8 +73,10 @@ for (const contractValue of [
   "deliberately-ignored",
   "unrecognized",
   "invalid",
+  "en-US",
+  "es-ES",
 ]) {
-  requireMention(currentPersistence, contractValue, currentPersistencePath);
+  requireMention(persistenceCorpus, contractValue, "SQLite persistence specifications");
 }
 
 const domainPath = "src-tauri/crates/fitfreed-domain/src/lib.rs";
@@ -97,9 +101,6 @@ for (const targetField of ["originId", "localDate", "stepCount"]) {
 
 const indexPath = "docs/data-formats/README.md";
 const index = read(indexPath);
-const persistencePaths = expectedVersions.map(
-  (version) => `docs/data-formats/persistence/sqlite-v${version}.md`,
-);
 for (const contractPath of [canonicalPath, mappingPath, ...persistencePaths]) {
   const relativeContract = path.relative(path.dirname(indexPath), contractPath);
   if (!index.includes(relativeContract)) {

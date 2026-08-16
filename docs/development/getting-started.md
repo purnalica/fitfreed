@@ -29,6 +29,7 @@ npm run test:fast
 | Verify architecture boundaries | `npm run check:architecture` |
 | Verify canonical, mapping, and persistence contracts | `npm run check:data-contracts` |
 | Verify locale catalogs | `npm run check:i18n` |
+| Verify reduced-motion presentation contracts | `npm run check:ui-contracts` |
 | Run presentation tests | `npm test` |
 | Run all Rust tests | `npm run test:rust` |
 | Run the fast contributor lane | `npm run test:fast` |
@@ -50,6 +51,8 @@ Generated application, database, fixture, log, screenshot, icon, and bundle outp
 - `src` contains the React presentation, its desktop archive-picker adapter, and test-only presentation instrumentation; localized copy exists only under `src/locales`.
 
 The detailed dependency map is [`../architecture/module-map.md`](../architecture/module-map.md), and the machine-readable contract index is [`../data-formats/README.md`](../data-formats/README.md). Source-format, canonical-format, mapping, or persistence changes must update their normative documentation and synthetic contract evidence in the same increment.
+
+The [localization guide](localization.md) documents locale resolution, durable preferences, formatting, translation-catalog rules, and the complete acceptance path for adding a language.
 
 ## Continuous integration
 

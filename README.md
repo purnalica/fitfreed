@@ -49,6 +49,7 @@ Polar Flow is the first importer, not the product identity. Later importers may 
 - [Product roadmap](docs/roadmap.md)
 - [Active Milestone 1 plan](docs/plans/milestone-1.md)
 - [Contributor setup](docs/development/getting-started.md)
+- [Localization guide](docs/development/localization.md)
 - [Development preview guide](docs/user/development-preview.md)
 - [Architecture module map](docs/architecture/module-map.md)
 - [Technology evaluation protocol](docs/technology-evaluation.md)

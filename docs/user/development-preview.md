@@ -14,7 +14,8 @@ The current application is a development foundation, not an alpha release. It pr
 6. Import the same package again and confirm that the application reports an exact repeat, reuses complete coverage evidence, and does not duplicate history.
 7. Import `.artifacts/e2e/fixtures/invalid.zip` and confirm that the package is rejected with localized recovery guidance, one invalid artifact, and no history change.
 8. Import `.artifacts/e2e/fixtures/overlap.zip` and confirm that the existing history remains and the new day is added.
-9. Change between English (US) and Spanish (Spain) and verify the outcome, guidance, coverage labels, and step formatting.
+9. Change between English (US) and Spanish (Spain) and verify the outcome, guidance, coverage labels, localized dates, and step formatting.
+10. Close and reopen the application and confirm that the selected language and localized history presentation are restored.
 
 The generated fixtures contain only independently constructed fictional values. The local SQLite library remains in the operating system's FitFreed application-data directory. Development E2E runs use an isolated generated library under `.artifacts` instead.
 

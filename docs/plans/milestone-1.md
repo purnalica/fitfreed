@@ -72,7 +72,7 @@ Hosted evidence: commit `pre-purge` passed the [portable and packaged macOS lane
 
 ## Increment M1.4 — Localized vertical journey
 
-**Status:** in progress. The desktop journey now reads terminal outcomes through a provider-neutral application port and presents localized status, source, history effect, complete five-category coverage, and sanitized actionable failures. Persistent locale selection and the remaining locale-format and text-expansion evidence are still open.
+**Status:** locally complete; hosted confirmation pending. The desktop journey reads terminal outcomes through a provider-neutral application port and presents localized status, source, history effect, complete five-category coverage, and sanitized actionable failures. Locale selection is durable in schema version 3, first-run resolution follows the operating-system preference order with an `en-US` fallback, and dates, numbers, count forms, text expansion, and reduced motion are verified.
 
 **Outcome:** the packaged application provides the first useful import-to-history journey in `en-US` and `es-ES`.
 
@@ -84,6 +84,8 @@ Hosted evidence: commit `pre-purge` passed the [portable and packaged macOS lane
 4. Keep provider names at the import boundary and provider-neutral concepts in the library and presentation contracts.
 
 **Acceptance evidence:** component and packaged E2E suites verify both locales and the persisted journey; accessibility automation has no accepted critical or serious violation; any required manual audit is recorded separately and does not replace automation.
+
+Local evidence on 2026-08-16: 9 presentation tests and 28 Rust tests passed; architecture, all three persistence contracts, documentation links, translation structure, reduced-motion containment, TypeScript compilation, Rust formatting, and Clippy passed; the packaged macOS E2E journey passed validation, complete outcome coverage, cancellation, exact and cumulative reimport, locale-aware dates and numbers, Spanish text expansion, accessibility, and Spanish preference restoration after process restart; and the production application and DMG passed the test-instrumentation exclusion check.
 
 ## Increment M1.5 — Contributor and user documentation
 

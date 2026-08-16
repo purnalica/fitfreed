@@ -3,10 +3,10 @@ mod presentation;
 
 use std::path::{Path, PathBuf};
 
-use fitfreed_application::{ImportCoordinator, ImportProgress};
+use fitfreed_application::{ImportCoordinator, ImportProgress, LocalePreference};
 use infrastructure::{
     recover_interrupted_imports, SqliteActivityLibrary, SqliteImportOutcomeLibrary,
-    SqlitePolarFlowArchiveImporter,
+    SqliteLocalePreferences, SqlitePolarFlowArchiveImporter,
 };
 use presentation::{
     CommandErrorDto, DailyActivityDto, ImportOutcomeDto, ImportProgressDto, ImportReportDto,
@@ -67,6 +67,25 @@ fn query_latest_import_outcome(
         .map_err(CommandErrorDto::from)
 }
 
+#[tauri::command]
+fn load_locale(app: AppHandle) -> Result<Option<String>, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let preferences = SqliteLocalePreferences::new(path);
+    fitfreed_application::load_locale_preference(&preferences)
+        .map(|locale| locale.map(|value| value.code().to_owned()))
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn save_locale(app: AppHandle, locale: String) -> Result<(), CommandErrorDto> {
+    let locale = LocalePreference::from_code(&locale)
+        .ok_or_else(|| CommandErrorDto::new("invalid-locale"))?;
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let preferences = SqliteLocalePreferences::new(path);
+    fitfreed_application::save_locale_preference(&preferences, locale)
+        .map_err(CommandErrorDto::from)
+}
+
 fn database_path(app: &AppHandle) -> Result<PathBuf, String> {
     #[cfg(feature = "e2e")]
     if let Some(path) = std::env::var_os("FITFREED_E2E_DATABASE_PATH") {
@@ -101,7 +120,9 @@ pub fn run() {
             import_archive,
             cancel_import,
             query_activity,
-            query_latest_import_outcome
+            query_latest_import_outcome,
+            load_locale,
+            save_locale
         ])
         .run(tauri::generate_context!())
         .expect("failed to run FitFreed");

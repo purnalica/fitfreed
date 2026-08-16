@@ -11,6 +11,29 @@ use thiserror::Error;
 use fitfreed_domain::{DailyActivity, ImportOutcome, ImportReport};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LocalePreference {
+    EnUs,
+    EsEs,
+}
+
+impl LocalePreference {
+    pub const fn from_code(code: &str) -> Option<Self> {
+        match code.as_bytes() {
+            b"en-US" => Some(Self::EnUs),
+            b"es-ES" => Some(Self::EsEs),
+            _ => None,
+        }
+    }
+
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::EnUs => "en-US",
+            Self::EsEs => "es-ES",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ImportPhase {
     Fingerprinting,
     Validating,
@@ -97,6 +120,11 @@ pub trait ImportOutcomeLibraryPort {
     fn latest_import_outcome(&self) -> Result<Option<ImportOutcome>, String>;
 }
 
+pub trait LocalePreferencePort {
+    fn load_locale(&self) -> Result<Option<LocalePreference>, String>;
+    fn save_locale(&self, locale: LocalePreference) -> Result<(), String>;
+}
+
 #[derive(Debug, Error)]
 pub enum ApplicationError {
     #[error("another import is already active")]
@@ -109,6 +137,10 @@ pub enum ApplicationError {
     Query(String),
     #[error("import outcome query failed: {0}")]
     OutcomeQuery(String),
+    #[error("locale preference query failed: {0}")]
+    PreferenceQuery(String),
+    #[error("locale preference update failed: {0}")]
+    PreferenceUpdate(String),
 }
 
 #[derive(Clone, Default)]
@@ -185,6 +217,21 @@ pub fn query_latest_import_outcome(
         .map_err(ApplicationError::OutcomeQuery)
 }
 
+pub fn load_locale_preference(
+    port: &dyn LocalePreferencePort,
+) -> Result<Option<LocalePreference>, ApplicationError> {
+    port.load_locale()
+        .map_err(ApplicationError::PreferenceQuery)
+}
+
+pub fn save_locale_preference(
+    port: &dyn LocalePreferencePort,
+    locale: LocalePreference,
+) -> Result<(), ApplicationError> {
+    port.save_locale(locale)
+        .map_err(ApplicationError::PreferenceUpdate)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -192,6 +239,8 @@ mod tests {
     struct ControlledImportPort;
 
     struct ControlledOutcomePort;
+
+    struct ControlledLocalePort;
 
     impl ArchiveImportPort for ControlledImportPort {
         fn import_archive(
@@ -208,6 +257,17 @@ mod tests {
     impl ImportOutcomeLibraryPort for ControlledOutcomePort {
         fn latest_import_outcome(&self) -> Result<Option<ImportOutcome>, String> {
             Ok(None)
+        }
+    }
+
+    impl LocalePreferencePort for ControlledLocalePort {
+        fn load_locale(&self) -> Result<Option<LocalePreference>, String> {
+            Ok(Some(LocalePreference::EsEs))
+        }
+
+        fn save_locale(&self, locale: LocalePreference) -> Result<(), String> {
+            assert_eq!(locale, LocalePreference::EnUs);
+            Ok(())
         }
     }
 
@@ -240,5 +300,20 @@ mod tests {
             query_latest_import_outcome(&ControlledOutcomePort).expect("outcome query"),
             None
         );
+    }
+
+    #[test]
+    fn loads_and_updates_a_validated_locale_through_the_preference_port() {
+        assert_eq!(
+            LocalePreference::from_code("es-ES"),
+            Some(LocalePreference::EsEs)
+        );
+        assert_eq!(LocalePreference::from_code("es"), None);
+        assert_eq!(
+            load_locale_preference(&ControlledLocalePort).expect("locale query"),
+            Some(LocalePreference::EsEs)
+        );
+        save_locale_preference(&ControlledLocalePort, LocalePreference::EnUs)
+            .expect("locale update");
     }
 }

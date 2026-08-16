@@ -4,6 +4,8 @@ import "./App.css";
 import { chooseZipArchive } from "./infrastructure/archive-picker";
 import { catalogs, type Locale } from "./locales/catalogs";
 
+type CountMessageKey = keyof (typeof catalogs)["en-US"]["counts"];
+
 interface DailyActivity {
   originId: string;
   localDate: string;
@@ -75,8 +77,27 @@ function commandErrorCode(reason: unknown): string {
   return "unexpected";
 }
 
+function systemLocale(): Locale {
+  const preferredLanguages = navigator.languages.length > 0
+    ? navigator.languages
+    : [navigator.language];
+  for (const language of preferredLanguages) {
+    const baseLanguage = language.toLowerCase().split("-")[0];
+    if (baseLanguage === "es") return "es-ES";
+    if (baseLanguage === "en") return "en-US";
+  }
+  return "en-US";
+}
+
+function localDate(localDateValue: string): Date {
+  const [year, month, day] = localDateValue.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
 function App() {
-  const [locale, setLocale] = useState<Locale>("en-US");
+  const [locale, setLocale] = useState<Locale>(systemLocale);
+  const [localeReady, setLocaleReady] = useState(false);
+  const [localeSaving, setLocaleSaving] = useState(false);
   const [archivePath, setArchivePath] = useState<string>();
   const [activities, setActivities] = useState<DailyActivity[]>([]);
   const [outcome, setOutcome] = useState<ImportOutcome>();
@@ -86,6 +107,11 @@ function App() {
   const [errorCode, setErrorCode] = useState<string>();
   const messages = catalogs[locale];
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const plural = useMemo(() => new Intl.PluralRules(locale), [locale]);
+  const date = useMemo(
+    () => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }),
+    [locale],
+  );
   const maxSteps = Math.max(...activities.map((item) => item.stepCount ?? 0), 1);
 
   async function refresh() {
@@ -99,9 +125,53 @@ function App() {
   }
 
   useEffect(() => {
+    let active = true;
+    async function initializeLocale() {
+      let initializingPreference = false;
+      try {
+        const stored = await invoke<Locale | null>("load_locale");
+        const selected = stored ?? systemLocale();
+        initializingPreference = stored === null;
+        if (active) setLocale(selected);
+        if (stored === null) {
+          await invoke("save_locale", { locale: selected });
+        }
+      } catch (reason) {
+        if (active) {
+          const code = commandErrorCode(reason);
+          setErrorCode(
+            initializingPreference && code === "preference-update-failed"
+              ? "preference-initialization-failed"
+              : code,
+          );
+        }
+      } finally {
+        if (active) setLocaleReady(true);
+      }
+    }
+
+    initializeLocale();
     refresh().catch((reason) => setErrorCode(commandErrorCode(reason)));
     refreshOutcome().catch((reason) => setErrorCode(commandErrorCode(reason)));
+    return () => {
+      active = false;
+    };
   }, []);
+
+  async function changeLocale(next: Locale) {
+    const previous = locale;
+    setLocale(next);
+    setLocaleSaving(true);
+    setErrorCode(undefined);
+    try {
+      await invoke("save_locale", { locale: next });
+    } catch (reason) {
+      setLocale(previous);
+      setErrorCode(commandErrorCode(reason));
+    } finally {
+      setLocaleSaving(false);
+    }
+  }
 
   async function chooseArchive() {
     const selected = await chooseZipArchive();
@@ -181,7 +251,11 @@ function App() {
     if (latest.state === "rejected") return messages.outcome.rejectedSummary;
     if (latest.state === "failed") return messages.outcome.failedSummary;
     if (latest.exactRepeat) return messages.exactRepeat;
-    return `${messages.completed}: ${latest.report.recognizedArtifacts} ${messages.recognized}, ${latest.report.newObservations} ${messages.created}, ${latest.report.enrichedObservations} ${messages.enriched}, ${latest.report.equivalentObservations} ${messages.equivalent}, ${latest.report.preservedObservations} ${messages.preserved}, ${latest.report.conflicts} ${messages.conflicts}.`;
+    const count = (value: number, key: CountMessageKey) => {
+      const form = plural.select(value) === "one" ? "one" : "other";
+      return `${number.format(value)} ${messages.counts[key][form]}`;
+    };
+    return `${messages.completed}: ${count(latest.report.recognizedArtifacts, "recognized")}, ${count(latest.report.newObservations, "created")}, ${count(latest.report.enrichedObservations, "enriched")}, ${count(latest.report.equivalentObservations, "equivalent")}, ${count(latest.report.preservedObservations, "preserved")}, ${count(latest.report.conflicts, "conflicts")}.`;
   }
 
   function providerName(provider: string): string {
@@ -219,7 +293,11 @@ function App() {
         )}
         <label>
           <span>{messages.language}</span>
-          <select value={locale} onChange={(event) => setLocale(event.target.value as Locale)}>
+          <select
+            value={locale}
+            onChange={(event) => void changeLocale(event.target.value as Locale)}
+            disabled={!localeReady || localeSaving}
+          >
             <option value="en-US">{messages.localeEnglish}</option>
             <option value="es-ES">{messages.localeSpanish}</option>
           </select>
@@ -269,7 +347,11 @@ function App() {
             <strong>
               {number.format(classifiedArtifacts)} / {number.format(outcome.coverage.total)}
             </strong>{" "}
-            <span>{messages.outcome.artifactsClassified}.</span>{" "}
+            <span>
+              {messages.outcome.artifactsClassified[
+                plural.select(classifiedArtifacts) === "one" ? "one" : "other"
+              ]}.
+            </span>{" "}
             <span>
               {outcome.coverageComplete
                 ? messages.outcome.coverageComplete
@@ -302,7 +384,7 @@ function App() {
               <ol className="chart">
                 {activities.map((activity) => (
                   <li key={`${activity.originId}:${activity.localDate}`}>
-                    <time dateTime={activity.localDate}>{activity.localDate}</time>
+                    <time dateTime={activity.localDate}>{date.format(localDate(activity.localDate))}</time>
                     <span className="track" aria-hidden="true">
                       <span
                         className="bar"
@@ -320,7 +402,7 @@ function App() {
               <tbody>
                 {activities.map((activity) => (
                   <tr key={`${activity.originId}:${activity.localDate}`}>
-                    <td>{activity.localDate}</td>
+                    <td><time dateTime={activity.localDate}>{date.format(localDate(activity.localDate))}</time></td>
                     <td>{activity.stepCount === null ? messages.unavailable : number.format(activity.stepCount)}</td>
                   </tr>
                 ))}

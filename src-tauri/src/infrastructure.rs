@@ -16,7 +16,7 @@ use zip::ZipArchive;
 
 use fitfreed_application::{
     ActivityLibraryPort, ArchiveImportPort, ImportOutcomeLibraryPort, ImportPhase,
-    ImportPhaseTimings, ImportProgress, ProfiledImport,
+    ImportPhaseTimings, ImportProgress, LocalePreference, LocalePreferencePort, ProfiledImport,
 };
 use fitfreed_domain::{
     decide_reconciliation, ArtifactClassification, ArtifactCoverageSummary, DailyActivity,
@@ -27,9 +27,10 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 2;
+const SCHEMA_VERSION: i64 = 3;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
+const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
 const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@1";
 const DAILY_ACTIVITY_MAPPING_VERSION: &str = "polar-flow-daily-activity@1";
@@ -71,6 +72,8 @@ pub enum ImportError {
     InvalidPersistedOperationState(String),
     #[error("invalid persisted non-negative count in {column}: {value}")]
     InvalidPersistedCount { column: &'static str, value: i64 },
+    #[error("invalid persisted locale preference: {0}")]
+    InvalidPersistedLocale(String),
 }
 
 pub type Result<T> = std::result::Result<T, ImportError>;
@@ -564,6 +567,37 @@ fn persisted_count(value: i64, column: &'static str) -> Result<usize> {
     usize::try_from(value).map_err(|_| ImportError::InvalidPersistedCount { column, value })
 }
 
+pub fn load_locale_preference(database_path: &Path) -> Result<Option<LocalePreference>> {
+    let connection = Connection::open(database_path)?;
+    ensure_schema(&connection)?;
+    let locale = connection
+        .query_row(
+            "SELECT locale FROM locale_preference WHERE id = 1",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()?;
+    locale
+        .map(|code| {
+            LocalePreference::from_code(&code).ok_or(ImportError::InvalidPersistedLocale(code))
+        })
+        .transpose()
+}
+
+pub fn save_locale_preference(database_path: &Path, locale: LocalePreference) -> Result<()> {
+    let connection = Connection::open(database_path)?;
+    ensure_schema(&connection)?;
+    connection.execute(
+        "INSERT INTO locale_preference (id, locale, updated_at_utc)
+         VALUES (1, ?1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+         ON CONFLICT(id) DO UPDATE SET
+             locale = excluded.locale,
+             updated_at_utc = excluded.updated_at_utc",
+        [locale.code()],
+    )?;
+    Ok(())
+}
+
 pub fn backup_database(source_path: &Path, backup_path: &Path) -> Result<()> {
     let source = Connection::open(source_path)?;
     ensure_schema(&source)?;
@@ -623,7 +657,10 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         if version == 0 {
             connection.execute_batch(SCHEMA_V1)?;
         }
-        connection.execute_batch(SCHEMA_V2)?;
+        if version < 2 {
+            connection.execute_batch(SCHEMA_V2)?;
+        }
+        connection.execute_batch(SCHEMA_V3)?;
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
         }
@@ -935,7 +972,8 @@ fn terminal_code(error: &ImportError) -> &'static str {
         ImportError::InjectedMigrationInterruption => "migration-interrupted",
         ImportError::OutcomePersistence { .. } => "outcome-persistence-failure",
         ImportError::InvalidPersistedOperationState(_)
-        | ImportError::InvalidPersistedCount { .. } => "invalid-persisted-import-outcome",
+        | ImportError::InvalidPersistedCount { .. }
+        | ImportError::InvalidPersistedLocale(_) => "invalid-persisted-import-outcome",
     }
 }
 
@@ -1468,6 +1506,26 @@ impl SqliteImportOutcomeLibrary {
 impl ImportOutcomeLibraryPort for SqliteImportOutcomeLibrary {
     fn latest_import_outcome(&self) -> std::result::Result<Option<ImportOutcome>, String> {
         query_latest_import_outcome(&self.database_path).map_err(|error| error.to_string())
+    }
+}
+
+pub struct SqliteLocalePreferences {
+    database_path: PathBuf,
+}
+
+impl SqliteLocalePreferences {
+    pub fn new(database_path: PathBuf) -> Self {
+        Self { database_path }
+    }
+}
+
+impl LocalePreferencePort for SqliteLocalePreferences {
+    fn load_locale(&self) -> std::result::Result<Option<LocalePreference>, String> {
+        load_locale_preference(&self.database_path).map_err(|error| error.to_string())
+    }
+
+    fn save_locale(&self, locale: LocalePreference) -> std::result::Result<(), String> {
+        save_locale_preference(&self.database_path, locale).map_err(|error| error.to_string())
     }
 }
 
@@ -2377,6 +2435,53 @@ mod tests {
     }
 
     #[test]
+    fn rolls_back_an_interrupted_version_two_upgrade_and_recovers() {
+        let harness = Harness::new();
+        let database_path = harness.database();
+        let connection = Connection::open(&database_path).expect("database");
+        connection
+            .execute_batch("PRAGMA foreign_keys = ON;")
+            .expect("foreign keys");
+        connection
+            .execute_batch(SCHEMA_V1)
+            .expect("version one schema");
+        connection
+            .execute_batch(SCHEMA_V2)
+            .expect("version two schema");
+        connection
+            .pragma_update(None, "user_version", 2)
+            .expect("version two marker");
+
+        let error = migrate_schema(&connection, true).expect_err("interrupted upgrade");
+        assert!(matches!(error, ImportError::InjectedMigrationInterruption));
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("retained schema version"),
+            2
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_master
+                     WHERE type = 'table' AND name = 'locale_preference'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("version three table count"),
+            0
+        );
+
+        migrate_schema(&connection, false).expect("recovered upgrade");
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("upgraded schema version"),
+            SCHEMA_VERSION
+        );
+    }
+
+    #[test]
     fn migrates_version_one_history_without_inventing_missing_evidence() {
         let harness = Harness::new();
         let database_path = harness.database();
@@ -2554,6 +2659,28 @@ mod tests {
         assert_eq!(
             query_activity(&backup_path).expect("backup history"),
             query_activity(&harness.database()).expect("source history")
+        );
+    }
+
+    #[test]
+    fn persists_the_locale_preference_across_library_reopens() {
+        let harness = Harness::new();
+
+        assert_eq!(
+            load_locale_preference(&harness.database()).expect("empty preference"),
+            None
+        );
+        save_locale_preference(&harness.database(), LocalePreference::EsEs)
+            .expect("saved preference");
+        assert_eq!(
+            load_locale_preference(&harness.database()).expect("reopened preference"),
+            Some(LocalePreference::EsEs)
+        );
+        save_locale_preference(&harness.database(), LocalePreference::EnUs)
+            .expect("updated preference");
+        assert_eq!(
+            load_locale_preference(&harness.database()).expect("updated preference query"),
+            Some(LocalePreference::EnUs)
         );
     }
 }

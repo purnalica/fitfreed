@@ -41,6 +41,7 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Database constraints, transactions, migrations, queries, rollback, and restart behavior.
 - Import fingerprints, provenance, overlap reconciliation, and retry behavior.
 - Localization catalogs, placeholders, plural rules, and fallback.
+- Presentation motion declarations and the reduced-motion boundary.
 - Update metadata, signature validation, artifact selection, and migration coordination.
 - Packaging and operating-system integration where a complete UI journey is unnecessary.
 

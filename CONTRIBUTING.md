@@ -35,6 +35,8 @@ English is the canonical project language for source code, identifiers, tests, t
 
 Do not place translated interface strings directly in source code or mix languages in canonical technical artifacts.
 
+Follow the [localization guide](docs/development/localization.md) when changing interface copy, formatting, locale persistence, or supported languages.
+
 ## Personal data and fixtures
 
 Real exports and anything derived from them must remain outside version control, including databases, reports, screenshots, logs, routes, physiological values, identifiers, and benchmark results.

@@ -4,7 +4,7 @@
 
 Current architecture after [ADR 0002](decisions/0002-select-sqlite-storage.md). SQLite is the only storage engine in the application and the authoritative local-library format. It does not replace the documented portable FitFreed data contract.
 
-The current implemented schema and compatibility boundary are documented in the [SQLite version 2 persistence specification](../data-formats/persistence/sqlite-v2.md). The [version 1 specification](../data-formats/persistence/sqlite-v1.md) remains immutable migration history.
+The current implemented schema and compatibility boundary are documented in the [SQLite version 3 persistence specification](../data-formats/persistence/sqlite-v3.md), which extends the version 2 import ledger with a durable locale preference. Earlier specifications remain immutable migration history.
 
 ## Ownership
 

@@ -44,6 +44,9 @@ jobs:
       - name: Verify translation catalogs
         run: npm run check:i18n
 
+      - name: Verify presentation contracts
+        run: npm run check:ui-contracts
+
       - name: Verify documentation links
         run: npm run check:docs
 
