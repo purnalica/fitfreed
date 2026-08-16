@@ -222,7 +222,7 @@ mod tests {
             operation_ref: "synthetic-operation".to_owned(),
             state: ImportOperationState::Completed,
             source_provider: "polar-flow".to_owned(),
-            source_adapter_version: "polar-flow-archive@2".to_owned(),
+            source_adapter_version: "polar-flow-archive@3".to_owned(),
             mapping_version: "polar-flow-daily-activity@1".to_owned(),
             exact_repeat: false,
             coverage_complete: true,

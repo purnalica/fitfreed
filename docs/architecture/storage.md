@@ -42,6 +42,8 @@ Caches that can be discarded without changing observable truth may live outside 
 
 New origin and evidence rows become durable only inside the same visibility transaction as canonical history and operation completion. Existing development origins migrate as unverified origins without invented evidence. Exact-repeat lookup may inherit an origin only from a completed operation whose correlation state is verified; an old package fingerprint alone cannot authorize subject resolution.
 
+Exact-repeat reuse is additionally scoped to the current source provider, adapter version, and mapping version. Identical bytes are reassessed after any compatibility-contract change, so a previous outcome cannot bypass validation added by a newer adapter.
+
 The correlation key remains part of protected backup state so a restored library preserves reimport behavior. A scoped digest is still sensitive metadata and is excluded from public diagnostics and the normalized portable export unless a later versioned contract explicitly requires it.
 
 ## Query model

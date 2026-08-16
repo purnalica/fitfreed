@@ -1,5 +1,5 @@
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     fs::File,
     io::{self, Read, Seek, SeekFrom},
     path::{Path, PathBuf},
@@ -27,7 +27,7 @@ use fitfreed_domain::{
 mod polar_flow;
 mod source_subject;
 
-use polar_flow::{assess_artifact, SupportedArtifact};
+use polar_flow::{assess_artifact, daily_activity_filename_date, SupportedArtifact};
 use source_subject::{
     persist_source_subject, resolve_source_subject, SourceSubjectClaim, SourceSubjectResolution,
 };
@@ -42,7 +42,7 @@ const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
 const SCHEMA_V4: &str = include_str!("../migrations/0004_source_subject.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
-const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@2";
+const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@3";
 const DAILY_ACTIVITY_MAPPING_VERSION: &str = "polar-flow-daily-activity@1";
 
 #[derive(Debug, Error)]
@@ -56,7 +56,11 @@ pub enum ImportError {
     #[error("database failure: {0}")]
     Database(#[from] rusqlite::Error),
     #[error("invalid supported artifact {artifact}: {reason}")]
-    InvalidArtifact { artifact: String, reason: String },
+    InvalidArtifact {
+        artifact: String,
+        reason: String,
+        reason_code: &'static str,
+    },
     #[error("unsafe archive member: {0}")]
     UnsafeMember(String),
     #[error("duplicate archive member: {0}")]
@@ -509,6 +513,10 @@ fn execute_import(
                         mapped_artifacts.push(mapped);
                     }
                     Err(error) => {
+                        let reason_code = match &error {
+                            ImportError::InvalidArtifact { reason_code, .. } => *reason_code,
+                            _ => "invalid-supported-artifact",
+                        };
                         record_artifact_coverage(
                             connection,
                             operation_id,
@@ -516,7 +524,7 @@ fn execute_import(
                             assessment.family,
                             ArtifactClassification::Invalid,
                             Some(&artifact_sha256),
-                            "invalid-supported-artifact",
+                            reason_code,
                         )?;
                         if first_invalid.is_none() {
                             first_invalid = Some(error);
@@ -531,6 +539,13 @@ fn execute_import(
             processed_artifacts,
             processable_artifacts,
         ));
+    }
+    if let Some(error) =
+        invalidate_duplicate_daily_activity(connection, operation_id, mapped_artifacts.as_slice())?
+    {
+        if first_invalid.is_none() {
+            first_invalid = Some(error);
+        }
     }
     refresh_operation_coverage(connection, operation_id)?;
     if let Some(error) = first_invalid {
@@ -648,11 +663,13 @@ fn decode_account_data(artifact_locator: &str, bytes: &[u8]) -> Result<PolarAcco
         serde_json::from_slice(bytes).map_err(|_| ImportError::InvalidArtifact {
             artifact: artifact_locator.to_owned(),
             reason: "account-data root or username is invalid".to_owned(),
+            reason_code: "invalid-source-subject-evidence",
         })?;
     if account.username.is_empty() {
         return Err(ImportError::InvalidArtifact {
             artifact: artifact_locator.to_owned(),
             reason: "account-data username is empty".to_owned(),
+            reason_code: "invalid-source-subject-evidence",
         });
     }
     Ok(account)
@@ -1017,8 +1034,17 @@ fn completed_package_operation(
                AND operation.state = 'completed'
                AND operation.coverage_complete = 1
                AND (?2 = 0 OR origin.correlation_state = 'verified')
+               AND operation.source_provider = ?3
+               AND operation.source_adapter_version = ?4
+               AND operation.mapping_version = ?5
              ORDER BY operation.id LIMIT 1",
-            params![package_sha256, require_verified_origin],
+            params![
+                package_sha256,
+                require_verified_origin,
+                SOURCE_PROVIDER,
+                SOURCE_ADAPTER_VERSION,
+                DAILY_ACTIVITY_MAPPING_VERSION
+            ],
             |row| row.get(0),
         )
         .optional()
@@ -1094,6 +1120,43 @@ fn record_artifact_coverage(
         ],
     )?;
     Ok(())
+}
+
+fn invalidate_duplicate_daily_activity(
+    connection: &Connection,
+    operation_id: i64,
+    mapped_artifacts: &[MappedArtifact],
+) -> Result<Option<ImportError>> {
+    let mut locators_by_date: HashMap<&str, Vec<&str>> = HashMap::new();
+    for artifact in mapped_artifacts {
+        locators_by_date
+            .entry(artifact.observation.local_date.as_str())
+            .or_default()
+            .push(artifact.locator.as_str());
+    }
+
+    let mut duplicate_found = false;
+    for locators in locators_by_date
+        .values()
+        .filter(|locators| locators.len() > 1)
+    {
+        duplicate_found = true;
+        for locator in locators {
+            connection.execute(
+                "UPDATE import_artifact_coverage
+                 SET classification = 'invalid',
+                     reason_code = 'duplicate-daily-activity-date'
+                 WHERE import_operation_id = ?1 AND artifact_locator = ?2",
+                params![operation_id, locator],
+            )?;
+        }
+    }
+
+    Ok(duplicate_found.then(|| ImportError::InvalidArtifact {
+        artifact: "polar-flow-daily-activity".to_owned(),
+        reason: "package contains duplicate daily-activity identities".to_owned(),
+        reason_code: "duplicate-daily-activity-date",
+    }))
 }
 
 fn refresh_operation_coverage(connection: &Connection, operation_id: i64) -> Result<()> {
@@ -1492,13 +1555,22 @@ fn map_activity(origin_id: &str, source: PolarActivity, artifact: &str) -> Resul
         ImportError::InvalidArtifact {
             artifact: artifact.to_owned(),
             reason: format!("invalid local date: {error}"),
+            reason_code: "invalid-supported-artifact",
         }
     })?;
+    if daily_activity_filename_date(artifact) != Some(source.date.as_str()) {
+        return Err(ImportError::InvalidArtifact {
+            artifact: artifact.to_owned(),
+            reason: "filename and content dates differ".to_owned(),
+            reason_code: "filename-content-date-mismatch",
+        });
+    }
     let step_count = source.summary.and_then(|summary| summary.step_count);
     if step_count.is_some_and(|value| value < 0) {
         return Err(ImportError::InvalidArtifact {
             artifact: artifact.to_owned(),
             reason: "stepCount cannot be negative".to_owned(),
+            reason_code: "invalid-supported-artifact",
         });
     }
     Ok(DailyActivity {
@@ -1517,11 +1589,13 @@ fn decode_activity(
     let json = String::from_utf8(bytes).map_err(|error| ImportError::InvalidArtifact {
         artifact: artifact_locator.to_owned(),
         reason: error.to_string(),
+        reason_code: "invalid-supported-artifact",
     })?;
     let source: PolarActivity =
         serde_json::from_str(&json).map_err(|error| ImportError::InvalidArtifact {
             artifact: artifact_locator.to_owned(),
             reason: error.to_string(),
+            reason_code: "invalid-supported-artifact",
         })?;
     let observation = map_activity(origin_id, source, artifact_locator)?;
     Ok(MappedArtifact {
@@ -1719,6 +1793,7 @@ fn read_bytes<R: Read>(
             .map_err(|error| ImportError::InvalidArtifact {
                 artifact: artifact.to_owned(),
                 reason: error.to_string(),
+                reason_code: "invalid-supported-artifact",
             })?;
         if read == 0 {
             break;
@@ -2464,6 +2539,228 @@ mod tests {
         assert_eq!(
             (repeated.6, repeated.7, repeated.8, repeated.9),
             (2, 1, 1, 2)
+        );
+    }
+
+    #[test]
+    fn reassesses_identical_bytes_after_an_adapter_contract_change() {
+        let harness = Harness::new();
+        let archive = harness.archive(
+            "adapter-upgrade.zip",
+            &[(
+                "activity-2026-01-09-11111111-2222-4333-8444-555555555555.json",
+                r#"{"date":"2026-01-09","summary":{"stepCount":3100}}"#,
+            )],
+        );
+        import_archive(&harness.database(), &archive, "polar:synthetic")
+            .expect("original adapter import");
+        let connection = Connection::open(harness.database()).expect("database");
+        connection
+            .execute(
+                "UPDATE import_operation
+                 SET source_adapter_version = 'polar-flow-archive@previous'
+                 WHERE state = 'completed'",
+                [],
+            )
+            .expect("simulate earlier adapter contract");
+
+        let reassessed = import_archive(&harness.database(), &archive, "polar:synthetic")
+            .expect("current adapter reassessment");
+
+        assert!(!reassessed.exact_repeat);
+        assert_eq!(reassessed.equivalent_observations, 1);
+        let outcome = query_latest_import_outcome(&harness.database())
+            .expect("outcome query")
+            .expect("reassessed outcome");
+        assert_eq!(outcome.source_adapter_version, SOURCE_ADAPTER_VERSION);
+        assert!(!outcome.exact_repeat);
+    }
+
+    #[test]
+    fn rejects_a_filename_and_content_date_mismatch_without_selecting_either_date() {
+        let harness = Harness::new();
+        let archive = harness.archive(
+            "date-mismatch.zip",
+            &[(
+                "activity-2026-01-10-11111111-2222-4333-8444-555555555555.json",
+                r#"{"date":"2026-01-11","summary":{"stepCount":3100}}"#,
+            )],
+        );
+
+        import_archive(&harness.database(), &archive, "polar:synthetic")
+            .expect_err("contradictory source dates");
+
+        assert!(query_activity(&harness.database())
+            .expect("empty history")
+            .is_empty());
+        let outcome = query_latest_import_outcome(&harness.database())
+            .expect("outcome query")
+            .expect("rejected outcome");
+        assert_eq!(
+            outcome.artifact_families,
+            vec![ArtifactFamilyCoverage {
+                family_code: Some("polar-flow-daily-activity".to_owned()),
+                classification: ArtifactClassification::Invalid,
+                reason_code: "filename-content-date-mismatch".to_owned(),
+                artifact_count: 1,
+            }]
+        );
+    }
+
+    #[test]
+    fn rejects_duplicate_daily_identity_independently_of_archive_order() {
+        let orders = [
+            [
+                (
+                    "activity-2026-01-12-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"date":"2026-01-12","summary":{"stepCount":3100}}"#,
+                ),
+                (
+                    "activity-2026-01-12-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    r#"{"date":"2026-01-12","summary":{"stepCount":4200}}"#,
+                ),
+            ],
+            [
+                (
+                    "activity-2026-01-12-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    r#"{"date":"2026-01-12","summary":{"stepCount":4200}}"#,
+                ),
+                (
+                    "activity-2026-01-12-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"date":"2026-01-12","summary":{"stepCount":3100}}"#,
+                ),
+            ],
+        ];
+
+        for (index, entries) in orders.iter().enumerate() {
+            let harness = Harness::new();
+            let archive = harness.archive(&format!("duplicate-{index}.zip"), entries);
+
+            import_archive(&harness.database(), &archive, "polar:synthetic")
+                .expect_err("duplicate logical daily identity");
+
+            assert!(query_activity(&harness.database())
+                .expect("empty history")
+                .is_empty());
+            let outcome = query_latest_import_outcome(&harness.database())
+                .expect("outcome query")
+                .expect("rejected outcome");
+            assert_eq!(outcome.coverage.invalid, 2);
+            assert_eq!(
+                outcome.artifact_families,
+                vec![ArtifactFamilyCoverage {
+                    family_code: Some("polar-flow-daily-activity".to_owned()),
+                    classification: ArtifactClassification::Invalid,
+                    reason_code: "duplicate-daily-activity-date".to_owned(),
+                    artifact_count: 2,
+                }]
+            );
+        }
+    }
+
+    #[test]
+    fn accepts_the_documented_daily_activity_shape_compatibility_matrix() {
+        let harness = Harness::new();
+        let archive = harness.archive(
+            "compatible-shapes.zip",
+            &[
+                (
+                    "activity-2026-01-13-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"date":"2026-01-13"}"#,
+                ),
+                (
+                    "activity-2026-01-14-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"date":"2026-01-14","summary":null}"#,
+                ),
+                (
+                    "activity-2026-01-15-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"date":"2026-01-15","exportVersion":{"future":"shape"},"futureRoot":true,"summary":{"stepCount":null,"futureSummary":[]}}"#,
+                ),
+                (
+                    "activity-2026-01-16-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"date":"2026-01-16","summary":{"stepCount":0}}"#,
+                ),
+            ],
+        );
+
+        let report = import_archive(&harness.database(), &archive, "polar:synthetic")
+            .expect("compatible structural variants");
+
+        assert_eq!(report.new_observations, 4);
+        assert_eq!(
+            query_activity(&harness.database()).expect("compatible history"),
+            vec![
+                DailyActivity {
+                    origin_id: "polar:synthetic".to_owned(),
+                    local_date: "2026-01-13".to_owned(),
+                    step_count: None,
+                },
+                DailyActivity {
+                    origin_id: "polar:synthetic".to_owned(),
+                    local_date: "2026-01-14".to_owned(),
+                    step_count: None,
+                },
+                DailyActivity {
+                    origin_id: "polar:synthetic".to_owned(),
+                    local_date: "2026-01-15".to_owned(),
+                    step_count: None,
+                },
+                DailyActivity {
+                    origin_id: "polar:synthetic".to_owned(),
+                    local_date: "2026-01-16".to_owned(),
+                    step_count: Some(0),
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn rejects_incompatible_mapped_shapes_atomically() {
+        let harness = Harness::new();
+        let archive = harness.archive(
+            "incompatible-shapes.zip",
+            &[
+                (
+                    "activity-2026-01-17-11111111-2222-4333-8444-555555555555.json",
+                    r#"[{"date":"2026-01-17"}]"#,
+                ),
+                (
+                    "activity-2026-01-18-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"summary":{"stepCount":100}}"#,
+                ),
+                (
+                    "activity-2026-01-19-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"date":"2026-01-19","summary":"unsupported"}"#,
+                ),
+                (
+                    "activity-2026-01-20-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"date":"2026-01-20","summary":{"stepCount":1.5}}"#,
+                ),
+                (
+                    "activity-2026-01-21-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"date":"2026-01-21","summary":{"stepCount":"100"}}"#,
+                ),
+            ],
+        );
+
+        import_archive(&harness.database(), &archive, "polar:synthetic")
+            .expect_err("incompatible structural variants");
+
+        assert!(query_activity(&harness.database())
+            .expect("empty history")
+            .is_empty());
+        let outcome = query_latest_import_outcome(&harness.database())
+            .expect("outcome query")
+            .expect("rejected outcome");
+        assert_eq!(outcome.coverage.invalid, 5);
+        assert_eq!(
+            outcome.artifact_families,
+            vec![ArtifactFamilyCoverage {
+                family_code: Some("polar-flow-daily-activity".to_owned()),
+                classification: ArtifactClassification::Invalid,
+                reason_code: "invalid-supported-artifact".to_owned(),
+                artifact_count: 5,
+            }]
         );
     }
 

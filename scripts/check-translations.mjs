@@ -26,6 +26,19 @@ const catalogs = localeFiles.map((file) => {
   return { file, entries: new Map(flatten(content)) };
 });
 const canonicalKeys = [...catalogs[0].entries.keys()].sort();
+const coverageReasonCodes = [
+  "mapped",
+  "source-subject-claim",
+  "known-family-not-yet-supported",
+  "mvp-excludes-sensitive-profile",
+  "mvp-excludes-profile-picture",
+  "mvp-excludes-full-resolution-physiology",
+  "unrecognized-artifact-family",
+  "invalid-supported-artifact",
+  "filename-content-date-mismatch",
+  "duplicate-daily-activity-date",
+  "invalid-source-subject-evidence",
+];
 
 for (const catalog of catalogs) {
   const keys = [...catalog.entries.keys()].sort();
@@ -39,6 +52,14 @@ for (const catalog of catalogs) {
   for (const [key, message] of catalog.entries) {
     if (message.trim().length === 0) {
       throw new Error(`${catalog.file}:${key} must not be empty`);
+    }
+  }
+  for (const reasonCode of coverageReasonCodes) {
+    for (const field of ["reason", "action"]) {
+      const key = `outcome.coverageExplanations.${reasonCode}.${field}`;
+      if (!catalog.entries.has(key)) {
+        throw new Error(`${catalog.file} does not explain coverage reason ${reasonCode}`);
+      }
     }
   }
 }

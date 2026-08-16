@@ -125,6 +125,14 @@
         "reason": "El contenido reconocido no ha superado la validación.",
         "action": "Conserva el ZIP original y comunica el problema de compatibilidad."
       },
+      "filename-content-date-mismatch": {
+        "reason": "La fecha del nombre de archivo y la fecha del registro de actividad no coinciden.",
+        "action": "Conserva el ZIP original y comunica el problema de compatibilidad."
+      },
+      "duplicate-daily-activity-date": {
+        "reason": "El paquete contiene más de un registro de actividad diaria para la misma fecha.",
+        "action": "Solicita una nueva exportación o comunica el problema de compatibilidad."
+      },
       "invalid-source-subject-evidence": {
         "reason": "No se han podido validar los datos de la cuenta del proveedor.",
         "action": "Usa el ZIP original de la exportación completa o comunica el problema de compatibilidad."

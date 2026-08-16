@@ -58,7 +58,7 @@ Version 4 adds one nullable column to the version 2 operation ledger.
 
 Exact-repeat lookup may inherit this value only when the referenced origin is `verified`, the earlier operation is `completed`, and coverage is complete. A package fingerprint by itself cannot authorize subject correlation.
 
-Polar import operations that apply this contract record source adapter version `polar-flow-archive@2`; earlier operation rows retain their original adapter version.
+Polar import operations first applying the source-subject contract record source adapter version `polar-flow-archive@2`. Version `polar-flow-archive@3` adds the documented shape-based daily-activity compatibility matrix, filename/content date consistency, duplicate-date rejection, and compatibility-version-scoped exact-repeat reuse. Earlier operation rows retain their original adapter version and cannot authorize an exact-repeat fast path under a later adapter contract.
 
 ## Migration behavior
 

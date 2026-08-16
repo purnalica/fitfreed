@@ -65,7 +65,7 @@ Assessment never trusts the filename extension, MIME declaration, archive paths,
 
 The import plan fixes the adapter and mapping versions, artifact classification, intended work, resource budgets, and coverage baseline. It is deterministic for the same package bytes and application compatibility version.
 
-An exact package fingerprint may take a fast path that avoids repeated parsing only when the earlier completed operation has complete coverage and a verified observation origin. The new import operation still records an explainable completed outcome and links to the earlier evidence; exact byte identity is not reused as logical identity for a different package or as a substitute for missing legacy subject evidence.
+An exact package fingerprint may take a fast path that avoids repeated parsing only when the earlier completed operation has complete coverage, a verified observation origin where required, and the same provider, adapter, and mapping versions. The new import operation still records an explainable completed outcome and links to the earlier evidence. Exact byte identity is not reused across a compatibility-contract change, as logical identity for a different package, or as a substitute for missing legacy subject evidence.
 
 ### 3. Staging
 

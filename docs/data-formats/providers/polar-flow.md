@@ -51,7 +51,7 @@ This registry is the public coverage index. Detailed shapes, fields, identities,
 |---|---|---|
 | Account and profile | Account attributes, profile, preferences, and profile pictures | Account data is supported only for source-subject correlation; account profile and picture artifacts are deliberately ignored by the MVP |
 | Devices | Active and archived products, registrations, and device settings | Recognized and unsupported |
-| Daily activity | Daily summaries, activity samples, and inactivity events | Filename grammar, source-subject correlation, and canonical step-count mapping are supported; historical structural compatibility remains under evaluation |
+| Daily activity | Daily summaries, activity samples, and inactivity events | Filename grammar, source-subject correlation, filename/content date consistency, duplicate-date rejection, and the documented shape-based canonical step-count mapping are supported; compatibility is limited to the evaluated structural matrix |
 | Continuous heart rate | Partitioned high-resolution daily heart-rate samples | Recognized and deliberately ignored because full-resolution physiological exploration is excluded from the MVP |
 | Beat-to-beat samples | Partitioned high-resolution physiological samples | Recognized and deliberately ignored because full-resolution physiological exploration is excluded from the MVP |
 | Training | Sessions, exercises, laps, zones, routes, and sample series | Recognized and unsupported; summary support is planned, while routes and full-resolution samples are excluded from the MVP |
@@ -145,7 +145,7 @@ Observed periodic grammars use month tokens `01` through `12`; beat-to-beat file
 
 The absence of a time-zone identifier means the date and source-local sample times must be preserved without conversion through the computer's current time zone. A later observation with the same candidate identity is equivalent only when its mapped canonical content is equivalent. A strict, non-conflicting enrichment may be an amendment; competing changed values remain a conflict unless stronger source evidence establishes deterministic precedence.
 
-The evaluated export alone cannot prove a provider-stable account key. Polar adapter version 2 therefore requires exactly one account-data artifact with a non-empty string `username`, applies exact versioned matching, and passes the transient value to the library-scoped resolver defined by [ADR 0005](../../architecture/decisions/0005-use-library-scoped-source-subject-correlation.md). The raw value is never canonical identity or stored correlation state. A changed or unmatched claim fails closed; no filename token is promoted to identity evidence.
+The evaluated export alone cannot prove a provider-stable account key. The source-subject contract introduced by Polar adapter version 2 and retained by version 3 therefore requires exactly one account-data artifact with a non-empty string `username`, applies exact versioned matching, and passes the transient value to the library-scoped resolver defined by [ADR 0005](../../architecture/decisions/0005-use-library-scoped-source-subject-correlation.md). The raw value is never canonical identity or stored correlation state. A changed or unmatched claim fails closed; no filename token is promoted to identity evidence.
 
 The implemented walking-skeleton transformation is specified normatively in the [Polar Flow daily activity mapping](../mappings/polar-flow-daily-activity.md). This provider reference remains descriptive evidence and does not define FitFreed behavior by itself.
 

@@ -4,6 +4,7 @@ use fitfreed_domain::ArtifactClassification;
 use regex::Regex;
 
 const DATE_PATTERN: &str = r"[0-9]{4}-[0-9]{2}-[0-9]{2}";
+const DATE_LENGTH: usize = 10;
 const TIME_PATTERN: &str = r"[0-9]{2}-[0-9]{2}-[0-9]{2}";
 const NUMERIC_PATTERN: &str = r"[0-9]+";
 const UUID_PATTERN: &str =
@@ -229,6 +230,10 @@ pub(super) fn assess_artifact(name: &str) -> ArtifactAssessment {
         )
 }
 
+pub(super) fn daily_activity_filename_date(name: &str) -> Option<&str> {
+    name.strip_prefix("activity-")?.get(..DATE_LENGTH)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -238,7 +243,8 @@ mod tests {
 
     #[test]
     fn classifies_supported_daily_activity_from_the_complete_filename_grammar() {
-        let assessment = assess_artifact(&format!("activity-2026-01-02-{UUID_A}.json"));
+        let name = format!("activity-2026-01-02-{UUID_A}.json");
+        let assessment = assess_artifact(&name);
 
         assert_eq!(assessment.family, Some("polar-flow-daily-activity"));
         assert_eq!(assessment.classification, ArtifactClassification::Supported);
@@ -247,6 +253,7 @@ mod tests {
             assessment.supported_artifact,
             Some(SupportedArtifact::DailyActivity)
         );
+        assert_eq!(daily_activity_filename_date(&name), Some("2026-01-02"));
     }
 
     #[test]

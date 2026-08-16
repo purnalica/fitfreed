@@ -43,7 +43,7 @@ Production-path fixtures include exactly one obvious non-address fictional accou
 | `SYN-009` | Deliberately ignored family | The documented policy and user-visible reason appear in coverage. |
 | `SYN-010` | Unrecognized artifact | Unknown content is reported without being parsed speculatively or silently discarded. |
 | `SYN-011` | Compatible unknown field | A documented extension point accepts the record, retains the compatibility warning required by policy, and does not alter known semantics. |
-| `SYN-012` | Incompatible field type or shape | Intended supported content is invalid, the package is rejected under the atomicity policy, and history remains unchanged. |
+| `SYN-012` | Incompatible field type, shape, or contradictory identity evidence | Intended supported content, including a filename/content date mismatch, is invalid; the package is rejected under the atomicity policy and history remains unchanged. |
 | `SYN-013` | Malformed JSON and invalid encoding | Parsing fails safely with an artifact-specific error and sanitized recovery guidance. |
 | `SYN-014` | Missing required relationship | Cross-record validation rejects or conflicts the affected candidate according to the family contract. |
 | `SYN-015` | Ambiguous or absent source identifier | The family-specific identity rule is exercised; no universal filename or content-hash fallback is invented. |
@@ -54,7 +54,7 @@ Production-path fixtures include exactly one obvious non-address fictional accou
 | `SYN-020` | Resource-limit violation | Entry count, expanded size, per-entry size, nesting, or compression-ratio limits stop work predictably without partial state. |
 | `SYN-021` | Cancellation by durable phase | Cancellation during assessment, staging, or reconciliation exposes no canonical changes and cleans or records staging according to policy. |
 | `SYN-022` | Process interruption by durable phase | Restart resolves assessment/staging safely and proves either complete commit or rollback for an interrupted visibility boundary. |
-| `SYN-023` | Artifact-order and batch-size permutations | Property-based permutations produce the same coverage, decisions, and canonical result. |
+| `SYN-023` | Artifact-order and batch-size permutations | Property-based permutations produce the same coverage, decisions, and canonical result; duplicate daily identities reject in either archive order instead of selecting a delivery-order winner. |
 | `SYN-024` | Mixed coverage package | Supported, unsupported, ignored, unrecognized, and invalid artifacts produce deterministic family-level counts, localized reasons and next actions, and no silent category or exposed locator. |
 | `SYN-025` | Generated realistic scale | Streaming import, bounded memory, progress, cancellation, persistence, and representative queries meet validated budgets. |
 | `SYN-026` | Schema migration and reimport | Data created by every supported library schema migrates, remains queryable, and reconciles correctly with a later package. |
@@ -72,6 +72,8 @@ Every supported provider family extends the core catalog with at least:
 7. source-to-canonical loss and provenance assertions.
 
 No family is marked supported until its format reference, mapping specification, synthetic definitions, and expected canonical outcomes cover that matrix.
+
+The implemented daily-activity matrix covers an absent or null summary, absent or null step count, zero, a non-negative integer, ignored unknown fields and `exportVersion` shapes, invalid roots, missing or invalid dates, invalid summary and step-count types, filename/content date mismatch, duplicate logical dates in both archive orders, and reassessment after an adapter-version change.
 
 ## Test-layer use
 

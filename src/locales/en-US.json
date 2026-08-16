@@ -125,6 +125,14 @@
         "reason": "Recognized content failed validation.",
         "action": "Keep the original ZIP and report the compatibility problem."
       },
+      "filename-content-date-mismatch": {
+        "reason": "The filename date and the date inside the activity record disagree.",
+        "action": "Keep the original ZIP and report the compatibility problem."
+      },
+      "duplicate-daily-activity-date": {
+        "reason": "The package contains more than one daily activity record for the same date.",
+        "action": "Request a new export or report the compatibility problem."
+      },
       "invalid-source-subject-evidence": {
         "reason": "The provider account evidence could not be validated.",
         "action": "Use the original complete export ZIP or report the compatibility problem."

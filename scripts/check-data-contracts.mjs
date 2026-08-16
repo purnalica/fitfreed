@@ -19,6 +19,13 @@ const infrastructure = read(infrastructurePath);
 const schemaVersionMatch = infrastructure.match(/const SCHEMA_VERSION: i64 = (\d+);/);
 if (!schemaVersionMatch) throw new Error(`${infrastructurePath} has no SCHEMA_VERSION`);
 const schemaVersion = Number(schemaVersionMatch[1]);
+const sourceAdapterVersionMatch = infrastructure.match(
+  /const SOURCE_ADAPTER_VERSION: &str = "([^"]+)";/,
+);
+if (!sourceAdapterVersionMatch) {
+  throw new Error(`${infrastructurePath} has no SOURCE_ADAPTER_VERSION`);
+}
+const sourceAdapterVersion = sourceAdapterVersionMatch[1];
 
 const migrationDirectory = path.join(repositoryRoot, "src-tauri", "migrations");
 const migrations = readdirSync(migrationDirectory)
@@ -58,6 +65,7 @@ for (const contractValue of [
   "polar-flow",
   "polar-flow-archive@1",
   "polar-flow-archive@2",
+  "polar-flow-archive@3",
   "polar-flow-daily-activity@1",
   "assessing",
   "planned",
@@ -93,6 +101,7 @@ for (const fieldMatch of dailyActivityMatch[1].matchAll(/pub ([a-z_]+):/g)) {
 
 const mappingPath = "docs/data-formats/mappings/polar-flow-daily-activity.md";
 const mapping = read(mappingPath);
+requireMention(mapping, sourceAdapterVersion, mappingPath);
 for (const sourceField of ["date", "summary", "summary.stepCount"]) {
   requireMention(mapping, sourceField, mappingPath);
 }
@@ -110,5 +119,5 @@ for (const contractPath of [canonicalPath, mappingPath, ...persistencePaths]) {
 }
 
 process.stdout.write(
-  `${JSON.stringify({ schemaVersion, migrations, persistencePaths, canonicalFields: 3, mappingFields: 6 })}\n`,
+  `${JSON.stringify({ schemaVersion, sourceAdapterVersion, migrations, persistencePaths, canonicalFields: 3, mappingFields: 6 })}\n`,
 );

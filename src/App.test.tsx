@@ -12,7 +12,7 @@ function importOutcome(overrides: Record<string, unknown> = {}) {
     operationRef: "synthetic-operation",
     state: "completed",
     sourceProvider: "polar-flow",
-    sourceAdapterVersion: "polar-flow-archive@2",
+    sourceAdapterVersion: "polar-flow-archive@3",
     mappingVersion: "polar-flow-daily-activity@1",
     exactRepeat: false,
     coverageComplete: true,
@@ -91,12 +91,12 @@ describe("FitFreed import interface", () => {
   it("explains family coverage with localized reasons and next actions without source locators", async () => {
     const latestOutcome = importOutcome({
       coverage: {
-        total: 7,
+        total: 10,
         supported: 3,
         unsupported: 1,
         deliberatelyIgnored: 1,
         unrecognized: 1,
-        invalid: 1,
+        invalid: 4,
       },
       artifactFamilies: [
         {
@@ -110,6 +110,18 @@ describe("FitFreed import interface", () => {
           classification: "unrecognized",
           reasonCode: "unrecognized-artifact-family",
           artifactCount: 1,
+        },
+        {
+          familyCode: "polar-flow-daily-activity",
+          classification: "invalid",
+          reasonCode: "filename-content-date-mismatch",
+          artifactCount: 1,
+        },
+        {
+          familyCode: "polar-flow-daily-activity",
+          classification: "invalid",
+          reasonCode: "duplicate-daily-activity-date",
+          artifactCount: 2,
         },
         {
           familyCode: "polar-flow-sleep-result",
@@ -142,12 +154,18 @@ describe("FitFreed import interface", () => {
     render(<App />);
 
     const coverage = await screen.findByRole("table", { name: "Coverage by data family" });
-    expect(within(coverage).getAllByRole("row")).toHaveLength(6);
+    expect(within(coverage).getAllByRole("row")).toHaveLength(8);
     expect(within(coverage).getByRole("row", {
       name: /Daily activity Invalid 1 Reason: Recognized content failed validation\. Next action: Keep the original ZIP and report the compatibility problem/,
     })).toBeVisible();
     expect(within(coverage).getByRole("row", {
       name: /Unrecognized data Unrecognized 1 Reason: The file does not match a known data family\. Next action: Keep the original ZIP and report the compatibility problem/,
+    })).toBeVisible();
+    expect(within(coverage).getByRole("row", {
+      name: /Daily activity Invalid 1 Reason: The filename date and the date inside the activity record disagree\. Next action: Keep the original ZIP and report the compatibility problem/,
+    })).toBeVisible();
+    expect(within(coverage).getByRole("row", {
+      name: /Daily activity Invalid 2 Reason: The package contains more than one daily activity record for the same date\. Next action: Request a new export or report the compatibility problem/,
     })).toBeVisible();
     expect(screen.queryByText(/activity-2026-01-01/)).not.toBeInTheDocument();
 
@@ -155,6 +173,9 @@ describe("FitFreed import interface", () => {
     const spanishCoverage = screen.getByRole("table", { name: "Cobertura por familia de datos" });
     expect(within(spanishCoverage).getByRole("row", {
       name: /Actividad diaria No válido 1 Motivo: El contenido reconocido no ha superado la validación\. Siguiente acción: Conserva el ZIP original y comunica el problema de compatibilidad/,
+    })).toBeVisible();
+    expect(within(spanishCoverage).getByRole("row", {
+      name: /Actividad diaria No válido 2 Motivo: El paquete contiene más de un registro de actividad diaria para la misma fecha\. Siguiente acción: Solicita una nueva exportación o comunica el problema de compatibilidad/,
     })).toBeVisible();
   });
 
