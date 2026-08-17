@@ -16,7 +16,7 @@ Until minimum supported hardware is finalized, performance measurements use:
 - A clean supported macOS installation without developer tooling on the user journey path.
 - Release-shaped application packages.
 
-Benchmarks will report the exact device, processor, memory, macOS version, free storage, application version, data scenario, number of runs, warm-up policy, and percentile calculation.
+Raw local benchmark output records the exact execution environment needed to assess validity and remains local under the [repository content policy](repository-content-policy.md). Versioned evidence reports the application and source identity, data scenario, number of runs, warm-up policy, percentile calculation, aggregate measurements, result, and only whether the environment satisfies this reference profile. It never publishes a maintainer's or participant's workstation details.
 
 ## Responsiveness budgets
 
@@ -91,4 +91,4 @@ The MVP additionally requires:
 - Results are compared to a versioned baseline and identify the responsible phase or query.
 - Measurements never publish personal data, raw routes, identifiers, or sensitive diagnostic values.
 
-The implemented full-scale import, daily-activity, training-session, sleep, recovery, and integrated longitudinal gates, synthetic scales, percentile policy, timed boundaries, machine profile output, and interpretation limits are documented in the [performance benchmark guide](development/performance-benchmarks.md).
+The implemented cold-launch, full-scale import, daily-activity, training-session, sleep, recovery, and integrated longitudinal gates, synthetic scales, percentile policy, timed boundaries, machine profile output, and interpretation limits are documented in the [performance benchmark guide](development/performance-benchmarks.md).

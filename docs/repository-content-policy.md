@@ -27,6 +27,7 @@ Every versioned artifact must have a current, durable purpose for at least one d
 - Real Polar Flow, Garmin, or other provider exports, whether compressed, extracted, transformed, redacted, or partially copied.
 - Values derived from a person's export, including local databases, Parquet files, cached queries, reports, routes, screenshots, logs, benchmarks, crash dumps, and diagnostic bundles.
 - Exact local paths, archive identifiers, user identifiers, device identifiers, account metadata, timestamps, coordinates, physiological values, and other information that can identify or characterize a private reference data set.
+- Exact maintainer or participant workstation details, including hardware model, processor model, memory capacity, display configuration, operating-system version or build, free-storage figures, and host identifiers. Local benchmark and evaluation tools may collect these details for validity, but their raw outputs remain local.
 - Credentials, tokens, cookies, environment overrides, signing keys, certificates containing private keys, notarization profiles, and recovery material.
 - Git internals, IDE user state, operating-system metadata, caches, temporary files, build outputs, installers, update payloads, and generated large-scale benchmark data.
 - External analyses, exploratory notes, and research reports are non-binding inputs rather than project decisions. The current `docs/reports/` directory is local-only. A conclusion from it enters version control only after independent verification and incorporation into the appropriate canonical English requirement, architecture decision, roadmap, or research document.
@@ -50,7 +51,7 @@ Schema names and structural observations may be documented when required for int
 
 ### Screenshots, recordings, reports, and benchmark baselines
 
-These may be versioned only when generated entirely from synthetic state, stripped of machine metadata and local paths, small enough for normal Git review, and needed by durable documentation or regression verification. Raw benchmark runs and large generated scenarios remain local or in access-controlled continuous-integration artifacts with an explicit retention policy.
+These may be versioned only when generated entirely from synthetic state, stripped of machine metadata and local paths, small enough for normal Git review, and needed by durable documentation or regression verification. Versioned benchmark evidence contains only the source and application identity, scenario, run policy, aggregate measurements, result, and whether the execution environment satisfies the documented reference profile. Exact local host details and raw benchmark runs remain local. Large generated scenarios remain local or in access-controlled continuous-integration artifacts with an explicit retention policy. Provider-controlled metadata exposed by a linked public continuous-integration run is governed by that provider and must not be copied into project documentation.
 
 ### Generated and third-party content
 
@@ -70,7 +71,7 @@ Before the first commit, every public release, and any initial publication of pr
 
 1. Stage an explicit allowlist of reviewed paths. Do not use a broad `git add .` as the initial-publication workflow.
 2. Inspect tracked, untracked, ignored, and symbolic-link state.
-3. Scan the complete candidate content and outgoing Git range for secrets, private email addresses, personal values, archive identifiers, and machine-local paths.
+3. Scan the complete candidate content and outgoing Git range for secrets, private email addresses, personal values, archive identifiers, machine-local paths, and exact maintainer or participant workstation details.
 4. Review file sizes, binary files, generated artifacts, provenance, and license compatibility.
 5. Inspect the staged diff and Git author, committer, tagger, signature, and trailer metadata.
 6. Verify that a clean clone contains everything required by the documented contributor workflow and none of the local-only inputs used by maintainers.

@@ -11,13 +11,13 @@ Execution requires an authorized candidate, controlled participant, and the acti
 Record only:
 
 - candidate version, source revision, manifest digest, and evaluated package architecture;
-- macOS version, Mac model class, processor family, memory size, display setup, and input and assistive technologies used;
+- whether the environment satisfies the candidate's supported and reference profiles, plus the input and assistive technologies used;
 - scenario identifier, pass, fail, blocked, or not-applicable result, and elapsed task time where requested;
 - stable interface text or privacy-safe error code needed to identify a failure;
 - accessibility impact, reproducibility, and the issue reference created after sanitization; and
 - whether the participant completed each task without intervention and where guidance was needed.
 
-Do not record or attach names, account claims, archive names or paths, dates, fitness or health values, routes, identifiers, library content, package fingerprints, private endpoints, screenshots of imported history, screen recordings, VoiceOver transcripts containing personal values, or raw logs. The participant owns the real export and may stop the session or decline any observation.
+Exact participant hardware and operating-system details may be retained only in a controlled local evaluation record when needed to reproduce a finding. Never copy them into versioned documentation or a public issue. Do not record or attach names, account claims, archive names or paths, dates, fitness or health values, routes, identifiers, library content, package fingerprints, private endpoints, screenshots of imported history, screen recordings, VoiceOver transcripts containing personal values, or raw logs. The participant owns the real export and may stop the session or decline any observation.
 
 ## Preconditions
 

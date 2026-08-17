@@ -36,7 +36,7 @@ Neither original disposable core was the production Clean Architecture module st
 | Local Node used for the TypeScript core benchmark | 22.14.0 |
 | Electron | 43.4.0 with Forge 7.11.2 |
 
-The machine materially exceeds the provisional 8 GB reference profile. These measurements compare the candidates on one machine; they do not validate minimum-hardware budgets. Electron 43 embeds Node 24, but display-control restrictions prevented the packaged Electron runtime from being exercised in this checkpoint. The Node core measurements therefore prove that implementation path, not the final packaged process.
+The execution environment materially exceeds the provisional 8 GB reference profile. These measurements compare the candidates in one local campaign; they do not validate minimum-hardware budgets. Electron 43 embeds Node 24, but display-control restrictions prevented the packaged Electron runtime from being exercised in this checkpoint. The Node core measurements therefore prove that implementation path, not the final packaged process.
 
 ## Correctness evidence
 
@@ -102,7 +102,7 @@ First-import phase medians explain the overall difference:
 
 Two Node runs experienced material read-and-decode slowdowns; the median remains representative of the five-run cluster while the p95 exposes that variability. In both implementations, SQLite setup, reconciliation, and commit are small fractions of total time. Reading, decompression, UTF-8 decoding, JSON parsing, and mapping dominate the first import.
 
-Both paths meet the applicable provisional import, repeat, memory, and query budgets on this hardware and scenario. Rust is approximately five times faster on first import and uses approximately one tenth of the peak resident memory. Node hashes the small compressed archive faster on the exact-repeat path. No conclusion about realistic multi-gigabyte archive fingerprinting follows from that repeat result.
+Both paths meet the applicable provisional import, repeat, memory, and query budgets in this non-reference campaign and scenario. Rust is approximately five times faster on first import and uses approximately one tenth of the peak resident memory. Node hashes the small compressed archive faster on the exact-repeat path. No conclusion about realistic multi-gigabyte archive fingerprinting follows from that repeat result.
 
 SQLite persisted the complete scenario and served the measured range query with ample margin. The padding field is intentionally unsupported content, so a separate structured scenario evaluated million-sample analytical workloads before the storage decision.
 
