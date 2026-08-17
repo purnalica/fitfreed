@@ -43,6 +43,7 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Localization catalogs, placeholders, plural rules, and fallback.
 - Presentation motion declarations and the reduced-motion boundary.
 - Update metadata, signature validation, artifact selection, and migration coordination.
+- Process-lifetime update cadence, non-overlap, no-burst scheduling, and typed event presentation.
 - Packaging and operating-system integration where a complete UI journey is unnecessary.
 
 ### End-to-end tests
@@ -98,6 +99,8 @@ Local and continuous-integration workflows will invoke the same underlying comma
 - The packaged E2E gate remains failed or pending until it succeeds in automation; inability to execute it in a local host is not accepted evidence.
 
 The packaged update journey runs through `npm run verify:update-e2e`. It serves schema-validated metadata and a signed updater archive from a loopback HTTPS endpoint, adds its single ephemeral certificate authority only to the feature-gated test clients, and allocates a distinct embedded-WebDriver port and isolated application/library/recovery root per scenario. The success path must leave the installed bundle at 0.2.0 with an `updated` receipt and no active or attempt state. The failure path deliberately rejects the replacement after its process-bound startup gate and must leave the installed bundle at 0.1.0 with a `recovered` receipt, no active or attempt state, and no failed candidate after its identity is revalidated. Both paths verify SQLite integrity, retained locale, the localized terminal notice, absence of a private recovery identifier, and receipt removal only after explicit acknowledgement. Keys, certificates, packages, databases, logs, and screenshots are generated only under ignored `.artifacts/update-e2e`; CI retains only the privacy-safe evidence directory when the job fails.
+
+Recurring discovery is split at its real boundary without waiting a day in CI. Paused-time host tests prove the exact production interval, first and subsequent 24-hour waits, and the absence of catch-up bursts; coordinator tests prove an occupied update operation is skipped. React tests drive the exact typed desktop event and prove that attention states become visible while unconfigured, offline, current, dismissed, and postponed results retain scheduled-policy silence. The architecture check binds both sides to the same event name. The production capability manifest includes Tauri's event listener permission, and the production-bundle gate proves no test capability is required or retained.
 
 ## Failure policy
 

@@ -6,8 +6,11 @@ import { catalogs } from "../locales/catalogs";
 import { UpdatePanel, type UpdateCheckOutcome } from "./UpdatePanel";
 
 const invoke = vi.hoisted(() => vi.fn());
+const listen = vi.hoisted(() => vi.fn());
+let updateEventListener: ((event: { payload: UpdateCheckOutcome }) => void) | undefined;
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke }));
+vi.mock("@tauri-apps/api/event", () => ({ listen }));
 
 function outcome(overrides: Partial<UpdateCheckOutcome> = {}): UpdateCheckOutcome {
   return {
@@ -34,9 +37,63 @@ afterEach(cleanup);
 
 beforeEach(() => {
   invoke.mockReset();
+  listen.mockReset();
+  updateEventListener = undefined;
+  listen.mockImplementation(async (_eventName, listener) => {
+    updateEventListener = listener;
+    return () => {
+      updateEventListener = undefined;
+    };
+  });
 });
 
 describe("UpdatePanel", () => {
+  it("presents recurring attention outcomes and keeps recurring ordinary outcomes quiet", async () => {
+    invoke.mockResolvedValue(outcome({
+      status: "unconfigured",
+      release: null,
+      updateActionAvailable: false,
+    }));
+
+    render(
+      <UpdatePanel
+        locale="en-US"
+        messages={catalogs["en-US"].updates}
+        errors={catalogs["en-US"].errors}
+        ready
+        refreshToken={0}
+      />,
+    );
+
+    const panel = screen.getByRole("region", { name: "Application updates" });
+    await waitFor(() => expect(listen).toHaveBeenCalledWith(
+      "fitfreed://update-check-completed",
+      expect.any(Function),
+    ));
+    expect(within(panel).queryByText(/not configured/)).not.toBeInTheDocument();
+
+    act(() => updateEventListener?.({ payload: outcome() }));
+    expect(within(panel).getByText("Version 0.2.0 is available.")).toBeVisible();
+
+    for (const status of [
+      "unconfigured",
+      "offline",
+      "up-to-date",
+      "dismissed",
+      "postponed",
+    ] as const) {
+      act(() => updateEventListener?.({
+        payload: outcome({
+          status,
+          release: null,
+          updateActionAvailable: false,
+          postponedUntil: status === "postponed" ? "2026-08-17T12:00:00Z" : null,
+        }),
+      }));
+      expect(within(panel).queryByRole("status")).not.toBeInTheDocument();
+    }
+  });
+
   it("announces an authenticated launch update and persists a 24-hour postponement", async () => {
     invoke.mockImplementation((command) => {
       if (command === "check_for_updates_on_launch") return Promise.resolve(outcome());

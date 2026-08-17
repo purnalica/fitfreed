@@ -79,6 +79,8 @@ The unsigned macOS production application and DMG are generated under `src-tauri
 
 The detailed dependency map is [`../architecture/module-map.md`](../architecture/module-map.md), and the machine-readable contract index is [`../data-formats/README.md`](../data-formats/README.md). Source-format, canonical-format, mapping, or persistence changes must update their normative documentation and synthetic contract evidence in the same increment.
 
+The host starts one process-lifetime update schedule after setup. The ready interface still requests the immediate launch evaluation; later successful scheduled evaluations cross the host boundary through `fitfreed://update-check-completed`. The architecture check prevents the Rust and TypeScript event names from drifting. Tokio's paused clock makes the 24-hour cadence, repeated execution, no-burst behavior, and occupied-operation skip deterministic in the Rust fast lane; no developer should shorten the production interval to make these tests run.
+
 The [localization guide](localization.md) documents locale resolution, durable preferences, formatting, translation-catalog rules, and the complete acceptance path for adding a language.
 
 The [performance benchmark guide](performance-benchmarks.md) documents synthetic scales, timed boundaries, run counts, percentile calculation, budgets, machine-readable evidence, and interpretation limits.

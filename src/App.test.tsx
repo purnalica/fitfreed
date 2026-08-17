@@ -268,6 +268,7 @@ const mocks = vi.hoisted(() => ({
   sleepInvoke: vi.fn(),
   updateInvoke: vi.fn(),
   open: vi.fn(),
+  listen: vi.fn(),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -286,6 +287,10 @@ vi.mock("@tauri-apps/api/core", () => ({
       : mocks.invoke(command, arguments_),
 }));
 
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: mocks.listen,
+}));
+
 vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: mocks.open,
 }));
@@ -299,9 +304,11 @@ afterEach(() => {
   mocks.sleepInvoke.mockReset();
   mocks.updateInvoke.mockReset();
   mocks.open.mockReset();
+  mocks.listen.mockReset();
 });
 
 beforeEach(() => {
+  mocks.listen.mockResolvedValue(() => {});
   mocks.recoveryInvoke.mockResolvedValue(emptyRecoveryOverview());
   mocks.longitudinalInvoke.mockResolvedValue(emptyLongitudinalOverview());
   mocks.sleepInvoke.mockResolvedValue(emptySleepOverview());

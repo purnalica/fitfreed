@@ -82,6 +82,23 @@ rejectBoundaryTerms(
   forbiddenAdapterTerms.filter((term) => term !== "chrono"),
 );
 
+const hostSource = readFileSync(path.join(repositoryRoot, "src-tauri/src/lib.rs"), "utf8");
+const presentationSource = readFileSync(
+  path.join(repositoryRoot, "src/presentation/UpdatePanel.tsx"),
+  "utf8",
+);
+const hostUpdateEvent = hostSource.match(
+  /const UPDATE_CHECK_COMPLETED_EVENT: &str = "([^"]+)";/,
+)?.[1];
+const presentationUpdateEvent = presentationSource.match(
+  /const UPDATE_CHECK_COMPLETED_EVENT = "([^"]+)";/,
+)?.[1];
+if (!hostUpdateEvent || hostUpdateEvent !== presentationUpdateEvent) {
+  throw new Error(
+    "the desktop host and update presentation must use the same periodic update event",
+  );
+}
+
 process.stdout.write(
-  `${JSON.stringify({ domainDependencies: [], applicationDependencies: ["chrono", "fitfreed-domain", "semver", "thiserror", "url"] })}\n`,
+  `${JSON.stringify({ domainDependencies: [], applicationDependencies: ["chrono", "fitfreed-domain", "semver", "thiserror", "url"], updateEvent: hostUpdateEvent })}\n`,
 );

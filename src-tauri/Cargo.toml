@@ -48,9 +48,11 @@ rustls = { version = "0.23", default-features = false, features = ["ring"] }
 semver = "1"
 sha2 = "0.10"
 thiserror = "2"
+tokio = { version = "1", features = ["sync", "time"] }
 url = "2"
 zip = { version = "4", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
 minisign = "0.9.1"
 tempfile = "3"
+tokio = { version = "1", features = ["macros", "test-util"] }

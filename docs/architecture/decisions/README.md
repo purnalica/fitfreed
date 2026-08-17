@@ -22,5 +22,7 @@ This directory contains durable FitFreed architecture decisions. Read [the docum
 - [ADR 0007: Compose longitudinal Insights by origin and date](0007-compose-longitudinal-insights-by-origin-and-date.md) — Accepted on 2026-08-17.
 - [ADR 0008: Authenticate update policy above the Tauri updater](0008-authenticate-update-policy-above-tauri.md) — Accepted on 2026-08-17.
 - [ADR 0009: Bound package transfer inside the Tauri updater](0009-bound-package-transfer-inside-tauri-updater.md) — Accepted on 2026-08-17.
+- [ADR 0010: Run update recovery from the preserved application](0010-run-update-recovery-from-the-preserved-application.md) — Accepted on 2026-08-17.
+- [ADR 0011: Schedule update discovery in the desktop host](0011-schedule-update-discovery-in-the-desktop-host.md) — Accepted on 2026-08-17.
 
 Confirmed product constraints remain in `docs/requirements.md`. Public distribution trust and any future mandatory-update policy remain open until their evidence and product authority support separate decisions.

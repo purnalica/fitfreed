@@ -74,7 +74,7 @@ impl From<UpdateError> for CommandErrorDto {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateReleaseSummaryDto {
     version: String,
@@ -96,7 +96,7 @@ impl From<UpdateReleaseSummary> for UpdateReleaseSummaryDto {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateWithdrawalSummaryDto {
     version: String,
@@ -116,7 +116,7 @@ impl From<UpdateWithdrawalSummary> for UpdateWithdrawalSummaryDto {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateCheckOutcomeDto {
     installed_version: String,

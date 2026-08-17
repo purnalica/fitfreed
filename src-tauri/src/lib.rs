@@ -4,6 +4,7 @@ mod presentation;
 use std::{
     env,
     ffi::OsString,
+    future::Future,
     io,
     path::{Path, PathBuf},
     process,
@@ -48,10 +49,31 @@ use presentation::{
     SleepOverviewDto, SleepPeriodDetailDto, TrainingComparisonDto, TrainingDateRangeDto,
     TrainingOverviewDto, UpdateCheckOutcomeDto, UpdateRecoveryOutcomeDto,
 };
-use tauri::{ipc::Channel, AppHandle, Manager, State};
+use tauri::{ipc::Channel, AppHandle, Emitter, Manager, State};
+use tokio::{
+    sync::{Mutex as AsyncMutex, MutexGuard as AsyncMutexGuard},
+    time::sleep,
+};
 
 const UPDATE_RECOVERY_STARTUP_MAINTENANCE_TIMEOUT: Duration = Duration::from_secs(12);
 const UPDATE_RECOVERY_STARTUP_MAINTENANCE_POLL_INTERVAL: Duration = Duration::from_millis(100);
+const PERIODIC_UPDATE_CHECK_INTERVAL: Duration = Duration::from_secs(24 * 60 * 60);
+const UPDATE_CHECK_COMPLETED_EVENT: &str = "fitfreed://update-check-completed";
+
+#[derive(Default)]
+struct UpdateOperationCoordinator {
+    operation: AsyncMutex<()>,
+}
+
+impl UpdateOperationCoordinator {
+    async fn reserve(&self) -> AsyncMutexGuard<'_, ()> {
+        self.operation.lock().await
+    }
+
+    fn try_reserve(&self) -> Option<AsyncMutexGuard<'_, ()>> {
+        self.operation.try_lock().ok()
+    }
+}
 
 #[tauri::command]
 async fn import_archive(
@@ -287,26 +309,34 @@ fn save_locale(app: AppHandle, locale: String) -> Result<(), CommandErrorDto> {
 async fn check_for_updates_on_launch(
     app: AppHandle,
     channel: State<'_, Arc<HttpsUpdateChannel>>,
+    coordinator: State<'_, Arc<UpdateOperationCoordinator>>,
 ) -> Result<UpdateCheckOutcomeDto, CommandErrorDto> {
-    check_updates(app, channel, UpdateCheckTrigger::Scheduled).await
+    let _operation = coordinator.reserve().await;
+    check_updates(
+        app,
+        Arc::clone(channel.inner()),
+        UpdateCheckTrigger::Scheduled,
+    )
+    .await
 }
 
 #[tauri::command]
 async fn check_for_updates(
     app: AppHandle,
     channel: State<'_, Arc<HttpsUpdateChannel>>,
+    coordinator: State<'_, Arc<UpdateOperationCoordinator>>,
 ) -> Result<UpdateCheckOutcomeDto, CommandErrorDto> {
-    check_updates(app, channel, UpdateCheckTrigger::Manual).await
+    let _operation = coordinator.reserve().await;
+    check_updates(app, Arc::clone(channel.inner()), UpdateCheckTrigger::Manual).await
 }
 
 async fn check_updates(
     app: AppHandle,
-    channel: State<'_, Arc<HttpsUpdateChannel>>,
+    channel: Arc<HttpsUpdateChannel>,
     trigger: UpdateCheckTrigger,
 ) -> Result<UpdateCheckOutcomeDto, CommandErrorDto> {
     let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     let installed_version = app.package_info().version.to_string();
-    let channel = Arc::clone(channel.inner());
     let checked_at = current_utc_datetime();
     tauri::async_runtime::spawn_blocking(move || {
         perform_update_check(
@@ -319,6 +349,42 @@ async fn check_updates(
     })
     .await
     .map_err(|_| CommandErrorDto::new("desktop-task-failed"))?
+}
+
+async fn run_periodic_update_schedule<Task, TaskFuture>(interval: Duration, mut task: Task)
+where
+    Task: FnMut() -> TaskFuture,
+    TaskFuture: Future<Output = ()>,
+{
+    loop {
+        sleep(interval).await;
+        task().await;
+    }
+}
+
+fn start_periodic_update_checks(
+    app: AppHandle,
+    channel: Arc<HttpsUpdateChannel>,
+    coordinator: Arc<UpdateOperationCoordinator>,
+) {
+    tauri::async_runtime::spawn(run_periodic_update_schedule(
+        PERIODIC_UPDATE_CHECK_INTERVAL,
+        move || {
+            let app = app.clone();
+            let channel = Arc::clone(&channel);
+            let coordinator = Arc::clone(&coordinator);
+            async move {
+                let Some(_operation) = coordinator.try_reserve() else {
+                    return;
+                };
+                if let Ok(outcome) =
+                    check_updates(app.clone(), channel, UpdateCheckTrigger::Scheduled).await
+                {
+                    let _ = app.emit_to("main", UPDATE_CHECK_COMPLETED_EVENT, outcome);
+                }
+            }
+        },
+    ));
 }
 
 fn perform_update_check(
@@ -352,8 +418,10 @@ fn perform_update_check(
 #[tauri::command]
 async fn dismiss_available_update(
     app: AppHandle,
+    coordinator: State<'_, Arc<UpdateOperationCoordinator>>,
     candidate_version: String,
 ) -> Result<(), CommandErrorDto> {
+    let _operation = coordinator.reserve().await;
     let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     tauri::async_runtime::spawn_blocking(move || {
         persist_update_dismissal(&SqliteUpdateState::new(path), &candidate_version)
@@ -366,8 +434,10 @@ async fn dismiss_available_update(
 #[tauri::command]
 async fn postpone_available_update(
     app: AppHandle,
+    coordinator: State<'_, Arc<UpdateOperationCoordinator>>,
     candidate_version: String,
 ) -> Result<String, CommandErrorDto> {
+    let _operation = coordinator.reserve().await;
     let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     let requested_at = current_utc_datetime();
     tauri::async_runtime::spawn_blocking(move || {
@@ -386,10 +456,12 @@ async fn postpone_available_update(
 async fn install_available_update(
     app: AppHandle,
     channel: State<'_, Arc<HttpsUpdateChannel>>,
-    coordinator: State<'_, ImportCoordinator>,
+    update_coordinator: State<'_, Arc<UpdateOperationCoordinator>>,
+    import_coordinator: State<'_, ImportCoordinator>,
     candidate_version: String,
 ) -> Result<(), CommandErrorDto> {
-    let _operation = coordinator
+    let _update_operation = update_coordinator.reserve().await;
+    let _import_operation = import_coordinator
         .reserve_exclusive_operation()
         .map_err(map_exclusive_operation_error)?;
     let library_path =
@@ -849,13 +921,16 @@ pub fn run() {
     let builder = builder
         .plugin(tauri_plugin_wdio_webdriver::init())
         .plugin(tauri_plugin_wdio::init());
+    let update_channel = Arc::new(application_update_channel());
+    let update_coordinator = Arc::new(UpdateOperationCoordinator::default());
     builder
         .manage(ImportCoordinator::default())
         .manage(PendingUpdateRecoveryConfirmation::new(
             pending_recovery_confirmation,
         ))
-        .manage(Arc::new(application_update_channel()))
-        .setup(|app| {
+        .manage(Arc::clone(&update_channel))
+        .manage(Arc::clone(&update_coordinator))
+        .setup(move |app| {
             let library_path = database_path(app.handle()).map_err(std::io::Error::other)?;
             let pending = app.state::<PendingUpdateRecoveryConfirmation>();
             if let Some(candidate) = pending
@@ -879,6 +954,11 @@ pub fn run() {
                 })?;
             }
             recover_interrupted_imports(&library_path)?;
+            start_periodic_update_checks(
+                app.handle().clone(),
+                Arc::clone(&update_channel),
+                Arc::clone(&update_coordinator),
+            );
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -913,13 +993,18 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::BTreeMap, fs::File};
+    use std::{
+        collections::BTreeMap,
+        fs::File,
+        sync::atomic::{AtomicUsize, Ordering},
+    };
 
     use fitfreed_application::{
         save_locale_preference, AuthenticatedUpdateSnapshot, LocalizedUpdateText, UpdateArtifact,
         UpdateChannelRead, UpdateRelease,
     };
     use tempfile::TempDir;
+    use tokio::sync::Notify;
 
     use super::*;
 
@@ -987,6 +1072,91 @@ mod tests {
 
         assert!(timestamp.ends_with('Z'));
         assert!(chrono::DateTime::parse_from_rfc3339(&timestamp).is_ok());
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn periodic_update_schedule_waits_a_full_day_and_then_repeats() {
+        let expected_interval = Duration::from_secs(24 * 60 * 60);
+        assert_eq!(PERIODIC_UPDATE_CHECK_INTERVAL, expected_interval);
+        let executions = Arc::new(AtomicUsize::new(0));
+        let observed_executions = Arc::clone(&executions);
+        let schedule = tokio::spawn(run_periodic_update_schedule(
+            PERIODIC_UPDATE_CHECK_INTERVAL,
+            move || {
+                let executions = Arc::clone(&executions);
+                async move {
+                    executions.fetch_add(1, Ordering::SeqCst);
+                }
+            },
+        ));
+        tokio::task::yield_now().await;
+
+        tokio::time::advance(expected_interval - Duration::from_secs(1)).await;
+        tokio::task::yield_now().await;
+        assert_eq!(observed_executions.load(Ordering::SeqCst), 0);
+
+        tokio::time::advance(Duration::from_secs(1)).await;
+        tokio::task::yield_now().await;
+        assert_eq!(observed_executions.load(Ordering::SeqCst), 1);
+
+        tokio::time::advance(expected_interval).await;
+        tokio::task::yield_now().await;
+        assert_eq!(observed_executions.load(Ordering::SeqCst), 2);
+
+        schedule.abort();
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn periodic_update_schedule_never_catches_up_with_a_request_burst() {
+        let executions = Arc::new(AtomicUsize::new(0));
+        let task_started = Arc::new(Notify::new());
+        let release_task = Arc::new(Notify::new());
+        let observed_executions = Arc::clone(&executions);
+        let observed_start = Arc::clone(&task_started);
+        let observed_release = Arc::clone(&release_task);
+        let schedule = tokio::spawn(run_periodic_update_schedule(
+            PERIODIC_UPDATE_CHECK_INTERVAL,
+            move || {
+                let executions = Arc::clone(&executions);
+                let task_started = Arc::clone(&task_started);
+                let release_task = Arc::clone(&release_task);
+                async move {
+                    executions.fetch_add(1, Ordering::SeqCst);
+                    task_started.notify_one();
+                    release_task.notified().await;
+                }
+            },
+        ));
+        tokio::task::yield_now().await;
+
+        tokio::time::advance(PERIODIC_UPDATE_CHECK_INTERVAL).await;
+        observed_start.notified().await;
+        tokio::time::advance(Duration::from_secs(3 * 24 * 60 * 60)).await;
+        tokio::task::yield_now().await;
+        assert_eq!(observed_executions.load(Ordering::SeqCst), 1);
+
+        observed_release.notify_one();
+        tokio::task::yield_now().await;
+        tokio::time::advance(PERIODIC_UPDATE_CHECK_INTERVAL - Duration::from_secs(1)).await;
+        tokio::task::yield_now().await;
+        assert_eq!(observed_executions.load(Ordering::SeqCst), 1);
+
+        tokio::time::advance(Duration::from_secs(1)).await;
+        tokio::task::yield_now().await;
+        assert_eq!(observed_executions.load(Ordering::SeqCst), 2);
+
+        schedule.abort();
+    }
+
+    #[tokio::test]
+    async fn periodic_update_operation_is_skipped_while_another_update_operation_is_active() {
+        let coordinator = UpdateOperationCoordinator::default();
+        let active_operation = coordinator.reserve().await;
+
+        assert!(coordinator.try_reserve().is_none());
+
+        drop(active_operation);
+        assert!(coordinator.try_reserve().is_some());
     }
 
     #[test]

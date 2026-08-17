@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 import type { Locale } from "../locales/catalogs";
 import { catalogs } from "../locales/catalogs";
@@ -65,6 +66,7 @@ const attentionStatuses = new Set<UpdateStatus>([
   "manual-recovery-required",
   "untrusted",
 ]);
+const UPDATE_CHECK_COMPLETED_EVENT = "fitfreed://update-check-completed";
 
 function interpolate(template: string, values: Record<string, string>): string {
   return Object.entries(values).reduce(
@@ -94,6 +96,30 @@ export function UpdatePanel({
     }),
     [locale],
   );
+
+  useEffect(() => {
+    let active = true;
+    let unlisten: UnlistenFn | undefined;
+    void listen<UpdateCheckOutcome>(UPDATE_CHECK_COMPLETED_EVENT, (event) => {
+      if (!active) return;
+      requestSequence.current += 1;
+      setOutcome(event.payload);
+      setManuallyRevealed(false);
+      setErrorCode(undefined);
+    })
+      .then((stopListening) => {
+        if (active) {
+          unlisten = stopListening;
+        } else {
+          stopListening();
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+      unlisten?.();
+    };
+  }, []);
 
   useEffect(() => {
     if (!ready) return;
