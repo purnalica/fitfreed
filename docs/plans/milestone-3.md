@@ -51,7 +51,7 @@ Local evidence on 2026-08-17: both closed update-channel schemas and the public 
 
 ## Increment M3.3 — Signed, notarized release automation
 
-**Status:** in progress. The closed public release-evidence contract and privacy-safe Apple trust inspector are implemented; candidate preparation, protected workflow, and hosted acceptance remain.
+**Status:** in progress. The closed public release-evidence contract, privacy-safe Apple trust inspector, and secret-free protected-environment preflight are implemented; candidate preparation, protected workflow, and hosted acceptance remain.
 
 **Outcome:** one manually authorized, exact-tag-bound workflow can build, sign, notarize, staple, inspect, attest, stage, and publish a public candidate without exposing release credentials to untrusted jobs.
 

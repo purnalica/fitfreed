@@ -18,6 +18,7 @@ FitFreed does not have a supported alpha release yet. The current executable fou
 - Start with the [contributor setup](development/getting-started.md).
 - Follow the active [Milestone 3 public-release execution plan](plans/milestone-3.md) for increment boundaries and acceptance gates.
 - Use [private release preparation](development/release-preparation.md) for clean-revision package and installation evidence.
+- Use [public macOS release](development/public-release.md) for the inactive trust boundary, protected preflight, and future publication path.
 - Use the [troubleshooting guide](development/troubleshooting.md) when a documented command fails.
 - Use the [performance benchmark guide](development/performance-benchmarks.md) for synthetic scales, timed boundaries, budgets, and regression evidence.
 - Use [private reference export acceptance](testing/private-reference-acceptance.md) only for the explicitly supplied local compatibility input.
