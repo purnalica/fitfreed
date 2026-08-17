@@ -27,7 +27,7 @@ No product source, behavioral test, required fixture generator, or continuous-in
 
 **Acceptance evidence:** tracked source has no `.local` dependency; formatting, static analysis, architecture, unit, integration, presentation, packaging, and repository-safety checks pass.
 
-Evidence: commit `pre-purge` passed the [portable, production-package, and packaged macOS E2E gates](https://github.com/purnalica/fitfreed/actions/runs/31954424171) and the independent [repository content and secret scan](https://github.com/purnalica/fitfreed/actions/runs/31954424164).
+Pre-purge hosted evidence passed the portable, production-package, packaged macOS E2E, repository-content, and secret-scan gates. Its obsolete workflow records are not retained after privacy history cleanup.
 
 ## Increment M1.2 — Reproducible GitHub Actions verification
 
@@ -49,7 +49,7 @@ Evidence: commit `pre-purge` passed the [portable, production-package, and packa
 
 An environment limitation never waives this gate. This increment remained open until GitHub Actions produced successful packaged E2E evidence.
 
-Evidence: the successful run above exercised every required lane. The preceding [genuinely failing packaged journey](https://github.com/purnalica/fitfreed/actions/runs/31953109344) provided stronger evidence than the planned synthetic break: it failed the required check at the picker boundary and retained a privacy-safe screenshot and tool logs before the corrected run passed.
+Evidence: the successful pre-purge run above exercised every required lane. Its preceding genuinely failing packaged journey provided stronger evidence than the planned synthetic break: it failed the required check at the picker boundary and retained a privacy-safe screenshot and tool logs before the corrected run passed. The obsolete workflow records are not retained after privacy history cleanup.
 
 ## Increment M1.3 — Transactional library foundation
 
@@ -68,7 +68,7 @@ Evidence: the successful run above exercised every required lane. The preceding 
 
 Local evidence on 2026-08-16: 24 Rust tests passed across domain, application, migration, and adapter boundaries; architecture, data-contract, documentation, localization, presentation, formatting, and lint checks passed; the instrumented macOS application completed its packaged E2E import, cancellation, repeat, cumulative, accessibility, and restart journey; and the production application and DMG passed the test-instrumentation exclusion check.
 
-Hosted evidence: commit `pre-purge` passed the [portable and packaged macOS lanes](https://github.com/purnalica/fitfreed/actions/runs/31957244656) and the independent [repository content and secret scan](https://github.com/purnalica/fitfreed/actions/runs/31957244658).
+Pre-purge hosted evidence passed the portable, packaged macOS, repository-content, and secret-scan lanes. Its obsolete workflow records are not retained after privacy history cleanup.
 
 ## Increment M1.4 — Localized vertical journey
 
@@ -87,7 +87,7 @@ Hosted evidence: commit `pre-purge` passed the [portable and packaged macOS lane
 
 Local evidence on 2026-08-16: 9 presentation tests and 28 Rust tests passed; architecture, all three persistence contracts, documentation links, translation structure, reduced-motion containment, TypeScript compilation, Rust formatting, and Clippy passed; the packaged macOS E2E journey passed validation, complete outcome coverage, cancellation, exact and cumulative reimport, locale-aware dates and numbers, Spanish text expansion, accessibility, and Spanish preference restoration after process restart; and the production application and DMG passed the test-instrumentation exclusion check.
 
-Hosted evidence: commit `pre-purge` passed the [portable and packaged macOS lanes](https://github.com/purnalica/fitfreed/actions/runs/31958828208) and the independent [repository content and secret scan](https://github.com/purnalica/fitfreed/actions/runs/31958828204).
+Pre-purge hosted evidence passed the portable, packaged macOS, repository-content, and secret-scan lanes. Its obsolete workflow records are not retained after privacy history cleanup.
 
 ## Increment M1.5 — Contributor and user documentation
 
@@ -106,7 +106,7 @@ Hosted evidence: commit `pre-purge` passed the [portable and packaged macOS lane
 
 Local evidence on 2026-08-16: the environment doctor passed against the pinned macOS toolchain; all 158 local documentation links passed; and the documented `npm run verify:full` entry point passed architecture, data-contract, documentation, translation, reduced-motion, presentation, Rust, formatting, lint, packaged E2E, production-package, and test-instrumentation exclusion gates.
 
-Hosted evidence: commit `pre-purge` passed the [portable and packaged macOS lanes](https://github.com/purnalica/fitfreed/actions/runs/31959478613) and the independent [repository content and secret scan](https://github.com/purnalica/fitfreed/actions/runs/31959478681).
+Pre-purge hosted evidence passed the portable, packaged macOS, repository-content, and secret-scan lanes. Its obsolete workflow records are not retained after privacy history cleanup.
 
 ## Increment M1.6 — Release-shaped installation and recovery
 
@@ -126,7 +126,7 @@ Hosted evidence: commit `pre-purge` passed the [portable and packaged macOS lane
 
 Local evidence on 2026-08-16: a clean temporary Git revision produced the production application and DMG, one npm and three Cargo CycloneDX 1.5 documents, the version 1 release manifest, checksums, and draft notes. All direct production dependencies and declared licenses passed; development dependencies, test instrumentation, absolute repository paths, and `file://` references were absent. The real DMG passed pre-mount integrity verification, isolated installation, uninstrumented first launch with schema 3, corrupted-image rejection before the mount command, byte-preservation of the existing application and library, relaunch, and application-removal/library-retention checks. The same test exposed and now covers migration from the exact precontract version 1 developer-library shape.
 
-Hosted evidence: commit `pre-purge` passed the [portable, private-release, installation-recovery, and packaged macOS lanes](https://github.com/purnalica/fitfreed/actions/runs/31962305420) and the independent [repository content and secret scan](https://github.com/purnalica/fitfreed/actions/runs/31962305515).
+Pre-purge hosted evidence passed the portable, private-release, installation-recovery, packaged macOS, repository-content, and secret-scan lanes. Its obsolete workflow records are not retained after privacy history cleanup.
 
 ## Cross-cutting completion rule
 
