@@ -53,6 +53,7 @@ The update-recovery preparation check uses the real production `FitFreed.app`, a
 - `release preparation requires a clean Git revision`: commit or deliberately discard the source changes before preparing evidence. Do not bypass the gate.
 - `cargo-cyclonedx 0.5.9 is required`: run `npm run install:release-tools`.
 - `SBOM contains forbidden local text`: inspect the generator output; do not publish or manually delete the failing field to force success.
-- `missing production component`: reconcile the manifest dependency and generated production graph before continuing.
+- `missing direct production component`: reconcile the manifest dependency and the generated root dependency edge before continuing. A component appearing only transitively does not satisfy this gate.
+- `direct development component`: remove the development dependency from the production root edge. Do not delete a legitimately transitive production component from the inventory.
 - `Release integrity verification failed`: do not mount or copy the DMG. Rebuild from the recorded clean revision.
 - A macOS launch or mount failure: preserve only privacy-safe command output, run `npm run doctor`, and consult [troubleshooting](troubleshooting.md). Never attach a personal library or export.

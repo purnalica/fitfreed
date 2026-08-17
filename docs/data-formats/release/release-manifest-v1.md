@@ -42,7 +42,7 @@ Each artifact has a top-level relative `path` without directory separators, enum
 
 ## Dependency inventories
 
-CycloneDX 1.5 JSON documents describe the production npm graph and each production Cargo workspace package. Direct production dependencies and a declared license for every component are required. Development and E2E dependencies are invalid.
+CycloneDX 1.5 JSON documents describe the production npm graph and each production Cargo workspace package. Every manifest-declared production dependency must be a direct edge from the matching Cargo SBOM root, and every component must declare a license. A development-only dependency is invalid as a direct root edge. A crate with the same name may remain in the inventory when a normal production dependency legitimately reaches it transitively; removing it would make the production inventory incomplete.
 
 The Cargo generator represents local workspace packages with machine-local file URLs. Preparation replaces those URLs and all matching dependency edges with stable `pkg:cargo` references before validation. Any remaining `file://` value or repository path blocks staging.
 

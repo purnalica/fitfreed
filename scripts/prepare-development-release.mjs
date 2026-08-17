@@ -37,7 +37,11 @@ const excludedNpmComponents = [
   "jsdom",
   "axe-core",
 ];
-const excludedCargoComponents = ["tauri-plugin-wdio", "tauri-plugin-wdio-webdriver", "tempfile"];
+const excludedDirectCargoComponents = [
+  "tauri-plugin-wdio",
+  "tauri-plugin-wdio-webdriver",
+  "tempfile",
+];
 
 function run(command, args, options = {}) {
   return execFileSync(command, args, {
@@ -199,8 +203,8 @@ function createCargoSboms(stagingDirectory, repositoryPath, sourceDateEpoch) {
       }
       validateCycloneDxSbom(sbom, {
         expectedRoot: packageName,
-        requiredComponents: productionDependencies.get(packageName),
-        excludedComponents: excludedCargoComponents,
+        requiredDirectComponents: productionDependencies.get(packageName),
+        excludedDirectComponents: excludedDirectCargoComponents,
         forbiddenText: [repositoryPath],
       });
       const filename = `cargo-${packageName}.cdx.json`;

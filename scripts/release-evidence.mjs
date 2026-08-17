@@ -78,7 +78,14 @@ export function normalizeCargoSbom(sbom) {
 
 export function validateCycloneDxSbom(
   sbom,
-  { expectedRoot, requiredComponents = [], excludedComponents = [], forbiddenText = [] },
+  {
+    expectedRoot,
+    requiredComponents = [],
+    excludedComponents = [],
+    requiredDirectComponents = [],
+    excludedDirectComponents = [],
+    forbiddenText = [],
+  },
 ) {
   const errors = [];
   if (sbom.bomFormat !== "CycloneDX") errors.push("SBOM format must be CycloneDX");
@@ -94,11 +101,41 @@ export function validateCycloneDxSbom(
   const names = new Set(
     components.flatMap(({ group, name }) => (group ? [name, `${group}/${name}`] : [name])),
   );
+  const componentsByReference = new Map(
+    components
+      .filter((component) => component["bom-ref"])
+      .map((component) => [component["bom-ref"], component]),
+  );
+  const rootReference = sbom.metadata?.component?.["bom-ref"];
+  const rootDependency = (sbom.dependencies ?? []).find(({ ref }) => ref === rootReference);
+  const directNames = new Set(
+    (rootDependency?.dependsOn ?? []).flatMap((reference) => {
+      const component = componentsByReference.get(reference);
+      if (!component) return [];
+      return component.group
+        ? [component.name, `${component.group}/${component.name}`]
+        : [component.name];
+    }),
+  );
   for (const required of requiredComponents) {
     if (!names.has(required)) errors.push(`SBOM is missing production component ${required}`);
   }
   for (const excluded of excludedComponents) {
     if (names.has(excluded)) errors.push(`SBOM contains excluded development component ${excluded}`);
+  }
+  if (
+    (requiredDirectComponents.length > 0 || excludedDirectComponents.length > 0) &&
+    (!rootReference || !rootDependency)
+  ) {
+    errors.push("SBOM has no dependency graph for its root component");
+  }
+  for (const required of requiredDirectComponents) {
+    if (!directNames.has(required)) errors.push(`SBOM is missing direct production component ${required}`);
+  }
+  for (const excluded of excludedDirectComponents) {
+    if (directNames.has(excluded)) {
+      errors.push(`SBOM contains direct development component ${excluded}`);
+    }
   }
   for (const component of components) {
     if (!declaredLicense(component)) {

@@ -109,6 +109,38 @@ test("rejects incomplete, development-contaminated, or machine-local SBOMs", () 
   );
 });
 
+test("distinguishes direct Cargo dependencies from legitimate transitive components", () => {
+  const root = licensedComponent("fitfreed", "0.1.0");
+  const updater = licensedComponent("tauri-plugin-updater", "2.10.1");
+  const temporaryFiles = licensedComponent("tempfile", "3.27.0");
+  const developmentDriver = licensedComponent("tauri-plugin-wdio", "0.2.2");
+  const sbom = {
+    bomFormat: "CycloneDX",
+    specVersion: "1.5",
+    metadata: { component: root },
+    components: [updater, temporaryFiles, developmentDriver],
+    dependencies: [
+      { ref: root["bom-ref"], dependsOn: [updater["bom-ref"], developmentDriver["bom-ref"]] },
+      { ref: updater["bom-ref"], dependsOn: [temporaryFiles["bom-ref"]] },
+    ],
+  };
+
+  assert.throws(
+    () =>
+      validateCycloneDxSbom(sbom, {
+        expectedRoot: "fitfreed",
+        requiredDirectComponents: ["tauri-plugin-updater", "serde"],
+        excludedDirectComponents: ["tauri-plugin-wdio", "tempfile"],
+      }),
+    (error) => {
+      assert.match(error.message, /missing direct production component serde/);
+      assert.match(error.message, /direct development component tauri-plugin-wdio/);
+      assert.doesNotMatch(error.message, /direct development component tempfile/);
+      return true;
+    },
+  );
+});
+
 test("creates deterministic file and application-tree evidence", (context) => {
   const root = mkdtempSync(path.join(tmpdir(), "fitfreed-evidence-"));
   context.after(() => rmSync(root, { recursive: true }));
