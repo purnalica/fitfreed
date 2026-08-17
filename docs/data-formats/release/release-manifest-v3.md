@@ -37,7 +37,7 @@ The `application` object fixes the product name, bundle identifier, executable, 
 
 ## Apple trust evidence
 
-`trust.codeSigning` identifies the verified trust class without storing a certificate subject name or account address. `identity` is `developer-id-application`; `certificateSha256` binds the leaf certificate bytes; `teamIdentifier` is the ten-character Apple team identifier; and `hardenedRuntime` plus `secureTimestamp` must both be `true`.
+`trust.codeSigning` identifies the verified trust class without storing a certificate subject name or account address. `identity` is `developer-id-application`; `certificateSha256` binds the leaf certificate bytes; `teamIdentifier` is the ten-character public Apple team identifier and must match the separately configured release expectation; and `hardenedRuntime` plus `secureTimestamp` must both be `true`.
 
 `trust.notarization.service` is `apple-notary-service`. The application and disk image must each carry a validated stapled ticket, and Gatekeeper must accept the final distributed form. Every Boolean is fixed to `true`; absence or failure blocks manifest creation rather than producing weaker public evidence.
 
@@ -67,4 +67,4 @@ Publication verification must resolve an attestation for every declared or gener
 
 ## Privacy and failure behavior
 
-The manifest and its related evidence must not contain personal exports, application libraries, credentials, signing material, private email addresses, certificate subject names, account identifiers, or machine-local paths. A failed Apple inspection, update-envelope validation, inventory check, content scan, checksum, attestation, upload, or remote-byte comparison leaves the candidate unpublished and preserves the previous complete stable Pages snapshot.
+The manifest and its related evidence must not contain personal exports, application libraries, credentials, signing material, private email addresses, certificate subject names, unrelated account identifiers, or machine-local paths. The public team identifier and certificate fingerprint are limited to independent code-signing verification. A failed Apple inspection, update-envelope validation, inventory check, content scan, checksum, attestation, upload, or remote-byte comparison leaves the candidate unpublished and preserves the previous complete stable Pages snapshot.

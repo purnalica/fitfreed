@@ -36,6 +36,7 @@
     "check:ui-contracts": "node scripts/check-ui-contracts.mjs",
     "check:vendored-updater": "node scripts/check-vendored-updater.mjs",
     "check:production-bundle": "scripts/check-production-bundle.sh",
+    "check:public-macos-trust": "node scripts/macos-public-trust.mjs",
     "check:release-contracts": "node scripts/check-release-contracts.mjs",
     "check:upgrade-matrix": "node scripts/upgrade-matrix.mjs",
     "format:check": "cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check && cargo fmt --manifest-path src-tauri/vendor/tauri-plugin-updater/Cargo.toml --all -- --check",
