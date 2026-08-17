@@ -27,20 +27,76 @@ function rounded(value) {
   return Math.round(value * 1_000) / 1_000;
 }
 
-export function evaluateColdLaunchRuns(durations) {
-  if (durations.length !== measuredFreshProcesses) {
+const phaseFields = {
+  processCreationAndEvidenceTransport: "processCreationAndEvidenceTransportMilliseconds",
+  hostStartupToSetupComplete: "hostStartupToSetupCompleteMilliseconds",
+  setupCompleteToRendererStartupAndCommandTransport:
+    "setupCompleteToRendererStartupAndCommandTransportMilliseconds",
+  rendererStartupToLocaleReady: "rendererStartupToLocaleReadyMilliseconds",
+  localeReadyToInteractiveSignal: "localeReadyToInteractiveSignalMilliseconds",
+};
+
+function requireDuration(value, description) {
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error(`${description} requires non-negative finite durations`);
+  }
+}
+
+function summarize(values) {
+  return {
+    medianMilliseconds: rounded(percentile(values, 0.5)),
+    p95Milliseconds: rounded(percentile(values, 0.95)),
+    maximumMilliseconds: rounded(Math.max(...values)),
+  };
+}
+
+export function deriveColdLaunchRun(totalMilliseconds, signal) {
+  requireDuration(totalMilliseconds, "cold launch measurement");
+  const host = signal.hostStartupMilliseconds;
+  const renderer = signal.rendererStartupMilliseconds;
+  const run = {
+    totalMilliseconds,
+    processCreationAndEvidenceTransportMilliseconds:
+      totalMilliseconds - host.signal,
+    hostStartupToSetupCompleteMilliseconds: host.setupComplete,
+    setupCompleteToRendererStartupAndCommandTransportMilliseconds:
+      host.signal - host.setupComplete - renderer.signal,
+    rendererStartupToLocaleReadyMilliseconds: renderer.localeReady,
+    localeReadyToInteractiveSignalMilliseconds:
+      renderer.signal - renderer.localeReady,
+  };
+  for (const duration of Object.values(run)) {
+    requireDuration(duration, "cold launch phase derivation");
+  }
+  return run;
+}
+
+export function evaluateColdLaunchRuns(runs) {
+  if (runs.length !== measuredFreshProcesses) {
     throw new Error(`cold launch benchmark requires exactly ${measuredFreshProcesses} measured processes`);
   }
-  if (durations.some((duration) => !Number.isFinite(duration) || duration < 0)) {
+  if (runs.some((run) => !Number.isFinite(run.totalMilliseconds) || run.totalMilliseconds < 0)) {
     throw new Error("cold launch benchmark requires a non-negative finite duration for every process");
   }
+  for (const run of runs) {
+    for (const field of Object.values(phaseFields)) {
+      requireDuration(run[field], "cold launch benchmark");
+    }
+  }
+  const durations = runs.map((run) => run.totalMilliseconds);
   const p95 = percentile(durations, 0.95);
+  const total = summarize(durations);
+  const phases = Object.fromEntries(
+    Object.entries(phaseFields).map(([name, field]) => [
+      name,
+      summarize(runs.map((run) => run[field])),
+    ]),
+  );
   return {
     measuredFreshProcesses,
-    medianMilliseconds: rounded(percentile(durations, 0.5)),
-    p95Milliseconds: rounded(p95),
-    maximumMilliseconds: rounded(Math.max(...durations)),
+    ...total,
     p95BudgetMilliseconds,
+    phases,
     passed: p95 <= p95BudgetMilliseconds,
   };
 }
@@ -48,7 +104,7 @@ export function evaluateColdLaunchRuns(durations) {
 export function validateInteractiveShellSignal(signal, expected) {
   if (
     signal?.format !== "org.fitfreed.startup-signal" ||
-    signal?.schemaVersion !== 1 ||
+    signal?.schemaVersion !== 2 ||
     signal?.event !== "interactive-shell"
   ) {
     throw new Error("application did not emit the interactive-shell event");
@@ -66,12 +122,36 @@ export function validateInteractiveShellSignal(signal, expected) {
     "applicationVersion",
     "event",
     "format",
+    "hostStartupMilliseconds",
+    "rendererStartupMilliseconds",
     "schemaVersion",
     "sourceRevision",
     "sourceTreeClean",
   ];
   if (Object.keys(signal).sort().join("\0") !== exactKeys.join("\0")) {
     throw new Error("interactive-shell signal contains unexpected fields");
+  }
+  const host = signal.hostStartupMilliseconds;
+  if (
+    !host ||
+    Object.keys(host).sort().join("\0") !== "setupComplete\0signal" ||
+    !Number.isFinite(host.setupComplete) ||
+    !Number.isFinite(host.signal) ||
+    host.setupComplete < 0 ||
+    host.signal < host.setupComplete
+  ) {
+    throw new Error("interactive-shell signal has invalid host startup timings");
+  }
+  const renderer = signal.rendererStartupMilliseconds;
+  if (
+    !renderer ||
+    Object.keys(renderer).sort().join("\0") !== "localeReady\0signal" ||
+    !Number.isFinite(renderer.localeReady) ||
+    !Number.isFinite(renderer.signal) ||
+    renderer.localeReady < 0 ||
+    renderer.signal < renderer.localeReady
+  ) {
+    throw new Error("interactive-shell signal has invalid renderer startup timings");
   }
   return true;
 }
@@ -147,7 +227,7 @@ async function measureFreshProcess(applicationBinary, home, expected) {
       settled = true;
       try {
         validateInteractiveShellSignal(signal, expected);
-        resolve(performance.now() - startedAt);
+        resolve(deriveColdLaunchRun(performance.now() - startedAt, signal));
       } catch (error) {
         reject(error);
       }
@@ -223,17 +303,17 @@ async function executeColdLaunchBenchmark() {
   );
   const temporaryDirectory = mkdtempSync(path.join(os.tmpdir(), "fitfreed-cold-launch-"));
   try {
-    const durations = [];
+    const runs = [];
     for (let index = 0; index < measuredFreshProcesses; index += 1) {
-      durations.push(await measureFreshProcess(
+      runs.push(await measureFreshProcess(
         applicationBinary,
         path.join(temporaryDirectory, `home-${index}`),
         { applicationVersion, sourceRevision },
       ));
     }
-    const measurement = evaluateColdLaunchRuns(durations);
+    const measurement = evaluateColdLaunchRuns(runs);
     const evidence = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       runtime: "release-production-application",
       applicationVersion,
       sourceRevision,
@@ -247,6 +327,8 @@ async function executeColdLaunchBenchmark() {
       method: {
         boundary: "immediately before process creation through the first painted localized interactive shell",
         signal: "application-owned host command after requestAnimationFrame",
+        phaseDiagnostics:
+          "aggregate residual process/evidence transport, host setup, renderer startup/command transport, locale initialization, and painted-shell signaling",
         warmUpProcesses: 0,
         percentile: "sorted zero-based index ceil((n - 1) * 0.95)",
       },

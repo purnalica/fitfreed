@@ -4,6 +4,7 @@ import test from "node:test";
 
 import { productionBuildIdentity } from "./build-production.mjs";
 import {
+  deriveColdLaunchRun,
   evaluateColdLaunchRuns,
   validateInteractiveShellSignal,
 } from "./run-cold-launch-benchmark.mjs";
@@ -25,11 +26,19 @@ test("binds a production build to its exact revision and clean-tree state", () =
 test("accepts only the exact privacy-safe interactive-shell signal", () => {
   const signal = {
     format: "org.fitfreed.startup-signal",
-    schemaVersion: 1,
+    schemaVersion: 2,
     event: "interactive-shell",
     applicationVersion: "0.1.0",
     sourceRevision: revision,
     sourceTreeClean: true,
+    hostStartupMilliseconds: {
+      setupComplete: 200,
+      signal: 600,
+    },
+    rendererStartupMilliseconds: {
+      localeReady: 200,
+      signal: 300,
+    },
   };
 
   assert.equal(
@@ -60,11 +69,46 @@ test("accepts only the exact privacy-safe interactive-shell signal", () => {
     }),
     /source revision/,
   );
+  assert.throws(
+    () => validateInteractiveShellSignal({
+      ...signal,
+      hostStartupMilliseconds: { setupComplete: 601, signal: 600 },
+    }, {
+      applicationVersion: "0.1.0",
+      sourceRevision: revision,
+    }),
+    /host startup timings/,
+  );
+  assert.throws(
+    () => validateInteractiveShellSignal({
+      ...signal,
+      rendererStartupMilliseconds: { localeReady: 301, signal: 300 },
+    }, {
+      applicationVersion: "0.1.0",
+      sourceRevision: revision,
+    }),
+    /renderer startup timings/,
+  );
+  assert.deepEqual(deriveColdLaunchRun(700, signal), {
+    totalMilliseconds: 700,
+    processCreationAndEvidenceTransportMilliseconds: 100,
+    hostStartupToSetupCompleteMilliseconds: 200,
+    setupCompleteToRendererStartupAndCommandTransportMilliseconds: 100,
+    rendererStartupToLocaleReadyMilliseconds: 200,
+    localeReadyToInteractiveSignalMilliseconds: 100,
+  });
 });
 
 test("enforces the cold-launch p95 budget across twenty fresh processes", () => {
   const evidence = evaluateColdLaunchRuns(
-    Array.from({ length: 20 }, (_, index) => 700 + index * 25),
+    Array.from({ length: 20 }, (_, index) => ({
+      totalMilliseconds: 700 + index * 25,
+      processCreationAndEvidenceTransportMilliseconds: 100,
+      hostStartupToSetupCompleteMilliseconds: 200,
+      setupCompleteToRendererStartupAndCommandTransportMilliseconds: 100 + index * 25,
+      rendererStartupToLocaleReadyMilliseconds: 200,
+      localeReadyToInteractiveSignalMilliseconds: 100,
+    })),
   );
 
   assert.deepEqual(evidence, {
@@ -73,18 +117,57 @@ test("enforces the cold-launch p95 budget across twenty fresh processes", () => 
     p95Milliseconds: 1_175,
     maximumMilliseconds: 1_175,
     p95BudgetMilliseconds: 2_500,
+    phases: {
+      processCreationAndEvidenceTransport: {
+        medianMilliseconds: 100,
+        p95Milliseconds: 100,
+        maximumMilliseconds: 100,
+      },
+      hostStartupToSetupComplete: {
+        medianMilliseconds: 200,
+        p95Milliseconds: 200,
+        maximumMilliseconds: 200,
+      },
+      setupCompleteToRendererStartupAndCommandTransport: {
+        medianMilliseconds: 350,
+        p95Milliseconds: 575,
+        maximumMilliseconds: 575,
+      },
+      rendererStartupToLocaleReady: {
+        medianMilliseconds: 200,
+        p95Milliseconds: 200,
+        maximumMilliseconds: 200,
+      },
+      localeReadyToInteractiveSignal: {
+        medianMilliseconds: 100,
+        p95Milliseconds: 100,
+        maximumMilliseconds: 100,
+      },
+    },
     passed: true,
   });
   assert.equal(
-    evaluateColdLaunchRuns(Array.from({ length: 20 }, () => 2_501)).passed,
+    evaluateColdLaunchRuns(Array.from({ length: 20 }, () => ({
+      totalMilliseconds: 2_501,
+      processCreationAndEvidenceTransportMilliseconds: 100,
+      hostStartupToSetupCompleteMilliseconds: 200,
+      setupCompleteToRendererStartupAndCommandTransportMilliseconds: 1_901,
+      rendererStartupToLocaleReadyMilliseconds: 200,
+      localeReadyToInteractiveSignalMilliseconds: 100,
+    }))).passed,
     false,
   );
   assert.throws(
-    () => evaluateColdLaunchRuns(Array.from({ length: 19 }, () => 500)),
+    () => evaluateColdLaunchRuns(Array.from({ length: 19 }, () => ({
+      totalMilliseconds: 500,
+    }))),
     /exactly 20 measured processes/,
   );
   assert.throws(
-    () => evaluateColdLaunchRuns([...Array.from({ length: 19 }, () => 500), -1]),
+    () => evaluateColdLaunchRuns([
+      ...Array.from({ length: 19 }, () => ({ totalMilliseconds: 500 })),
+      { totalMilliseconds: -1 },
+    ]),
     /non-negative finite duration/,
   );
 });
@@ -117,5 +200,10 @@ test("wires production identity and cold launch into local and hosted gates", ()
   assert.match(
     workflow,
     /name: Verify cold-launch budget\n\s+run: npm run benchmark:cold-launch/,
+  );
+  assert.ok(
+    workflow.indexOf("name: Verify cold-launch budget")
+      < workflow.indexOf("name: Verify full-scale import budgets"),
+    "cold launch must fail before the long performance campaigns",
   );
 });

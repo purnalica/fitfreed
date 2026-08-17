@@ -49,6 +49,7 @@ use presentation::{
     SleepOverviewDto, SleepPeriodDetailDto, TrainingComparisonDto, TrainingDateRangeDto,
     TrainingOverviewDto, UpdateCheckOutcomeDto, UpdateRecoveryOutcomeDto,
 };
+use serde::{Deserialize, Serialize};
 use tauri::{ipc::Channel, AppHandle, Emitter, Manager, State};
 use tokio::{
     sync::{Mutex as AsyncMutex, MutexGuard as AsyncMutexGuard},
@@ -60,12 +61,57 @@ const UPDATE_RECOVERY_STARTUP_MAINTENANCE_POLL_INTERVAL: Duration = Duration::fr
 const PERIODIC_UPDATE_CHECK_INTERVAL: Duration = Duration::from_secs(24 * 60 * 60);
 const UPDATE_CHECK_COMPLETED_EVENT: &str = "fitfreed://update-check-completed";
 
-#[derive(Default)]
 struct InteractiveShellSignal {
+    started_at: Instant,
+    setup_complete: Mutex<Option<Duration>>,
     emitted: Mutex<bool>,
 }
 
-#[derive(serde::Serialize)]
+impl Default for InteractiveShellSignal {
+    fn default() -> Self {
+        Self {
+            started_at: Instant::now(),
+            setup_complete: Mutex::new(None),
+            emitted: Mutex::new(false),
+        }
+    }
+}
+
+impl InteractiveShellSignal {
+    fn record_setup_complete(&self) -> io::Result<()> {
+        let mut setup_complete = self
+            .setup_complete
+            .lock()
+            .map_err(|_| io::Error::other("interactive shell setup timing is unavailable"))?;
+        *setup_complete = Some(self.started_at.elapsed());
+        Ok(())
+    }
+}
+
+#[derive(Clone, Copy, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct RendererStartupMilliseconds {
+    locale_ready: f64,
+    signal: f64,
+}
+
+impl RendererStartupMilliseconds {
+    fn is_valid(self) -> bool {
+        self.locale_ready.is_finite()
+            && self.signal.is_finite()
+            && self.locale_ready >= 0.0
+            && self.signal >= self.locale_ready
+    }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct HostStartupMilliseconds {
+    setup_complete: f64,
+    signal: f64,
+}
+
+#[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct InteractiveShellPayload<'a> {
     format: &'static str,
@@ -74,12 +120,20 @@ struct InteractiveShellPayload<'a> {
     application_version: &'a str,
     source_revision: &'a str,
     source_tree_clean: bool,
+    host_startup_milliseconds: HostStartupMilliseconds,
+    renderer_startup_milliseconds: RendererStartupMilliseconds,
 }
 
 fn write_interactive_shell_signal(
     signal: &InteractiveShellSignal,
+    renderer_startup_milliseconds: RendererStartupMilliseconds,
     writer: &mut impl Write,
 ) -> io::Result<bool> {
+    if !renderer_startup_milliseconds.is_valid() {
+        return Err(io::Error::other(
+            "interactive shell renderer timing is invalid",
+        ));
+    }
     let mut emitted = signal
         .emitted
         .lock()
@@ -87,15 +141,26 @@ fn write_interactive_shell_signal(
     if *emitted {
         return Ok(false);
     }
+    let setup_complete = signal
+        .setup_complete
+        .lock()
+        .map_err(|_| io::Error::other("interactive shell setup timing is unavailable"))?
+        .ok_or_else(|| io::Error::other("interactive shell setup timing was not recorded"))?;
+    let host_signal = signal.started_at.elapsed();
     serde_json::to_writer(
         &mut *writer,
         &InteractiveShellPayload {
             format: "org.fitfreed.startup-signal",
-            schema_version: 1,
+            schema_version: 2,
             event: "interactive-shell",
             application_version: env!("CARGO_PKG_VERSION"),
             source_revision: env!("FITFREED_SOURCE_REVISION"),
             source_tree_clean: env!("FITFREED_SOURCE_TREE_CLEAN") == "true",
+            host_startup_milliseconds: HostStartupMilliseconds {
+                setup_complete: setup_complete.as_secs_f64() * 1_000.0,
+                signal: host_signal.as_secs_f64() * 1_000.0,
+            },
+            renderer_startup_milliseconds,
         },
     )
     .map_err(io::Error::other)?;
@@ -108,10 +173,15 @@ fn write_interactive_shell_signal(
 #[tauri::command]
 fn report_interactive_shell(
     signal: State<'_, InteractiveShellSignal>,
+    renderer_startup_milliseconds: RendererStartupMilliseconds,
 ) -> Result<(), CommandErrorDto> {
-    write_interactive_shell_signal(signal.inner(), &mut io::stdout().lock())
-        .map(|_| ())
-        .map_err(|_| CommandErrorDto::new("interactive-shell-signal-unavailable"))
+    write_interactive_shell_signal(
+        signal.inner(),
+        renderer_startup_milliseconds,
+        &mut io::stdout().lock(),
+    )
+    .map(|_| ())
+    .map_err(|_| CommandErrorDto::new("interactive-shell-signal-unavailable"))
 }
 
 #[derive(Default)]
@@ -934,6 +1004,7 @@ struct CandidateStartup {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let interactive_shell_signal = InteractiveShellSignal::default();
     let pending_recovery_confirmation = match startup_mode(&env::args_os().collect::<Vec<_>>()) {
         StartupMode::Desktop => None,
         StartupMode::UpdateRecoveryCandidate(candidate) => {
@@ -979,7 +1050,7 @@ pub fn run() {
     let update_coordinator = Arc::new(UpdateOperationCoordinator::default());
     builder
         .manage(ImportCoordinator::default())
-        .manage(InteractiveShellSignal::default())
+        .manage(interactive_shell_signal)
         .manage(PendingUpdateRecoveryConfirmation::new(
             pending_recovery_confirmation,
         ))
@@ -1014,6 +1085,8 @@ pub fn run() {
                 Arc::clone(&update_channel),
                 Arc::clone(&update_coordinator),
             );
+            app.state::<InteractiveShellSignal>()
+                .record_setup_complete()?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -1246,21 +1319,90 @@ mod tests {
     #[test]
     fn interactive_shell_signal_is_privacy_safe_and_emitted_once() {
         let signal = InteractiveShellSignal::default();
+        signal
+            .record_setup_complete()
+            .expect("setup timing should be recorded");
+        let renderer_startup_milliseconds = RendererStartupMilliseconds {
+            locale_ready: 1.0,
+            signal: 2.0,
+        };
         let mut output = Vec::new();
 
-        assert!(write_interactive_shell_signal(&signal, &mut output).expect("first signal"));
-        assert!(!write_interactive_shell_signal(&signal, &mut output).expect("repeat signal"));
+        assert!(write_interactive_shell_signal(
+            &signal,
+            renderer_startup_milliseconds,
+            &mut output
+        )
+        .expect("first signal"));
+        assert!(!write_interactive_shell_signal(
+            &signal,
+            renderer_startup_milliseconds,
+            &mut output
+        )
+        .expect("repeat signal"));
 
         let line = String::from_utf8(output).expect("UTF-8 signal");
         let payload: serde_json::Value = serde_json::from_str(line.trim()).expect("JSON signal");
         assert_eq!(payload["format"], "org.fitfreed.startup-signal");
-        assert_eq!(payload["schemaVersion"], 1);
+        assert_eq!(payload["schemaVersion"], 2);
         assert_eq!(payload["event"], "interactive-shell");
         assert_eq!(payload["applicationVersion"], env!("CARGO_PKG_VERSION"));
         assert!(payload["sourceRevision"].is_string());
         assert!(payload["sourceTreeClean"].is_boolean());
+        assert_eq!(payload.as_object().map(|object| object.len()), Some(8));
+        assert!(payload["hostStartupMilliseconds"]["setupComplete"].is_number());
+        assert!(payload["hostStartupMilliseconds"]["signal"].is_number());
+        assert!(payload["hostStartupMilliseconds"]["signal"]
+            .as_f64()
+            .zip(payload["hostStartupMilliseconds"]["setupComplete"].as_f64())
+            .is_some_and(|(host_signal, setup_complete)| host_signal >= setup_complete));
+        assert_eq!(
+            payload["hostStartupMilliseconds"]
+                .as_object()
+                .map(|object| object.len()),
+            Some(2)
+        );
+        assert_eq!(payload["rendererStartupMilliseconds"]["localeReady"], 1.0);
+        assert_eq!(payload["rendererStartupMilliseconds"]["signal"], 2.0);
+        assert_eq!(
+            payload["rendererStartupMilliseconds"]
+                .as_object()
+                .map(|object| object.len()),
+            Some(2)
+        );
         assert_eq!(line.lines().count(), 1);
         assert!(!line.contains("/Users/"));
+    }
+
+    #[test]
+    fn interactive_shell_signal_rejects_missing_or_invalid_timings() {
+        let signal = InteractiveShellSignal::default();
+        let valid_renderer_timings = RendererStartupMilliseconds {
+            locale_ready: 1.0,
+            signal: 2.0,
+        };
+        let mut output = Vec::new();
+
+        assert!(
+            write_interactive_shell_signal(&signal, valid_renderer_timings, &mut output).is_err()
+        );
+        signal
+            .record_setup_complete()
+            .expect("setup timing should be recorded");
+        assert!(write_interactive_shell_signal(
+            &signal,
+            RendererStartupMilliseconds {
+                locale_ready: f64::NAN,
+                signal: 2.0,
+            },
+            &mut output,
+        )
+        .is_err());
+        assert!(output.is_empty());
+        assert!(
+            write_interactive_shell_signal(&signal, valid_renderer_timings, &mut output)
+                .expect("valid timing should remain reportable")
+        );
     }
 
     #[test]

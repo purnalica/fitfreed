@@ -19,6 +19,8 @@ import type {
 import { commandErrorCode } from "./presentation/command-error";
 import type { ExplorerNavigationRequest } from "./presentation/explorer-navigation";
 
+const rendererStartedAt = performance.now();
+
 const ActivityComparisonPanel = lazy(() =>
   import("./presentation/ActivityComparisonPanel").then((module) => ({
     default: module.ActivityComparisonPanel,
@@ -147,6 +149,7 @@ function localDate(localDateValue: string): Date {
 function App() {
   const [locale, setLocale] = useState<Locale>(systemLocale);
   const [localeReady, setLocaleReady] = useState(false);
+  const localeReadyMilliseconds = useRef(0);
   const [applicationReady, setApplicationReady] = useState(false);
   const [localeSaving, setLocaleSaving] = useState(false);
   const [updateLocaleRefreshToken, setUpdateLocaleRefreshToken] = useState(0);
@@ -224,7 +227,10 @@ function App() {
           );
         }
       } finally {
-        if (active) setLocaleReady(true);
+        if (active) {
+          localeReadyMilliseconds.current = performance.now() - rendererStartedAt;
+          setLocaleReady(true);
+        }
       }
     }
 
@@ -238,7 +244,12 @@ function App() {
     if (!localeReady) return;
     let active = true;
     const frame = requestAnimationFrame(() => {
-      invoke("report_interactive_shell")
+      invoke("report_interactive_shell", {
+        rendererStartupMilliseconds: {
+          localeReady: localeReadyMilliseconds.current,
+          signal: performance.now() - rendererStartedAt,
+        },
+      })
         .catch(() => undefined)
         .finally(() => {
           if (active) setApplicationReady(true);

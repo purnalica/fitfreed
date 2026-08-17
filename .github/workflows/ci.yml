@@ -183,17 +183,17 @@ jobs:
           npm run format:check
           npm run lint:rust
 
-      - name: Verify full-scale import budgets
-        run: npm run benchmark:import
-
-      - name: Verify Insights read-model performance budgets
-        run: npm run benchmark:insights
-
       - name: Prepare the private development release evidence
         run: npm run prepare:development-release -- "$FITFREED_RELEASE_VERSION"
 
       - name: Verify cold-launch budget
         run: npm run benchmark:cold-launch
+
+      - name: Verify full-scale import budgets
+        run: npm run benchmark:import
+
+      - name: Verify Insights read-model performance budgets
+        run: npm run benchmark:insights
 
       - name: Verify update recovery preparation against the production application
         run: npm run verify:update-recovery-preparation

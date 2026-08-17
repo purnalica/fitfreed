@@ -411,9 +411,16 @@ describe("FitFreed import interface", () => {
     expect(mocks.interactiveShellInvoke).not.toHaveBeenCalled();
     await act(async () => renderFrame?.(performance.now()));
     await waitFor(() => expect(mocks.interactiveShellInvoke).toHaveBeenCalledTimes(1));
-    expect(mocks.interactiveShellInvoke).toHaveBeenCalledWith(
-      "report_interactive_shell",
-      undefined,
+    const startupArguments = mocks.interactiveShellInvoke.mock.calls[0]?.[1];
+    expect(startupArguments).toEqual({
+      rendererStartupMilliseconds: {
+        localeReady: expect.any(Number),
+        signal: expect.any(Number),
+      },
+    });
+    expect(startupArguments.rendererStartupMilliseconds.localeReady).toBeGreaterThanOrEqual(0);
+    expect(startupArguments.rendererStartupMilliseconds.signal).toBeGreaterThanOrEqual(
+      startupArguments.rendererStartupMilliseconds.localeReady,
     );
     expect(mocks.invoke).not.toHaveBeenCalledWith("query_activity_overview", {
       requestedRange: null,
