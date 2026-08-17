@@ -13,6 +13,8 @@ The files live under the operating system's FitFreed application-data directory.
 ```text
 update-recovery/
 ├── active
+├── last-outcome.json
+├── outcome.lock
 └── attempts/
     └── <recoveryId>/
         ├── candidate.lock
@@ -27,6 +29,10 @@ update-recovery/
 `active` is UTF-8 text containing exactly one 64-character lowercase hexadecimal `recoveryId` followed by one line feed. It is promoted atomically only after every recovery asset and `manifest.json` have been written, synchronized, reopened, and verified. At most one active attempt exists.
 
 `manifest.json` is UTF-8 JSON conforming to [`update-recovery-v1.schema.json`](../../../schemas/update-recovery-v1.schema.json). Its maximum encoded size is 64 KiB. Unknown fields are invalid. Writers replace it atomically through a sibling temporary file and synchronize the containing directory.
+
+`last-outcome.json` is an optional UTF-8 JSON receipt conforming to [`update-recovery-outcome-v1.schema.json`](../../../schemas/update-recovery-outcome-v1.schema.json). Its maximum encoded size is 4 KiB. It retains only the latest completed result needed for user-visible reporting after the recovery assets have been removed. It contains no local path, timestamp, signing material, provider data, fitness data, or diagnostic detail. A new terminal outcome atomically replaces an older unacknowledged receipt.
+
+`outcome.lock` is a persistent private empty regular file with the same ownership, link-count, permission, and symbolic-link rules as the process locks. Writers hold its exclusive operating-system lock while reading, replacing, or acknowledging `last-outcome.json`, and while deciding whether a receipt-bound orphan still blocks a new attempt.
 
 `state.lock` is a private empty regular file. Recovery actors hold its operating-system exclusive lock across active-pointer validation, lifecycle compare-and-transition, and atomic manifest replacement. The file does not convey a phase or authority; `manifest.json` remains the state source of truth. Symbolic links and unsupported platforms fail closed.
 
@@ -109,6 +115,28 @@ The complete phase vocabulary is `prepared`, `replacement-started`, `replacement
 
 `confirmed`, `recovered`, and `recovery-failed` are terminal. A skipped, reversed, or repeated transition is invalid. Repeating restoration work while the persisted phase remains `recovering` is safe and must converge on `recovered` or `recovery-failed`.
 
+## Terminal outcome receipt and cleanup
+
+The receipt format is `org.fitfreed.update-recovery-outcome` with `schemaVersion` `1`. Its fields are:
+
+| Field | Meaning |
+|---|---|
+| `recoveryId` | Exact attempt identifier whose terminal result was retained. |
+| `outcome` | `updated` when the target application and library reached `confirmed`; `recovered` when the exact source pair reached `recovered`. |
+| `sourceVersion` | Semantic version of the application preserved before replacement. |
+| `targetVersion` | Semantic version authorized for the replacement. |
+
+Terminal cleanup requires exclusive ownership of `watchdog.lock`, `candidate.lock`, and `state.lock`. It revalidates the complete preserved attempt and independently supplied installed destinations. For `confirmed`, the installed application must be `target.version` and the library must have `target.librarySchemaVersion` and pass integrity checking. For `recovered`, the installed application and library must exactly match the preserved source pair. `recovery-failed` is never cleaned automatically because its assets and active authority remain necessary for manual recovery.
+
+Cleanup is ordered and restart-safe:
+
+1. atomically write and synchronize `last-outcome.json`;
+2. remove the matching `active` pointer and synchronize `update-recovery`;
+3. for a recovered attempt, remove only the fixed failed-candidate sibling after verifying its bundle identity and `target.version`;
+4. remove only `attempts/<recoveryId>` and synchronize `attempts`.
+
+If interruption occurs after the receipt is durable, maintenance may resume deletion only for the exact `recoveryId` named by that valid receipt. It must revalidate the attempt, receipt, installed pair, private locks, and absence or exact match of `active`. An unrelated orphan, a receipt mismatch, a symbolic link, a busy process lock, or a changed destination fails closed. Once the identified attempt has gone, the valid receipt remains until the user acknowledges it; acknowledgement removes only `last-outcome.json` and synchronizes the recovery root.
+
 A `prepared` attempt may be discarded only before any replacement transition and only while the caller simultaneously owns `watchdog.lock`, `candidate.lock`, and `state.lock`. Discard removes the matching active pointer, synchronizes the recovery root, removes that one attempt directory, and synchronizes `attempts`. It is used when watchdog readiness fails or when the watchdog has been stopped before `replacement-started` can be recorded. Once replacement has started, the persisted lifecycle and watchdog own every recovery decision; discard is forbidden.
 
 `replacementProcess` is `null` through `replacement-installed`. The only operation permitted to enter `launching` atomically stores the complete replacement-process record with that transition. `launching` and `confirmed` require the record. Recovery phases retain it when a candidate was launched so an interrupted watchdog can distinguish that exact operating-system process from a reused process identifier. The confirmation deadline must be later than `preparedAt` and no later than sixteen minutes after it.
@@ -129,6 +157,6 @@ On restart, `prepared`, `replacement-started`, and `replacement-installed` resum
 
 Version 1 readers reject another `format`, another `schemaVersion`, unknown fields, invalid phases, malformed versions or digests, unsafe paths, a mismatched active identifier, and incomplete assets. They do not guess or migrate an unknown recovery format.
 
-An invalid active attempt blocks further in-application replacement and yields privacy-safe recovery guidance. It never causes deletion of the application or library. Orphaned non-active attempt directories are not trusted as recovery authority and may be removed only by bounded maintenance that proves they are not referenced.
+An invalid active attempt blocks further in-application replacement and yields privacy-safe recovery guidance. It never causes deletion of the application or library. Orphaned non-active attempt directories are not trusted as recovery authority. The sole version 1 exception is the exact receipt-bound attempt described above; all other orphans remain untouched.
 
 The contract contains no health, activity, training, sleep, recovery, route, account, provider-export, or usage data. The library backup itself contains the user's FitFreed data and receives the same protection as the active library.

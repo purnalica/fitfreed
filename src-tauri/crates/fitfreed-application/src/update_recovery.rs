@@ -1,6 +1,20 @@
 use thiserror::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UpdateRecoveryOutcomeKind {
+    Updated,
+    Recovered,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UpdateRecoveryOutcome {
+    pub recovery_id: String,
+    pub kind: UpdateRecoveryOutcomeKind,
+    pub source_version: String,
+    pub target_version: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UpdateRecoveryPhase {
     Prepared,
     ReplacementStarted,

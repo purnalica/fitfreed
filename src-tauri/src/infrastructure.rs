@@ -64,17 +64,19 @@ pub use update_installation::{
 };
 pub use update_package::{download_verified_update, UpdatePackageError, VerifiedUpdatePackage};
 pub use update_recovery::{
-    acquire_update_recovery_candidate_lease, acquire_update_recovery_watchdog_lease,
-    active_update_recovery_phase, confirm_active_update_recovery, discard_prepared_update_recovery,
+    acknowledge_update_recovery_outcome, acquire_update_recovery_candidate_lease,
+    acquire_update_recovery_watchdog_lease, active_update_recovery_phase,
+    confirm_active_update_recovery, discard_prepared_update_recovery, load_update_recovery_outcome,
+    maintain_update_recovery, maintain_update_recovery_with_watchdog_lease,
     observe_update_recovery_process, prepare_update_recovery,
     record_active_update_recovery_replacement_launch, resolve_update_application_path,
     resolve_update_recovery_watchdog_context, restore_active_update_recovery,
     transition_active_update_recovery, update_recovery_process_is_running,
     verify_prepared_update_recovery, ApplicationCopyPort, PlatformApplicationCopier,
     PreparedUpdateRecovery, UpdateRecoveryCandidateLease, UpdateRecoveryError,
-    UpdateRecoveryPreparation, UpdateRecoveryProcessIdentity, UpdateRecoveryReplacementLaunch,
-    UpdateRecoveryReplacementProcess, UpdateRecoveryRestoration, UpdateRecoveryWatchdogContext,
-    UpdateRecoveryWatchdogLease,
+    UpdateRecoveryMaintenance, UpdateRecoveryPreparation, UpdateRecoveryProcessIdentity,
+    UpdateRecoveryReplacementLaunch, UpdateRecoveryReplacementProcess, UpdateRecoveryRestoration,
+    UpdateRecoveryWatchdogContext, UpdateRecoveryWatchdogLease,
 };
 pub use update_state::SqliteUpdateState;
 pub use update_watchdog::{

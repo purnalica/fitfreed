@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/update-recovery-outcome-v1.schema.json",
+  "title": "FitFreed update recovery outcome version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "schemaVersion",
+    "recoveryId",
+    "outcome",
+    "sourceVersion",
+    "targetVersion"
+  ],
+  "properties": {
+    "format": { "const": "org.fitfreed.update-recovery-outcome" },
+    "schemaVersion": { "const": 1 },
+    "recoveryId": { "$ref": "#/$defs/sha256" },
+    "outcome": { "enum": ["updated", "recovered"] },
+    "sourceVersion": { "$ref": "#/$defs/semver" },
+    "targetVersion": { "$ref": "#/$defs/semver" }
+  },
+  "$defs": {
+    "semver": {
+      "type": "string",
+      "maxLength": 255,
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

@@ -608,6 +608,14 @@
     "installingVersion": "Instalando la versión {version}…",
     "dismiss": "Ignorar esta versión",
     "postpone": "Recordármelo mañana",
+    "recovery": {
+      "updatedHeading": "Actualización completada",
+      "recoveredHeading": "Recuperación de actualización completada",
+      "updated": "FitFreed se ha actualizado de la versión {sourceVersion} a la {targetVersion}. La aplicación instalada y la biblioteca local se han verificado antes de eliminar la copia de recuperación anterior.",
+      "recovered": "FitFreed ha restaurado automáticamente la versión {sourceVersion} después de que la actualización a la versión {targetVersion} no se completara. La aplicación restaurada y la biblioteca local se han verificado.",
+      "acknowledge": "Descartar resultado de actualización",
+      "acknowledging": "Descartando…"
+    },
     "statuses": {
       "unconfigured": "La búsqueda de actualizaciones no está configurada en esta compilación de desarrollo.",
       "offline": "La información de actualizaciones no está disponible temporalmente. La biblioteca local no se ha modificado.",
@@ -697,6 +705,7 @@
     "update-watchdog-failed": "FitFreed no ha podido iniciar el monitor independiente de recuperación. La aplicación actual no se ha reemplazado; reiníciala antes de volver a intentarlo.",
     "update-recovery-failed": "FitFreed no ha podido preparar o avanzar la recuperación segura de la actualización. Conserva los datos de la aplicación y reinstálala manualmente antes de volver a intentarlo.",
     "update-recovery-confirmation-failed": "FitFreed no ha podido confirmar la aplicación y la biblioteca actualizadas. Mantén la aplicación abierta mientras finaliza la recuperación automática.",
+    "update-recovery-outcome-failed": "FitFreed no ha podido finalizar o confirmar la recuperación de la actualización de forma segura. Conserva los datos de la aplicación y reiníciala antes de intentar otra actualización.",
     "unexpected": "FitFreed ha encontrado un error local inesperado. Reinicia la aplicación antes de volver a intentarlo."
   }
 }

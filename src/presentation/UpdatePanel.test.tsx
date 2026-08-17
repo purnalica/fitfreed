@@ -98,7 +98,7 @@ describe("UpdatePanel", () => {
     );
 
     const panel = await screen.findByRole("region", { name: "Application updates" });
-    await user.click(within(panel).getByRole("button", { name: "Install and restart" }));
+    await user.click(await within(panel).findByRole("button", { name: "Install and restart" }));
 
     expect(invoke).toHaveBeenCalledWith("install_available_update", {
       candidateVersion: "0.2.0",
@@ -134,7 +134,7 @@ describe("UpdatePanel", () => {
     );
 
     const panel = await screen.findByRole("region", { name: "Application updates" });
-    await user.click(within(panel).getByRole("button", { name: "Install and restart" }));
+    await user.click(await within(panel).findByRole("button", { name: "Install and restart" }));
 
     expect(await within(panel).findByRole("alert")).toHaveTextContent(
       "could not install the verified update",

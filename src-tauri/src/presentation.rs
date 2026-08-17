@@ -16,7 +16,8 @@ use fitfreed_application::{
     SleepSeriesSummary, TrainingComparison, TrainingDateRange, TrainingOverview,
     TrainingSeriesComparison, TrainingSeriesOverview, TrainingSeriesSummary,
     TrainingSessionInsight, UpdateCheckOutcome, UpdateCheckStatus, UpdateError,
-    UpdateReleaseSummary, UpdateTrustFailure, UpdateWithdrawalReason, UpdateWithdrawalSummary,
+    UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind, UpdateReleaseSummary, UpdateTrustFailure,
+    UpdateWithdrawalReason, UpdateWithdrawalSummary,
 };
 use fitfreed_domain::{
     ArtifactCoverageSummary, ArtifactFamilyCoverage, ImportOutcome, ImportReport,
@@ -141,6 +142,27 @@ impl From<UpdateCheckOutcome> for UpdateCheckOutcomeDto {
             postponed_until: outcome.postponed_until,
             manual_recovery_reason: outcome.manual_recovery_reason.map(manual_update_reason),
             trust_failure: outcome.trust_failure.map(update_trust_failure),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateRecoveryOutcomeDto {
+    outcome: &'static str,
+    source_version: String,
+    target_version: String,
+}
+
+impl From<UpdateRecoveryOutcome> for UpdateRecoveryOutcomeDto {
+    fn from(outcome: UpdateRecoveryOutcome) -> Self {
+        Self {
+            outcome: match outcome.kind {
+                UpdateRecoveryOutcomeKind::Updated => "updated",
+                UpdateRecoveryOutcomeKind::Recovered => "recovered",
+            },
+            source_version: outcome.source_version,
+            target_version: outcome.target_version,
         }
     }
 }
@@ -1753,7 +1775,10 @@ impl From<ImportPhase> for ImportPhaseDto {
 
 #[cfg(test)]
 mod tests {
-    use fitfreed_application::{UpdateArtifact, UpdateInstallationAuthorization};
+    use fitfreed_application::{
+        UpdateArtifact, UpdateInstallationAuthorization, UpdateRecoveryOutcome,
+        UpdateRecoveryOutcomeKind,
+    };
     use fitfreed_domain::{ArtifactClassification, ArtifactFamilyCoverage, ImportOperationState};
 
     use super::*;
@@ -1827,6 +1852,25 @@ mod tests {
                 serde_json::to_value(CommandErrorDto::from(error)).expect("update error JSON");
             assert_eq!(error_json["code"], expected);
         }
+
+        let recovery = UpdateRecoveryOutcome {
+            recovery_id: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+                .to_owned(),
+            kind: UpdateRecoveryOutcomeKind::Recovered,
+            source_version: "0.1.0".to_owned(),
+            target_version: "0.2.0".to_owned(),
+        };
+        let recovery_json = serde_json::to_value(UpdateRecoveryOutcomeDto::from(recovery))
+            .expect("update recovery outcome JSON");
+        assert_eq!(
+            recovery_json,
+            serde_json::json!({
+                "outcome": "recovered",
+                "sourceVersion": "0.1.0",
+                "targetVersion": "0.2.0"
+            })
+        );
+        assert!(!recovery_json.to_string().contains("0123456789abcdef"));
     }
 
     fn recovery_summary(value: i128) -> RecoverySeriesSummary {

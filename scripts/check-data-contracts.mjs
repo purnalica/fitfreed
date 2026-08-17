@@ -1963,6 +1963,35 @@ for (const invalidRecovery of [
   }
 }
 
+const updateRecoveryOutcomeSchemaPath = "schemas/update-recovery-outcome-v1.schema.json";
+const updateRecoveryOutcomeSchema = JSON.parse(read(updateRecoveryOutcomeSchemaPath));
+const validateUpdateRecoveryOutcome = ajv.compile(updateRecoveryOutcomeSchema);
+const syntheticUpdateRecoveryOutcome = {
+  format: "org.fitfreed.update-recovery-outcome",
+  schemaVersion: 1,
+  recoveryId: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  outcome: "recovered",
+  sourceVersion: "0.1.0",
+  targetVersion: "0.2.0-alpha.1",
+};
+if (!validateUpdateRecoveryOutcome(syntheticUpdateRecoveryOutcome)) {
+  throw new Error(
+    updateRecoveryOutcomeSchemaPath
+      + " rejected its synthetic outcome: "
+      + ajv.errorsText(validateUpdateRecoveryOutcome.errors),
+  );
+}
+for (const invalidOutcome of [
+  { ...syntheticUpdateRecoveryOutcome, outcome: "failed" },
+  { ...syntheticUpdateRecoveryOutcome, recoveryId: "not-a-digest" },
+  { ...syntheticUpdateRecoveryOutcome, sourceVersion: "01.0.0" },
+  { ...syntheticUpdateRecoveryOutcome, applicationPath: "/Applications/FitFreed.app" },
+]) {
+  if (validateUpdateRecoveryOutcome(invalidOutcome)) {
+    throw new Error(updateRecoveryOutcomeSchemaPath + " accepted an invalid outcome");
+  }
+}
+
 const indexPath = "docs/data-formats/README.md";
 const index = read(indexPath);
 for (const contractPath of [
@@ -2046,6 +2075,7 @@ process.stdout.write(
       updateChannelPayloadSchemaPath,
     ],
     updateRecoverySchema: updateRecoverySchemaPath,
+    updateRecoveryOutcomeSchema: updateRecoveryOutcomeSchemaPath,
     canonicalFields: 56,
     mappingFields: 75,
   }) + "\n",

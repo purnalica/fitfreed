@@ -89,3 +89,4 @@ Directories are created with their first real contract; empty specifications are
 - [Release manifest version 1](release/release-manifest-v1.md)
 - [Update channel version 1](release/update-channel-v1.md)
 - [Update recovery version 1](release/update-recovery-v1.md)
+- [Update recovery outcome version 1](../../schemas/update-recovery-outcome-v1.schema.json)

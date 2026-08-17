@@ -305,16 +305,20 @@ beforeEach(() => {
   mocks.recoveryInvoke.mockResolvedValue(emptyRecoveryOverview());
   mocks.longitudinalInvoke.mockResolvedValue(emptyLongitudinalOverview());
   mocks.sleepInvoke.mockResolvedValue(emptySleepOverview());
-  mocks.updateInvoke.mockResolvedValue({
-    installedVersion: "0.1.0",
-    checkedAt: "2026-08-16T12:00:00Z",
-    status: "unconfigured",
-    release: null,
-    installedWithdrawal: null,
-    updateActionAvailable: false,
-    postponedUntil: null,
-    manualRecoveryReason: null,
-    trustFailure: null,
+  mocks.updateInvoke.mockImplementation((command) => {
+    if (command === "confirm_update_recovery_startup") return Promise.resolve(null);
+    if (command === "acknowledge_update_recovery_notice") return Promise.resolve(true);
+    return Promise.resolve({
+      installedVersion: "0.1.0",
+      checkedAt: "2026-08-16T12:00:00Z",
+      status: "unconfigured",
+      release: null,
+      installedWithdrawal: null,
+      updateActionAvailable: false,
+      postponedUntil: null,
+      manualRecoveryReason: null,
+      trustFailure: null,
+    });
   });
 });
 
@@ -453,6 +457,139 @@ describe("FitFreed import interface", () => {
       "could not confirm the updated application and library",
     );
     expect(alert).not.toHaveTextContent("/private/update-recovery");
+  });
+
+  it("reports and explicitly acknowledges a verified update outcome without exposing its identifier", async () => {
+    emptyLibrary();
+    mocks.updateInvoke.mockImplementation((command) => {
+      if (command === "confirm_update_recovery_startup") {
+        return Promise.resolve({
+          outcome: "updated",
+          sourceVersion: "0.1.0",
+          targetVersion: "0.2.0",
+          recoveryId: "private-recovery-identifier",
+        });
+      }
+      if (command === "acknowledge_update_recovery_notice") return Promise.resolve(true);
+      if (command === "check_for_updates_on_launch") {
+        return Promise.resolve({
+          installedVersion: "0.2.0",
+          checkedAt: "2026-08-17T09:00:00Z",
+          status: "unconfigured",
+          release: null,
+          installedWithdrawal: null,
+          updateActionAvailable: false,
+          postponedUntil: null,
+          manualRecoveryReason: null,
+          trustFailure: null,
+        });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    const status = await screen.findByRole("status", { name: "Update completed" });
+    expect(status).toHaveTextContent("FitFreed updated from version 0.1.0 to 0.2.0");
+    expect(status).not.toHaveTextContent("private-recovery-identifier");
+    await user.click(screen.getByRole("button", { name: "Dismiss update result" }));
+    expect(mocks.updateInvoke).toHaveBeenCalledWith(
+      "acknowledge_update_recovery_notice",
+      undefined,
+    );
+    await waitFor(() => expect(
+      screen.queryByRole("status", { name: "Update completed" }),
+    ).not.toBeInTheDocument());
+  });
+
+  it("explains automatic recovery in the persisted Spanish locale", async () => {
+    emptyLibrary("es-ES");
+    mocks.updateInvoke.mockImplementation((command) => {
+      if (command === "confirm_update_recovery_startup") {
+        return Promise.resolve({
+          outcome: "recovered",
+          sourceVersion: "0.1.0",
+          targetVersion: "0.2.0",
+        });
+      }
+      if (command === "check_for_updates_on_launch") {
+        return Promise.resolve({
+          installedVersion: "0.1.0",
+          checkedAt: "2026-08-17T09:00:00Z",
+          status: "unconfigured",
+          release: null,
+          installedWithdrawal: null,
+          updateActionAvailable: false,
+          postponedUntil: null,
+          manualRecoveryReason: null,
+          trustFailure: null,
+        });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    render(<App />);
+
+    const status = await screen.findByRole("status", {
+      name: "Recuperación de actualización completada",
+    });
+    expect(status).toHaveTextContent(
+      "FitFreed ha restaurado automáticamente la versión 0.1.0 después de que la actualización a la versión 0.2.0 no se completara",
+    );
+  });
+
+  it("retains the update result when acknowledgement fails and permits a retry", async () => {
+    emptyLibrary();
+    let acknowledgementFails = true;
+    mocks.updateInvoke.mockImplementation((command) => {
+      if (command === "confirm_update_recovery_startup") {
+        return Promise.resolve({
+          outcome: "updated",
+          sourceVersion: "0.1.0",
+          targetVersion: "0.2.0",
+        });
+      }
+      if (command === "acknowledge_update_recovery_notice") {
+        if (acknowledgementFails) {
+          return Promise.reject({
+            code: "update-recovery-outcome-failed",
+            detail: "/private/recovery/outcome",
+          });
+        }
+        return Promise.resolve(true);
+      }
+      if (command === "check_for_updates_on_launch") {
+        return Promise.resolve({
+          installedVersion: "0.2.0",
+          checkedAt: "2026-08-17T09:00:00Z",
+          status: "unconfigured",
+          release: null,
+          installedWithdrawal: null,
+          updateActionAvailable: false,
+          postponedUntil: null,
+          manualRecoveryReason: null,
+          trustFailure: null,
+        });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    const button = await screen.findByRole("button", { name: "Dismiss update result" });
+
+    await user.click(button);
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("could not finish or acknowledge update recovery safely");
+    expect(alert).not.toHaveTextContent("/private/recovery");
+    expect(screen.getByRole("status", { name: "Update completed" })).toBeVisible();
+
+    acknowledgementFails = false;
+    await user.click(button);
+    await waitFor(() => expect(
+      screen.queryByRole("status", { name: "Update completed" }),
+    ).not.toBeInTheDocument());
   });
 
   it("explains family coverage with localized reasons and next actions without source locators", async () => {

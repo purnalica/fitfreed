@@ -88,6 +88,12 @@ interface ImportProgress {
   cancellable: boolean;
 }
 
+interface UpdateRecoveryOutcome {
+  outcome: "updated" | "recovered";
+  sourceVersion: string;
+  targetVersion: string;
+}
+
 function systemLocale(): Locale {
   const preferredLanguages = navigator.languages.length > 0
     ? navigator.languages
@@ -128,6 +134,8 @@ function App() {
   const [progress, setProgress] = useState<ImportProgress>();
   const [busy, setBusy] = useState(false);
   const [updateInstalling, setUpdateInstalling] = useState(false);
+  const [updateRecoveryOutcome, setUpdateRecoveryOutcome] = useState<UpdateRecoveryOutcome>();
+  const [updateRecoveryAcknowledging, setUpdateRecoveryAcknowledging] = useState(false);
   const [cancelRequested, setCancelRequested] = useState(false);
   const [errorCode, setErrorCode] = useState<string>();
   const messages = catalogs[locale];
@@ -197,13 +205,34 @@ function App() {
   useEffect(() => {
     if (!localeReady) return;
     let active = true;
-    invoke<boolean>("confirm_update_recovery_startup").catch((reason) => {
-      if (active) setErrorCode(commandErrorCode(reason));
-    });
+    invoke<UpdateRecoveryOutcome | null>("confirm_update_recovery_startup")
+      .then((recoveryOutcome) => {
+        if (active && recoveryOutcome) setUpdateRecoveryOutcome(recoveryOutcome);
+      })
+      .catch((reason) => {
+        if (active) setErrorCode(commandErrorCode(reason));
+      });
     return () => {
       active = false;
     };
   }, [localeReady]);
+
+  async function acknowledgeUpdateRecoveryOutcome() {
+    setUpdateRecoveryAcknowledging(true);
+    setErrorCode(undefined);
+    try {
+      const acknowledged = await invoke<boolean>("acknowledge_update_recovery_notice");
+      if (!acknowledged) {
+        setErrorCode("update-recovery-outcome-failed");
+        return;
+      }
+      setUpdateRecoveryOutcome(undefined);
+    } catch (reason) {
+      setErrorCode(commandErrorCode(reason));
+    } finally {
+      setUpdateRecoveryAcknowledging(false);
+    }
+  }
 
   async function changeLocale(next: Locale) {
     const previous = locale;
@@ -460,6 +489,40 @@ function App() {
           </select>
         </label>
       </section>
+
+      {updateRecoveryOutcome && (
+        <section className="update-panel update-recovery-notice">
+          <div
+            className={`update-result update-result-${updateRecoveryOutcome.outcome}`}
+            role="status"
+            aria-labelledby="update-recovery-heading"
+            aria-live="polite"
+          >
+            <h2 id="update-recovery-heading">
+              {updateRecoveryOutcome.outcome === "updated"
+                ? messages.updates.recovery.updatedHeading
+                : messages.updates.recovery.recoveredHeading}
+            </h2>
+            <p>
+              {(updateRecoveryOutcome.outcome === "updated"
+                ? messages.updates.recovery.updated
+                : messages.updates.recovery.recovered)
+                .replace("{sourceVersion}", updateRecoveryOutcome.sourceVersion)
+                .replace("{targetVersion}", updateRecoveryOutcome.targetVersion)}
+            </p>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => void acknowledgeUpdateRecoveryOutcome()}
+              disabled={updateRecoveryAcknowledging}
+            >
+              {updateRecoveryAcknowledging
+                ? messages.updates.recovery.acknowledging
+                : messages.updates.recovery.acknowledge}
+            </button>
+          </div>
+        </section>
+      )}
 
       <UpdatePanel
         locale={locale}

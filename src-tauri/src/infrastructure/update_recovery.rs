@@ -10,7 +10,8 @@ use std::process::Command;
 
 use chrono::{DateTime, Duration as ChronoDuration, SecondsFormat, Utc};
 use fitfreed_application::{
-    validate_update_recovery_transition, UpdateInstallationAuthorization, UpdateRecoveryPhase,
+    validate_update_recovery_transition, UpdateInstallationAuthorization, UpdateRecoveryOutcome,
+    UpdateRecoveryOutcomeKind, UpdateRecoveryPhase,
 };
 use semver::Version;
 use serde::{Deserialize, Serialize};
@@ -25,7 +26,11 @@ use super::{
 
 const RECOVERY_FORMAT: &str = "org.fitfreed.update-recovery";
 const RECOVERY_SCHEMA_VERSION: u32 = 1;
+const RECOVERY_OUTCOME_FORMAT: &str = "org.fitfreed.update-recovery-outcome";
+const RECOVERY_OUTCOME_SCHEMA_VERSION: u32 = 1;
 const ACTIVE_FILE_NAME: &str = "active";
+const OUTCOME_FILE_NAME: &str = "last-outcome.json";
+const OUTCOME_LOCK_FILE_NAME: &str = "outcome.lock";
 const ATTEMPTS_DIRECTORY_NAME: &str = "attempts";
 const MANIFEST_FILE_NAME: &str = "manifest.json";
 const STATE_LOCK_FILE_NAME: &str = "state.lock";
@@ -36,6 +41,7 @@ const LIBRARY_BACKUP_RELATIVE_PATH: &str = "previous/fitfreed.sqlite";
 const EXPECTED_BUNDLE_IDENTIFIER: &str = "org.fitfreed.desktop";
 const EXPECTED_BUNDLE_EXECUTABLE: &str = "fitfreed";
 const MAX_MANIFEST_BYTES: u64 = 64 * 1024;
+const MAX_OUTCOME_BYTES: u64 = 4 * 1024;
 const MAX_LIBRARY_BACKUP_BYTES: u64 = 1024 * 1024 * 1024 * 1024;
 const MAX_LOCAL_PATH_BYTES: usize = 4096;
 
@@ -229,6 +235,14 @@ pub struct UpdateRecoveryCandidateLease {
 
 pub struct UpdateRecoveryWatchdogLease {
     file: File,
+    recovery_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum UpdateRecoveryMaintenance {
+    NoTerminalOutcome,
+    Deferred,
+    OutcomeRetained(UpdateRecoveryOutcome),
 }
 
 impl UpdateRecoveryCandidateLease {
@@ -238,6 +252,15 @@ impl UpdateRecoveryCandidateLease {
 
     pub fn launch_nonce(&self) -> &str {
         &self.launch_nonce
+    }
+
+    #[cfg(test)]
+    pub(crate) fn for_test(file: File, recovery_id: String, launch_nonce: String) -> Self {
+        Self {
+            file,
+            recovery_id,
+            launch_nonce,
+        }
     }
 }
 
@@ -275,6 +298,24 @@ struct UpdateRecoveryManifest {
     target: RecoveryTarget,
     application_backup: ApplicationBackup,
     library_backup: LibraryBackup,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct UpdateRecoveryOutcomeWire {
+    format: String,
+    schema_version: u32,
+    recovery_id: String,
+    outcome: RecoveryOutcomeWire,
+    source_version: String,
+    target_version: String,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+enum RecoveryOutcomeWire {
+    Updated,
+    Recovered,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -376,6 +417,48 @@ impl From<UpdateRecoveryPhase> for RecoveryPhaseWire {
     }
 }
 
+impl From<RecoveryOutcomeWire> for UpdateRecoveryOutcomeKind {
+    fn from(value: RecoveryOutcomeWire) -> Self {
+        match value {
+            RecoveryOutcomeWire::Updated => Self::Updated,
+            RecoveryOutcomeWire::Recovered => Self::Recovered,
+        }
+    }
+}
+
+impl From<UpdateRecoveryOutcomeKind> for RecoveryOutcomeWire {
+    fn from(value: UpdateRecoveryOutcomeKind) -> Self {
+        match value {
+            UpdateRecoveryOutcomeKind::Updated => Self::Updated,
+            UpdateRecoveryOutcomeKind::Recovered => Self::Recovered,
+        }
+    }
+}
+
+impl From<UpdateRecoveryOutcomeWire> for UpdateRecoveryOutcome {
+    fn from(value: UpdateRecoveryOutcomeWire) -> Self {
+        Self {
+            recovery_id: value.recovery_id,
+            kind: value.outcome.into(),
+            source_version: value.source_version,
+            target_version: value.target_version,
+        }
+    }
+}
+
+impl From<&UpdateRecoveryOutcome> for UpdateRecoveryOutcomeWire {
+    fn from(value: &UpdateRecoveryOutcome) -> Self {
+        Self {
+            format: RECOVERY_OUTCOME_FORMAT.to_owned(),
+            schema_version: RECOVERY_OUTCOME_SCHEMA_VERSION,
+            recovery_id: value.recovery_id.clone(),
+            outcome: value.kind.into(),
+            source_version: value.source_version.clone(),
+            target_version: value.target_version.clone(),
+        }
+    }
+}
+
 pub fn prepare_update_recovery(
     copier: &impl ApplicationCopyPort,
     preparation: UpdateRecoveryPreparation<'_>,
@@ -384,9 +467,19 @@ pub fn prepare_update_recovery(
     fs::create_dir_all(preparation.recovery_root)?;
     set_private_directory_permissions(preparation.recovery_root)?;
     let recovery_root = preparation.recovery_root.canonicalize()?;
+    let outcome_lock = open_private_lock_file(&recovery_root, OUTCOME_LOCK_FILE_NAME, true)?;
+    let _outcome_lock = RecoveryFileLock::acquire(outcome_lock)?;
     let active_path = recovery_root.join(ACTIVE_FILE_NAME);
     if active_path.exists() {
         return Err(UpdateRecoveryError::ActiveAttemptExists);
+    }
+    if let Some(outcome) = read_recovery_outcome_file(&recovery_root)? {
+        let receipt_bound_attempt = recovery_root
+            .join(ATTEMPTS_DIRECTORY_NAME)
+            .join(outcome.recovery_id);
+        if path_entry_exists(&receipt_bound_attempt)? {
+            return Err(UpdateRecoveryError::ActiveAttemptExists);
+        }
     }
 
     let application_path = preparation.current_application_path.canonicalize()?;
@@ -526,6 +619,218 @@ pub fn active_update_recovery_phase(
     let recovery_id = read_active_recovery_id(&active_path)?;
     let manifest = read_active_manifest(&recovery_root, &recovery_id)?;
     Ok(Some((recovery_id, manifest.phase.into())))
+}
+
+pub fn maintain_update_recovery(
+    recovery_root: &Path,
+    expected_application_path: &Path,
+    expected_library_path: &Path,
+) -> Result<UpdateRecoveryMaintenance, UpdateRecoveryError> {
+    maintain_update_recovery_inner(
+        recovery_root,
+        expected_application_path,
+        expected_library_path,
+        None,
+    )
+}
+
+pub fn maintain_update_recovery_with_watchdog_lease(
+    context: &UpdateRecoveryWatchdogContext,
+    watchdog_lease: &UpdateRecoveryWatchdogLease,
+) -> Result<UpdateRecoveryMaintenance, UpdateRecoveryError> {
+    maintain_update_recovery_inner(
+        context.recovery_root(),
+        context.installed_application_path(),
+        context.library_path(),
+        Some(watchdog_lease),
+    )
+}
+
+pub fn load_update_recovery_outcome(
+    recovery_root: &Path,
+) -> Result<Option<UpdateRecoveryOutcome>, UpdateRecoveryError> {
+    if !recovery_root.exists() {
+        return Ok(None);
+    }
+    let recovery_root = recovery_root.canonicalize()?;
+    let outcome_lock = open_private_lock_file(&recovery_root, OUTCOME_LOCK_FILE_NAME, true)?;
+    let _outcome_lock = RecoveryFileLock::acquire(outcome_lock)?;
+    read_recovery_outcome_file(&recovery_root)
+}
+
+pub fn acknowledge_update_recovery_outcome(
+    recovery_root: &Path,
+) -> Result<bool, UpdateRecoveryError> {
+    if !recovery_root.exists() {
+        return Ok(false);
+    }
+    let recovery_root = recovery_root.canonicalize()?;
+    let outcome_lock = open_private_lock_file(&recovery_root, OUTCOME_LOCK_FILE_NAME, true)?;
+    let _outcome_lock = RecoveryFileLock::acquire(outcome_lock)?;
+    let Some(outcome) = read_recovery_outcome_file(&recovery_root)? else {
+        return Ok(false);
+    };
+    let receipt_bound_attempt = recovery_root
+        .join(ATTEMPTS_DIRECTORY_NAME)
+        .join(&outcome.recovery_id);
+    if path_entry_exists(&receipt_bound_attempt)? {
+        return Err(UpdateRecoveryError::InvalidState);
+    }
+    fs::remove_file(recovery_root.join(OUTCOME_FILE_NAME))?;
+    sync_directory(&recovery_root)?;
+    Ok(true)
+}
+
+fn maintain_update_recovery_inner(
+    recovery_root: &Path,
+    expected_application_path: &Path,
+    expected_library_path: &Path,
+    watchdog_lease: Option<&UpdateRecoveryWatchdogLease>,
+) -> Result<UpdateRecoveryMaintenance, UpdateRecoveryError> {
+    if !recovery_root.exists() {
+        return Ok(UpdateRecoveryMaintenance::NoTerminalOutcome);
+    }
+    let recovery_root = recovery_root.canonicalize()?;
+    let outcome_lock = open_private_lock_file(&recovery_root, OUTCOME_LOCK_FILE_NAME, true)?;
+    let _outcome_lock = RecoveryFileLock::acquire(outcome_lock)?;
+    let retained_outcome = read_recovery_outcome_file(&recovery_root)?;
+    let active_path = recovery_root.join(ACTIVE_FILE_NAME);
+    let active_recovery_id = if path_entry_exists(&active_path)? {
+        Some(read_active_recovery_id(&active_path)?)
+    } else {
+        None
+    };
+
+    let (recovery_id, active_expected) = match (active_recovery_id, &retained_outcome) {
+        (Some(recovery_id), _) => (recovery_id, true),
+        (None, Some(outcome)) => {
+            let attempt_directory = recovery_root
+                .join(ATTEMPTS_DIRECTORY_NAME)
+                .join(&outcome.recovery_id);
+            if !path_entry_exists(&attempt_directory)? {
+                return Ok(UpdateRecoveryMaintenance::OutcomeRetained(outcome.clone()));
+            }
+            (outcome.recovery_id.clone(), false)
+        }
+        (None, None) => return Ok(UpdateRecoveryMaintenance::NoTerminalOutcome),
+    };
+
+    finalize_terminal_attempt(
+        &recovery_root,
+        &recovery_id,
+        active_expected,
+        retained_outcome.as_ref(),
+        expected_application_path,
+        expected_library_path,
+        watchdog_lease,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn finalize_terminal_attempt(
+    recovery_root: &Path,
+    recovery_id: &str,
+    active_expected: bool,
+    retained_outcome: Option<&UpdateRecoveryOutcome>,
+    expected_application_path: &Path,
+    expected_library_path: &Path,
+    watchdog_lease: Option<&UpdateRecoveryWatchdogLease>,
+) -> Result<UpdateRecoveryMaintenance, UpdateRecoveryError> {
+    let (attempts_directory, attempt_directory) =
+        canonical_recovery_attempt(recovery_root, recovery_id)?;
+    let _watchdog_lock = if let Some(lease) = watchdog_lease {
+        if lease.recovery_id != recovery_id {
+            return Err(UpdateRecoveryError::InvalidState);
+        }
+        None
+    } else {
+        let file = open_private_lock_file(&attempt_directory, WATCHDOG_LOCK_FILE_NAME, false)?;
+        if !try_acquire_process_lock(&file)? {
+            return Ok(UpdateRecoveryMaintenance::Deferred);
+        }
+        Some(file)
+    };
+    let candidate_lock =
+        open_private_lock_file(&attempt_directory, CANDIDATE_LOCK_FILE_NAME, false)?;
+    if !try_acquire_process_lock(&candidate_lock)? {
+        return Ok(UpdateRecoveryMaintenance::Deferred);
+    }
+    let _state_lock = RecoveryStateLock::acquire_existing(&attempt_directory)?;
+
+    let active_path = recovery_root.join(ACTIVE_FILE_NAME);
+    if active_expected {
+        if read_active_recovery_id(&active_path)? != recovery_id {
+            return Err(UpdateRecoveryError::InvalidState);
+        }
+    } else if path_entry_exists(&active_path)? {
+        return Err(UpdateRecoveryError::InvalidState);
+    }
+
+    let manifest = read_manifest(&attempt_directory.join(MANIFEST_FILE_NAME))?;
+    validate_manifest(&manifest)?;
+    if manifest.recovery_id != recovery_id {
+        return Err(UpdateRecoveryError::InvalidState);
+    }
+    let kind = match manifest.phase {
+        RecoveryPhaseWire::Confirmed => UpdateRecoveryOutcomeKind::Updated,
+        RecoveryPhaseWire::Recovered => UpdateRecoveryOutcomeKind::Recovered,
+        RecoveryPhaseWire::RecoveryFailed
+        | RecoveryPhaseWire::Prepared
+        | RecoveryPhaseWire::ReplacementStarted
+        | RecoveryPhaseWire::ReplacementInstalled
+        | RecoveryPhaseWire::Launching
+        | RecoveryPhaseWire::Recovering => {
+            if active_expected {
+                return Ok(UpdateRecoveryMaintenance::NoTerminalOutcome);
+            }
+            return Err(UpdateRecoveryError::InvalidState);
+        }
+    };
+    let outcome = UpdateRecoveryOutcome {
+        recovery_id: recovery_id.to_owned(),
+        kind,
+        source_version: manifest.source.version.clone(),
+        target_version: manifest.target.version.clone(),
+    };
+    if !active_expected && retained_outcome != Some(&outcome) {
+        return Err(UpdateRecoveryError::InvalidState);
+    }
+
+    verify_attempt_directory(&attempt_directory, recovery_id)?;
+    let restoration = UpdateRecoveryRestoration {
+        recovery_root,
+        recovery_id,
+        expected_application_path,
+        expected_library_path,
+    };
+    validate_restoration_destinations(recovery_root, &manifest, restoration)?;
+    match kind {
+        UpdateRecoveryOutcomeKind::Updated => {
+            validate_application_bundle(expected_application_path, &manifest.target.version)?;
+            verify_library_file(
+                expected_library_path,
+                i64::from(manifest.target.library_schema_version),
+            )
+            .map_err(|_| UpdateRecoveryError::InvalidLibraryCopy)?;
+        }
+        UpdateRecoveryOutcomeKind::Recovered => {
+            verify_restored_pair(expected_application_path, expected_library_path, &manifest)?;
+        }
+    }
+
+    if retained_outcome != Some(&outcome) {
+        write_recovery_outcome_file(recovery_root, &outcome)?;
+    }
+    if active_expected {
+        fs::remove_file(&active_path)?;
+        sync_directory(recovery_root)?;
+    }
+    if kind == UpdateRecoveryOutcomeKind::Recovered {
+        remove_failed_candidate_application(&manifest, recovery_id)?;
+    }
+    fs::remove_dir_all(&attempt_directory)?;
+    sync_directory(&attempts_directory)?;
+    Ok(UpdateRecoveryMaintenance::OutcomeRetained(outcome))
 }
 
 pub fn transition_active_update_recovery(
@@ -765,7 +1070,10 @@ pub fn acquire_update_recovery_watchdog_lease(
     let attempt_directory = recovery_attempt_directory(context);
     let file = open_private_lock_file(&attempt_directory, WATCHDOG_LOCK_FILE_NAME, false)?;
     acquire_process_lock(&file)?;
-    Ok(UpdateRecoveryWatchdogLease { file })
+    Ok(UpdateRecoveryWatchdogLease {
+        file,
+        recovery_id: context.recovery_id().to_owned(),
+    })
 }
 
 fn recovery_attempt_directory(context: &UpdateRecoveryWatchdogContext) -> PathBuf {
@@ -1223,6 +1531,104 @@ fn verify_attempt_directory(
         i64::from(manifest.source.library_schema_version),
     )
     .map_err(|_| UpdateRecoveryError::InvalidLibraryCopy)
+}
+
+fn canonical_recovery_attempt(
+    recovery_root: &Path,
+    recovery_id: &str,
+) -> Result<(PathBuf, PathBuf), UpdateRecoveryError> {
+    if !valid_sha256(recovery_id) {
+        return Err(UpdateRecoveryError::InvalidInput);
+    }
+    let attempts_directory = recovery_root.join(ATTEMPTS_DIRECTORY_NAME);
+    if !fs::symlink_metadata(&attempts_directory)
+        .is_ok_and(|metadata| metadata.file_type().is_dir())
+        || attempts_directory.canonicalize()? != attempts_directory
+    {
+        return Err(UpdateRecoveryError::InvalidState);
+    }
+    let attempt_directory = attempts_directory.join(recovery_id);
+    if !fs::symlink_metadata(&attempt_directory).is_ok_and(|metadata| metadata.file_type().is_dir())
+        || attempt_directory.canonicalize()? != attempt_directory
+    {
+        return Err(UpdateRecoveryError::InvalidState);
+    }
+    Ok((attempts_directory, attempt_directory))
+}
+
+fn remove_failed_candidate_application(
+    manifest: &UpdateRecoveryManifest,
+    recovery_id: &str,
+) -> Result<(), UpdateRecoveryError> {
+    let installed_application = Path::new(&manifest.source.application_path);
+    let parent = installed_application
+        .parent()
+        .ok_or(UpdateRecoveryError::InvalidState)?;
+    let failed_application = parent.join(format!(
+        ".FitFreed.app.fitfreed-recovery-{recovery_id}.failed"
+    ));
+    match fs::symlink_metadata(&failed_application) {
+        Ok(metadata) if metadata.file_type().is_dir() => {
+            validate_application_bundle(&failed_application, &manifest.target.version)?;
+            fs::remove_dir_all(&failed_application)?;
+            sync_directory(parent)?;
+            Ok(())
+        }
+        Ok(_) => Err(UpdateRecoveryError::InvalidState),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error.into()),
+    }
+}
+
+fn validate_recovery_outcome(
+    outcome: &UpdateRecoveryOutcomeWire,
+) -> Result<(), UpdateRecoveryError> {
+    let source_version =
+        Version::parse(&outcome.source_version).map_err(|_| UpdateRecoveryError::InvalidState)?;
+    let target_version =
+        Version::parse(&outcome.target_version).map_err(|_| UpdateRecoveryError::InvalidState)?;
+    if outcome.format != RECOVERY_OUTCOME_FORMAT
+        || outcome.schema_version != RECOVERY_OUTCOME_SCHEMA_VERSION
+        || !valid_sha256(&outcome.recovery_id)
+        || target_version <= source_version
+    {
+        return Err(UpdateRecoveryError::InvalidState);
+    }
+    Ok(())
+}
+
+fn read_recovery_outcome_file(
+    recovery_root: &Path,
+) -> Result<Option<UpdateRecoveryOutcome>, UpdateRecoveryError> {
+    let path = recovery_root.join(OUTCOME_FILE_NAME);
+    if !path_entry_exists(&path)? {
+        return Ok(None);
+    }
+    let bytes = read_bounded_file(&path, MAX_OUTCOME_BYTES)?;
+    let outcome: UpdateRecoveryOutcomeWire = serde_json::from_slice(&bytes)?;
+    validate_recovery_outcome(&outcome)?;
+    Ok(Some(outcome.into()))
+}
+
+fn write_recovery_outcome_file(
+    recovery_root: &Path,
+    outcome: &UpdateRecoveryOutcome,
+) -> Result<(), UpdateRecoveryError> {
+    let wire = UpdateRecoveryOutcomeWire::from(outcome);
+    validate_recovery_outcome(&wire)?;
+    let bytes = serde_json::to_vec_pretty(&wire)?;
+    if bytes.len() as u64 > MAX_OUTCOME_BYTES {
+        return Err(UpdateRecoveryError::InvalidState);
+    }
+    write_atomic_file(&recovery_root.join(OUTCOME_FILE_NAME), &bytes)
+}
+
+fn path_entry_exists(path: &Path) -> Result<bool, UpdateRecoveryError> {
+    match fs::symlink_metadata(path) {
+        Ok(_) => Ok(true),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(error.into()),
+    }
 }
 
 fn validate_preparation(
@@ -1733,6 +2139,10 @@ struct RecoveryStateLock {
     file: File,
 }
 
+struct RecoveryFileLock {
+    file: File,
+}
+
 #[cfg(unix)]
 fn open_private_lock_file(
     attempt_directory: &Path,
@@ -1800,6 +2210,21 @@ fn try_acquire_process_lock(file: &File) -> Result<bool, UpdateRecoveryError> {
     }
 }
 
+#[cfg(unix)]
+fn acquire_blocking_process_lock(file: &File) -> Result<(), UpdateRecoveryError> {
+    use std::os::fd::AsRawFd;
+
+    loop {
+        if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX) } == 0 {
+            return Ok(());
+        }
+        let error = io::Error::last_os_error();
+        if error.kind() != io::ErrorKind::Interrupted {
+            return Err(error.into());
+        }
+    }
+}
+
 #[cfg(not(unix))]
 fn acquire_candidate_process_lock(_file: &File) -> Result<(), UpdateRecoveryError> {
     Err(UpdateRecoveryError::UnsupportedPlatform)
@@ -1815,10 +2240,15 @@ fn try_acquire_process_lock(_file: &File) -> Result<bool, UpdateRecoveryError> {
     Err(UpdateRecoveryError::UnsupportedPlatform)
 }
 
+#[cfg(not(unix))]
+fn acquire_blocking_process_lock(_file: &File) -> Result<(), UpdateRecoveryError> {
+    Err(UpdateRecoveryError::UnsupportedPlatform)
+}
+
 impl RecoveryStateLock {
     #[cfg(unix)]
     fn acquire(attempt_directory: &Path) -> Result<Self, UpdateRecoveryError> {
-        use std::{os::fd::AsRawFd, os::unix::fs::OpenOptionsExt};
+        use std::os::unix::fs::OpenOptionsExt;
 
         let file = OpenOptions::new()
             .read(true)
@@ -1830,15 +2260,14 @@ impl RecoveryStateLock {
         if !file.metadata()?.file_type().is_file() {
             return Err(UpdateRecoveryError::InvalidState);
         }
-        loop {
-            if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX) } == 0 {
-                break;
-            }
-            let error = io::Error::last_os_error();
-            if error.kind() != io::ErrorKind::Interrupted {
-                return Err(error.into());
-            }
-        }
+        acquire_blocking_process_lock(&file)?;
+        Ok(Self { file })
+    }
+
+    #[cfg(unix)]
+    fn acquire_existing(attempt_directory: &Path) -> Result<Self, UpdateRecoveryError> {
+        let file = open_private_lock_file(attempt_directory, STATE_LOCK_FILE_NAME, false)?;
+        acquire_blocking_process_lock(&file)?;
         Ok(Self { file })
     }
 
@@ -1846,10 +2275,33 @@ impl RecoveryStateLock {
     fn acquire(_attempt_directory: &Path) -> Result<Self, UpdateRecoveryError> {
         Err(UpdateRecoveryError::UnsupportedPlatform)
     }
+
+    #[cfg(not(unix))]
+    fn acquire_existing(_attempt_directory: &Path) -> Result<Self, UpdateRecoveryError> {
+        Err(UpdateRecoveryError::UnsupportedPlatform)
+    }
+}
+
+impl RecoveryFileLock {
+    fn acquire(file: File) -> Result<Self, UpdateRecoveryError> {
+        acquire_blocking_process_lock(&file)?;
+        Ok(Self { file })
+    }
 }
 
 #[cfg(unix)]
 impl Drop for RecoveryStateLock {
+    fn drop(&mut self) {
+        use std::os::fd::AsRawFd;
+
+        unsafe {
+            libc::flock(self.file.as_raw_fd(), libc::LOCK_UN);
+        }
+    }
+}
+
+#[cfg(unix)]
+impl Drop for RecoveryFileLock {
     fn drop(&mut self) {
         use std::os::fd::AsRawFd;
 
@@ -1893,6 +2345,11 @@ impl Drop for UpdateRecoveryWatchdogLease {
 
 #[cfg(not(unix))]
 impl Drop for RecoveryStateLock {
+    fn drop(&mut self) {}
+}
+
+#[cfg(not(unix))]
+impl Drop for RecoveryFileLock {
     fn drop(&mut self) {}
 }
 
@@ -2497,6 +2954,304 @@ mod tests {
         );
     }
 
+    #[test]
+    fn retains_a_confirmed_outcome_before_removing_only_its_recovery_assets() {
+        let harness = Harness::new();
+        let authorization = harness.authorization();
+        let prepared = prepare_update_recovery(
+            &SyntheticApplicationCopier,
+            harness.preparation(&authorization),
+        )
+        .expect("prepared update recovery");
+        let recovery_id = prepared.recovery_id().to_owned();
+        let attempt_directory = prepared.attempt_directory().to_owned();
+        enter_launching(&harness, &recovery_id);
+        fs::remove_dir_all(&harness.application_path).expect("removed source application");
+        create_synthetic_application(&harness.application_path, "0.2.0");
+        transition_active_update_recovery(
+            &harness.recovery_root,
+            &recovery_id,
+            UpdateRecoveryPhase::Confirmed,
+        )
+        .expect("confirmed update");
+        let unrelated_orphan = harness
+            .recovery_root
+            .join(ATTEMPTS_DIRECTORY_NAME)
+            .join("f".repeat(64));
+        fs::create_dir(&unrelated_orphan).expect("unrelated orphan");
+
+        let maintenance = maintain_update_recovery(
+            &harness.recovery_root,
+            &harness.application_path,
+            &harness.library_path,
+        )
+        .expect("terminal maintenance");
+
+        let expected = UpdateRecoveryOutcome {
+            recovery_id,
+            kind: UpdateRecoveryOutcomeKind::Updated,
+            source_version: "0.1.0".to_owned(),
+            target_version: "0.2.0".to_owned(),
+        };
+        assert_eq!(
+            maintenance,
+            UpdateRecoveryMaintenance::OutcomeRetained(expected.clone())
+        );
+        assert_eq!(
+            load_update_recovery_outcome(&harness.recovery_root).expect("retained outcome"),
+            Some(expected)
+        );
+        assert!(!harness.recovery_root.join(ACTIVE_FILE_NAME).exists());
+        assert!(!attempt_directory.exists());
+        assert!(unrelated_orphan.exists());
+        validate_application_bundle(&harness.application_path, "0.2.0")
+            .expect("retained updated application");
+        verify_library_file(&harness.library_path, SCHEMA_VERSION)
+            .expect("retained updated library");
+    }
+
+    #[test]
+    fn removes_the_verified_failed_candidate_after_retaining_a_recovered_outcome() {
+        let harness = Harness::new();
+        let authorization = harness.authorization();
+        let prepared = prepare_update_recovery(
+            &SyntheticApplicationCopier,
+            harness.preparation(&authorization),
+        )
+        .expect("prepared update recovery");
+        let recovery_id = prepared.recovery_id().to_owned();
+        let attempt_directory = prepared.attempt_directory().to_owned();
+        enter_recovering(&harness, &recovery_id);
+        fs::remove_dir_all(&harness.application_path).expect("removed source application");
+        create_synthetic_application(&harness.application_path, "0.2.0");
+        restore_active_update_recovery(
+            &SyntheticApplicationCopier,
+            UpdateRecoveryRestoration {
+                recovery_root: &harness.recovery_root,
+                recovery_id: &recovery_id,
+                expected_application_path: &harness.application_path,
+                expected_library_path: &harness.library_path,
+            },
+        )
+        .expect("recovered source pair");
+        let failed_application = harness
+            .application_path
+            .parent()
+            .expect("application parent")
+            .join(format!(
+                ".FitFreed.app.fitfreed-recovery-{recovery_id}.failed"
+            ));
+        assert!(failed_application.exists());
+
+        let maintenance = maintain_update_recovery(
+            &harness.recovery_root,
+            &harness.application_path,
+            &harness.library_path,
+        )
+        .expect("terminal maintenance");
+
+        assert_eq!(
+            maintenance,
+            UpdateRecoveryMaintenance::OutcomeRetained(UpdateRecoveryOutcome {
+                recovery_id,
+                kind: UpdateRecoveryOutcomeKind::Recovered,
+                source_version: "0.1.0".to_owned(),
+                target_version: "0.2.0".to_owned(),
+            })
+        );
+        assert!(!failed_application.exists());
+        assert!(!attempt_directory.exists());
+        validate_application_bundle(&harness.application_path, "0.1.0")
+            .expect("retained recovered application");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn defers_terminal_cleanup_while_a_candidate_lease_is_held() {
+        let harness = Harness::new();
+        let authorization = harness.authorization();
+        let prepared = prepare_update_recovery(
+            &SyntheticApplicationCopier,
+            harness.preparation(&authorization),
+        )
+        .expect("prepared update recovery");
+        enter_launching(&harness, prepared.recovery_id());
+        fs::remove_dir_all(&harness.application_path).expect("removed source application");
+        create_synthetic_application(&harness.application_path, "0.2.0");
+        transition_active_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            UpdateRecoveryPhase::Confirmed,
+        )
+        .expect("confirmed update");
+        let candidate_lock = open_private_lock_file(
+            prepared.attempt_directory(),
+            CANDIDATE_LOCK_FILE_NAME,
+            false,
+        )
+        .expect("candidate lock");
+        acquire_candidate_process_lock(&candidate_lock).expect("candidate lease");
+
+        assert_eq!(
+            maintain_update_recovery(
+                &harness.recovery_root,
+                &harness.application_path,
+                &harness.library_path,
+            )
+            .expect("deferred maintenance"),
+            UpdateRecoveryMaintenance::Deferred
+        );
+        assert!(prepared.attempt_directory().exists());
+        assert!(harness.recovery_root.join(ACTIVE_FILE_NAME).exists());
+        assert_eq!(
+            load_update_recovery_outcome(&harness.recovery_root).expect("no premature outcome"),
+            None
+        );
+    }
+
+    #[test]
+    fn resumes_receipt_bound_cleanup_after_the_active_pointer_was_removed() {
+        let harness = Harness::new();
+        let authorization = harness.authorization();
+        let prepared = prepare_update_recovery(
+            &SyntheticApplicationCopier,
+            harness.preparation(&authorization),
+        )
+        .expect("prepared update recovery");
+        let recovery_id = prepared.recovery_id().to_owned();
+        let attempt_directory = prepared.attempt_directory().to_owned();
+        enter_launching(&harness, &recovery_id);
+        fs::remove_dir_all(&harness.application_path).expect("removed source application");
+        create_synthetic_application(&harness.application_path, "0.2.0");
+        transition_active_update_recovery(
+            &harness.recovery_root,
+            &recovery_id,
+            UpdateRecoveryPhase::Confirmed,
+        )
+        .expect("confirmed update");
+        let expected = UpdateRecoveryOutcome {
+            recovery_id,
+            kind: UpdateRecoveryOutcomeKind::Updated,
+            source_version: "0.1.0".to_owned(),
+            target_version: "0.2.0".to_owned(),
+        };
+        write_recovery_outcome_file(&harness.recovery_root, &expected)
+            .expect("durable terminal receipt");
+        fs::remove_file(harness.recovery_root.join(ACTIVE_FILE_NAME))
+            .expect("interrupted active removal");
+        sync_directory(&harness.recovery_root).expect("synchronized active removal");
+
+        assert!(matches!(
+            prepare_update_recovery(
+                &SyntheticApplicationCopier,
+                harness.preparation(&authorization),
+            ),
+            Err(UpdateRecoveryError::ActiveAttemptExists)
+        ));
+        assert_eq!(
+            maintain_update_recovery(
+                &harness.recovery_root,
+                &harness.application_path,
+                &harness.library_path,
+            )
+            .expect("resumed terminal cleanup"),
+            UpdateRecoveryMaintenance::OutcomeRetained(expected.clone())
+        );
+        assert!(!attempt_directory.exists());
+        assert_eq!(
+            load_update_recovery_outcome(&harness.recovery_root).expect("retained receipt"),
+            Some(expected)
+        );
+    }
+
+    #[test]
+    fn retains_failed_and_invalid_terminal_state_without_deleting_recovery_assets() {
+        let harness = Harness::new();
+        let authorization = harness.authorization();
+        let prepared = prepare_update_recovery(
+            &SyntheticApplicationCopier,
+            harness.preparation(&authorization),
+        )
+        .expect("prepared update recovery");
+        enter_recovering(&harness, prepared.recovery_id());
+        transition_active_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            UpdateRecoveryPhase::RecoveryFailed,
+        )
+        .expect("terminal recovery failure");
+
+        assert_eq!(
+            maintain_update_recovery(
+                &harness.recovery_root,
+                &harness.application_path,
+                &harness.library_path,
+            )
+            .expect("retained recovery failure"),
+            UpdateRecoveryMaintenance::NoTerminalOutcome
+        );
+        assert!(prepared.attempt_directory().exists());
+        assert!(harness.recovery_root.join(ACTIVE_FILE_NAME).exists());
+
+        fs::write(
+            harness.recovery_root.join(OUTCOME_FILE_NAME),
+            br#"{"format":"unexpected"}"#,
+        )
+        .expect("invalid outcome");
+        assert!(maintain_update_recovery(
+            &harness.recovery_root,
+            &harness.application_path,
+            &harness.library_path,
+        )
+        .is_err());
+        assert!(prepared.attempt_directory().exists());
+        assert!(harness.recovery_root.join(ACTIVE_FILE_NAME).exists());
+    }
+
+    #[test]
+    fn acknowledges_only_an_outcome_whose_recovery_assets_are_gone() {
+        let harness = Harness::new();
+        let authorization = harness.authorization();
+        let prepared = prepare_update_recovery(
+            &SyntheticApplicationCopier,
+            harness.preparation(&authorization),
+        )
+        .expect("prepared update recovery");
+        let recovery_id = prepared.recovery_id().to_owned();
+        enter_launching(&harness, &recovery_id);
+        fs::remove_dir_all(&harness.application_path).expect("removed source application");
+        create_synthetic_application(&harness.application_path, "0.2.0");
+        transition_active_update_recovery(
+            &harness.recovery_root,
+            &recovery_id,
+            UpdateRecoveryPhase::Confirmed,
+        )
+        .expect("confirmed update");
+        let outcome = UpdateRecoveryOutcome {
+            recovery_id,
+            kind: UpdateRecoveryOutcomeKind::Updated,
+            source_version: "0.1.0".to_owned(),
+            target_version: "0.2.0".to_owned(),
+        };
+        write_recovery_outcome_file(&harness.recovery_root, &outcome).expect("terminal receipt");
+        assert!(acknowledge_update_recovery_outcome(&harness.recovery_root).is_err());
+
+        maintain_update_recovery(
+            &harness.recovery_root,
+            &harness.application_path,
+            &harness.library_path,
+        )
+        .expect("terminal cleanup");
+        assert!(acknowledge_update_recovery_outcome(&harness.recovery_root)
+            .expect("acknowledged outcome"));
+        assert_eq!(
+            load_update_recovery_outcome(&harness.recovery_root).expect("removed outcome"),
+            None
+        );
+        assert!(!acknowledge_update_recovery_outcome(&harness.recovery_root)
+            .expect("idempotent acknowledgement"));
+    }
+
     #[cfg(target_os = "macos")]
     #[test]
     fn restores_the_pair_with_the_real_macos_application_copier() {
@@ -2929,7 +3684,7 @@ mod tests {
         ));
     }
 
-    fn enter_recovering(harness: &Harness, recovery_id: &str) {
+    fn enter_launching(harness: &Harness, recovery_id: &str) {
         for phase in [
             UpdateRecoveryPhase::ReplacementStarted,
             UpdateRecoveryPhase::ReplacementInstalled,
@@ -2943,6 +3698,10 @@ mod tests {
             synthetic_replacement_launch(),
         )
         .expect("recorded replacement launch");
+    }
+
+    fn enter_recovering(harness: &Harness, recovery_id: &str) {
+        enter_launching(harness, recovery_id);
         transition_active_update_recovery(
             &harness.recovery_root,
             recovery_id,

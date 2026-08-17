@@ -10,20 +10,21 @@ use std::{
 
 use chrono::{DateTime, Duration as ChronoDuration, SecondsFormat, Utc};
 use fitfreed_application::{
-    decide_update_recovery_watchdog_action, UpdateRecoveryPhase, UpdateRecoveryWatchdogAction,
-    UpdateRecoveryWatchdogEvent,
+    decide_update_recovery_watchdog_action, UpdateRecoveryOutcomeKind, UpdateRecoveryPhase,
+    UpdateRecoveryWatchdogAction, UpdateRecoveryWatchdogEvent,
 };
 use sha2::{Digest, Sha256};
 use thiserror::Error;
 
 use super::{
     acquire_update_recovery_watchdog_lease, active_update_recovery_phase,
-    discard_prepared_update_recovery, observe_update_recovery_process,
-    record_active_update_recovery_replacement_launch, resolve_update_recovery_watchdog_context,
-    restore_active_update_recovery, transition_active_update_recovery,
-    update_recovery_process_is_running, PlatformApplicationCopier, PreparedUpdateRecovery,
-    UpdateRecoveryError, UpdateRecoveryReplacementLaunch, UpdateRecoveryReplacementProcess,
-    UpdateRecoveryRestoration, UpdateRecoveryWatchdogContext,
+    discard_prepared_update_recovery, maintain_update_recovery_with_watchdog_lease,
+    observe_update_recovery_process, record_active_update_recovery_replacement_launch,
+    resolve_update_recovery_watchdog_context, restore_active_update_recovery,
+    transition_active_update_recovery, update_recovery_process_is_running,
+    PlatformApplicationCopier, PreparedUpdateRecovery, UpdateRecoveryError,
+    UpdateRecoveryMaintenance, UpdateRecoveryReplacementLaunch, UpdateRecoveryReplacementProcess,
+    UpdateRecoveryRestoration, UpdateRecoveryWatchdogContext, UpdateRecoveryWatchdogLease,
 };
 
 pub const UPDATE_RECOVERY_WATCHDOG_ARGUMENT: &str = "--fitfreed-update-recovery-watchdog";
@@ -38,6 +39,7 @@ const REPLACEMENT_CONFIRMATION_TIMEOUT: Duration = Duration::from_secs(60);
 const PROCESS_STOP_TIMEOUT: Duration = Duration::from_secs(5);
 const POLL_INTERVAL: Duration = Duration::from_millis(100);
 const RESTORATION_RETRY_INTERVAL: Duration = Duration::from_millis(250);
+const TERMINAL_CLEANUP_TIMEOUT: Duration = Duration::from_secs(10);
 const MAX_RESTORATION_ATTEMPTS: u8 = 3;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -63,6 +65,8 @@ pub enum UpdateRecoveryWatchdogError {
     RestorationFailed,
     #[error("update recovery watchdog entered a terminal failure")]
     TerminalFailure,
+    #[error("update recovery watchdog could not complete terminal cleanup")]
+    TerminalCleanup,
 }
 
 pub struct StartedUpdateRecoveryWatchdog {
@@ -223,14 +227,55 @@ pub fn run_update_recovery_watchdog(
                 return Ok(UpdateRecoveryWatchdogOutcome::StoppedBeforeReplacement);
             }
             UpdateRecoveryWatchdogAction::FinishConfirmed => {
+                retain_terminal_outcome(
+                    &context,
+                    watchdog_lease
+                        .as_ref()
+                        .ok_or(UpdateRecoveryWatchdogError::TerminalCleanup)?,
+                    UpdateRecoveryOutcomeKind::Updated,
+                )?;
                 return Ok(UpdateRecoveryWatchdogOutcome::Confirmed);
             }
             UpdateRecoveryWatchdogAction::FinishRecovered => {
-                launch_application(context.installed_application_path(), None)?;
+                let cleanup = retain_terminal_outcome(
+                    &context,
+                    watchdog_lease
+                        .as_ref()
+                        .ok_or(UpdateRecoveryWatchdogError::TerminalCleanup)?,
+                    UpdateRecoveryOutcomeKind::Recovered,
+                );
+                let launch = launch_application(context.installed_application_path(), None);
+                launch?;
+                cleanup?;
                 return Ok(UpdateRecoveryWatchdogOutcome::Recovered);
             }
             UpdateRecoveryWatchdogAction::FinishFailed => {
                 return Err(UpdateRecoveryWatchdogError::TerminalFailure);
+            }
+        }
+    }
+}
+
+fn retain_terminal_outcome(
+    context: &UpdateRecoveryWatchdogContext,
+    watchdog_lease: &UpdateRecoveryWatchdogLease,
+    expected_kind: UpdateRecoveryOutcomeKind,
+) -> Result<(), UpdateRecoveryWatchdogError> {
+    let deadline = Instant::now() + TERMINAL_CLEANUP_TIMEOUT;
+    loop {
+        match maintain_update_recovery_with_watchdog_lease(context, watchdog_lease)? {
+            UpdateRecoveryMaintenance::OutcomeRetained(outcome)
+                if outcome.kind == expected_kind =>
+            {
+                return Ok(())
+            }
+            UpdateRecoveryMaintenance::Deferred if Instant::now() < deadline => {
+                thread::sleep(POLL_INTERVAL);
+            }
+            UpdateRecoveryMaintenance::Deferred
+            | UpdateRecoveryMaintenance::NoTerminalOutcome
+            | UpdateRecoveryMaintenance::OutcomeRetained(_) => {
+                return Err(UpdateRecoveryWatchdogError::TerminalCleanup)
             }
         }
     }

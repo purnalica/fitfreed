@@ -8,6 +8,8 @@ use std::{
     path::{Path, PathBuf},
     process,
     sync::{Arc, Mutex},
+    thread,
+    time::{Duration, Instant},
 };
 
 #[cfg(feature = "e2e")]
@@ -23,17 +25,19 @@ use fitfreed_application::{
     query_longitudinal_comparison as build_longitudinal_comparison,
     query_longitudinal_overview as build_longitudinal_overview, ApplicationError,
     ImportCoordinator, ImportProgress, LocalePreference, UpdateChannelPort, UpdateCheckContext,
-    UpdateCheckTrigger, UpdateInstallationAuthorization,
+    UpdateCheckTrigger, UpdateInstallationAuthorization, UpdateRecoveryOutcome,
 };
 use infrastructure::{
+    acknowledge_update_recovery_outcome as acknowledge_retained_update_recovery_outcome,
     acquire_update_recovery_candidate_lease, await_update_recovery_candidate_go,
     confirm_active_update_recovery, download_verified_update, install_verified_update,
-    library_schema_version, recover_interrupted_imports, resolve_update_application_path,
-    run_update_recovery_watchdog, HttpsUpdateChannel, SqliteActivityLibrary,
-    SqliteImportOutcomeLibrary, SqliteLocalePreferences, SqliteLongitudinalLibrary,
-    SqlitePolarFlowArchiveImporter, SqliteRecoveryLibrary, SqliteSleepLibrary,
-    SqliteTrainingLibrary, SqliteUpdateState, UpdateInstallationError, UpdateInstallationRequest,
-    UpdatePackageError, UpdateRecoveryCandidateLease, UPDATE_RECOVERY_CANDIDATE_ARGUMENT,
+    library_schema_version, maintain_update_recovery, recover_interrupted_imports,
+    resolve_update_application_path, run_update_recovery_watchdog, HttpsUpdateChannel,
+    SqliteActivityLibrary, SqliteImportOutcomeLibrary, SqliteLocalePreferences,
+    SqliteLongitudinalLibrary, SqlitePolarFlowArchiveImporter, SqliteRecoveryLibrary,
+    SqliteSleepLibrary, SqliteTrainingLibrary, SqliteUpdateState, UpdateInstallationError,
+    UpdateInstallationRequest, UpdatePackageError, UpdateRecoveryCandidateLease,
+    UpdateRecoveryError, UpdateRecoveryMaintenance, UPDATE_RECOVERY_CANDIDATE_ARGUMENT,
     UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
 };
 use presentation::{
@@ -42,9 +46,12 @@ use presentation::{
     LongitudinalDateRangeDto, LongitudinalOverviewDto, RecoveryComparisonDto, RecoveryDateRangeDto,
     RecoveryNightDetailDto, RecoveryOverviewDto, SleepComparisonDto, SleepDateRangeDto,
     SleepOverviewDto, SleepPeriodDetailDto, TrainingComparisonDto, TrainingDateRangeDto,
-    TrainingOverviewDto, UpdateCheckOutcomeDto,
+    TrainingOverviewDto, UpdateCheckOutcomeDto, UpdateRecoveryOutcomeDto,
 };
 use tauri::{ipc::Channel, AppHandle, Manager, State};
+
+const UPDATE_RECOVERY_STARTUP_MAINTENANCE_TIMEOUT: Duration = Duration::from_secs(12);
+const UPDATE_RECOVERY_STARTUP_MAINTENANCE_POLL_INTERVAL: Duration = Duration::from_millis(100);
 
 #[tauri::command]
 async fn import_archive(
@@ -491,60 +498,139 @@ fn map_update_installation_error(error: UpdateInstallationError) -> CommandError
 async fn confirm_update_recovery_startup(
     app: AppHandle,
     pending: State<'_, PendingUpdateRecoveryConfirmation>,
-) -> Result<bool, CommandErrorDto> {
-    let Some(candidate) = pending
+) -> Result<Option<UpdateRecoveryOutcomeDto>, CommandErrorDto> {
+    let candidate = pending
         .take()
-        .map_err(|_| CommandErrorDto::new("update-recovery-confirmation-failed"))?
-    else {
-        return Ok(false);
-    };
-    let candidate_for_retry = candidate.clone();
-    if !pending
-        .has_matching_lease(&candidate)
-        .map_err(|_| CommandErrorDto::new("update-recovery-confirmation-failed"))?
-    {
-        pending.restore(candidate_for_retry);
-        return Err(CommandErrorDto::new("update-recovery-confirmation-failed"));
-    }
-    let executable = env::current_exe().map_err(|_| {
-        pending.restore(candidate_for_retry.clone());
-        CommandErrorDto::new("update-recovery-confirmation-failed")
-    })?;
+        .map_err(|_| CommandErrorDto::new("update-recovery-confirmation-failed"))?;
     let library_path = database_path(&app).map_err(|_| {
-        pending.restore(candidate_for_retry.clone());
-        CommandErrorDto::new("update-recovery-confirmation-failed")
+        if let Some(candidate) = candidate.clone() {
+            pending.restore(candidate);
+        }
+        CommandErrorDto::new("library-unavailable")
     })?;
     let recovery_root = library_path
         .parent()
         .map(|parent| parent.join("update-recovery"))
         .ok_or_else(|| {
-            pending.restore(candidate_for_retry.clone());
-            CommandErrorDto::new("update-recovery-confirmation-failed")
+            if let Some(candidate) = candidate.clone() {
+                pending.restore(candidate);
+            }
+            CommandErrorDto::new("library-unavailable")
         })?;
-    let app_version = app.package_info().version.to_string();
-    let result = tauri::async_runtime::spawn_blocking(move || {
-        confirm_active_update_recovery(
-            &recovery_root,
-            &candidate.recovery_id,
-            &executable,
-            &app_version,
-            &library_path,
-            library_schema_version(),
-            &candidate.launch_nonce,
-        )
-    })
-    .await;
-    match result {
-        Ok(Ok(())) => Ok(true),
-        Ok(Err(_)) => {
-            pending.restore(candidate_for_retry);
+    if !recovery_root.exists() {
+        return if let Some(candidate) = candidate {
+            pending.restore(candidate);
             Err(CommandErrorDto::new("update-recovery-confirmation-failed"))
+        } else {
+            Ok(None)
+        };
+    }
+    let executable = env::current_exe().map_err(|_| {
+        if let Some(candidate) = candidate.clone() {
+            pending.restore(candidate);
         }
-        Err(_) => {
-            pending.restore(candidate_for_retry);
-            Err(CommandErrorDto::new("desktop-task-failed"))
+        CommandErrorDto::new("update-recovery-outcome-failed")
+    })?;
+    let current_application_path = resolve_update_application_path(&executable).map_err(|_| {
+        if let Some(candidate) = candidate.clone() {
+            pending.restore(candidate);
+        }
+        CommandErrorDto::new("update-recovery-outcome-failed")
+    })?;
+
+    if let Some(candidate) = candidate.as_ref() {
+        if !pending
+            .has_matching_lease(candidate)
+            .map_err(|_| CommandErrorDto::new("update-recovery-confirmation-failed"))?
+        {
+            pending.restore(candidate.clone());
+            return Err(CommandErrorDto::new("update-recovery-confirmation-failed"));
+        }
+        let recovery_root_for_confirmation = recovery_root.clone();
+        let executable_for_confirmation = executable.clone();
+        let library_path_for_confirmation = library_path.clone();
+        let candidate_for_confirmation = candidate.clone();
+        let app_version = app.package_info().version.to_string();
+        match tauri::async_runtime::spawn_blocking(move || {
+            confirm_active_update_recovery(
+                &recovery_root_for_confirmation,
+                &candidate_for_confirmation.recovery_id,
+                &executable_for_confirmation,
+                &app_version,
+                &library_path_for_confirmation,
+                library_schema_version(),
+                &candidate_for_confirmation.launch_nonce,
+            )
+        })
+        .await
+        {
+            Ok(Ok(())) => pending
+                .release_lease(candidate)
+                .map_err(|_| CommandErrorDto::new("update-recovery-confirmation-failed"))?,
+            Ok(Err(_)) => {
+                pending.restore(candidate.clone());
+                return Err(CommandErrorDto::new("update-recovery-confirmation-failed"));
+            }
+            Err(_) => {
+                pending.restore(candidate.clone());
+                return Err(CommandErrorDto::new("desktop-task-failed"));
+            }
         }
     }
+
+    let wait_for_terminal_outcome = candidate.is_some();
+    tauri::async_runtime::spawn_blocking(move || {
+        retain_update_recovery_outcome_after_startup(
+            &recovery_root,
+            &current_application_path,
+            &library_path,
+            wait_for_terminal_outcome,
+        )
+    })
+    .await
+    .map_err(|_| CommandErrorDto::new("desktop-task-failed"))?
+    .map(|outcome| outcome.map(UpdateRecoveryOutcomeDto::from))
+    .map_err(|_| CommandErrorDto::new("update-recovery-outcome-failed"))
+}
+
+fn retain_update_recovery_outcome_after_startup(
+    recovery_root: &Path,
+    application_path: &Path,
+    library_path: &Path,
+    wait_for_terminal_outcome: bool,
+) -> Result<Option<UpdateRecoveryOutcome>, UpdateRecoveryError> {
+    let deadline = Instant::now() + UPDATE_RECOVERY_STARTUP_MAINTENANCE_TIMEOUT;
+    loop {
+        match maintain_update_recovery(recovery_root, application_path, library_path)? {
+            UpdateRecoveryMaintenance::OutcomeRetained(outcome) => return Ok(Some(outcome)),
+            UpdateRecoveryMaintenance::NoTerminalOutcome => return Ok(None),
+            UpdateRecoveryMaintenance::Deferred
+                if wait_for_terminal_outcome && Instant::now() < deadline =>
+            {
+                thread::sleep(UPDATE_RECOVERY_STARTUP_MAINTENANCE_POLL_INTERVAL);
+            }
+            UpdateRecoveryMaintenance::Deferred => return Ok(None),
+        }
+    }
+}
+
+#[tauri::command]
+async fn acknowledge_update_recovery_notice(app: AppHandle) -> Result<bool, CommandErrorDto> {
+    let library_path =
+        database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let recovery_root = library_path
+        .parent()
+        .map(|parent| parent.join("update-recovery"))
+        .ok_or_else(|| CommandErrorDto::new("library-unavailable"))?;
+    if !recovery_root.exists() {
+        return Ok(false);
+    }
+    tauri::async_runtime::spawn_blocking(move || {
+        acknowledge_retained_update_recovery_outcome(&recovery_root)
+    })
+    .await
+    .map_err(|_| CommandErrorDto::new("desktop-task-failed"))?
+    .map_err(|_| CommandErrorDto::new("update-recovery-outcome-failed"))
 }
 
 fn current_utc_datetime() -> String {
@@ -700,6 +786,18 @@ impl PendingUpdateRecoveryConfirmation {
             *pending = Some(candidate);
         }
     }
+
+    fn release_lease(&self, candidate: &CandidateStartup) -> Result<(), ()> {
+        let mut held = self.lease.lock().map_err(|_| ())?;
+        if !held.as_ref().is_some_and(|lease| {
+            lease.recovery_id() == candidate.recovery_id
+                && lease.launch_nonce() == candidate.launch_nonce
+        }) {
+            return Err(());
+        }
+        held.take();
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -806,7 +904,8 @@ pub fn run() {
             dismiss_available_update,
             postpone_available_update,
             install_available_update,
-            confirm_update_recovery_startup
+            confirm_update_recovery_startup,
+            acknowledge_update_recovery_notice
         ])
         .run(tauri::generate_context!())
         .expect("failed to run FitFreed");
@@ -814,7 +913,7 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
+    use std::{collections::BTreeMap, fs::File};
 
     use fitfreed_application::{
         save_locale_preference, AuthenticatedUpdateSnapshot, LocalizedUpdateText, UpdateArtifact,
@@ -969,6 +1068,32 @@ mod tests {
 
         pending.restore(candidate.clone());
         assert_eq!(pending.take(), Ok(Some(candidate)));
+    }
+
+    #[test]
+    fn releases_only_the_candidate_lease_bound_to_the_confirmed_claim() {
+        let directory = TempDir::new().expect("temporary directory");
+        let candidate = CandidateStartup {
+            recovery_id: "a".repeat(64),
+            launch_nonce: "b".repeat(64),
+        };
+        let pending = PendingUpdateRecoveryConfirmation::new(Some(candidate.clone()));
+        pending
+            .hold_lease(UpdateRecoveryCandidateLease::for_test(
+                File::create(directory.path().join("candidate.lock")).expect("candidate lock"),
+                candidate.recovery_id.clone(),
+                candidate.launch_nonce.clone(),
+            ))
+            .expect("held candidate lease");
+        let different = CandidateStartup {
+            recovery_id: "c".repeat(64),
+            launch_nonce: "d".repeat(64),
+        };
+
+        assert_eq!(pending.release_lease(&different), Err(()));
+        assert_eq!(pending.has_matching_lease(&candidate), Ok(true));
+        assert_eq!(pending.release_lease(&candidate), Ok(()));
+        assert_eq!(pending.has_matching_lease(&candidate), Ok(false));
     }
 
     fn authenticated_update_snapshot() -> AuthenticatedUpdateSnapshot {

@@ -608,6 +608,14 @@
     "installingVersion": "Installing version {version}…",
     "dismiss": "Ignore this version",
     "postpone": "Remind me tomorrow",
+    "recovery": {
+      "updatedHeading": "Update completed",
+      "recoveredHeading": "Update recovery completed",
+      "updated": "FitFreed updated from version {sourceVersion} to {targetVersion}. The installed application and local library were verified before the previous recovery copy was removed.",
+      "recovered": "FitFreed automatically restored version {sourceVersion} after the update to version {targetVersion} did not complete. The restored application and local library were verified.",
+      "acknowledge": "Dismiss update result",
+      "acknowledging": "Dismissing…"
+    },
     "statuses": {
       "unconfigured": "Update checks are not configured in this development build.",
       "offline": "Update information is temporarily unavailable. Your local library is unaffected.",
@@ -697,6 +705,7 @@
     "update-watchdog-failed": "FitFreed could not start the independent update recovery monitor. The current application was not replaced; restart before trying again.",
     "update-recovery-failed": "FitFreed could not prepare or advance safe update recovery. Preserve the application data and reinstall manually before retrying.",
     "update-recovery-confirmation-failed": "FitFreed could not confirm the updated application and library. Keep the application open while automatic recovery completes.",
+    "update-recovery-outcome-failed": "FitFreed could not finish or acknowledge update recovery safely. Preserve the application data and restart before trying another update.",
     "unexpected": "FitFreed encountered an unexpected local error. Restart the application before retrying."
   }
 }

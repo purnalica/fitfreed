@@ -20,7 +20,7 @@ const databasePath = requiredEnvironment("FITFREED_E2E_DATABASE_PATH");
 const recoveryRoot = requiredEnvironment("FITFREED_UPDATE_E2E_RECOVERY_ROOT");
 const driverPort = Number(requiredEnvironment("FITFREED_UPDATE_E2E_DRIVER_PORT"));
 const evidenceDirectory = path.resolve(".artifacts/update-e2e/evidence", scenario);
-const expectedPhase = scenario === "success" ? "confirmed" : "recovered";
+const expectedOutcome = scenario === "success" ? "updated" : "recovered";
 const expectedInstalledVersion = scenario === "success" ? "0.2.0" : "0.1.0";
 
 if (scenario !== "success" && scenario !== "failure") {
@@ -46,21 +46,53 @@ function activeRecovery() {
   return { recoveryId, attemptDirectory, manifest };
 }
 
-async function waitForRecoveryPhase(expected) {
+async function waitForPublishedRecovery() {
   const deadline = Date.now() + 120_000;
-  let observed = "not-published";
   while (Date.now() < deadline) {
     try {
-      const recovery = activeRecovery();
-      observed = recovery.manifest.phase;
-      if (observed === expected) return recovery;
-      if (observed === "recovery-failed") break;
+      return activeRecovery();
     } catch (error) {
       if (error.code !== "ENOENT" && !(error instanceof SyntaxError)) throw error;
     }
-    await delay(250);
+    await delay(25);
   }
-  throw new Error(`update recovery did not reach ${expected}; last phase was ${observed}`);
+  throw new Error("update recovery was not published");
+}
+
+async function waitForRecoveryOutcome(recoveryId) {
+  const outcomePath = path.join(recoveryRoot, "last-outcome.json");
+  const deadline = Date.now() + 120_000;
+  while (Date.now() < deadline) {
+    try {
+      const outcome = JSON.parse(fs.readFileSync(outcomePath, "utf8"));
+      if (outcome.recoveryId === recoveryId && outcome.outcome === expectedOutcome) {
+        return outcome;
+      }
+    } catch (error) {
+      if (error.code !== "ENOENT" && !(error instanceof SyntaxError)) throw error;
+    }
+    await delay(100);
+  }
+  throw new Error(`update recovery did not retain the ${expectedOutcome} outcome`);
+}
+
+async function waitForTerminalCleanup(recovery) {
+  const failedCandidate = path.join(
+    path.dirname(applicationPath),
+    `.FitFreed.app.fitfreed-recovery-${recovery.recoveryId}.failed`,
+  );
+  const deadline = Date.now() + 15_000;
+  while (Date.now() < deadline) {
+    if (
+      !fs.existsSync(path.join(recoveryRoot, "active"))
+      && !fs.existsSync(recovery.attemptDirectory)
+      && !fs.existsSync(failedCandidate)
+    ) {
+      return;
+    }
+    await delay(100);
+  }
+  throw new Error("terminal update recovery cleanup did not converge");
 }
 
 function bundleVersion(bundlePath) {
@@ -103,6 +135,59 @@ async function selectSpanish(browser) {
   });
 }
 
+function applicationProcessIds() {
+  return execFileSync("ps", ["-axo", "pid=,command="], { encoding: "utf8" })
+    .split("\n")
+    .map((line) => line.trim().match(/^(\d+)\s+(.+)$/))
+    .filter(Boolean)
+    .filter(([, command]) => command.includes(applicationBinary))
+    .map(([, processId]) => Number(processId));
+}
+
+async function stopApplication() {
+  for (const processId of applicationProcessIds()) {
+    try {
+      process.kill(processId, "SIGTERM");
+    } catch (error) {
+      if (error.code !== "ESRCH") throw error;
+    }
+  }
+  const deadline = Date.now() + 5_000;
+  while (Date.now() < deadline && applicationProcessIds().length > 0) {
+    await delay(100);
+  }
+  if (applicationProcessIds().length > 0) {
+    throw new Error("the scoped installed application did not stop");
+  }
+}
+
+async function verifyRecoveryNotice(browser, recoveryId) {
+  const heading = await browser.$("#update-recovery-heading");
+  await heading.waitForDisplayed({ timeout: 15_000 });
+  assert.equal(
+    await heading.getText(),
+    expectedOutcome === "updated"
+      ? spanish.updates.recovery.updatedHeading
+      : spanish.updates.recovery.recoveredHeading,
+  );
+  const notice = await browser.$(".update-recovery-notice");
+  const noticeText = await notice.getText();
+  assert.match(noticeText, /0\.1\.0/);
+  assert.match(noticeText, /0\.2\.0/);
+  assert.doesNotMatch(noticeText, new RegExp(recoveryId));
+  const acknowledge = await browser.$(`aria/${spanish.updates.recovery.acknowledge}`);
+  await acknowledge.waitForEnabled({ timeout: 15_000 });
+  await acknowledge.click();
+  await browser.waitUntil(
+    () => !fs.existsSync(path.join(recoveryRoot, "last-outcome.json")),
+    {
+      timeout: 15_000,
+      timeoutMsg: "the update recovery outcome was not acknowledged",
+    },
+  );
+  await notice.waitForDisplayed({ reverse: true, timeout: 15_000 });
+}
+
 async function verifyJourney(browser) {
   const heading = await browser.$("#update-heading");
   await heading.waitForDisplayed({ timeout: 15_000 });
@@ -116,14 +201,14 @@ async function verifyJourney(browser) {
   const install = await browser.$(`aria/${spanish.updates.install}`);
   await install.waitForEnabled({ timeout: 15_000 });
 
+  const publishedRecovery = waitForPublishedRecovery();
   await install.click();
-  const recovery = await waitForRecoveryPhase(expectedPhase);
+  const recovery = await publishedRecovery;
 
   assert.equal(recovery.manifest.source.version, "0.1.0");
   assert.equal(recovery.manifest.target.version, "0.2.0");
   assert.equal(recovery.manifest.source.applicationPath, applicationPath);
   assert.equal(recovery.manifest.source.libraryPath, databasePath);
-  assert.equal(bundleVersion(applicationPath), expectedInstalledVersion);
   assert.equal(
     bundleVersion(path.join(recovery.attemptDirectory, "previous/FitFreed.app")),
     "0.1.0",
@@ -142,15 +227,26 @@ async function verifyJourney(browser) {
     ),
     ["ok", "es-ES"],
   );
-
-  if (scenario === "failure") {
-    const failedCandidate = path.join(
+  const outcome = await waitForRecoveryOutcome(recovery.recoveryId);
+  assert.deepEqual(outcome, {
+    format: "org.fitfreed.update-recovery-outcome",
+    schemaVersion: 1,
+    recoveryId: recovery.recoveryId,
+    outcome: expectedOutcome,
+    sourceVersion: "0.1.0",
+    targetVersion: "0.2.0",
+  });
+  await waitForTerminalCleanup(recovery);
+  assert.equal(bundleVersion(applicationPath), expectedInstalledVersion);
+  assert.equal(fs.existsSync(path.join(recoveryRoot, "active")), false);
+  assert.equal(fs.existsSync(recovery.attemptDirectory), false);
+  assert.equal(fs.existsSync(
+    path.join(
       path.dirname(applicationPath),
       `.FitFreed.app.fitfreed-recovery-${recovery.recoveryId}.failed`,
-    );
-    assert.equal(fs.existsSync(failedCandidate), true);
-    assert.equal(bundleVersion(failedCandidate), "0.2.0");
-  }
+    ),
+  ), false);
+  return recovery;
 }
 
 async function main() {
@@ -177,7 +273,20 @@ async function main() {
       rootDir: process.cwd(),
       logLevel: "warn",
     });
-    await verifyJourney(browser);
+    const recovery = await verifyJourney(browser);
+    await stopApplication();
+    try {
+      await cleanupWdioSession(browser);
+    } catch {
+      // Application replacement invalidates the original WebDriver session.
+    }
+    browser = await startWdioSession(capabilities, {
+      rootDir: process.cwd(),
+      logLevel: "warn",
+    });
+    await verifyRecoveryNotice(browser, recovery.recoveryId);
+    await cleanupWdioSession(browser);
+    browser = undefined;
     journeyCompleted = true;
   } catch (error) {
     if (browser) {
@@ -191,7 +300,11 @@ async function main() {
   } finally {
     if (browser && !journeyCompleted) await cleanupWdioSession(browser);
   }
-  process.stdout.write(`${JSON.stringify({ scenario, phase: expectedPhase, result: "passed" })}\n`);
+  process.stdout.write(`${JSON.stringify({
+    scenario,
+    outcome: expectedOutcome,
+    result: "passed",
+  })}\n`);
 }
 
 main().catch((error) => {
