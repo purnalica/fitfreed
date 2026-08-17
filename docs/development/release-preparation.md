@@ -39,11 +39,14 @@ No generated package or evidence file belongs in Git. The workflow blocks reposi
 
 ```bash
 npm run verify:development-release
+npm run verify:update-recovery-preparation
 ```
 
 The macOS verifier checks every manifest artifact and checksum before mounting the real DMG. It installs into a temporary isolated destination, validates the bundle identity and production executable, and starts the installed application with a temporary `HOME` consumed by Tauri's normal path resolver. This exercises the uninstrumented production path while keeping the library outside the developer's real application-data directory.
 
 It then corrupts a temporary copy of the DMG and proves that verification stops before the mount command or destination is reached. The existing application and library must remain byte-for-byte unchanged, and the application must still launch afterward. Finally, moving the isolated application away must leave its separate library intact. All temporary applications, libraries, mounts, logs, and corrupt candidates are removed at exit.
+
+The update-recovery preparation check uses the real production `FitFreed.app`, a temporary synthetic library, and the production macOS copying adapter. It requires the bundle identifier, version, executable, complete deterministic tree digest, SQLite online backup, exact schema, integrity check, retained locale, closed manifest, and active `prepared` phase to agree. It neither downloads nor installs an update and removes its temporary recovery directory at exit.
 
 ## Diagnostics
 

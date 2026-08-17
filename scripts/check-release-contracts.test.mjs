@@ -18,6 +18,7 @@ function validMetadata() {
       identifier: "org.fitfreed.desktop",
       bundle: { active: true, targets: "all" },
     },
+    recoveryBundleIdentifier: "org.fitfreed.desktop",
     cargoPackages: ["fitfreed", "fitfreed-application", "fitfreed-domain"].map((name) => ({
       path: `${name}/Cargo.toml`,
       name,
@@ -41,6 +42,7 @@ test("reports every inconsistent release identity in one actionable failure", ()
   const metadata = validMetadata();
   metadata.tauri.version = "0.2.0";
   metadata.tauri.security = { capability: "wdio-webdriver" };
+  metadata.recoveryBundleIdentifier = "org.fitfreed.other";
   metadata.cargoPackages[1].license = "UNKNOWN";
 
   assert.throws(
@@ -48,6 +50,7 @@ test("reports every inconsistent release identity in one actionable failure", ()
     (error) => {
       assert.match(error.message, /Tauri version does not match package\.json/);
       assert.match(error.message, /production Tauri configuration contains E2E instrumentation/);
+      assert.match(error.message, /update recovery bundle identifier does not match Tauri/);
       assert.match(error.message, /fitfreed-application\/Cargo\.toml license mismatch/);
       assert.match(error.message, /expected version 0\.3\.0, found 0\.1\.0/);
       return true;

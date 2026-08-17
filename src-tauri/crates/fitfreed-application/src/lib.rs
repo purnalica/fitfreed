@@ -36,6 +36,10 @@ pub use update::{
     UpdateInstallationAuthorization, UpdateRelease, UpdateReleaseSummary, UpdateStatePort,
     UpdateTrustFailure, UpdateWithdrawal, UpdateWithdrawalReason, UpdateWithdrawalSummary,
 };
+mod update_recovery;
+pub use update_recovery::{
+    validate_update_recovery_transition, InvalidUpdateRecoveryTransition, UpdateRecoveryPhase,
+};
 
 #[cfg(test)]
 mod longitudinal_tests;

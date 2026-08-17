@@ -50,6 +50,7 @@ npm run test:fast
 | Install the pinned local release evidence tool | `npm run install:release-tools` |
 | Prepare release-shaped private evidence | `npm run prepare:development-release -- 0.1.0` |
 | Verify macOS installation and failure boundaries | `npm run verify:development-release` |
+| Verify recovery-pair preparation against the production app | `npm run verify:update-recovery-preparation` |
 | Build and run the instrumented packaged E2E journey | `npm run verify:e2e` |
 | Run every current local acceptance gate | `npm run verify:full` |
 
@@ -66,6 +67,7 @@ The unsigned macOS production application and DMG are generated under `src-tauri
 - `src-tauri/crates/fitfreed-domain` contains provider-neutral concepts and reconciliation policy and has no dependencies.
 - `src-tauri/crates/fitfreed-application` contains use cases, ports, provider-neutral domain Insights calculations, longitudinal composition, progress, and cancellation coordination and depends only on the domain, calendar arithmetic, and its error helper.
 - `src-tauri/src/infrastructure.rs` contains the Polar Flow ZIP/JSON anti-corruption layer, daily-activity, training-summary, sleep, and nightly-recovery mappings, and SQLite adapter.
+- `src-tauri/src/infrastructure/update_recovery.rs` owns the macOS recovery-pair copy, deterministic application digest, SQLite verification, local manifest, and active-attempt persistence.
 - `src-tauri/src/lib.rs` and `presentation.rs` are the Tauri host and serialized transport boundary.
 - `src-tauri/vendor/tauri-plugin-updater` is the provenance-checked source refinement selected by ADR 0009; its `README.fitfreed.md` is the mandatory review and upgrade guide.
 - `src` contains the React presentation, its desktop archive-picker adapter, and test-only presentation instrumentation; localized copy exists only under `src/locales`.

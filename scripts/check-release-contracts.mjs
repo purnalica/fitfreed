@@ -49,6 +49,10 @@ export function validateReleaseMetadata(metadata, expectedVersion) {
   );
   requireValue(metadata.tauri.productName === "FitFreed", "Tauri product name mismatch");
   requireValue(metadata.tauri.identifier === "org.fitfreed.desktop", "Tauri identifier mismatch");
+  requireValue(
+    metadata.recoveryBundleIdentifier === metadata.tauri.identifier,
+    "update recovery bundle identifier does not match Tauri",
+  );
   requireValue(metadata.tauri.version === version, "Tauri version does not match package.json");
   requireValue(metadata.tauri.bundle?.active === true, "Tauri bundling must be active");
   requireValue(metadata.tauri.bundle?.targets === "all", "Tauri bundle targets must include app and DMG");
@@ -98,10 +102,16 @@ export function validateReleaseMetadata(metadata, expectedVersion) {
 export function inspectReleaseContracts(repositoryRoot, expectedVersion) {
   const npm = readJson(repositoryRoot, "package.json");
   const tauri = readJson(repositoryRoot, "src-tauri/tauri.conf.json");
+  const recoverySourcePath = "src-tauri/src/infrastructure/update_recovery.rs";
+  const recoverySource = readFileSync(path.join(repositoryRoot, recoverySourcePath), "utf8");
+  const recoveryBundleIdentifier = recoverySource.match(
+    /const EXPECTED_BUNDLE_IDENTIFIER: &str = "([^"]+)";/,
+  )?.[1];
   return validateReleaseMetadata(
     {
       npm,
       tauri,
+      recoveryBundleIdentifier,
       cargoPackages: cargoManifestPaths(repositoryRoot).map((manifestPath) =>
         readCargoPackage(repositoryRoot, manifestPath)),
     },

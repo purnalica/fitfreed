@@ -16,6 +16,7 @@ This directory is the canonical index for every machine-readable data contract t
 | Persistence schema | FitFreed implementation | Exact but explicitly non-portable | Every schema version and migration is documented and tested |
 | Release evidence | FitFreed | Normative, machine-verifiable, and free of user data | Every staged package identifies its source, compatibility, inventories, and integrity |
 | Update channel | FitFreed above the native updater | Normative, cryptographically authenticated, replay-aware, and free of user data | Every candidate binds policy and localized information to exact signed package expectations |
+| Update recovery | FitFreed around the native updater | Normative, local, restart-safe, and application/library-pair aware | Every replacement remains recoverable until the expected application and library confirm startup |
 
 The canonical model, portable export, and persistence schema are related but not interchangeable. Domain meaning belongs to the canonical specification. The portable format is the stable user-facing interchange contract. A persistence schema may change for implementation reasons and must never be the only recovery path.
 
@@ -87,3 +88,4 @@ Directories are created with their first real contract; empty specifications are
 - [SQLite schema version 9](persistence/sqlite-v9.md)
 - [Release manifest version 1](release/release-manifest-v1.md)
 - [Update channel version 1](release/update-channel-v1.md)
+- [Update recovery version 1](release/update-recovery-v1.md)

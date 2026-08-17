@@ -52,7 +52,8 @@
     "test:e2e": "wdio run wdio.conf.js",
     "verify:e2e": "npm run build:e2e && npm run test:e2e",
     "verify:development-release": "scripts/verify-macos-development-release.sh",
-    "verify:full": "npm run doctor && npm run audit:dependencies && npm run test:fast && npm run lint:rust && npm run format:check && npm run benchmark:insights && npm run verify:e2e && npm run package && npm run check:production-bundle",
+    "verify:update-recovery-preparation": "scripts/verify-update-recovery-preparation.sh",
+    "verify:full": "npm run doctor && npm run audit:dependencies && npm run test:fast && npm run lint:rust && npm run format:check && npm run benchmark:insights && npm run verify:e2e && npm run package && npm run check:production-bundle && npm run verify:update-recovery-preparation",
     "tauri": "tauri"
   },
   "dependencies": {

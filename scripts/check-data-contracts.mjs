@@ -1862,6 +1862,100 @@ for (const invalidEnvelope of [
   }
 }
 
+const updateRecoveryPath = "docs/data-formats/release/update-recovery-v1.md";
+const updateRecovery = read(updateRecoveryPath);
+for (const field of [
+  "org.fitfreed.update-recovery",
+  "schemaVersion",
+  "recoveryId",
+  "phase",
+  "preparedAt",
+  "source.version",
+  "source.librarySchemaVersion",
+  "source.applicationPath",
+  "source.libraryPath",
+  "target.version",
+  "target.librarySchemaVersion",
+  "target.trustedSequence",
+  "target.trustedPayloadSha256",
+  "target.packageSha256",
+  "applicationBackup.relativePath",
+  "applicationBackup.treeSha256",
+  "libraryBackup.relativePath",
+  "libraryBackup.sizeBytes",
+  "libraryBackup.sha256",
+  "prepared",
+  "replacement-started",
+  "replacement-installed",
+  "launching",
+  "confirmed",
+  "recovering",
+  "recovered",
+  "recovery-failed",
+]) {
+  requireMention(updateRecovery, field, updateRecoveryPath);
+}
+
+const updateRecoverySchemaPath = "schemas/update-recovery-v1.schema.json";
+const updateRecoverySchema = JSON.parse(read(updateRecoverySchemaPath));
+const validateUpdateRecovery = ajv.compile(updateRecoverySchema);
+const syntheticUpdateRecovery = {
+  format: "org.fitfreed.update-recovery",
+  schemaVersion: 1,
+  recoveryId: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  phase: "prepared",
+  preparedAt: "2026-08-17T08:00:00Z",
+  source: {
+    version: "0.1.0",
+    librarySchemaVersion: 9,
+    applicationPath: "/Applications/FitFreed.app",
+    libraryPath: "/synthetic/fitfreed/fitfreed.sqlite",
+  },
+  target: {
+    version: "0.2.0-alpha.1",
+    librarySchemaVersion: 10,
+    trustedSequence: 17,
+    trustedPayloadSha256:
+      "123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0",
+    packageSha256: "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+  },
+  applicationBackup: {
+    relativePath: "previous/FitFreed.app",
+    treeSha256: "23456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef01",
+  },
+  libraryBackup: {
+    relativePath: "previous/fitfreed.sqlite",
+    sizeBytes: 1048576,
+    sha256: "3456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef012",
+  },
+};
+if (!validateUpdateRecovery(syntheticUpdateRecovery)) {
+  throw new Error(
+    updateRecoverySchemaPath
+      + " rejected its synthetic manifest: "
+      + ajv.errorsText(validateUpdateRecovery.errors),
+  );
+}
+for (const invalidRecovery of [
+  { ...syntheticUpdateRecovery, phase: "installed" },
+  { ...syntheticUpdateRecovery, recoveryId: "not-a-digest" },
+  (() => {
+    const value = structuredClone(syntheticUpdateRecovery);
+    value.source.applicationPath = "relative/FitFreed.app";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticUpdateRecovery);
+    value.applicationBackup.relativePath = "../../FitFreed.app";
+    return value;
+  })(),
+  { ...syntheticUpdateRecovery, arbitraryPath: "/tmp/other" },
+]) {
+  if (validateUpdateRecovery(invalidRecovery)) {
+    throw new Error(updateRecoverySchemaPath + " accepted an invalid manifest");
+  }
+}
+
 const indexPath = "docs/data-formats/README.md";
 const index = read(indexPath);
 for (const contractPath of [
@@ -1880,6 +1974,7 @@ for (const contractPath of [
   recoveryComparisonPath,
   longitudinalPath,
   updateChannelPath,
+  updateRecoveryPath,
   ...persistencePaths,
 ]) {
   const relativeContract = path.relative(path.dirname(indexPath), contractPath);
@@ -1943,6 +2038,7 @@ process.stdout.write(
       updateChannelEnvelopeSchemaPath,
       updateChannelPayloadSchemaPath,
     ],
+    updateRecoverySchema: updateRecoverySchemaPath,
     canonicalFields: 56,
     mappingFields: 75,
   }) + "\n",

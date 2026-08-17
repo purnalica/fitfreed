@@ -40,6 +40,7 @@ chrono = "0.4"
 hmac = "0.12"
 libc = "0.2"
 minisign-verify = "0.2"
+plist = "1"
 rusqlite = { version = "0.37", features = ["backup", "bundled"] }
 regex = "1"
 reqwest = { version = "0.13", default-features = false, features = ["blocking", "rustls-no-provider", "system-proxy"] }
@@ -47,9 +48,9 @@ rustls = { version = "0.23", default-features = false, features = ["ring"] }
 semver = "1"
 sha2 = "0.10"
 thiserror = "2"
+tempfile = "3"
 url = "2"
 zip = { version = "4", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
 minisign = "0.9.1"
-tempfile = "3"

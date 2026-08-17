@@ -52,10 +52,16 @@ mod source_subject;
 pub mod update;
 mod update_channel;
 mod update_package;
+mod update_recovery;
 mod update_state;
 
 pub use update_channel::{current_update_target, HttpsUpdateChannel};
 pub use update_package::{download_verified_update, UpdatePackageError, VerifiedUpdatePackage};
+pub use update_recovery::{
+    active_update_recovery_phase, prepare_update_recovery, transition_active_update_recovery,
+    verify_prepared_update_recovery, ApplicationCopyPort, PlatformApplicationCopier,
+    PreparedUpdateRecovery, UpdateRecoveryError, UpdateRecoveryPreparation,
+};
 pub use update_state::SqliteUpdateState;
 
 use polar_flow::{
@@ -123,6 +129,8 @@ pub enum ImportError {
     Cancelled,
     #[error("library schema version {0} is newer than this application supports")]
     UnsupportedSchemaVersion(i64),
+    #[error("invalid library backup: {0}")]
+    InvalidLibraryBackup(String),
     #[error("invalid import-operation transition from {from} to {to}")]
     InvalidOperationTransition { from: String, to: String },
     #[error("could not persist import outcome after {import_error}: {persistence_error}")]
@@ -1881,11 +1889,94 @@ pub fn save_locale_preference(database_path: &Path, locale: LocalePreference) ->
 }
 
 pub fn backup_database(source_path: &Path, backup_path: &Path) -> Result<()> {
+    if source_path == backup_path || !source_path.is_file() {
+        return Err(ImportError::InvalidLibraryBackup(
+            "source and backup must be distinct existing files".to_owned(),
+        ));
+    }
+    let backup_parent = backup_path.parent().ok_or_else(|| {
+        ImportError::InvalidLibraryBackup("backup path has no parent directory".to_owned())
+    })?;
+    std::fs::create_dir_all(backup_parent)?;
     let source = Connection::open(source_path)?;
-    ensure_schema(&source)?;
-    let mut destination = Connection::open(backup_path)?;
-    let backup = rusqlite::backup::Backup::new(&source, &mut destination)?;
-    backup.run_to_completion(64, Duration::from_millis(5), None)?;
+    verify_connection_integrity(&source, SCHEMA_VERSION)?;
+
+    let temporary = tempfile::Builder::new()
+        .prefix(".fitfreed-library-backup-")
+        .suffix(".sqlite")
+        .tempfile_in(backup_parent)?;
+    let temporary_path = temporary.path().to_owned();
+    {
+        let mut destination = Connection::open(&temporary_path)?;
+        let backup = rusqlite::backup::Backup::new(&source, &mut destination)?;
+        backup.run_to_completion(64, Duration::from_millis(5), None)?;
+    }
+    verify_library_file(&temporary_path, SCHEMA_VERSION)?;
+    set_private_file_permissions(&temporary_path)?;
+    File::open(&temporary_path)?.sync_all()?;
+    temporary
+        .persist(backup_path)
+        .map_err(|error| ImportError::Io(error.error))?;
+    sync_directory(backup_parent)?;
+    Ok(())
+}
+
+pub(crate) fn verify_library_file(path: &Path, expected_schema_version: i64) -> Result<()> {
+    if !std::fs::symlink_metadata(path).is_ok_and(|metadata| metadata.file_type().is_file()) {
+        return Err(ImportError::InvalidLibraryBackup(
+            "library backup is not a regular file".to_owned(),
+        ));
+    }
+    let connection = Connection::open_with_flags(
+        path,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )?;
+    verify_connection_integrity(&connection, expected_schema_version)
+}
+
+fn verify_connection_integrity(
+    connection: &Connection,
+    expected_schema_version: i64,
+) -> Result<()> {
+    let schema_version =
+        connection.query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))?;
+    if schema_version != expected_schema_version {
+        return Err(ImportError::InvalidLibraryBackup(format!(
+            "expected schema {expected_schema_version}, found {schema_version}"
+        )));
+    }
+    let integrity = connection.query_row("PRAGMA integrity_check(1)", [], |row| {
+        row.get::<_, String>(0)
+    })?;
+    if integrity != "ok" {
+        return Err(ImportError::InvalidLibraryBackup(
+            "SQLite integrity check failed".to_owned(),
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(unix)]
+fn set_private_file_permissions(path: &Path) -> Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+
+    std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600))?;
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn set_private_file_permissions(_path: &Path) -> Result<()> {
+    Ok(())
+}
+
+#[cfg(not(windows))]
+fn sync_directory(path: &Path) -> Result<()> {
+    File::open(path)?.sync_all()?;
+    Ok(())
+}
+
+#[cfg(windows)]
+fn sync_directory(_path: &Path) -> Result<()> {
     Ok(())
 }
 
@@ -2538,6 +2629,7 @@ fn terminal_code(error: &ImportError) -> &'static str {
         ImportError::ResourceLimit(_) => "archive-resource-limit",
         ImportError::Cancelled => "user-cancelled",
         ImportError::UnsupportedSchemaVersion(_) => "unsupported-schema-version",
+        ImportError::InvalidLibraryBackup(_) => "invalid-library-backup",
         ImportError::InvalidOperationTransition { .. } => "invalid-operation-transition",
         ImportError::InjectedInterruption(_) => "interrupted",
         ImportError::InjectedMigrationInterruption => "migration-interrupted",
@@ -9290,6 +9382,38 @@ mod tests {
         let backup_history = query_activity(&backup_path).expect("expanded backup history");
         assert_eq!(backup_history.len(), 2);
         assert_eq!(backup_history[0].origin_id, backup_history[1].origin_id);
+    }
+
+    #[test]
+    fn rejects_an_invalid_library_before_replacing_an_existing_backup() {
+        let harness = Harness::new();
+        let invalid_source = harness.directory.path().join("invalid-source.sqlite");
+        let old_source = harness.directory.path().join("old-source.sqlite");
+        let existing_backup = harness.directory.path().join("existing-backup.sqlite");
+        std::fs::write(&invalid_source, "not a SQLite library").expect("invalid source");
+        std::fs::write(&existing_backup, "preserved existing backup").expect("existing backup");
+
+        assert!(backup_database(&invalid_source, &existing_backup).is_err());
+        assert_eq!(
+            std::fs::read_to_string(&existing_backup).expect("preserved backup"),
+            "preserved existing backup"
+        );
+
+        let old_connection = Connection::open(&old_source).expect("old source");
+        old_connection
+            .pragma_update(None, "user_version", SCHEMA_VERSION - 1)
+            .expect("old source schema");
+        drop(old_connection);
+        assert!(backup_database(&old_source, &existing_backup).is_err());
+        let retained_schema = Connection::open(old_source)
+            .expect("reopened old source")
+            .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+            .expect("retained old schema");
+        assert_eq!(retained_schema, SCHEMA_VERSION - 1);
+        assert_eq!(
+            std::fs::read_to_string(existing_backup).expect("still-preserved backup"),
+            "preserved existing backup"
+        );
     }
 
     #[test]
