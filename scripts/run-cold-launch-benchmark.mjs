@@ -11,7 +11,7 @@ import path from "node:path";
 import { performance } from "node:perf_hooks";
 import { fileURLToPath } from "node:url";
 
-const measuredFreshProcesses = 20;
+const measuredFreshProcesses = 100;
 const p95BudgetMilliseconds = 2_500;
 const launchTimeoutMilliseconds = 10_000;
 const terminationTimeoutMilliseconds = 3_000;

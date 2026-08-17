@@ -99,23 +99,23 @@ test("accepts only the exact privacy-safe interactive-shell signal", () => {
   });
 });
 
-test("enforces the cold-launch p95 budget across twenty fresh processes", () => {
+test("enforces the cold-launch p95 budget across one hundred fresh processes", () => {
   const evidence = evaluateColdLaunchRuns(
-    Array.from({ length: 20 }, (_, index) => ({
-      totalMilliseconds: 700 + index * 25,
+    Array.from({ length: 100 }, (_, index) => ({
+      totalMilliseconds: 700 + index * 10,
       processCreationAndEvidenceTransportMilliseconds: 100,
       hostStartupToSetupCompleteMilliseconds: 200,
-      setupCompleteToRendererStartupAndCommandTransportMilliseconds: 100 + index * 25,
+      setupCompleteToRendererStartupAndCommandTransportMilliseconds: 100 + index * 10,
       rendererStartupToLocaleReadyMilliseconds: 200,
       localeReadyToInteractiveSignalMilliseconds: 100,
     })),
   );
 
   assert.deepEqual(evidence, {
-    measuredFreshProcesses: 20,
-    medianMilliseconds: 950,
-    p95Milliseconds: 1_175,
-    maximumMilliseconds: 1_175,
+    measuredFreshProcesses: 100,
+    medianMilliseconds: 1_200,
+    p95Milliseconds: 1_650,
+    maximumMilliseconds: 1_690,
     p95BudgetMilliseconds: 2_500,
     phases: {
       processCreationAndEvidenceTransport: {
@@ -129,9 +129,9 @@ test("enforces the cold-launch p95 budget across twenty fresh processes", () => 
         maximumMilliseconds: 200,
       },
       setupCompleteToRendererStartupAndCommandTransport: {
-        medianMilliseconds: 350,
-        p95Milliseconds: 575,
-        maximumMilliseconds: 575,
+        medianMilliseconds: 600,
+        p95Milliseconds: 1_050,
+        maximumMilliseconds: 1_090,
       },
       rendererStartupToLocaleReady: {
         medianMilliseconds: 200,
@@ -147,7 +147,7 @@ test("enforces the cold-launch p95 budget across twenty fresh processes", () => 
     passed: true,
   });
   assert.equal(
-    evaluateColdLaunchRuns(Array.from({ length: 20 }, () => ({
+    evaluateColdLaunchRuns(Array.from({ length: 100 }, () => ({
       totalMilliseconds: 2_501,
       processCreationAndEvidenceTransportMilliseconds: 100,
       hostStartupToSetupCompleteMilliseconds: 200,
@@ -158,18 +158,45 @@ test("enforces the cold-launch p95 budget across twenty fresh processes", () => 
     false,
   );
   assert.throws(
-    () => evaluateColdLaunchRuns(Array.from({ length: 19 }, () => ({
+    () => evaluateColdLaunchRuns(Array.from({ length: 99 }, () => ({
       totalMilliseconds: 500,
     }))),
-    /exactly 20 measured processes/,
+    /exactly 100 measured processes/,
   );
   assert.throws(
     () => evaluateColdLaunchRuns([
-      ...Array.from({ length: 19 }, () => ({ totalMilliseconds: 500 })),
+      ...Array.from({ length: 99 }, () => ({ totalMilliseconds: 500 })),
       { totalMilliseconds: -1 },
     ]),
     /non-negative finite duration/,
   );
+});
+
+test("keeps maximum outliers separate from the cold-launch p95 decision", () => {
+  const run = (totalMilliseconds) => ({
+    totalMilliseconds,
+    processCreationAndEvidenceTransportMilliseconds: 100,
+    hostStartupToSetupCompleteMilliseconds: 200,
+    setupCompleteToRendererStartupAndCommandTransportMilliseconds:
+      totalMilliseconds - 600,
+    rendererStartupToLocaleReadyMilliseconds: 200,
+    localeReadyToInteractiveSignalMilliseconds: 100,
+  });
+  const fourOutliers = evaluateColdLaunchRuns([
+    ...Array.from({ length: 96 }, () => run(1_000)),
+    ...Array.from({ length: 4 }, () => run(3_000)),
+  ]);
+  const fiveOutliers = evaluateColdLaunchRuns([
+    ...Array.from({ length: 95 }, () => run(1_000)),
+    ...Array.from({ length: 5 }, () => run(3_000)),
+  ]);
+
+  assert.equal(fourOutliers.p95Milliseconds, 1_000);
+  assert.equal(fourOutliers.maximumMilliseconds, 3_000);
+  assert.equal(fourOutliers.passed, true);
+  assert.equal(fiveOutliers.p95Milliseconds, 3_000);
+  assert.equal(fiveOutliers.maximumMilliseconds, 3_000);
+  assert.equal(fiveOutliers.passed, false);
 });
 
 test("wires production identity and cold launch into local and hosted gates", () => {
