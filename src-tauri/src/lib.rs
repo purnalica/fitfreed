@@ -52,7 +52,7 @@ use presentation::{
 use serde::{Deserialize, Serialize};
 use tauri::{ipc::Channel, AppHandle, Emitter, Manager, State};
 use tokio::{
-    sync::{Mutex as AsyncMutex, MutexGuard as AsyncMutexGuard},
+    sync::{watch, Mutex as AsyncMutex, MutexGuard as AsyncMutexGuard},
     time::sleep,
 };
 
@@ -60,6 +60,47 @@ const UPDATE_RECOVERY_STARTUP_MAINTENANCE_TIMEOUT: Duration = Duration::from_sec
 const UPDATE_RECOVERY_STARTUP_MAINTENANCE_POLL_INTERVAL: Duration = Duration::from_millis(100);
 const PERIODIC_UPDATE_CHECK_INTERVAL: Duration = Duration::from_secs(24 * 60 * 60);
 const UPDATE_CHECK_COMPLETED_EVENT: &str = "fitfreed://update-check-completed";
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+enum StartupLibraryRecoveryStatus {
+    #[default]
+    Pending,
+    Ready,
+    Failed,
+}
+
+struct StartupLibraryRecovery {
+    status: watch::Sender<StartupLibraryRecoveryStatus>,
+}
+
+impl Default for StartupLibraryRecovery {
+    fn default() -> Self {
+        let (status, _) = watch::channel(StartupLibraryRecoveryStatus::Pending);
+        Self { status }
+    }
+}
+
+impl StartupLibraryRecovery {
+    fn complete(&self, succeeded: bool) {
+        self.status.send_replace(if succeeded {
+            StartupLibraryRecoveryStatus::Ready
+        } else {
+            StartupLibraryRecoveryStatus::Failed
+        });
+    }
+
+    async fn await_ready(&self) -> Result<(), ()> {
+        let mut status = self.status.subscribe();
+        loop {
+            match *status.borrow_and_update() {
+                StartupLibraryRecoveryStatus::Ready => return Ok(()),
+                StartupLibraryRecoveryStatus::Failed => return Err(()),
+                StartupLibraryRecoveryStatus::Pending => {}
+            }
+            status.changed().await.map_err(|_| ())?;
+        }
+    }
+}
 
 struct InteractiveShellSignal {
     started_at: Instant,
@@ -203,9 +244,14 @@ impl UpdateOperationCoordinator {
 async fn import_archive(
     app: AppHandle,
     coordinator: State<'_, ImportCoordinator>,
+    startup_recovery: State<'_, Arc<StartupLibraryRecovery>>,
     archive_path: String,
     on_progress: Channel<ImportProgressDto>,
 ) -> Result<ImportReportDto, CommandErrorDto> {
+    startup_recovery
+        .await_ready()
+        .await
+        .map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     let database_path =
         database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     let coordinator = coordinator.inner().clone();
@@ -411,7 +457,14 @@ fn query_latest_import_outcome(
 }
 
 #[tauri::command]
-fn load_locale(app: AppHandle) -> Result<Option<String>, CommandErrorDto> {
+async fn load_locale(
+    app: AppHandle,
+    startup_recovery: State<'_, Arc<StartupLibraryRecovery>>,
+) -> Result<Option<String>, CommandErrorDto> {
+    startup_recovery
+        .await_ready()
+        .await
+        .map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     let preferences = SqliteLocalePreferences::new(path);
     fitfreed_application::load_locale_preference(&preferences)
@@ -1002,9 +1055,21 @@ struct CandidateStartup {
     launch_nonce: String,
 }
 
+fn start_library_recovery(library_path: PathBuf, startup_recovery: Arc<StartupLibraryRecovery>) {
+    tauri::async_runtime::spawn(async move {
+        let succeeded = tauri::async_runtime::spawn_blocking(move || {
+            recover_interrupted_imports(&library_path)
+        })
+        .await
+        .is_ok_and(|result| result.is_ok());
+        startup_recovery.complete(succeeded);
+    });
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let interactive_shell_signal = InteractiveShellSignal::default();
+    let startup_recovery = Arc::new(StartupLibraryRecovery::default());
     let pending_recovery_confirmation = match startup_mode(&env::args_os().collect::<Vec<_>>()) {
         StartupMode::Desktop => None,
         StartupMode::UpdateRecoveryCandidate(candidate) => {
@@ -1051,6 +1116,7 @@ pub fn run() {
     builder
         .manage(ImportCoordinator::default())
         .manage(interactive_shell_signal)
+        .manage(Arc::clone(&startup_recovery))
         .manage(PendingUpdateRecoveryConfirmation::new(
             pending_recovery_confirmation,
         ))
@@ -1079,7 +1145,7 @@ pub fn run() {
                     std::io::Error::other("candidate recovery state is unavailable")
                 })?;
             }
-            recover_interrupted_imports(&library_path)?;
+            start_library_recovery(library_path, Arc::clone(&startup_recovery));
             start_periodic_update_checks(
                 app.handle().clone(),
                 Arc::clone(&update_channel),
@@ -1286,6 +1352,23 @@ mod tests {
 
         drop(active_operation);
         assert!(coordinator.try_reserve().is_some());
+    }
+
+    #[tokio::test]
+    async fn startup_library_recovery_releases_waiters_only_after_success() {
+        let recovery = Arc::new(StartupLibraryRecovery::default());
+        let waiting_recovery = Arc::clone(&recovery);
+        let waiter = tokio::spawn(async move { waiting_recovery.await_ready().await });
+
+        tokio::task::yield_now().await;
+        assert!(!waiter.is_finished());
+        recovery.complete(true);
+        assert!(waiter.await.expect("recovery waiter should finish").is_ok());
+        assert!(recovery.await_ready().await.is_ok());
+
+        let failed_recovery = StartupLibraryRecovery::default();
+        failed_recovery.complete(false);
+        assert!(failed_recovery.await_ready().await.is_err());
     }
 
     #[test]

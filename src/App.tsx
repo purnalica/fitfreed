@@ -149,6 +149,7 @@ function localDate(localDateValue: string): Date {
 function App() {
   const [locale, setLocale] = useState<Locale>(systemLocale);
   const [localeReady, setLocaleReady] = useState(false);
+  const [libraryReady, setLibraryReady] = useState(false);
   const localeReadyMilliseconds = useRef(0);
   const [applicationReady, setApplicationReady] = useState(false);
   const [localeSaving, setLocaleSaving] = useState(false);
@@ -213,7 +214,10 @@ function App() {
         const stored = await invoke<Locale | null>("load_locale");
         const selected = stored ?? systemLocale();
         initializingPreference = stored === null;
-        if (active) setLocale(selected);
+        if (active) {
+          setLocale(selected);
+          setLibraryReady(true);
+        }
         if (stored === null) {
           await invoke("save_locale", { locale: selected });
         }
@@ -241,7 +245,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!localeReady) return;
+    if (!localeReady || !libraryReady) return;
     let active = true;
     const frame = requestAnimationFrame(() => {
       invoke("report_interactive_shell", {
@@ -259,7 +263,7 @@ function App() {
       active = false;
       cancelAnimationFrame(frame);
     };
-  }, [localeReady]);
+  }, [libraryReady, localeReady]);
 
   useEffect(() => {
     if (!applicationReady) return;
@@ -528,7 +532,7 @@ function App() {
           type="button"
           className="primary"
           onClick={runImport}
-          disabled={!archivePath || busy || updateInstalling}
+          disabled={!libraryReady || !archivePath || busy || updateInstalling}
         >
           {busy ? messages.importing : messages.import}
         </button>
@@ -547,7 +551,7 @@ function App() {
           <select
             value={locale}
             onChange={(event) => void changeLocale(event.target.value as Locale)}
-            disabled={!localeReady || localeSaving || updateInstalling}
+            disabled={!libraryReady || localeSaving || updateInstalling}
           >
             <option value="en-US">{messages.localeEnglish}</option>
             <option value="es-ES">{messages.localeSpanish}</option>

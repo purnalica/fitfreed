@@ -103,7 +103,9 @@ Cancellation requested after committing begins is deferred until the atomic boun
 
 ### 6. Recovering
 
-On startup, the application resolves every non-terminal operation before exposing the library. Version 2 can prove the result without guessing: canonical changes and the transition to `Completed` share one SQLite transaction, so a surviving non-terminal row means the prior complete canonical state was retained. Recovery moves the operation through `Recovering` to `Failed`, records `interrupted` and `canonical-transaction-rolled-back`, and removes no source evidence needed to explain the outcome.
+On startup, the host starts recovery on a blocking worker while the independent WebView process initializes. A process-scoped completion barrier prevents locale persistence, import writes, history reads, update confirmation, and every post-shell task from exposing the library until recovery succeeds. Archive selection may proceed because it neither opens nor mutates the library; import remains disabled until the barrier is released. A recovery failure releases waiters into the existing closed `library-unavailable` outcome rather than leaving startup pending. This overlaps independent initialization without weakening the visibility boundary.
+
+Version 2 can prove the recovery result without guessing: canonical changes and the transition to `Completed` share one SQLite transaction, so a surviving non-terminal row means the prior complete canonical state was retained. Recovery moves the operation through `Recovering` to `Failed`, records `interrupted` and `canonical-transaction-rolled-back`, and removes no source evidence needed to explain the outcome.
 
 ## Progress and outcomes
 

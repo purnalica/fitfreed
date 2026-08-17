@@ -378,6 +378,7 @@ async function chooseArchive(user: ReturnType<typeof userEvent.setup>, path: str
 
 describe("FitFreed import interface", () => {
   it("reports the interactive shell only after locale startup and a rendered frame", async () => {
+    const user = userEvent.setup();
     let completeLocale!: (locale: "en-US") => void;
     let completeInteractiveShell!: () => void;
     let renderFrame: FrameRequestCallback | undefined;
@@ -405,9 +406,12 @@ describe("FitFreed import interface", () => {
     render(<App />);
 
     await waitFor(() => expect(completeLocale).toBeTypeOf("function"));
+    await chooseArchive(user, "/synthetic/pending-startup.zip");
+    expect(screen.getByRole("button", { name: "Import selected package" })).toBeDisabled();
     expect(mocks.interactiveShellInvoke).not.toHaveBeenCalled();
     await act(async () => completeLocale("en-US"));
     await waitFor(() => expect(renderFrame).toBeTypeOf("function"));
+    expect(screen.getByRole("button", { name: "Import selected package" })).toBeEnabled();
     expect(mocks.interactiveShellInvoke).not.toHaveBeenCalled();
     await act(async () => renderFrame?.(performance.now()));
     await waitFor(() => expect(mocks.interactiveShellInvoke).toHaveBeenCalledTimes(1));
@@ -506,6 +510,31 @@ describe("FitFreed import interface", () => {
     ).toBeEnabled());
     expect(screen.getByRole("button", { name: "Import selected package" })).toBeEnabled();
     expect(screen.getByRole("combobox", { name: "Language" })).toBeEnabled();
+  });
+
+  it("keeps library actions unavailable when startup recovery fails", async () => {
+    const user = userEvent.setup();
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "load_locale") {
+        return Promise.reject({ code: "library-unavailable" });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    render(<App />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      catalogs["en-US"].errors["library-unavailable"],
+    );
+    await chooseArchive(user, "/synthetic/unavailable-library.zip");
+    expect(screen.getByRole("button", { name: "Import selected package" })).toBeDisabled();
+    expect(screen.getByRole("combobox", { name: "Language" })).toBeDisabled();
+    expect(mocks.interactiveShellInvoke).not.toHaveBeenCalled();
+    expect(mocks.invoke).toHaveBeenCalledTimes(1);
+    expect(mocks.longitudinalInvoke).not.toHaveBeenCalled();
+    expect(mocks.sleepInvoke).not.toHaveBeenCalled();
+    expect(mocks.recoveryInvoke).not.toHaveBeenCalled();
+    expect(mocks.updateInvoke).not.toHaveBeenCalled();
   });
 
   it("requests backend-owned update confirmation only after locale startup completes", async () => {
