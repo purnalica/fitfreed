@@ -8,6 +8,8 @@ The [development preview guide](development-preview.md) is the only current appl
 
 The [private development package guide](private-development-packages.md) explains integrity verification and the unsigned evaluation boundary. It does not turn a development package into a supported release.
 
+The [private macOS alpha candidate guide](private-alpha-candidate.md) is the version-matched 0.1.0 installation, import, exploration, data, update, removal, diagnostics, and limitations draft. It becomes operative only when its listed release and human-authority gates close.
+
 ## Safety boundary
 
 - Read the [project disclaimer](../../DISCLAIMER.md) before running a build.

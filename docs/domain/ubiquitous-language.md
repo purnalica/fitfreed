@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed Milestone 0 baseline. Terms become confirmed as their owning bounded contexts and invariants are accepted. Provider vocabulary remains in provider references and anti-corruption layers unless it also expresses a genuine FitFreed concept.
+Current cross-context vocabulary. Terms backed by accepted contexts and normative contracts are established; capability names without an implemented contract remain candidates. Provider vocabulary remains in provider references and anti-corruption layers unless it also expresses a genuine FitFreed concept.
 
 ## Data ownership and portability
 
@@ -62,11 +62,11 @@ Proposed Milestone 0 baseline. Terms become confirmed as their owning bounded co
 
 ## Fitness history language
 
-The initial product vocabulary includes **Daily Activity Observation**, **Training Session**, **Sleep Period**, **Recovery Observation**, **Physical Measurement**, **Fitness Test**, **Training Target**, **Device Registration**, and **Sport Profile**. Their precise identities, values, relationships, and invariants are defined only when evidence supports a canonical specification; source field names are not definitions. The implemented [Sleep Period](sleep-period.md) vocabulary distinguishes a source-assigned sleep date, declared sleep span, asleep duration, interruptions, phases, scores, and self-reported ratings.
+The implemented product vocabulary includes **Daily Activity Observation**, **Training Session**, **Sleep Period**, and **Nightly Recovery**. Physical evolution, fitness tests, planning, devices, and sport configuration remain candidate capability areas rather than defined canonical concepts. Precise identities, values, relationships, and invariants exist only in their normative specifications; source field names are not definitions. The implemented [Sleep Period](sleep-period.md) vocabulary distinguishes a source-assigned sleep date, declared sleep span, asleep duration, interruptions, phases, scores, and self-reported ratings.
 
 A **Training Session** is a source-scoped aggregate summary of one recorded workout. Its declared duration is independent of local wall-clock subtraction. Child exercises, laps, routes, and samples are not substitute aggregate identities. An unresolved **Sport Reference** is opaque same-source classification evidence, never a human-readable name or cross-provider taxonomy by itself.
 
-The first candidate concept is specified in [`daily-activity.md`](daily-activity.md).
+The implemented concepts are specified in [`daily-activity.md`](daily-activity.md), [`training-session.md`](training-session.md), [`sleep-period.md`](sleep-period.md), and the normative [nightly-recovery contract](../data-formats/canonical/nightly-recovery.md).
 
 ## Insight language
 

@@ -4,7 +4,7 @@
 
 Current architecture after [ADR 0002](decisions/0002-select-sqlite-storage.md). SQLite is the only storage engine in the application and the authoritative local-library format. It does not replace the documented portable FitFreed data contract.
 
-The current implemented schema and compatibility boundary are documented in the [SQLite version 8 persistence specification](../data-formats/persistence/sqlite-v8.md). It preserves the activity, training, and sleep paths and adds canonical nightly recovery, typed source-specific components, provenance, conflicts, and chronological indexing. Earlier specifications remain immutable migration history.
+The current implemented schema and compatibility boundary are documented in the [SQLite version 9 persistence specification](../data-formats/persistence/sqlite-v9.md). It preserves the complete provider-neutral fitness library through version 8 and adds restart-safe authenticated-update policy and user-notification preferences without storing channel or package material. Earlier specifications remain immutable migration history.
 
 ## Ownership
 
@@ -51,6 +51,8 @@ Schema version 7 adds sleep periods keyed by origin and the source-assigned slee
 The sleep Insights adapter derives bounds, the ordered distinct origin catalog, and inclusive summary facts through `sleep_period_date_origin`. Overview and comparison reads include only the timeline-availability flag; they do not load `sleep_stage_transition` rows. Exact detail lookup loads the ordered transition set for one (`origin_id`, `sleep_date`) identity. SQLite does not fill calendar gaps, average durations, aggregate phases or scores, decide goal attainment, or calculate comparison changes.
 
 Schema version 8 adds nightly recovery keyed by origin and source-assigned recovery date. Shared interval and RMSSD measurements are stored beside constrained, versioned source-specific assessment, baseline, and guidance components. Strict optional enrichment can replace visible state; omitted known information is preserved, and changed known facts or schemes become explicit conflicts because the source supplies no orderable record revision. The undated recovery blob is classified but never joined or stored: file order, array position, sample content, and delivery tokens are not identity evidence. `nightly_recovery_date_origin` supports chronological range reads; report aggregation remains application-owned.
+
+Schema version 9 adds the singleton authenticated-update replay high-water mark, trusted release identity, and mutually exclusive dismissal or postponement preference. It contains no endpoint, trust key, package material, installation identifier, or usage event. Installation recovery remains a separate filesystem-backed contract; update state is included in a whole-library backup but excluded from the portable fitness model.
 
 New origin and evidence rows become durable only inside the same visibility transaction as canonical history and operation completion. Existing development origins migrate as unverified origins without invented evidence. Exact-repeat lookup may inherit an origin only from a completed operation whose correlation state is verified; an old package fingerprint alone cannot authorize subject resolution.
 

@@ -97,7 +97,7 @@ The visibility boundary atomically publishes:
 - the completed state that makes the already prepared complete coverage final;
 - the completed import outcome.
 
-The implementation persists coverage under a non-terminal operation and maps the current bounded activity, training-summary, and sleep candidates outside one long database transaction. Split sleep artifacts are assembled only after both supported families validate. The visible switch is atomic. The desktop presents localized terminal summaries, family guidance, and provider-neutral activity, training, and sleep Insights. Larger high-resolution families still require measured bounded staging rather than retaining their parsed content in memory.
+The implementation persists coverage under a non-terminal operation and maps the current bounded activity, training-summary, sleep, and dated nightly-recovery candidates outside one long database transaction. Split sleep artifacts are assembled only after both supported families validate. Dated recovery summaries deliberately exclude undated sample blobs that have no safe identity relationship. The visible switch is atomic. The desktop presents localized terminal summaries, family guidance, and provider-neutral activity, training, sleep, and recovery Insights. Larger high-resolution families still require measured bounded staging rather than retaining their parsed content in memory.
 
 Cancellation requested after committing begins is deferred until the atomic boundary resolves. The interface explains this brief non-cancellable phase.
 

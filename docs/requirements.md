@@ -528,7 +528,7 @@ At minimum, it will cover:
 - Common errors, safe diagnostics, and recovery.
 - Known limitations and the Polar Flow format compatibility matrix.
 
-The required languages for user documentation remain an open product decision; technical and contribution documentation will use canonical English.
+User, technical, and contribution documentation use canonical English. Spanish is a supported application locale and remains isolated in the `es-ES` translation catalog; project documentation is not duplicated as a second-language source of truth.
 
 ### Technical and contribution documentation
 
@@ -565,18 +565,15 @@ The public repository will provide a clear path through four stages:
 ## Open decisions
 
 1. Minimum macOS version and processor architectures supported by the MVP; minimum versions and architectures for later Linux and Windows support.
-2. Privacy model beyond the confirmed local baseline, including backup and possible encryption.
-3. Detailed identity, update, and conflict rules for the MVP data types.
-4. Exact formats and delivery milestone for open normalized-data export and portable library backup, beyond the confirmed visual period-comparison report.
-5. Accessibility and appearance requirements beyond the confirmed locale and quality targets.
-6. Detailed distribution, update, Developer ID credential, signing, notarization, and installer strategy for the first public macOS release.
-7. Programming language, development framework, persistence, and visualization library.
-8. Support for one person or multiple independent libraries.
-9. Retention or deletion of the original ZIP archive and JSON files after import.
-10. Languages required for user documentation in the first release.
-11. Governance evolution beyond the bootstrap owner-maintainer model defined in `GOVERNANCE.md`.
-12. Public update-channel operations and exceptional security-update behavior. The private-alpha 24-hour process schedule and two-dimensional release/library upgrade-baseline policy are defined by ADRs 0011 and 0012.
-13. Cross-source identity, overlap, conflict, and user-controlled reconciliation rules after the single-source MVP.
+2. Privacy model beyond the confirmed local baseline, including user-controlled backup and possible encryption.
+3. Exact formats and delivery milestone for open normalized-data export and portable library backup.
+4. Accessibility and appearance requirements beyond the confirmed locale and quality targets.
+5. Detailed distribution, Developer ID credential, signing, notarization, and installer strategy for the first public macOS release.
+6. Support for one person or multiple independent libraries.
+7. Long-term retention or deletion policy for original ZIP archives and extracted source artifacts. Version 0.1.0 exposes no archive-copy feature and requires users to preserve the selected ZIP independently.
+8. Governance evolution beyond the bootstrap owner-maintainer model defined in `GOVERNANCE.md`.
+9. Public update-channel operations and exceptional security-update behavior. The private-alpha trust, 24-hour process schedule, recovery, and two-dimensional release/library upgrade-baseline policy are defined by ADRs 0008 through 0012.
+10. Cross-source identity, overlap, conflict, and user-controlled reconciliation rules after the single-source MVP.
 
 The canonical product spelling, positioning constraints, and public-branding validation gate are maintained in [`naming.md`](naming.md).
 

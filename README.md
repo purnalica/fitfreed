@@ -1,10 +1,12 @@
 # FitFreed
 
+![FitFreed — Your fitness data, freed](assets/brand/fitfreed-logo.svg)
+
 *An open-source fitness data explorer.*
 
 FitFreed is a local-first desktop application for turning personal fitness-platform exports into an understandable, durable history that can be explored beyond the source platform.
 
-> **Project status:** Milestone 1 is complete and Milestone 2 MVP capability work is in progress. The versioned Tauri application has documented Polar Flow daily-activity, training-summary, split sleep-result, and dated nightly-recovery compatibility boundaries; complete package-family reporting; source-subject-safe reimport; provider-neutral gap-aware exploration for all four histories; and an integrated longitudinal dashboard with shared filtering, exact aligned day detail, navigation, and period comparison. One private reference export has passed the privacy-safe four-domain acceptance predicate, but the application is not an alpha release and must not yet be used with real personal exports.
+> **Project status:** Milestone 1 is complete and the Milestone 2 private-alpha readiness audit is active. The versioned Tauri application has documented Polar Flow daily-activity, training-summary, split sleep-result, and dated nightly-recovery compatibility boundaries; complete package-family reporting; source-subject-safe reimport; provider-neutral gap-aware exploration for all four histories; an integrated longitudinal dashboard; and release-shaped installation, update, and automatic recovery evidence. One private reference export has passed the privacy-safe four-domain acceptance predicate. The 8 GB reference profile, real private update authority, controlled distribution, and participant evaluation remain open, so the application is not an alpha release and must not yet be used with real personal exports.
 
 FitFreed is experimental software provided without warranty. Use it at your own risk and read the [project disclaimer](DISCLAIMER.md) before running any build.
 
@@ -55,8 +57,9 @@ Polar Flow is the first importer, not the product identity. Later importers may 
 - [Localization guide](docs/development/localization.md)
 - [User documentation status](docs/user/README.md)
 - [Development preview guide](docs/user/development-preview.md)
+- [Private macOS alpha candidate guide](docs/user/private-alpha-candidate.md)
 - [Architecture module map](docs/architecture/module-map.md)
-- [Technology evaluation protocol](docs/technology-evaluation.md)
+- [Technology evaluation baseline](docs/technology-evaluation.md)
 - [Product thesis](docs/product-thesis.md)
 - [Data format documentation](docs/data-formats/README.md)
 - [Source integration architecture](docs/architecture/source-integration.md)
@@ -71,7 +74,7 @@ Polar Flow is the first importer, not the product identity. Later importers may 
 - [Project disclaimer](DISCLAIMER.md)
 - [Security policy](SECURITY.md)
 
-The application stack is selected in [ADR 0001](docs/architecture/decisions/0001-select-tauri-application-stack.md), SQLite is selected as the single system of record in [ADR 0002](docs/architecture/decisions/0002-select-sqlite-storage.md), and longitudinal composition is defined in [ADR 0007](docs/architecture/decisions/0007-compose-longitudinal-insights-by-origin-and-date.md). Activity, training, sleep, recovery, and their integrated view have local visualization and performance evidence; their hosted, reference-profile, update, and complete release-readiness gates remain in progress. Build, test, and package commands are documented in the contributor setup.
+The application stack is selected in [ADR 0001](docs/architecture/decisions/0001-select-tauri-application-stack.md), SQLite is selected as the single system of record in [ADR 0002](docs/architecture/decisions/0002-select-sqlite-storage.md), and longitudinal composition is defined in [ADR 0007](docs/architecture/decisions/0007-compose-longitudinal-insights-by-origin-and-date.md). Activity, training, sleep, recovery, and their integrated view have local and hosted visualization and performance regression evidence; reference-profile, production update-authority, controlled-distribution, and manual acceptance gates remain in progress. Build, test, and package commands are documented in the contributor setup.
 
 ## Contributing
 

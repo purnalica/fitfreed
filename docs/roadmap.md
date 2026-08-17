@@ -2,7 +2,7 @@
 
 ## Status
 
-Milestone 1 is complete. The production-shaped Tauri and SQLite foundation, architecture, localized vertical slice, contributor path, continuous integration, and private macOS release-evidence boundary have passed their acceptance gates. Milestone 2 MVP implementation is active.
+Milestone 1 is complete. The production-shaped Tauri and SQLite foundation, architecture, localized vertical slice, contributor path, continuous integration, and private macOS release-evidence boundary have passed their acceptance gates. Milestone 2 capability implementation is complete and its private-alpha readiness audit is active; reference-profile, production update-authority, controlled-distribution, and participant-evaluation gates remain open.
 
 ## Purpose
 

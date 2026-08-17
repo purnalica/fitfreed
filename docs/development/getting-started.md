@@ -34,6 +34,8 @@ npm run test:fast
 | Verify architecture boundaries | `npm run check:architecture` |
 | Verify canonical, mapping, and persistence contracts | `npm run check:data-contracts` |
 | Verify release identity and version contracts | `npm run check:release-contracts` |
+| Verify the application and library upgrade matrix | `npm run check:upgrade-matrix` |
+| Verify local documentation links | `npm run check:docs` |
 | Verify locale catalogs | `npm run check:i18n` |
 | Verify reduced-motion presentation contracts | `npm run check:ui-contracts` |
 | Verify pinned updater source and provenance | `npm run check:vendored-updater` |
@@ -55,7 +57,7 @@ npm run test:fast
 | Verify recovery-pair preparation against the production app | `npm run verify:update-recovery-preparation` |
 | Build and run the instrumented packaged E2E journey | `npm run verify:e2e` |
 | Verify signed packaged update replacement and recovery | `npm run verify:update-e2e` |
-| Run every current local acceptance gate | `npm run verify:full` |
+| Run the broad local product-verification lane | `npm run verify:full` |
 
 Generated application, database, fixture, log, screenshot, icon, and bundle output is ignored. Never replace the synthetic generators with a real provider export or a record copied from one.
 

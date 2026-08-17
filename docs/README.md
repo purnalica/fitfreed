@@ -8,6 +8,7 @@ FitFreed does not have a supported alpha release yet. The current executable fou
 
 - Read the [development preview guide](user/development-preview.md) for the complete runnable journey.
 - Read [private development packages](user/private-development-packages.md) before handling unsigned package evidence.
+- Read the [private alpha candidate guide](user/private-alpha-candidate.md) for the version-matched 0.1.0 user journey and the gates that keep it inactive.
 - Read the [user-documentation status](user/README.md) before opening any build.
 - Read the project [disclaimer](../DISCLAIMER.md) and [support boundary](../SUPPORT.md).
 
@@ -19,6 +20,7 @@ FitFreed does not have a supported alpha release yet. The current executable fou
 - Use the [troubleshooting guide](development/troubleshooting.md) when a documented command fails.
 - Use the [performance benchmark guide](development/performance-benchmarks.md) for synthetic scales, timed boundaries, budgets, and regression evidence.
 - Use [private reference export acceptance](testing/private-reference-acceptance.md) only for the explicitly supplied local compatibility input.
+- Use [private alpha manual evaluation](testing/private-alpha-manual-evaluation.md) for privacy-safe keyboard, VoiceOver, scaling, contrast, realistic usability, and controlled recovery acceptance.
 - Read the [module map](architecture/module-map.md), [testing strategy](testing-strategy.md), and [data-contract index](data-formats/README.md) before changing product behavior.
 - Follow the [localization guide](development/localization.md) for interface copy or language support.
 - Follow [CONTRIBUTING.md](../CONTRIBUTING.md) and the [repository content policy](repository-content-policy.md) before proposing or publishing a change.
