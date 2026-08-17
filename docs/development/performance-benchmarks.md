@@ -2,9 +2,30 @@
 
 ## Purpose and status
 
-The versioned performance gates protect the current daily-activity, training-session, sleep, recovery, and integrated longitudinal Insights paths against the budgets in the [quality targets](../quality-targets.md). They use independently authored deterministic data, exercise production boundaries, emit one machine-readable JSON object per gate, and return a non-zero status when a budget is exceeded.
+The versioned performance gates protect full-scale import plus the current daily-activity, training-session, sleep, recovery, and integrated longitudinal Insights paths against the budgets in the [quality targets](../quality-targets.md). They use independently authored deterministic data, exercise production boundaries, emit one machine-readable JSON object per gate, and return a non-zero status when a budget is exceeded.
 
-These gates establish regression evidence on the machine that runs them. They do not yet prove the provisional Apple Silicon, 8 GB minimum profile. Cold launch, full-scale import, update, and reference-profile execution retain their own open performance gates.
+These gates establish regression evidence on the machine that runs them. They do not yet prove the provisional Apple Silicon, 8 GB minimum profile. Cold launch, update, and reference-profile execution retain their own open performance gates. The reference-profile run must execute these same commands; a result from a more capable host cannot replace it.
+
+## Full-scale import benchmark
+
+Run on macOS:
+
+```sh
+npm run benchmark:import
+```
+
+The command generates a temporary deterministic ZIP with one fictional account artifact, 5,999 daily-activity summaries, and 4,000 training-session summaries. The training artifacts contain two million independently authored synthetic time-series items under a field that summary mapping version 1 deliberately does not persist. It requires exactly that composition, 10,000 entries, and at least 5 GiB of expanded JSON before the campaign can start. Repetitive synthetic padding deliberately exercises the expanded-volume boundary without imitating a personal history; this is a resource and supported-domain envelope, not a claim that the generated history or excluded sample shape represents a typical provider export.
+
+The Rust benchmark executable is built once in release mode. Seven fresh processes each use a distinct temporary library, import the archive through the production adapter, repeat the exact same ZIP, and execute one indexed full-year activity query plus one indexed full-year training query in each of 50 iterations. Every process must report exactly 10,000 recognized artifacts, 9,999 new observations, 366 results from each domain query, an exact-repeat outcome, complete non-negative phase timings, and a measurable peak resident set. The query measurement covers the pair. The aggregate uses the sorted zero-based `ceil((n - 1) * 0.95)` percentile, which intentionally selects the slowest value in a seven-process campaign.
+
+The enforced p95 budgets are:
+
+- first import: at most 10 minutes;
+- exact repeat: at most 30 seconds;
+- representative query: at most 500 ms;
+- peak resident memory: strictly less than 1,536 MiB.
+
+The output records the application version, source revision and clean-tree state, host profile, free storage, exact generated scale, compressed archive size, run policy, aggregate timings, phase p95 values, memory, and budget result. Temporary ZIP and SQLite files are removed even after failure. Only a clean-tree result on the provisional 8 GB Apple Silicon profile closes that profile's import gate; local high-spec and hosted runs remain valuable regression evidence.
 
 ## Application read-model benchmark
 
@@ -14,7 +35,7 @@ Run:
 npm run benchmark:insights
 ```
 
-The release-mode Rust example creates a temporary schema-version-8 SQLite library through the production migration path, generates ten calendar years for four opaque origins, and inserts deterministic daily observations, one training session, one primary sleep period, and one nightly-recovery observation per origin and date. Daily activity includes available, unavailable, and missing observations; training includes varied durations and deterministic optional distance, energy, heart-rate, sport-reference, and exercise-count coverage; sleep includes deterministic phase, score, goal, timeline, and recording-status data; recovery varies shared intervals while retaining typed source assessment, baseline, and guidance. The scale contains 14,612 primary sleep periods, 58,448 sleep transitions, and 14,612 recovery nights. No generated database survives the process.
+The release-mode Rust example creates a temporary schema-version-9 SQLite library through the production migration path, generates ten calendar years for four opaque origins, and inserts deterministic daily observations, one training session, one primary sleep period, and one nightly-recovery observation per origin and date. Daily activity includes available, unavailable, and missing observations; training includes varied durations and deterministic optional distance, energy, heart-rate, sport-reference, and exercise-count coverage; sleep includes deterministic phase, score, goal, timeline, and recording-status data; recovery varies shared intervals while retaining typed source assessment, baseline, and guidance. The scale contains 14,612 primary sleep periods, 58,448 sleep transitions, and 14,612 recovery nights. No generated database survives the process.
 
 It measures the SQLite adapter plus application read model separately for daily activity, training sessions, sleep, recovery, and their longitudinal composition. Each path covers:
 
@@ -36,8 +57,10 @@ For each detailed domain and the longitudinal view, the packaged journey uses fo
 
 ## Automation and evidence handling
 
-`npm run verify:full` includes both gates. The macOS GitHub Actions job runs the read-model benchmark explicitly and then the packaged journey, so local and hosted paths share the same versioned commands. A budget failure is not retried or converted into a pass.
+`npm run verify:full` includes the full-scale import, read-model, and packaged-UI gates. The macOS GitHub Actions job runs the same commands explicitly, so local and hosted paths share the same versioned entry points. A budget failure is not retried or converted into a pass.
 
 Generated archives, databases, raw benchmark output, screenshots, and logs remain ignored local or short-lived CI evidence. Only the synthetic generators, executable assertions, budgets, and methodology are versioned. Do not replace them with a provider export or values derived from one.
 
-When investigating a regression, first separate query, application-model, transport, React, render, and test-controller time. Changing a budget requires measured evidence, impact analysis, and an explicit product decision; test-runner overhead is not product latency.
+When investigating a regression, first separate archive fingerprinting, database setup, validation, decode and mapping, reconciliation, transaction control, query, application-model, transport, React, render, and test-controller time. Changing a budget requires measured evidence, impact analysis, and an explicit product decision; test-runner overhead is not product latency.
+
+Cold launch requires a process-to-interactive measurement against a release-shaped application on the reference profile. WebView reload time, driver session creation, or a timer started after the host process exists would measure a different boundary and cannot close that gate.

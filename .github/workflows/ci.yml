@@ -183,6 +183,9 @@ jobs:
           npm run format:check
           npm run lint:rust
 
+      - name: Verify full-scale import budgets
+        run: npm run benchmark:import
+
       - name: Verify Insights read-model performance budgets
         run: npm run benchmark:insights
 

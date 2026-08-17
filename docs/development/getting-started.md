@@ -49,6 +49,7 @@ npm run test:fast
 | Generate independent E2E fixtures | `npm run fixture:e2e` |
 | Generate the cancellation-scale fixture | `npm run fixture:large` |
 | Generate the Insights performance fixture | `npm run fixture:insights-performance` |
+| Verify full-scale import and exact-repeat budgets | `npm run benchmark:import` |
 | Verify detailed and longitudinal read-model performance | `npm run benchmark:insights` |
 | Build the unsigned production package | `npm run package` |
 | Install the pinned local release evidence tool | `npm run install:release-tools` |
@@ -65,7 +66,7 @@ The unsigned macOS production application and DMG are generated under `src-tauri
 
 ## Synthetic fixture workflow
 
-`npm run fixture:e2e` generates the current valid, invalid, and cumulative-overlap ZIP packages under `.artifacts/e2e/fixtures`. `npm run fixture:large` generates the local entry-count and cancellation scenario, while `npm run fixture:insights-performance` generates the two-year packaged-UI activity, training, sleep, recovery, and integrated longitudinal performance history. None of their output is added to Git. The behavioral source of truth is the [synthetic import scenario specification](../testing/synthetic-import-scenarios.md); every implemented scenario must keep its generator, expected outcome, data-format documentation, and tests consistent.
+`npm run fixture:e2e` generates the current valid, invalid, and cumulative-overlap ZIP packages under `.artifacts/e2e/fixtures`. `npm run fixture:large` generates the 10,000-entry mixed activity, training, excluded-sample, expanded-volume, and cancellation scenario, while `npm run fixture:insights-performance` generates the two-year packaged-UI activity, training, sleep, recovery, and integrated longitudinal performance history. None of their output is added to Git. The behavioral source of truth is the [synthetic import scenario specification](../testing/synthetic-import-scenarios.md); every implemented scenario must keep its generator, expected outcome, data-format documentation, and tests consistent.
 
 ## Architecture navigation
 
@@ -91,7 +92,7 @@ The [private release preparation guide](release-preparation.md) owns the clean-r
 
 ## Continuous integration
 
-GitHub Actions classifies every pull request and `main` revision through a closed documentation-only allowlist. Documentation links and repository safety always run. A documentation-only revision skips executable verification only when the exact Git-tree fingerprint of every executable and release input has evidence that both complete lanes previously passed; missing evidence fails closed. Executable, release-affecting, unknown, and explicitly requested changes run the complete portable quality checks and mandatory macOS packaged-E2E job. The macOS job verifies detailed-domain and longitudinal read-model performance, prepares and installation-tests a normal private production package, and then builds separate test variants. It drives the packaged application through validation, progress, cancellation, both locales, exact and cumulative reimport, accessibility, persisted restart, and in-WebView performance budgets for all four detailed Insights areas and their integrated longitudinal view. It also exercises a real signed 0.1.0-to-0.2.0 native update through loopback HTTPS, including successful confirmation and automatic rollback after deliberate candidate rejection.
+GitHub Actions classifies every pull request and `main` revision through a closed documentation-only allowlist. Documentation links and repository safety always run. A documentation-only revision skips executable verification only when the exact Git-tree fingerprint of every executable and release input has evidence that both complete lanes previously passed; missing evidence fails closed. Executable, release-affecting, unknown, and explicitly requested changes run the complete portable quality checks and mandatory macOS packaged-E2E job. The macOS job verifies the full-scale import, exact-repeat, detailed-domain, and longitudinal read-model budgets, prepares and installation-tests a normal private production package, and then builds separate test variants. It drives the packaged application through validation, progress, cancellation, both locales, exact and cumulative reimport, accessibility, persisted restart, and in-WebView performance budgets for all four detailed Insights areas and their integrated longitudinal view. It also exercises a real signed 0.1.0-to-0.2.0 native update through loopback HTTPS, including successful confirmation and automatic rollback after deliberate candidate rejection.
 
 The instrumented build routes only the archive-picker adapter to WebdriverIO's dialog mock because the embedded macOS WebView exposes Tauri globals through a non-configurable proxy. The E2E test waits for the recorded picker call before observing its result. Normal development and production builds use Tauri's native dialog directly, and the production-bundle check rejects both Rust and presentation WebDriver markers.
 

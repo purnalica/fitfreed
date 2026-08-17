@@ -5,7 +5,9 @@ use std::{
 };
 
 use fitfreed_application::ImportPhaseTimings;
-use fitfreed_lib::infrastructure::{profile_polar_import_archive, query_activity_between};
+use fitfreed_lib::infrastructure::{
+    profile_polar_import_archive, query_activity_between, query_training_between,
+};
 use serde_json::{json, Value};
 
 fn main() {
@@ -28,13 +30,19 @@ fn main() {
     let exact_repeat = repeat_started.elapsed();
 
     let mut query_timings = Vec::new();
-    let mut result_count = 0;
+    let mut activity_result_count = 0;
+    let mut training_result_count = 0;
     for _ in 0..50 {
         let query_started = Instant::now();
-        let result = query_activity_between(database_path, Some("2000-01-01"), Some("2000-12-31"))
-            .expect("period query");
+        let activity =
+            query_activity_between(database_path, Some("1996-01-01"), Some("1996-12-31"))
+                .expect("activity period query");
+        let training =
+            query_training_between(database_path, Some("1996-01-01"), Some("1996-12-31"))
+                .expect("training period query");
         query_timings.push(query_started.elapsed());
-        result_count = result.len();
+        activity_result_count = activity.len();
+        training_result_count = training.len();
     }
     query_timings.sort_unstable();
 
@@ -46,7 +54,8 @@ fn main() {
             "exactRepeatMilliseconds": milliseconds(exact_repeat),
             "queryMedianMilliseconds": milliseconds(percentile(&query_timings, 0.50)),
             "queryP95Milliseconds": milliseconds(percentile(&query_timings, 0.95)),
-            "queryResultCount": result_count,
+            "activityQueryResultCount": activity_result_count,
+            "trainingQueryResultCount": training_result_count,
             "recognizedArtifacts": first.report.recognized_artifacts,
             "newObservations": first.report.new_observations,
             "repeatDetected": repeat.report.exact_repeat,

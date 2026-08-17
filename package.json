@@ -23,6 +23,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "audit:dependencies": "npm audit --audit-level=high",
+    "benchmark:import": "node scripts/run-import-benchmark.mjs",
     "benchmark:insights": "cargo run --quiet --release --manifest-path src-tauri/Cargo.toml --example insights_benchmark",
     "check:architecture": "node scripts/check-rust-architecture.mjs",
     "check:data-contracts": "node scripts/check-data-contracts.mjs",
@@ -55,7 +56,7 @@
     "verify:development-release": "scripts/verify-macos-development-release.sh",
     "verify:update-recovery-preparation": "scripts/verify-update-recovery-preparation.sh",
     "verify:update-e2e": "node scripts/verify-packaged-update.mjs",
-    "verify:full": "npm run doctor && npm run audit:dependencies && npm run test:fast && npm run lint:rust && npm run format:check && npm run benchmark:insights && npm run verify:e2e && npm run verify:update-e2e && npm run package && npm run check:production-bundle && npm run verify:update-recovery-preparation",
+    "verify:full": "npm run doctor && npm run audit:dependencies && npm run test:fast && npm run lint:rust && npm run format:check && npm run benchmark:import && npm run benchmark:insights && npm run verify:e2e && npm run verify:update-e2e && npm run package && npm run check:production-bundle && npm run verify:update-recovery-preparation",
     "tauri": "tauri"
   },
   "dependencies": {
