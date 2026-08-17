@@ -3,12 +3,15 @@ use serde::{Deserialize, Serialize};
 use fitfreed_application::{
     ActivityComparison, ActivityDateRange, ActivityDayAvailability, ActivityDayInsight,
     ActivityOverview, ActivitySeriesComparison, ActivitySeriesOverview, ActivitySeriesSummary,
-    ApplicationError, ImportPhase, ImportProgress, TrainingComparison, TrainingDateRange,
-    TrainingOverview, TrainingSeriesComparison, TrainingSeriesOverview, TrainingSeriesSummary,
-    TrainingSessionInsight,
+    ApplicationError, ImportPhase, ImportProgress, SleepComparison, SleepDateRange,
+    SleepDayAvailability, SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight,
+    SleepPhaseTotals, SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary,
+    TrainingComparison, TrainingDateRange, TrainingOverview, TrainingSeriesComparison,
+    TrainingSeriesOverview, TrainingSeriesSummary, TrainingSessionInsight,
 };
 use fitfreed_domain::{
     ArtifactCoverageSummary, ArtifactFamilyCoverage, ImportOutcome, ImportReport,
+    SleepPhaseSummary, SleepScore, SleepStage, SleepStageTransition,
 };
 
 #[derive(Debug, Serialize)]
@@ -32,6 +35,8 @@ impl From<ApplicationError> for CommandErrorDto {
             ApplicationError::Query(_) => "library-query-failed",
             ApplicationError::InvalidActivityRange(_) => "invalid-activity-range",
             ApplicationError::InvalidTrainingRange(_) => "invalid-training-range",
+            ApplicationError::InvalidSleepRange(_) => "invalid-sleep-range",
+            ApplicationError::InvalidSleepReference(_) => "invalid-sleep-reference",
             ApplicationError::OutcomeQuery(_) => "outcome-query-failed",
             ApplicationError::PreferenceQuery(_) => "preference-query-failed",
             ApplicationError::PreferenceUpdate(_) => "preference-update-failed",
@@ -365,6 +370,405 @@ impl From<TrainingComparison> for TrainingComparisonDto {
             baseline_range: comparison.baseline_range.map(Into::into),
             comparison_range: comparison.comparison_range.map(Into::into),
             series: comparison.series.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SleepDateRangeDto {
+    from: String,
+    through: String,
+}
+
+impl From<SleepDateRangeDto> for SleepDateRange {
+    fn from(range: SleepDateRangeDto) -> Self {
+        Self {
+            from: range.from,
+            through: range.through,
+        }
+    }
+}
+
+impl From<SleepDateRange> for SleepDateRangeDto {
+    fn from(range: SleepDateRange) -> Self {
+        Self {
+            from: range.from,
+            through: range.through,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SleepPhaseSummaryDto {
+    wake_milliseconds: String,
+    rem_milliseconds: String,
+    light_milliseconds: String,
+    deep_milliseconds: String,
+    unrecognized_milliseconds: String,
+}
+
+impl From<SleepPhaseSummary> for SleepPhaseSummaryDto {
+    fn from(summary: SleepPhaseSummary) -> Self {
+        Self {
+            wake_milliseconds: summary.wake_milliseconds.to_string(),
+            rem_milliseconds: summary.rem_milliseconds.to_string(),
+            light_milliseconds: summary.light_milliseconds.to_string(),
+            deep_milliseconds: summary.deep_milliseconds.to_string(),
+            unrecognized_milliseconds: summary.unrecognized_milliseconds.to_string(),
+        }
+    }
+}
+
+impl From<SleepPhaseTotals> for SleepPhaseSummaryDto {
+    fn from(summary: SleepPhaseTotals) -> Self {
+        Self {
+            wake_milliseconds: summary.wake_milliseconds.to_string(),
+            rem_milliseconds: summary.rem_milliseconds.to_string(),
+            light_milliseconds: summary.light_milliseconds.to_string(),
+            deep_milliseconds: summary.deep_milliseconds.to_string(),
+            unrecognized_milliseconds: summary.unrecognized_milliseconds.to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SleepPeriodInsightDto {
+    started_at: String,
+    ended_at: String,
+    span_milliseconds: String,
+    asleep_milliseconds: String,
+    interruption_milliseconds: String,
+    long_interruption_milliseconds: String,
+    short_interruption_milliseconds: String,
+    interruption_count: String,
+    long_interruption_count: String,
+    short_interruption_count: String,
+    efficiency_percent: f64,
+    continuity_index: f64,
+    continuity_class: i64,
+    sleep_goal_milliseconds: Option<String>,
+    self_reported_rating: Option<i64>,
+    cycle_count: Option<String>,
+    recording_ended_by_power_loss: Option<bool>,
+    phase_summary: Option<SleepPhaseSummaryDto>,
+    stage_timeline_available: bool,
+    score_overall: Option<f64>,
+    score_relative_rating: Option<i64>,
+}
+
+impl From<SleepPeriodInsight> for SleepPeriodInsightDto {
+    fn from(period: SleepPeriodInsight) -> Self {
+        Self {
+            started_at: period.started_at,
+            ended_at: period.ended_at,
+            span_milliseconds: period.span_milliseconds.to_string(),
+            asleep_milliseconds: period.asleep_milliseconds.to_string(),
+            interruption_milliseconds: period.interruption_milliseconds.to_string(),
+            long_interruption_milliseconds: period.long_interruption_milliseconds.to_string(),
+            short_interruption_milliseconds: period.short_interruption_milliseconds.to_string(),
+            interruption_count: period.interruption_count.to_string(),
+            long_interruption_count: period.long_interruption_count.to_string(),
+            short_interruption_count: period.short_interruption_count.to_string(),
+            efficiency_percent: period.efficiency_percent,
+            continuity_index: period.continuity_index,
+            continuity_class: period.continuity_class,
+            sleep_goal_milliseconds: period
+                .sleep_goal_milliseconds
+                .map(|value| value.to_string()),
+            self_reported_rating: period.self_reported_rating,
+            cycle_count: period.cycle_count.map(|value| value.to_string()),
+            recording_ended_by_power_loss: period.recording_ended_by_power_loss,
+            phase_summary: period.phase_summary.map(Into::into),
+            stage_timeline_available: period.stage_timeline_available,
+            score_overall: period.score_overall,
+            score_relative_rating: period.score_relative_rating,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SleepDayInsightDto {
+    sleep_date: String,
+    availability: &'static str,
+    period: Option<SleepPeriodInsightDto>,
+}
+
+impl From<SleepDayInsight> for SleepDayInsightDto {
+    fn from(day: SleepDayInsight) -> Self {
+        Self {
+            sleep_date: day.sleep_date,
+            availability: match day.availability {
+                SleepDayAvailability::Available => "available",
+                SleepDayAvailability::Missing => "missing",
+            },
+            period: day.period.map(Into::into),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SleepSeriesSummaryDto {
+    calendar_days: usize,
+    observed_nights: usize,
+    missing_nights: usize,
+    total_asleep_milliseconds: Option<String>,
+    average_asleep_milliseconds: Option<String>,
+    total_interruption_milliseconds: Option<String>,
+    average_interruption_milliseconds: Option<String>,
+    average_efficiency_percent: Option<f64>,
+    phase_night_count: usize,
+    phase_totals: Option<SleepPhaseSummaryDto>,
+    stage_timeline_night_count: usize,
+    score_night_count: usize,
+    average_overall_score: Option<f64>,
+    goal_night_count: usize,
+    goal_met_night_count: usize,
+    power_status_night_count: usize,
+    power_loss_night_count: usize,
+}
+
+impl From<SleepSeriesSummary> for SleepSeriesSummaryDto {
+    fn from(summary: SleepSeriesSummary) -> Self {
+        Self {
+            calendar_days: summary.calendar_days,
+            observed_nights: summary.observed_nights,
+            missing_nights: summary.missing_nights,
+            total_asleep_milliseconds: summary
+                .total_asleep_milliseconds
+                .map(|value| value.to_string()),
+            average_asleep_milliseconds: summary
+                .average_asleep_milliseconds
+                .map(|value| value.to_string()),
+            total_interruption_milliseconds: summary
+                .total_interruption_milliseconds
+                .map(|value| value.to_string()),
+            average_interruption_milliseconds: summary
+                .average_interruption_milliseconds
+                .map(|value| value.to_string()),
+            average_efficiency_percent: summary.average_efficiency_percent,
+            phase_night_count: summary.phase_night_count,
+            phase_totals: summary.phase_totals.map(Into::into),
+            stage_timeline_night_count: summary.stage_timeline_night_count,
+            score_night_count: summary.score_night_count,
+            average_overall_score: summary.average_overall_score,
+            goal_night_count: summary.goal_night_count,
+            goal_met_night_count: summary.goal_met_night_count,
+            power_status_night_count: summary.power_status_night_count,
+            power_loss_night_count: summary.power_loss_night_count,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SleepSeriesOverviewDto {
+    series_ref: String,
+    summary: SleepSeriesSummaryDto,
+    days: Vec<SleepDayInsightDto>,
+}
+
+impl From<SleepSeriesOverview> for SleepSeriesOverviewDto {
+    fn from(series: SleepSeriesOverview) -> Self {
+        Self {
+            series_ref: series.series_ref,
+            summary: series.summary.into(),
+            days: series.days.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SleepOverviewDto {
+    available_range: Option<SleepDateRangeDto>,
+    selected_range: Option<SleepDateRangeDto>,
+    series: Vec<SleepSeriesOverviewDto>,
+}
+
+impl From<SleepOverview> for SleepOverviewDto {
+    fn from(overview: SleepOverview) -> Self {
+        Self {
+            available_range: overview.available_range.map(Into::into),
+            selected_range: overview.selected_range.map(Into::into),
+            series: overview.series.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SleepSeriesComparisonDto {
+    series_ref: String,
+    baseline: SleepSeriesSummaryDto,
+    comparison: SleepSeriesSummaryDto,
+    observed_night_change: String,
+    missing_night_change: String,
+    average_asleep_milliseconds_change: Option<String>,
+    average_interruption_milliseconds_change: Option<String>,
+    average_efficiency_percentage_point_change: Option<f64>,
+    average_overall_score_change: Option<f64>,
+    goal_met_percentage_point_change: Option<f64>,
+}
+
+impl From<SleepSeriesComparison> for SleepSeriesComparisonDto {
+    fn from(series: SleepSeriesComparison) -> Self {
+        Self {
+            series_ref: series.series_ref,
+            baseline: series.baseline.into(),
+            comparison: series.comparison.into(),
+            observed_night_change: series.observed_night_change.to_string(),
+            missing_night_change: series.missing_night_change.to_string(),
+            average_asleep_milliseconds_change: series
+                .average_asleep_milliseconds_change
+                .map(|value| value.to_string()),
+            average_interruption_milliseconds_change: series
+                .average_interruption_milliseconds_change
+                .map(|value| value.to_string()),
+            average_efficiency_percentage_point_change: series
+                .average_efficiency_percentage_point_change,
+            average_overall_score_change: series.average_overall_score_change,
+            goal_met_percentage_point_change: series.goal_met_percentage_point_change,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SleepComparisonDto {
+    available_range: Option<SleepDateRangeDto>,
+    baseline_range: Option<SleepDateRangeDto>,
+    comparison_range: Option<SleepDateRangeDto>,
+    series: Vec<SleepSeriesComparisonDto>,
+}
+
+impl From<SleepComparison> for SleepComparisonDto {
+    fn from(comparison: SleepComparison) -> Self {
+        Self {
+            available_range: comparison.available_range.map(Into::into),
+            baseline_range: comparison.baseline_range.map(Into::into),
+            comparison_range: comparison.comparison_range.map(Into::into),
+            series: comparison.series.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SleepStageTransitionDto {
+    offset_milliseconds: String,
+    stage: &'static str,
+}
+
+impl From<SleepStageTransition> for SleepStageTransitionDto {
+    fn from(transition: SleepStageTransition) -> Self {
+        Self {
+            offset_milliseconds: transition.offset_milliseconds.to_string(),
+            stage: match transition.stage {
+                SleepStage::Wake => "wake",
+                SleepStage::Rem => "rem",
+                SleepStage::Light => "light",
+                SleepStage::Deep => "deep",
+                SleepStage::Unrecognized => "unrecognized",
+            },
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SleepScoreDto {
+    overall: f64,
+    own_target_duration: f64,
+    recommended_duration: f64,
+    continuity: f64,
+    efficiency: f64,
+    rem: f64,
+    deep: f64,
+    long_interruptions: f64,
+    duration: f64,
+    solidity: f64,
+    regeneration: f64,
+    relative_rating: Option<i64>,
+}
+
+impl From<SleepScore> for SleepScoreDto {
+    fn from(score: SleepScore) -> Self {
+        Self {
+            overall: score.overall,
+            own_target_duration: score.own_target_duration,
+            recommended_duration: score.recommended_duration,
+            continuity: score.continuity,
+            efficiency: score.efficiency,
+            rem: score.rem,
+            deep: score.deep,
+            long_interruptions: score.long_interruptions,
+            duration: score.duration,
+            solidity: score.solidity,
+            regeneration: score.regeneration,
+            relative_rating: score.relative_rating,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SleepPeriodDetailDto {
+    sleep_date: String,
+    started_at: String,
+    ended_at: String,
+    span_milliseconds: String,
+    asleep_milliseconds: String,
+    interruption_milliseconds: String,
+    long_interruption_milliseconds: String,
+    short_interruption_milliseconds: String,
+    interruption_count: String,
+    long_interruption_count: String,
+    short_interruption_count: String,
+    efficiency_percent: f64,
+    continuity_index: f64,
+    continuity_class: i64,
+    sleep_goal_milliseconds: Option<String>,
+    self_reported_rating: Option<i64>,
+    cycle_count: Option<String>,
+    recording_ended_by_power_loss: Option<bool>,
+    phase_summary: Option<SleepPhaseSummaryDto>,
+    stage_transitions: Option<Vec<SleepStageTransitionDto>>,
+    score: Option<SleepScoreDto>,
+}
+
+impl From<SleepPeriodDetail> for SleepPeriodDetailDto {
+    fn from(period: SleepPeriodDetail) -> Self {
+        Self {
+            sleep_date: period.sleep_date,
+            started_at: period.started_at,
+            ended_at: period.ended_at,
+            span_milliseconds: period.span_milliseconds.to_string(),
+            asleep_milliseconds: period.asleep_milliseconds.to_string(),
+            interruption_milliseconds: period.interruption_milliseconds.to_string(),
+            long_interruption_milliseconds: period.long_interruption_milliseconds.to_string(),
+            short_interruption_milliseconds: period.short_interruption_milliseconds.to_string(),
+            interruption_count: period.interruption_count.to_string(),
+            long_interruption_count: period.long_interruption_count.to_string(),
+            short_interruption_count: period.short_interruption_count.to_string(),
+            efficiency_percent: period.efficiency_percent,
+            continuity_index: period.continuity_index,
+            continuity_class: period.continuity_class,
+            sleep_goal_milliseconds: period
+                .sleep_goal_milliseconds
+                .map(|value| value.to_string()),
+            self_reported_rating: period.self_reported_rating,
+            cycle_count: period.cycle_count.map(|value| value.to_string()),
+            recording_ended_by_power_loss: period.recording_ended_by_power_loss,
+            phase_summary: period.phase_summary.map(Into::into),
+            stage_transitions: period
+                .stage_transitions
+                .map(|transitions| transitions.into_iter().map(Into::into).collect()),
+            score: period.score.map(Into::into),
         }
     }
 }
@@ -746,6 +1150,197 @@ mod tests {
         assert_eq!(
             comparison_json["series"][0]["energyKilocaloriesChange"],
             "9223372036854775808"
+        );
+    }
+
+    #[test]
+    fn serializes_sleep_overview_comparison_and_detail_without_losing_exact_values() {
+        let summary = SleepSeriesSummary {
+            calendar_days: 2,
+            observed_nights: 1,
+            missing_nights: 1,
+            total_asleep_milliseconds: Some(9_223_372_036_854_775_808),
+            average_asleep_milliseconds: Some(9_223_372_036_854_775_808),
+            total_interruption_milliseconds: Some(1_800_000),
+            average_interruption_milliseconds: Some(1_800_000),
+            average_efficiency_percent: Some(92.5),
+            phase_night_count: 1,
+            phase_totals: Some(SleepPhaseTotals {
+                wake_milliseconds: 1_800_000,
+                rem_milliseconds: 5_400_000,
+                light_milliseconds: 12_600_000,
+                deep_milliseconds: 5_400_000,
+                unrecognized_milliseconds: 0,
+            }),
+            stage_timeline_night_count: 1,
+            score_night_count: 1,
+            average_overall_score: Some(82.0),
+            goal_night_count: 1,
+            goal_met_night_count: 0,
+            power_status_night_count: 1,
+            power_loss_night_count: 0,
+        };
+        let period = SleepPeriodInsight {
+            started_at: "2026-01-01T22:30:00+01:00".to_owned(),
+            ended_at: "2026-01-02T05:30:00+01:00".to_owned(),
+            span_milliseconds: i64::MAX,
+            asleep_milliseconds: i64::MAX - 1,
+            interruption_milliseconds: 1,
+            long_interruption_milliseconds: 1,
+            short_interruption_milliseconds: 0,
+            interruption_count: 1,
+            long_interruption_count: 1,
+            short_interruption_count: 0,
+            efficiency_percent: 92.5,
+            continuity_index: 4.2,
+            continuity_class: 4,
+            sleep_goal_milliseconds: Some(i64::MAX),
+            self_reported_rating: Some(4),
+            cycle_count: Some(4),
+            recording_ended_by_power_loss: Some(false),
+            phase_summary: None,
+            stage_timeline_available: true,
+            score_overall: Some(82.0),
+            score_relative_rating: Some(4),
+        };
+        let range = Some(SleepDateRange {
+            from: "2026-01-01".to_owned(),
+            through: "2026-01-02".to_owned(),
+        });
+        let overview = SleepOverview {
+            available_range: range.clone(),
+            selected_range: range.clone(),
+            series: vec![SleepSeriesOverview {
+                series_ref: "synthetic-origin".to_owned(),
+                summary: summary.clone(),
+                days: vec![
+                    SleepDayInsight {
+                        sleep_date: "2026-01-01".to_owned(),
+                        availability: SleepDayAvailability::Available,
+                        period: Some(period),
+                    },
+                    SleepDayInsight {
+                        sleep_date: "2026-01-02".to_owned(),
+                        availability: SleepDayAvailability::Missing,
+                        period: None,
+                    },
+                ],
+            }],
+        };
+        let comparison = SleepComparison {
+            available_range: range.clone(),
+            baseline_range: range.clone(),
+            comparison_range: range,
+            series: vec![SleepSeriesComparison {
+                series_ref: "synthetic-origin".to_owned(),
+                baseline: summary.clone(),
+                comparison: summary,
+                observed_night_change: -9_223_372_036_854_775_808,
+                missing_night_change: 9_223_372_036_854_775_808,
+                average_asleep_milliseconds_change: Some(-9_223_372_036_854_775_808),
+                average_interruption_milliseconds_change: Some(9_223_372_036_854_775_808),
+                average_efficiency_percentage_point_change: Some(2.5),
+                average_overall_score_change: None,
+                goal_met_percentage_point_change: Some(-50.0),
+            }],
+        };
+        let detail = SleepPeriodDetail {
+            sleep_date: "2026-01-01".to_owned(),
+            started_at: "2026-01-01T22:30:00+01:00".to_owned(),
+            ended_at: "2026-01-02T05:30:00+01:00".to_owned(),
+            span_milliseconds: i64::MAX,
+            asleep_milliseconds: i64::MAX - 1,
+            interruption_milliseconds: 1,
+            long_interruption_milliseconds: 1,
+            short_interruption_milliseconds: 0,
+            interruption_count: 1,
+            long_interruption_count: 1,
+            short_interruption_count: 0,
+            efficiency_percent: 92.5,
+            continuity_index: 4.2,
+            continuity_class: 4,
+            sleep_goal_milliseconds: Some(i64::MAX),
+            self_reported_rating: Some(4),
+            cycle_count: Some(4),
+            recording_ended_by_power_loss: Some(false),
+            phase_summary: None,
+            stage_transitions: Some(vec![SleepStageTransition {
+                offset_milliseconds: i64::MAX,
+                stage: SleepStage::Deep,
+            }]),
+            score: Some(SleepScore {
+                overall: 82.0,
+                own_target_duration: 75.0,
+                recommended_duration: 80.0,
+                continuity: 84.0,
+                efficiency: 90.0,
+                rem: 81.0,
+                deep: 78.0,
+                long_interruptions: 88.0,
+                duration: 79.0,
+                solidity: 87.0,
+                regeneration: 83.0,
+                relative_rating: Some(4),
+            }),
+        };
+
+        let overview_json =
+            serde_json::to_value(SleepOverviewDto::from(overview)).expect("sleep JSON");
+        let comparison_json = serde_json::to_value(SleepComparisonDto::from(comparison))
+            .expect("sleep comparison JSON");
+        let detail_json =
+            serde_json::to_value(SleepPeriodDetailDto::from(detail)).expect("sleep detail JSON");
+
+        assert_eq!(
+            overview_json["series"][0]["summary"]["totalAsleepMilliseconds"],
+            "9223372036854775808"
+        );
+        assert_eq!(
+            overview_json["series"][0]["days"][0]["period"]["spanMilliseconds"],
+            "9223372036854775807"
+        );
+        assert_eq!(
+            overview_json["series"][0]["days"][0]["period"]["cycleCount"],
+            "4"
+        );
+        assert_eq!(
+            overview_json["series"][0]["days"][1],
+            serde_json::json!({
+                "sleepDate": "2026-01-02",
+                "availability": "missing",
+                "period": null
+            })
+        );
+        assert_eq!(
+            comparison_json["series"][0]["averageAsleepMillisecondsChange"],
+            "-9223372036854775808"
+        );
+        assert_eq!(
+            comparison_json["series"][0]["averageInterruptionMillisecondsChange"],
+            "9223372036854775808"
+        );
+        assert_eq!(
+            detail_json["stageTransitions"][0],
+            serde_json::json!({
+                "offsetMilliseconds": "9223372036854775807",
+                "stage": "deep"
+            })
+        );
+        assert_eq!(detail_json["score"]["overall"], 82.0);
+        assert_eq!(detail_json["cycleCount"], "4");
+        assert_eq!(
+            serde_json::to_value(CommandErrorDto::from(ApplicationError::InvalidSleepRange(
+                "synthetic"
+            )))
+            .expect("sleep range error")["code"],
+            "invalid-sleep-range"
+        );
+        assert_eq!(
+            serde_json::to_value(CommandErrorDto::from(
+                ApplicationError::InvalidSleepReference("synthetic")
+            ))
+            .expect("sleep reference error")["code"],
+            "invalid-sleep-reference"
         );
     }
 

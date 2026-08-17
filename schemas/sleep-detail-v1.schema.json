@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/sleep-detail-v1.schema.json",
+  "title": "FitFreed sleep detail version 1",
+  "oneOf": [
+    { "type": "null" },
+    { "$ref": "#/$defs/detail" }
+  ],
+  "$defs": {
+    "unsignedDecimal": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$"
+    },
+    "optionalUnsignedDecimal": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/unsignedDecimal" }
+      ]
+    },
+    "optionalRating": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "integer", "minimum": 1, "maximum": 5 }
+      ]
+    },
+    "optionalBoolean": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "boolean" }
+      ]
+    },
+    "optionalPhaseSummary": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "sleep-overview-v1.schema.json#/$defs/phaseSummary" }
+      ]
+    },
+    "stageTransition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["offsetMilliseconds", "stage"],
+      "properties": {
+        "offsetMilliseconds": { "$ref": "#/$defs/unsignedDecimal" },
+        "stage": {
+          "enum": ["wake", "rem", "light", "deep", "unrecognized"]
+        }
+      }
+    },
+    "optionalStageTransitions": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "array",
+          "items": { "$ref": "#/$defs/stageTransition" }
+        }
+      ]
+    },
+    "score": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "overall",
+        "ownTargetDuration",
+        "recommendedDuration",
+        "continuity",
+        "efficiency",
+        "rem",
+        "deep",
+        "longInterruptions",
+        "duration",
+        "solidity",
+        "regeneration",
+        "relativeRating"
+      ],
+      "properties": {
+        "overall": { "type": "number", "minimum": 1, "maximum": 100 },
+        "ownTargetDuration": { "type": "number", "minimum": 1, "maximum": 100 },
+        "recommendedDuration": { "type": "number", "minimum": 1, "maximum": 100 },
+        "continuity": { "type": "number", "minimum": 1, "maximum": 100 },
+        "efficiency": { "type": "number", "minimum": 1, "maximum": 100 },
+        "rem": { "type": "number", "minimum": 1, "maximum": 100 },
+        "deep": { "type": "number", "minimum": 1, "maximum": 100 },
+        "longInterruptions": { "type": "number", "minimum": 1, "maximum": 100 },
+        "duration": { "type": "number", "minimum": 1, "maximum": 100 },
+        "solidity": { "type": "number", "minimum": 1, "maximum": 100 },
+        "regeneration": { "type": "number", "minimum": 1, "maximum": 100 },
+        "relativeRating": { "$ref": "#/$defs/optionalRating" }
+      }
+    },
+    "optionalScore": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/score" }
+      ]
+    },
+    "detail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sleepDate",
+        "startedAt",
+        "endedAt",
+        "spanMilliseconds",
+        "asleepMilliseconds",
+        "interruptionMilliseconds",
+        "longInterruptionMilliseconds",
+        "shortInterruptionMilliseconds",
+        "interruptionCount",
+        "longInterruptionCount",
+        "shortInterruptionCount",
+        "efficiencyPercent",
+        "continuityIndex",
+        "continuityClass",
+        "sleepGoalMilliseconds",
+        "selfReportedRating",
+        "cycleCount",
+        "recordingEndedByPowerLoss",
+        "phaseSummary",
+        "stageTransitions",
+        "score"
+      ],
+      "properties": {
+        "sleepDate": { "$ref": "sleep-overview-v1.schema.json#/$defs/localDate" },
+        "startedAt": { "$ref": "sleep-overview-v1.schema.json#/$defs/offsetDateTime" },
+        "endedAt": { "$ref": "sleep-overview-v1.schema.json#/$defs/offsetDateTime" },
+        "spanMilliseconds": { "$ref": "#/$defs/unsignedDecimal" },
+        "asleepMilliseconds": { "$ref": "#/$defs/unsignedDecimal" },
+        "interruptionMilliseconds": { "$ref": "#/$defs/unsignedDecimal" },
+        "longInterruptionMilliseconds": { "$ref": "#/$defs/unsignedDecimal" },
+        "shortInterruptionMilliseconds": { "$ref": "#/$defs/unsignedDecimal" },
+        "interruptionCount": { "$ref": "#/$defs/unsignedDecimal" },
+        "longInterruptionCount": { "$ref": "#/$defs/unsignedDecimal" },
+        "shortInterruptionCount": { "$ref": "#/$defs/unsignedDecimal" },
+        "efficiencyPercent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "continuityIndex": { "type": "number", "minimum": 0, "maximum": 5 },
+        "continuityClass": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "sleepGoalMilliseconds": { "$ref": "#/$defs/optionalUnsignedDecimal" },
+        "selfReportedRating": { "$ref": "#/$defs/optionalRating" },
+        "cycleCount": { "$ref": "#/$defs/optionalUnsignedDecimal" },
+        "recordingEndedByPowerLoss": { "$ref": "#/$defs/optionalBoolean" },
+        "phaseSummary": { "$ref": "#/$defs/optionalPhaseSummary" },
+        "stageTransitions": { "$ref": "#/$defs/optionalStageTransitions" },
+        "score": { "$ref": "#/$defs/optionalScore" }
+      }
+    }
+  }
+}

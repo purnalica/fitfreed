@@ -1,0 +1,231 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/sleep-overview-v1.schema.json",
+  "title": "FitFreed sleep overview version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["availableRange", "selectedRange", "series"],
+  "properties": {
+    "availableRange": { "$ref": "#/$defs/optionalRange" },
+    "selectedRange": { "$ref": "#/$defs/optionalRange" },
+    "series": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/series" }
+    }
+  },
+  "$defs": {
+    "localDate": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "offsetDateTime": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?[+-][0-9]{2}:[0-9]{2}$"
+    },
+    "range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "through"],
+      "properties": {
+        "from": { "$ref": "#/$defs/localDate" },
+        "through": { "$ref": "#/$defs/localDate" }
+      }
+    },
+    "optionalRange": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/range" }
+      ]
+    },
+    "unsignedDecimal": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$"
+    },
+    "optionalUnsignedDecimal": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/unsignedDecimal" }
+      ]
+    },
+    "optionalRating": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "integer", "minimum": 1, "maximum": 5 }
+      ]
+    },
+    "optionalBoolean": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "boolean" }
+      ]
+    },
+    "optionalScore": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "number", "minimum": 1, "maximum": 100 }
+      ]
+    },
+    "phaseSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "wakeMilliseconds",
+        "remMilliseconds",
+        "lightMilliseconds",
+        "deepMilliseconds",
+        "unrecognizedMilliseconds"
+      ],
+      "properties": {
+        "wakeMilliseconds": { "$ref": "#/$defs/unsignedDecimal" },
+        "remMilliseconds": { "$ref": "#/$defs/unsignedDecimal" },
+        "lightMilliseconds": { "$ref": "#/$defs/unsignedDecimal" },
+        "deepMilliseconds": { "$ref": "#/$defs/unsignedDecimal" },
+        "unrecognizedMilliseconds": { "$ref": "#/$defs/unsignedDecimal" }
+      }
+    },
+    "optionalPhaseSummary": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/phaseSummary" }
+      ]
+    },
+    "period": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "startedAt",
+        "endedAt",
+        "spanMilliseconds",
+        "asleepMilliseconds",
+        "interruptionMilliseconds",
+        "longInterruptionMilliseconds",
+        "shortInterruptionMilliseconds",
+        "interruptionCount",
+        "longInterruptionCount",
+        "shortInterruptionCount",
+        "efficiencyPercent",
+        "continuityIndex",
+        "continuityClass",
+        "sleepGoalMilliseconds",
+        "selfReportedRating",
+        "cycleCount",
+        "recordingEndedByPowerLoss",
+        "phaseSummary",
+        "stageTimelineAvailable",
+        "scoreOverall",
+        "scoreRelativeRating"
+      ],
+      "properties": {
+        "startedAt": { "$ref": "#/$defs/offsetDateTime" },
+        "endedAt": { "$ref": "#/$defs/offsetDateTime" },
+        "spanMilliseconds": { "$ref": "#/$defs/unsignedDecimal" },
+        "asleepMilliseconds": { "$ref": "#/$defs/unsignedDecimal" },
+        "interruptionMilliseconds": { "$ref": "#/$defs/unsignedDecimal" },
+        "longInterruptionMilliseconds": { "$ref": "#/$defs/unsignedDecimal" },
+        "shortInterruptionMilliseconds": { "$ref": "#/$defs/unsignedDecimal" },
+        "interruptionCount": { "$ref": "#/$defs/unsignedDecimal" },
+        "longInterruptionCount": { "$ref": "#/$defs/unsignedDecimal" },
+        "shortInterruptionCount": { "$ref": "#/$defs/unsignedDecimal" },
+        "efficiencyPercent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "continuityIndex": { "type": "number", "minimum": 0, "maximum": 5 },
+        "continuityClass": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "sleepGoalMilliseconds": { "$ref": "#/$defs/optionalUnsignedDecimal" },
+        "selfReportedRating": { "$ref": "#/$defs/optionalRating" },
+        "cycleCount": { "$ref": "#/$defs/optionalUnsignedDecimal" },
+        "recordingEndedByPowerLoss": { "$ref": "#/$defs/optionalBoolean" },
+        "phaseSummary": { "$ref": "#/$defs/optionalPhaseSummary" },
+        "stageTimelineAvailable": { "type": "boolean" },
+        "scoreOverall": { "$ref": "#/$defs/optionalScore" },
+        "scoreRelativeRating": { "$ref": "#/$defs/optionalRating" }
+      }
+    },
+    "day": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sleepDate", "availability", "period"],
+          "properties": {
+            "sleepDate": { "$ref": "#/$defs/localDate" },
+            "availability": { "const": "available" },
+            "period": { "$ref": "#/$defs/period" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sleepDate", "availability", "period"],
+          "properties": {
+            "sleepDate": { "$ref": "#/$defs/localDate" },
+            "availability": { "const": "missing" },
+            "period": { "type": "null" }
+          }
+        }
+      ]
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "calendarDays",
+        "observedNights",
+        "missingNights",
+        "totalAsleepMilliseconds",
+        "averageAsleepMilliseconds",
+        "totalInterruptionMilliseconds",
+        "averageInterruptionMilliseconds",
+        "averageEfficiencyPercent",
+        "phaseNightCount",
+        "phaseTotals",
+        "stageTimelineNightCount",
+        "scoreNightCount",
+        "averageOverallScore",
+        "goalNightCount",
+        "goalMetNightCount",
+        "powerStatusNightCount",
+        "powerLossNightCount"
+      ],
+      "properties": {
+        "calendarDays": { "type": "integer", "minimum": 1, "maximum": 366 },
+        "observedNights": { "type": "integer", "minimum": 0, "maximum": 366 },
+        "missingNights": { "type": "integer", "minimum": 0, "maximum": 366 },
+        "totalAsleepMilliseconds": { "$ref": "#/$defs/optionalUnsignedDecimal" },
+        "averageAsleepMilliseconds": { "$ref": "#/$defs/optionalUnsignedDecimal" },
+        "totalInterruptionMilliseconds": { "$ref": "#/$defs/optionalUnsignedDecimal" },
+        "averageInterruptionMilliseconds": { "$ref": "#/$defs/optionalUnsignedDecimal" },
+        "averageEfficiencyPercent": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "number", "minimum": 0, "maximum": 100 }
+          ]
+        },
+        "phaseNightCount": { "type": "integer", "minimum": 0, "maximum": 366 },
+        "phaseTotals": { "$ref": "#/$defs/optionalPhaseSummary" },
+        "stageTimelineNightCount": { "type": "integer", "minimum": 0, "maximum": 366 },
+        "scoreNightCount": { "type": "integer", "minimum": 0, "maximum": 366 },
+        "averageOverallScore": { "$ref": "#/$defs/optionalScore" },
+        "goalNightCount": { "type": "integer", "minimum": 0, "maximum": 366 },
+        "goalMetNightCount": { "type": "integer", "minimum": 0, "maximum": 366 },
+        "powerStatusNightCount": { "type": "integer", "minimum": 0, "maximum": 366 },
+        "powerLossNightCount": { "type": "integer", "minimum": 0, "maximum": 366 }
+      }
+    },
+    "series": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["seriesRef", "summary", "days"],
+      "properties": {
+        "seriesRef": { "type": "string", "minLength": 1 },
+        "summary": { "$ref": "#/$defs/summary" },
+        "days": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/day" },
+          "minItems": 1,
+          "maxItems": 366
+        }
+      }
+    }
+  }
+}

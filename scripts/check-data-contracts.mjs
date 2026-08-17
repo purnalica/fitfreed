@@ -672,6 +672,368 @@ for (const invalidChange of ["-0", "+1", "01"]) {
   }
 }
 
+const sleepOverviewPath = "docs/data-formats/insights/sleep-overview-v1.md";
+const sleepOverview = read(sleepOverviewPath);
+for (const field of [
+  "requestedRange",
+  "availableRange",
+  "selectedRange",
+  "series",
+  "seriesRef",
+  "summary",
+  "days",
+  "sleepDate",
+  "availability",
+  "period",
+  "startedAt",
+  "endedAt",
+  "spanMilliseconds",
+  "asleepMilliseconds",
+  "interruptionMilliseconds",
+  "longInterruptionMilliseconds",
+  "shortInterruptionMilliseconds",
+  "interruptionCount",
+  "longInterruptionCount",
+  "shortInterruptionCount",
+  "efficiencyPercent",
+  "continuityIndex",
+  "continuityClass",
+  "sleepGoalMilliseconds",
+  "selfReportedRating",
+  "cycleCount",
+  "recordingEndedByPowerLoss",
+  "phaseSummary",
+  "stageTimelineAvailable",
+  "scoreOverall",
+  "scoreRelativeRating",
+  "calendarDays",
+  "observedNights",
+  "missingNights",
+  "totalAsleepMilliseconds",
+  "averageAsleepMilliseconds",
+  "totalInterruptionMilliseconds",
+  "averageInterruptionMilliseconds",
+  "averageEfficiencyPercent",
+  "phaseNightCount",
+  "phaseTotals",
+  "stageTimelineNightCount",
+  "scoreNightCount",
+  "averageOverallScore",
+  "goalNightCount",
+  "goalMetNightCount",
+  "powerStatusNightCount",
+  "powerLossNightCount",
+  "stageTransitions",
+  "score",
+  "invalid-sleep-range",
+  "invalid-sleep-reference",
+  "available",
+  "missing",
+]) {
+  requireMention(sleepOverview, field, sleepOverviewPath);
+}
+
+const sleepOverviewQuerySchemaPath = "schemas/sleep-overview-query-v1.schema.json";
+const sleepOverviewQuerySchema = JSON.parse(read(sleepOverviewQuerySchemaPath));
+const validateSleepOverviewQuery = ajv.compile(sleepOverviewQuerySchema);
+const syntheticSleepOverviewQuery = {
+  requestedRange: { from: "2026-01-01", through: "2026-01-03" },
+};
+for (const query of [{ requestedRange: null }, syntheticSleepOverviewQuery]) {
+  if (!validateSleepOverviewQuery(query)) {
+    throw new Error(
+      sleepOverviewQuerySchemaPath
+        + " rejected a valid query: "
+        + ajv.errorsText(validateSleepOverviewQuery.errors),
+    );
+  }
+}
+for (const query of [
+  {},
+  { requestedRange: { from: "2026-02-30", through: "2026-03-01" } },
+  { requestedRange: null, provider: "synthetic" },
+]) {
+  if (validateSleepOverviewQuery(query)) {
+    throw new Error(sleepOverviewQuerySchemaPath + " accepted an invalid query");
+  }
+}
+
+const syntheticPhaseSummary = {
+  wakeMilliseconds: "1800000",
+  remMilliseconds: "5400000",
+  lightMilliseconds: "12600000",
+  deepMilliseconds: "5400000",
+  unrecognizedMilliseconds: "0",
+};
+const syntheticSleepSummary = {
+  calendarDays: 3,
+  observedNights: 2,
+  missingNights: 1,
+  totalAsleepMilliseconds: "46800000",
+  averageAsleepMilliseconds: "23400000",
+  totalInterruptionMilliseconds: "3600000",
+  averageInterruptionMilliseconds: "1800000",
+  averageEfficiencyPercent: 92.86,
+  phaseNightCount: 1,
+  phaseTotals: syntheticPhaseSummary,
+  stageTimelineNightCount: 1,
+  scoreNightCount: 1,
+  averageOverallScore: 82,
+  goalNightCount: 1,
+  goalMetNightCount: 0,
+  powerStatusNightCount: 1,
+  powerLossNightCount: 0,
+};
+const syntheticSleepPeriodInsight = {
+  startedAt: "2026-01-01T22:30:00+01:00",
+  endedAt: "2026-01-02T05:30:00+01:00",
+  spanMilliseconds: "25200000",
+  asleepMilliseconds: "23400000",
+  interruptionMilliseconds: "1800000",
+  longInterruptionMilliseconds: "1200000",
+  shortInterruptionMilliseconds: "600000",
+  interruptionCount: "3",
+  longInterruptionCount: "1",
+  shortInterruptionCount: "2",
+  efficiencyPercent: 92.86,
+  continuityIndex: 4.2,
+  continuityClass: 4,
+  sleepGoalMilliseconds: "28800000",
+  selfReportedRating: 4,
+  cycleCount: "4",
+  recordingEndedByPowerLoss: false,
+  phaseSummary: syntheticPhaseSummary,
+  stageTimelineAvailable: true,
+  scoreOverall: 82,
+  scoreRelativeRating: 4,
+};
+const syntheticSleepOverview = {
+  availableRange: { from: "2026-01-01", through: "2026-01-03" },
+  selectedRange: { from: "2026-01-01", through: "2026-01-03" },
+  series: [{
+    seriesRef: "synthetic-origin",
+    summary: syntheticSleepSummary,
+    days: [
+      {
+        sleepDate: "2026-01-01",
+        availability: "available",
+        period: syntheticSleepPeriodInsight,
+      },
+      { sleepDate: "2026-01-02", availability: "missing", period: null },
+      {
+        sleepDate: "2026-01-03",
+        availability: "available",
+        period: {
+          ...syntheticSleepPeriodInsight,
+          phaseSummary: null,
+          stageTimelineAvailable: false,
+          scoreOverall: null,
+          scoreRelativeRating: null,
+          sleepGoalMilliseconds: null,
+          selfReportedRating: null,
+          cycleCount: null,
+          recordingEndedByPowerLoss: null,
+        },
+      },
+    ],
+  }],
+};
+const sleepOverviewSchemaPath = "schemas/sleep-overview-v1.schema.json";
+const sleepOverviewSchema = JSON.parse(read(sleepOverviewSchemaPath));
+const validateSleepOverview = ajv.compile(sleepOverviewSchema);
+if (!validateSleepOverview(syntheticSleepOverview)) {
+  throw new Error(
+    sleepOverviewSchemaPath
+      + " rejected its synthetic response: "
+      + ajv.errorsText(validateSleepOverview.errors),
+  );
+}
+for (const invalidOverview of [
+  (() => {
+    const value = structuredClone(syntheticSleepOverview);
+    value.series[0].days[1].period = syntheticSleepPeriodInsight;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticSleepOverview);
+    value.series[0].days[0].period.spanMilliseconds = "01";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticSleepOverview);
+    value.series[0].days[0].period.startedAt = "2026-01-01T21:30:00Z";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticSleepOverview);
+    value.series[0].days[0].period.cycleCount = 4;
+    return value;
+  })(),
+]) {
+  if (validateSleepOverview(invalidOverview)) {
+    throw new Error(sleepOverviewSchemaPath + " accepted an invalid response");
+  }
+}
+
+const sleepDetailQuerySchemaPath = "schemas/sleep-detail-query-v1.schema.json";
+const sleepDetailQuerySchema = JSON.parse(read(sleepDetailQuerySchemaPath));
+const validateSleepDetailQuery = ajv.compile(sleepDetailQuerySchema);
+const syntheticSleepDetailQuery = {
+  seriesRef: "synthetic-origin",
+  sleepDate: "2026-01-01",
+};
+if (!validateSleepDetailQuery(syntheticSleepDetailQuery)) {
+  throw new Error(
+    sleepDetailQuerySchemaPath
+      + " rejected its synthetic query: "
+      + ajv.errorsText(validateSleepDetailQuery.errors),
+  );
+}
+for (const query of [
+  { ...syntheticSleepDetailQuery, seriesRef: "" },
+  { ...syntheticSleepDetailQuery, sleepDate: "2026-02-30" },
+  { ...syntheticSleepDetailQuery, provider: "synthetic" },
+]) {
+  if (validateSleepDetailQuery(query)) {
+    throw new Error(sleepDetailQuerySchemaPath + " accepted an invalid query");
+  }
+}
+
+const syntheticSleepDetail = {
+  sleepDate: "2026-01-01",
+  ...Object.fromEntries(
+    Object.entries(syntheticSleepPeriodInsight).filter(
+      ([key]) => !["stageTimelineAvailable", "scoreOverall", "scoreRelativeRating"].includes(key),
+    ),
+  ),
+  stageTransitions: [
+    { offsetMilliseconds: "0", stage: "light" },
+    { offsetMilliseconds: "5400000", stage: "deep" },
+  ],
+  score: {
+    overall: 82,
+    ownTargetDuration: 75,
+    recommendedDuration: 80,
+    continuity: 84,
+    efficiency: 90,
+    rem: 81,
+    deep: 78,
+    longInterruptions: 88,
+    duration: 79,
+    solidity: 87,
+    regeneration: 83,
+    relativeRating: 4,
+  },
+};
+const sleepDetailSchemaPath = "schemas/sleep-detail-v1.schema.json";
+const sleepDetailSchema = JSON.parse(read(sleepDetailSchemaPath));
+const validateSleepDetail = ajv.compile(sleepDetailSchema);
+for (const detail of [null, syntheticSleepDetail]) {
+  if (!validateSleepDetail(detail)) {
+    throw new Error(
+      sleepDetailSchemaPath
+        + " rejected valid detail: "
+        + ajv.errorsText(validateSleepDetail.errors),
+    );
+  }
+}
+const invalidSleepDetail = structuredClone(syntheticSleepDetail);
+invalidSleepDetail.stageTransitions[0].stage = "n2";
+if (validateSleepDetail(invalidSleepDetail)) {
+  throw new Error(sleepDetailSchemaPath + " accepted an invalid stage");
+}
+
+const sleepComparisonPath = "docs/data-formats/insights/sleep-comparison-v1.md";
+const sleepComparison = read(sleepComparisonPath);
+for (const field of [
+  "baselineRange",
+  "comparisonRange",
+  "availableRange",
+  "seriesRef",
+  "baseline",
+  "comparison",
+  "observedNightChange",
+  "missingNightChange",
+  "averageAsleepMillisecondsChange",
+  "averageInterruptionMillisecondsChange",
+  "averageEfficiencyPercentagePointChange",
+  "averageOverallScoreChange",
+  "goalMetPercentagePointChange",
+]) {
+  requireMention(sleepComparison, field, sleepComparisonPath);
+}
+const sleepComparisonQuerySchemaPath = "schemas/sleep-comparison-query-v1.schema.json";
+const sleepComparisonQuerySchema = JSON.parse(read(sleepComparisonQuerySchemaPath));
+const validateSleepComparisonQuery = ajv.compile(sleepComparisonQuerySchema);
+const syntheticSleepComparisonQuery = {
+  baselineRange: { from: "2026-01-01", through: "2026-01-03" },
+  comparisonRange: { from: "2026-01-04", through: "2026-01-06" },
+};
+if (!validateSleepComparisonQuery(syntheticSleepComparisonQuery)) {
+  throw new Error(
+    sleepComparisonQuerySchemaPath
+      + " rejected its synthetic query: "
+      + ajv.errorsText(validateSleepComparisonQuery.errors),
+  );
+}
+for (const query of [
+  { baselineRange: syntheticSleepComparisonQuery.baselineRange },
+  { ...syntheticSleepComparisonQuery, provider: "synthetic" },
+  {
+    ...syntheticSleepComparisonQuery,
+    comparisonRange: { from: "2026-02-30", through: "2026-03-01" },
+  },
+]) {
+  if (validateSleepComparisonQuery(query)) {
+    throw new Error(sleepComparisonQuerySchemaPath + " accepted an invalid query");
+  }
+}
+
+const sleepComparisonSchemaPath = "schemas/sleep-comparison-v1.schema.json";
+const sleepComparisonSchema = JSON.parse(read(sleepComparisonSchemaPath));
+const validateSleepComparison = ajv.compile(sleepComparisonSchema);
+const syntheticSleepComparison = {
+  availableRange: { from: "2026-01-01", through: "2026-01-06" },
+  ...syntheticSleepComparisonQuery,
+  series: [{
+    seriesRef: "synthetic-origin",
+    baseline: syntheticSleepSummary,
+    comparison: {
+      ...syntheticSleepSummary,
+      observedNights: 3,
+      missingNights: 0,
+      averageAsleepMilliseconds: "24000000",
+      averageInterruptionMilliseconds: "1200000",
+      averageEfficiencyPercent: 95,
+      averageOverallScore: null,
+      scoreNightCount: 0,
+      goalNightCount: 0,
+      goalMetNightCount: 0,
+    },
+    observedNightChange: "1",
+    missingNightChange: "-1",
+    averageAsleepMillisecondsChange: "600000",
+    averageInterruptionMillisecondsChange: "-600000",
+    averageEfficiencyPercentagePointChange: 2.14,
+    averageOverallScoreChange: null,
+    goalMetPercentagePointChange: null,
+  }],
+};
+if (!validateSleepComparison(syntheticSleepComparison)) {
+  throw new Error(
+    sleepComparisonSchemaPath
+      + " rejected its synthetic response: "
+      + ajv.errorsText(validateSleepComparison.errors),
+  );
+}
+for (const invalidChange of ["-0", "+1", "01"]) {
+  const invalidComparison = structuredClone(syntheticSleepComparison);
+  invalidComparison.series[0].observedNightChange = invalidChange;
+  if (validateSleepComparison(invalidComparison)) {
+    throw new Error(sleepComparisonSchemaPath + " accepted invalid change " + invalidChange);
+  }
+}
+
 const indexPath = "docs/data-formats/README.md";
 const index = read(indexPath);
 for (const contractPath of [
@@ -684,6 +1046,8 @@ for (const contractPath of [
   activityComparisonPath,
   trainingOverviewPath,
   trainingComparisonPath,
+  sleepOverviewPath,
+  sleepComparisonPath,
   ...persistencePaths,
 ]) {
   const relativeContract = path.relative(path.dirname(indexPath), contractPath);
@@ -693,5 +1057,39 @@ for (const contractPath of [
 }
 
 process.stdout.write(
-  `${JSON.stringify({ schemaVersion, sourceAdapterVersion, migrations, persistencePaths, activityOverviewSchemas: [activityOverviewSchemaPath, activityOverviewQueryV2SchemaPath, activityOverviewV2SchemaPath], activityComparisonSchemas: [activityComparisonQuerySchemaPath, activityComparisonSchemaPath], trainingOverviewSchemas: [trainingOverviewQuerySchemaPath, trainingOverviewSchemaPath], trainingComparisonSchemas: [trainingComparisonQuerySchemaPath, trainingComparisonSchemaPath], canonicalFields: 56, mappingFields: 75 })}\n`,
+  JSON.stringify({
+    schemaVersion,
+    sourceAdapterVersion,
+    migrations,
+    persistencePaths,
+    activityOverviewSchemas: [
+      activityOverviewSchemaPath,
+      activityOverviewQueryV2SchemaPath,
+      activityOverviewV2SchemaPath,
+    ],
+    activityComparisonSchemas: [
+      activityComparisonQuerySchemaPath,
+      activityComparisonSchemaPath,
+    ],
+    trainingOverviewSchemas: [
+      trainingOverviewQuerySchemaPath,
+      trainingOverviewSchemaPath,
+    ],
+    trainingComparisonSchemas: [
+      trainingComparisonQuerySchemaPath,
+      trainingComparisonSchemaPath,
+    ],
+    sleepOverviewSchemas: [
+      sleepOverviewQuerySchemaPath,
+      sleepOverviewSchemaPath,
+      sleepDetailQuerySchemaPath,
+      sleepDetailSchemaPath,
+    ],
+    sleepComparisonSchemas: [
+      sleepComparisonQuerySchemaPath,
+      sleepComparisonSchemaPath,
+    ],
+    canonicalFields: 56,
+    mappingFields: 75,
+  }) + "\n",
 );

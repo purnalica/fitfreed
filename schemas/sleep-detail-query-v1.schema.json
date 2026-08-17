@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/sleep-detail-query-v1.schema.json",
+  "title": "FitFreed sleep detail query version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["seriesRef", "sleepDate"],
+  "properties": {
+    "seriesRef": { "type": "string", "minLength": 1 },
+    "sleepDate": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    }
+  }
+}

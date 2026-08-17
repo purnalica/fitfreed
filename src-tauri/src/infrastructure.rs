@@ -26,11 +26,12 @@ use thiserror::Error;
 use zip::ZipArchive;
 
 #[cfg(test)]
-use fitfreed_application::query_default_training_overview;
+use fitfreed_application::{query_default_sleep_overview, query_default_training_overview};
 use fitfreed_application::{
     ActivityDateRange, ActivityLibraryPort, ArchiveImportPort, ImportOutcomeLibraryPort,
     ImportPhase, ImportPhaseTimings, ImportProgress, LocalePreference, LocalePreferencePort,
-    ProfiledImport, TrainingDateRange, TrainingLibraryPort,
+    ProfiledImport, SleepDateRange, SleepLibraryPeriod, SleepLibraryPort, TrainingDateRange,
+    TrainingLibraryPort,
 };
 use fitfreed_domain::{
     decide_reconciliation, decide_sleep_period_reconciliation,
@@ -1123,15 +1124,61 @@ pub fn query_training_sessions(database_path: &Path) -> Result<Vec<TrainingSessi
 }
 
 pub fn query_sleep_periods(database_path: &Path) -> Result<Vec<SleepPeriod>> {
+    query_sleep_between(database_path, None, None)
+}
+
+pub fn query_sleep_bounds(database_path: &Path) -> Result<Option<SleepDateRange>> {
+    let connection = Connection::open(database_path)?;
+    ensure_schema(&connection)?;
+    let (from, through) = connection.query_row(
+        "SELECT MIN(sleep_date), MAX(sleep_date)
+         FROM sleep_period",
+        [],
+        |row| {
+            Ok((
+                row.get::<_, Option<String>>(0)?,
+                row.get::<_, Option<String>>(1)?,
+            ))
+        },
+    )?;
+    match (from, through) {
+        (None, None) => Ok(None),
+        (Some(from), Some(through)) => Ok(Some(SleepDateRange { from, through })),
+        _ => Err(ImportError::InvalidSleepLibrary(
+            "sleep bounds are incomplete".to_owned(),
+        )),
+    }
+}
+
+pub fn query_sleep_origins(database_path: &Path) -> Result<Vec<String>> {
+    let connection = Connection::open(database_path)?;
+    ensure_schema(&connection)?;
+    let mut statement = connection.prepare(
+        "SELECT DISTINCT origin_id
+         FROM sleep_period
+         ORDER BY origin_id",
+    )?;
+    let rows = statement.query_map([], |row| row.get(0))?;
+    rows.collect::<std::result::Result<Vec<_>, _>>()
+        .map_err(ImportError::from)
+}
+
+pub fn query_sleep_between(
+    database_path: &Path,
+    from: Option<&str>,
+    through: Option<&str>,
+) -> Result<Vec<SleepPeriod>> {
     let connection = Connection::open(database_path)?;
     ensure_schema(&connection)?;
     let identities = {
         let mut statement = connection.prepare(
             "SELECT origin_id, sleep_date
              FROM sleep_period
+             WHERE (?1 IS NULL OR sleep_date >= ?1)
+               AND (?2 IS NULL OR sleep_date <= ?2)
              ORDER BY sleep_date, origin_id",
         )?;
-        let rows = statement.query_map([], |row| {
+        let rows = statement.query_map(params![from, through], |row| {
             Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
         })?;
         rows.collect::<std::result::Result<Vec<_>, _>>()?
@@ -1146,6 +1193,48 @@ pub fn query_sleep_periods(database_path: &Path) -> Result<Vec<SleepPeriod>> {
             })
         })
         .collect()
+}
+
+pub fn query_sleep_library_between(
+    database_path: &Path,
+    from: Option<&str>,
+    through: Option<&str>,
+) -> Result<Vec<SleepLibraryPeriod>> {
+    let connection = Connection::open(database_path)?;
+    ensure_schema(&connection)?;
+    let mut statement = connection.prepare(
+        "SELECT origin_id, sleep_date, started_at, ended_at,
+                span_milliseconds, asleep_milliseconds,
+                interruption_milliseconds, long_interruption_milliseconds,
+                short_interruption_milliseconds, interruption_count,
+                long_interruption_count, short_interruption_count,
+                efficiency_percent, continuity_index, continuity_class,
+                sleep_goal_milliseconds, self_reported_rating, cycle_count,
+                recording_ended_by_power_loss, phase_wake_milliseconds,
+                phase_rem_milliseconds, phase_light_milliseconds,
+                phase_deep_milliseconds, phase_unrecognized_milliseconds,
+                stage_timeline_available, score_overall,
+                score_own_target_duration, score_recommended_duration,
+                score_continuity, score_efficiency, score_rem, score_deep,
+                score_long_interruptions, score_duration, score_solidity,
+                score_regeneration, score_relative_rating
+         FROM sleep_period
+         WHERE (?1 IS NULL OR sleep_date >= ?1)
+           AND (?2 IS NULL OR sleep_date <= ?2)
+         ORDER BY sleep_date, origin_id",
+    )?;
+    let rows = statement.query_map(params![from, through], read_persisted_sleep_period)?;
+    rows.map(|row| decode_sleep_library_period(row?)).collect()
+}
+
+pub fn query_sleep_period(
+    database_path: &Path,
+    origin_id: &str,
+    sleep_date: &str,
+) -> Result<Option<SleepPeriod>> {
+    let connection = Connection::open(database_path)?;
+    ensure_schema(&connection)?;
+    load_sleep_period(&connection, origin_id, sleep_date)
 }
 
 pub fn query_training_bounds(database_path: &Path) -> Result<Option<TrainingDateRange>> {
@@ -3438,38 +3527,7 @@ fn required_sleep_component<T>(value: Option<T>, column: &'static str) -> Result
     })
 }
 
-fn load_sleep_period(
-    connection: &Connection,
-    origin_id: &str,
-    sleep_date: &str,
-) -> Result<Option<SleepPeriod>> {
-    let persisted = connection
-        .query_row(
-            "SELECT origin_id, sleep_date, started_at, ended_at,
-                    span_milliseconds, asleep_milliseconds,
-                    interruption_milliseconds, long_interruption_milliseconds,
-                    short_interruption_milliseconds, interruption_count,
-                    long_interruption_count, short_interruption_count,
-                    efficiency_percent, continuity_index, continuity_class,
-                    sleep_goal_milliseconds, self_reported_rating, cycle_count,
-                    recording_ended_by_power_loss, phase_wake_milliseconds,
-                    phase_rem_milliseconds, phase_light_milliseconds,
-                    phase_deep_milliseconds, phase_unrecognized_milliseconds,
-                    stage_timeline_available, score_overall,
-                    score_own_target_duration, score_recommended_duration,
-                    score_continuity, score_efficiency, score_rem, score_deep,
-                    score_long_interruptions, score_duration, score_solidity,
-                    score_regeneration, score_relative_rating
-             FROM sleep_period
-             WHERE origin_id = ?1 AND sleep_date = ?2",
-            params![origin_id, sleep_date],
-            read_persisted_sleep_period,
-        )
-        .optional()?;
-    let Some(persisted) = persisted else {
-        return Ok(None);
-    };
-
+fn decode_sleep_library_period(persisted: PersistedSleepPeriod) -> Result<SleepLibraryPeriod> {
     let cycle_count = persisted
         .cycle_count
         .map(|value| persisted_count(value, "sleep_period.cycle_count"))
@@ -3493,7 +3551,6 @@ fn load_sleep_period(
             )))
         }
     };
-
     let phase_summary = persisted
         .phase_wake_milliseconds
         .map(|wake_milliseconds| -> Result<SleepPhaseSummary> {
@@ -3555,17 +3612,76 @@ fn load_sleep_period(
             })
         })
         .transpose()?;
-    let stage_transitions = if stage_timeline_available {
+
+    Ok(SleepLibraryPeriod {
+        origin_id: persisted.origin_id,
+        sleep_date: persisted.sleep_date,
+        started_at: persisted.started_at,
+        ended_at: persisted.ended_at,
+        span_milliseconds: persisted.span_milliseconds,
+        asleep_milliseconds: persisted.asleep_milliseconds,
+        interruption_milliseconds: persisted.interruption_milliseconds,
+        long_interruption_milliseconds: persisted.long_interruption_milliseconds,
+        short_interruption_milliseconds: persisted.short_interruption_milliseconds,
+        interruption_count: persisted.interruption_count,
+        long_interruption_count: persisted.long_interruption_count,
+        short_interruption_count: persisted.short_interruption_count,
+        efficiency_percent: persisted.efficiency_percent,
+        continuity_index: persisted.continuity_index,
+        continuity_class: persisted.continuity_class,
+        sleep_goal_milliseconds: persisted.sleep_goal_milliseconds,
+        self_reported_rating: persisted.self_reported_rating,
+        cycle_count,
+        recording_ended_by_power_loss,
+        phase_summary,
+        stage_timeline_available,
+        score,
+    })
+}
+
+fn load_sleep_period(
+    connection: &Connection,
+    origin_id: &str,
+    sleep_date: &str,
+) -> Result<Option<SleepPeriod>> {
+    let persisted = connection
+        .query_row(
+            "SELECT origin_id, sleep_date, started_at, ended_at,
+                    span_milliseconds, asleep_milliseconds,
+                    interruption_milliseconds, long_interruption_milliseconds,
+                    short_interruption_milliseconds, interruption_count,
+                    long_interruption_count, short_interruption_count,
+                    efficiency_percent, continuity_index, continuity_class,
+                    sleep_goal_milliseconds, self_reported_rating, cycle_count,
+                    recording_ended_by_power_loss, phase_wake_milliseconds,
+                    phase_rem_milliseconds, phase_light_milliseconds,
+                    phase_deep_milliseconds, phase_unrecognized_milliseconds,
+                    stage_timeline_available, score_overall,
+                    score_own_target_duration, score_recommended_duration,
+                    score_continuity, score_efficiency, score_rem, score_deep,
+                    score_long_interruptions, score_duration, score_solidity,
+                    score_regeneration, score_relative_rating
+             FROM sleep_period
+             WHERE origin_id = ?1 AND sleep_date = ?2",
+            params![origin_id, sleep_date],
+            read_persisted_sleep_period,
+        )
+        .optional()?;
+    let Some(persisted) = persisted else {
+        return Ok(None);
+    };
+
+    let period = decode_sleep_library_period(persisted)?;
+    let stage_transitions = if period.stage_timeline_available {
         let mut statement = connection.prepare(
             "SELECT offset_milliseconds, stage
              FROM sleep_stage_transition
              WHERE origin_id = ?1 AND sleep_date = ?2
              ORDER BY position",
         )?;
-        let rows = statement
-            .query_map(params![persisted.origin_id, persisted.sleep_date], |row| {
-                Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?))
-            })?;
+        let rows = statement.query_map(params![period.origin_id, period.sleep_date], |row| {
+            Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?))
+        })?;
         let mut transitions = Vec::new();
         for row in rows {
             let (offset_milliseconds, stage) = row?;
@@ -3592,28 +3708,28 @@ fn load_sleep_period(
     };
 
     Ok(Some(SleepPeriod {
-        origin_id: persisted.origin_id,
-        sleep_date: persisted.sleep_date,
-        started_at: persisted.started_at,
-        ended_at: persisted.ended_at,
-        span_milliseconds: persisted.span_milliseconds,
-        asleep_milliseconds: persisted.asleep_milliseconds,
-        interruption_milliseconds: persisted.interruption_milliseconds,
-        long_interruption_milliseconds: persisted.long_interruption_milliseconds,
-        short_interruption_milliseconds: persisted.short_interruption_milliseconds,
-        interruption_count: persisted.interruption_count,
-        long_interruption_count: persisted.long_interruption_count,
-        short_interruption_count: persisted.short_interruption_count,
-        efficiency_percent: persisted.efficiency_percent,
-        continuity_index: persisted.continuity_index,
-        continuity_class: persisted.continuity_class,
-        sleep_goal_milliseconds: persisted.sleep_goal_milliseconds,
-        self_reported_rating: persisted.self_reported_rating,
-        cycle_count,
-        recording_ended_by_power_loss,
-        phase_summary,
+        origin_id: period.origin_id,
+        sleep_date: period.sleep_date,
+        started_at: period.started_at,
+        ended_at: period.ended_at,
+        span_milliseconds: period.span_milliseconds,
+        asleep_milliseconds: period.asleep_milliseconds,
+        interruption_milliseconds: period.interruption_milliseconds,
+        long_interruption_milliseconds: period.long_interruption_milliseconds,
+        short_interruption_milliseconds: period.short_interruption_milliseconds,
+        interruption_count: period.interruption_count,
+        long_interruption_count: period.long_interruption_count,
+        short_interruption_count: period.short_interruption_count,
+        efficiency_percent: period.efficiency_percent,
+        continuity_index: period.continuity_index,
+        continuity_class: period.continuity_class,
+        sleep_goal_milliseconds: period.sleep_goal_milliseconds,
+        self_reported_rating: period.self_reported_rating,
+        cycle_count: period.cycle_count,
+        recording_ended_by_power_loss: period.recording_ended_by_power_loss,
+        phase_summary: period.phase_summary,
         stage_transitions,
-        score,
+        score: period.score,
     }))
 }
 
@@ -4022,6 +4138,47 @@ impl TrainingLibraryPort for SqliteTrainingLibrary {
             Some(range.through.as_str()),
         )
         .map_err(|error| error.to_string())
+    }
+}
+
+pub struct SqliteSleepLibrary {
+    database_path: PathBuf,
+}
+
+impl SqliteSleepLibrary {
+    pub fn new(database_path: PathBuf) -> Self {
+        Self { database_path }
+    }
+}
+
+impl SleepLibraryPort for SqliteSleepLibrary {
+    fn sleep_bounds(&self) -> std::result::Result<Option<SleepDateRange>, String> {
+        query_sleep_bounds(&self.database_path).map_err(|error| error.to_string())
+    }
+
+    fn sleep_origins(&self) -> std::result::Result<Vec<String>, String> {
+        query_sleep_origins(&self.database_path).map_err(|error| error.to_string())
+    }
+
+    fn query_sleep(
+        &self,
+        range: &SleepDateRange,
+    ) -> std::result::Result<Vec<SleepLibraryPeriod>, String> {
+        query_sleep_library_between(
+            &self.database_path,
+            Some(range.from.as_str()),
+            Some(range.through.as_str()),
+        )
+        .map_err(|error| error.to_string())
+    }
+
+    fn query_sleep_period(
+        &self,
+        series_ref: &str,
+        sleep_date: &str,
+    ) -> std::result::Result<Option<SleepPeriod>, String> {
+        query_sleep_period(&self.database_path, series_ref, sleep_date)
+            .map_err(|error| error.to_string())
     }
 }
 
@@ -4457,6 +4614,44 @@ mod tests {
         assert_eq!(score.overall, 82.0);
         assert_eq!(score.regeneration, 78.5);
         assert_eq!(score.relative_rating, Some(4));
+        assert_eq!(
+            query_sleep_bounds(&harness.database()).expect("sleep bounds"),
+            Some(SleepDateRange {
+                from: "2026-03-29".to_owned(),
+                through: "2026-03-29".to_owned(),
+            })
+        );
+        assert_eq!(
+            query_sleep_origins(&harness.database()).expect("sleep origins"),
+            vec![period.origin_id.clone()]
+        );
+        assert_eq!(
+            query_sleep_between(&harness.database(), Some("2026-03-29"), Some("2026-03-29"))
+                .expect("sleep range"),
+            history
+        );
+        assert!(
+            query_sleep_between(&harness.database(), Some("2026-03-30"), Some("2026-03-30"))
+                .expect("empty sleep range")
+                .is_empty()
+        );
+        assert_eq!(
+            query_sleep_period(&harness.database(), &period.origin_id, "2026-03-29")
+                .expect("sleep identity"),
+            Some(period.clone())
+        );
+        assert_eq!(
+            query_sleep_period(&harness.database(), &period.origin_id, "2026-03-30")
+                .expect("missing sleep identity"),
+            None
+        );
+        let library = SqliteSleepLibrary::new(harness.database());
+        let overview = query_default_sleep_overview(&library).expect("sleep read model");
+        assert_eq!(overview.series.len(), 1);
+        assert_eq!(overview.series[0].summary.observed_nights, 1);
+        assert_eq!(overview.series[0].summary.phase_night_count, 1);
+        assert_eq!(overview.series[0].summary.score_night_count, 1);
+        assert_eq!(overview.series[0].days.len(), 1);
 
         let reopened = query_sleep_periods(&harness.database()).expect("reopened sleep history");
         assert_eq!(reopened, history);
@@ -4507,6 +4702,51 @@ mod tests {
                 64,
             )
         );
+    }
+
+    #[test]
+    fn keeps_sleep_timelines_out_of_overview_queries_and_validates_exact_detail() {
+        let harness = Harness::new();
+        let result_json = staged_sleep_result_json("2026-03-29");
+        let archive = harness.archive(
+            "sleep-read-boundary.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-sleep-read-boundary"}"#,
+                ),
+                (
+                    "sleep_result_42-11111111-2222-4333-8444-555555555555.json",
+                    &result_json,
+                ),
+            ],
+        );
+        import_polar_archive(&harness.database(), &archive).expect("sleep import");
+        let origin_id = query_sleep_origins(&harness.database())
+            .expect("sleep origins")
+            .into_iter()
+            .next()
+            .expect("sleep origin");
+
+        let connection = Connection::open(harness.database()).expect("database");
+        connection
+            .pragma_update(None, "ignore_check_constraints", true)
+            .expect("test corruption mode");
+        connection
+            .execute(
+                "UPDATE sleep_stage_transition SET stage = 'invalid-test-stage'",
+                [],
+            )
+            .expect("corrupt timeline detail");
+        drop(connection);
+
+        let library = SqliteSleepLibrary::new(harness.database());
+        let overview = query_default_sleep_overview(&library).expect("lightweight overview");
+        assert_eq!(overview.series[0].summary.stage_timeline_night_count, 1);
+        assert!(matches!(
+            query_sleep_period(&harness.database(), &origin_id, "2026-03-29"),
+            Err(ImportError::InvalidSleepLibrary(_))
+        ));
     }
 
     #[test]

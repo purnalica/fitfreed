@@ -68,6 +68,8 @@ Directories are created with their first real contract; empty specifications are
 - [Daily activity comparison read model version 1](insights/daily-activity-comparison-v1.md)
 - [Training overview read model version 1](insights/training-overview-v1.md)
 - [Training comparison read model version 1](insights/training-comparison-v1.md)
+- [Sleep overview and detail read model version 1](insights/sleep-overview-v1.md)
+- [Sleep comparison read model version 1](insights/sleep-comparison-v1.md)
 - [SQLite schema version 1](persistence/sqlite-v1.md)
 - [SQLite schema version 2](persistence/sqlite-v2.md)
 - [SQLite schema version 3](persistence/sqlite-v3.md)

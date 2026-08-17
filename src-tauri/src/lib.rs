@@ -6,12 +6,14 @@ use std::path::{Path, PathBuf};
 use fitfreed_application::{ImportCoordinator, ImportProgress, LocalePreference};
 use infrastructure::{
     recover_interrupted_imports, SqliteActivityLibrary, SqliteImportOutcomeLibrary,
-    SqliteLocalePreferences, SqlitePolarFlowArchiveImporter, SqliteTrainingLibrary,
+    SqliteLocalePreferences, SqlitePolarFlowArchiveImporter, SqliteSleepLibrary,
+    SqliteTrainingLibrary,
 };
 use presentation::{
     ActivityComparisonDto, ActivityDateRangeDto, ActivityOverviewDto, CommandErrorDto,
-    ImportOutcomeDto, ImportProgressDto, ImportReportDto, TrainingComparisonDto,
-    TrainingDateRangeDto, TrainingOverviewDto,
+    ImportOutcomeDto, ImportProgressDto, ImportReportDto, SleepComparisonDto, SleepDateRangeDto,
+    SleepOverviewDto, SleepPeriodDetailDto, TrainingComparisonDto, TrainingDateRangeDto,
+    TrainingOverviewDto,
 };
 use tauri::{ipc::Channel, AppHandle, Manager, State};
 
@@ -107,6 +109,48 @@ fn query_training_comparison(
 }
 
 #[tauri::command]
+fn query_sleep_overview(
+    app: AppHandle,
+    requested_range: Option<SleepDateRangeDto>,
+) -> Result<SleepOverviewDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let library = SqliteSleepLibrary::new(path);
+    fitfreed_application::query_sleep_overview(&library, requested_range.map(Into::into))
+        .map(SleepOverviewDto::from)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn query_sleep_comparison(
+    app: AppHandle,
+    baseline_range: SleepDateRangeDto,
+    comparison_range: SleepDateRangeDto,
+) -> Result<SleepComparisonDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let library = SqliteSleepLibrary::new(path);
+    fitfreed_application::query_sleep_comparison(
+        &library,
+        baseline_range.into(),
+        comparison_range.into(),
+    )
+    .map(SleepComparisonDto::from)
+    .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn query_sleep_detail(
+    app: AppHandle,
+    series_ref: String,
+    sleep_date: String,
+) -> Result<Option<SleepPeriodDetailDto>, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let library = SqliteSleepLibrary::new(path);
+    fitfreed_application::query_sleep_detail(&library, &series_ref, &sleep_date)
+        .map(|detail| detail.map(SleepPeriodDetailDto::from))
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
 fn query_latest_import_outcome(
     app: AppHandle,
 ) -> Result<Option<ImportOutcomeDto>, CommandErrorDto> {
@@ -173,6 +217,9 @@ pub fn run() {
             query_activity_comparison,
             query_training_overview,
             query_training_comparison,
+            query_sleep_overview,
+            query_sleep_comparison,
+            query_sleep_detail,
             query_latest_import_outcome,
             load_locale,
             save_locale
