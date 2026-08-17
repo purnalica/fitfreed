@@ -16,6 +16,7 @@ update-recovery/
 └── attempts/
     └── <recoveryId>/
         ├── manifest.json
+        ├── state.lock
         └── previous/
             ├── FitFreed.app/
             └── fitfreed.sqlite
@@ -24,6 +25,8 @@ update-recovery/
 `active` is UTF-8 text containing exactly one 64-character lowercase hexadecimal `recoveryId` followed by one line feed. It is promoted atomically only after every recovery asset and `manifest.json` have been written, synchronized, reopened, and verified. At most one active attempt exists.
 
 `manifest.json` is UTF-8 JSON conforming to [`update-recovery-v1.schema.json`](../../../schemas/update-recovery-v1.schema.json). Its maximum encoded size is 64 KiB. Unknown fields are invalid. Writers replace it atomically through a sibling temporary file and synchronize the containing directory.
+
+`state.lock` is a private empty regular file. Recovery actors hold its operating-system exclusive lock across active-pointer validation, lifecycle compare-and-transition, and atomic manifest replacement. The file does not convey a phase or authority; `manifest.json` remains the state source of truth. Symbolic links and unsupported platforms fail closed.
 
 The relative backup paths are fixed by the schema. Readers never interpret a manifest-provided relative path containing traversal, another filename, or another application identity.
 

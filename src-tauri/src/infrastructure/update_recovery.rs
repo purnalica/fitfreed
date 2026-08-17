@@ -1,5 +1,5 @@
 use std::{
-    fs::{self, File},
+    fs::{self, File, OpenOptions},
     io::{self, Read, Write},
     path::{Component, Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
@@ -28,6 +28,7 @@ const RECOVERY_SCHEMA_VERSION: u32 = 1;
 const ACTIVE_FILE_NAME: &str = "active";
 const ATTEMPTS_DIRECTORY_NAME: &str = "attempts";
 const MANIFEST_FILE_NAME: &str = "manifest.json";
+const STATE_LOCK_FILE_NAME: &str = "state.lock";
 const APPLICATION_BACKUP_RELATIVE_PATH: &str = "previous/FitFreed.app";
 const LIBRARY_BACKUP_RELATIVE_PATH: &str = "previous/fitfreed.sqlite";
 const EXPECTED_BUNDLE_IDENTIFIER: &str = "org.fitfreed.desktop";
@@ -258,6 +259,7 @@ pub fn prepare_update_recovery(
     fs::create_dir(&staging_directory)?;
     set_private_directory_permissions(&staging_directory)?;
     let mut staging = StagingDirectory::new(staging_directory.clone());
+    drop(RecoveryStateLock::acquire(&staging_directory)?);
 
     let application_backup_path = staging_directory.join(APPLICATION_BACKUP_RELATIVE_PATH);
     let library_backup_path = staging_directory.join(LIBRARY_BACKUP_RELATIVE_PATH);
@@ -373,12 +375,13 @@ pub fn transition_active_update_recovery(
         return Err(UpdateRecoveryError::InvalidInput);
     }
     let recovery_root = recovery_root.canonicalize()?;
-    if read_active_recovery_id(&recovery_root.join(ACTIVE_FILE_NAME))? != recovery_id {
-        return Err(UpdateRecoveryError::InvalidState);
-    }
     let attempt_directory = recovery_root
         .join(ATTEMPTS_DIRECTORY_NAME)
         .join(recovery_id);
+    let _state_lock = RecoveryStateLock::acquire(&attempt_directory)?;
+    if read_active_recovery_id(&recovery_root.join(ACTIVE_FILE_NAME))? != recovery_id {
+        return Err(UpdateRecoveryError::InvalidState);
+    }
     let manifest_path = attempt_directory.join(MANIFEST_FILE_NAME);
     let mut manifest = read_manifest(&manifest_path)?;
     validate_manifest(&manifest)?;
@@ -643,6 +646,11 @@ fn verify_attempt_directory(
     let manifest = read_manifest(&attempt_directory.join(MANIFEST_FILE_NAME))?;
     validate_manifest(&manifest)?;
     if manifest.recovery_id != recovery_id {
+        return Err(UpdateRecoveryError::InvalidState);
+    }
+    if !fs::symlink_metadata(attempt_directory.join(STATE_LOCK_FILE_NAME))
+        .is_ok_and(|metadata| metadata.file_type().is_file())
+    {
         return Err(UpdateRecoveryError::InvalidState);
     }
     let application_path = attempt_directory.join(&manifest.application_backup.relative_path);
@@ -1122,6 +1130,59 @@ struct StagingDirectory {
     armed: bool,
 }
 
+struct RecoveryStateLock {
+    file: File,
+}
+
+impl RecoveryStateLock {
+    #[cfg(unix)]
+    fn acquire(attempt_directory: &Path) -> Result<Self, UpdateRecoveryError> {
+        use std::{os::fd::AsRawFd, os::unix::fs::OpenOptionsExt};
+
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .mode(0o600)
+            .custom_flags(libc::O_NOFOLLOW)
+            .open(attempt_directory.join(STATE_LOCK_FILE_NAME))?;
+        if !file.metadata()?.file_type().is_file() {
+            return Err(UpdateRecoveryError::InvalidState);
+        }
+        loop {
+            if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX) } == 0 {
+                break;
+            }
+            let error = io::Error::last_os_error();
+            if error.kind() != io::ErrorKind::Interrupted {
+                return Err(error.into());
+            }
+        }
+        Ok(Self { file })
+    }
+
+    #[cfg(not(unix))]
+    fn acquire(_attempt_directory: &Path) -> Result<Self, UpdateRecoveryError> {
+        Err(UpdateRecoveryError::UnsupportedPlatform)
+    }
+}
+
+#[cfg(unix)]
+impl Drop for RecoveryStateLock {
+    fn drop(&mut self) {
+        use std::os::fd::AsRawFd;
+
+        unsafe {
+            libc::flock(self.file.as_raw_fd(), libc::LOCK_UN);
+        }
+    }
+}
+
+#[cfg(not(unix))]
+impl Drop for RecoveryStateLock {
+    fn drop(&mut self) {}
+}
+
 impl StagingDirectory {
     fn new(path: PathBuf) -> Self {
         Self { path, armed: true }
@@ -1337,6 +1398,49 @@ mod tests {
                 prepared.recovery_id().to_owned(),
                 UpdateRecoveryPhase::Confirmed
             ))
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn serializes_recovery_state_writers_with_a_private_attempt_lock() {
+        use std::{sync::mpsc, thread, time::Duration};
+
+        let directory = tempfile::tempdir().expect("temporary directory");
+        let first = RecoveryStateLock::acquire(directory.path()).expect("first state lock");
+        let attempt_directory = directory.path().to_owned();
+        let (sender, receiver) = mpsc::channel();
+        let contender = thread::spawn(move || {
+            let second = RecoveryStateLock::acquire(&attempt_directory);
+            sender.send(second.is_ok()).expect("lock result");
+        });
+
+        assert!(receiver.recv_timeout(Duration::from_millis(50)).is_err());
+        drop(first);
+        assert!(receiver
+            .recv_timeout(Duration::from_secs(1))
+            .expect("serialized lock result"));
+        contender.join().expect("lock contender");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn rejects_a_symbolic_link_as_the_recovery_state_lock() {
+        use std::os::unix::fs::symlink;
+
+        let directory = tempfile::tempdir().expect("temporary directory");
+        let outside = directory.path().join("outside");
+        fs::write(&outside, "outside state").expect("outside state");
+        symlink(&outside, directory.path().join(STATE_LOCK_FILE_NAME))
+            .expect("symbolic state lock");
+
+        assert!(matches!(
+            RecoveryStateLock::acquire(directory.path()),
+            Err(UpdateRecoveryError::Io(_))
+        ));
+        assert_eq!(
+            fs::read_to_string(outside).expect("unchanged outside state"),
+            "outside state"
         );
     }
 
