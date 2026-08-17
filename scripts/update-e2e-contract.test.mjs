@@ -2,10 +2,22 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  assertSyntheticUpdateBoundary,
   createUpdateEnvelope,
   createUpdatePayload,
   updateTarget,
 } from "./update-e2e-contract.mjs";
+
+test("classifies version-overridden packages only as updater-mechanics evidence", () => {
+  assert.deepEqual(assertSyntheticUpdateBoundary({ applicationBaselineCount: 0 }), {
+    evidence: "synthetic-updater-mechanics",
+    declaredApplicationBaselines: 0,
+  });
+  assert.throws(
+    () => assertSyntheticUpdateBoundary({ applicationBaselineCount: 1 }),
+    /must derive packaged cases from every declared application baseline/,
+  );
+});
 
 test("maps the supported macOS architectures to update-channel targets", () => {
   assert.equal(updateTarget("darwin", "arm64"), "darwin-aarch64");
@@ -21,6 +33,7 @@ test("constructs exact signed payload and untrusted Tauri mirror documents", () 
     packageSize: 42,
     packageSha256: "a".repeat(64),
     packageSignature: "cGFja2FnZS1zaWduYXR1cmU=",
+    minimumReadableSchemaVersion: 1,
     schemaVersion: 9,
     issuedAt: "2026-08-17T10:00:00Z",
     expiresAt: "2026-08-24T10:00:00Z",

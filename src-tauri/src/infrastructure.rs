@@ -8473,6 +8473,82 @@ mod tests {
         assert!(query_plan.contains("daily_activity_local_date_origin"));
     }
 
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct UpgradeMatrixEvidence {
+        release: UpgradeMatrixRelease,
+        supported_library_schema_versions: Vec<i64>,
+    }
+
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct UpgradeMatrixRelease {
+        library_schema_version: i64,
+    }
+
+    fn create_schema_baseline(connection: &Connection, version: i64) {
+        let migrations = [
+            SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8,
+            SCHEMA_V9,
+        ];
+        for migration in migrations
+            .iter()
+            .take(usize::try_from(version).expect("positive schema version"))
+        {
+            connection
+                .execute_batch(migration)
+                .expect("declared baseline migration");
+        }
+        connection
+            .pragma_update(None, "user_version", version)
+            .expect("declared baseline marker");
+    }
+
+    fn assert_integrity(connection: &Connection) {
+        assert_eq!(
+            connection
+                .query_row("PRAGMA integrity_check", [], |row| row.get::<_, String>(0))
+                .expect("SQLite integrity result"),
+            "ok"
+        );
+    }
+
+    #[test]
+    fn migrates_every_declared_library_schema_baseline_atomically() {
+        let matrix: UpgradeMatrixEvidence =
+            serde_json::from_str(include_str!("../../release/upgrade-matrix.json"))
+                .expect("upgrade matrix");
+        assert_eq!(matrix.release.library_schema_version, SCHEMA_VERSION);
+
+        for baseline in matrix.supported_library_schema_versions {
+            let harness = Harness::new();
+            let connection = Connection::open(harness.database()).expect("baseline database");
+            create_schema_baseline(&connection, baseline);
+            assert_integrity(&connection);
+
+            if baseline < SCHEMA_VERSION {
+                let error = migrate_schema(&connection, true).expect_err("interrupted migration");
+                assert!(matches!(error, ImportError::InjectedMigrationInterruption));
+                assert_eq!(
+                    connection
+                        .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                        .expect("rolled-back schema marker"),
+                    baseline
+                );
+                assert_integrity(&connection);
+            }
+
+            migrate_schema(&connection, false).expect("declared baseline migration");
+            assert_eq!(
+                connection
+                    .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                    .expect("target schema marker"),
+                SCHEMA_VERSION
+            );
+            assert_integrity(&connection);
+        }
+    }
+
     #[test]
     fn upgrades_version_four_with_the_activity_range_index_atomically() {
         let harness = Harness::new();

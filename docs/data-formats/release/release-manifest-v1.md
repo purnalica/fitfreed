@@ -1,5 +1,7 @@
 # FitFreed Release Manifest Version 1
 
+Version 1 is a historical private-development contract. Current preparation emits [release manifest version 2](release-manifest-v2.md), which adds a digest-bound upgrade matrix without rewriting this closed schema.
+
 ## Purpose and authority
 
 The FitFreed release manifest binds one staged application package to its source revision, target, storage compatibility, dependency inventories, and digests. This document is the normative human-readable contract. [`release-manifest-v1.schema.json`](../../../schemas/release-manifest-v1.schema.json) is its machine-readable JSON Schema.

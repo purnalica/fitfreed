@@ -87,6 +87,8 @@ Directories are created with their first real contract; empty specifications are
 - [SQLite schema version 8](persistence/sqlite-v8.md)
 - [SQLite schema version 9](persistence/sqlite-v9.md)
 - [Release manifest version 1](release/release-manifest-v1.md)
+- [Release manifest version 2](release/release-manifest-v2.md)
+- [Upgrade matrix version 1](release/upgrade-matrix-v1.md)
 - [Update channel version 1](release/update-channel-v1.md)
 - [Update recovery version 1](release/update-recovery-v1.md)
 - [Update recovery outcome version 1](../../schemas/update-recovery-outcome-v1.schema.json)

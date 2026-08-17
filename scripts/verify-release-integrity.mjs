@@ -7,6 +7,7 @@ import {
   sha256File,
   validateReleaseManifest,
 } from "./release-evidence.mjs";
+import { validateUpgradeMatrix } from "./upgrade-matrix.mjs";
 
 const checksumLine = /^([0-9a-f]{64})  (.+)$/;
 
@@ -24,6 +25,25 @@ export function verifyReleaseIntegrity(releaseDirectory) {
     } catch (error) {
       errors.push(`cannot inspect ${expected.path}: ${error.message}`);
     }
+  }
+
+  const upgradeMatrixArtifact = manifest.artifacts.find(
+    ({ kind }) => kind === "upgrade-matrix",
+  );
+  try {
+    const matrix = JSON.parse(
+      readFileSync(path.join(root, upgradeMatrixArtifact.path), "utf8"),
+    );
+    validateUpgradeMatrix(matrix, {
+      releaseVersion: manifest.release.version,
+      currentLibrarySchemaVersion: manifest.application.storageSchemaVersion,
+      migrationVersions: Array.from(
+        { length: manifest.application.storageSchemaVersion },
+        (_, index) => index + 1,
+      ),
+    });
+  } catch (error) {
+    errors.push(`invalid upgrade matrix: ${error.message}`);
   }
 
   const checksumEntries = new Map();

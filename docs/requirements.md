@@ -575,7 +575,7 @@ The public repository will provide a clear path through four stages:
 9. Retention or deletion of the original ZIP archive and JSON files after import.
 10. Languages required for user documentation in the first release.
 11. Governance evolution beyond the bootstrap owner-maintainer model defined in `GOVERNANCE.md`.
-12. Update channel policy, check frequency, supported upgrade baselines, and exceptional security-update behavior.
+12. Public update-channel operations and exceptional security-update behavior. The private-alpha 24-hour process schedule and two-dimensional release/library upgrade-baseline policy are defined by ADRs 0011 and 0012.
 13. Cross-source identity, overlap, conflict, and user-controlled reconciliation rules after the single-source MVP.
 
 The canonical product spelling, positioning constraints, and public-branding validation gate are maintained in [`naming.md`](naming.md).

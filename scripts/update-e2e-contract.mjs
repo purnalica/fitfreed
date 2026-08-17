@@ -1,3 +1,15 @@
+export function assertSyntheticUpdateBoundary(matrixSummary) {
+  if (matrixSummary.applicationBaselineCount > 0) {
+    throw new Error(
+      "Packaged update E2E must derive packaged cases from every declared application baseline",
+    );
+  }
+  return {
+    evidence: "synthetic-updater-mechanics",
+    declaredApplicationBaselines: matrixSummary.applicationBaselineCount,
+  };
+}
+
 export function updateTarget(platform, architecture) {
   if (platform !== "darwin") {
     throw new Error("Packaged update E2E is supported only on macOS");
@@ -13,6 +25,7 @@ export function createUpdatePayload({
   packageSize,
   packageSha256,
   packageSignature,
+  minimumReadableSchemaVersion,
   schemaVersion,
   issuedAt,
   expiresAt,
@@ -29,7 +42,7 @@ export function createUpdatePayload({
       publishedAt: issuedAt,
       minimumSupportedVersion: "0.1.0",
       librarySchema: {
-        minimumReadableVersion: 1,
+        minimumReadableVersion: minimumReadableSchemaVersion,
         maximumReadableVersion: schemaVersion,
         targetVersion: schemaVersion,
       },

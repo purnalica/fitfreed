@@ -21,10 +21,12 @@ import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 
 import {
+  assertSyntheticUpdateBoundary,
   createUpdateEnvelope,
   createUpdatePayload,
   updateTarget,
 } from "./update-e2e-contract.mjs";
+import { inspectUpgradeMatrix } from "./upgrade-matrix.mjs";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const artifactRoot = path.join(repositoryRoot, ".artifacts/update-e2e");
@@ -276,7 +278,7 @@ function validateDocument(validator, document, errorsText, name) {
   }
 }
 
-function createChannelDocuments({ target, port, validators }) {
+function createChannelDocuments({ target, port, validators, matrix }) {
   const packageSignature = readFileSync(`${candidatePackage}.sig`, "utf8").trim();
   const packageUrl = `https://127.0.0.1:${port}/package.tar.gz`;
   const now = Date.now();
@@ -290,7 +292,8 @@ function createChannelDocuments({ target, port, validators }) {
     packageSize: statSync(candidatePackage).size,
     packageSha256: sha256(candidatePackage),
     packageSignature,
-    schemaVersion: currentStorageSchemaVersion(),
+    minimumReadableSchemaVersion: matrix.librarySchemaVersions[0],
+    schemaVersion: matrix.currentLibrarySchemaVersion,
     issuedAt,
     expiresAt,
   });
@@ -417,6 +420,11 @@ async function main() {
   if (process.platform !== "darwin") {
     throw new Error("Packaged update E2E is supported only on macOS");
   }
+  const matrix = inspectUpgradeMatrix(repositoryRoot);
+  const evidenceBoundary = assertSyntheticUpdateBoundary(matrix);
+  if (currentStorageSchemaVersion() !== matrix.currentLibrarySchemaVersion) {
+    throw new Error("Packaged update E2E storage schema does not match the upgrade matrix");
+  }
   await stopScopedApplicationProcesses();
   rmSync(artifactRoot, { recursive: true, force: true });
   mkdirSync(artifactRoot, { recursive: true });
@@ -443,6 +451,7 @@ async function main() {
       target,
       port: updateServer.port,
       validators,
+      matrix,
     }));
     const endpoint = `https://127.0.0.1:${updateServer.port}/private-alpha.json`;
     await runScenario("success", endpoint, publicKey, await availableTcpPort());
@@ -455,6 +464,7 @@ async function main() {
     check: "packaged-update-e2e",
     target,
     scenarios: ["success", "failure"],
+    ...evidenceBoundary,
     result: "passed",
   })}\n`);
 }

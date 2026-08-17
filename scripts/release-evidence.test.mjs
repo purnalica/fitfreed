@@ -174,16 +174,18 @@ test("builds and validates the documented private release manifest", () => {
       { path: "FitFreed.app", kind: "macos-application-bundle", size: 6, sha256: "b".repeat(64) },
       { path: "FitFreed.dmg", kind: "macos-disk-image", size: 8, sha256: "c".repeat(64) },
       { path: "npm.cdx.json", kind: "cyclonedx-sbom", size: 10, sha256: "d".repeat(64) },
+      { path: "supported-upgrades.json", kind: "upgrade-matrix", size: 12, sha256: "e".repeat(64) },
     ],
   });
 
   assert.equal(validateReleaseManifest(manifest), manifest);
+  assert.equal(manifest.schemaVersion, 2);
   assert.equal(manifest.release.channel, "private-development");
   assert.equal(manifest.release.signed, false);
   assert.equal(manifest.application.storageSchemaVersion, 3);
 
   const schema = JSON.parse(
-    readFileSync(new URL("../schemas/release-manifest-v1.schema.json", import.meta.url), "utf8"),
+    readFileSync(new URL("../schemas/release-manifest-v2.schema.json", import.meta.url), "utf8"),
   );
   const ajv = new Ajv2020({ strict: true });
   addFormats(ajv);
@@ -206,6 +208,7 @@ test("rejects manifest extensions not defined by the selected schema version", (
       { path: "FitFreed.app", kind: "macos-application-bundle", size: 6, sha256: "b".repeat(64) },
       { path: "FitFreed.dmg", kind: "macos-disk-image", size: 8, sha256: "c".repeat(64) },
       { path: "npm.cdx.json", kind: "cyclonedx-sbom", size: 10, sha256: "d".repeat(64) },
+      { path: "supported-upgrades.json", kind: "upgrade-matrix", size: 12, sha256: "e".repeat(64) },
     ],
   });
   manifest.release.unreviewedField = true;
@@ -213,6 +216,33 @@ test("rejects manifest extensions not defined by the selected schema version", (
   assert.throws(
     () => validateReleaseManifest(manifest),
     /manifest schema violation at \/release: must NOT have additional properties/,
+  );
+});
+
+test("requires exactly one canonical upgrade matrix artifact", () => {
+  const artifacts = [
+    { path: "FitFreed.app", kind: "macos-application-bundle", size: 6, sha256: "b".repeat(64) },
+    { path: "FitFreed.dmg", kind: "macos-disk-image", size: 8, sha256: "c".repeat(64) },
+    { path: "npm.cdx.json", kind: "cyclonedx-sbom", size: 10, sha256: "d".repeat(64) },
+  ];
+  const create = (candidateArtifacts) => createReleaseManifest({
+    version: "0.1.0",
+    revision: "a".repeat(40),
+    generatedAt: "2026-08-16T16:00:00.000Z",
+    architecture: "aarch64",
+    storageSchemaVersion: 9,
+    generators: { cargoCycloneDx: "0.5.9", npmCycloneDx: "6.0.1", tauri: "2.8.5" },
+    artifacts: candidateArtifacts,
+  });
+
+  assert.throws(() => create(artifacts), /release manifest has no upgrade-matrix/);
+  assert.throws(
+    () => create([
+      ...artifacts,
+      { path: "matrix-a.json", kind: "upgrade-matrix", size: 12, sha256: "e".repeat(64) },
+      { path: "matrix-b.json", kind: "upgrade-matrix", size: 12, sha256: "f".repeat(64) },
+    ]),
+    /exactly one upgrade matrix named supported-upgrades\.json/,
   );
 });
 

@@ -20,9 +20,10 @@ const artifactKinds = new Set([
   "macos-application-bundle",
   "macos-disk-image",
   "cyclonedx-sbom",
+  "upgrade-matrix",
 ]);
 const releaseManifestSchema = JSON.parse(
-  readFileSync(new URL("../schemas/release-manifest-v1.schema.json", import.meta.url), "utf8"),
+  readFileSync(new URL("../schemas/release-manifest-v2.schema.json", import.meta.url), "utf8"),
 );
 const ajv = new Ajv2020({ allErrors: true, strict: true });
 addFormats(ajv);
@@ -208,7 +209,7 @@ export function createReleaseManifest({
 }) {
   const manifest = {
     format: "org.fitfreed.release-manifest",
-    schemaVersion: 1,
+    schemaVersion: 2,
     release: {
       version,
       revision,
@@ -242,7 +243,7 @@ export function validateReleaseManifest(manifest) {
     );
   }
   if (manifest.format !== "org.fitfreed.release-manifest") errors.push("invalid manifest format");
-  if (manifest.schemaVersion !== 1) errors.push("unsupported manifest schema version");
+  if (manifest.schemaVersion !== 2) errors.push("unsupported manifest schema version");
   if (!semanticVersionPattern.test(manifest.release?.version ?? "")) errors.push("invalid release version");
   if (!revisionPattern.test(manifest.release?.revision ?? "")) errors.push("invalid Git revision");
   if (Number.isNaN(Date.parse(manifest.release?.generatedAt ?? ""))) {
@@ -297,6 +298,15 @@ export function validateReleaseManifest(manifest) {
   for (const requiredKind of artifactKinds) {
     if (!kinds.has(requiredKind)) errors.push(`release manifest has no ${requiredKind}`);
   }
+  const upgradeMatrices = (manifest.artifacts ?? []).filter(
+    ({ kind }) => kind === "upgrade-matrix",
+  );
+  if (
+    upgradeMatrices.length !== 1
+    || upgradeMatrices[0].path !== "supported-upgrades.json"
+  ) {
+    errors.push("release manifest must identify exactly one upgrade matrix named supported-upgrades.json");
+  }
 
   if (errors.length > 0) throw new Error(errors.join("\n"));
   return manifest;
@@ -315,6 +325,7 @@ export function renderDraftReleaseNotes(manifest) {
 Source revision: \`${manifest.release.revision}\`
 Target: macOS ${manifest.target.architecture}
 Storage schema: ${manifest.application.storageSchemaVersion}
+Compatibility matrix: \`supported-upgrades.json\`
 
 This package is unsigned, non-notarized development material. It is not a public release and is provided without warranty under the project disclaimer. Verify \`SHA256SUMS\` before mounting the disk image.
 `;

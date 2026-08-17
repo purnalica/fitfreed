@@ -13,6 +13,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { inspectReleaseContracts } from "./check-release-contracts.mjs";
+import { inspectUpgradeMatrix } from "./upgrade-matrix.mjs";
 import {
   createReleaseManifest,
   inspectArtifact,
@@ -164,6 +165,15 @@ function createNpmSbom(stagingDirectory, repositoryPath) {
   return "npm.cdx.json";
 }
 
+function copyUpgradeMatrix(stagingDirectory) {
+  const filename = "supported-upgrades.json";
+  cpSync(
+    path.join(repositoryRoot, "release/upgrade-matrix.json"),
+    path.join(stagingDirectory, filename),
+  );
+  return filename;
+}
+
 function createCargoSboms(stagingDirectory, repositoryPath, sourceDateEpoch) {
   const generator = cargoGenerator();
   const prefix = `.fitfreed-release-${process.pid}`;
@@ -253,6 +263,7 @@ function main() {
   if (!version) throw new Error("usage: npm run prepare:development-release -- <version>");
   if (process.platform !== "darwin") throw new Error("development release preparation requires macOS");
   inspectReleaseContracts(repositoryRoot, version);
+  inspectUpgradeMatrix(repositoryRoot);
   const { revision, sourceDateEpoch } = assertCleanRevision();
   const architecture = macosArchitecture();
   const stagingRoot = path.join(repositoryRoot, ".artifacts/releases");
@@ -268,13 +279,15 @@ function main() {
     const dmgName = copyProductionArtifacts(stagingDirectory, version, architecture.tauri);
     const npmSbom = createNpmSbom(stagingDirectory, repositoryRoot);
     const cargoSboms = createCargoSboms(stagingDirectory, repositoryRoot, sourceDateEpoch);
-    const evidenceFiles = [npmSbom, ...cargoSboms];
+    const upgradeMatrix = copyUpgradeMatrix(stagingDirectory);
+    const evidenceFiles = [npmSbom, ...cargoSboms, upgradeMatrix];
     const artifacts = [
       inspectArtifact(stagingDirectory, "FitFreed.app", "macos-application-bundle"),
       inspectArtifact(stagingDirectory, dmgName, "macos-disk-image"),
-      ...evidenceFiles.map((filename) =>
+      ...[npmSbom, ...cargoSboms].map((filename) =>
         inspectArtifact(stagingDirectory, filename, "cyclonedx-sbom"),
       ),
+      inspectArtifact(stagingDirectory, upgradeMatrix, "upgrade-matrix"),
     ];
     const manifest = createReleaseManifest({
       version,

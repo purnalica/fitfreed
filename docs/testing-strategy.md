@@ -120,4 +120,5 @@ Recurring discovery is split at its real boundary without waiting a day in CI. P
 - Accessibility conformance tooling and manual audit cadence.
 - Exact performance-benchmark hardware after the minimum macOS support decision.
 - Mutation-testing policy for critical domain rules.
-- Minimum supported upgrade baselines and migration matrix.
+- Package update evidence for every application baseline declared by the release-bound upgrade matrix when a real predecessor exists. The first 0.1.0 matrix has no application baseline.
+- Direct open, atomic interruption rollback, retry, integrity, and target-version evidence for every library schema declared by that matrix.

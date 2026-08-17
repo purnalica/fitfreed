@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -19,6 +19,13 @@ function releaseFixture(context) {
   writeFileSync(path.join(root, "FitFreed.app", "Contents", "fitfreed"), "application");
   writeFileSync(path.join(root, "FitFreed.dmg"), "disk image");
   writeFileSync(path.join(root, "npm.cdx.json"), "{}\n");
+  writeFileSync(path.join(root, "supported-upgrades.json"), `${JSON.stringify({
+    format: "org.fitfreed.upgrade-matrix",
+    schemaVersion: 1,
+    release: { version: "0.1.0", librarySchemaVersion: 3 },
+    supportedApplicationBaselines: [],
+    supportedLibrarySchemaVersions: [1, 2, 3],
+  }, null, 2)}\n`);
   const manifest = createReleaseManifest({
     version: "0.1.0",
     revision: "a".repeat(40),
@@ -30,6 +37,7 @@ function releaseFixture(context) {
       inspectArtifact(root, "FitFreed.app", "macos-application-bundle"),
       inspectArtifact(root, "FitFreed.dmg", "macos-disk-image"),
       inspectArtifact(root, "npm.cdx.json", "cyclonedx-sbom"),
+      inspectArtifact(root, "supported-upgrades.json", "upgrade-matrix"),
     ],
   });
   writeFileSync(path.join(root, "release-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
@@ -39,6 +47,7 @@ function releaseFixture(context) {
     renderChecksumFile(root, [
       "FitFreed.dmg",
       "npm.cdx.json",
+      "supported-upgrades.json",
       "release-manifest.json",
       "RELEASE_NOTES.md",
     ]),
@@ -71,5 +80,35 @@ test("reports manifest and checksum failures together", (context) => {
       assert.match(error.message, /unexpected release entry: unexpected\.txt/);
       return true;
     },
+  );
+});
+
+test("rejects a digest-consistent matrix for a different target release", (context) => {
+  const root = releaseFixture(context);
+  const matrixPath = path.join(root, "supported-upgrades.json");
+  const matrix = JSON.parse(readFileSync(matrixPath, "utf8"));
+  matrix.release.version = "0.2.0";
+  writeFileSync(matrixPath, `${JSON.stringify(matrix, null, 2)}\n`);
+
+  const manifestPath = path.join(root, "release-manifest.json");
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  const matrixArtifact = inspectArtifact(root, "supported-upgrades.json", "upgrade-matrix");
+  manifest.artifacts = manifest.artifacts.map((artifact) =>
+    artifact.kind === "upgrade-matrix" ? matrixArtifact : artifact);
+  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  writeFileSync(
+    path.join(root, "SHA256SUMS"),
+    renderChecksumFile(root, [
+      "FitFreed.dmg",
+      "npm.cdx.json",
+      "supported-upgrades.json",
+      "release-manifest.json",
+      "RELEASE_NOTES.md",
+    ]),
+  );
+
+  assert.throws(
+    () => verifyReleaseIntegrity(root),
+    /target version 0\.2\.0 does not match repository version 0\.1\.0/,
   );
 });

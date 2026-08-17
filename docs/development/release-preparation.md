@@ -19,7 +19,7 @@ npm run prepare:development-release -- 0.1.0
 
 Replace `0.1.0` with the explicitly reviewed version. Preparation stops unless that value matches npm, Tauri, and every FitFreed Cargo package. Continuous integration passes its reviewed release version through the same gate. `cargo-cyclonedx` is installed under ignored `.tools/`; no global installation is required.
 
-The command audits the complete JavaScript production and build graph, builds the normal Tauri production package, rejects E2E instrumentation, generates and validates production-only CycloneDX inventories, normalizes machine-local Cargo references, scans the complete evidence set for secrets, and stages it under `.artifacts/releases/<version>/`.
+The command audits the complete JavaScript production and build graph, verifies the candidate-bound upgrade matrix, builds the normal Tauri production package, rejects E2E instrumentation, generates and validates production-only CycloneDX inventories, normalizes machine-local Cargo references, scans the complete evidence set for secrets, and stages it under `.artifacts/releases/<version>/`.
 
 Preparation requires a clean Git revision so the manifest can identify its complete source. A failure keeps the last complete version directory and removes only the incomplete ignored staging directory.
 
@@ -29,7 +29,8 @@ The ignored version directory contains:
 
 - `FitFreed.app` and the native-architecture Tauri DMG;
 - one npm and three Cargo CycloneDX 1.5 JSON documents;
-- `release-manifest.json` conforming to the [version 1 contract](../data-formats/release/release-manifest-v1.md);
+- `supported-upgrades.json`, the exact [version 1 compatibility matrix](../data-formats/release/upgrade-matrix-v1.md);
+- `release-manifest.json` conforming to the [version 2 contract](../data-formats/release/release-manifest-v2.md) and binding that matrix by digest;
 - `SHA256SUMS`; and
 - private draft `RELEASE_NOTES.md`.
 
