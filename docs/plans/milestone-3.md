@@ -18,7 +18,7 @@ No unsigned binary may enter a public channel. No production private key, passwo
 
 ## Increment M3.1 — Executable platform boundary
 
-**Status:** implementation and local verification complete; hosted verification is running for the preceding documentation revision and will run again for the platform change.
+**Status:** implementation and local verification complete; exact-source hosted acceptance is pending.
 
 **Outcome:** the public macOS target is stated and enforced consistently as Apple Silicon on macOS 15.0 or later.
 
@@ -51,7 +51,7 @@ Local evidence on 2026-08-17: both closed update-channel schemas and the public 
 
 ## Increment M3.3 — Signed, notarized release automation
 
-**Status:** engineering and local acceptance complete. Hosted acceptance remains gated by the production trust root, protected GitHub configuration, exact release tag, and explicit public-release authority.
+**Status:** engineering and local acceptance complete; exact-source normal CI is pending. Production workflow execution remains gated separately by the production trust root, protected GitHub configuration, exact release tag, and explicit public-release authority.
 
 **Outcome:** one manually authorized, exact-tag-bound workflow can build, sign, notarize, staple, inspect, attest, stage, and publish a public candidate without exposing release credentials to untrusted jobs.
 
@@ -62,15 +62,15 @@ Local evidence on 2026-08-17: both closed update-channel schemas and the public 
 3. Build with Developer ID hardened-runtime signing, submit with supported Apple notarization credentials, staple tickets, and verify `codesign`, `spctl`, and `stapler` results.
 4. Generate checksums and SBOMs from the final signed bytes, attest every public subject, and reject any post-verification mutation.
 5. Prepare GitHub Release and Pages deployment inputs without automatically publishing them in normal CI.
-6. Publish only after explicit release authority and protected-environment approval, then verify remote bytes and the direct stable endpoint before accepting promotion.
+6. Seal the exact candidate for independent evaluation, publish only after a second protected-environment approval, then verify remote bytes and the direct stable endpoint before accepting promotion.
 
 **Acceptance evidence:** all preparation and inspection behavior passes with synthetic or ad-hoc test identities where Apple permits it; the exact public candidate additionally requires a real Developer ID, successful Apple notarization, Gatekeeper acceptance, protected-environment execution, provenance, and remote byte verification.
 
-Local evidence on 2026-08-18: the complete fast lane passed 106 automation tests, 51 presentation tests, 2 bounded-updater tests, 161 desktop-host tests, 52 application tests, 6 domain tests, and 2 private-reference acceptance predicate tests. The workflow passed its closed topology and permission contract plus pinned `actionlint` 1.7.12 validation. Synthetic release boundaries covered ephemeral authority materialization and cleanup, exact source and tag resolution, immutable asset publication, source-bound attestations, release-link verification, direct non-redirecting Pages convergence, complete distributed-byte reopening, and temporary evidence removal. This does not claim Developer ID, Apple notarization, GitHub environment protection, public publication, or remote production evidence.
+Local evidence on 2026-08-18: the complete fast lane passed 115 automation tests, 51 presentation tests, 2 bounded-updater tests, 161 desktop-host tests, 52 application tests, 6 domain tests, and 2 private-reference acceptance predicate tests. The workflow passed its closed topology and permission contract plus pinned `actionlint` 1.7.12 and ShellCheck 0.10.0 validation. Synthetic release boundaries covered ephemeral authority materialization and cleanup, exact source and tag resolution, immutable asset publication, source-bound attestations, release-link verification, direct non-redirecting Pages convergence, complete distributed-byte reopening, sealed candidate transport, and temporary evidence removal. This does not claim Developer ID, Apple notarization, GitHub environment protection, public publication, or remote production evidence.
 
 ## Increment M3.4 — Public operation, user guidance, and readiness
 
-**Status:** pending M3.3 engineering.
+**Status:** in progress. Version-matched public user guidance, a shared candidate-evaluation procedure, maintainer operations and incident recovery, sealed pre-publication evaluation, and the consolidated readiness ledger are implemented. Local regression and hosted documentation acceptance remain.
 
 **Outcome:** users and maintainers can install, verify, update, recover, remove, support, and withdraw a public FitFreed release without hidden project knowledge.
 

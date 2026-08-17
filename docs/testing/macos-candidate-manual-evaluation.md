@@ -1,10 +1,10 @@
-# Private Alpha Manual Evaluation
+# macOS Candidate Manual Evaluation
 
 ## Status and boundary
 
-This is the privacy-safe manual acceptance procedure for the exact FitFreed 0.1.0 private-alpha candidate. It complements automated component, packaged E2E, accessibility, installation, update, recovery, and performance gates; it does not replace them.
+This is the shared privacy-safe manual acceptance procedure for an exact FitFreed 0.1.0 macOS candidate. It complements automated component, packaged E2E, accessibility, installation, update, recovery, and performance gates; it does not replace them.
 
-Execution requires an authorized candidate, controlled participant, and the active [private alpha candidate guide](../user/private-alpha-candidate.md). Until those gates close, the same interaction procedure may be rehearsed only with independently generated synthetic packages.
+Execution requires an authorized candidate, controlled participant, and one explicit distribution profile: the [private alpha candidate guide](../user/private-alpha-candidate.md) or the [public macOS guide](../user/public-macos-0.1.0.md). The evaluated bytes and installation trust behavior must match that profile. Until its gates close, the interaction procedure may be rehearsed only with independently generated synthetic packages and cannot be recorded as candidate acceptance.
 
 ## Evaluation record
 
@@ -21,7 +21,7 @@ Exact participant hardware and operating-system details may be retained only in 
 
 ## Preconditions
 
-1. Verify the complete candidate evidence and controlled handoff before mounting the DMG.
+1. Verify the complete candidate evidence, distribution profile, and controlled handoff before mounting the DMG. A public candidate must be the sealed Actions artifact awaiting promotion from the same workflow run.
 2. Preserve the original provider ZIP independently.
 3. Confirm that no production or personally important FitFreed library already occupies the candidate's application-data location.
 4. Disable unrelated screen sharing, recording, cloud clipboard, and public diagnostic capture for the session.
@@ -30,7 +30,7 @@ Exact participant hardware and operating-system details may be retained only in 
 
 ## Installation and first-run session
 
-1. Complete the documented DMG drag-copy installation without a development toolchain, terminal, global security change, or unverified replacement.
+1. Complete the profile-matched DMG drag-copy installation without a development toolchain, terminal, global security change, or unverified replacement. A public candidate must open through the ordinary Developer ID and Gatekeeper path with no launch exception.
 2. Launch the exact installed application and confirm version 0.1.0.
 3. Verify that the initial locale follows a supported operating-system preference or falls back to English, then switch between English (United States) and Spanish (Spain).
 4. Quit and reopen FitFreed. Confirm the explicit locale persists and the empty library remains understandable.
@@ -94,7 +94,7 @@ Record task completion, intervention, misunderstanding, abandonment, and privacy
 
 ## Update and recovery session
 
-Run only after the real private channel and protected signing authority exist for distinct authorized versions:
+Run only after the profile's real channel and protected signing authority exist for distinct authorized versions:
 
 1. Verify offline startup remains usable and a manual offline check is non-disruptive.
 2. Confirm a newer compatible candidate shows installed and available versions plus localized notes; exercise postponement and explicit rediscovery.
@@ -109,4 +109,4 @@ No real participant library may be used for deliberate update failure until the 
 
 The candidate is not accepted while any scenario is blocked, any installation/update matrix case fails, any automated gate is red, any critical or serious accessibility defect remains, any participant cannot recover safely from the prescribed failure, or any evidence collection crosses the privacy boundary.
 
-Minor findings still require an issue, owner, severity rationale, and explicit disposition before the candidate decision. Passing one participant session does not establish universal usability or provider compatibility; it supplies bounded evidence for the private evaluation audience.
+Minor findings still require an issue, owner, severity rationale, and explicit disposition before the candidate decision. Passing one participant session does not establish universal usability or provider compatibility; it supplies bounded evidence for the named candidate, distribution profile, and participant audience.

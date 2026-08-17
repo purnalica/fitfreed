@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-FitFreed has no released or supported version yet. A supported-version and upgrade policy will be published before the first public release.
+FitFreed has no released or supported version yet. The first public version's support and upgrade policy is prepared but remains inactive until every gate in the [public-release readiness ledger](docs/testing/public-release-readiness.md) closes.
 
 ## Reporting a vulnerability
 

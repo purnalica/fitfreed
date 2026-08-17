@@ -4,12 +4,13 @@
 
 ### Evaluating the current application
 
-FitFreed does not have a supported alpha release yet. The current executable foundation accepts independently constructed synthetic data only.
+FitFreed does not have a supported public release yet. The implemented application accepts independently constructed synthetic data for open evaluation; use with personal exports remains gated by the exact public candidate and release decision.
 
 - Read the [development preview guide](user/development-preview.md) for the complete runnable journey.
 - Read [private development packages](user/private-development-packages.md) before handling unsigned package evidence.
 - Read the [private alpha candidate guide](user/private-alpha-candidate.md) for the version-matched 0.1.0 user journey and the gates that keep it inactive.
-- Check the [private alpha readiness ledger](testing/private-alpha-readiness.md) for the exact passed, pending, open, and unauthorized boundaries.
+- Read the [public macOS 0.1.0 guide](user/public-macos-0.1.0.md) for the future verified download, installation, import, update, recovery, privacy, and removal journey.
+- Check the [public-release readiness ledger](testing/public-release-readiness.md) for the exact passed, pending, open, and unauthorized boundaries.
 - Read the [user-documentation status](user/README.md) before opening any build.
 - Read the project [disclaimer](../DISCLAIMER.md) and [support boundary](../SUPPORT.md).
 
@@ -19,11 +20,12 @@ FitFreed does not have a supported alpha release yet. The current executable fou
 - Follow the active [Milestone 3 public-release execution plan](plans/milestone-3.md) for increment boundaries and acceptance gates.
 - Use [private release preparation](development/release-preparation.md) for clean-revision package and installation evidence.
 - Use [public macOS release](development/public-release.md) for the inactive trust boundary, protected preflight, and future publication path.
+- Use [public release operations](development/public-release-operations.md) for candidate evaluation, promotion, partial-publication recovery, withdrawal, key rotation, and incidents.
 - Use the [troubleshooting guide](development/troubleshooting.md) when a documented command fails.
 - Use the [performance benchmark guide](development/performance-benchmarks.md) for synthetic scales, timed boundaries, budgets, and regression evidence.
 - Use [private reference export acceptance](testing/private-reference-acceptance.md) only for the explicitly supplied local compatibility input.
-- Use [private alpha manual evaluation](testing/private-alpha-manual-evaluation.md) for privacy-safe keyboard, VoiceOver, scaling, contrast, realistic usability, and controlled recovery acceptance.
-- Use the [private alpha readiness ledger](testing/private-alpha-readiness.md) as the current status source; the linked procedures remain authoritative for execution.
+- Use [macOS candidate manual evaluation](testing/macos-candidate-manual-evaluation.md) for privacy-safe keyboard, VoiceOver, scaling, contrast, realistic usability, and controlled recovery acceptance.
+- Use the [public-release readiness ledger](testing/public-release-readiness.md) as the current status source; the linked procedures remain authoritative for execution.
 - Read the [module map](architecture/module-map.md), [testing strategy](testing-strategy.md), and [data-contract index](data-formats/README.md) before changing product behavior.
 - Follow the [localization guide](development/localization.md) for interface copy or language support.
 - Follow [CONTRIBUTING.md](../CONTRIBUTING.md) and the [repository content policy](repository-content-policy.md) before proposing or publishing a change.

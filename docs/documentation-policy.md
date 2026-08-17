@@ -17,7 +17,7 @@ Documentation evolves in the same reviewed increment as the product, architectur
 | User installation, import, exploration, update, recovery, privacy, and removal guidance | Versioned user-documentation sources selected with the application stack |
 | Contributor setup, build, run, test, package, and release workflows | `README.md`, `CONTRIBUTING.md`, and versioned developer documentation |
 | Provider exports, canonical data, source mappings, portable exports, persistence schemas, and migrations | [`docs/data-formats/`](data-formats/) |
-| Current private-alpha readiness state and evidence links | [`docs/testing/private-alpha-readiness.md`](testing/private-alpha-readiness.md) |
+| Current public-release readiness state and evidence links | [`docs/testing/public-release-readiness.md`](testing/public-release-readiness.md) |
 | Security, support, governance, and community behavior | Root community health files |
 | Temporary or external research inputs | Ignored local research directories under `docs/reports/` or `.local/` |
 

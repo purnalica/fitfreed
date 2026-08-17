@@ -9,6 +9,17 @@ export const requiredReleaseNoteSections = Object.freeze([
   "Support",
 ]);
 
+const deliveryStateClaims = Object.freeze([
+  { pattern: /\b(?:un)?signed\b/i, label: "code-signing state" },
+  { pattern: /\bnotari[sz]/i, label: "notarization state" },
+  { pattern: /\bpublic release\b/i, label: "public-release state" },
+  {
+    pattern: /\bprivate (?:alpha|candidate|development|distribution|package|release)\b/i,
+    label: "private-distribution state",
+  },
+  { pattern: /\bproduction (?:trust|update)/i, label: "production-channel state" },
+]);
+
 export function releaseNotesSourcePath(version) {
   if (!semanticVersion.test(version ?? "")) {
     throw new Error(`invalid release notes version: ${version}`);
@@ -61,6 +72,12 @@ export function validateReviewedReleaseNotes(source) {
     const bodyEnd = headings[index + 1]?.index ?? source.length;
     if (source.slice(heading.bodyStart, bodyEnd).trim().length === 0) {
       errors.push(`release-note section has no content: ${heading.title}`);
+    }
+  }
+
+  for (const { pattern, label } of deliveryStateClaims) {
+    if (pattern.test(source)) {
+      errors.push(`reviewed release notes contain generated ${label}`);
     }
   }
 

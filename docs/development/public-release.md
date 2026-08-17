@@ -45,7 +45,7 @@ It defines these non-secret variables:
 - `FITFREED_APPLE_API_ISSUER`; and
 - `FITFREED_APPLE_API_KEY_ID`.
 
-The public update key identifier and public key are not secrets. They become active only through a reviewed change to the versioned public update configuration. Key custody, activation, rotation, compromise, and withdrawal procedures are completed in M3.4 before publication.
+The public update key identifier and public key are not secrets. They become active only through a reviewed change to the versioned public update configuration. The [public release operations runbook](public-release-operations.md) owns key custody, activation, rotation, compromise, withdrawal, and partial-publication recovery.
 
 ## Objective trust gate
 
@@ -68,11 +68,15 @@ The stable envelope is signed over exact payload bytes with the same protected T
 
 `npm run verify:public-release -- .artifacts/public-releases/<version>` independently reopens the closed manifest, every artifact, the compatibility matrix, checksum set, stable payload and envelope, configured key, updater signature binding, and the exact two-file Pages tree. It compares the Release and Pages copies byte for byte and rejects any missing, additional, renamed, or mutated subject. Preparation invokes this verifier before promotion; publication invokes it again after artifact transport.
 
-## Protected publication
+## Sealed evaluation and protected publication
 
 `.github/workflows/public-release.yml` is the only versioned publication entry point. It is manually dispatched while selecting the exact `v<version>` ref and supplying only `version` and the public `update_key_id`. Its concurrency group never cancels an active release.
 
-After local verification, GitHub creates provenance attestations for every file in `SHA256SUMS` and for the checksum file itself. The two-file Pages artifact is uploaded but remains private. `npm run publish:public-release -- <candidate>` then creates an exact draft without asset replacement, verifies its names, sizes, digests, notes, source-bound provenance, and tag, publishes it, and requires GitHub to report it as immutable. An existing public release is reusable only when every field and byte already agrees; drift fails rather than overwriting evidence.
+The first protected job has read-only repository permission. After local verification it seals only `release/` and `pages/` into one transport archive, records its SHA-256 digest, retains it for seven days as a private Actions artifact, and unconditionally removes Apple and updater authority. `npm run pack:public-release -- <candidate> <archive>` and `npm run unpack:public-release -- <archive> <sha256> <candidate>` verify the complete candidate on both sides of this boundary and reject mutation, additional roots, unsafe paths, partial extraction, or evidence drift.
+
+The publication job waits at the same environment for a second approval. While it waits, an independent evaluator follows the [macOS candidate procedure](../testing/macos-candidate-manual-evaluation.md) on that sealed artifact. Promotion is rejected when the exact bytes did not pass, a serious finding remains open, or the seven-day signed metadata window expires. The second job receives no Apple or updater secret, downloads only the same run's named artifact, verifies its job-bound digest, and reopens the entire candidate before it can create a public effect.
+
+After that acceptance, GitHub creates provenance attestations for every file in `SHA256SUMS` and for the checksum file itself. The two-file Pages artifact is uploaded but remains private. `npm run publish:public-release -- <candidate>` then creates an exact draft without asset replacement, verifies its names, sizes, digests, notes, source-bound provenance, and tag, publishes it, and requires GitHub to report it as immutable. An existing public release is reusable only when every field and byte already agrees; drift fails rather than overwriting evidence.
 
 The Pages job runs only after immutable Release publication. This ordering preserves the previous complete application update snapshot when Release publication or Pages artifact upload fails. A subsequent secret-free job runs:
 
@@ -81,6 +85,8 @@ npm run verify:remote-public-release -- <version> <revision>
 ```
 
 It downloads the exact Release assets, verifies their GitHub-linked attestations against this workflow, tag, and source revision, reopens the distributed manifest, checksums, inventories, matrix, notes, and signed channel, then fetches the direct stable envelope and updater archive with redirects disabled. Bounded polling tolerates Pages propagation only when both objects converge to the exact release sizes and SHA-256 digests. No Apple or updater authority reaches deployment or remote verification.
+
+The [operations runbook](public-release-operations.md) defines normal promotion, the exact-candidate handoff, draft cleanup authority, Release-before-Pages recovery, Pages containment, higher-sequence correction, withdrawal, key rotation, compromise, and incident communication. Rebuilding after immutable publication is never used as a substitute for the sealed bytes.
 
 ## One-time platform prerequisites
 

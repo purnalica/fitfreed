@@ -52,18 +52,17 @@ jobs:
           FITFREED_UPDATE_KEY_ID: ${{ inputs.update_key_id }}
         run: npm run preflight:public-release -- "$FITFREED_VERSION" "$FITFREED_UPDATE_KEY_ID"
 
-  build-and-publish:
-    name: Build, attest, and publish the authorized candidate
+  build-candidate:
+    name: Build the protected candidate
     needs: preflight
     runs-on: macos-15
     timeout-minutes: 75
     environment: public-macos-release
+    outputs:
+      candidate-sha256: ${{ steps.transport.outputs.candidate_sha256 }}
     permissions:
       actions: read
-      artifact-metadata: write
-      attestations: write
-      contents: write
-      id-token: write
+      contents: read
       pages: read
 
     steps:
@@ -115,7 +114,7 @@ jobs:
 
       - name: Define the stable-channel issuance time
         id: issuance
-        run: node -e 'process.stdout.write(`issued_at=${new Date().toISOString()}\n`)' >> "$GITHUB_OUTPUT"
+        run: node -e 'process.stdout.write("issued_at=" + new Date().toISOString() + "\n")' >> "$GITHUB_OUTPUT"
 
       - name: Build and verify the signed notarized public candidate
         env:
@@ -134,35 +133,106 @@ jobs:
           FITFREED_CANDIDATE: .artifacts/public-releases/${{ inputs.version }}
         run: npm run verify:public-release -- "$FITFREED_CANDIDATE"
 
-      - name: Attest every checksum-bound public asset
-        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
-        with:
-          subject-checksums: .artifacts/public-releases/${{ inputs.version }}/release/SHA256SUMS
-
-      - name: Attest the final checksum inventory
-        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
-        with:
-          subject-path: .artifacts/public-releases/${{ inputs.version }}/release/SHA256SUMS
-
-      - name: Upload the exact Pages deployment artifact
-        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
-        with:
-          path: .artifacts/public-releases/${{ inputs.version }}/pages
-          retention-days: 1
-
-      - name: Publish the immutable GitHub Release
+      - name: Seal the candidate for independent evaluation and promotion
+        id: transport
         env:
-          GH_TOKEN: ${{ github.token }}
           FITFREED_CANDIDATE: .artifacts/public-releases/${{ inputs.version }}
-        run: npm run publish:public-release -- "$FITFREED_CANDIDATE"
+          FITFREED_TRANSPORT: .artifacts/public-release-transport/candidate.tar.gz
+        run: >-
+          npm run pack:public-release --
+          "$FITFREED_CANDIDATE"
+          "$FITFREED_TRANSPORT"
+
+      - name: Retain the sealed candidate for evaluation
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: public-macos-candidate-${{ inputs.version }}-${{ github.sha }}
+          path: .artifacts/public-release-transport/candidate.tar.gz
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
 
       - name: Remove ephemeral release authority
         if: always()
         run: npm run authority:public-release -- cleanup
 
+  publish-candidate:
+    name: Promote the independently accepted candidate
+    needs: build-candidate
+    runs-on: macos-15
+    timeout-minutes: 20
+    environment: public-macos-release
+    permissions:
+      actions: read
+      artifact-metadata: write
+      attestations: write
+      contents: write
+      id-token: write
+      pages: read
+
+    steps:
+      - name: Check out the accepted release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Use the supported Node.js version
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked JavaScript dependencies
+        run: npm ci
+
+      - name: Download only the sealed candidate from this workflow run
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+        with:
+          name: public-macos-candidate-${{ inputs.version }}-${{ github.sha }}
+          path: .artifacts/public-release-transport
+
+      - name: Verify and reopen the independently accepted candidate
+        env:
+          FITFREED_CANDIDATE_SHA256: ${{ needs.build-candidate.outputs.candidate-sha256 }}
+          FITFREED_TRANSPORT: .artifacts/public-release-transport/candidate.tar.gz
+          FITFREED_CANDIDATE: .artifacts/accepted-public-release/${{ inputs.version }}
+        run: >-
+          npm run unpack:public-release --
+          "$FITFREED_TRANSPORT"
+          "$FITFREED_CANDIDATE_SHA256"
+          "$FITFREED_CANDIDATE"
+
+      - name: Reopen the complete accepted candidate
+        env:
+          FITFREED_CANDIDATE: .artifacts/accepted-public-release/${{ inputs.version }}
+        run: npm run verify:public-release -- "$FITFREED_CANDIDATE"
+
+      - name: Attest every checksum-bound public asset
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
+        with:
+          subject-checksums: .artifacts/accepted-public-release/${{ inputs.version }}/release/SHA256SUMS
+
+      - name: Attest the final checksum inventory
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
+        with:
+          subject-path: .artifacts/accepted-public-release/${{ inputs.version }}/release/SHA256SUMS
+
+      - name: Upload the exact Pages deployment artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: .artifacts/accepted-public-release/${{ inputs.version }}/pages
+          retention-days: 1
+
+      - name: Publish the immutable GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FITFREED_CANDIDATE: .artifacts/accepted-public-release/${{ inputs.version }}
+        run: npm run publish:public-release -- "$FITFREED_CANDIDATE"
+
   deploy-pages:
     name: Deploy the stable update snapshot
-    needs: build-and-publish
+    needs: publish-candidate
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:

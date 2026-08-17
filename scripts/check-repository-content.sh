@@ -13,8 +13,13 @@ report_failure() {
 }
 
 while IFS= read -r -d '' candidate_path; do
-  candidate_count=$((candidate_count + 1))
   candidate_file="$repository_root/$candidate_path"
+
+  if [[ ! -e "$candidate_file" ]] && [[ ! -L "$candidate_file" ]] &&
+    git -C "$repository_root" ls-files --deleted --error-unmatch -- "$candidate_path" >/dev/null 2>&1; then
+    continue
+  fi
+  candidate_count=$((candidate_count + 1))
 
   case "$candidate_path" in
     .idea/* | .local/* | .tools/* | docs/reports/* | *.zip | *.sqlite | *.sqlite3 | *.db | *.parquet)

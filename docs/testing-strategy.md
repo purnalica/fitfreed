@@ -44,6 +44,7 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Presentation motion declarations and the reduced-motion boundary.
 - Update metadata, signature validation, artifact selection, and migration coordination.
 - Protected release-workflow syntax, exact permissions, action pins, authority isolation, immutable publication, provenance, and direct Pages-byte convergence.
+- Version-matched public user, operations, support, security, disclaimer, manual-evaluation, readiness, release-note, policy, and locale documentation contracts.
 - Process-lifetime update cadence, non-overlap, no-burst scheduling, and typed event presentation.
 - Packaging and operating-system integration where a complete UI journey is unnecessary.
 
@@ -90,7 +91,7 @@ Local and continuous-integration workflows will invoke the same underlying comma
 
 ### Continuous-integration distribution
 
-- GitHub Actions runs impact classification, documentation links, and repository safety for every pull request and `main` revision. A closed documentation-only allowlist may reuse evidence only when an immutable marker proves that the exact executable-input Git-tree fingerprint already passed both complete lanes; missing evidence and any other or unknown path run the complete portable checks.
+- GitHub Actions runs impact classification, documentation links, public documentation contracts, and repository safety for every pull request and `main` revision. A closed documentation-only allowlist may reuse evidence only when an immutable marker proves that the exact executable-input Git-tree fingerprint already passed both complete lanes; missing evidence and any other or unknown path run the complete portable checks.
 - A mandatory macOS job prepares the source-bound production package, enforces its process-to-painted-shell cold-launch budget, then builds the instrumented Tauri package and executes the focused packaged E2E journey with independently generated synthetic fixtures whenever executable or release inputs change and for every explicit manual or release-candidate verification request.
 - The same macOS job generates an ephemeral HTTPS authority and Minisign key, builds synthetic 0.1.0 and 0.2.0 applications, and proves both native replacement with candidate confirmation and rejected-candidate recovery to the exact previous application/library pair.
 - Test-only WebDriver plugins and capabilities are feature-gated. A separate packaging assertion proves that they are absent from the production application.

@@ -1,6 +1,6 @@
 # ADR 0018: Publish through one protected evidence pipeline
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR 0019](0019-separate-candidate-build-from-public-promotion.md)
 - **Date:** 2026-08-18
 - **Decision owners:** FitFreed maintainers
 - **Related requirements:** [Product requirements](../../requirements.md)

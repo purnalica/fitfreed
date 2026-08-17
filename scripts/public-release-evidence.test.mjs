@@ -126,7 +126,7 @@ test("rejects a public artifact renamed away from its stable contract", () => {
 test("assembles public notes from generated trust identity and reviewed content", () => {
   const reviewed = `## Highlights
 
-Synthetic public release.
+Synthetic product highlights.
 
 ## Compatibility
 

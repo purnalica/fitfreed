@@ -16,8 +16,9 @@ test("accepts the exact manual protected release topology", () => {
   const result = inspectPublicReleaseWorkflow();
   assert.equal(result.trigger, "workflow_dispatch");
   assert.equal(result.protectedEnvironment, "public-macos-release");
-  assert.equal(result.publicationOrder, "release-before-pages");
-  assert.equal(result.actionReferenceCount, 10);
+  assert.equal(result.approvalBoundaries, 2);
+  assert.equal(result.publicationOrder, "accepted-candidate-before-release-before-pages");
+  assert.equal(result.actionReferenceCount, 14);
 });
 
 test("rejects automatic triggers, moving pins, cancellation, or preflight secrets", () => {
@@ -35,9 +36,20 @@ test("rejects automatic triggers, moving pins, cancellation, or preflight secret
   }
 });
 
-test("rejects a bypassed environment, publication order, cleanup, or remote gate", () => {
+test("rejects a bypassed approval, candidate transport, publication order, cleanup, or remote gate", () => {
   for (const [mutate, expected] of [
     [(source) => source.replace("environment: public-macos-release", "environment: unprotected"), /protected environment/],
+    [(source) => source.replace(
+      "  publish-candidate:\n",
+      "  publish-candidate:\n",
+    ).replace(
+      "    environment: public-macos-release\n    permissions:\n      actions: read\n      artifact-metadata: write",
+      "    permissions:\n      actions: read\n      artifact-metadata: write",
+    ), /second protected approval/],
+    [(source) => source.replace(
+      "${{ needs.build-candidate.outputs.candidate-sha256 }}",
+      `${"a".repeat(64)}`,
+    ), /sealed digest/],
     [(source) => source.replace(
       "Publish the immutable GitHub Release",
       "Publish the immutable GitHub Release before attestations",

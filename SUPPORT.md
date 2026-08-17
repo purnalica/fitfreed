@@ -2,7 +2,7 @@
 
 ## Current availability
 
-FitFreed has a complete executable MVP candidate path but no supported alpha release. Current support covers contributor setup and the independently generated synthetic journey documented in the [development preview guide](docs/user/development-preview.md). The [private alpha candidate guide](docs/user/private-alpha-candidate.md) is inactive until its platform, update-authority, controlled-distribution, and participant-evaluation gates close. Real personal exports, end-user installation, and update support begin only with a version that explicitly activates and verifies those boundaries.
+FitFreed has a complete executable MVP and public-release engineering path but no supported release. Current support covers contributor setup and the independently generated synthetic journey documented in the [development preview guide](docs/user/development-preview.md). The [public macOS 0.1.0 guide](docs/user/public-macos-0.1.0.md) is inactive until the [readiness ledger](docs/testing/public-release-readiness.md) closes its production-trust, protected-distribution, exact-candidate, and participant-evaluation gates. Real personal exports, end-user installation, and update support begin only with a version that explicitly activates and verifies those boundaries.
 
 ## Where requests belong
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-Milestone 1 is complete. The production-shaped Tauri and SQLite foundation, architecture, localized vertical slice, contributor path, continuous integration, and private macOS release-evidence boundary have passed their acceptance gates. Milestone 2 capability implementation is complete, and Apple Silicon on macOS 15.0 or later is its accepted platform boundary. Update-authority, controlled-distribution, and participant-evaluation gates remain open but do not block Milestone 3 engineering; they join the final release-readiness audit after Milestone 3 implementation.
+Milestone 1 and Milestone 2 capability implementation are complete. Apple Silicon on macOS 15.0 or later is the accepted MVP platform boundary. Milestone 3 public-release engineering is active: deterministic trust, candidate, publication, recovery, user, maintainer, and readiness paths exist, while production authority, protected GitHub configuration, exact-candidate evaluation, and public publication remain open in the consolidated readiness ledger.
 
 ## Purpose
 

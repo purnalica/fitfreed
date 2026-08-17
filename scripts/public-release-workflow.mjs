@@ -8,6 +8,8 @@ const actionPins = new Map([
   ["actions/checkout", "3d3c42e5aac5ba805825da76410c181273ba90b1"],
   ["actions/setup-node", "820762786026740c76f36085b0efc47a31fe5020"],
   ["actions/attest", "508db95dd578ae2727ebd6217d5ba78e4fbda05d"],
+  ["actions/upload-artifact", "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"],
+  ["actions/download-artifact", "70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3"],
   ["actions/upload-pages-artifact", "fc324d3547104276b827a68afc52ff2a11cc49c9"],
   ["actions/deploy-pages", "cd2ce8fcbc39b97be8ca5fce6e763baed58fa128"],
 ]);
@@ -98,26 +100,16 @@ export function validatePublicReleaseWorkflow(source) {
     errors.push("preflight cannot receive protected release authority");
   }
 
-  const build = section(source, "build-and-publish");
+  const build = section(source, "build-candidate");
   requirePermissions(errors, build, 4, [
     "actions: read",
-    "artifact-metadata: write",
-    "attestations: write",
-    "contents: write",
-    "id-token: write",
+    "contents: read",
     "pages: read",
-  ], "protected build");
+  ], "protected candidate build");
   requireMatch(errors, build, /needs: preflight/, "protected build must depend on preflight");
   requireMatch(errors, build, /runs-on: macos-15/, "public build must use the maintained macOS runner");
   requireMatch(errors, build, /environment: public-macos-release/, "public build must use the protected environment");
-  for (const permission of [
-    "actions: read",
-    "artifact-metadata: write",
-    "attestations: write",
-    "contents: write",
-    "id-token: write",
-    "pages: read",
-  ]) {
+  for (const permission of ["actions: read", "contents: read", "pages: read"]) {
     requireMatch(errors, build, new RegExp(`^      ${permission}$`, "m"), `protected build lacks ${permission}`);
   }
   requireOrder(errors, build, [
@@ -126,13 +118,40 @@ export function validatePublicReleaseWorkflow(source) {
     "Install ephemeral Apple and updater release authority",
     "Build and verify the signed notarized public candidate",
     "Reopen the complete local candidate",
+    "Seal the candidate for independent evaluation and promotion",
+    "Retain the sealed candidate for evaluation",
+    "Remove ephemeral release authority",
+  ]);
+  requireMatch(errors, build, /outputs:\n      candidate-sha256:/, "candidate build must expose its sealed digest");
+  requireMatch(errors, build, /uses: actions\/upload-artifact@/, "candidate build must retain evaluation evidence");
+  requireMatch(errors, build, /- name: Remove ephemeral release authority\n        if: always\(\)/, "release authority cleanup must always execute");
+
+  const publish = section(source, "publish-candidate");
+  requirePermissions(errors, publish, 4, [
+    "actions: read",
+    "artifact-metadata: write",
+    "attestations: write",
+    "contents: write",
+    "id-token: write",
+    "pages: read",
+  ], "accepted candidate promotion");
+  requireMatch(errors, publish, /needs: build-candidate/, "candidate promotion must follow its protected build");
+  requireMatch(errors, publish, /runs-on: macos-15/, "candidate promotion must preserve the macOS bundle transport");
+  requireMatch(errors, publish, /environment: public-macos-release/, "candidate promotion must require a second protected approval");
+  requireOrder(errors, publish, [
+    "Download only the sealed candidate from this workflow run",
+    "Verify and reopen the independently accepted candidate",
+    "Reopen the complete accepted candidate",
     "Attest every checksum-bound public asset",
     "Attest the final checksum inventory",
     "Upload the exact Pages deployment artifact",
     "Publish the immutable GitHub Release",
-    "Remove ephemeral release authority",
   ]);
-  requireMatch(errors, build, /- name: Remove ephemeral release authority\n        if: always\(\)/, "release authority cleanup must always execute");
+  requireMatch(errors, publish, /uses: actions\/download-artifact@/, "candidate promotion must download its sealed evidence");
+  requireMatch(errors, publish, /needs\.build-candidate\.outputs\.candidate-sha256/, "candidate promotion must verify the sealed digest");
+  if (/\$\{\{\s*(secrets|vars)\./.test(publish)) {
+    errors.push("candidate promotion cannot receive signing or notarization authority");
+  }
 
   const deploy = section(source, "deploy-pages");
   requirePermissions(
@@ -142,7 +161,7 @@ export function validatePublicReleaseWorkflow(source) {
     ["contents: read", "id-token: write", "pages: write"],
     "Pages deployment",
   );
-  requireMatch(errors, deploy, /needs: build-and-publish/, "Pages deployment must follow publication");
+  requireMatch(errors, deploy, /needs: publish-candidate/, "Pages deployment must follow publication");
   requireMatch(errors, deploy, /name: github-pages/, "Pages deployment must use its environment");
   requireMatch(errors, deploy, /pages: write/, "Pages deployment lacks publication authority");
 
@@ -167,8 +186,9 @@ export function validatePublicReleaseWorkflow(source) {
     workflow: workflowPath,
     trigger: "workflow_dispatch",
     protectedEnvironment: "public-macos-release",
+    approvalBoundaries: 2,
     actionReferenceCount: uses.length,
-    publicationOrder: "release-before-pages",
+    publicationOrder: "accepted-candidate-before-release-before-pages",
   };
 }
 

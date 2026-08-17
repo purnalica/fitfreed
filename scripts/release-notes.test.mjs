@@ -21,7 +21,7 @@ Imported fitness history stays in the local FitFreed library by default.
 
 ## Known limitations
 
-This private candidate is unsigned and has no supported user backup workflow.
+This version has no supported user backup workflow.
 
 ## Installation and recovery
 
@@ -85,6 +85,24 @@ Example.
       return true;
     },
   );
+});
+
+test("keeps delivery trust and channel state in generated release evidence", () => {
+  for (const [claim, expected] of [
+    ["This package is unsigned.", /code-signing state/],
+    ["This package is Apple notarized.", /notarization state/],
+    ["This is the public release.", /public-release state/],
+    ["This private development package is ready.", /private-distribution state/],
+    ["Production update discovery is active.", /production-channel state/],
+  ]) {
+    assert.throws(
+      () => validateReviewedReleaseNotes(reviewedNotes.replace(
+        "This version has no supported user backup workflow.",
+        claim,
+      )),
+      expected,
+    );
+  }
 });
 
 test("rejects reordered, unexpected, duplicated, and unterminated sections", () => {

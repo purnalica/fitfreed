@@ -2,7 +2,7 @@
 
 ## Current project stage
 
-FitFreed is auditing Milestone 2 private-alpha readiness on its Tauri 2, Rust, TypeScript, React, and SQLite foundation. The application is not an alpha release and public contribution workflows use independently constructed synthetic fixtures only. Contributions are currently most useful when they close a documented readiness gate, improve a bounded behavior without widening MVP scope, or strengthen architecture, tests, data contracts, localization, user guidance, and contributor automation together.
+FitFreed is implementing Milestone 3 public macOS readiness on its Tauri 2, Rust, TypeScript, React, and SQLite foundation. No supported release is available, and public contribution workflows use independently constructed synthetic fixtures only. Contributions are currently most useful when they close a documented readiness gate, improve a bounded behavior without widening MVP scope, or strengthen architecture, tests, data contracts, localization, user guidance, and contributor automation together.
 
 Review the [requirements](docs/requirements.md), [roadmap](docs/roadmap.md), [data format documentation](docs/data-formats/README.md), and [repository content policy](docs/repository-content-policy.md) before starting work.
 

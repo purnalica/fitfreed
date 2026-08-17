@@ -22,7 +22,7 @@ npm ci
 npm run test:fast
 ```
 
-`npm run doctor` checks the supported Node.js and npm ranges, pinned Rust toolchain, required Rust components, macOS Xcode command-line toolchain and native commands, or the native Tauri development modules used by the Linux quality lane, without requiring installed project dependencies. `npm ci` installs the exact JavaScript graph from `package-lock.json`. The fast lane verifies compile-enforced architecture boundaries, the pinned updater source and provenance, translation catalogs, presentation behavior, GitHub workflow syntax and policy, the updater refinement test, and all FitFreed Rust workspace tests. Its workflow check installs checksum-verified actionlint 1.7.12 under ignored `.tools/`; no global installation is required.
+`npm run doctor` checks the supported Node.js and npm ranges, pinned Rust toolchain, required Rust components, macOS Xcode command-line toolchain and native commands, or the native Tauri development modules used by the Linux quality lane, without requiring installed project dependencies. `npm ci` installs the exact JavaScript graph from `package-lock.json`. The fast lane verifies compile-enforced architecture boundaries, the pinned updater source and provenance, translation catalogs, presentation behavior, GitHub workflow syntax and policy, the updater refinement test, and all FitFreed Rust workspace tests. Its workflow check installs checksum-verified actionlint 1.7.12 and ShellCheck 0.10.0 under ignored `.tools/`; no global installation is required and shell analysis is identical on supported contributor and CI hosts.
 
 ## Primary commands
 
@@ -35,11 +35,13 @@ npm run test:fast
 | Verify canonical, mapping, and persistence contracts | `npm run check:data-contracts` |
 | Verify release identity and version contracts | `npm run check:release-contracts` |
 | Verify the application and library upgrade matrix | `npm run check:upgrade-matrix` |
-| Verify local documentation links | `npm run check:docs` |
+| Verify documentation links and public-release guidance | `npm run check:docs` |
 | Verify locale catalogs | `npm run check:i18n` |
 | Verify reduced-motion presentation contracts | `npm run check:ui-contracts` |
 | Verify pinned updater source and provenance | `npm run check:vendored-updater` |
 | Verify GitHub workflow syntax and public-release policy | `npm run check:workflows && npm run check:public-release-workflow` |
+| Seal a verified public candidate for protected handoff | `npm run pack:public-release -- <candidate-directory> <archive>` |
+| Reopen an exact digest-bound public candidate | `npm run unpack:public-release -- <archive> <sha256> <candidate-directory>` |
 | Run presentation tests | `npm test` |
 | Run project automation tests | `npm run test:scripts` |
 | Run all Rust tests | `npm run test:rust` |
@@ -94,7 +96,7 @@ The [performance benchmark guide](performance-benchmarks.md) documents cold laun
 
 The [private release preparation guide](release-preparation.md) owns the clean-revision package and installation evidence lane. It remains separate from `verify:full` because preparation must bind its output to a clean, reviewable commit.
 
-The [public release guide](public-release.md) owns the inactive production trust boundary, exact-tag preflight, protected inputs, signed candidate, immutable Release, Pages deployment, provenance, and remote verification workflow. Contributor commands may verify that workflow, but normal setup and CI cannot publish a binary.
+The [public release guide](public-release.md) owns the inactive production trust boundary, exact-tag preflight, protected inputs, signed candidate, immutable Release, Pages deployment, provenance, and remote verification workflow. `npm run check:docs` also binds the version-matched public user guide, maintainer runbook, manual evaluation, readiness ledger, supporting policies, reviewed release notes, release policy, and both initial locale catalogs. Contributor commands may verify that workflow, but normal setup and CI cannot publish a binary.
 
 ## Continuous integration
 

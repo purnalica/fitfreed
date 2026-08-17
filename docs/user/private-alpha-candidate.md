@@ -114,13 +114,13 @@ Do not include personal values, archive or library names, filesystem paths, prov
 
 ## Known acceptance gates
 
-The [private alpha readiness ledger](../testing/private-alpha-readiness.md) is the canonical current status. This guide becomes active only when all of the following are true for the exact candidate:
+The [private alpha readiness ledger](../testing/private-alpha-readiness.md) records why this proposed private profile was not accepted. The consolidated [public-release ledger](../testing/public-release-readiness.md) is the canonical current status, and the [public macOS guide](public-macos-0.1.0.md) owns the intended release journey. This private guide would have become active only if all of the following had been true for one exact private candidate:
 
 - the complete local and hosted release gates pass from its clean source revision;
 - the complete hosted macOS and clean local Apple Silicon campaigns pass the required import, query, rendering, migration, and recovery budgets;
 - the private update endpoint and protected production signing authority are configured and verified;
 - the controlled handoff defines integrity verification and the exact unsigned macOS launch procedure without a global security change;
 - the participant understands that no supported user backup/restore or portable normalized export exists in 0.1.0; and
-- the controlled [realistic usability, keyboard, VoiceOver, scaling, contrast, and recovery evaluation](../testing/private-alpha-manual-evaluation.md) is ready.
+- the controlled [realistic usability, keyboard, VoiceOver, scaling, contrast, and recovery evaluation](../testing/macos-candidate-manual-evaluation.md) is ready.
 
 Until then, use the [synthetic development preview](development-preview.md), not a personal export.

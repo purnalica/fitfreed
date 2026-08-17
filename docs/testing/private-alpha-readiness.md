@@ -2,9 +2,9 @@
 
 ## Decision status
 
-FitFreed 0.1.0 is **not accepted** and no supported alpha is available. The intended candidate remains an unsigned, non-notarized, privately distributed macOS evaluation. It must not be published through a public binary channel.
+FitFreed 0.1.0 was **not accepted** as a private alpha, and no private alpha is available. The intended candidate remained an unsigned, non-notarized, privately distributed macOS evaluation and was never authorized for a public binary channel.
 
-This document is the single current readiness ledger. It records status and links to the canonical requirement, procedure, architecture, and evidence sources; those linked documents own the underlying contracts and methods.
+This document retains the detailed Milestone 2 readiness evidence and deferred private-alpha gates. The [public macOS release ledger](public-release-readiness.md) is now the single current release decision source and incorporates these still-applicable gates without rewriting this historical evidence.
 
 The states used below are:
 
@@ -27,7 +27,7 @@ The states used below are:
 | Minimum supported macOS version and processor boundary | Passed | [ADR 0016](../architecture/decisions/0016-support-apple-silicon-on-macos-15-or-later.md) selects Apple Silicon on macOS 15.0 or later. Tauri configuration, release contracts, bundle metadata, the Mach-O deployment target, and the pinned hosted runner share that boundary. | Re-run the production bundle and complete hosted campaign after a platform, toolchain, dependency, or packaging change. |
 | Private HTTPS update endpoint and protected production signing authority | Open acceptance gate | Test-only signed channels prove mechanics. The ordinary build deliberately has no endpoint or production trust key; see [update trust](../architecture/update-trust.md). | An accountable release owner must provide and verify the private endpoint and protected signing authority for distinct authorized versions. |
 | Controlled DMG handoff, integrity evidence, and exact unsigned launch procedure | Open acceptance gate | The release-shaped package and evidence contract are automated in [private release preparation](../development/release-preparation.md). No participant distribution has been authorized. | Verify the exact candidate handoff and a per-application macOS launch procedure that never weakens system security globally. |
-| Keyboard, VoiceOver, scaling, contrast, realistic usability, update, and recovery evaluation | Open acceptance gate | The privacy-safe [manual evaluation procedure](private-alpha-manual-evaluation.md) is ready; automated accessibility and packaged journeys do not replace it. | An authorized participant and evaluator must complete every applicable scenario with no blocking or undisposed serious finding. |
+| Keyboard, VoiceOver, scaling, contrast, realistic usability, update, and recovery evaluation | Open acceptance gate | The shared privacy-safe [macOS candidate manual evaluation](macos-candidate-manual-evaluation.md) is ready; automated accessibility and packaged journeys do not replace it. | An authorized participant and evaluator must complete every applicable private-alpha scenario with no blocking or undisposed serious finding. |
 | Public binary, public GitHub release, signing, or notarization publication | Not authorized | The private alpha is intentionally unsigned and outside public release channels. | Requires a separate future public-release decision plus Developer ID signing, notarization, Gatekeeper, channel-operation, and publication evidence. |
 
 ## Current cold-launch regression evidence
@@ -76,4 +76,4 @@ Run the cold-launch command immediately after its production build and before th
 
 ## Acceptance rule
 
-The private alpha may be called accepted only when every applicable row is **Passed** for one exact candidate and no required evidence belongs only to an earlier executable revision. A green build, a successful local package, a private reference pass, or one manual session cannot close another row by implication.
+The private alpha could have been called accepted only when every applicable row was **Passed** for one exact candidate and no required evidence belonged only to an earlier executable revision. That acceptance did not occur. A green build, a successful local package, a private reference pass, or one manual session could not close another row by implication.

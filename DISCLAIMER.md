@@ -8,7 +8,7 @@ This notice complements the [GPL-3.0-or-later license](LICENSE). It does not mod
 
 ## Current development boundary
 
-FitFreed has no released or supported version yet. The current application is a development foundation intended only for independently constructed synthetic data. Do not use it with a real personal export until the project explicitly publishes an alpha release and its compatible-data, backup, recovery, installation, and update guidance.
+FitFreed has no released or supported version yet. The current application is intended only for independently constructed synthetic data. Do not use it with a real personal export until the project publishes a supported public release and activates the version-matched compatible-data, backup, recovery, installation, and update guidance.
 
 Development builds, snapshots, and unsigned packages may be incomplete, unstable, incompatible with later versions, or removed without a migration path. They are not suitable as the only copy of any information.
 
