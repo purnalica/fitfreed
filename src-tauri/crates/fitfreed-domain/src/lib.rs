@@ -87,6 +87,46 @@ pub struct SleepPeriod {
     pub score: Option<SleepScore>,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct SourceSpecificRecoveryAssessment {
+    pub scheme: String,
+    pub autonomic_charge: f64,
+    pub autonomic_status: i64,
+    pub overall_status: i64,
+    pub overall_sublevel: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceSpecificRecoveryBaseline {
+    pub scheme: String,
+    pub mean_beat_to_beat_interval_milliseconds: i64,
+    pub standard_deviation_beat_to_beat_interval_milliseconds: i64,
+    pub mean_heart_rate_variability_rmssd_milliseconds: Option<i64>,
+    pub standard_deviation_heart_rate_variability_rmssd_milliseconds: Option<i64>,
+    pub mean_breathing_interval_milliseconds: i64,
+    pub standard_deviation_breathing_interval_milliseconds: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceSpecificRecoveryGuidance {
+    pub scheme: String,
+    pub exercise: String,
+    pub sleep: String,
+    pub vitality: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct NightlyRecovery {
+    pub origin_id: String,
+    pub recovery_date: String,
+    pub beat_to_beat_interval_milliseconds: i64,
+    pub heart_rate_variability_rmssd_milliseconds: Option<i64>,
+    pub breathing_interval_milliseconds: i64,
+    pub source_assessment: Option<SourceSpecificRecoveryAssessment>,
+    pub source_baseline: Option<SourceSpecificRecoveryBaseline>,
+    pub source_guidance: Option<SourceSpecificRecoveryGuidance>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportReport {
     pub exact_repeat: bool,
@@ -383,6 +423,40 @@ pub fn decide_sleep_period_reconciliation(
     }
 }
 
+pub fn decide_nightly_recovery_reconciliation(
+    existing: Option<&NightlyRecovery>,
+    incoming: &NightlyRecovery,
+) -> ReconciliationDecision {
+    let Some(existing) = existing else {
+        return ReconciliationDecision::Create;
+    };
+    if existing == incoming {
+        return ReconciliationDecision::Equivalent;
+    }
+    if !same_required_nightly_recovery_facts(existing, incoming) {
+        return ReconciliationDecision::Conflict;
+    }
+
+    let optional_changes = [
+        optional_change(
+            &existing.heart_rate_variability_rmssd_milliseconds,
+            &incoming.heart_rate_variability_rmssd_milliseconds,
+        ),
+        optional_change(&existing.source_assessment, &incoming.source_assessment),
+        recovery_baseline_change(&existing.source_baseline, &incoming.source_baseline),
+        optional_change(&existing.source_guidance, &incoming.source_guidance),
+    ];
+    let adds_information = optional_changes.contains(&OptionalChange::Added);
+    let removes_information = optional_changes.contains(&OptionalChange::Removed);
+    let changes_information = optional_changes.contains(&OptionalChange::Changed);
+
+    match (adds_information, removes_information, changes_information) {
+        (true, false, false) => ReconciliationDecision::Enrich,
+        (false, true, false) => ReconciliationDecision::Preserve,
+        _ => ReconciliationDecision::Conflict,
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum OptionalChange {
     Unchanged,
@@ -398,6 +472,50 @@ fn optional_change<T: PartialEq>(existing: &Option<T>, incoming: &Option<T>) -> 
         (Some(_), None) => OptionalChange::Removed,
         (Some(existing), Some(incoming)) if existing == incoming => OptionalChange::Unchanged,
         (Some(_), Some(_)) => OptionalChange::Changed,
+    }
+}
+
+fn recovery_baseline_change(
+    existing: &Option<SourceSpecificRecoveryBaseline>,
+    incoming: &Option<SourceSpecificRecoveryBaseline>,
+) -> OptionalChange {
+    match (existing, incoming) {
+        (None, None) => OptionalChange::Unchanged,
+        (None, Some(_)) => OptionalChange::Added,
+        (Some(_), None) => OptionalChange::Removed,
+        (Some(existing), Some(incoming)) => {
+            if existing.scheme != incoming.scheme
+                || existing.mean_beat_to_beat_interval_milliseconds
+                    != incoming.mean_beat_to_beat_interval_milliseconds
+                || existing.standard_deviation_beat_to_beat_interval_milliseconds
+                    != incoming.standard_deviation_beat_to_beat_interval_milliseconds
+                || existing.mean_breathing_interval_milliseconds
+                    != incoming.mean_breathing_interval_milliseconds
+                || existing.standard_deviation_breathing_interval_milliseconds
+                    != incoming.standard_deviation_breathing_interval_milliseconds
+            {
+                return OptionalChange::Changed;
+            }
+            let rmssd_changes = [
+                optional_change(
+                    &existing.mean_heart_rate_variability_rmssd_milliseconds,
+                    &incoming.mean_heart_rate_variability_rmssd_milliseconds,
+                ),
+                optional_change(
+                    &existing.standard_deviation_heart_rate_variability_rmssd_milliseconds,
+                    &incoming.standard_deviation_heart_rate_variability_rmssd_milliseconds,
+                ),
+            ];
+            let adds_information = rmssd_changes.contains(&OptionalChange::Added);
+            let removes_information = rmssd_changes.contains(&OptionalChange::Removed);
+            let changes_information = rmssd_changes.contains(&OptionalChange::Changed);
+            match (adds_information, removes_information, changes_information) {
+                (false, false, false) => OptionalChange::Unchanged,
+                (true, false, false) => OptionalChange::Added,
+                (false, true, false) => OptionalChange::Removed,
+                _ => OptionalChange::Changed,
+            }
+        }
     }
 }
 
@@ -458,6 +576,17 @@ fn same_required_sleep_facts(existing: &SleepPeriod, incoming: &SleepPeriod) -> 
         && existing.efficiency_percent == incoming.efficiency_percent
         && existing.continuity_index == incoming.continuity_index
         && existing.continuity_class == incoming.continuity_class
+}
+
+fn same_required_nightly_recovery_facts(
+    existing: &NightlyRecovery,
+    incoming: &NightlyRecovery,
+) -> bool {
+    existing.origin_id == incoming.origin_id
+        && existing.recovery_date == incoming.recovery_date
+        && existing.beat_to_beat_interval_milliseconds
+            == incoming.beat_to_beat_interval_milliseconds
+        && existing.breathing_interval_milliseconds == incoming.breathing_interval_milliseconds
 }
 
 pub fn decide_reconciliation(
@@ -524,6 +653,19 @@ mod tests {
             phase_summary: None,
             stage_transitions: None,
             score: None,
+        }
+    }
+
+    fn nightly_recovery() -> NightlyRecovery {
+        NightlyRecovery {
+            origin_id: "synthetic-origin".to_owned(),
+            recovery_date: "2026-01-03".to_owned(),
+            beat_to_beat_interval_milliseconds: 920,
+            heart_rate_variability_rmssd_milliseconds: None,
+            breathing_interval_milliseconds: 4_200,
+            source_assessment: None,
+            source_baseline: None,
+            source_guidance: None,
         }
     }
 
@@ -630,6 +772,83 @@ mod tests {
             decide_sleep_period_reconciliation(Some(&score_rating_added), &score_rating_removed),
             ReconciliationDecision::Preserve
         );
+    }
+
+    #[test]
+    fn reconciles_typed_nightly_recovery_components_without_cross_scheme_assumptions() {
+        let existing = nightly_recovery();
+        let mut enriched = existing.clone();
+        enriched.heart_rate_variability_rmssd_milliseconds = Some(42);
+        enriched.source_assessment = Some(SourceSpecificRecoveryAssessment {
+            scheme: "synthetic-recovery@1".to_owned(),
+            autonomic_charge: 1.5,
+            autonomic_status: 4,
+            overall_status: 5,
+            overall_sublevel: 2,
+        });
+        enriched.source_baseline = Some(SourceSpecificRecoveryBaseline {
+            scheme: "synthetic-recovery@1".to_owned(),
+            mean_beat_to_beat_interval_milliseconds: 900,
+            standard_deviation_beat_to_beat_interval_milliseconds: 30,
+            mean_heart_rate_variability_rmssd_milliseconds: None,
+            standard_deviation_heart_rate_variability_rmssd_milliseconds: None,
+            mean_breathing_interval_milliseconds: 4_100,
+            standard_deviation_breathing_interval_milliseconds: 120,
+        });
+        let mut baseline_rmssd_added = enriched.clone();
+        let baseline = baseline_rmssd_added
+            .source_baseline
+            .as_mut()
+            .expect("baseline");
+        baseline.mean_heart_rate_variability_rmssd_milliseconds = Some(40);
+        baseline.standard_deviation_heart_rate_variability_rmssd_milliseconds = Some(8);
+        let mut changed_measurement = enriched.clone();
+        changed_measurement.beat_to_beat_interval_milliseconds += 1;
+        let mut changed_scheme = enriched.clone();
+        changed_scheme
+            .source_assessment
+            .as_mut()
+            .expect("assessment")
+            .scheme = "synthetic-recovery@2".to_owned();
+        let mut mixed = enriched.clone();
+        mixed.heart_rate_variability_rmssd_milliseconds = None;
+        mixed.source_guidance = Some(SourceSpecificRecoveryGuidance {
+            scheme: "synthetic-guidance@1".to_owned(),
+            exercise: "Synthetic exercise guidance.".to_owned(),
+            sleep: "Synthetic sleep guidance.".to_owned(),
+            vitality: "Synthetic vitality guidance.".to_owned(),
+        });
+
+        assert_eq!(
+            decide_nightly_recovery_reconciliation(None, &existing),
+            ReconciliationDecision::Create
+        );
+        assert_eq!(
+            decide_nightly_recovery_reconciliation(Some(&existing), &existing),
+            ReconciliationDecision::Equivalent
+        );
+        assert_eq!(
+            decide_nightly_recovery_reconciliation(Some(&existing), &enriched),
+            ReconciliationDecision::Enrich
+        );
+        assert_eq!(
+            decide_nightly_recovery_reconciliation(Some(&enriched), &existing),
+            ReconciliationDecision::Preserve
+        );
+        assert_eq!(
+            decide_nightly_recovery_reconciliation(Some(&enriched), &baseline_rmssd_added),
+            ReconciliationDecision::Enrich
+        );
+        assert_eq!(
+            decide_nightly_recovery_reconciliation(Some(&baseline_rmssd_added), &enriched),
+            ReconciliationDecision::Preserve
+        );
+        for incoming in [&changed_measurement, &changed_scheme, &mixed] {
+            assert_eq!(
+                decide_nightly_recovery_reconciliation(Some(&enriched), incoming),
+                ReconciliationDecision::Conflict
+            );
+        }
     }
 
     #[test]

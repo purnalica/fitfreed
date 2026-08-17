@@ -96,6 +96,8 @@ Local presentation and performance evidence on 2026-08-17: complete 385-message 
 
 ## Increment M2.5 — Recovery history
 
+**Status:** external-format and canonical-domain boundary complete locally; import, persistence, Insights, and presentation remain active. The provider reference and mapping version 1 distinguish dated recovery summaries from an undated sample blob that has no safe record relationship. [ADR 0006](../architecture/decisions/0006-use-typed-source-specific-recovery-components.md) retains unit-explicit beat-to-beat interval, RMSSD, and breathing interval as shared measurements while containing algorithm-derived assessment, baseline, and guidance in typed versioned source-specific components. Canonical nightly recovery version 1 defines identity, optionality, units, privacy, known loss, and strict unordered reconciliation without inferring dates, rates, sample relationships, or cross-scheme comparability.
+
 **Outcome:** nightly recovery information is understandable alongside sleep without collapsing source-specific physiological meaning into generic values.
 
 **Work:**

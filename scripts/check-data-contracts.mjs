@@ -135,6 +135,22 @@ for (const stage of ["wake", "rem", "light", "deep", "unrecognized"]) {
   requireMention(sleepCanonical, stage, sleepCanonicalPath);
 }
 
+const recoveryCanonicalPath = "docs/data-formats/canonical/nightly-recovery.md";
+const recoveryCanonical = read(recoveryCanonicalPath);
+for (const structure of [
+  "NightlyRecovery",
+  "SourceSpecificRecoveryAssessment",
+  "SourceSpecificRecoveryBaseline",
+  "SourceSpecificRecoveryGuidance",
+]) {
+  const structureMatch = domain.match(new RegExp(`pub struct ${structure} \\{([\\s\\S]*?)\\n\\}`));
+  if (!structureMatch) throw new Error(`${domainPath} has no ${structure}`);
+  for (const fieldMatch of structureMatch[1].matchAll(/pub ([a-z_]+):/g)) {
+    const camelCase = fieldMatch[1].replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    requireMention(recoveryCanonical, camelCase, recoveryCanonicalPath);
+  }
+}
+
 const mappingPath = "docs/data-formats/mappings/polar-flow-daily-activity.md";
 const mapping = read(mappingPath);
 requireMention(mapping, sourceAdapterVersion, mappingPath);
@@ -249,6 +265,50 @@ for (const targetField of [
   "score",
 ]) {
   requireMention(sleepMapping, targetField, sleepMappingPath);
+}
+
+const recoveryMappingPath = "docs/data-formats/mappings/polar-flow-nightly-recovery.md";
+const recoveryMapping = read(recoveryMappingPath);
+for (const contractValue of [
+  "polar-flow-archive@6",
+  "polar-flow-mapping-set@1",
+  "polar-flow-nightly-recovery@1",
+  "polar-nightly-recharge@1",
+]) {
+  requireMention(recoveryMapping, contractValue, recoveryMappingPath);
+}
+for (const sourceField of [
+  "night",
+  "meanNightlyRecoveryRri",
+  "meanNightlyRecoveryRmssd",
+  "meanNightlyRecoveryRespirationInterval",
+  "ansStatus",
+  "ansRate",
+  "recoveryIndicator",
+  "recoveryIndicatorSubLevel",
+  "meanBaselineRri",
+  "sdBaselineRri",
+  "meanBaselineRmssd",
+  "sdBaselineRmssd",
+  "meanBaselineRespirationInterval",
+  "sdBaselineRespirationInterval",
+  "exerciseTip",
+  "sleepTip",
+  "vitalityTip",
+]) {
+  requireMention(recoveryMapping, sourceField, recoveryMappingPath);
+}
+for (const targetField of [
+  "originId",
+  "recoveryDate",
+  "beatToBeatIntervalMilliseconds",
+  "heartRateVariabilityRmssdMilliseconds",
+  "breathingIntervalMilliseconds",
+  "sourceAssessment",
+  "sourceBaseline",
+  "sourceGuidance",
+]) {
+  requireMention(recoveryMapping, targetField, recoveryMappingPath);
 }
 
 const activityOverviewPath = "docs/data-formats/insights/daily-activity-overview-v1.md";

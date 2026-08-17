@@ -20,6 +20,7 @@ The adequacy test requires public documentation of the archive layout, artifact 
 | [Export training sessions from Polar Flow](https://support.polar.com/us-en/export-training-sessions-flow) | Separate export options for individual training sessions | The account-level personal-data export contract |
 | [Polar AccessLink API](https://www.polar.com/accesslink-api/) | A developer API for accessing selected Polar data | The personal-data export archive contract |
 | [Polar AccessLink Dynamic API](https://www.polar.com/polar-api-v4/) | Public training-session and sleep contracts, including units, time semantics, sleep phases, interruptions, ratings, scores, and separate authenticated catalogues that correspond to parts of the observed artifacts | The takeout ZIP layout, filename grammar, split sleep-artifact relationship, historical export variants, or archive compatibility guarantees |
+| [Polar AccessLink API](https://www.polar.com/accesslink-api/) and [Nightly Recharge documentation](https://support.polar.com/us-en/nightly-recharge-recovery-measurement) | Public nightly-recovery measurements, units, status scales, comparison window, and product meaning that correspond to parts of the observed artifacts | The takeout ZIP layout, field names, split recovery blob, baselines, guidance strings, or archive compatibility guarantees |
 | [Polar's official GitHub organization](https://github.com/polarofficial) | Public SDKs, examples, and API-related projects | A complete personal-data export specification found by this review |
 
 This conclusion is deliberately time-bounded. A later official specification takes precedence for facts within its stated scope, while historical observations remain relevant to archives produced before that specification.
@@ -58,7 +59,7 @@ This registry is the public coverage index. Detailed shapes, fields, identities,
 | Training | Sessions, exercises, laps, zones, routes, and sample series | Session summaries are supported; routes, full-resolution samples, laps, zones, and nested exercise measurements are deliberately not persisted by summary mapping version 1 |
 | Planning | Calendar entries, targets, favorites, programs, and personal events | Recognized and unsupported |
 | Sleep | Sleep timing, phases, interruptions, continuity, and scores | Result and score arrays are supported by mapping version 1; compatibility remains limited to the evaluated split-artifact structure and documented API correspondence |
-| Recovery | Nightly recovery measurements, recommendations, and related physiological observations | Recognized and unsupported pending the recovery increment |
+| Recovery | Nightly recovery measurements, recommendations, and related physiological observations | Dated nightly-recovery summaries are specified for mapping version 1; the undated sample blob is deliberately excluded because no safe record relationship is established |
 | Tests | Fitness and orthostatic test results | Recognized and unsupported |
 | Physical evolution | Historical physical measurements and thresholds | Recognized inside unsupported account, activity, calendar, and training structures; no separate artifact grammar is claimed |
 | Sport configuration | Sport profiles, zones, units, and reminders | Recognized and unsupported |
@@ -269,6 +270,41 @@ Each evaluated score artifact is an array of objects with required `night`, `sle
 | remaining `sleepScoreBaselines` fields | Observed | optional numbers | Baseline score and phase-percentage values. Their lookback window and source revision semantics are not established by the takeout. |
 
 The score arrays contain no observed per-record creation or modification timestamp. Changed content for an existing identity cannot be ordered safely by import time, ZIP order, or delivery filename. The normative join, validation, known-loss, and reconciliation behavior is defined by [Polar Flow sleep mapping version 1](../mappings/polar-flow-sleep.md).
+
+## Nightly recovery family
+
+### Official correspondence and artifact boundary
+
+Polar's official AccessLink Nightly Recharge contract defines a dated recovery record with average beat-to-beat interval in milliseconds, HRV as RMSSD in milliseconds, average breathing rate, a six-level overall status, an autonomic charge from -10 through 10, a five-level autonomic status, and five-minute HRV and breathing samples. Polar's product documentation explains that the overall result combines sleep and autonomic-system charge and compares the night with the preceding 28-day usual level. Neither source documents the personal-data ZIP, its field names, its split artifacts, baseline fields, guidance strings, or their compatibility history.
+
+**Evidence: Observed.** The takeout uses a dated `nightly_recovery` array and a separate `nightly_recovery_blob` array. The dated records contain summaries, optional baselines, optional statuses, and optional guidance. The blob contains only HRV and breathing sample groups; it has no date, record identifier, or documented relationship to a dated record.
+
+**Evidence: Interpretation.** Mapping may use exact `night` as source identity for the dated summary. It must not associate blob entries by file order, array position, sample values, or filename delivery tokens.
+
+### Dated nightly-recovery structure
+
+| Path | Evidence | Observed type and optionality | Established meaning or limitation |
+|---|---|---|---|
+| `night` | Official correspondence and observed | required date string | Source-assigned recovery date and candidate identity component. |
+| `meanNightlyRecoveryRri` | Official correspondence and observed | required positive integer | Mean beat-to-beat interval. The official corresponding unit is milliseconds. |
+| `meanNightlyRecoveryRmssd` | Official correspondence and observed | optional non-negative integer | Mean heart-rate variability using RMSSD. The official corresponding unit is milliseconds. |
+| `meanNightlyRecoveryRespirationInterval` | Observed | required positive integer | Mean interval between breaths. The API instead publishes breaths per minute, so the takeout interval is preserved without a derived rate. |
+| `ansStatus` | Official correspondence, observed, and interpretation | optional finite number | Observed range corresponds to the official -10-through-10 autonomic-charge scale. |
+| `ansRate` | Official correspondence, observed, and interpretation | optional integer | Observed range corresponds to the official five-level autonomic status. It appears and disappears with `ansStatus`. |
+| `recoveryIndicator` | Official correspondence, observed, and interpretation | optional integer | Observed range corresponds to the official six-level overall Nightly Recharge status. |
+| `recoveryIndicatorSubLevel` | Observed | optional integer | Finer source-defined status with no public scale semantics found. It appears and disappears with the other status fields. |
+| `meanBaselineRri`, `sdBaselineRri` | Observed | optional integer pair | Source-computed beat-to-beat baseline mean and standard deviation. |
+| `meanBaselineRmssd`, `sdBaselineRmssd` | Observed | optional integer pair | Independently optional RMSSD baseline mean and standard deviation. |
+| `meanBaselineRespirationInterval`, `sdBaselineRespirationInterval` | Observed | optional integer pair | Source-computed breathing-interval baseline mean and standard deviation. |
+| `exerciseTip`, `sleepTip`, `vitalityTip` | Observed | optional string group | Source-generated guidance. All three are present or absent together in the evaluated package. |
+
+The status fields form one observed all-or-nothing group. The baseline is either absent, present without both RMSSD fields, or complete; its lookback, eligibility, and estimator are not documented by the takeout. Guidance availability is independent of status and baseline availability. Missing optional fields remain unavailable rather than zero or an inferred status.
+
+### Nightly-recovery blob structure
+
+Each blob entry contains optional `hrvData` and `breathingRateData` arrays. A present group contains `startTime`, positive integer `samplingIntervalInMillis`, and a numeric non-negative `samples` array. These structures correspond broadly to the official five-minute sample concepts, but the takeout's record relationship and time-zone semantics are unknown.
+
+The complete evaluated blob sample content cannot be matched to a dated record through a documented key. Mapping version 1 therefore classifies the blob as deliberately ignored unidentifiable high-resolution content rather than silently joining it or claiming a successful import. The normative supported summary mapping is defined by [Polar Flow nightly recovery mapping version 1](../mappings/polar-flow-nightly-recovery.md).
 
 ## Family documentation template
 

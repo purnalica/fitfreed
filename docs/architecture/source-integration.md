@@ -68,7 +68,7 @@ Vendor neutrality does not mean flattening every observation into generic key-va
 2. Source-specific observations that have useful meaning but no established shared equivalent.
 3. Raw external fields that are unsupported, unknown, or retained only for diagnostics according to the eventual retention policy.
 
-The controlled representation for source-specific observations remains a Milestone 0 design decision. It must preserve semantics and provenance without making provider conditionals spread through the core.
+[ADR 0006](decisions/0006-use-typed-source-specific-recovery-components.md) selects typed namespaced components for useful source-specific recovery assessments, baselines, and guidance. Shared measurements remain provider-neutral. Each component carries a versioned semantic scheme as data, while core behavior depends on its typed contract rather than provider conditionals or arbitrary key-value fields.
 
 ### Provenance
 
@@ -105,7 +105,6 @@ A runtime plug-in system is not required to prove importer independence. The MVP
 ## Pending decisions
 
 - Canonical units and time-zone semantics.
-- Controlled representation of genuinely source-specific observations.
 - Cross-source reconciliation and user-visible conflict handling.
 - Original-artifact and unsupported-field retention policy.
 - Importer packaging and discovery model after the MVP.
