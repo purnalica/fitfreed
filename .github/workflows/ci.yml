@@ -22,14 +22,53 @@ jobs:
     name: Portable quality checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      executable-fingerprint: ${{ steps.impact.outputs.executable-fingerprint }}
+      full-verification: ${{ steps.decision.outputs.full-verification }}
 
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
 
+      - name: Use the supported Node.js version
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Classify verification impact
+        id: impact
+        env:
+          FITFREED_CI_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          FITFREED_CI_EVENT: ${{ github.event_name }}
+          FITFREED_CI_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/classify-ci-impact.mjs
+
+      - name: Find prior complete verification for unchanged inputs
+        id: evidence
+        if: steps.impact.outputs.candidate-full-verification == 'false'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .artifacts/ci-verification-evidence
+          key: fitfreed-complete-verification-${{ steps.impact.outputs.executable-fingerprint }}
+          lookup-only: true
+
+      - name: Resolve required verification
+        id: decision
+        env:
+          FITFREED_CI_CANDIDATE_FULL: ${{ steps.impact.outputs.candidate-full-verification }}
+          FITFREED_CI_CLASSIFICATION_REASON: ${{ steps.impact.outputs.classification-reason }}
+          FITFREED_CI_EVIDENCE_AVAILABLE: ${{ steps.evidence.outputs.cache-hit == 'true' }}
+        run: node scripts/classify-ci-impact.mjs resolve
+
+      - name: Verify documentation links
+        run: npm run check:docs
+
       - name: Install Tauri Linux system dependencies
+        if: steps.decision.outputs.full-verification == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends \
@@ -44,65 +83,74 @@ jobs:
             pkg-config \
             wget
 
-      - name: Use the supported Node.js version
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-
       - name: Verify the development environment
+        if: steps.decision.outputs.full-verification == 'true'
         run: npm run doctor
 
       - name: Install locked JavaScript dependencies
+        if: steps.decision.outputs.full-verification == 'true'
         run: npm ci
 
       - name: Verify architecture boundaries
+        if: steps.decision.outputs.full-verification == 'true'
         run: npm run check:architecture
 
       - name: Verify pinned updater source and provenance
+        if: steps.decision.outputs.full-verification == 'true'
         run: npm run check:vendored-updater
 
       - name: Verify data contracts
+        if: steps.decision.outputs.full-verification == 'true'
         run: npm run check:data-contracts
 
       - name: Verify release contracts
+        if: steps.decision.outputs.full-verification == 'true'
         run: npm run check:release-contracts -- "$FITFREED_RELEASE_VERSION"
 
       - name: Verify the release upgrade matrix
+        if: steps.decision.outputs.full-verification == 'true'
         run: npm run check:upgrade-matrix
 
       - name: Verify translation catalogs
+        if: steps.decision.outputs.full-verification == 'true'
         run: npm run check:i18n
 
       - name: Verify presentation contracts
+        if: steps.decision.outputs.full-verification == 'true'
         run: npm run check:ui-contracts
 
-      - name: Verify documentation links
-        run: npm run check:docs
-
       - name: Test the presentation
+        if: steps.decision.outputs.full-verification == 'true'
         run: npm test
 
       - name: Test project automation
+        if: steps.decision.outputs.full-verification == 'true'
         run: npm run test:scripts
 
       - name: Build the presentation
+        if: steps.decision.outputs.full-verification == 'true'
         run: npm run build
 
       - name: Verify Rust formatting
+        if: steps.decision.outputs.full-verification == 'true'
         run: npm run format:check
 
       - name: Test domain and application crates
+        if: steps.decision.outputs.full-verification == 'true'
         run: cargo test --manifest-path src-tauri/Cargo.toml -p fitfreed-domain -p fitfreed-application
 
       - name: Test the bounded updater refinement
+        if: steps.decision.outputs.full-verification == 'true'
         run: npm run test:vendor-updater
 
       - name: Audit JavaScript production and build dependencies
+        if: steps.decision.outputs.full-verification == 'true'
         run: npm run audit:dependencies
 
   packaged-macos-e2e:
     name: Packaged macOS E2E
+    needs: quality
+    if: needs.quality.outputs.full-verification == 'true'
     runs-on: macos-15
     timeout-minutes: 60
 
@@ -163,3 +211,29 @@ jobs:
             .artifacts/update-e2e/evidence
           if-no-files-found: warn
           retention-days: 7
+
+  verification-evidence:
+    name: Record complete verification evidence
+    needs: [quality, packaged-macos-e2e]
+    if: >-
+      always() &&
+      needs.quality.result == 'success' &&
+      needs.quality.outputs.full-verification == 'true' &&
+      needs.packaged-macos-e2e.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Create immutable evidence marker
+        env:
+          FITFREED_EXECUTABLE_FINGERPRINT: ${{ needs.quality.outputs.executable-fingerprint }}
+        run: |
+          mkdir -p .artifacts/ci-verification-evidence
+          printf '%s\n' "$FITFREED_EXECUTABLE_FINGERPRINT" \
+            > .artifacts/ci-verification-evidence/fingerprint
+
+      - name: Record successful complete verification
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .artifacts/ci-verification-evidence
+          key: fitfreed-complete-verification-${{ needs.quality.outputs.executable-fingerprint }}

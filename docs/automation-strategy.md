@@ -29,6 +29,8 @@ Automation reduces contributor friction, prevents undocumented maintainer knowle
 
 GitHub Actions is the selected continuous-integration provider for the GitHub-hosted repository. The product workflow combines platform-independent checks with a mandatory macOS packaged-E2E and private-release-evidence job. Local and hosted execution call the same versioned project commands; the workflow does not encode a parallel test path.
 
+Hosted verification is impact-aware. Every revision runs the versioned impact classifier, documentation links, and independent repository-safety gate. The complete portable lane and the costly macOS packaging, installation, recovery, performance, and packaged-E2E lane run when any executable or release-affecting input changes, and they always run for an explicit release-candidate or manual verification request. A documentation-only revision may reuse prior evidence only when its Git-tree fingerprint for every executable and release input has an immutable evidence marker written after both complete lanes succeeded. A missing marker, an unknown path, an unavailable comparison, or a newly introduced path fails closed by requiring both complete lanes. Evidence-only documentation commits must not recursively rebuild an unchanged application merely to record the preceding successful run.
+
 - Change-scope detection without skipping required dependency checks.
 - Unit, integration, E2E, migration, performance, packaging, and platform matrices.
 - Code quality, dependency-boundary, security, license, secret, and supply-chain checks.
