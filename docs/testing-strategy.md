@@ -43,6 +43,7 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Localization catalogs, placeholders, plural rules, and fallback.
 - Presentation motion declarations and the reduced-motion boundary.
 - Update metadata, signature validation, artifact selection, and migration coordination.
+- Protected release-workflow syntax, exact permissions, action pins, authority isolation, immutable publication, provenance, and direct Pages-byte convergence.
 - Process-lifetime update cadence, non-overlap, no-burst scheduling, and typed event presentation.
 - Packaging and operating-system integration where a complete UI journey is unnecessary.
 

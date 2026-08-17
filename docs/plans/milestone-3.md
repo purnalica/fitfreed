@@ -2,7 +2,7 @@
 
 ## Status
 
-Active as of 2026-08-17. Milestone 2 capability implementation is complete. Its remaining update-authority, controlled-distribution, and participant-evaluation gates do not block this engineering plan; they join the final public-release readiness audit.
+Active as of 2026-08-18. Milestone 2 capability implementation is complete. Its remaining update-authority, controlled-distribution, and participant-evaluation gates do not block this engineering plan; they join the final public-release readiness audit.
 
 ## Objective
 
@@ -51,7 +51,7 @@ Local evidence on 2026-08-17: both closed update-channel schemas and the public 
 
 ## Increment M3.3 — Signed, notarized release automation
 
-**Status:** in progress. The closed public release-evidence contract, privacy-safe Apple trust inspector, secret-free protected-environment preflight, versioned channel policy, and atomic candidate preparation are implemented; protected workflow and hosted acceptance remain.
+**Status:** engineering and local acceptance complete. Hosted acceptance remains gated by the production trust root, protected GitHub configuration, exact release tag, and explicit public-release authority.
 
 **Outcome:** one manually authorized, exact-tag-bound workflow can build, sign, notarize, staple, inspect, attest, stage, and publish a public candidate without exposing release credentials to untrusted jobs.
 
@@ -65,6 +65,8 @@ Local evidence on 2026-08-17: both closed update-channel schemas and the public 
 6. Publish only after explicit release authority and protected-environment approval, then verify remote bytes and the direct stable endpoint before accepting promotion.
 
 **Acceptance evidence:** all preparation and inspection behavior passes with synthetic or ad-hoc test identities where Apple permits it; the exact public candidate additionally requires a real Developer ID, successful Apple notarization, Gatekeeper acceptance, protected-environment execution, provenance, and remote byte verification.
+
+Local evidence on 2026-08-18: the complete fast lane passed 106 automation tests, 51 presentation tests, 2 bounded-updater tests, 161 desktop-host tests, 52 application tests, 6 domain tests, and 2 private-reference acceptance predicate tests. The workflow passed its closed topology and permission contract plus pinned `actionlint` 1.7.12 validation. Synthetic release boundaries covered ephemeral authority materialization and cleanup, exact source and tag resolution, immutable asset publication, source-bound attestations, release-link verification, direct non-redirecting Pages convergence, complete distributed-byte reopening, and temporary evidence removal. This does not claim Developer ID, Apple notarization, GitHub environment protection, public publication, or remote production evidence.
 
 ## Increment M3.4 — Public operation, user guidance, and readiness
 
@@ -86,9 +88,10 @@ Local evidence on 2026-08-17: both closed update-channel schemas and the public 
 
 Engineering continues without an Apple account or production release key. Final acceptance alone requires:
 
-- Apple Developer membership and an authorized Developer ID identity or App Store Connect notarization credential;
+- Apple Developer membership, an authorized Developer ID Application identity, and an App Store Connect notarization credential;
 - accountable creation and custody of the production Minisign key;
 - protected GitHub environment and Pages source configuration;
+- immutable GitHub Releases and its protected read-only configuration check;
 - explicit authority to create the tag, GitHub Release, Pages deployment, and public binary publication; and
 - completion of the exact-candidate human accessibility and usability evaluation.
 

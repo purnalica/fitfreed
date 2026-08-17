@@ -95,6 +95,12 @@ jobs:
         if: steps.decision.outputs.full-verification == 'true'
         run: npm run check:architecture
 
+      - name: Verify GitHub Actions workflows
+        if: steps.decision.outputs.full-verification == 'true'
+        run: |
+          npm run check:workflows
+          npm run check:public-release-workflow
+
       - name: Verify pinned updater source and provenance
         if: steps.decision.outputs.full-verification == 'true'
         run: npm run check:vendored-updater

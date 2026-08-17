@@ -151,6 +151,8 @@ test("wires the fail-closed classifier into both hosted verification lanes", () 
   assert.match(workflow, /run: node scripts\/classify-ci-impact\.mjs/);
   assert.match(workflow, /uses: actions\/cache\/restore@[0-9a-f]{40}/);
   assert.match(workflow, /run: node scripts\/classify-ci-impact\.mjs resolve/);
+  assert.match(workflow, /npm run check:workflows/);
+  assert.match(workflow, /npm run check:public-release-workflow/);
   assert.match(
     workflow,
     /full-verification: \$\{\{ steps\.decision\.outputs\.full-verification \}\}/,

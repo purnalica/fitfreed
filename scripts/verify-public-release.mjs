@@ -33,8 +33,9 @@ function compileUpdateValidators() {
 
 const updateValidators = compileUpdateValidators();
 
-function verifyManifestArtifacts(releaseDirectory, manifest, errors) {
+function verifyManifestArtifacts(releaseDirectory, manifest, errors, requireApplication) {
   for (const expected of manifest.artifacts) {
+    if (!requireApplication && expected.kind === "macos-application-bundle") continue;
     try {
       const actual = inspectArtifact(releaseDirectory, expected.path, expected.kind);
       if (actual.size !== expected.size) errors.push(`size mismatch: ${expected.path}`);
@@ -194,10 +195,12 @@ function relativeFiles(root) {
   return files.sort((left, right) => left.localeCompare(right, "en"));
 }
 
-export function verifyPublicReleaseCandidate(candidateDirectory, publicUpdateConfiguration) {
-  const root = path.resolve(candidateDirectory);
-  const releaseDirectory = path.join(root, "release");
-  const pagesDirectory = path.join(root, "pages");
+function verifyPublicReleaseDirectories(
+  releaseDirectory,
+  pagesDirectory,
+  publicUpdateConfiguration,
+  requireApplication,
+) {
   const configuration = validatePublicUpdateConfiguration(publicUpdateConfiguration);
   if (configuration.status !== "active") throw new Error("public update channel is inactive");
   const manifest = JSON.parse(
@@ -205,7 +208,7 @@ export function verifyPublicReleaseCandidate(candidateDirectory, publicUpdateCon
   );
   validatePublicReleaseManifest(manifest);
   const errors = [];
-  verifyManifestArtifacts(releaseDirectory, manifest, errors);
+  verifyManifestArtifacts(releaseDirectory, manifest, errors, requireApplication);
   verifyUpgradeMatrix(releaseDirectory, manifest, errors);
   verifyChecksums(releaseDirectory, manifest, errors);
   verifyStableUpdate(releaseDirectory, manifest, configuration, errors);
@@ -244,6 +247,29 @@ export function verifyPublicReleaseCandidate(candidateDirectory, publicUpdateCon
       manifest.provenanceRequirements.digestBoundSubjects.length
       + manifest.provenanceRequirements.generatedSubjects.length,
   };
+}
+
+export function verifyPublicReleaseCandidate(candidateDirectory, publicUpdateConfiguration) {
+  const root = path.resolve(candidateDirectory);
+  return verifyPublicReleaseDirectories(
+    path.join(root, "release"),
+    path.join(root, "pages"),
+    publicUpdateConfiguration,
+    true,
+  );
+}
+
+export function verifyPublicReleaseDistribution(
+  releaseDirectory,
+  pagesDirectory,
+  publicUpdateConfiguration,
+) {
+  return verifyPublicReleaseDirectories(
+    path.resolve(releaseDirectory),
+    path.resolve(pagesDirectory),
+    publicUpdateConfiguration,
+    false,
+  );
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);

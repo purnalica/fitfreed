@@ -1,0 +1,214 @@
+name: Public macOS release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact semantic version already prepared in the tagged source
+        required: true
+        type: string
+      update_key_id:
+        description: Active stable update-signing key identifier
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-macos-release
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: Secret-free public release preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+      pages: read
+
+    steps:
+      - name: Check out the selected release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Use the supported Node.js version
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked JavaScript dependencies
+        run: npm ci
+
+      - name: Verify source, channel, hosted checks, Pages, and environment policy
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FITFREED_VERSION: ${{ inputs.version }}
+          FITFREED_UPDATE_KEY_ID: ${{ inputs.update_key_id }}
+        run: npm run preflight:public-release -- "$FITFREED_VERSION" "$FITFREED_UPDATE_KEY_ID"
+
+  build-and-publish:
+    name: Build, attest, and publish the authorized candidate
+    needs: preflight
+    runs-on: macos-15
+    timeout-minutes: 75
+    environment: public-macos-release
+    permissions:
+      actions: read
+      artifact-metadata: write
+      attestations: write
+      contents: write
+      id-token: write
+      pages: read
+
+    steps:
+      - name: Check out the authorized release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Use the supported Node.js version
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked JavaScript dependencies
+        run: npm ci
+
+      - name: Verify the release build environment
+        run: npm run doctor
+
+      - name: Install the pinned release evidence tools
+        run: npm run install:release-tools
+
+      - name: Repeat the secret-free preflight after approval
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FITFREED_VERSION: ${{ inputs.version }}
+          FITFREED_UPDATE_KEY_ID: ${{ inputs.update_key_id }}
+        run: npm run preflight:public-release -- "$FITFREED_VERSION" "$FITFREED_UPDATE_KEY_ID"
+
+      - name: Require immutable GitHub Releases
+        env:
+          GH_TOKEN: ${{ secrets.FITFREED_GITHUB_ADMIN_READ_TOKEN }}
+        run: npm run check:release-immutability
+
+      - name: Install ephemeral Apple and updater release authority
+        env:
+          FITFREED_APPLE_CERTIFICATE_BASE64: ${{ secrets.FITFREED_APPLE_CERTIFICATE_BASE64 }}
+          FITFREED_APPLE_CERTIFICATE_PASSWORD: ${{ secrets.FITFREED_APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ vars.FITFREED_APPLE_SIGNING_IDENTITY_SHA1 }}
+          FITFREED_EXPECTED_APPLE_TEAM_ID: ${{ vars.FITFREED_APPLE_TEAM_ID }}
+          APPLE_API_ISSUER: ${{ vars.FITFREED_APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ vars.FITFREED_APPLE_API_KEY_ID }}
+          FITFREED_APPLE_API_PRIVATE_KEY: ${{ secrets.FITFREED_APPLE_API_PRIVATE_KEY }}
+          FITFREED_UPDATER_PRIVATE_KEY: ${{ secrets.FITFREED_UPDATER_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npm run authority:public-release -- install
+
+      - name: Define the stable-channel issuance time
+        id: issuance
+        run: node -e 'process.stdout.write(`issued_at=${new Date().toISOString()}\n`)' >> "$GITHUB_OUTPUT"
+
+      - name: Build and verify the signed notarized public candidate
+        env:
+          FITFREED_VERSION: ${{ inputs.version }}
+          FITFREED_UPDATE_KEY_ID: ${{ inputs.update_key_id }}
+          FITFREED_ISSUED_AT: ${{ steps.issuance.outputs.issued_at }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: >-
+          npm run prepare:public-release --
+          "$FITFREED_VERSION"
+          "$FITFREED_UPDATE_KEY_ID"
+          "$FITFREED_ISSUED_AT"
+
+      - name: Reopen the complete local candidate
+        env:
+          FITFREED_CANDIDATE: .artifacts/public-releases/${{ inputs.version }}
+        run: npm run verify:public-release -- "$FITFREED_CANDIDATE"
+
+      - name: Attest every checksum-bound public asset
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
+        with:
+          subject-checksums: .artifacts/public-releases/${{ inputs.version }}/release/SHA256SUMS
+
+      - name: Attest the final checksum inventory
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
+        with:
+          subject-path: .artifacts/public-releases/${{ inputs.version }}/release/SHA256SUMS
+
+      - name: Upload the exact Pages deployment artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: .artifacts/public-releases/${{ inputs.version }}/pages
+          retention-days: 1
+
+      - name: Publish the immutable GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FITFREED_CANDIDATE: .artifacts/public-releases/${{ inputs.version }}
+        run: npm run publish:public-release -- "$FITFREED_CANDIDATE"
+
+      - name: Remove ephemeral release authority
+        if: always()
+        run: npm run authority:public-release -- cleanup
+
+  deploy-pages:
+    name: Deploy the stable update snapshot
+    needs: build-and-publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+      pages: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy the exact Pages artifact
+        id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+
+  verify-publication:
+    name: Verify public bytes and provenance remotely
+    needs: deploy-pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      artifact-metadata: read
+      attestations: read
+      contents: read
+
+    steps:
+      - name: Check out the authorized release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Use the supported Node.js version
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked JavaScript dependencies
+        run: npm ci
+
+      - name: Verify the immutable Release and direct Pages snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FITFREED_VERSION: ${{ inputs.version }}
+          FITFREED_REVISION: ${{ github.sha }}
+        run: >-
+          npm run verify:remote-public-release --
+          "$FITFREED_VERSION"
+          "$FITFREED_REVISION"

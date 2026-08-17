@@ -22,7 +22,7 @@ npm ci
 npm run test:fast
 ```
 
-`npm run doctor` checks the supported Node.js and npm ranges, pinned Rust toolchain, required Rust components, macOS Xcode command-line toolchain and native commands, or the native Tauri development modules used by the Linux quality lane, without requiring installed project dependencies. `npm ci` installs the exact JavaScript graph from `package-lock.json`. The fast lane verifies compile-enforced architecture boundaries, the pinned updater source and provenance, translation catalogs, presentation behavior, the updater refinement test, and all FitFreed Rust workspace tests.
+`npm run doctor` checks the supported Node.js and npm ranges, pinned Rust toolchain, required Rust components, macOS Xcode command-line toolchain and native commands, or the native Tauri development modules used by the Linux quality lane, without requiring installed project dependencies. `npm ci` installs the exact JavaScript graph from `package-lock.json`. The fast lane verifies compile-enforced architecture boundaries, the pinned updater source and provenance, translation catalogs, presentation behavior, GitHub workflow syntax and policy, the updater refinement test, and all FitFreed Rust workspace tests. Its workflow check installs checksum-verified actionlint 1.7.12 under ignored `.tools/`; no global installation is required.
 
 ## Primary commands
 
@@ -39,6 +39,7 @@ npm run test:fast
 | Verify locale catalogs | `npm run check:i18n` |
 | Verify reduced-motion presentation contracts | `npm run check:ui-contracts` |
 | Verify pinned updater source and provenance | `npm run check:vendored-updater` |
+| Verify GitHub workflow syntax and public-release policy | `npm run check:workflows && npm run check:public-release-workflow` |
 | Run presentation tests | `npm test` |
 | Run project automation tests | `npm run test:scripts` |
 | Run all Rust tests | `npm run test:rust` |
@@ -55,6 +56,7 @@ npm run test:fast
 | Verify cold launch against that clean production bundle | `npm run benchmark:cold-launch` |
 | Build the unsigned production package | `npm run package` |
 | Install the pinned local release evidence tool | `npm run install:release-tools` |
+| Install the pinned local workflow validator | `npm run install:workflow-tools` |
 | Prepare release-shaped private evidence | `npm run prepare:development-release -- 0.1.0` |
 | Verify macOS installation and failure boundaries | `npm run verify:development-release` |
 | Verify recovery-pair preparation against the production app | `npm run verify:update-recovery-preparation` |
@@ -91,6 +93,8 @@ The [localization guide](localization.md) documents locale resolution, durable p
 The [performance benchmark guide](performance-benchmarks.md) documents cold launch, synthetic scales, timed boundaries, run counts, percentile calculation, budgets, machine-readable evidence, and interpretation limits.
 
 The [private release preparation guide](release-preparation.md) owns the clean-revision package and installation evidence lane. It remains separate from `verify:full` because preparation must bind its output to a clean, reviewable commit.
+
+The [public release guide](public-release.md) owns the inactive production trust boundary, exact-tag preflight, protected inputs, signed candidate, immutable Release, Pages deployment, provenance, and remote verification workflow. Contributor commands may verify that workflow, but normal setup and CI cannot publish a binary.
 
 ## Continuous integration
 
