@@ -30,6 +30,7 @@ const ATTEMPTS_DIRECTORY_NAME: &str = "attempts";
 const MANIFEST_FILE_NAME: &str = "manifest.json";
 const STATE_LOCK_FILE_NAME: &str = "state.lock";
 const CANDIDATE_LOCK_FILE_NAME: &str = "candidate.lock";
+const WATCHDOG_LOCK_FILE_NAME: &str = "watchdog.lock";
 const APPLICATION_BACKUP_RELATIVE_PATH: &str = "previous/FitFreed.app";
 const LIBRARY_BACKUP_RELATIVE_PATH: &str = "previous/fitfreed.sqlite";
 const EXPECTED_BUNDLE_IDENTIFIER: &str = "org.fitfreed.desktop";
@@ -122,6 +123,7 @@ pub struct UpdateRecoveryWatchdogContext {
     library_path: PathBuf,
     target_version: String,
     target_library_schema_version: u32,
+    prepared_at: String,
     replacement_process: Option<UpdateRecoveryReplacementProcess>,
 }
 
@@ -148,6 +150,10 @@ impl UpdateRecoveryWatchdogContext {
 
     pub fn target_library_schema_version(&self) -> u32 {
         self.target_library_schema_version
+    }
+
+    pub fn prepared_at(&self) -> &str {
+        &self.prepared_at
     }
 
     pub fn replacement_process(&self) -> Option<&UpdateRecoveryReplacementProcess> {
@@ -219,6 +225,10 @@ pub struct UpdateRecoveryCandidateLease {
     file: File,
     recovery_id: String,
     launch_nonce: String,
+}
+
+pub struct UpdateRecoveryWatchdogLease {
+    file: File,
 }
 
 impl UpdateRecoveryCandidateLease {
@@ -406,6 +416,11 @@ pub fn prepare_update_recovery(
         CANDIDATE_LOCK_FILE_NAME,
         true,
     )?);
+    drop(open_private_lock_file(
+        &staging_directory,
+        WATCHDOG_LOCK_FILE_NAME,
+        true,
+    )?);
 
     let application_backup_path = staging_directory.join(APPLICATION_BACKUP_RELATIVE_PATH);
     let library_backup_path = staging_directory.join(LIBRARY_BACKUP_RELATIVE_PATH);
@@ -546,7 +561,7 @@ pub fn record_active_update_recovery_replacement_launch(
     recovery_root: &Path,
     recovery_id: &str,
     launch: UpdateRecoveryReplacementLaunch<'_>,
-) -> Result<(), UpdateRecoveryError> {
+) -> Result<UpdateRecoveryReplacementProcess, UpdateRecoveryError> {
     if !valid_sha256(recovery_id) {
         return Err(UpdateRecoveryError::InvalidInput);
     }
@@ -572,9 +587,10 @@ pub fn record_active_update_recovery_replacement_launch(
     };
     validate_replacement_process(&replacement_process)?;
     manifest.phase = RecoveryPhaseWire::Launching;
-    manifest.replacement_process = Some(replacement_process);
+    manifest.replacement_process = Some(replacement_process.clone());
     validate_manifest(&manifest)?;
-    write_manifest(&manifest_path, &manifest)
+    write_manifest(&manifest_path, &manifest)?;
+    Ok(replacement_process.into())
 }
 
 pub fn verify_prepared_update_recovery(
@@ -704,8 +720,25 @@ pub fn resolve_update_recovery_watchdog_context(
         library_path: PathBuf::from(&manifest.source.library_path),
         target_version: manifest.target.version,
         target_library_schema_version: manifest.target.library_schema_version,
+        prepared_at: manifest.prepared_at,
         replacement_process: manifest.replacement_process.map(Into::into),
     })
+}
+
+pub fn acquire_update_recovery_watchdog_lease(
+    context: &UpdateRecoveryWatchdogContext,
+) -> Result<UpdateRecoveryWatchdogLease, UpdateRecoveryError> {
+    let attempt_directory = recovery_attempt_directory(context);
+    let file = open_private_lock_file(&attempt_directory, WATCHDOG_LOCK_FILE_NAME, false)?;
+    acquire_process_lock(&file)?;
+    Ok(UpdateRecoveryWatchdogLease { file })
+}
+
+fn recovery_attempt_directory(context: &UpdateRecoveryWatchdogContext) -> PathBuf {
+    context
+        .recovery_root()
+        .join(ATTEMPTS_DIRECTORY_NAME)
+        .join(context.recovery_id())
 }
 
 pub fn acquire_update_recovery_candidate_lease(
@@ -806,6 +839,41 @@ pub fn observe_update_recovery_process(
         started_at_unix_seconds: information.pbi_start_tvsec,
         started_at_microseconds: information.pbi_start_tvusec,
     })
+}
+
+#[cfg(target_os = "macos")]
+pub fn update_recovery_process_is_running(
+    replacement_process: &UpdateRecoveryReplacementProcess,
+    expected_executable: &Path,
+) -> Result<bool, UpdateRecoveryError> {
+    let process_id = i32::try_from(replacement_process.process_id)
+        .map_err(|_| UpdateRecoveryError::InvalidState)?;
+    if unsafe { libc::kill(process_id, 0) } != 0 {
+        let error = io::Error::last_os_error();
+        return if error.raw_os_error() == Some(libc::ESRCH) {
+            Ok(false)
+        } else {
+            Err(error.into())
+        };
+    }
+    match observe_update_recovery_process(replacement_process.process_id, expected_executable) {
+        Ok(identity) => Ok(identity.process_id == replacement_process.process_id
+            && identity.started_at_unix_seconds == replacement_process.started_at_unix_seconds
+            && identity.started_at_microseconds == replacement_process.started_at_microseconds),
+        Err(UpdateRecoveryError::InvalidState) => Ok(false),
+        Err(UpdateRecoveryError::Io(error)) if error.raw_os_error() == Some(libc::ESRCH) => {
+            Ok(false)
+        }
+        Err(error) => Err(error),
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn update_recovery_process_is_running(
+    _replacement_process: &UpdateRecoveryReplacementProcess,
+    _expected_executable: &Path,
+) -> Result<bool, UpdateRecoveryError> {
+    Err(UpdateRecoveryError::UnsupportedPlatform)
 }
 
 #[cfg(not(target_os = "macos"))]
@@ -1093,6 +1161,11 @@ fn verify_attempt_directory(
     drop(open_private_lock_file(
         attempt_directory,
         CANDIDATE_LOCK_FILE_NAME,
+        false,
+    )?);
+    drop(open_private_lock_file(
+        attempt_directory,
+        WATCHDOG_LOCK_FILE_NAME,
         false,
     )?);
     let application_path = attempt_directory.join(&manifest.application_backup.relative_path);
@@ -1660,21 +1733,47 @@ fn open_private_lock_file(
 
 #[cfg(unix)]
 fn acquire_candidate_process_lock(file: &File) -> Result<(), UpdateRecoveryError> {
-    use std::os::fd::AsRawFd;
-
-    if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
-        let error = io::Error::last_os_error();
-        return if error.kind() == io::ErrorKind::WouldBlock {
-            Err(UpdateRecoveryError::InvalidState)
-        } else {
-            Err(error.into())
-        };
+    if !try_acquire_process_lock(file)? {
+        return Err(UpdateRecoveryError::InvalidState);
     }
     Ok(())
 }
 
+#[cfg(unix)]
+fn acquire_process_lock(file: &File) -> Result<(), UpdateRecoveryError> {
+    if !try_acquire_process_lock(file)? {
+        return Err(UpdateRecoveryError::ActiveAttemptExists);
+    }
+    Ok(())
+}
+
+#[cfg(unix)]
+fn try_acquire_process_lock(file: &File) -> Result<bool, UpdateRecoveryError> {
+    use std::os::fd::AsRawFd;
+
+    if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } == 0 {
+        return Ok(true);
+    }
+    let error = io::Error::last_os_error();
+    if error.kind() == io::ErrorKind::WouldBlock {
+        Ok(false)
+    } else {
+        Err(error.into())
+    }
+}
+
 #[cfg(not(unix))]
 fn acquire_candidate_process_lock(_file: &File) -> Result<(), UpdateRecoveryError> {
+    Err(UpdateRecoveryError::UnsupportedPlatform)
+}
+
+#[cfg(not(unix))]
+fn acquire_process_lock(_file: &File) -> Result<(), UpdateRecoveryError> {
+    Err(UpdateRecoveryError::UnsupportedPlatform)
+}
+
+#[cfg(not(unix))]
+fn try_acquire_process_lock(_file: &File) -> Result<bool, UpdateRecoveryError> {
     Err(UpdateRecoveryError::UnsupportedPlatform)
 }
 
@@ -1733,8 +1832,24 @@ impl Drop for UpdateRecoveryCandidateLease {
     }
 }
 
+#[cfg(unix)]
+impl Drop for UpdateRecoveryWatchdogLease {
+    fn drop(&mut self) {
+        use std::os::fd::AsRawFd;
+
+        unsafe {
+            libc::flock(self.file.as_raw_fd(), libc::LOCK_UN);
+        }
+    }
+}
+
 #[cfg(not(unix))]
 impl Drop for UpdateRecoveryCandidateLease {
+    fn drop(&mut self) {}
+}
+
+#[cfg(not(unix))]
+impl Drop for UpdateRecoveryWatchdogLease {
     fn drop(&mut self) {}
 }
 
@@ -1890,6 +2005,10 @@ mod tests {
                 false,
             )
             .expect("private candidate lock"),
+        );
+        drop(
+            open_private_lock_file(prepared.attempt_directory(), WATCHDOG_LOCK_FILE_NAME, false)
+                .expect("private watchdog lock"),
         );
         assert_eq!(
             active_update_recovery_phase(&harness.recovery_root).expect("active recovery"),
@@ -2059,6 +2178,51 @@ mod tests {
                 UpdateRecoveryPhase::Recovering
             ))
         );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn permits_only_one_watchdog_and_reports_the_candidate_lease() {
+        let harness = Harness::new();
+        let authorization = harness.authorization();
+        let prepared = prepare_update_recovery(
+            &SyntheticApplicationCopier,
+            harness.preparation(&authorization),
+        )
+        .expect("prepared update recovery");
+        let watchdog_executable = prepared
+            .attempt_directory()
+            .join("previous/FitFreed.app/Contents/MacOS/fitfreed");
+        let context = resolve_update_recovery_watchdog_context(
+            &watchdog_executable,
+            &harness.application_path,
+        )
+        .expect("watchdog context");
+        let watchdog_lease =
+            acquire_update_recovery_watchdog_lease(&context).expect("watchdog lease");
+
+        assert!(matches!(
+            acquire_update_recovery_watchdog_lease(&context),
+            Err(UpdateRecoveryError::ActiveAttemptExists)
+        ));
+        let candidate_lock = open_private_lock_file(
+            prepared.attempt_directory(),
+            CANDIDATE_LOCK_FILE_NAME,
+            false,
+        )
+        .expect("candidate lock");
+        acquire_candidate_process_lock(&candidate_lock).expect("candidate lease");
+        let contender = open_private_lock_file(
+            prepared.attempt_directory(),
+            CANDIDATE_LOCK_FILE_NAME,
+            false,
+        )
+        .expect("candidate lock contender");
+        assert!(!try_acquire_process_lock(&contender).expect("candidate lease held"));
+
+        drop(candidate_lock);
+        drop(watchdog_lease);
+        acquire_update_recovery_watchdog_lease(&context).expect("released watchdog lease");
     }
 
     #[cfg(unix)]
@@ -2593,6 +2757,61 @@ mod tests {
         assert_eq!(
             fs::read_to_string(outside).expect("unchanged outside state"),
             "outside state"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn rejects_a_symbolic_link_as_the_watchdog_process_lock() {
+        use std::os::unix::fs::symlink;
+
+        let harness = Harness::new();
+        let authorization = harness.authorization();
+        let prepared = prepare_update_recovery(
+            &SyntheticApplicationCopier,
+            harness.preparation(&authorization),
+        )
+        .expect("prepared update recovery");
+        let watchdog_lock = prepared.attempt_directory().join(WATCHDOG_LOCK_FILE_NAME);
+        let outside = harness.recovery_root.join("outside-watchdog-lock");
+        fs::write(&outside, "outside state").expect("outside state");
+        fs::remove_file(&watchdog_lock).expect("removed watchdog lock");
+        symlink(&outside, &watchdog_lock).expect("symbolic watchdog lock");
+
+        assert!(matches!(
+            verify_prepared_update_recovery(&harness.recovery_root, prepared.recovery_id()),
+            Err(UpdateRecoveryError::Io(_))
+        ));
+        assert_eq!(
+            fs::read_to_string(outside).expect("unchanged outside state"),
+            "outside state"
+        );
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn distinguishes_the_exact_running_process_from_exit_and_identifier_reuse() {
+        let executable = std::env::current_exe().expect("current executable");
+        let identity = observe_update_recovery_process(std::process::id(), &executable)
+            .expect("current process identity");
+        let exact = UpdateRecoveryReplacementProcess {
+            process_id: identity.process_id(),
+            started_at_unix_seconds: identity.started_at_unix_seconds(),
+            started_at_microseconds: identity.started_at_microseconds(),
+            launch_nonce: "a".repeat(64),
+            confirmation_deadline: "2026-08-17T08:01:00Z".to_owned(),
+        };
+        let mut reused = exact.clone();
+        reused.started_at_microseconds = (reused.started_at_microseconds + 1) % 1_000_000;
+
+        assert!(
+            update_recovery_process_is_running(&exact, &executable).expect("exact running process")
+        );
+        assert!(!update_recovery_process_is_running(&reused, &executable)
+            .expect("reused process identity"));
+        assert!(
+            !update_recovery_process_is_running(&exact, Path::new("/bin/sh"))
+                .expect("different executable")
         );
     }
 

@@ -8,7 +8,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use chrono::{Duration as ChronoDuration, SecondsFormat, Utc};
+use chrono::{DateTime, Duration as ChronoDuration, SecondsFormat, Utc};
 use fitfreed_application::{
     decide_update_recovery_watchdog_action, UpdateRecoveryPhase, UpdateRecoveryWatchdogAction,
     UpdateRecoveryWatchdogEvent,
@@ -17,11 +17,13 @@ use sha2::{Digest, Sha256};
 use thiserror::Error;
 
 use super::{
-    active_update_recovery_phase, observe_update_recovery_process,
-    record_active_update_recovery_replacement_launch, resolve_update_recovery_watchdog_context,
-    restore_active_update_recovery, transition_active_update_recovery, PlatformApplicationCopier,
-    PreparedUpdateRecovery, UpdateRecoveryError, UpdateRecoveryReplacementLaunch,
-    UpdateRecoveryRestoration, UpdateRecoveryWatchdogContext,
+    acquire_update_recovery_watchdog_lease, active_update_recovery_phase,
+    observe_update_recovery_process, record_active_update_recovery_replacement_launch,
+    resolve_update_recovery_watchdog_context, restore_active_update_recovery,
+    transition_active_update_recovery, update_recovery_process_is_running,
+    PlatformApplicationCopier, PreparedUpdateRecovery, UpdateRecoveryError,
+    UpdateRecoveryReplacementLaunch, UpdateRecoveryReplacementProcess, UpdateRecoveryRestoration,
+    UpdateRecoveryWatchdogContext,
 };
 
 pub const UPDATE_RECOVERY_WATCHDOG_ARGUMENT: &str = "--fitfreed-update-recovery-watchdog";
@@ -128,33 +130,27 @@ pub fn run_update_recovery_watchdog(
 ) -> Result<UpdateRecoveryWatchdogOutcome, UpdateRecoveryWatchdogError> {
     let context =
         resolve_update_recovery_watchdog_context(watchdog_executable, installed_application_path)?;
-    let initial_phase = active_phase(&context)?;
-    if initial_phase != UpdateRecoveryPhase::Prepared {
-        return Err(UpdateRecoveryWatchdogError::UnownedReplacement);
-    }
+    let _watchdog_lease = acquire_update_recovery_watchdog_lease(&context)?;
+    active_phase(&context)?;
     writeln!(readiness, "{WATCHDOG_READY_PREFIX}{}", std::process::id())?;
     readiness.flush()?;
 
     let original_parent = original_parent_process_id();
-    let installation_deadline = Instant::now() + INSTALLATION_TIMEOUT;
-    let mut confirmation_deadline = None;
-    let mut replacement = None;
+    let installation_deadline = persisted_deadline(context.prepared_at(), INSTALLATION_TIMEOUT)?;
+    let mut replacement = context
+        .replacement_process()
+        .cloned()
+        .map(MonitoredReplacement::Inherited);
     let mut restoration_attempts = 0_u8;
 
     loop {
         let phase = active_phase(&context)?;
-        let event = watchdog_event(
-            phase,
-            replacement.as_mut(),
-            installation_deadline,
-            confirmation_deadline,
-        )?;
+        let event = watchdog_event(phase, replacement.as_mut(), installation_deadline, &context)?;
         match decide_update_recovery_watchdog_action(phase, event) {
             UpdateRecoveryWatchdogAction::Wait => thread::sleep(POLL_INTERVAL),
             UpdateRecoveryWatchdogAction::LaunchReplacement => match launch_replacement(&context) {
-                Ok(child) => {
-                    replacement = Some(child);
-                    confirmation_deadline = Some(Instant::now() + REPLACEMENT_CONFIRMATION_TIMEOUT);
+                Ok(process) => {
+                    replacement = Some(process);
                 }
                 Err(_) => {
                     transition_active_update_recovery(
@@ -179,8 +175,8 @@ pub fn run_update_recovery_watchdog(
                     UpdateRecoveryPhase::Recovering,
                 ) {
                     Ok(()) => {
-                        if let Some(mut child) = replacement.take() {
-                            stop_child(&mut child)?;
+                        if let Some(mut process) = replacement.take() {
+                            process.stop(&context)?;
                         }
                     }
                     Err(UpdateRecoveryError::InvalidTransition) => continue,
@@ -188,6 +184,9 @@ pub fn run_update_recovery_watchdog(
                 }
             }
             UpdateRecoveryWatchdogAction::RestorePrevious => {
+                if let Some(mut process) = replacement.take() {
+                    process.stop(&context)?;
+                }
                 let restoration = UpdateRecoveryRestoration {
                     recovery_root: context.recovery_root(),
                     recovery_id: context.recovery_id(),
@@ -241,29 +240,101 @@ fn active_phase(
 
 fn watchdog_event(
     phase: UpdateRecoveryPhase,
-    replacement: Option<&mut Child>,
-    installation_deadline: Instant,
-    confirmation_deadline: Option<Instant>,
+    replacement: Option<&mut MonitoredReplacement>,
+    installation_deadline: DateTime<Utc>,
+    context: &UpdateRecoveryWatchdogContext,
 ) -> Result<UpdateRecoveryWatchdogEvent, UpdateRecoveryWatchdogError> {
     if phase == UpdateRecoveryPhase::Launching {
-        let Some(replacement) = replacement else {
-            return Err(UpdateRecoveryWatchdogError::UnownedReplacement);
-        };
-        if replacement.try_wait()?.is_some() {
+        let replacement = require_monitored_replacement(replacement)?;
+        if !replacement.is_running(context)? {
             return Ok(UpdateRecoveryWatchdogEvent::ReplacementExited);
         }
-        if confirmation_deadline.is_some_and(|deadline| Instant::now() >= deadline) {
+        if Utc::now() >= replacement.confirmation_deadline()? {
             return Ok(UpdateRecoveryWatchdogEvent::DeadlineExpired);
         }
     }
     if matches!(
         phase,
-        UpdateRecoveryPhase::Prepared | UpdateRecoveryPhase::ReplacementStarted
-    ) && Instant::now() >= installation_deadline
+        UpdateRecoveryPhase::Prepared
+            | UpdateRecoveryPhase::ReplacementStarted
+            | UpdateRecoveryPhase::ReplacementInstalled
+    ) && Utc::now() >= installation_deadline
     {
         return Ok(UpdateRecoveryWatchdogEvent::DeadlineExpired);
     }
     Ok(UpdateRecoveryWatchdogEvent::Observe)
+}
+
+fn require_monitored_replacement(
+    replacement: Option<&mut MonitoredReplacement>,
+) -> Result<&mut MonitoredReplacement, UpdateRecoveryWatchdogError> {
+    replacement.ok_or(UpdateRecoveryWatchdogError::UnownedReplacement)
+}
+
+fn persisted_deadline(
+    started_at: &str,
+    duration: Duration,
+) -> Result<DateTime<Utc>, UpdateRecoveryWatchdogError> {
+    let started_at = DateTime::parse_from_rfc3339(started_at)
+        .map_err(|_| UpdateRecoveryError::InvalidState)?
+        .with_timezone(&Utc);
+    let duration =
+        i64::try_from(duration.as_secs()).map_err(|_| UpdateRecoveryError::InvalidState)?;
+    started_at
+        .checked_add_signed(ChronoDuration::seconds(duration))
+        .ok_or(UpdateRecoveryError::InvalidState.into())
+}
+
+enum MonitoredReplacement {
+    Owned {
+        child: Child,
+        process: UpdateRecoveryReplacementProcess,
+    },
+    Inherited(UpdateRecoveryReplacementProcess),
+}
+
+impl MonitoredReplacement {
+    fn process(&self) -> &UpdateRecoveryReplacementProcess {
+        match self {
+            Self::Owned { process, .. } | Self::Inherited(process) => process,
+        }
+    }
+
+    fn confirmation_deadline(&self) -> Result<DateTime<Utc>, UpdateRecoveryWatchdogError> {
+        DateTime::parse_from_rfc3339(self.process().confirmation_deadline())
+            .map(|deadline| deadline.with_timezone(&Utc))
+            .map_err(|_| UpdateRecoveryError::InvalidState.into())
+    }
+
+    fn is_running(
+        &mut self,
+        context: &UpdateRecoveryWatchdogContext,
+    ) -> Result<bool, UpdateRecoveryWatchdogError> {
+        if let Self::Owned { child, .. } = self {
+            if child.try_wait()?.is_some() {
+                return Ok(false);
+            }
+        }
+        let executable = context
+            .installed_application_path()
+            .join("Contents/MacOS/fitfreed");
+        update_recovery_process_is_running(self.process(), &executable).map_err(Into::into)
+    }
+
+    fn stop(
+        &mut self,
+        context: &UpdateRecoveryWatchdogContext,
+    ) -> Result<(), UpdateRecoveryWatchdogError> {
+        match self {
+            Self::Owned { child, .. } => stop_child(child).map_err(Into::into),
+            Self::Inherited(process) => {
+                let executable = context
+                    .installed_application_path()
+                    .join("Contents/MacOS/fitfreed");
+                stop_inherited_replacement(process, &executable)
+            }
+        }
+    }
 }
 
 fn launch_application(
@@ -290,7 +361,7 @@ fn launch_application(
 
 fn launch_replacement(
     context: &UpdateRecoveryWatchdogContext,
-) -> Result<Child, UpdateRecoveryWatchdogError> {
+) -> Result<MonitoredReplacement, UpdateRecoveryWatchdogError> {
     let launch_nonce = generate_launch_nonce()?;
     let mut child = launch_application(
         context.installed_application_path(),
@@ -312,7 +383,7 @@ fn launch_replacement(
                 .map_err(|_| UpdateRecoveryWatchdogError::ApplicationLaunch)?,
         ))
     .to_rfc3339_opts(SecondsFormat::Secs, true);
-    if let Err(error) = record_active_update_recovery_replacement_launch(
+    let process = match record_active_update_recovery_replacement_launch(
         context.recovery_root(),
         context.recovery_id(),
         UpdateRecoveryReplacementLaunch {
@@ -323,9 +394,12 @@ fn launch_replacement(
             confirmation_deadline: &confirmation_deadline,
         },
     ) {
-        let _ = stop_child(&mut child);
-        return Err(error.into());
-    }
+        Ok(process) => process,
+        Err(error) => {
+            let _ = stop_child(&mut child);
+            return Err(error.into());
+        }
+    };
     let signal = format!(
         "{CANDIDATE_GO_PREFIX}{} {launch_nonce}\n",
         context.recovery_id()
@@ -344,7 +418,7 @@ fn launch_replacement(
         let _ = stop_child(&mut child);
         return Err(error);
     }
-    Ok(child)
+    Ok(MonitoredReplacement::Owned { child, process })
 }
 
 pub fn await_update_recovery_candidate_go(
@@ -389,6 +463,65 @@ fn stop_child(child: &mut Child) -> io::Result<()> {
     }
     child.wait()?;
     Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn stop_inherited_replacement(
+    process: &UpdateRecoveryReplacementProcess,
+    executable: &Path,
+) -> Result<(), UpdateRecoveryWatchdogError> {
+    if !update_recovery_process_is_running(process, executable)? {
+        return Ok(());
+    }
+    signal_inherited_replacement(process, executable, libc::SIGTERM)?;
+    let deadline = Instant::now() + PROCESS_STOP_TIMEOUT;
+    while update_recovery_process_is_running(process, executable)? && Instant::now() < deadline {
+        thread::sleep(POLL_INTERVAL);
+    }
+    if update_recovery_process_is_running(process, executable)? {
+        signal_inherited_replacement(process, executable, libc::SIGKILL)?;
+        let deadline = Instant::now() + PROCESS_STOP_TIMEOUT;
+        while update_recovery_process_is_running(process, executable)? && Instant::now() < deadline
+        {
+            thread::sleep(POLL_INTERVAL);
+        }
+    }
+    if update_recovery_process_is_running(process, executable)? {
+        return Err(io::Error::new(
+            io::ErrorKind::TimedOut,
+            "the inherited update candidate did not stop",
+        )
+        .into());
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn signal_inherited_replacement(
+    process: &UpdateRecoveryReplacementProcess,
+    executable: &Path,
+    signal: i32,
+) -> Result<(), UpdateRecoveryWatchdogError> {
+    if !update_recovery_process_is_running(process, executable)? {
+        return Ok(());
+    }
+    let process_id = i32::try_from(process.process_id())
+        .map_err(|_| UpdateRecoveryWatchdogError::UnownedReplacement)?;
+    if unsafe { libc::kill(process_id, signal) } != 0 {
+        let error = io::Error::last_os_error();
+        if error.raw_os_error() != Some(libc::ESRCH) {
+            return Err(error.into());
+        }
+    }
+    Ok(())
+}
+
+#[cfg(not(target_os = "macos"))]
+fn stop_inherited_replacement(
+    _process: &UpdateRecoveryReplacementProcess,
+    _executable: &Path,
+) -> Result<(), UpdateRecoveryWatchdogError> {
+    Err(UpdateRecoveryError::UnsupportedPlatform.into())
 }
 
 #[cfg(unix)]
@@ -483,14 +616,20 @@ mod tests {
     #[test]
     fn treats_a_launching_phase_without_an_owned_child_as_unsafe() {
         assert!(matches!(
-            watchdog_event(
-                UpdateRecoveryPhase::Launching,
-                None,
-                Instant::now() + Duration::from_secs(1),
-                Some(Instant::now() + Duration::from_secs(1)),
-            ),
+            require_monitored_replacement(None),
             Err(UpdateRecoveryWatchdogError::UnownedReplacement)
         ));
+    }
+
+    #[test]
+    fn derives_the_installation_deadline_from_persisted_preparation_time() {
+        assert_eq!(
+            persisted_deadline("2026-08-17T08:00:00Z", Duration::from_secs(900))
+                .expect("persisted deadline")
+                .to_rfc3339_opts(SecondsFormat::Secs, true),
+            "2026-08-17T08:15:00Z"
+        );
+        assert!(persisted_deadline("not-an-instant", Duration::from_secs(900)).is_err());
     }
 
     #[test]
