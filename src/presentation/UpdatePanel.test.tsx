@@ -191,8 +191,9 @@ describe("UpdatePanel", () => {
     );
 
     const panel = await screen.findByRole("region", { name: "Application updates" });
-    expect(within(panel).getByText(/withdrawn because of a data integrity risk/)).toBeVisible();
-    expect(within(panel).getByText(/preserve your library/)).toBeVisible();
+    expect(await within(panel).findByText(/withdrawn because of a data integrity risk/))
+      .toBeVisible();
+    expect(await within(panel).findByText(/preserve your library/)).toBeVisible();
     expect(within(panel).queryByRole("button", { name: "Ignore this version" }))
       .not.toBeInTheDocument();
     expect(within(panel).queryByRole("button", { name: "Remind me tomorrow" }))
