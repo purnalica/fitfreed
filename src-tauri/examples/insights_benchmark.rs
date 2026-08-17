@@ -10,12 +10,14 @@ use std::{ffi::CString, mem::MaybeUninit, os::unix::ffi::OsStrExt};
 
 use chrono::{Duration as ChronoDuration, NaiveDate};
 use fitfreed_application::{
-    query_activity_comparison, query_activity_overview, query_sleep_comparison, query_sleep_detail,
+    query_activity_comparison, query_activity_overview, query_recovery_comparison,
+    query_recovery_detail, query_recovery_overview, query_sleep_comparison, query_sleep_detail,
     query_sleep_overview, query_training_comparison, query_training_overview, ActivityDateRange,
-    SleepDateRange, TrainingDateRange,
+    RecoveryDateRange, SleepDateRange, TrainingDateRange,
 };
 use fitfreed_lib::infrastructure::{
-    query_activity_between, SqliteActivityLibrary, SqliteSleepLibrary, SqliteTrainingLibrary,
+    query_activity_between, SqliteActivityLibrary, SqliteRecoveryLibrary, SqliteSleepLibrary,
+    SqliteTrainingLibrary,
 };
 use rusqlite::{params, Connection};
 use serde_json::{json, Value};
@@ -35,6 +37,7 @@ struct Measurement {
 
 struct GeneratedRows {
     activity: usize,
+    recovery: usize,
     training: usize,
     sleep: usize,
     sleep_transitions: usize,
@@ -46,6 +49,7 @@ fn main() {
     query_activity_between(&database_path, None, None).expect("initialize production schema");
     let generated_rows = generate_history(&database_path);
     let activity_library = SqliteActivityLibrary::new(database_path.clone());
+    let recovery_library = SqliteRecoveryLibrary::new(database_path.clone());
     let training_library = SqliteTrainingLibrary::new(database_path.clone());
     let sleep_library = SqliteSleepLibrary::new(database_path.clone());
 
@@ -194,6 +198,58 @@ fn main() {
             .len()
     });
 
+    let recovery_latest_range = recovery_range("2025-12-02", "2025-12-31");
+    let recovery_maximum_range = recovery_range("2024-12-31", "2025-12-31");
+    let recovery_earlier_common = recovery_range("2020-01-01", "2020-01-30");
+    let recovery_later_common = recovery_range("2025-01-01", "2025-01-30");
+    let recovery_earlier_maximum = recovery_range("2019-01-01", "2020-01-01");
+    let recovery_default_overview = measure(ORIGIN_COUNT * 30, || {
+        let overview =
+            query_recovery_overview(&recovery_library, None).expect("default recovery overview");
+        overview.series.iter().map(|series| series.days.len()).sum()
+    });
+    let recovery_common_filter = measure(ORIGIN_COUNT * 30, || {
+        let overview =
+            query_recovery_overview(&recovery_library, Some(recovery_latest_range.clone()))
+                .expect("common recovery filter");
+        overview.series.iter().map(|series| series.days.len()).sum()
+    });
+    let recovery_maximum_filter = measure(ORIGIN_COUNT * 366, || {
+        let overview =
+            query_recovery_overview(&recovery_library, Some(recovery_maximum_range.clone()))
+                .expect("maximum recovery filter");
+        overview.series.iter().map(|series| series.days.len()).sum()
+    });
+    let recovery_common_comparison = measure(ORIGIN_COUNT, || {
+        query_recovery_comparison(
+            &recovery_library,
+            recovery_earlier_common.clone(),
+            recovery_later_common.clone(),
+        )
+        .expect("common recovery comparison")
+        .series
+        .len()
+    });
+    let recovery_maximum_comparison = measure(ORIGIN_COUNT, || {
+        query_recovery_comparison(
+            &recovery_library,
+            recovery_earlier_maximum.clone(),
+            recovery_maximum_range.clone(),
+        )
+        .expect("maximum recovery comparison")
+        .series
+        .len()
+    });
+    let recovery_detail = measure(1, || {
+        usize::from(
+            query_recovery_detail(&recovery_library, "synthetic-origin-0", "2025-12-31")
+                .expect("recovery detail query")
+                .expect("generated recovery detail")
+                .source_guidance
+                .is_some(),
+        )
+    });
+
     let measurements = [
         (
             "activity.defaultOverview",
@@ -271,6 +327,36 @@ fn main() {
             COMPLEX_BUDGET_MILLISECONDS,
         ),
         ("sleep.detail", &sleep_detail, COMMON_BUDGET_MILLISECONDS),
+        (
+            "recovery.defaultOverview",
+            &recovery_default_overview,
+            COMMON_BUDGET_MILLISECONDS,
+        ),
+        (
+            "recovery.commonFilter",
+            &recovery_common_filter,
+            COMMON_BUDGET_MILLISECONDS,
+        ),
+        (
+            "recovery.maximumFilter",
+            &recovery_maximum_filter,
+            COMPLEX_BUDGET_MILLISECONDS,
+        ),
+        (
+            "recovery.commonComparison",
+            &recovery_common_comparison,
+            COMMON_BUDGET_MILLISECONDS,
+        ),
+        (
+            "recovery.maximumComparison",
+            &recovery_maximum_comparison,
+            COMPLEX_BUDGET_MILLISECONDS,
+        ),
+        (
+            "recovery.detail",
+            &recovery_detail,
+            COMMON_BUDGET_MILLISECONDS,
+        ),
     ];
     let violations = measurements
         .iter()
@@ -302,6 +388,7 @@ fn main() {
                 "storedTrainingSessions": generated_rows.training,
                 "storedSleepPeriods": generated_rows.sleep,
                 "storedSleepTransitions": generated_rows.sleep_transitions,
+                "storedRecoveryNights": generated_rows.recovery,
                 "databaseBytes": fs::metadata(&database_path).expect("database metadata").len(),
             },
             "method": {
@@ -363,6 +450,32 @@ fn main() {
                     ),
                     "detail": measurement_json(&sleep_detail, COMMON_BUDGET_MILLISECONDS),
                 },
+                "recovery": {
+                    "defaultOverview": measurement_json(
+                        &recovery_default_overview,
+                        COMMON_BUDGET_MILLISECONDS,
+                    ),
+                    "commonFilter": measurement_json(
+                        &recovery_common_filter,
+                        COMMON_BUDGET_MILLISECONDS,
+                    ),
+                    "maximumFilter": measurement_json(
+                        &recovery_maximum_filter,
+                        COMPLEX_BUDGET_MILLISECONDS,
+                    ),
+                    "commonComparison": measurement_json(
+                        &recovery_common_comparison,
+                        COMMON_BUDGET_MILLISECONDS,
+                    ),
+                    "maximumComparison": measurement_json(
+                        &recovery_maximum_comparison,
+                        COMPLEX_BUDGET_MILLISECONDS,
+                    ),
+                    "detail": measurement_json(
+                        &recovery_detail,
+                        COMMON_BUDGET_MILLISECONDS,
+                    ),
+                },
             },
             "budgetsPassed": violations.is_empty(),
             "violations": violations,
@@ -382,6 +495,7 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
     let mut connection = Connection::open(database_path).expect("open generated library");
     let transaction = connection.transaction().expect("begin generated history");
     let mut activity_rows = 0;
+    let mut recovery_rows = 0;
     let mut training_rows = 0;
     let mut sleep_rows = 0;
     let mut sleep_transition_rows = 0;
@@ -579,12 +693,73 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
             }
         }
     }
+    {
+        let mut statement = transaction
+            .prepare_cached(
+                "INSERT INTO nightly_recovery (
+                    origin_id, recovery_date,
+                    beat_to_beat_interval_milliseconds,
+                    heart_rate_variability_rmssd_milliseconds,
+                    breathing_interval_milliseconds,
+                    assessment_scheme, autonomic_charge, autonomic_status,
+                    overall_status, overall_sublevel, baseline_scheme,
+                    baseline_mean_beat_to_beat_interval_milliseconds,
+                    baseline_standard_deviation_beat_to_beat_interval_milliseconds,
+                    baseline_mean_heart_rate_variability_rmssd_milliseconds,
+                    baseline_standard_deviation_heart_rate_variability_rmssd_milliseconds,
+                    baseline_mean_breathing_interval_milliseconds,
+                    baseline_standard_deviation_breathing_interval_milliseconds,
+                    guidance_scheme, exercise_guidance, sleep_guidance, vitality_guidance
+                 ) VALUES (
+                    ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11,
+                    ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21
+                 )",
+            )
+            .expect("prepare generated recovery insertion");
+        for origin_index in 0..ORIGIN_COUNT {
+            let origin = format!("synthetic-origin-{origin_index}");
+            for day_offset in 0..calendar_days {
+                let recovery_date = first_date + ChronoDuration::days(day_offset);
+                let date = recovery_date.format("%Y-%m-%d").to_string();
+                let beat_to_beat = 850 + day_offset % 100;
+                let rmssd = 35 + day_offset % 20;
+                let breathing = 3_900 + day_offset % 400;
+                statement
+                    .execute(params![
+                        origin,
+                        date,
+                        beat_to_beat,
+                        rmssd,
+                        breathing,
+                        "synthetic-recovery@1",
+                        1.5,
+                        4,
+                        5,
+                        day_offset % 3,
+                        "synthetic-recovery@1",
+                        900,
+                        30,
+                        40,
+                        8,
+                        4_100,
+                        120,
+                        "synthetic-recovery@1",
+                        "Choose a steady synthetic session.",
+                        "Keep a consistent synthetic schedule.",
+                        "Plan a synthetic restorative break.",
+                    ])
+                    .expect("insert generated recovery night");
+                recovery_rows += 1;
+            }
+        }
+    }
     transaction.commit().expect("commit generated history");
     connection
         .execute_batch("PRAGMA optimize;")
         .expect("optimize generated history");
     GeneratedRows {
         activity: activity_rows,
+        recovery: recovery_rows,
         training: training_rows,
         sleep: sleep_rows,
         sleep_transitions: sleep_transition_rows,
@@ -635,6 +810,13 @@ fn range(from: &str, through: &str) -> ActivityDateRange {
 
 fn training_range(from: &str, through: &str) -> TrainingDateRange {
     TrainingDateRange {
+        from: from.to_owned(),
+        through: through.to_owned(),
+    }
+}
+
+fn recovery_range(from: &str, through: &str) -> RecoveryDateRange {
+    RecoveryDateRange {
         from: from.to_owned(),
         through: through.to_owned(),
     }

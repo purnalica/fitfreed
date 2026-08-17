@@ -19,6 +19,7 @@ let unavailableObservations = 0;
 let trainingSessions = 0;
 const sleepResults = [];
 const sleepScores = [];
+const recoveryNights = [];
 
 await mkdir(path.dirname(outputPath), { recursive: true });
 zip.addBuffer(
@@ -150,6 +151,25 @@ for (let index = 0; index < calendarDays; index += 1) {
       scoreRate: 4,
     },
   });
+  recoveryNights.push({
+    night: date,
+    meanNightlyRecoveryRri: 850 + index % 100,
+    meanNightlyRecoveryRmssd: 35 + index % 20,
+    meanNightlyRecoveryRespirationInterval: 3_900 + index % 400,
+    ansRate: 4,
+    ansStatus: 1.5,
+    recoveryIndicator: 5,
+    recoveryIndicatorSubLevel: index % 3,
+    meanBaselineRespirationInterval: 4_100,
+    meanBaselineRmssd: 40,
+    meanBaselineRri: 900,
+    sdBaselineRespirationInterval: 120,
+    sdBaselineRmssd: 8,
+    sdBaselineRri: 30,
+    exerciseTip: "Choose a steady synthetic session.",
+    sleepTip: "Keep a consistent synthetic schedule.",
+    vitalityTip: "Plan a synthetic restorative break.",
+  });
 }
 
 zip.addBuffer(
@@ -160,6 +180,11 @@ zip.addBuffer(
 zip.addBuffer(
   Buffer.from(JSON.stringify(sleepScores)),
   "sleep_score_91-77777777-6666-4555-8444-222222222222.json",
+  { mtime: fixedTime, mode: 0o100644, compress: true },
+);
+zip.addBuffer(
+  Buffer.from(JSON.stringify(recoveryNights)),
+  "nightly_recovery_91-77777777-6666-4555-8444-333333333333.json",
   { mtime: fixedTime, mode: 0o100644, compress: true },
 );
 
@@ -179,4 +204,5 @@ process.stdout.write(`${JSON.stringify({
   missingDays: calendarDays - storedObservations,
   trainingSessions,
   sleepPeriods: sleepResults.length,
+  recoveryNights: recoveryNights.length,
 })}\n`);

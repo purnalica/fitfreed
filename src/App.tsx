@@ -11,6 +11,7 @@ import type {
   ActivityOverview,
 } from "./presentation/activity-insights";
 import { commandErrorCode } from "./presentation/command-error";
+import { RecoveryInsightsPanel } from "./presentation/RecoveryInsightsPanel";
 import { SleepInsightsPanel } from "./presentation/SleepInsightsPanel";
 
 type CountMessageKey = keyof (typeof catalogs)["en-US"]["counts"];
@@ -113,6 +114,7 @@ function App() {
   const [selectedActivityDate, setSelectedActivityDate] = useState<string>();
   const [trainingRefreshToken, setTrainingRefreshToken] = useState(0);
   const [sleepRefreshToken, setSleepRefreshToken] = useState(0);
+  const [recoveryRefreshToken, setRecoveryRefreshToken] = useState(0);
   const [outcome, setOutcome] = useState<ImportOutcome>();
   const [progress, setProgress] = useState<ImportProgress>();
   const [busy, setBusy] = useState(false);
@@ -219,6 +221,7 @@ function App() {
       await refresh();
       setTrainingRefreshToken((current) => current + 1);
       setSleepRefreshToken((current) => current + 1);
+      setRecoveryRefreshToken((current) => current + 1);
       await refreshOutcome();
     } catch (reason) {
       const code = commandErrorCode(reason);
@@ -746,6 +749,12 @@ function App() {
         locale={locale}
         messages={messages}
         refreshToken={sleepRefreshToken}
+        onError={setErrorCode}
+      />
+      <RecoveryInsightsPanel
+        locale={locale}
+        messages={messages}
+        refreshToken={recoveryRefreshToken}
         onError={setErrorCode}
       />
     </main>

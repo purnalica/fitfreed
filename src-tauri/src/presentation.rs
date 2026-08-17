@@ -3,15 +3,20 @@ use serde::{Deserialize, Serialize};
 use fitfreed_application::{
     ActivityComparison, ActivityDateRange, ActivityDayAvailability, ActivityDayInsight,
     ActivityOverview, ActivitySeriesComparison, ActivitySeriesOverview, ActivitySeriesSummary,
-    ApplicationError, ImportPhase, ImportProgress, SleepComparison, SleepDateRange,
-    SleepDayAvailability, SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight,
-    SleepPhaseTotals, SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary,
-    TrainingComparison, TrainingDateRange, TrainingOverview, TrainingSeriesComparison,
-    TrainingSeriesOverview, TrainingSeriesSummary, TrainingSessionInsight,
+    ApplicationError, ImportPhase, ImportProgress, RecoveryComparison, RecoveryDateRange,
+    RecoveryDayAvailability, RecoveryDayInsight, RecoveryNightDetail, RecoveryNightInsight,
+    RecoveryOverview, RecoverySeriesComparison, RecoverySeriesOverview, RecoverySeriesSummary,
+    SleepComparison, SleepDateRange, SleepDayAvailability, SleepDayInsight, SleepOverview,
+    SleepPeriodDetail, SleepPeriodInsight, SleepPhaseTotals, SleepSeriesComparison,
+    SleepSeriesOverview, SleepSeriesSummary, TrainingComparison, TrainingDateRange,
+    TrainingOverview, TrainingSeriesComparison, TrainingSeriesOverview, TrainingSeriesSummary,
+    TrainingSessionInsight,
 };
 use fitfreed_domain::{
     ArtifactCoverageSummary, ArtifactFamilyCoverage, ImportOutcome, ImportReport,
     SleepPhaseSummary, SleepScore, SleepStage, SleepStageTransition,
+    SourceSpecificRecoveryAssessment, SourceSpecificRecoveryBaseline,
+    SourceSpecificRecoveryGuidance,
 };
 
 #[derive(Debug, Serialize)]
@@ -37,6 +42,8 @@ impl From<ApplicationError> for CommandErrorDto {
             ApplicationError::InvalidTrainingRange(_) => "invalid-training-range",
             ApplicationError::InvalidSleepRange(_) => "invalid-sleep-range",
             ApplicationError::InvalidSleepReference(_) => "invalid-sleep-reference",
+            ApplicationError::InvalidRecoveryRange(_) => "invalid-recovery-range",
+            ApplicationError::InvalidRecoveryReference(_) => "invalid-recovery-reference",
             ApplicationError::OutcomeQuery(_) => "outcome-query-failed",
             ApplicationError::PreferenceQuery(_) => "preference-query-failed",
             ApplicationError::PreferenceUpdate(_) => "preference-update-failed",
@@ -773,6 +780,324 @@ impl From<SleepPeriodDetail> for SleepPeriodDetailDto {
     }
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecoveryDateRangeDto {
+    from: String,
+    through: String,
+}
+
+impl From<RecoveryDateRangeDto> for RecoveryDateRange {
+    fn from(range: RecoveryDateRangeDto) -> Self {
+        Self {
+            from: range.from,
+            through: range.through,
+        }
+    }
+}
+
+impl From<RecoveryDateRange> for RecoveryDateRangeDto {
+    fn from(range: RecoveryDateRange) -> Self {
+        Self {
+            from: range.from,
+            through: range.through,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourceSpecificRecoveryAssessmentDto {
+    scheme: String,
+    autonomic_charge: f64,
+    autonomic_status: i64,
+    overall_status: i64,
+    overall_sublevel: String,
+}
+
+impl From<SourceSpecificRecoveryAssessment> for SourceSpecificRecoveryAssessmentDto {
+    fn from(assessment: SourceSpecificRecoveryAssessment) -> Self {
+        Self {
+            scheme: assessment.scheme,
+            autonomic_charge: assessment.autonomic_charge,
+            autonomic_status: assessment.autonomic_status,
+            overall_status: assessment.overall_status,
+            overall_sublevel: assessment.overall_sublevel.to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourceSpecificRecoveryBaselineDto {
+    scheme: String,
+    mean_beat_to_beat_interval_milliseconds: String,
+    standard_deviation_beat_to_beat_interval_milliseconds: String,
+    mean_heart_rate_variability_rmssd_milliseconds: Option<String>,
+    standard_deviation_heart_rate_variability_rmssd_milliseconds: Option<String>,
+    mean_breathing_interval_milliseconds: String,
+    standard_deviation_breathing_interval_milliseconds: String,
+}
+
+impl From<SourceSpecificRecoveryBaseline> for SourceSpecificRecoveryBaselineDto {
+    fn from(baseline: SourceSpecificRecoveryBaseline) -> Self {
+        Self {
+            scheme: baseline.scheme,
+            mean_beat_to_beat_interval_milliseconds: baseline
+                .mean_beat_to_beat_interval_milliseconds
+                .to_string(),
+            standard_deviation_beat_to_beat_interval_milliseconds: baseline
+                .standard_deviation_beat_to_beat_interval_milliseconds
+                .to_string(),
+            mean_heart_rate_variability_rmssd_milliseconds: baseline
+                .mean_heart_rate_variability_rmssd_milliseconds
+                .map(|value| value.to_string()),
+            standard_deviation_heart_rate_variability_rmssd_milliseconds: baseline
+                .standard_deviation_heart_rate_variability_rmssd_milliseconds
+                .map(|value| value.to_string()),
+            mean_breathing_interval_milliseconds: baseline
+                .mean_breathing_interval_milliseconds
+                .to_string(),
+            standard_deviation_breathing_interval_milliseconds: baseline
+                .standard_deviation_breathing_interval_milliseconds
+                .to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourceSpecificRecoveryGuidanceDto {
+    scheme: String,
+    exercise: String,
+    sleep: String,
+    vitality: String,
+}
+
+impl From<SourceSpecificRecoveryGuidance> for SourceSpecificRecoveryGuidanceDto {
+    fn from(guidance: SourceSpecificRecoveryGuidance) -> Self {
+        Self {
+            scheme: guidance.scheme,
+            exercise: guidance.exercise,
+            sleep: guidance.sleep,
+            vitality: guidance.vitality,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecoveryNightInsightDto {
+    beat_to_beat_interval_milliseconds: String,
+    heart_rate_variability_rmssd_milliseconds: Option<String>,
+    breathing_interval_milliseconds: String,
+    source_assessment: Option<SourceSpecificRecoveryAssessmentDto>,
+    source_baseline_available: bool,
+    source_guidance_available: bool,
+}
+
+impl From<RecoveryNightInsight> for RecoveryNightInsightDto {
+    fn from(recovery: RecoveryNightInsight) -> Self {
+        Self {
+            beat_to_beat_interval_milliseconds: recovery
+                .beat_to_beat_interval_milliseconds
+                .to_string(),
+            heart_rate_variability_rmssd_milliseconds: recovery
+                .heart_rate_variability_rmssd_milliseconds
+                .map(|value| value.to_string()),
+            breathing_interval_milliseconds: recovery.breathing_interval_milliseconds.to_string(),
+            source_assessment: recovery.source_assessment.map(Into::into),
+            source_baseline_available: recovery.source_baseline_available,
+            source_guidance_available: recovery.source_guidance_available,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecoveryDayInsightDto {
+    recovery_date: String,
+    availability: &'static str,
+    recovery: Option<RecoveryNightInsightDto>,
+}
+
+impl From<RecoveryDayInsight> for RecoveryDayInsightDto {
+    fn from(day: RecoveryDayInsight) -> Self {
+        Self {
+            recovery_date: day.recovery_date,
+            availability: match day.availability {
+                RecoveryDayAvailability::Available => "available",
+                RecoveryDayAvailability::Missing => "missing",
+            },
+            recovery: day.recovery.map(Into::into),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecoverySeriesSummaryDto {
+    calendar_days: usize,
+    observed_nights: usize,
+    missing_nights: usize,
+    average_beat_to_beat_interval_milliseconds: Option<String>,
+    rmssd_night_count: usize,
+    average_heart_rate_variability_rmssd_milliseconds: Option<String>,
+    average_breathing_interval_milliseconds: Option<String>,
+    assessment_night_count: usize,
+    baseline_night_count: usize,
+    guidance_night_count: usize,
+}
+
+impl From<RecoverySeriesSummary> for RecoverySeriesSummaryDto {
+    fn from(summary: RecoverySeriesSummary) -> Self {
+        Self {
+            calendar_days: summary.calendar_days,
+            observed_nights: summary.observed_nights,
+            missing_nights: summary.missing_nights,
+            average_beat_to_beat_interval_milliseconds: summary
+                .average_beat_to_beat_interval_milliseconds
+                .map(|value| value.to_string()),
+            rmssd_night_count: summary.rmssd_night_count,
+            average_heart_rate_variability_rmssd_milliseconds: summary
+                .average_heart_rate_variability_rmssd_milliseconds
+                .map(|value| value.to_string()),
+            average_breathing_interval_milliseconds: summary
+                .average_breathing_interval_milliseconds
+                .map(|value| value.to_string()),
+            assessment_night_count: summary.assessment_night_count,
+            baseline_night_count: summary.baseline_night_count,
+            guidance_night_count: summary.guidance_night_count,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecoverySeriesOverviewDto {
+    series_ref: String,
+    summary: RecoverySeriesSummaryDto,
+    days: Vec<RecoveryDayInsightDto>,
+}
+
+impl From<RecoverySeriesOverview> for RecoverySeriesOverviewDto {
+    fn from(series: RecoverySeriesOverview) -> Self {
+        Self {
+            series_ref: series.series_ref,
+            summary: series.summary.into(),
+            days: series.days.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecoveryOverviewDto {
+    available_range: Option<RecoveryDateRangeDto>,
+    selected_range: Option<RecoveryDateRangeDto>,
+    series: Vec<RecoverySeriesOverviewDto>,
+}
+
+impl From<RecoveryOverview> for RecoveryOverviewDto {
+    fn from(overview: RecoveryOverview) -> Self {
+        Self {
+            available_range: overview.available_range.map(Into::into),
+            selected_range: overview.selected_range.map(Into::into),
+            series: overview.series.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecoverySeriesComparisonDto {
+    series_ref: String,
+    baseline: RecoverySeriesSummaryDto,
+    comparison: RecoverySeriesSummaryDto,
+    observed_night_change: String,
+    missing_night_change: String,
+    average_beat_to_beat_interval_milliseconds_change: Option<String>,
+    average_heart_rate_variability_rmssd_milliseconds_change: Option<String>,
+    average_breathing_interval_milliseconds_change: Option<String>,
+    assessment_night_change: String,
+    baseline_night_change: String,
+    guidance_night_change: String,
+}
+
+impl From<RecoverySeriesComparison> for RecoverySeriesComparisonDto {
+    fn from(series: RecoverySeriesComparison) -> Self {
+        Self {
+            series_ref: series.series_ref,
+            baseline: series.baseline.into(),
+            comparison: series.comparison.into(),
+            observed_night_change: series.observed_night_change.to_string(),
+            missing_night_change: series.missing_night_change.to_string(),
+            average_beat_to_beat_interval_milliseconds_change: series
+                .average_beat_to_beat_interval_milliseconds_change
+                .map(|value| value.to_string()),
+            average_heart_rate_variability_rmssd_milliseconds_change: series
+                .average_heart_rate_variability_rmssd_milliseconds_change
+                .map(|value| value.to_string()),
+            average_breathing_interval_milliseconds_change: series
+                .average_breathing_interval_milliseconds_change
+                .map(|value| value.to_string()),
+            assessment_night_change: series.assessment_night_change.to_string(),
+            baseline_night_change: series.baseline_night_change.to_string(),
+            guidance_night_change: series.guidance_night_change.to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecoveryComparisonDto {
+    available_range: Option<RecoveryDateRangeDto>,
+    baseline_range: Option<RecoveryDateRangeDto>,
+    comparison_range: Option<RecoveryDateRangeDto>,
+    series: Vec<RecoverySeriesComparisonDto>,
+}
+
+impl From<RecoveryComparison> for RecoveryComparisonDto {
+    fn from(comparison: RecoveryComparison) -> Self {
+        Self {
+            available_range: comparison.available_range.map(Into::into),
+            baseline_range: comparison.baseline_range.map(Into::into),
+            comparison_range: comparison.comparison_range.map(Into::into),
+            series: comparison.series.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecoveryNightDetailDto {
+    recovery_date: String,
+    beat_to_beat_interval_milliseconds: String,
+    heart_rate_variability_rmssd_milliseconds: Option<String>,
+    breathing_interval_milliseconds: String,
+    source_assessment: Option<SourceSpecificRecoveryAssessmentDto>,
+    source_baseline: Option<SourceSpecificRecoveryBaselineDto>,
+    source_guidance: Option<SourceSpecificRecoveryGuidanceDto>,
+}
+
+impl From<RecoveryNightDetail> for RecoveryNightDetailDto {
+    fn from(recovery: RecoveryNightDetail) -> Self {
+        Self {
+            recovery_date: recovery.recovery_date,
+            beat_to_beat_interval_milliseconds: recovery
+                .beat_to_beat_interval_milliseconds
+                .to_string(),
+            heart_rate_variability_rmssd_milliseconds: recovery
+                .heart_rate_variability_rmssd_milliseconds
+                .map(|value| value.to_string()),
+            breathing_interval_milliseconds: recovery.breathing_interval_milliseconds.to_string(),
+            source_assessment: recovery.source_assessment.map(Into::into),
+            source_baseline: recovery.source_baseline.map(Into::into),
+            source_guidance: recovery.source_guidance.map(Into::into),
+        }
+    }
+}
+
 impl From<ActivityComparison> for ActivityComparisonDto {
     fn from(comparison: ActivityComparison) -> Self {
         Self {
@@ -951,6 +1276,124 @@ mod tests {
     use fitfreed_domain::{ArtifactClassification, ArtifactFamilyCoverage, ImportOperationState};
 
     use super::*;
+
+    fn recovery_summary(value: i128) -> RecoverySeriesSummary {
+        RecoverySeriesSummary {
+            calendar_days: 2,
+            observed_nights: 1,
+            missing_nights: 1,
+            average_beat_to_beat_interval_milliseconds: Some(value),
+            rmssd_night_count: 1,
+            average_heart_rate_variability_rmssd_milliseconds: Some(value),
+            average_breathing_interval_milliseconds: Some(value),
+            assessment_night_count: 1,
+            baseline_night_count: 1,
+            guidance_night_count: 1,
+        }
+    }
+
+    #[test]
+    fn serializes_recovery_changes_and_measurements_as_exact_decimal_text() {
+        let comparison = RecoveryComparison {
+            available_range: Some(RecoveryDateRange {
+                from: "2026-01-01".to_owned(),
+                through: "2026-01-04".to_owned(),
+            }),
+            baseline_range: Some(RecoveryDateRange {
+                from: "2026-01-01".to_owned(),
+                through: "2026-01-02".to_owned(),
+            }),
+            comparison_range: Some(RecoveryDateRange {
+                from: "2026-01-03".to_owned(),
+                through: "2026-01-04".to_owned(),
+            }),
+            series: vec![RecoverySeriesComparison {
+                series_ref: "synthetic-origin".to_owned(),
+                baseline: recovery_summary(9_223_372_036_854_775_807),
+                comparison: recovery_summary(9_223_372_036_854_775_808),
+                observed_night_change: 9_223_372_036_854_775_808,
+                missing_night_change: -9_223_372_036_854_775_808,
+                average_beat_to_beat_interval_milliseconds_change: Some(9_223_372_036_854_775_808),
+                average_heart_rate_variability_rmssd_milliseconds_change: None,
+                average_breathing_interval_milliseconds_change: Some(-9_223_372_036_854_775_808),
+                assessment_night_change: 1,
+                baseline_night_change: -1,
+                guidance_night_change: 0,
+            }],
+        };
+
+        let json = serde_json::to_value(RecoveryComparisonDto::from(comparison))
+            .expect("recovery comparison JSON");
+
+        assert_eq!(
+            json["series"][0]["comparison"]["averageBeatToBeatIntervalMilliseconds"],
+            "9223372036854775808"
+        );
+        assert_eq!(
+            json["series"][0]["observedNightChange"],
+            "9223372036854775808"
+        );
+        assert_eq!(
+            json["series"][0]["missingNightChange"],
+            "-9223372036854775808"
+        );
+        assert_eq!(
+            json["series"][0]["averageHeartRateVariabilityRmssdMillisecondsChange"],
+            serde_json::Value::Null
+        );
+    }
+
+    #[test]
+    fn serializes_complete_recovery_detail_without_reinterpreting_source_values() {
+        let detail = RecoveryNightDetail {
+            recovery_date: "2026-01-02".to_owned(),
+            beat_to_beat_interval_milliseconds: i64::MAX,
+            heart_rate_variability_rmssd_milliseconds: Some(42),
+            breathing_interval_milliseconds: 4_100,
+            source_assessment: Some(SourceSpecificRecoveryAssessment {
+                scheme: "synthetic-assessment@1".to_owned(),
+                autonomic_charge: 1.5,
+                autonomic_status: 4,
+                overall_status: 5,
+                overall_sublevel: i64::MAX,
+            }),
+            source_baseline: Some(SourceSpecificRecoveryBaseline {
+                scheme: "synthetic-baseline@1".to_owned(),
+                mean_beat_to_beat_interval_milliseconds: 910,
+                standard_deviation_beat_to_beat_interval_milliseconds: 30,
+                mean_heart_rate_variability_rmssd_milliseconds: Some(40),
+                standard_deviation_heart_rate_variability_rmssd_milliseconds: Some(8),
+                mean_breathing_interval_milliseconds: 4_200,
+                standard_deviation_breathing_interval_milliseconds: 120,
+            }),
+            source_guidance: Some(SourceSpecificRecoveryGuidance {
+                scheme: "synthetic-guidance@1".to_owned(),
+                exercise: "Synthetic exercise guidance.".to_owned(),
+                sleep: "Synthetic sleep guidance.".to_owned(),
+                vitality: "Synthetic vitality guidance.".to_owned(),
+            }),
+        };
+
+        let json = serde_json::to_value(RecoveryNightDetailDto::from(detail))
+            .expect("recovery detail JSON");
+
+        assert_eq!(
+            json["beatToBeatIntervalMilliseconds"],
+            "9223372036854775807"
+        );
+        assert_eq!(
+            json["sourceAssessment"]["overallSublevel"],
+            "9223372036854775807"
+        );
+        assert_eq!(
+            json["sourceBaseline"]["meanHeartRateVariabilityRmssdMilliseconds"],
+            "40"
+        );
+        assert_eq!(
+            json["sourceGuidance"]["exercise"],
+            "Synthetic exercise guidance."
+        );
+    }
 
     #[test]
     fn deserializes_an_activity_range_without_interpreting_local_dates_in_transport() {

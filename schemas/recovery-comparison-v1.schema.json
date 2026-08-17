@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/recovery-comparison-v1.schema.json",
+  "title": "FitFreed recovery comparison version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["availableRange", "baselineRange", "comparisonRange", "series"],
+  "properties": {
+    "availableRange": { "$ref": "recovery-overview-v1.schema.json#/$defs/optionalRange" },
+    "baselineRange": { "$ref": "recovery-overview-v1.schema.json#/$defs/optionalRange" },
+    "comparisonRange": { "$ref": "recovery-overview-v1.schema.json#/$defs/optionalRange" },
+    "series": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/series" }
+    }
+  },
+  "$defs": {
+    "signedDecimal": {
+      "type": "string",
+      "pattern": "^(0|-?[1-9][0-9]*)$"
+    },
+    "optionalSignedDecimal": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/signedDecimal" }
+      ]
+    },
+    "series": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "seriesRef",
+        "baseline",
+        "comparison",
+        "observedNightChange",
+        "missingNightChange",
+        "averageBeatToBeatIntervalMillisecondsChange",
+        "averageHeartRateVariabilityRmssdMillisecondsChange",
+        "averageBreathingIntervalMillisecondsChange",
+        "assessmentNightChange",
+        "baselineNightChange",
+        "guidanceNightChange"
+      ],
+      "properties": {
+        "seriesRef": { "type": "string", "minLength": 1, "pattern": "\\S" },
+        "baseline": { "$ref": "recovery-overview-v1.schema.json#/$defs/summary" },
+        "comparison": { "$ref": "recovery-overview-v1.schema.json#/$defs/summary" },
+        "observedNightChange": { "$ref": "#/$defs/signedDecimal" },
+        "missingNightChange": { "$ref": "#/$defs/signedDecimal" },
+        "averageBeatToBeatIntervalMillisecondsChange": { "$ref": "#/$defs/optionalSignedDecimal" },
+        "averageHeartRateVariabilityRmssdMillisecondsChange": { "$ref": "#/$defs/optionalSignedDecimal" },
+        "averageBreathingIntervalMillisecondsChange": { "$ref": "#/$defs/optionalSignedDecimal" },
+        "assessmentNightChange": { "$ref": "#/$defs/signedDecimal" },
+        "baselineNightChange": { "$ref": "#/$defs/signedDecimal" },
+        "guidanceNightChange": { "$ref": "#/$defs/signedDecimal" }
+      }
+    }
+  }
+}

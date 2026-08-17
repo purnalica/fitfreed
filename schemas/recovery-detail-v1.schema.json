@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/recovery-detail-v1.schema.json",
+  "title": "FitFreed recovery detail version 1",
+  "oneOf": [
+    { "type": "null" },
+    { "$ref": "#/$defs/detail" }
+  ],
+  "$defs": {
+    "unsignedDecimal": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$"
+    },
+    "positiveDecimal": {
+      "type": "string",
+      "pattern": "^[1-9][0-9]*$"
+    },
+    "optionalUnsignedDecimal": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/unsignedDecimal" }
+      ]
+    },
+    "optionalSourceAssessment": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "recovery-overview-v1.schema.json#/$defs/sourceAssessment" }
+      ]
+    },
+    "sourceBaseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scheme",
+        "meanBeatToBeatIntervalMilliseconds",
+        "standardDeviationBeatToBeatIntervalMilliseconds",
+        "meanHeartRateVariabilityRmssdMilliseconds",
+        "standardDeviationHeartRateVariabilityRmssdMilliseconds",
+        "meanBreathingIntervalMilliseconds",
+        "standardDeviationBreathingIntervalMilliseconds"
+      ],
+      "properties": {
+        "scheme": { "type": "string", "minLength": 1, "pattern": "\\S" },
+        "meanBeatToBeatIntervalMilliseconds": { "$ref": "#/$defs/positiveDecimal" },
+        "standardDeviationBeatToBeatIntervalMilliseconds": { "$ref": "#/$defs/unsignedDecimal" },
+        "meanHeartRateVariabilityRmssdMilliseconds": { "$ref": "#/$defs/optionalUnsignedDecimal" },
+        "standardDeviationHeartRateVariabilityRmssdMilliseconds": { "$ref": "#/$defs/optionalUnsignedDecimal" },
+        "meanBreathingIntervalMilliseconds": { "$ref": "#/$defs/positiveDecimal" },
+        "standardDeviationBreathingIntervalMilliseconds": { "$ref": "#/$defs/unsignedDecimal" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "meanHeartRateVariabilityRmssdMilliseconds": { "type": "null" }
+            }
+          },
+          "then": {
+            "properties": {
+              "standardDeviationHeartRateVariabilityRmssdMilliseconds": { "type": "null" }
+            }
+          },
+          "else": {
+            "properties": {
+              "standardDeviationHeartRateVariabilityRmssdMilliseconds": { "$ref": "#/$defs/unsignedDecimal" }
+            }
+          }
+        }
+      ]
+    },
+    "optionalSourceBaseline": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/sourceBaseline" }
+      ]
+    },
+    "guidanceText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096,
+      "pattern": "\\S"
+    },
+    "sourceGuidance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scheme", "exercise", "sleep", "vitality"],
+      "properties": {
+        "scheme": { "type": "string", "minLength": 1, "pattern": "\\S" },
+        "exercise": { "$ref": "#/$defs/guidanceText" },
+        "sleep": { "$ref": "#/$defs/guidanceText" },
+        "vitality": { "$ref": "#/$defs/guidanceText" }
+      }
+    },
+    "optionalSourceGuidance": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/sourceGuidance" }
+      ]
+    },
+    "detail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "recoveryDate",
+        "beatToBeatIntervalMilliseconds",
+        "heartRateVariabilityRmssdMilliseconds",
+        "breathingIntervalMilliseconds",
+        "sourceAssessment",
+        "sourceBaseline",
+        "sourceGuidance"
+      ],
+      "properties": {
+        "recoveryDate": { "$ref": "recovery-overview-v1.schema.json#/$defs/localDate" },
+        "beatToBeatIntervalMilliseconds": { "$ref": "#/$defs/positiveDecimal" },
+        "heartRateVariabilityRmssdMilliseconds": { "$ref": "#/$defs/optionalUnsignedDecimal" },
+        "breathingIntervalMilliseconds": { "$ref": "#/$defs/positiveDecimal" },
+        "sourceAssessment": { "$ref": "#/$defs/optionalSourceAssessment" },
+        "sourceBaseline": { "$ref": "#/$defs/optionalSourceBaseline" },
+        "sourceGuidance": { "$ref": "#/$defs/optionalSourceGuidance" }
+      }
+    }
+  }
+}

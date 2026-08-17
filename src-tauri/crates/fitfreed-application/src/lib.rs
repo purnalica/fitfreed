@@ -13,14 +13,527 @@ use thiserror::Error;
 #[cfg(test)]
 use fitfreed_domain::SleepStage;
 use fitfreed_domain::{
-    DailyActivity, ImportOutcome, ImportReport, SleepPeriod, SleepPhaseSummary, SleepScore,
-    SleepStageTransition, TrainingSession,
+    DailyActivity, ImportOutcome, ImportReport, NightlyRecovery, SleepPeriod, SleepPhaseSummary,
+    SleepScore, SleepStageTransition, SourceSpecificRecoveryAssessment,
+    SourceSpecificRecoveryBaseline, SourceSpecificRecoveryGuidance, TrainingSession,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LocalePreference {
     EnUs,
     EsEs,
+}
+
+#[cfg(test)]
+mod recovery_tests {
+    use super::*;
+
+    fn nightly_recovery(origin_id: &str, recovery_date: &str) -> NightlyRecovery {
+        NightlyRecovery {
+            origin_id: origin_id.to_owned(),
+            recovery_date: recovery_date.to_owned(),
+            beat_to_beat_interval_milliseconds: 1_000,
+            heart_rate_variability_rmssd_milliseconds: Some(40),
+            breathing_interval_milliseconds: 4_000,
+            source_assessment: Some(SourceSpecificRecoveryAssessment {
+                scheme: "synthetic-assessment@1".to_owned(),
+                autonomic_charge: 2.5,
+                autonomic_status: 4,
+                overall_status: 5,
+                overall_sublevel: 2,
+            }),
+            source_baseline: Some(SourceSpecificRecoveryBaseline {
+                scheme: "synthetic-baseline@1".to_owned(),
+                mean_beat_to_beat_interval_milliseconds: 980,
+                standard_deviation_beat_to_beat_interval_milliseconds: 20,
+                mean_heart_rate_variability_rmssd_milliseconds: Some(38),
+                standard_deviation_heart_rate_variability_rmssd_milliseconds: Some(4),
+                mean_breathing_interval_milliseconds: 3_950,
+                standard_deviation_breathing_interval_milliseconds: 75,
+            }),
+            source_guidance: Some(SourceSpecificRecoveryGuidance {
+                scheme: "synthetic-guidance@1".to_owned(),
+                exercise: "Keep the next session light.".to_owned(),
+                sleep: "Protect a consistent bedtime.".to_owned(),
+                vitality: "Make room for recovery.".to_owned(),
+            }),
+        }
+    }
+
+    fn library_night(recovery: &NightlyRecovery) -> RecoveryLibraryNight {
+        RecoveryLibraryNight {
+            origin_id: recovery.origin_id.clone(),
+            recovery_date: recovery.recovery_date.clone(),
+            beat_to_beat_interval_milliseconds: recovery.beat_to_beat_interval_milliseconds,
+            heart_rate_variability_rmssd_milliseconds: recovery
+                .heart_rate_variability_rmssd_milliseconds,
+            breathing_interval_milliseconds: recovery.breathing_interval_milliseconds,
+            source_assessment: recovery.source_assessment.clone(),
+            source_baseline_available: recovery.source_baseline.is_some(),
+            source_guidance_available: recovery.source_guidance.is_some(),
+        }
+    }
+
+    struct ControlledRecoveryPort {
+        bounds: Option<RecoveryDateRange>,
+        origins: Vec<String>,
+        nights: Vec<NightlyRecovery>,
+        detail: Option<NightlyRecovery>,
+    }
+
+    impl RecoveryLibraryPort for ControlledRecoveryPort {
+        fn recovery_bounds(&self) -> Result<Option<RecoveryDateRange>, String> {
+            Ok(self.bounds.clone())
+        }
+
+        fn recovery_origins(&self) -> Result<Vec<String>, String> {
+            Ok(self.origins.clone())
+        }
+
+        fn query_recovery(
+            &self,
+            range: &RecoveryDateRange,
+        ) -> Result<Vec<RecoveryLibraryNight>, String> {
+            Ok(self
+                .nights
+                .iter()
+                .filter(|night| {
+                    night.recovery_date >= range.from && night.recovery_date <= range.through
+                })
+                .map(library_night)
+                .collect())
+        }
+
+        fn query_recovery_night(
+            &self,
+            _series_ref: &str,
+            _recovery_date: &str,
+        ) -> Result<Option<NightlyRecovery>, String> {
+            Ok(self.detail.clone())
+        }
+    }
+
+    #[test]
+    fn builds_a_gap_aware_default_overview_with_source_coverage() {
+        let mut partial = nightly_recovery("origin-a", "2026-01-18");
+        partial.beat_to_beat_interval_milliseconds = 1_001;
+        partial.heart_rate_variability_rmssd_milliseconds = None;
+        partial.breathing_interval_milliseconds = 4_002;
+        partial.source_assessment = None;
+        partial.source_baseline = None;
+        partial.source_guidance = None;
+        let overview = query_default_recovery_overview(&ControlledRecoveryPort {
+            bounds: Some(RecoveryDateRange {
+                from: "2026-01-01".to_owned(),
+                through: "2026-02-15".to_owned(),
+            }),
+            origins: vec!["origin-b".to_owned(), "origin-a".to_owned()],
+            nights: vec![
+                partial,
+                nightly_recovery("origin-a", "2026-01-17"),
+                nightly_recovery("origin-b", "2026-01-19"),
+            ],
+            detail: None,
+        })
+        .expect("recovery overview");
+
+        assert_eq!(
+            overview.selected_range,
+            Some(RecoveryDateRange {
+                from: "2026-01-17".to_owned(),
+                through: "2026-02-15".to_owned(),
+            })
+        );
+        assert_eq!(overview.series.len(), 2);
+        let origin_a = &overview.series[0];
+        assert_eq!(origin_a.series_ref, "origin-a");
+        assert_eq!(origin_a.summary.calendar_days, 30);
+        assert_eq!(origin_a.summary.observed_nights, 2);
+        assert_eq!(origin_a.summary.missing_nights, 28);
+        assert_eq!(
+            origin_a.summary.average_beat_to_beat_interval_milliseconds,
+            Some(1_001)
+        );
+        assert_eq!(origin_a.summary.rmssd_night_count, 1);
+        assert_eq!(
+            origin_a
+                .summary
+                .average_heart_rate_variability_rmssd_milliseconds,
+            Some(40)
+        );
+        assert_eq!(
+            origin_a.summary.average_breathing_interval_milliseconds,
+            Some(4_001)
+        );
+        assert_eq!(origin_a.summary.assessment_night_count, 1);
+        assert_eq!(origin_a.summary.baseline_night_count, 1);
+        assert_eq!(origin_a.summary.guidance_night_count, 1);
+        assert_eq!(origin_a.days.len(), 30);
+        assert_eq!(
+            origin_a.days[0].availability,
+            RecoveryDayAvailability::Available
+        );
+        assert_eq!(
+            origin_a.days[2].availability,
+            RecoveryDayAvailability::Missing
+        );
+        let first_night = origin_a.days[0].recovery.as_ref().expect("first night");
+        assert_eq!(
+            first_night
+                .source_assessment
+                .as_ref()
+                .expect("source assessment")
+                .overall_status,
+            5
+        );
+        assert!(first_night.source_baseline_available);
+        assert!(first_night.source_guidance_available);
+        assert_eq!(overview.series[1].series_ref, "origin-b");
+        assert_eq!(overview.series[1].summary.observed_nights, 1);
+    }
+
+    #[test]
+    fn compares_unequal_periods_without_inventing_optional_trends() {
+        let baseline = nightly_recovery("origin-a", "2026-01-01");
+        let mut comparison_first = nightly_recovery("origin-a", "2026-01-04");
+        comparison_first.beat_to_beat_interval_milliseconds = 1_100;
+        comparison_first.breathing_interval_milliseconds = 4_100;
+        comparison_first.heart_rate_variability_rmssd_milliseconds = None;
+        comparison_first.source_assessment = None;
+        comparison_first.source_baseline = None;
+        comparison_first.source_guidance = None;
+        let mut comparison_second = comparison_first.clone();
+        comparison_second.recovery_date = "2026-01-05".to_owned();
+        comparison_second.beat_to_beat_interval_milliseconds = 1_101;
+        comparison_second.breathing_interval_milliseconds = 4_101;
+
+        let comparison = query_recovery_comparison(
+            &ControlledRecoveryPort {
+                bounds: Some(RecoveryDateRange {
+                    from: "2026-01-01".to_owned(),
+                    through: "2026-01-10".to_owned(),
+                }),
+                origins: vec!["origin-b".to_owned(), "origin-a".to_owned()],
+                nights: vec![baseline, comparison_first, comparison_second],
+                detail: None,
+            },
+            RecoveryDateRange {
+                from: "2026-01-01".to_owned(),
+                through: "2026-01-02".to_owned(),
+            },
+            RecoveryDateRange {
+                from: "2026-01-04".to_owned(),
+                through: "2026-01-06".to_owned(),
+            },
+        )
+        .expect("recovery comparison");
+
+        let origin_a = &comparison.series[0];
+        assert_eq!(origin_a.series_ref, "origin-a");
+        assert_eq!(origin_a.baseline.calendar_days, 2);
+        assert_eq!(origin_a.comparison.calendar_days, 3);
+        assert_eq!(origin_a.observed_night_change, 1);
+        assert_eq!(origin_a.missing_night_change, 0);
+        assert_eq!(
+            origin_a.average_beat_to_beat_interval_milliseconds_change,
+            Some(101)
+        );
+        assert_eq!(
+            origin_a.average_heart_rate_variability_rmssd_milliseconds_change,
+            None
+        );
+        assert_eq!(
+            origin_a.average_breathing_interval_milliseconds_change,
+            Some(101)
+        );
+        assert_eq!(origin_a.assessment_night_change, -1);
+        assert_eq!(origin_a.baseline_night_change, -1);
+        assert_eq!(origin_a.guidance_night_change, -1);
+        let origin_b = &comparison.series[1];
+        assert_eq!(origin_b.baseline.missing_nights, 2);
+        assert_eq!(origin_b.comparison.missing_nights, 3);
+        assert_eq!(
+            origin_b.average_beat_to_beat_interval_milliseconds_change,
+            None
+        );
+    }
+
+    #[test]
+    fn returns_complete_detail_and_rejects_an_inconsistent_identity() {
+        let recovery = nightly_recovery("origin-a", "2026-01-18");
+        let detail = query_recovery_detail(
+            &ControlledRecoveryPort {
+                bounds: None,
+                origins: Vec::new(),
+                nights: Vec::new(),
+                detail: Some(recovery.clone()),
+            },
+            "origin-a",
+            "2026-01-18",
+        )
+        .expect("recovery detail")
+        .expect("stored recovery night");
+
+        assert_eq!(detail.recovery_date, "2026-01-18");
+        assert_eq!(detail.heart_rate_variability_rmssd_milliseconds, Some(40));
+        assert_eq!(detail.source_assessment, recovery.source_assessment);
+        assert_eq!(detail.source_baseline, recovery.source_baseline);
+        assert_eq!(detail.source_guidance, recovery.source_guidance);
+
+        let inconsistent = nightly_recovery("origin-b", "2026-01-18");
+        assert!(matches!(
+            query_recovery_detail(
+                &ControlledRecoveryPort {
+                    bounds: None,
+                    origins: Vec::new(),
+                    nights: Vec::new(),
+                    detail: Some(inconsistent),
+                },
+                "origin-a",
+                "2026-01-18",
+            ),
+            Err(ApplicationError::Query(_))
+        ));
+    }
+
+    #[test]
+    fn rejects_invalid_ranges_before_querying_origins_or_facts() {
+        struct RangeValidationRecoveryPort;
+
+        impl RecoveryLibraryPort for RangeValidationRecoveryPort {
+            fn recovery_bounds(&self) -> Result<Option<RecoveryDateRange>, String> {
+                Ok(Some(RecoveryDateRange {
+                    from: "2024-01-01".to_owned(),
+                    through: "2026-12-31".to_owned(),
+                }))
+            }
+
+            fn recovery_origins(&self) -> Result<Vec<String>, String> {
+                panic!("invalid recovery ranges must stop before origin retrieval")
+            }
+
+            fn query_recovery(
+                &self,
+                _range: &RecoveryDateRange,
+            ) -> Result<Vec<RecoveryLibraryNight>, String> {
+                panic!("invalid recovery ranges must stop before fact retrieval")
+            }
+
+            fn query_recovery_night(
+                &self,
+                _series_ref: &str,
+                _recovery_date: &str,
+            ) -> Result<Option<NightlyRecovery>, String> {
+                panic!("range validation does not query detail")
+            }
+        }
+
+        for range in [
+            RecoveryDateRange {
+                from: "2026-02-30".to_owned(),
+                through: "2026-03-01".to_owned(),
+            },
+            RecoveryDateRange {
+                from: "2026-03-02".to_owned(),
+                through: "2026-03-01".to_owned(),
+            },
+            RecoveryDateRange {
+                from: "2023-12-31".to_owned(),
+                through: "2024-01-01".to_owned(),
+            },
+            RecoveryDateRange {
+                from: "2025-01-01".to_owned(),
+                through: "2026-01-02".to_owned(),
+            },
+        ] {
+            assert!(matches!(
+                query_recovery_overview(&RangeValidationRecoveryPort, Some(range.clone())),
+                Err(ApplicationError::InvalidRecoveryRange(_))
+            ));
+            assert!(matches!(
+                query_recovery_comparison(
+                    &RangeValidationRecoveryPort,
+                    range,
+                    RecoveryDateRange {
+                        from: "2026-01-01".to_owned(),
+                        through: "2026-01-02".to_owned(),
+                    },
+                ),
+                Err(ApplicationError::InvalidRecoveryRange(_))
+            ));
+        }
+    }
+
+    #[test]
+    fn rejects_invalid_facts_source_groups_and_origin_catalogs() {
+        for origins in [
+            Vec::new(),
+            vec![String::new()],
+            vec![" ".to_owned()],
+            vec!["origin-a".to_owned(), "origin-a".to_owned()],
+        ] {
+            assert!(matches!(
+                query_recovery_overview(
+                    &ControlledRecoveryPort {
+                        bounds: Some(RecoveryDateRange {
+                            from: "2026-01-01".to_owned(),
+                            through: "2026-01-01".to_owned(),
+                        }),
+                        origins,
+                        nights: Vec::new(),
+                        detail: None,
+                    },
+                    None,
+                ),
+                Err(ApplicationError::Query(_))
+            ));
+        }
+
+        let mut invalid_measurement = nightly_recovery("origin-a", "2026-01-01");
+        invalid_measurement.beat_to_beat_interval_milliseconds = 0;
+        let mut invalid_assessment = nightly_recovery("origin-a", "2026-01-01");
+        invalid_assessment
+            .source_assessment
+            .as_mut()
+            .expect("assessment")
+            .autonomic_status = 6;
+        for recovery in [invalid_measurement, invalid_assessment] {
+            assert!(matches!(
+                query_recovery_overview(
+                    &ControlledRecoveryPort {
+                        bounds: Some(RecoveryDateRange {
+                            from: "2026-01-01".to_owned(),
+                            through: "2026-01-01".to_owned(),
+                        }),
+                        origins: vec!["origin-a".to_owned()],
+                        nights: vec![recovery],
+                        detail: None,
+                    },
+                    None,
+                ),
+                Err(ApplicationError::Query(_))
+            ));
+        }
+
+        let mut invalid_baseline = nightly_recovery("origin-a", "2026-01-01");
+        invalid_baseline
+            .source_baseline
+            .as_mut()
+            .expect("baseline")
+            .standard_deviation_heart_rate_variability_rmssd_milliseconds = None;
+        let mut invalid_guidance = nightly_recovery("origin-a", "2026-01-01");
+        invalid_guidance
+            .source_guidance
+            .as_mut()
+            .expect("guidance")
+            .sleep = " ".to_owned();
+        for recovery in [invalid_baseline, invalid_guidance] {
+            assert!(matches!(
+                query_recovery_detail(
+                    &ControlledRecoveryPort {
+                        bounds: None,
+                        origins: Vec::new(),
+                        nights: Vec::new(),
+                        detail: Some(recovery),
+                    },
+                    "origin-a",
+                    "2026-01-01",
+                ),
+                Err(ApplicationError::Query(_))
+            ));
+        }
+
+        assert!(matches!(
+            query_recovery_detail(
+                &ControlledRecoveryPort {
+                    bounds: None,
+                    origins: Vec::new(),
+                    nights: Vec::new(),
+                    detail: None,
+                },
+                "",
+                "2026-01-01",
+            ),
+            Err(ApplicationError::InvalidRecoveryReference(_))
+        ));
+        assert!(matches!(
+            query_recovery_detail(
+                &ControlledRecoveryPort {
+                    bounds: None,
+                    origins: Vec::new(),
+                    nights: Vec::new(),
+                    detail: None,
+                },
+                " ",
+                "2026-01-01",
+            ),
+            Err(ApplicationError::InvalidRecoveryReference(_))
+        ));
+    }
+
+    #[test]
+    fn returns_empty_read_models_without_querying_facts() {
+        struct EmptyRecoveryPort;
+
+        impl RecoveryLibraryPort for EmptyRecoveryPort {
+            fn recovery_bounds(&self) -> Result<Option<RecoveryDateRange>, String> {
+                Ok(None)
+            }
+
+            fn recovery_origins(&self) -> Result<Vec<String>, String> {
+                panic!("an empty recovery library has no origins")
+            }
+
+            fn query_recovery(
+                &self,
+                _range: &RecoveryDateRange,
+            ) -> Result<Vec<RecoveryLibraryNight>, String> {
+                panic!("an empty recovery library has no range")
+            }
+
+            fn query_recovery_night(
+                &self,
+                _series_ref: &str,
+                _recovery_date: &str,
+            ) -> Result<Option<NightlyRecovery>, String> {
+                Ok(None)
+            }
+        }
+
+        assert_eq!(
+            query_default_recovery_overview(&EmptyRecoveryPort).expect("empty recovery overview"),
+            RecoveryOverview {
+                available_range: None,
+                selected_range: None,
+                series: Vec::new(),
+            }
+        );
+        assert_eq!(
+            query_recovery_comparison(
+                &EmptyRecoveryPort,
+                RecoveryDateRange {
+                    from: "2026-01-01".to_owned(),
+                    through: "2026-01-02".to_owned(),
+                },
+                RecoveryDateRange {
+                    from: "2026-01-03".to_owned(),
+                    through: "2026-01-04".to_owned(),
+                },
+            )
+            .expect("empty recovery comparison"),
+            RecoveryComparison {
+                available_range: None,
+                baseline_range: None,
+                comparison_range: None,
+                series: Vec::new(),
+            }
+        );
+        assert_eq!(
+            query_recovery_detail(&EmptyRecoveryPort, "origin", "2026-01-01")
+                .expect("empty recovery detail"),
+            None
+        );
+    }
 }
 
 impl LocalePreference {
@@ -116,6 +629,8 @@ const DEFAULT_TRAINING_WINDOW_DAYS: u64 = 30;
 const MAX_TRAINING_RANGE_DAYS: i64 = 366;
 const DEFAULT_SLEEP_WINDOW_DAYS: u64 = 30;
 const MAX_SLEEP_RANGE_DAYS: i64 = 366;
+const DEFAULT_RECOVERY_WINDOW_DAYS: u64 = 30;
+const MAX_RECOVERY_RANGE_DAYS: i64 = 366;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActivityDateRange {
@@ -437,6 +952,109 @@ pub struct SleepPeriodDetail {
     pub score: Option<SleepScore>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RecoveryDateRange {
+    pub from: String,
+    pub through: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RecoveryDayAvailability {
+    Available,
+    Missing,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct RecoveryNightInsight {
+    pub beat_to_beat_interval_milliseconds: i64,
+    pub heart_rate_variability_rmssd_milliseconds: Option<i64>,
+    pub breathing_interval_milliseconds: i64,
+    pub source_assessment: Option<SourceSpecificRecoveryAssessment>,
+    pub source_baseline_available: bool,
+    pub source_guidance_available: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct RecoveryLibraryNight {
+    pub origin_id: String,
+    pub recovery_date: String,
+    pub beat_to_beat_interval_milliseconds: i64,
+    pub heart_rate_variability_rmssd_milliseconds: Option<i64>,
+    pub breathing_interval_milliseconds: i64,
+    pub source_assessment: Option<SourceSpecificRecoveryAssessment>,
+    pub source_baseline_available: bool,
+    pub source_guidance_available: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct RecoveryDayInsight {
+    pub recovery_date: String,
+    pub availability: RecoveryDayAvailability,
+    pub recovery: Option<RecoveryNightInsight>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RecoverySeriesSummary {
+    pub calendar_days: usize,
+    pub observed_nights: usize,
+    pub missing_nights: usize,
+    pub average_beat_to_beat_interval_milliseconds: Option<i128>,
+    pub rmssd_night_count: usize,
+    pub average_heart_rate_variability_rmssd_milliseconds: Option<i128>,
+    pub average_breathing_interval_milliseconds: Option<i128>,
+    pub assessment_night_count: usize,
+    pub baseline_night_count: usize,
+    pub guidance_night_count: usize,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct RecoverySeriesOverview {
+    pub series_ref: String,
+    pub summary: RecoverySeriesSummary,
+    pub days: Vec<RecoveryDayInsight>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct RecoveryOverview {
+    pub available_range: Option<RecoveryDateRange>,
+    pub selected_range: Option<RecoveryDateRange>,
+    pub series: Vec<RecoverySeriesOverview>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RecoverySeriesComparison {
+    pub series_ref: String,
+    pub baseline: RecoverySeriesSummary,
+    pub comparison: RecoverySeriesSummary,
+    pub observed_night_change: i128,
+    pub missing_night_change: i128,
+    pub average_beat_to_beat_interval_milliseconds_change: Option<i128>,
+    pub average_heart_rate_variability_rmssd_milliseconds_change: Option<i128>,
+    pub average_breathing_interval_milliseconds_change: Option<i128>,
+    pub assessment_night_change: i128,
+    pub baseline_night_change: i128,
+    pub guidance_night_change: i128,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct RecoveryComparison {
+    pub available_range: Option<RecoveryDateRange>,
+    pub baseline_range: Option<RecoveryDateRange>,
+    pub comparison_range: Option<RecoveryDateRange>,
+    pub series: Vec<RecoverySeriesComparison>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct RecoveryNightDetail {
+    pub recovery_date: String,
+    pub beat_to_beat_interval_milliseconds: i64,
+    pub heart_rate_variability_rmssd_milliseconds: Option<i64>,
+    pub breathing_interval_milliseconds: i64,
+    pub source_assessment: Option<SourceSpecificRecoveryAssessment>,
+    pub source_baseline: Option<SourceSpecificRecoveryBaseline>,
+    pub source_guidance: Option<SourceSpecificRecoveryGuidance>,
+}
+
 pub trait ArchiveImportPort {
     fn import_archive(
         &self,
@@ -469,6 +1087,20 @@ pub trait SleepLibraryPort {
     ) -> Result<Option<SleepPeriod>, String>;
 }
 
+pub trait RecoveryLibraryPort {
+    fn recovery_bounds(&self) -> Result<Option<RecoveryDateRange>, String>;
+    fn recovery_origins(&self) -> Result<Vec<String>, String>;
+    fn query_recovery(
+        &self,
+        range: &RecoveryDateRange,
+    ) -> Result<Vec<RecoveryLibraryNight>, String>;
+    fn query_recovery_night(
+        &self,
+        series_ref: &str,
+        recovery_date: &str,
+    ) -> Result<Option<NightlyRecovery>, String>;
+}
+
 pub trait ImportOutcomeLibraryPort {
     fn latest_import_outcome(&self) -> Result<Option<ImportOutcome>, String>;
 }
@@ -496,6 +1128,10 @@ pub enum ApplicationError {
     InvalidSleepRange(&'static str),
     #[error("invalid sleep reference: {0}")]
     InvalidSleepReference(&'static str),
+    #[error("invalid recovery range: {0}")]
+    InvalidRecoveryRange(&'static str),
+    #[error("invalid recovery reference: {0}")]
+    InvalidRecoveryReference(&'static str),
     #[error("import outcome query failed: {0}")]
     OutcomeQuery(String),
     #[error("locale preference query failed: {0}")]
@@ -1964,6 +2600,521 @@ fn sleep_count_change(baseline: usize, comparison: usize) -> Result<i128, Applic
 fn goal_met_percent(summary: &SleepSeriesSummary) -> Option<f64> {
     (summary.goal_night_count > 0)
         .then_some(summary.goal_met_night_count as f64 * 100.0 / summary.goal_night_count as f64)
+}
+
+pub fn query_default_recovery_overview(
+    port: &dyn RecoveryLibraryPort,
+) -> Result<RecoveryOverview, ApplicationError> {
+    query_recovery_overview(port, None)
+}
+
+pub fn query_recovery_overview(
+    port: &dyn RecoveryLibraryPort,
+    requested_range: Option<RecoveryDateRange>,
+) -> Result<RecoveryOverview, ApplicationError> {
+    let Some(available_range) = port.recovery_bounds().map_err(ApplicationError::Query)? else {
+        return Ok(RecoveryOverview {
+            available_range: None,
+            selected_range: None,
+            series: Vec::new(),
+        });
+    };
+    let (earliest, latest) = parse_recovery_bounds(&available_range)?;
+    let (from, through, selected_range) = match requested_range {
+        Some(range) => {
+            let (from, through) = validate_recovery_range(&range, earliest, latest)?;
+            (from, through, range)
+        }
+        None => {
+            let from = latest
+                .checked_sub_days(Days::new(DEFAULT_RECOVERY_WINDOW_DAYS - 1))
+                .unwrap_or(earliest)
+                .max(earliest);
+            let range = RecoveryDateRange {
+                from: from.format("%Y-%m-%d").to_string(),
+                through: latest.format("%Y-%m-%d").to_string(),
+            };
+            (from, latest, range)
+        }
+    };
+    let origins = port.recovery_origins().map_err(ApplicationError::Query)?;
+    let nights = port
+        .query_recovery(&selected_range)
+        .map_err(ApplicationError::Query)?;
+    let series = build_recovery_series(from, through, origins, nights)?;
+
+    Ok(RecoveryOverview {
+        available_range: Some(available_range),
+        selected_range: Some(selected_range),
+        series,
+    })
+}
+
+pub fn query_recovery_comparison(
+    port: &dyn RecoveryLibraryPort,
+    baseline_range: RecoveryDateRange,
+    comparison_range: RecoveryDateRange,
+) -> Result<RecoveryComparison, ApplicationError> {
+    let Some(available_range) = port.recovery_bounds().map_err(ApplicationError::Query)? else {
+        return Ok(RecoveryComparison {
+            available_range: None,
+            baseline_range: None,
+            comparison_range: None,
+            series: Vec::new(),
+        });
+    };
+    let (earliest, latest) = parse_recovery_bounds(&available_range)?;
+    let (baseline_from, baseline_through) =
+        validate_recovery_range(&baseline_range, earliest, latest)?;
+    let (comparison_from, comparison_through) =
+        validate_recovery_range(&comparison_range, earliest, latest)?;
+    let origins = port.recovery_origins().map_err(ApplicationError::Query)?;
+    let baseline_nights = port
+        .query_recovery(&baseline_range)
+        .map_err(ApplicationError::Query)?;
+    let comparison_nights = port
+        .query_recovery(&comparison_range)
+        .map_err(ApplicationError::Query)?;
+    let baseline_series = build_recovery_series(
+        baseline_from,
+        baseline_through,
+        origins.clone(),
+        baseline_nights,
+    )?;
+    let comparison_series = build_recovery_series(
+        comparison_from,
+        comparison_through,
+        origins,
+        comparison_nights,
+    )?;
+    let series = baseline_series
+        .into_iter()
+        .zip(comparison_series)
+        .map(|(baseline, comparison)| {
+            if baseline.series_ref != comparison.series_ref {
+                return Err(ApplicationError::Query(
+                    "recovery comparison origins are not aligned".to_owned(),
+                ));
+            }
+            Ok(RecoverySeriesComparison {
+                series_ref: baseline.series_ref,
+                observed_night_change: recovery_count_change(
+                    baseline.summary.observed_nights,
+                    comparison.summary.observed_nights,
+                )?,
+                missing_night_change: recovery_count_change(
+                    baseline.summary.missing_nights,
+                    comparison.summary.missing_nights,
+                )?,
+                average_beat_to_beat_interval_milliseconds_change: optional_change(
+                    baseline.summary.average_beat_to_beat_interval_milliseconds,
+                    comparison
+                        .summary
+                        .average_beat_to_beat_interval_milliseconds,
+                ),
+                average_heart_rate_variability_rmssd_milliseconds_change: optional_change(
+                    baseline
+                        .summary
+                        .average_heart_rate_variability_rmssd_milliseconds,
+                    comparison
+                        .summary
+                        .average_heart_rate_variability_rmssd_milliseconds,
+                ),
+                average_breathing_interval_milliseconds_change: optional_change(
+                    baseline.summary.average_breathing_interval_milliseconds,
+                    comparison.summary.average_breathing_interval_milliseconds,
+                ),
+                assessment_night_change: recovery_count_change(
+                    baseline.summary.assessment_night_count,
+                    comparison.summary.assessment_night_count,
+                )?,
+                baseline_night_change: recovery_count_change(
+                    baseline.summary.baseline_night_count,
+                    comparison.summary.baseline_night_count,
+                )?,
+                guidance_night_change: recovery_count_change(
+                    baseline.summary.guidance_night_count,
+                    comparison.summary.guidance_night_count,
+                )?,
+                baseline: baseline.summary,
+                comparison: comparison.summary,
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(RecoveryComparison {
+        available_range: Some(available_range),
+        baseline_range: Some(baseline_range),
+        comparison_range: Some(comparison_range),
+        series,
+    })
+}
+
+pub fn query_recovery_detail(
+    port: &dyn RecoveryLibraryPort,
+    series_ref: &str,
+    recovery_date: &str,
+) -> Result<Option<RecoveryNightDetail>, ApplicationError> {
+    if series_ref.trim().is_empty() {
+        return Err(ApplicationError::InvalidRecoveryReference(
+            "series reference is blank",
+        ));
+    }
+    parse_recovery_date(recovery_date).map_err(ApplicationError::InvalidRecoveryReference)?;
+    let recovery = port
+        .query_recovery_night(series_ref, recovery_date)
+        .map_err(ApplicationError::Query)?;
+    recovery
+        .map(|recovery| {
+            validate_recovery_detail_night(&recovery)?;
+            if recovery.origin_id != series_ref || recovery.recovery_date != recovery_date {
+                return Err(ApplicationError::Query(
+                    "recovery detail identity does not match its query".to_owned(),
+                ));
+            }
+            Ok(RecoveryNightDetail {
+                recovery_date: recovery.recovery_date,
+                beat_to_beat_interval_milliseconds: recovery.beat_to_beat_interval_milliseconds,
+                heart_rate_variability_rmssd_milliseconds: recovery
+                    .heart_rate_variability_rmssd_milliseconds,
+                breathing_interval_milliseconds: recovery.breathing_interval_milliseconds,
+                source_assessment: recovery.source_assessment,
+                source_baseline: recovery.source_baseline,
+                source_guidance: recovery.source_guidance,
+            })
+        })
+        .transpose()
+}
+
+fn parse_recovery_bounds(
+    available_range: &RecoveryDateRange,
+) -> Result<(NaiveDate, NaiveDate), ApplicationError> {
+    let earliest = parse_recovery_date(&available_range.from)
+        .map_err(|reason| ApplicationError::Query(reason.to_owned()))?;
+    let latest = parse_recovery_date(&available_range.through)
+        .map_err(|reason| ApplicationError::Query(reason.to_owned()))?;
+    if earliest > latest {
+        return Err(ApplicationError::Query(
+            "recovery bounds are not ordered".to_owned(),
+        ));
+    }
+    Ok((earliest, latest))
+}
+
+fn validate_recovery_range(
+    range: &RecoveryDateRange,
+    earliest: NaiveDate,
+    latest: NaiveDate,
+) -> Result<(NaiveDate, NaiveDate), ApplicationError> {
+    let from = parse_recovery_date(&range.from).map_err(ApplicationError::InvalidRecoveryRange)?;
+    let through =
+        parse_recovery_date(&range.through).map_err(ApplicationError::InvalidRecoveryRange)?;
+    if from > through {
+        return Err(ApplicationError::InvalidRecoveryRange(
+            "range dates are not ordered",
+        ));
+    }
+    if from < earliest || through > latest {
+        return Err(ApplicationError::InvalidRecoveryRange(
+            "range is outside available recovery history",
+        ));
+    }
+    if through.signed_duration_since(from).num_days() + 1 > MAX_RECOVERY_RANGE_DAYS {
+        return Err(ApplicationError::InvalidRecoveryRange(
+            "range exceeds 366 inclusive calendar days",
+        ));
+    }
+    Ok((from, through))
+}
+
+fn parse_recovery_date(value: &str) -> Result<NaiveDate, &'static str> {
+    let parsed =
+        NaiveDate::parse_from_str(value, "%Y-%m-%d").map_err(|_| "recovery date is invalid")?;
+    if parsed.format("%Y-%m-%d").to_string() != value {
+        return Err("recovery date is not canonical");
+    }
+    Ok(parsed)
+}
+
+fn build_recovery_series(
+    from: NaiveDate,
+    through: NaiveDate,
+    origins: Vec<String>,
+    nights: Vec<RecoveryLibraryNight>,
+) -> Result<Vec<RecoverySeriesOverview>, ApplicationError> {
+    let mut observations = BTreeMap::<String, BTreeMap<NaiveDate, RecoveryLibraryNight>>::new();
+    for origin in origins {
+        if origin.trim().is_empty() {
+            return Err(ApplicationError::Query(
+                "recovery query returned a blank origin".to_owned(),
+            ));
+        }
+        if observations.insert(origin, BTreeMap::new()).is_some() {
+            return Err(ApplicationError::Query(
+                "recovery query returned a duplicate origin".to_owned(),
+            ));
+        }
+    }
+    if observations.is_empty() {
+        return Err(ApplicationError::Query(
+            "recovery bounds exist without an origin".to_owned(),
+        ));
+    }
+
+    for night in nights {
+        validate_recovery_library_night(&night)?;
+        let date = parse_recovery_date(&night.recovery_date)
+            .map_err(|reason| ApplicationError::Query(reason.to_owned()))?;
+        if date < from || date > through {
+            return Err(ApplicationError::Query(
+                "recovery query returned a night outside its range".to_owned(),
+            ));
+        }
+        let origin = observations.get_mut(&night.origin_id).ok_or_else(|| {
+            ApplicationError::Query("recovery query returned an unknown origin".to_owned())
+        })?;
+        if origin.insert(date, night).is_some() {
+            return Err(ApplicationError::Query(
+                "recovery query returned a duplicate logical night".to_owned(),
+            ));
+        }
+    }
+
+    observations
+        .into_iter()
+        .map(|(series_ref, nights)| {
+            build_recovery_series_overview(series_ref, from, through, nights)
+        })
+        .collect()
+}
+
+fn validate_recovery_library_night(night: &RecoveryLibraryNight) -> Result<(), ApplicationError> {
+    if night.origin_id.trim().is_empty() {
+        return Err(ApplicationError::Query(
+            "recovery query returned a blank identity".to_owned(),
+        ));
+    }
+    parse_recovery_date(&night.recovery_date)
+        .map_err(|reason| ApplicationError::Query(reason.to_owned()))?;
+    if night.beat_to_beat_interval_milliseconds <= 0
+        || night.breathing_interval_milliseconds <= 0
+        || night
+            .heart_rate_variability_rmssd_milliseconds
+            .is_some_and(|value| value < 0)
+    {
+        return Err(ApplicationError::Query(
+            "recovery query returned an invalid measurement".to_owned(),
+        ));
+    }
+    if let Some(assessment) = &night.source_assessment {
+        validate_recovery_assessment(assessment)?;
+    }
+    Ok(())
+}
+
+fn validate_recovery_detail_night(recovery: &NightlyRecovery) -> Result<(), ApplicationError> {
+    validate_recovery_library_night(&RecoveryLibraryNight {
+        origin_id: recovery.origin_id.clone(),
+        recovery_date: recovery.recovery_date.clone(),
+        beat_to_beat_interval_milliseconds: recovery.beat_to_beat_interval_milliseconds,
+        heart_rate_variability_rmssd_milliseconds: recovery
+            .heart_rate_variability_rmssd_milliseconds,
+        breathing_interval_milliseconds: recovery.breathing_interval_milliseconds,
+        source_assessment: recovery.source_assessment.clone(),
+        source_baseline_available: recovery.source_baseline.is_some(),
+        source_guidance_available: recovery.source_guidance.is_some(),
+    })?;
+    if let Some(baseline) = &recovery.source_baseline {
+        if baseline.scheme.trim().is_empty()
+            || baseline.mean_beat_to_beat_interval_milliseconds <= 0
+            || baseline.standard_deviation_beat_to_beat_interval_milliseconds < 0
+            || baseline.mean_breathing_interval_milliseconds <= 0
+            || baseline.standard_deviation_breathing_interval_milliseconds < 0
+            || baseline
+                .mean_heart_rate_variability_rmssd_milliseconds
+                .is_some_and(|value| value < 0)
+            || baseline
+                .standard_deviation_heart_rate_variability_rmssd_milliseconds
+                .is_some_and(|value| value < 0)
+            || baseline
+                .mean_heart_rate_variability_rmssd_milliseconds
+                .is_some()
+                != baseline
+                    .standard_deviation_heart_rate_variability_rmssd_milliseconds
+                    .is_some()
+        {
+            return Err(ApplicationError::Query(
+                "recovery query returned an invalid source baseline".to_owned(),
+            ));
+        }
+    }
+    if let Some(guidance) = &recovery.source_guidance {
+        if guidance.scheme.trim().is_empty()
+            || [&guidance.exercise, &guidance.sleep, &guidance.vitality]
+                .into_iter()
+                .any(|value| value.trim().is_empty() || value.chars().count() > 4_096)
+        {
+            return Err(ApplicationError::Query(
+                "recovery query returned invalid source guidance".to_owned(),
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn validate_recovery_assessment(
+    assessment: &SourceSpecificRecoveryAssessment,
+) -> Result<(), ApplicationError> {
+    if assessment.scheme.trim().is_empty()
+        || !assessment.autonomic_charge.is_finite()
+        || !(-10.0..=10.0).contains(&assessment.autonomic_charge)
+        || !(1..=5).contains(&assessment.autonomic_status)
+        || !(1..=6).contains(&assessment.overall_status)
+    {
+        return Err(ApplicationError::Query(
+            "recovery query returned an invalid source assessment".to_owned(),
+        ));
+    }
+    Ok(())
+}
+
+fn build_recovery_series_overview(
+    series_ref: String,
+    from: NaiveDate,
+    through: NaiveDate,
+    nights: BTreeMap<NaiveDate, RecoveryLibraryNight>,
+) -> Result<RecoverySeriesOverview, ApplicationError> {
+    let calendar_days = usize::try_from(through.signed_duration_since(from).num_days() + 1)
+        .map_err(|_| ApplicationError::Query("recovery range is too large".to_owned()))?;
+    let summary = summarize_recovery_nights(calendar_days, nights.values())?;
+    let mut days = Vec::with_capacity(calendar_days);
+    let mut date = from;
+    loop {
+        let recovery = nights.get(&date).map(recovery_night_insight);
+        days.push(RecoveryDayInsight {
+            recovery_date: date.format("%Y-%m-%d").to_string(),
+            availability: if recovery.is_some() {
+                RecoveryDayAvailability::Available
+            } else {
+                RecoveryDayAvailability::Missing
+            },
+            recovery,
+        });
+        if date == through {
+            break;
+        }
+        date = date.succ_opt().ok_or_else(|| {
+            ApplicationError::Query("recovery range exceeds supported dates".to_owned())
+        })?;
+    }
+
+    Ok(RecoverySeriesOverview {
+        series_ref,
+        summary,
+        days,
+    })
+}
+
+fn summarize_recovery_nights<'a>(
+    calendar_days: usize,
+    nights: impl Iterator<Item = &'a RecoveryLibraryNight>,
+) -> Result<RecoverySeriesSummary, ApplicationError> {
+    let mut observed_nights = 0_usize;
+    let mut beat_to_beat_total = 0_i128;
+    let mut rmssd_night_count = 0_usize;
+    let mut rmssd_total = 0_i128;
+    let mut breathing_total = 0_i128;
+    let mut assessment_night_count = 0_usize;
+    let mut baseline_night_count = 0_usize;
+    let mut guidance_night_count = 0_usize;
+    for night in nights {
+        observed_nights = checked_recovery_coverage(observed_nights)?;
+        beat_to_beat_total = beat_to_beat_total
+            .checked_add(i128::from(night.beat_to_beat_interval_milliseconds))
+            .ok_or_else(|| {
+                ApplicationError::Query("recovery beat-to-beat total overflowed".to_owned())
+            })?;
+        breathing_total = breathing_total
+            .checked_add(i128::from(night.breathing_interval_milliseconds))
+            .ok_or_else(|| {
+                ApplicationError::Query("recovery breathing total overflowed".to_owned())
+            })?;
+        if let Some(rmssd) = night.heart_rate_variability_rmssd_milliseconds {
+            rmssd_night_count = checked_recovery_coverage(rmssd_night_count)?;
+            rmssd_total = rmssd_total.checked_add(i128::from(rmssd)).ok_or_else(|| {
+                ApplicationError::Query("recovery RMSSD total overflowed".to_owned())
+            })?;
+        }
+        if night.source_assessment.is_some() {
+            assessment_night_count = checked_recovery_coverage(assessment_night_count)?;
+        }
+        if night.source_baseline_available {
+            baseline_night_count = checked_recovery_coverage(baseline_night_count)?;
+        }
+        if night.source_guidance_available {
+            guidance_night_count = checked_recovery_coverage(guidance_night_count)?;
+        }
+    }
+    let missing_nights = calendar_days.checked_sub(observed_nights).ok_or_else(|| {
+        ApplicationError::Query("recovery observations exceed the selected range".to_owned())
+    })?;
+    Ok(RecoverySeriesSummary {
+        calendar_days,
+        observed_nights,
+        missing_nights,
+        average_beat_to_beat_interval_milliseconds: rounded_recovery_average(
+            beat_to_beat_total,
+            observed_nights,
+        )?,
+        rmssd_night_count,
+        average_heart_rate_variability_rmssd_milliseconds: rounded_recovery_average(
+            rmssd_total,
+            rmssd_night_count,
+        )?,
+        average_breathing_interval_milliseconds: rounded_recovery_average(
+            breathing_total,
+            observed_nights,
+        )?,
+        assessment_night_count,
+        baseline_night_count,
+        guidance_night_count,
+    })
+}
+
+fn recovery_night_insight(night: &RecoveryLibraryNight) -> RecoveryNightInsight {
+    RecoveryNightInsight {
+        beat_to_beat_interval_milliseconds: night.beat_to_beat_interval_milliseconds,
+        heart_rate_variability_rmssd_milliseconds: night.heart_rate_variability_rmssd_milliseconds,
+        breathing_interval_milliseconds: night.breathing_interval_milliseconds,
+        source_assessment: night.source_assessment.clone(),
+        source_baseline_available: night.source_baseline_available,
+        source_guidance_available: night.source_guidance_available,
+    }
+}
+
+fn checked_recovery_coverage(current: usize) -> Result<usize, ApplicationError> {
+    current
+        .checked_add(1)
+        .ok_or_else(|| ApplicationError::Query("recovery coverage overflowed".to_owned()))
+}
+
+fn rounded_recovery_average(total: i128, count: usize) -> Result<Option<i128>, ApplicationError> {
+    if count == 0 {
+        return Ok(None);
+    }
+    let count = i128::try_from(count)
+        .map_err(|_| ApplicationError::Query("recovery count is too large".to_owned()))?;
+    let quotient = total / count;
+    let remainder = total % count;
+    Ok(Some(quotient + i128::from(remainder * 2 >= count)))
+}
+
+fn recovery_count_change(baseline: usize, comparison: usize) -> Result<i128, ApplicationError> {
+    let baseline = i128::try_from(baseline)
+        .map_err(|_| ApplicationError::Query("recovery count is too large".to_owned()))?;
+    let comparison = i128::try_from(comparison)
+        .map_err(|_| ApplicationError::Query("recovery count is too large".to_owned()))?;
+    Ok(comparison - baseline)
 }
 
 pub fn query_latest_import_outcome(

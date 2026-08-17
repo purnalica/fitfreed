@@ -96,13 +96,14 @@ function evidence(measurements) {
       origins: 1,
       trainingSessions: calendarDays,
       sleepPeriods: calendarDays,
+      recoveryNights: calendarDays,
     },
     method: {
       warmUpRunsPerInteraction: warmUpRuns,
       commonMeasuredRuns: 20,
       maximumMeasuredRuns: 7,
       percentile: "sorted zero-based index ceil((n - 1) * 0.95)",
-      scope: "packaged Tauri command, React update, and rendered exact activity, training, or sleep view",
+      scope: "packaged Tauri command, React update, and rendered exact activity, training, sleep, or recovery view",
     },
     measurements,
   };
@@ -427,6 +428,136 @@ async function openSleepDetail(sleepDate) {
   return result.duration;
 }
 
+async function applyRecoveryRange(from, through) {
+  const input = {
+    from,
+    through,
+    expectedRows: inclusiveDays(from, through),
+    expectedFirstDate: from,
+  };
+  const result = await browser.executeAsync((expected, done) => {
+    const inputs = document.querySelectorAll(".recovery-filter input[type='date']");
+    const setValue = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    ).set;
+    [expected.from, expected.through].forEach((value, index) => {
+      setValue.call(inputs[index], value);
+      inputs[index].dispatchEvent(new Event("input", { bubbles: true }));
+      inputs[index].dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    const started = window.performance.now();
+    document.querySelector(".recovery-filter button[type='submit']").click();
+    function observeResult() {
+      const rows = document.querySelectorAll(".recovery-history-grid table tbody tr");
+      const renderedFirstDate = rows[0]?.querySelector("time")?.getAttribute("datetime");
+      if (rows.length === expected.expectedRows && renderedFirstDate === expected.expectedFirstDate) {
+        requestAnimationFrame(() => done({
+          duration: window.performance.now() - started,
+          error: null,
+        }));
+        return;
+      }
+      if (window.performance.now() - started > 5_000) {
+        done({ duration: null, error: "recovery range was not rendered" });
+        return;
+      }
+      requestAnimationFrame(observeResult);
+    }
+    requestAnimationFrame(observeResult);
+  }, input);
+  if (result.error) throw new Error(`${result.error}: ${from} through ${through}`);
+  return result.duration;
+}
+
+async function compareRecoveryRanges(ranges) {
+  const input = {
+    ...ranges,
+    expectedBaselineNights: new Intl.NumberFormat("en-US").format(
+      inclusiveDays(ranges.baselineFrom, ranges.baselineThrough),
+    ),
+  };
+  const result = await browser.executeAsync((expected, done) => {
+    const inputs = document.querySelectorAll(".recovery-comparison input[type='date']");
+    const setValue = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    ).set;
+    [
+      expected.baselineFrom,
+      expected.baselineThrough,
+      expected.comparisonFrom,
+      expected.comparisonThrough,
+    ].forEach((value, index) => {
+      setValue.call(inputs[index], value);
+      inputs[index].dispatchEvent(new Event("input", { bubbles: true }));
+      inputs[index].dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    const started = window.performance.now();
+    document.querySelector(".recovery-comparison button[type='submit']").click();
+    function observeResult() {
+      const cells = document.querySelectorAll(
+        ".recovery-comparison-result table tbody tr:first-child th, "
+        + ".recovery-comparison-result table tbody tr:first-child td",
+      );
+      if (cells.length === 4 && cells[1].textContent === expected.expectedBaselineNights) {
+        requestAnimationFrame(() => done({
+          duration: window.performance.now() - started,
+          error: null,
+        }));
+        return;
+      }
+      if (window.performance.now() - started > 5_000) {
+        done({ duration: null, error: "recovery comparison was not rendered" });
+        return;
+      }
+      requestAnimationFrame(observeResult);
+    }
+    requestAnimationFrame(observeResult);
+  }, input);
+  if (result.error) throw new Error(result.error);
+  return result.duration;
+}
+
+async function openRecoveryDetail(recoveryDate) {
+  const result = await browser.executeAsync((expectedDate, done) => {
+    const row = Array.from(document.querySelectorAll(".recovery-history-grid table tbody tr"))
+      .find((candidate) => candidate.querySelector("time")?.getAttribute("datetime") === expectedDate);
+    const button = row?.querySelector("button");
+    if (!button) {
+      done({ duration: null, error: "recovery detail control was not found" });
+      return;
+    }
+    const started = window.performance.now();
+    button.click();
+    function observeResult() {
+      const detail = document.querySelector(".recovery-detail[aria-busy='false']");
+      const renderedDate = detail?.querySelector("time")?.getAttribute("datetime");
+      const guidance = detail?.querySelectorAll(".recovery-guidance article");
+      if (renderedDate === expectedDate && guidance?.length === 3) {
+        requestAnimationFrame(() => done({
+          duration: window.performance.now() - started,
+          error: null,
+        }));
+        return;
+      }
+      if (window.performance.now() - started > 5_000) {
+        done({ duration: null, error: "recovery detail was not rendered" });
+        return;
+      }
+      requestAnimationFrame(observeResult);
+    }
+    requestAnimationFrame(observeResult);
+  }, recoveryDate);
+  if (result.error) throw new Error(`${result.error}: ${recoveryDate}`);
+  await $(".recovery-detail-heading button").click();
+  await browser.waitUntil(async () => (await $$(".recovery-detail")).length === 0, {
+    timeout: 5_000,
+    timeoutMsg: "recovery detail did not close",
+  });
+  return result.duration;
+}
+
 async function waitForDailyActivityCoverage() {
   const expectedCount = storedObservationCount();
   await browser.waitUntil(async () => {
@@ -475,6 +606,19 @@ async function waitForSleepCoverage() {
   }, { timeout: 30_000, timeoutMsg: "performance sleep import did not complete" });
 }
 
+async function waitForRecoveryCoverage() {
+  await browser.waitUntil(async () => {
+    const rows = await $$(".family-coverage-table tbody tr");
+    for (const row of rows) {
+      if ((await row.$("th").getText()) !== "Nightly recovery") continue;
+      const cells = await row.$$("td");
+      return (await cells[0].getText()) === "Supported"
+        && (await cells[1].getText()) === "1";
+    }
+    return false;
+  }, { timeout: 30_000, timeoutMsg: "performance recovery import did not complete" });
+}
+
 async function measureAlternating(executions, scenarios, operation) {
   const timings = [];
   for (let index = 0; index < executions; index += 1) {
@@ -491,6 +635,7 @@ export async function runInsightsPerformanceJourney({ archivePath, selectArchive
   await waitForDailyActivityCoverage();
   await waitForTrainingCoverage();
   await waitForSleepCoverage();
+  await waitForRecoveryCoverage();
 
   const commonRanges = [
     ["2025-01-01", "2025-01-30"],
@@ -616,6 +761,46 @@ export async function runInsightsPerformanceJourney({ archivePath, selectArchive
   await measureAlternating(warmUpRuns, sleepDetailDates, openSleepDetail);
   const sleepDetailTimings = await measureAlternating(20, sleepDetailDates, openSleepDetail);
 
+  const recoveryFilterRange = ([from, through]) => applyRecoveryRange(from, through);
+  await measureAlternating(warmUpRuns, commonRanges, recoveryFilterRange);
+  const recoveryCommonFilterTimings = await measureAlternating(
+    20,
+    commonRanges,
+    recoveryFilterRange,
+  );
+  await measureAlternating(warmUpRuns, maximumRanges, recoveryFilterRange);
+  const recoveryMaximumFilterTimings = await measureAlternating(
+    7,
+    maximumRanges,
+    recoveryFilterRange,
+  );
+  await browser.execute(() => {
+    document.documentElement.style.fontSize = "200%";
+  });
+  const maximumRecoveryRangeHasNoHorizontalOverflow = await browser.execute(
+    () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+  );
+  if (!maximumRecoveryRangeHasNoHorizontalOverflow) {
+    throw new Error("maximum recovery range overflowed the application viewport");
+  }
+  await browser.execute(() => {
+    document.documentElement.style.fontSize = "";
+  });
+  await measureAlternating(warmUpRuns, comparisonRanges, compareRecoveryRanges);
+  const recoveryCommonComparisonTimings = await measureAlternating(
+    20,
+    comparisonRanges,
+    compareRecoveryRanges,
+  );
+  await applyRecoveryRange("2025-01-01", "2025-01-30");
+  const recoveryDetailDates = ["2025-01-10", "2025-01-20"];
+  await measureAlternating(warmUpRuns, recoveryDetailDates, openRecoveryDetail);
+  const recoveryDetailTimings = await measureAlternating(
+    20,
+    recoveryDetailDates,
+    openRecoveryDetail,
+  );
+
   const measurements = {
     activity: {
       commonFilter: measurementEvidence(commonFilterTimings, 500),
@@ -632,6 +817,12 @@ export async function runInsightsPerformanceJourney({ archivePath, selectArchive
       maximumFilter: measurementEvidence(sleepMaximumFilterTimings, 2_000),
       commonComparison: measurementEvidence(sleepCommonComparisonTimings, 500),
       detail: measurementEvidence(sleepDetailTimings, 500),
+    },
+    recovery: {
+      commonFilter: measurementEvidence(recoveryCommonFilterTimings, 500),
+      maximumFilter: measurementEvidence(recoveryMaximumFilterTimings, 2_000),
+      commonComparison: measurementEvidence(recoveryCommonComparisonTimings, 500),
+      detail: measurementEvidence(recoveryDetailTimings, 500),
     },
   };
   process.stdout.write(`${JSON.stringify(evidence(measurements))}\n`);

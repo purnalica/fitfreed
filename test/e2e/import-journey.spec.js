@@ -325,6 +325,88 @@ async function expectSleepComparison(expectedRows) {
   }
 }
 
+async function setRecoveryRange(from, through) {
+  const values = [from, through];
+  await browser.execute((nextValues) => {
+    const inputs = document.querySelectorAll(".recovery-filter input[type='date']");
+    const setValue = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    ).set;
+    inputs.forEach((input, index) => {
+      setValue.call(input, nextValues[index]);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  }, values);
+  const inputs = await $$(".recovery-filter input[type='date']");
+  expect(inputs).toHaveLength(2);
+  for (let index = 0; index < values.length; index += 1) {
+    await expect(inputs[index]).toHaveValue(values[index]);
+  }
+}
+
+async function setRecoveryComparisonRanges(
+  baselineFrom,
+  baselineThrough,
+  comparisonFrom,
+  comparisonThrough,
+) {
+  const values = [baselineFrom, baselineThrough, comparisonFrom, comparisonThrough];
+  await browser.execute((nextValues) => {
+    const inputs = document.querySelectorAll(".recovery-comparison input[type='date']");
+    const setValue = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    ).set;
+    inputs.forEach((input, index) => {
+      setValue.call(input, nextValues[index]);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  }, values);
+  const inputs = await $$(".recovery-comparison input[type='date']");
+  expect(inputs).toHaveLength(4);
+  for (let index = 0; index < values.length; index += 1) {
+    await expect(inputs[index]).toHaveValue(values[index]);
+  }
+}
+
+async function expectRecoveryRows(expectedRows) {
+  const selector = ".recovery-history-grid table tbody tr";
+  await browser.waitUntil(async () => (await $$(selector)).length === expectedRows.length, {
+    timeout: 10_000,
+    timeoutMsg: `recovery history did not contain ${expectedRows.length} rows`,
+  });
+  const rows = await $$(selector);
+  for (let index = 0; index < expectedRows.length; index += 1) {
+    const cells = await rows[index].$$("td");
+    for (let cellIndex = 0; cellIndex < expectedRows[index].length; cellIndex += 1) {
+      await expect(cells[cellIndex]).toHaveText(expectedRows[index][cellIndex]);
+    }
+  }
+}
+
+async function expectRecoverySummary(expectedItems) {
+  const items = await $$(".recovery-summary li");
+  expect(items).toHaveLength(expectedItems.length);
+  for (let index = 0; index < expectedItems.length; index += 1) {
+    await expect(items[index].$("strong")).toHaveText(expectedItems[index][0]);
+    await expect(items[index].$("span")).toHaveText(expectedItems[index][1]);
+  }
+}
+
+async function expectRecoveryComparison(expectedRows) {
+  const rows = await $$(".recovery-comparison-result table tbody tr");
+  expect(rows).toHaveLength(expectedRows.length);
+  for (let index = 0; index < expectedRows.length; index += 1) {
+    const cells = await rows[index].$$("th, td");
+    for (let cellIndex = 0; cellIndex < expectedRows[index].length; cellIndex += 1) {
+      await expect(cells[cellIndex]).toHaveText(expectedRows[index][cellIndex]);
+    }
+  }
+}
+
 async function expectFamilyCoverage(expectedRows) {
   const rows = await $$(".family-coverage-table tbody tr");
   expect(rows).toHaveLength(expectedRows.length);
@@ -354,6 +436,9 @@ describe("packaged FitFreed import journey", () => {
   it("covers validation, outcomes, coverage, cancellation, reimport, accessibility, performance, and restart", async () => {
     await expect($("h1")).toHaveText("Your fitness history belongs to you");
     await expect($("aria/Import selected package")).toBeDisabled();
+    await expect($(".recovery-insights")).toHaveText(
+      expect.stringContaining("No imported nightly recovery summaries yet."),
+    );
 
     await selectLocale("es-ES");
     await expect($("h1")).toHaveText(spanish.title);
@@ -552,6 +637,19 @@ describe("packaged FitFreed import journey", () => {
       ["1 of 1 nights", "Nights with a stage timeline"],
       ["1 of 1 nights", "Nights with recording status · 0 ended after power loss"],
     ]);
+    await expectRecoveryRows([
+      ["Jan 6, 2026", "900 ms", "42 ms", "Overall status 5 / 6", "Details"],
+    ]);
+    await expectRecoverySummary([
+      ["1", "Observed nights · 1 of 1 nights"],
+      ["900 ms", "Average beat-to-beat interval · 1 of 1 nights"],
+      ["42 ms", "Average HRV RMSSD · 1 of 1 nights"],
+      ["4,100 ms", "Average breathing interval · 1 of 1 nights"],
+      ["1 of 1 nights", "Nights with source assessment"],
+      ["1 of 1 nights", "Nights with source baseline"],
+      ["1 of 1 nights", "Nights with source guidance"],
+      ["0", "Missing nights"],
+    ]);
     await expect($("body")).not.toHaveText(expect.stringContaining("synthetic-device"));
     await expect($("body")).not.toHaveText(expect.stringContaining("fixture-primary-claim"));
 
@@ -602,6 +700,45 @@ describe("packaged FitFreed import journey", () => {
     }
     await $("aria/Close sleep detail").click();
     expect(await $$(".sleep-detail")).toHaveLength(0);
+
+    await $('button[aria-label="View recovery details for Jan 6, 2026"]').click();
+    await expect($("#recovery-detail-heading")).toHaveText("Recovery detail");
+    const recoveryDetailValues = await $$(".recovery-detail-metrics dd");
+    const expectedRecoveryDetail = [
+      "900 ms",
+      "42 ms",
+      "4,100 ms",
+      "polar-nightly-recharge@1",
+      "1.5",
+      "4 / 5",
+      "5 / 6",
+      "2",
+      "polar-nightly-recharge@1",
+      "910 ms",
+      "30 ms",
+      "40 ms",
+      "8 ms",
+      "4,200 ms",
+      "120 ms",
+    ];
+    expect(recoveryDetailValues).toHaveLength(expectedRecoveryDetail.length);
+    for (let index = 0; index < expectedRecoveryDetail.length; index += 1) {
+      await expect(recoveryDetailValues[index]).toHaveText(expectedRecoveryDetail[index]);
+    }
+    await expect($(".recovery-guidance")).toHaveText(
+      expect.stringContaining("Choose a steady synthetic session."),
+    );
+    await expect($(".recovery-guidance")).toHaveText(
+      expect.stringContaining("Keep a consistent synthetic schedule."),
+    );
+    await expect($(".recovery-guidance")).toHaveText(
+      expect.stringContaining("Plan a synthetic restorative break."),
+    );
+    await expect($(".recovery-source-notice")).toHaveText(
+      expect.stringContaining("not medical advice authored or endorsed by FitFreed"),
+    );
+    await $("aria/Close recovery detail").click();
+    expect(await $$(".recovery-detail")).toHaveLength(0);
     await expect($("body")).not.toHaveText(expect.stringContaining("fixture-training-session"));
 
     await selectLocale("es-ES");
@@ -706,13 +843,82 @@ describe("packaged FitFreed import journey", () => {
       [`1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`, spanish.sleep.timelineCoverage],
       [`1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`, `${spanish.sleep.powerCoverage} · 0 ${spanish.sleep.powerLoss}`],
     ]);
+    await expectRecoveryRows([
+      [
+        formatLocalDate("es-ES", "2026-01-06"),
+        "900 ms",
+        "42 ms",
+        `${spanish.recovery.overallStatus} 5 / 6`,
+        spanish.recovery.details,
+      ],
+    ]);
+    await expectRecoverySummary([
+      ["1", `${spanish.recovery.observedNights} · 1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`],
+      ["900 ms", `${spanish.recovery.averageBeatToBeat} · 1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`],
+      ["42 ms", `${spanish.recovery.averageRmssd} · 1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`],
+      ["4100 ms", `${spanish.recovery.averageBreathing} · 1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`],
+      [`1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`, spanish.recovery.assessmentCoverage],
+      [`1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`, spanish.recovery.baselineCoverage],
+      [`1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`, spanish.recovery.guidanceCoverage],
+      ["0", spanish.recovery.missingNights],
+    ]);
     await browser.execute(() => {
       document.documentElement.style.fontSize = "200%";
     });
-    const hasHorizontalOverflow = await browser.execute(
-      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
-    );
-    expect(hasHorizontalOverflow).toBe(false);
+    const overflowState = await browser.execute(() => ({
+      scrollX: window.scrollX,
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+    const hasHorizontalOverflow = overflowState.scrollWidth > overflowState.clientWidth;
+    if (hasHorizontalOverflow) {
+      const overflowEvidence = await browser.execute((measuredState) => ({
+        overflowState: measuredState,
+        viewportWidth: document.documentElement.clientWidth,
+        documentWidth: document.documentElement.scrollWidth,
+        landmarks: [
+          "body",
+          "main",
+          ".recovery-insights",
+          ".recovery-filter",
+          ".recovery-summary",
+          ".recovery-history-grid",
+          ".recovery-history-grid figure",
+          ".recovery-table-scroll",
+          ".recovery-comparison",
+          ".recovery-comparison form",
+        ].map((selector) => {
+          const element = document.querySelector(selector);
+          const bounds = element?.getBoundingClientRect();
+          return {
+            selector,
+            left: Math.round(bounds?.left ?? 0),
+            right: Math.round(bounds?.right ?? 0),
+            width: Math.round(bounds?.width ?? 0),
+            scrollWidth: element?.scrollWidth ?? 0,
+            clientWidth: element?.clientWidth ?? 0,
+            overflowX: element ? getComputedStyle(element).overflowX : null,
+          };
+        }),
+        elements: Array.from(document.querySelectorAll("body *"))
+          .map((element) => ({
+            selector: `${element.tagName.toLowerCase()}${element.id ? `#${element.id}` : ""}${
+              element.classList.length > 0 ? `.${Array.from(element.classList).join(".")}` : ""
+            }`,
+            left: Math.round(element.getBoundingClientRect().left),
+            right: Math.round(element.getBoundingClientRect().right),
+            scrollWidth: element.scrollWidth,
+            clientWidth: element.clientWidth,
+            overflowX: getComputedStyle(element).overflowX,
+          }))
+          .filter((element) => (
+            element.right > document.documentElement.clientWidth + 1
+            || (element.scrollWidth > element.clientWidth && element.overflowX === "visible")
+          ))
+          .slice(0, 30),
+      }), overflowState);
+      throw new Error(`localized recovery view overflowed: ${JSON.stringify(overflowEvidence)}`);
+    }
     await browser.execute(() => {
       document.documentElement.style.fontSize = "";
     });
@@ -974,6 +1180,59 @@ describe("packaged FitFreed import journey", () => {
     );
     await expect($("#sleep-comparison-heading")).toHaveText("Sleep period comparison");
 
+    await setRecoveryRange("2026-01-06", "2026-01-06");
+    await $(".recovery-filter button[type='submit']").click();
+    await expectRecoveryRows([
+      ["Jan 6, 2026", "900 ms", "42 ms", "Overall status 5 / 6", "Details"],
+    ]);
+    await setRecoveryRange("2026-01-06", "2026-01-05");
+    await browser.execute(() => {
+      document.querySelector(".recovery-filter").dispatchEvent(
+        new Event("submit", { bubbles: true, cancelable: true }),
+      );
+    });
+    await expect($("[role='alert']")).toHaveText(
+      "Choose an ordered recovery range inside the available history, up to 366 nights.",
+    );
+    await expectRecoveryRows([
+      ["Jan 6, 2026", "900 ms", "42 ms", "Overall status 5 / 6", "Details"],
+    ]);
+    await $(".recovery-filter button.secondary").click();
+
+    await setRecoveryComparisonRanges(
+      "2026-01-06",
+      "2026-01-06",
+      "2026-01-06",
+      "2026-01-06",
+    );
+    await $(".recovery-comparison button[type='submit']").click();
+    await expect($("#recovery-comparison-heading")).toHaveText("Recovery period comparison");
+    await expectRecoveryComparison([
+      ["Observed nights", "1", "1", "0"],
+      ["Missing nights", "0", "0", "0"],
+      ["Average beat-to-beat interval", "900 ms", "900 ms", "0 ms"],
+      ["Average HRV RMSSD", "42 ms", "42 ms", "0 ms"],
+      ["Average breathing interval", "4,100 ms", "4,100 ms", "0 ms"],
+      ["Nights with source assessment", "1", "1", "0"],
+      ["Nights with source baseline", "1", "1", "0"],
+      ["Nights with source guidance", "1", "1", "0"],
+    ]);
+    await setRecoveryComparisonRanges(
+      "2026-01-06",
+      "2026-01-05",
+      "2026-01-06",
+      "2026-01-06",
+    );
+    await browser.execute(() => {
+      document.querySelector(".recovery-comparison form").dispatchEvent(
+        new Event("submit", { bubbles: true, cancelable: true }),
+      );
+    });
+    await expect($("[role='alert']")).toHaveText(
+      "Choose ordered recovery comparison periods inside the available history, up to 366 nights each.",
+    );
+    await expect($("#recovery-comparison-heading")).toHaveText("Recovery period comparison");
+
     await selectLocale("es-ES");
     await expectHistory([
       [formatLocalDate("es-ES", "2026-01-01"), "3100", spanish.activity.available],
@@ -1011,6 +1270,9 @@ describe("packaged FitFreed import journey", () => {
     await expect($("#sleep-comparison-heading")).toHaveText(
       spanish.sleep.comparison.resultHeading,
     );
+    await expect($("#recovery-comparison-heading")).toHaveText(
+      spanish.recovery.comparison.resultHeading,
+    );
     const spanishTrainingDetailButtons = await $$('button[aria-label^="Ver detalles del entrenamiento del"]');
     expect(spanishTrainingDetailButtons).toHaveLength(3);
     await spanishTrainingDetailButtons[2].click();
@@ -1033,6 +1295,15 @@ describe("packaged FitFreed import journey", () => {
     await expect($("#sleep-phase-heading")).toHaveText(spanish.sleep.phaseHeading);
     await expect($("#sleep-timeline-heading")).toHaveText(spanish.sleep.timelineHeading);
     await expect($("#sleep-score-heading")).toHaveText(spanish.sleep.scoreHeading);
+    const spanishRecoveryDate = formatLocalDate("es-ES", "2026-01-06");
+    await $(`button[aria-label="${spanish.recovery.viewDetails} ${spanishRecoveryDate}"]`).click();
+    await expect($("#recovery-detail-heading")).toHaveText(spanish.recovery.detailHeading);
+    const spanishRecoveryDetailValues = await $$(".recovery-detail-metrics dd");
+    await expect(spanishRecoveryDetailValues[2]).toHaveText("4100 ms");
+    await expect(spanishRecoveryDetailValues[4]).toHaveText("1,5");
+    await expect($(".recovery-source-notice")).toHaveText(
+      spanish.recovery.sourceNotice,
+    );
     await browser.execute(() => {
       document.documentElement.style.fontSize = "200%";
     });
@@ -1048,12 +1319,15 @@ describe("packaged FitFreed import journey", () => {
     await $("aria/Cerrar detalle").click();
     await $("aria/Cerrar detalle del entrenamiento").click();
     await $(`aria/${spanish.sleep.closeDetail}`).click();
+    await $(`aria/${spanish.recovery.closeDetail}`).click();
     await $(".activity-comparison-result button.secondary").click();
     await $(".training-comparison-result button.secondary").click();
     await $(".sleep-comparison-result button.secondary").click();
+    await $(".recovery-comparison-result button.secondary").click();
     expect(await $$(".activity-comparison-result")).toHaveLength(0);
     expect(await $$(".training-comparison-result")).toHaveLength(0);
     expect(await $$(".sleep-comparison-result")).toHaveLength(0);
+    expect(await $$(".recovery-comparison-result")).toHaveLength(0);
 
     await browser.reloadSession();
     await expect($("h1")).toHaveText(spanish.title);
@@ -1103,10 +1377,29 @@ describe("packaged FitFreed import journey", () => {
       [`1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`, spanish.sleep.timelineCoverage],
       [`1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`, `${spanish.sleep.powerCoverage} · 0 ${spanish.sleep.powerLoss}`],
     ]);
+    await expectRecoveryRows([
+      [
+        formatLocalDate("es-ES", "2026-01-06"),
+        "900 ms",
+        "42 ms",
+        `${spanish.recovery.overallStatus} 5 / 6`,
+        spanish.recovery.details,
+      ],
+    ]);
+    await expectRecoverySummary([
+      ["1", `${spanish.recovery.observedNights} · 1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`],
+      ["900 ms", `${spanish.recovery.averageBeatToBeat} · 1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`],
+      ["42 ms", `${spanish.recovery.averageRmssd} · 1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`],
+      ["4100 ms", `${spanish.recovery.averageBreathing} · 1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`],
+      [`1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`, spanish.recovery.assessmentCoverage],
+      [`1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`, spanish.recovery.baselineCoverage],
+      [`1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`, spanish.recovery.guidanceCoverage],
+      ["0", spanish.recovery.missingNights],
+    ]);
 
   });
 
-  it("meets activity, training, and sleep insight budgets", async () => {
+  it("meets activity, training, sleep, and recovery insight budgets", async () => {
     await runInsightsPerformanceJourney({
       archivePath: insightsPerformanceArchive,
       selectArchive,

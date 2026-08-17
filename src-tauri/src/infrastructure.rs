@@ -26,12 +26,15 @@ use thiserror::Error;
 use zip::ZipArchive;
 
 #[cfg(test)]
-use fitfreed_application::{query_default_sleep_overview, query_default_training_overview};
+use fitfreed_application::{
+    query_default_recovery_overview, query_default_sleep_overview, query_default_training_overview,
+    query_recovery_detail, ApplicationError,
+};
 use fitfreed_application::{
     ActivityDateRange, ActivityLibraryPort, ArchiveImportPort, ImportOutcomeLibraryPort,
     ImportPhase, ImportPhaseTimings, ImportProgress, LocalePreference, LocalePreferencePort,
-    ProfiledImport, SleepDateRange, SleepLibraryPeriod, SleepLibraryPort, TrainingDateRange,
-    TrainingLibraryPort,
+    ProfiledImport, RecoveryDateRange, RecoveryLibraryNight, RecoveryLibraryPort, SleepDateRange,
+    SleepLibraryPeriod, SleepLibraryPort, TrainingDateRange, TrainingLibraryPort,
 };
 use fitfreed_domain::{
     decide_nightly_recovery_reconciliation, decide_reconciliation,
@@ -1305,6 +1308,83 @@ pub fn query_nightly_recovery(
     let connection = Connection::open(database_path)?;
     ensure_schema(&connection)?;
     load_nightly_recovery(&connection, origin_id, recovery_date)
+}
+
+pub fn query_recovery_bounds(database_path: &Path) -> Result<Option<RecoveryDateRange>> {
+    let connection = Connection::open(database_path)?;
+    ensure_schema(&connection)?;
+    let (from, through) = connection.query_row(
+        "SELECT MIN(recovery_date), MAX(recovery_date)
+         FROM nightly_recovery",
+        [],
+        |row| {
+            Ok((
+                row.get::<_, Option<String>>(0)?,
+                row.get::<_, Option<String>>(1)?,
+            ))
+        },
+    )?;
+    match (from, through) {
+        (None, None) => Ok(None),
+        (Some(from), Some(through)) => Ok(Some(RecoveryDateRange { from, through })),
+        _ => Err(ImportError::InvalidNightlyRecoveryLibrary(
+            "recovery bounds are incomplete".to_owned(),
+        )),
+    }
+}
+
+pub fn query_recovery_origins(database_path: &Path) -> Result<Vec<String>> {
+    let connection = Connection::open(database_path)?;
+    ensure_schema(&connection)?;
+    let mut statement = connection.prepare(
+        "SELECT DISTINCT origin_id
+         FROM nightly_recovery
+         ORDER BY origin_id",
+    )?;
+    let rows = statement.query_map([], |row| row.get(0))?;
+    rows.collect::<std::result::Result<Vec<_>, _>>()
+        .map_err(ImportError::from)
+}
+
+pub fn query_recovery_library_between(
+    database_path: &Path,
+    from: Option<&str>,
+    through: Option<&str>,
+) -> Result<Vec<RecoveryLibraryNight>> {
+    let connection = Connection::open(database_path)?;
+    ensure_schema(&connection)?;
+    let mut statement = connection.prepare(
+        "SELECT origin_id, recovery_date,
+                beat_to_beat_interval_milliseconds,
+                heart_rate_variability_rmssd_milliseconds,
+                breathing_interval_milliseconds,
+                assessment_scheme, autonomic_charge, autonomic_status,
+                overall_status, overall_sublevel,
+                baseline_scheme IS NOT NULL,
+                guidance_scheme IS NOT NULL
+         FROM nightly_recovery
+         WHERE (?1 IS NULL OR recovery_date >= ?1)
+           AND (?2 IS NULL OR recovery_date <= ?2)
+         ORDER BY recovery_date, origin_id",
+    )?;
+    let rows = statement.query_map(params![from, through], |row| {
+        Ok(PersistedRecoveryLibraryNight {
+            origin_id: row.get(0)?,
+            recovery_date: row.get(1)?,
+            beat_to_beat_interval_milliseconds: row.get(2)?,
+            heart_rate_variability_rmssd_milliseconds: row.get(3)?,
+            breathing_interval_milliseconds: row.get(4)?,
+            assessment_scheme: row.get(5)?,
+            autonomic_charge: row.get(6)?,
+            autonomic_status: row.get(7)?,
+            overall_status: row.get(8)?,
+            overall_sublevel: row.get(9)?,
+            source_baseline_available: row.get(10)?,
+            source_guidance_available: row.get(11)?,
+        })
+    })?;
+    rows.map(|row| decode_recovery_library_night(row?))
+        .collect()
 }
 
 pub fn query_sleep_periods(database_path: &Path) -> Result<Vec<SleepPeriod>> {
@@ -4397,6 +4477,65 @@ fn reconcile_sleep_period(
 }
 
 #[derive(Debug)]
+struct PersistedRecoveryLibraryNight {
+    origin_id: String,
+    recovery_date: String,
+    beat_to_beat_interval_milliseconds: i64,
+    heart_rate_variability_rmssd_milliseconds: Option<i64>,
+    breathing_interval_milliseconds: i64,
+    assessment_scheme: Option<String>,
+    autonomic_charge: Option<f64>,
+    autonomic_status: Option<i64>,
+    overall_status: Option<i64>,
+    overall_sublevel: Option<i64>,
+    source_baseline_available: bool,
+    source_guidance_available: bool,
+}
+
+fn decode_recovery_library_night(
+    persisted: PersistedRecoveryLibraryNight,
+) -> Result<RecoveryLibraryNight> {
+    let source_assessment = match (
+        persisted.assessment_scheme,
+        persisted.autonomic_charge,
+        persisted.autonomic_status,
+        persisted.overall_status,
+        persisted.overall_sublevel,
+    ) {
+        (None, None, None, None, None) => None,
+        (
+            Some(scheme),
+            Some(autonomic_charge),
+            Some(autonomic_status),
+            Some(overall_status),
+            Some(overall_sublevel),
+        ) => Some(SourceSpecificRecoveryAssessment {
+            scheme,
+            autonomic_charge,
+            autonomic_status,
+            overall_status,
+            overall_sublevel,
+        }),
+        _ => {
+            return Err(ImportError::InvalidNightlyRecoveryLibrary(
+                "source assessment is incomplete".to_owned(),
+            ));
+        }
+    };
+    Ok(RecoveryLibraryNight {
+        origin_id: persisted.origin_id,
+        recovery_date: persisted.recovery_date,
+        beat_to_beat_interval_milliseconds: persisted.beat_to_beat_interval_milliseconds,
+        heart_rate_variability_rmssd_milliseconds: persisted
+            .heart_rate_variability_rmssd_milliseconds,
+        breathing_interval_milliseconds: persisted.breathing_interval_milliseconds,
+        source_assessment,
+        source_baseline_available: persisted.source_baseline_available,
+        source_guidance_available: persisted.source_guidance_available,
+    })
+}
+
+#[derive(Debug)]
 struct PersistedNightlyRecovery {
     origin_id: String,
     recovery_date: String,
@@ -4971,6 +5110,47 @@ impl SleepLibraryPort for SqliteSleepLibrary {
     }
 }
 
+pub struct SqliteRecoveryLibrary {
+    database_path: PathBuf,
+}
+
+impl SqliteRecoveryLibrary {
+    pub fn new(database_path: PathBuf) -> Self {
+        Self { database_path }
+    }
+}
+
+impl RecoveryLibraryPort for SqliteRecoveryLibrary {
+    fn recovery_bounds(&self) -> std::result::Result<Option<RecoveryDateRange>, String> {
+        query_recovery_bounds(&self.database_path).map_err(|error| error.to_string())
+    }
+
+    fn recovery_origins(&self) -> std::result::Result<Vec<String>, String> {
+        query_recovery_origins(&self.database_path).map_err(|error| error.to_string())
+    }
+
+    fn query_recovery(
+        &self,
+        range: &RecoveryDateRange,
+    ) -> std::result::Result<Vec<RecoveryLibraryNight>, String> {
+        query_recovery_library_between(
+            &self.database_path,
+            Some(range.from.as_str()),
+            Some(range.through.as_str()),
+        )
+        .map_err(|error| error.to_string())
+    }
+
+    fn query_recovery_night(
+        &self,
+        series_ref: &str,
+        recovery_date: &str,
+    ) -> std::result::Result<Option<NightlyRecovery>, String> {
+        query_nightly_recovery(&self.database_path, series_ref, recovery_date)
+            .map_err(|error| error.to_string())
+    }
+}
+
 pub struct SqliteImportOutcomeLibrary {
     database_path: PathBuf,
 }
@@ -5465,6 +5645,36 @@ mod tests {
             query_nightly_recoveries(&harness.database()).expect("reopened recovery history"),
             history
         );
+        assert_eq!(
+            query_recovery_bounds(&harness.database()).expect("recovery bounds"),
+            Some(RecoveryDateRange {
+                from: "2026-04-01".to_owned(),
+                through: "2026-04-01".to_owned(),
+            })
+        );
+        assert_eq!(
+            query_recovery_origins(&harness.database()).expect("recovery origins"),
+            vec![recovery.origin_id.clone()]
+        );
+        let lightweight = query_recovery_library_between(
+            &harness.database(),
+            Some("2026-04-01"),
+            Some("2026-04-01"),
+        )
+        .expect("lightweight recovery range");
+        assert_eq!(lightweight.len(), 1);
+        assert_eq!(lightweight[0].source_assessment, recovery.source_assessment);
+        assert!(lightweight[0].source_baseline_available);
+        assert!(lightweight[0].source_guidance_available);
+        let library = SqliteRecoveryLibrary::new(harness.database());
+        let overview =
+            query_default_recovery_overview(&library).expect("recovery overview read model");
+        assert_eq!(overview.series.len(), 1);
+        assert_eq!(overview.series[0].summary.observed_nights, 1);
+        assert_eq!(overview.series[0].summary.rmssd_night_count, 1);
+        assert_eq!(overview.series[0].summary.assessment_night_count, 1);
+        assert_eq!(overview.series[0].summary.baseline_night_count, 1);
+        assert_eq!(overview.series[0].summary.guidance_night_count, 1);
 
         let outcome = query_latest_import_outcome(&harness.database())
             .expect("recovery outcome query")
@@ -5532,6 +5742,59 @@ mod tests {
                 |row| row.get::<_, bool>(0),
             )
             .expect("excluded blob evidence"));
+    }
+
+    #[test]
+    fn keeps_recovery_guidance_out_of_overview_queries_and_validates_exact_detail() {
+        let harness = Harness::new();
+        let recovery_json = complete_nightly_recovery_json("2026-04-01");
+        let archive = harness.archive(
+            "recovery-read-boundary.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-recovery-read-boundary"}"#,
+                ),
+                (
+                    "nightly_recovery_42-11111111-2222-4333-8444-555555555555.json",
+                    &recovery_json,
+                ),
+            ],
+        );
+        import_polar_archive(&harness.database(), &archive).expect("recovery import");
+        let origin_id = query_recovery_origins(&harness.database())
+            .expect("recovery origins")
+            .into_iter()
+            .next()
+            .expect("recovery origin");
+
+        let connection = Connection::open(harness.database()).expect("database");
+        connection
+            .pragma_update(None, "ignore_check_constraints", true)
+            .expect("test corruption mode");
+        connection
+            .execute(
+                "UPDATE nightly_recovery SET exercise_guidance = ?1",
+                params!["x".repeat(4_097)],
+            )
+            .expect("corrupt guidance detail");
+        drop(connection);
+
+        let library = SqliteRecoveryLibrary::new(harness.database());
+        let overview =
+            query_default_recovery_overview(&library).expect("lightweight recovery overview");
+        assert_eq!(overview.series[0].summary.guidance_night_count, 1);
+        assert!(
+            overview.series[0].days[0]
+                .recovery
+                .as_ref()
+                .expect("recovery night")
+                .source_guidance_available
+        );
+        assert!(matches!(
+            query_recovery_detail(&library, &origin_id, "2026-04-01"),
+            Err(ApplicationError::Query(_))
+        ));
     }
 
     #[test]

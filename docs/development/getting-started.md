@@ -43,7 +43,7 @@ npm run test:fast
 | Generate independent E2E fixtures | `npm run fixture:e2e` |
 | Generate the cancellation-scale fixture | `npm run fixture:large` |
 | Generate the Insights performance fixture | `npm run fixture:insights-performance` |
-| Verify activity, training, and sleep read-model performance | `npm run benchmark:insights` |
+| Verify activity, training, sleep, and recovery read-model performance | `npm run benchmark:insights` |
 | Build the unsigned production package | `npm run package` |
 | Install the pinned local release evidence tool | `npm run install:release-tools` |
 | Prepare release-shaped private evidence | `npm run prepare:development-release -- 0.1.0` |
@@ -57,13 +57,13 @@ The unsigned macOS production application and DMG are generated under `src-tauri
 
 ## Synthetic fixture workflow
 
-`npm run fixture:e2e` generates the current valid, invalid, and cumulative-overlap ZIP packages under `.artifacts/e2e/fixtures`. `npm run fixture:large` generates the local entry-count and cancellation scenario, while `npm run fixture:insights-performance` generates the two-year packaged-UI activity, training, and sleep performance history. None of their output is added to Git. The behavioral source of truth is the [synthetic import scenario specification](../testing/synthetic-import-scenarios.md); every implemented scenario must keep its generator, expected outcome, data-format documentation, and tests consistent.
+`npm run fixture:e2e` generates the current valid, invalid, and cumulative-overlap ZIP packages under `.artifacts/e2e/fixtures`. `npm run fixture:large` generates the local entry-count and cancellation scenario, while `npm run fixture:insights-performance` generates the two-year packaged-UI activity, training, sleep, and recovery performance history. None of their output is added to Git. The behavioral source of truth is the [synthetic import scenario specification](../testing/synthetic-import-scenarios.md); every implemented scenario must keep its generator, expected outcome, data-format documentation, and tests consistent.
 
 ## Architecture navigation
 
 - `src-tauri/crates/fitfreed-domain` contains provider-neutral concepts and reconciliation policy and has no dependencies.
 - `src-tauri/crates/fitfreed-application` contains use cases, ports, provider-neutral Insights calculations, progress, and cancellation coordination and depends only on the domain, calendar arithmetic, and its error helper.
-- `src-tauri/src/infrastructure.rs` contains the Polar Flow ZIP/JSON anti-corruption layer, daily-activity, training-summary, and sleep mappings, and SQLite adapter.
+- `src-tauri/src/infrastructure.rs` contains the Polar Flow ZIP/JSON anti-corruption layer, daily-activity, training-summary, sleep, and nightly-recovery mappings, and SQLite adapter.
 - `src-tauri/src/lib.rs` and `presentation.rs` are the Tauri host and serialized transport boundary.
 - `src` contains the React presentation, its desktop archive-picker adapter, and test-only presentation instrumentation; localized copy exists only under `src/locales`.
 
@@ -77,7 +77,7 @@ The [private release preparation guide](release-preparation.md) owns the clean-r
 
 ## Continuous integration
 
-GitHub Actions runs portable quality checks and a mandatory macOS packaged-E2E job for pull requests and `main`. The macOS job verifies activity, training, and sleep read-model performance, prepares and installation-tests a normal private production package, and then builds the separate test variant. It drives the packaged application through validation, progress, cancellation, both locales, exact and cumulative reimport, accessibility, persisted restart, and in-WebView activity, training, and sleep performance budgets.
+GitHub Actions runs portable quality checks and a mandatory macOS packaged-E2E job for pull requests and `main`. The macOS job verifies activity, training, sleep, and recovery read-model performance, prepares and installation-tests a normal private production package, and then builds the separate test variant. It drives the packaged application through validation, progress, cancellation, both locales, exact and cumulative reimport, accessibility, persisted restart, and in-WebView performance budgets for all four Insights areas.
 
 The instrumented build routes only the archive-picker adapter to WebdriverIO's dialog mock because the embedded macOS WebView exposes Tauri globals through a non-configurable proxy. The E2E test waits for the recorded picker call before observing its result. Normal development and production builds use Tauri's native dialog directly, and the production-bundle check rejects both Rust and presentation WebDriver markers.
 

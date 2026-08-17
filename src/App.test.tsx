@@ -172,6 +172,10 @@ function emptySleepOverview() {
   return { availableRange: null, selectedRange: null, series: [] };
 }
 
+function emptyRecoveryOverview() {
+  return { availableRange: null, selectedRange: null, series: [] };
+}
+
 function trainingOverview(
   sessions: TestTrainingSession[],
   selectedRange = { from: "2026-01-01", through: "2026-01-31" },
@@ -255,6 +259,7 @@ function importOutcome(overrides: Record<string, unknown> = {}) {
 
 const mocks = vi.hoisted(() => ({
   invoke: vi.fn(),
+  recoveryInvoke: vi.fn(),
   sleepInvoke: vi.fn(),
   open: vi.fn(),
 }));
@@ -264,7 +269,9 @@ vi.mock("@tauri-apps/api/core", () => ({
     onmessage?: (message: T) => void;
   },
   invoke: (command: string, arguments_: Record<string, unknown>) =>
-    command.startsWith("query_sleep_")
+    command.startsWith("query_recovery_")
+      ? mocks.recoveryInvoke(command, arguments_)
+      : command.startsWith("query_sleep_")
       ? mocks.sleepInvoke(command, arguments_)
       : mocks.invoke(command, arguments_),
 }));
@@ -277,11 +284,13 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   mocks.invoke.mockReset();
+  mocks.recoveryInvoke.mockReset();
   mocks.sleepInvoke.mockReset();
   mocks.open.mockReset();
 });
 
 beforeEach(() => {
+  mocks.recoveryInvoke.mockResolvedValue(emptyRecoveryOverview());
   mocks.sleepInvoke.mockResolvedValue(emptySleepOverview());
 });
 

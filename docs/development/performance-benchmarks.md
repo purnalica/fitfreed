@@ -2,9 +2,9 @@
 
 ## Purpose and status
 
-The versioned performance gates protect the current daily-activity, training-session, and sleep Insights paths against the budgets in the [quality targets](../quality-targets.md). They use independently authored deterministic data, exercise production boundaries, emit one machine-readable JSON object per gate, and return a non-zero status when a budget is exceeded.
+The versioned performance gates protect the current daily-activity, training-session, sleep, and recovery Insights paths against the budgets in the [quality targets](../quality-targets.md). They use independently authored deterministic data, exercise production boundaries, emit one machine-readable JSON object per gate, and return a non-zero status when a budget is exceeded.
 
-These gates establish regression evidence on the machine that runs them. They do not yet prove the provisional Apple Silicon, 8 GB minimum profile. Cold launch, full-scale import, update, and recovery retain their own open performance gates.
+These gates establish regression evidence on the machine that runs them. They do not yet prove the provisional Apple Silicon, 8 GB minimum profile. Cold launch, full-scale import, update, and reference-profile execution retain their own open performance gates.
 
 ## Application read-model benchmark
 
@@ -14,9 +14,9 @@ Run:
 npm run benchmark:insights
 ```
 
-The release-mode Rust example creates a temporary schema-version-7 SQLite library through the production migration path, generates ten calendar years for four opaque origins, and inserts deterministic daily observations, one training session, and one primary sleep period per origin and date. Daily activity includes available, unavailable, and missing observations; training includes varied durations and deterministic optional distance, energy, heart-rate, sport-reference, and exercise-count coverage; sleep includes gaps and deterministic optional phase, score, goal, timeline, and recording-status coverage. The sleep scale contains 14,612 primary periods and 58,448 transitions. No generated database survives the process.
+The release-mode Rust example creates a temporary schema-version-8 SQLite library through the production migration path, generates ten calendar years for four opaque origins, and inserts deterministic daily observations, one training session, one primary sleep period, and one nightly-recovery observation per origin and date. Daily activity includes available, unavailable, and missing observations; training includes varied durations and deterministic optional distance, energy, heart-rate, sport-reference, and exercise-count coverage; sleep includes deterministic phase, score, goal, timeline, and recording-status data; recovery varies shared intervals while retaining typed source assessment, baseline, and guidance. The scale contains 14,612 primary sleep periods, 58,448 sleep transitions, and 14,612 recovery nights. No generated database survives the process.
 
-It measures the SQLite adapter plus application read model separately for daily activity, training sessions, and sleep. Each domain covers:
+It measures the SQLite adapter plus application read model separately for daily activity, training sessions, sleep, and recovery. Each domain covers:
 
 - the default 30-day overview;
 - an explicit common 30-day filter;
@@ -24,15 +24,15 @@ It measures the SQLite adapter plus application read model separately for daily 
 - a common 30-day two-period comparison;
 - a maximum-range two-period comparison.
 
-Sleep additionally measures exact detail retrieval for one primary period. Overview and comparison use the lightweight indexed summary projection and must not load high-resolution transition rows; detail loads only the selected period's ordered timeline.
+Sleep and recovery additionally measure exact detail retrieval for one identity. Sleep overview and comparison must not load high-resolution transition rows; recovery overview and comparison must not load baseline values or guidance text. Each detail path loads only the selected identity's complete information.
 
 Each interaction has 10 warm-up executions and 100 measured executions. Durations are sorted and p95 uses zero-based index `ceil((n - 1) * 0.95)`. Default and common interactions must remain within 500 ms p95; maximum-range interactions must remain within the 2-second complex-visualization budget. The output reports application version, source revision, host profile, free storage, generated scale, database size, run policy, median, p95, maximum, budget result, and peak process memory.
 
 ## Packaged UI benchmark
 
-`npm run verify:e2e` generates a separate two-year provider archive containing deterministic activity gaps, unavailable daily values, one varied training session per date, and one varied primary sleep period and score per date. It imports the archive through the packaged application and measures all three domains inside the macOS WebView. The timed interval starts immediately before form submission and ends on the animation frame after the expected exact table has rendered. It therefore contains the real Tauri command, SQLite and application work, transport, React update, and WebView rendering; WebDriver transport and fixture setup remain outside the interval.
+`npm run verify:e2e` generates a separate two-year provider archive containing deterministic activity gaps, unavailable daily values, one varied training session per date, one primary sleep period and score per date, and one nightly-recovery summary per date. It imports the archive through the packaged application and measures all four domains inside the macOS WebView. The timed interval starts immediately before form submission and ends on the animation frame after the expected exact table has rendered. It therefore contains the real Tauri command, SQLite and application work, transport, React update, and WebView rendering; WebDriver transport and fixture setup remain outside the interval.
 
-For each domain, the packaged journey uses four warm-up runs, 20 measured common filters, seven measured maximum filters, and 20 measured common comparisons. Sleep additionally measures 20 exact-detail selections after four warm-up runs. It applies the same percentile calculation and p95 budgets as the read-model benchmark. It also verifies every maximum 366-day presentation at 200% text size without horizontal page overflow. The run emits a second machine-readable JSON object with its host, source, scenario, method, per-domain measurements, and results.
+For each domain, the packaged journey uses four warm-up runs, 20 measured common filters, seven measured maximum filters, and 20 measured common comparisons. Sleep and recovery additionally measure 20 exact-detail selections after four warm-up runs. It applies the same percentile calculation and p95 budgets as the read-model benchmark. It also verifies every maximum 366-day presentation at 200% text size without horizontal page overflow. The run emits a second machine-readable JSON object with its host, source, scenario, method, per-domain measurements, and results.
 
 ## Automation and evidence handling
 

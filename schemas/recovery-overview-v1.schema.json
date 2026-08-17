@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/recovery-overview-v1.schema.json",
+  "title": "FitFreed recovery overview version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["availableRange", "selectedRange", "series"],
+  "properties": {
+    "availableRange": { "$ref": "#/$defs/optionalRange" },
+    "selectedRange": { "$ref": "#/$defs/optionalRange" },
+    "series": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/series" }
+    }
+  },
+  "$defs": {
+    "localDate": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "through"],
+      "properties": {
+        "from": { "$ref": "#/$defs/localDate" },
+        "through": { "$ref": "#/$defs/localDate" }
+      }
+    },
+    "optionalRange": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/range" }
+      ]
+    },
+    "unsignedDecimal": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$"
+    },
+    "positiveDecimal": {
+      "type": "string",
+      "pattern": "^[1-9][0-9]*$"
+    },
+    "signedDecimal": {
+      "type": "string",
+      "pattern": "^(0|-?[1-9][0-9]*)$"
+    },
+    "optionalUnsignedDecimal": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/unsignedDecimal" }
+      ]
+    },
+    "optionalPositiveDecimal": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/positiveDecimal" }
+      ]
+    },
+    "sourceAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scheme",
+        "autonomicCharge",
+        "autonomicStatus",
+        "overallStatus",
+        "overallSublevel"
+      ],
+      "properties": {
+        "scheme": { "type": "string", "minLength": 1, "pattern": "\\S" },
+        "autonomicCharge": { "type": "number", "minimum": -10, "maximum": 10 },
+        "autonomicStatus": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "overallStatus": { "type": "integer", "minimum": 1, "maximum": 6 },
+        "overallSublevel": { "$ref": "#/$defs/signedDecimal" }
+      }
+    },
+    "optionalSourceAssessment": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/sourceAssessment" }
+      ]
+    },
+    "recovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "beatToBeatIntervalMilliseconds",
+        "heartRateVariabilityRmssdMilliseconds",
+        "breathingIntervalMilliseconds",
+        "sourceAssessment",
+        "sourceBaselineAvailable",
+        "sourceGuidanceAvailable"
+      ],
+      "properties": {
+        "beatToBeatIntervalMilliseconds": { "$ref": "#/$defs/positiveDecimal" },
+        "heartRateVariabilityRmssdMilliseconds": { "$ref": "#/$defs/optionalUnsignedDecimal" },
+        "breathingIntervalMilliseconds": { "$ref": "#/$defs/positiveDecimal" },
+        "sourceAssessment": { "$ref": "#/$defs/optionalSourceAssessment" },
+        "sourceBaselineAvailable": { "type": "boolean" },
+        "sourceGuidanceAvailable": { "type": "boolean" }
+      }
+    },
+    "day": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["recoveryDate", "availability", "recovery"],
+          "properties": {
+            "recoveryDate": { "$ref": "#/$defs/localDate" },
+            "availability": { "const": "available" },
+            "recovery": { "$ref": "#/$defs/recovery" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["recoveryDate", "availability", "recovery"],
+          "properties": {
+            "recoveryDate": { "$ref": "#/$defs/localDate" },
+            "availability": { "const": "missing" },
+            "recovery": { "type": "null" }
+          }
+        }
+      ]
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "calendarDays",
+        "observedNights",
+        "missingNights",
+        "averageBeatToBeatIntervalMilliseconds",
+        "rmssdNightCount",
+        "averageHeartRateVariabilityRmssdMilliseconds",
+        "averageBreathingIntervalMilliseconds",
+        "assessmentNightCount",
+        "baselineNightCount",
+        "guidanceNightCount"
+      ],
+      "properties": {
+        "calendarDays": { "type": "integer", "minimum": 1, "maximum": 366 },
+        "observedNights": { "type": "integer", "minimum": 0, "maximum": 366 },
+        "missingNights": { "type": "integer", "minimum": 0, "maximum": 366 },
+        "averageBeatToBeatIntervalMilliseconds": { "$ref": "#/$defs/optionalPositiveDecimal" },
+        "rmssdNightCount": { "type": "integer", "minimum": 0, "maximum": 366 },
+        "averageHeartRateVariabilityRmssdMilliseconds": { "$ref": "#/$defs/optionalUnsignedDecimal" },
+        "averageBreathingIntervalMilliseconds": { "$ref": "#/$defs/optionalPositiveDecimal" },
+        "assessmentNightCount": { "type": "integer", "minimum": 0, "maximum": 366 },
+        "baselineNightCount": { "type": "integer", "minimum": 0, "maximum": 366 },
+        "guidanceNightCount": { "type": "integer", "minimum": 0, "maximum": 366 }
+      }
+    },
+    "series": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["seriesRef", "summary", "days"],
+      "properties": {
+        "seriesRef": { "type": "string", "minLength": 1, "pattern": "\\S" },
+        "summary": { "$ref": "#/$defs/summary" },
+        "days": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/day" },
+          "minItems": 1,
+          "maxItems": 366
+        }
+      }
+    }
+  }
+}

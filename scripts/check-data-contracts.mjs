@@ -1097,6 +1097,347 @@ for (const invalidChange of ["-0", "+1", "01"]) {
   }
 }
 
+const recoveryOverviewPath =
+  "docs/data-formats/insights/nightly-recovery-overview-v1.md";
+const recoveryOverview = read(recoveryOverviewPath);
+for (const field of [
+  "requestedRange",
+  "availableRange",
+  "selectedRange",
+  "series",
+  "seriesRef",
+  "summary",
+  "days",
+  "recoveryDate",
+  "availability",
+  "recovery",
+  "beatToBeatIntervalMilliseconds",
+  "heartRateVariabilityRmssdMilliseconds",
+  "breathingIntervalMilliseconds",
+  "sourceAssessment",
+  "sourceBaselineAvailable",
+  "sourceGuidanceAvailable",
+  "scheme",
+  "autonomicCharge",
+  "autonomicStatus",
+  "overallStatus",
+  "overallSublevel",
+  "calendarDays",
+  "observedNights",
+  "missingNights",
+  "averageBeatToBeatIntervalMilliseconds",
+  "rmssdNightCount",
+  "averageHeartRateVariabilityRmssdMilliseconds",
+  "averageBreathingIntervalMilliseconds",
+  "assessmentNightCount",
+  "baselineNightCount",
+  "guidanceNightCount",
+  "sourceBaseline",
+  "sourceGuidance",
+  "meanBeatToBeatIntervalMilliseconds",
+  "standardDeviationBeatToBeatIntervalMilliseconds",
+  "meanHeartRateVariabilityRmssdMilliseconds",
+  "standardDeviationHeartRateVariabilityRmssdMilliseconds",
+  "meanBreathingIntervalMilliseconds",
+  "standardDeviationBreathingIntervalMilliseconds",
+  "exercise",
+  "sleep",
+  "vitality",
+  "available",
+  "missing",
+  "invalid-recovery-range",
+  "invalid-recovery-reference",
+]) {
+  requireMention(recoveryOverview, field, recoveryOverviewPath);
+}
+
+const recoveryOverviewQuerySchemaPath =
+  "schemas/recovery-overview-query-v1.schema.json";
+const recoveryOverviewQuerySchema = JSON.parse(read(recoveryOverviewQuerySchemaPath));
+const validateRecoveryOverviewQuery = ajv.compile(recoveryOverviewQuerySchema);
+for (const query of [
+  { requestedRange: null },
+  { requestedRange: { from: "2026-01-01", through: "2026-01-31" } },
+]) {
+  if (!validateRecoveryOverviewQuery(query)) {
+    throw new Error(
+      recoveryOverviewQuerySchemaPath
+        + " rejected a valid query: "
+        + ajv.errorsText(validateRecoveryOverviewQuery.errors),
+    );
+  }
+}
+for (const query of [
+  {},
+  { requestedRange: { from: "2026-02-30", through: "2026-03-01" } },
+  { requestedRange: null, provider: "synthetic" },
+]) {
+  if (validateRecoveryOverviewQuery(query)) {
+    throw new Error(recoveryOverviewQuerySchemaPath + " accepted an invalid query");
+  }
+}
+
+const syntheticRecoveryAssessment = {
+  scheme: "synthetic-assessment@1",
+  autonomicCharge: 1.5,
+  autonomicStatus: 4,
+  overallStatus: 5,
+  overallSublevel: "2",
+};
+const syntheticRecoverySummary = {
+  calendarDays: 2,
+  observedNights: 1,
+  missingNights: 1,
+  averageBeatToBeatIntervalMilliseconds: "9007199254740993",
+  rmssdNightCount: 1,
+  averageHeartRateVariabilityRmssdMilliseconds: "42",
+  averageBreathingIntervalMilliseconds: "4100",
+  assessmentNightCount: 1,
+  baselineNightCount: 1,
+  guidanceNightCount: 1,
+};
+const syntheticRecoveryInsight = {
+  beatToBeatIntervalMilliseconds: "9007199254740993",
+  heartRateVariabilityRmssdMilliseconds: "42",
+  breathingIntervalMilliseconds: "4100",
+  sourceAssessment: syntheticRecoveryAssessment,
+  sourceBaselineAvailable: true,
+  sourceGuidanceAvailable: true,
+};
+const syntheticRecoveryOverview = {
+  availableRange: { from: "2026-01-01", through: "2026-01-02" },
+  selectedRange: { from: "2026-01-01", through: "2026-01-02" },
+  series: [{
+    seriesRef: "synthetic-origin",
+    summary: syntheticRecoverySummary,
+    days: [
+      {
+        recoveryDate: "2026-01-01",
+        availability: "available",
+        recovery: syntheticRecoveryInsight,
+      },
+      { recoveryDate: "2026-01-02", availability: "missing", recovery: null },
+    ],
+  }],
+};
+const recoveryOverviewSchemaPath = "schemas/recovery-overview-v1.schema.json";
+const recoveryOverviewSchema = JSON.parse(read(recoveryOverviewSchemaPath));
+const validateRecoveryOverview = ajv.compile(recoveryOverviewSchema);
+if (!validateRecoveryOverview(syntheticRecoveryOverview)) {
+  throw new Error(
+    recoveryOverviewSchemaPath
+      + " rejected its synthetic response: "
+      + ajv.errorsText(validateRecoveryOverview.errors),
+  );
+}
+for (const invalidOverview of [
+  (() => {
+    const value = structuredClone(syntheticRecoveryOverview);
+    value.series[0].days[1].recovery = syntheticRecoveryInsight;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticRecoveryOverview);
+    value.series[0].days[0].recovery.beatToBeatIntervalMilliseconds = "0";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticRecoveryOverview);
+    value.series[0].days[0].recovery.sourceAssessment.overallSublevel = 2;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticRecoveryOverview);
+    value.series[0].days[0].recovery.sourceAssessment.scheme = " ";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticRecoveryOverview);
+    value.series[0].seriesRef = " ";
+    return value;
+  })(),
+]) {
+  if (validateRecoveryOverview(invalidOverview)) {
+    throw new Error(recoveryOverviewSchemaPath + " accepted an invalid response");
+  }
+}
+
+const recoveryDetailQuerySchemaPath = "schemas/recovery-detail-query-v1.schema.json";
+const recoveryDetailQuerySchema = JSON.parse(read(recoveryDetailQuerySchemaPath));
+const validateRecoveryDetailQuery = ajv.compile(recoveryDetailQuerySchema);
+const syntheticRecoveryDetailQuery = {
+  seriesRef: "synthetic-origin",
+  recoveryDate: "2026-01-01",
+};
+if (!validateRecoveryDetailQuery(syntheticRecoveryDetailQuery)) {
+  throw new Error(
+    recoveryDetailQuerySchemaPath
+      + " rejected its synthetic query: "
+      + ajv.errorsText(validateRecoveryDetailQuery.errors),
+  );
+}
+for (const query of [
+  { ...syntheticRecoveryDetailQuery, seriesRef: "" },
+  { ...syntheticRecoveryDetailQuery, seriesRef: " " },
+  { ...syntheticRecoveryDetailQuery, recoveryDate: "2026-02-30" },
+  { ...syntheticRecoveryDetailQuery, provider: "synthetic" },
+]) {
+  if (validateRecoveryDetailQuery(query)) {
+    throw new Error(recoveryDetailQuerySchemaPath + " accepted an invalid query");
+  }
+}
+
+const syntheticRecoveryDetail = {
+  recoveryDate: "2026-01-01",
+  beatToBeatIntervalMilliseconds: "9007199254740993",
+  heartRateVariabilityRmssdMilliseconds: "42",
+  breathingIntervalMilliseconds: "4100",
+  sourceAssessment: syntheticRecoveryAssessment,
+  sourceBaseline: {
+    scheme: "synthetic-baseline@1",
+    meanBeatToBeatIntervalMilliseconds: "910",
+    standardDeviationBeatToBeatIntervalMilliseconds: "30",
+    meanHeartRateVariabilityRmssdMilliseconds: "40",
+    standardDeviationHeartRateVariabilityRmssdMilliseconds: "8",
+    meanBreathingIntervalMilliseconds: "4200",
+    standardDeviationBreathingIntervalMilliseconds: "120",
+  },
+  sourceGuidance: {
+    scheme: "synthetic-guidance@1",
+    exercise: "Choose a steady synthetic session.",
+    sleep: "Keep a consistent synthetic schedule.",
+    vitality: "Plan a synthetic restorative break.",
+  },
+};
+const recoveryDetailSchemaPath = "schemas/recovery-detail-v1.schema.json";
+const recoveryDetailSchema = JSON.parse(read(recoveryDetailSchemaPath));
+const validateRecoveryDetail = ajv.compile(recoveryDetailSchema);
+for (const detail of [null, syntheticRecoveryDetail]) {
+  if (!validateRecoveryDetail(detail)) {
+    throw new Error(
+      recoveryDetailSchemaPath
+        + " rejected valid detail: "
+        + ajv.errorsText(validateRecoveryDetail.errors),
+    );
+  }
+}
+for (const invalidDetail of [
+  (() => {
+    const value = structuredClone(syntheticRecoveryDetail);
+    value.sourceGuidance.sleep = " ";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticRecoveryDetail);
+    value.sourceBaseline.standardDeviationHeartRateVariabilityRmssdMilliseconds = null;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticRecoveryDetail);
+    value.sourceGuidance.scheme = " ";
+    return value;
+  })(),
+]) {
+  if (validateRecoveryDetail(invalidDetail)) {
+    throw new Error(recoveryDetailSchemaPath + " accepted an invalid detail");
+  }
+}
+
+const recoveryComparisonPath =
+  "docs/data-formats/insights/nightly-recovery-comparison-v1.md";
+const recoveryComparison = read(recoveryComparisonPath);
+for (const field of [
+  "baselineRange",
+  "comparisonRange",
+  "availableRange",
+  "seriesRef",
+  "baseline",
+  "comparison",
+  "observedNightChange",
+  "missingNightChange",
+  "averageBeatToBeatIntervalMillisecondsChange",
+  "averageHeartRateVariabilityRmssdMillisecondsChange",
+  "averageBreathingIntervalMillisecondsChange",
+  "assessmentNightChange",
+  "baselineNightChange",
+  "guidanceNightChange",
+]) {
+  requireMention(recoveryComparison, field, recoveryComparisonPath);
+}
+const recoveryComparisonQuerySchemaPath =
+  "schemas/recovery-comparison-query-v1.schema.json";
+const recoveryComparisonQuerySchema = JSON.parse(read(recoveryComparisonQuerySchemaPath));
+const validateRecoveryComparisonQuery = ajv.compile(recoveryComparisonQuerySchema);
+const syntheticRecoveryComparisonQuery = {
+  baselineRange: { from: "2026-01-01", through: "2026-01-02" },
+  comparisonRange: { from: "2026-01-03", through: "2026-01-05" },
+};
+if (!validateRecoveryComparisonQuery(syntheticRecoveryComparisonQuery)) {
+  throw new Error(
+    recoveryComparisonQuerySchemaPath
+      + " rejected its synthetic query: "
+      + ajv.errorsText(validateRecoveryComparisonQuery.errors),
+  );
+}
+for (const query of [
+  { baselineRange: syntheticRecoveryComparisonQuery.baselineRange },
+  { ...syntheticRecoveryComparisonQuery, provider: "synthetic" },
+  {
+    ...syntheticRecoveryComparisonQuery,
+    comparisonRange: { from: "2026-02-30", through: "2026-03-01" },
+  },
+]) {
+  if (validateRecoveryComparisonQuery(query)) {
+    throw new Error(recoveryComparisonQuerySchemaPath + " accepted an invalid query");
+  }
+}
+
+const recoveryComparisonSchemaPath = "schemas/recovery-comparison-v1.schema.json";
+const recoveryComparisonSchema = JSON.parse(read(recoveryComparisonSchemaPath));
+const validateRecoveryComparison = ajv.compile(recoveryComparisonSchema);
+const syntheticRecoveryComparison = {
+  availableRange: { from: "2026-01-01", through: "2026-01-05" },
+  ...syntheticRecoveryComparisonQuery,
+  series: [{
+    seriesRef: "synthetic-origin",
+    baseline: syntheticRecoverySummary,
+    comparison: {
+      ...syntheticRecoverySummary,
+      calendarDays: 3,
+      observedNights: 2,
+      averageHeartRateVariabilityRmssdMilliseconds: null,
+      rmssdNightCount: 0,
+    },
+    observedNightChange: "1",
+    missingNightChange: "0",
+    averageBeatToBeatIntervalMillisecondsChange: "100",
+    averageHeartRateVariabilityRmssdMillisecondsChange: null,
+    averageBreathingIntervalMillisecondsChange: "-100",
+    assessmentNightChange: "0",
+    baselineNightChange: "-1",
+    guidanceNightChange: "1",
+  }],
+};
+if (!validateRecoveryComparison(syntheticRecoveryComparison)) {
+  throw new Error(
+    recoveryComparisonSchemaPath
+      + " rejected its synthetic response: "
+      + ajv.errorsText(validateRecoveryComparison.errors),
+  );
+}
+for (const invalidChange of ["-0", "+1", "01"]) {
+  const invalidComparison = structuredClone(syntheticRecoveryComparison);
+  invalidComparison.series[0].observedNightChange = invalidChange;
+  if (validateRecoveryComparison(invalidComparison)) {
+    throw new Error(recoveryComparisonSchemaPath + " accepted invalid change " + invalidChange);
+  }
+}
+const blankRecoveryComparisonSeries = structuredClone(syntheticRecoveryComparison);
+blankRecoveryComparisonSeries.series[0].seriesRef = " ";
+if (validateRecoveryComparison(blankRecoveryComparisonSeries)) {
+  throw new Error(recoveryComparisonSchemaPath + " accepted a blank series reference");
+}
+
 const indexPath = "docs/data-formats/README.md";
 const index = read(indexPath);
 for (const contractPath of [
@@ -1111,6 +1452,8 @@ for (const contractPath of [
   trainingComparisonPath,
   sleepOverviewPath,
   sleepComparisonPath,
+  recoveryOverviewPath,
+  recoveryComparisonPath,
   ...persistencePaths,
 ]) {
   const relativeContract = path.relative(path.dirname(indexPath), contractPath);
@@ -1151,6 +1494,16 @@ process.stdout.write(
     sleepComparisonSchemas: [
       sleepComparisonQuerySchemaPath,
       sleepComparisonSchemaPath,
+    ],
+    recoveryOverviewSchemas: [
+      recoveryOverviewQuerySchemaPath,
+      recoveryOverviewSchemaPath,
+      recoveryDetailQuerySchemaPath,
+      recoveryDetailSchemaPath,
+    ],
+    recoveryComparisonSchemas: [
+      recoveryComparisonQuerySchemaPath,
+      recoveryComparisonSchemaPath,
     ],
     canonicalFields: 56,
     mappingFields: 75,
