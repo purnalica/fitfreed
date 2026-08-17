@@ -103,7 +103,7 @@ function evidence(measurements) {
       commonMeasuredRuns: 20,
       maximumMeasuredRuns: 7,
       percentile: "sorted zero-based index ceil((n - 1) * 0.95)",
-      scope: "packaged Tauri command, React update, and rendered exact activity, training, sleep, or recovery view",
+      scope: "packaged Tauri command, React update, and rendered exact domain or longitudinal view",
     },
     measurements,
   };
@@ -558,6 +558,100 @@ async function openRecoveryDetail(recoveryDate) {
   return result.duration;
 }
 
+async function applyLongitudinalRange(from, through) {
+  const input = {
+    from,
+    through,
+    expectedRows: inclusiveDays(from, through),
+    expectedFirstDate: from,
+  };
+  const result = await browser.executeAsync((expected, done) => {
+    const inputs = document.querySelectorAll(".longitudinal-filter input[type='date']");
+    const setValue = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    ).set;
+    [expected.from, expected.through].forEach((value, index) => {
+      setValue.call(inputs[index], value);
+      inputs[index].dispatchEvent(new Event("input", { bubbles: true }));
+      inputs[index].dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    const started = window.performance.now();
+    document.querySelector(".longitudinal-filter button[type='submit']").click();
+    function observeResult() {
+      const rows = document.querySelectorAll(
+        ".longitudinal-history-grid .longitudinal-table-scroll tbody tr",
+      );
+      const renderedFirstDate = rows[0]?.querySelector("time")?.getAttribute("datetime");
+      if (rows.length === expected.expectedRows && renderedFirstDate === expected.expectedFirstDate) {
+        requestAnimationFrame(() => done({
+          duration: window.performance.now() - started,
+          error: null,
+        }));
+        return;
+      }
+      if (window.performance.now() - started > 5_000) {
+        done({ duration: null, error: "longitudinal range was not rendered" });
+        return;
+      }
+      requestAnimationFrame(observeResult);
+    }
+    requestAnimationFrame(observeResult);
+  }, input);
+  if (result.error) throw new Error(`${result.error}: ${from} through ${through}`);
+  return result.duration;
+}
+
+async function compareLongitudinalRanges(ranges) {
+  const input = {
+    ...ranges,
+    expectedBaselineTotal: syntheticPeriodTotal(
+      ranges.baselineFrom,
+      ranges.baselineThrough,
+    ),
+  };
+  const result = await browser.executeAsync((expected, done) => {
+    const inputs = document.querySelectorAll(".longitudinal-comparison input[type='date']");
+    const setValue = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    ).set;
+    [
+      expected.baselineFrom,
+      expected.baselineThrough,
+      expected.comparisonFrom,
+      expected.comparisonThrough,
+    ].forEach((value, index) => {
+      setValue.call(inputs[index], value);
+      inputs[index].dispatchEvent(new Event("input", { bubbles: true }));
+      inputs[index].dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    const started = window.performance.now();
+    document.querySelector(".longitudinal-comparison button[type='submit']").click();
+    function observeResult() {
+      const cells = document.querySelectorAll(
+        ".longitudinal-comparison-result table tbody tr:first-child th, "
+        + ".longitudinal-comparison-result table tbody tr:first-child td",
+      );
+      if (cells.length === 4 && cells[1].textContent === expected.expectedBaselineTotal) {
+        requestAnimationFrame(() => done({
+          duration: window.performance.now() - started,
+          error: null,
+        }));
+        return;
+      }
+      if (window.performance.now() - started > 5_000) {
+        done({ duration: null, error: "longitudinal comparison was not rendered" });
+        return;
+      }
+      requestAnimationFrame(observeResult);
+    }
+    requestAnimationFrame(observeResult);
+  }, input);
+  if (result.error) throw new Error(result.error);
+  return result.duration;
+}
+
 async function waitForDailyActivityCoverage() {
   const expectedCount = storedObservationCount();
   await browser.waitUntil(async () => {
@@ -801,6 +895,38 @@ export async function runInsightsPerformanceJourney({ archivePath, selectArchive
     openRecoveryDetail,
   );
 
+  const longitudinalFilterRange = ([from, through]) => applyLongitudinalRange(from, through);
+  await measureAlternating(warmUpRuns, commonRanges, longitudinalFilterRange);
+  const longitudinalCommonFilterTimings = await measureAlternating(
+    20,
+    commonRanges,
+    longitudinalFilterRange,
+  );
+  await measureAlternating(warmUpRuns, maximumRanges, longitudinalFilterRange);
+  const longitudinalMaximumFilterTimings = await measureAlternating(
+    7,
+    maximumRanges,
+    longitudinalFilterRange,
+  );
+  await browser.execute(() => {
+    document.documentElement.style.fontSize = "200%";
+  });
+  const maximumLongitudinalRangeHasNoHorizontalOverflow = await browser.execute(
+    () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+  );
+  if (!maximumLongitudinalRangeHasNoHorizontalOverflow) {
+    throw new Error("maximum longitudinal range overflowed the application viewport");
+  }
+  await browser.execute(() => {
+    document.documentElement.style.fontSize = "";
+  });
+  await measureAlternating(warmUpRuns, comparisonRanges, compareLongitudinalRanges);
+  const longitudinalCommonComparisonTimings = await measureAlternating(
+    20,
+    comparisonRanges,
+    compareLongitudinalRanges,
+  );
+
   const measurements = {
     activity: {
       commonFilter: measurementEvidence(commonFilterTimings, 500),
@@ -823,6 +949,11 @@ export async function runInsightsPerformanceJourney({ archivePath, selectArchive
       maximumFilter: measurementEvidence(recoveryMaximumFilterTimings, 2_000),
       commonComparison: measurementEvidence(recoveryCommonComparisonTimings, 500),
       detail: measurementEvidence(recoveryDetailTimings, 500),
+    },
+    longitudinal: {
+      commonFilter: measurementEvidence(longitudinalCommonFilterTimings, 500),
+      maximumFilter: measurementEvidence(longitudinalMaximumFilterTimings, 2_000),
+      commonComparison: measurementEvidence(longitudinalCommonComparisonTimings, 500),
     },
   };
   process.stdout.write(`${JSON.stringify(evidence(measurements))}\n`);

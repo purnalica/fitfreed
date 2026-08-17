@@ -74,6 +74,7 @@ Directories are created with their first real contract; empty specifications are
 - [Sleep comparison read model version 1](insights/sleep-comparison-v1.md)
 - [Nightly recovery overview and detail read model version 1](insights/nightly-recovery-overview-v1.md)
 - [Nightly recovery comparison read model version 1](insights/nightly-recovery-comparison-v1.md)
+- [Longitudinal overview and comparison read model version 1](insights/longitudinal-overview-v1.md)
 - [SQLite schema version 1](persistence/sqlite-v1.md)
 - [SQLite schema version 2](persistence/sqlite-v2.md)
 - [SQLite schema version 3](persistence/sqlite-v3.md)

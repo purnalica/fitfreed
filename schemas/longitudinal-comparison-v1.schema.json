@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/longitudinal-comparison-v1.schema.json",
+  "title": "FitFreed longitudinal comparison version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["availableRange", "baselineRange", "comparisonRange", "series"],
+  "properties": {
+    "availableRange": { "$ref": "longitudinal-overview-v1.schema.json#/$defs/optionalRange" },
+    "baselineRange": { "$ref": "longitudinal-overview-v1.schema.json#/$defs/optionalRange" },
+    "comparisonRange": { "$ref": "longitudinal-overview-v1.schema.json#/$defs/optionalRange" },
+    "series": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/series" }
+    }
+  },
+  "$defs": {
+    "signedDecimal": {
+      "type": "string",
+      "pattern": "^(0|-?[1-9][0-9]*)$"
+    },
+    "optionalSignedDecimal": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/signedDecimal" }
+      ]
+    },
+    "optionalNumber": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "number" }
+      ]
+    },
+    "activity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseline", "comparison", "totalStepChange", "averageStepChange"],
+      "properties": {
+        "baseline": { "$ref": "activity-overview-v2.schema.json#/$defs/summary" },
+        "comparison": { "$ref": "activity-overview-v2.schema.json#/$defs/summary" },
+        "totalStepChange": { "$ref": "#/$defs/optionalSignedDecimal" },
+        "averageStepChange": { "$ref": "#/$defs/optionalSignedDecimal" }
+      }
+    },
+    "training": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "baseline",
+        "comparison",
+        "sessionCountChange",
+        "trainingDayChange",
+        "durationMillisecondsChange",
+        "distanceMetersChange",
+        "energyKilocaloriesChange"
+      ],
+      "properties": {
+        "baseline": { "$ref": "training-overview-v1.schema.json#/$defs/summary" },
+        "comparison": { "$ref": "training-overview-v1.schema.json#/$defs/summary" },
+        "sessionCountChange": { "$ref": "#/$defs/signedDecimal" },
+        "trainingDayChange": { "$ref": "#/$defs/signedDecimal" },
+        "durationMillisecondsChange": { "$ref": "#/$defs/signedDecimal" },
+        "distanceMetersChange": { "$ref": "#/$defs/optionalNumber" },
+        "energyKilocaloriesChange": { "$ref": "#/$defs/optionalSignedDecimal" }
+      }
+    },
+    "sleep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "baseline",
+        "comparison",
+        "observedNightChange",
+        "missingNightChange",
+        "averageAsleepMillisecondsChange",
+        "averageInterruptionMillisecondsChange",
+        "averageEfficiencyPercentagePointChange",
+        "averageOverallScoreChange",
+        "goalMetPercentagePointChange"
+      ],
+      "properties": {
+        "baseline": { "$ref": "sleep-overview-v1.schema.json#/$defs/summary" },
+        "comparison": { "$ref": "sleep-overview-v1.schema.json#/$defs/summary" },
+        "observedNightChange": { "$ref": "#/$defs/signedDecimal" },
+        "missingNightChange": { "$ref": "#/$defs/signedDecimal" },
+        "averageAsleepMillisecondsChange": { "$ref": "#/$defs/optionalSignedDecimal" },
+        "averageInterruptionMillisecondsChange": { "$ref": "#/$defs/optionalSignedDecimal" },
+        "averageEfficiencyPercentagePointChange": { "$ref": "#/$defs/optionalNumber" },
+        "averageOverallScoreChange": { "$ref": "#/$defs/optionalNumber" },
+        "goalMetPercentagePointChange": { "$ref": "#/$defs/optionalNumber" }
+      }
+    },
+    "recovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "baseline",
+        "comparison",
+        "observedNightChange",
+        "missingNightChange",
+        "averageBeatToBeatIntervalMillisecondsChange",
+        "averageHeartRateVariabilityRmssdMillisecondsChange",
+        "averageBreathingIntervalMillisecondsChange",
+        "assessmentNightChange",
+        "baselineNightChange",
+        "guidanceNightChange"
+      ],
+      "properties": {
+        "baseline": { "$ref": "recovery-overview-v1.schema.json#/$defs/summary" },
+        "comparison": { "$ref": "recovery-overview-v1.schema.json#/$defs/summary" },
+        "observedNightChange": { "$ref": "#/$defs/signedDecimal" },
+        "missingNightChange": { "$ref": "#/$defs/signedDecimal" },
+        "averageBeatToBeatIntervalMillisecondsChange": { "$ref": "#/$defs/optionalSignedDecimal" },
+        "averageHeartRateVariabilityRmssdMillisecondsChange": { "$ref": "#/$defs/optionalSignedDecimal" },
+        "averageBreathingIntervalMillisecondsChange": { "$ref": "#/$defs/optionalSignedDecimal" },
+        "assessmentNightChange": { "$ref": "#/$defs/signedDecimal" },
+        "baselineNightChange": { "$ref": "#/$defs/signedDecimal" },
+        "guidanceNightChange": { "$ref": "#/$defs/signedDecimal" }
+      }
+    },
+    "series": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["seriesRef", "activity", "training", "sleep", "recovery"],
+      "properties": {
+        "seriesRef": { "type": "string", "minLength": 1, "pattern": "\\S" },
+        "activity": { "$ref": "#/$defs/activity" },
+        "training": { "$ref": "#/$defs/training" },
+        "sleep": { "$ref": "#/$defs/sleep" },
+        "recovery": { "$ref": "#/$defs/recovery" }
+      }
+    }
+  }
+}

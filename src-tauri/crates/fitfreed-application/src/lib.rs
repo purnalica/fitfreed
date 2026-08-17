@@ -18,6 +18,19 @@ use fitfreed_domain::{
     SourceSpecificRecoveryBaseline, SourceSpecificRecoveryGuidance, TrainingSession,
 };
 
+mod longitudinal;
+pub use longitudinal::{
+    query_longitudinal_comparison, query_longitudinal_overview, LongitudinalActivityComparison,
+    LongitudinalActivityDay, LongitudinalComparison, LongitudinalDateRange, LongitudinalDayInsight,
+    LongitudinalLibraryPort, LongitudinalOverview, LongitudinalRecoveryComparison,
+    LongitudinalRecoveryDay, LongitudinalSeriesComparison, LongitudinalSeriesOverview,
+    LongitudinalSleepComparison, LongitudinalSleepDay, LongitudinalTrainingComparison,
+    LongitudinalTrainingDay,
+};
+
+#[cfg(test)]
+mod longitudinal_tests;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LocalePreference {
     EnUs,
@@ -1132,6 +1145,8 @@ pub enum ApplicationError {
     InvalidRecoveryRange(&'static str),
     #[error("invalid recovery reference: {0}")]
     InvalidRecoveryReference(&'static str),
+    #[error("invalid longitudinal range: {0}")]
+    InvalidLongitudinalRange(&'static str),
     #[error("import outcome query failed: {0}")]
     OutcomeQuery(String),
     #[error("locale preference query failed: {0}")]

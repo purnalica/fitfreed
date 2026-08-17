@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Channel, invoke } from "@tauri-apps/api/core";
 import "./App.css";
 import { chooseZipArchive } from "./infrastructure/archive-picker";
@@ -11,6 +11,8 @@ import type {
   ActivityOverview,
 } from "./presentation/activity-insights";
 import { commandErrorCode } from "./presentation/command-error";
+import type { ExplorerNavigationRequest } from "./presentation/explorer-navigation";
+import { LongitudinalInsightsPanel } from "./presentation/LongitudinalInsightsPanel";
 import { RecoveryInsightsPanel } from "./presentation/RecoveryInsightsPanel";
 import { SleepInsightsPanel } from "./presentation/SleepInsightsPanel";
 
@@ -115,6 +117,11 @@ function App() {
   const [trainingRefreshToken, setTrainingRefreshToken] = useState(0);
   const [sleepRefreshToken, setSleepRefreshToken] = useState(0);
   const [recoveryRefreshToken, setRecoveryRefreshToken] = useState(0);
+  const [longitudinalRefreshToken, setLongitudinalRefreshToken] = useState(0);
+  const [explorerNavigation, setExplorerNavigation] = useState<
+    ExplorerNavigationRequest & { domain: "training" | "sleep" | "recovery" }
+  >();
+  const navigationSequence = useRef(0);
   const [outcome, setOutcome] = useState<ImportOutcome>();
   const [progress, setProgress] = useState<ImportProgress>();
   const [busy, setBusy] = useState(false);
@@ -222,6 +229,7 @@ function App() {
       setTrainingRefreshToken((current) => current + 1);
       setSleepRefreshToken((current) => current + 1);
       setRecoveryRefreshToken((current) => current + 1);
+      setLongitudinalRefreshToken((current) => current + 1);
       await refreshOutcome();
     } catch (reason) {
       const code = commandErrorCode(reason);
@@ -364,6 +372,26 @@ function App() {
 
   function detailButtonLabel(localDateValue: string): string {
     return `${messages.activity.viewDetails} ${date.format(localDate(localDateValue))}`;
+  }
+
+  function navigateFromLongitudinal(
+    domain: "activity" | "training" | "sleep" | "recovery",
+    localDateValue: string,
+    seriesRef: string,
+  ) {
+    if (domain === "activity") {
+      refresh({ from: localDateValue, through: localDateValue })
+        .then(() => setSelectedActivityDate(localDateValue))
+        .catch((reason) => setErrorCode(commandErrorCode(reason)));
+      return;
+    }
+    navigationSequence.current += 1;
+    setExplorerNavigation({
+      domain,
+      seriesRef,
+      localDate: localDateValue,
+      requestId: navigationSequence.current,
+    });
   }
 
   return (
@@ -520,6 +548,14 @@ function App() {
           {errorMessages[visibleErrorCode] ?? messages.errors.unexpected}
         </p>
       )}
+
+      <LongitudinalInsightsPanel
+        locale={locale}
+        messages={messages}
+        refreshToken={longitudinalRefreshToken}
+        onError={setErrorCode}
+        onNavigate={navigateFromLongitudinal}
+      />
 
       <section aria-labelledby="activity-heading">
         <h2 id="activity-heading">{messages.activity.heading}</h2>
@@ -743,18 +779,21 @@ function App() {
         locale={locale}
         messages={messages}
         refreshToken={trainingRefreshToken}
+        navigationRequest={explorerNavigation?.domain === "training" ? explorerNavigation : undefined}
         onError={setErrorCode}
       />
       <SleepInsightsPanel
         locale={locale}
         messages={messages}
         refreshToken={sleepRefreshToken}
+        navigationRequest={explorerNavigation?.domain === "sleep" ? explorerNavigation : undefined}
         onError={setErrorCode}
       />
       <RecoveryInsightsPanel
         locale={locale}
         messages={messages}
         refreshToken={recoveryRefreshToken}
+        navigationRequest={explorerNavigation?.domain === "recovery" ? explorerNavigation : undefined}
         onError={setErrorCode}
       />
     </main>

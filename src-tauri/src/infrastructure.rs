@@ -5,6 +5,7 @@ use std::{
     fs::File,
     io::{self, Read, Seek, SeekFrom},
     path::{Path, PathBuf},
+    result::Result as StandardResult,
     sync::{
         atomic::{AtomicBool, Ordering},
         LazyLock,
@@ -28,7 +29,7 @@ use zip::ZipArchive;
 #[cfg(test)]
 use fitfreed_application::{
     query_default_recovery_overview, query_default_sleep_overview, query_default_training_overview,
-    query_recovery_detail, ApplicationError,
+    query_longitudinal_overview, query_recovery_detail, ApplicationError,
 };
 use fitfreed_application::{
     ActivityDateRange, ActivityLibraryPort, ArchiveImportPort, ImportOutcomeLibraryPort,
@@ -5151,6 +5152,102 @@ impl RecoveryLibraryPort for SqliteRecoveryLibrary {
     }
 }
 
+pub struct SqliteLongitudinalLibrary {
+    database_path: PathBuf,
+}
+
+impl SqliteLongitudinalLibrary {
+    pub fn new(database_path: PathBuf) -> Self {
+        Self { database_path }
+    }
+}
+
+impl ActivityLibraryPort for SqliteLongitudinalLibrary {
+    fn activity_bounds(&self) -> StandardResult<Option<ActivityDateRange>, String> {
+        SqliteActivityLibrary::new(self.database_path.clone()).activity_bounds()
+    }
+
+    fn activity_origins(&self) -> StandardResult<Vec<String>, String> {
+        SqliteActivityLibrary::new(self.database_path.clone()).activity_origins()
+    }
+
+    fn query_activity(
+        &self,
+        range: &ActivityDateRange,
+    ) -> StandardResult<Vec<DailyActivity>, String> {
+        SqliteActivityLibrary::new(self.database_path.clone()).query_activity(range)
+    }
+}
+
+impl TrainingLibraryPort for SqliteLongitudinalLibrary {
+    fn training_bounds(&self) -> StandardResult<Option<TrainingDateRange>, String> {
+        SqliteTrainingLibrary::new(self.database_path.clone()).training_bounds()
+    }
+
+    fn training_origins(&self) -> StandardResult<Vec<String>, String> {
+        SqliteTrainingLibrary::new(self.database_path.clone()).training_origins()
+    }
+
+    fn query_training(
+        &self,
+        range: &TrainingDateRange,
+    ) -> StandardResult<Vec<TrainingSession>, String> {
+        SqliteTrainingLibrary::new(self.database_path.clone()).query_training(range)
+    }
+}
+
+impl SleepLibraryPort for SqliteLongitudinalLibrary {
+    fn sleep_bounds(&self) -> StandardResult<Option<SleepDateRange>, String> {
+        SqliteSleepLibrary::new(self.database_path.clone()).sleep_bounds()
+    }
+
+    fn sleep_origins(&self) -> StandardResult<Vec<String>, String> {
+        SqliteSleepLibrary::new(self.database_path.clone()).sleep_origins()
+    }
+
+    fn query_sleep(
+        &self,
+        range: &SleepDateRange,
+    ) -> StandardResult<Vec<SleepLibraryPeriod>, String> {
+        SqliteSleepLibrary::new(self.database_path.clone()).query_sleep(range)
+    }
+
+    fn query_sleep_period(
+        &self,
+        series_ref: &str,
+        sleep_date: &str,
+    ) -> StandardResult<Option<SleepPeriod>, String> {
+        SqliteSleepLibrary::new(self.database_path.clone())
+            .query_sleep_period(series_ref, sleep_date)
+    }
+}
+
+impl RecoveryLibraryPort for SqliteLongitudinalLibrary {
+    fn recovery_bounds(&self) -> StandardResult<Option<RecoveryDateRange>, String> {
+        SqliteRecoveryLibrary::new(self.database_path.clone()).recovery_bounds()
+    }
+
+    fn recovery_origins(&self) -> StandardResult<Vec<String>, String> {
+        SqliteRecoveryLibrary::new(self.database_path.clone()).recovery_origins()
+    }
+
+    fn query_recovery(
+        &self,
+        range: &RecoveryDateRange,
+    ) -> StandardResult<Vec<RecoveryLibraryNight>, String> {
+        SqliteRecoveryLibrary::new(self.database_path.clone()).query_recovery(range)
+    }
+
+    fn query_recovery_night(
+        &self,
+        series_ref: &str,
+        recovery_date: &str,
+    ) -> StandardResult<Option<NightlyRecovery>, String> {
+        SqliteRecoveryLibrary::new(self.database_path.clone())
+            .query_recovery_night(series_ref, recovery_date)
+    }
+}
+
 pub struct SqliteImportOutcomeLibrary {
     database_path: PathBuf,
 }
@@ -5675,6 +5772,21 @@ mod tests {
         assert_eq!(overview.series[0].summary.assessment_night_count, 1);
         assert_eq!(overview.series[0].summary.baseline_night_count, 1);
         assert_eq!(overview.series[0].summary.guidance_night_count, 1);
+
+        let longitudinal =
+            query_longitudinal_overview(&SqliteLongitudinalLibrary::new(harness.database()), None)
+                .expect("partial longitudinal overview");
+        assert_eq!(longitudinal.series.len(), 1);
+        assert_eq!(longitudinal.series[0].activity.observed_days, 0);
+        assert_eq!(longitudinal.series[0].training.session_count, 0);
+        assert_eq!(longitudinal.series[0].sleep.observed_nights, 0);
+        assert_eq!(longitudinal.series[0].recovery.observed_nights, 1);
+        assert_eq!(
+            longitudinal.series[0].days[0]
+                .recovery
+                .beat_to_beat_interval_milliseconds,
+            Some(900)
+        );
 
         let outcome = query_latest_import_outcome(&harness.database())
             .expect("recovery outcome query")

@@ -68,7 +68,7 @@ async function selectLocale(locale) {
 
 async function setActivityRange(from, through) {
   await browser.execute((values) => {
-    const inputs = document.querySelectorAll("input[type='date']");
+    const inputs = document.querySelectorAll(".activity-filter input[type='date']");
     const setValue = Object.getOwnPropertyDescriptor(
       window.HTMLInputElement.prototype,
       "value",
@@ -80,7 +80,7 @@ async function setActivityRange(from, through) {
       input.dispatchEvent(new Event("change", { bubbles: true }));
     });
   }, [from, through]);
-  const inputs = await $$("input[type='date']");
+  const inputs = await $$(".activity-filter input[type='date']");
   await expect(inputs[0]).toHaveValue(from);
   await expect(inputs[1]).toHaveValue(through);
 }
@@ -148,6 +148,17 @@ async function expectHistory(expectedRows) {
     await expect(cells[1]).toHaveText(expectedRows[index][1]);
     await expect(cells[2]).toHaveText(expectedRows[index][2]);
   }
+}
+
+async function expectFilterRange(selector, from, through) {
+  await browser.waitUntil(async () => {
+    const inputs = await $$(`${selector} input[type='date']`);
+    if (inputs.length !== 2) return false;
+    return await inputs[0].getValue() === from && await inputs[1].getValue() === through;
+  }, {
+    timeout: 10_000,
+    timeoutMsg: `${selector} did not select ${from} through ${through}`,
+  });
 }
 
 async function expectActivitySummary(expectedItems) {
@@ -407,6 +418,88 @@ async function expectRecoveryComparison(expectedRows) {
   }
 }
 
+async function setLongitudinalRange(from, through) {
+  const values = [from, through];
+  await browser.execute((nextValues) => {
+    const inputs = document.querySelectorAll(".longitudinal-filter input[type='date']");
+    const setValue = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    ).set;
+    inputs.forEach((input, index) => {
+      setValue.call(input, nextValues[index]);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  }, values);
+  const inputs = await $$(".longitudinal-filter input[type='date']");
+  expect(inputs).toHaveLength(2);
+  for (let index = 0; index < values.length; index += 1) {
+    await expect(inputs[index]).toHaveValue(values[index]);
+  }
+}
+
+async function setLongitudinalComparisonRanges(
+  baselineFrom,
+  baselineThrough,
+  comparisonFrom,
+  comparisonThrough,
+) {
+  const values = [baselineFrom, baselineThrough, comparisonFrom, comparisonThrough];
+  await browser.execute((nextValues) => {
+    const inputs = document.querySelectorAll(".longitudinal-comparison input[type='date']");
+    const setValue = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    ).set;
+    inputs.forEach((input, index) => {
+      setValue.call(input, nextValues[index]);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  }, values);
+  const inputs = await $$(".longitudinal-comparison input[type='date']");
+  expect(inputs).toHaveLength(4);
+  for (let index = 0; index < values.length; index += 1) {
+    await expect(inputs[index]).toHaveValue(values[index]);
+  }
+}
+
+async function expectLongitudinalRows(expectedRows) {
+  const selector = ".longitudinal-history-grid .longitudinal-table-scroll tbody tr";
+  await browser.waitUntil(async () => (await $$(selector)).length === expectedRows.length, {
+    timeout: 10_000,
+    timeoutMsg: `longitudinal history did not contain ${expectedRows.length} rows`,
+  });
+  const rows = await $$(selector);
+  for (let index = 0; index < expectedRows.length; index += 1) {
+    const cells = await rows[index].$$("th, td");
+    for (let cellIndex = 0; cellIndex < expectedRows[index].length; cellIndex += 1) {
+      await expect(cells[cellIndex]).toHaveText(expectedRows[index][cellIndex]);
+    }
+  }
+}
+
+async function expectLongitudinalSummary(expectedItems) {
+  const items = await $$(".longitudinal-summary li");
+  expect(items).toHaveLength(expectedItems.length);
+  for (let index = 0; index < expectedItems.length; index += 1) {
+    await expect(items[index].$("strong")).toHaveText(expectedItems[index][0]);
+    await expect(items[index].$("small")).toHaveText(expectedItems[index][1]);
+  }
+}
+
+async function expectLongitudinalComparison(expectedRows) {
+  const rows = await $$(".longitudinal-comparison-result table tbody tr");
+  expect(rows).toHaveLength(expectedRows.length);
+  for (let index = 0; index < expectedRows.length; index += 1) {
+    const cells = await rows[index].$$("th, td");
+    for (let cellIndex = 0; cellIndex < expectedRows[index].length; cellIndex += 1) {
+      await expect(cells[cellIndex]).toHaveText(expectedRows[index][cellIndex]);
+    }
+  }
+}
+
 async function expectFamilyCoverage(expectedRows) {
   const rows = await $$(".family-coverage-table tbody tr");
   expect(rows).toHaveLength(expectedRows.length);
@@ -438,6 +531,9 @@ describe("packaged FitFreed import journey", () => {
     await expect($("aria/Import selected package")).toBeDisabled();
     await expect($(".recovery-insights")).toHaveText(
       expect.stringContaining("No imported nightly recovery summaries yet."),
+    );
+    await expect($(".longitudinal-insights")).toHaveText(
+      expect.stringContaining("No imported activity, training, sleep, or recovery history yet."),
     );
 
     await selectLocale("es-ES");
@@ -650,6 +746,84 @@ describe("packaged FitFreed import journey", () => {
       ["1 of 1 nights", "Nights with source guidance"],
       ["0", "Missing nights"],
     ]);
+    await expectLongitudinalSummary([
+      ["7,300", "Total measured steps · 3 of 6 dates"],
+      ["2", "Sessions · 2 · Training days"],
+      ["7 h 30 min", "Average asleep duration · 1 of 6 dates"],
+      ["900 ms", "Average beat-to-beat interval · 1 of 6 dates"],
+    ]);
+    await expectLongitudinalRows([
+      ["Jan 1, 2026", "3,100", "0 ms", "Missing", "Missing"],
+      ["Jan 2, 2026", "4,200", "0 ms", "Missing", "Missing"],
+      ["Jan 3, 2026", "Observation available; step total unavailable", "0 ms", "Missing", "Missing"],
+      ["Jan 4, 2026", "No observation", "1 h", "Missing", "Missing"],
+      ["Jan 5, 2026", "No observation", "30 min", "Missing", "Missing"],
+      ["Jan 6, 2026", "No observation", "0 ms", "7 h 30 min", "900 ms"],
+    ]);
+    await $('button[aria-label="View aligned details for Jan 6, 2026"]').click();
+    await expect($("#longitudinal-detail-heading")).toHaveText("Aligned day detail");
+    const longitudinalDetailValues = await $$(".longitudinal-detail-grid dd");
+    const expectedLongitudinalDetail = [
+      "No observation",
+      "Not available",
+      "0",
+      "0 ms",
+      "Available",
+      "7 h 30 min",
+      "Available",
+      "900 ms",
+      "42 ms",
+      "4,100 ms",
+    ];
+    expect(longitudinalDetailValues).toHaveLength(expectedLongitudinalDetail.length);
+    for (let index = 0; index < expectedLongitudinalDetail.length; index += 1) {
+      await expect(longitudinalDetailValues[index]).toHaveText(expectedLongitudinalDetail[index]);
+    }
+    const longitudinalLinks = await $$(".longitudinal-detail-links a");
+    expect(longitudinalLinks).toHaveLength(2);
+    await expect(longitudinalLinks[0]).toHaveText("Open sleep explorer for this date");
+    await expect(longitudinalLinks[1]).toHaveText("Open recovery explorer for this date");
+    await expect($(".longitudinal-detail .notice")).toHaveText(
+      expect.stringContaining("does not establish cause, diagnosis, readiness, or advice"),
+    );
+
+    await longitudinalLinks[0].click();
+    await expectFilterRange(".sleep-filter", "2026-01-06", "2026-01-06");
+    await expect($("#sleep-detail-heading")).toHaveText("Sleep detail");
+    await $("aria/Close sleep detail").click();
+
+    await longitudinalLinks[1].click();
+    await expectFilterRange(".recovery-filter", "2026-01-06", "2026-01-06");
+    await expect($("#recovery-detail-heading")).toHaveText("Recovery detail");
+    await $("aria/Close recovery detail").click();
+
+    await $("aria/Close aligned day detail").click();
+    expect(await $$(".longitudinal-detail")).toHaveLength(0);
+
+    await $('button[aria-label="View aligned details for Jan 4, 2026"]').click();
+    await $("aria/Open training explorer for this date").click();
+    await expectFilterRange(".training-filter", "2026-01-04", "2026-01-04");
+    await expectTrainingRows([[enJan4Start, "1 h", "10,000 m", "600 kcal"]]);
+    await $(".training-filter button.secondary").click();
+    await expectTrainingRows([
+      [enJan5Start, "30 min", "Not available", "Not available"],
+      [enJan4Start, "1 h", "10,000 m", "600 kcal"],
+    ]);
+    await $("aria/Close aligned day detail").click();
+
+    await $('button[aria-label="View aligned details for Jan 1, 2026"]').click();
+    await $("aria/Open activity explorer for this date").click();
+    await expectFilterRange(".activity-filter", "2026-01-01", "2026-01-01");
+    await expect($("#activity-detail-heading")).toHaveText("Daily detail");
+    await $("aria/Close detail").click();
+    await $(".activity-filter button.secondary").click();
+    await expectHistory([
+      ["Jan 1, 2026", "3,100", "Step total available"],
+      ["Jan 2, 2026", "4,200", "Step total available"],
+      ["Jan 3, 2026", "Not available", "Observation available; step total unavailable"],
+    ]);
+    await $("aria/Close aligned day detail").click();
+
     await expect($("body")).not.toHaveText(expect.stringContaining("synthetic-device"));
     await expect($("body")).not.toHaveText(expect.stringContaining("fixture-primary-claim"));
 
@@ -971,6 +1145,20 @@ describe("packaged FitFreed import journey", () => {
       ["900 kcal", "Recorded energy · 2 of 3"],
       ["2 of 3", "Sessions with heart rate"],
     ]);
+    await expectLongitudinalSummary([
+      ["12,600", "Total measured steps · 4 of 6 dates"],
+      ["3", "Sessions · 3 · Training days"],
+      ["7 h 30 min", "Average asleep duration · 1 of 6 dates"],
+      ["900 ms", "Average beat-to-beat interval · 1 of 6 dates"],
+    ]);
+    await expectLongitudinalRows([
+      ["Jan 1, 2026", "3,100", "0 ms", "Missing", "Missing"],
+      ["Jan 2, 2026", "4,200", "0 ms", "Missing", "Missing"],
+      ["Jan 3, 2026", "Observation available; step total unavailable", "0 ms", "Missing", "Missing"],
+      ["Jan 4, 2026", "No observation", "1 h", "Missing", "Missing"],
+      ["Jan 5, 2026", "5,300", "30 min", "Missing", "Missing"],
+      ["Jan 6, 2026", "No observation", "45 min", "7 h 30 min", "900 ms"],
+    ]);
 
     await setActivityRange("2026-01-02", "2026-01-04");
     await $("aria/Apply range").click();
@@ -1102,7 +1290,7 @@ describe("packaged FitFreed import journey", () => {
       [enJan5Start, "30 min", "Not available", "Not available"],
     ]);
 
-    await $("aria/Latest 30-day window").click();
+    await $(".training-filter button.secondary").click();
     await expectTrainingRows([
       [enJan6Start, "45 min", "5,000 m", "300 kcal"],
       [enJan5Start, "30 min", "Not available", "Not available"],
@@ -1233,6 +1421,77 @@ describe("packaged FitFreed import journey", () => {
     );
     await expect($("#recovery-comparison-heading")).toHaveText("Recovery period comparison");
 
+    await setLongitudinalRange("2026-01-04", "2026-01-06");
+    await $(".longitudinal-filter button[type='submit']").click();
+    await expectLongitudinalSummary([
+      ["5,300", "Total measured steps · 1 of 3 dates"],
+      ["3", "Sessions · 3 · Training days"],
+      ["7 h 30 min", "Average asleep duration · 1 of 3 dates"],
+      ["900 ms", "Average beat-to-beat interval · 1 of 3 dates"],
+    ]);
+    await expectLongitudinalRows([
+      ["Jan 4, 2026", "No observation", "1 h", "Missing", "Missing"],
+      ["Jan 5, 2026", "5,300", "30 min", "Missing", "Missing"],
+      ["Jan 6, 2026", "No observation", "45 min", "7 h 30 min", "900 ms"],
+    ]);
+    await setLongitudinalRange("2026-01-06", "2026-01-05");
+    await browser.execute(() => {
+      document.querySelector(".longitudinal-filter").dispatchEvent(
+        new Event("submit", { bubbles: true, cancelable: true }),
+      );
+    });
+    await expect($("[role='alert']")).toHaveText(
+      "Choose an ordered shared period inside the complete available history, up to 366 dates.",
+    );
+    await expectLongitudinalRows([
+      ["Jan 4, 2026", "No observation", "1 h", "Missing", "Missing"],
+      ["Jan 5, 2026", "5,300", "30 min", "Missing", "Missing"],
+      ["Jan 6, 2026", "No observation", "45 min", "7 h 30 min", "900 ms"],
+    ]);
+    await $(".longitudinal-filter button.secondary").click();
+    await expectLongitudinalRows([
+      ["Jan 1, 2026", "3,100", "0 ms", "Missing", "Missing"],
+      ["Jan 2, 2026", "4,200", "0 ms", "Missing", "Missing"],
+      ["Jan 3, 2026", "Observation available; step total unavailable", "0 ms", "Missing", "Missing"],
+      ["Jan 4, 2026", "No observation", "1 h", "Missing", "Missing"],
+      ["Jan 5, 2026", "5,300", "30 min", "Missing", "Missing"],
+      ["Jan 6, 2026", "No observation", "45 min", "7 h 30 min", "900 ms"],
+    ]);
+
+    await setLongitudinalComparisonRanges(
+      "2026-01-06",
+      "2026-01-06",
+      "2026-01-06",
+      "2026-01-06",
+    );
+    await $(".longitudinal-comparison button[type='submit']").click();
+    await expect($("#longitudinal-comparison-heading")).toHaveText(
+      "Longitudinal period comparison",
+    );
+    await expectLongitudinalComparison([
+      ["Total steps", "Not available", "Not available", "Not available"],
+      ["Training duration", "45 min", "45 min", "0 ms"],
+      ["Average asleep duration", "7 h 30 min", "7 h 30 min", "0 ms"],
+      ["Average beat-to-beat interval", "900 ms", "900 ms", "0 ms"],
+    ]);
+    await setLongitudinalComparisonRanges(
+      "2026-01-06",
+      "2026-01-05",
+      "2026-01-06",
+      "2026-01-06",
+    );
+    await browser.execute(() => {
+      document.querySelector(".longitudinal-comparison form").dispatchEvent(
+        new Event("submit", { bubbles: true, cancelable: true }),
+      );
+    });
+    await expect($("[role='alert']")).toHaveText(
+      "Choose ordered shared comparison periods inside the complete available history, up to 366 dates each.",
+    );
+    await expect($("#longitudinal-comparison-heading")).toHaveText(
+      "Longitudinal period comparison",
+    );
+
     await selectLocale("es-ES");
     await expectHistory([
       [formatLocalDate("es-ES", "2026-01-01"), "3100", spanish.activity.available],
@@ -1273,6 +1532,23 @@ describe("packaged FitFreed import journey", () => {
     await expect($("#recovery-comparison-heading")).toHaveText(
       spanish.recovery.comparison.resultHeading,
     );
+    await expect($("#longitudinal-comparison-heading")).toHaveText(
+      spanish.longitudinal.comparison.resultHeading,
+    );
+    await expectLongitudinalSummary([
+      ["12.600", `${spanish.longitudinal.totalSteps} · 4 ${spanish.longitudinal.of} 6 ${spanish.longitudinal.days}`],
+      ["3", `${spanish.longitudinal.sessions} · 3 · ${spanish.longitudinal.trainingDays}`],
+      ["7 h 30 min", `${spanish.longitudinal.averageSleep} · 1 ${spanish.longitudinal.of} 6 ${spanish.longitudinal.days}`],
+      ["900 ms", `${spanish.longitudinal.averageRecovery} · 1 ${spanish.longitudinal.of} 6 ${spanish.longitudinal.days}`],
+    ]);
+    await expectLongitudinalRows([
+      [formatLocalDate("es-ES", "2026-01-01"), "3100", "0 ms", spanish.longitudinal.missing, spanish.longitudinal.missing],
+      [formatLocalDate("es-ES", "2026-01-02"), "4200", "0 ms", spanish.longitudinal.missing, spanish.longitudinal.missing],
+      [formatLocalDate("es-ES", "2026-01-03"), spanish.activity.unavailable, "0 ms", spanish.longitudinal.missing, spanish.longitudinal.missing],
+      [formatLocalDate("es-ES", "2026-01-04"), spanish.activity.missing, "1 h", spanish.longitudinal.missing, spanish.longitudinal.missing],
+      [formatLocalDate("es-ES", "2026-01-05"), "5300", "30 min", spanish.longitudinal.missing, spanish.longitudinal.missing],
+      [formatLocalDate("es-ES", "2026-01-06"), spanish.activity.missing, "45 min", "7 h 30 min", "900 ms"],
+    ]);
     const spanishTrainingDetailButtons = await $$('button[aria-label^="Ver detalles del entrenamiento del"]');
     expect(spanishTrainingDetailButtons).toHaveLength(3);
     await spanishTrainingDetailButtons[2].click();
@@ -1324,10 +1600,12 @@ describe("packaged FitFreed import journey", () => {
     await $(".training-comparison-result button.secondary").click();
     await $(".sleep-comparison-result button.secondary").click();
     await $(".recovery-comparison-result button.secondary").click();
+    await $(".longitudinal-comparison-result button.secondary").click();
     expect(await $$(".activity-comparison-result")).toHaveLength(0);
     expect(await $$(".training-comparison-result")).toHaveLength(0);
     expect(await $$(".sleep-comparison-result")).toHaveLength(0);
     expect(await $$(".recovery-comparison-result")).toHaveLength(0);
+    expect(await $$(".longitudinal-comparison-result")).toHaveLength(0);
 
     await browser.reloadSession();
     await expect($("h1")).toHaveText(spanish.title);
@@ -1396,10 +1674,24 @@ describe("packaged FitFreed import journey", () => {
       [`1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`, spanish.recovery.guidanceCoverage],
       ["0", spanish.recovery.missingNights],
     ]);
+    await expectLongitudinalSummary([
+      ["12.600", `${spanish.longitudinal.totalSteps} · 4 ${spanish.longitudinal.of} 6 ${spanish.longitudinal.days}`],
+      ["3", `${spanish.longitudinal.sessions} · 3 · ${spanish.longitudinal.trainingDays}`],
+      ["7 h 30 min", `${spanish.longitudinal.averageSleep} · 1 ${spanish.longitudinal.of} 6 ${spanish.longitudinal.days}`],
+      ["900 ms", `${spanish.longitudinal.averageRecovery} · 1 ${spanish.longitudinal.of} 6 ${spanish.longitudinal.days}`],
+    ]);
+    await expectLongitudinalRows([
+      [formatLocalDate("es-ES", "2026-01-01"), "3100", "0 ms", spanish.longitudinal.missing, spanish.longitudinal.missing],
+      [formatLocalDate("es-ES", "2026-01-02"), "4200", "0 ms", spanish.longitudinal.missing, spanish.longitudinal.missing],
+      [formatLocalDate("es-ES", "2026-01-03"), spanish.activity.unavailable, "0 ms", spanish.longitudinal.missing, spanish.longitudinal.missing],
+      [formatLocalDate("es-ES", "2026-01-04"), spanish.activity.missing, "1 h", spanish.longitudinal.missing, spanish.longitudinal.missing],
+      [formatLocalDate("es-ES", "2026-01-05"), "5300", "30 min", spanish.longitudinal.missing, spanish.longitudinal.missing],
+      [formatLocalDate("es-ES", "2026-01-06"), spanish.activity.missing, "45 min", "7 h 30 min", "900 ms"],
+    ]);
 
   });
 
-  it("meets activity, training, sleep, and recovery insight budgets", async () => {
+  it("meets domain and longitudinal insight budgets", async () => {
     await runInsightsPerformanceJourney({
       archivePath: insightsPerformanceArchive,
       selectArchive,

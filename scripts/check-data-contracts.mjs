@@ -1438,6 +1438,268 @@ if (validateRecoveryComparison(blankRecoveryComparisonSeries)) {
   throw new Error(recoveryComparisonSchemaPath + " accepted a blank series reference");
 }
 
+const longitudinalPath = "docs/data-formats/insights/longitudinal-overview-v1.md";
+const longitudinal = read(longitudinalPath);
+for (const field of [
+  "requestedRange",
+  "availableRange",
+  "selectedRange",
+  "baselineRange",
+  "comparisonRange",
+  "seriesRef",
+  "localDate",
+  "activity",
+  "training",
+  "sleep",
+  "recovery",
+  "sessionCount",
+  "totalDurationMilliseconds",
+  "asleepMilliseconds",
+  "beatToBeatIntervalMilliseconds",
+  "heartRateVariabilityRmssdMilliseconds",
+  "breathingIntervalMilliseconds",
+  "totalStepChange",
+  "sessionCountChange",
+  "averageAsleepMillisecondsChange",
+  "averageBeatToBeatIntervalMillisecondsChange",
+]) {
+  requireMention(longitudinal, field, longitudinalPath);
+}
+
+const longitudinalOverviewQuerySchemaPath =
+  "schemas/longitudinal-overview-query-v1.schema.json";
+const longitudinalOverviewQuerySchema = JSON.parse(read(longitudinalOverviewQuerySchemaPath));
+const validateLongitudinalOverviewQuery = ajv.compile(longitudinalOverviewQuerySchema);
+for (const query of [
+  { requestedRange: null },
+  { requestedRange: { from: "2026-01-01", through: "2026-01-02" } },
+]) {
+  if (!validateLongitudinalOverviewQuery(query)) {
+    throw new Error(
+      longitudinalOverviewQuerySchemaPath
+        + " rejected a valid query: "
+        + ajv.errorsText(validateLongitudinalOverviewQuery.errors),
+    );
+  }
+}
+for (const query of [
+  {},
+  { requestedRange: { from: "2026-02-30", through: "2026-03-01" } },
+  { requestedRange: null, provider: "synthetic" },
+]) {
+  if (validateLongitudinalOverviewQuery(query)) {
+    throw new Error(longitudinalOverviewQuerySchemaPath + " accepted an invalid query");
+  }
+}
+
+const longitudinalActivitySummary = {
+  ...syntheticSummary,
+  observedDays: 1,
+  availableStepDays: 1,
+  missingDays: 1,
+};
+const longitudinalTrainingSummary = {
+  ...trainingSummary,
+  calendarDays: 2,
+  trainingDays: 1,
+  sessionCount: 1,
+  totalDurationMilliseconds: "3600000",
+};
+const longitudinalSleepSummary = {
+  ...syntheticSleepSummary,
+  calendarDays: 2,
+  observedNights: 1,
+  missingNights: 1,
+};
+const syntheticLongitudinalOverview = {
+  availableRange: { from: "2026-01-01", through: "2026-01-02" },
+  selectedRange: { from: "2026-01-01", through: "2026-01-02" },
+  series: [{
+    seriesRef: "synthetic-origin",
+    activity: longitudinalActivitySummary,
+    training: longitudinalTrainingSummary,
+    sleep: longitudinalSleepSummary,
+    recovery: syntheticRecoverySummary,
+    days: [
+      {
+        localDate: "2026-01-01",
+        activity: { availability: "available", stepCount: "9007199254740993" },
+        training: { sessionCount: 1, totalDurationMilliseconds: "3600000" },
+        sleep: { availability: "available", asleepMilliseconds: "23400000" },
+        recovery: {
+          availability: "available",
+          beatToBeatIntervalMilliseconds: "9007199254740993",
+          heartRateVariabilityRmssdMilliseconds: "42",
+          breathingIntervalMilliseconds: "4100",
+        },
+      },
+      {
+        localDate: "2026-01-02",
+        activity: { availability: "missing", stepCount: null },
+        training: { sessionCount: 0, totalDurationMilliseconds: "0" },
+        sleep: { availability: "missing", asleepMilliseconds: null },
+        recovery: {
+          availability: "missing",
+          beatToBeatIntervalMilliseconds: null,
+          heartRateVariabilityRmssdMilliseconds: null,
+          breathingIntervalMilliseconds: null,
+        },
+      },
+    ],
+  }],
+};
+const longitudinalOverviewSchemaPath = "schemas/longitudinal-overview-v1.schema.json";
+const longitudinalOverviewSchema = JSON.parse(read(longitudinalOverviewSchemaPath));
+const validateLongitudinalOverview = ajv.compile(longitudinalOverviewSchema);
+for (const overview of [
+  { availableRange: null, selectedRange: null, series: [] },
+  syntheticLongitudinalOverview,
+]) {
+  if (!validateLongitudinalOverview(overview)) {
+    throw new Error(
+      longitudinalOverviewSchemaPath
+        + " rejected a valid response: "
+        + ajv.errorsText(validateLongitudinalOverview.errors),
+    );
+  }
+}
+for (const invalidOverview of [
+  (() => {
+    const value = structuredClone(syntheticLongitudinalOverview);
+    value.series[0].seriesRef = " ";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticLongitudinalOverview);
+    value.series[0].days[1].activity.stepCount = "0";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticLongitudinalOverview);
+    value.series[0].days[1].recovery.beatToBeatIntervalMilliseconds = "1";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticLongitudinalOverview);
+    value.series[0].days[0].training.totalDurationMilliseconds = 3600000;
+    return value;
+  })(),
+]) {
+  if (validateLongitudinalOverview(invalidOverview)) {
+    throw new Error(longitudinalOverviewSchemaPath + " accepted an invalid response");
+  }
+}
+
+const longitudinalComparisonQuerySchemaPath =
+  "schemas/longitudinal-comparison-query-v1.schema.json";
+const longitudinalComparisonQuerySchema = JSON.parse(read(longitudinalComparisonQuerySchemaPath));
+const validateLongitudinalComparisonQuery = ajv.compile(longitudinalComparisonQuerySchema);
+const syntheticLongitudinalComparisonQuery = {
+  baselineRange: { from: "2026-01-01", through: "2026-01-01" },
+  comparisonRange: { from: "2026-01-02", through: "2026-01-02" },
+};
+if (!validateLongitudinalComparisonQuery(syntheticLongitudinalComparisonQuery)) {
+  throw new Error(
+    longitudinalComparisonQuerySchemaPath
+      + " rejected its synthetic query: "
+      + ajv.errorsText(validateLongitudinalComparisonQuery.errors),
+  );
+}
+for (const query of [
+  { baselineRange: syntheticLongitudinalComparisonQuery.baselineRange },
+  { ...syntheticLongitudinalComparisonQuery, provider: "synthetic" },
+  {
+    ...syntheticLongitudinalComparisonQuery,
+    comparisonRange: { from: "2026-02-30", through: "2026-03-01" },
+  },
+]) {
+  if (validateLongitudinalComparisonQuery(query)) {
+    throw new Error(longitudinalComparisonQuerySchemaPath + " accepted an invalid query");
+  }
+}
+
+const syntheticLongitudinalComparison = {
+  availableRange: syntheticLongitudinalOverview.availableRange,
+  ...syntheticLongitudinalComparisonQuery,
+  series: [{
+    seriesRef: "synthetic-origin",
+    activity: {
+      baseline: longitudinalActivitySummary,
+      comparison: longitudinalActivitySummary,
+      totalStepChange: "1000",
+      averageStepChange: "1000",
+    },
+    training: {
+      baseline: longitudinalTrainingSummary,
+      comparison: longitudinalTrainingSummary,
+      sessionCountChange: "1",
+      trainingDayChange: "1",
+      durationMillisecondsChange: "3600000",
+      distanceMetersChange: null,
+      energyKilocaloriesChange: null,
+    },
+    sleep: {
+      baseline: longitudinalSleepSummary,
+      comparison: longitudinalSleepSummary,
+      observedNightChange: "0",
+      missingNightChange: "0",
+      averageAsleepMillisecondsChange: "1000",
+      averageInterruptionMillisecondsChange: null,
+      averageEfficiencyPercentagePointChange: 1.5,
+      averageOverallScoreChange: null,
+      goalMetPercentagePointChange: null,
+    },
+    recovery: {
+      baseline: syntheticRecoverySummary,
+      comparison: syntheticRecoverySummary,
+      observedNightChange: "0",
+      missingNightChange: "0",
+      averageBeatToBeatIntervalMillisecondsChange: "10",
+      averageHeartRateVariabilityRmssdMillisecondsChange: null,
+      averageBreathingIntervalMillisecondsChange: "-10",
+      assessmentNightChange: "0",
+      baselineNightChange: "0",
+      guidanceNightChange: "0",
+    },
+  }],
+};
+const longitudinalComparisonSchemaPath = "schemas/longitudinal-comparison-v1.schema.json";
+const longitudinalComparisonSchema = JSON.parse(read(longitudinalComparisonSchemaPath));
+const validateLongitudinalComparison = ajv.compile(longitudinalComparisonSchema);
+for (const comparison of [
+  { availableRange: null, baselineRange: null, comparisonRange: null, series: [] },
+  syntheticLongitudinalComparison,
+]) {
+  if (!validateLongitudinalComparison(comparison)) {
+    throw new Error(
+      longitudinalComparisonSchemaPath
+        + " rejected a valid response: "
+        + ajv.errorsText(validateLongitudinalComparison.errors),
+    );
+  }
+}
+for (const invalidComparison of [
+  (() => {
+    const value = structuredClone(syntheticLongitudinalComparison);
+    value.series[0].training.durationMillisecondsChange = 1;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticLongitudinalComparison);
+    value.series[0].sleep.observedNightChange = "+1";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticLongitudinalComparison);
+    value.series[0].seriesRef = " ";
+    return value;
+  })(),
+]) {
+  if (validateLongitudinalComparison(invalidComparison)) {
+    throw new Error(longitudinalComparisonSchemaPath + " accepted an invalid response");
+  }
+}
+
 const indexPath = "docs/data-formats/README.md";
 const index = read(indexPath);
 for (const contractPath of [
@@ -1454,6 +1716,7 @@ for (const contractPath of [
   sleepComparisonPath,
   recoveryOverviewPath,
   recoveryComparisonPath,
+  longitudinalPath,
   ...persistencePaths,
 ]) {
   const relativeContract = path.relative(path.dirname(indexPath), contractPath);
@@ -1504,6 +1767,14 @@ process.stdout.write(
     recoveryComparisonSchemas: [
       recoveryComparisonQuerySchemaPath,
       recoveryComparisonSchemaPath,
+    ],
+    longitudinalOverviewSchemas: [
+      longitudinalOverviewQuerySchemaPath,
+      longitudinalOverviewSchemaPath,
+    ],
+    longitudinalComparisonSchemas: [
+      longitudinalComparisonQuerySchemaPath,
+      longitudinalComparisonSchemaPath,
     ],
     canonicalFields: 56,
     mappingFields: 75,

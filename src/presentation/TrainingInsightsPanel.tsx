@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
+import type { ExplorerNavigationRequest } from "./explorer-navigation";
 import { TrainingComparisonPanel } from "./TrainingComparisonPanel";
 import {
   formatDistance,
@@ -21,6 +22,7 @@ interface TrainingInsightsPanelProps {
   locale: Locale;
   messages: (typeof catalogs)["en-US"];
   refreshToken: number;
+  navigationRequest?: ExplorerNavigationRequest;
   onError: (code: string | undefined) => void;
 }
 
@@ -42,6 +44,7 @@ export function TrainingInsightsPanel({
   locale,
   messages,
   refreshToken,
+  navigationRequest,
   onError,
 }: TrainingInsightsPanelProps) {
   const [overview, setOverview] = useState<TrainingOverview>();
@@ -91,6 +94,18 @@ export function TrainingInsightsPanel({
       active = false;
     };
   }, [refreshToken, onError]);
+
+  useEffect(() => {
+    if (!navigationRequest) return;
+    setLoading(true);
+    onError(undefined);
+    void refresh({
+      from: navigationRequest.localDate,
+      through: navigationRequest.localDate,
+    })
+      .catch((reason) => onError(commandErrorCode(reason)))
+      .finally(() => setLoading(false));
+  }, [navigationRequest, onError]);
 
   async function applyRange(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

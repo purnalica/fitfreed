@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
+import type { ExplorerNavigationRequest } from "./explorer-navigation";
 import { SleepComparisonPanel } from "./SleepComparisonPanel";
 import {
   formatDecimal,
@@ -26,6 +27,7 @@ interface SleepInsightsPanelProps {
   locale: Locale;
   messages: (typeof catalogs)["en-US"];
   refreshToken: number;
+  navigationRequest?: ExplorerNavigationRequest;
   onError: (code: string | undefined) => void;
 }
 
@@ -38,6 +40,7 @@ export function SleepInsightsPanel({
   locale,
   messages,
   refreshToken,
+  navigationRequest,
   onError,
 }: SleepInsightsPanelProps) {
   const [overview, setOverview] = useState<SleepOverview>();
@@ -86,6 +89,22 @@ export function SleepInsightsPanel({
       detailRequest.current += 1;
     };
   }, [refreshToken, onError]);
+
+  useEffect(() => {
+    if (!navigationRequest) return;
+    setLoadingRange(true);
+    onError(undefined);
+    void refresh({
+      from: navigationRequest.localDate,
+      through: navigationRequest.localDate,
+    })
+      .then(() => openDetail({
+        seriesRef: navigationRequest.seriesRef,
+        sleepDate: navigationRequest.localDate,
+      }))
+      .catch((reason) => onError(commandErrorCode(reason)))
+      .finally(() => setLoadingRange(false));
+  }, [navigationRequest, onError]);
 
   async function applyRange(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

@@ -3,14 +3,18 @@ use serde::{Deserialize, Serialize};
 use fitfreed_application::{
     ActivityComparison, ActivityDateRange, ActivityDayAvailability, ActivityDayInsight,
     ActivityOverview, ActivitySeriesComparison, ActivitySeriesOverview, ActivitySeriesSummary,
-    ApplicationError, ImportPhase, ImportProgress, RecoveryComparison, RecoveryDateRange,
-    RecoveryDayAvailability, RecoveryDayInsight, RecoveryNightDetail, RecoveryNightInsight,
-    RecoveryOverview, RecoverySeriesComparison, RecoverySeriesOverview, RecoverySeriesSummary,
-    SleepComparison, SleepDateRange, SleepDayAvailability, SleepDayInsight, SleepOverview,
-    SleepPeriodDetail, SleepPeriodInsight, SleepPhaseTotals, SleepSeriesComparison,
-    SleepSeriesOverview, SleepSeriesSummary, TrainingComparison, TrainingDateRange,
-    TrainingOverview, TrainingSeriesComparison, TrainingSeriesOverview, TrainingSeriesSummary,
-    TrainingSessionInsight,
+    ApplicationError, ImportPhase, ImportProgress, LongitudinalActivityComparison,
+    LongitudinalActivityDay, LongitudinalComparison, LongitudinalDateRange, LongitudinalDayInsight,
+    LongitudinalOverview, LongitudinalRecoveryComparison, LongitudinalRecoveryDay,
+    LongitudinalSeriesComparison, LongitudinalSeriesOverview, LongitudinalSleepComparison,
+    LongitudinalSleepDay, LongitudinalTrainingComparison, LongitudinalTrainingDay,
+    RecoveryComparison, RecoveryDateRange, RecoveryDayAvailability, RecoveryDayInsight,
+    RecoveryNightDetail, RecoveryNightInsight, RecoveryOverview, RecoverySeriesComparison,
+    RecoverySeriesOverview, RecoverySeriesSummary, SleepComparison, SleepDateRange,
+    SleepDayAvailability, SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight,
+    SleepPhaseTotals, SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary,
+    TrainingComparison, TrainingDateRange, TrainingOverview, TrainingSeriesComparison,
+    TrainingSeriesOverview, TrainingSeriesSummary, TrainingSessionInsight,
 };
 use fitfreed_domain::{
     ArtifactCoverageSummary, ArtifactFamilyCoverage, ImportOutcome, ImportReport,
@@ -44,6 +48,7 @@ impl From<ApplicationError> for CommandErrorDto {
             ApplicationError::InvalidSleepReference(_) => "invalid-sleep-reference",
             ApplicationError::InvalidRecoveryRange(_) => "invalid-recovery-range",
             ApplicationError::InvalidRecoveryReference(_) => "invalid-recovery-reference",
+            ApplicationError::InvalidLongitudinalRange(_) => "invalid-longitudinal-range",
             ApplicationError::OutcomeQuery(_) => "outcome-query-failed",
             ApplicationError::PreferenceQuery(_) => "preference-query-failed",
             ApplicationError::PreferenceUpdate(_) => "preference-update-failed",
@@ -1098,6 +1103,344 @@ impl From<RecoveryNightDetail> for RecoveryNightDetailDto {
     }
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LongitudinalDateRangeDto {
+    from: String,
+    through: String,
+}
+
+impl From<LongitudinalDateRangeDto> for LongitudinalDateRange {
+    fn from(range: LongitudinalDateRangeDto) -> Self {
+        Self {
+            from: range.from,
+            through: range.through,
+        }
+    }
+}
+
+impl From<LongitudinalDateRange> for LongitudinalDateRangeDto {
+    fn from(range: LongitudinalDateRange) -> Self {
+        Self {
+            from: range.from,
+            through: range.through,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LongitudinalActivityDayDto {
+    availability: &'static str,
+    step_count: Option<String>,
+}
+
+impl From<LongitudinalActivityDay> for LongitudinalActivityDayDto {
+    fn from(day: LongitudinalActivityDay) -> Self {
+        Self {
+            availability: match day.availability {
+                ActivityDayAvailability::Available => "available",
+                ActivityDayAvailability::Unavailable => "unavailable",
+                ActivityDayAvailability::Missing => "missing",
+            },
+            step_count: day.step_count.map(|value| value.to_string()),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LongitudinalTrainingDayDto {
+    session_count: usize,
+    total_duration_milliseconds: String,
+}
+
+impl From<LongitudinalTrainingDay> for LongitudinalTrainingDayDto {
+    fn from(day: LongitudinalTrainingDay) -> Self {
+        Self {
+            session_count: day.session_count,
+            total_duration_milliseconds: day.total_duration_milliseconds.to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LongitudinalSleepDayDto {
+    availability: &'static str,
+    asleep_milliseconds: Option<String>,
+}
+
+impl From<LongitudinalSleepDay> for LongitudinalSleepDayDto {
+    fn from(day: LongitudinalSleepDay) -> Self {
+        Self {
+            availability: match day.availability {
+                SleepDayAvailability::Available => "available",
+                SleepDayAvailability::Missing => "missing",
+            },
+            asleep_milliseconds: day.asleep_milliseconds.map(|value| value.to_string()),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LongitudinalRecoveryDayDto {
+    availability: &'static str,
+    beat_to_beat_interval_milliseconds: Option<String>,
+    heart_rate_variability_rmssd_milliseconds: Option<String>,
+    breathing_interval_milliseconds: Option<String>,
+}
+
+impl From<LongitudinalRecoveryDay> for LongitudinalRecoveryDayDto {
+    fn from(day: LongitudinalRecoveryDay) -> Self {
+        Self {
+            availability: match day.availability {
+                RecoveryDayAvailability::Available => "available",
+                RecoveryDayAvailability::Missing => "missing",
+            },
+            beat_to_beat_interval_milliseconds: day
+                .beat_to_beat_interval_milliseconds
+                .map(|value| value.to_string()),
+            heart_rate_variability_rmssd_milliseconds: day
+                .heart_rate_variability_rmssd_milliseconds
+                .map(|value| value.to_string()),
+            breathing_interval_milliseconds: day
+                .breathing_interval_milliseconds
+                .map(|value| value.to_string()),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LongitudinalDayInsightDto {
+    local_date: String,
+    activity: LongitudinalActivityDayDto,
+    training: LongitudinalTrainingDayDto,
+    sleep: LongitudinalSleepDayDto,
+    recovery: LongitudinalRecoveryDayDto,
+}
+
+impl From<LongitudinalDayInsight> for LongitudinalDayInsightDto {
+    fn from(day: LongitudinalDayInsight) -> Self {
+        Self {
+            local_date: day.local_date,
+            activity: day.activity.into(),
+            training: day.training.into(),
+            sleep: day.sleep.into(),
+            recovery: day.recovery.into(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LongitudinalSeriesOverviewDto {
+    series_ref: String,
+    activity: ActivitySeriesSummaryDto,
+    training: TrainingSeriesSummaryDto,
+    sleep: SleepSeriesSummaryDto,
+    recovery: RecoverySeriesSummaryDto,
+    days: Vec<LongitudinalDayInsightDto>,
+}
+
+impl From<LongitudinalSeriesOverview> for LongitudinalSeriesOverviewDto {
+    fn from(series: LongitudinalSeriesOverview) -> Self {
+        Self {
+            series_ref: series.series_ref,
+            activity: series.activity.into(),
+            training: series.training.into(),
+            sleep: series.sleep.into(),
+            recovery: series.recovery.into(),
+            days: series.days.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LongitudinalOverviewDto {
+    available_range: Option<LongitudinalDateRangeDto>,
+    selected_range: Option<LongitudinalDateRangeDto>,
+    series: Vec<LongitudinalSeriesOverviewDto>,
+}
+
+impl From<LongitudinalOverview> for LongitudinalOverviewDto {
+    fn from(overview: LongitudinalOverview) -> Self {
+        Self {
+            available_range: overview.available_range.map(Into::into),
+            selected_range: overview.selected_range.map(Into::into),
+            series: overview.series.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LongitudinalActivityComparisonDto {
+    baseline: ActivitySeriesSummaryDto,
+    comparison: ActivitySeriesSummaryDto,
+    total_step_change: Option<String>,
+    average_step_change: Option<String>,
+}
+
+impl From<LongitudinalActivityComparison> for LongitudinalActivityComparisonDto {
+    fn from(comparison: LongitudinalActivityComparison) -> Self {
+        Self {
+            baseline: comparison.baseline.into(),
+            comparison: comparison.comparison.into(),
+            total_step_change: comparison.total_step_change.map(|value| value.to_string()),
+            average_step_change: comparison
+                .average_step_change
+                .map(|value| value.to_string()),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LongitudinalTrainingComparisonDto {
+    baseline: TrainingSeriesSummaryDto,
+    comparison: TrainingSeriesSummaryDto,
+    session_count_change: String,
+    training_day_change: String,
+    duration_milliseconds_change: String,
+    distance_meters_change: Option<f64>,
+    energy_kilocalories_change: Option<String>,
+}
+
+impl From<LongitudinalTrainingComparison> for LongitudinalTrainingComparisonDto {
+    fn from(comparison: LongitudinalTrainingComparison) -> Self {
+        Self {
+            baseline: comparison.baseline.into(),
+            comparison: comparison.comparison.into(),
+            session_count_change: comparison.session_count_change.to_string(),
+            training_day_change: comparison.training_day_change.to_string(),
+            duration_milliseconds_change: comparison.duration_milliseconds_change.to_string(),
+            distance_meters_change: comparison.distance_meters_change,
+            energy_kilocalories_change: comparison
+                .energy_kilocalories_change
+                .map(|value| value.to_string()),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LongitudinalSleepComparisonDto {
+    baseline: SleepSeriesSummaryDto,
+    comparison: SleepSeriesSummaryDto,
+    observed_night_change: String,
+    missing_night_change: String,
+    average_asleep_milliseconds_change: Option<String>,
+    average_interruption_milliseconds_change: Option<String>,
+    average_efficiency_percentage_point_change: Option<f64>,
+    average_overall_score_change: Option<f64>,
+    goal_met_percentage_point_change: Option<f64>,
+}
+
+impl From<LongitudinalSleepComparison> for LongitudinalSleepComparisonDto {
+    fn from(comparison: LongitudinalSleepComparison) -> Self {
+        Self {
+            baseline: comparison.baseline.into(),
+            comparison: comparison.comparison.into(),
+            observed_night_change: comparison.observed_night_change.to_string(),
+            missing_night_change: comparison.missing_night_change.to_string(),
+            average_asleep_milliseconds_change: comparison
+                .average_asleep_milliseconds_change
+                .map(|value| value.to_string()),
+            average_interruption_milliseconds_change: comparison
+                .average_interruption_milliseconds_change
+                .map(|value| value.to_string()),
+            average_efficiency_percentage_point_change: comparison
+                .average_efficiency_percentage_point_change,
+            average_overall_score_change: comparison.average_overall_score_change,
+            goal_met_percentage_point_change: comparison.goal_met_percentage_point_change,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LongitudinalRecoveryComparisonDto {
+    baseline: RecoverySeriesSummaryDto,
+    comparison: RecoverySeriesSummaryDto,
+    observed_night_change: String,
+    missing_night_change: String,
+    average_beat_to_beat_interval_milliseconds_change: Option<String>,
+    average_heart_rate_variability_rmssd_milliseconds_change: Option<String>,
+    average_breathing_interval_milliseconds_change: Option<String>,
+    assessment_night_change: String,
+    baseline_night_change: String,
+    guidance_night_change: String,
+}
+
+impl From<LongitudinalRecoveryComparison> for LongitudinalRecoveryComparisonDto {
+    fn from(comparison: LongitudinalRecoveryComparison) -> Self {
+        Self {
+            baseline: comparison.baseline.into(),
+            comparison: comparison.comparison.into(),
+            observed_night_change: comparison.observed_night_change.to_string(),
+            missing_night_change: comparison.missing_night_change.to_string(),
+            average_beat_to_beat_interval_milliseconds_change: comparison
+                .average_beat_to_beat_interval_milliseconds_change
+                .map(|value| value.to_string()),
+            average_heart_rate_variability_rmssd_milliseconds_change: comparison
+                .average_heart_rate_variability_rmssd_milliseconds_change
+                .map(|value| value.to_string()),
+            average_breathing_interval_milliseconds_change: comparison
+                .average_breathing_interval_milliseconds_change
+                .map(|value| value.to_string()),
+            assessment_night_change: comparison.assessment_night_change.to_string(),
+            baseline_night_change: comparison.baseline_night_change.to_string(),
+            guidance_night_change: comparison.guidance_night_change.to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LongitudinalSeriesComparisonDto {
+    series_ref: String,
+    activity: LongitudinalActivityComparisonDto,
+    training: LongitudinalTrainingComparisonDto,
+    sleep: LongitudinalSleepComparisonDto,
+    recovery: LongitudinalRecoveryComparisonDto,
+}
+
+impl From<LongitudinalSeriesComparison> for LongitudinalSeriesComparisonDto {
+    fn from(series: LongitudinalSeriesComparison) -> Self {
+        Self {
+            series_ref: series.series_ref,
+            activity: series.activity.into(),
+            training: series.training.into(),
+            sleep: series.sleep.into(),
+            recovery: series.recovery.into(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LongitudinalComparisonDto {
+    available_range: Option<LongitudinalDateRangeDto>,
+    baseline_range: Option<LongitudinalDateRangeDto>,
+    comparison_range: Option<LongitudinalDateRangeDto>,
+    series: Vec<LongitudinalSeriesComparisonDto>,
+}
+
+impl From<LongitudinalComparison> for LongitudinalComparisonDto {
+    fn from(comparison: LongitudinalComparison) -> Self {
+        Self {
+            available_range: comparison.available_range.map(Into::into),
+            baseline_range: comparison.baseline_range.map(Into::into),
+            comparison_range: comparison.comparison_range.map(Into::into),
+            series: comparison.series.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
 impl From<ActivityComparison> for ActivityComparisonDto {
     fn from(comparison: ActivityComparison) -> Self {
         Self {
@@ -1290,6 +1633,175 @@ mod tests {
             baseline_night_count: 1,
             guidance_night_count: 1,
         }
+    }
+
+    fn activity_summary(value: i128) -> ActivitySeriesSummary {
+        ActivitySeriesSummary {
+            calendar_days: 2,
+            observed_days: 1,
+            available_step_days: 1,
+            unavailable_step_days: 0,
+            missing_days: 1,
+            total_step_count: Some(value),
+            average_step_count: Some(value),
+        }
+    }
+
+    fn training_summary(value: i128) -> TrainingSeriesSummary {
+        TrainingSeriesSummary {
+            calendar_days: 2,
+            training_days: 1,
+            session_count: 1,
+            total_duration_milliseconds: value,
+            distance_session_count: 1,
+            total_distance_meters: Some(1_000.5),
+            energy_session_count: 1,
+            total_energy_kilocalories: Some(value),
+            heart_rate_session_count: 1,
+        }
+    }
+
+    fn sleep_summary(value: i128) -> SleepSeriesSummary {
+        SleepSeriesSummary {
+            calendar_days: 2,
+            observed_nights: 1,
+            missing_nights: 1,
+            total_asleep_milliseconds: Some(value),
+            average_asleep_milliseconds: Some(value),
+            total_interruption_milliseconds: Some(value),
+            average_interruption_milliseconds: Some(value),
+            average_efficiency_percent: Some(90.0),
+            phase_night_count: 0,
+            phase_totals: None,
+            stage_timeline_night_count: 0,
+            score_night_count: 0,
+            average_overall_score: None,
+            goal_night_count: 0,
+            goal_met_night_count: 0,
+            power_status_night_count: 0,
+            power_loss_night_count: 0,
+        }
+    }
+
+    #[test]
+    fn serializes_longitudinal_days_and_changes_without_losing_exact_values() {
+        let large = 9_223_372_036_854_775_808_i128;
+        let range = Some(LongitudinalDateRange {
+            from: "2026-01-01".to_owned(),
+            through: "2026-01-02".to_owned(),
+        });
+        let overview = LongitudinalOverview {
+            available_range: range.clone(),
+            selected_range: range.clone(),
+            series: vec![LongitudinalSeriesOverview {
+                series_ref: "synthetic-origin".to_owned(),
+                activity: activity_summary(large),
+                training: training_summary(large),
+                sleep: sleep_summary(large),
+                recovery: recovery_summary(large),
+                days: vec![LongitudinalDayInsight {
+                    local_date: "2026-01-01".to_owned(),
+                    activity: LongitudinalActivityDay {
+                        availability: ActivityDayAvailability::Available,
+                        step_count: Some(i64::MAX),
+                    },
+                    training: LongitudinalTrainingDay {
+                        session_count: 2,
+                        total_duration_milliseconds: large,
+                    },
+                    sleep: LongitudinalSleepDay {
+                        availability: SleepDayAvailability::Available,
+                        asleep_milliseconds: Some(i64::MAX),
+                    },
+                    recovery: LongitudinalRecoveryDay {
+                        availability: RecoveryDayAvailability::Available,
+                        beat_to_beat_interval_milliseconds: Some(i64::MAX),
+                        heart_rate_variability_rmssd_milliseconds: None,
+                        breathing_interval_milliseconds: Some(4_000),
+                    },
+                }],
+            }],
+        };
+        let comparison = LongitudinalComparison {
+            available_range: range.clone(),
+            baseline_range: range.clone(),
+            comparison_range: range,
+            series: vec![LongitudinalSeriesComparison {
+                series_ref: "synthetic-origin".to_owned(),
+                activity: LongitudinalActivityComparison {
+                    baseline: activity_summary(large),
+                    comparison: activity_summary(large),
+                    total_step_change: Some(-large),
+                    average_step_change: None,
+                },
+                training: LongitudinalTrainingComparison {
+                    baseline: training_summary(large),
+                    comparison: training_summary(large),
+                    session_count_change: large,
+                    training_day_change: -large,
+                    duration_milliseconds_change: large,
+                    distance_meters_change: Some(5.5),
+                    energy_kilocalories_change: None,
+                },
+                sleep: LongitudinalSleepComparison {
+                    baseline: sleep_summary(large),
+                    comparison: sleep_summary(large),
+                    observed_night_change: large,
+                    missing_night_change: -large,
+                    average_asleep_milliseconds_change: Some(large),
+                    average_interruption_milliseconds_change: None,
+                    average_efficiency_percentage_point_change: Some(2.5),
+                    average_overall_score_change: None,
+                    goal_met_percentage_point_change: None,
+                },
+                recovery: LongitudinalRecoveryComparison {
+                    baseline: recovery_summary(large),
+                    comparison: recovery_summary(large),
+                    observed_night_change: large,
+                    missing_night_change: -large,
+                    average_beat_to_beat_interval_milliseconds_change: Some(large),
+                    average_heart_rate_variability_rmssd_milliseconds_change: None,
+                    average_breathing_interval_milliseconds_change: Some(-large),
+                    assessment_night_change: 1,
+                    baseline_night_change: 0,
+                    guidance_night_change: -1,
+                },
+            }],
+        };
+
+        let overview_json = serde_json::to_value(LongitudinalOverviewDto::from(overview))
+            .expect("longitudinal overview JSON");
+        let comparison_json = serde_json::to_value(LongitudinalComparisonDto::from(comparison))
+            .expect("longitudinal comparison JSON");
+
+        assert_eq!(
+            overview_json["series"][0]["activity"]["totalStepCount"],
+            "9223372036854775808"
+        );
+        assert_eq!(
+            overview_json["series"][0]["days"][0]["training"]["totalDurationMilliseconds"],
+            "9223372036854775808"
+        );
+        assert_eq!(
+            overview_json["series"][0]["days"][0]["recovery"]
+                ["heartRateVariabilityRmssdMilliseconds"],
+            serde_json::Value::Null
+        );
+        assert_eq!(
+            comparison_json["series"][0]["activity"]["totalStepChange"],
+            "-9223372036854775808"
+        );
+        assert_eq!(
+            comparison_json["series"][0]["sleep"]["observedNightChange"],
+            "9223372036854775808"
+        );
+        assert_eq!(
+            serde_json::to_value(CommandErrorDto::from(
+                ApplicationError::InvalidLongitudinalRange("synthetic")
+            ))
+            .expect("longitudinal range error")["code"],
+            "invalid-longitudinal-range"
+        );
     }
 
     #[test]

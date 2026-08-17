@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
+import type { ExplorerNavigationRequest } from "./explorer-navigation";
 import { RecoveryComparisonPanel } from "./RecoveryComparisonPanel";
 import {
   formatRecoveryMilliseconds,
@@ -22,6 +23,7 @@ interface RecoveryInsightsPanelProps {
   locale: Locale;
   messages: (typeof catalogs)["en-US"];
   refreshToken: number;
+  navigationRequest?: ExplorerNavigationRequest;
   onError: (code: string | undefined) => void;
 }
 
@@ -34,6 +36,7 @@ export function RecoveryInsightsPanel({
   locale,
   messages,
   refreshToken,
+  navigationRequest,
   onError,
 }: RecoveryInsightsPanelProps) {
   const [overview, setOverview] = useState<RecoveryOverview>();
@@ -93,6 +96,22 @@ export function RecoveryInsightsPanel({
       detailRequest.current += 1;
     };
   }, [refreshToken, onError]);
+
+  useEffect(() => {
+    if (!navigationRequest) return;
+    setLoadingRange(true);
+    onError(undefined);
+    void refresh({
+      from: navigationRequest.localDate,
+      through: navigationRequest.localDate,
+    })
+      .then(() => openDetail({
+        seriesRef: navigationRequest.seriesRef,
+        recoveryDate: navigationRequest.localDate,
+      }))
+      .catch((reason) => onError(commandErrorCode(reason)))
+      .finally(() => setLoadingRange(false));
+  }, [navigationRequest, onError]);
 
   async function applyRange(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

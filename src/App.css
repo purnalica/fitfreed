@@ -299,6 +299,67 @@ th:last-child, td:last-child { text-align: right; }
 .recovery-comparison-series thead span { display: block; margin-top: 4px; color: #53635b; font-size: .7rem; font-weight: 500; }
 .recovery-comparison-series tbody th { text-align: left; }
 .recovery-bar { background: #27725a; }
+.longitudinal-insights { margin-top: 48px; padding-top: 38px; border-top: 1px solid #c8d5cc; }
+.longitudinal-intro { max-width: 760px; margin: -6px 0 18px; color: #53635b; }
+.longitudinal-filter { display: grid; grid-template-columns: minmax(0, 1fr) repeat(2, minmax(150px, auto)); gap: 14px 18px; align-items: end; margin: 16px 0; padding: 18px; background: #fff; border: 1px solid #d6ded8; border-radius: 15px; }
+.longitudinal-filter h3 { margin: 0 0 5px; font-size: 1rem; }
+.longitudinal-filter p { margin: 0; color: #53635b; font-size: .85rem; }
+.longitudinal-filter label, .longitudinal-filter input { min-width: 0; width: 100%; }
+.longitudinal-filter-actions { grid-column: 1 / 4; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+.longitudinal-range { margin: 0 0 18px; color: #53635b; }
+.longitudinal-series + .longitudinal-series { margin-top: 32px; padding-top: 28px; border-top: 1px solid #d6ded8; }
+.longitudinal-series h3 { margin: 0 0 14px; }
+.longitudinal-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0 0 18px; padding: 0; list-style: none; }
+.longitudinal-summary li { min-width: 0; padding: 15px; border: 1px solid #d6ded8; border-top-width: 5px; border-radius: 10px; }
+.longitudinal-summary li:nth-child(1) { border-top-color: #4b9b6f; }
+.longitudinal-summary li:nth-child(2) { border-top-color: #397994; }
+.longitudinal-summary li:nth-child(3) { border-top-color: #6654b8; }
+.longitudinal-summary li:nth-child(4) { border-top-color: #27725a; }
+.longitudinal-summary span, .longitudinal-summary strong, .longitudinal-summary small { display: block; overflow-wrap: anywhere; }
+.longitudinal-summary span { color: #53635b; font-size: .76rem; font-weight: 750; }
+.longitudinal-summary strong { margin: 5px 0; font-size: 1.22rem; font-variant-numeric: tabular-nums; }
+.longitudinal-summary small { color: #53635b; font-size: .72rem; line-height: 1.35; }
+.longitudinal-history-grid { display: grid; grid-template-columns: minmax(260px, .85fr) minmax(0, 1.65fr); gap: 26px; align-items: start; }
+.longitudinal-chart { display: grid; gap: 16px; margin: 0; padding: 0; list-style: none; }
+.longitudinal-chart > li { display: grid; grid-template-columns: minmax(100px, auto) minmax(0, 1fr); gap: 12px; align-items: start; font-size: .82rem; }
+.longitudinal-chart time { padding-top: 2px; font-weight: 700; }
+.longitudinal-lanes { display: grid; gap: 5px; min-width: 0; }
+.longitudinal-lane { display: grid; grid-template-columns: minmax(70px, auto) minmax(60px, 1fr); gap: 8px; align-items: center; color: #53635b; font-size: .68rem; }
+.longitudinal-lane .track { height: 7px; }
+.longitudinal-lane .bar.activity { background: #4b9b6f; }
+.longitudinal-lane .bar.training { background: #397994; }
+.longitudinal-lane .bar.sleep { background: #6654b8; }
+.longitudinal-lane .bar.recovery { background: #27725a; }
+.longitudinal-table-scroll { min-width: 0; max-width: 100%; overflow-x: auto; background: #fff; border: 1px solid #d6ded8; border-radius: 15px; }
+.longitudinal-table-scroll:focus-visible { outline: 3px solid #142f23; outline-offset: 3px; }
+.longitudinal-table-scroll table { min-width: 790px; padding: 16px; background: transparent; border: 0; border-radius: 0; table-layout: fixed; }
+.longitudinal-table-scroll th, .longitudinal-table-scroll td { min-width: 0; overflow-wrap: anywhere; }
+.longitudinal-detail { margin-top: 24px; padding: 20px; background: #fff; border: 1px solid #d6ded8; border-radius: 15px; }
+.longitudinal-detail-heading { display: flex; justify-content: space-between; gap: 18px; align-items: start; }
+.longitudinal-detail-heading h3 { margin: 0 0 5px; }
+.longitudinal-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 24px; margin: 18px 0 0; }
+.longitudinal-detail-grid div { display: grid; grid-template-columns: minmax(145px, auto) minmax(0, 1fr); gap: 10px; padding: 9px 0; border-top: 1px solid #d6ded8; }
+.longitudinal-detail-grid dt { color: #53635b; font-size: .78rem; font-weight: 700; }
+.longitudinal-detail-grid dd { margin: 0; text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.longitudinal-detail-links { display: flex; flex-wrap: wrap; gap: 10px 18px; margin-top: 20px; }
+.longitudinal-detail-links a { color: #245e43; font-weight: 700; text-underline-offset: 3px; }
+.longitudinal-comparison { margin-top: 32px; padding-top: 28px; border-top: 1px solid #d6ded8; }
+.longitudinal-comparison > div:first-child h3 { margin: 0 0 5px; }
+.longitudinal-comparison > div:first-child p { margin: 0; color: #53635b; }
+.longitudinal-comparison > form { display: grid; grid-template-columns: repeat(4, minmax(140px, 1fr)) auto; gap: 14px; align-items: end; margin-top: 16px; padding: 18px; background: #fff; border: 1px solid #d6ded8; border-radius: 15px; }
+.longitudinal-comparison > form label, .longitudinal-comparison > form input { min-width: 0; width: 100%; }
+.longitudinal-comparison-result { margin-top: 20px; padding: 20px; background: #fff; border: 1px solid #d6ded8; border-radius: 15px; }
+.longitudinal-comparison-result-heading { display: flex; align-items: start; justify-content: space-between; gap: 18px; }
+.longitudinal-comparison-result-heading h4 { margin: 0 0 5px; font-size: 1.1rem; }
+.longitudinal-comparison-result-heading p { margin: 0; color: #53635b; }
+.longitudinal-comparison-series { margin-top: 22px; }
+.longitudinal-comparison-series + .longitudinal-comparison-series { padding-top: 22px; border-top: 1px solid #d6ded8; }
+.longitudinal-comparison-series h5 { margin: 0 0 12px; font-size: 1rem; }
+.longitudinal-comparison-series table { min-width: 640px; padding: 14px; table-layout: fixed; }
+.longitudinal-comparison-series th, .longitudinal-comparison-series td { width: 25%; overflow-wrap: anywhere; }
+.longitudinal-comparison-series thead th:not(:first-child), .longitudinal-comparison-series td { text-align: right; }
+.longitudinal-comparison-series thead span { display: block; margin-top: 4px; color: #53635b; font-size: .7rem; font-weight: 500; }
+.longitudinal-comparison-series tbody th { text-align: left; }
 .sr-only { position: absolute; top: 0; left: 0; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 @media (max-width: 820px) {
@@ -310,6 +371,7 @@ th:last-child, td:last-child { text-align: right; }
   .training-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sleep-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .recovery-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .longitudinal-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .activity-filter { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .activity-filter > div:first-child, .activity-filter-actions { grid-column: 1 / 3; }
   .training-filter { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -318,6 +380,8 @@ th:last-child, td:last-child { text-align: right; }
   .sleep-filter > div:first-child, .sleep-filter-actions { grid-column: 1 / 3; }
   .recovery-filter { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .recovery-filter > div:first-child, .recovery-filter-actions { grid-column: 1 / 3; }
+  .longitudinal-filter { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .longitudinal-filter > div:first-child, .longitudinal-filter-actions { grid-column: 1 / 3; }
   .activity-comparison > form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .activity-comparison > form button { grid-column: 1 / 3; }
   .training-comparison > form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -326,6 +390,8 @@ th:last-child, td:last-child { text-align: right; }
   .sleep-comparison > form button { grid-column: 1 / 3; }
   .recovery-comparison > form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .recovery-comparison > form button { grid-column: 1 / 3; }
+  .longitudinal-comparison > form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .longitudinal-comparison > form button { grid-column: 1 / 3; }
   .history-grid { grid-template-columns: 1fr; }
   .training-history-grid { grid-template-columns: 1fr; }
   .training-detail dl { grid-template-columns: 1fr; }
@@ -334,6 +400,8 @@ th:last-child, td:last-child { text-align: right; }
   .recovery-history-grid { grid-template-columns: 1fr; }
   .recovery-detail-metrics { grid-template-columns: 1fr; }
   .recovery-guidance { grid-template-columns: 1fr; }
+  .longitudinal-history-grid { grid-template-columns: 1fr; }
+  .longitudinal-detail-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 680px) {
@@ -364,10 +432,15 @@ th:last-child, td:last-child { text-align: right; }
   .recovery-filter > div:first-child, .recovery-filter-actions { grid-column: 1; }
   .recovery-filter-actions { justify-content: stretch; }
   .recovery-filter-actions button { flex: 1 1 100%; }
+  .longitudinal-filter { grid-template-columns: 1fr; }
+  .longitudinal-filter > div:first-child, .longitudinal-filter-actions { grid-column: 1; }
+  .longitudinal-filter-actions { justify-content: stretch; }
+  .longitudinal-filter-actions button { flex: 1 1 100%; }
   .activity-detail-heading { align-items: stretch; flex-direction: column; }
   .training-detail-heading { align-items: stretch; flex-direction: column; }
   .sleep-detail-heading { align-items: stretch; flex-direction: column; }
   .recovery-detail-heading { align-items: stretch; flex-direction: column; }
+  .longitudinal-detail-heading { align-items: stretch; flex-direction: column; }
   .activity-comparison > form { grid-template-columns: 1fr; }
   .activity-comparison > form button { grid-column: 1; }
   .activity-comparison-result-heading { align-items: stretch; flex-direction: column; }
@@ -380,6 +453,9 @@ th:last-child, td:last-child { text-align: right; }
   .recovery-comparison > form { grid-template-columns: 1fr; }
   .recovery-comparison > form button { grid-column: 1; }
   .recovery-comparison-result-heading { align-items: stretch; flex-direction: column; }
+  .longitudinal-comparison > form { grid-template-columns: 1fr; }
+  .longitudinal-comparison > form button { grid-column: 1; }
+  .longitudinal-comparison-result-heading { align-items: stretch; flex-direction: column; }
   .comparison-bars > div { grid-template-columns: 1fr auto; }
   .comparison-bars .track { grid-column: 1 / 3; grid-row: 2; }
   .activity-comparison-series table { display: block; overflow-x: auto; }
@@ -390,6 +466,8 @@ th:last-child, td:last-child { text-align: right; }
   .recovery-chart li { grid-template-columns: minmax(0, 1fr) auto; }
   .recovery-chart .recovery-track { grid-column: 1 / 3; grid-row: 2; }
   .recovery-chart strong { grid-column: 2; grid-row: 1; }
+  .longitudinal-chart > li { grid-template-columns: 1fr; }
+  .longitudinal-comparison-series table { display: table; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -399,10 +477,10 @@ th:last-child, td:last-child { text-align: right; }
 @media (prefers-color-scheme: dark) {
   :root { color: #edf5ef; background: #101713; }
   .eyebrow { color: #8fc8aa; }
-  .controls, .progress-panel, .outcome-panel, .activity-filter, .activity-detail, .activity-comparison > form, .activity-comparison-result, .training-filter, .training-detail, .training-comparison > form, .training-comparison-result, .training-table-scroll, .sleep-filter, .sleep-detail, .sleep-comparison > form, .sleep-comparison-result, .sleep-table-scroll, .recovery-filter, .recovery-detail, .recovery-comparison > form, .recovery-comparison-result, .recovery-table-scroll, figure, table, input, select { color: #edf5ef; background: #1a251f; border-color: #34463c; }
+  .controls, .progress-panel, .outcome-panel, .activity-filter, .activity-detail, .activity-comparison > form, .activity-comparison-result, .training-filter, .training-detail, .training-comparison > form, .training-comparison-result, .training-table-scroll, .sleep-filter, .sleep-detail, .sleep-comparison > form, .sleep-comparison-result, .sleep-table-scroll, .recovery-filter, .recovery-detail, .recovery-comparison > form, .recovery-comparison-result, .recovery-table-scroll, .longitudinal-filter, .longitudinal-detail, .longitudinal-comparison > form, .longitudinal-comparison-result, .longitudinal-table-scroll, figure, table, input, select { color: #edf5ef; background: #1a251f; border-color: #34463c; }
   .notice { color: #edf5ef; background: #173f2d; border-left-color: #66b88a; }
   .error { color: #ffe9e5; background: #541b1b; border-left-color: #ff8a80; }
-  .path, label span, .activity-filter p, .activity-range, .day-status, .training-filter p, .training-range, .sleep-filter p, .sleep-range, .sleep-legend, .recovery-intro, .recovery-filter p, .recovery-range, .recovery-legend, .recovery-source-scheme { color: #b7c6bd; }
+  .path, label span, .activity-filter p, .activity-range, .day-status, .training-filter p, .training-range, .sleep-filter p, .sleep-range, .sleep-legend, .recovery-intro, .recovery-filter p, .recovery-range, .recovery-legend, .recovery-source-scheme, .longitudinal-intro, .longitudinal-filter p, .longitudinal-range, .longitudinal-summary span, .longitudinal-summary small, .longitudinal-lane, .longitudinal-detail-grid dt { color: #b7c6bd; }
   .outcome-metadata div { background: #101713; }
   .outcome-metadata dt, .coverage-summary span { color: #b7c6bd; }
   .family-coverage-table thead th, .family-coverage-table tbody th::before, .family-coverage-table tbody td::before { color: #b7c6bd; }
@@ -431,12 +509,15 @@ th:last-child, td:last-child { text-align: right; }
   .training-comparison > div:first-child p, .training-comparison-result-heading p, .training-comparison-series thead span { color: #b7c6bd; }
   .sleep-comparison > div:first-child p, .sleep-comparison-result-heading p, .sleep-comparison-series thead span { color: #b7c6bd; }
   .recovery-comparison > div:first-child p, .recovery-comparison-result-heading p, .recovery-comparison-series thead span { color: #b7c6bd; }
+  .longitudinal-comparison > div:first-child p, .longitudinal-comparison-result-heading p, .longitudinal-comparison-series thead span { color: #b7c6bd; }
   .activity-comparison-series + .activity-comparison-series { border-color: #34463c; }
   .training-insights, .training-comparison, .training-series + .training-series, .training-comparison-series + .training-comparison-series { border-color: #34463c; }
   .sleep-insights, .sleep-comparison, .sleep-series + .sleep-series, .sleep-comparison-series + .sleep-comparison-series { border-color: #34463c; }
   .recovery-insights, .recovery-comparison, .recovery-series + .recovery-series, .recovery-comparison-series + .recovery-comparison-series { border-color: #34463c; }
+  .longitudinal-insights, .longitudinal-comparison, .longitudinal-series + .longitudinal-series, .longitudinal-summary li, .longitudinal-detail-grid div, .longitudinal-comparison-series + .longitudinal-comparison-series { border-color: #34463c; }
   .detail-button { color: #a7dabd; }
   .detail-button:hover { color: #edf5ef; background: #263a30; }
+  .longitudinal-detail-links a { color: #a7dabd; }
   .activity-series + .activity-series { border-color: #34463c; }
   .track { background: #34463c; }
   .sleep-track, .sleep-phase-bar, .sleep-timeline { background: #3b3748; }

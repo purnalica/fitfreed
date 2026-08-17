@@ -3,18 +3,23 @@ mod presentation;
 
 use std::path::{Path, PathBuf};
 
-use fitfreed_application::{ImportCoordinator, ImportProgress, LocalePreference};
+use fitfreed_application::{
+    query_longitudinal_comparison as build_longitudinal_comparison,
+    query_longitudinal_overview as build_longitudinal_overview, ImportCoordinator, ImportProgress,
+    LocalePreference,
+};
 use infrastructure::{
     recover_interrupted_imports, SqliteActivityLibrary, SqliteImportOutcomeLibrary,
-    SqliteLocalePreferences, SqlitePolarFlowArchiveImporter, SqliteRecoveryLibrary,
-    SqliteSleepLibrary, SqliteTrainingLibrary,
+    SqliteLocalePreferences, SqliteLongitudinalLibrary, SqlitePolarFlowArchiveImporter,
+    SqliteRecoveryLibrary, SqliteSleepLibrary, SqliteTrainingLibrary,
 };
 use presentation::{
     ActivityComparisonDto, ActivityDateRangeDto, ActivityOverviewDto, CommandErrorDto,
-    ImportOutcomeDto, ImportProgressDto, ImportReportDto, RecoveryComparisonDto,
-    RecoveryDateRangeDto, RecoveryNightDetailDto, RecoveryOverviewDto, SleepComparisonDto,
-    SleepDateRangeDto, SleepOverviewDto, SleepPeriodDetailDto, TrainingComparisonDto,
-    TrainingDateRangeDto, TrainingOverviewDto,
+    ImportOutcomeDto, ImportProgressDto, ImportReportDto, LongitudinalComparisonDto,
+    LongitudinalDateRangeDto, LongitudinalOverviewDto, RecoveryComparisonDto, RecoveryDateRangeDto,
+    RecoveryNightDetailDto, RecoveryOverviewDto, SleepComparisonDto, SleepDateRangeDto,
+    SleepOverviewDto, SleepPeriodDetailDto, TrainingComparisonDto, TrainingDateRangeDto,
+    TrainingOverviewDto,
 };
 use tauri::{ipc::Channel, AppHandle, Manager, State};
 
@@ -194,6 +199,31 @@ fn query_recovery_detail(
 }
 
 #[tauri::command]
+fn query_longitudinal_overview(
+    app: AppHandle,
+    requested_range: Option<LongitudinalDateRangeDto>,
+) -> Result<LongitudinalOverviewDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let library = SqliteLongitudinalLibrary::new(path);
+    build_longitudinal_overview(&library, requested_range.map(Into::into))
+        .map(LongitudinalOverviewDto::from)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn query_longitudinal_comparison(
+    app: AppHandle,
+    baseline_range: LongitudinalDateRangeDto,
+    comparison_range: LongitudinalDateRangeDto,
+) -> Result<LongitudinalComparisonDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let library = SqliteLongitudinalLibrary::new(path);
+    build_longitudinal_comparison(&library, baseline_range.into(), comparison_range.into())
+        .map(LongitudinalComparisonDto::from)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
 fn query_latest_import_outcome(
     app: AppHandle,
 ) -> Result<Option<ImportOutcomeDto>, CommandErrorDto> {
@@ -266,6 +296,8 @@ pub fn run() {
             query_recovery_overview,
             query_recovery_comparison,
             query_recovery_detail,
+            query_longitudinal_overview,
+            query_longitudinal_comparison,
             query_latest_import_outcome,
             load_locale,
             save_locale

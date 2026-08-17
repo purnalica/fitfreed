@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { catalogs } from "../locales/catalogs";
+import type { ExplorerNavigationRequest } from "./explorer-navigation";
 import { SleepInsightsPanel } from "./SleepInsightsPanel";
 import type {
   SleepComparison,
@@ -211,13 +212,19 @@ function comparison(): SleepComparison {
   };
 }
 
-function renderPanel(overrides: { locale?: "en-US" | "es-ES"; refreshToken?: number; onError?: (code: string | undefined) => void } = {}) {
+function renderPanel(overrides: {
+  locale?: "en-US" | "es-ES";
+  refreshToken?: number;
+  navigationRequest?: ExplorerNavigationRequest;
+  onError?: (code: string | undefined) => void;
+} = {}) {
   const locale = overrides.locale ?? "en-US";
   return render(
     <SleepInsightsPanel
       locale={locale}
       messages={catalogs[locale]}
       refreshToken={overrides.refreshToken ?? 0}
+      navigationRequest={overrides.navigationRequest}
       onError={overrides.onError ?? vi.fn()}
     />,
   );
@@ -323,6 +330,44 @@ describe("SleepInsightsPanel", () => {
     expect(within(result).getByText("-50 pp")).toBeVisible();
     await user.click(within(result).getByRole("button", { name: "Clear sleep comparison" }));
     expect(within(sleep).queryByRole("region", { name: "Sleep period comparison" })).not.toBeInTheDocument();
+  });
+
+  it("opens the exact authoritative night requested by the longitudinal dashboard", async () => {
+    const exact = overview({ from: "2026-03-28", through: "2026-03-28" });
+    exact.series = exact.series.map((series) => ({ ...series, days: [series.days[0]] }));
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "query_sleep_overview") {
+        return Promise.resolve(arguments_.requestedRange ? exact : overview());
+      }
+      if (command === "query_sleep_detail") return Promise.resolve(detail(arguments_.sleepDate));
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const onError = vi.fn();
+    const view = renderPanel({ onError });
+    await screen.findByRole("region", { name: "Sleep history" });
+
+    view.rerender(
+      <SleepInsightsPanel
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        refreshToken={0}
+        navigationRequest={{
+          seriesRef: "opaque-origin-alpha",
+          localDate: "2026-03-28",
+          requestId: 1,
+        }}
+        onError={onError}
+      />,
+    );
+
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith("query_sleep_overview", {
+      requestedRange: { from: "2026-03-28", through: "2026-03-28" },
+    }));
+    expect(mocks.invoke).toHaveBeenCalledWith("query_sleep_detail", {
+      seriesRef: "opaque-origin-alpha",
+      sleepDate: "2026-03-28",
+    });
+    expect(await screen.findByRole("region", { name: "Sleep detail" })).toBeVisible();
   });
 
   it("preserves valid results on invalid input and ignores stale detail responses", async () => {

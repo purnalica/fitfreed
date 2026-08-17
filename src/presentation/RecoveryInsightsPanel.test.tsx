@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { catalogs } from "../locales/catalogs";
+import type { ExplorerNavigationRequest } from "./explorer-navigation";
 import { RecoveryInsightsPanel } from "./RecoveryInsightsPanel";
 import type {
   RecoveryComparison,
@@ -176,6 +177,7 @@ function comparison(): RecoveryComparison {
 function renderPanel(overrides: {
   locale?: "en-US" | "es-ES";
   refreshToken?: number;
+  navigationRequest?: ExplorerNavigationRequest;
   onError?: (code: string | undefined) => void;
 } = {}) {
   const locale = overrides.locale ?? "en-US";
@@ -184,6 +186,7 @@ function renderPanel(overrides: {
       locale={locale}
       messages={catalogs[locale]}
       refreshToken={overrides.refreshToken ?? 0}
+      navigationRequest={overrides.navigationRequest}
       onError={overrides.onError ?? vi.fn()}
     />,
   );
@@ -291,6 +294,46 @@ describe("RecoveryInsightsPanel", () => {
     await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith("query_recovery_overview", {
       requestedRange: null,
     }));
+  });
+
+  it("opens the exact authoritative night requested by the longitudinal dashboard", async () => {
+    const exact = overview({ from: "2026-03-28", through: "2026-03-28" });
+    exact.series = exact.series.map((series) => ({ ...series, days: [series.days[0]] }));
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "query_recovery_overview") {
+        return Promise.resolve(arguments_.requestedRange ? exact : overview());
+      }
+      if (command === "query_recovery_detail") {
+        return Promise.resolve(detail(arguments_.recoveryDate));
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const onError = vi.fn();
+    const view = renderPanel({ onError });
+    await screen.findByRole("region", { name: "Nightly recovery" });
+
+    view.rerender(
+      <RecoveryInsightsPanel
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        refreshToken={0}
+        navigationRequest={{
+          seriesRef: "opaque-recovery-alpha",
+          localDate: "2026-03-28",
+          requestId: 1,
+        }}
+        onError={onError}
+      />,
+    );
+
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith("query_recovery_overview", {
+      requestedRange: { from: "2026-03-28", through: "2026-03-28" },
+    }));
+    expect(mocks.invoke).toHaveBeenCalledWith("query_recovery_detail", {
+      seriesRef: "opaque-recovery-alpha",
+      recoveryDate: "2026-03-28",
+    });
+    expect(await screen.findByRole("region", { name: "Recovery detail" })).toBeVisible();
   });
 
   it("validates, runs, presents, and clears a complete comparison", async () => {

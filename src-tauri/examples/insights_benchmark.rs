@@ -10,14 +10,15 @@ use std::{ffi::CString, mem::MaybeUninit, os::unix::ffi::OsStrExt};
 
 use chrono::{Duration as ChronoDuration, NaiveDate};
 use fitfreed_application::{
-    query_activity_comparison, query_activity_overview, query_recovery_comparison,
-    query_recovery_detail, query_recovery_overview, query_sleep_comparison, query_sleep_detail,
-    query_sleep_overview, query_training_comparison, query_training_overview, ActivityDateRange,
+    query_activity_comparison, query_activity_overview, query_longitudinal_comparison,
+    query_longitudinal_overview, query_recovery_comparison, query_recovery_detail,
+    query_recovery_overview, query_sleep_comparison, query_sleep_detail, query_sleep_overview,
+    query_training_comparison, query_training_overview, ActivityDateRange, LongitudinalDateRange,
     RecoveryDateRange, SleepDateRange, TrainingDateRange,
 };
 use fitfreed_lib::infrastructure::{
-    query_activity_between, SqliteActivityLibrary, SqliteRecoveryLibrary, SqliteSleepLibrary,
-    SqliteTrainingLibrary,
+    query_activity_between, SqliteActivityLibrary, SqliteLongitudinalLibrary,
+    SqliteRecoveryLibrary, SqliteSleepLibrary, SqliteTrainingLibrary,
 };
 use rusqlite::{params, Connection};
 use serde_json::{json, Value};
@@ -52,6 +53,7 @@ fn main() {
     let recovery_library = SqliteRecoveryLibrary::new(database_path.clone());
     let training_library = SqliteTrainingLibrary::new(database_path.clone());
     let sleep_library = SqliteSleepLibrary::new(database_path.clone());
+    let longitudinal_library = SqliteLongitudinalLibrary::new(database_path.clone());
 
     let latest_range = range("2025-12-02", "2025-12-31");
     let maximum_range = range("2024-12-31", "2025-12-31");
@@ -250,6 +252,62 @@ fn main() {
         )
     });
 
+    let longitudinal_latest_range = longitudinal_range("2025-12-02", "2025-12-31");
+    let longitudinal_maximum_range = longitudinal_range("2024-12-31", "2025-12-31");
+    let longitudinal_earlier_common = longitudinal_range("2020-01-01", "2020-01-30");
+    let longitudinal_later_common = longitudinal_range("2025-01-01", "2025-01-30");
+    let longitudinal_earlier_maximum = longitudinal_range("2019-01-01", "2020-01-01");
+    let longitudinal_default_overview = measure(ORIGIN_COUNT * 30, || {
+        query_longitudinal_overview(&longitudinal_library, None)
+            .expect("default longitudinal overview")
+            .series
+            .iter()
+            .map(|series| series.days.len())
+            .sum()
+    });
+    let longitudinal_common_filter = measure(ORIGIN_COUNT * 30, || {
+        query_longitudinal_overview(
+            &longitudinal_library,
+            Some(longitudinal_latest_range.clone()),
+        )
+        .expect("common longitudinal filter")
+        .series
+        .iter()
+        .map(|series| series.days.len())
+        .sum()
+    });
+    let longitudinal_maximum_filter = measure(ORIGIN_COUNT * 366, || {
+        query_longitudinal_overview(
+            &longitudinal_library,
+            Some(longitudinal_maximum_range.clone()),
+        )
+        .expect("maximum longitudinal filter")
+        .series
+        .iter()
+        .map(|series| series.days.len())
+        .sum()
+    });
+    let longitudinal_common_comparison = measure(ORIGIN_COUNT, || {
+        query_longitudinal_comparison(
+            &longitudinal_library,
+            longitudinal_earlier_common.clone(),
+            longitudinal_later_common.clone(),
+        )
+        .expect("common longitudinal comparison")
+        .series
+        .len()
+    });
+    let longitudinal_maximum_comparison = measure(ORIGIN_COUNT, || {
+        query_longitudinal_comparison(
+            &longitudinal_library,
+            longitudinal_earlier_maximum.clone(),
+            longitudinal_maximum_range.clone(),
+        )
+        .expect("maximum longitudinal comparison")
+        .series
+        .len()
+    });
+
     let measurements = [
         (
             "activity.defaultOverview",
@@ -356,6 +414,31 @@ fn main() {
             "recovery.detail",
             &recovery_detail,
             COMMON_BUDGET_MILLISECONDS,
+        ),
+        (
+            "longitudinal.defaultOverview",
+            &longitudinal_default_overview,
+            COMMON_BUDGET_MILLISECONDS,
+        ),
+        (
+            "longitudinal.commonFilter",
+            &longitudinal_common_filter,
+            COMMON_BUDGET_MILLISECONDS,
+        ),
+        (
+            "longitudinal.maximumFilter",
+            &longitudinal_maximum_filter,
+            COMPLEX_BUDGET_MILLISECONDS,
+        ),
+        (
+            "longitudinal.commonComparison",
+            &longitudinal_common_comparison,
+            COMMON_BUDGET_MILLISECONDS,
+        ),
+        (
+            "longitudinal.maximumComparison",
+            &longitudinal_maximum_comparison,
+            COMPLEX_BUDGET_MILLISECONDS,
         ),
     ];
     let violations = measurements
@@ -474,6 +557,28 @@ fn main() {
                     "detail": measurement_json(
                         &recovery_detail,
                         COMMON_BUDGET_MILLISECONDS,
+                    ),
+                },
+                "longitudinal": {
+                    "defaultOverview": measurement_json(
+                        &longitudinal_default_overview,
+                        COMMON_BUDGET_MILLISECONDS,
+                    ),
+                    "commonFilter": measurement_json(
+                        &longitudinal_common_filter,
+                        COMMON_BUDGET_MILLISECONDS,
+                    ),
+                    "maximumFilter": measurement_json(
+                        &longitudinal_maximum_filter,
+                        COMPLEX_BUDGET_MILLISECONDS,
+                    ),
+                    "commonComparison": measurement_json(
+                        &longitudinal_common_comparison,
+                        COMMON_BUDGET_MILLISECONDS,
+                    ),
+                    "maximumComparison": measurement_json(
+                        &longitudinal_maximum_comparison,
+                        COMPLEX_BUDGET_MILLISECONDS,
                     ),
                 },
             },
@@ -824,6 +929,13 @@ fn recovery_range(from: &str, through: &str) -> RecoveryDateRange {
 
 fn sleep_range(from: &str, through: &str) -> SleepDateRange {
     SleepDateRange {
+        from: from.to_owned(),
+        through: through.to_owned(),
+    }
+}
+
+fn longitudinal_range(from: &str, through: &str) -> LongitudinalDateRange {
+    LongitudinalDateRange {
         from: from.to_owned(),
         through: through.to_owned(),
     }
