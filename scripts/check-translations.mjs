@@ -31,6 +31,8 @@ const coverageReasonCodes = [
   "mapped-summary",
   "mapped-sleep-periods",
   "mapped-sleep-scores",
+  "mapped-recovery-summaries",
+  "excluded-unidentifiable-recovery-samples",
   "source-subject-claim",
   "known-family-not-yet-supported",
   "mvp-excludes-sensitive-profile",
@@ -45,6 +47,7 @@ const coverageReasonCodes = [
   "duplicate-sleep-result-date",
   "duplicate-sleep-score-date",
   "orphan-sleep-score-date",
+  "duplicate-nightly-recovery-date",
   "invalid-source-subject-evidence",
 ];
 

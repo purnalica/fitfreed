@@ -346,6 +346,14 @@
         "reason": "Sleep score components are mapped; scoring baselines stay only in the original ZIP.",
         "action": "Keep the original ZIP if you need the excluded scoring context."
       },
+      "mapped-recovery-summaries": {
+        "reason": "Dated recovery summaries and their available assessment, baseline, and guidance are mapped into the library.",
+        "action": "No action is needed for the dated summaries."
+      },
+      "excluded-unidentifiable-recovery-samples": {
+        "reason": "Recovery samples have no documented date or record identity, so FitFreed cannot join them safely.",
+        "action": "Keep the original ZIP if you need the excluded recovery samples."
+      },
       "source-subject-claim": {
         "reason": "The data is used only to link packages from the same provider account.",
         "action": "No action is needed."
@@ -401,6 +409,10 @@
       "orphan-sleep-score-date": {
         "reason": "The package contains a sleep score without its corresponding sleep result.",
         "action": "Use the original complete export ZIP or report the compatibility problem."
+      },
+      "duplicate-nightly-recovery-date": {
+        "reason": "The package contains more than one recovery summary for the same source-assigned date.",
+        "action": "Request a new export or report the compatibility problem."
       },
       "invalid-source-subject-evidence": {
         "reason": "The provider account evidence could not be validated.",

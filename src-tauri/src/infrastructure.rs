@@ -34,11 +34,13 @@ use fitfreed_application::{
     TrainingLibraryPort,
 };
 use fitfreed_domain::{
-    decide_reconciliation, decide_sleep_period_reconciliation,
-    decide_training_session_reconciliation, ArtifactClassification, ArtifactCoverageSummary,
-    ArtifactFamilyCoverage, DailyActivity, ExistingObservation, ImportOperationState,
-    ImportOutcome, ImportReport, ReconciliationDecision, RevisionOrder, SleepPeriod,
-    SleepPhaseSummary, SleepScore, SleepStage, SleepStageTransition, TrainingSession,
+    decide_nightly_recovery_reconciliation, decide_reconciliation,
+    decide_sleep_period_reconciliation, decide_training_session_reconciliation,
+    ArtifactClassification, ArtifactCoverageSummary, ArtifactFamilyCoverage, DailyActivity,
+    ExistingObservation, ImportOperationState, ImportOutcome, ImportReport, NightlyRecovery,
+    ReconciliationDecision, RevisionOrder, SleepPeriod, SleepPhaseSummary, SleepScore, SleepStage,
+    SleepStageTransition, SourceSpecificRecoveryAssessment, SourceSpecificRecoveryBaseline,
+    SourceSpecificRecoveryGuidance, TrainingSession,
 };
 
 mod polar_flow;
@@ -56,7 +58,7 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 7;
+const SCHEMA_VERSION: i64 = 8;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
@@ -64,12 +66,15 @@ const SCHEMA_V4: &str = include_str!("../migrations/0004_source_subject.sql");
 const SCHEMA_V5: &str = include_str!("../migrations/0005_activity_query_index.sql");
 const SCHEMA_V6: &str = include_str!("../migrations/0006_training_session_summary.sql");
 const SCHEMA_V7: &str = include_str!("../migrations/0007_sleep_period.sql");
+const SCHEMA_V8: &str = include_str!("../migrations/0008_nightly_recovery.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
-const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@5";
+const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@6";
 const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@1";
 const DAILY_ACTIVITY_MAPPING_VERSION: &str = "polar-flow-daily-activity@1";
 const TRAINING_SESSION_MAPPING_VERSION: &str = "polar-flow-training-session@1";
 const SLEEP_MAPPING_VERSION: &str = "polar-flow-sleep@1";
+const NIGHTLY_RECOVERY_MAPPING_VERSION: &str = "polar-flow-nightly-recovery@1";
+const NIGHTLY_RECOVERY_SCHEME: &str = "polar-nightly-recharge@1";
 
 #[derive(Debug, Error)]
 pub enum ImportError {
@@ -118,6 +123,8 @@ pub enum ImportError {
     InvalidTrainingLibrary(String),
     #[error("invalid sleep library: {0}")]
     InvalidSleepLibrary(String),
+    #[error("invalid nightly recovery library: {0}")]
+    InvalidNightlyRecoveryLibrary(String),
     #[error("invalid persisted non-negative count in {column}: {value}")]
     InvalidPersistedCount { column: &'static str, value: i64 },
     #[error("invalid persisted locale preference: {0}")]
@@ -361,6 +368,42 @@ struct PolarSleepScoreResult {
     score_rate: SourceOptional<i64>,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PolarNightlyRecovery {
+    night: String,
+    mean_nightly_recovery_rri: i64,
+    #[serde(default)]
+    mean_nightly_recovery_rmssd: SourceOptional<i64>,
+    mean_nightly_recovery_respiration_interval: i64,
+    #[serde(default)]
+    ans_rate: SourceOptional<i64>,
+    #[serde(default)]
+    ans_status: SourceOptional<f64>,
+    #[serde(default)]
+    recovery_indicator: SourceOptional<i64>,
+    #[serde(default)]
+    recovery_indicator_sub_level: SourceOptional<i64>,
+    #[serde(default)]
+    mean_baseline_respiration_interval: SourceOptional<i64>,
+    #[serde(default)]
+    mean_baseline_rmssd: SourceOptional<i64>,
+    #[serde(default)]
+    mean_baseline_rri: SourceOptional<i64>,
+    #[serde(default)]
+    sd_baseline_respiration_interval: SourceOptional<i64>,
+    #[serde(default)]
+    sd_baseline_rmssd: SourceOptional<i64>,
+    #[serde(default)]
+    sd_baseline_rri: SourceOptional<i64>,
+    #[serde(default)]
+    exercise_tip: SourceOptional<String>,
+    #[serde(default)]
+    sleep_tip: SourceOptional<String>,
+    #[serde(default)]
+    vitality_tip: SourceOptional<String>,
+}
+
 #[derive(Debug)]
 struct MappedArtifact {
     locator: String,
@@ -397,6 +440,14 @@ struct MappedSleepPeriod {
     score_locator: Option<String>,
     score_sha256: Option<String>,
     observation: SleepPeriod,
+}
+
+#[derive(Debug)]
+struct MappedNightlyRecovery {
+    locator: String,
+    sha256: String,
+    source_record_locator: String,
+    observation: NightlyRecovery,
 }
 
 struct ResolvedSourceSubject {
@@ -570,6 +621,25 @@ fn import_archive_with_interruption(
     .report)
 }
 
+#[cfg(test)]
+fn import_polar_archive_with_interruption(
+    database_path: &Path,
+    archive_path: &Path,
+    interrupt_after: Option<usize>,
+) -> Result<ImportReport> {
+    let cancellation = AtomicBool::new(false);
+    let mut ignore_progress = |_| {};
+    Ok(profile_import_archive_with_controls(
+        database_path,
+        archive_path,
+        None,
+        interrupt_after,
+        &cancellation,
+        &mut ignore_progress,
+    )?
+    .report)
+}
+
 fn profile_import_archive_with_controls(
     database_path: &Path,
     archive_path: &Path,
@@ -714,6 +784,7 @@ fn execute_import(
     let mut mapped_training_artifacts = Vec::new();
     let mut mapped_sleep_result_artifacts = Vec::new();
     let mut mapped_sleep_score_artifacts = Vec::new();
+    let mut mapped_nightly_recoveries = Vec::new();
     let mut first_invalid = None;
     let mut processed_artifacts = 0;
     for index in 0..archive.len() {
@@ -804,6 +875,42 @@ fn execute_import(
                             ArtifactClassification::Invalid,
                             Some(&artifact_sha256),
                             reason_code,
+                        )?;
+                        if first_invalid.is_none() {
+                            first_invalid = Some(error);
+                        }
+                    }
+                }
+            }
+            SupportedArtifact::NightlyRecovery => {
+                let decode_started = Instant::now();
+                let bytes = read_bytes(&mut member, &locator, cancellation)?;
+                let artifact_sha256 = sha256_bytes(&bytes);
+                let mapped =
+                    decode_nightly_recoveries(origin_id, &locator, &artifact_sha256, &bytes);
+                timings.read_decode_map_milliseconds += milliseconds(decode_started.elapsed());
+                match mapped {
+                    Ok(mapped) => {
+                        record_artifact_coverage(
+                            connection,
+                            operation_id,
+                            &locator,
+                            assessment.family,
+                            assessment.classification,
+                            Some(&artifact_sha256),
+                            assessment.reason_code,
+                        )?;
+                        mapped_nightly_recoveries.extend(mapped);
+                    }
+                    Err(error) => {
+                        record_artifact_coverage(
+                            connection,
+                            operation_id,
+                            &locator,
+                            assessment.family,
+                            ArtifactClassification::Invalid,
+                            Some(&artifact_sha256),
+                            "invalid-supported-artifact",
                         )?;
                         if first_invalid.is_none() {
                             first_invalid = Some(error);
@@ -944,6 +1051,15 @@ fn execute_import(
             first_invalid = Some(error);
         }
     }
+    if let Some(error) = invalidate_duplicate_nightly_recoveries(
+        connection,
+        operation_id,
+        mapped_nightly_recoveries.as_slice(),
+    )? {
+        if first_invalid.is_none() {
+            first_invalid = Some(error);
+        }
+    }
     let mapped_sleep_periods = match assemble_sleep_periods(
         connection,
         operation_id,
@@ -991,6 +1107,7 @@ fn execute_import(
     if !mapped_artifacts.is_empty()
         || !mapped_training_artifacts.is_empty()
         || !mapped_sleep_periods.is_empty()
+        || !mapped_nightly_recoveries.is_empty()
     {
         if let Some(subject) = resolved_subject.as_ref() {
             persist_source_subject(&transaction, operation_id, &subject.resolution)?;
@@ -1023,6 +1140,28 @@ fn execute_import(
         {
             return Err(ImportError::InjectedInterruption(
                 mapped_artifacts.len() + mapped_training_artifacts.len() + sleep_index + 1,
+            ));
+        }
+    }
+    for (recovery_index, recovery) in mapped_nightly_recoveries.iter().enumerate() {
+        let reconciliation_started = Instant::now();
+        reconcile_nightly_recovery(&transaction, operation_id, recovery, &mut report)?;
+        timings.reconciliation_milliseconds += milliseconds(reconciliation_started.elapsed());
+        if interrupt_after
+            == Some(
+                mapped_artifacts.len()
+                    + mapped_training_artifacts.len()
+                    + mapped_sleep_periods.len()
+                    + recovery_index
+                    + 1,
+            )
+        {
+            return Err(ImportError::InjectedInterruption(
+                mapped_artifacts.len()
+                    + mapped_training_artifacts.len()
+                    + mapped_sleep_periods.len()
+                    + recovery_index
+                    + 1,
             ));
         }
     }
@@ -1121,6 +1260,51 @@ pub fn query_activity(database_path: &Path) -> Result<Vec<DailyActivity>> {
 
 pub fn query_training_sessions(database_path: &Path) -> Result<Vec<TrainingSession>> {
     query_training_between(database_path, None, None)
+}
+
+pub fn query_nightly_recoveries(database_path: &Path) -> Result<Vec<NightlyRecovery>> {
+    query_nightly_recovery_between(database_path, None, None)
+}
+
+pub fn query_nightly_recovery_between(
+    database_path: &Path,
+    from: Option<&str>,
+    through: Option<&str>,
+) -> Result<Vec<NightlyRecovery>> {
+    let connection = Connection::open(database_path)?;
+    ensure_schema(&connection)?;
+    let mut statement = connection.prepare(
+        "SELECT origin_id, recovery_date,
+                beat_to_beat_interval_milliseconds,
+                heart_rate_variability_rmssd_milliseconds,
+                breathing_interval_milliseconds,
+                assessment_scheme, autonomic_charge, autonomic_status,
+                overall_status, overall_sublevel, baseline_scheme,
+                baseline_mean_beat_to_beat_interval_milliseconds,
+                baseline_standard_deviation_beat_to_beat_interval_milliseconds,
+                baseline_mean_heart_rate_variability_rmssd_milliseconds,
+                baseline_standard_deviation_heart_rate_variability_rmssd_milliseconds,
+                baseline_mean_breathing_interval_milliseconds,
+                baseline_standard_deviation_breathing_interval_milliseconds,
+                guidance_scheme, exercise_guidance, sleep_guidance, vitality_guidance
+         FROM nightly_recovery
+         WHERE (?1 IS NULL OR recovery_date >= ?1)
+           AND (?2 IS NULL OR recovery_date <= ?2)
+         ORDER BY recovery_date, origin_id",
+    )?;
+    let rows = statement.query_map(params![from, through], read_persisted_nightly_recovery)?;
+    rows.map(|row| decode_nightly_recovery_library(row?))
+        .collect()
+}
+
+pub fn query_nightly_recovery(
+    database_path: &Path,
+    origin_id: &str,
+    recovery_date: &str,
+) -> Result<Option<NightlyRecovery>> {
+    let connection = Connection::open(database_path)?;
+    ensure_schema(&connection)?;
+    load_nightly_recovery(&connection, origin_id, recovery_date)
 }
 
 pub fn query_sleep_periods(database_path: &Path) -> Result<Vec<SleepPeriod>> {
@@ -1674,7 +1858,10 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         if version < 6 {
             connection.execute_batch(SCHEMA_V6)?;
         }
-        connection.execute_batch(SCHEMA_V7)?;
+        if version < 7 {
+            connection.execute_batch(SCHEMA_V7)?;
+        }
+        connection.execute_batch(SCHEMA_V8)?;
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
         }
@@ -1902,6 +2089,46 @@ fn invalidate_duplicate_training_sessions(
         artifact: "polar-flow-training-session".to_owned(),
         reason: "package contains duplicate training-session identities".to_owned(),
         reason_code: "duplicate-training-session-id",
+    }))
+}
+
+fn invalidate_duplicate_nightly_recoveries(
+    connection: &Connection,
+    operation_id: i64,
+    mapped_recoveries: &[MappedNightlyRecovery],
+) -> Result<Option<ImportError>> {
+    let mut locators_by_identity: HashMap<(&str, &str), Vec<&str>> = HashMap::new();
+    for recovery in mapped_recoveries {
+        locators_by_identity
+            .entry((
+                recovery.observation.origin_id.as_str(),
+                recovery.observation.recovery_date.as_str(),
+            ))
+            .or_default()
+            .push(recovery.locator.as_str());
+    }
+
+    let mut duplicate_found = false;
+    for locators in locators_by_identity
+        .values()
+        .filter(|locators| locators.len() > 1)
+    {
+        duplicate_found = true;
+        for locator in locators {
+            connection.execute(
+                "UPDATE import_artifact_coverage
+                 SET classification = 'invalid',
+                     reason_code = 'duplicate-nightly-recovery-date'
+                 WHERE import_operation_id = ?1 AND artifact_locator = ?2",
+                params![operation_id, locator],
+            )?;
+        }
+    }
+
+    Ok(duplicate_found.then(|| ImportError::InvalidArtifact {
+        artifact: "polar-flow-nightly-recovery".to_owned(),
+        reason: "package contains duplicate nightly-recovery identities".to_owned(),
+        reason_code: "duplicate-nightly-recovery-date",
     }))
 }
 
@@ -2223,6 +2450,7 @@ fn terminal_code(error: &ImportError) -> &'static str {
         ImportError::InvalidActivityLibrary(_) => "invalid-activity-library",
         ImportError::InvalidTrainingLibrary(_) => "invalid-training-library",
         ImportError::InvalidSleepLibrary(_) => "invalid-sleep-library",
+        ImportError::InvalidNightlyRecoveryLibrary(_) => "invalid-nightly-recovery-library",
         ImportError::InvalidCorrelationKeyLength(_) => "invalid-library-correlation-state",
         ImportError::InvalidSourceSubjectClaim => "invalid-source-subject-evidence",
         ImportError::SourceSubjectConflict => "source-subject-confirmation-required",
@@ -3152,6 +3380,243 @@ fn decode_sleep_scores(
     })
 }
 
+fn invalid_nightly_recovery_artifact(artifact: &str, reason: impl Into<String>) -> ImportError {
+    ImportError::InvalidArtifact {
+        artifact: artifact.to_owned(),
+        reason: reason.into(),
+        reason_code: "invalid-supported-artifact",
+    }
+}
+
+fn map_nightly_recovery(
+    origin_id: &str,
+    source: PolarNightlyRecovery,
+    artifact: &str,
+) -> Result<NightlyRecovery> {
+    let PolarNightlyRecovery {
+        night,
+        mean_nightly_recovery_rri,
+        mean_nightly_recovery_rmssd,
+        mean_nightly_recovery_respiration_interval,
+        ans_rate,
+        ans_status,
+        recovery_indicator,
+        recovery_indicator_sub_level,
+        mean_baseline_respiration_interval,
+        mean_baseline_rmssd,
+        mean_baseline_rri,
+        sd_baseline_respiration_interval,
+        sd_baseline_rmssd,
+        sd_baseline_rri,
+        exercise_tip,
+        sleep_tip,
+        vitality_tip,
+    } = source;
+    NaiveDate::parse_from_str(&night, "%Y-%m-%d").map_err(|error| {
+        invalid_nightly_recovery_artifact(artifact, format!("invalid recovery date: {error}"))
+    })?;
+    if mean_nightly_recovery_rri <= 0 || mean_nightly_recovery_respiration_interval <= 0 {
+        return Err(invalid_nightly_recovery_artifact(
+            artifact,
+            "nightly beat-to-beat and breathing intervals must be positive",
+        ));
+    }
+    let heart_rate_variability_rmssd_milliseconds = mean_nightly_recovery_rmssd.into_option();
+    if heart_rate_variability_rmssd_milliseconds.is_some_and(|value| value < 0) {
+        return Err(invalid_nightly_recovery_artifact(
+            artifact,
+            "nightly RMSSD cannot be negative",
+        ));
+    }
+
+    let source_assessment = match (
+        ans_rate.into_option(),
+        ans_status.into_option(),
+        recovery_indicator.into_option(),
+        recovery_indicator_sub_level.into_option(),
+    ) {
+        (None, None, None, None) => None,
+        (
+            Some(autonomic_status),
+            Some(autonomic_charge),
+            Some(overall_status),
+            Some(overall_sublevel),
+        ) => {
+            if !autonomic_charge.is_finite() || !(-10.0..=10.0).contains(&autonomic_charge) {
+                return Err(invalid_nightly_recovery_artifact(
+                    artifact,
+                    "ansStatus is outside the documented charge range",
+                ));
+            }
+            if !(1..=5).contains(&autonomic_status) {
+                return Err(invalid_nightly_recovery_artifact(
+                    artifact,
+                    "ansRate is outside the documented status range",
+                ));
+            }
+            if !(1..=6).contains(&overall_status) {
+                return Err(invalid_nightly_recovery_artifact(
+                    artifact,
+                    "recoveryIndicator is outside the documented status range",
+                ));
+            }
+            Some(SourceSpecificRecoveryAssessment {
+                scheme: NIGHTLY_RECOVERY_SCHEME.to_owned(),
+                autonomic_charge,
+                autonomic_status,
+                overall_status,
+                overall_sublevel,
+            })
+        }
+        _ => {
+            return Err(invalid_nightly_recovery_artifact(
+                artifact,
+                "nightly recovery assessment fields must be all present or all absent",
+            ));
+        }
+    };
+
+    let baseline_mean_breathing = mean_baseline_respiration_interval.into_option();
+    let baseline_mean_rmssd = mean_baseline_rmssd.into_option();
+    let baseline_mean_rri = mean_baseline_rri.into_option();
+    let baseline_sd_breathing = sd_baseline_respiration_interval.into_option();
+    let baseline_sd_rmssd = sd_baseline_rmssd.into_option();
+    let baseline_sd_rri = sd_baseline_rri.into_option();
+    let source_baseline = match (
+        baseline_mean_rri,
+        baseline_sd_rri,
+        baseline_mean_breathing,
+        baseline_sd_breathing,
+    ) {
+        (None, None, None, None)
+            if baseline_mean_rmssd.is_none() && baseline_sd_rmssd.is_none() =>
+        {
+            None
+        }
+        (
+            Some(mean_beat_to_beat_interval_milliseconds),
+            Some(standard_deviation_beat_to_beat_interval_milliseconds),
+            Some(mean_breathing_interval_milliseconds),
+            Some(standard_deviation_breathing_interval_milliseconds),
+        ) => {
+            if mean_beat_to_beat_interval_milliseconds <= 0
+                || mean_breathing_interval_milliseconds <= 0
+                || standard_deviation_beat_to_beat_interval_milliseconds < 0
+                || standard_deviation_breathing_interval_milliseconds < 0
+            {
+                return Err(invalid_nightly_recovery_artifact(
+                    artifact,
+                    "baseline means and standard deviations are outside their documented ranges",
+                ));
+            }
+            let (
+                mean_heart_rate_variability_rmssd_milliseconds,
+                standard_deviation_heart_rate_variability_rmssd_milliseconds,
+            ) = match (baseline_mean_rmssd, baseline_sd_rmssd) {
+                (None, None) => (None, None),
+                (Some(mean), Some(standard_deviation)) if mean >= 0 && standard_deviation >= 0 => {
+                    (Some(mean), Some(standard_deviation))
+                }
+                (Some(_), Some(_)) => {
+                    return Err(invalid_nightly_recovery_artifact(
+                        artifact,
+                        "baseline RMSSD cannot be negative",
+                    ));
+                }
+                _ => {
+                    return Err(invalid_nightly_recovery_artifact(
+                        artifact,
+                        "baseline RMSSD mean and standard deviation must appear together",
+                    ));
+                }
+            };
+            Some(SourceSpecificRecoveryBaseline {
+                scheme: NIGHTLY_RECOVERY_SCHEME.to_owned(),
+                mean_beat_to_beat_interval_milliseconds,
+                standard_deviation_beat_to_beat_interval_milliseconds,
+                mean_heart_rate_variability_rmssd_milliseconds,
+                standard_deviation_heart_rate_variability_rmssd_milliseconds,
+                mean_breathing_interval_milliseconds,
+                standard_deviation_breathing_interval_milliseconds,
+            })
+        }
+        _ => {
+            return Err(invalid_nightly_recovery_artifact(
+                artifact,
+                "baseline core fields must be all present or all absent",
+            ));
+        }
+    };
+
+    let source_guidance = match (
+        exercise_tip.into_option(),
+        sleep_tip.into_option(),
+        vitality_tip.into_option(),
+    ) {
+        (None, None, None) => None,
+        (Some(exercise), Some(sleep), Some(vitality)) => {
+            if [&exercise, &sleep, &vitality]
+                .into_iter()
+                .any(|value| value.trim().is_empty() || value.chars().count() > 4_096)
+            {
+                return Err(invalid_nightly_recovery_artifact(
+                    artifact,
+                    "nightly recovery guidance must be non-empty and at most 4096 characters",
+                ));
+            }
+            Some(SourceSpecificRecoveryGuidance {
+                scheme: NIGHTLY_RECOVERY_SCHEME.to_owned(),
+                exercise,
+                sleep,
+                vitality,
+            })
+        }
+        _ => {
+            return Err(invalid_nightly_recovery_artifact(
+                artifact,
+                "nightly recovery guidance fields must be all present or all absent",
+            ));
+        }
+    };
+
+    Ok(NightlyRecovery {
+        origin_id: origin_id.to_owned(),
+        recovery_date: night,
+        beat_to_beat_interval_milliseconds: mean_nightly_recovery_rri,
+        heart_rate_variability_rmssd_milliseconds,
+        breathing_interval_milliseconds: mean_nightly_recovery_respiration_interval,
+        source_assessment,
+        source_baseline,
+        source_guidance,
+    })
+}
+
+fn decode_nightly_recoveries(
+    origin_id: &str,
+    artifact_locator: &str,
+    artifact_sha256: &str,
+    bytes: &[u8],
+) -> Result<Vec<MappedNightlyRecovery>> {
+    let source: Vec<PolarNightlyRecovery> =
+        serde_json::from_slice(bytes).map_err(|error| ImportError::InvalidArtifact {
+            artifact: artifact_locator.to_owned(),
+            reason: error.to_string(),
+            reason_code: "invalid-supported-artifact",
+        })?;
+    source
+        .into_iter()
+        .enumerate()
+        .map(|(index, entry)| {
+            Ok(MappedNightlyRecovery {
+                locator: artifact_locator.to_owned(),
+                sha256: artifact_sha256.to_owned(),
+                source_record_locator: format!("json-index:{index}"),
+                observation: map_nightly_recovery(origin_id, entry, artifact_locator)?,
+            })
+        })
+        .collect()
+}
+
 fn reconcile(
     transaction: &Transaction<'_>,
     operation_id: i64,
@@ -3931,6 +4396,330 @@ fn reconcile_sleep_period(
     Ok(())
 }
 
+#[derive(Debug)]
+struct PersistedNightlyRecovery {
+    origin_id: String,
+    recovery_date: String,
+    beat_to_beat_interval_milliseconds: i64,
+    heart_rate_variability_rmssd_milliseconds: Option<i64>,
+    breathing_interval_milliseconds: i64,
+    assessment_scheme: Option<String>,
+    autonomic_charge: Option<f64>,
+    autonomic_status: Option<i64>,
+    overall_status: Option<i64>,
+    overall_sublevel: Option<i64>,
+    baseline_scheme: Option<String>,
+    baseline_mean_beat_to_beat_interval_milliseconds: Option<i64>,
+    baseline_standard_deviation_beat_to_beat_interval_milliseconds: Option<i64>,
+    baseline_mean_heart_rate_variability_rmssd_milliseconds: Option<i64>,
+    baseline_standard_deviation_heart_rate_variability_rmssd_milliseconds: Option<i64>,
+    baseline_mean_breathing_interval_milliseconds: Option<i64>,
+    baseline_standard_deviation_breathing_interval_milliseconds: Option<i64>,
+    guidance_scheme: Option<String>,
+    exercise_guidance: Option<String>,
+    sleep_guidance: Option<String>,
+    vitality_guidance: Option<String>,
+}
+
+fn read_persisted_nightly_recovery(row: &Row<'_>) -> rusqlite::Result<PersistedNightlyRecovery> {
+    Ok(PersistedNightlyRecovery {
+        origin_id: row.get(0)?,
+        recovery_date: row.get(1)?,
+        beat_to_beat_interval_milliseconds: row.get(2)?,
+        heart_rate_variability_rmssd_milliseconds: row.get(3)?,
+        breathing_interval_milliseconds: row.get(4)?,
+        assessment_scheme: row.get(5)?,
+        autonomic_charge: row.get(6)?,
+        autonomic_status: row.get(7)?,
+        overall_status: row.get(8)?,
+        overall_sublevel: row.get(9)?,
+        baseline_scheme: row.get(10)?,
+        baseline_mean_beat_to_beat_interval_milliseconds: row.get(11)?,
+        baseline_standard_deviation_beat_to_beat_interval_milliseconds: row.get(12)?,
+        baseline_mean_heart_rate_variability_rmssd_milliseconds: row.get(13)?,
+        baseline_standard_deviation_heart_rate_variability_rmssd_milliseconds: row.get(14)?,
+        baseline_mean_breathing_interval_milliseconds: row.get(15)?,
+        baseline_standard_deviation_breathing_interval_milliseconds: row.get(16)?,
+        guidance_scheme: row.get(17)?,
+        exercise_guidance: row.get(18)?,
+        sleep_guidance: row.get(19)?,
+        vitality_guidance: row.get(20)?,
+    })
+}
+
+fn required_nightly_recovery_component<T>(value: Option<T>, column: &'static str) -> Result<T> {
+    value.ok_or_else(|| {
+        ImportError::InvalidNightlyRecoveryLibrary(format!(
+            "{column} is unavailable inside a present optional group"
+        ))
+    })
+}
+
+fn decode_nightly_recovery_library(persisted: PersistedNightlyRecovery) -> Result<NightlyRecovery> {
+    let source_assessment = persisted
+        .assessment_scheme
+        .map(|scheme| -> Result<SourceSpecificRecoveryAssessment> {
+            Ok(SourceSpecificRecoveryAssessment {
+                scheme,
+                autonomic_charge: required_nightly_recovery_component(
+                    persisted.autonomic_charge,
+                    "autonomic_charge",
+                )?,
+                autonomic_status: required_nightly_recovery_component(
+                    persisted.autonomic_status,
+                    "autonomic_status",
+                )?,
+                overall_status: required_nightly_recovery_component(
+                    persisted.overall_status,
+                    "overall_status",
+                )?,
+                overall_sublevel: required_nightly_recovery_component(
+                    persisted.overall_sublevel,
+                    "overall_sublevel",
+                )?,
+            })
+        })
+        .transpose()?;
+    let source_baseline = persisted
+        .baseline_scheme
+        .map(|scheme| -> Result<SourceSpecificRecoveryBaseline> {
+            Ok(SourceSpecificRecoveryBaseline {
+                scheme,
+                mean_beat_to_beat_interval_milliseconds: required_nightly_recovery_component(
+                    persisted.baseline_mean_beat_to_beat_interval_milliseconds,
+                    "baseline_mean_beat_to_beat_interval_milliseconds",
+                )?,
+                standard_deviation_beat_to_beat_interval_milliseconds:
+                    required_nightly_recovery_component(
+                        persisted.baseline_standard_deviation_beat_to_beat_interval_milliseconds,
+                        "baseline_standard_deviation_beat_to_beat_interval_milliseconds",
+                    )?,
+                mean_heart_rate_variability_rmssd_milliseconds: persisted
+                    .baseline_mean_heart_rate_variability_rmssd_milliseconds,
+                standard_deviation_heart_rate_variability_rmssd_milliseconds: persisted
+                    .baseline_standard_deviation_heart_rate_variability_rmssd_milliseconds,
+                mean_breathing_interval_milliseconds: required_nightly_recovery_component(
+                    persisted.baseline_mean_breathing_interval_milliseconds,
+                    "baseline_mean_breathing_interval_milliseconds",
+                )?,
+                standard_deviation_breathing_interval_milliseconds:
+                    required_nightly_recovery_component(
+                        persisted.baseline_standard_deviation_breathing_interval_milliseconds,
+                        "baseline_standard_deviation_breathing_interval_milliseconds",
+                    )?,
+            })
+        })
+        .transpose()?;
+    let source_guidance = persisted
+        .guidance_scheme
+        .map(|scheme| -> Result<SourceSpecificRecoveryGuidance> {
+            Ok(SourceSpecificRecoveryGuidance {
+                scheme,
+                exercise: required_nightly_recovery_component(
+                    persisted.exercise_guidance,
+                    "exercise_guidance",
+                )?,
+                sleep: required_nightly_recovery_component(
+                    persisted.sleep_guidance,
+                    "sleep_guidance",
+                )?,
+                vitality: required_nightly_recovery_component(
+                    persisted.vitality_guidance,
+                    "vitality_guidance",
+                )?,
+            })
+        })
+        .transpose()?;
+
+    Ok(NightlyRecovery {
+        origin_id: persisted.origin_id,
+        recovery_date: persisted.recovery_date,
+        beat_to_beat_interval_milliseconds: persisted.beat_to_beat_interval_milliseconds,
+        heart_rate_variability_rmssd_milliseconds: persisted
+            .heart_rate_variability_rmssd_milliseconds,
+        breathing_interval_milliseconds: persisted.breathing_interval_milliseconds,
+        source_assessment,
+        source_baseline,
+        source_guidance,
+    })
+}
+
+fn load_nightly_recovery(
+    connection: &Connection,
+    origin_id: &str,
+    recovery_date: &str,
+) -> Result<Option<NightlyRecovery>> {
+    let persisted = connection
+        .query_row(
+            "SELECT origin_id, recovery_date,
+                    beat_to_beat_interval_milliseconds,
+                    heart_rate_variability_rmssd_milliseconds,
+                    breathing_interval_milliseconds,
+                    assessment_scheme, autonomic_charge, autonomic_status,
+                    overall_status, overall_sublevel, baseline_scheme,
+                    baseline_mean_beat_to_beat_interval_milliseconds,
+                    baseline_standard_deviation_beat_to_beat_interval_milliseconds,
+                    baseline_mean_heart_rate_variability_rmssd_milliseconds,
+                    baseline_standard_deviation_heart_rate_variability_rmssd_milliseconds,
+                    baseline_mean_breathing_interval_milliseconds,
+                    baseline_standard_deviation_breathing_interval_milliseconds,
+                    guidance_scheme, exercise_guidance, sleep_guidance, vitality_guidance
+             FROM nightly_recovery
+             WHERE origin_id = ?1 AND recovery_date = ?2",
+            params![origin_id, recovery_date],
+            read_persisted_nightly_recovery,
+        )
+        .optional()?;
+    persisted.map(decode_nightly_recovery_library).transpose()
+}
+
+fn persist_nightly_recovery(
+    transaction: &Transaction<'_>,
+    recovery: &NightlyRecovery,
+) -> Result<()> {
+    let assessment = recovery.source_assessment.as_ref();
+    let baseline = recovery.source_baseline.as_ref();
+    let guidance = recovery.source_guidance.as_ref();
+    transaction.execute(
+        "INSERT INTO nightly_recovery (
+             origin_id, recovery_date, beat_to_beat_interval_milliseconds,
+             heart_rate_variability_rmssd_milliseconds,
+             breathing_interval_milliseconds, assessment_scheme,
+             autonomic_charge, autonomic_status, overall_status, overall_sublevel,
+             baseline_scheme, baseline_mean_beat_to_beat_interval_milliseconds,
+             baseline_standard_deviation_beat_to_beat_interval_milliseconds,
+             baseline_mean_heart_rate_variability_rmssd_milliseconds,
+             baseline_standard_deviation_heart_rate_variability_rmssd_milliseconds,
+             baseline_mean_breathing_interval_milliseconds,
+             baseline_standard_deviation_breathing_interval_milliseconds,
+             guidance_scheme, exercise_guidance, sleep_guidance, vitality_guidance
+         ) VALUES (
+             ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13,
+             ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21
+         ) ON CONFLICT (origin_id, recovery_date) DO UPDATE SET
+             beat_to_beat_interval_milliseconds =
+                 excluded.beat_to_beat_interval_milliseconds,
+             heart_rate_variability_rmssd_milliseconds =
+                 excluded.heart_rate_variability_rmssd_milliseconds,
+             breathing_interval_milliseconds = excluded.breathing_interval_milliseconds,
+             assessment_scheme = excluded.assessment_scheme,
+             autonomic_charge = excluded.autonomic_charge,
+             autonomic_status = excluded.autonomic_status,
+             overall_status = excluded.overall_status,
+             overall_sublevel = excluded.overall_sublevel,
+             baseline_scheme = excluded.baseline_scheme,
+             baseline_mean_beat_to_beat_interval_milliseconds =
+                 excluded.baseline_mean_beat_to_beat_interval_milliseconds,
+             baseline_standard_deviation_beat_to_beat_interval_milliseconds =
+                 excluded.baseline_standard_deviation_beat_to_beat_interval_milliseconds,
+             baseline_mean_heart_rate_variability_rmssd_milliseconds =
+                 excluded.baseline_mean_heart_rate_variability_rmssd_milliseconds,
+             baseline_standard_deviation_heart_rate_variability_rmssd_milliseconds =
+                 excluded.baseline_standard_deviation_heart_rate_variability_rmssd_milliseconds,
+             baseline_mean_breathing_interval_milliseconds =
+                 excluded.baseline_mean_breathing_interval_milliseconds,
+             baseline_standard_deviation_breathing_interval_milliseconds =
+                 excluded.baseline_standard_deviation_breathing_interval_milliseconds,
+             guidance_scheme = excluded.guidance_scheme,
+             exercise_guidance = excluded.exercise_guidance,
+             sleep_guidance = excluded.sleep_guidance,
+             vitality_guidance = excluded.vitality_guidance",
+        params![
+            recovery.origin_id,
+            recovery.recovery_date,
+            recovery.beat_to_beat_interval_milliseconds,
+            recovery.heart_rate_variability_rmssd_milliseconds,
+            recovery.breathing_interval_milliseconds,
+            assessment.map(|value| value.scheme.as_str()),
+            assessment.map(|value| value.autonomic_charge),
+            assessment.map(|value| value.autonomic_status),
+            assessment.map(|value| value.overall_status),
+            assessment.map(|value| value.overall_sublevel),
+            baseline.map(|value| value.scheme.as_str()),
+            baseline.map(|value| value.mean_beat_to_beat_interval_milliseconds),
+            baseline.map(|value| value.standard_deviation_beat_to_beat_interval_milliseconds),
+            baseline.and_then(|value| value.mean_heart_rate_variability_rmssd_milliseconds),
+            baseline.and_then(|value| {
+                value.standard_deviation_heart_rate_variability_rmssd_milliseconds
+            }),
+            baseline.map(|value| value.mean_breathing_interval_milliseconds),
+            baseline.map(|value| value.standard_deviation_breathing_interval_milliseconds),
+            guidance.map(|value| value.scheme.as_str()),
+            guidance.map(|value| value.exercise.as_str()),
+            guidance.map(|value| value.sleep.as_str()),
+            guidance.map(|value| value.vitality.as_str()),
+        ],
+    )?;
+    Ok(())
+}
+
+fn reconcile_nightly_recovery(
+    transaction: &Transaction<'_>,
+    operation_id: i64,
+    mapped: &MappedNightlyRecovery,
+    report: &mut ImportReport,
+) -> Result<()> {
+    let recovery = &mapped.observation;
+    let existing =
+        load_nightly_recovery(transaction, &recovery.origin_id, &recovery.recovery_date)?;
+    let decision = decide_nightly_recovery_reconciliation(existing.as_ref(), recovery);
+    match decision {
+        ReconciliationDecision::Create | ReconciliationDecision::Enrich => {
+            persist_nightly_recovery(transaction, recovery)?;
+        }
+        ReconciliationDecision::Equivalent | ReconciliationDecision::Preserve => {}
+        ReconciliationDecision::Conflict => {
+            transaction.execute(
+                "INSERT INTO nightly_recovery_conflict (
+                     import_operation_id, origin_id, recovery_date,
+                     artifact_locator, source_record_locator, mapping_version
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![
+                    operation_id,
+                    recovery.origin_id,
+                    recovery.recovery_date,
+                    mapped.locator,
+                    mapped.source_record_locator,
+                    NIGHTLY_RECOVERY_MAPPING_VERSION,
+                ],
+            )?;
+        }
+        ReconciliationDecision::Amend => {
+            return Err(ImportError::InvalidReconciliationDecision(
+                "nightly recovery",
+            ));
+        }
+    }
+    transaction.execute(
+        "INSERT INTO nightly_recovery_provenance (
+             origin_id, recovery_date, import_operation_id, artifact_locator,
+             source_record_locator, source_artifact_sha256, source_provider,
+             source_adapter_version, mapping_version, reconciliation_decision,
+             contributes_to_visible_state
+         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+        params![
+            recovery.origin_id,
+            recovery.recovery_date,
+            operation_id,
+            mapped.locator,
+            mapped.source_record_locator,
+            mapped.sha256,
+            SOURCE_PROVIDER,
+            SOURCE_ADAPTER_VERSION,
+            NIGHTLY_RECOVERY_MAPPING_VERSION,
+            reconciliation_decision_code(decision),
+            matches!(
+                decision,
+                ReconciliationDecision::Create
+                    | ReconciliationDecision::Equivalent
+                    | ReconciliationDecision::Enrich
+            ),
+        ],
+    )?;
+    report.record(decision);
+    Ok(())
+}
+
 fn reconciliation_decision_code(decision: ReconciliationDecision) -> &'static str {
     match decision {
         ReconciliationDecision::Create => "create",
@@ -4390,6 +5179,40 @@ mod tests {
         )
     }
 
+    fn minimal_nightly_recovery_json(night: &str) -> String {
+        format!(
+            r#"[{{
+                "night":"{night}",
+                "meanNightlyRecoveryRri":900,
+                "meanNightlyRecoveryRespirationInterval":4100
+            }}]"#
+        )
+    }
+
+    fn complete_nightly_recovery_json(night: &str) -> String {
+        format!(
+            r#"[{{
+                "night":"{night}",
+                "meanNightlyRecoveryRri":900,
+                "meanNightlyRecoveryRmssd":42,
+                "meanNightlyRecoveryRespirationInterval":4100,
+                "ansRate":4,
+                "ansStatus":1.5,
+                "recoveryIndicator":5,
+                "recoveryIndicatorSubLevel":2,
+                "meanBaselineRespirationInterval":4200,
+                "meanBaselineRmssd":40,
+                "meanBaselineRri":910,
+                "sdBaselineRespirationInterval":120,
+                "sdBaselineRmssd":8,
+                "sdBaselineRri":30,
+                "exerciseTip":"Choose a steady synthetic session.",
+                "sleepTip":"Keep a consistent synthetic schedule.",
+                "vitalityTip":"Plan a synthetic restorative break."
+            }}]"#
+        )
+    }
+
     #[test]
     fn imports_queries_and_repeats_without_duplicates() {
         let harness = Harness::new();
@@ -4549,6 +5372,455 @@ mod tests {
         assert!(!table_names.iter().any(|name| {
             name.contains("route") || name.contains("sample") || name.contains("waypoint")
         }));
+    }
+
+    #[test]
+    fn imports_complete_nightly_recovery_without_persisting_unidentifiable_samples() {
+        let harness = Harness::new();
+        let recovery_json = complete_nightly_recovery_json("2026-04-01");
+        let archive = harness.archive(
+            "nightly-recovery.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-recovery-claim"}"#,
+                ),
+                (
+                    "nightly_recovery_42-11111111-2222-4333-8444-555555555555.json",
+                    &recovery_json,
+                ),
+                (
+                    "nightly_recovery_blob_42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"hrvData":{"samples":[37,41]},"breathingRateData":{"samples":[14,15]}}"#,
+                ),
+            ],
+        );
+
+        let report =
+            import_polar_archive(&harness.database(), &archive).expect("nightly recovery import");
+
+        assert_eq!(report.recognized_artifacts, 2);
+        assert_eq!(report.new_observations, 1);
+        let history = query_nightly_recoveries(&harness.database()).expect("recovery history");
+        assert_eq!(history.len(), 1);
+        let recovery = &history[0];
+        assert_eq!(recovery.origin_id.len(), 32);
+        assert_eq!(recovery.recovery_date, "2026-04-01");
+        assert_eq!(recovery.beat_to_beat_interval_milliseconds, 900);
+        assert_eq!(recovery.heart_rate_variability_rmssd_milliseconds, Some(42));
+        assert_eq!(recovery.breathing_interval_milliseconds, 4_100);
+        assert_eq!(
+            recovery.source_assessment,
+            Some(SourceSpecificRecoveryAssessment {
+                scheme: NIGHTLY_RECOVERY_SCHEME.to_owned(),
+                autonomic_charge: 1.5,
+                autonomic_status: 4,
+                overall_status: 5,
+                overall_sublevel: 2,
+            })
+        );
+        assert_eq!(
+            recovery.source_baseline,
+            Some(SourceSpecificRecoveryBaseline {
+                scheme: NIGHTLY_RECOVERY_SCHEME.to_owned(),
+                mean_beat_to_beat_interval_milliseconds: 910,
+                standard_deviation_beat_to_beat_interval_milliseconds: 30,
+                mean_heart_rate_variability_rmssd_milliseconds: Some(40),
+                standard_deviation_heart_rate_variability_rmssd_milliseconds: Some(8),
+                mean_breathing_interval_milliseconds: 4_200,
+                standard_deviation_breathing_interval_milliseconds: 120,
+            })
+        );
+        assert_eq!(
+            recovery.source_guidance,
+            Some(SourceSpecificRecoveryGuidance {
+                scheme: NIGHTLY_RECOVERY_SCHEME.to_owned(),
+                exercise: "Choose a steady synthetic session.".to_owned(),
+                sleep: "Keep a consistent synthetic schedule.".to_owned(),
+                vitality: "Plan a synthetic restorative break.".to_owned(),
+            })
+        );
+        assert_eq!(
+            query_nightly_recovery_between(
+                &harness.database(),
+                Some("2026-04-01"),
+                Some("2026-04-01")
+            )
+            .expect("recovery range"),
+            history
+        );
+        assert!(query_nightly_recovery_between(
+            &harness.database(),
+            Some("2026-04-02"),
+            Some("2026-04-02")
+        )
+        .expect("empty recovery range")
+        .is_empty());
+        assert_eq!(
+            query_nightly_recovery(&harness.database(), &recovery.origin_id, "2026-04-01")
+                .expect("recovery identity"),
+            Some(recovery.clone())
+        );
+        assert_eq!(
+            query_nightly_recoveries(&harness.database()).expect("reopened recovery history"),
+            history
+        );
+
+        let outcome = query_latest_import_outcome(&harness.database())
+            .expect("recovery outcome query")
+            .expect("recovery outcome");
+        assert!(outcome.artifact_families.iter().any(|family| {
+            family.family_code.as_deref() == Some("polar-flow-nightly-recovery")
+                && family.classification == ArtifactClassification::Supported
+                && family.reason_code == "mapped-recovery-summaries"
+        }));
+        assert!(outcome.artifact_families.iter().any(|family| {
+            family.family_code.as_deref() == Some("polar-flow-nightly-recovery-blob")
+                && family.classification == ArtifactClassification::DeliberatelyIgnored
+                && family.reason_code == "excluded-unidentifiable-recovery-samples"
+        }));
+
+        let connection = Connection::open(harness.database()).expect("database");
+        let provenance = connection
+            .query_row(
+                "SELECT source_provider, source_adapter_version, mapping_version,
+                        source_record_locator, reconciliation_decision,
+                        contributes_to_visible_state, length(source_artifact_sha256)
+                 FROM nightly_recovery_provenance",
+                [],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                        row.get::<_, String>(3)?,
+                        row.get::<_, String>(4)?,
+                        row.get::<_, bool>(5)?,
+                        row.get::<_, i64>(6)?,
+                    ))
+                },
+            )
+            .expect("recovery provenance");
+        assert_eq!(
+            provenance,
+            (
+                SOURCE_PROVIDER.to_owned(),
+                SOURCE_ADAPTER_VERSION.to_owned(),
+                NIGHTLY_RECOVERY_MAPPING_VERSION.to_owned(),
+                "json-index:0".to_owned(),
+                "create".to_owned(),
+                true,
+                64,
+            )
+        );
+        let table_names = connection
+            .prepare("SELECT name FROM sqlite_schema WHERE type = 'table' ORDER BY name")
+            .expect("table query")
+            .query_map([], |row| row.get::<_, String>(0))
+            .expect("table rows")
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .expect("table names");
+        assert!(!table_names
+            .iter()
+            .any(|name| name.contains("recovery_blob") || name.contains("recovery_sample")));
+        assert!(connection
+            .query_row(
+                "SELECT source_artifact_sha256 IS NULL
+                     FROM import_artifact_coverage
+                     WHERE artifact_family = 'polar-flow-nightly-recovery-blob'",
+                [],
+                |row| row.get::<_, bool>(0),
+            )
+            .expect("excluded blob evidence"));
+    }
+
+    #[test]
+    fn reconciles_nightly_recovery_without_archive_order_precedence() {
+        let harness = Harness::new();
+        let minimal = minimal_nightly_recovery_json("2026-04-01");
+        let complete = complete_nightly_recovery_json("2026-04-01");
+        let changed = complete.replacen(
+            "\"meanNightlyRecoveryRri\":900",
+            "\"meanNightlyRecoveryRri\":901",
+            1,
+        );
+        let packages = [
+            (
+                "recovery-first.zip",
+                "11111111-2222-4333-8444-555555555555",
+                &minimal,
+            ),
+            (
+                "recovery-equivalent.zip",
+                "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+                &minimal,
+            ),
+            (
+                "recovery-enriched.zip",
+                "12345678-90ab-4cde-8f01-234567890abc",
+                &complete,
+            ),
+            (
+                "recovery-reduced.zip",
+                "abcdefab-cdef-4abc-8def-abcdefabcdef",
+                &minimal,
+            ),
+            (
+                "recovery-conflict.zip",
+                "fedcbafe-dcba-4fed-8cba-fedcbafedcba",
+                &changed,
+            ),
+        ];
+        let archives = packages
+            .iter()
+            .map(|(archive_name, token, json)| {
+                let locator = format!("nightly_recovery_42-{token}.json");
+                harness.archive(
+                    archive_name,
+                    &[
+                        (
+                            "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                            r#"{"username":"fixture-recovery-reimport-claim"}"#,
+                        ),
+                        (locator.as_str(), json.as_str()),
+                    ],
+                )
+            })
+            .collect::<Vec<_>>();
+
+        let created =
+            import_polar_archive(&harness.database(), &archives[0]).expect("create recovery");
+        let equivalent =
+            import_polar_archive(&harness.database(), &archives[1]).expect("equivalent recovery");
+        let enriched =
+            import_polar_archive(&harness.database(), &archives[2]).expect("enrich recovery");
+        let preserved =
+            import_polar_archive(&harness.database(), &archives[3]).expect("preserve recovery");
+        let conflicted =
+            import_polar_archive(&harness.database(), &archives[4]).expect("conflict recovery");
+
+        assert_eq!(created.new_observations, 1);
+        assert_eq!(equivalent.equivalent_observations, 1);
+        assert_eq!(enriched.enriched_observations, 1);
+        assert_eq!(preserved.preserved_observations, 1);
+        assert_eq!(conflicted.conflicts, 1);
+        let history = query_nightly_recoveries(&harness.database()).expect("recovery history");
+        assert_eq!(history.len(), 1);
+        assert_eq!(history[0].beat_to_beat_interval_milliseconds, 900);
+        assert_eq!(
+            history[0].heart_rate_variability_rmssd_milliseconds,
+            Some(42)
+        );
+        assert!(history[0].source_assessment.is_some());
+        assert!(history[0].source_baseline.is_some());
+        assert!(history[0].source_guidance.is_some());
+
+        let connection = Connection::open(harness.database()).expect("database");
+        let decisions = connection
+            .prepare(
+                "SELECT reconciliation_decision, contributes_to_visible_state
+                 FROM nightly_recovery_provenance ORDER BY id",
+            )
+            .expect("recovery decisions query")
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, bool>(1)?))
+            })
+            .expect("recovery decision rows")
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .expect("recovery decisions");
+        assert_eq!(
+            decisions,
+            vec![
+                ("create".to_owned(), true),
+                ("equivalent".to_owned(), true),
+                ("enrich".to_owned(), true),
+                ("preserve".to_owned(), false),
+                ("conflict".to_owned(), false),
+            ]
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM nightly_recovery_conflict",
+                    [],
+                    |row| { row.get::<_, i64>(0) }
+                )
+                .expect("recovery conflict count"),
+            1
+        );
+    }
+
+    #[test]
+    fn validates_nightly_recovery_shape_groups_and_ranges() {
+        let locator = "nightly_recovery_42-11111111-2222-4333-8444-555555555555.json";
+        let hash = "0".repeat(64);
+        let minimal = minimal_nightly_recovery_json("2026-04-01");
+        let mapped =
+            decode_nightly_recoveries("synthetic-origin", locator, &hash, minimal.as_bytes())
+                .expect("minimal recovery");
+        assert_eq!(mapped.len(), 1);
+        assert_eq!(mapped[0].source_record_locator, "json-index:0");
+        assert_eq!(
+            mapped[0]
+                .observation
+                .heart_rate_variability_rmssd_milliseconds,
+            None
+        );
+        assert_eq!(mapped[0].observation.source_assessment, None);
+        assert_eq!(mapped[0].observation.source_baseline, None);
+        assert_eq!(mapped[0].observation.source_guidance, None);
+
+        let complete = complete_nightly_recovery_json("2026-04-01");
+        let without_baseline_rmssd = complete
+            .replacen("\n                \"meanBaselineRmssd\":40,", "", 1)
+            .replacen("\n                \"sdBaselineRmssd\":8,", "", 1);
+        let mapped_without_baseline_rmssd = decode_nightly_recoveries(
+            "synthetic-origin",
+            locator,
+            &hash,
+            without_baseline_rmssd.as_bytes(),
+        )
+        .expect("recovery without baseline RMSSD pair");
+        let baseline = mapped_without_baseline_rmssd[0]
+            .observation
+            .source_baseline
+            .as_ref()
+            .expect("baseline");
+        assert_eq!(
+            baseline.mean_heart_rate_variability_rmssd_milliseconds,
+            None
+        );
+        assert_eq!(
+            baseline.standard_deviation_heart_rate_variability_rmssd_milliseconds,
+            None
+        );
+
+        for invalid in [
+            minimal.replacen("2026-04-01", "2026-02-30", 1),
+            minimal.replacen(
+                "\"meanNightlyRecoveryRri\":900",
+                "\"meanNightlyRecoveryRri\":0",
+                1,
+            ),
+            minimal.replacen(
+                "\"meanNightlyRecoveryRespirationInterval\":4100",
+                "\"meanNightlyRecoveryRespirationInterval\":-1",
+                1,
+            ),
+            complete.replacen("\"ansRate\":4,", "", 1),
+            complete.replacen("\"ansStatus\":1.5", "\"ansStatus\":11", 1),
+            complete.replacen("\"recoveryIndicator\":5", "\"recoveryIndicator\":7", 1),
+            complete.replacen("\"meanBaselineRri\":910,", "", 1),
+            complete.replacen("\"sdBaselineRmssd\":8,", "", 1),
+            complete.replacen(
+                "\"sleepTip\":\"Keep a consistent synthetic schedule.\",",
+                "",
+                1,
+            ),
+            complete.replacen(
+                "\"exerciseTip\":\"Choose a steady synthetic session.\"",
+                "\"exerciseTip\":\" \"",
+                1,
+            ),
+        ] {
+            assert!(decode_nightly_recoveries(
+                "synthetic-origin",
+                locator,
+                &hash,
+                invalid.as_bytes(),
+            )
+            .is_err());
+        }
+    }
+
+    #[test]
+    fn rejects_duplicate_nightly_recovery_identity_atomically() {
+        let harness = Harness::new();
+        let recovery = minimal_nightly_recovery_json("2026-04-01");
+        let archive = harness.archive(
+            "duplicate-recovery.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-duplicate-recovery-claim"}"#,
+                ),
+                (
+                    "nightly_recovery_42-11111111-2222-4333-8444-555555555555.json",
+                    &recovery,
+                ),
+                (
+                    "nightly_recovery_77-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    &recovery,
+                ),
+            ],
+        );
+
+        let error = import_polar_archive(&harness.database(), &archive)
+            .expect_err("duplicate recovery identity");
+
+        assert!(matches!(
+            error,
+            ImportError::InvalidArtifact {
+                reason_code: "duplicate-nightly-recovery-date",
+                ..
+            }
+        ));
+        assert!(query_nightly_recoveries(&harness.database())
+            .expect("empty recovery history")
+            .is_empty());
+        let outcome = query_latest_import_outcome(&harness.database())
+            .expect("duplicate recovery outcome query")
+            .expect("duplicate recovery outcome");
+        assert_eq!(outcome.state, ImportOperationState::Rejected);
+        assert!(outcome.artifact_families.iter().any(|family| {
+            family.family_code.as_deref() == Some("polar-flow-nightly-recovery")
+                && family.classification == ArtifactClassification::Invalid
+                && family.reason_code == "duplicate-nightly-recovery-date"
+                && family.artifact_count == 2
+        }));
+    }
+
+    #[test]
+    fn rolls_back_all_nightly_recovery_rows_after_interruption() {
+        let harness = Harness::new();
+        let first = minimal_nightly_recovery_json("2026-04-01");
+        let second = complete_nightly_recovery_json("2026-04-02");
+        let combined = format!(
+            "[{},{}]",
+            &first[1..first.len() - 1],
+            &second[1..second.len() - 1]
+        );
+        let archive = harness.archive(
+            "interrupted-recovery.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-interrupted-recovery-claim"}"#,
+                ),
+                (
+                    "nightly_recovery_42-11111111-2222-4333-8444-555555555555.json",
+                    &combined,
+                ),
+            ],
+        );
+
+        let error = import_polar_archive_with_interruption(&harness.database(), &archive, Some(1))
+            .expect_err("interrupted recovery import");
+
+        assert!(
+            matches!(error, ImportError::InjectedInterruption(1)),
+            "unexpected recovery interruption error: {error:?}"
+        );
+        assert!(query_nightly_recoveries(&harness.database())
+            .expect("rolled-back recovery history")
+            .is_empty());
+        assert_eq!(
+            recover_interrupted_imports(&harness.database()).expect("recovery startup"),
+            1
+        );
+        assert!(query_nightly_recoveries(&harness.database())
+            .expect("empty recovered history")
+            .is_empty());
     }
 
     #[test]
@@ -5543,8 +6815,8 @@ mod tests {
                     r#"{"date":"2026-01-02","summary":{"stepCount":-1}}"#,
                 ),
                 (
-                    "nightly_recovery_42-11111111-2222-4333-8444-555555555555.json",
-                    r#"[]"#,
+                    "orthostatic-test-result-42-7-11111111-2222-4333-8444-555555555555.json",
+                    r#"{}"#,
                 ),
                 (
                     "profile-picture-42-LARGE-11111111-2222-4333-8444-555555555555.data",
@@ -5581,7 +6853,7 @@ mod tests {
                     artifact_count: 1,
                 },
                 ArtifactFamilyCoverage {
-                    family_code: Some("polar-flow-nightly-recovery".to_owned()),
+                    family_code: Some("polar-flow-orthostatic-test-result".to_owned()),
                     classification: ArtifactClassification::Unsupported,
                     reason_code: "known-family-not-yet-supported".to_owned(),
                     artifact_count: 1,
@@ -6960,6 +8232,94 @@ mod tests {
                 .expect("sleep indexes"),
             3
         );
+    }
+
+    #[test]
+    fn upgrades_version_seven_with_nightly_recovery_storage_atomically() {
+        let harness = Harness::new();
+        let connection = Connection::open(harness.database()).expect("database");
+        connection
+            .execute_batch("PRAGMA foreign_keys = ON;")
+            .expect("foreign keys");
+        for (schema, label) in [
+            (SCHEMA_V1, "version one"),
+            (SCHEMA_V2, "version two"),
+            (SCHEMA_V3, "version three"),
+            (SCHEMA_V4, "version four"),
+            (SCHEMA_V5, "version five"),
+            (SCHEMA_V6, "version six"),
+            (SCHEMA_V7, "version seven"),
+        ] {
+            connection
+                .execute_batch(schema)
+                .unwrap_or_else(|error| panic!("{label} schema: {error}"));
+        }
+        connection
+            .pragma_update(None, "user_version", 7)
+            .expect("version seven marker");
+
+        let error = migrate_schema(&connection, true).expect_err("interrupted version eight");
+        assert!(matches!(error, ImportError::InjectedMigrationInterruption));
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("retained schema version"),
+            7
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_schema
+                     WHERE type = 'table' AND name LIKE 'nightly_recovery%'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("rolled-back recovery tables"),
+            0
+        );
+
+        migrate_schema(&connection, false).expect("version eight migration");
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("current schema version"),
+            SCHEMA_VERSION
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_schema
+                     WHERE type = 'table' AND name LIKE 'nightly_recovery%'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("recovery tables"),
+            3
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_schema
+                     WHERE type = 'index' AND name LIKE 'nightly_recovery%'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("recovery indexes"),
+            3
+        );
+        let query_plan = connection
+            .query_row(
+                "EXPLAIN QUERY PLAN
+                 SELECT origin_id, recovery_date
+                 FROM nightly_recovery
+                 WHERE recovery_date >= '2026-04-01'
+                   AND recovery_date <= '2026-04-30'
+                 ORDER BY recovery_date, origin_id",
+                [],
+                |row| row.get::<_, String>(3),
+            )
+            .expect("recovery query plan");
+        assert!(query_plan.contains("nightly_recovery_date_origin"));
     }
 
     #[test]

@@ -426,11 +426,11 @@ describe("packaged FitFreed import journey", () => {
 
     await selectArchive(dialogMock, path.join(fixtureDirectory, "valid.zip"));
     await $("aria/Import selected package").click();
-    await waitForNotice("Import completed: 8 recognized, 6 new");
+    await waitForNotice("Import completed: 9 recognized, 7 new");
     await expectCoverage([
-      ["8", "Supported"],
+      ["9", "Supported"],
       ["0", "Unsupported"],
-      ["1", "Deliberately ignored"],
+      ["2", "Deliberately ignored"],
       ["1", "Unrecognized"],
       ["0", "Invalid"],
     ]);
@@ -441,6 +441,13 @@ describe("packaged FitFreed import journey", () => {
         count: "1",
         reason: "The file does not match a known data family.",
         action: "Keep the original ZIP and report the compatibility problem.",
+      },
+      {
+        family: "Nightly recovery details",
+        classification: "Deliberately ignored",
+        count: "1",
+        reason: "Recovery samples have no documented date or record identity, so FitFreed cannot join them safely.",
+        action: "Keep the original ZIP if you need the excluded recovery samples.",
       },
       {
         family: "Profile picture",
@@ -462,6 +469,13 @@ describe("packaged FitFreed import journey", () => {
         count: "3",
         reason: "The data is mapped into the current library.",
         action: "No action is needed.",
+      },
+      {
+        family: "Nightly recovery",
+        classification: "Supported",
+        count: "1",
+        reason: "Dated recovery summaries and their available assessment, baseline, and guidance are mapped into the library.",
+        action: "No action is needed for the dated summaries.",
       },
       {
         family: "Sleep results",
@@ -593,9 +607,9 @@ describe("packaged FitFreed import journey", () => {
     await selectLocale("es-ES");
     await expect($("#outcome-heading")).toHaveText(spanish.outcome.heading);
     await expectCoverage([
-      ["8", spanish.outcome.supported],
+      ["9", spanish.outcome.supported],
       ["0", spanish.outcome.unsupported],
-      ["1", spanish.outcome.ignored],
+      ["2", spanish.outcome.ignored],
       ["1", spanish.outcome.unrecognized],
       ["0", spanish.outcome.invalid],
     ]);
@@ -605,6 +619,12 @@ describe("packaged FitFreed import journey", () => {
         classification: spanish.outcome.familyClassifications.unrecognized,
         count: "1",
         ...spanish.outcome.coverageExplanations["unrecognized-artifact-family"],
+      },
+      {
+        family: spanish.outcome.familyNames["polar-flow-nightly-recovery-blob"],
+        classification: spanish.outcome.familyClassifications["deliberately-ignored"],
+        count: "1",
+        ...spanish.outcome.coverageExplanations["excluded-unidentifiable-recovery-samples"],
       },
       {
         family: spanish.outcome.familyNames["polar-flow-profile-picture"],
@@ -623,6 +643,12 @@ describe("packaged FitFreed import journey", () => {
         classification: spanish.outcome.familyClassifications.supported,
         count: "3",
         ...spanish.outcome.coverageExplanations.mapped,
+      },
+      {
+        family: spanish.outcome.familyNames["polar-flow-nightly-recovery"],
+        classification: spanish.outcome.familyClassifications.supported,
+        count: "1",
+        ...spanish.outcome.coverageExplanations["mapped-recovery-summaries"],
       },
       {
         family: spanish.outcome.familyNames["polar-flow-sleep-result"],

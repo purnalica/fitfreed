@@ -15,6 +15,7 @@ const UUID_PATTERN: &str =
 pub(super) enum SupportedArtifact {
     AccountData,
     DailyActivity,
+    NightlyRecovery,
     SleepResult,
     SleepScore,
     TrainingSession,
@@ -147,15 +148,18 @@ static ARTIFACT_RULES: LazyLock<Vec<ArtifactRule>> = LazyLock::new(|| {
             "polar-flow-fitness-test-result",
             Unsupported,
         ),
-        rule(
+        ArtifactRule::new(
             format!(r"^nightly_recovery_blob_{NUMERIC_PATTERN}-{UUID_PATTERN}\.json$"),
             "polar-flow-nightly-recovery-blob",
-            Unsupported,
+            DeliberatelyIgnored,
+            "excluded-unidentifiable-recovery-samples",
+            None,
         ),
-        rule(
+        supported_rule(
             format!(r"^nightly_recovery_{NUMERIC_PATTERN}-{UUID_PATTERN}\.json$"),
             "polar-flow-nightly-recovery",
-            Unsupported,
+            SupportedArtifact::NightlyRecovery,
+            "mapped-recovery-summaries",
         ),
         rule(
             format!(
@@ -330,31 +334,34 @@ mod tests {
     }
 
     #[test]
-    fn distinguishes_known_unsupported_mvp_families() {
-        let cases = [
-            (
-                format!("nightly_recovery_42-{UUID_A}.json"),
-                "polar-flow-nightly-recovery",
-            ),
-            (
-                format!("nightly_recovery_blob_42-{UUID_A}.json"),
-                "polar-flow-nightly-recovery-blob",
-            ),
-        ];
+    fn classifies_supported_nightly_recovery_summaries() {
+        let name = format!("nightly_recovery_42-{UUID_A}.json");
+        let assessment = assess_artifact(&name);
 
-        for (name, expected_family) in cases {
-            let assessment = assess_artifact(&name);
-            assert_eq!(assessment.family, Some(expected_family), "{name}");
-            assert_eq!(
-                assessment.classification,
-                ArtifactClassification::Unsupported,
-                "{name}",
-            );
-            assert_eq!(
-                assessment.reason_code, "known-family-not-yet-supported",
-                "{name}"
-            );
-        }
+        assert_eq!(assessment.family, Some("polar-flow-nightly-recovery"));
+        assert_eq!(assessment.classification, ArtifactClassification::Supported);
+        assert_eq!(assessment.reason_code, "mapped-recovery-summaries");
+        assert_eq!(
+            assessment.supported_artifact,
+            Some(SupportedArtifact::NightlyRecovery)
+        );
+    }
+
+    #[test]
+    fn deliberately_excludes_unidentifiable_nightly_recovery_samples() {
+        let name = format!("nightly_recovery_blob_42-{UUID_A}.json");
+        let assessment = assess_artifact(&name);
+
+        assert_eq!(assessment.family, Some("polar-flow-nightly-recovery-blob"));
+        assert_eq!(
+            assessment.classification,
+            ArtifactClassification::DeliberatelyIgnored
+        );
+        assert_eq!(
+            assessment.reason_code,
+            "excluded-unidentifiable-recovery-samples"
+        );
+        assert_eq!(assessment.supported_artifact, None);
     }
 
     #[test]

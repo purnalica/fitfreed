@@ -6,6 +6,7 @@ This is the normative anti-corruption-layer contract for joining compatible Pola
 
 - Source provider: `polar-flow`
 - Source adapter version introducing support: `polar-flow-archive@5`
+- Current source adapter version: `polar-flow-archive@6`
 - Mapping version: `polar-flow-sleep@1`
 - Operation mapping set: `polar-flow-mapping-set@1`
 - Source evidence: [Polar Flow personal data export reference](../providers/polar-flow.md)

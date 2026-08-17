@@ -346,6 +346,14 @@
         "reason": "Se incorporan los componentes de la puntuación del sueño; las referencias de puntuación permanecen únicamente en el ZIP original.",
         "action": "Conserva el ZIP original si necesitas el contexto de puntuación excluido."
       },
+      "mapped-recovery-summaries": {
+        "reason": "Se incorporan a la biblioteca los resúmenes fechados de recuperación y sus valoraciones, referencias y recomendaciones disponibles.",
+        "action": "No es necesaria ninguna acción para los resúmenes fechados."
+      },
+      "excluded-unidentifiable-recovery-samples": {
+        "reason": "Las muestras de recuperación no tienen una fecha ni una identidad de registro documentadas, por lo que FitFreed no puede relacionarlas con seguridad.",
+        "action": "Conserva el ZIP original si necesitas las muestras de recuperación excluidas."
+      },
       "source-subject-claim": {
         "reason": "Los datos solo se usan para vincular paquetes de la misma cuenta del proveedor.",
         "action": "No es necesaria ninguna acción."
@@ -401,6 +409,10 @@
       "orphan-sleep-score-date": {
         "reason": "El paquete contiene una puntuación del sueño sin su resultado del sueño correspondiente.",
         "action": "Usa el ZIP original de la exportación completa o comunica el problema de compatibilidad."
+      },
+      "duplicate-nightly-recovery-date": {
+        "reason": "El paquete contiene más de un resumen de recuperación para la misma fecha asignada por el origen.",
+        "action": "Solicita una nueva exportación o comunica el problema de compatibilidad."
       },
       "invalid-source-subject-evidence": {
         "reason": "No se han podido validar los datos de la cuenta del proveedor.",

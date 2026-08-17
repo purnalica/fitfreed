@@ -134,6 +134,30 @@ function sleepScore(night) {
   ]);
 }
 
+function nightlyRecovery(night) {
+  return JSON.stringify([
+    {
+      night,
+      meanNightlyRecoveryRri: 900,
+      meanNightlyRecoveryRmssd: 42,
+      meanNightlyRecoveryRespirationInterval: 4_100,
+      ansRate: 4,
+      ansStatus: 1.5,
+      recoveryIndicator: 5,
+      recoveryIndicatorSubLevel: 2,
+      meanBaselineRespirationInterval: 4_200,
+      meanBaselineRmssd: 40,
+      meanBaselineRri: 910,
+      sdBaselineRespirationInterval: 120,
+      sdBaselineRmssd: 8,
+      sdBaselineRri: 30,
+      exerciseTip: "Choose a steady synthetic session.",
+      sleepTip: "Keep a consistent synthetic schedule.",
+      vitalityTip: "Plan a synthetic restorative break.",
+    },
+  ]);
+}
+
 async function createArchive(name, entries) {
   const outputPath = path.join(outputDirectory, name);
   const zip = new ZipFile();
@@ -209,6 +233,14 @@ await createArchive("valid.zip", [
   ],
   [`sleep_result_42-${uuidA}.json`, sleepResult("2026-01-06")],
   [`sleep_score_42-${uuidA}.json`, sleepScore("2026-01-06")],
+  [`nightly_recovery_42-${uuidA}.json`, nightlyRecovery("2026-01-06")],
+  [
+    `nightly_recovery_blob_42-${uuidA}.json`,
+    JSON.stringify({
+      hrvData: { samples: [37, 41] },
+      breathingRateData: { samples: [14, 15] },
+    }),
+  ],
   [`profile-picture-42-LARGE-${uuidA}.data`, "synthetic image"],
   [`future-family-42-${uuidA}.json`, "{}"],
 ]);
