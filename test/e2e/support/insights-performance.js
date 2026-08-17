@@ -95,13 +95,14 @@ function evidence(measurements) {
       calendarDays,
       origins: 1,
       trainingSessions: calendarDays,
+      sleepPeriods: calendarDays,
     },
     method: {
       warmUpRunsPerInteraction: warmUpRuns,
       commonMeasuredRuns: 20,
       maximumMeasuredRuns: 7,
       percentile: "sorted zero-based index ceil((n - 1) * 0.95)",
-      scope: "packaged Tauri command, React update, and rendered exact activity or training table",
+      scope: "packaged Tauri command, React update, and rendered exact activity, training, or sleep view",
     },
     measurements,
   };
@@ -296,6 +297,136 @@ async function compareTrainingRanges(ranges) {
   return result.duration;
 }
 
+async function applySleepRange(from, through) {
+  const input = {
+    from,
+    through,
+    expectedRows: inclusiveDays(from, through),
+    expectedFirstDate: from,
+  };
+  const result = await browser.executeAsync((expected, done) => {
+    const inputs = document.querySelectorAll(".sleep-filter input[type='date']");
+    const setValue = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    ).set;
+    [expected.from, expected.through].forEach((value, index) => {
+      setValue.call(inputs[index], value);
+      inputs[index].dispatchEvent(new Event("input", { bubbles: true }));
+      inputs[index].dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    const started = window.performance.now();
+    document.querySelector(".sleep-filter button[type='submit']").click();
+    function observeResult() {
+      const rows = document.querySelectorAll(".sleep-history-grid table tbody tr");
+      const renderedFirstDate = rows[0]?.querySelector("time")?.getAttribute("datetime");
+      if (rows.length === expected.expectedRows && renderedFirstDate === expected.expectedFirstDate) {
+        requestAnimationFrame(() => done({
+          duration: window.performance.now() - started,
+          error: null,
+        }));
+        return;
+      }
+      if (window.performance.now() - started > 5_000) {
+        done({ duration: null, error: "sleep range was not rendered" });
+        return;
+      }
+      requestAnimationFrame(observeResult);
+    }
+    requestAnimationFrame(observeResult);
+  }, input);
+  if (result.error) throw new Error(`${result.error}: ${from} through ${through}`);
+  return result.duration;
+}
+
+async function compareSleepRanges(ranges) {
+  const input = {
+    ...ranges,
+    expectedBaselineNights: new Intl.NumberFormat("en-US").format(
+      inclusiveDays(ranges.baselineFrom, ranges.baselineThrough),
+    ),
+  };
+  const result = await browser.executeAsync((expected, done) => {
+    const inputs = document.querySelectorAll(".sleep-comparison input[type='date']");
+    const setValue = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    ).set;
+    [
+      expected.baselineFrom,
+      expected.baselineThrough,
+      expected.comparisonFrom,
+      expected.comparisonThrough,
+    ].forEach((value, index) => {
+      setValue.call(inputs[index], value);
+      inputs[index].dispatchEvent(new Event("input", { bubbles: true }));
+      inputs[index].dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    const started = window.performance.now();
+    document.querySelector(".sleep-comparison button[type='submit']").click();
+    function observeResult() {
+      const cells = document.querySelectorAll(
+        ".sleep-comparison-result table tbody tr:first-child th, "
+        + ".sleep-comparison-result table tbody tr:first-child td",
+      );
+      if (cells.length === 4 && cells[1].textContent === expected.expectedBaselineNights) {
+        requestAnimationFrame(() => done({
+          duration: window.performance.now() - started,
+          error: null,
+        }));
+        return;
+      }
+      if (window.performance.now() - started > 5_000) {
+        done({ duration: null, error: "sleep comparison was not rendered" });
+        return;
+      }
+      requestAnimationFrame(observeResult);
+    }
+    requestAnimationFrame(observeResult);
+  }, input);
+  if (result.error) throw new Error(result.error);
+  return result.duration;
+}
+
+async function openSleepDetail(sleepDate) {
+  const result = await browser.executeAsync((expectedDate, done) => {
+    const row = Array.from(document.querySelectorAll(".sleep-history-grid table tbody tr"))
+      .find((candidate) => candidate.querySelector("time")?.getAttribute("datetime") === expectedDate);
+    const button = row?.querySelector("button");
+    if (!button) {
+      done({ duration: null, error: "sleep detail control was not found" });
+      return;
+    }
+    const started = window.performance.now();
+    button.click();
+    function observeResult() {
+      const detail = document.querySelector(".sleep-detail[aria-busy='false']");
+      const renderedDate = detail?.querySelector("time")?.getAttribute("datetime");
+      const transitions = detail?.querySelectorAll(".sleep-timeline + .sleep-table-scroll tbody tr");
+      if (renderedDate === expectedDate && transitions?.length === 5) {
+        requestAnimationFrame(() => done({
+          duration: window.performance.now() - started,
+          error: null,
+        }));
+        return;
+      }
+      if (window.performance.now() - started > 5_000) {
+        done({ duration: null, error: "sleep detail was not rendered" });
+        return;
+      }
+      requestAnimationFrame(observeResult);
+    }
+    requestAnimationFrame(observeResult);
+  }, sleepDate);
+  if (result.error) throw new Error(`${result.error}: ${sleepDate}`);
+  await $(".sleep-detail-heading button").click();
+  await browser.waitUntil(async () => (await $$(".sleep-detail")).length === 0, {
+    timeout: 5_000,
+    timeoutMsg: "sleep detail did not close",
+  });
+  return result.duration;
+}
+
 async function waitForDailyActivityCoverage() {
   const expectedCount = storedObservationCount();
   await browser.waitUntil(async () => {
@@ -303,7 +434,8 @@ async function waitForDailyActivityCoverage() {
     for (const row of rows) {
       if ((await row.$("th").getText()) !== "Daily activity") continue;
       const cells = await row.$$("td");
-      return (await cells[1].getText()) === String(expectedCount);
+      return (await cells[0].getText()) === "Supported"
+        && (await cells[1].getText()) === String(expectedCount);
     }
     return false;
   }, { timeout: 30_000, timeoutMsg: "performance history import did not complete" });
@@ -315,10 +447,32 @@ async function waitForTrainingCoverage() {
     for (const row of rows) {
       if ((await row.$("th").getText()) !== "Training sessions") continue;
       const cells = await row.$$("td");
-      return (await cells[1].getText()) === String(calendarDays);
+      return (await cells[0].getText()) === "Supported"
+        && (await cells[1].getText()) === String(calendarDays);
     }
     return false;
   }, { timeout: 30_000, timeoutMsg: "performance training import did not complete" });
+}
+
+async function waitForSleepCoverage() {
+  await browser.waitUntil(async () => {
+    const rows = await $$(".family-coverage-table tbody tr");
+    let resultsFound = false;
+    let scoresFound = false;
+    for (const row of rows) {
+      const family = await row.$("th").getText();
+      const cells = await row.$$("td");
+      if (family === "Sleep results") {
+        resultsFound = (await cells[0].getText()) === "Supported"
+          && (await cells[1].getText()) === "1";
+      }
+      if (family === "Sleep scores") {
+        scoresFound = (await cells[0].getText()) === "Supported"
+          && (await cells[1].getText()) === "1";
+      }
+    }
+    return resultsFound && scoresFound;
+  }, { timeout: 30_000, timeoutMsg: "performance sleep import did not complete" });
 }
 
 async function measureAlternating(executions, scenarios, operation) {
@@ -336,6 +490,7 @@ export async function runInsightsPerformanceJourney({ archivePath, selectArchive
   await $("aria/Import selected package").click();
   await waitForDailyActivityCoverage();
   await waitForTrainingCoverage();
+  await waitForSleepCoverage();
 
   const commonRanges = [
     ["2025-01-01", "2025-01-30"],
@@ -433,6 +588,34 @@ export async function runInsightsPerformanceJourney({ archivePath, selectArchive
     compareTrainingRanges,
   );
 
+  const sleepFilterRange = ([from, through]) => applySleepRange(from, through);
+  await measureAlternating(warmUpRuns, commonRanges, sleepFilterRange);
+  const sleepCommonFilterTimings = await measureAlternating(20, commonRanges, sleepFilterRange);
+  await measureAlternating(warmUpRuns, maximumRanges, sleepFilterRange);
+  const sleepMaximumFilterTimings = await measureAlternating(7, maximumRanges, sleepFilterRange);
+  await browser.execute(() => {
+    document.documentElement.style.fontSize = "200%";
+  });
+  const maximumSleepRangeHasNoHorizontalOverflow = await browser.execute(
+    () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+  );
+  if (!maximumSleepRangeHasNoHorizontalOverflow) {
+    throw new Error("maximum sleep range overflowed the application viewport");
+  }
+  await browser.execute(() => {
+    document.documentElement.style.fontSize = "";
+  });
+  await measureAlternating(warmUpRuns, comparisonRanges, compareSleepRanges);
+  const sleepCommonComparisonTimings = await measureAlternating(
+    20,
+    comparisonRanges,
+    compareSleepRanges,
+  );
+  await applySleepRange("2025-01-01", "2025-01-30");
+  const sleepDetailDates = ["2025-01-10", "2025-01-20"];
+  await measureAlternating(warmUpRuns, sleepDetailDates, openSleepDetail);
+  const sleepDetailTimings = await measureAlternating(20, sleepDetailDates, openSleepDetail);
+
   const measurements = {
     activity: {
       commonFilter: measurementEvidence(commonFilterTimings, 500),
@@ -443,6 +626,12 @@ export async function runInsightsPerformanceJourney({ archivePath, selectArchive
       commonFilter: measurementEvidence(trainingCommonFilterTimings, 500),
       maximumFilter: measurementEvidence(trainingMaximumFilterTimings, 2_000),
       commonComparison: measurementEvidence(trainingCommonComparisonTimings, 500),
+    },
+    sleep: {
+      commonFilter: measurementEvidence(sleepCommonFilterTimings, 500),
+      maximumFilter: measurementEvidence(sleepMaximumFilterTimings, 2_000),
+      commonComparison: measurementEvidence(sleepCommonComparisonTimings, 500),
+      detail: measurementEvidence(sleepDetailTimings, 500),
     },
   };
   process.stdout.write(`${JSON.stringify(evidence(measurements))}\n`);

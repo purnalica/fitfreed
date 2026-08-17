@@ -17,6 +17,8 @@ const zip = new ZipFile();
 let storedObservations = 0;
 let unavailableObservations = 0;
 let trainingSessions = 0;
+const sleepResults = [];
+const sleepScores = [];
 
 await mkdir(path.dirname(outputPath), { recursive: true });
 zip.addBuffer(
@@ -27,6 +29,9 @@ zip.addBuffer(
 
 for (let index = 0; index < calendarDays; index += 1) {
   const date = new Date(firstDate + index * 86_400_000).toISOString().slice(0, 10);
+  const previousDate = new Date(firstDate + (index - 1) * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
   const token = index.toString(16).padStart(12, "0");
   const artifactId = `77777777-6666-4555-8444-${token}`;
   const storesActivity = index === 0 || index === calendarDays - 1 || index % 23 !== 0;
@@ -71,7 +76,92 @@ for (let index = 0; index < calendarDays; index += 1) {
     { mtime: fixedTime, mode: 0o100644, compress: true },
   );
   trainingSessions += 1;
+
+  sleepResults.push({
+    night: date,
+    evaluation: {
+      sleepType: "SLEEP_PLUS_STAGES",
+      sleepSpan: "PT8H",
+      asleepDuration: "PT7H30M",
+      age: 40,
+      analysis: {
+        efficiencyPercent: 93.75,
+        continuityIndex: 4.2,
+        continuityClass: 4,
+        feedback: 11111,
+      },
+      interruptions: {
+        totalDuration: "PT30M",
+        longDuration: "PT20M",
+        shortDuration: "PT10M",
+        totalCount: 3,
+        longCount: 1,
+        shortCount: 2,
+      },
+      phaseDurations: {
+        wake: "PT30M",
+        rem: "PT1H30M",
+        light: "PT4H",
+        deep: "PT1H30M",
+        unknown: "PT30M",
+        remPercentage: 20,
+        deepPercentage: 20,
+      },
+    },
+    sleepResult: {
+      hypnogram: {
+        sleepStart: `${previousDate}T22:00:00+01:00`,
+        sleepEnd: `${date}T06:00:00+01:00`,
+        rating: "SLEPT_QUITE_WELL",
+        sleepGoal: "PT8H",
+        batteryRanOut: false,
+        sleepStateChanges: [
+          { offsetFromStart: "PT0S", state: "WAKE" },
+          { offsetFromStart: "PT30M", state: "NONREM2" },
+          { offsetFromStart: "PT2H", state: "NONREM3" },
+          { offsetFromStart: "PT3H30M", state: "REM" },
+          { offsetFromStart: "PT7H30M", state: "WS_UNKNOWN" },
+        ],
+      },
+      sleepCycles: {
+        cycles: {
+          sleepCycleModels: [
+            { secondsFromSleepStart: 0, sleepDepthStart: 2 },
+            { secondsFromSleepStart: 14_400, sleepDepthStart: 3 },
+          ],
+        },
+      },
+    },
+  });
+  sleepScores.push({
+    night: date,
+    sleepScoreResult: {
+      sleepScore: 82,
+      sleepTimeOwnTargetScore: 80,
+      sleepTimeRecommendationScore: 78,
+      continuityScore: 84,
+      efficiencyScore: 86,
+      remScore: 76,
+      n3Score: 81,
+      longInterruptionsScore: 79,
+      groupDurationScore: 79,
+      groupSolidityScore: 83,
+      groupRefreshScore: 78.5,
+      scoreRate: 4,
+    },
+  });
 }
+
+zip.addBuffer(
+  Buffer.from(JSON.stringify(sleepResults)),
+  "sleep_result_91-77777777-6666-4555-8444-111111111111.json",
+  { mtime: fixedTime, mode: 0o100644, compress: true },
+);
+zip.addBuffer(
+  Buffer.from(JSON.stringify(sleepScores)),
+  "sleep_score_91-77777777-6666-4555-8444-222222222222.json",
+  { mtime: fixedTime, mode: 0o100644, compress: true },
+);
 
 zip.end();
 await new Promise((resolve, reject) => {
@@ -88,4 +178,5 @@ process.stdout.write(`${JSON.stringify({
   unavailableObservations,
   missingDays: calendarDays - storedObservations,
   trainingSessions,
+  sleepPeriods: sleepResults.length,
 })}\n`);

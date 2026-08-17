@@ -1,6 +1,6 @@
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
 import { catalogs } from "./locales/catalogs";
@@ -168,6 +168,10 @@ function emptyTrainingOverview(): TestTrainingOverview {
   return { availableRange: null, selectedRange: null, series: [] };
 }
 
+function emptySleepOverview() {
+  return { availableRange: null, selectedRange: null, series: [] };
+}
+
 function trainingOverview(
   sessions: TestTrainingSession[],
   selectedRange = { from: "2026-01-01", through: "2026-01-31" },
@@ -251,6 +255,7 @@ function importOutcome(overrides: Record<string, unknown> = {}) {
 
 const mocks = vi.hoisted(() => ({
   invoke: vi.fn(),
+  sleepInvoke: vi.fn(),
   open: vi.fn(),
 }));
 
@@ -258,7 +263,10 @@ vi.mock("@tauri-apps/api/core", () => ({
   Channel: class Channel<T> {
     onmessage?: (message: T) => void;
   },
-  invoke: mocks.invoke,
+  invoke: (command: string, arguments_: Record<string, unknown>) =>
+    command.startsWith("query_sleep_")
+      ? mocks.sleepInvoke(command, arguments_)
+      : mocks.invoke(command, arguments_),
 }));
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({
@@ -269,7 +277,12 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   mocks.invoke.mockReset();
+  mocks.sleepInvoke.mockReset();
   mocks.open.mockReset();
+});
+
+beforeEach(() => {
+  mocks.sleepInvoke.mockResolvedValue(emptySleepOverview());
 });
 
 function emptyLibrary(initialLocale: "en-US" | "es-ES" | null = "en-US") {
@@ -993,6 +1006,7 @@ describe("FitFreed import interface", () => {
     await chooseArchive(user, "/synthetic/valid.zip");
     await user.click(screen.getByRole("button", { name: "Import selected package" }));
     expect(await screen.findByRole("status")).toHaveTextContent("Import completed: 3 recognized, 3 new");
+    await waitFor(() => expect(mocks.sleepInvoke).toHaveBeenCalledTimes(2));
     expect(screen.getByText("Every package artifact was classified.")).toBeVisible();
     const rows = screen.getAllByRole("row");
     expect(rows).toHaveLength(4);
@@ -1002,6 +1016,7 @@ describe("FitFreed import interface", () => {
 
     await user.click(screen.getByRole("button", { name: "Import selected package" }));
     expect(await screen.findByText("Exact package repeat; history was not duplicated.")).toBeVisible();
+    await waitFor(() => expect(mocks.sleepInvoke).toHaveBeenCalledTimes(3));
     expect(screen.getAllByRole("row")).toHaveLength(4);
 
     view.unmount();

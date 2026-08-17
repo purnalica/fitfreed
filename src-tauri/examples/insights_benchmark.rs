@@ -10,11 +10,12 @@ use std::{ffi::CString, mem::MaybeUninit, os::unix::ffi::OsStrExt};
 
 use chrono::{Duration as ChronoDuration, NaiveDate};
 use fitfreed_application::{
-    query_activity_comparison, query_activity_overview, query_training_comparison,
-    query_training_overview, ActivityDateRange, TrainingDateRange,
+    query_activity_comparison, query_activity_overview, query_sleep_comparison, query_sleep_detail,
+    query_sleep_overview, query_training_comparison, query_training_overview, ActivityDateRange,
+    SleepDateRange, TrainingDateRange,
 };
 use fitfreed_lib::infrastructure::{
-    query_activity_between, SqliteActivityLibrary, SqliteTrainingLibrary,
+    query_activity_between, SqliteActivityLibrary, SqliteSleepLibrary, SqliteTrainingLibrary,
 };
 use rusqlite::{params, Connection};
 use serde_json::{json, Value};
@@ -35,6 +36,8 @@ struct Measurement {
 struct GeneratedRows {
     activity: usize,
     training: usize,
+    sleep: usize,
+    sleep_transitions: usize,
 }
 
 fn main() {
@@ -44,6 +47,7 @@ fn main() {
     let generated_rows = generate_history(&database_path);
     let activity_library = SqliteActivityLibrary::new(database_path.clone());
     let training_library = SqliteTrainingLibrary::new(database_path.clone());
+    let sleep_library = SqliteSleepLibrary::new(database_path.clone());
 
     let latest_range = range("2025-12-02", "2025-12-31");
     let maximum_range = range("2024-12-31", "2025-12-31");
@@ -142,6 +146,54 @@ fn main() {
         .len()
     });
 
+    let sleep_latest_range = sleep_range("2025-12-02", "2025-12-31");
+    let sleep_maximum_range = sleep_range("2024-12-31", "2025-12-31");
+    let sleep_earlier_common = sleep_range("2020-01-01", "2020-01-30");
+    let sleep_later_common = sleep_range("2025-01-01", "2025-01-30");
+    let sleep_earlier_maximum = sleep_range("2019-01-01", "2020-01-01");
+    let sleep_default_overview = measure(ORIGIN_COUNT * 30, || {
+        let overview = query_sleep_overview(&sleep_library, None).expect("default sleep overview");
+        overview.series.iter().map(|series| series.days.len()).sum()
+    });
+    let sleep_common_filter = measure(ORIGIN_COUNT * 30, || {
+        let overview = query_sleep_overview(&sleep_library, Some(sleep_latest_range.clone()))
+            .expect("common sleep filter");
+        overview.series.iter().map(|series| series.days.len()).sum()
+    });
+    let sleep_maximum_filter = measure(ORIGIN_COUNT * 366, || {
+        let overview = query_sleep_overview(&sleep_library, Some(sleep_maximum_range.clone()))
+            .expect("maximum sleep filter");
+        overview.series.iter().map(|series| series.days.len()).sum()
+    });
+    let sleep_common_comparison = measure(ORIGIN_COUNT, || {
+        query_sleep_comparison(
+            &sleep_library,
+            sleep_earlier_common.clone(),
+            sleep_later_common.clone(),
+        )
+        .expect("common sleep comparison")
+        .series
+        .len()
+    });
+    let sleep_maximum_comparison = measure(ORIGIN_COUNT, || {
+        query_sleep_comparison(
+            &sleep_library,
+            sleep_earlier_maximum.clone(),
+            sleep_maximum_range.clone(),
+        )
+        .expect("maximum sleep comparison")
+        .series
+        .len()
+    });
+    let sleep_detail = measure(4, || {
+        query_sleep_detail(&sleep_library, "synthetic-origin-0", "2025-12-31")
+            .expect("sleep detail query")
+            .expect("generated sleep detail")
+            .stage_transitions
+            .expect("generated sleep timeline")
+            .len()
+    });
+
     let measurements = [
         (
             "activity.defaultOverview",
@@ -193,6 +245,32 @@ fn main() {
             &training_maximum_comparison,
             COMPLEX_BUDGET_MILLISECONDS,
         ),
+        (
+            "sleep.defaultOverview",
+            &sleep_default_overview,
+            COMMON_BUDGET_MILLISECONDS,
+        ),
+        (
+            "sleep.commonFilter",
+            &sleep_common_filter,
+            COMMON_BUDGET_MILLISECONDS,
+        ),
+        (
+            "sleep.maximumFilter",
+            &sleep_maximum_filter,
+            COMPLEX_BUDGET_MILLISECONDS,
+        ),
+        (
+            "sleep.commonComparison",
+            &sleep_common_comparison,
+            COMMON_BUDGET_MILLISECONDS,
+        ),
+        (
+            "sleep.maximumComparison",
+            &sleep_maximum_comparison,
+            COMPLEX_BUDGET_MILLISECONDS,
+        ),
+        ("sleep.detail", &sleep_detail, COMMON_BUDGET_MILLISECONDS),
     ];
     let violations = measurements
         .iter()
@@ -222,6 +300,8 @@ fn main() {
                 "origins": ORIGIN_COUNT,
                 "storedActivityObservations": generated_rows.activity,
                 "storedTrainingSessions": generated_rows.training,
+                "storedSleepPeriods": generated_rows.sleep,
+                "storedSleepTransitions": generated_rows.sleep_transitions,
                 "databaseBytes": fs::metadata(&database_path).expect("database metadata").len(),
             },
             "method": {
@@ -260,6 +340,29 @@ fn main() {
                         COMPLEX_BUDGET_MILLISECONDS,
                     ),
                 },
+                "sleep": {
+                    "defaultOverview": measurement_json(
+                        &sleep_default_overview,
+                        COMMON_BUDGET_MILLISECONDS,
+                    ),
+                    "commonFilter": measurement_json(
+                        &sleep_common_filter,
+                        COMMON_BUDGET_MILLISECONDS,
+                    ),
+                    "maximumFilter": measurement_json(
+                        &sleep_maximum_filter,
+                        COMPLEX_BUDGET_MILLISECONDS,
+                    ),
+                    "commonComparison": measurement_json(
+                        &sleep_common_comparison,
+                        COMMON_BUDGET_MILLISECONDS,
+                    ),
+                    "maximumComparison": measurement_json(
+                        &sleep_maximum_comparison,
+                        COMPLEX_BUDGET_MILLISECONDS,
+                    ),
+                    "detail": measurement_json(&sleep_detail, COMMON_BUDGET_MILLISECONDS),
+                },
             },
             "budgetsPassed": violations.is_empty(),
             "violations": violations,
@@ -280,6 +383,8 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
     let transaction = connection.transaction().expect("begin generated history");
     let mut activity_rows = 0;
     let mut training_rows = 0;
+    let mut sleep_rows = 0;
+    let mut sleep_transition_rows = 0;
     {
         let mut statement = transaction
             .prepare_cached(
@@ -379,6 +484,101 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
             }
         }
     }
+    {
+        let mut period_statement = transaction
+            .prepare_cached(
+                "INSERT INTO sleep_period (
+                    origin_id, sleep_date, started_at, ended_at,
+                    span_milliseconds, asleep_milliseconds, interruption_milliseconds,
+                    long_interruption_milliseconds, short_interruption_milliseconds,
+                    interruption_count, long_interruption_count, short_interruption_count,
+                    efficiency_percent, continuity_index, continuity_class,
+                    sleep_goal_milliseconds, self_reported_rating, cycle_count,
+                    recording_ended_by_power_loss,
+                    phase_wake_milliseconds, phase_rem_milliseconds,
+                    phase_light_milliseconds, phase_deep_milliseconds,
+                    phase_unrecognized_milliseconds, stage_timeline_available,
+                    score_overall, score_own_target_duration, score_recommended_duration,
+                    score_continuity, score_efficiency, score_rem, score_deep,
+                    score_long_interruptions, score_duration, score_solidity,
+                    score_regeneration, score_relative_rating
+                 ) VALUES (
+                    ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10,
+                    ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20,
+                    ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30,
+                    ?31, ?32, ?33, ?34, ?35, ?36, ?37
+                 )",
+            )
+            .expect("prepare generated sleep insertion");
+        let mut transition_statement = transaction
+            .prepare_cached(
+                "INSERT INTO sleep_stage_transition (
+                    origin_id, sleep_date, position, offset_milliseconds, stage
+                 ) VALUES (?1, ?2, ?3, ?4, ?5)",
+            )
+            .expect("prepare generated sleep transition insertion");
+        for origin_index in 0..ORIGIN_COUNT {
+            let origin = format!("synthetic-origin-{origin_index}");
+            for day_offset in 0..calendar_days {
+                let sleep_date = first_date + ChronoDuration::days(day_offset);
+                let previous_date = sleep_date - ChronoDuration::days(1);
+                let date = sleep_date.format("%Y-%m-%d").to_string();
+                period_statement
+                    .execute(params![
+                        origin,
+                        date,
+                        format!("{}T22:00:00+01:00", previous_date.format("%Y-%m-%d")),
+                        format!("{date}T06:00:00+01:00"),
+                        28_800_000,
+                        27_000_000,
+                        1_800_000,
+                        1_200_000,
+                        600_000,
+                        3,
+                        1,
+                        2,
+                        93.75,
+                        4.2,
+                        4,
+                        28_800_000,
+                        4,
+                        2,
+                        false,
+                        1_800_000,
+                        5_400_000,
+                        14_400_000,
+                        5_400_000,
+                        1_800_000,
+                        true,
+                        82.0,
+                        80.0,
+                        78.0,
+                        84.0,
+                        86.0,
+                        76.0,
+                        81.0,
+                        79.0,
+                        79.0,
+                        83.0,
+                        78.5,
+                        4,
+                    ])
+                    .expect("insert generated sleep period");
+                sleep_rows += 1;
+                for (position, offset_milliseconds, stage) in [
+                    (0, 0, "wake"),
+                    (1, 1_800_000, "light"),
+                    (2, 7_200_000, "deep"),
+                    (3, 12_600_000, "rem"),
+                ] {
+                    transition_statement
+                        .execute(params![origin, date, position, offset_milliseconds, stage])
+                        .expect("insert generated sleep transition");
+                    sleep_transition_rows += 1;
+                }
+            }
+        }
+    }
     transaction.commit().expect("commit generated history");
     connection
         .execute_batch("PRAGMA optimize;")
@@ -386,6 +586,8 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
     GeneratedRows {
         activity: activity_rows,
         training: training_rows,
+        sleep: sleep_rows,
+        sleep_transitions: sleep_transition_rows,
     }
 }
 
@@ -433,6 +635,13 @@ fn range(from: &str, through: &str) -> ActivityDateRange {
 
 fn training_range(from: &str, through: &str) -> TrainingDateRange {
     TrainingDateRange {
+        from: from.to_owned(),
+        through: through.to_owned(),
+    }
+}
+
+fn sleep_range(from: &str, through: &str) -> SleepDateRange {
+    SleepDateRange {
         from: from.to_owned(),
         through: through.to_owned(),
     }

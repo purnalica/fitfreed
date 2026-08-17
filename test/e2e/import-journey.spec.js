@@ -123,6 +123,18 @@ async function formatBrowserTrainingLocalDateTime(locale, value) {
   });
 }
 
+async function formatBrowserSleepLocalDateTime(locale, value) {
+  return browser.execute(({ requestedLocale, offsetDateTime }) => {
+    const offset = offsetDateTime.slice(-6);
+    const wallClock = offsetDateTime.slice(0, -6);
+    const formatted = new Intl.DateTimeFormat(
+      requestedLocale,
+      { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" },
+    ).format(new Date(`${wallClock}Z`));
+    return `${formatted} (UTC${offset})`;
+  }, { requestedLocale: locale, offsetDateTime: value });
+}
+
 async function expectHistory(expectedRows) {
   const historyRows = ".history-grid table tbody tr";
   await browser.waitUntil(async () => (await $$(historyRows)).length === expectedRows.length, {
@@ -222,6 +234,88 @@ async function expectTrainingSummary(expectedItems) {
 
 async function expectTrainingComparison(expectedRows) {
   const rows = await $$(".training-comparison-result table tbody tr");
+  expect(rows).toHaveLength(expectedRows.length);
+  for (let index = 0; index < expectedRows.length; index += 1) {
+    const cells = await rows[index].$$("th, td");
+    for (let cellIndex = 0; cellIndex < expectedRows[index].length; cellIndex += 1) {
+      await expect(cells[cellIndex]).toHaveText(expectedRows[index][cellIndex]);
+    }
+  }
+}
+
+async function setSleepRange(from, through) {
+  const values = [from, through];
+  await browser.execute((nextValues) => {
+    const inputs = document.querySelectorAll(".sleep-filter input[type='date']");
+    const setValue = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    ).set;
+    inputs.forEach((input, index) => {
+      setValue.call(input, nextValues[index]);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  }, values);
+  const inputs = await $$(".sleep-filter input[type='date']");
+  expect(inputs).toHaveLength(2);
+  for (let index = 0; index < values.length; index += 1) {
+    await expect(inputs[index]).toHaveValue(values[index]);
+  }
+}
+
+async function setSleepComparisonRanges(
+  baselineFrom,
+  baselineThrough,
+  comparisonFrom,
+  comparisonThrough,
+) {
+  const values = [baselineFrom, baselineThrough, comparisonFrom, comparisonThrough];
+  await browser.execute((nextValues) => {
+    const inputs = document.querySelectorAll(".sleep-comparison input[type='date']");
+    const setValue = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    ).set;
+    inputs.forEach((input, index) => {
+      setValue.call(input, nextValues[index]);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  }, values);
+  const inputs = await $$(".sleep-comparison input[type='date']");
+  expect(inputs).toHaveLength(4);
+  for (let index = 0; index < values.length; index += 1) {
+    await expect(inputs[index]).toHaveValue(values[index]);
+  }
+}
+
+async function expectSleepRows(expectedRows) {
+  const selector = ".sleep-history-grid table tbody tr";
+  await browser.waitUntil(async () => (await $$(selector)).length === expectedRows.length, {
+    timeout: 10_000,
+    timeoutMsg: `sleep history did not contain ${expectedRows.length} rows`,
+  });
+  const rows = await $$(selector);
+  for (let index = 0; index < expectedRows.length; index += 1) {
+    const cells = await rows[index].$$("td");
+    for (let cellIndex = 0; cellIndex < expectedRows[index].length; cellIndex += 1) {
+      await expect(cells[cellIndex]).toHaveText(expectedRows[index][cellIndex]);
+    }
+  }
+}
+
+async function expectSleepSummary(expectedItems) {
+  const items = await $$(".sleep-summary li");
+  expect(items).toHaveLength(expectedItems.length);
+  for (let index = 0; index < expectedItems.length; index += 1) {
+    await expect(items[index].$("strong")).toHaveText(expectedItems[index][0]);
+    await expect(items[index].$("span")).toHaveText(expectedItems[index][1]);
+  }
+}
+
+async function expectSleepComparison(expectedRows) {
+  const rows = await $$(".sleep-comparison-result table tbody tr");
   expect(rows).toHaveLength(expectedRows.length);
   for (let index = 0; index < expectedRows.length; index += 1) {
     const cells = await rows[index].$$("th, td");
@@ -431,6 +525,69 @@ describe("packaged FitFreed import journey", () => {
       ["600 kcal", "Recorded energy · 1 of 2"],
       ["1 of 2", "Sessions with heart rate"],
     ]);
+    await expectSleepRows([
+      ["Jan 6, 2026", "7 h 30 min", "93.8%", "82", "Details"],
+    ]);
+    await expectSleepSummary([
+      ["1", "Observed nights · 1 of 1 nights"],
+      ["7 h 30 min", "Average time asleep · 1 of 1 nights"],
+      ["93.8%", "Average efficiency · 1 of 1 nights"],
+      ["82", "Average sleep score · 1 of 1 nights"],
+      ["0 / 1", "Sleep goal met"],
+      ["1 of 1 nights", "Nights with sleep phases"],
+      ["1 of 1 nights", "Nights with a stage timeline"],
+      ["1 of 1 nights", "Nights with recording status · 0 ended after power loss"],
+    ]);
+    await expect($("body")).not.toHaveText(expect.stringContaining("synthetic-device"));
+    await expect($("body")).not.toHaveText(expect.stringContaining("fixture-primary-claim"));
+
+    const enSleepStart = await formatBrowserSleepLocalDateTime(
+      "en-US",
+      "2026-01-05T22:30:00+01:00",
+    );
+    const enSleepEnd = await formatBrowserSleepLocalDateTime(
+      "en-US",
+      "2026-01-06T06:30:00+01:00",
+    );
+    await $('button[aria-label="View sleep details for Jan 6, 2026"]').click();
+    await expect($("#sleep-detail-heading")).toHaveText("Sleep detail");
+    const sleepDetailValues = await $$(".sleep-detail-metrics dd");
+    const expectedSleepDetail = [
+      enSleepStart,
+      enSleepEnd,
+      "8 h",
+      "7 h 30 min",
+      "30 min",
+      "20 min · 1",
+      "10 min · 2",
+      "3",
+      "93.8%",
+      "4.2 · class 4",
+      "8 h",
+      "No",
+      "4 / 5",
+      "2",
+      "No",
+    ];
+    expect(sleepDetailValues).toHaveLength(expectedSleepDetail.length);
+    for (let index = 0; index < expectedSleepDetail.length; index += 1) {
+      await expect(sleepDetailValues[index]).toHaveText(expectedSleepDetail[index]);
+    }
+    const sleepPhaseValues = await $$(".sleep-phase-values dd");
+    const expectedSleepPhases = ["30 min", "1 h 30 min", "4 h", "1 h 30 min", "30 min"];
+    expect(sleepPhaseValues).toHaveLength(expectedSleepPhases.length);
+    for (let index = 0; index < expectedSleepPhases.length; index += 1) {
+      await expect(sleepPhaseValues[index]).toHaveText(expectedSleepPhases[index]);
+    }
+    expect(await $$(".sleep-timeline + .sleep-table-scroll tbody tr")).toHaveLength(5);
+    const sleepScoreValues = await $$(".sleep-score-grid dd");
+    const expectedSleepScores = ["82", "80", "78", "84", "86", "76", "81", "79", "79", "83", "78.5", "4 / 5"];
+    expect(sleepScoreValues).toHaveLength(expectedSleepScores.length);
+    for (let index = 0; index < expectedSleepScores.length; index += 1) {
+      await expect(sleepScoreValues[index]).toHaveText(expectedSleepScores[index]);
+    }
+    await $("aria/Close sleep detail").click();
+    expect(await $$(".sleep-detail")).toHaveLength(0);
     await expect($("body")).not.toHaveText(expect.stringContaining("fixture-training-session"));
 
     await selectLocale("es-ES");
@@ -509,6 +666,19 @@ describe("packaged FitFreed import journey", () => {
       ["10.000 m", `${spanish.training.totalDistance} · 1 de 2`],
       ["600 kcal", `${spanish.training.totalEnergy} · 1 de 2`],
       ["1 de 2", spanish.training.heartRateCoverage],
+    ]);
+    await expectSleepRows([
+      [formatLocalDate("es-ES", "2026-01-06"), "7 h 30 min", "93,8%", "82", spanish.sleep.details],
+    ]);
+    await expectSleepSummary([
+      ["1", `${spanish.sleep.observedNights} · 1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`],
+      ["7 h 30 min", `${spanish.sleep.averageAsleep} · 1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`],
+      ["93,8%", `${spanish.sleep.averageEfficiency} · 1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`],
+      ["82", `${spanish.sleep.averageScore} · 1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`],
+      ["0 / 1", spanish.sleep.goalMet],
+      [`1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`, spanish.sleep.phaseCoverage],
+      [`1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`, spanish.sleep.timelineCoverage],
+      [`1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`, `${spanish.sleep.powerCoverage} · 0 ${spanish.sleep.powerLoss}`],
     ]);
     await browser.execute(() => {
       document.documentElement.style.fontSize = "200%";
@@ -726,6 +896,58 @@ describe("packaged FitFreed import journey", () => {
       ["Sessions with heart rate", "1", "0", "-1"],
     ]);
 
+    await setSleepRange("2026-01-06", "2026-01-06");
+    await $(".sleep-filter button[type='submit']").click();
+    await expectSleepRows([
+      ["Jan 6, 2026", "7 h 30 min", "93.8%", "82", "Details"],
+    ]);
+    await setSleepRange("2026-01-06", "2026-01-05");
+    await browser.execute(() => {
+      document.querySelector(".sleep-filter").dispatchEvent(
+        new Event("submit", { bubbles: true, cancelable: true }),
+      );
+    });
+    await expect($("[role='alert']")).toHaveText(
+      "Choose an ordered sleep range inside the available history, up to 366 nights.",
+    );
+    await expectSleepRows([
+      ["Jan 6, 2026", "7 h 30 min", "93.8%", "82", "Details"],
+    ]);
+    await $(".sleep-filter button.secondary").click();
+
+    await setSleepComparisonRanges(
+      "2026-01-06",
+      "2026-01-06",
+      "2026-01-06",
+      "2026-01-06",
+    );
+    await $(".sleep-comparison button[type='submit']").click();
+    await expect($("#sleep-comparison-heading")).toHaveText("Sleep period comparison");
+    await expectSleepComparison([
+      ["Observed nights", "1", "1", "0"],
+      ["Missing nights", "0", "0", "0"],
+      ["Average time asleep", "7 h 30 min", "7 h 30 min", "0 ms"],
+      ["Average interruption time", "30 min", "30 min", "0 ms"],
+      ["Average efficiency", "93.8%", "93.8%", "0 pp"],
+      ["Average sleep score", "82", "82", "0"],
+      ["Sleep goal met", "0%", "0%", "0 pp"],
+    ]);
+    await setSleepComparisonRanges(
+      "2026-01-06",
+      "2026-01-05",
+      "2026-01-06",
+      "2026-01-06",
+    );
+    await browser.execute(() => {
+      document.querySelector(".sleep-comparison form").dispatchEvent(
+        new Event("submit", { bubbles: true, cancelable: true }),
+      );
+    });
+    await expect($("[role='alert']")).toHaveText(
+      "Choose ordered sleep comparison periods inside the available history, up to 366 nights each.",
+    );
+    await expect($("#sleep-comparison-heading")).toHaveText("Sleep period comparison");
+
     await selectLocale("es-ES");
     await expectHistory([
       [formatLocalDate("es-ES", "2026-01-01"), "3100", spanish.activity.available],
@@ -760,6 +982,9 @@ describe("packaged FitFreed import journey", () => {
     await expect($("#training-comparison-heading")).toHaveText(
       spanish.training.comparison.resultHeading,
     );
+    await expect($("#sleep-comparison-heading")).toHaveText(
+      spanish.sleep.comparison.resultHeading,
+    );
     const spanishTrainingDetailButtons = await $$('button[aria-label^="Ver detalles del entrenamiento del"]');
     expect(spanishTrainingDetailButtons).toHaveLength(3);
     await spanishTrainingDetailButtons[2].click();
@@ -768,6 +993,20 @@ describe("packaged FitFreed import journey", () => {
     await expect(spanishTrainingDetailValues[4]).toHaveText("10.500 m");
     await expect(spanishTrainingDetailValues[6]).toHaveText("142 ppm");
     await expect(spanishTrainingDetailValues[8]).toHaveText(spanish.training.recordedType);
+    const spanishSleepDate = formatLocalDate("es-ES", "2026-01-06");
+    await $(`button[aria-label="${spanish.sleep.viewDetails} ${spanishSleepDate}"]`).click();
+    await expect($("#sleep-detail-heading")).toHaveText(spanish.sleep.detailHeading);
+    const esSleepStart = await formatBrowserSleepLocalDateTime(
+      "es-ES",
+      "2026-01-05T22:30:00+01:00",
+    );
+    const spanishSleepDetailValues = await $$(".sleep-detail-metrics dd");
+    await expect(spanishSleepDetailValues[0]).toHaveText(esSleepStart);
+    await expect(spanishSleepDetailValues[8]).toHaveText("93,8%");
+    await expect(spanishSleepDetailValues[11]).toHaveText(spanish.sleep.no);
+    await expect($("#sleep-phase-heading")).toHaveText(spanish.sleep.phaseHeading);
+    await expect($("#sleep-timeline-heading")).toHaveText(spanish.sleep.timelineHeading);
+    await expect($("#sleep-score-heading")).toHaveText(spanish.sleep.scoreHeading);
     await browser.execute(() => {
       document.documentElement.style.fontSize = "200%";
     });
@@ -782,10 +1021,13 @@ describe("packaged FitFreed import journey", () => {
     });
     await $("aria/Cerrar detalle").click();
     await $("aria/Cerrar detalle del entrenamiento").click();
+    await $(`aria/${spanish.sleep.closeDetail}`).click();
     await $(".activity-comparison-result button.secondary").click();
     await $(".training-comparison-result button.secondary").click();
+    await $(".sleep-comparison-result button.secondary").click();
     expect(await $$(".activity-comparison-result")).toHaveLength(0);
     expect(await $$(".training-comparison-result")).toHaveLength(0);
+    expect(await $$(".sleep-comparison-result")).toHaveLength(0);
 
     await browser.reloadSession();
     await expect($("h1")).toHaveText(spanish.title);
@@ -822,10 +1064,23 @@ describe("packaged FitFreed import journey", () => {
       [esJan5Start, "30 min", spanish.unavailable, spanish.unavailable],
       [esJan4Start, "1 h", "10.500 m", "600 kcal"],
     ]);
+    await expectSleepRows([
+      [formatLocalDate("es-ES", "2026-01-06"), "7 h 30 min", "93,8%", "82", spanish.sleep.details],
+    ]);
+    await expectSleepSummary([
+      ["1", `${spanish.sleep.observedNights} · 1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`],
+      ["7 h 30 min", `${spanish.sleep.averageAsleep} · 1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`],
+      ["93,8%", `${spanish.sleep.averageEfficiency} · 1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`],
+      ["82", `${spanish.sleep.averageScore} · 1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`],
+      ["0 / 1", spanish.sleep.goalMet],
+      [`1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`, spanish.sleep.phaseCoverage],
+      [`1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`, spanish.sleep.timelineCoverage],
+      [`1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`, `${spanish.sleep.powerCoverage} · 0 ${spanish.sleep.powerLoss}`],
+    ]);
 
   });
 
-  it("meets activity and training filtering, comparison, and rendering budgets", async () => {
+  it("meets activity, training, and sleep insight budgets", async () => {
     await runInsightsPerformanceJourney({
       archivePath: insightsPerformanceArchive,
       selectArchive,
