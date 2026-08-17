@@ -20,5 +20,6 @@ This directory contains durable FitFreed architecture decisions. Read [the docum
 - [ADR 0005: Use library-scoped source-subject correlation](0005-use-library-scoped-source-subject-correlation.md) — Accepted on 2026-08-16.
 - [ADR 0006: Use typed source-specific recovery components](0006-use-typed-source-specific-recovery-components.md) — Accepted on 2026-08-17.
 - [ADR 0007: Compose longitudinal Insights by origin and date](0007-compose-longitudinal-insights-by-origin-and-date.md) — Accepted on 2026-08-17.
+- [ADR 0008: Authenticate update policy above the Tauri updater](0008-authenticate-update-policy-above-tauri.md) — Accepted on 2026-08-17.
 
-Confirmed product constraints remain in `docs/requirements.md`. Visualization and update-implementation choices remain open until their evidence supports separate decisions.
+Confirmed product constraints remain in `docs/requirements.md`. Public distribution trust and any future mandatory-update policy remain open until their evidence and product authority support separate decisions.

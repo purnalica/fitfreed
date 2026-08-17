@@ -2,7 +2,7 @@
 
 ## Status
 
-Current Milestone 1 design under verification by [ADR 0003](decisions/0003-stage-verifiable-macos-development-releases.md). No public release channel exists.
+Current private-development preparation under [ADR 0003](decisions/0003-stage-verifiable-macos-development-releases.md), extended by the private-alpha [update trust boundary](update-trust.md) under [ADR 0008](decisions/0008-authenticate-update-policy-above-tauri.md). No real update endpoint, production signing key, uploaded package, or public release channel exists.
 
 ## Stages and authority boundaries
 
@@ -13,7 +13,7 @@ Current Milestone 1 design under verification by [ADR 0003](decisions/0003-stage
 5. FitFreed generates checksums, a release manifest, and draft notes into ignored local staging.
 6. Installation verification checks integrity before mounting and copies the application only to an isolated test destination.
 
-These stages prepare evidence; they do not publish it. Tags, GitHub releases, artifact uploads, signatures, notarization, update manifests, and promotion remain separate authorized actions.
+These stages prepare unsigned development evidence; they do not publish it. Tags, GitHub releases, artifact uploads, production signatures, notarization, live update metadata, and promotion remain separate authorized actions.
 
 ## Release evidence set
 
@@ -47,6 +47,12 @@ The macOS development package uses Tauri's DMG drag-copy interaction. Verificati
 
 The failure scenario corrupts a copy of the real candidate and proves that verification stops before the image is mounted or a destination is changed. The existing isolated application and library remain byte-for-byte unchanged, and the existing application must still launch. Moving that application away must leave its separate library intact. Migration interruption and library recovery remain owned by the storage and import lifecycle tests; installation automation does not delete, edit, or invent recovery for a user library.
 
-## Future extension
+## Private-alpha update extension
 
-The first public macOS release adds Developer ID signing, Apple notarization, Gatekeeper verification, signed update metadata, hosted artifact provenance, clean upgrade and rollback matrices, and public installation and removal documentation. Those controls extend the staged evidence contract and cannot be inferred from an unsigned private package.
+The [update channel version 1 contract](../data-formats/release/update-channel-v1.md) adds a signed exact-byte release statement above Tauri's mandatory package signature. The signed payload binds version, compatibility, localized release notes, withdrawals, artifact URL, byte size, SHA-256 digest, and Tauri signature. Production update preparation will extend the release evidence set with the updater archive, both signatures, signed channel payload, supported upgrade baselines, and recovery evidence; none is generated or uploaded by the current unsigned development-release command.
+
+The ordinary application remains explicitly unconfigured until a private-alpha HTTPS endpoint and production public trust are supplied through the release authority gate. Test-only signing material and transport exceptions cannot configure a production build. Application preservation, library backup, first-launch migration, and watchdog restoration form the release-blocking update matrix described by the [update trust architecture](update-trust.md).
+
+## Public distribution extension
+
+The first public macOS release adds Developer ID signing, Apple notarization, Gatekeeper verification, hosted artifact provenance, public key-compromise and channel-operation procedures, clean upgrade and rollback matrices, and public installation and removal documentation. Those controls extend the staged and private-alpha evidence contracts and cannot be inferred from an unsigned private package or from the updater's independent Minisign signature.

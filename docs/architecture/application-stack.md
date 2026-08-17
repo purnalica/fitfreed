@@ -34,4 +34,4 @@ The initial desktop distribution uses one Tauri application process and its mana
 
 The repository will pin supported Rust and Node versions and expose one documented command for each fast check, full verification, application launch, package build, and release-shaped test. A clean clone must not require private data, proprietary services, or undocumented global tooling.
 
-Storage is defined by [ADR 0002](decisions/0002-select-sqlite-storage.md). Visualization, E2E-driver, and updater implementation decisions will receive separate ADRs when their evidence is complete.
+Storage is defined by [ADR 0002](decisions/0002-select-sqlite-storage.md). Update trust is defined by [ADR 0008](decisions/0008-authenticate-update-policy-above-tauri.md). Future visualization and E2E-driver decisions will receive separate ADRs when their evidence is complete.

@@ -1700,6 +1700,168 @@ for (const invalidComparison of [
   }
 }
 
+const updateChannelPath = "docs/data-formats/release/update-channel-v1.md";
+const updateChannel = read(updateChannelPath);
+for (const field of [
+  "org.fitfreed.update-envelope",
+  "org.fitfreed.update-channel",
+  "private-alpha",
+  "minisign-ed25519",
+  "fitfreed.keyId",
+  "fitfreed.payloadBase64",
+  "fitfreed.signatureBase64",
+  "sequence",
+  "issuedAt",
+  "expiresAt",
+  "release.version",
+  "release.publishedAt",
+  "release.minimumSupportedVersion",
+  "release.librarySchema.minimumReadableVersion",
+  "release.librarySchema.maximumReadableVersion",
+  "release.librarySchema.targetVersion",
+  "release.releaseNotes.*",
+  "en-US",
+  "es-ES",
+  "release.platforms.*.url",
+  "release.platforms.*.size",
+  "release.platforms.*.sha256",
+  "release.platforms.*.tauriSignature",
+  "withdrawnVersions",
+  "withdrawnVersions.*.reason",
+  "withdrawnVersions.*.guidance.*",
+  "withdrawnVersions.*.replacementVersion",
+]) {
+  requireMention(updateChannel, field, updateChannelPath);
+}
+
+const updateChannelPayloadSchemaPath = "schemas/update-channel-payload-v1.schema.json";
+const updateChannelPayloadSchema = JSON.parse(read(updateChannelPayloadSchemaPath));
+const validateUpdateChannelPayload = ajv.compile(updateChannelPayloadSchema);
+const syntheticUpdateChannelPayload = {
+  format: "org.fitfreed.update-channel",
+  schemaVersion: 1,
+  channel: "private-alpha",
+  sequence: 17,
+  issuedAt: "2026-08-17T00:00:00Z",
+  expiresAt: "2026-08-24T00:00:00Z",
+  release: {
+    version: "0.2.0-alpha.1",
+    publishedAt: "2026-08-17T00:00:00Z",
+    minimumSupportedVersion: "0.1.0",
+    librarySchema: {
+      minimumReadableVersion: 1,
+      maximumReadableVersion: 8,
+      targetVersion: 9,
+    },
+    releaseNotes: {
+      "en-US": "Synthetic update contract.",
+      "es-ES": "Contrato de actualización sintético.",
+    },
+    platforms: {
+      "darwin-aarch64": {
+        url: "https://updates.invalid/fitfreed-0.2.0-alpha.1-aarch64.app.tar.gz",
+        size: 1048576,
+        sha256: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        tauriSignature: "U3ludGhldGljIFRhdXJpIHNpZ25hdHVyZQ==",
+      },
+    },
+  },
+  withdrawnVersions: [
+    {
+      version: "0.1.1",
+      reason: "data-integrity",
+      guidance: {
+        "en-US": "Install the verified replacement.",
+        "es-ES": "Instala la sustitución verificada.",
+      },
+      replacementVersion: "0.2.0-alpha.1",
+    },
+  ],
+};
+if (!validateUpdateChannelPayload(syntheticUpdateChannelPayload)) {
+  throw new Error(
+    updateChannelPayloadSchemaPath
+      + " rejected its synthetic payload: "
+      + ajv.errorsText(validateUpdateChannelPayload.errors),
+  );
+}
+for (const invalidPayload of [
+  { ...syntheticUpdateChannelPayload, sequence: 0 },
+  { ...syntheticUpdateChannelPayload, channel: "stable" },
+  (() => {
+    const value = structuredClone(syntheticUpdateChannelPayload);
+    delete value.release.releaseNotes["es-ES"];
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticUpdateChannelPayload);
+    value.release.platforms["darwin-aarch64"].url =
+      "http://updates.invalid/fitfreed.app.tar.gz";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticUpdateChannelPayload);
+    value.release.platforms["darwin-aarch64"].sha256 = "not-a-digest";
+    return value;
+  })(),
+  { ...syntheticUpdateChannelPayload, unexpectedPolicy: true },
+]) {
+  if (validateUpdateChannelPayload(invalidPayload)) {
+    throw new Error(updateChannelPayloadSchemaPath + " accepted an invalid payload");
+  }
+}
+
+const updateChannelEnvelopeSchemaPath = "schemas/update-channel-envelope-v1.schema.json";
+const updateChannelEnvelopeSchema = JSON.parse(read(updateChannelEnvelopeSchemaPath));
+const validateUpdateChannelEnvelope = ajv.compile(updateChannelEnvelopeSchema);
+const syntheticUpdateChannelEnvelope = {
+  version: syntheticUpdateChannelPayload.release.version,
+  platforms: {
+    "darwin-aarch64": {
+      url: syntheticUpdateChannelPayload.release.platforms["darwin-aarch64"].url,
+      signature:
+        syntheticUpdateChannelPayload.release.platforms["darwin-aarch64"].tauriSignature,
+    },
+  },
+  fitfreed: {
+    format: "org.fitfreed.update-envelope",
+    schemaVersion: 1,
+    algorithm: "minisign-ed25519",
+    keyId: "synthetic-contract-1",
+    payloadBase64: Buffer.from(JSON.stringify(syntheticUpdateChannelPayload)).toString("base64"),
+    signatureBase64: "U3ludGhldGljIG1ldGFkYXRhIHNpZ25hdHVyZQ==",
+  },
+};
+if (!validateUpdateChannelEnvelope(syntheticUpdateChannelEnvelope)) {
+  throw new Error(
+    updateChannelEnvelopeSchemaPath
+      + " rejected its synthetic envelope: "
+      + ajv.errorsText(validateUpdateChannelEnvelope.errors),
+  );
+}
+for (const invalidEnvelope of [
+  (() => {
+    const value = structuredClone(syntheticUpdateChannelEnvelope);
+    delete value.fitfreed.signatureBase64;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticUpdateChannelEnvelope);
+    value.platforms["darwin-aarch64"].url = "http://updates.invalid/fitfreed.app.tar.gz";
+    return value;
+  })(),
+  { ...syntheticUpdateChannelEnvelope, notes: "Unsigned notes are forbidden." },
+  (() => {
+    const value = structuredClone(syntheticUpdateChannelEnvelope);
+    value.fitfreed.algorithm = "none";
+    return value;
+  })(),
+]) {
+  if (validateUpdateChannelEnvelope(invalidEnvelope)) {
+    throw new Error(updateChannelEnvelopeSchemaPath + " accepted an invalid envelope");
+  }
+}
+
 const indexPath = "docs/data-formats/README.md";
 const index = read(indexPath);
 for (const contractPath of [
@@ -1717,6 +1879,7 @@ for (const contractPath of [
   recoveryOverviewPath,
   recoveryComparisonPath,
   longitudinalPath,
+  updateChannelPath,
   ...persistencePaths,
 ]) {
   const relativeContract = path.relative(path.dirname(indexPath), contractPath);
@@ -1775,6 +1938,10 @@ process.stdout.write(
     longitudinalComparisonSchemas: [
       longitudinalComparisonQuerySchemaPath,
       longitudinalComparisonSchemaPath,
+    ],
+    updateChannelSchemas: [
+      updateChannelEnvelopeSchemaPath,
+      updateChannelPayloadSchemaPath,
     ],
     canonicalFields: 56,
     mappingFields: 75,
