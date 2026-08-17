@@ -379,11 +379,17 @@ async function chooseArchive(user: ReturnType<typeof userEvent.setup>, path: str
 describe("FitFreed import interface", () => {
   it("reports the interactive shell only after locale startup and a rendered frame", async () => {
     let completeLocale!: (locale: "en-US") => void;
+    let completeInteractiveShell!: () => void;
     let renderFrame: FrameRequestCallback | undefined;
     vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => {
       renderFrame = callback;
       return 1;
     }));
+    mocks.interactiveShellInvoke.mockImplementation(() =>
+      new Promise<void>((resolve) => {
+        completeInteractiveShell = resolve;
+      })
+    );
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
       if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
@@ -409,6 +415,36 @@ describe("FitFreed import interface", () => {
       "report_interactive_shell",
       undefined,
     );
+    expect(mocks.invoke).not.toHaveBeenCalledWith("query_activity_overview", undefined);
+    expect(mocks.invoke).not.toHaveBeenCalledWith("query_training_overview", undefined);
+    expect(mocks.invoke).not.toHaveBeenCalledWith("query_latest_import_outcome", undefined);
+    expect(mocks.longitudinalInvoke).not.toHaveBeenCalled();
+    expect(mocks.sleepInvoke).not.toHaveBeenCalled();
+    expect(mocks.recoveryInvoke).not.toHaveBeenCalled();
+    expect(mocks.updateInvoke).not.toHaveBeenCalled();
+
+    await act(async () => completeInteractiveShell());
+
+    await waitFor(() => {
+      expect(mocks.invoke).toHaveBeenCalledWith("query_activity_overview", {
+        requestedRange: null,
+      });
+      expect(mocks.invoke).toHaveBeenCalledWith("query_training_overview", {
+        requestedRange: null,
+      });
+      expect(mocks.invoke).toHaveBeenCalledWith("query_latest_import_outcome", undefined);
+      expect(mocks.longitudinalInvoke).toHaveBeenCalled();
+      expect(mocks.sleepInvoke).toHaveBeenCalled();
+      expect(mocks.recoveryInvoke).toHaveBeenCalled();
+      expect(mocks.updateInvoke).toHaveBeenCalledWith(
+        "confirm_update_recovery_startup",
+        undefined,
+      );
+      expect(mocks.updateInvoke).toHaveBeenCalledWith(
+        "check_for_updates_on_launch",
+        undefined,
+      );
+    });
   });
 
   it("blocks mutable desktop controls while an update installation owns the application", async () => {
@@ -1572,7 +1608,7 @@ describe("FitFreed import interface", () => {
     view.unmount();
     render(<App />);
     const restored = await screen.findByRole("region", { name: "Training history" });
-    expect(within(restored).getAllByRole("button", { name: /View training details/ }))
+    expect(await within(restored).findAllByRole("button", { name: /View training details/ }))
       .toHaveLength(2);
   });
 });

@@ -1,10 +1,16 @@
-import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  lazy,
+  type FormEvent,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Channel, invoke } from "@tauri-apps/api/core";
 import "./App.css";
 import { chooseZipArchive } from "./infrastructure/archive-picker";
 import { catalogs, type Locale } from "./locales/catalogs";
-import { ActivityComparisonPanel } from "./presentation/ActivityComparisonPanel";
-import { TrainingInsightsPanel } from "./presentation/TrainingInsightsPanel";
 import type {
   ActivityDateRange,
   ActivityDayAvailability,
@@ -12,10 +18,37 @@ import type {
 } from "./presentation/activity-insights";
 import { commandErrorCode } from "./presentation/command-error";
 import type { ExplorerNavigationRequest } from "./presentation/explorer-navigation";
-import { LongitudinalInsightsPanel } from "./presentation/LongitudinalInsightsPanel";
-import { RecoveryInsightsPanel } from "./presentation/RecoveryInsightsPanel";
-import { SleepInsightsPanel } from "./presentation/SleepInsightsPanel";
-import { UpdatePanel } from "./presentation/UpdatePanel";
+
+const ActivityComparisonPanel = lazy(() =>
+  import("./presentation/ActivityComparisonPanel").then((module) => ({
+    default: module.ActivityComparisonPanel,
+  }))
+);
+const TrainingInsightsPanel = lazy(() =>
+  import("./presentation/TrainingInsightsPanel").then((module) => ({
+    default: module.TrainingInsightsPanel,
+  }))
+);
+const LongitudinalInsightsPanel = lazy(() =>
+  import("./presentation/LongitudinalInsightsPanel").then((module) => ({
+    default: module.LongitudinalInsightsPanel,
+  }))
+);
+const RecoveryInsightsPanel = lazy(() =>
+  import("./presentation/RecoveryInsightsPanel").then((module) => ({
+    default: module.RecoveryInsightsPanel,
+  }))
+);
+const SleepInsightsPanel = lazy(() =>
+  import("./presentation/SleepInsightsPanel").then((module) => ({
+    default: module.SleepInsightsPanel,
+  }))
+);
+const UpdatePanel = lazy(() =>
+  import("./presentation/UpdatePanel").then((module) => ({
+    default: module.UpdatePanel,
+  }))
+);
 
 type CountMessageKey = keyof (typeof catalogs)["en-US"]["counts"];
 
@@ -114,6 +147,7 @@ function localDate(localDateValue: string): Date {
 function App() {
   const [locale, setLocale] = useState<Locale>(systemLocale);
   const [localeReady, setLocaleReady] = useState(false);
+  const [applicationReady, setApplicationReady] = useState(false);
   const [localeSaving, setLocaleSaving] = useState(false);
   const [updateLocaleRefreshToken, setUpdateLocaleRefreshToken] = useState(0);
   const [archivePath, setArchivePath] = useState<string>();
@@ -195,8 +229,6 @@ function App() {
     }
 
     initializeLocale();
-    refresh().catch((reason) => setErrorCode(commandErrorCode(reason)));
-    refreshOutcome().catch((reason) => setErrorCode(commandErrorCode(reason)));
     return () => {
       active = false;
     };
@@ -204,14 +236,28 @@ function App() {
 
   useEffect(() => {
     if (!localeReady) return;
+    let active = true;
     const frame = requestAnimationFrame(() => {
-      invoke("report_interactive_shell").catch(() => undefined);
+      invoke("report_interactive_shell")
+        .catch(() => undefined)
+        .finally(() => {
+          if (active) setApplicationReady(true);
+        });
     });
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      active = false;
+      cancelAnimationFrame(frame);
+    };
   }, [localeReady]);
 
   useEffect(() => {
-    if (!localeReady) return;
+    if (!applicationReady) return;
+    refresh().catch((reason) => setErrorCode(commandErrorCode(reason)));
+    refreshOutcome().catch((reason) => setErrorCode(commandErrorCode(reason)));
+  }, [applicationReady]);
+
+  useEffect(() => {
+    if (!applicationReady) return;
     let active = true;
     invoke<UpdateRecoveryOutcome | null>("confirm_update_recovery_startup")
       .then((recoveryOutcome) => {
@@ -223,7 +269,7 @@ function App() {
     return () => {
       active = false;
     };
-  }, [localeReady]);
+  }, [applicationReady]);
 
   async function acknowledgeUpdateRecoveryOutcome() {
     setUpdateRecoveryAcknowledging(true);
@@ -532,15 +578,19 @@ function App() {
         </section>
       )}
 
-      <UpdatePanel
-        locale={locale}
-        messages={messages.updates}
-        errors={errorMessages}
-        ready={localeReady}
-        refreshToken={updateLocaleRefreshToken}
-        installationBlocked={busy}
-        onInstallationStateChange={setUpdateInstalling}
-      />
+      {applicationReady && (
+        <Suspense fallback={null}>
+          <UpdatePanel
+            locale={locale}
+            messages={messages.updates}
+            errors={errorMessages}
+            ready
+            refreshToken={updateLocaleRefreshToken}
+            installationBlocked={busy}
+            onInstallationStateChange={setUpdateInstalling}
+          />
+        </Suspense>
+      )}
 
       {progress && busy && (
         <section className="progress-panel" aria-labelledby="progress-heading" aria-live="polite">
@@ -655,13 +705,17 @@ function App() {
         </p>
       )}
 
-      <LongitudinalInsightsPanel
-        locale={locale}
-        messages={messages}
-        refreshToken={longitudinalRefreshToken}
-        onError={setErrorCode}
-        onNavigate={navigateFromLongitudinal}
-      />
+      {applicationReady && (
+        <Suspense fallback={null}>
+          <LongitudinalInsightsPanel
+            locale={locale}
+            messages={messages}
+            refreshToken={longitudinalRefreshToken}
+            onError={setErrorCode}
+            onNavigate={navigateFromLongitudinal}
+          />
+        </Suspense>
+      )}
 
       <section aria-labelledby="activity-heading">
         <h2 id="activity-heading">{messages.activity.heading}</h2>
@@ -869,39 +923,45 @@ function App() {
               </section>
             )}
             {activityOverview.availableRange && activityOverview.selectedRange && (
-              <ActivityComparisonPanel
-                key={`${activityOverview.selectedRange.from}:${activityOverview.selectedRange.through}`}
-                availableRange={activityOverview.availableRange}
-                initialRange={activityOverview.selectedRange}
-                locale={locale}
-                messages={messages}
-                onError={setErrorCode}
-              />
+              <Suspense fallback={null}>
+                <ActivityComparisonPanel
+                  key={`${activityOverview.selectedRange.from}:${activityOverview.selectedRange.through}`}
+                  availableRange={activityOverview.availableRange}
+                  initialRange={activityOverview.selectedRange}
+                  locale={locale}
+                  messages={messages}
+                  onError={setErrorCode}
+                />
+              </Suspense>
             )}
           </>
         )}
       </section>
-      <TrainingInsightsPanel
-        locale={locale}
-        messages={messages}
-        refreshToken={trainingRefreshToken}
-        navigationRequest={explorerNavigation?.domain === "training" ? explorerNavigation : undefined}
-        onError={setErrorCode}
-      />
-      <SleepInsightsPanel
-        locale={locale}
-        messages={messages}
-        refreshToken={sleepRefreshToken}
-        navigationRequest={explorerNavigation?.domain === "sleep" ? explorerNavigation : undefined}
-        onError={setErrorCode}
-      />
-      <RecoveryInsightsPanel
-        locale={locale}
-        messages={messages}
-        refreshToken={recoveryRefreshToken}
-        navigationRequest={explorerNavigation?.domain === "recovery" ? explorerNavigation : undefined}
-        onError={setErrorCode}
-      />
+      {applicationReady && (
+        <Suspense fallback={null}>
+          <TrainingInsightsPanel
+            locale={locale}
+            messages={messages}
+            refreshToken={trainingRefreshToken}
+            navigationRequest={explorerNavigation?.domain === "training" ? explorerNavigation : undefined}
+            onError={setErrorCode}
+          />
+          <SleepInsightsPanel
+            locale={locale}
+            messages={messages}
+            refreshToken={sleepRefreshToken}
+            navigationRequest={explorerNavigation?.domain === "sleep" ? explorerNavigation : undefined}
+            onError={setErrorCode}
+          />
+          <RecoveryInsightsPanel
+            locale={locale}
+            messages={messages}
+            refreshToken={recoveryRefreshToken}
+            navigationRequest={explorerNavigation?.domain === "recovery" ? explorerNavigation : undefined}
+            onError={setErrorCode}
+          />
+        </Suspense>
+      )}
     </main>
   );
 }

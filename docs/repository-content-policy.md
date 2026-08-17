@@ -2,7 +2,7 @@
 
 ## Status
 
-Confirmed policy. The initial workspace audit was performed on 2026-08-15, and the complete publication candidate and reachable GitHub history were reviewed again before public publication on 2026-08-17. Public visibility was approved only with a confidential security-reporting route and default-branch protection. Version control, regardless of visibility, is not an approved store for personal exports, credentials, or machine-local state.
+Confirmed policy. The initial workspace audit was performed on 2026-08-15, and the publication candidate and reachable GitHub history were reviewed before public publication on 2026-08-17. A later audit found exact local benchmark-host fields in older documentation. The reachable history was rewritten from the first affected snapshot, affected workflow records were removed, default-branch force-push protection was restored, and every snapshot reachable from a fresh public clone was rescanned. Invalidation of the provider's now-unreachable direct-commit cache requires GitHub Support and remains open; no affected branch or tag is published. Public visibility was approved only with a confidential security-reporting route and default-branch protection. Version control, regardless of visibility, is not an approved store for personal exports, credentials, or machine-local state.
 
 ## Purpose
 
