@@ -13,6 +13,8 @@ import path from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 
+import { validateReviewedReleaseNotes } from "./release-notes.mjs";
+
 const sha256Pattern = /^[0-9a-f]{64}$/;
 const revisionPattern = /^[0-9a-f]{40,64}$/;
 const semanticVersionPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
@@ -319,7 +321,8 @@ export function renderChecksumFile(root, relativePaths) {
     .join("\n") + "\n";
 }
 
-export function renderDraftReleaseNotes(manifest) {
+export function renderDraftReleaseNotes(manifest, reviewedNotes) {
+  const validatedNotes = validateReviewedReleaseNotes(reviewedNotes);
   return `# FitFreed ${manifest.release.version} private development package
 
 Source revision: \`${manifest.release.revision}\`
@@ -328,7 +331,8 @@ Storage schema: ${manifest.application.storageSchemaVersion}
 Compatibility matrix: \`supported-upgrades.json\`
 
 This package is unsigned, non-notarized development material. It is not a public release and is provided without warranty under the project disclaimer. Verify \`SHA256SUMS\` before mounting the disk image.
-`;
+
+${validatedNotes}`;
 }
 
 export function promoteStagedDirectory(stagingDirectory, finalDirectory, operationId) {

@@ -262,8 +262,12 @@ function main() {
   const version = process.argv[2];
   if (!version) throw new Error("usage: npm run prepare:development-release -- <version>");
   if (process.platform !== "darwin") throw new Error("development release preparation requires macOS");
-  inspectReleaseContracts(repositoryRoot, version);
+  const releaseContracts = inspectReleaseContracts(repositoryRoot, version);
   inspectUpgradeMatrix(repositoryRoot);
+  const reviewedReleaseNotes = readFileSync(
+    path.join(repositoryRoot, releaseContracts.releaseNotesSource),
+    "utf8",
+  );
   const { revision, sourceDateEpoch } = assertCleanRevision();
   const architecture = macosArchitecture();
   const stagingRoot = path.join(repositoryRoot, ".artifacts/releases");
@@ -302,7 +306,10 @@ function main() {
       path.join(stagingDirectory, "release-manifest.json"),
       `${JSON.stringify(manifest, null, 2)}\n`,
     );
-    writeFileSync(path.join(stagingDirectory, "RELEASE_NOTES.md"), renderDraftReleaseNotes(manifest));
+    writeFileSync(
+      path.join(stagingDirectory, "RELEASE_NOTES.md"),
+      renderDraftReleaseNotes(manifest, reviewedReleaseNotes),
+    );
     writeFileSync(
       path.join(stagingDirectory, "SHA256SUMS"),
       renderChecksumFile(stagingDirectory, [

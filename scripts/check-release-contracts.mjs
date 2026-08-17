@@ -1,6 +1,11 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
+import {
+  releaseNotesSourcePath,
+  validateReviewedReleaseNotes,
+} from "./release-notes.mjs";
 
 const semanticVersion = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 
@@ -107,7 +112,7 @@ export function inspectReleaseContracts(repositoryRoot, expectedVersion) {
   const recoveryBundleIdentifier = recoverySource.match(
     /const EXPECTED_BUNDLE_IDENTIFIER: &str = "([^"]+)";/,
   )?.[1];
-  return validateReleaseMetadata(
+  const result = validateReleaseMetadata(
     {
       npm,
       tauri,
@@ -117,6 +122,13 @@ export function inspectReleaseContracts(repositoryRoot, expectedVersion) {
     },
     expectedVersion,
   );
+  const notesPath = releaseNotesSourcePath(result.version);
+  const absoluteNotesPath = path.join(repositoryRoot, notesPath);
+  if (!existsSync(absoluteNotesPath)) {
+    throw new Error(`missing reviewed release notes: ${notesPath}`);
+  }
+  validateReviewedReleaseNotes(readFileSync(absoluteNotesPath, "utf8"));
+  return { ...result, releaseNotesSource: notesPath };
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);

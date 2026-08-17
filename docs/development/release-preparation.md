@@ -19,6 +19,8 @@ npm run prepare:development-release -- 0.1.0
 
 Replace `0.1.0` with the explicitly reviewed version. Preparation stops unless that value matches npm, Tauri, and every FitFreed Cargo package. Continuous integration passes its reviewed release version through the same gate. `cargo-cyclonedx` is installed under ignored `.tools/`; no global installation is required.
 
+The reviewed release-note body must exist at `release/notes/<version>.md`. It contains exactly these non-empty level-two sections in order: Highlights, Compatibility, Privacy and data, Known limitations, Installation and recovery, and Support. It has no level-one heading because preparation generates the title and exact release identity. Missing, reordered, duplicated, unexpected, or unterminated sections block both the fast release-contract check and release preparation.
+
 The command audits the complete JavaScript production and build graph, verifies the candidate-bound upgrade matrix, builds the normal Tauri production package, rejects E2E instrumentation, generates and validates production-only CycloneDX inventories, normalizes machine-local Cargo references, scans the complete evidence set for secrets, and stages it under `.artifacts/releases/<version>/`.
 
 Preparation requires a clean Git revision so the manifest can identify its complete source. A failure keeps the last complete version directory and removes only the incomplete ignored staging directory.
@@ -32,7 +34,7 @@ The ignored version directory contains:
 - `supported-upgrades.json`, the exact [version 1 compatibility matrix](../data-formats/release/upgrade-matrix-v1.md);
 - `release-manifest.json` conforming to the [version 2 contract](../data-formats/release/release-manifest-v2.md) and binding that matrix by digest;
 - `SHA256SUMS`; and
-- private draft `RELEASE_NOTES.md`.
+- `RELEASE_NOTES.md`, assembled from generated candidate identity and the exact reviewed version-specific body.
 
 No generated package or evidence file belongs in Git. The workflow blocks repository paths and `file://` references. Before sharing any evidence privately, also inspect it for credentials, signing material, personal exports, application libraries, private email addresses, and other machine-local content.
 

@@ -31,6 +31,8 @@ GitHub Actions is the selected continuous-integration provider for the GitHub-ho
 
 Hosted verification is impact-aware. Every revision runs the versioned impact classifier, documentation links, and independent repository-safety gate. The complete portable lane and the costly macOS packaging, installation, recovery, performance, and packaged-E2E lane run when any executable or release-affecting input changes, and they always run for an explicit release-candidate or manual verification request. A documentation-only revision may reuse prior evidence only when its Git-tree fingerprint for every executable and release input has an immutable evidence marker written after both complete lanes succeeded. A missing marker, an unknown path, an unavailable comparison, or a newly introduced path fails closed by requiring both complete lanes. Evidence-only documentation commits must not recursively rebuild an unchanged application merely to record the preceding successful run.
 
+Hosted proof on 2026-08-17: release-affecting commit `pre-purge` passed the [complete portable and macOS lanes](https://github.com/purnalica/fitfreed/actions/runs/32031590926) and recorded fingerprint `17c92f23bc299928602f396a26741c077117bbbf943234df946dfe2d2186e3cb`. Documentation-only commit `pre-purge` then [restored that exact marker](https://github.com/purnalica/fitfreed/actions/runs/32034716129), reported `verified-inputs-unchanged`, ran documentation links, and skipped every other portable step and the complete macOS job. Both commits independently passed repository safety. This evidence proves the optimization path, not an exception to a product gate.
+
 - Change-scope detection without skipping required dependency checks.
 - Unit, integration, E2E, migration, performance, packaging, and platform matrices.
 - Code quality, dependency-boundary, security, license, secret, and supply-chain checks.
@@ -41,7 +43,7 @@ Hosted verification is impact-aware. Every revision runs the versioned impact cl
 ### Release and distribution
 
 - Version derivation from an explicit reviewed release input.
-- Change-log and release-note assembly.
+- Change-log and release-note assembly from required versioned, reviewed inputs.
 - Clean release builds and platform-specific packaging.
 - Signing and notarization through protected jobs with narrowly scoped credentials.
 - Installer, first-run, update, migration, rollback, and removal verification.

@@ -10,7 +10,7 @@ Current private-development preparation under [ADR 0003](decisions/0003-stage-ve
 2. The normal Tauri production build creates the macOS application bundle and DMG.
 3. Production checks reject test instrumentation and inconsistent package identity.
 4. Ecosystem-specific tools create production dependency and license inventories.
-5. FitFreed generates checksums, a release manifest, and draft notes into ignored local staging.
+5. FitFreed combines reviewed version-specific notes with generated release identity, then generates checksums and a release manifest into ignored local staging.
 6. Installation verification checks integrity before mounting and copies the application only to an isolated test destination.
 
 These stages prepare unsigned development evidence; they do not publish it. Tags, GitHub releases, artifact uploads, production signatures, notarization, live update metadata, and promotion remain separate authorized actions.
@@ -23,13 +23,13 @@ The staged evidence set will contain:
 - SHA-256 checksums;
 - separate CycloneDX JSON documents for npm and Cargo production graphs;
 - machine-readable version, source revision, platform, architecture, storage schema, tool version, package identity, size, digest, and unsigned-state metadata; and
-- draft notes that state the development boundary and known limitations.
+- release notes assembled from the reviewed `release/notes/<version>.md` body and generated identity evidence.
 
 Every generated file is reproducible from versioned commands and ignored by Git. No file may contain a personal export, application library, machine-local path, credential, signing material, or private email address.
 
-`npm run check:release-contracts` is the current machine-readable identity gate. It requires one SemVer value across npm, Tauri, and all three Cargo packages; the approved product and bundle identifiers; `GPL-3.0-or-later` package declarations; the canonical repository; active production bundling; and no E2E capability in the production Tauri configuration.
+`npm run check:release-contracts` is the current machine-readable identity gate. It requires one SemVer value across npm, Tauri, and all three Cargo packages; the approved product and bundle identifiers; `GPL-3.0-or-later` package declarations; the canonical repository; active production bundling; no E2E capability in the production Tauri configuration; and a complete reviewed release-note body at the exact version-derived path.
 
-`npm run prepare:development-release -- <version>` is the staging entry point. It accepts only a clean commit and writes through a temporary directory before promoting it to ignored `.artifacts/releases/<version>/`; a failed promotion restores the previous complete directory. The [release manifest version 2 contract](../data-formats/release/release-manifest-v2.md) is the canonical description of its machine-readable output. It binds the exact [upgrade matrix](../data-formats/release/upgrade-matrix-v1.md) for the candidate by size and SHA-256 digest.
+`npm run prepare:development-release -- <version>` is the staging entry point. It accepts only a clean commit and writes through a temporary directory before promoting it to ignored `.artifacts/releases/<version>/`; a failed promotion restores the previous complete directory. The generated note header binds version, source revision, target architecture, storage schema, compatibility matrix, unsigned status, and integrity guidance to the reviewed body. The [release manifest version 2 contract](../data-formats/release/release-manifest-v2.md) is the canonical description of its machine-readable output. It binds the exact [upgrade matrix](../data-formats/release/upgrade-matrix-v1.md) for the candidate by size and SHA-256 digest.
 
 ## Build dependency security
 

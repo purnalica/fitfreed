@@ -12,6 +12,31 @@ import {
 } from "./release-evidence.mjs";
 import { verifyReleaseIntegrity } from "./verify-release-integrity.mjs";
 
+const reviewedReleaseNotes = `## Highlights
+
+Example highlight.
+
+## Compatibility
+
+Example compatibility.
+
+## Privacy and data
+
+Example privacy boundary.
+
+## Known limitations
+
+Example limitation.
+
+## Installation and recovery
+
+Example recovery guidance.
+
+## Support
+
+Example support boundary.
+`;
+
 function releaseFixture(context) {
   const root = mkdtempSync(path.join(tmpdir(), "fitfreed-release-integrity-"));
   context.after(() => rmSync(root, { recursive: true }));
@@ -41,7 +66,10 @@ function releaseFixture(context) {
     ],
   });
   writeFileSync(path.join(root, "release-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
-  writeFileSync(path.join(root, "RELEASE_NOTES.md"), renderDraftReleaseNotes(manifest));
+  writeFileSync(
+    path.join(root, "RELEASE_NOTES.md"),
+    renderDraftReleaseNotes(manifest, reviewedReleaseNotes),
+  );
   writeFileSync(
     path.join(root, "SHA256SUMS"),
     renderChecksumFile(root, [

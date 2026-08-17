@@ -15,7 +15,9 @@ test("reuses packaged evidence for an explicit documentation-only change", () =>
       comparisonAvailable: true,
       changedPaths: [
         "AGENTS.md",
+        "GOVERNANCE.md",
         "README.md",
+        "SUPPORT.md",
         "docs/architecture/storage.md",
         ".github/ISSUE_TEMPLATE/bug_report.yml",
         ".github/PULL_REQUEST_TEMPLATE.md",
@@ -24,7 +26,7 @@ test("reuses packaged evidence for an explicit documentation-only change", () =>
     {
       fullVerification: false,
       reason: "documentation-only",
-      changedPathCount: 5,
+      changedPathCount: 7,
     },
   );
 });

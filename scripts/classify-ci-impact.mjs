@@ -8,7 +8,7 @@ const commitSha = /^[0-9a-f]{40}$/;
 
 function documentationOnlyPath(candidatePath) {
   return (
-    /^(?:AGENTS|CODE_OF_CONDUCT|CONTRIBUTING|DISCLAIMER|README|SECURITY)\.md$/.test(
+    /^(?:AGENTS|CODE_OF_CONDUCT|CONTRIBUTING|DISCLAIMER|GOVERNANCE|README|SECURITY|SUPPORT)\.md$/.test(
       candidatePath,
     ) ||
     /^docs\/.*\.md$/.test(candidatePath) ||

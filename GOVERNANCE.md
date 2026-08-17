@@ -2,7 +2,7 @@
 
 ## Status
 
-FitFreed currently uses a bootstrap governance model suitable for its pre-implementation stage. The repository is owned by the `purnalica` GitHub organization, and `@matutet` is the initial project owner and maintainer.
+FitFreed currently uses a bootstrap governance model suitable for its pre-release stage. The repository is owned by the `purnalica` GitHub organization, and `@matutet` is the initial project owner and maintainer.
 
 This document describes the current decision path rather than promising a permanent governance structure. It will evolve transparently as sustained contributors assume responsibility.
 
