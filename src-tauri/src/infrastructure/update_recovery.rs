@@ -15,10 +15,13 @@ use fitfreed_application::{
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use tempfile::NamedTempFile;
 use thiserror::Error;
 
-use super::{backup_database, verify_library_file, ImportError, SCHEMA_VERSION};
+use super::{
+    backup_database,
+    local_file::{sync_directory, PrivateStagingFile},
+    verify_library_file, ImportError, SCHEMA_VERSION,
+};
 
 const RECOVERY_FORMAT: &str = "org.fitfreed.update-recovery";
 const RECOVERY_SCHEMA_VERSION: u32 = 1;
@@ -790,18 +793,18 @@ fn write_active_recovery_id(path: &Path, recovery_id: &str) -> Result<(), Update
         return Err(UpdateRecoveryError::InvalidInput);
     }
     let parent = path.parent().ok_or(UpdateRecoveryError::InvalidState)?;
-    let mut temporary = NamedTempFile::new_in(parent)?;
-    set_private_file_permissions(temporary.path())?;
-    temporary.write_all(format!("{recovery_id}\n").as_bytes())?;
-    temporary.as_file_mut().sync_all()?;
+    let mut temporary = PrivateStagingFile::new(parent, "fitfreed-recovery-active", ".tmp")?;
+    temporary
+        .file_mut()?
+        .write_all(format!("{recovery_id}\n").as_bytes())?;
+    temporary.sync_and_close()?;
     temporary.persist_noclobber(path).map_err(|error| {
-        if path.exists() {
+        if error.kind() == io::ErrorKind::AlreadyExists {
             UpdateRecoveryError::ActiveAttemptExists
         } else {
-            UpdateRecoveryError::Io(error.error)
+            UpdateRecoveryError::Io(error)
         }
-    })?;
-    sync_directory(parent)
+    })
 }
 
 fn read_active_recovery_id(path: &Path) -> Result<String, UpdateRecoveryError> {
@@ -835,14 +838,11 @@ fn read_bounded_file(path: &Path, maximum_bytes: u64) -> Result<Vec<u8>, UpdateR
 
 fn write_atomic_file(path: &Path, bytes: &[u8]) -> Result<(), UpdateRecoveryError> {
     let parent = path.parent().ok_or(UpdateRecoveryError::InvalidState)?;
-    let mut temporary = NamedTempFile::new_in(parent)?;
-    set_private_file_permissions(temporary.path())?;
-    temporary.write_all(bytes)?;
-    temporary.as_file_mut().sync_all()?;
-    temporary
-        .persist(path)
-        .map_err(|error| UpdateRecoveryError::Io(error.error))?;
-    sync_directory(parent)
+    let mut temporary = PrivateStagingFile::new(parent, "fitfreed-recovery-state", ".tmp")?;
+    temporary.file_mut()?.write_all(bytes)?;
+    temporary.sync_and_close()?;
+    temporary.persist_replace(path)?;
+    Ok(())
 }
 
 fn sync_tree(root: &Path) -> Result<(), UpdateRecoveryError> {
@@ -861,17 +861,7 @@ fn sync_tree(root: &Path) -> Result<(), UpdateRecoveryError> {
     for directory in directories {
         sync_directory(&directory)?;
     }
-    sync_directory(root)
-}
-
-#[cfg(not(windows))]
-fn sync_directory(path: &Path) -> Result<(), UpdateRecoveryError> {
-    File::open(path)?.sync_all()?;
-    Ok(())
-}
-
-#[cfg(windows)]
-fn sync_directory(_path: &Path) -> Result<(), UpdateRecoveryError> {
+    sync_directory(root)?;
     Ok(())
 }
 
@@ -885,19 +875,6 @@ fn set_private_directory_permissions(path: &Path) -> Result<(), UpdateRecoveryEr
 
 #[cfg(not(unix))]
 fn set_private_directory_permissions(_path: &Path) -> Result<(), UpdateRecoveryError> {
-    Ok(())
-}
-
-#[cfg(unix)]
-fn set_private_file_permissions(path: &Path) -> Result<(), UpdateRecoveryError> {
-    use std::os::unix::fs::PermissionsExt;
-
-    fs::set_permissions(path, fs::Permissions::from_mode(0o600))?;
-    Ok(())
-}
-
-#[cfg(not(unix))]
-fn set_private_file_permissions(_path: &Path) -> Result<(), UpdateRecoveryError> {
     Ok(())
 }
 

@@ -47,6 +47,7 @@ use fitfreed_domain::{
     SourceSpecificRecoveryGuidance, TrainingSession,
 };
 
+mod local_file;
 mod polar_flow;
 mod source_subject;
 pub mod update;
@@ -64,6 +65,7 @@ pub use update_recovery::{
 };
 pub use update_state::SqliteUpdateState;
 
+use local_file::PrivateStagingFile;
 use polar_flow::{
     assess_artifact, daily_activity_filename_date, training_session_filename_start,
     SupportedArtifact,
@@ -1901,23 +1903,18 @@ pub fn backup_database(source_path: &Path, backup_path: &Path) -> Result<()> {
     let source = Connection::open(source_path)?;
     verify_connection_integrity(&source, SCHEMA_VERSION)?;
 
-    let temporary = tempfile::Builder::new()
-        .prefix(".fitfreed-library-backup-")
-        .suffix(".sqlite")
-        .tempfile_in(backup_parent)?;
+    let mut temporary =
+        PrivateStagingFile::new(backup_parent, "fitfreed-library-backup", ".sqlite")?;
     let temporary_path = temporary.path().to_owned();
+    temporary.sync_and_close()?;
     {
         let mut destination = Connection::open(&temporary_path)?;
         let backup = rusqlite::backup::Backup::new(&source, &mut destination)?;
         backup.run_to_completion(64, Duration::from_millis(5), None)?;
     }
     verify_library_file(&temporary_path, SCHEMA_VERSION)?;
-    set_private_file_permissions(&temporary_path)?;
     File::open(&temporary_path)?.sync_all()?;
-    temporary
-        .persist(backup_path)
-        .map_err(|error| ImportError::Io(error.error))?;
-    sync_directory(backup_parent)?;
+    temporary.persist_replace(backup_path)?;
     Ok(())
 }
 
@@ -1953,30 +1950,6 @@ fn verify_connection_integrity(
             "SQLite integrity check failed".to_owned(),
         ));
     }
-    Ok(())
-}
-
-#[cfg(unix)]
-fn set_private_file_permissions(path: &Path) -> Result<()> {
-    use std::os::unix::fs::PermissionsExt;
-
-    std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600))?;
-    Ok(())
-}
-
-#[cfg(not(unix))]
-fn set_private_file_permissions(_path: &Path) -> Result<()> {
-    Ok(())
-}
-
-#[cfg(not(windows))]
-fn sync_directory(path: &Path) -> Result<()> {
-    File::open(path)?.sync_all()?;
-    Ok(())
-}
-
-#[cfg(windows)]
-fn sync_directory(_path: &Path) -> Result<()> {
     Ok(())
 }
 

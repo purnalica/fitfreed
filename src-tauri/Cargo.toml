@@ -48,9 +48,9 @@ rustls = { version = "0.23", default-features = false, features = ["ring"] }
 semver = "1"
 sha2 = "0.10"
 thiserror = "2"
-tempfile = "3"
 url = "2"
 zip = { version = "4", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
 minisign = "0.9.1"
+tempfile = "3"
