@@ -15,10 +15,10 @@ The outer object is compatible with Tauri's static updater feed, but its fields 
 - Channel: `private-alpha`.
 - Signature algorithm identifier: `minisign-ed25519`.
 - `payloadBase64` decodes to the exact signed UTF-8 JSON bytes; verification occurs before JSON parsing.
-- The decoded payload is limited to 1 MiB. Encoded signatures are limited to 16 KiB. URLs are limited to 2,048 characters.
+- The complete HTTP response is limited to 1.5 MiB while streaming. The decoded payload is limited to 1 MiB. Encoded signatures are limited to 16 KiB. URLs are limited to 2,048 characters.
 - Unknown fields are invalid except additional locale keys in localized text objects and additional valid platform target keys.
 
-The endpoint and every artifact URL use HTTPS in a production build. Test-only transport exceptions remain outside this production contract.
+The metadata endpoint is one static HTTPS URL without user information, query, or fragment components. Metadata redirects are not followed. Connection establishment is limited to 5 seconds and the complete request to 10 seconds. Test-only transport exceptions remain outside this production contract. Every artifact URL also uses HTTPS in a production build; its separately authenticated download behavior is part of the installation contract.
 
 ## Envelope fields
 
@@ -84,7 +84,7 @@ JSON Schema validates shape; the verifier additionally enforces all of these inv
 
 Unsupported envelope or payload versions, unknown keys, malformed Base64, invalid UTF-8, invalid signatures, oversize content, unknown channels, mirror mismatch, invalid time windows, replay, equivocation, and semantic invariant failures are untrusted metadata. None may update the local high-water mark, notification preferences, package cache, application, or library.
 
-An unreachable endpoint is an offline update outcome, not untrusted metadata and not an application failure. An expired otherwise valid payload cannot authorize installation. A lower application baseline, incompatible library schema, installed withdrawal without a safe candidate, or missing current platform produces authenticated manual-recovery guidance rather than a download.
+An unreachable endpoint, non-success HTTP status, timeout, redirect response, or body read failure is an offline update outcome, not untrusted metadata and not an application failure. A response that exceeds the streaming limit is untrusted and is never buffered beyond one limit-detection byte. An expired otherwise valid payload cannot authorize installation. A lower application baseline, incompatible library schema, installed withdrawal without a safe candidate, or missing current platform produces authenticated manual-recovery guidance rather than a download.
 
 The accepted sequence, payload digest, dismissal, and postponement are local application state. They contain no fitness, health, location, account, provider, or usage values. Diagnostics expose stable reason codes, not endpoint URLs, response bodies, package paths, signed payloads, or key material.
 

@@ -8,24 +8,52 @@ use fitfreed_application::{
 use minisign_verify::{PublicKey, Signature};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
+use thiserror::Error;
 use url::Url;
 
-const MAX_UPDATE_RESPONSE_BYTES: usize = 1_572_864;
+pub(crate) const MAX_UPDATE_RESPONSE_BYTES: usize = 1_572_864;
 const MAX_UPDATE_PAYLOAD_BYTES: usize = 1_048_576;
 const MAX_SAFE_JSON_INTEGER: u64 = 9_007_199_254_740_991;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SignedUpdateChannelVerifier {
     trusted_public_keys: BTreeMap<String, String>,
     current_target: String,
 }
 
+#[derive(Debug, Error, PartialEq, Eq)]
+pub enum UpdateVerifierConfigurationError {
+    #[error("the update trust set is invalid")]
+    InvalidTrustedKeys,
+    #[error("the update target is unsupported")]
+    UnsupportedTarget,
+}
+
 impl SignedUpdateChannelVerifier {
-    pub fn new(trusted_public_keys: BTreeMap<String, String>, current_target: String) -> Self {
-        Self {
+    pub fn try_new(
+        trusted_public_keys: BTreeMap<String, String>,
+        current_target: String,
+    ) -> Result<Self, UpdateVerifierConfigurationError> {
+        if trusted_public_keys.is_empty()
+            || trusted_public_keys.len() > 8
+            || trusted_public_keys.iter().any(|(key_id, public_key)| {
+                !valid_key_id(key_id)
+                    || public_key.len() > 16_384
+                    || decode_base64_text(public_key)
+                        .ok()
+                        .and_then(|decoded| PublicKey::decode(&decoded).ok())
+                        .is_none()
+            })
+        {
+            return Err(UpdateVerifierConfigurationError::InvalidTrustedKeys);
+        }
+        if !valid_target(&current_target) {
+            return Err(UpdateVerifierConfigurationError::UnsupportedTarget);
+        }
+        Ok(Self {
             trusted_public_keys,
             current_target,
-        }
+        })
     }
 
     pub fn verify_response(&self, response: &[u8]) -> UpdateChannelRead {
@@ -287,6 +315,15 @@ fn valid_target(value: &str) -> bool {
                 && matches!(*installer, "app" | "appimage" | "deb" | "rpm" | "msi" | "nsis"))
 }
 
+fn valid_key_id(value: &str) -> bool {
+    (1..=64).contains(&value.len())
+        && !value.starts_with('-')
+        && !value.ends_with('-')
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
+}
+
 fn hex_digest(value: &[u8]) -> String {
     Sha256::digest(value)
         .iter()
@@ -473,13 +510,14 @@ mod tests {
         }
 
         fn verifier(&self) -> SignedUpdateChannelVerifier {
-            SignedUpdateChannelVerifier::new(
+            SignedUpdateChannelVerifier::try_new(
                 BTreeMap::from([(
                     "synthetic-test-key".to_owned(),
                     self.public_key_base64.clone(),
                 )]),
                 "darwin-aarch64".to_owned(),
             )
+            .expect("synthetic verifier")
         }
     }
 
@@ -607,13 +645,14 @@ mod tests {
             );
         }
 
-        let missing_target = SignedUpdateChannelVerifier::new(
+        let missing_target = SignedUpdateChannelVerifier::try_new(
             BTreeMap::from([(
                 "synthetic-test-key".to_owned(),
                 feed.public_key_base64.clone(),
             )]),
             "darwin-x86_64".to_owned(),
-        );
+        )
+        .expect("synthetic missing-target verifier");
         assert_eq!(
             missing_target.verify_response(&feed.response()),
             UpdateChannelRead::Untrusted(UpdateTrustFailure::MissingTarget)
@@ -704,13 +743,14 @@ mod tests {
             serde_json::from_slice(&signed_response(&next_key, &feed.payload))
                 .expect("next-key envelope");
         response["fitfreed"]["keyId"] = Value::String("synthetic-next-key".to_owned());
-        let verifier = SignedUpdateChannelVerifier::new(
+        let verifier = SignedUpdateChannelVerifier::try_new(
             BTreeMap::from([
                 ("synthetic-test-key".to_owned(), feed.public_key_base64),
                 ("synthetic-next-key".to_owned(), next_public_key),
             ]),
             "darwin-aarch64".to_owned(),
-        );
+        )
+        .expect("synthetic rotation verifier");
         assert!(matches!(
             verifier.verify_response(&serde_json::to_vec(&response).expect("rotation envelope")),
             UpdateChannelRead::Authenticated(_)
@@ -721,6 +761,30 @@ mod tests {
         assert_eq!(
             verifier.verify_response(&signed_response(&feed.key_pair, &extended_payload)),
             UpdateChannelRead::Untrusted(UpdateTrustFailure::InvalidPayload)
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_trust_configuration_before_any_channel_read() {
+        assert_eq!(
+            SignedUpdateChannelVerifier::try_new(BTreeMap::new(), "darwin-aarch64".to_owned()),
+            Err(UpdateVerifierConfigurationError::InvalidTrustedKeys)
+        );
+        assert_eq!(
+            SignedUpdateChannelVerifier::try_new(
+                BTreeMap::from([("invalid key id".to_owned(), "invalid".to_owned())]),
+                "darwin-aarch64".to_owned(),
+            ),
+            Err(UpdateVerifierConfigurationError::InvalidTrustedKeys)
+        );
+
+        let feed = SyntheticFeed::new();
+        assert_eq!(
+            SignedUpdateChannelVerifier::try_new(
+                BTreeMap::from([("synthetic-test-key".to_owned(), feed.public_key_base64,)]),
+                "unsupported-target".to_owned(),
+            ),
+            Err(UpdateVerifierConfigurationError::UnsupportedTarget)
         );
     }
 }

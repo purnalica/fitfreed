@@ -50,8 +50,10 @@ use fitfreed_domain::{
 mod polar_flow;
 mod source_subject;
 pub mod update;
+mod update_channel;
 mod update_state;
 
+pub use update_channel::{current_update_target, HttpsUpdateChannel};
 pub use update_state::SqliteUpdateState;
 
 use polar_flow::{
