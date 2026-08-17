@@ -41,6 +41,7 @@ impl From<ApplicationError> for CommandErrorDto {
     fn from(error: ApplicationError) -> Self {
         let code = match error {
             ApplicationError::ImportAlreadyActive => "import-already-active",
+            ApplicationError::ExclusiveOperationAlreadyActive => "desktop-operation-active",
             ApplicationError::Coordination(_) => "import-coordination-failed",
             ApplicationError::Import(_) => "import-failed",
             ApplicationError::Query(_) => "library-query-failed",

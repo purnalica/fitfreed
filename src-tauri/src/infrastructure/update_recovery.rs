@@ -610,6 +610,40 @@ pub fn verify_prepared_update_recovery(
     verify_attempt_directory(&attempt_directory, recovery_id)
 }
 
+pub fn discard_prepared_update_recovery(
+    recovery_root: &Path,
+    recovery_id: &str,
+) -> Result<(), UpdateRecoveryError> {
+    if !valid_sha256(recovery_id) {
+        return Err(UpdateRecoveryError::InvalidInput);
+    }
+    let recovery_root = recovery_root.canonicalize()?;
+    let attempts_directory = recovery_root.join(ATTEMPTS_DIRECTORY_NAME);
+    let attempt_directory = attempts_directory.join(recovery_id);
+    let watchdog_lock = open_private_lock_file(&attempt_directory, WATCHDOG_LOCK_FILE_NAME, false)?;
+    acquire_process_lock(&watchdog_lock)?;
+    let candidate_lock =
+        open_private_lock_file(&attempt_directory, CANDIDATE_LOCK_FILE_NAME, false)?;
+    acquire_candidate_process_lock(&candidate_lock)?;
+    let _state_lock = RecoveryStateLock::acquire(&attempt_directory)?;
+    let active_path = recovery_root.join(ACTIVE_FILE_NAME);
+    if read_active_recovery_id(&active_path)? != recovery_id {
+        return Err(UpdateRecoveryError::InvalidState);
+    }
+    let manifest = read_manifest(&attempt_directory.join(MANIFEST_FILE_NAME))?;
+    validate_manifest(&manifest)?;
+    if manifest.phase != RecoveryPhaseWire::Prepared || manifest.recovery_id != recovery_id {
+        return Err(UpdateRecoveryError::InvalidTransition);
+    }
+    verify_attempt_directory(&attempt_directory, recovery_id)?;
+
+    fs::remove_file(active_path)?;
+    sync_directory(&recovery_root)?;
+    fs::remove_dir_all(&attempt_directory)?;
+    sync_directory(&attempts_directory)?;
+    Ok(())
+}
+
 pub fn restore_active_update_recovery(
     copier: &impl ApplicationCopyPort,
     restoration: UpdateRecoveryRestoration<'_>,
@@ -960,6 +994,10 @@ fn application_bundle_from_executable(executable: &Path) -> Result<PathBuf, Upda
         .filter(|path| path.file_name().and_then(|name| name.to_str()) == Some("FitFreed.app"))
         .ok_or(UpdateRecoveryError::InvalidInput)?;
     Ok(application_path.to_owned())
+}
+
+pub fn resolve_update_application_path(executable: &Path) -> Result<PathBuf, UpdateRecoveryError> {
+    application_bundle_from_executable(executable)
 }
 
 fn validate_restoration_destinations(
@@ -2112,6 +2150,62 @@ mod tests {
             Some((
                 prepared.recovery_id().to_owned(),
                 UpdateRecoveryPhase::Confirmed
+            ))
+        );
+    }
+
+    #[test]
+    fn discards_only_a_quiescent_prepared_attempt() {
+        let harness = Harness::new();
+        let authorization = harness.authorization();
+        let prepared = prepare_update_recovery(
+            &SyntheticApplicationCopier,
+            harness.preparation(&authorization),
+        )
+        .expect("prepared update recovery");
+        let attempt_directory = prepared.attempt_directory().to_owned();
+
+        discard_prepared_update_recovery(&harness.recovery_root, prepared.recovery_id())
+            .expect("discarded prepared recovery");
+
+        assert!(!attempt_directory.exists());
+        assert_eq!(
+            active_update_recovery_phase(&harness.recovery_root).expect("no active recovery"),
+            None
+        );
+        prepare_update_recovery(
+            &SyntheticApplicationCopier,
+            harness.preparation(&authorization),
+        )
+        .expect("subsequent recovery preparation");
+    }
+
+    #[test]
+    fn refuses_to_discard_after_replacement_has_started() {
+        let harness = Harness::new();
+        let authorization = harness.authorization();
+        let prepared = prepare_update_recovery(
+            &SyntheticApplicationCopier,
+            harness.preparation(&authorization),
+        )
+        .expect("prepared update recovery");
+        transition_active_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            UpdateRecoveryPhase::ReplacementStarted,
+        )
+        .expect("replacement started");
+
+        assert!(matches!(
+            discard_prepared_update_recovery(&harness.recovery_root, prepared.recovery_id()),
+            Err(UpdateRecoveryError::InvalidTransition)
+        ));
+        assert!(prepared.attempt_directory().exists());
+        assert_eq!(
+            active_update_recovery_phase(&harness.recovery_root).expect("active recovery"),
+            Some((
+                prepared.recovery_id().to_owned(),
+                UpdateRecoveryPhase::ReplacementStarted
             ))
         );
     }

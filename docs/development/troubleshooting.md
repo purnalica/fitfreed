@@ -27,6 +27,9 @@ If the fast lane passes, run the smallest command that owns the failing boundary
 | Packaged picker, restart, or accessibility failure | Desktop E2E boundary | Run `npm run verify:e2e` and inspect `.artifacts/e2e/evidence`. The WebdriverIO service embeds its driver; a global `tauri-driver` is not required. |
 | Packaged Insights p95 exceeds its budget | Tauri transport, React update, or WebView rendering | Compare the failing domain in the packaged JSON with `npm run benchmark:insights`. Investigate only the remaining transport and render boundary after confirming the read-model result; WebDriver transport is outside the timed interval. |
 | Production package contains test capabilities | Packaging boundary | Rebuild with `npm run package`, then run `npm run check:production-bundle`. Do not distribute the instrumented E2E package. |
+| Update installation is not offered | Update policy or ordinary unconfigured build | Run an explicit check. An install action exists only for a newer compatible release authenticated by the configured channel; ordinary development builds intentionally have no endpoint or trust key. |
+| Verified update cannot start its recovery monitor | Installation recovery boundary | Preserve the fixed localized error code and run the packaged update E2E gate. Do not delete `update-recovery`, the application, or the library as a retry strategy. |
+| Application does not reopen after an update attempt | Watchdog or candidate confirmation boundary | Wait for bounded automatic recovery, then reopen FitFreed. Preserve the application-data directory before further installation attempts and report only sanitized evidence. |
 
 ## Generated and private state
 

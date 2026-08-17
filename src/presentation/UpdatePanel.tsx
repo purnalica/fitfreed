@@ -20,6 +20,7 @@ type ManualRecoveryReason = keyof (typeof catalogs)["en-US"]["updates"]["manualR
 type TrustFailure = keyof (typeof catalogs)["en-US"]["updates"]["trustFailures"];
 type WithdrawalReason = keyof (typeof catalogs)["en-US"]["updates"]["withdrawalReasons"];
 type UpdateMessages = (typeof catalogs)["en-US"]["updates"];
+type BusyAction = "check" | "dismiss" | "postpone" | "install";
 
 interface UpdateRelease {
   version: string;
@@ -54,6 +55,8 @@ interface UpdatePanelProps {
   errors: Record<string, string>;
   ready: boolean;
   refreshToken: number;
+  installationBlocked?: boolean;
+  onInstallationStateChange?: (installing: boolean) => void;
 }
 
 const attentionStatuses = new Set<UpdateStatus>([
@@ -76,9 +79,11 @@ export function UpdatePanel({
   errors,
   ready,
   refreshToken,
+  installationBlocked = false,
+  onInstallationStateChange,
 }: UpdatePanelProps) {
   const [outcome, setOutcome] = useState<UpdateCheckOutcome>();
-  const [busy, setBusy] = useState(false);
+  const [busyAction, setBusyAction] = useState<BusyAction>();
   const [manuallyRevealed, setManuallyRevealed] = useState(false);
   const [errorCode, setErrorCode] = useState<string>();
   const requestSequence = useRef(0);
@@ -115,7 +120,7 @@ export function UpdatePanel({
   async function checkNow() {
     requestSequence.current += 1;
     const requestId = requestSequence.current;
-    setBusy(true);
+    setBusyAction("check");
     setErrorCode(undefined);
     try {
       const result = await invoke<UpdateCheckOutcome>("check_for_updates");
@@ -128,7 +133,7 @@ export function UpdatePanel({
         setErrorCode(commandErrorCode(reason));
       }
     } finally {
-      setBusy(false);
+      setBusyAction(undefined);
     }
   }
 
@@ -136,7 +141,7 @@ export function UpdatePanel({
     if (!outcome?.release) return;
     requestSequence.current += 1;
     const requestId = requestSequence.current;
-    setBusy(true);
+    setBusyAction("dismiss");
     setErrorCode(undefined);
     try {
       await invoke("dismiss_available_update", {
@@ -156,7 +161,7 @@ export function UpdatePanel({
         setErrorCode(commandErrorCode(reason));
       }
     } finally {
-      setBusy(false);
+      setBusyAction(undefined);
     }
   }
 
@@ -164,7 +169,7 @@ export function UpdatePanel({
     if (!outcome?.release) return;
     requestSequence.current += 1;
     const requestId = requestSequence.current;
-    setBusy(true);
+    setBusyAction("postpone");
     setErrorCode(undefined);
     try {
       const until = await invoke<string>("postpone_available_update", {
@@ -184,7 +189,27 @@ export function UpdatePanel({
         setErrorCode(commandErrorCode(reason));
       }
     } finally {
-      setBusy(false);
+      setBusyAction(undefined);
+    }
+  }
+
+  async function install() {
+    if (!outcome?.release || !outcome.updateActionAvailable) return;
+    requestSequence.current += 1;
+    const requestId = requestSequence.current;
+    setBusyAction("install");
+    onInstallationStateChange?.(true);
+    setErrorCode(undefined);
+    try {
+      await invoke("install_available_update", {
+        candidateVersion: outcome.release.version,
+      });
+    } catch (reason) {
+      if (requestId === requestSequence.current) {
+        setErrorCode(commandErrorCode(reason));
+        setBusyAction(undefined);
+        onInstallationStateChange?.(false);
+      }
     }
   }
 
@@ -238,6 +263,7 @@ export function UpdatePanel({
   const canDefer = outcome?.status === "available"
     && outcome.updateActionAvailable
     && outcome.release !== null;
+  const busy = busyAction !== undefined;
 
   return (
     <section className="update-panel" aria-labelledby="update-heading">
@@ -247,12 +273,17 @@ export function UpdatePanel({
           <p>{messages.intro}</p>
         </div>
         <button type="button" className="secondary" onClick={checkNow} disabled={!ready || busy}>
-          {busy ? messages.checking : messages.checkNow}
+          {busyAction === "check" ? messages.checking : messages.checkNow}
         </button>
       </div>
 
       {showOutcome && (
-        <div className={`update-result update-result-${outcome.status}`} role="status" aria-live="polite">
+        <div
+          className={`update-result update-result-${outcome.status}`}
+          role="status"
+          aria-live="polite"
+          aria-busy={busyAction === "install"}
+        >
           <p className="update-status"><strong>{statusText(outcome)}</strong></p>
           {outcome.status === "untrusted" && outcome.trustFailure && (
             <p>{messages.trustFailures[outcome.trustFailure]}</p>
@@ -267,11 +298,19 @@ export function UpdatePanel({
               })}</p>
               <h3>{messages.releaseNotes}</h3>
               <p>{outcome.release.releaseNotes}</p>
-              {outcome.updateActionAvailable && <p>{messages.previewInstallUnavailable}</p>}
+              {outcome.updateActionAvailable && <p>{messages.installNotice}</p>}
+              {busyAction === "install" && (
+                <p>{interpolate(messages.installingVersion, {
+                  version: outcome.release.version,
+                })}</p>
+              )}
             </div>
           )}
           {canDefer && (
             <div className="update-actions">
+              <button type="button" onClick={install} disabled={busy || installationBlocked}>
+                {busyAction === "install" ? messages.installing : messages.install}
+              </button>
               <button type="button" className="secondary" onClick={postpone} disabled={busy}>
                 {messages.postpone}
               </button>

@@ -343,6 +343,56 @@ async function chooseArchive(user: ReturnType<typeof userEvent.setup>, path: str
 }
 
 describe("FitFreed import interface", () => {
+  it("blocks mutable desktop controls while an update installation owns the application", async () => {
+    emptyLibrary();
+    let rejectInstallation!: (reason: unknown) => void;
+    mocks.updateInvoke.mockImplementation((command) => {
+      if (command === "confirm_update_recovery_startup") return Promise.resolve(false);
+      if (command === "check_for_updates_on_launch") {
+        return Promise.resolve({
+          installedVersion: "0.1.0",
+          checkedAt: "2026-08-17T08:00:00Z",
+          status: "available",
+          release: {
+            version: "0.2.0",
+            publishedAt: "2026-08-17T07:00:00Z",
+            releaseNotes: "Synthetic update.",
+            minimumSupportedVersion: "0.1.0",
+            targetLibrarySchemaVersion: 9,
+          },
+          installedWithdrawal: null,
+          updateActionAvailable: true,
+          postponedUntil: null,
+          manualRecoveryReason: null,
+          trustFailure: null,
+        });
+      }
+      if (command === "install_available_update") {
+        return new Promise((_, reject) => {
+          rejectInstallation = reject;
+        });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByRole("button", { name: "Install and restart" });
+    await chooseArchive(user, "/synthetic/valid.zip");
+
+    await user.click(screen.getByRole("button", { name: "Install and restart" }));
+
+    expect(screen.getByRole("button", { name: "Choose ZIP package" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Import selected package" })).toBeDisabled();
+    expect(screen.getByRole("combobox", { name: "Language" })).toBeDisabled();
+
+    await act(async () => rejectInstallation({ code: "update-native-installer-failed" }));
+    await waitFor(() => expect(
+      screen.getByRole("button", { name: "Choose ZIP package" }),
+    ).toBeEnabled());
+    expect(screen.getByRole("button", { name: "Import selected package" })).toBeEnabled();
+    expect(screen.getByRole("combobox", { name: "Language" })).toBeEnabled();
+  });
+
   it("requests backend-owned update confirmation only after locale startup completes", async () => {
     let completeLocale!: (locale: "en-US") => void;
     mocks.invoke.mockImplementation((command) => {

@@ -68,6 +68,8 @@ The unsigned macOS production application and DMG are generated under `src-tauri
 - `src-tauri/crates/fitfreed-application` contains use cases, ports, provider-neutral domain Insights calculations, longitudinal composition, progress, and cancellation coordination and depends only on the domain, calendar arithmetic, and its error helper.
 - `src-tauri/src/infrastructure.rs` contains the Polar Flow ZIP/JSON anti-corruption layer, daily-activity, training-summary, sleep, and nightly-recovery mappings, and SQLite adapter.
 - `src-tauri/src/infrastructure/update_recovery.rs` owns the macOS recovery-pair copy, deterministic application digest, SQLite verification, local manifest, and active-attempt persistence.
+- `src-tauri/src/infrastructure/update_installation.rs` coordinates verified package installation with recovery preparation, watchdog readiness, native replacement, and failure handoff.
+- `src-tauri/src/infrastructure/update_watchdog.rs` owns the preserved-executable process runner, restart-safe candidate observation, confirmation deadline, and recovery execution.
 - `src-tauri/src/lib.rs` and `presentation.rs` are the Tauri host and serialized transport boundary.
 - `src-tauri/vendor/tauri-plugin-updater` is the provenance-checked source refinement selected by ADR 0009; its `README.fitfreed.md` is the mandatory review and upgrade guide.
 - `src` contains the React presentation, its desktop archive-picker adapter, and test-only presentation instrumentation; localized copy exists only under `src/locales`.

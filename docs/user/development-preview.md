@@ -6,7 +6,7 @@ The current application is a development preview, not an alpha release. It prove
 
 ## Run the synthetic journey
 
-The Application updates panel performs a non-blocking launch check after the language preference is ready and always offers an explicit check. The ordinary development build is intentionally unconfigured and makes no update request. Synthetic automated tests exercise authenticated localized release notes, withdrawn-version guidance, incompatible recovery states, trust rejection, exact-version dismissal, and a 24-hour reminder; a packaged update journey remains open. Download and installation are not implemented in this preview; the interface says so and must not be treated as an installation path.
+The Application updates panel performs a non-blocking launch check after the language preference is ready and always offers an explicit check. The ordinary development build is intentionally unconfigured and makes no update request. A configured build offers installation only for the exact newer compatible release authorized by a fresh authenticated check. Before replacement, FitFreed verifies the package and preserves the current application and library; an independent watchdog then owns restart confirmation or restoration. Installation cannot overlap an import or another update. Synthetic unit, integration, and presentation tests exercise this boundary, while the complete packaged update journey remains open. Until that evidence passes and a private channel is configured, this is not a supported distribution path.
 
 1. Follow the [contributor setup](../development/getting-started.md).
 2. Run `npm run fixture:e2e`.
@@ -39,6 +39,8 @@ The Application updates panel performs a non-blocking launch check after the lan
 29. At 200% text size, verify that the page does not overflow horizontally and that wide exact tables scroll inside their labeled containers. Check both visual and table alternatives without relying on color alone.
 30. Close and reopen the application and confirm that the selected language, all four localized default overviews, and the default longitudinal overview are restored; detail and comparison results are intentionally not persisted.
 
+An ordinary development build reports that update checking is not configured when `Check now` is selected. This is expected. Do not add an endpoint, key, or package merely to exercise the visible control. The packaged update suite owns synthetic installation, restart, and restoration evidence without using a public release or production signing authority.
+
 The generated fixtures contain only independently constructed fictional values. The local SQLite library remains in the operating system's FitFreed application-data directory. Development E2E runs use an isolated generated library under `.artifacts` instead.
 
 ## Troubleshooting this preview
@@ -47,12 +49,13 @@ The generated fixtures contain only independently constructed fictional values. 
 - The generated `invalid.zip` package is expected to be rejected. Use `valid.zip` for the successful journey and preserve the visible rejection evidence when diagnosing a regression.
 - If FitFreed reports that the local library is unavailable, stop importing and preserve the application-data directory. Do not delete or edit the SQLite file as a recovery attempt.
 - If a selected language cannot be saved, the application keeps the operating-system language for first-run initialization or restores the previous explicit language. Restart before trying the selection again.
+- If a configured update fails before replacement, the current application remains installed. If failure occurs after replacement begins, wait for bounded automatic recovery and reopen FitFreed if it does not relaunch. Preserve the application-data directory; do not delete or edit `update-recovery` or the SQLite library.
 - Use the [contributor troubleshooting guide](../development/troubleshooting.md) for build, test, package, or E2E failures.
 
 ## Expected limitations
 
 - Only the documented daily-activity, training-summary, split sleep-result, and dated nightly-recovery compatibility matrices are supported; one evaluated package is evidence, not a universal provider guarantee.
-- All four detailed overviews and the longitudinal overview select at most the latest 30 dates by default; overview and comparison ranges accept at most 366 inclusive dates each. The longitudinal range is the global union, while each detailed explorer retains its own date semantics. Training sport references remain unresolved and appear only as neutral availability, never as invented names. Sleep scores and recovery assessments remain source-derived facts rather than medical interpretation. Undated recovery samples, user-controlled backup, portable export, and updates are not implemented yet.
+- All four detailed overviews and the longitudinal overview select at most the latest 30 dates by default; overview and comparison ranges accept at most 366 inclusive dates each. The longitudinal range is the global union, while each detailed explorer retains its own date semantics. Training sport references remain unresolved and appear only as neutral availability, never as invented names. Sleep scores and recovery assessments remain source-derived facts rather than medical interpretation. Undated recovery samples, user-controlled backup, portable export, periodic update scheduling, terminal update cleanup, and complete packaged update evidence are not implemented yet.
 - The visible coverage is exact for the current recognition boundary and does not expose archive filenames. A recognized or classified family is not necessarily imported, and the view is not a claim that all historical Polar Flow takeouts are fully supported.
 - The package is unsigned and must not be published as a public release.
 

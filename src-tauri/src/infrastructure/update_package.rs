@@ -37,6 +37,7 @@ pub enum UpdatePackageError {
 pub struct VerifiedUpdatePackage {
     bytes: Vec<u8>,
     authorization: UpdateInstallationAuthorization,
+    native_update: Update,
 }
 
 impl VerifiedUpdatePackage {
@@ -50,6 +51,17 @@ impl VerifiedUpdatePackage {
 
     pub fn byte_len(&self) -> usize {
         self.bytes.len()
+    }
+
+    pub fn authorization(&self) -> &UpdateInstallationAuthorization {
+        &self.authorization
+    }
+
+    pub fn install(&self) -> Result<(), UpdatePackageError> {
+        validate_downloaded_bytes(&self.bytes, &self.authorization)?;
+        self.native_update
+            .install(&self.bytes)
+            .map_err(|_| UpdatePackageError::NativeUpdater)
     }
 }
 
@@ -108,6 +120,7 @@ pub async fn download_verified_update<R: Runtime>(
     Ok(VerifiedUpdatePackage {
         bytes,
         authorization,
+        native_update,
     })
 }
 

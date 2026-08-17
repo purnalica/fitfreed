@@ -12,20 +12,23 @@ use std::{
 
 use chrono::{SecondsFormat, Utc};
 use fitfreed_application::{
-    check_for_updates as evaluate_updates, dismiss_update as persist_update_dismissal,
-    postpone_update as persist_update_postponement,
+    authorize_update_installation as authorize_update, check_for_updates as evaluate_updates,
+    dismiss_update as persist_update_dismissal, postpone_update as persist_update_postponement,
     query_longitudinal_comparison as build_longitudinal_comparison,
-    query_longitudinal_overview as build_longitudinal_overview, ImportCoordinator, ImportProgress,
-    LocalePreference, UpdateChannelPort, UpdateCheckContext, UpdateCheckTrigger,
+    query_longitudinal_overview as build_longitudinal_overview, ApplicationError,
+    ImportCoordinator, ImportProgress, LocalePreference, UpdateChannelPort, UpdateCheckContext,
+    UpdateCheckTrigger, UpdateInstallationAuthorization,
 };
 use infrastructure::{
     acquire_update_recovery_candidate_lease, await_update_recovery_candidate_go,
-    confirm_active_update_recovery, library_schema_version, recover_interrupted_imports,
+    confirm_active_update_recovery, download_verified_update, install_verified_update,
+    library_schema_version, recover_interrupted_imports, resolve_update_application_path,
     run_update_recovery_watchdog, HttpsUpdateChannel, SqliteActivityLibrary,
     SqliteImportOutcomeLibrary, SqliteLocalePreferences, SqliteLongitudinalLibrary,
     SqlitePolarFlowArchiveImporter, SqliteRecoveryLibrary, SqliteSleepLibrary,
-    SqliteTrainingLibrary, SqliteUpdateState, UpdateRecoveryCandidateLease,
-    UPDATE_RECOVERY_CANDIDATE_ARGUMENT, UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
+    SqliteTrainingLibrary, SqliteUpdateState, UpdateInstallationError, UpdateInstallationRequest,
+    UpdatePackageError, UpdateRecoveryCandidateLease, UPDATE_RECOVERY_CANDIDATE_ARGUMENT,
+    UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
 };
 use presentation::{
     ActivityComparisonDto, ActivityDateRangeDto, ActivityOverviewDto, CommandErrorDto,
@@ -359,6 +362,114 @@ async fn postpone_available_update(
 }
 
 #[tauri::command]
+async fn install_available_update(
+    app: AppHandle,
+    channel: State<'_, Arc<HttpsUpdateChannel>>,
+    coordinator: State<'_, ImportCoordinator>,
+    candidate_version: String,
+) -> Result<(), CommandErrorDto> {
+    let _operation = coordinator
+        .reserve_exclusive_operation()
+        .map_err(map_exclusive_operation_error)?;
+    let library_path =
+        database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let executable =
+        env::current_exe().map_err(|_| CommandErrorDto::new("update-installation-unavailable"))?;
+    let current_application_path = resolve_update_application_path(&executable)
+        .map_err(|_| CommandErrorDto::new("update-installation-unavailable"))?;
+    let recovery_root = library_path
+        .parent()
+        .map(|parent| parent.join("update-recovery"))
+        .ok_or_else(|| CommandErrorDto::new("library-unavailable"))?;
+    let channel = Arc::clone(channel.inner());
+    let authorization_path = library_path.clone();
+    let authorization_channel = Arc::clone(&channel);
+    let checked_at = current_utc_datetime();
+    let authorization = tauri::async_runtime::spawn_blocking(move || {
+        perform_update_authorization(
+            authorization_channel.as_ref(),
+            authorization_path,
+            checked_at,
+            &candidate_version,
+        )
+    })
+    .await
+    .map_err(|_| CommandErrorDto::new("desktop-task-failed"))??;
+    let package = download_verified_update(&app, channel.as_ref(), authorization)
+        .await
+        .map_err(map_update_package_error)?;
+    let request = UpdateInstallationRequest {
+        recovery_root,
+        current_application_path,
+        library_path,
+        installed_version: env!("CARGO_PKG_VERSION").to_owned(),
+        prepared_at: current_utc_datetime(),
+    };
+    tauri::async_runtime::spawn_blocking(move || install_verified_update(&package, request))
+        .await
+        .map_err(|_| CommandErrorDto::new("desktop-task-failed"))?
+        .map_err(map_update_installation_error)?;
+    app.exit(0);
+    Ok(())
+}
+
+fn perform_update_authorization(
+    channel: &impl UpdateChannelPort,
+    database_path: PathBuf,
+    checked_at: String,
+    candidate_version: &str,
+) -> Result<UpdateInstallationAuthorization, CommandErrorDto> {
+    let locale = fitfreed_application::load_locale_preference(&SqliteLocalePreferences::new(
+        database_path.clone(),
+    ))
+    .map_err(|_| CommandErrorDto::new("update-state-unavailable"))?
+    .unwrap_or(LocalePreference::EnUs);
+    authorize_update(
+        channel,
+        &SqliteUpdateState::new(database_path),
+        UpdateCheckContext {
+            installed_version: env!("CARGO_PKG_VERSION").to_owned(),
+            library_schema_version: library_schema_version(),
+            locale,
+            checked_at,
+            trigger: UpdateCheckTrigger::Manual,
+        },
+        candidate_version,
+    )
+    .map_err(CommandErrorDto::from)
+}
+
+fn map_exclusive_operation_error(error: ApplicationError) -> CommandErrorDto {
+    match error {
+        ApplicationError::ExclusiveOperationAlreadyActive => {
+            CommandErrorDto::new("desktop-operation-active")
+        }
+        _ => CommandErrorDto::new("desktop-operation-coordination-failed"),
+    }
+}
+
+fn map_update_package_error(error: UpdatePackageError) -> CommandErrorDto {
+    let code = match error {
+        UpdatePackageError::TrustUnavailable => "update-package-trust-unavailable",
+        UpdatePackageError::InvalidAuthorization => "update-package-authorization-invalid",
+        UpdatePackageError::NativeUpdater => "update-native-installer-failed",
+        UpdatePackageError::DownloadUnavailable => "update-download-unavailable",
+        UpdatePackageError::PackageUntrusted | UpdatePackageError::DigestMismatch => {
+            "update-package-untrusted"
+        }
+    };
+    CommandErrorDto::new(code)
+}
+
+fn map_update_installation_error(error: UpdateInstallationError) -> CommandErrorDto {
+    match error {
+        UpdateInstallationError::Package(error) => map_update_package_error(error),
+        UpdateInstallationError::Watchdog(_) => CommandErrorDto::new("update-watchdog-failed"),
+        UpdateInstallationError::Recovery(_) => CommandErrorDto::new("update-recovery-failed"),
+    }
+}
+
+#[tauri::command]
 async fn confirm_update_recovery_startup(
     app: AppHandle,
     pending: State<'_, PendingUpdateRecoveryConfirmation>,
@@ -627,6 +738,7 @@ pub fn run() {
             check_for_updates,
             dismiss_available_update,
             postpone_available_update,
+            install_available_update,
             confirm_update_recovery_startup
         ])
         .run(tauri::generate_context!())

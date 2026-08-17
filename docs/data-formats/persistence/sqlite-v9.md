@@ -31,7 +31,7 @@ A newly authenticated higher sequence atomically replaces the trusted tuple and 
 
 An explicit dismissal writes only `dismissed_version`. An explicit postponement writes only the matching `postponed_version` and `postponed_until`. Manual checks continue to expose an authenticated candidate without deleting either choice; the application policy, not SQLite, decides whether a scheduled notification or install action is available.
 
-Pending installation, preserved application and library paths, watchdog ownership, success confirmation, and emergency restoration are not represented by version 9. Their persistence contract belongs to the later installation-and-recovery slice and will require its own documented migration.
+Pending installation, preserved application and library paths, watchdog ownership, success confirmation, and emergency restoration are not represented by SQLite version 9. They live in the separate filesystem-backed [update recovery version 1 contract](../release/update-recovery-v1.md), outside the portable fitness model and SQLite migration sequence.
 
 ## Verification obligations
 

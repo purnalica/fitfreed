@@ -52,17 +52,22 @@ mod polar_flow;
 mod source_subject;
 pub mod update;
 mod update_channel;
+mod update_installation;
 mod update_package;
 mod update_recovery;
 mod update_state;
 mod update_watchdog;
 
 pub use update_channel::{current_update_target, HttpsUpdateChannel};
+pub use update_installation::{
+    install_verified_update, UpdateInstallationError, UpdateInstallationRequest,
+};
 pub use update_package::{download_verified_update, UpdatePackageError, VerifiedUpdatePackage};
 pub use update_recovery::{
     acquire_update_recovery_candidate_lease, acquire_update_recovery_watchdog_lease,
-    active_update_recovery_phase, confirm_active_update_recovery, observe_update_recovery_process,
-    prepare_update_recovery, record_active_update_recovery_replacement_launch,
+    active_update_recovery_phase, confirm_active_update_recovery, discard_prepared_update_recovery,
+    observe_update_recovery_process, prepare_update_recovery,
+    record_active_update_recovery_replacement_launch, resolve_update_application_path,
     resolve_update_recovery_watchdog_context, restore_active_update_recovery,
     transition_active_update_recovery, update_recovery_process_is_running,
     verify_prepared_update_recovery, ApplicationCopyPort, PlatformApplicationCopier,

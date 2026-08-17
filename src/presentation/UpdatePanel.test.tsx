@@ -60,7 +60,8 @@ describe("UpdatePanel", () => {
     const panel = await screen.findByRole("region", { name: "Application updates" });
     expect(within(panel).getByText("Version 0.2.0 is available.")).toBeVisible();
     expect(within(panel).getByText(/improved import recovery/)).toBeVisible();
-    expect(within(panel).getByText(/installation is not enabled/)).toBeVisible();
+    expect(within(panel).getByText(/preserves the current application and library/)).toBeVisible();
+    expect(within(panel).getByRole("button", { name: "Install and restart" })).toBeEnabled();
     await user.click(within(panel).getByRole("button", { name: "Remind me tomorrow" }));
 
     expect(invoke).toHaveBeenCalledWith("postpone_available_update", {
@@ -69,6 +70,96 @@ describe("UpdatePanel", () => {
     expect(await within(panel).findByText(/reminder is postponed until/)).toBeVisible();
     expect(within(panel).queryByRole("button", { name: "Remind me tomorrow" }))
       .not.toBeInTheDocument();
+    expect(within(panel).queryByRole("button", { name: "Install and restart" }))
+      .not.toBeInTheDocument();
+  });
+
+  it("installs the exact authorized candidate and prevents conflicting actions", async () => {
+    let completeInstallation!: () => void;
+    invoke.mockImplementation((command) => {
+      if (command === "check_for_updates_on_launch") return Promise.resolve(outcome());
+      if (command === "install_available_update") {
+        return new Promise<void>((resolve) => {
+          completeInstallation = resolve;
+        });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    render(
+      <UpdatePanel
+        locale="en-US"
+        messages={catalogs["en-US"].updates}
+        errors={catalogs["en-US"].errors}
+        ready
+        refreshToken={0}
+      />,
+    );
+
+    const panel = await screen.findByRole("region", { name: "Application updates" });
+    await user.click(within(panel).getByRole("button", { name: "Install and restart" }));
+
+    expect(invoke).toHaveBeenCalledWith("install_available_update", {
+      candidateVersion: "0.2.0",
+    });
+    expect(within(panel).getByText("Installing version 0.2.0…")).toBeVisible();
+    expect(within(panel).getByRole("button", { name: "Installing…" })).toBeDisabled();
+    expect(within(panel).getByRole("button", { name: "Check now" })).toBeDisabled();
+    expect(within(panel).getByRole("button", { name: "Remind me tomorrow" })).toBeDisabled();
+    expect(within(panel).getByRole("button", { name: "Ignore this version" })).toBeDisabled();
+
+    await act(async () => completeInstallation());
+    expect(within(panel).getByRole("button", { name: "Installing…" })).toBeDisabled();
+  });
+
+  it("reports an installation failure without losing the trusted release", async () => {
+    invoke.mockImplementation((command) => {
+      if (command === "check_for_updates_on_launch") return Promise.resolve(outcome());
+      if (command === "install_available_update") {
+        return Promise.reject({ code: "update-native-installer-failed", detail: "private path" });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    render(
+      <UpdatePanel
+        locale="en-US"
+        messages={catalogs["en-US"].updates}
+        errors={catalogs["en-US"].errors}
+        ready
+        refreshToken={0}
+      />,
+    );
+
+    const panel = await screen.findByRole("region", { name: "Application updates" });
+    await user.click(within(panel).getByRole("button", { name: "Install and restart" }));
+
+    expect(await within(panel).findByRole("alert")).toHaveTextContent(
+      "could not install the verified update",
+    );
+    expect(within(panel).getByRole("alert")).not.toHaveTextContent("private path");
+    expect(within(panel).getByText("Version 0.2.0 is available.")).toBeVisible();
+    expect(within(panel).getByRole("button", { name: "Install and restart" })).toBeEnabled();
+  });
+
+  it("disables installation while another desktop mutation is active", async () => {
+    invoke.mockResolvedValue(outcome());
+
+    render(
+      <UpdatePanel
+        locale="en-US"
+        messages={catalogs["en-US"].updates}
+        errors={catalogs["en-US"].errors}
+        ready
+        refreshToken={0}
+        installationBlocked
+      />,
+    );
+
+    const panel = await screen.findByRole("region", { name: "Application updates" });
+    expect(within(panel).getByRole("button", { name: "Install and restart" })).toBeDisabled();
   });
 
   it("persists dismissal for the exact candidate and keeps manual checking available", async () => {
@@ -195,6 +286,8 @@ describe("UpdatePanel", () => {
       .toBeVisible();
     expect(await within(panel).findByText(/preserve your library/)).toBeVisible();
     expect(within(panel).queryByRole("button", { name: "Ignore this version" }))
+      .not.toBeInTheDocument();
+    expect(within(panel).queryByRole("button", { name: "Install and restart" }))
       .not.toBeInTheDocument();
     expect(within(panel).queryByRole("button", { name: "Remind me tomorrow" }))
       .not.toBeInTheDocument();

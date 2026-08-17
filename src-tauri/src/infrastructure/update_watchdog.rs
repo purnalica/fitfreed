@@ -18,12 +18,12 @@ use thiserror::Error;
 
 use super::{
     acquire_update_recovery_watchdog_lease, active_update_recovery_phase,
-    observe_update_recovery_process, record_active_update_recovery_replacement_launch,
-    resolve_update_recovery_watchdog_context, restore_active_update_recovery,
-    transition_active_update_recovery, update_recovery_process_is_running,
-    PlatformApplicationCopier, PreparedUpdateRecovery, UpdateRecoveryError,
-    UpdateRecoveryReplacementLaunch, UpdateRecoveryReplacementProcess, UpdateRecoveryRestoration,
-    UpdateRecoveryWatchdogContext,
+    discard_prepared_update_recovery, observe_update_recovery_process,
+    record_active_update_recovery_replacement_launch, resolve_update_recovery_watchdog_context,
+    restore_active_update_recovery, transition_active_update_recovery,
+    update_recovery_process_is_running, PlatformApplicationCopier, PreparedUpdateRecovery,
+    UpdateRecoveryError, UpdateRecoveryReplacementLaunch, UpdateRecoveryReplacementProcess,
+    UpdateRecoveryRestoration, UpdateRecoveryWatchdogContext,
 };
 
 pub const UPDATE_RECOVERY_WATCHDOG_ARGUMENT: &str = "--fitfreed-update-recovery-watchdog";
@@ -72,6 +72,10 @@ pub struct StartedUpdateRecoveryWatchdog {
 impl StartedUpdateRecoveryWatchdog {
     pub fn process_id(&self) -> u32 {
         self.child.id()
+    }
+
+    pub fn stop(mut self) -> Result<(), UpdateRecoveryWatchdogError> {
+        stop_child(&mut self.child).map_err(Into::into)
     }
 }
 
@@ -130,7 +134,7 @@ pub fn run_update_recovery_watchdog(
 ) -> Result<UpdateRecoveryWatchdogOutcome, UpdateRecoveryWatchdogError> {
     let context =
         resolve_update_recovery_watchdog_context(watchdog_executable, installed_application_path)?;
-    let _watchdog_lease = acquire_update_recovery_watchdog_lease(&context)?;
+    let mut watchdog_lease = Some(acquire_update_recovery_watchdog_lease(&context)?);
     active_phase(&context)?;
     writeln!(readiness, "{WATCHDOG_READY_PREFIX}{}", std::process::id())?;
     readiness.flush()?;
@@ -148,18 +152,21 @@ pub fn run_update_recovery_watchdog(
         let event = watchdog_event(phase, replacement.as_mut(), installation_deadline, &context)?;
         match decide_update_recovery_watchdog_action(phase, event) {
             UpdateRecoveryWatchdogAction::Wait => thread::sleep(POLL_INTERVAL),
-            UpdateRecoveryWatchdogAction::LaunchReplacement => match launch_replacement(&context) {
-                Ok(process) => {
-                    replacement = Some(process);
+            UpdateRecoveryWatchdogAction::LaunchReplacement => {
+                stop_original_parent(original_parent)?;
+                match launch_replacement(&context) {
+                    Ok(process) => {
+                        replacement = Some(process);
+                    }
+                    Err(_) => {
+                        transition_active_update_recovery(
+                            context.recovery_root(),
+                            context.recovery_id(),
+                            UpdateRecoveryPhase::Recovering,
+                        )?;
+                    }
                 }
-                Err(_) => {
-                    transition_active_update_recovery(
-                        context.recovery_root(),
-                        context.recovery_id(),
-                        UpdateRecoveryPhase::Recovering,
-                    )?;
-                }
-            },
+            }
             UpdateRecoveryWatchdogAction::BeginRecovery => {
                 if matches!(
                     phase,
@@ -184,6 +191,7 @@ pub fn run_update_recovery_watchdog(
                 }
             }
             UpdateRecoveryWatchdogAction::RestorePrevious => {
+                stop_original_parent(original_parent)?;
                 if let Some(mut process) = replacement.take() {
                     process.stop(&context)?;
                 }
@@ -210,6 +218,8 @@ pub fn run_update_recovery_watchdog(
                 }
             }
             UpdateRecoveryWatchdogAction::StopBeforeReplacement => {
+                drop(watchdog_lease.take());
+                discard_prepared_update_recovery(context.recovery_root(), context.recovery_id())?;
                 return Ok(UpdateRecoveryWatchdogOutcome::StoppedBeforeReplacement);
             }
             UpdateRecoveryWatchdogAction::FinishConfirmed => {

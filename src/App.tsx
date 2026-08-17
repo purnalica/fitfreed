@@ -127,6 +127,7 @@ function App() {
   const [outcome, setOutcome] = useState<ImportOutcome>();
   const [progress, setProgress] = useState<ImportProgress>();
   const [busy, setBusy] = useState(false);
+  const [updateInstalling, setUpdateInstalling] = useState(false);
   const [cancelRequested, setCancelRequested] = useState(false);
   const [errorCode, setErrorCode] = useState<string>();
   const messages = catalogs[locale];
@@ -421,10 +422,20 @@ function App() {
           <h2 id="import-heading">{messages.importHeading}</h2>
           <p className="path">{archivePath ?? messages.noPackage}</p>
         </div>
-        <button type="button" className="secondary" onClick={chooseArchive} disabled={busy}>
+        <button
+          type="button"
+          className="secondary"
+          onClick={chooseArchive}
+          disabled={busy || updateInstalling}
+        >
           {messages.choose}
         </button>
-        <button type="button" className="primary" onClick={runImport} disabled={!archivePath || busy}>
+        <button
+          type="button"
+          className="primary"
+          onClick={runImport}
+          disabled={!archivePath || busy || updateInstalling}
+        >
           {busy ? messages.importing : messages.import}
         </button>
         {busy && progress?.cancellable && (
@@ -442,7 +453,7 @@ function App() {
           <select
             value={locale}
             onChange={(event) => void changeLocale(event.target.value as Locale)}
-            disabled={!localeReady || localeSaving}
+            disabled={!localeReady || localeSaving || updateInstalling}
           >
             <option value="en-US">{messages.localeEnglish}</option>
             <option value="es-ES">{messages.localeSpanish}</option>
@@ -456,6 +467,8 @@ function App() {
         errors={errorMessages}
         ready={localeReady}
         refreshToken={updateLocaleRefreshToken}
+        installationBlocked={busy}
+        onInstallationStateChange={setUpdateInstalling}
       />
 
       {progress && busy && (

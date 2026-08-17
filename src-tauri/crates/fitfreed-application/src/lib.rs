@@ -1145,6 +1145,8 @@ pub trait LocalePreferencePort {
 pub enum ApplicationError {
     #[error("another import is already active")]
     ImportAlreadyActive,
+    #[error("another exclusive desktop operation is already active")]
+    ExclusiveOperationAlreadyActive,
     #[error("import coordination failed: {0}")]
     Coordination(String),
     #[error("{0}")]
@@ -1175,29 +1177,57 @@ pub enum ApplicationError {
 
 #[derive(Clone, Default)]
 pub struct ImportCoordinator {
-    active_cancellation: Arc<Mutex<Option<Arc<AtomicBool>>>>,
+    active_operation: Arc<Mutex<Option<ActiveDesktopOperation>>>,
+}
+
+enum ActiveDesktopOperation {
+    Import(Arc<AtomicBool>),
+    Exclusive(Arc<()>),
+}
+
+pub struct ExclusiveDesktopOperation {
+    active_operation: Arc<Mutex<Option<ActiveDesktopOperation>>>,
+    token: Arc<()>,
 }
 
 impl ImportCoordinator {
     fn begin(&self) -> Result<Arc<AtomicBool>, ApplicationError> {
         let mut active = self
-            .active_cancellation
+            .active_operation
             .lock()
             .map_err(|error| ApplicationError::Coordination(error.to_string()))?;
         if active.is_some() {
             return Err(ApplicationError::ImportAlreadyActive);
         }
         let cancellation = Arc::new(AtomicBool::new(false));
-        *active = Some(Arc::clone(&cancellation));
+        *active = Some(ActiveDesktopOperation::Import(Arc::clone(&cancellation)));
         Ok(cancellation)
+    }
+
+    pub fn reserve_exclusive_operation(
+        &self,
+    ) -> Result<ExclusiveDesktopOperation, ApplicationError> {
+        let mut active = self
+            .active_operation
+            .lock()
+            .map_err(|error| ApplicationError::Coordination(error.to_string()))?;
+        if active.is_some() {
+            return Err(ApplicationError::ExclusiveOperationAlreadyActive);
+        }
+        let token = Arc::new(());
+        *active = Some(ActiveDesktopOperation::Exclusive(Arc::clone(&token)));
+        Ok(ExclusiveDesktopOperation {
+            active_operation: Arc::clone(&self.active_operation),
+            token,
+        })
     }
 
     pub fn cancel(&self) -> Result<bool, ApplicationError> {
         let active = self
-            .active_cancellation
+            .active_operation
             .lock()
             .map_err(|error| ApplicationError::Coordination(error.to_string()))?;
-        if let Some(cancellation) = active.as_ref() {
+        if let Some(ActiveDesktopOperation::Import(cancellation)) = active.as_ref() {
             cancellation.store(true, Ordering::Relaxed);
             Ok(true)
         } else {
@@ -1207,16 +1237,30 @@ impl ImportCoordinator {
 
     fn finish(&self, cancellation: &Arc<AtomicBool>) -> Result<(), ApplicationError> {
         let mut active = self
-            .active_cancellation
+            .active_operation
             .lock()
             .map_err(|error| ApplicationError::Coordination(error.to_string()))?;
-        if active
-            .as_ref()
-            .is_some_and(|current| Arc::ptr_eq(current, cancellation))
-        {
+        if matches!(
+            active.as_ref(),
+            Some(ActiveDesktopOperation::Import(current)) if Arc::ptr_eq(current, cancellation)
+        ) {
             *active = None;
         }
         Ok(())
+    }
+}
+
+impl Drop for ExclusiveDesktopOperation {
+    fn drop(&mut self) {
+        if let Ok(mut active) = self.active_operation.lock() {
+            if matches!(
+                active.as_ref(),
+                Some(ActiveDesktopOperation::Exclusive(current))
+                    if Arc::ptr_eq(current, &self.token)
+            ) {
+                *active = None;
+            }
+        }
     }
 }
 
@@ -3253,6 +3297,37 @@ mod tests {
             &mut progress,
         )
         .expect("subsequent import");
+    }
+
+    #[test]
+    fn serializes_imports_with_an_exclusive_desktop_operation() {
+        let coordinator = ImportCoordinator::default();
+        let cancellation = coordinator.begin().expect("active import");
+
+        assert!(matches!(
+            coordinator.reserve_exclusive_operation(),
+            Err(ApplicationError::ExclusiveOperationAlreadyActive)
+        ));
+        coordinator
+            .finish(&cancellation)
+            .expect("finished active import");
+
+        let exclusive = coordinator
+            .reserve_exclusive_operation()
+            .expect("exclusive operation");
+        assert!(matches!(
+            coordinator.begin(),
+            Err(ApplicationError::ImportAlreadyActive)
+        ));
+        assert!(!coordinator.cancel().expect("no cancellable import"));
+
+        drop(exclusive);
+        let cancellation = coordinator
+            .begin()
+            .expect("import after exclusive operation");
+        coordinator
+            .finish(&cancellation)
+            .expect("finished subsequent import");
     }
 
     #[test]
