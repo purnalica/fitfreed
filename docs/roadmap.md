@@ -2,7 +2,7 @@
 
 ## Status
 
-Milestone 1 is complete. The production-shaped Tauri and SQLite foundation, architecture, localized vertical slice, contributor path, continuous integration, and private macOS release-evidence boundary have passed their acceptance gates. Milestone 2 capability implementation is complete. Its minimum-platform, update-authority, controlled-distribution, and participant-evaluation gates remain open but do not block Milestone 3 engineering; they join the final release-readiness audit after Milestone 3 implementation.
+Milestone 1 is complete. The production-shaped Tauri and SQLite foundation, architecture, localized vertical slice, contributor path, continuous integration, and private macOS release-evidence boundary have passed their acceptance gates. Milestone 2 capability implementation is complete, and Apple Silicon on macOS 15.0 or later is its accepted platform boundary. Update-authority, controlled-distribution, and participant-evaluation gates remain open but do not block Milestone 3 engineering; they join the final release-readiness audit after Milestone 3 implementation.
 
 ## Purpose
 
@@ -98,7 +98,7 @@ The Milestone 0 closure plan is [`plans/milestone-0.md`](plans/milestone-0.md). 
 
 **Outcome:** the evaluated MVP journey is available to macOS users through a trusted, documented, and supportable public distribution path.
 
-**Dependency:** completed MVP capability implementation and its automated evidence. Minimum-platform, update-authority, controlled-distribution, and participant-evaluation work may close during the consolidated Milestone 3 release-readiness audit rather than blocking Milestone 3 engineering.
+**Dependency:** completed MVP capability implementation and its automated evidence. Update-authority, controlled-distribution, and participant-evaluation work may close during the consolidated Milestone 3 release-readiness audit rather than blocking Milestone 3 engineering.
 
 **Included:**
 

@@ -62,6 +62,10 @@ export function validateReleaseMetadata(metadata, expectedVersion) {
   requireValue(metadata.tauri.bundle?.active === true, "Tauri bundling must be active");
   requireValue(metadata.tauri.bundle?.targets === "all", "Tauri bundle targets must include app and DMG");
   requireValue(
+    metadata.tauri.bundle?.macOS?.minimumSystemVersion === "15.0",
+    "minimum supported macOS version must be 15.0",
+  );
+  requireValue(
     !JSON.stringify(metadata.tauri).match(/wdio|webdriver/i),
     "production Tauri configuration contains E2E instrumentation",
   );

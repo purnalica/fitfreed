@@ -17,7 +17,7 @@ Performance acceptance uses environments that the project can execute and reprod
 
 Raw local benchmark output records the exact execution environment needed to assess validity and remains local under the [repository content policy](repository-content-policy.md). Versioned evidence reports the application and source identity, data scenario, number of runs, warm-up policy, percentile calculation, aggregate measurements, result, and only whether the run used hosted macOS or local Apple Silicon. It never publishes a maintainer's or participant's workstation details.
 
-The same latency, throughput, cancellation, and memory budgets apply in every maintained performance environment. A passing result proves that environment, not universal performance across every supported Mac. Apple Silicon and the separately selected minimum macOS version define functional support; installed memory is not a private-alpha performance promise. [ADR 0015](architecture/decisions/0015-qualify-performance-evidence-by-execution-environment.md) owns this evidence model.
+The same latency, throughput, cancellation, and memory budgets apply in every maintained performance environment. A passing result proves that environment, not universal performance across every supported Mac. Apple Silicon on macOS 15.0 or later defines functional support under [ADR 0016](architecture/decisions/0016-support-apple-silicon-on-macos-15-or-later.md); installed memory is not a private-alpha performance promise. [ADR 0015](architecture/decisions/0015-qualify-performance-evidence-by-execution-environment.md) owns the evidence model.
 
 ## Responsiveness budgets
 

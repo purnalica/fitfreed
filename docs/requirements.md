@@ -464,7 +464,7 @@ The canonical source-integration architecture is maintained in [`architecture/so
 ### NFR-023 — Measurable quality targets
 
 - Accessibility will target WCAG 2.2 Level AA, interpreted for the desktop application through WCAG2ICT and supplemented by native macOS keyboard and VoiceOver evaluation.
-- The macOS MVP functional support boundary will be Apple Silicon, sufficient SSD capacity, and the separately accepted minimum macOS version. Performance evidence will be qualified by its reproducible local Apple Silicon or hosted macOS execution environment rather than by an unavailable fixed-memory reference machine.
+- The macOS MVP functional support boundary is Apple Silicon on macOS 15.0 or later with sufficient SSD capacity. Package metadata, executable deployment target, and hosted verification must agree with that boundary. Performance evidence is qualified by its reproducible local Apple Silicon or hosted macOS execution environment rather than by an unavailable fixed-memory reference machine.
 - Cold launch to an interactive application shell will complete within 2.5 seconds at the 95th percentile in every maintained performance environment.
 - Visible interaction feedback will begin within 100 milliseconds. Common navigation and filtering results will complete within 500 milliseconds at the 95th percentile; complex historical visualizations may take up to 2 seconds when their loading state is explicit.
 - Long-running work will not block the interface. Progress will appear within 1 second, cancellation will be acknowledged within 1 second, and processing will reach a consistent cancellation boundary within 5 seconds unless an operating-system operation cannot be interrupted safely.

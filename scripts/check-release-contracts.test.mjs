@@ -16,7 +16,11 @@ function validMetadata() {
       productName: "FitFreed",
       version: "0.1.0",
       identifier: "org.fitfreed.desktop",
-      bundle: { active: true, targets: "all" },
+      bundle: {
+        active: true,
+        targets: "all",
+        macOS: { minimumSystemVersion: "15.0" },
+      },
     },
     recoveryBundleIdentifier: "org.fitfreed.desktop",
     cargoPackages: ["fitfreed", "fitfreed-application", "fitfreed-domain"].map((name) => ({
@@ -67,5 +71,15 @@ test("rejects versions that are not semantic versions", () => {
   assert.throws(
     () => validateReleaseMetadata(metadata),
     /invalid release version: 01\.0\.0/,
+  );
+});
+
+test("rejects a macOS deployment target outside the supported boundary", () => {
+  const metadata = validMetadata();
+  metadata.tauri.bundle.macOS.minimumSystemVersion = "14.0";
+
+  assert.throws(
+    () => validateReleaseMetadata(metadata),
+    /minimum supported macOS version must be 15\.0/,
   );
 });

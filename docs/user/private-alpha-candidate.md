@@ -4,7 +4,7 @@
 
 This is version-matched candidate documentation for FitFreed 0.1.0. It does not announce an available release or authorize use of any development package. The private alpha boundary opens only after the exact candidate passes every release gate, an authorized participant receives it through the controlled distribution process, and the participant is given the matching integrity and support information.
 
-FitFreed 0.1.0 is intended to be an unsigned, non-notarized private macOS evaluation. It must not be uploaded to a public release channel. The minimum supported macOS and Apple Silicon profile remains an acceptance gate. Read the [project disclaimer](../../DISCLAIMER.md) before deciding whether to participate.
+FitFreed 0.1.0 is intended to be an unsigned, non-notarized private macOS evaluation. It must not be uploaded to a public release channel. The supported platform boundary is Apple Silicon on macOS 15.0 or later. Read the [project disclaimer](../../DISCLAIMER.md) before deciding whether to participate.
 
 ## Before installation
 

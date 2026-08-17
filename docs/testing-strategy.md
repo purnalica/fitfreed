@@ -118,7 +118,7 @@ Recurring discovery is split at its real boundary without waiting a day in CI. P
 - Linux and Windows E2E runner distribution when those platforms enter implementation.
 - Periodic review of performance budgets and maintained execution environments.
 - Accessibility conformance tooling and manual audit cadence.
-- Minimum macOS support and the resulting hosted test matrix.
+- Hosted-runner migration before the maintained macOS 15 image is retired.
 - Mutation-testing policy for critical domain rules.
 - Package update evidence for every application baseline declared by the release-bound upgrade matrix when a real predecessor exists. The first 0.1.0 matrix has no application baseline.
 - Direct open, atomic interruption rollback, retry, integrity, and target-version evidence for every library schema declared by that matrix.

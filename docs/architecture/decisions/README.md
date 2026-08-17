@@ -28,5 +28,6 @@ This directory contains durable FitFreed architecture decisions. Read [the docum
 - [ADR 0013: Render MVP visualizations with semantic HTML](0013-render-mvp-visualizations-with-semantic-html.md) — Accepted on 2026-08-17.
 - [ADR 0014: Drive packaged macOS E2E with WebdriverIO](0014-drive-packaged-macos-e2e-with-webdriverio.md) — Accepted on 2026-08-17.
 - [ADR 0015: Qualify performance evidence by execution environment](0015-qualify-performance-evidence-by-execution-environment.md) — Accepted on 2026-08-17.
+- [ADR 0016: Support Apple Silicon on macOS 15 or later](0016-support-apple-silicon-on-macos-15-or-later.md) — Accepted on 2026-08-17.
 
 Confirmed product constraints remain in `docs/requirements.md`. Public distribution trust and any future mandatory-update policy remain open until their evidence and product authority support separate decisions.
