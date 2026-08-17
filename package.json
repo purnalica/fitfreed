@@ -46,7 +46,7 @@
     "preview": "vite preview",
     "prepare:development-release": "node scripts/prepare-development-release.mjs",
     "test": "vitest run",
-    "test:rust": "npm run icons && cargo test --manifest-path src-tauri/Cargo.toml --workspace --all-features",
+    "test:rust": "npm run icons && cargo test --manifest-path src-tauri/Cargo.toml --workspace --all-targets --all-features",
     "test:vendor-updater": "CARGO_TARGET_DIR=src-tauri/target/vendor-updater cargo test --manifest-path src-tauri/vendor/tauri-plugin-updater/Cargo.toml --lib",
     "test:fast": "npm run check:architecture && npm run check:vendored-updater && npm run check:data-contracts && npm run check:release-contracts && npm run check:upgrade-matrix && npm run check:docs && npm run check:i18n && npm run check:ui-contracts && npm run test:scripts && npm test && npm run test:vendor-updater && npm run test:rust",
     "test:scripts": "node --test scripts/*.test.mjs",

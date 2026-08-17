@@ -168,6 +168,8 @@ Hosted evidence: commit `pre-purge` passed the [portable, clean private-release,
 
 ## Increment M2.8 — Private alpha readiness
 
+**Status:** readiness audit active. The privacy-minimized local reference acceptance now requires non-empty daily-activity, training-summary, primary-sleep, and dated nightly-recovery history, complete coverage, exact repeat, and one opaque origin. Its predicate is covered by the normal Rust test command and the supplied private reference passed it without retaining or publishing any path, value, date, count, duration, identifier, coverage distribution, or fingerprint. Candidate documentation and consolidated release evidence remain active; the provisional reference-hardware profile, real private update authority, and controlled participant evaluation remain external gates.
+
 **Outcome:** one reviewable source revision produces the documented private macOS alpha candidate and all evidence needed for a controlled real-data evaluation.
 
 **Work:**
