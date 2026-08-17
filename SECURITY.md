@@ -8,7 +8,7 @@ FitFreed has no released or supported version yet. A supported-version and upgra
 
 Do not disclose a suspected vulnerability in a public issue, discussion, pull request, or social channel.
 
-During the private repository stage, report it through the private issue tracker and mark the title clearly as a security report. Before the repository or any release becomes public, GitHub private vulnerability reporting or an equivalent confidential channel must be enabled and this document must name the exact route.
+Report it confidentially through [GitHub private vulnerability reporting](https://github.com/purnalica/fitfreed/security/advisories/new). This is the canonical reporting route for the public repository.
 
 Include only the minimum information required to reproduce and assess the problem:
 

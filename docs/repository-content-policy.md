@@ -2,7 +2,7 @@
 
 ## Status
 
-Confirmed policy. The initial workspace audit was performed on 2026-08-15. The policy applies even while the GitHub repository is private: private version control is not an approved store for personal exports, credentials, or machine-local state.
+Confirmed policy. The initial workspace audit was performed on 2026-08-15, and the complete publication candidate and reachable GitHub history were reviewed again before public publication on 2026-08-17. Public visibility was approved only with a confidential security-reporting route and default-branch protection. Version control, regardless of visibility, is not an approved store for personal exports, credentials, or machine-local state.
 
 ## Purpose
 
@@ -93,3 +93,11 @@ Before the first commit, every public release, and any initial publication of pr
 ## Public-repository completeness gate
 
 The repository remains private until the reviewed initial history also contains, at minimum, a concise README, the complete `GPL-3.0-or-later` license text, contribution guidance, a code of conduct, a security-reporting policy, a support policy, governance information, and the automation needed to detect secrets and private email disclosure.
+
+## Public repository operation
+
+Public GitHub Actions logs and artifacts are part of the publication boundary. Workflows must not receive real provider exports or other personal data, and diagnostic artifacts must be generated exclusively from synthetic inputs. Raw synthetic failure evidence is retained for no more than seven days unless a shorter retention period is configured.
+
+[GitHub private vulnerability reporting](https://github.com/purnalica/fitfreed/security/advisories/new) is the canonical confidential channel for suspected vulnerabilities. Public issues, discussions, pull requests, and social channels must not be used for security reports.
+
+The default branch must reject force pushes and deletion. Repository safety and continuous-integration workflows use standard GitHub-hosted runners so that public-project automation remains available without consuming private-repository runner minutes. Security scanning and dependency alerts remain enabled whenever GitHub supports them for the repository.
