@@ -32,3 +32,18 @@ The public update key identifier and public key are not secrets. They become act
 After the protected build, `npm run check:public-macos-trust -- <application> <disk-image> <version> <team-id>` verifies Developer ID, hardened runtime, secure timestamp, matching leaf certificate, application identity, Apple Silicon and macOS 15.0 boundaries, stapled tickets, and Gatekeeper acceptance. It emits only the public fingerprint, team identifier, and Boolean trust results needed by the [public release manifest](../data-formats/release/release-manifest-v3.md).
 
 Synthetic tests prove orchestration and failure behavior but cannot claim Apple trust. A public candidate remains blocked until the same inspector succeeds against the exact final Developer ID-signed and Apple-notarized bytes.
+
+## Protected preparation
+
+After preflight and environment approval, `npm run prepare:public-release -- <version> <update-key-id> <issued-at>` repeats preflight inside the protected job, requires Apple Silicon macOS, and accepts exactly one complete Apple notarization credential mode. The Developer ID identity is supplied as a certificate SHA-1 fingerprint rather than a subject name. The updater private key and App Store Connect private key must be absolute regular files outside the repository with no group or other permissions; an inline updater private key is rejected. The updater password remains an environment secret and is never passed as a command-line argument.
+
+Preparation deletes only the generated Tauri bundle directory before building, preventing stale private or test artifacts from satisfying a public check. Tauri creates the signed, notarized application, DMG, updater archive, and updater signature. The objective Apple trust inspector runs before evidence is assembled.
+
+The command creates one ignored atomic directory at `.artifacts/public-releases/<version>/` with two children:
+
+- `release/` contains the final application, DMG, updater archive and detached signature, stable envelope, CycloneDX inventories, upgrade matrix, reviewed release notes, public manifest version 3, and checksums; and
+- `pages/` contains only `updates/stable.json` and `updates/<version>/<updater-archive>` for a future Pages deployment.
+
+The stable envelope is signed over exact payload bytes with the same protected Tauri signing authority used for the updater archive. A seven-day validity window is derived from the explicit issuance time. All digests and checksums are generated from final signed and notarized bytes, then the complete staging tree passes local-path and secret scanning before atomic promotion. Preparation does not upload, attest, tag, release, or deploy anything.
+
+`npm run verify:public-release -- .artifacts/public-releases/<version>` independently reopens the closed manifest, every artifact, the compatibility matrix, checksum set, stable payload and envelope, configured key, updater signature binding, and the exact two-file Pages tree. It compares the Release and Pages copies byte for byte and rejects any missing, additional, renamed, or mutated subject. Preparation invokes this verifier before promotion; publication invokes it again after artifact transport.

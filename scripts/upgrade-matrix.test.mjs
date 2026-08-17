@@ -33,6 +33,7 @@ test("accepts distinct application and library support dimensions", () => {
     releaseVersion: "0.2.0",
     currentLibrarySchemaVersion: 3,
     applicationBaselineCount: 1,
+    applicationVersions: ["0.1.0"],
     librarySchemaVersions: [1, 2, 3],
   });
 });

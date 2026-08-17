@@ -65,6 +65,8 @@ One or more `cyclonedx-sbom` artifacts are also required. The application-bundle
 
 Publication verification must resolve an attestation for every declared or generated subject and compare its subject digest with the final remotely downloaded bytes. A manifest alone is not provenance evidence.
 
+Candidate integrity verification also decodes the exact stable payload, validates both version 2 update schemas, and requires the version, sequence, key identifier, Apple Silicon URL, archive size and digest, detached Tauri signature, compatibility mirror, and target storage schema to agree. The staged Pages tree must contain only the exact stable envelope and its byte-identical versioned updater archive.
+
 ## Privacy and failure behavior
 
 The manifest and its related evidence must not contain personal exports, application libraries, credentials, signing material, private email addresses, certificate subject names, unrelated account identifiers, or machine-local paths. The public team identifier and certificate fingerprint are limited to independent code-signing verification. A failed Apple inspection, update-envelope validation, inventory check, content scan, checksum, attestation, upload, or remote-byte comparison leaves the candidate unpublished and preserves the previous complete stable Pages snapshot.

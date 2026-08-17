@@ -4,6 +4,8 @@ import path from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 
+import { validateReviewedReleaseNotes } from "./release-notes.mjs";
+
 const semanticVersion =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 const revision = /^[0-9a-f]{40,64}$/;
@@ -171,6 +173,20 @@ export function validatePublicReleaseManifest(manifest) {
   if (releaseNotes?.path !== "RELEASE_NOTES.md") {
     errors.push("public release notes must be named RELEASE_NOTES.md");
   }
+  const version = manifest?.release?.version;
+  const expectedPathsByKind = new Map([
+    ["macos-application-bundle", "FitFreed.app"],
+    ["macos-disk-image", `FitFreed_${version}_aarch64.dmg`],
+    ["macos-updater-archive", `FitFreed_${version}_aarch64.app.tar.gz`],
+    ["updater-signature", `FitFreed_${version}_aarch64.app.tar.gz.sig`],
+    ["stable-update-envelope", "stable.json"],
+  ]);
+  for (const [kind, expectedPath] of expectedPathsByKind) {
+    const actualPath = artifactsByKind.get(kind)?.[0]?.path;
+    if (actualPath !== expectedPath) {
+      errors.push(`${kind} must be named ${expectedPath}`);
+    }
+  }
 
   const expectedSubjects = [...(manifest?.artifacts ?? [])]
     .filter(({ kind }) => kind !== "macos-application-bundle")
@@ -188,4 +204,23 @@ export function validatePublicReleaseManifest(manifest) {
 
   if (errors.length > 0) throw new Error(errors.join("\n"));
   return manifest;
+}
+
+export function renderPublicReleaseNotes({
+  version,
+  revision: sourceRevision,
+  storageSchemaVersion,
+}, reviewedNotes) {
+  const validatedNotes = validateReviewedReleaseNotes(reviewedNotes);
+  return `# FitFreed ${version}
+
+Source revision: \`${sourceRevision}\`
+Target: Apple Silicon on macOS 15.0 or later
+Storage schema: ${storageSchemaVersion}
+Compatibility matrix: \`supported-upgrades.json\`
+Update channel: authenticated \`stable-v2\`
+
+This public package is Developer ID signed, Apple notarized, and distributed without warranty under the project disclaimer. Verify \`SHA256SUMS\` and the GitHub artifact attestations before opening the disk image.
+
+${validatedNotes}`;
 }

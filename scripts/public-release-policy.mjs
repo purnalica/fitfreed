@@ -52,8 +52,9 @@ const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPat
 if (isMain) {
   try {
     const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-    const version = process.argv[2];
-    if (!version) throw new Error("usage: node scripts/public-release-policy.mjs <version>");
+    const version = process.argv[2] ?? JSON.parse(
+      readFileSync(path.join(repositoryRoot, "package.json"), "utf8"),
+    ).version;
     const matrix = JSON.parse(readFileSync(path.join(repositoryRoot, "release/upgrade-matrix.json")));
     const policy = loadPublicReleasePolicy(repositoryRoot, version, {
       releaseVersion: matrix.release.version,

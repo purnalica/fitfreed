@@ -153,6 +153,7 @@ export function validateUpgradeMatrix(matrix, repository) {
     releaseVersion: targetVersion,
     currentLibrarySchemaVersion: targetSchema,
     applicationBaselineCount: matrix.supportedApplicationBaselines.length,
+    applicationVersions,
     librarySchemaVersions: matrix.supportedLibrarySchemaVersions,
   };
 }

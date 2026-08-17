@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   createPublicReleaseManifest,
+  renderPublicReleaseNotes,
   validatePublicReleaseManifest,
 } from "./public-release-evidence.mjs";
 
@@ -105,4 +106,57 @@ test("rejects provenance requirements that omit or mutate a regular artifact", (
     () => validatePublicReleaseManifest(manifest),
     /provenance subjects must match every regular manifest artifact/,
   );
+});
+
+test("rejects a public artifact renamed away from its stable contract", () => {
+  const manifest = createManifest();
+  const diskImage = manifest.artifacts.find(({ kind }) => kind === "macos-disk-image");
+  diskImage.path = "FitFreed-latest.dmg";
+  manifest.provenanceRequirements.digestBoundSubjects = manifest.artifacts
+    .filter(({ kind }) => kind !== "macos-application-bundle")
+    .sort((left, right) => left.path.localeCompare(right.path, "en"))
+    .map(({ path, sha256 }) => ({ path, sha256 }));
+
+  assert.throws(
+    () => validatePublicReleaseManifest(manifest),
+    /macos-disk-image must be named FitFreed_0.1.0_aarch64.dmg/,
+  );
+});
+
+test("assembles public notes from generated trust identity and reviewed content", () => {
+  const reviewed = `## Highlights
+
+Synthetic public release.
+
+## Compatibility
+
+Apple Silicon on macOS 15.0 or later.
+
+## Privacy and data
+
+Local-first processing.
+
+## Known limitations
+
+Synthetic test only.
+
+## Installation and recovery
+
+Use the verified disk image.
+
+## Support
+
+Use the public issue tracker.
+`;
+  const notes = renderPublicReleaseNotes({
+    version: "0.1.0",
+    revision: "a".repeat(40),
+    storageSchemaVersion: 9,
+  }, reviewed);
+
+  assert.match(notes, /^# FitFreed 0\.1\.0$/m);
+  assert.match(notes, /Developer ID signed, Apple notarized/);
+  assert.match(notes, /authenticated `stable-v2`/);
+  assert.match(notes, /## Highlights/);
+  assert.doesNotMatch(notes, /private development/);
 });

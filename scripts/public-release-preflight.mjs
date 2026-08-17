@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { inspectReleaseContracts } from "./check-release-contracts.mjs";
 import { loadPublicUpdateConfiguration } from "./public-update-configuration.mjs";
+import { loadPublicReleasePolicy } from "./public-release-policy.mjs";
 import { inspectUpgradeMatrix } from "./upgrade-matrix.mjs";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -64,6 +65,7 @@ export function validatePublicReleaseInvocation({
   releaseMetadata,
   upgradeMatrix,
   publicUpdateConfiguration,
+  publicReleasePolicy,
   eventName,
   repository,
   repositoryVisibility,
@@ -85,6 +87,9 @@ export function validatePublicReleaseInvocation({
   if (!onMain) errors.push("public release revision must be reachable from origin/main");
   if (releaseMetadata?.version !== version) errors.push("release metadata version does not match input");
   if (upgradeMatrix?.releaseVersion !== version) errors.push("upgrade matrix version does not match input");
+  if (publicReleasePolicy?.releaseVersion !== version) {
+    errors.push("public release policy version does not match input");
+  }
   if (publicUpdateConfiguration?.status !== "active") errors.push("public update channel is inactive");
   if (publicUpdateConfiguration?.contract !== "stable-v2") {
     errors.push("public update channel must use stable-v2");
@@ -131,8 +136,11 @@ function revisionIsOnMain(revision) {
   }
 }
 
-function main() {
-  const [version, updateKeyId] = process.argv.slice(2);
+export function inspectPublicReleasePreflight({
+  version,
+  updateKeyId,
+  environment = process.env,
+}) {
   if (!version || !updateKeyId) {
     throw new Error("usage: npm run preflight:public-release -- <version> <update-key-id>");
   }
@@ -140,6 +148,7 @@ function main() {
   const tagRevision = run("git", ["rev-list", "-n", "1", `refs/tags/v${version}`]);
   const releaseMetadata = inspectReleaseContracts(repositoryRoot, version);
   const upgradeMatrix = inspectUpgradeMatrix(repositoryRoot);
+  const publicReleasePolicy = loadPublicReleasePolicy(repositoryRoot, version, upgradeMatrix);
   const publicUpdateConfiguration = loadPublicUpdateConfiguration(repositoryRoot);
   const protectedEnvironment = readGithubEnvironment();
   const result = validatePublicReleaseInvocation({
@@ -148,17 +157,25 @@ function main() {
     releaseMetadata,
     upgradeMatrix,
     publicUpdateConfiguration,
-    eventName: process.env.GITHUB_EVENT_NAME,
-    repository: process.env.GITHUB_REPOSITORY,
-    repositoryVisibility: process.env.GITHUB_REPOSITORY_VISIBILITY,
-    ref: process.env.GITHUB_REF,
+    publicReleasePolicy,
+    eventName: environment.GITHUB_EVENT_NAME,
+    repository: environment.GITHUB_REPOSITORY,
+    repositoryVisibility: environment.GITHUB_REPOSITORY_VISIBILITY,
+    ref: environment.GITHUB_REF,
     headRevision,
     tagRevision,
     clean: run("git", ["status", "--porcelain=v1", "--untracked-files=all"]).length === 0,
     onMain: revisionIsOnMain(headRevision),
     protectedEnvironment,
   });
-  process.stdout.write(`${JSON.stringify({ ...result, ...protectedEnvironment })}\n`);
+  return { ...result, ...protectedEnvironment };
+}
+
+function main() {
+  const [version, updateKeyId] = process.argv.slice(2);
+  process.stdout.write(
+    `${JSON.stringify(inspectPublicReleasePreflight({ version, updateKeyId }))}\n`,
+  );
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);

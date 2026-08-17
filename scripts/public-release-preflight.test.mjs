@@ -32,6 +32,7 @@ function invocation() {
     updateKeyId: "stable-2026-1",
     releaseMetadata: { version: "0.1.0" },
     upgradeMatrix: { releaseVersion: "0.1.0" },
+    publicReleasePolicy: { releaseVersion: "0.1.0" },
     publicUpdateConfiguration: {
       status: "active",
       contract: "stable-v2",

@@ -53,7 +53,7 @@ function run(command, args, options = {}) {
   })?.trim();
 }
 
-function assertCleanRevision() {
+export function assertCleanRevision() {
   const status = run("git", ["status", "--porcelain=v1", "--untracked-files=all"], { capture: true });
   if (status) throw new Error("release preparation requires a clean Git revision");
   return {
@@ -105,7 +105,7 @@ function cargoGenerator() {
   return binary;
 }
 
-function generatedAt(sourceDateEpoch) {
+export function generatedAt(sourceDateEpoch) {
   const value = Number.parseInt(sourceDateEpoch, 10);
   if (!Number.isSafeInteger(value)) throw new Error("Git commit timestamp is invalid");
   return new Date(value * 1000).toISOString();
@@ -117,7 +117,7 @@ function macosArchitecture() {
   throw new Error(`unsupported macOS architecture: ${process.arch}`);
 }
 
-function readStorageSchemaVersion() {
+export function readStorageSchemaVersion() {
   const result = JSON.parse(run("node", ["scripts/check-data-contracts.mjs"], { capture: true }));
   return result.schemaVersion;
 }
@@ -135,7 +135,7 @@ function copyProductionArtifacts(stagingDirectory, version, tauriArchitecture) {
   return dmgName;
 }
 
-function createNpmSbom(stagingDirectory, repositoryPath) {
+export function createNpmSbom(stagingDirectory, repositoryPath) {
   const outputPath = path.join(stagingDirectory, "npm.cdx.json");
   run(
     path.join(repositoryRoot, "node_modules/.bin/cyclonedx-npm"),
@@ -165,7 +165,7 @@ function createNpmSbom(stagingDirectory, repositoryPath) {
   return "npm.cdx.json";
 }
 
-function copyUpgradeMatrix(stagingDirectory) {
+export function copyUpgradeMatrix(stagingDirectory) {
   const filename = "supported-upgrades.json";
   cpSync(
     path.join(repositoryRoot, "release/upgrade-matrix.json"),
@@ -174,7 +174,7 @@ function copyUpgradeMatrix(stagingDirectory) {
   return filename;
 }
 
-function createCargoSboms(stagingDirectory, repositoryPath, sourceDateEpoch) {
+export function createCargoSboms(stagingDirectory, repositoryPath, sourceDateEpoch) {
   const generator = cargoGenerator();
   const prefix = `.fitfreed-release-${process.pid}`;
   const generatedFilename = `${prefix}.json`;
@@ -233,7 +233,7 @@ function createCargoSboms(stagingDirectory, repositoryPath, sourceDateEpoch) {
   }
 }
 
-function generatorVersions() {
+export function generatorVersions() {
   const npmCycloneDx = JSON.parse(
     readFileSync(path.join(repositoryRoot, "node_modules/@cyclonedx/cyclonedx-npm/package.json"), "utf8"),
   ).version;
@@ -243,7 +243,7 @@ function generatorVersions() {
   return { cargoCycloneDx: cargoCycloneDxVersion, npmCycloneDx, tauri };
 }
 
-function scanStagedEvidence(stagingDirectory) {
+export function scanStagedEvidence(stagingDirectory) {
   const gitleaks = run(path.join(repositoryRoot, "scripts/install-gitleaks.sh"), [], {
     capture: true,
   });
@@ -343,9 +343,12 @@ function main() {
   }
 }
 
-try {
-  main();
-} catch (error) {
-  process.stderr.write(`Release preparation failed: ${error.message}\n`);
-  process.exitCode = 1;
+const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isMain) {
+  try {
+    main();
+  } catch (error) {
+    process.stderr.write(`Release preparation failed: ${error.message}\n`);
+    process.exitCode = 1;
+  }
 }
