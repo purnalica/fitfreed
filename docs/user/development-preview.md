@@ -6,6 +6,8 @@ The current application is a development preview, not an alpha release. It prove
 
 ## Run the synthetic journey
 
+The Application updates panel performs a non-blocking launch check after the language preference is ready and always offers an explicit check. The ordinary development build is intentionally unconfigured and makes no update request. Synthetic automated tests exercise authenticated localized release notes, withdrawn-version guidance, incompatible recovery states, trust rejection, exact-version dismissal, and a 24-hour reminder; a packaged update journey remains open. Download and installation are not implemented in this preview; the interface says so and must not be treated as an installation path.
+
 1. Follow the [contributor setup](../development/getting-started.md).
 2. Run `npm run fixture:e2e`.
 3. Start the desktop application with `npm run tauri -- dev`.

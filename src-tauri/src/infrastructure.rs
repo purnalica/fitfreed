@@ -87,6 +87,10 @@ const SLEEP_MAPPING_VERSION: &str = "polar-flow-sleep@1";
 const NIGHTLY_RECOVERY_MAPPING_VERSION: &str = "polar-flow-nightly-recovery@1";
 const NIGHTLY_RECOVERY_SCHEME: &str = "polar-nightly-recharge@1";
 
+pub const fn library_schema_version() -> u32 {
+    SCHEMA_VERSION as u32
+}
+
 #[derive(Debug, Error)]
 pub enum ImportError {
     #[error("archive input/output failure: {0}")]

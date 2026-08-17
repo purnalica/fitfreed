@@ -24,7 +24,7 @@ flowchart LR
 | React presentation | Localized interaction, accessible visualization, and view state | Transport contracts exposed by the Tauri host |
 | React desktop adapter | Native archive selection at the presentation boundary | Tauri dialog API; a compile-time test adapter replaces only this boundary in the instrumented E2E package |
 
-The update capability follows the same direction. Provider-neutral update policy and ports belong to `fitfreed-application`; signed-feed transport, Minisign verification, replay persistence, package verification, application preservation, library backup, and recovery belong to infrastructure; Tauri owns the native updater integration; React receives only typed state and explicit actions. The complete boundary is documented in [update trust architecture](update-trust.md).
+The update capability follows the same direction. Provider-neutral update policy and ports belong to `fitfreed-application`; signed-feed transport, Minisign verification, replay persistence, package verification, application preservation, library backup, and recovery belong to infrastructure; Tauri supplies trusted host context and owns native updater integration; React receives only typed state and explicit actions. The current host exposes separate scheduled-launch and manual-check commands plus exact-candidate dismissal and postponement commands. The complete boundary is documented in [update trust architecture](update-trust.md).
 
 The architecture check reads Cargo metadata and rejects adapter, serialization, persistence, desktop, or provider terms in the domain and application source. Cargo separately prevents either inner crate from importing a dependency absent from its own manifest.
 

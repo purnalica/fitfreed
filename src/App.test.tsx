@@ -266,6 +266,7 @@ const mocks = vi.hoisted(() => ({
   recoveryInvoke: vi.fn(),
   longitudinalInvoke: vi.fn(),
   sleepInvoke: vi.fn(),
+  updateInvoke: vi.fn(),
   open: vi.fn(),
 }));
 
@@ -274,7 +275,9 @@ vi.mock("@tauri-apps/api/core", () => ({
     onmessage?: (message: T) => void;
   },
   invoke: (command: string, arguments_: Record<string, unknown>) =>
-    command.startsWith("query_longitudinal_")
+    command.includes("update")
+      ? mocks.updateInvoke(command, arguments_)
+      : command.startsWith("query_longitudinal_")
       ? mocks.longitudinalInvoke(command, arguments_)
       : command.startsWith("query_recovery_")
       ? mocks.recoveryInvoke(command, arguments_)
@@ -294,6 +297,7 @@ afterEach(() => {
   mocks.recoveryInvoke.mockReset();
   mocks.longitudinalInvoke.mockReset();
   mocks.sleepInvoke.mockReset();
+  mocks.updateInvoke.mockReset();
   mocks.open.mockReset();
 });
 
@@ -301,6 +305,17 @@ beforeEach(() => {
   mocks.recoveryInvoke.mockResolvedValue(emptyRecoveryOverview());
   mocks.longitudinalInvoke.mockResolvedValue(emptyLongitudinalOverview());
   mocks.sleepInvoke.mockResolvedValue(emptySleepOverview());
+  mocks.updateInvoke.mockResolvedValue({
+    installedVersion: "0.1.0",
+    checkedAt: "2026-08-16T12:00:00Z",
+    status: "unconfigured",
+    release: null,
+    installedWithdrawal: null,
+    updateActionAvailable: false,
+    postponedUntil: null,
+    manualRecoveryReason: null,
+    trustFailure: null,
+  });
 });
 
 function emptyLibrary(initialLocale: "en-US" | "es-ES" | null = "en-US") {
@@ -524,9 +539,14 @@ describe("FitFreed import interface", () => {
 
     expect(screen.getByRole("heading", { name: spanish.title })).toBeVisible();
     expect(screen.getByRole("heading", { name: spanish.importHeading })).toBeVisible();
+    expect(screen.getByRole("heading", { name: spanish.updates.heading })).toBeVisible();
+    expect(screen.getByRole("button", { name: spanish.updates.checkNow })).toBeEnabled();
     expect(screen.getByRole("button", { name: spanish.choose })).toBeEnabled();
     expect(screen.getByText(spanish.empty)).toBeVisible();
     await waitFor(() => expect(preferences.locale()).toBe("es-ES"));
+    await waitFor(() => expect(mocks.updateInvoke.mock.calls.filter(
+      ([command]) => command === "check_for_updates_on_launch",
+    )).toHaveLength(2));
 
     view.unmount();
     render(<App />);

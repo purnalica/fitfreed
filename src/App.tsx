@@ -15,6 +15,7 @@ import type { ExplorerNavigationRequest } from "./presentation/explorer-navigati
 import { LongitudinalInsightsPanel } from "./presentation/LongitudinalInsightsPanel";
 import { RecoveryInsightsPanel } from "./presentation/RecoveryInsightsPanel";
 import { SleepInsightsPanel } from "./presentation/SleepInsightsPanel";
+import { UpdatePanel } from "./presentation/UpdatePanel";
 
 type CountMessageKey = keyof (typeof catalogs)["en-US"]["counts"];
 
@@ -108,6 +109,7 @@ function App() {
   const [locale, setLocale] = useState<Locale>(systemLocale);
   const [localeReady, setLocaleReady] = useState(false);
   const [localeSaving, setLocaleSaving] = useState(false);
+  const [updateLocaleRefreshToken, setUpdateLocaleRefreshToken] = useState(0);
   const [archivePath, setArchivePath] = useState<string>();
   const [activityOverview, setActivityOverview] = useState<ActivityOverview>();
   const [rangeFrom, setRangeFrom] = useState("");
@@ -198,6 +200,7 @@ function App() {
     setErrorCode(undefined);
     try {
       await invoke("save_locale", { locale: next });
+      setUpdateLocaleRefreshToken((current) => current + 1);
     } catch (reason) {
       setLocale(previous);
       setErrorCode(commandErrorCode(reason));
@@ -435,6 +438,14 @@ function App() {
           </select>
         </label>
       </section>
+
+      <UpdatePanel
+        locale={locale}
+        messages={messages.updates}
+        errors={errorMessages}
+        ready={localeReady}
+        refreshToken={updateLocaleRefreshToken}
+      />
 
       {progress && busy && (
         <section className="progress-panel" aria-labelledby="progress-heading" aria-live="polite">

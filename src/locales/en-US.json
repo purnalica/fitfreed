@@ -595,6 +595,54 @@
     "rejectedSummary": "Import rejected; no history was changed.",
     "failedSummary": "Import failed; no partial history was published."
   },
+  "updates": {
+    "heading": "Application updates",
+    "intro": "FitFreed validates signed release information before announcing an update.",
+    "checkNow": "Check now",
+    "checking": "Checking…",
+    "releaseNotes": "Release notes",
+    "published": "Published {date}",
+    "previewInstallUnavailable": "Download and installation is not enabled in this development preview.",
+    "dismiss": "Ignore this version",
+    "postpone": "Remind me tomorrow",
+    "statuses": {
+      "unconfigured": "Update checks are not configured in this development build.",
+      "offline": "Update information is temporarily unavailable. Your local library is unaffected.",
+      "upToDate": "FitFreed {installedVersion} is up to date.",
+      "available": "Version {version} is available.",
+      "dismissed": "This version will no longer be announced automatically.",
+      "postponed": "The update reminder is postponed until {until}.",
+      "withdrawnInstalled": "Installed version {installedVersion} has been withdrawn because of a {reason} risk.",
+      "manualRecoveryRequired": "This update needs a manual recovery path: {reason}.",
+      "untrusted": "Update information could not be trusted and was ignored. Your local library is unaffected."
+    },
+    "manualRecoveryReasons": {
+      "installed-version-unsupported": "the installed version is no longer supported by the safe update path",
+      "library-schema-unsupported": "the local library schema is outside the release's supported range",
+      "no-safe-replacement": "the channel does not currently provide a safe replacement"
+    },
+    "withdrawalReasons": {
+      "security": "security",
+      "data-integrity": "data integrity",
+      "stability": "stability",
+      "compatibility": "compatibility"
+    },
+    "trustFailures": {
+      "response-too-large": "The response exceeded the safety limit.",
+      "invalid-envelope": "The signed envelope was invalid.",
+      "unknown-key": "The signing key is not trusted by this build.",
+      "invalid-signature": "The release signature was invalid.",
+      "invalid-payload": "The release metadata was invalid.",
+      "mirror-mismatch": "The mirrored release metadata did not match.",
+      "missing-target": "The release has no package for this platform.",
+      "unsupported-channel": "The release channel version is unsupported.",
+      "invalid-validity-window": "The release validity period was invalid.",
+      "expired": "The signed release information had expired.",
+      "replay": "Older release information was rejected.",
+      "equivocation": "Conflicting release information was rejected.",
+      "downgrade": "A release older than the installed version was rejected."
+    }
+  },
   "errors": {
     "invalid-supported-artifact": "This package contains recognized data that FitFreed cannot validate. Keep the original ZIP and report the compatibility problem; no history was changed.",
     "invalid-source-subject-evidence": "FitFreed cannot establish which provider account this package belongs to. Choose the original complete export ZIP; no history was changed.",
@@ -628,8 +676,12 @@
     "preference-initialization-failed": "FitFreed could not save the initial language. The system language will be used for this session; restart the application to try saving it again.",
     "preference-update-failed": "FitFreed could not save the selected language. The previous language has been restored; restart the application before trying again.",
     "invalid-locale": "That language is not supported by this FitFreed version. Choose English (US) or Spanish (Spain).",
-    "desktop-task-failed": "The desktop import task stopped unexpectedly. Restart FitFreed and retry the original ZIP.",
+    "desktop-task-failed": "A desktop task stopped unexpectedly. Restart FitFreed before retrying the previous action.",
     "import-failed": "The import could not be completed. Retry once; if it fails again, keep the original ZIP and report the problem.",
+    "update-channel-failed": "FitFreed could not complete the update check. Your local library was not changed; try again later.",
+    "update-state-unavailable": "FitFreed could not read or save the local update state. Preserve the application data and restart before retrying.",
+    "update-candidate-changed": "The available update changed before the preference was saved. Check again before choosing an action.",
+    "invalid-update-preference": "The update preference was rejected because its version or time was invalid. Check again before choosing an action.",
     "unexpected": "FitFreed encountered an unexpected local error. Restart the application before retrying."
   }
 }

@@ -2,16 +2,21 @@ pub mod infrastructure;
 mod presentation;
 
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
+use chrono::{SecondsFormat, Utc};
 use fitfreed_application::{
+    check_for_updates as evaluate_updates, dismiss_update as persist_update_dismissal,
+    postpone_update as persist_update_postponement,
     query_longitudinal_comparison as build_longitudinal_comparison,
     query_longitudinal_overview as build_longitudinal_overview, ImportCoordinator, ImportProgress,
-    LocalePreference,
+    LocalePreference, UpdateChannelPort, UpdateCheckContext, UpdateCheckTrigger,
 };
 use infrastructure::{
-    recover_interrupted_imports, SqliteActivityLibrary, SqliteImportOutcomeLibrary,
-    SqliteLocalePreferences, SqliteLongitudinalLibrary, SqlitePolarFlowArchiveImporter,
-    SqliteRecoveryLibrary, SqliteSleepLibrary, SqliteTrainingLibrary,
+    library_schema_version, recover_interrupted_imports, HttpsUpdateChannel, SqliteActivityLibrary,
+    SqliteImportOutcomeLibrary, SqliteLocalePreferences, SqliteLongitudinalLibrary,
+    SqlitePolarFlowArchiveImporter, SqliteRecoveryLibrary, SqliteSleepLibrary,
+    SqliteTrainingLibrary, SqliteUpdateState,
 };
 use presentation::{
     ActivityComparisonDto, ActivityDateRangeDto, ActivityOverviewDto, CommandErrorDto,
@@ -19,7 +24,7 @@ use presentation::{
     LongitudinalDateRangeDto, LongitudinalOverviewDto, RecoveryComparisonDto, RecoveryDateRangeDto,
     RecoveryNightDetailDto, RecoveryOverviewDto, SleepComparisonDto, SleepDateRangeDto,
     SleepOverviewDto, SleepPeriodDetailDto, TrainingComparisonDto, TrainingDateRangeDto,
-    TrainingOverviewDto,
+    TrainingOverviewDto, UpdateCheckOutcomeDto,
 };
 use tauri::{ipc::Channel, AppHandle, Manager, State};
 
@@ -253,6 +258,101 @@ fn save_locale(app: AppHandle, locale: String) -> Result<(), CommandErrorDto> {
         .map_err(CommandErrorDto::from)
 }
 
+#[tauri::command]
+async fn check_for_updates_on_launch(
+    app: AppHandle,
+    channel: State<'_, Arc<HttpsUpdateChannel>>,
+) -> Result<UpdateCheckOutcomeDto, CommandErrorDto> {
+    check_updates(app, channel, UpdateCheckTrigger::Scheduled).await
+}
+
+#[tauri::command]
+async fn check_for_updates(
+    app: AppHandle,
+    channel: State<'_, Arc<HttpsUpdateChannel>>,
+) -> Result<UpdateCheckOutcomeDto, CommandErrorDto> {
+    check_updates(app, channel, UpdateCheckTrigger::Manual).await
+}
+
+async fn check_updates(
+    app: AppHandle,
+    channel: State<'_, Arc<HttpsUpdateChannel>>,
+    trigger: UpdateCheckTrigger,
+) -> Result<UpdateCheckOutcomeDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let channel = Arc::clone(channel.inner());
+    let checked_at = current_utc_datetime();
+    tauri::async_runtime::spawn_blocking(move || {
+        perform_update_check(channel.as_ref(), path, checked_at, trigger)
+    })
+    .await
+    .map_err(|_| CommandErrorDto::new("desktop-task-failed"))?
+}
+
+fn perform_update_check(
+    channel: &impl UpdateChannelPort,
+    database_path: PathBuf,
+    checked_at: String,
+    trigger: UpdateCheckTrigger,
+) -> Result<UpdateCheckOutcomeDto, CommandErrorDto> {
+    let locale = fitfreed_application::load_locale_preference(&SqliteLocalePreferences::new(
+        database_path.clone(),
+    ))
+    .map_err(|_| CommandErrorDto::new("update-state-unavailable"))?
+    .unwrap_or(LocalePreference::EnUs);
+    let state = SqliteUpdateState::new(database_path);
+    evaluate_updates(
+        channel,
+        &state,
+        UpdateCheckContext {
+            installed_version: env!("CARGO_PKG_VERSION").to_owned(),
+            library_schema_version: library_schema_version(),
+            locale,
+            checked_at,
+            trigger,
+        },
+    )
+    .map(UpdateCheckOutcomeDto::from)
+    .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+async fn dismiss_available_update(
+    app: AppHandle,
+    candidate_version: String,
+) -> Result<(), CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    tauri::async_runtime::spawn_blocking(move || {
+        persist_update_dismissal(&SqliteUpdateState::new(path), &candidate_version)
+            .map_err(CommandErrorDto::from)
+    })
+    .await
+    .map_err(|_| CommandErrorDto::new("desktop-task-failed"))?
+}
+
+#[tauri::command]
+async fn postpone_available_update(
+    app: AppHandle,
+    candidate_version: String,
+) -> Result<String, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let requested_at = current_utc_datetime();
+    tauri::async_runtime::spawn_blocking(move || {
+        persist_update_postponement(
+            &SqliteUpdateState::new(path),
+            &candidate_version,
+            &requested_at,
+        )
+        .map_err(CommandErrorDto::from)
+    })
+    .await
+    .map_err(|_| CommandErrorDto::new("desktop-task-failed"))?
+}
+
+fn current_utc_datetime() -> String {
+    Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true)
+}
+
 fn database_path(app: &AppHandle) -> Result<PathBuf, String> {
     #[cfg(feature = "e2e")]
     if let Some(path) = std::env::var_os("FITFREED_E2E_DATABASE_PATH") {
@@ -283,6 +383,7 @@ pub fn run() {
             Ok(())
         })
         .manage(ImportCoordinator::default())
+        .manage(Arc::new(HttpsUpdateChannel::unconfigured()))
         .invoke_handler(tauri::generate_handler![
             import_archive,
             cancel_import,
@@ -300,8 +401,113 @@ pub fn run() {
             query_longitudinal_comparison,
             query_latest_import_outcome,
             load_locale,
-            save_locale
+            save_locale,
+            check_for_updates_on_launch,
+            check_for_updates,
+            dismiss_available_update,
+            postpone_available_update
         ])
         .run(tauri::generate_context!())
         .expect("failed to run FitFreed");
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+
+    use fitfreed_application::{
+        save_locale_preference, AuthenticatedUpdateSnapshot, LocalizedUpdateText,
+        UpdateChannelRead, UpdateRelease,
+    };
+    use tempfile::TempDir;
+
+    use super::*;
+
+    struct FixedUpdateChannel(UpdateChannelRead);
+
+    impl UpdateChannelPort for FixedUpdateChannel {
+        fn fetch_update_snapshot(&self) -> Result<UpdateChannelRead, String> {
+            Ok(self.0.clone())
+        }
+    }
+
+    #[test]
+    fn host_update_check_uses_the_installed_build_schema_and_persisted_locale() {
+        let directory = TempDir::new().expect("temporary directory");
+        let database_path = directory.path().join("library.sqlite");
+        save_locale_preference(
+            &SqliteLocalePreferences::new(database_path.clone()),
+            LocalePreference::EsEs,
+        )
+        .expect("Spanish preference");
+        let channel = FixedUpdateChannel(UpdateChannelRead::Authenticated(Box::new(
+            authenticated_update_snapshot(),
+        )));
+
+        let outcome = perform_update_check(
+            &channel,
+            database_path,
+            "2026-08-16T12:00:00Z".to_owned(),
+            UpdateCheckTrigger::Manual,
+        )
+        .expect("update outcome");
+        let json = serde_json::to_value(outcome).expect("update outcome JSON");
+
+        assert_eq!(json["installedVersion"], env!("CARGO_PKG_VERSION"));
+        assert_eq!(json["status"], "available");
+        assert_eq!(json["release"]["targetLibrarySchemaVersion"], 9);
+        assert_eq!(json["release"]["releaseNotes"], "Notas en español.");
+    }
+
+    #[test]
+    fn host_update_check_defaults_to_english_without_a_saved_preference() {
+        let directory = TempDir::new().expect("temporary directory");
+        let channel = FixedUpdateChannel(UpdateChannelRead::Authenticated(Box::new(
+            authenticated_update_snapshot(),
+        )));
+
+        let outcome = perform_update_check(
+            &channel,
+            directory.path().join("library.sqlite"),
+            "2026-08-16T12:00:00Z".to_owned(),
+            UpdateCheckTrigger::Scheduled,
+        )
+        .expect("update outcome");
+        let json = serde_json::to_value(outcome).expect("update outcome JSON");
+
+        assert_eq!(json["release"]["releaseNotes"], "English notes.");
+        assert_eq!(json["checkedAt"], "2026-08-16T12:00:00Z");
+    }
+
+    #[test]
+    fn host_clock_produces_a_utc_rfc3339_instant() {
+        let timestamp = current_utc_datetime();
+
+        assert!(timestamp.ends_with('Z'));
+        assert!(chrono::DateTime::parse_from_rfc3339(&timestamp).is_ok());
+    }
+
+    fn authenticated_update_snapshot() -> AuthenticatedUpdateSnapshot {
+        AuthenticatedUpdateSnapshot {
+            sequence: 1,
+            payload_sha256: "a".repeat(64),
+            issued_at: "2026-08-16T11:00:00Z".to_owned(),
+            expires_at: "2026-08-17T11:00:00Z".to_owned(),
+            release: UpdateRelease {
+                version: "0.2.0".to_owned(),
+                published_at: "2026-08-16T10:00:00Z".to_owned(),
+                minimum_supported_version: "0.1.0".to_owned(),
+                minimum_readable_library_schema_version: library_schema_version(),
+                maximum_readable_library_schema_version: library_schema_version(),
+                target_library_schema_version: library_schema_version(),
+                release_notes: LocalizedUpdateText {
+                    values: BTreeMap::from([
+                        ("en-US".to_owned(), "English notes.".to_owned()),
+                        ("es-ES".to_owned(), "Notas en español.".to_owned()),
+                    ]),
+                },
+            },
+            withdrawn_versions: Vec::new(),
+        }
+    }
 }

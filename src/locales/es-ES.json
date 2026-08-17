@@ -595,6 +595,54 @@
     "rejectedSummary": "Importación rechazada; no se ha modificado el historial.",
     "failedSummary": "La importación ha fallado; no se ha publicado ningún historial parcial."
   },
+  "updates": {
+    "heading": "Actualizaciones de la aplicación",
+    "intro": "FitFreed valida la información firmada de la versión antes de anunciar una actualización.",
+    "checkNow": "Buscar ahora",
+    "checking": "Buscando…",
+    "releaseNotes": "Notas de la versión",
+    "published": "Publicada el {date}",
+    "previewInstallUnavailable": "La descarga y la instalación no están habilitadas en esta versión preliminar de desarrollo.",
+    "dismiss": "Ignorar esta versión",
+    "postpone": "Recordármelo mañana",
+    "statuses": {
+      "unconfigured": "La búsqueda de actualizaciones no está configurada en esta compilación de desarrollo.",
+      "offline": "La información de actualizaciones no está disponible temporalmente. La biblioteca local no se ha modificado.",
+      "upToDate": "FitFreed {installedVersion} está actualizado.",
+      "available": "La versión {version} está disponible.",
+      "dismissed": "Esta versión dejará de anunciarse automáticamente.",
+      "postponed": "El recordatorio de actualización se ha aplazado hasta {until}.",
+      "withdrawnInstalled": "La versión instalada {installedVersion} se ha retirado debido a un riesgo de {reason}.",
+      "manualRecoveryRequired": "Esta actualización necesita una vía de recuperación manual: {reason}.",
+      "untrusted": "La información de actualización no es de confianza y se ha ignorado. La biblioteca local no se ha modificado."
+    },
+    "manualRecoveryReasons": {
+      "installed-version-unsupported": "la versión instalada ya no es compatible con la vía segura de actualización",
+      "library-schema-unsupported": "el esquema de la biblioteca local está fuera del intervalo admitido por la versión",
+      "no-safe-replacement": "el canal no ofrece actualmente un reemplazo seguro"
+    },
+    "withdrawalReasons": {
+      "security": "seguridad",
+      "data-integrity": "integridad de los datos",
+      "stability": "estabilidad",
+      "compatibility": "compatibilidad"
+    },
+    "trustFailures": {
+      "response-too-large": "La respuesta ha superado el límite de seguridad.",
+      "invalid-envelope": "El sobre firmado no era válido.",
+      "unknown-key": "Esta compilación no confía en la clave de firma.",
+      "invalid-signature": "La firma de la versión no era válida.",
+      "invalid-payload": "Los metadatos de la versión no eran válidos.",
+      "mirror-mismatch": "Los metadatos de la versión replicada no coincidían.",
+      "missing-target": "La versión no contiene un paquete para esta plataforma.",
+      "unsupported-channel": "La versión del canal de actualizaciones no es compatible.",
+      "invalid-validity-window": "El periodo de validez de la versión no era válido.",
+      "expired": "La información firmada de la versión había caducado.",
+      "replay": "Se ha rechazado información de una versión anterior.",
+      "equivocation": "Se ha rechazado información contradictoria de la versión.",
+      "downgrade": "Se ha rechazado una versión anterior a la instalada."
+    }
+  },
   "errors": {
     "invalid-supported-artifact": "El paquete contiene datos reconocidos que FitFreed no puede validar. Conserva el ZIP original e informa del problema de compatibilidad; el historial no se ha modificado.",
     "invalid-source-subject-evidence": "FitFreed no puede determinar a qué cuenta del proveedor pertenece este paquete. Selecciona el ZIP original de la exportación completa; el historial no se ha modificado.",
@@ -628,8 +676,12 @@
     "preference-initialization-failed": "FitFreed no ha podido guardar el idioma inicial. Se utilizará el idioma del sistema durante esta sesión; reinicia la aplicación para intentar guardarlo de nuevo.",
     "preference-update-failed": "FitFreed no ha podido guardar el idioma seleccionado. Se ha restaurado el idioma anterior; reinicia la aplicación antes de volver a intentarlo.",
     "invalid-locale": "Esta versión de FitFreed no admite ese idioma. Selecciona Inglés (Estados Unidos) o Español (España).",
-    "desktop-task-failed": "La tarea de importación de escritorio se ha detenido de forma inesperada. Reinicia FitFreed y vuelve a intentarlo con el ZIP original.",
+    "desktop-task-failed": "Una tarea de escritorio se ha detenido de forma inesperada. Reinicia FitFreed antes de volver a intentar la acción anterior.",
     "import-failed": "La importación no se ha podido completar. Inténtalo una vez más; si vuelve a fallar, conserva el ZIP original e informa del problema.",
+    "update-channel-failed": "FitFreed no ha podido completar la búsqueda de actualizaciones. La biblioteca local no se ha modificado; inténtalo de nuevo más tarde.",
+    "update-state-unavailable": "FitFreed no ha podido leer o guardar el estado local de actualización. Conserva los datos de la aplicación y reiníciala antes de volver a intentarlo.",
+    "update-candidate-changed": "La actualización disponible ha cambiado antes de guardar la preferencia. Vuelve a buscar antes de elegir una acción.",
+    "invalid-update-preference": "La preferencia de actualización se ha rechazado porque la versión o la hora no eran válidas. Vuelve a buscar antes de elegir una acción.",
     "unexpected": "FitFreed ha encontrado un error local inesperado. Reinicia la aplicación antes de volver a intentarlo."
   }
 }

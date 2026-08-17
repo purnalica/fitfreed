@@ -8,13 +8,15 @@ use fitfreed_application::{
     LongitudinalOverview, LongitudinalRecoveryComparison, LongitudinalRecoveryDay,
     LongitudinalSeriesComparison, LongitudinalSeriesOverview, LongitudinalSleepComparison,
     LongitudinalSleepDay, LongitudinalTrainingComparison, LongitudinalTrainingDay,
-    RecoveryComparison, RecoveryDateRange, RecoveryDayAvailability, RecoveryDayInsight,
-    RecoveryNightDetail, RecoveryNightInsight, RecoveryOverview, RecoverySeriesComparison,
-    RecoverySeriesOverview, RecoverySeriesSummary, SleepComparison, SleepDateRange,
-    SleepDayAvailability, SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight,
-    SleepPhaseTotals, SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary,
-    TrainingComparison, TrainingDateRange, TrainingOverview, TrainingSeriesComparison,
-    TrainingSeriesOverview, TrainingSeriesSummary, TrainingSessionInsight,
+    ManualUpdateReason, RecoveryComparison, RecoveryDateRange, RecoveryDayAvailability,
+    RecoveryDayInsight, RecoveryNightDetail, RecoveryNightInsight, RecoveryOverview,
+    RecoverySeriesComparison, RecoverySeriesOverview, RecoverySeriesSummary, SleepComparison,
+    SleepDateRange, SleepDayAvailability, SleepDayInsight, SleepOverview, SleepPeriodDetail,
+    SleepPeriodInsight, SleepPhaseTotals, SleepSeriesComparison, SleepSeriesOverview,
+    SleepSeriesSummary, TrainingComparison, TrainingDateRange, TrainingOverview,
+    TrainingSeriesComparison, TrainingSeriesOverview, TrainingSeriesSummary,
+    TrainingSessionInsight, UpdateCheckOutcome, UpdateCheckStatus, UpdateError,
+    UpdateReleaseSummary, UpdateTrustFailure, UpdateWithdrawalReason, UpdateWithdrawalSummary,
 };
 use fitfreed_domain::{
     ArtifactCoverageSummary, ArtifactFamilyCoverage, ImportOutcome, ImportReport,
@@ -54,6 +56,139 @@ impl From<ApplicationError> for CommandErrorDto {
             ApplicationError::PreferenceUpdate(_) => "preference-update-failed",
         };
         Self::new(code)
+    }
+}
+
+impl From<UpdateError> for CommandErrorDto {
+    fn from(error: UpdateError) -> Self {
+        let code = match error {
+            UpdateError::Channel => "update-channel-failed",
+            UpdateError::State => "update-state-unavailable",
+            UpdateError::CandidateChanged => "update-candidate-changed",
+            UpdateError::InvalidPreference => "invalid-update-preference",
+        };
+        Self::new(code)
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateReleaseSummaryDto {
+    version: String,
+    published_at: String,
+    release_notes: String,
+    minimum_supported_version: String,
+    target_library_schema_version: u32,
+}
+
+impl From<UpdateReleaseSummary> for UpdateReleaseSummaryDto {
+    fn from(release: UpdateReleaseSummary) -> Self {
+        Self {
+            version: release.version,
+            published_at: release.published_at,
+            release_notes: release.release_notes,
+            minimum_supported_version: release.minimum_supported_version,
+            target_library_schema_version: release.target_library_schema_version,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateWithdrawalSummaryDto {
+    version: String,
+    reason: &'static str,
+    guidance: String,
+    replacement_version: Option<String>,
+}
+
+impl From<UpdateWithdrawalSummary> for UpdateWithdrawalSummaryDto {
+    fn from(withdrawal: UpdateWithdrawalSummary) -> Self {
+        Self {
+            version: withdrawal.version,
+            reason: update_withdrawal_reason(withdrawal.reason),
+            guidance: withdrawal.guidance,
+            replacement_version: withdrawal.replacement_version,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateCheckOutcomeDto {
+    installed_version: String,
+    checked_at: String,
+    status: &'static str,
+    release: Option<UpdateReleaseSummaryDto>,
+    installed_withdrawal: Option<UpdateWithdrawalSummaryDto>,
+    update_action_available: bool,
+    postponed_until: Option<String>,
+    manual_recovery_reason: Option<&'static str>,
+    trust_failure: Option<&'static str>,
+}
+
+impl From<UpdateCheckOutcome> for UpdateCheckOutcomeDto {
+    fn from(outcome: UpdateCheckOutcome) -> Self {
+        Self {
+            installed_version: outcome.installed_version,
+            checked_at: outcome.checked_at,
+            status: update_check_status(outcome.status),
+            release: outcome.release.map(Into::into),
+            installed_withdrawal: outcome.installed_withdrawal.map(Into::into),
+            update_action_available: outcome.update_action_available,
+            postponed_until: outcome.postponed_until,
+            manual_recovery_reason: outcome.manual_recovery_reason.map(manual_update_reason),
+            trust_failure: outcome.trust_failure.map(update_trust_failure),
+        }
+    }
+}
+
+fn update_check_status(status: UpdateCheckStatus) -> &'static str {
+    match status {
+        UpdateCheckStatus::Unconfigured => "unconfigured",
+        UpdateCheckStatus::Offline => "offline",
+        UpdateCheckStatus::UpToDate => "up-to-date",
+        UpdateCheckStatus::Available => "available",
+        UpdateCheckStatus::Dismissed => "dismissed",
+        UpdateCheckStatus::Postponed => "postponed",
+        UpdateCheckStatus::WithdrawnInstalled => "withdrawn-installed",
+        UpdateCheckStatus::ManualRecoveryRequired => "manual-recovery-required",
+        UpdateCheckStatus::Untrusted => "untrusted",
+    }
+}
+
+fn manual_update_reason(reason: ManualUpdateReason) -> &'static str {
+    match reason {
+        ManualUpdateReason::InstalledVersionUnsupported => "installed-version-unsupported",
+        ManualUpdateReason::LibrarySchemaUnsupported => "library-schema-unsupported",
+        ManualUpdateReason::NoSafeReplacement => "no-safe-replacement",
+    }
+}
+
+fn update_trust_failure(failure: UpdateTrustFailure) -> &'static str {
+    match failure {
+        UpdateTrustFailure::ResponseTooLarge => "response-too-large",
+        UpdateTrustFailure::InvalidEnvelope => "invalid-envelope",
+        UpdateTrustFailure::UnknownKey => "unknown-key",
+        UpdateTrustFailure::InvalidSignature => "invalid-signature",
+        UpdateTrustFailure::InvalidPayload => "invalid-payload",
+        UpdateTrustFailure::MirrorMismatch => "mirror-mismatch",
+        UpdateTrustFailure::MissingTarget => "missing-target",
+        UpdateTrustFailure::UnsupportedChannel => "unsupported-channel",
+        UpdateTrustFailure::InvalidValidityWindow => "invalid-validity-window",
+        UpdateTrustFailure::Expired => "expired",
+        UpdateTrustFailure::Replay => "replay",
+        UpdateTrustFailure::Equivocation => "equivocation",
+        UpdateTrustFailure::Downgrade => "downgrade",
+    }
+}
+
+fn update_withdrawal_reason(reason: UpdateWithdrawalReason) -> &'static str {
+    match reason {
+        UpdateWithdrawalReason::Security => "security",
+        UpdateWithdrawalReason::DataIntegrity => "data-integrity",
+        UpdateWithdrawalReason::Stability => "stability",
+        UpdateWithdrawalReason::Compatibility => "compatibility",
     }
 }
 
@@ -1619,6 +1754,50 @@ mod tests {
     use fitfreed_domain::{ArtifactClassification, ArtifactFamilyCoverage, ImportOperationState};
 
     use super::*;
+
+    #[test]
+    fn serializes_update_outcomes_and_errors_as_stable_codes() {
+        let outcome = UpdateCheckOutcome {
+            installed_version: "0.1.0".to_owned(),
+            checked_at: "2026-08-16T12:00:00Z".to_owned(),
+            status: UpdateCheckStatus::WithdrawnInstalled,
+            release: Some(UpdateReleaseSummary {
+                version: "0.2.0".to_owned(),
+                published_at: "2026-08-16T10:00:00Z".to_owned(),
+                release_notes: "A safer release.".to_owned(),
+                minimum_supported_version: "0.1.0".to_owned(),
+                target_library_schema_version: 9,
+            }),
+            installed_withdrawal: Some(UpdateWithdrawalSummary {
+                version: "0.1.0".to_owned(),
+                reason: UpdateWithdrawalReason::DataIntegrity,
+                guidance: "Install the replacement before importing.".to_owned(),
+                replacement_version: Some("0.2.0".to_owned()),
+            }),
+            update_action_available: true,
+            postponed_until: None,
+            manual_recovery_reason: None,
+            trust_failure: Some(UpdateTrustFailure::MirrorMismatch),
+        };
+
+        let json = serde_json::to_value(UpdateCheckOutcomeDto::from(outcome))
+            .expect("update outcome JSON");
+
+        assert_eq!(json["status"], "withdrawn-installed");
+        assert_eq!(json["release"]["version"], "0.2.0");
+        assert_eq!(json["installedWithdrawal"]["reason"], "data-integrity");
+        assert_eq!(json["trustFailure"], "mirror-mismatch");
+        for (error, expected) in [
+            (UpdateError::Channel, "update-channel-failed"),
+            (UpdateError::State, "update-state-unavailable"),
+            (UpdateError::CandidateChanged, "update-candidate-changed"),
+            (UpdateError::InvalidPreference, "invalid-update-preference"),
+        ] {
+            let error_json =
+                serde_json::to_value(CommandErrorDto::from(error)).expect("update error JSON");
+            assert_eq!(error_json["code"], expected);
+        }
+    }
 
     fn recovery_summary(value: i128) -> RecoverySeriesSummary {
         RecoverySeriesSummary {
