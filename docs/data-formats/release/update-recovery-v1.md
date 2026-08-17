@@ -28,6 +28,8 @@ update-recovery/
 
 `state.lock` is a private empty regular file. Recovery actors hold its operating-system exclusive lock across active-pointer validation, lifecycle compare-and-transition, and atomic manifest replacement. The file does not convey a phase or authority; `manifest.json` remains the state source of truth. Symbolic links and unsupported platforms fail closed.
 
+The watchdog executable derives `update-recovery`, `attempts`, `recoveryId`, `previous`, and `FitFreed.app` solely by walking its own canonical executable path and requiring every fixed segment. It receives only the independently known installed `FitFreed.app` path, which must equal the canonical manifest destination. The library destination is derived as the recovery root's canonical parent plus `fitfreed.sqlite`; it is not a caller-selected watchdog argument.
+
 The relative backup paths are fixed by the schema. Readers never interpret a manifest-provided relative path containing traversal, another filename, or another application identity.
 
 ## Manifest fields
@@ -95,6 +97,8 @@ recovering → recovered | recovery-failed
 The complete phase vocabulary is `prepared`, `replacement-started`, `replacement-installed`, `launching`, `confirmed`, `recovering`, `recovered`, and `recovery-failed`.
 
 `confirmed`, `recovered`, and `recovery-failed` are terminal. A skipped, reversed, or repeated transition is invalid. Repeating restoration work while the persisted phase remains `recovering` is safe and must converge on `recovered` or `recovery-failed`.
+
+The replacement may write `confirmed` only when it is running from the exact manifest installation path, its compiled semantic version equals `target.version`, its compiled library schema equals `target.librarySchemaVersion`, the active library occupies the fixed path and passes that exact schema plus SQLite integrity checks, the complete preserved pair still verifies, and normal startup recovery has completed. The exclusive state lock makes confirmation and watchdog recovery competing atomic transitions from `launching`; exactly one can win.
 
 ## Compatibility and failure behavior
 

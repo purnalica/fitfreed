@@ -59,10 +59,11 @@ mod update_state;
 pub use update_channel::{current_update_target, HttpsUpdateChannel};
 pub use update_package::{download_verified_update, UpdatePackageError, VerifiedUpdatePackage};
 pub use update_recovery::{
-    active_update_recovery_phase, prepare_update_recovery, restore_active_update_recovery,
+    active_update_recovery_phase, confirm_active_update_recovery, prepare_update_recovery,
+    resolve_update_recovery_watchdog_context, restore_active_update_recovery,
     transition_active_update_recovery, verify_prepared_update_recovery, ApplicationCopyPort,
     PlatformApplicationCopier, PreparedUpdateRecovery, UpdateRecoveryError,
-    UpdateRecoveryPreparation, UpdateRecoveryRestoration,
+    UpdateRecoveryPreparation, UpdateRecoveryRestoration, UpdateRecoveryWatchdogContext,
 };
 pub use update_state::SqliteUpdateState;
 

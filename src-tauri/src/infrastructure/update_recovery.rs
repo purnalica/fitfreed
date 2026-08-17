@@ -114,6 +114,42 @@ pub struct UpdateRecoveryRestoration<'a> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UpdateRecoveryWatchdogContext {
+    recovery_root: PathBuf,
+    recovery_id: String,
+    installed_application_path: PathBuf,
+    library_path: PathBuf,
+    target_version: String,
+    target_library_schema_version: u32,
+}
+
+impl UpdateRecoveryWatchdogContext {
+    pub fn recovery_root(&self) -> &Path {
+        &self.recovery_root
+    }
+
+    pub fn recovery_id(&self) -> &str {
+        &self.recovery_id
+    }
+
+    pub fn installed_application_path(&self) -> &Path {
+        &self.installed_application_path
+    }
+
+    pub fn library_path(&self) -> &Path {
+        &self.library_path
+    }
+
+    pub fn target_version(&self) -> &str {
+        &self.target_version
+    }
+
+    pub fn target_library_schema_version(&self) -> u32 {
+        self.target_library_schema_version
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PreparedUpdateRecovery {
     recovery_id: String,
     attempt_directory: PathBuf,
@@ -455,6 +491,139 @@ pub fn restore_active_update_recovery(
         restoration.recovery_id,
         UpdateRecoveryPhase::Recovered,
     )
+}
+
+pub fn resolve_update_recovery_watchdog_context(
+    watchdog_executable: &Path,
+    expected_installed_application_path: &Path,
+) -> Result<UpdateRecoveryWatchdogContext, UpdateRecoveryError> {
+    let watchdog_bundle = application_bundle_from_executable(watchdog_executable)?;
+    let previous_directory = watchdog_bundle
+        .parent()
+        .filter(|path| path.file_name().and_then(|name| name.to_str()) == Some("previous"))
+        .ok_or(UpdateRecoveryError::InvalidInput)?;
+    let attempt_directory = previous_directory
+        .parent()
+        .ok_or(UpdateRecoveryError::InvalidInput)?;
+    let recovery_id = attempt_directory
+        .file_name()
+        .and_then(|name| name.to_str())
+        .filter(|value| valid_sha256(value))
+        .ok_or(UpdateRecoveryError::InvalidInput)?;
+    let attempts_directory = attempt_directory
+        .parent()
+        .filter(|path| {
+            path.file_name().and_then(|name| name.to_str()) == Some(ATTEMPTS_DIRECTORY_NAME)
+        })
+        .ok_or(UpdateRecoveryError::InvalidInput)?;
+    let recovery_root = attempts_directory
+        .parent()
+        .ok_or(UpdateRecoveryError::InvalidInput)?
+        .to_owned();
+    if read_active_recovery_id(&recovery_root.join(ACTIVE_FILE_NAME))? != recovery_id {
+        return Err(UpdateRecoveryError::InvalidState);
+    }
+    let manifest = read_manifest(&attempt_directory.join(MANIFEST_FILE_NAME))?;
+    validate_manifest(&manifest)?;
+    let library_path = recovery_root
+        .parent()
+        .ok_or(UpdateRecoveryError::InvalidState)?
+        .join("fitfreed.sqlite");
+    let restoration = UpdateRecoveryRestoration {
+        recovery_root: &recovery_root,
+        recovery_id,
+        expected_application_path: expected_installed_application_path,
+        expected_library_path: &library_path,
+    };
+    validate_restoration_destinations(&recovery_root, &manifest, restoration)?;
+    verify_attempt_directory(attempt_directory, recovery_id)?;
+    if watchdog_bundle
+        != attempt_directory
+            .join(&manifest.application_backup.relative_path)
+            .canonicalize()?
+    {
+        return Err(UpdateRecoveryError::InvalidInput);
+    }
+    Ok(UpdateRecoveryWatchdogContext {
+        recovery_root,
+        recovery_id: recovery_id.to_owned(),
+        installed_application_path: PathBuf::from(&manifest.source.application_path),
+        library_path: PathBuf::from(&manifest.source.library_path),
+        target_version: manifest.target.version,
+        target_library_schema_version: manifest.target.library_schema_version,
+    })
+}
+
+pub fn confirm_active_update_recovery(
+    recovery_root: &Path,
+    recovery_id: &str,
+    running_executable: &Path,
+    running_version: &str,
+    library_path: &Path,
+    running_library_schema_version: u32,
+) -> Result<(), UpdateRecoveryError> {
+    if !valid_sha256(recovery_id) {
+        return Err(UpdateRecoveryError::InvalidInput);
+    }
+    let recovery_root = recovery_root.canonicalize()?;
+    if read_active_recovery_id(&recovery_root.join(ACTIVE_FILE_NAME))? != recovery_id {
+        return Err(UpdateRecoveryError::InvalidState);
+    }
+    let attempt_directory = recovery_root
+        .join(ATTEMPTS_DIRECTORY_NAME)
+        .join(recovery_id);
+    let manifest = read_manifest(&attempt_directory.join(MANIFEST_FILE_NAME))?;
+    validate_manifest(&manifest)?;
+    verify_attempt_directory(&attempt_directory, recovery_id)?;
+    let running_application = application_bundle_from_executable(running_executable)?;
+    let library_parent = library_path
+        .parent()
+        .ok_or(UpdateRecoveryError::InvalidInput)?
+        .canonicalize()?;
+    let canonical_library_path = library_parent.join("fitfreed.sqlite");
+    if !library_path.is_absolute()
+        || library_path.file_name().and_then(|name| name.to_str()) != Some("fitfreed.sqlite")
+        || running_application != Path::new(&manifest.source.application_path)
+        || canonical_library_path != Path::new(&manifest.source.library_path)
+        || library_parent
+            != recovery_root
+                .parent()
+                .ok_or(UpdateRecoveryError::InvalidState)?
+                .canonicalize()?
+        || running_version != manifest.target.version
+        || running_library_schema_version != manifest.target.library_schema_version
+    {
+        return Err(UpdateRecoveryError::InvalidInput);
+    }
+    validate_application_bundle(&running_application, &manifest.target.version)?;
+    verify_library_file(
+        &canonical_library_path,
+        i64::from(manifest.target.library_schema_version),
+    )
+    .map_err(|_| UpdateRecoveryError::InvalidLibraryCopy)?;
+    transition_active_update_recovery(&recovery_root, recovery_id, UpdateRecoveryPhase::Confirmed)
+}
+
+fn application_bundle_from_executable(executable: &Path) -> Result<PathBuf, UpdateRecoveryError> {
+    if executable.file_name().and_then(|name| name.to_str()) != Some(EXPECTED_BUNDLE_EXECUTABLE)
+        || !fs::symlink_metadata(executable).is_ok_and(|metadata| metadata.file_type().is_file())
+    {
+        return Err(UpdateRecoveryError::InvalidInput);
+    }
+    let executable = executable.canonicalize()?;
+    let macos_directory = executable
+        .parent()
+        .filter(|path| path.file_name().and_then(|name| name.to_str()) == Some("MacOS"))
+        .ok_or(UpdateRecoveryError::InvalidInput)?;
+    let contents_directory = macos_directory
+        .parent()
+        .filter(|path| path.file_name().and_then(|name| name.to_str()) == Some("Contents"))
+        .ok_or(UpdateRecoveryError::InvalidInput)?;
+    let application_path = contents_directory
+        .parent()
+        .filter(|path| path.file_name().and_then(|name| name.to_str()) == Some("FitFreed.app"))
+        .ok_or(UpdateRecoveryError::InvalidInput)?;
+    Ok(application_path.to_owned())
 }
 
 fn validate_restoration_destinations(
@@ -1628,6 +1797,109 @@ mod tests {
 
         validate_application_bundle(&harness.application_path, "0.1.0")
             .expect("restored macOS application");
+    }
+
+    #[test]
+    fn resolves_watchdog_authority_only_from_the_preserved_executable_layout() {
+        let harness = Harness::new();
+        let authorization = harness.authorization();
+        let prepared = prepare_update_recovery(
+            &SyntheticApplicationCopier,
+            harness.preparation(&authorization),
+        )
+        .expect("prepared update recovery");
+        let watchdog_executable = prepared
+            .attempt_directory()
+            .join("previous/FitFreed.app/Contents/MacOS/fitfreed");
+
+        let context = resolve_update_recovery_watchdog_context(
+            &watchdog_executable,
+            &harness.application_path,
+        )
+        .expect("watchdog context");
+
+        assert_eq!(context.recovery_id(), prepared.recovery_id());
+        assert_eq!(context.target_version(), "0.2.0");
+        assert_eq!(
+            context.target_library_schema_version(),
+            u32::try_from(SCHEMA_VERSION).expect("schema version")
+        );
+        assert_eq!(
+            context.installed_application_path(),
+            harness
+                .application_path
+                .canonicalize()
+                .expect("application path")
+        );
+        assert_eq!(
+            context.library_path(),
+            harness.library_path.canonicalize().expect("library path")
+        );
+        assert!(resolve_update_recovery_watchdog_context(
+            &harness.application_path.join("Contents/MacOS/fitfreed"),
+            &harness.application_path,
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn confirms_only_the_expected_replacement_and_opened_library() {
+        let harness = Harness::new();
+        let authorization = harness.authorization();
+        let prepared = prepare_update_recovery(
+            &SyntheticApplicationCopier,
+            harness.preparation(&authorization),
+        )
+        .expect("prepared update recovery");
+        for phase in [
+            UpdateRecoveryPhase::ReplacementStarted,
+            UpdateRecoveryPhase::ReplacementInstalled,
+            UpdateRecoveryPhase::Launching,
+        ] {
+            transition_active_update_recovery(
+                &harness.recovery_root,
+                prepared.recovery_id(),
+                phase,
+            )
+            .expect("launch transition");
+        }
+        fs::remove_dir_all(&harness.application_path).expect("removed previous application");
+        create_synthetic_application(&harness.application_path, "0.2.0");
+        let running_executable = harness.application_path.join("Contents/MacOS/fitfreed");
+
+        assert!(confirm_active_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            &running_executable,
+            "0.1.9",
+            &harness.library_path,
+            u32::try_from(SCHEMA_VERSION).expect("schema version"),
+        )
+        .is_err());
+        assert_eq!(
+            active_update_recovery_phase(&harness.recovery_root).expect("launching recovery"),
+            Some((
+                prepared.recovery_id().to_owned(),
+                UpdateRecoveryPhase::Launching
+            ))
+        );
+
+        confirm_active_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            &running_executable,
+            "0.2.0",
+            &harness.library_path,
+            u32::try_from(SCHEMA_VERSION).expect("schema version"),
+        )
+        .expect("confirmed replacement");
+        assert_eq!(
+            active_update_recovery_phase(&harness.recovery_root).expect("confirmed recovery"),
+            Some((
+                prepared.recovery_id().to_owned(),
+                UpdateRecoveryPhase::Confirmed
+            ))
+        );
     }
 
     #[test]

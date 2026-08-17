@@ -12,6 +12,49 @@ pub enum UpdateRecoveryPhase {
     RecoveryFailed,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UpdateRecoveryWatchdogEvent {
+    Observe,
+    DeadlineExpired,
+    ReplacementExited,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UpdateRecoveryWatchdogAction {
+    Wait,
+    LaunchReplacement,
+    BeginRecovery,
+    RestorePrevious,
+    StopBeforeReplacement,
+    FinishConfirmed,
+    FinishRecovered,
+    FinishFailed,
+}
+
+pub fn decide_update_recovery_watchdog_action(
+    phase: UpdateRecoveryPhase,
+    event: UpdateRecoveryWatchdogEvent,
+) -> UpdateRecoveryWatchdogAction {
+    use UpdateRecoveryPhase as Phase;
+    use UpdateRecoveryWatchdogAction as Action;
+    use UpdateRecoveryWatchdogEvent as Event;
+
+    match (phase, event) {
+        (Phase::Prepared, Event::DeadlineExpired) => Action::StopBeforeReplacement,
+        (Phase::Prepared, _) => Action::Wait,
+        (Phase::ReplacementStarted, Event::Observe) => Action::Wait,
+        (Phase::ReplacementStarted, _) => Action::BeginRecovery,
+        (Phase::ReplacementInstalled, Event::Observe) => Action::LaunchReplacement,
+        (Phase::ReplacementInstalled, _) => Action::BeginRecovery,
+        (Phase::Launching, Event::Observe) => Action::Wait,
+        (Phase::Launching, _) => Action::BeginRecovery,
+        (Phase::Confirmed, _) => Action::FinishConfirmed,
+        (Phase::Recovering, _) => Action::RestorePrevious,
+        (Phase::Recovered, _) => Action::FinishRecovered,
+        (Phase::RecoveryFailed, _) => Action::FinishFailed,
+    }
+}
+
 #[derive(Debug, Error, PartialEq, Eq)]
 #[error("invalid update recovery transition from {current:?} to {next:?}")]
 pub struct InvalidUpdateRecoveryTransition {
@@ -116,6 +159,60 @@ mod tests {
                     );
                 }
             }
+        }
+    }
+
+    #[test]
+    fn directs_watchdog_process_work_from_persisted_phase_and_observed_event() {
+        use UpdateRecoveryPhase as Phase;
+        use UpdateRecoveryWatchdogAction as Action;
+        use UpdateRecoveryWatchdogEvent as Event;
+
+        let expectations = [
+            (Phase::Prepared, Event::Observe, Action::Wait),
+            (
+                Phase::Prepared,
+                Event::DeadlineExpired,
+                Action::StopBeforeReplacement,
+            ),
+            (Phase::ReplacementStarted, Event::Observe, Action::Wait),
+            (
+                Phase::ReplacementStarted,
+                Event::DeadlineExpired,
+                Action::BeginRecovery,
+            ),
+            (
+                Phase::ReplacementInstalled,
+                Event::Observe,
+                Action::LaunchReplacement,
+            ),
+            (
+                Phase::ReplacementInstalled,
+                Event::DeadlineExpired,
+                Action::BeginRecovery,
+            ),
+            (Phase::Launching, Event::Observe, Action::Wait),
+            (
+                Phase::Launching,
+                Event::ReplacementExited,
+                Action::BeginRecovery,
+            ),
+            (
+                Phase::Launching,
+                Event::DeadlineExpired,
+                Action::BeginRecovery,
+            ),
+            (Phase::Confirmed, Event::Observe, Action::FinishConfirmed),
+            (Phase::Recovering, Event::Observe, Action::RestorePrevious),
+            (Phase::Recovered, Event::Observe, Action::FinishRecovered),
+            (Phase::RecoveryFailed, Event::Observe, Action::FinishFailed),
+        ];
+
+        for (phase, event, expected) in expectations {
+            assert_eq!(
+                decide_update_recovery_watchdog_action(phase, event),
+                expected
+            );
         }
     }
 }

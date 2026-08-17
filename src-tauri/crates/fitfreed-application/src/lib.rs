@@ -38,7 +38,9 @@ pub use update::{
 };
 mod update_recovery;
 pub use update_recovery::{
-    validate_update_recovery_transition, InvalidUpdateRecoveryTransition, UpdateRecoveryPhase,
+    decide_update_recovery_watchdog_action, validate_update_recovery_transition,
+    InvalidUpdateRecoveryTransition, UpdateRecoveryPhase, UpdateRecoveryWatchdogAction,
+    UpdateRecoveryWatchdogEvent,
 };
 
 #[cfg(test)]
