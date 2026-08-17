@@ -55,6 +55,7 @@ mod update_channel;
 mod update_package;
 mod update_recovery;
 mod update_state;
+mod update_watchdog;
 
 pub use update_channel::{current_update_target, HttpsUpdateChannel};
 pub use update_package::{download_verified_update, UpdatePackageError, VerifiedUpdatePackage};
@@ -66,6 +67,11 @@ pub use update_recovery::{
     UpdateRecoveryPreparation, UpdateRecoveryRestoration, UpdateRecoveryWatchdogContext,
 };
 pub use update_state::SqliteUpdateState;
+pub use update_watchdog::{
+    run_update_recovery_watchdog, start_update_recovery_watchdog, StartedUpdateRecoveryWatchdog,
+    UpdateRecoveryWatchdogError, UpdateRecoveryWatchdogOutcome, UPDATE_RECOVERY_CANDIDATE_ARGUMENT,
+    UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
+};
 
 use local_file::PrivateStagingFile;
 use polar_flow::{

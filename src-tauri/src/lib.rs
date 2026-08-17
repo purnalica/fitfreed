@@ -1,8 +1,14 @@
 pub mod infrastructure;
 mod presentation;
 
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::{
+    env,
+    ffi::OsString,
+    io,
+    path::{Path, PathBuf},
+    process,
+    sync::Arc,
+};
 
 use chrono::{SecondsFormat, Utc};
 use fitfreed_application::{
@@ -13,10 +19,11 @@ use fitfreed_application::{
     LocalePreference, UpdateChannelPort, UpdateCheckContext, UpdateCheckTrigger,
 };
 use infrastructure::{
-    library_schema_version, recover_interrupted_imports, HttpsUpdateChannel, SqliteActivityLibrary,
-    SqliteImportOutcomeLibrary, SqliteLocalePreferences, SqliteLongitudinalLibrary,
-    SqlitePolarFlowArchiveImporter, SqliteRecoveryLibrary, SqliteSleepLibrary,
-    SqliteTrainingLibrary, SqliteUpdateState,
+    library_schema_version, recover_interrupted_imports, run_update_recovery_watchdog,
+    HttpsUpdateChannel, SqliteActivityLibrary, SqliteImportOutcomeLibrary, SqliteLocalePreferences,
+    SqliteLongitudinalLibrary, SqlitePolarFlowArchiveImporter, SqliteRecoveryLibrary,
+    SqliteSleepLibrary, SqliteTrainingLibrary, SqliteUpdateState,
+    UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
 };
 use presentation::{
     ActivityComparisonDto, ActivityDateRangeDto, ActivityOverviewDto, CommandErrorDto,
@@ -367,8 +374,47 @@ fn database_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(directory.join("fitfreed.sqlite"))
 }
 
+enum StartupMode {
+    Desktop,
+    UpdateRecoveryWatchdog { installed_application: PathBuf },
+    InvalidPrivateMode,
+}
+
+fn startup_mode(arguments: &[OsString]) -> StartupMode {
+    if arguments.get(1).and_then(|argument| argument.to_str())
+        != Some(UPDATE_RECOVERY_WATCHDOG_ARGUMENT)
+    {
+        return StartupMode::Desktop;
+    }
+    match arguments {
+        [_, _, installed_application] if Path::new(installed_application).is_absolute() => {
+            StartupMode::UpdateRecoveryWatchdog {
+                installed_application: PathBuf::from(installed_application),
+            }
+        }
+        _ => StartupMode::InvalidPrivateMode,
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    match startup_mode(&env::args_os().collect::<Vec<_>>()) {
+        StartupMode::Desktop => {}
+        StartupMode::UpdateRecoveryWatchdog {
+            installed_application,
+        } => {
+            let succeeded = env::current_exe().is_ok_and(|executable| {
+                run_update_recovery_watchdog(
+                    &executable,
+                    &installed_application,
+                    &mut io::stdout().lock(),
+                )
+                .is_ok()
+            });
+            process::exit(if succeeded { 0 } else { 1 });
+        }
+        StartupMode::InvalidPrivateMode => process::exit(1),
+    }
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
@@ -486,6 +532,34 @@ mod tests {
 
         assert!(timestamp.ends_with('Z'));
         assert!(chrono::DateTime::parse_from_rfc3339(&timestamp).is_ok());
+    }
+
+    #[test]
+    fn routes_only_the_exact_private_watchdog_invocation_away_from_desktop_startup() {
+        let executable = OsString::from("fitfreed");
+        let argument = OsString::from(UPDATE_RECOVERY_WATCHDOG_ARGUMENT);
+        let installed = OsString::from("/Applications/FitFreed.app");
+
+        assert!(matches!(
+            startup_mode(std::slice::from_ref(&executable)),
+            StartupMode::Desktop
+        ));
+        assert!(matches!(
+            startup_mode(&[executable.clone(), argument.clone(), installed]),
+            StartupMode::UpdateRecoveryWatchdog { .. }
+        ));
+        assert!(matches!(
+            startup_mode(&[executable.clone(), argument.clone()]),
+            StartupMode::InvalidPrivateMode
+        ));
+        assert!(matches!(
+            startup_mode(&[
+                executable,
+                argument,
+                OsString::from("relative/FitFreed.app")
+            ]),
+            StartupMode::InvalidPrivateMode
+        ));
     }
 
     fn authenticated_update_snapshot() -> AuthenticatedUpdateSnapshot {
