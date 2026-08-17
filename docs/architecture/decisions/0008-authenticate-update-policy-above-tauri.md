@@ -1,6 +1,6 @@
 # ADR 0008: Authenticate update policy above the Tauri updater
 
-- **Status:** Accepted
+- **Status:** Accepted; package-transfer integration refined by [ADR 0009](0009-bound-package-transfer-inside-tauri-updater.md)
 - **Date:** 2026-08-17
 - **Decision owners:** FitFreed maintainers
 - **Related requirements:** [Product requirements](../../requirements.md)

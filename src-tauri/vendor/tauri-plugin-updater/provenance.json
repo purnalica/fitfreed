@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "package": "tauri-plugin-updater",
+  "version": "2.10.1",
+  "archiveSha256": "806d9dac662c2e4594ff03c647a552f2c9bd544e7d0f683ec58f872f952ce4af",
+  "sourceFiles": [
+    { "path": "Cargo.toml", "sha256": "8f8e401f030dab5e5155eeabca65afe6ac1fa0a8f3e1a0114bdd4a66601e948a" },
+    { "path": "LICENSE_APACHE-2.0", "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594" },
+    { "path": "LICENSE_MIT", "sha256": "9dd42ea92cff2ede5cd477cbfcce051b2d0115c0ac7f368ee88cb545055dff1d" },
+    { "path": "README.fitfreed.md", "sha256": "8f9e943d1788a7f0b2799f27eb93d9c6fccc4bdc9bd5fa20a163868d2c9997dc" },
+    { "path": "README.md", "sha256": "f0894e259eb42764ed514164d97df31a79c2b678b44f33a6d31d6ee903f6988f" },
+    { "path": "api-iife.js", "sha256": "5ba8d1a6789f6156da3c513c919188a3b7bfbdabc341e3517c5434a2c4924fed" },
+    { "path": "build.rs", "sha256": "9cfd08999145a5d82ac206a6e244278fc39aeca45d874ec42474b49d504fe192" },
+    { "path": "permissions/default.toml", "sha256": "e309991acc3516882b37ba0941d5a40d1587e29a89077fb6567ff23090d23117" },
+    { "path": "src/commands.rs", "sha256": "a86459f10d3e7c1c82b4517c72d3bbf4ae186b7a1078e5bb25b84350ded76349" },
+    { "path": "src/config.rs", "sha256": "71cfb43fd484a218422cccb89056bfd32236104f2ba5a2d937d337078cf60f45" },
+    { "path": "src/error.rs", "sha256": "e1efdae1e2233e1953f9e6c3067f0580fe91770a9019eb4b1bcbe6195f10f13a" },
+    { "path": "src/lib.rs", "sha256": "dd914a66c150f3bb6f5e8e8bbdc46b1ded00bda351279ecfe1e55491ff429351" },
+    { "path": "src/updater.rs", "sha256": "cc6a15f1b3d89d56683d48f1767c68702347ca98b070a30d1e6b727fbbbaf40f" }
+  ]
+}

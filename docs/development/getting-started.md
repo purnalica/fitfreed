@@ -20,7 +20,7 @@ npm ci
 npm run test:fast
 ```
 
-`npm run doctor` checks the supported Node.js and npm ranges, pinned Rust toolchain, required Rust components, macOS Xcode command-line toolchain, and native packaging and installation-verification commands without requiring installed project dependencies. `npm ci` installs the exact JavaScript graph from `package-lock.json`. The fast lane verifies compile-enforced architecture boundaries, translation catalogs, presentation behavior, and all Rust workspace tests.
+`npm run doctor` checks the supported Node.js and npm ranges, pinned Rust toolchain, required Rust components, macOS Xcode command-line toolchain, and native packaging and installation-verification commands without requiring installed project dependencies. `npm ci` installs the exact JavaScript graph from `package-lock.json`. The fast lane verifies compile-enforced architecture boundaries, the pinned updater source and provenance, translation catalogs, presentation behavior, the updater refinement test, and all FitFreed Rust workspace tests.
 
 ## Primary commands
 
@@ -34,9 +34,11 @@ npm run test:fast
 | Verify release identity and version contracts | `npm run check:release-contracts` |
 | Verify locale catalogs | `npm run check:i18n` |
 | Verify reduced-motion presentation contracts | `npm run check:ui-contracts` |
+| Verify pinned updater source and provenance | `npm run check:vendored-updater` |
 | Run presentation tests | `npm test` |
 | Run project automation tests | `npm run test:scripts` |
 | Run all Rust tests | `npm run test:rust` |
+| Run the pinned updater refinement test | `npm run test:vendor-updater` |
 | Run the fast contributor lane | `npm run test:fast` |
 | Check Rust formatting | `npm run format:check` |
 | Run Clippy with warnings denied | `npm run lint:rust` |
@@ -65,6 +67,7 @@ The unsigned macOS production application and DMG are generated under `src-tauri
 - `src-tauri/crates/fitfreed-application` contains use cases, ports, provider-neutral domain Insights calculations, longitudinal composition, progress, and cancellation coordination and depends only on the domain, calendar arithmetic, and its error helper.
 - `src-tauri/src/infrastructure.rs` contains the Polar Flow ZIP/JSON anti-corruption layer, daily-activity, training-summary, sleep, and nightly-recovery mappings, and SQLite adapter.
 - `src-tauri/src/lib.rs` and `presentation.rs` are the Tauri host and serialized transport boundary.
+- `src-tauri/vendor/tauri-plugin-updater` is the provenance-checked source refinement selected by ADR 0009; its `README.fitfreed.md` is the mandatory review and upgrade guide.
 - `src` contains the React presentation, its desktop archive-picker adapter, and test-only presentation instrumentation; localized copy exists only under `src/locales`.
 
 The detailed dependency map is [`../architecture/module-map.md`](../architecture/module-map.md), and the machine-readable contract index is [`../data-formats/README.md`](../data-formats/README.md). Source-format, canonical-format, mapping, or persistence changes must update their normative documentation and synthetic contract evidence in the same increment.

@@ -10,6 +10,7 @@ edition = "2021"
 
 [workspace]
 members = ["crates/fitfreed-application", "crates/fitfreed-domain"]
+exclude = ["vendor/tauri-plugin-updater"]
 resolver = "2"
 
 [lib]
@@ -29,6 +30,7 @@ fitfreed-domain = { path = "crates/fitfreed-domain" }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
+tauri-plugin-updater = { version = "=2.10.1", path = "vendor/tauri-plugin-updater" }
 tauri-plugin-wdio = { version = "1", optional = true }
 tauri-plugin-wdio-webdriver = { version = "1", optional = true }
 serde = { version = "1", features = ["derive"] }

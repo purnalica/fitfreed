@@ -44,6 +44,9 @@ jobs:
       - name: Verify architecture boundaries
         run: npm run check:architecture
 
+      - name: Verify pinned updater source and provenance
+        run: npm run check:vendored-updater
+
       - name: Verify data contracts
         run: npm run check:data-contracts
 
@@ -73,6 +76,9 @@ jobs:
 
       - name: Test domain and application crates
         run: cargo test --manifest-path src-tauri/Cargo.toml -p fitfreed-domain -p fitfreed-application
+
+      - name: Test the bounded updater refinement
+        run: npm run test:vendor-updater
 
       - name: Audit JavaScript production and build dependencies
         run: npm run audit:dependencies
