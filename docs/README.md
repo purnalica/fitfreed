@@ -16,7 +16,7 @@ FitFreed does not have a supported alpha release yet. The current executable fou
 ### Contributing
 
 - Start with the [contributor setup](development/getting-started.md).
-- Follow the active [Milestone 2 MVP execution plan](plans/milestone-2.md) for increment boundaries and acceptance gates.
+- Follow the active [Milestone 3 public-release execution plan](plans/milestone-3.md) for increment boundaries and acceptance gates.
 - Use [private release preparation](development/release-preparation.md) for clean-revision package and installation evidence.
 - Use the [troubleshooting guide](development/troubleshooting.md) when a documented command fails.
 - Use the [performance benchmark guide](development/performance-benchmarks.md) for synthetic scales, timed boundaries, budgets, and regression evidence.
@@ -31,7 +31,8 @@ FitFreed does not have a supported alpha release yet. The current executable fou
 
 - [Requirements](requirements.md) define confirmed scope and acceptance.
 - [Roadmap](roadmap.md) defines outcome order and milestone boundaries.
-- [Active Milestone 2 plan](plans/milestone-2.md) defines the current implementation sequence and evidence.
+- [Implemented Milestone 2 plan](plans/milestone-2.md) defines the MVP capability sequence and evidence.
+- [Active Milestone 3 plan](plans/milestone-3.md) defines the public macOS distribution sequence and evidence.
 - [Architecture decision records](architecture/decisions/README.md) preserve durable structural decisions.
 - [Release delivery architecture](architecture/release-delivery.md) separates private evidence preparation from publication authority.
 - [Product thesis](product-thesis.md) explains the GDPR-enabled portability and open-source freedom argument without presenting FitFreed as legal advice or a compliance product.

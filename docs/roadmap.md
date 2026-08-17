@@ -10,7 +10,7 @@ This document is the canonical source for product sequencing and milestone bound
 
 Detailed execution plans will be created per milestone and linked from this roadmap. Implementation issues will derive from those plans rather than replacing them.
 
-The Milestone 0 closure plan is [`plans/milestone-0.md`](plans/milestone-0.md). The completed foundation plan is [`plans/milestone-1.md`](plans/milestone-1.md). The active MVP sequence is [`plans/milestone-2.md`](plans/milestone-2.md). Technology evidence follows [`technology-evaluation.md`](technology-evaluation.md).
+The Milestone 0 closure plan is [`plans/milestone-0.md`](plans/milestone-0.md). The completed foundation plan is [`plans/milestone-1.md`](plans/milestone-1.md). The implemented MVP sequence is [`plans/milestone-2.md`](plans/milestone-2.md). The active public-release sequence is [`plans/milestone-3.md`](plans/milestone-3.md). Technology evidence follows [`technology-evaluation.md`](technology-evaluation.md).
 
 ## Planning principles
 

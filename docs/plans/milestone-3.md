@@ -1,0 +1,93 @@
+# Milestone 3 Execution Plan
+
+## Status
+
+Active as of 2026-08-17. Milestone 2 capability implementation is complete. Its remaining update-authority, controlled-distribution, and participant-evaluation gates do not block this engineering plan; they join the final public-release readiness audit.
+
+## Objective
+
+Deliver the evaluated FitFreed MVP to Apple Silicon users on macOS 15.0 or later through a signed, notarized, integrity-verifiable, recoverable, documented, and supportable public distribution path.
+
+The milestone is complete only when one exact public candidate passes every automated and human release gate. Implementing a workflow, generating an unsigned DMG, or obtaining an Apple credential is not independently sufficient evidence.
+
+## Scope protection
+
+This plan adds public macOS distribution to the implemented MVP. It does not add product analytics, new data domains, another provider, Intel support, Linux, Windows, an application server, forced updates, telemetry, a custom domain, or a general release platform.
+
+No unsigned binary may enter a public channel. No production private key, password, certificate export, API key, personal account value, private export, application library, or machine-local path may enter Git, GitHub artifacts, logs, Pages, or Releases.
+
+## Increment M3.1 — Executable platform boundary
+
+**Status:** implementation and local verification complete; hosted verification is running for the preceding documentation revision and will run again for the platform change.
+
+**Outcome:** the public macOS target is stated and enforced consistently as Apple Silicon on macOS 15.0 or later.
+
+**Work:**
+
+1. Record the minimum-version decision and its maintained evidence environment.
+2. Set Tauri's minimum macOS version and verify both bundle metadata and Mach-O deployment target.
+3. Keep public documentation, release contracts, and the hosted Apple Silicon runner aligned.
+
+**Acceptance evidence:** [ADR 0016](../architecture/decisions/0016-support-apple-silicon-on-macos-15-or-later.md), release-contract tests, production bundle inspection, local packaging, and the complete hosted macOS campaign pass for one source revision.
+
+## Increment M3.2 — Public channel and embedded trust
+
+**Status:** active.
+
+**Outcome:** a public production build can discover only an authenticated stable channel through a direct privacy-minimizing HTTPS endpoint, while ordinary builds remain deliberately unconfigured.
+
+**Work:**
+
+1. Define version 2 of the update envelope and payload for the public `stable` channel without rewriting the closed private-alpha version 1 contract.
+2. Make the verifier select an explicit supported contract and reject cross-channel or cross-version metadata.
+3. Add compile-time production endpoint and public-key configuration with all-absent, all-complete, and fail-closed partial states.
+4. Keep E2E-only roots and endpoints isolated from ordinary and public builds.
+5. Generate and validate one atomic Pages staging tree containing the signed stable envelope and exact versioned updater package.
+6. Exercise the complete stable path with synthetic keys and local TLS through the packaged application.
+
+**Acceptance evidence:** schema, exact-byte signature, configuration, transport, package, replay, expiry, withdrawal, privacy, packaged-update, atomic-staging, repository-content, and secret-scan tests pass. No production private key or live channel is created by this increment.
+
+## Increment M3.3 — Signed, notarized release automation
+
+**Status:** pending M3.2.
+
+**Outcome:** one manually authorized, exact-tag-bound workflow can build, sign, notarize, staple, inspect, attest, stage, and publish a public candidate without exposing release credentials to untrusted jobs.
+
+**Work:**
+
+1. Extend release evidence with signed/notarized state, minimum macOS version, updater archive and signature, stable-channel snapshot, and provenance subjects.
+2. Add a secret-free preflight that verifies version, tag, source, upgrade matrix, notes, configuration, action pins, permissions, and protected-environment prerequisites.
+3. Build with Developer ID hardened-runtime signing, submit with supported Apple notarization credentials, staple tickets, and verify `codesign`, `spctl`, and `stapler` results.
+4. Generate checksums and SBOMs from the final signed bytes, attest every public subject, and reject any post-verification mutation.
+5. Prepare GitHub Release and Pages deployment inputs without automatically publishing them in normal CI.
+6. Publish only after explicit release authority and protected-environment approval, then verify remote bytes and the direct stable endpoint before accepting promotion.
+
+**Acceptance evidence:** all preparation and inspection behavior passes with synthetic or ad-hoc test identities where Apple permits it; the exact public candidate additionally requires a real Developer ID, successful Apple notarization, Gatekeeper acceptance, protected-environment execution, provenance, and remote byte verification.
+
+## Increment M3.4 — Public operation, user guidance, and readiness
+
+**Status:** pending M3.3 engineering.
+
+**Outcome:** users and maintainers can install, verify, update, recover, remove, support, and withdraw a public FitFreed release without hidden project knowledge.
+
+**Work:**
+
+1. Publish version-matched `en-US` and `es-ES` application guidance plus English web documentation for download, Gatekeeper-safe installation, first launch, updates, offline behavior, recovery, data retention, removal, and support.
+2. Document key custody, rotation, compromise, release promotion, partial-publication recovery, release withdrawal, Pages rollback, and incident communication.
+3. Verify clean installation, first launch, update, migration, interruption recovery, preserved library behavior, and removal from public-release-shaped artifacts.
+4. Complete keyboard, VoiceOver, scaling, contrast, realistic usability, and update/recovery evaluation for the exact candidate.
+5. Consolidate Milestone 2 deferred gates and Milestone 3 release gates into one readiness ledger with no implicit closure.
+
+**Acceptance evidence:** the exact candidate has complete hosted automation, real Apple trust evidence, public-channel evidence, version-matched user and maintainer documentation, and completed human evaluation. Every applicable readiness row is passed; no open or unauthorized gate is described as complete.
+
+## Human intervention boundary
+
+Engineering continues without an Apple account or production release key. Final acceptance alone requires:
+
+- Apple Developer membership and an authorized Developer ID identity or App Store Connect notarization credential;
+- accountable creation and custody of the production Minisign key;
+- protected GitHub environment and Pages source configuration;
+- explicit authority to create the tag, GitHub Release, Pages deployment, and public binary publication; and
+- completion of the exact-candidate human accessibility and usability evaluation.
+
+Until those gates close, automation must report the public release as inactive rather than substituting an unsigned package, synthetic identity, unprotected secret, or unverified manual claim.

@@ -2,7 +2,7 @@
 
 ## Status
 
-Current private-development preparation under [ADR 0003](decisions/0003-stage-verifiable-macos-development-releases.md), extended by the private-alpha [update trust boundary](update-trust.md) under [ADR 0008](decisions/0008-authenticate-update-policy-above-tauri.md). No real update endpoint, production signing key, uploaded package, or public release channel exists.
+Current private-development preparation under [ADR 0003](decisions/0003-stage-verifiable-macos-development-releases.md), extended by the private-alpha [update trust boundary](update-trust.md) under [ADR 0008](decisions/0008-authenticate-update-policy-above-tauri.md). [ADR 0017](decisions/0017-split-public-download-and-update-hosting.md) selects the public delivery topology, but no real update endpoint deployment, production signing key, uploaded package, or public release exists.
 
 ## Stages and authority boundaries
 
@@ -56,3 +56,5 @@ The ordinary application remains explicitly unconfigured until a private-alpha H
 ## Public distribution extension
 
 The first public macOS release adds Developer ID signing, Apple notarization, Gatekeeper verification, hosted artifact provenance, public key-compromise and channel-operation procedures, clean upgrade and rollback matrices, and public installation and removal documentation. Those controls extend the staged and private-alpha evidence contracts and cannot be inferred from an unsigned private package or from the updater's independent Minisign signature.
+
+GitHub Releases owns the immutable human-facing DMG and evidence record. One GitHub Pages deployment owns only the current stable signed envelope and its exact versioned updater archive at direct, no-redirect project URLs. Public release preparation is manual and exact-tag-bound; secret-free verification precedes a protected environment that alone may access Apple and Minisign private credentials. The ordinary application stays unconfigured, while a public build embeds the stable endpoint and public trust set at compile time. The [Milestone 3 plan](../plans/milestone-3.md) owns the executable sequence and remaining human gates.
