@@ -2,7 +2,7 @@
 
 ## Status
 
-Current Milestone 2 design under [ADR 0008](decisions/0008-authenticate-update-policy-above-tauri.md). The versioned contracts exist; runtime update behavior, recovery automation, and release-shaped evidence are still being implemented. No real update endpoint or production signing key is configured.
+Current Milestone 2 implementation under [ADR 0008](decisions/0008-authenticate-update-policy-above-tauri.md). The versioned contracts, application policy, exact-byte signature verification, and restart-safe replay and notification state exist; HTTPS transport, native installation, recovery automation, presentation, and release-shaped evidence are still being implemented. No real update endpoint or production signing key is configured.
 
 ## Trust boundary
 
@@ -22,6 +22,8 @@ flowchart LR
 ```
 
 Dependency direction remains inward: neither the domain nor application crate imports Tauri, HTTP, Minisign, SQLite, package formats, or operating-system APIs.
+
+[SQLite schema version 9](../data-formats/persistence/sqlite-v9.md) implements the `UpdateStatePort` as one constrained singleton row in the existing local library. The row contains only the accepted sequence, exact payload digest, candidate version, and an optional matching dismissal or postponement. Reads and writes validate SemVer, RFC 3339, digest syntax, safe sequence bounds, completeness, and mutual exclusion. No row is created until state is first accepted or explicitly saved. A version 8 library migrates atomically without reapplying the immutable version 8 migration.
 
 ## Verification pipeline
 

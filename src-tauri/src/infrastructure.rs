@@ -50,6 +50,9 @@ use fitfreed_domain::{
 mod polar_flow;
 mod source_subject;
 pub mod update;
+mod update_state;
+
+pub use update_state::SqliteUpdateState;
 
 use polar_flow::{
     assess_artifact, daily_activity_filename_date, training_session_filename_start,
@@ -63,7 +66,7 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 8;
+const SCHEMA_VERSION: i64 = 9;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
@@ -72,6 +75,7 @@ const SCHEMA_V5: &str = include_str!("../migrations/0005_activity_query_index.sq
 const SCHEMA_V6: &str = include_str!("../migrations/0006_training_session_summary.sql");
 const SCHEMA_V7: &str = include_str!("../migrations/0007_sleep_period.sql");
 const SCHEMA_V8: &str = include_str!("../migrations/0008_nightly_recovery.sql");
+const SCHEMA_V9: &str = include_str!("../migrations/0009_update_state.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
 const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@6";
 const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@1";
@@ -134,6 +138,8 @@ pub enum ImportError {
     InvalidPersistedCount { column: &'static str, value: i64 },
     #[error("invalid persisted locale preference: {0}")]
     InvalidPersistedLocale(String),
+    #[error("invalid persisted update state: {0}")]
+    InvalidPersistedUpdateState(String),
     #[error("invalid library correlation-key length: {0}")]
     InvalidCorrelationKeyLength(usize),
     #[error("source-subject evidence is missing or invalid")]
@@ -1943,7 +1949,10 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         if version < 7 {
             connection.execute_batch(SCHEMA_V7)?;
         }
-        connection.execute_batch(SCHEMA_V8)?;
+        if version < 8 {
+            connection.execute_batch(SCHEMA_V8)?;
+        }
+        connection.execute_batch(SCHEMA_V9)?;
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
         }
@@ -2529,6 +2538,7 @@ fn terminal_code(error: &ImportError) -> &'static str {
         | ImportError::InvalidPersistedArtifactClassification(_)
         | ImportError::InvalidPersistedCount { .. }
         | ImportError::InvalidPersistedLocale(_) => "invalid-persisted-import-outcome",
+        ImportError::InvalidPersistedUpdateState(_) => "invalid-update-state",
         ImportError::InvalidActivityLibrary(_) => "invalid-activity-library",
         ImportError::InvalidTrainingLibrary(_) => "invalid-training-library",
         ImportError::InvalidSleepLibrary(_) => "invalid-sleep-library",
@@ -5288,7 +5298,6 @@ impl LocalePreferencePort for SqliteLocalePreferences {
 #[cfg(test)]
 mod tests {
     use std::io::Write;
-
     use tempfile::TempDir;
     use zip::{write::SimpleFileOptions, ZipWriter};
 
@@ -9294,6 +9303,77 @@ mod tests {
         assert_eq!(
             load_locale_preference(&harness.database()).expect("updated preference query"),
             Some(LocalePreference::EnUs)
+        );
+    }
+
+    #[test]
+    fn upgrades_version_eight_with_update_state_atomically() {
+        let harness = Harness::new();
+        let connection = Connection::open(harness.database()).expect("database");
+        connection
+            .execute_batch("PRAGMA foreign_keys = ON;")
+            .expect("foreign keys");
+        for (schema, label) in [
+            (SCHEMA_V1, "version one"),
+            (SCHEMA_V2, "version two"),
+            (SCHEMA_V3, "version three"),
+            (SCHEMA_V4, "version four"),
+            (SCHEMA_V5, "version five"),
+            (SCHEMA_V6, "version six"),
+            (SCHEMA_V7, "version seven"),
+            (SCHEMA_V8, "version eight"),
+        ] {
+            connection
+                .execute_batch(schema)
+                .unwrap_or_else(|error| panic!("{label} schema: {error}"));
+        }
+        connection
+            .execute(
+                "INSERT INTO locale_preference (id, locale, updated_at_utc)
+                 VALUES (1, 'es-ES', '2026-08-17T12:00:00Z')",
+                [],
+            )
+            .expect("version eight preference");
+        connection
+            .pragma_update(None, "user_version", 8)
+            .expect("version eight marker");
+
+        let error = migrate_schema(&connection, true).expect_err("interrupted version nine");
+        assert!(matches!(error, ImportError::InjectedMigrationInterruption));
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("retained schema version"),
+            8
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_schema
+                     WHERE type = 'table' AND name = 'update_state'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("rolled-back update table"),
+            0
+        );
+
+        migrate_schema(&connection, false).expect("version nine migration");
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("current schema version"),
+            SCHEMA_VERSION
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT locale FROM locale_preference WHERE id = 1",
+                    [],
+                    |row| row.get::<_, String>(0),
+                )
+                .expect("preserved preference"),
+            "es-ES"
         );
     }
 }
