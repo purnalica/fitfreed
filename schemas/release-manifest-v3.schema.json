@@ -1,0 +1,282 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/release-manifest-v3.schema.json",
+  "title": "FitFreed public release manifest version 3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "schemaVersion",
+    "release",
+    "target",
+    "application",
+    "trust",
+    "update",
+    "generators",
+    "artifacts",
+    "provenanceRequirements"
+  ],
+  "properties": {
+    "format": { "const": "org.fitfreed.release-manifest" },
+    "schemaVersion": { "const": 3 },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "revision", "generatedAt", "channel", "signed", "notarized"],
+      "properties": {
+        "version": { "$ref": "#/$defs/semver" },
+        "revision": { "type": "string", "pattern": "^[0-9a-f]{40,64}$" },
+        "generatedAt": { "type": "string", "format": "date-time" },
+        "channel": { "const": "public-stable" },
+        "signed": { "const": true },
+        "notarized": { "const": true }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["os", "architecture", "minimumSystemVersion"],
+      "properties": {
+        "os": { "const": "macos" },
+        "architecture": { "const": "aarch64" },
+        "minimumSystemVersion": { "const": "15.0" }
+      }
+    },
+    "application": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["productName", "bundleIdentifier", "executable", "storageSchemaVersion"],
+      "properties": {
+        "productName": { "const": "FitFreed" },
+        "bundleIdentifier": { "const": "org.fitfreed.desktop" },
+        "executable": { "const": "fitfreed" },
+        "storageSchemaVersion": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "trust": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["codeSigning", "notarization"],
+      "properties": {
+        "codeSigning": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "identity",
+            "certificateSha256",
+            "teamIdentifier",
+            "hardenedRuntime",
+            "secureTimestamp"
+          ],
+          "properties": {
+            "identity": { "const": "developer-id-application" },
+            "certificateSha256": { "$ref": "#/$defs/sha256" },
+            "teamIdentifier": {
+              "type": "string",
+              "pattern": "^[A-Z0-9]{10}$"
+            },
+            "hardenedRuntime": { "const": true },
+            "secureTimestamp": { "const": true }
+          }
+        },
+        "notarization": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["service", "applicationStapled", "diskImageStapled", "gatekeeperAccepted"],
+          "properties": {
+            "service": { "const": "apple-notary-service" },
+            "applicationStapled": { "const": true },
+            "diskImageStapled": { "const": true },
+            "gatekeeperAccepted": { "const": true }
+          }
+        }
+      }
+    },
+    "update": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract", "metadataEndpoint", "keyId", "sequence"],
+      "properties": {
+        "contract": { "const": "stable-v2" },
+        "metadataEndpoint": {
+          "const": "https://purnalica.github.io/fitfreed/updates/stable.json"
+        },
+        "keyId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "generators": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cargoCycloneDx", "npmCycloneDx", "tauri"],
+      "properties": {
+        "cargoCycloneDx": { "type": "string", "minLength": 1 },
+        "npmCycloneDx": { "type": "string", "minLength": 1 },
+        "tauri": { "type": "string", "minLength": 1 }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 8,
+      "allOf": [
+        { "$ref": "#/$defs/containsApplication" },
+        { "$ref": "#/$defs/containsDiskImage" },
+        { "$ref": "#/$defs/containsUpdaterArchive" },
+        { "$ref": "#/$defs/containsUpdaterSignature" },
+        { "$ref": "#/$defs/containsUpdateEnvelope" },
+        { "$ref": "#/$defs/containsSbom" },
+        { "$ref": "#/$defs/containsUpgradeMatrix" },
+        { "$ref": "#/$defs/containsReleaseNotes" }
+      ],
+      "items": { "$ref": "#/$defs/artifact" }
+    },
+    "provenanceRequirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "digestBoundSubjects", "generatedSubjects"],
+      "properties": {
+        "provider": { "const": "github-artifact-attestations" },
+        "digestBoundSubjects": {
+          "type": "array",
+          "minItems": 7,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "sha256"],
+            "properties": {
+              "path": { "$ref": "#/$defs/path" },
+              "sha256": { "$ref": "#/$defs/sha256" }
+            }
+          }
+        },
+        "generatedSubjects": {
+          "const": ["release-manifest.json", "SHA256SUMS"]
+        }
+      }
+    }
+  },
+  "$defs": {
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "path": { "type": "string", "pattern": "^[^/]+$" },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "kind", "size", "sha256"],
+      "properties": {
+        "path": { "$ref": "#/$defs/path" },
+        "kind": {
+          "enum": [
+            "macos-application-bundle",
+            "macos-disk-image",
+            "macos-updater-archive",
+            "updater-signature",
+            "stable-update-envelope",
+            "cyclonedx-sbom",
+            "upgrade-matrix",
+            "release-notes"
+          ]
+        },
+        "size": { "type": "integer", "minimum": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "containsApplication": {
+      "type": "array",
+      "contains": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": { "kind": { "const": "macos-application-bundle" } }
+      },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "containsDiskImage": {
+      "type": "array",
+      "contains": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": { "kind": { "const": "macos-disk-image" } }
+      },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "containsUpdaterArchive": {
+      "type": "array",
+      "contains": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": { "kind": { "const": "macos-updater-archive" } }
+      },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "containsUpdaterSignature": {
+      "type": "array",
+      "contains": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": { "kind": { "const": "updater-signature" } }
+      },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "containsUpdateEnvelope": {
+      "type": "array",
+      "contains": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": { "kind": { "const": "stable-update-envelope" } }
+      },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "containsSbom": {
+      "type": "array",
+      "contains": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": { "kind": { "const": "cyclonedx-sbom" } }
+      },
+      "minContains": 1
+    },
+    "containsUpgradeMatrix": {
+      "type": "array",
+      "contains": {
+        "type": "object",
+        "required": ["path", "kind"],
+        "properties": {
+          "path": { "const": "supported-upgrades.json" },
+          "kind": { "const": "upgrade-matrix" }
+        }
+      },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "containsReleaseNotes": {
+      "type": "array",
+      "contains": {
+        "type": "object",
+        "required": ["path", "kind"],
+        "properties": {
+          "path": { "const": "RELEASE_NOTES.md" },
+          "kind": { "const": "release-notes" }
+        }
+      },
+      "minContains": 1,
+      "maxContains": 1
+    }
+  }
+}
