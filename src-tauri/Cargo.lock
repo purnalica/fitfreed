@@ -1118,6 +1118,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "fitfreed-domain",
+ "semver",
  "thiserror 2.0.20",
 ]
 

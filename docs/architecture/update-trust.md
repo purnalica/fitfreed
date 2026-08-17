@@ -42,12 +42,13 @@ No parsed field from the outer response is shown or acted on before steps 4 thro
 
 ## Application policy states
 
-The application use case reports a finite provider-neutral state rather than transport or cryptographic exceptions:
+The application use case and its transient presentation state expose a finite provider-neutral lifecycle rather than raw transport or cryptographic exceptions:
 
 - `unconfigured`: no production trust root or endpoint exists;
 - `checking`: an explicit or scheduled check is active;
 - `up-to-date`: the authenticated latest release equals the installed release;
 - `available`: a newer compatible non-withdrawn release can be installed;
+- `dismissed`: the current verified non-withdrawn candidate was dismissed locally;
 - `postponed`: the verified candidate remains available after a local user choice;
 - `withdrawn-installed`: the installed version has signed withdrawal guidance;
 - `manual-recovery-required`: the installed version is below the supported in-app baseline, no safe replacement exists, or schemas are incompatible;
@@ -55,7 +56,7 @@ The application use case reports a finite provider-neutral state rather than tra
 - `untrusted`: signature, key, shape, mirror, time, replay, or equivocation checks failed;
 - `installing`, `restart-required`, `recovered`, and `installation-failed`: explicit installation lifecycle outcomes.
 
-Dismissal hides only the current non-withdrawn candidate until its signed sequence or version changes. Postponement stores an absolute local deadline and never changes channel trust. Neither action suppresses withdrawal guidance.
+Dismissal hides only the current non-withdrawn candidate from scheduled notifications until its signed sequence or version changes. The initial postponement action stores a deadline 24 hours after the explicit request and never changes channel trust. A manual check still reports the candidate and permits installation. Neither action suppresses withdrawal guidance. Whether installation is available is an application-use-case result; presentation never reimplements version, withdrawal, or schema policy.
 
 ## Privacy model
 

@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -34,17 +34,33 @@ function requireDependencies(packageName, expected) {
   }
 }
 
-function rejectBoundaryTerms(relativePath, forbiddenTerms) {
-  const source = readFileSync(path.join(repositoryRoot, relativePath), "utf8");
-  for (const term of forbiddenTerms) {
-    if (source.toLowerCase().includes(term.toLowerCase())) {
-      throw new Error(`${relativePath} crosses its dependency boundary with: ${term}`);
+function rustSources(relativeDirectory) {
+  const absoluteDirectory = path.join(repositoryRoot, relativeDirectory);
+  return readdirSync(absoluteDirectory, { withFileTypes: true }).flatMap((entry) => {
+    const relativePath = path.join(relativeDirectory, entry.name);
+    if (entry.isDirectory()) return rustSources(relativePath);
+    return entry.isFile() && entry.name.endsWith(".rs") ? [relativePath] : [];
+  });
+}
+
+function rejectBoundaryTerms(relativeDirectory, forbiddenTerms) {
+  for (const relativePath of rustSources(relativeDirectory)) {
+    const source = readFileSync(path.join(repositoryRoot, relativePath), "utf8");
+    for (const term of forbiddenTerms) {
+      if (source.toLowerCase().includes(term.toLowerCase())) {
+        throw new Error(`${relativePath} crosses its dependency boundary with: ${term}`);
+      }
     }
   }
 }
 
 requireDependencies("fitfreed-domain", []);
-requireDependencies("fitfreed-application", ["chrono", "fitfreed-domain", "thiserror"]);
+requireDependencies("fitfreed-application", [
+  "chrono",
+  "fitfreed-domain",
+  "semver",
+  "thiserror",
+]);
 
 const forbiddenAdapterTerms = [
   "tauri",
@@ -57,14 +73,14 @@ const forbiddenAdapterTerms = [
   "garmin",
 ];
 rejectBoundaryTerms(
-  "src-tauri/crates/fitfreed-domain/src/lib.rs",
+  "src-tauri/crates/fitfreed-domain/src",
   forbiddenAdapterTerms,
 );
 rejectBoundaryTerms(
-  "src-tauri/crates/fitfreed-application/src/lib.rs",
+  "src-tauri/crates/fitfreed-application/src",
   forbiddenAdapterTerms.filter((term) => term !== "chrono"),
 );
 
 process.stdout.write(
-  `${JSON.stringify({ domainDependencies: [], applicationDependencies: ["chrono", "fitfreed-domain", "thiserror"] })}\n`,
+  `${JSON.stringify({ domainDependencies: [], applicationDependencies: ["chrono", "fitfreed-domain", "semver", "thiserror"] })}\n`,
 );

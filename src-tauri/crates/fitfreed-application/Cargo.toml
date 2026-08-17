@@ -9,4 +9,5 @@ repository = "https://github.com/purnalica/fitfreed"
 [dependencies]
 chrono = { version = "0.4", default-features = false, features = ["std"] }
 fitfreed-domain = { path = "../fitfreed-domain" }
+semver = "1"
 thiserror = "2"

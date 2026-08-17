@@ -27,9 +27,21 @@ pub use longitudinal::{
     LongitudinalSleepComparison, LongitudinalSleepDay, LongitudinalTrainingComparison,
     LongitudinalTrainingDay,
 };
+mod update;
+pub use update::{
+    check_for_updates, dismiss_update, postpone_update, AuthenticatedUpdateSnapshot,
+    LocalizedUpdateText, ManualUpdateReason, PersistedUpdateState, PostponedUpdate,
+    TrustedSnapshotRecord, UpdateChannelPort, UpdateChannelRead, UpdateCheckContext,
+    UpdateCheckOutcome, UpdateCheckStatus, UpdateCheckTrigger, UpdateError, UpdateRelease,
+    UpdateReleaseSummary, UpdateStatePort, UpdateTrustFailure, UpdateWithdrawal,
+    UpdateWithdrawalReason, UpdateWithdrawalSummary,
+};
 
 #[cfg(test)]
 mod longitudinal_tests;
+
+#[cfg(test)]
+mod update_tests;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LocalePreference {
