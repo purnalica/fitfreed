@@ -51,7 +51,7 @@ Schema names and structural observations may be documented when required for int
 
 ### Screenshots, recordings, reports, and benchmark baselines
 
-These may be versioned only when generated entirely from synthetic state, stripped of machine metadata and local paths, small enough for normal Git review, and needed by durable documentation or regression verification. Versioned benchmark evidence contains only the source and application identity, scenario, run policy, aggregate measurements, result, and whether the execution environment satisfies the documented reference profile. Exact local host details and raw benchmark runs remain local. Large generated scenarios remain local or in access-controlled continuous-integration artifacts with an explicit retention policy. Provider-controlled metadata exposed by a linked public continuous-integration run is governed by that provider and must not be copied into project documentation.
+These may be versioned only when generated entirely from synthetic state, stripped of machine metadata and local paths, small enough for normal Git review, and needed by durable documentation or regression verification. Versioned benchmark evidence contains only the source and application identity, scenario, run policy, aggregate measurements, result, and whether the run used hosted macOS or local Apple Silicon. Exact local host details and raw benchmark runs remain local. Large generated scenarios remain local or in access-controlled continuous-integration artifacts with an explicit retention policy. Provider-controlled metadata exposed by a linked public continuous-integration run is governed by that provider and must not be copied into project documentation.
 
 ### Generated and third-party content
 

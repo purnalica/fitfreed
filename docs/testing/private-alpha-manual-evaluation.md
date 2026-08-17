@@ -11,7 +11,7 @@ Execution requires an authorized candidate, controlled participant, and the acti
 Record only:
 
 - candidate version, source revision, manifest digest, and evaluated package architecture;
-- whether the environment satisfies the candidate's supported and reference profiles, plus the input and assistive technologies used;
+- whether the environment satisfies the candidate's platform boundary, whether it is hosted macOS or local Apple Silicon, plus the input and assistive technologies used;
 - scenario identifier, pass, fail, blocked, or not-applicable result, and elapsed task time where requested;
 - stable interface text or privacy-safe error code needed to identify a failure;
 - accessibility impact, reproducibility, and the issue reference created after sanitization; and

@@ -117,7 +117,7 @@ Do not include personal values, archive or library names, filesystem paths, prov
 The [private alpha readiness ledger](../testing/private-alpha-readiness.md) is the canonical current status. This guide becomes active only when all of the following are true for the exact candidate:
 
 - the complete local and hosted release gates pass from its clean source revision;
-- the Apple Silicon 8 GB reference profile passes the required import, query, rendering, migration, and recovery budgets;
+- the complete hosted macOS and clean local Apple Silicon campaigns pass the required import, query, rendering, migration, and recovery budgets;
 - the private update endpoint and protected production signing authority are configured and verified;
 - the controlled handoff defines integrity verification and the exact unsigned macOS launch procedure without a global security change;
 - the participant understands that no supported user backup/restore or portable normalized export exists in 0.1.0; and

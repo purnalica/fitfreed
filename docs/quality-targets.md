@@ -6,17 +6,18 @@ Initial measurable product budgets. They apply to the macOS MVP and will be vali
 
 Targets may be tightened through normal planning. Relaxing a target requires measured evidence, an impact analysis, and an explicit product decision.
 
-## Reference profile
+## Performance environments
 
-Until minimum supported hardware is finalized, performance measurements use:
+Performance acceptance uses environments that the project can execute and reproduce:
 
-- Apple Silicon Mac.
-- 8 GB of memory.
+- Hosted macOS automation for every executable or release-input change.
+- A clean local Apple Silicon production campaign for the exact candidate before handoff.
 - SSD storage with enough free capacity for the source archive, temporary processing, database, and recovery state.
-- A clean supported macOS installation without developer tooling on the user journey path.
-- Release-shaped application packages.
+- Release-shaped application packages for user-journey measurements.
 
-Raw local benchmark output records the exact execution environment needed to assess validity and remains local under the [repository content policy](repository-content-policy.md). Versioned evidence reports the application and source identity, data scenario, number of runs, warm-up policy, percentile calculation, aggregate measurements, result, and only whether the environment satisfies this reference profile. It never publishes a maintainer's or participant's workstation details.
+Raw local benchmark output records the exact execution environment needed to assess validity and remains local under the [repository content policy](repository-content-policy.md). Versioned evidence reports the application and source identity, data scenario, number of runs, warm-up policy, percentile calculation, aggregate measurements, result, and only whether the run used hosted macOS or local Apple Silicon. It never publishes a maintainer's or participant's workstation details.
+
+The same latency, throughput, cancellation, and memory budgets apply in every maintained performance environment. A passing result proves that environment, not universal performance across every supported Mac. Apple Silicon and the separately selected minimum macOS version define functional support; installed memory is not a private-alpha performance promise. [ADR 0015](architecture/decisions/0015-qualify-performance-evidence-by-execution-environment.md) owns this evidence model.
 
 ## Responsiveness budgets
 

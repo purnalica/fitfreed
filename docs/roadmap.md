@@ -2,7 +2,7 @@
 
 ## Status
 
-Milestone 1 is complete. The production-shaped Tauri and SQLite foundation, architecture, localized vertical slice, contributor path, continuous integration, and private macOS release-evidence boundary have passed their acceptance gates. Milestone 2 capability implementation is complete and its private-alpha readiness audit is active; reference-profile, production update-authority, controlled-distribution, and participant-evaluation gates remain open.
+Milestone 1 is complete. The production-shaped Tauri and SQLite foundation, architecture, localized vertical slice, contributor path, continuous integration, and private macOS release-evidence boundary have passed their acceptance gates. Milestone 2 capability implementation is complete. Its minimum-platform, update-authority, controlled-distribution, and participant-evaluation gates remain open but do not block Milestone 3 engineering; they join the final release-readiness audit after Milestone 3 implementation.
 
 ## Purpose
 
@@ -90,7 +90,7 @@ The Milestone 0 closure plan is [`plans/milestone-0.md`](plans/milestone-0.md). 
 
 **Scope:** the complete journey in `requirements.md`: Polar Flow ZIP import; coverage reporting; provider-neutral local persistence; activity, training, sleep, and recovery exploration; period filtering and comparison; idempotent and cumulative reimport; actionable recovery; both initial locales; complete specifications for every provider and FitFreed data representation implemented by the MVP; user documentation; a privately distributed unsigned macOS alpha package; and safe notification and cryptographic verification of private alpha updates.
 
-**Exit criteria:** the confirmed MVP journey and applicable acceptance criteria in `requirements.md` pass through real entry points and the budgets in `quality-targets.md` are satisfied.
+**Exit criteria:** the confirmed MVP journey and applicable acceptance criteria in `requirements.md` pass through real entry points and the budgets in `quality-targets.md` are satisfied. Capability implementation may hand off to Milestone 3 before external authority and participant-evaluation gates close; those gates remain visible and must pass before an accepted distribution.
 
 **Distribution boundary:** MVP source and development history may remain visible according to the repository publication plan, but unsigned application binaries will not enter a public release channel.
 
@@ -98,7 +98,7 @@ The Milestone 0 closure plan is [`plans/milestone-0.md`](plans/milestone-0.md). 
 
 **Outcome:** the evaluated MVP journey is available to macOS users through a trusted, documented, and supportable public distribution path.
 
-**Dependency:** MVP evaluation evidence and closure of release-blocking feedback.
+**Dependency:** completed MVP capability implementation and its automated evidence. Minimum-platform, update-authority, controlled-distribution, and participant-evaluation work may close during the consolidated Milestone 3 release-readiness audit rather than blocking Milestone 3 engineering.
 
 **Included:**
 

@@ -116,9 +116,9 @@ Recurring discovery is split at its real boundary without waiting a day in CI. P
 ## Pending decisions
 
 - Linux and Windows E2E runner distribution when those platforms enter implementation.
-- Validation of the provisional performance budgets and final reference-hardware profiles.
+- Periodic review of performance budgets and maintained execution environments.
 - Accessibility conformance tooling and manual audit cadence.
-- Exact performance-benchmark hardware after the minimum macOS support decision.
+- Minimum macOS support and the resulting hosted test matrix.
 - Mutation-testing policy for critical domain rules.
 - Package update evidence for every application baseline declared by the release-bound upgrade matrix when a real predecessor exists. The first 0.1.0 matrix has no application baseline.
 - Direct open, atomic interruption rollback, retry, integrity, and target-version evidence for every library schema declared by that matrix.

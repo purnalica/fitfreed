@@ -90,7 +90,7 @@ Spike repositories and generated data remain under ignored local storage. Only i
 
 ## Measurement and scoring rules
 
-- Use the reference profile and reporting fields in `docs/quality-targets.md`.
+- Use the environment-qualified performance model and reporting fields in `docs/quality-targets.md`.
 - Repeat timings enough to report median and p95 without presenting one run as a performance conclusion.
 - Measure peak process memory and identify work performed outside the primary process.
 - Separate parsing, mapping, reconciliation, persistence, indexing, query, serialization, and rendering time.

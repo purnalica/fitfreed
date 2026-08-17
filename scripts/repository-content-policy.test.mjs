@@ -35,9 +35,9 @@ test("rejects an exact local workstation fingerprint in public documentation", (
   assert.match(result.stderr, /exact workstation details/);
 });
 
-test("accepts a privacy-minimized reference-profile classification", () => {
+test("accepts a privacy-minimized execution-environment classification", () => {
   const result = runRepositoryContentCheck(
-    "The local host does not satisfy the provisional 8 GB Apple Silicon reference profile.\n",
+    "The clean candidate campaign passed on local Apple Silicon.\n",
   );
 
   assert.equal(result.status, 0, result.stderr);

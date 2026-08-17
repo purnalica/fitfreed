@@ -464,16 +464,16 @@ The canonical source-integration architecture is maintained in [`architecture/so
 ### NFR-023 — Measurable quality targets
 
 - Accessibility will target WCAG 2.2 Level AA, interpreted for the desktop application through WCAG2ICT and supplemented by native macOS keyboard and VoiceOver evaluation.
-- The macOS MVP will use an Apple Silicon Mac with 8 GB of memory and SSD storage as the minimum performance reference profile until the supported-hardware decision establishes a lower baseline.
-- On the reference profile, cold launch to an interactive application shell will complete within 2.5 seconds at the 95th percentile.
+- The macOS MVP functional support boundary will be Apple Silicon, sufficient SSD capacity, and the separately accepted minimum macOS version. Performance evidence will be qualified by its reproducible local Apple Silicon or hosted macOS execution environment rather than by an unavailable fixed-memory reference machine.
+- Cold launch to an interactive application shell will complete within 2.5 seconds at the 95th percentile in every maintained performance environment.
 - Visible interaction feedback will begin within 100 milliseconds. Common navigation and filtering results will complete within 500 milliseconds at the 95th percentile; complex historical visualizations may take up to 2 seconds when their loading state is explicit.
 - Long-running work will not block the interface. Progress will appear within 1 second, cancellation will be acknowledged within 1 second, and processing will reach a consistent cancellation boundary within 5 seconds unless an operating-system operation cannot be interrupted safely.
-- The independently generated large synthetic scenario defined in `quality-targets.md` will import within 10 minutes on the reference profile while peak application memory remains below 1.5 GB and does not grow without bound as history grows.
+- The independently generated large synthetic scenario defined in `quality-targets.md` will import within 10 minutes in every maintained performance environment while peak application memory remains below 1.5 GB and does not grow without bound as history grows.
 - Reimporting an identical archive will complete within 30 seconds after fingerprinting and will not repeat full normalization or persistence work.
 - Installation and supported update matrices require a 100% pass rate; data-loss, library-corruption, migration, and recovery failures have zero accepted occurrences.
 - All scoped user-interface strings require valid `en-US` and `es-ES` resources before acceptance.
 
-These are initial acceptance budgets, not aspirational observations. Milestone 0 performance spikes may tighten them or replace the reference hardware with a lower supported baseline. Relaxing a budget requires measured evidence and an explicit product decision.
+These are acceptance budgets, not aspirational observations. A result proves the recorded environment and does not promise identical timing on every supported Mac. Relaxing a budget requires measured evidence and an explicit product decision. The evidence model is defined by [ADR 0015](architecture/decisions/0015-qualify-performance-evidence-by-execution-environment.md).
 
 The canonical definitions and measurement method are maintained in [`quality-targets.md`](quality-targets.md).
 
