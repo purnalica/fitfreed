@@ -69,6 +69,15 @@ export function validateReleaseMetadata(metadata, expectedVersion) {
     !JSON.stringify(metadata.tauri).match(/wdio|webdriver/i),
     "production Tauri configuration contains E2E instrumentation",
   );
+  requireValue(
+    metadata.publicTauri?.bundle?.createUpdaterArtifacts === true,
+    "public Tauri overlay must create updater artifacts",
+  );
+  requireValue(
+    JSON.stringify(metadata.publicTauri) ===
+      JSON.stringify({ bundle: { createUpdaterArtifacts: true } }),
+    "public Tauri overlay contains unexpected configuration",
+  );
 
   const expectedCargoPackages = new Set([
     "fitfreed",
@@ -111,6 +120,7 @@ export function validateReleaseMetadata(metadata, expectedVersion) {
 export function inspectReleaseContracts(repositoryRoot, expectedVersion) {
   const npm = readJson(repositoryRoot, "package.json");
   const tauri = readJson(repositoryRoot, "src-tauri/tauri.conf.json");
+  const publicTauri = readJson(repositoryRoot, "src-tauri/tauri.public.conf.json");
   const recoverySourcePath = "src-tauri/src/infrastructure/update_recovery.rs";
   const recoverySource = readFileSync(path.join(repositoryRoot, recoverySourcePath), "utf8");
   const recoveryBundleIdentifier = recoverySource.match(
@@ -120,6 +130,7 @@ export function inspectReleaseContracts(repositoryRoot, expectedVersion) {
     {
       npm,
       tauri,
+      publicTauri,
       recoveryBundleIdentifier,
       cargoPackages: cargoManifestPaths(repositoryRoot).map((manifestPath) =>
         readCargoPackage(repositoryRoot, manifestPath)),

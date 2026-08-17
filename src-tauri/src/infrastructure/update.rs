@@ -20,6 +20,29 @@ const MAX_UPDATE_PACKAGE_BYTES: u64 = 1_073_741_824;
 pub struct SignedUpdateChannelVerifier {
     trusted_public_keys: BTreeMap<String, String>,
     current_target: String,
+    contract: UpdateChannelContract,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum UpdateChannelContract {
+    PrivateAlphaV1,
+    StableV2,
+}
+
+impl UpdateChannelContract {
+    fn schema_version(self) -> u32 {
+        match self {
+            Self::PrivateAlphaV1 => 1,
+            Self::StableV2 => 2,
+        }
+    }
+
+    fn channel(self) -> &'static str {
+        match self {
+            Self::PrivateAlphaV1 => "private-alpha",
+            Self::StableV2 => "stable",
+        }
+    }
 }
 
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -34,6 +57,29 @@ impl SignedUpdateChannelVerifier {
     pub fn try_new(
         trusted_public_keys: BTreeMap<String, String>,
         current_target: String,
+    ) -> Result<Self, UpdateVerifierConfigurationError> {
+        Self::try_new_for_contract(
+            trusted_public_keys,
+            current_target,
+            UpdateChannelContract::PrivateAlphaV1,
+        )
+    }
+
+    pub fn try_new_for_stable(
+        trusted_public_keys: BTreeMap<String, String>,
+        current_target: String,
+    ) -> Result<Self, UpdateVerifierConfigurationError> {
+        Self::try_new_for_contract(
+            trusted_public_keys,
+            current_target,
+            UpdateChannelContract::StableV2,
+        )
+    }
+
+    fn try_new_for_contract(
+        trusted_public_keys: BTreeMap<String, String>,
+        current_target: String,
+        contract: UpdateChannelContract,
     ) -> Result<Self, UpdateVerifierConfigurationError> {
         if trusted_public_keys.is_empty()
             || trusted_public_keys.len() > 8
@@ -54,6 +100,7 @@ impl SignedUpdateChannelVerifier {
         Ok(Self {
             trusted_public_keys,
             current_target,
+            contract,
         })
     }
 
@@ -78,7 +125,7 @@ impl SignedUpdateChannelVerifier {
         let envelope: UpdateEnvelope =
             serde_json::from_slice(response).map_err(|_| UpdateTrustFailure::InvalidEnvelope)?;
         if envelope.fitfreed.format != "org.fitfreed.update-envelope"
-            || envelope.fitfreed.schema_version != 1
+            || envelope.fitfreed.schema_version != self.contract.schema_version()
             || envelope.fitfreed.algorithm != "minisign-ed25519"
             || envelope.fitfreed.signature_base64.len() > 16_384
         {
@@ -104,7 +151,7 @@ impl SignedUpdateChannelVerifier {
         let payload_sha256 = hex_digest(&payload);
         let payload: UpdatePayload =
             serde_json::from_slice(&payload).map_err(|_| UpdateTrustFailure::InvalidPayload)?;
-        validate_payload_identity(&payload)?;
+        validate_payload_identity(&payload, self.contract)?;
         validate_localized_text(&payload.release.release_notes)?;
         if payload.withdrawn_versions.len() > 256 {
             return Err(UpdateTrustFailure::InvalidPayload);
@@ -184,11 +231,16 @@ fn verify_minisign(
         .map_err(|_| UpdateTrustFailure::InvalidSignature)
 }
 
-fn validate_payload_identity(payload: &UpdatePayload) -> Result<(), UpdateTrustFailure> {
-    if payload.format != "org.fitfreed.update-channel" || payload.schema_version != 1 {
+fn validate_payload_identity(
+    payload: &UpdatePayload,
+    contract: UpdateChannelContract,
+) -> Result<(), UpdateTrustFailure> {
+    if payload.format != "org.fitfreed.update-channel"
+        || payload.schema_version != contract.schema_version()
+    {
         return Err(UpdateTrustFailure::InvalidPayload);
     }
-    if payload.channel != "private-alpha" {
+    if payload.channel != contract.channel() {
         return Err(UpdateTrustFailure::UnsupportedChannel);
     }
     if payload.sequence == 0 || payload.sequence > MAX_SAFE_JSON_INTEGER {
@@ -468,6 +520,14 @@ mod tests {
 
     impl SyntheticFeed {
         fn new() -> Self {
+            Self::for_contract(1, "private-alpha")
+        }
+
+        fn stable() -> Self {
+            Self::for_contract(2, "stable")
+        }
+
+        fn for_contract(schema_version: u32, channel: &str) -> Self {
             let key_pair = KeyPair::generate_unencrypted_keypair().expect("synthetic key pair");
             let public_key = key_pair
                 .pk
@@ -485,8 +545,8 @@ mod tests {
             .into_string();
             let payload = json!({
                 "format": "org.fitfreed.update-channel",
-                "schemaVersion": 1,
-                "channel": "private-alpha",
+                "schemaVersion": schema_version,
+                "channel": channel,
                 "sequence": 17,
                 "issuedAt": "2026-08-17T00:00:00Z",
                 "expiresAt": "2026-08-24T00:00:00Z",
@@ -543,6 +603,17 @@ mod tests {
             )
             .expect("synthetic verifier")
         }
+
+        fn stable_verifier(&self) -> SignedUpdateChannelVerifier {
+            SignedUpdateChannelVerifier::try_new_for_stable(
+                BTreeMap::from([(
+                    "synthetic-test-key".to_owned(),
+                    self.public_key_base64.clone(),
+                )]),
+                "darwin-aarch64".to_owned(),
+            )
+            .expect("synthetic stable verifier")
+        }
     }
 
     fn signed_response(key_pair: &KeyPair, payload: &Value) -> Vec<u8> {
@@ -567,7 +638,7 @@ mod tests {
             },
             "fitfreed": {
                 "format": "org.fitfreed.update-envelope",
-                "schemaVersion": 1,
+                "schemaVersion": payload["schemaVersion"],
                 "algorithm": "minisign-ed25519",
                 "keyId": "synthetic-test-key",
                 "payloadBase64": BASE64.encode(payload_bytes),
@@ -611,6 +682,27 @@ mod tests {
             UpdateWithdrawalReason::DataIntegrity
         );
         assert!(valid_sha256(&snapshot.payload_sha256));
+    }
+
+    #[test]
+    fn selects_the_stable_v2_contract_without_accepting_cross_channel_metadata() {
+        let private_alpha = SyntheticFeed::new();
+        let stable = SyntheticFeed::stable();
+
+        assert!(matches!(
+            stable.stable_verifier().verify_response(&stable.response()),
+            UpdateChannelRead::Authenticated(_)
+        ));
+        assert_eq!(
+            stable
+                .stable_verifier()
+                .verify_response(&private_alpha.response()),
+            UpdateChannelRead::Untrusted(UpdateTrustFailure::InvalidEnvelope)
+        );
+        assert_eq!(
+            private_alpha.verifier().verify_response(&stable.response()),
+            UpdateChannelRead::Untrusted(UpdateTrustFailure::InvalidEnvelope)
+        );
     }
 
     #[test]

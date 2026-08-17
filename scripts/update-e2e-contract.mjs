@@ -20,6 +20,18 @@ export function updateTarget(platform, architecture) {
 }
 
 export function createUpdatePayload({
+  contractSchemaVersion = 1,
+  channel = "private-alpha",
+  sequence = 1,
+  releaseVersion = "0.2.0",
+  issuedAt,
+  publishedAt = issuedAt,
+  minimumSupportedVersion = "0.1.0",
+  releaseNotes = {
+    "en-US": "Synthetic packaged update acceptance release.",
+    "es-ES": "Versión sintética para aceptar la actualización empaquetada.",
+  },
+  withdrawnVersions = [],
   target,
   packageUrl,
   packageSize,
@@ -27,29 +39,27 @@ export function createUpdatePayload({
   packageSignature,
   minimumReadableSchemaVersion,
   schemaVersion,
-  issuedAt,
+  maximumReadableSchemaVersion = schemaVersion,
+  targetSchemaVersion = schemaVersion,
   expiresAt,
 }) {
   return {
     format: "org.fitfreed.update-channel",
-    schemaVersion: 1,
-    channel: "private-alpha",
-    sequence: 1,
+    schemaVersion: contractSchemaVersion,
+    channel,
+    sequence,
     issuedAt,
     expiresAt,
     release: {
-      version: "0.2.0",
-      publishedAt: issuedAt,
-      minimumSupportedVersion: "0.1.0",
+      version: releaseVersion,
+      publishedAt,
+      minimumSupportedVersion,
       librarySchema: {
         minimumReadableVersion: minimumReadableSchemaVersion,
-        maximumReadableVersion: schemaVersion,
-        targetVersion: schemaVersion,
+        maximumReadableVersion: maximumReadableSchemaVersion,
+        targetVersion: targetSchemaVersion,
       },
-      releaseNotes: {
-        "en-US": "Synthetic packaged update acceptance release.",
-        "es-ES": "Versión sintética para aceptar la actualización empaquetada.",
-      },
+      releaseNotes,
       platforms: {
         [target]: {
           url: packageUrl,
@@ -59,7 +69,7 @@ export function createUpdatePayload({
         },
       },
     },
-    withdrawnVersions: [],
+    withdrawnVersions,
   };
 }
 
@@ -80,7 +90,7 @@ export function createUpdateEnvelope({
     },
     fitfreed: {
       format: "org.fitfreed.update-envelope",
-      schemaVersion: 1,
+      schemaVersion: payload.schemaVersion,
       algorithm: "minisign-ed25519",
       keyId,
       payloadBase64: payloadBytes.toString("base64"),

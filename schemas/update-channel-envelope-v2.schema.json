@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/update-channel-envelope-v2.schema.json",
+  "title": "FitFreed update channel envelope version 2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "platforms", "fitfreed"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "platforms": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 16,
+      "propertyNames": {
+        "pattern": "^(darwin|linux|windows)-(aarch64|x86_64|i686|armv7)(?:-(app|appimage|deb|rpm|msi|nsis))?$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["url", "signature"],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://",
+            "maxLength": 2048
+          },
+          "signature": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 16384,
+            "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+          }
+        }
+      }
+    },
+    "fitfreed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "schemaVersion",
+        "algorithm",
+        "keyId",
+        "payloadBase64",
+        "signatureBase64"
+      ],
+      "properties": {
+        "format": { "const": "org.fitfreed.update-envelope" },
+        "schemaVersion": { "const": 2 },
+        "algorithm": { "const": "minisign-ed25519" },
+        "keyId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "payloadBase64": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 1398104,
+          "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+        },
+        "signatureBase64": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 16384,
+          "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+        }
+      }
+    }
+  }
+}

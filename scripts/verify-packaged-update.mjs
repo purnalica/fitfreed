@@ -261,11 +261,11 @@ function compileDocumentValidators() {
   addFormats(ajv);
   return {
     payload: ajv.compile(JSON.parse(readFileSync(
-      path.join(repositoryRoot, "schemas/update-channel-payload-v1.schema.json"),
+      path.join(repositoryRoot, "schemas/update-channel-payload-v2.schema.json"),
       "utf8",
     ))),
     envelope: ajv.compile(JSON.parse(readFileSync(
-      path.join(repositoryRoot, "schemas/update-channel-envelope-v1.schema.json"),
+      path.join(repositoryRoot, "schemas/update-channel-envelope-v2.schema.json"),
       "utf8",
     ))),
     errorsText: (errors) => ajv.errorsText(errors),
@@ -287,6 +287,8 @@ function createChannelDocuments({ target, port, validators, matrix }) {
     .toISOString()
     .replace(".000Z", "Z");
   const payload = createUpdatePayload({
+    contractSchemaVersion: 2,
+    channel: "stable",
     target,
     packageUrl,
     packageSize: statSync(candidatePackage).size,
@@ -328,7 +330,7 @@ async function startUpdateServer() {
       response.end();
       return;
     }
-    if (request.url === "/private-alpha.json" && envelopeBytes) {
+    if (request.url === "/stable.json" && envelopeBytes) {
       response.writeHead(200, {
         "content-type": "application/json; charset=utf-8",
         "content-length": String(envelopeBytes.length),
@@ -404,6 +406,7 @@ async function runScenario(scenario, endpoint, publicKey, driverPort) {
       TAURI_WEBDRIVER_PORT: String(driverPort),
       FITFREED_UPDATE_E2E_RECOVERY_ROOT: recoveryRoot,
       FITFREED_E2E_DATABASE_PATH: databasePath,
+      FITFREED_E2E_UPDATE_CONTRACT: "stable-v2",
       FITFREED_E2E_UPDATE_ENDPOINT: endpoint,
       FITFREED_E2E_UPDATE_KEY_ID: keyId,
       FITFREED_E2E_UPDATE_PUBLIC_KEY: publicKey,
@@ -453,7 +456,7 @@ async function main() {
       validators,
       matrix,
     }));
-    const endpoint = `https://127.0.0.1:${updateServer.port}/private-alpha.json`;
+    const endpoint = `https://127.0.0.1:${updateServer.port}/stable.json`;
     await runScenario("success", endpoint, publicKey, await availableTcpPort());
     await runScenario("failure", endpoint, publicKey, await availableTcpPort());
   } finally {

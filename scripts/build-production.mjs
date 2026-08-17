@@ -4,6 +4,11 @@ import { fileURLToPath } from "node:url";
 
 const revisionPattern = /^[0-9a-f]{40,64}$/;
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const publicUpdateBuildKeys = [
+  "FITFREED_PUBLIC_UPDATE_CONTRACT",
+  "FITFREED_PUBLIC_UPDATE_ENDPOINT",
+  "FITFREED_PUBLIC_UPDATE_TRUST",
+];
 
 export function productionBuildIdentity(revision, status) {
   if (!revisionPattern.test(revision)) throw new Error("invalid Git revision for production build");
@@ -11,6 +16,26 @@ export function productionBuildIdentity(revision, status) {
     FITFREED_SOURCE_REVISION: revision,
     FITFREED_SOURCE_TREE_CLEAN: status.length === 0 ? "true" : "false",
   };
+}
+
+export function productionBuildEnvironment(
+  inheritedEnvironment,
+  identity,
+  publicUpdateEnvironment = {},
+) {
+  const environment = { ...inheritedEnvironment };
+  for (const key of publicUpdateBuildKeys) delete environment[key];
+  const suppliedKeys = Object.keys(publicUpdateEnvironment);
+  if (
+    suppliedKeys.some((key) => !publicUpdateBuildKeys.includes(key))
+    || (suppliedKeys.length !== 0 && suppliedKeys.length !== publicUpdateBuildKeys.length)
+    || publicUpdateBuildKeys.some(
+      (key) => suppliedKeys.length > 0 && typeof publicUpdateEnvironment[key] !== "string",
+    )
+  ) {
+    throw new Error("invalid explicit public update build environment");
+  }
+  return { ...environment, ...identity, ...publicUpdateEnvironment };
 }
 
 function git(arguments_) {
@@ -21,16 +46,19 @@ function git(arguments_) {
   }).trim();
 }
 
-function buildProductionPackage() {
+export function buildProductionPackage({
+  arguments_ = process.argv.slice(2),
+  publicUpdateEnvironment = {},
+} = {}) {
   const revision = git(["rev-parse", "HEAD"]);
   const status = git(["status", "--porcelain=v1", "--untracked-files=all"]);
   const identity = productionBuildIdentity(revision, status);
   execFileSync(
     path.join(repositoryRoot, "node_modules/.bin/tauri"),
-    ["build", ...process.argv.slice(2)],
+    ["build", ...arguments_],
     {
       cwd: repositoryRoot,
-      env: { ...process.env, ...identity },
+      env: productionBuildEnvironment(process.env, identity, publicUpdateEnvironment),
       stdio: "inherit",
     },
   );

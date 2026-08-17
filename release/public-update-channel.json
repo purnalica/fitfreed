@@ -1,0 +1,8 @@
+{
+  "format": "org.fitfreed.public-update-configuration",
+  "schemaVersion": 1,
+  "status": "inactive",
+  "contract": "stable-v2",
+  "metadataEndpoint": "https://purnalica.github.io/fitfreed/updates/stable.json",
+  "keys": []
+}

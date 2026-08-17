@@ -2,6 +2,7 @@ pub mod infrastructure;
 mod presentation;
 
 use std::{
+    collections::BTreeMap,
     env,
     ffi::OsString,
     future::Future,
@@ -14,10 +15,7 @@ use std::{
 };
 
 #[cfg(feature = "e2e")]
-use std::{collections::BTreeMap, fs};
-
-#[cfg(feature = "e2e")]
-use infrastructure::current_update_target;
+use std::fs;
 
 use chrono::{SecondsFormat, Utc};
 use fitfreed_application::{
@@ -31,10 +29,10 @@ use fitfreed_application::{
 use infrastructure::{
     acknowledge_update_recovery_outcome as acknowledge_retained_update_recovery_outcome,
     acquire_update_recovery_candidate_lease, await_update_recovery_candidate_go,
-    confirm_active_update_recovery, download_verified_update, install_verified_update,
-    library_schema_version, maintain_update_recovery, recover_interrupted_imports,
-    resolve_update_application_path, run_update_recovery_watchdog, HttpsUpdateChannel,
-    SqliteActivityLibrary, SqliteImportOutcomeLibrary, SqliteLocalePreferences,
+    confirm_active_update_recovery, current_update_target, download_verified_update,
+    install_verified_update, library_schema_version, maintain_update_recovery,
+    recover_interrupted_imports, resolve_update_application_path, run_update_recovery_watchdog,
+    HttpsUpdateChannel, SqliteActivityLibrary, SqliteImportOutcomeLibrary, SqliteLocalePreferences,
     SqliteLongitudinalLibrary, SqlitePolarFlowArchiveImporter, SqliteRecoveryLibrary,
     SqliteSleepLibrary, SqliteTrainingLibrary, SqliteUpdateState, UpdateInstallationError,
     UpdateInstallationRequest, UpdatePackageError, UpdateRecoveryCandidateLease,
@@ -887,23 +885,65 @@ fn current_utc_datetime() -> String {
 }
 
 fn application_update_channel() -> HttpsUpdateChannel {
+    let public_channel = public_update_channel_from_build_configuration(
+        option_env!("FITFREED_PUBLIC_UPDATE_CONTRACT"),
+        option_env!("FITFREED_PUBLIC_UPDATE_ENDPOINT"),
+        option_env!("FITFREED_PUBLIC_UPDATE_TRUST"),
+    )
+    .expect("invalid public update channel configuration");
+
     #[cfg(feature = "e2e")]
     if let Some(channel) = instrumented_update_channel_from_environment()
         .expect("invalid instrumented update channel configuration")
     {
+        assert!(
+            public_channel.is_none(),
+            "instrumented and public update channels cannot coexist"
+        );
         return channel;
     }
 
-    HttpsUpdateChannel::unconfigured()
+    public_channel.unwrap_or_else(HttpsUpdateChannel::unconfigured)
+}
+
+fn public_update_channel_from_build_configuration(
+    contract: Option<&str>,
+    endpoint: Option<&str>,
+    trust: Option<&str>,
+) -> Result<Option<HttpsUpdateChannel>, ()> {
+    let values = [contract, endpoint, trust];
+    let configured_values = values.iter().filter(|value| value.is_some()).count();
+    if configured_values == 0 {
+        return Ok(None);
+    }
+    if configured_values != values.len() || contract != Some("stable-v2") {
+        return Err(());
+    }
+    let trusted_public_keys: BTreeMap<String, String> =
+        serde_json::from_str(trust.ok_or(())?).map_err(|_| ())?;
+    HttpsUpdateChannel::configured_stable(
+        endpoint.ok_or(())?,
+        trusted_public_keys,
+        current_update_target().map_err(|_| ())?,
+    )
+    .map(Some)
+    .map_err(|_| ())
 }
 
 #[cfg(feature = "e2e")]
 fn instrumented_update_channel_from_environment() -> Result<Option<HttpsUpdateChannel>, ()> {
+    const CONTRACT: &str = "FITFREED_E2E_UPDATE_CONTRACT";
     const ENDPOINT: &str = "FITFREED_E2E_UPDATE_ENDPOINT";
     const KEY_ID: &str = "FITFREED_E2E_UPDATE_KEY_ID";
     const PUBLIC_KEY: &str = "FITFREED_E2E_UPDATE_PUBLIC_KEY";
     const ROOT_CERTIFICATE_PATH: &str = "FITFREED_E2E_UPDATE_ROOT_CERTIFICATE_PATH";
-    let names = [ENDPOINT, KEY_ID, PUBLIC_KEY, ROOT_CERTIFICATE_PATH];
+    let names = [
+        CONTRACT,
+        ENDPOINT,
+        KEY_ID,
+        PUBLIC_KEY,
+        ROOT_CERTIFICATE_PATH,
+    ];
     let configured_values = names
         .iter()
         .filter(|name| env::var_os(name).is_some())
@@ -914,18 +954,29 @@ fn instrumented_update_channel_from_environment() -> Result<Option<HttpsUpdateCh
     if configured_values != names.len() {
         return Err(());
     }
+    let contract = env::var(CONTRACT).map_err(|_| ())?;
     let endpoint = env::var(ENDPOINT).map_err(|_| ())?;
     let key_id = env::var(KEY_ID).map_err(|_| ())?;
     let public_key = env::var(PUBLIC_KEY).map_err(|_| ())?;
     let root_certificate_path = env::var(ROOT_CERTIFICATE_PATH).map_err(|_| ())?;
     let root_certificate = fs::read(root_certificate_path).map_err(|_| ())?;
     let target = current_update_target().map_err(|_| ())?;
-    HttpsUpdateChannel::configured_for_instrumented_e2e(
-        &endpoint,
-        BTreeMap::from([(key_id, public_key)]),
-        target,
-        root_certificate,
-    )
+    let trust = BTreeMap::from([(key_id, public_key)]);
+    match contract.as_str() {
+        "private-alpha-v1" => HttpsUpdateChannel::configured_for_instrumented_e2e(
+            &endpoint,
+            trust,
+            target,
+            root_certificate,
+        ),
+        "stable-v2" => HttpsUpdateChannel::configured_stable_for_instrumented_e2e(
+            &endpoint,
+            trust,
+            target,
+            root_certificate,
+        ),
+        _ => return Err(()),
+    }
     .map(Some)
     .map_err(|_| ())
 }
@@ -1194,10 +1245,12 @@ mod tests {
         sync::atomic::{AtomicUsize, Ordering},
     };
 
+    use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
     use fitfreed_application::{
         save_locale_preference, AuthenticatedUpdateSnapshot, LocalizedUpdateText, UpdateArtifact,
         UpdateChannelRead, UpdateRelease,
     };
+    use minisign::KeyPair;
     use tempfile::TempDir;
     use tokio::sync::Notify;
 
@@ -1209,6 +1262,79 @@ mod tests {
         fn fetch_update_snapshot(&self) -> Result<UpdateChannelRead, String> {
             Ok(self.0.clone())
         }
+    }
+
+    fn synthetic_public_update_key() -> String {
+        let key_pair = KeyPair::generate_unencrypted_keypair().expect("synthetic key pair");
+        let public_key = key_pair
+            .pk
+            .to_box()
+            .expect("synthetic public key box")
+            .to_string();
+        BASE64.encode(public_key)
+    }
+
+    #[test]
+    fn public_update_channel_is_absent_or_complete_and_never_partial() {
+        assert!(
+            public_update_channel_from_build_configuration(None, None, None)
+                .expect("absent configuration")
+                .is_none()
+        );
+
+        let public_key = synthetic_public_update_key();
+        let trust =
+            serde_json::to_string(&BTreeMap::from([("stable.2026-01".to_owned(), public_key)]))
+                .expect("synthetic trust JSON");
+        assert!(public_update_channel_from_build_configuration(
+            Some("stable-v2"),
+            Some("https://purnalica.github.io/fitfreed/updates/stable.json"),
+            Some(&trust),
+        )
+        .expect("complete public configuration")
+        .is_some());
+
+        for incomplete in [
+            (Some("stable-v2"), None, None),
+            (
+                Some("stable-v2"),
+                Some("https://updates.invalid/stable.json"),
+                None,
+            ),
+        ] {
+            assert!(public_update_channel_from_build_configuration(
+                incomplete.0,
+                incomplete.1,
+                incomplete.2,
+            )
+            .is_err());
+        }
+    }
+
+    #[test]
+    fn public_update_channel_rejects_an_unknown_contract_or_invalid_trust() {
+        let public_key = synthetic_public_update_key();
+        let trust =
+            serde_json::to_string(&BTreeMap::from([("stable.2026-01".to_owned(), public_key)]))
+                .expect("synthetic trust JSON");
+        assert!(public_update_channel_from_build_configuration(
+            Some("private-alpha-v1"),
+            Some("https://updates.invalid/stable.json"),
+            Some(&trust),
+        )
+        .is_err());
+        assert!(public_update_channel_from_build_configuration(
+            Some("stable-v2"),
+            Some("http://updates.invalid/stable.json"),
+            Some(&trust),
+        )
+        .is_err());
+        assert!(public_update_channel_from_build_configuration(
+            Some("stable-v2"),
+            Some("https://updates.invalid/stable.json"),
+            Some(r#"{"STABLE":"invalid"}"#),
+        )
+        .is_err());
     }
 
     #[test]

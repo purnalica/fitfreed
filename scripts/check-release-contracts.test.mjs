@@ -22,6 +22,9 @@ function validMetadata() {
         macOS: { minimumSystemVersion: "15.0" },
       },
     },
+    publicTauri: {
+      bundle: { createUpdaterArtifacts: true },
+    },
     recoveryBundleIdentifier: "org.fitfreed.desktop",
     cargoPackages: ["fitfreed", "fitfreed-application", "fitfreed-domain"].map((name) => ({
       path: `${name}/Cargo.toml`,
@@ -81,5 +84,23 @@ test("rejects a macOS deployment target outside the supported boundary", () => {
   assert.throws(
     () => validateReleaseMetadata(metadata),
     /minimum supported macOS version must be 15\.0/,
+  );
+});
+
+test("keeps the public Tauri overlay limited to updater artifact creation", () => {
+  const missingArtifacts = validMetadata();
+  missingArtifacts.publicTauri.bundle.createUpdaterArtifacts = false;
+  assert.throws(
+    () => validateReleaseMetadata(missingArtifacts),
+    /must create updater artifacts/,
+  );
+
+  const embeddedTrust = validMetadata();
+  embeddedTrust.publicTauri.plugins = {
+    updater: { pubkey: "fixed-key", endpoints: ["https://updates.invalid/stable.json"] },
+  };
+  assert.throws(
+    () => validateReleaseMetadata(embeddedTrust),
+    /public Tauri overlay contains unexpected configuration/,
   );
 });

@@ -57,6 +57,24 @@ impl HttpsUpdateChannel {
         ))
     }
 
+    pub fn configured_stable(
+        endpoint: &str,
+        trusted_public_keys: BTreeMap<String, String>,
+        current_target: String,
+    ) -> Result<Self, UpdateChannelConfigurationError> {
+        let endpoint = parse_static_https_endpoint(endpoint)?;
+        let verifier =
+            SignedUpdateChannelVerifier::try_new_for_stable(trusted_public_keys, current_target)
+                .map_err(map_verifier_configuration_error)?;
+        let transport = ReqwestUpdateTransport::new(None)?;
+        Ok(Self::from_configured(
+            endpoint,
+            verifier,
+            Box::new(transport),
+            None,
+        ))
+    }
+
     #[cfg(feature = "e2e")]
     pub fn configured_for_instrumented_e2e(
         endpoint: &str,
@@ -66,6 +84,26 @@ impl HttpsUpdateChannel {
     ) -> Result<Self, UpdateChannelConfigurationError> {
         let endpoint = parse_static_https_endpoint(endpoint)?;
         let verifier = configured_verifier(trusted_public_keys, current_target)?;
+        let transport = ReqwestUpdateTransport::new(Some(&additional_root_certificate))?;
+        Ok(Self::from_configured(
+            endpoint,
+            verifier,
+            Box::new(transport),
+            Some(additional_root_certificate),
+        ))
+    }
+
+    #[cfg(feature = "e2e")]
+    pub fn configured_stable_for_instrumented_e2e(
+        endpoint: &str,
+        trusted_public_keys: BTreeMap<String, String>,
+        current_target: String,
+        additional_root_certificate: Vec<u8>,
+    ) -> Result<Self, UpdateChannelConfigurationError> {
+        let endpoint = parse_static_https_endpoint(endpoint)?;
+        let verifier =
+            SignedUpdateChannelVerifier::try_new_for_stable(trusted_public_keys, current_target)
+                .map_err(map_verifier_configuration_error)?;
         let transport = ReqwestUpdateTransport::new(Some(&additional_root_certificate))?;
         Ok(Self::from_configured(
             endpoint,
@@ -174,16 +212,21 @@ fn configured_verifier(
     trusted_public_keys: BTreeMap<String, String>,
     current_target: String,
 ) -> Result<SignedUpdateChannelVerifier, UpdateChannelConfigurationError> {
-    SignedUpdateChannelVerifier::try_new(trusted_public_keys, current_target).map_err(|error| {
-        match error {
-            UpdateVerifierConfigurationError::InvalidTrustedKeys => {
-                UpdateChannelConfigurationError::InvalidTrust
-            }
-            UpdateVerifierConfigurationError::UnsupportedTarget => {
-                UpdateChannelConfigurationError::UnsupportedTarget
-            }
+    SignedUpdateChannelVerifier::try_new(trusted_public_keys, current_target)
+        .map_err(map_verifier_configuration_error)
+}
+
+fn map_verifier_configuration_error(
+    error: UpdateVerifierConfigurationError,
+) -> UpdateChannelConfigurationError {
+    match error {
+        UpdateVerifierConfigurationError::InvalidTrustedKeys => {
+            UpdateChannelConfigurationError::InvalidTrust
         }
-    })
+        UpdateVerifierConfigurationError::UnsupportedTarget => {
+            UpdateChannelConfigurationError::UnsupportedTarget
+        }
+    }
 }
 
 trait UpdateHttpTransport: Send + Sync {
@@ -343,6 +386,24 @@ mod tests {
             Some(expected_key.as_str())
         );
         assert_eq!(channel.package_public_key("unknown-test-key"), None);
+        assert_eq!(channel.package_root_certificate(), None);
+    }
+
+    #[test]
+    fn creates_a_stable_channel_from_public_build_trust() {
+        let trust = synthetic_trust();
+        let expected_key = trust["synthetic-test-key"].clone();
+        let channel = HttpsUpdateChannel::configured_stable(
+            "https://updates.invalid/stable.json",
+            trust,
+            "darwin-aarch64".to_owned(),
+        )
+        .expect("configured stable channel");
+
+        assert_eq!(
+            channel.package_public_key("synthetic-test-key"),
+            Some(expected_key.as_str())
+        );
         assert_eq!(channel.package_root_certificate(), None);
     }
 

@@ -1862,6 +1862,162 @@ for (const invalidEnvelope of [
   }
 }
 
+const stableUpdateChannelPath = "docs/data-formats/release/update-channel-v2.md";
+const stableUpdateChannel = read(stableUpdateChannelPath);
+for (const field of [
+  "org.fitfreed.update-envelope",
+  "org.fitfreed.update-channel",
+  "stable",
+  "minisign-ed25519",
+  "fitfreed.keyId",
+  "fitfreed.payloadBase64",
+  "fitfreed.signatureBase64",
+  "sequence",
+  "issuedAt",
+  "expiresAt",
+  "release.version",
+  "release.publishedAt",
+  "release.minimumSupportedVersion",
+  "release.librarySchema.minimumReadableVersion",
+  "release.librarySchema.maximumReadableVersion",
+  "release.librarySchema.targetVersion",
+  "release.releaseNotes.*",
+  "en-US",
+  "es-ES",
+  "release.platforms.*.url",
+  "release.platforms.*.size",
+  "release.platforms.*.sha256",
+  "release.platforms.*.tauriSignature",
+  "withdrawnVersions.*.version",
+  "withdrawnVersions.*.reason",
+  "withdrawnVersions.*.guidance.*",
+  "withdrawnVersions.*.replacementVersion",
+]) {
+  requireMention(stableUpdateChannel, field, stableUpdateChannelPath);
+}
+
+const stableUpdateChannelPayloadSchemaPath = "schemas/update-channel-payload-v2.schema.json";
+const stableUpdateChannelPayloadSchema = JSON.parse(read(stableUpdateChannelPayloadSchemaPath));
+const validateStableUpdateChannelPayload = ajv.compile(stableUpdateChannelPayloadSchema);
+const syntheticStableUpdateChannelPayload = structuredClone(syntheticUpdateChannelPayload);
+syntheticStableUpdateChannelPayload.schemaVersion = 2;
+syntheticStableUpdateChannelPayload.channel = "stable";
+syntheticStableUpdateChannelPayload.release.version = "0.2.0";
+syntheticStableUpdateChannelPayload.release.minimumSupportedVersion = "0.1.0";
+syntheticStableUpdateChannelPayload.release.platforms["darwin-aarch64"].url =
+  "https://purnalica.github.io/fitfreed/updates/0.2.0/FitFreed_aarch64.app.tar.gz";
+syntheticStableUpdateChannelPayload.withdrawnVersions[0].replacementVersion = "0.2.0";
+if (!validateStableUpdateChannelPayload(syntheticStableUpdateChannelPayload)) {
+  throw new Error(
+    stableUpdateChannelPayloadSchemaPath
+      + " rejected its synthetic payload: "
+      + ajv.errorsText(validateStableUpdateChannelPayload.errors),
+  );
+}
+if (
+  validateStableUpdateChannelPayload(syntheticUpdateChannelPayload)
+  || validateUpdateChannelPayload(syntheticStableUpdateChannelPayload)
+) {
+  throw new Error("private-alpha and stable payload schemas accepted a cross-channel contract");
+}
+for (const invalidPayload of [
+  { ...syntheticStableUpdateChannelPayload, sequence: 0 },
+  { ...syntheticStableUpdateChannelPayload, schemaVersion: 1 },
+  (() => {
+    const value = structuredClone(syntheticStableUpdateChannelPayload);
+    delete value.release.releaseNotes["en-US"];
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticStableUpdateChannelPayload);
+    value.release.platforms["darwin-aarch64"].url =
+      "http://purnalica.github.io/fitfreed/updates/FitFreed.app.tar.gz";
+    return value;
+  })(),
+  { ...syntheticStableUpdateChannelPayload, untrustedMirror: true },
+]) {
+  if (validateStableUpdateChannelPayload(invalidPayload)) {
+    throw new Error(stableUpdateChannelPayloadSchemaPath + " accepted an invalid payload");
+  }
+}
+
+const stableUpdateChannelEnvelopeSchemaPath = "schemas/update-channel-envelope-v2.schema.json";
+const stableUpdateChannelEnvelopeSchema = JSON.parse(read(stableUpdateChannelEnvelopeSchemaPath));
+const validateStableUpdateChannelEnvelope = ajv.compile(stableUpdateChannelEnvelopeSchema);
+const syntheticStableUpdateChannelEnvelope = {
+  version: syntheticStableUpdateChannelPayload.release.version,
+  platforms: {
+    "darwin-aarch64": {
+      url: syntheticStableUpdateChannelPayload.release.platforms["darwin-aarch64"].url,
+      signature:
+        syntheticStableUpdateChannelPayload.release.platforms["darwin-aarch64"].tauriSignature,
+    },
+  },
+  fitfreed: {
+    format: "org.fitfreed.update-envelope",
+    schemaVersion: 2,
+    algorithm: "minisign-ed25519",
+    keyId: "stable.synthetic-1",
+    payloadBase64: Buffer.from(JSON.stringify(syntheticStableUpdateChannelPayload)).toString(
+      "base64",
+    ),
+    signatureBase64: "U3ludGhldGljIG1ldGFkYXRhIHNpZ25hdHVyZQ==",
+  },
+};
+if (!validateStableUpdateChannelEnvelope(syntheticStableUpdateChannelEnvelope)) {
+  throw new Error(
+    stableUpdateChannelEnvelopeSchemaPath
+      + " rejected its synthetic envelope: "
+      + ajv.errorsText(validateStableUpdateChannelEnvelope.errors),
+  );
+}
+if (
+  validateStableUpdateChannelEnvelope(syntheticUpdateChannelEnvelope)
+  || validateUpdateChannelEnvelope(syntheticStableUpdateChannelEnvelope)
+) {
+  throw new Error("private-alpha and stable envelope schemas accepted a cross-channel contract");
+}
+for (const invalidEnvelope of [
+  (() => {
+    const value = structuredClone(syntheticStableUpdateChannelEnvelope);
+    delete value.fitfreed.keyId;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticStableUpdateChannelEnvelope);
+    value.fitfreed.schemaVersion = 1;
+    return value;
+  })(),
+  { ...syntheticStableUpdateChannelEnvelope, notes: "Unsigned notes are forbidden." },
+]) {
+  if (validateStableUpdateChannelEnvelope(invalidEnvelope)) {
+    throw new Error(stableUpdateChannelEnvelopeSchemaPath + " accepted an invalid envelope");
+  }
+}
+
+const publicUpdateConfigurationPath =
+  "docs/data-formats/release/public-update-configuration-v1.md";
+const publicUpdateConfiguration = read(publicUpdateConfigurationPath);
+for (const field of [
+  "org.fitfreed.public-update-configuration",
+  "schemaVersion",
+  "status",
+  "inactive",
+  "active",
+  "contract",
+  "stable-v2",
+  "metadataEndpoint",
+  "keys.*.id",
+  "keys.*.publicKey",
+  "FITFREED_PUBLIC_UPDATE_CONTRACT",
+  "FITFREED_PUBLIC_UPDATE_ENDPOINT",
+  "FITFREED_PUBLIC_UPDATE_TRUST",
+]) {
+  requireMention(publicUpdateConfiguration, field, publicUpdateConfigurationPath);
+}
+const publicUpdateConfigurationSchemaPath =
+  "schemas/public-update-configuration-v1.schema.json";
+
 const updateRecoveryPath = "docs/data-formats/release/update-recovery-v1.md";
 const updateRecovery = read(updateRecoveryPath);
 for (const field of [
@@ -2010,6 +2166,8 @@ for (const contractPath of [
   recoveryComparisonPath,
   longitudinalPath,
   updateChannelPath,
+  stableUpdateChannelPath,
+  publicUpdateConfigurationPath,
   updateRecoveryPath,
   ...persistencePaths,
 ]) {
@@ -2073,7 +2231,10 @@ process.stdout.write(
     updateChannelSchemas: [
       updateChannelEnvelopeSchemaPath,
       updateChannelPayloadSchemaPath,
+      stableUpdateChannelEnvelopeSchemaPath,
+      stableUpdateChannelPayloadSchemaPath,
     ],
+    publicUpdateConfigurationSchema: publicUpdateConfigurationSchemaPath,
     updateRecoverySchema: updateRecoverySchemaPath,
     updateRecoveryOutcomeSchema: updateRecoveryOutcomeSchemaPath,
     canonicalFields: 56,

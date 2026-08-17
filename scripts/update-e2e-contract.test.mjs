@@ -63,3 +63,44 @@ test("constructs exact signed payload and untrusted Tauri mirror documents", () 
   );
   assert.equal(envelope.fitfreed.signatureBase64, "bWV0YWRhdGEtc2lnbmF0dXJl");
 });
+
+test("constructs a distinct public stable v2 contract without changing private-alpha defaults", () => {
+  const payload = createUpdatePayload({
+    contractSchemaVersion: 2,
+    channel: "stable",
+    sequence: 23,
+    releaseVersion: "1.2.3",
+    publishedAt: "2026-08-17T11:00:00Z",
+    minimumSupportedVersion: "1.0.0",
+    releaseNotes: {
+      "en-US": "Stable release notes.",
+      "es-ES": "Notas de la versión estable.",
+    },
+    withdrawnVersions: [],
+    target: "darwin-aarch64",
+    packageUrl:
+      "https://purnalica.github.io/fitfreed/updates/1.2.3/FitFreed_1.2.3_aarch64.app.tar.gz",
+    packageSize: 42,
+    packageSha256: "a".repeat(64),
+    packageSignature: "cGFja2FnZS1zaWduYXR1cmU=",
+    minimumReadableSchemaVersion: 1,
+    schemaVersion: 9,
+    issuedAt: "2026-08-17T10:00:00Z",
+    expiresAt: "2026-08-24T10:00:00Z",
+  });
+  const payloadBytes = Buffer.from(JSON.stringify(payload));
+  const envelope = createUpdateEnvelope({
+    payload,
+    payloadBytes,
+    metadataSignature: "bWV0YWRhdGEtc2lnbmF0dXJl",
+    keyId: "stable.synthetic-1",
+  });
+
+  assert.equal(payload.schemaVersion, 2);
+  assert.equal(payload.channel, "stable");
+  assert.equal(payload.sequence, 23);
+  assert.equal(payload.release.version, "1.2.3");
+  assert.equal(payload.release.publishedAt, "2026-08-17T11:00:00Z");
+  assert.equal(payload.release.releaseNotes["es-ES"], "Notas de la versión estable.");
+  assert.equal(envelope.fitfreed.schemaVersion, 2);
+});

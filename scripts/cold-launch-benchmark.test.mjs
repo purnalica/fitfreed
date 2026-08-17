@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { productionBuildIdentity } from "./build-production.mjs";
+import {
+  productionBuildEnvironment,
+  productionBuildIdentity,
+} from "./build-production.mjs";
 import {
   deriveColdLaunchRun,
   evaluateColdLaunchRuns,
@@ -21,6 +24,35 @@ test("binds a production build to its exact revision and clean-tree state", () =
     FITFREED_SOURCE_TREE_CLEAN: "false",
   });
   assert.throws(() => productionBuildIdentity("not-a-revision", ""), /invalid Git revision/);
+});
+
+test("keeps ordinary builds unconfigured and admits public inputs only explicitly", () => {
+  const inherited = {
+    PATH: "/synthetic/bin",
+    FITFREED_PUBLIC_UPDATE_CONTRACT: "inherited-contract",
+    FITFREED_PUBLIC_UPDATE_ENDPOINT: "https://inherited.invalid/stable.json",
+    FITFREED_PUBLIC_UPDATE_TRUST: '{"inherited":"trust"}',
+  };
+  const identity = productionBuildIdentity(revision, "");
+
+  assert.deepEqual(productionBuildEnvironment(inherited, identity), {
+    PATH: "/synthetic/bin",
+    ...identity,
+  });
+  assert.deepEqual(
+    productionBuildEnvironment(inherited, identity, {
+      FITFREED_PUBLIC_UPDATE_CONTRACT: "stable-v2",
+      FITFREED_PUBLIC_UPDATE_ENDPOINT: "https://updates.invalid/stable.json",
+      FITFREED_PUBLIC_UPDATE_TRUST: '{"stable.synthetic":"trust"}',
+    }),
+    {
+      PATH: "/synthetic/bin",
+      ...identity,
+      FITFREED_PUBLIC_UPDATE_CONTRACT: "stable-v2",
+      FITFREED_PUBLIC_UPDATE_ENDPOINT: "https://updates.invalid/stable.json",
+      FITFREED_PUBLIC_UPDATE_TRUST: '{"stable.synthetic":"trust"}',
+    },
+  );
 });
 
 test("accepts only the exact privacy-safe interactive-shell signal", () => {

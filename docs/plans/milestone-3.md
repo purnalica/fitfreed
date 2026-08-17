@@ -32,7 +32,7 @@ No unsigned binary may enter a public channel. No production private key, passwo
 
 ## Increment M3.2 — Public channel and embedded trust
 
-**Status:** active.
+**Status:** implementation and local acceptance complete; hosted acceptance pending publication of the source revision.
 
 **Outcome:** a public production build can discover only an authenticated stable channel through a direct privacy-minimizing HTTPS endpoint, while ordinary builds remain deliberately unconfigured.
 
@@ -46,6 +46,8 @@ No unsigned binary may enter a public channel. No production private key, passwo
 6. Exercise the complete stable path with synthetic keys and local TLS through the packaged application.
 
 **Acceptance evidence:** schema, exact-byte signature, configuration, transport, package, replay, expiry, withdrawal, privacy, packaged-update, atomic-staging, repository-content, and secret-scan tests pass. No production private key or live channel is created by this increment.
+
+Local evidence on 2026-08-17: both closed update-channel schemas and the public build-configuration schema passed valid, invalid, and cross-channel contract checks. Rust tests authenticated stable version 2 while rejecting private-alpha version 1 under stable trust and vice versa; ordinary, partial, invalid, stable, rotation, and instrumented configuration boundaries passed. Automation staged only `updates/stable.json` and its exact versioned package, preserved the prior snapshot when signing failed, and rejected a signing key outside the active public trust set. The packaged Apple Silicon journey used local TLS and fresh synthetic Minisign keys to install 0.2.0 over 0.1.0 through the stable version 2 contract, then deliberately rejected candidate startup and restored the matching 0.1.0 application and library. Both scenarios passed through the production updater and recovery boundaries. The versioned public configuration remains `inactive`, contains no key, and creates no live endpoint or publication.
 
 ## Increment M3.3 — Signed, notarized release automation
 
