@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/public-release-policy-v1.schema.json",
+  "title": "FitFreed public release policy version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "schemaVersion", "releaseVersion", "update"],
+  "properties": {
+    "format": { "const": "org.fitfreed.public-release-policy" },
+    "schemaVersion": { "const": 1 },
+    "releaseVersion": { "$ref": "#/$defs/semver" },
+    "update": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sequence",
+        "minimumSupportedVersion",
+        "releaseNotes",
+        "withdrawnVersions"
+      ],
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "minimumSupportedVersion": { "$ref": "#/$defs/semver" },
+        "releaseNotes": { "$ref": "#/$defs/localizedText" },
+        "withdrawnVersions": {
+          "type": "array",
+          "maxItems": 256,
+          "items": { "$ref": "#/$defs/withdrawal" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "localizedText": {
+      "type": "object",
+      "required": ["en-US", "es-ES"],
+      "minProperties": 2,
+      "maxProperties": 32,
+      "propertyNames": {
+        "pattern": "^[a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-[A-Z]{2}|-[0-9]{3})$"
+      },
+      "properties": {
+        "en-US": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20000,
+          "pattern": "\\S"
+        },
+        "es-ES": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20000,
+          "pattern": "\\S"
+        }
+      },
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 20000,
+        "pattern": "\\S"
+      }
+    },
+    "withdrawal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "reason", "guidance", "replacementVersion"],
+      "properties": {
+        "version": { "$ref": "#/$defs/semver" },
+        "reason": {
+          "enum": ["security", "data-integrity", "stability", "compatibility"]
+        },
+        "guidance": { "$ref": "#/$defs/localizedText" },
+        "replacementVersion": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/semver" }
+          ]
+        }
+      }
+    }
+  }
+}
