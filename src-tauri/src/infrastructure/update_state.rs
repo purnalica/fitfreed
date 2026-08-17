@@ -339,6 +339,7 @@ mod tests {
         UpdateChannelRead::Authenticated(Box::new(AuthenticatedUpdateSnapshot {
             sequence,
             payload_sha256: payload_sha256.to_owned(),
+            signing_key_id: "synthetic-test-key".to_owned(),
             issued_at: "2026-08-17T00:00:00Z".to_owned(),
             expires_at: "2026-08-24T00:00:00Z".to_owned(),
             release: UpdateRelease {

@@ -64,6 +64,10 @@ impl SignedUpdateChannelVerifier {
         }
     }
 
+    pub(crate) fn trusted_public_key(&self, key_id: &str) -> Option<&str> {
+        self.trusted_public_keys.get(key_id).map(String::as_str)
+    }
+
     fn verify_response_inner(
         &self,
         response: &[u8],
@@ -119,6 +123,7 @@ impl SignedUpdateChannelVerifier {
         Ok(AuthenticatedUpdateSnapshot {
             sequence: payload.sequence,
             payload_sha256,
+            signing_key_id: envelope.fitfreed.key_id,
             issued_at: payload.issued_at,
             expires_at: payload.expires_at,
             release: UpdateRelease {
@@ -327,12 +332,12 @@ fn valid_target(value: &str) -> bool {
 }
 
 fn valid_key_id(value: &str) -> bool {
-    (1..=64).contains(&value.len())
-        && !value.starts_with('-')
-        && !value.ends_with('-')
-        && value
-            .bytes()
-            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
+    (1..=128).contains(&value.len())
+        && value.bytes().enumerate().all(|(index, byte)| {
+            byte.is_ascii_lowercase()
+                || byte.is_ascii_digit()
+                || (index > 0 && matches!(byte, b'.' | b'_' | b'-'))
+        })
 }
 
 fn hex_digest(value: &[u8]) -> String {
@@ -446,6 +451,14 @@ mod tests {
     use serde_json::{json, Value};
 
     use super::*;
+
+    #[test]
+    fn accepts_the_documented_signing_key_identifier_shape() {
+        assert!(valid_key_id("alpha.2026_test-key"));
+        assert!(!valid_key_id("-alpha"));
+        assert!(!valid_key_id("ALPHA"));
+        assert!(!valid_key_id(&"a".repeat(129)));
+    }
 
     struct SyntheticFeed {
         key_pair: KeyPair,
@@ -574,6 +587,7 @@ mod tests {
             panic!("expected authenticated update snapshot")
         };
         assert_eq!(snapshot.sequence, 17);
+        assert_eq!(snapshot.signing_key_id, "synthetic-test-key");
         assert_eq!(snapshot.release.version, "0.2.0");
         assert_eq!(
             snapshot.release.release_notes.values["es-ES"],

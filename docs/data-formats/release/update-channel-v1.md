@@ -78,7 +78,7 @@ JSON Schema validates shape; the verifier additionally enforces all of these inv
 5. `minimumReadableVersion` is no greater than `maximumReadableVersion`; `targetVersion` is at least `minimumReadableVersion` and never lower than the current library schema selected for update.
 6. A candidate is installable only when it is newer than the installed version, is not withdrawn, the installed version is at least `minimumSupportedVersion`, and the current library schema is inside the declared readable interval.
 7. Normal channel policy never accepts a SemVer downgrade, including when an endpoint or updater comparator presents one.
-8. An explicit installation request reruns the complete check and must name the exact candidate selected by that fresh authenticated snapshot. Only an installable result yields a host-internal authorization containing its sequence, payload digest, target schema, and current-target package expectations.
+8. An explicit installation request reruns the complete check and must name the exact candidate selected by that fresh authenticated snapshot. Only an installable result yields a host-internal authorization containing its sequence, payload digest, authenticated signing-key identifier, target schema, and current-target package expectations.
 9. A downloaded package must pass Tauri signature verification and exact signed `size` and `sha256` comparison before native installation.
 
 ## Failure and compatibility behavior
@@ -91,6 +91,6 @@ The accepted sequence, payload digest, dismissal, and postponement are local app
 
 ## Signing and release relationship
 
-The protected release authority signs the exact payload bytes and each platform package independently. The package signature proves the bytes accepted by Tauri; the signed payload binds those bytes to FitFreed version, channel, compatibility, notes, withdrawal state, URL, size, and digest. A release is incomplete if either signature or their binding checks are absent.
+The protected release authority signs the exact payload bytes and each platform package independently with the key selected by the envelope `keyId`. The package signature proves the bytes accepted by Tauri; the signed payload binds those bytes to FitFreed version, channel, compatibility, notes, withdrawal state, URL, size, and digest. A release is incomplete if either signature or their binding checks are absent.
 
 Production private keys, passwords, live endpoint configuration, signed generated payloads, and packages are release inputs outside Git. Synthetic contract examples and cryptographic test material never become a trusted production key.

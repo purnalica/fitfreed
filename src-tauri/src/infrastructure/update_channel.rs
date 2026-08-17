@@ -80,6 +80,13 @@ impl HttpsUpdateChannel {
             }),
         }
     }
+
+    pub(crate) fn package_public_key(&self, key_id: &str) -> Option<&str> {
+        self.configured
+            .as_ref()?
+            .verifier
+            .trusted_public_key(key_id)
+    }
 }
 
 impl UpdateChannelPort for HttpsUpdateChannel {
@@ -265,6 +272,28 @@ mod tests {
             channel.fetch_update_snapshot().expect("channel outcome"),
             UpdateChannelRead::Unconfigured
         );
+        assert_eq!(channel.package_public_key("synthetic-test-key"), None);
+    }
+
+    #[test]
+    fn resolves_only_a_configured_active_package_signing_key() {
+        let trust = synthetic_trust();
+        let expected_key = trust["synthetic-test-key"].clone();
+        let channel = HttpsUpdateChannel::configured_with_transport(
+            "https://updates.invalid/private-alpha.json",
+            trust,
+            "darwin-aarch64".to_owned(),
+            Box::new(ControlledTransport::returning(
+                UpdateTransportRead::Unavailable,
+            )),
+        )
+        .expect("configured channel");
+
+        assert_eq!(
+            channel.package_public_key("synthetic-test-key"),
+            Some(expected_key.as_str())
+        );
+        assert_eq!(channel.package_public_key("unknown-test-key"), None);
     }
 
     #[test]

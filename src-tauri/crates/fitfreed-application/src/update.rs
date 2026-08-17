@@ -78,6 +78,7 @@ pub struct UpdateWithdrawal {
 pub struct AuthenticatedUpdateSnapshot {
     pub sequence: u64,
     pub payload_sha256: String,
+    pub signing_key_id: String,
     pub issued_at: String,
     pub expires_at: String,
     pub release: UpdateRelease,
@@ -209,6 +210,7 @@ pub struct UpdateInstallationAuthorization {
     pub version: String,
     pub trusted_sequence: u64,
     pub trusted_payload_sha256: String,
+    pub signing_key_id: String,
     pub target_library_schema_version: u32,
     pub artifact: UpdateArtifact,
 }
@@ -446,6 +448,7 @@ fn evaluate_snapshot(
         version: snapshot.release.version.clone(),
         trusted_sequence: snapshot.sequence,
         trusted_payload_sha256: snapshot.payload_sha256.clone(),
+        signing_key_id: snapshot.signing_key_id.clone(),
         target_library_schema_version: snapshot.release.target_library_schema_version,
         artifact: snapshot.release.artifact.clone(),
     });
@@ -481,7 +484,10 @@ fn validate_snapshot(
     snapshot: &AuthenticatedUpdateSnapshot,
     checked_at: DateTime<FixedOffset>,
 ) -> Result<(), UpdateTrustFailure> {
-    if snapshot.sequence == 0 || !valid_sha256(&snapshot.payload_sha256) {
+    if snapshot.sequence == 0
+        || !valid_sha256(&snapshot.payload_sha256)
+        || !valid_signing_key_id(&snapshot.signing_key_id)
+    {
         return Err(UpdateTrustFailure::InvalidPayload);
     }
     let issued_at =
@@ -613,6 +619,15 @@ fn valid_sha256(value: &str) -> bool {
             .as_bytes()
             .iter()
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(byte))
+}
+
+fn valid_signing_key_id(value: &str) -> bool {
+    (1..=128).contains(&value.len())
+        && value.bytes().enumerate().all(|(index, byte)| {
+            byte.is_ascii_lowercase()
+                || byte.is_ascii_digit()
+                || (index > 0 && matches!(byte, b'.' | b'_' | b'-'))
+        })
 }
 
 fn valid_update_artifact(artifact: &UpdateArtifact) -> bool {

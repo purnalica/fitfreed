@@ -51,9 +51,11 @@ mod polar_flow;
 mod source_subject;
 pub mod update;
 mod update_channel;
+mod update_package;
 mod update_state;
 
 pub use update_channel::{current_update_target, HttpsUpdateChannel};
+pub use update_package::{download_verified_update, UpdatePackageError, VerifiedUpdatePackage};
 pub use update_state::SqliteUpdateState;
 
 use polar_flow::{

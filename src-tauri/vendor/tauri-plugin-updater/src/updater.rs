@@ -304,11 +304,21 @@ impl UpdaterBuilder {
     }
 
     pub fn build(self) -> Result<Updater> {
+        self.build_inner(true)
+    }
+
+    /// Builds an updater that can only prepare a release authenticated by the caller.
+    /// No update endpoint is required because this path must not perform a metadata request.
+    pub fn build_for_authenticated_release(self) -> Result<Updater> {
+        self.build_inner(false)
+    }
+
+    fn build_inner(self, require_endpoints: bool) -> Result<Updater> {
         let endpoints = self
             .endpoints
             .unwrap_or_else(|| self.config.endpoints.clone());
 
-        if endpoints.is_empty() {
+        if require_endpoints && endpoints.is_empty() {
             return Err(Error::EmptyEndpoints);
         };
 
@@ -1628,8 +1638,14 @@ fn escape_msi_property_arg(arg: impl AsRef<OsStr>) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{ensure_chunk_fits, validate_expected_download_size};
+    use std::io::Cursor;
+
+    use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
+    use minisign::{sign, KeyPair};
+
     use crate::Error;
+
+    use super::{ensure_chunk_fits, validate_expected_download_size, verify_signature};
 
     #[test]
     fn validates_declared_and_streamed_package_size_before_copying() {
@@ -1653,6 +1669,53 @@ mod tests {
             ensure_chunk_fits(5, 4, 8),
             Err(Error::DownloadSizeMismatch)
         ));
+    }
+
+    #[test]
+    fn verifies_a_synthetic_package_with_the_upstream_signature_path() {
+        let bytes = b"synthetic updater package";
+        let key_pair = KeyPair::generate_unencrypted_keypair().expect("synthetic key pair");
+        let public_key = key_pair
+            .pk
+            .to_box()
+            .expect("synthetic public key box")
+            .to_string();
+        let signature = sign(
+            Some(&key_pair.pk),
+            &key_pair.sk,
+            Cursor::new(bytes),
+            Some("synthetic package"),
+            Some("untrusted comment: synthetic updater test signature"),
+        )
+        .expect("synthetic package signature")
+        .into_string();
+
+        assert!(
+            verify_signature(bytes, &BASE64.encode(signature), &BASE64.encode(public_key))
+                .expect("verified synthetic package")
+        );
+        assert!(verify_signature(
+            b"changed synthetic updater package",
+            &BASE64.encode(
+                sign(
+                    Some(&key_pair.pk),
+                    &key_pair.sk,
+                    Cursor::new(bytes),
+                    Some("synthetic package"),
+                    Some("untrusted comment: synthetic updater test signature"),
+                )
+                .expect("synthetic package signature")
+                .into_string()
+            ),
+            &BASE64.encode(
+                key_pair
+                    .pk
+                    .to_box()
+                    .expect("synthetic public key box")
+                    .to_string()
+            )
+        )
+        .is_err());
     }
 
     #[test]

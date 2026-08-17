@@ -1785,6 +1785,7 @@ mod tests {
                 trusted_sequence: 17,
                 trusted_payload_sha256:
                     "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef".to_owned(),
+                signing_key_id: "synthetic-test-key".to_owned(),
                 target_library_schema_version: 9,
                 artifact: UpdateArtifact {
                     target: "darwin-aarch64".to_owned(),
@@ -1808,6 +1809,7 @@ mod tests {
         assert_eq!(json["trustFailure"], "mirror-mismatch");
         assert!(json.get("installationAuthorization").is_none());
         let serialized = serde_json::to_string(&json).expect("serialized update outcome JSON");
+        assert!(!serialized.contains("synthetic-test-key"));
         assert!(!serialized.contains("updates.invalid"));
         assert!(!serialized.contains("synthetic-package-signature"));
         for (error, expected) in [

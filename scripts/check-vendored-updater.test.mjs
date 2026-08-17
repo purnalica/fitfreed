@@ -20,9 +20,11 @@ function validEvidence() {
     rootManifest:
       '[workspace]\nexclude = ["vendor/tauri-plugin-updater"]\n[dependencies]\ntauri-plugin-updater = { version = "=2.10.1", path = "vendor/tauri-plugin-updater" }\n',
     updaterSource:
-      "pub fn prepare_update() {}\npub async fn download_with_expected_size() {}\n",
+      "pub fn prepare_update() {}\npub fn build_for_authenticated_release() {}\npub async fn download_with_expected_size() {}\n",
     errorSource: "enum Error { DownloadSizeMismatch }",
     frontendManifest: '{ "dependencies": {} }',
+    capabilityDocument: '{ "permissions": ["core:default"] }',
+    tauriConfig: { plugins: { updater: { pubkey: "", endpoints: [] } } },
   };
 }
 
@@ -45,6 +47,15 @@ test("reports source drift, unexpected files, dependency bypass, and frontend ex
   evidence.actualHashes["src/updater.rs"] = "changed";
   evidence.rootManifest = '[dependencies]\ntauri-plugin-updater = "2"\n';
   evidence.frontendManifest = '{ "dependencies": { "@tauri-apps/plugin-updater": "2" } }';
+  evidence.capabilityDocument = '{ "permissions": ["updater:default"] }';
+  evidence.tauriConfig = {
+    plugins: {
+      updater: {
+        pubkey: "embedded-production-key",
+        endpoints: ["https://updates.invalid/private-alpha.json"],
+      },
+    },
+  };
 
   assert.throws(
     () => validateVendorEvidence(evidence),
@@ -57,6 +68,8 @@ test("reports source drift, unexpected files, dependency bypass, and frontend ex
       assert.match(error.message, /exact reviewed vendored updater path and version/);
       assert.match(error.message, /outside the FitFreed workspace package set/);
       assert.match(error.message, /must not be exposed through a frontend package/);
+      assert.match(error.message, /must not be exposed through a frontend capability/);
+      assert.match(error.message, /ordinary build must keep updater trust unconfigured/);
       return true;
     },
   );

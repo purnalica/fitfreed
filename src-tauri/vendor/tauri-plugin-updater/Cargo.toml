@@ -145,6 +145,9 @@ version = "2"
 version = "2.5"
 features = ["build"]
 
+[dev-dependencies.minisign]
+version = "0.9.1"
+
 [target.'cfg(target_os = "linux")'.dependencies.dirs]
 version = "6"
 

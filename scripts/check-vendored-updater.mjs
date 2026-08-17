@@ -112,12 +112,32 @@ export function validateVendorEvidence(evidence) {
     "vendored updater is missing bounded package download",
   );
   requireValue(
+    evidence.updaterSource.includes("pub fn build_for_authenticated_release"),
+    "vendored updater cannot build without an unauthenticated metadata endpoint",
+  );
+  requireValue(
     evidence.errorSource.includes("DownloadSizeMismatch"),
     "vendored updater is missing its bounded-download error",
   );
   requireValue(
     !evidence.frontendManifest.includes("@tauri-apps/plugin-updater"),
     "the updater must not be exposed through a frontend package",
+  );
+  requireValue(
+    !evidence.capabilityDocument.includes("updater:"),
+    "the updater must not be exposed through a frontend capability",
+  );
+  const updaterConfig = evidence.tauriConfig?.plugins?.updater;
+  requireValue(
+    updaterConfig !== null &&
+      typeof updaterConfig === "object" &&
+      updaterConfig.pubkey === "" &&
+      Array.isArray(updaterConfig.endpoints) &&
+      updaterConfig.endpoints.length === 0 &&
+      updaterConfig.dangerousInsecureTransportProtocol !== true &&
+      updaterConfig.dangerousAcceptInvalidCerts !== true &&
+      updaterConfig.dangerousAcceptInvalidHostnames !== true,
+    "ordinary build must keep updater trust unconfigured",
   );
 
   if (errors.length > 0) throw new Error(errors.join("\n"));
@@ -155,6 +175,13 @@ export function inspectVendoredUpdater(repositoryRoot) {
     updaterSource: readFileSync(path.join(vendorDirectory, "src", "updater.rs"), "utf8"),
     errorSource: readFileSync(path.join(vendorDirectory, "src", "error.rs"), "utf8"),
     frontendManifest: readFileSync(path.join(repositoryRoot, "package.json"), "utf8"),
+    capabilityDocument: readFileSync(
+      path.join(repositoryRoot, "src-tauri", "capabilities", "default.json"),
+      "utf8",
+    ),
+    tauriConfig: JSON.parse(
+      readFileSync(path.join(repositoryRoot, "src-tauri", "tauri.conf.json"), "utf8"),
+    ),
   });
 }
 

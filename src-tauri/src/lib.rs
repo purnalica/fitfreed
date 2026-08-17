@@ -371,7 +371,8 @@ fn database_path(app: &AppHandle) -> Result<PathBuf, String> {
 pub fn run() {
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_opener::init());
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build());
     #[cfg(feature = "e2e")]
     let builder = builder
         .plugin(tauri_plugin_wdio_webdriver::init())
@@ -491,6 +492,7 @@ mod tests {
         AuthenticatedUpdateSnapshot {
             sequence: 1,
             payload_sha256: "a".repeat(64),
+            signing_key_id: "synthetic-test-key".to_owned(),
             issued_at: "2026-08-16T11:00:00Z".to_owned(),
             expires_at: "2026-08-17T11:00:00Z".to_owned(),
             release: UpdateRelease {

@@ -42,8 +42,8 @@ FitFreed will maintain a minimal source refinement of the official `tauri-plugin
 
 - The vendored crate records the upstream version, crate archive SHA-256 `806d9dac662c2e4594ff03c647a552f2c9bd544e7d0f683ec58f872f952ce4af`, original licenses, source location, and exact FitFreed changes.
 - A repository check rejects missing provenance, unexpected vendored files, upstream drift, or a dependency that bypasses the reviewed local source.
-- `Updater` may prepare one native `Update` directly from a `RemoteRelease` built from the fresh `UpdateInstallationAuthorization`. It performs no endpoint request and does not apply a second version comparator.
-- The prepared update must exactly match the authorization's version, target, URL, and package signature before any transfer.
+- `UpdaterBuilder` may build without a metadata endpoint only for the authenticated-release path. `Updater` may then prepare one native `Update` directly from a `RemoteRelease` built from the fresh `UpdateInstallationAuthorization`. Neither operation performs an endpoint request or applies a second version comparator.
+- The authorization retains the authenticated signing-key identifier. The native adapter resolves only that active public key from the same configured trust set, and the prepared update must exactly match the authorization's version, target, URL, and package signature before any transfer.
 - The bounded download rejects a declared length different from the signed size and aborts before appending a chunk that would exceed it. Completion requires exact length. Tauri's existing package-signature verification still runs over the resulting bytes.
 - FitFreed compares the exact byte length and SHA-256 digest again before calling Tauri's existing `Update::install`.
 - The Rust host owns the updater plug-in. No JavaScript updater package or updater capability is added.

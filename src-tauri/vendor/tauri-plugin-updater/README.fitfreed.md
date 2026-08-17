@@ -19,15 +19,16 @@ The source remains licensed by the Tauri Programme under Apache-2.0 or MIT. The 
 
 ## FitFreed changes
 
-Only `src/error.rs` and `src/updater.rs` differ semantically from the published Rust source:
+Production code changes are confined to `src/error.rs` and `src/updater.rs`. `Cargo.toml` additionally declares the test-only `minisign` dependency used to exercise the upstream package verifier:
 
 1. `Error::DownloadSizeMismatch` reports failure of the authenticated byte expectation.
-2. `Updater::prepare_update` creates the upstream `Update` object from a supplied `RemoteRelease` without a network request or a second version comparison.
-3. `Update::download_with_expected_size` reuses the upstream request and package-signature verifier while rejecting a mismatched declared length, an excess chunk before copying it, or an incomplete body.
-4. The original `Updater::check` and `Update::download` delegate to the shared implementations without changing their public behavior.
-5. A unit test protects declared-length and streamed-chunk bounds.
+2. `UpdaterBuilder::build_for_authenticated_release` constructs the native updater without requiring a metadata endpoint that this path must never read.
+3. `Updater::prepare_update` creates the upstream `Update` object from a supplied `RemoteRelease` without a network request or a second version comparison.
+4. `Update::download_with_expected_size` reuses the upstream request and package-signature verifier while rejecting a mismatched declared length, an excess chunk before copying it, or an incomplete body.
+5. The original `UpdaterBuilder::build`, `Updater::check`, and `Update::download` delegate to the shared implementations without changing their public behavior.
+6. Unit tests protect declared-length and streamed-chunk bounds and prove that a synthetic package traverses the upstream Minisign verification path.
 
-No updater command is exposed to React. FitFreed calls only the Rust APIs through its native infrastructure adapter.
+No updater package or capability is exposed to React. FitFreed calls only the Rust APIs through its native infrastructure adapter.
 
 ## Review and upgrade procedure
 

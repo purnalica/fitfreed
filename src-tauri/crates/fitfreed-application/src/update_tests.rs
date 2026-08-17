@@ -105,6 +105,7 @@ fn snapshot(sequence: u64, version: &str) -> AuthenticatedUpdateSnapshot {
     AuthenticatedUpdateSnapshot {
         sequence,
         payload_sha256: format!("{sequence:064x}"),
+        signing_key_id: "synthetic-test-key".to_owned(),
         issued_at: "2026-08-17T00:00:00Z".to_owned(),
         expires_at: "2026-08-24T00:00:00Z".to_owned(),
         release: release(version),
@@ -159,6 +160,7 @@ fn authorizes_only_the_exact_fresh_candidate_and_preserves_its_package_expectati
     assert_eq!(authorization.version, "0.2.0");
     assert_eq!(authorization.trusted_sequence, 17);
     assert_eq!(authorization.trusted_payload_sha256, format!("{:064x}", 17));
+    assert_eq!(authorization.signing_key_id, "synthetic-test-key");
     assert_eq!(authorization.target_library_schema_version, 9);
     assert_eq!(authorization.artifact.target, "darwin-aarch64");
     assert_eq!(authorization.artifact.expected_size_bytes, 26);
@@ -463,6 +465,11 @@ fn rejects_invalid_signed_policy_before_advancing_replay_state() {
         {
             let mut value = snapshot(17, "0.2.0");
             value.payload_sha256 = "A".repeat(64);
+            (value, UpdateTrustFailure::InvalidPayload)
+        },
+        {
+            let mut value = snapshot(17, "0.2.0");
+            value.signing_key_id = "../outside".to_owned();
             (value, UpdateTrustFailure::InvalidPayload)
         },
         {
