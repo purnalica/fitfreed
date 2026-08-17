@@ -683,6 +683,7 @@
     "update-candidate-changed": "La actualización disponible ha cambiado antes de guardar la preferencia. Vuelve a buscar antes de elegir una acción.",
     "invalid-update-preference": "La preferencia de actualización se ha rechazado porque la versión o la hora no eran válidas. Vuelve a buscar antes de elegir una acción.",
     "update-installation-not-allowed": "Esta versión no está autorizada para instalarse desde la aplicación. Vuelve a buscar y sigue las indicaciones de recuperación mostradas.",
+    "update-recovery-confirmation-failed": "FitFreed no ha podido confirmar la aplicación y la biblioteca actualizadas. Mantén la aplicación abierta mientras finaliza la recuperación automática.",
     "unexpected": "FitFreed ha encontrado un error local inesperado. Reinicia la aplicación antes de volver a intentarlo."
   }
 }

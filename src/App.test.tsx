@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -343,6 +343,68 @@ async function chooseArchive(user: ReturnType<typeof userEvent.setup>, path: str
 }
 
 describe("FitFreed import interface", () => {
+  it("requests backend-owned update confirmation only after locale startup completes", async () => {
+    let completeLocale!: (locale: "en-US") => void;
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
+      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      if (command === "load_locale") {
+        return new Promise((resolve) => {
+          completeLocale = resolve;
+        });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    render(<App />);
+
+    await waitFor(() => expect(completeLocale).toBeTypeOf("function"));
+    expect(mocks.updateInvoke).not.toHaveBeenCalledWith(
+      "confirm_update_recovery_startup",
+      undefined,
+    );
+    await act(async () => completeLocale("en-US"));
+    await waitFor(() => expect(mocks.updateInvoke).toHaveBeenCalledWith(
+      "confirm_update_recovery_startup",
+      undefined,
+    ));
+  });
+
+  it("reports candidate confirmation failure without exposing recovery details", async () => {
+    emptyLibrary();
+    mocks.updateInvoke.mockImplementation((command) => {
+      if (command === "confirm_update_recovery_startup") {
+        return Promise.reject({
+          code: "update-recovery-confirmation-failed",
+          detail: "/private/update-recovery/attempts/synthetic",
+        });
+      }
+      if (command === "check_for_updates_on_launch") {
+        return Promise.resolve({
+          installedVersion: "0.1.0",
+          checkedAt: "2026-08-16T12:00:00Z",
+          status: "unconfigured",
+          release: null,
+          installedWithdrawal: null,
+          updateActionAvailable: false,
+          postponedUntil: null,
+          manualRecoveryReason: null,
+          trustFailure: null,
+        });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    render(<App />);
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(
+      "could not confirm the updated application and library",
+    );
+    expect(alert).not.toHaveTextContent("/private/update-recovery");
+  });
+
   it("explains family coverage with localized reasons and next actions without source locators", async () => {
     const latestOutcome = importOutcome({
       coverage: {

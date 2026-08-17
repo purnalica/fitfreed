@@ -193,6 +193,17 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!localeReady) return;
+    let active = true;
+    invoke<boolean>("confirm_update_recovery_startup").catch((reason) => {
+      if (active) setErrorCode(commandErrorCode(reason));
+    });
+    return () => {
+      active = false;
+    };
+  }, [localeReady]);
+
   async function changeLocale(next: Locale) {
     const previous = locale;
     setLocale(next);

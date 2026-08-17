@@ -7,7 +7,7 @@ use std::{
     io,
     path::{Path, PathBuf},
     process,
-    sync::Arc,
+    sync::{Arc, Mutex},
 };
 
 use chrono::{SecondsFormat, Utc};
@@ -19,10 +19,11 @@ use fitfreed_application::{
     LocalePreference, UpdateChannelPort, UpdateCheckContext, UpdateCheckTrigger,
 };
 use infrastructure::{
-    library_schema_version, recover_interrupted_imports, run_update_recovery_watchdog,
-    HttpsUpdateChannel, SqliteActivityLibrary, SqliteImportOutcomeLibrary, SqliteLocalePreferences,
-    SqliteLongitudinalLibrary, SqlitePolarFlowArchiveImporter, SqliteRecoveryLibrary,
-    SqliteSleepLibrary, SqliteTrainingLibrary, SqliteUpdateState,
+    confirm_active_update_recovery, library_schema_version, recover_interrupted_imports,
+    run_update_recovery_watchdog, HttpsUpdateChannel, SqliteActivityLibrary,
+    SqliteImportOutcomeLibrary, SqliteLocalePreferences, SqliteLongitudinalLibrary,
+    SqlitePolarFlowArchiveImporter, SqliteRecoveryLibrary, SqliteSleepLibrary,
+    SqliteTrainingLibrary, SqliteUpdateState, UPDATE_RECOVERY_CANDIDATE_ARGUMENT,
     UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
 };
 use presentation::{
@@ -356,6 +357,57 @@ async fn postpone_available_update(
     .map_err(|_| CommandErrorDto::new("desktop-task-failed"))?
 }
 
+#[tauri::command]
+async fn confirm_update_recovery_startup(
+    app: AppHandle,
+    pending: State<'_, PendingUpdateRecoveryConfirmation>,
+) -> Result<bool, CommandErrorDto> {
+    let Some(recovery_id) = pending
+        .take()
+        .map_err(|_| CommandErrorDto::new("update-recovery-confirmation-failed"))?
+    else {
+        return Ok(false);
+    };
+    let recovery_id_for_retry = recovery_id.clone();
+    let executable = env::current_exe().map_err(|_| {
+        pending.restore(recovery_id_for_retry.clone());
+        CommandErrorDto::new("update-recovery-confirmation-failed")
+    })?;
+    let library_path = database_path(&app).map_err(|_| {
+        pending.restore(recovery_id_for_retry.clone());
+        CommandErrorDto::new("update-recovery-confirmation-failed")
+    })?;
+    let recovery_root = library_path
+        .parent()
+        .map(|parent| parent.join("update-recovery"))
+        .ok_or_else(|| {
+            pending.restore(recovery_id_for_retry.clone());
+            CommandErrorDto::new("update-recovery-confirmation-failed")
+        })?;
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        confirm_active_update_recovery(
+            &recovery_root,
+            &recovery_id,
+            &executable,
+            env!("CARGO_PKG_VERSION"),
+            &library_path,
+            library_schema_version(),
+        )
+    })
+    .await;
+    match result {
+        Ok(Ok(())) => Ok(true),
+        Ok(Err(_)) => {
+            pending.restore(recovery_id_for_retry);
+            Err(CommandErrorDto::new("update-recovery-confirmation-failed"))
+        }
+        Err(_) => {
+            pending.restore(recovery_id_for_retry);
+            Err(CommandErrorDto::new("desktop-task-failed"))
+        }
+    }
+}
+
 fn current_utc_datetime() -> String {
     Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true)
 }
@@ -376,30 +428,71 @@ fn database_path(app: &AppHandle) -> Result<PathBuf, String> {
 
 enum StartupMode {
     Desktop,
+    UpdateRecoveryCandidate { recovery_id: String },
     UpdateRecoveryWatchdog { installed_application: PathBuf },
     InvalidPrivateMode,
 }
 
 fn startup_mode(arguments: &[OsString]) -> StartupMode {
-    if arguments.get(1).and_then(|argument| argument.to_str())
-        != Some(UPDATE_RECOVERY_WATCHDOG_ARGUMENT)
-    {
-        return StartupMode::Desktop;
-    }
-    match arguments {
-        [_, _, installed_application] if Path::new(installed_application).is_absolute() => {
-            StartupMode::UpdateRecoveryWatchdog {
-                installed_application: PathBuf::from(installed_application),
+    match arguments.get(1).and_then(|argument| argument.to_str()) {
+        Some(UPDATE_RECOVERY_WATCHDOG_ARGUMENT) => match arguments {
+            [_, _, installed_application] if Path::new(installed_application).is_absolute() => {
+                StartupMode::UpdateRecoveryWatchdog {
+                    installed_application: PathBuf::from(installed_application),
+                }
             }
+            _ => StartupMode::InvalidPrivateMode,
+        },
+        Some(UPDATE_RECOVERY_CANDIDATE_ARGUMENT) => match arguments {
+            [_, _, recovery_id] if recovery_id.to_str().is_some_and(valid_recovery_id) => {
+                StartupMode::UpdateRecoveryCandidate {
+                    recovery_id: recovery_id.to_string_lossy().into_owned(),
+                }
+            }
+            _ => StartupMode::InvalidPrivateMode,
+        },
+        _ => StartupMode::Desktop,
+    }
+}
+
+fn valid_recovery_id(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+#[derive(Default)]
+struct PendingUpdateRecoveryConfirmation {
+    recovery_id: Mutex<Option<String>>,
+}
+
+impl PendingUpdateRecoveryConfirmation {
+    fn new(recovery_id: Option<String>) -> Self {
+        Self {
+            recovery_id: Mutex::new(recovery_id),
         }
-        _ => StartupMode::InvalidPrivateMode,
+    }
+
+    fn take(&self) -> Result<Option<String>, ()> {
+        self.recovery_id
+            .lock()
+            .map(|mut recovery_id| recovery_id.take())
+            .map_err(|_| ())
+    }
+
+    fn restore(&self, recovery_id: String) {
+        if let Ok(mut pending) = self.recovery_id.lock() {
+            *pending = Some(recovery_id);
+        }
     }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    match startup_mode(&env::args_os().collect::<Vec<_>>()) {
-        StartupMode::Desktop => {}
+    let pending_recovery_confirmation = match startup_mode(&env::args_os().collect::<Vec<_>>()) {
+        StartupMode::Desktop => None,
+        StartupMode::UpdateRecoveryCandidate { recovery_id } => Some(recovery_id),
         StartupMode::UpdateRecoveryWatchdog {
             installed_application,
         } => {
@@ -414,7 +507,7 @@ pub fn run() {
             process::exit(if succeeded { 0 } else { 1 });
         }
         StartupMode::InvalidPrivateMode => process::exit(1),
-    }
+    };
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
@@ -430,6 +523,9 @@ pub fn run() {
             Ok(())
         })
         .manage(ImportCoordinator::default())
+        .manage(PendingUpdateRecoveryConfirmation::new(
+            pending_recovery_confirmation,
+        ))
         .manage(Arc::new(HttpsUpdateChannel::unconfigured()))
         .invoke_handler(tauri::generate_handler![
             import_archive,
@@ -452,7 +548,8 @@ pub fn run() {
             check_for_updates_on_launch,
             check_for_updates,
             dismiss_available_update,
-            postpone_available_update
+            postpone_available_update,
+            confirm_update_recovery_startup
         ])
         .run(tauri::generate_context!())
         .expect("failed to run FitFreed");
@@ -560,6 +657,42 @@ mod tests {
             ]),
             StartupMode::InvalidPrivateMode
         ));
+    }
+
+    #[test]
+    fn routes_only_an_exact_candidate_recovery_identifier_into_desktop_startup() {
+        let executable = OsString::from("fitfreed");
+        let argument = OsString::from(UPDATE_RECOVERY_CANDIDATE_ARGUMENT);
+        let recovery_id = OsString::from("a".repeat(64));
+
+        assert!(matches!(
+            startup_mode(&[executable.clone(), argument.clone(), recovery_id]),
+            StartupMode::UpdateRecoveryCandidate { .. }
+        ));
+        assert!(matches!(
+            startup_mode(&[
+                executable.clone(),
+                argument.clone(),
+                OsString::from("A".repeat(64))
+            ]),
+            StartupMode::InvalidPrivateMode
+        ));
+        assert!(matches!(
+            startup_mode(&[executable, argument, OsString::from("too-short")]),
+            StartupMode::InvalidPrivateMode
+        ));
+    }
+
+    #[test]
+    fn serializes_candidate_confirmation_claims_and_restores_failed_attempts() {
+        let recovery_id = "a".repeat(64);
+        let pending = PendingUpdateRecoveryConfirmation::new(Some(recovery_id.clone()));
+
+        assert_eq!(pending.take(), Ok(Some(recovery_id.clone())));
+        assert_eq!(pending.take(), Ok(None));
+
+        pending.restore(recovery_id.clone());
+        assert_eq!(pending.take(), Ok(Some(recovery_id)));
     }
 
     fn authenticated_update_snapshot() -> AuthenticatedUpdateSnapshot {
