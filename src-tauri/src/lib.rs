@@ -5,7 +5,7 @@ use std::{
     env,
     ffi::OsString,
     future::Future,
-    io,
+    io::{self, Write},
     path::{Path, PathBuf},
     process,
     sync::{Arc, Mutex},
@@ -59,6 +59,60 @@ const UPDATE_RECOVERY_STARTUP_MAINTENANCE_TIMEOUT: Duration = Duration::from_sec
 const UPDATE_RECOVERY_STARTUP_MAINTENANCE_POLL_INTERVAL: Duration = Duration::from_millis(100);
 const PERIODIC_UPDATE_CHECK_INTERVAL: Duration = Duration::from_secs(24 * 60 * 60);
 const UPDATE_CHECK_COMPLETED_EVENT: &str = "fitfreed://update-check-completed";
+
+#[derive(Default)]
+struct InteractiveShellSignal {
+    emitted: Mutex<bool>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct InteractiveShellPayload<'a> {
+    format: &'static str,
+    schema_version: u8,
+    event: &'static str,
+    application_version: &'a str,
+    source_revision: &'a str,
+    source_tree_clean: bool,
+}
+
+fn write_interactive_shell_signal(
+    signal: &InteractiveShellSignal,
+    writer: &mut impl Write,
+) -> io::Result<bool> {
+    let mut emitted = signal
+        .emitted
+        .lock()
+        .map_err(|_| io::Error::other("interactive shell signal is unavailable"))?;
+    if *emitted {
+        return Ok(false);
+    }
+    serde_json::to_writer(
+        &mut *writer,
+        &InteractiveShellPayload {
+            format: "org.fitfreed.startup-signal",
+            schema_version: 1,
+            event: "interactive-shell",
+            application_version: env!("CARGO_PKG_VERSION"),
+            source_revision: env!("FITFREED_SOURCE_REVISION"),
+            source_tree_clean: env!("FITFREED_SOURCE_TREE_CLEAN") == "true",
+        },
+    )
+    .map_err(io::Error::other)?;
+    writer.write_all(b"\n")?;
+    writer.flush()?;
+    *emitted = true;
+    Ok(true)
+}
+
+#[tauri::command]
+fn report_interactive_shell(
+    signal: State<'_, InteractiveShellSignal>,
+) -> Result<(), CommandErrorDto> {
+    write_interactive_shell_signal(signal.inner(), &mut io::stdout().lock())
+        .map(|_| ())
+        .map_err(|_| CommandErrorDto::new("interactive-shell-signal-unavailable"))
+}
 
 #[derive(Default)]
 struct UpdateOperationCoordinator {
@@ -925,6 +979,7 @@ pub fn run() {
     let update_coordinator = Arc::new(UpdateOperationCoordinator::default());
     builder
         .manage(ImportCoordinator::default())
+        .manage(InteractiveShellSignal::default())
         .manage(PendingUpdateRecoveryConfirmation::new(
             pending_recovery_confirmation,
         ))
@@ -985,7 +1040,8 @@ pub fn run() {
             postpone_available_update,
             install_available_update,
             confirm_update_recovery_startup,
-            acknowledge_update_recovery_notice
+            acknowledge_update_recovery_notice,
+            report_interactive_shell
         ])
         .run(tauri::generate_context!())
         .expect("failed to run FitFreed");
@@ -1185,6 +1241,26 @@ mod tests {
             ]),
             StartupMode::InvalidPrivateMode
         ));
+    }
+
+    #[test]
+    fn interactive_shell_signal_is_privacy_safe_and_emitted_once() {
+        let signal = InteractiveShellSignal::default();
+        let mut output = Vec::new();
+
+        assert!(write_interactive_shell_signal(&signal, &mut output).expect("first signal"));
+        assert!(!write_interactive_shell_signal(&signal, &mut output).expect("repeat signal"));
+
+        let line = String::from_utf8(output).expect("UTF-8 signal");
+        let payload: serde_json::Value = serde_json::from_str(line.trim()).expect("JSON signal");
+        assert_eq!(payload["format"], "org.fitfreed.startup-signal");
+        assert_eq!(payload["schemaVersion"], 1);
+        assert_eq!(payload["event"], "interactive-shell");
+        assert_eq!(payload["applicationVersion"], env!("CARGO_PKG_VERSION"));
+        assert!(payload["sourceRevision"].is_string());
+        assert!(payload["sourceTreeClean"].is_boolean());
+        assert_eq!(line.lines().count(), 1);
+        assert!(!line.contains("/Users/"));
     }
 
     #[test]

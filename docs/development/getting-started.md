@@ -51,6 +51,8 @@ npm run test:fast
 | Generate the Insights performance fixture | `npm run fixture:insights-performance` |
 | Verify full-scale import and exact-repeat budgets | `npm run benchmark:import` |
 | Verify detailed and longitudinal read-model performance | `npm run benchmark:insights` |
+| Build only the unsigned production application bundle | `npm run package:app` |
+| Verify cold launch against that clean production bundle | `npm run benchmark:cold-launch` |
 | Build the unsigned production package | `npm run package` |
 | Install the pinned local release evidence tool | `npm run install:release-tools` |
 | Prepare release-shaped private evidence | `npm run prepare:development-release -- 0.1.0` |
@@ -62,7 +64,7 @@ npm run test:fast
 
 Generated application, database, fixture, log, screenshot, icon, and bundle output is ignored. Never replace the synthetic generators with a real provider export or a record copied from one.
 
-The unsigned macOS production application and DMG are generated under `src-tauri/target/release/bundle/`. The separate E2E builds are instrumented and must never be distributed. Packaged update fixtures, ephemeral keys and certificates, isolated installed bundles, libraries, recovery state, logs, and screenshots live under ignored `.artifacts/update-e2e`. `npm run verify:full` finishes by rebuilding and checking the production package so the retained bundle is not an instrumented variant.
+The unsigned macOS production application and DMG are generated under `src-tauri/target/release/bundle/`. `npm run package:app` builds only `FitFreed.app` for the cold-launch campaign; `npm run package` builds the complete application and DMG set. Both commands bind the exact Git revision and clean-tree state into the host. The separate E2E builds are instrumented and must never be distributed. Packaged update fixtures, ephemeral keys and certificates, isolated installed bundles, libraries, recovery state, logs, and screenshots live under ignored `.artifacts/update-e2e`. `npm run verify:full` finishes by rebuilding, timing, and checking the production package so the retained bundle is not an instrumented variant.
 
 ## Synthetic fixture workflow
 
@@ -86,13 +88,13 @@ The host starts one process-lifetime update schedule after setup. The ready inte
 
 The [localization guide](localization.md) documents locale resolution, durable preferences, formatting, translation-catalog rules, and the complete acceptance path for adding a language.
 
-The [performance benchmark guide](performance-benchmarks.md) documents synthetic scales, timed boundaries, run counts, percentile calculation, budgets, machine-readable evidence, and interpretation limits.
+The [performance benchmark guide](performance-benchmarks.md) documents cold launch, synthetic scales, timed boundaries, run counts, percentile calculation, budgets, machine-readable evidence, and interpretation limits.
 
 The [private release preparation guide](release-preparation.md) owns the clean-revision package and installation evidence lane. It remains separate from `verify:full` because preparation must bind its output to a clean, reviewable commit.
 
 ## Continuous integration
 
-GitHub Actions classifies every pull request and `main` revision through a closed documentation-only allowlist. Documentation links and repository safety always run. A documentation-only revision skips executable verification only when the exact Git-tree fingerprint of every executable and release input has evidence that both complete lanes previously passed; missing evidence fails closed. Executable, release-affecting, unknown, and explicitly requested changes run the complete portable quality checks and mandatory macOS packaged-E2E job. The macOS job verifies the full-scale import, exact-repeat, detailed-domain, and longitudinal read-model budgets, prepares and installation-tests a normal private production package, and then builds separate test variants. It drives the packaged application through validation, progress, cancellation, both locales, exact and cumulative reimport, accessibility, persisted restart, and in-WebView performance budgets for all four detailed Insights areas and their integrated longitudinal view. It also exercises a real signed 0.1.0-to-0.2.0 native update through loopback HTTPS, including successful confirmation and automatic rollback after deliberate candidate rejection.
+GitHub Actions classifies every pull request and `main` revision through a closed documentation-only allowlist. Documentation links and repository safety always run. A documentation-only revision skips executable verification only when the exact Git-tree fingerprint of every executable and release input has evidence that both complete lanes previously passed; missing evidence fails closed. Executable, release-affecting, unknown, and explicitly requested changes run the complete portable quality checks and mandatory macOS packaged-E2E job. The macOS job verifies the full-scale import, exact-repeat, detailed-domain, longitudinal read-model, and production cold-launch budgets, prepares and installation-tests a normal private production package, and then builds separate test variants. It drives the packaged application through validation, progress, cancellation, both locales, exact and cumulative reimport, accessibility, persisted restart, and in-WebView performance budgets for all four detailed Insights areas and their integrated longitudinal view. It also exercises a real signed 0.1.0-to-0.2.0 native update through loopback HTTPS, including successful confirmation and automatic rollback after deliberate candidate rejection.
 
 The instrumented build routes only the archive-picker adapter to WebdriverIO's dialog mock because the embedded macOS WebView exposes Tauri globals through a non-configurable proxy. The E2E test waits for the recorded picker call before observing its result. Normal development and production builds use Tauri's native dialog directly, and the production-bundle check rejects both Rust and presentation WebDriver markers.
 

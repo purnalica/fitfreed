@@ -21,7 +21,7 @@ Replace `0.1.0` with the explicitly reviewed version. Preparation stops unless t
 
 The reviewed release-note body must exist at `release/notes/<version>.md`. It contains exactly these non-empty level-two sections in order: Highlights, Compatibility, Privacy and data, Known limitations, Installation and recovery, and Support. It has no level-one heading because preparation generates the title and exact release identity. Missing, reordered, duplicated, unexpected, or unterminated sections block both the fast release-contract check and release preparation.
 
-The command audits the complete JavaScript production and build graph, verifies the candidate-bound upgrade matrix, builds the normal Tauri production package, rejects E2E instrumentation, generates and validates production-only CycloneDX inventories, normalizes machine-local Cargo references, scans the complete evidence set for secrets, and stages it under `.artifacts/releases/<version>/`.
+The command audits the complete JavaScript production and build graph, verifies the candidate-bound upgrade matrix, builds the normal Tauri production package, rejects E2E instrumentation, generates and validates production-only CycloneDX inventories, normalizes machine-local Cargo references, scans the complete evidence set for secrets, and stages it under `.artifacts/releases/<version>/`. The production build wrapper embeds the exact Git revision and clean-tree state used by the application startup signal and refuses a source change during the build.
 
 Preparation requires a clean Git revision so the manifest can identify its complete source. A failure keeps the last complete version directory and removes only the incomplete ignored staging directory.
 

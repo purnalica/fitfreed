@@ -30,6 +30,8 @@ The current physical modules and compile-time boundaries are documented in the [
 
 The initial desktop distribution uses one Tauri application process and its managed blocking-task runtime. Import use cases execute on blocking workers rather than the UI event path. Application coordination permits one active import; adapter tests prove atomic visibility and cancellation rollback. Packaged timing, shutdown, and restart recovery remain mandatory hosted-E2E gates.
 
+Normal production builds bind the exact Git revision and clean-tree state into the host through the versioned build wrapper. After locale initialization, React waits for the next animation frame and invokes the host's one-shot interactive-shell signal. The host writes only a closed JSON object containing its fixed event contract, application version, source revision, and clean-tree state. This production path gives the cold-launch benchmark an application-owned process-to-painted-shell boundary without WebDriver, WebView reloads, personal data, filesystem paths, or test-only package capabilities. Failure to write the diagnostic signal never changes ordinary UI state; a benchmark that cannot observe it fails closed.
+
 ## Contributor contract
 
 The repository will pin supported Rust and Node versions and expose one documented command for each fast check, full verification, application launch, package build, and release-shaped test. A clean clone must not require private data, proprietary services, or undocumented global tooling.

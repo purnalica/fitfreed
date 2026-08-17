@@ -6,6 +6,21 @@ The versioned performance gates protect full-scale import plus the current daily
 
 These gates establish regression evidence on the machine that runs them. They do not yet prove the provisional Apple Silicon, 8 GB minimum profile. Cold launch, update, and reference-profile execution retain their own open performance gates. The reference-profile run must execute these same commands; a result from a more capable host cannot replace it.
 
+## Cold launch benchmark
+
+Build the normal production application from a clean revision and run the macOS campaign:
+
+```sh
+npm run package:app
+npm run benchmark:cold-launch
+```
+
+The production build wrapper binds the exact Git revision and clean-tree state into the host. The benchmark rejects a dirty checkout, an application built from another revision, an instrumented package, an unexpected signal field, or a build that was not clean. It starts the timer immediately before creating each application process. After locale initialization, React waits for the next animation frame and reports the interactive shell through a one-shot host command. The host emits a closed privacy-safe JSON signal containing only the event contract, application version, source revision, and clean-tree state. WebDriver, driver creation, WebView reloads, and timers started after process creation are outside this boundary and cannot satisfy it.
+
+The campaign runs exactly 20 fresh production processes with no warm-up and a distinct empty temporary home for each process. Every duration therefore includes process creation, Tauri and WebView startup, storage initialization, locale resolution, React rendering, one painted frame, and the signal round trip. The process is terminated only after the signal, and all temporary application data is removed. Output and diagnostics are bounded; their raw content is never included in evidence.
+
+Durations are sorted and p95 uses zero-based index `ceil((n - 1) * 0.95)`. The p95 budget is 2.5 seconds. The local output object records application and source identity, clean-tree state, host profile, free storage, scenario, boundary, run policy, median, p95, maximum, budget, and result. The exact host profile and raw output remain local. Versioned evidence retains the aggregate measurements and states only whether the environment satisfies the provisional 8 GB Apple Silicon profile. Only a passing clean campaign on that profile closes the acceptance gate; other hosts provide regression evidence only.
+
 ## Full-scale import benchmark
 
 Run on macOS:
@@ -25,7 +40,7 @@ The enforced p95 budgets are:
 - representative query: at most 500 ms;
 - peak resident memory: strictly less than 1,536 MiB.
 
-The output records the application version, source revision and clean-tree state, host profile, free storage, exact generated scale, compressed archive size, run policy, aggregate timings, phase p95 values, memory, and budget result. Temporary ZIP and SQLite files are removed even after failure. Only a clean-tree result on the provisional 8 GB Apple Silicon profile closes that profile's import gate; local high-spec and hosted runs remain valuable regression evidence.
+The local output records the application version, source revision and clean-tree state, host profile, free storage, exact generated scale, compressed archive size, run policy, aggregate timings, phase p95 values, memory, and budget result. Exact host details and raw output remain local; versioned evidence retains the synthetic scale, aggregate measurements, result, and only the reference-profile classification. Temporary ZIP and SQLite files are removed even after failure. Only a clean-tree result on the provisional 8 GB Apple Silicon profile closes that profile's import gate; other local and hosted runs remain valuable regression evidence.
 
 ## Application read-model benchmark
 
@@ -47,7 +62,7 @@ It measures the SQLite adapter plus application read model separately for daily 
 
 Sleep and recovery additionally measure exact detail retrieval for one identity. Sleep overview and comparison must not load high-resolution transition rows; recovery overview and comparison must not load baseline values or guidance text. Each detail path loads only the selected identity's complete information. Longitudinal measurements execute the global range and origin composition plus all four established domain models; they must not use a persisted report cache.
 
-Each interaction has 10 warm-up executions and 100 measured executions. Durations are sorted and p95 uses zero-based index `ceil((n - 1) * 0.95)`. Default and common interactions must remain within 500 ms p95; maximum-range interactions must remain within the 2-second complex-visualization budget. The output reports application version, source revision, host profile, free storage, generated scale, database size, run policy, median, p95, maximum, budget result, and peak process memory.
+Each interaction has 10 warm-up executions and 100 measured executions. Durations are sorted and p95 uses zero-based index `ceil((n - 1) * 0.95)`. Default and common interactions must remain within 500 ms p95; maximum-range interactions must remain within the 2-second complex-visualization budget. The local output reports application version, source revision, host profile, free storage, generated scale, database size, run policy, median, p95, maximum, budget result, and peak process memory. Public documentation follows the same minimized evidence boundary as the other benchmarks.
 
 ## Packaged UI benchmark
 
@@ -57,10 +72,10 @@ For each detailed domain and the longitudinal view, the packaged journey uses fo
 
 ## Automation and evidence handling
 
-`npm run verify:full` includes the full-scale import, read-model, and packaged-UI gates. The macOS GitHub Actions job runs the same commands explicitly, so local and hosted paths share the same versioned entry points. A budget failure is not retried or converted into a pass.
+`npm run verify:full` includes the cold-launch, full-scale import, read-model, and packaged-UI gates. The macOS GitHub Actions job runs the same commands explicitly, so local and hosted paths share the same versioned entry points. A budget failure is not retried or converted into a pass.
 
-Generated archives, databases, raw benchmark output, screenshots, and logs remain ignored local or short-lived CI evidence. Only the synthetic generators, executable assertions, budgets, and methodology are versioned. Do not replace them with a provider export or values derived from one.
+Generated archives, databases, raw benchmark output, exact local host profiles, screenshots, and logs remain ignored local or short-lived CI evidence. Only the synthetic generators, executable assertions, budgets, methodology, privacy-safe aggregate measurements, and reference-profile classification are versioned. Do not replace them with a provider export, values derived from one, or a maintainer's or participant's workstation details.
 
 When investigating a regression, first separate archive fingerprinting, database setup, validation, decode and mapping, reconciliation, transaction control, query, application-model, transport, React, render, and test-controller time. Changing a budget requires measured evidence, impact analysis, and an explicit product decision; test-runner overhead is not product latency.
 
-Cold launch requires a process-to-interactive measurement against a release-shaped application on the reference profile. WebView reload time, driver session creation, or a timer started after the host process exists would measure a different boundary and cannot close that gate.
+Cold-launch evidence measures the production process-to-painted-interactive-shell boundary described above. A result from an instrumented package, WebView reload, driver session, stale binary, dirty source tree, or post-process timer measures a different boundary and cannot close that gate.

@@ -192,6 +192,9 @@ jobs:
       - name: Prepare the private development release evidence
         run: npm run prepare:development-release -- "$FITFREED_RELEASE_VERSION"
 
+      - name: Verify cold-launch budget
+        run: npm run benchmark:cold-launch
+
       - name: Verify update recovery preparation against the production application
         run: npm run verify:update-recovery-preparation
 

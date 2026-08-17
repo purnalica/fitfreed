@@ -204,6 +204,14 @@ function App() {
 
   useEffect(() => {
     if (!localeReady) return;
+    const frame = requestAnimationFrame(() => {
+      invoke("report_interactive_shell").catch(() => undefined);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [localeReady]);
+
+  useEffect(() => {
+    if (!localeReady) return;
     let active = true;
     invoke<UpdateRecoveryOutcome | null>("confirm_update_recovery_startup")
       .then((recoveryOutcome) => {

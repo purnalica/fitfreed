@@ -263,6 +263,7 @@ function importOutcome(overrides: Record<string, unknown> = {}) {
 
 const mocks = vi.hoisted(() => ({
   invoke: vi.fn(),
+  interactiveShellInvoke: vi.fn(),
   recoveryInvoke: vi.fn(),
   longitudinalInvoke: vi.fn(),
   sleepInvoke: vi.fn(),
@@ -276,7 +277,9 @@ vi.mock("@tauri-apps/api/core", () => ({
     onmessage?: (message: T) => void;
   },
   invoke: (command: string, arguments_: Record<string, unknown>) =>
-    command.includes("update")
+    command === "report_interactive_shell"
+      ? mocks.interactiveShellInvoke(command, arguments_)
+      : command.includes("update")
       ? mocks.updateInvoke(command, arguments_)
       : command.startsWith("query_longitudinal_")
       ? mocks.longitudinalInvoke(command, arguments_)
@@ -298,7 +301,9 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   mocks.invoke.mockReset();
+  mocks.interactiveShellInvoke.mockReset();
   mocks.recoveryInvoke.mockReset();
   mocks.longitudinalInvoke.mockReset();
   mocks.sleepInvoke.mockReset();
@@ -308,6 +313,24 @@ afterEach(() => {
 });
 
 beforeEach(() => {
+  let nextFrame = 0;
+  const scheduledFrames = new Map<number, FrameRequestCallback>();
+  vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => {
+    nextFrame += 1;
+    const frame = nextFrame;
+    scheduledFrames.set(frame, callback);
+    queueMicrotask(() => {
+      const scheduled = scheduledFrames.get(frame);
+      if (!scheduled) return;
+      scheduledFrames.delete(frame);
+      scheduled(performance.now());
+    });
+    return frame;
+  }));
+  vi.stubGlobal("cancelAnimationFrame", vi.fn((frame: number) => {
+    scheduledFrames.delete(frame);
+  }));
+  mocks.interactiveShellInvoke.mockResolvedValue(undefined);
   mocks.listen.mockResolvedValue(() => {});
   mocks.recoveryInvoke.mockResolvedValue(emptyRecoveryOverview());
   mocks.longitudinalInvoke.mockResolvedValue(emptyLongitudinalOverview());
@@ -354,6 +377,40 @@ async function chooseArchive(user: ReturnType<typeof userEvent.setup>, path: str
 }
 
 describe("FitFreed import interface", () => {
+  it("reports the interactive shell only after locale startup and a rendered frame", async () => {
+    let completeLocale!: (locale: "en-US") => void;
+    let renderFrame: FrameRequestCallback | undefined;
+    vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => {
+      renderFrame = callback;
+      return 1;
+    }));
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
+      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      if (command === "load_locale") {
+        return new Promise((resolve) => {
+          completeLocale = resolve;
+        });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    render(<App />);
+
+    await waitFor(() => expect(completeLocale).toBeTypeOf("function"));
+    expect(mocks.interactiveShellInvoke).not.toHaveBeenCalled();
+    await act(async () => completeLocale("en-US"));
+    await waitFor(() => expect(renderFrame).toBeTypeOf("function"));
+    expect(mocks.interactiveShellInvoke).not.toHaveBeenCalled();
+    await act(async () => renderFrame?.(performance.now()));
+    await waitFor(() => expect(mocks.interactiveShellInvoke).toHaveBeenCalledTimes(1));
+    expect(mocks.interactiveShellInvoke).toHaveBeenCalledWith(
+      "report_interactive_shell",
+      undefined,
+    );
+  });
+
   it("blocks mutable desktop controls while an update installation owns the application", async () => {
     emptyLibrary();
     let rejectInstallation!: (reason: unknown) => void;
