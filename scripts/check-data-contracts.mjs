@@ -1870,6 +1870,11 @@ for (const field of [
   "recoveryId",
   "phase",
   "preparedAt",
+  "replacementProcess.processId",
+  "replacementProcess.startedAtUnixSeconds",
+  "replacementProcess.startedAtMicroseconds",
+  "replacementProcess.launchNonce",
+  "replacementProcess.confirmationDeadline",
   "source.version",
   "source.librarySchemaVersion",
   "source.applicationPath",
@@ -1905,6 +1910,7 @@ const syntheticUpdateRecovery = {
   recoveryId: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   phase: "prepared",
   preparedAt: "2026-08-17T08:00:00Z",
+  replacementProcess: null,
   source: {
     version: "0.1.0",
     librarySchemaVersion: 9,
@@ -1938,6 +1944,7 @@ if (!validateUpdateRecovery(syntheticUpdateRecovery)) {
 }
 for (const invalidRecovery of [
   { ...syntheticUpdateRecovery, phase: "installed" },
+  { ...syntheticUpdateRecovery, replacementProcess: { processId: 42 } },
   { ...syntheticUpdateRecovery, recoveryId: "not-a-digest" },
   (() => {
     const value = structuredClone(syntheticUpdateRecovery);

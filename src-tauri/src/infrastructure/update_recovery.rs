@@ -8,7 +8,7 @@ use std::{
 #[cfg(target_os = "macos")]
 use std::process::Command;
 
-use chrono::{DateTime, SecondsFormat, Utc};
+use chrono::{DateTime, Duration as ChronoDuration, SecondsFormat, Utc};
 use fitfreed_application::{
     validate_update_recovery_transition, UpdateInstallationAuthorization, UpdateRecoveryPhase,
 };
@@ -29,6 +29,7 @@ const ACTIVE_FILE_NAME: &str = "active";
 const ATTEMPTS_DIRECTORY_NAME: &str = "attempts";
 const MANIFEST_FILE_NAME: &str = "manifest.json";
 const STATE_LOCK_FILE_NAME: &str = "state.lock";
+const CANDIDATE_LOCK_FILE_NAME: &str = "candidate.lock";
 const APPLICATION_BACKUP_RELATIVE_PATH: &str = "previous/FitFreed.app";
 const LIBRARY_BACKUP_RELATIVE_PATH: &str = "previous/fitfreed.sqlite";
 const EXPECTED_BUNDLE_IDENTIFIER: &str = "org.fitfreed.desktop";
@@ -121,6 +122,7 @@ pub struct UpdateRecoveryWatchdogContext {
     library_path: PathBuf,
     target_version: String,
     target_library_schema_version: u32,
+    replacement_process: Option<UpdateRecoveryReplacementProcess>,
 }
 
 impl UpdateRecoveryWatchdogContext {
@@ -146,6 +148,86 @@ impl UpdateRecoveryWatchdogContext {
 
     pub fn target_library_schema_version(&self) -> u32 {
         self.target_library_schema_version
+    }
+
+    pub fn replacement_process(&self) -> Option<&UpdateRecoveryReplacementProcess> {
+        self.replacement_process.as_ref()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UpdateRecoveryReplacementProcess {
+    process_id: u32,
+    started_at_unix_seconds: u64,
+    started_at_microseconds: u64,
+    launch_nonce: String,
+    confirmation_deadline: String,
+}
+
+impl UpdateRecoveryReplacementProcess {
+    pub fn process_id(&self) -> u32 {
+        self.process_id
+    }
+
+    pub fn started_at_unix_seconds(&self) -> u64 {
+        self.started_at_unix_seconds
+    }
+
+    pub fn started_at_microseconds(&self) -> u64 {
+        self.started_at_microseconds
+    }
+
+    pub fn launch_nonce(&self) -> &str {
+        &self.launch_nonce
+    }
+
+    pub fn confirmation_deadline(&self) -> &str {
+        &self.confirmation_deadline
+    }
+}
+
+pub struct UpdateRecoveryReplacementLaunch<'a> {
+    pub process_id: u32,
+    pub started_at_unix_seconds: u64,
+    pub started_at_microseconds: u64,
+    pub launch_nonce: &'a str,
+    pub confirmation_deadline: &'a str,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct UpdateRecoveryProcessIdentity {
+    process_id: u32,
+    started_at_unix_seconds: u64,
+    started_at_microseconds: u64,
+}
+
+impl UpdateRecoveryProcessIdentity {
+    pub fn process_id(&self) -> u32 {
+        self.process_id
+    }
+
+    pub fn started_at_unix_seconds(&self) -> u64 {
+        self.started_at_unix_seconds
+    }
+
+    pub fn started_at_microseconds(&self) -> u64 {
+        self.started_at_microseconds
+    }
+}
+
+pub struct UpdateRecoveryCandidateLease {
+    file: File,
+    recovery_id: String,
+    launch_nonce: String,
+}
+
+impl UpdateRecoveryCandidateLease {
+    pub fn recovery_id(&self) -> &str {
+        &self.recovery_id
+    }
+
+    pub fn launch_nonce(&self) -> &str {
+        &self.launch_nonce
     }
 }
 
@@ -178,10 +260,33 @@ struct UpdateRecoveryManifest {
     recovery_id: String,
     phase: RecoveryPhaseWire,
     prepared_at: String,
+    replacement_process: Option<ReplacementProcess>,
     source: RecoverySource,
     target: RecoveryTarget,
     application_backup: ApplicationBackup,
     library_backup: LibraryBackup,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ReplacementProcess {
+    process_id: u32,
+    started_at_unix_seconds: u64,
+    started_at_microseconds: u64,
+    launch_nonce: String,
+    confirmation_deadline: String,
+}
+
+impl From<ReplacementProcess> for UpdateRecoveryReplacementProcess {
+    fn from(value: ReplacementProcess) -> Self {
+        Self {
+            process_id: value.process_id,
+            started_at_unix_seconds: value.started_at_unix_seconds,
+            started_at_microseconds: value.started_at_microseconds,
+            launch_nonce: value.launch_nonce,
+            confirmation_deadline: value.confirmation_deadline,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -296,6 +401,11 @@ pub fn prepare_update_recovery(
     set_private_directory_permissions(&staging_directory)?;
     let mut staging = StagingDirectory::new(staging_directory.clone());
     drop(RecoveryStateLock::acquire(&staging_directory)?);
+    drop(open_private_lock_file(
+        &staging_directory,
+        CANDIDATE_LOCK_FILE_NAME,
+        true,
+    )?);
 
     let application_backup_path = staging_directory.join(APPLICATION_BACKUP_RELATIVE_PATH);
     let library_backup_path = staging_directory.join(LIBRARY_BACKUP_RELATIVE_PATH);
@@ -336,6 +446,7 @@ pub fn prepare_update_recovery(
         phase: RecoveryPhaseWire::Prepared,
         prepared_at: canonical_utc(preparation.prepared_at)
             .ok_or(UpdateRecoveryError::InvalidInput)?,
+        replacement_process: None,
         source: RecoverySource {
             version: preparation.installed_version.to_owned(),
             library_schema_version: source_library_schema_version,
@@ -421,9 +532,48 @@ pub fn transition_active_update_recovery(
     let manifest_path = attempt_directory.join(MANIFEST_FILE_NAME);
     let mut manifest = read_manifest(&manifest_path)?;
     validate_manifest(&manifest)?;
+    if next == UpdateRecoveryPhase::Launching {
+        return Err(UpdateRecoveryError::InvalidTransition);
+    }
     validate_update_recovery_transition(manifest.phase.into(), next)
         .map_err(|_| UpdateRecoveryError::InvalidTransition)?;
     manifest.phase = next.into();
+    validate_manifest(&manifest)?;
+    write_manifest(&manifest_path, &manifest)
+}
+
+pub fn record_active_update_recovery_replacement_launch(
+    recovery_root: &Path,
+    recovery_id: &str,
+    launch: UpdateRecoveryReplacementLaunch<'_>,
+) -> Result<(), UpdateRecoveryError> {
+    if !valid_sha256(recovery_id) {
+        return Err(UpdateRecoveryError::InvalidInput);
+    }
+    let recovery_root = recovery_root.canonicalize()?;
+    let attempt_directory = recovery_root
+        .join(ATTEMPTS_DIRECTORY_NAME)
+        .join(recovery_id);
+    let _state_lock = RecoveryStateLock::acquire(&attempt_directory)?;
+    if read_active_recovery_id(&recovery_root.join(ACTIVE_FILE_NAME))? != recovery_id {
+        return Err(UpdateRecoveryError::InvalidState);
+    }
+    let manifest_path = attempt_directory.join(MANIFEST_FILE_NAME);
+    let mut manifest = read_manifest(&manifest_path)?;
+    validate_manifest(&manifest)?;
+    validate_update_recovery_transition(manifest.phase.into(), UpdateRecoveryPhase::Launching)
+        .map_err(|_| UpdateRecoveryError::InvalidTransition)?;
+    let replacement_process = ReplacementProcess {
+        process_id: launch.process_id,
+        started_at_unix_seconds: launch.started_at_unix_seconds,
+        started_at_microseconds: launch.started_at_microseconds,
+        launch_nonce: launch.launch_nonce.to_owned(),
+        confirmation_deadline: launch.confirmation_deadline.to_owned(),
+    };
+    validate_replacement_process(&replacement_process)?;
+    manifest.phase = RecoveryPhaseWire::Launching;
+    manifest.replacement_process = Some(replacement_process);
+    validate_manifest(&manifest)?;
     write_manifest(&manifest_path, &manifest)
 }
 
@@ -458,6 +608,9 @@ pub fn restore_active_update_recovery(
     let attempt_directory = recovery_root
         .join(ATTEMPTS_DIRECTORY_NAME)
         .join(restoration.recovery_id);
+    let candidate_lock =
+        open_private_lock_file(&attempt_directory, CANDIDATE_LOCK_FILE_NAME, false)?;
+    acquire_candidate_process_lock(&candidate_lock)?;
     let manifest = read_manifest(&attempt_directory.join(MANIFEST_FILE_NAME))?;
     validate_manifest(&manifest)?;
     validate_restoration_destinations(&recovery_root, &manifest, restoration)?;
@@ -551,7 +704,116 @@ pub fn resolve_update_recovery_watchdog_context(
         library_path: PathBuf::from(&manifest.source.library_path),
         target_version: manifest.target.version,
         target_library_schema_version: manifest.target.library_schema_version,
+        replacement_process: manifest.replacement_process.map(Into::into),
     })
+}
+
+pub fn acquire_update_recovery_candidate_lease(
+    recovery_root: &Path,
+    recovery_id: &str,
+    launch_nonce: &str,
+    running_executable: &Path,
+) -> Result<UpdateRecoveryCandidateLease, UpdateRecoveryError> {
+    if !valid_sha256(recovery_id) || !valid_sha256(launch_nonce) {
+        return Err(UpdateRecoveryError::InvalidInput);
+    }
+    let recovery_root = recovery_root.canonicalize()?;
+    let attempt_directory = recovery_root
+        .join(ATTEMPTS_DIRECTORY_NAME)
+        .join(recovery_id);
+    let file = open_private_lock_file(&attempt_directory, CANDIDATE_LOCK_FILE_NAME, false)?;
+    acquire_candidate_process_lock(&file)?;
+    let lease = UpdateRecoveryCandidateLease {
+        file,
+        recovery_id: recovery_id.to_owned(),
+        launch_nonce: launch_nonce.to_owned(),
+    };
+    let _state_lock = RecoveryStateLock::acquire(&attempt_directory)?;
+    if read_active_recovery_id(&recovery_root.join(ACTIVE_FILE_NAME))? != recovery_id {
+        return Err(UpdateRecoveryError::InvalidState);
+    }
+    let manifest = read_manifest(&attempt_directory.join(MANIFEST_FILE_NAME))?;
+    validate_manifest(&manifest)?;
+    let replacement_process = manifest
+        .replacement_process
+        .as_ref()
+        .ok_or(UpdateRecoveryError::InvalidState)?;
+    let running_application = application_bundle_from_executable(running_executable)?;
+    let identity = observe_update_recovery_process(std::process::id(), running_executable)?;
+    if manifest.phase != RecoveryPhaseWire::Launching
+        || manifest.recovery_id != recovery_id
+        || replacement_process.launch_nonce != launch_nonce
+        || replacement_process.process_id != identity.process_id
+        || replacement_process.started_at_unix_seconds != identity.started_at_unix_seconds
+        || replacement_process.started_at_microseconds != identity.started_at_microseconds
+        || running_application != Path::new(&manifest.source.application_path)
+    {
+        return Err(UpdateRecoveryError::InvalidState);
+    }
+    validate_application_bundle(&running_application, &manifest.target.version)?;
+    Ok(lease)
+}
+
+#[cfg(target_os = "macos")]
+pub fn observe_update_recovery_process(
+    process_id: u32,
+    expected_executable: &Path,
+) -> Result<UpdateRecoveryProcessIdentity, UpdateRecoveryError> {
+    use std::{
+        ffi::OsString,
+        mem::{size_of, MaybeUninit},
+        os::unix::ffi::OsStringExt,
+    };
+
+    let process_id = i32::try_from(process_id).map_err(|_| UpdateRecoveryError::InvalidInput)?;
+    let mut path_buffer = vec![0_u8; libc::PROC_PIDPATHINFO_MAXSIZE as usize];
+    let path_length = unsafe {
+        libc::proc_pidpath(
+            process_id,
+            path_buffer.as_mut_ptr().cast(),
+            u32::try_from(path_buffer.len()).map_err(|_| UpdateRecoveryError::InvalidState)?,
+        )
+    };
+    if path_length <= 0 {
+        return Err(io::Error::last_os_error().into());
+    }
+    path_buffer
+        .truncate(usize::try_from(path_length).map_err(|_| UpdateRecoveryError::InvalidState)?);
+    let observed_path = PathBuf::from(OsString::from_vec(path_buffer)).canonicalize()?;
+    if observed_path != expected_executable.canonicalize()? {
+        return Err(UpdateRecoveryError::InvalidState);
+    }
+
+    let mut information = MaybeUninit::<libc::proc_bsdinfo>::zeroed();
+    let information_size = size_of::<libc::proc_bsdinfo>();
+    let expected_size =
+        i32::try_from(information_size).map_err(|_| UpdateRecoveryError::InvalidState)?;
+    let read_size = unsafe {
+        libc::proc_pidinfo(
+            process_id,
+            libc::PROC_PIDTBSDINFO,
+            0,
+            information.as_mut_ptr().cast(),
+            expected_size,
+        )
+    };
+    if read_size != expected_size {
+        return Err(io::Error::last_os_error().into());
+    }
+    let information = unsafe { information.assume_init() };
+    Ok(UpdateRecoveryProcessIdentity {
+        process_id: u32::try_from(process_id).map_err(|_| UpdateRecoveryError::InvalidState)?,
+        started_at_unix_seconds: information.pbi_start_tvsec,
+        started_at_microseconds: information.pbi_start_tvusec,
+    })
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn observe_update_recovery_process(
+    _process_id: u32,
+    _expected_executable: &Path,
+) -> Result<UpdateRecoveryProcessIdentity, UpdateRecoveryError> {
+    Err(UpdateRecoveryError::UnsupportedPlatform)
 }
 
 pub fn confirm_active_update_recovery(
@@ -561,6 +823,7 @@ pub fn confirm_active_update_recovery(
     running_version: &str,
     library_path: &Path,
     running_library_schema_version: u32,
+    launch_nonce: &str,
 ) -> Result<(), UpdateRecoveryError> {
     if !valid_sha256(recovery_id) {
         return Err(UpdateRecoveryError::InvalidInput);
@@ -574,6 +837,10 @@ pub fn confirm_active_update_recovery(
         .join(recovery_id);
     let manifest = read_manifest(&attempt_directory.join(MANIFEST_FILE_NAME))?;
     validate_manifest(&manifest)?;
+    let replacement_process = manifest
+        .replacement_process
+        .as_ref()
+        .ok_or(UpdateRecoveryError::InvalidState)?;
     verify_attempt_directory(&attempt_directory, recovery_id)?;
     let running_application = application_bundle_from_executable(running_executable)?;
     let library_parent = library_path
@@ -592,6 +859,7 @@ pub fn confirm_active_update_recovery(
                 .canonicalize()?
         || running_version != manifest.target.version
         || running_library_schema_version != manifest.target.library_schema_version
+        || launch_nonce != replacement_process.launch_nonce
     {
         return Err(UpdateRecoveryError::InvalidInput);
     }
@@ -822,6 +1090,11 @@ fn verify_attempt_directory(
     {
         return Err(UpdateRecoveryError::InvalidState);
     }
+    drop(open_private_lock_file(
+        attempt_directory,
+        CANDIDATE_LOCK_FILE_NAME,
+        false,
+    )?);
     let application_path = attempt_directory.join(&manifest.application_backup.relative_path);
     let library_path = attempt_directory.join(&manifest.library_backup.relative_path);
     if application_tree_sha256(&application_path)? != manifest.application_backup.tree_sha256 {
@@ -869,6 +1142,9 @@ fn validate_manifest(manifest: &UpdateRecoveryManifest) -> Result<(), UpdateReco
         Version::parse(&manifest.source.version).map_err(|_| UpdateRecoveryError::InvalidState)?;
     let target_version =
         Version::parse(&manifest.target.version).map_err(|_| UpdateRecoveryError::InvalidState)?;
+    let prepared_at = DateTime::parse_from_rfc3339(&manifest.prepared_at)
+        .map_err(|_| UpdateRecoveryError::InvalidState)?
+        .with_timezone(&Utc);
     if manifest.format != RECOVERY_FORMAT
         || manifest.schema_version != RECOVERY_SCHEMA_VERSION
         || !valid_sha256(&manifest.recovery_id)
@@ -887,6 +1163,49 @@ fn validate_manifest(manifest: &UpdateRecoveryManifest) -> Result<(), UpdateReco
         || !valid_sha256(&manifest.library_backup.sha256)
         || !valid_installed_path(&manifest.source.application_path, "FitFreed.app")
         || !valid_installed_path(&manifest.source.library_path, "fitfreed.sqlite")
+    {
+        return Err(UpdateRecoveryError::InvalidState);
+    }
+    if let Some(replacement_process) = &manifest.replacement_process {
+        validate_replacement_process(replacement_process)?;
+        let confirmation_deadline =
+            DateTime::parse_from_rfc3339(&replacement_process.confirmation_deadline)
+                .map_err(|_| UpdateRecoveryError::InvalidState)?
+                .with_timezone(&Utc);
+        if confirmation_deadline <= prepared_at
+            || confirmation_deadline > prepared_at + ChronoDuration::minutes(16)
+        {
+            return Err(UpdateRecoveryError::InvalidState);
+        }
+    }
+    let phase = UpdateRecoveryPhase::from(manifest.phase);
+    if matches!(
+        phase,
+        UpdateRecoveryPhase::Prepared
+            | UpdateRecoveryPhase::ReplacementStarted
+            | UpdateRecoveryPhase::ReplacementInstalled
+    ) && manifest.replacement_process.is_some()
+        || matches!(
+            phase,
+            UpdateRecoveryPhase::Launching | UpdateRecoveryPhase::Confirmed
+        ) && manifest.replacement_process.is_none()
+    {
+        return Err(UpdateRecoveryError::InvalidState);
+    }
+    Ok(())
+}
+
+fn validate_replacement_process(
+    replacement_process: &ReplacementProcess,
+) -> Result<(), UpdateRecoveryError> {
+    if replacement_process.process_id <= 1
+        || replacement_process.process_id > i32::MAX as u32
+        || replacement_process.started_at_unix_seconds == 0
+        || replacement_process.started_at_unix_seconds > 9_007_199_254_740_991
+        || replacement_process.started_at_microseconds > 999_999
+        || !valid_sha256(&replacement_process.launch_nonce)
+        || canonical_utc(&replacement_process.confirmation_deadline).as_deref()
+            != Some(replacement_process.confirmation_deadline.as_str())
     {
         return Err(UpdateRecoveryError::InvalidState);
     }
@@ -1303,6 +1622,62 @@ struct RecoveryStateLock {
     file: File,
 }
 
+#[cfg(unix)]
+fn open_private_lock_file(
+    attempt_directory: &Path,
+    file_name: &str,
+    create: bool,
+) -> Result<File, UpdateRecoveryError> {
+    use std::os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt};
+
+    let file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(create)
+        .mode(0o600)
+        .custom_flags(libc::O_NOFOLLOW)
+        .open(attempt_directory.join(file_name))?;
+    let metadata = file.metadata()?;
+    if !metadata.file_type().is_file()
+        || metadata.len() != 0
+        || metadata.nlink() != 1
+        || metadata.uid() != unsafe { libc::geteuid() }
+        || metadata.permissions().mode() & 0o077 != 0
+    {
+        return Err(UpdateRecoveryError::InvalidState);
+    }
+    Ok(file)
+}
+
+#[cfg(not(unix))]
+fn open_private_lock_file(
+    _attempt_directory: &Path,
+    _file_name: &str,
+    _create: bool,
+) -> Result<File, UpdateRecoveryError> {
+    Err(UpdateRecoveryError::UnsupportedPlatform)
+}
+
+#[cfg(unix)]
+fn acquire_candidate_process_lock(file: &File) -> Result<(), UpdateRecoveryError> {
+    use std::os::fd::AsRawFd;
+
+    if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
+        let error = io::Error::last_os_error();
+        return if error.kind() == io::ErrorKind::WouldBlock {
+            Err(UpdateRecoveryError::InvalidState)
+        } else {
+            Err(error.into())
+        };
+    }
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn acquire_candidate_process_lock(_file: &File) -> Result<(), UpdateRecoveryError> {
+    Err(UpdateRecoveryError::UnsupportedPlatform)
+}
+
 impl RecoveryStateLock {
     #[cfg(unix)]
     fn acquire(attempt_directory: &Path) -> Result<Self, UpdateRecoveryError> {
@@ -1345,6 +1720,22 @@ impl Drop for RecoveryStateLock {
             libc::flock(self.file.as_raw_fd(), libc::LOCK_UN);
         }
     }
+}
+
+#[cfg(unix)]
+impl Drop for UpdateRecoveryCandidateLease {
+    fn drop(&mut self) {
+        use std::os::fd::AsRawFd;
+
+        unsafe {
+            libc::flock(self.file.as_raw_fd(), libc::LOCK_UN);
+        }
+    }
+}
+
+#[cfg(not(unix))]
+impl Drop for UpdateRecoveryCandidateLease {
+    fn drop(&mut self) {}
 }
 
 #[cfg(not(unix))]
@@ -1465,6 +1856,16 @@ mod tests {
         }
     }
 
+    fn synthetic_replacement_launch() -> UpdateRecoveryReplacementLaunch<'static> {
+        UpdateRecoveryReplacementLaunch {
+            process_id: 42,
+            started_at_unix_seconds: 1_787_000_000,
+            started_at_microseconds: 123_456,
+            launch_nonce: "456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123",
+            confirmation_deadline: "2026-08-17T08:01:00Z",
+        }
+    }
+
     #[test]
     fn prepares_and_reopens_an_exact_application_and_library_pair() {
         let harness = Harness::new();
@@ -1482,6 +1883,14 @@ mod tests {
             u32::try_from(SCHEMA_VERSION).expect("schema version")
         );
         assert!(prepared.attempt_directory().is_dir());
+        drop(
+            open_private_lock_file(
+                prepared.attempt_directory(),
+                CANDIDATE_LOCK_FILE_NAME,
+                false,
+            )
+            .expect("private candidate lock"),
+        );
         assert_eq!(
             active_update_recovery_phase(&harness.recovery_root).expect("active recovery"),
             Some((
@@ -1551,8 +1960,6 @@ mod tests {
         for phase in [
             UpdateRecoveryPhase::ReplacementStarted,
             UpdateRecoveryPhase::ReplacementInstalled,
-            UpdateRecoveryPhase::Launching,
-            UpdateRecoveryPhase::Confirmed,
         ] {
             transition_active_update_recovery(
                 &harness.recovery_root,
@@ -1561,6 +1968,26 @@ mod tests {
             )
             .expect("valid recovery transition");
         }
+        assert!(matches!(
+            transition_active_update_recovery(
+                &harness.recovery_root,
+                prepared.recovery_id(),
+                UpdateRecoveryPhase::Launching,
+            ),
+            Err(UpdateRecoveryError::InvalidTransition)
+        ));
+        record_active_update_recovery_replacement_launch(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            synthetic_replacement_launch(),
+        )
+        .expect("recorded replacement launch");
+        transition_active_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            UpdateRecoveryPhase::Confirmed,
+        )
+        .expect("confirmed recovery transition");
         assert_eq!(
             active_update_recovery_phase(&harness.recovery_root).expect("confirmed recovery"),
             Some((
@@ -1590,6 +2017,48 @@ mod tests {
             .recv_timeout(Duration::from_secs(1))
             .expect("serialized lock result"));
         contender.join().expect("lock contender");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn refuses_restoration_while_the_candidate_process_lease_is_held() {
+        let harness = Harness::new();
+        let authorization = harness.authorization();
+        let prepared = prepare_update_recovery(
+            &SyntheticApplicationCopier,
+            harness.preparation(&authorization),
+        )
+        .expect("prepared update recovery");
+        enter_recovering(&harness, prepared.recovery_id());
+        let candidate_lock = open_private_lock_file(
+            prepared.attempt_directory(),
+            CANDIDATE_LOCK_FILE_NAME,
+            false,
+        )
+        .expect("candidate lock");
+        acquire_candidate_process_lock(&candidate_lock).expect("candidate process lease");
+
+        assert!(matches!(
+            restore_active_update_recovery(
+                &SyntheticApplicationCopier,
+                UpdateRecoveryRestoration {
+                    recovery_root: &harness.recovery_root,
+                    recovery_id: prepared.recovery_id(),
+                    expected_application_path: &harness.application_path,
+                    expected_library_path: &harness.library_path,
+                },
+            ),
+            Err(UpdateRecoveryError::InvalidState)
+        ));
+        validate_application_bundle(&harness.application_path, "0.1.0")
+            .expect("untouched installed application");
+        assert_eq!(
+            active_update_recovery_phase(&harness.recovery_root).expect("retriable recovery"),
+            Some((
+                prepared.recovery_id().to_owned(),
+                UpdateRecoveryPhase::Recovering
+            ))
+        );
     }
 
     #[cfg(unix)]
@@ -1835,11 +2304,76 @@ mod tests {
             context.library_path(),
             harness.library_path.canonicalize().expect("library path")
         );
+        assert_eq!(context.replacement_process(), None);
         assert!(resolve_update_recovery_watchdog_context(
             &harness.application_path.join("Contents/MacOS/fitfreed"),
             &harness.application_path,
         )
         .is_err());
+    }
+
+    #[test]
+    fn records_a_closed_replacement_process_identity_with_the_launch_transition() {
+        let harness = Harness::new();
+        let authorization = harness.authorization();
+        let prepared = prepare_update_recovery(
+            &SyntheticApplicationCopier,
+            harness.preparation(&authorization),
+        )
+        .expect("prepared update recovery");
+        for phase in [
+            UpdateRecoveryPhase::ReplacementStarted,
+            UpdateRecoveryPhase::ReplacementInstalled,
+        ] {
+            transition_active_update_recovery(
+                &harness.recovery_root,
+                prepared.recovery_id(),
+                phase,
+            )
+            .expect("replacement transition");
+        }
+        let mut invalid_launch = synthetic_replacement_launch();
+        invalid_launch.process_id = 1;
+        assert!(matches!(
+            record_active_update_recovery_replacement_launch(
+                &harness.recovery_root,
+                prepared.recovery_id(),
+                invalid_launch,
+            ),
+            Err(UpdateRecoveryError::InvalidState)
+        ));
+        assert_eq!(
+            active_update_recovery_phase(&harness.recovery_root).expect("unchanged recovery"),
+            Some((
+                prepared.recovery_id().to_owned(),
+                UpdateRecoveryPhase::ReplacementInstalled
+            ))
+        );
+
+        record_active_update_recovery_replacement_launch(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            synthetic_replacement_launch(),
+        )
+        .expect("recorded replacement launch");
+        let watchdog_executable = prepared
+            .attempt_directory()
+            .join("previous/FitFreed.app/Contents/MacOS/fitfreed");
+        let context = resolve_update_recovery_watchdog_context(
+            &watchdog_executable,
+            &harness.application_path,
+        )
+        .expect("watchdog launch context");
+        let process = context.replacement_process().expect("replacement process");
+
+        assert_eq!(process.process_id(), 42);
+        assert_eq!(process.started_at_unix_seconds(), 1_787_000_000);
+        assert_eq!(process.started_at_microseconds(), 123_456);
+        assert_eq!(
+            process.launch_nonce(),
+            synthetic_replacement_launch().launch_nonce
+        );
+        assert_eq!(process.confirmation_deadline(), "2026-08-17T08:01:00Z");
     }
 
     #[test]
@@ -1854,7 +2388,6 @@ mod tests {
         for phase in [
             UpdateRecoveryPhase::ReplacementStarted,
             UpdateRecoveryPhase::ReplacementInstalled,
-            UpdateRecoveryPhase::Launching,
         ] {
             transition_active_update_recovery(
                 &harness.recovery_root,
@@ -1863,6 +2396,12 @@ mod tests {
             )
             .expect("launch transition");
         }
+        record_active_update_recovery_replacement_launch(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            synthetic_replacement_launch(),
+        )
+        .expect("recorded replacement launch");
         fs::remove_dir_all(&harness.application_path).expect("removed previous application");
         create_synthetic_application(&harness.application_path, "0.2.0");
         let running_executable = harness.application_path.join("Contents/MacOS/fitfreed");
@@ -1874,6 +2413,7 @@ mod tests {
             "0.1.9",
             &harness.library_path,
             u32::try_from(SCHEMA_VERSION).expect("schema version"),
+            synthetic_replacement_launch().launch_nonce,
         )
         .is_err());
         assert_eq!(
@@ -1884,6 +2424,17 @@ mod tests {
             ))
         );
 
+        assert!(confirm_active_update_recovery(
+            &harness.recovery_root,
+            prepared.recovery_id(),
+            &running_executable,
+            "0.2.0",
+            &harness.library_path,
+            u32::try_from(SCHEMA_VERSION).expect("schema version"),
+            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        )
+        .is_err());
+
         confirm_active_update_recovery(
             &harness.recovery_root,
             prepared.recovery_id(),
@@ -1891,6 +2442,7 @@ mod tests {
             "0.2.0",
             &harness.library_path,
             u32::try_from(SCHEMA_VERSION).expect("schema version"),
+            synthetic_replacement_launch().launch_nonce,
         )
         .expect("confirmed replacement");
         assert_eq!(
@@ -2018,6 +2570,34 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
+    fn rejects_a_symbolic_link_as_the_candidate_process_lock() {
+        use std::os::unix::fs::symlink;
+
+        let harness = Harness::new();
+        let authorization = harness.authorization();
+        let prepared = prepare_update_recovery(
+            &SyntheticApplicationCopier,
+            harness.preparation(&authorization),
+        )
+        .expect("prepared update recovery");
+        let candidate_lock = prepared.attempt_directory().join(CANDIDATE_LOCK_FILE_NAME);
+        let outside = harness.recovery_root.join("outside-candidate-lock");
+        fs::write(&outside, "outside state").expect("outside state");
+        fs::remove_file(&candidate_lock).expect("removed candidate lock");
+        symlink(&outside, &candidate_lock).expect("symbolic candidate lock");
+
+        assert!(matches!(
+            verify_prepared_update_recovery(&harness.recovery_root, prepared.recovery_id()),
+            Err(UpdateRecoveryError::Io(_))
+        ));
+        assert_eq!(
+            fs::read_to_string(outside).expect("unchanged outside state"),
+            "outside state"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
     fn rejects_an_application_link_that_escapes_the_bundle() {
         use std::os::unix::fs::symlink;
 
@@ -2040,12 +2620,22 @@ mod tests {
         for phase in [
             UpdateRecoveryPhase::ReplacementStarted,
             UpdateRecoveryPhase::ReplacementInstalled,
-            UpdateRecoveryPhase::Launching,
-            UpdateRecoveryPhase::Recovering,
         ] {
             transition_active_update_recovery(&harness.recovery_root, recovery_id, phase)
                 .expect("recovery transition");
         }
+        record_active_update_recovery_replacement_launch(
+            &harness.recovery_root,
+            recovery_id,
+            synthetic_replacement_launch(),
+        )
+        .expect("recorded replacement launch");
+        transition_active_update_recovery(
+            &harness.recovery_root,
+            recovery_id,
+            UpdateRecoveryPhase::Recovering,
+        )
+        .expect("recovering transition");
     }
 
     fn create_synthetic_application(path: &Path, version: &str) {

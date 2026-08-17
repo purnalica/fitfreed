@@ -15,6 +15,7 @@ update-recovery/
 ├── active
 └── attempts/
     └── <recoveryId>/
+        ├── candidate.lock
         ├── manifest.json
         ├── state.lock
         └── previous/
@@ -27,6 +28,8 @@ update-recovery/
 `manifest.json` is UTF-8 JSON conforming to [`update-recovery-v1.schema.json`](../../../schemas/update-recovery-v1.schema.json). Its maximum encoded size is 64 KiB. Unknown fields are invalid. Writers replace it atomically through a sibling temporary file and synchronize the containing directory.
 
 `state.lock` is a private empty regular file. Recovery actors hold its operating-system exclusive lock across active-pointer validation, lifecycle compare-and-transition, and atomic manifest replacement. The file does not convey a phase or authority; `manifest.json` remains the state source of truth. Symbolic links and unsupported platforms fail closed.
+
+`candidate.lock` is a second private empty regular file. The launched candidate holds its operating-system exclusive lock for the lifetime of its validated recovery startup. Restoration must acquire that lock before changing either installed destination and therefore fails closed while a candidate can still access the application or library. The lock file must be owned by the current user, have one link, contain no bytes, grant no group or other permissions, and never be a symbolic link. The persisted process identity remains the source of process authority; the lock is the cross-process quiescence boundary.
 
 The watchdog executable derives `update-recovery`, `attempts`, `recoveryId`, `previous`, and `FitFreed.app` solely by walking its own canonical executable path and requiring every fixed segment. It receives only the independently known installed `FitFreed.app` path, which must equal the canonical manifest destination. The library destination is derived as the recovery root's canonical parent plus `fitfreed.sqlite`; it is not a caller-selected watchdog argument.
 
@@ -41,6 +44,11 @@ The relative backup paths are fixed by the schema. Readers never interpret a man
 | `recoveryId` | Unique lowercase SHA-256 identifier for this attempt. It is an identifier, not an authentication secret. |
 | `phase` | Current persisted lifecycle phase. |
 | `preparedAt` | RFC 3339 UTC instant at second precision (`YYYY-MM-DDTHH:MM:SSZ`) at which the recovery pair was prepared. |
+| `replacementProcess.processId` | Process identifier of the candidate launched by the watchdog. Values zero, one, and values outside the signed platform process range are invalid. |
+| `replacementProcess.startedAtUnixSeconds` | Candidate start time reported by the operating system, as whole seconds since the Unix epoch. |
+| `replacementProcess.startedAtMicroseconds` | Microsecond fraction of the operating-system process start time. |
+| `replacementProcess.launchNonce` | Fresh 256-bit launch nonce encoded as 64 lowercase hexadecimal characters. It binds the manifest record, private candidate invocation, startup gate, lease, and confirmation claim. |
+| `replacementProcess.confirmationDeadline` | RFC 3339 UTC instant at second precision by which the exact candidate must confirm successful startup. |
 | `source.version` | Semantic version of the preserved application. |
 | `source.librarySchemaVersion` | Exact SQLite `user_version` of the preserved library. |
 | `source.applicationPath` | Absolute installed application path validated by the macOS adapter. |
@@ -98,7 +106,11 @@ The complete phase vocabulary is `prepared`, `replacement-started`, `replacement
 
 `confirmed`, `recovered`, and `recovery-failed` are terminal. A skipped, reversed, or repeated transition is invalid. Repeating restoration work while the persisted phase remains `recovering` is safe and must converge on `recovered` or `recovery-failed`.
 
-The replacement starts with the private marker `--fitfreed-update-recovery-candidate` followed by the exact active recovery identifier. The host accepts only that two-argument shape and a 64-character lowercase hexadecimal identifier, retains the identifier outside React, and initializes the desktop normally. After locale startup makes the rendered application responsive, React invokes a no-argument confirmation command. It supplies no path, version, schema, recovery identifier, or update authority.
+`replacementProcess` is `null` through `replacement-installed`. The only operation permitted to enter `launching` atomically stores the complete replacement-process record with that transition. `launching` and `confirmed` require the record. Recovery phases retain it when a candidate was launched so an interrupted watchdog can distinguish that exact operating-system process from a reused process identifier. The confirmation deadline must be later than `preparedAt` and no later than sixteen minutes after it.
+
+The replacement starts with the private marker `--fitfreed-update-recovery-candidate` followed by the exact active recovery identifier and launch nonce. The host accepts only that closed three-argument shape and two 64-character lowercase hexadecimal values. Before initializing Tauri, it also requires the exact bounded standard-input record `FITFREED-UPDATE-CANDIDATE-GO <recoveryId> <launchNonce>\n` within ten seconds. The watchdog spawns the process first, obtains its executable path and start time from macOS, atomically records those facts with the `launching` transition, and only then sends the record. A write, timeout, or validation failure stops the child.
+
+After the startup gate, the host acquires `candidate.lock` and validates the active manifest, phase, nonce, process identifier, operating-system start time, exact executable and bundle path, bundle identity, and target version before ordinary startup work. It retains the recovery identifier, nonce, and lease outside React for the candidate process lifetime. After locale startup makes the rendered application responsive, React invokes a no-argument confirmation command. It supplies no path, version, schema, recovery identifier, nonce, or update authority.
 
 The replacement may write `confirmed` only when it is running from the exact manifest installation path, its compiled semantic version equals `target.version`, its compiled library schema equals `target.librarySchemaVersion`, the active library occupies the fixed path and passes that exact schema plus SQLite integrity checks, the complete preserved pair still verifies, and normal startup recovery has completed. The host serializes confirmation claims, derives the recovery root from the active library location, supplies only its compiled facts and current executable, and restores the pending claim if validation fails. The exclusive state lock makes confirmation and watchdog recovery competing atomic transitions from `launching`; exactly one can win.
 
@@ -106,7 +118,7 @@ The installer starts only the fixed executable inside `previous/FitFreed.app` wi
 
 After readiness, the watchdog observes persisted phases rather than trusting process messages. It permits up to fifteen minutes for native replacement, starts the replacement only from `replacement-installed`, and gives it sixty seconds to confirm. A replacement exit or confirmation timeout first wins the atomic `launching → recovering` transition and only then stops the child it owns. An installation timeout may stop the original application only while its process identifier is still the watchdog's direct parent; this prevents acting on a reused identifier. Recovery retries the idempotent verified restoration at most three times, records `recovery-failed` after exhaustion, and launches the restored application only after the pair reaches `recovered`.
 
-The currently implemented watchdog entry rejects an inherited `launching` phase because it cannot prove ownership of an already-running replacement. Restart-safe ownership transfer remains required before the native installation path can be exposed.
+The persisted process identity and candidate lease establish the restart-safe ownership evidence. The watchdog runner still rejects an inherited `launching` phase until its resumption path consumes that evidence; native installation remains unexposed in the meantime.
 
 ## Compatibility and failure behavior
 

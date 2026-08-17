@@ -60,16 +60,20 @@ mod update_watchdog;
 pub use update_channel::{current_update_target, HttpsUpdateChannel};
 pub use update_package::{download_verified_update, UpdatePackageError, VerifiedUpdatePackage};
 pub use update_recovery::{
-    active_update_recovery_phase, confirm_active_update_recovery, prepare_update_recovery,
-    resolve_update_recovery_watchdog_context, restore_active_update_recovery,
-    transition_active_update_recovery, verify_prepared_update_recovery, ApplicationCopyPort,
-    PlatformApplicationCopier, PreparedUpdateRecovery, UpdateRecoveryError,
-    UpdateRecoveryPreparation, UpdateRecoveryRestoration, UpdateRecoveryWatchdogContext,
+    acquire_update_recovery_candidate_lease, active_update_recovery_phase,
+    confirm_active_update_recovery, observe_update_recovery_process, prepare_update_recovery,
+    record_active_update_recovery_replacement_launch, resolve_update_recovery_watchdog_context,
+    restore_active_update_recovery, transition_active_update_recovery,
+    verify_prepared_update_recovery, ApplicationCopyPort, PlatformApplicationCopier,
+    PreparedUpdateRecovery, UpdateRecoveryCandidateLease, UpdateRecoveryError,
+    UpdateRecoveryPreparation, UpdateRecoveryProcessIdentity, UpdateRecoveryReplacementLaunch,
+    UpdateRecoveryReplacementProcess, UpdateRecoveryRestoration, UpdateRecoveryWatchdogContext,
 };
 pub use update_state::SqliteUpdateState;
 pub use update_watchdog::{
-    run_update_recovery_watchdog, start_update_recovery_watchdog, StartedUpdateRecoveryWatchdog,
-    UpdateRecoveryWatchdogError, UpdateRecoveryWatchdogOutcome, UPDATE_RECOVERY_CANDIDATE_ARGUMENT,
+    await_update_recovery_candidate_go, run_update_recovery_watchdog,
+    start_update_recovery_watchdog, StartedUpdateRecoveryWatchdog, UpdateRecoveryWatchdogError,
+    UpdateRecoveryWatchdogOutcome, UPDATE_RECOVERY_CANDIDATE_ARGUMENT,
     UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
 };
 

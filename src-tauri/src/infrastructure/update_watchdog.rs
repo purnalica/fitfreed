@@ -1,4 +1,5 @@
 use std::{
+    fs::File,
     io::{self, BufRead, BufReader, Read, Write},
     path::Path,
     process::{Child, Command, Stdio},
@@ -7,24 +8,29 @@ use std::{
     time::{Duration, Instant},
 };
 
+use chrono::{Duration as ChronoDuration, SecondsFormat, Utc};
 use fitfreed_application::{
     decide_update_recovery_watchdog_action, UpdateRecoveryPhase, UpdateRecoveryWatchdogAction,
     UpdateRecoveryWatchdogEvent,
 };
+use sha2::{Digest, Sha256};
 use thiserror::Error;
 
 use super::{
-    active_update_recovery_phase, resolve_update_recovery_watchdog_context,
+    active_update_recovery_phase, observe_update_recovery_process,
+    record_active_update_recovery_replacement_launch, resolve_update_recovery_watchdog_context,
     restore_active_update_recovery, transition_active_update_recovery, PlatformApplicationCopier,
-    PreparedUpdateRecovery, UpdateRecoveryError, UpdateRecoveryRestoration,
-    UpdateRecoveryWatchdogContext,
+    PreparedUpdateRecovery, UpdateRecoveryError, UpdateRecoveryReplacementLaunch,
+    UpdateRecoveryRestoration, UpdateRecoveryWatchdogContext,
 };
 
 pub const UPDATE_RECOVERY_WATCHDOG_ARGUMENT: &str = "--fitfreed-update-recovery-watchdog";
 pub const UPDATE_RECOVERY_CANDIDATE_ARGUMENT: &str = "--fitfreed-update-recovery-candidate";
 
 const WATCHDOG_READY_PREFIX: &str = "FITFREED-UPDATE-WATCHDOG-READY ";
+const CANDIDATE_GO_PREFIX: &str = "FITFREED-UPDATE-CANDIDATE-GO ";
 const WATCHDOG_READY_TIMEOUT: Duration = Duration::from_secs(10);
+const CANDIDATE_GO_TIMEOUT: Duration = Duration::from_secs(10);
 const INSTALLATION_TIMEOUT: Duration = Duration::from_secs(15 * 60);
 const REPLACEMENT_CONFIRMATION_TIMEOUT: Duration = Duration::from_secs(60);
 const PROCESS_STOP_TIMEOUT: Duration = Duration::from_secs(5);
@@ -145,30 +151,19 @@ pub fn run_update_recovery_watchdog(
         )?;
         match decide_update_recovery_watchdog_action(phase, event) {
             UpdateRecoveryWatchdogAction::Wait => thread::sleep(POLL_INTERVAL),
-            UpdateRecoveryWatchdogAction::LaunchReplacement => {
-                transition_active_update_recovery(
-                    context.recovery_root(),
-                    context.recovery_id(),
-                    UpdateRecoveryPhase::Launching,
-                )?;
-                match launch_application(
-                    context.installed_application_path(),
-                    Some(context.recovery_id()),
-                ) {
-                    Ok(child) => {
-                        replacement = Some(child);
-                        confirmation_deadline =
-                            Some(Instant::now() + REPLACEMENT_CONFIRMATION_TIMEOUT);
-                    }
-                    Err(_) => {
-                        transition_active_update_recovery(
-                            context.recovery_root(),
-                            context.recovery_id(),
-                            UpdateRecoveryPhase::Recovering,
-                        )?;
-                    }
+            UpdateRecoveryWatchdogAction::LaunchReplacement => match launch_replacement(&context) {
+                Ok(child) => {
+                    replacement = Some(child);
+                    confirmation_deadline = Some(Instant::now() + REPLACEMENT_CONFIRMATION_TIMEOUT);
                 }
-            }
+                Err(_) => {
+                    transition_active_update_recovery(
+                        context.recovery_root(),
+                        context.recovery_id(),
+                        UpdateRecoveryPhase::Recovering,
+                    )?;
+                }
+            },
             UpdateRecoveryWatchdogAction::BeginRecovery => {
                 if matches!(
                     phase,
@@ -273,21 +268,119 @@ fn watchdog_event(
 
 fn launch_application(
     application_path: &Path,
-    recovery_id: Option<&str>,
+    recovery: Option<(&str, &str)>,
 ) -> Result<Child, UpdateRecoveryWatchdogError> {
     let executable = application_path.join("Contents/MacOS/fitfreed");
     let mut command = Command::new(executable);
-    if let Some(recovery_id) = recovery_id {
+    if let Some((recovery_id, launch_nonce)) = recovery {
         command
             .arg(UPDATE_RECOVERY_CANDIDATE_ARGUMENT)
-            .arg(recovery_id);
+            .arg(recovery_id)
+            .arg(launch_nonce)
+            .stdin(Stdio::piped());
+    } else {
+        command.stdin(Stdio::null());
     }
     command
-        .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
         .map_err(|_| UpdateRecoveryWatchdogError::ApplicationLaunch)
+}
+
+fn launch_replacement(
+    context: &UpdateRecoveryWatchdogContext,
+) -> Result<Child, UpdateRecoveryWatchdogError> {
+    let launch_nonce = generate_launch_nonce()?;
+    let mut child = launch_application(
+        context.installed_application_path(),
+        Some((context.recovery_id(), &launch_nonce)),
+    )?;
+    let executable = context
+        .installed_application_path()
+        .join("Contents/MacOS/fitfreed");
+    let process_identity = match observe_update_recovery_process(child.id(), &executable) {
+        Ok(identity) => identity,
+        Err(error) => {
+            let _ = stop_child(&mut child);
+            return Err(error.into());
+        }
+    };
+    let confirmation_deadline = (Utc::now()
+        + ChronoDuration::seconds(
+            i64::try_from(REPLACEMENT_CONFIRMATION_TIMEOUT.as_secs())
+                .map_err(|_| UpdateRecoveryWatchdogError::ApplicationLaunch)?,
+        ))
+    .to_rfc3339_opts(SecondsFormat::Secs, true);
+    if let Err(error) = record_active_update_recovery_replacement_launch(
+        context.recovery_root(),
+        context.recovery_id(),
+        UpdateRecoveryReplacementLaunch {
+            process_id: child.id(),
+            started_at_unix_seconds: process_identity.started_at_unix_seconds(),
+            started_at_microseconds: process_identity.started_at_microseconds(),
+            launch_nonce: &launch_nonce,
+            confirmation_deadline: &confirmation_deadline,
+        },
+    ) {
+        let _ = stop_child(&mut child);
+        return Err(error.into());
+    }
+    let signal = format!(
+        "{CANDIDATE_GO_PREFIX}{} {launch_nonce}\n",
+        context.recovery_id()
+    );
+    let signal_result = child
+        .stdin
+        .take()
+        .ok_or(UpdateRecoveryWatchdogError::ApplicationLaunch)
+        .and_then(|mut stdin| {
+            stdin
+                .write_all(signal.as_bytes())
+                .and_then(|()| stdin.flush())
+                .map_err(UpdateRecoveryWatchdogError::Io)
+        });
+    if let Err(error) = signal_result {
+        let _ = stop_child(&mut child);
+        return Err(error);
+    }
+    Ok(child)
+}
+
+pub fn await_update_recovery_candidate_go(
+    recovery_id: &str,
+    launch_nonce: &str,
+    reader: impl Read + Send + 'static,
+) -> Result<(), UpdateRecoveryWatchdogError> {
+    let recovery_id = recovery_id.to_owned();
+    let launch_nonce = launch_nonce.to_owned();
+    let (sender, receiver) = mpsc::channel();
+    thread::spawn(move || {
+        let mut line = String::new();
+        let result = BufReader::new(reader)
+            .take(256)
+            .read_line(&mut line)
+            .map(|_| line);
+        let _ = sender.send(result);
+    });
+    let expected = format!("{CANDIDATE_GO_PREFIX}{recovery_id} {launch_nonce}\n");
+    match receiver.recv_timeout(CANDIDATE_GO_TIMEOUT) {
+        Ok(Ok(line)) if line == expected => Ok(()),
+        Ok(Err(error)) => Err(error.into()),
+        Ok(Ok(_)) | Err(_) => Err(UpdateRecoveryWatchdogError::Readiness),
+    }
+}
+
+fn generate_launch_nonce() -> Result<String, UpdateRecoveryWatchdogError> {
+    let mut entropy = [0_u8; 32];
+    File::open("/dev/urandom")?.read_exact(&mut entropy)?;
+    let mut digest = Sha256::new();
+    digest.update(entropy);
+    Ok(digest
+        .finalize()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect())
 }
 
 fn stop_child(child: &mut Child) -> io::Result<()> {
@@ -398,5 +491,52 @@ mod tests {
             ),
             Err(UpdateRecoveryWatchdogError::UnownedReplacement)
         ));
+    }
+
+    #[test]
+    fn accepts_only_the_exact_candidate_go_record() {
+        let recovery_id = "a".repeat(64);
+        let launch_nonce = "b".repeat(64);
+
+        await_update_recovery_candidate_go(
+            &recovery_id,
+            &launch_nonce,
+            Cursor::new(format!(
+                "{CANDIDATE_GO_PREFIX}{recovery_id} {launch_nonce}\n"
+            )),
+        )
+        .expect("matching candidate signal");
+        assert!(await_update_recovery_candidate_go(
+            &recovery_id,
+            &launch_nonce,
+            Cursor::new(format!(
+                "{CANDIDATE_GO_PREFIX}{recovery_id} {}\n",
+                "c".repeat(64)
+            )),
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn generates_a_lowercase_process_launch_nonce() {
+        let nonce = generate_launch_nonce().expect("launch nonce");
+
+        assert_eq!(nonce.len(), 64);
+        assert!(nonce
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)));
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn binds_process_start_identity_to_the_exact_executable() {
+        let current_executable = std::env::current_exe().expect("current test executable");
+
+        let identity = observe_update_recovery_process(std::process::id(), &current_executable)
+            .expect("current process identity");
+
+        assert!(identity.started_at_unix_seconds() > 0);
+        assert!(identity.started_at_microseconds() <= 999_999);
+        assert!(observe_update_recovery_process(std::process::id(), Path::new("/bin/sh")).is_err());
     }
 }
