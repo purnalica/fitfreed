@@ -415,8 +415,12 @@ describe("FitFreed import interface", () => {
       "report_interactive_shell",
       undefined,
     );
-    expect(mocks.invoke).not.toHaveBeenCalledWith("query_activity_overview", undefined);
-    expect(mocks.invoke).not.toHaveBeenCalledWith("query_training_overview", undefined);
+    expect(mocks.invoke).not.toHaveBeenCalledWith("query_activity_overview", {
+      requestedRange: null,
+    });
+    expect(mocks.invoke).not.toHaveBeenCalledWith("query_training_overview", {
+      requestedRange: null,
+    });
     expect(mocks.invoke).not.toHaveBeenCalledWith("query_latest_import_outcome", undefined);
     expect(mocks.longitudinalInvoke).not.toHaveBeenCalled();
     expect(mocks.sleepInvoke).not.toHaveBeenCalled();
