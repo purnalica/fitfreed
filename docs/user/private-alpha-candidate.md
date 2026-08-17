@@ -114,7 +114,7 @@ Do not include personal values, archive or library names, filesystem paths, prov
 
 ## Known acceptance gates
 
-This guide becomes active only when all of the following are true for the exact candidate:
+The [private alpha readiness ledger](../testing/private-alpha-readiness.md) is the canonical current status. This guide becomes active only when all of the following are true for the exact candidate:
 
 - the complete local and hosted release gates pass from its clean source revision;
 - the Apple Silicon 8 GB reference profile passes the required import, query, rendering, migration, and recovery budgets;

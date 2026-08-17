@@ -10,6 +10,8 @@ The [private development package guide](private-development-packages.md) explain
 
 The [private macOS alpha candidate guide](private-alpha-candidate.md) is the version-matched 0.1.0 installation, import, exploration, data, update, removal, diagnostics, and limitations draft. It becomes operative only when its listed release and human-authority gates close.
 
+The [private alpha readiness ledger](../testing/private-alpha-readiness.md) records which gates have passed and which still prevent that guide from becoming operative. FitFreed 0.1.0 is not accepted while any applicable gate remains pending or open.
+
 ## Safety boundary
 
 - Read the [project disclaimer](../../DISCLAIMER.md) before running a build.

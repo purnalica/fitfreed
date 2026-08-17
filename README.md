@@ -54,6 +54,7 @@ Polar Flow is the first importer, not the product identity. Later importers may 
 - [Contributor setup](docs/development/getting-started.md)
 - [Contributor troubleshooting](docs/development/troubleshooting.md)
 - [Performance benchmark guide](docs/development/performance-benchmarks.md)
+- [Private alpha readiness ledger](docs/testing/private-alpha-readiness.md)
 - [Localization guide](docs/development/localization.md)
 - [User documentation status](docs/user/README.md)
 - [Development preview guide](docs/user/development-preview.md)
