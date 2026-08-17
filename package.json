@@ -53,7 +53,8 @@
     "verify:e2e": "npm run build:e2e && npm run test:e2e",
     "verify:development-release": "scripts/verify-macos-development-release.sh",
     "verify:update-recovery-preparation": "scripts/verify-update-recovery-preparation.sh",
-    "verify:full": "npm run doctor && npm run audit:dependencies && npm run test:fast && npm run lint:rust && npm run format:check && npm run benchmark:insights && npm run verify:e2e && npm run package && npm run check:production-bundle && npm run verify:update-recovery-preparation",
+    "verify:update-e2e": "node scripts/verify-packaged-update.mjs",
+    "verify:full": "npm run doctor && npm run audit:dependencies && npm run test:fast && npm run lint:rust && npm run format:check && npm run benchmark:insights && npm run verify:e2e && npm run verify:update-e2e && npm run package && npm run check:production-bundle && npm run verify:update-recovery-preparation",
     "tauri": "tauri"
   },
   "dependencies": {

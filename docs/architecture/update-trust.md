@@ -2,7 +2,7 @@
 
 ## Status
 
-Current Milestone 2 implementation under [ADR 0008](decisions/0008-authenticate-update-policy-above-tauri.md). The versioned contracts, application policy, bounded HTTPS transport, exact-byte signature verification, restart-safe replay and notification state, fresh exact-package installation authorization, typed host orchestration, localized check, preference and installation presentation, native bounded-download and replacement adapters, recovery-transition policy, atomic verified application/library recovery-pair preparation, restart-safe preserved-executable watchdog runner, and replacement-side startup confirmation exist. Periodic scheduling, terminal recovery cleanup, and complete packaged update evidence are still being implemented. No real update endpoint or production signing key is configured.
+Current Milestone 2 implementation under [ADR 0008](decisions/0008-authenticate-update-policy-above-tauri.md). The versioned contracts, application policy, bounded HTTPS transport, exact-byte signature verification, restart-safe replay and notification state, fresh exact-package installation authorization, typed host orchestration, localized check, preference and installation presentation, native bounded-download and replacement adapters, recovery-transition policy, atomic verified application/library recovery-pair preparation, restart-safe preserved-executable watchdog runner, replacement-side startup confirmation, and packaged success-and-recovery update journey exist. Periodic scheduling, terminal recovery cleanup, post-recovery outcome presentation, and the migration update matrix are still being implemented. No real update endpoint or production signing key is configured.
 
 ## Trust boundary
 
@@ -105,6 +105,8 @@ The following inputs do not belong in Git and are not implied by this architectu
 - Developer ID or notarization credentials.
 
 Synthetic test keys are generated or scoped to test artifacts and are never accepted by an ordinary production build. A production build without the real embedded public trust and endpoint reports `unconfigured`.
+
+The feature-gated packaged update journey generates a fresh Minisign key and a one-certificate HTTPS authority for each run. Only the instrumented host accepts that additional root from a test-process environment path; the metadata and package clients parse exactly one certificate, and ordinary builds expose neither the constructor nor the environment configuration. Each success or deliberate candidate-rejection scenario has its own embedded-WebDriver port, installed bundle, SQLite library, and recovery root. This proves native package verification and replacement, process-bound startup, candidate confirmation, failed-candidate quarantine, exact previous-pair restoration, retained locale, and SQLite integrity without weakening the production trust store.
 
 ## External implementation boundary
 

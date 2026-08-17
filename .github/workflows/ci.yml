@@ -86,7 +86,7 @@ jobs:
   packaged-macos-e2e:
     name: Packaged macOS E2E
     runs-on: macos-15
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - name: Check out source
@@ -132,11 +132,16 @@ jobs:
       - name: Build and test the instrumented package
         run: npm run verify:e2e
 
+      - name: Verify packaged update replacement and recovery
+        run: npm run verify:update-e2e
+
       - name: Retain privacy-safe failure evidence
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: packaged-macos-e2e-failure
-          path: .artifacts/e2e/evidence
+          path: |
+            .artifacts/e2e/evidence
+            .artifacts/update-e2e/evidence
           if-no-files-found: warn
           retention-days: 7

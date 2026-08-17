@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, io::Read, time::Duration};
 
 use fitfreed_application::{UpdateChannelPort, UpdateChannelRead, UpdateTrustFailure};
-use reqwest::{blocking::Client, redirect::Policy};
+use reqwest::{blocking::Client, redirect::Policy, Certificate};
 use thiserror::Error;
 use url::Url;
 
@@ -21,6 +21,7 @@ struct ConfiguredUpdateChannel {
     endpoint: Url,
     verifier: SignedUpdateChannelVerifier,
     transport: Box<dyn UpdateHttpTransport>,
+    additional_root_certificate: Option<Vec<u8>>,
 }
 
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -47,11 +48,30 @@ impl HttpsUpdateChannel {
     ) -> Result<Self, UpdateChannelConfigurationError> {
         let endpoint = parse_static_https_endpoint(endpoint)?;
         let verifier = configured_verifier(trusted_public_keys, current_target)?;
-        let transport = ReqwestUpdateTransport::new()?;
+        let transport = ReqwestUpdateTransport::new(None)?;
         Ok(Self::from_configured(
             endpoint,
             verifier,
             Box::new(transport),
+            None,
+        ))
+    }
+
+    #[cfg(feature = "e2e")]
+    pub fn configured_for_instrumented_e2e(
+        endpoint: &str,
+        trusted_public_keys: BTreeMap<String, String>,
+        current_target: String,
+        additional_root_certificate: Vec<u8>,
+    ) -> Result<Self, UpdateChannelConfigurationError> {
+        let endpoint = parse_static_https_endpoint(endpoint)?;
+        let verifier = configured_verifier(trusted_public_keys, current_target)?;
+        let transport = ReqwestUpdateTransport::new(Some(&additional_root_certificate))?;
+        Ok(Self::from_configured(
+            endpoint,
+            verifier,
+            Box::new(transport),
+            Some(additional_root_certificate),
         ))
     }
 
@@ -64,19 +84,21 @@ impl HttpsUpdateChannel {
     ) -> Result<Self, UpdateChannelConfigurationError> {
         let endpoint = parse_static_https_endpoint(endpoint)?;
         let verifier = configured_verifier(trusted_public_keys, current_target)?;
-        Ok(Self::from_configured(endpoint, verifier, transport))
+        Ok(Self::from_configured(endpoint, verifier, transport, None))
     }
 
     fn from_configured(
         endpoint: Url,
         verifier: SignedUpdateChannelVerifier,
         transport: Box<dyn UpdateHttpTransport>,
+        additional_root_certificate: Option<Vec<u8>>,
     ) -> Self {
         Self {
             configured: Some(ConfiguredUpdateChannel {
                 endpoint,
                 verifier,
                 transport,
+                additional_root_certificate,
             }),
         }
     }
@@ -86,6 +108,13 @@ impl HttpsUpdateChannel {
             .as_ref()?
             .verifier
             .trusted_public_key(key_id)
+    }
+
+    pub(crate) fn package_root_certificate(&self) -> Option<&[u8]> {
+        self.configured
+            .as_ref()?
+            .additional_root_certificate
+            .as_deref()
     }
 }
 
@@ -164,17 +193,37 @@ trait UpdateHttpTransport: Send + Sync {
 struct ReqwestUpdateTransport(Client);
 
 impl ReqwestUpdateTransport {
-    fn new() -> Result<Self, UpdateChannelConfigurationError> {
+    fn new(
+        additional_root_certificate: Option<&[u8]>,
+    ) -> Result<Self, UpdateChannelConfigurationError> {
         let _ = rustls::crypto::ring::default_provider().install_default();
-        Client::builder()
+        let mut builder = Client::builder()
             .connect_timeout(CONNECT_TIMEOUT)
             .timeout(REQUEST_TIMEOUT)
             .redirect(Policy::none())
-            .tls_sslkeylogfile(false)
+            .tls_sslkeylogfile(false);
+        if let Some(pem) = additional_root_certificate {
+            let certificate = parse_single_root_certificate(pem)?;
+            builder = builder.add_root_certificate(certificate);
+        }
+        builder
             .build()
             .map(Self)
             .map_err(|_| UpdateChannelConfigurationError::ClientUnavailable)
     }
+}
+
+fn parse_single_root_certificate(
+    pem: &[u8],
+) -> Result<Certificate, UpdateChannelConfigurationError> {
+    let mut certificates = Certificate::from_pem_bundle(pem)
+        .map_err(|_| UpdateChannelConfigurationError::InvalidTrust)?;
+    if certificates.len() != 1 {
+        return Err(UpdateChannelConfigurationError::InvalidTrust);
+    }
+    certificates
+        .pop()
+        .ok_or(UpdateChannelConfigurationError::InvalidTrust)
 }
 
 impl UpdateHttpTransport for ReqwestUpdateTransport {
@@ -294,6 +343,21 @@ mod tests {
             Some(expected_key.as_str())
         );
         assert_eq!(channel.package_public_key("unknown-test-key"), None);
+        assert_eq!(channel.package_root_certificate(), None);
+    }
+
+    #[cfg(feature = "e2e")]
+    #[test]
+    fn rejects_an_invalid_instrumented_https_root_certificate() {
+        assert!(matches!(
+            HttpsUpdateChannel::configured_for_instrumented_e2e(
+                "https://127.0.0.1:38473/private-alpha.json",
+                synthetic_trust(),
+                "darwin-aarch64".to_owned(),
+                b"not a certificate".to_vec(),
+            ),
+            Err(UpdateChannelConfigurationError::InvalidTrust)
+        ));
     }
 
     #[test]

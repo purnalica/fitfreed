@@ -8,7 +8,7 @@ The current product foundation is developed and packaged on macOS first. The rep
 - npm 10.9.2 in `package.json`;
 - Rust 1.97.1 with `rustfmt` and Clippy in `rust-toolchain.toml`.
 
-Install the Xcode command-line tools and a Rustup installation before setup. Node version managers may read `.nvmrc`; Rustup reads the repository toolchain file automatically. No global Tauri, WebdriverIO, SQLite, or fixture tool is required.
+Install the Xcode command-line tools and a Rustup installation before setup. Node version managers may read `.nvmrc`; Rustup reads the repository toolchain file automatically. The macOS system commands checked by `npm run doctor` include `ditto`, `hdiutil`, `openssl`, `plutil`, `shasum`, `sqlite3`, and `strings`. No separately installed Tauri, WebdriverIO, SQLite library, or fixture tool is required.
 
 ## First setup
 
@@ -52,11 +52,12 @@ npm run test:fast
 | Verify macOS installation and failure boundaries | `npm run verify:development-release` |
 | Verify recovery-pair preparation against the production app | `npm run verify:update-recovery-preparation` |
 | Build and run the instrumented packaged E2E journey | `npm run verify:e2e` |
+| Verify signed packaged update replacement and recovery | `npm run verify:update-e2e` |
 | Run every current local acceptance gate | `npm run verify:full` |
 
 Generated application, database, fixture, log, screenshot, icon, and bundle output is ignored. Never replace the synthetic generators with a real provider export or a record copied from one.
 
-The unsigned macOS production application and DMG are generated under `src-tauri/target/release/bundle/`. The separate E2E build is instrumented and must never be distributed. `npm run verify:full` finishes by rebuilding and checking the production package so the retained bundle is not the instrumented variant.
+The unsigned macOS production application and DMG are generated under `src-tauri/target/release/bundle/`. The separate E2E builds are instrumented and must never be distributed. Packaged update fixtures, ephemeral keys and certificates, isolated installed bundles, libraries, recovery state, logs, and screenshots live under ignored `.artifacts/update-e2e`. `npm run verify:full` finishes by rebuilding and checking the production package so the retained bundle is not an instrumented variant.
 
 ## Synthetic fixture workflow
 
@@ -84,10 +85,10 @@ The [private release preparation guide](release-preparation.md) owns the clean-r
 
 ## Continuous integration
 
-GitHub Actions runs portable quality checks and a mandatory macOS packaged-E2E job for pull requests and `main`. The macOS job verifies detailed-domain and longitudinal read-model performance, prepares and installation-tests a normal private production package, and then builds the separate test variant. It drives the packaged application through validation, progress, cancellation, both locales, exact and cumulative reimport, accessibility, persisted restart, and in-WebView performance budgets for all four detailed Insights areas and their integrated longitudinal view.
+GitHub Actions runs portable quality checks and a mandatory macOS packaged-E2E job for pull requests and `main`. The macOS job verifies detailed-domain and longitudinal read-model performance, prepares and installation-tests a normal private production package, and then builds separate test variants. It drives the packaged application through validation, progress, cancellation, both locales, exact and cumulative reimport, accessibility, persisted restart, and in-WebView performance budgets for all four detailed Insights areas and their integrated longitudinal view. It also exercises a real signed 0.1.0-to-0.2.0 native update through loopback HTTPS, including successful confirmation and automatic rollback after deliberate candidate rejection.
 
 The instrumented build routes only the archive-picker adapter to WebdriverIO's dialog mock because the embedded macOS WebView exposes Tauri globals through a non-configurable proxy. The E2E test waits for the recorded picker call before observing its result. Normal development and production builds use Tauri's native dialog directly, and the production-bundle check rejects both Rust and presentation WebDriver markers.
 
-When E2E fails, the job retains only synthetic screenshots and tool logs for seven days. It never uploads the generated library, fixture paths, real exports, or personal values.
+When E2E fails, the job retains only synthetic screenshots and tool logs for seven days. It never uploads generated libraries, applications, updater packages, recovery pairs, signing material, fixture paths, real exports, or personal values.
 
 The [troubleshooting guide](troubleshooting.md) is the canonical failure guide. It maps common symptoms to their owning boundary and lists privacy-safe escalation evidence.

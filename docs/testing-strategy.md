@@ -90,11 +90,14 @@ Local and continuous-integration workflows will invoke the same underlying comma
 
 - GitHub Actions runs platform-independent fast and full checks for pull requests and `main`.
 - A mandatory macOS job builds the instrumented Tauri package and executes the focused packaged E2E journey with independently generated synthetic fixtures.
+- The same macOS job generates an ephemeral HTTPS authority and Minisign key, builds synthetic 0.1.0 and 0.2.0 applications, and proves both native replacement with candidate confirmation and rejected-candidate recovery to the exact previous application/library pair.
 - Test-only WebDriver plugins and capabilities are feature-gated. A separate packaging assertion proves that they are absent from the production application.
 - The instrumented presentation replaces only the operating-system archive-picker boundary with the WebdriverIO mock registry. Tests synchronize on the recorded dialog invocation before asserting cancellation or selection; unchanged initial UI state is not accepted as evidence that the picker completed.
 - Axe runs in its single-context legacy mode because the embedded macOS driver does not support the auxiliary browser window used by Axe's multi-context algorithm. The rule engine and violation assertions remain enabled.
 - Privacy-safe failure reports, logs, and screenshots are retained as short-lived workflow artifacts. Application libraries, private paths, real exports, and derived personal values are never uploaded.
 - The packaged E2E gate remains failed or pending until it succeeds in automation; inability to execute it in a local host is not accepted evidence.
+
+The packaged update journey runs through `npm run verify:update-e2e`. It serves schema-validated metadata and a signed updater archive from a loopback HTTPS endpoint, adds its single ephemeral certificate authority only to the feature-gated test clients, and allocates a distinct embedded-WebDriver port and isolated application/library/recovery root per scenario. The success path must leave the installed bundle at 0.2.0 with a `confirmed` recovery manifest. The failure path deliberately rejects the replacement after its process-bound startup gate and must leave the installed bundle at 0.1.0, the failed 0.2.0 candidate quarantined, and the manifest at `recovered`. Both paths verify SQLite integrity, retained locale, and the preserved 0.1.0 pair. Keys, certificates, packages, databases, logs, and screenshots are generated only under ignored `.artifacts/update-e2e`; CI retains only the privacy-safe evidence directory when the job fails.
 
 ## Failure policy
 

@@ -10,6 +10,12 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+#[cfg(feature = "e2e")]
+use std::{collections::BTreeMap, fs};
+
+#[cfg(feature = "e2e")]
+use infrastructure::current_update_target;
+
 use chrono::{SecondsFormat, Utc};
 use fitfreed_application::{
     authorize_update_installation as authorize_update, check_for_updates as evaluate_updates,
@@ -292,10 +298,17 @@ async fn check_updates(
     trigger: UpdateCheckTrigger,
 ) -> Result<UpdateCheckOutcomeDto, CommandErrorDto> {
     let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let installed_version = app.package_info().version.to_string();
     let channel = Arc::clone(channel.inner());
     let checked_at = current_utc_datetime();
     tauri::async_runtime::spawn_blocking(move || {
-        perform_update_check(channel.as_ref(), path, checked_at, trigger)
+        perform_update_check(
+            channel.as_ref(),
+            path,
+            installed_version,
+            checked_at,
+            trigger,
+        )
     })
     .await
     .map_err(|_| CommandErrorDto::new("desktop-task-failed"))?
@@ -304,6 +317,7 @@ async fn check_updates(
 fn perform_update_check(
     channel: &impl UpdateChannelPort,
     database_path: PathBuf,
+    installed_version: String,
     checked_at: String,
     trigger: UpdateCheckTrigger,
 ) -> Result<UpdateCheckOutcomeDto, CommandErrorDto> {
@@ -317,7 +331,7 @@ fn perform_update_check(
         channel,
         &state,
         UpdateCheckContext {
-            installed_version: env!("CARGO_PKG_VERSION").to_owned(),
+            installed_version,
             library_schema_version: library_schema_version(),
             locale,
             checked_at,
@@ -383,12 +397,15 @@ async fn install_available_update(
         .ok_or_else(|| CommandErrorDto::new("library-unavailable"))?;
     let channel = Arc::clone(channel.inner());
     let authorization_path = library_path.clone();
+    let installed_version = app.package_info().version.to_string();
+    let authorization_installed_version = installed_version.clone();
     let authorization_channel = Arc::clone(&channel);
     let checked_at = current_utc_datetime();
     let authorization = tauri::async_runtime::spawn_blocking(move || {
         perform_update_authorization(
             authorization_channel.as_ref(),
             authorization_path,
+            authorization_installed_version,
             checked_at,
             &candidate_version,
         )
@@ -402,7 +419,7 @@ async fn install_available_update(
         recovery_root,
         current_application_path,
         library_path,
-        installed_version: env!("CARGO_PKG_VERSION").to_owned(),
+        installed_version,
         prepared_at: current_utc_datetime(),
     };
     tauri::async_runtime::spawn_blocking(move || install_verified_update(&package, request))
@@ -416,6 +433,7 @@ async fn install_available_update(
 fn perform_update_authorization(
     channel: &impl UpdateChannelPort,
     database_path: PathBuf,
+    installed_version: String,
     checked_at: String,
     candidate_version: &str,
 ) -> Result<UpdateInstallationAuthorization, CommandErrorDto> {
@@ -428,7 +446,7 @@ fn perform_update_authorization(
         channel,
         &SqliteUpdateState::new(database_path),
         UpdateCheckContext {
-            installed_version: env!("CARGO_PKG_VERSION").to_owned(),
+            installed_version,
             library_schema_version: library_schema_version(),
             locale,
             checked_at,
@@ -503,12 +521,13 @@ async fn confirm_update_recovery_startup(
             pending.restore(candidate_for_retry.clone());
             CommandErrorDto::new("update-recovery-confirmation-failed")
         })?;
+    let app_version = app.package_info().version.to_string();
     let result = tauri::async_runtime::spawn_blocking(move || {
         confirm_active_update_recovery(
             &recovery_root,
             &candidate.recovery_id,
             &executable,
-            env!("CARGO_PKG_VERSION"),
+            &app_version,
             &library_path,
             library_schema_version(),
             &candidate.launch_nonce,
@@ -530,6 +549,50 @@ async fn confirm_update_recovery_startup(
 
 fn current_utc_datetime() -> String {
     Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true)
+}
+
+fn application_update_channel() -> HttpsUpdateChannel {
+    #[cfg(feature = "e2e")]
+    if let Some(channel) = instrumented_update_channel_from_environment()
+        .expect("invalid instrumented update channel configuration")
+    {
+        return channel;
+    }
+
+    HttpsUpdateChannel::unconfigured()
+}
+
+#[cfg(feature = "e2e")]
+fn instrumented_update_channel_from_environment() -> Result<Option<HttpsUpdateChannel>, ()> {
+    const ENDPOINT: &str = "FITFREED_E2E_UPDATE_ENDPOINT";
+    const KEY_ID: &str = "FITFREED_E2E_UPDATE_KEY_ID";
+    const PUBLIC_KEY: &str = "FITFREED_E2E_UPDATE_PUBLIC_KEY";
+    const ROOT_CERTIFICATE_PATH: &str = "FITFREED_E2E_UPDATE_ROOT_CERTIFICATE_PATH";
+    let names = [ENDPOINT, KEY_ID, PUBLIC_KEY, ROOT_CERTIFICATE_PATH];
+    let configured_values = names
+        .iter()
+        .filter(|name| env::var_os(name).is_some())
+        .count();
+    if configured_values == 0 {
+        return Ok(None);
+    }
+    if configured_values != names.len() {
+        return Err(());
+    }
+    let endpoint = env::var(ENDPOINT).map_err(|_| ())?;
+    let key_id = env::var(KEY_ID).map_err(|_| ())?;
+    let public_key = env::var(PUBLIC_KEY).map_err(|_| ())?;
+    let root_certificate_path = env::var(ROOT_CERTIFICATE_PATH).map_err(|_| ())?;
+    let root_certificate = fs::read(root_certificate_path).map_err(|_| ())?;
+    let target = current_update_target().map_err(|_| ())?;
+    HttpsUpdateChannel::configured_for_instrumented_e2e(
+        &endpoint,
+        BTreeMap::from([(key_id, public_key)]),
+        target,
+        root_certificate,
+    )
+    .map(Some)
+    .map_err(|_| ())
 }
 
 fn database_path(app: &AppHandle) -> Result<PathBuf, String> {
@@ -659,6 +722,10 @@ pub fn run() {
             if !succeeded {
                 process::exit(1);
             }
+            #[cfg(feature = "e2e")]
+            if env::var_os("FITFREED_E2E_REJECT_UPDATE_CANDIDATE").is_some() {
+                process::exit(1);
+            }
             Some(candidate)
         }
         StartupMode::UpdateRecoveryWatchdog {
@@ -689,7 +756,7 @@ pub fn run() {
         .manage(PendingUpdateRecoveryConfirmation::new(
             pending_recovery_confirmation,
         ))
-        .manage(Arc::new(HttpsUpdateChannel::unconfigured()))
+        .manage(Arc::new(application_update_channel()))
         .setup(|app| {
             let library_path = database_path(app.handle()).map_err(std::io::Error::other)?;
             let pending = app.state::<PendingUpdateRecoveryConfirmation>();
@@ -781,6 +848,7 @@ mod tests {
         let outcome = perform_update_check(
             &channel,
             database_path,
+            env!("CARGO_PKG_VERSION").to_owned(),
             "2026-08-16T12:00:00Z".to_owned(),
             UpdateCheckTrigger::Manual,
         )
@@ -803,6 +871,7 @@ mod tests {
         let outcome = perform_update_check(
             &channel,
             directory.path().join("library.sqlite"),
+            env!("CARGO_PKG_VERSION").to_owned(),
             "2026-08-16T12:00:00Z".to_owned(),
             UpdateCheckTrigger::Scheduled,
         )

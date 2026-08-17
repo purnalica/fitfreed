@@ -1,7 +1,7 @@
 use std::{collections::HashMap, time::Duration};
 
 use fitfreed_application::UpdateInstallationAuthorization;
-use reqwest::redirect::Policy;
+use reqwest::{redirect::Policy, Certificate};
 use semver::Version;
 use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Runtime};
@@ -75,6 +75,11 @@ pub async fn download_verified_update<R: Runtime>(
         .package_public_key(&authorization.signing_key_id)
         .ok_or(UpdatePackageError::TrustUnavailable)?
         .to_owned();
+    let package_root_certificate = channel
+        .package_root_certificate()
+        .map(parse_single_root_certificate)
+        .transpose()
+        .map_err(|_| UpdatePackageError::TrustUnavailable)?;
     let package_url = Url::parse(&authorization.artifact.package_url)
         .map_err(|_| UpdatePackageError::InvalidAuthorization)?;
     let version = Version::parse(&authorization.version)
@@ -98,12 +103,17 @@ pub async fn download_verified_update<R: Runtime>(
         .updater_builder()
         .target(target)
         .pubkey(package_public_key)
-        .configure_client(|client| {
-            client
+        .configure_client(move |client| {
+            let client = client
                 .connect_timeout(PACKAGE_CONNECT_TIMEOUT)
                 .timeout(PACKAGE_REQUEST_TIMEOUT)
                 .redirect(Policy::none())
-                .tls_sslkeylogfile(false)
+                .tls_sslkeylogfile(false);
+            if let Some(certificate) = package_root_certificate.as_ref() {
+                client.add_root_certificate(certificate.clone())
+            } else {
+                client
+            }
         })
         .build_for_authenticated_release()
         .map_err(|_| UpdatePackageError::NativeUpdater)?;
@@ -122,6 +132,14 @@ pub async fn download_verified_update<R: Runtime>(
         authorization,
         native_update,
     })
+}
+
+fn parse_single_root_certificate(pem: &[u8]) -> Result<Certificate, ()> {
+    let mut certificates = Certificate::from_pem_bundle(pem).map_err(|_| ())?;
+    if certificates.len() != 1 {
+        return Err(());
+    }
+    certificates.pop().ok_or(())
 }
 
 fn validate_authorization(

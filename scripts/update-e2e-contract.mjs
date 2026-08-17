@@ -1,0 +1,77 @@
+export function updateTarget(platform, architecture) {
+  if (platform !== "darwin") {
+    throw new Error("Packaged update E2E is supported only on macOS");
+  }
+  if (architecture === "arm64") return "darwin-aarch64";
+  if (architecture === "x64") return "darwin-x86_64";
+  throw new Error(`Unsupported macOS architecture: ${architecture}`);
+}
+
+export function createUpdatePayload({
+  target,
+  packageUrl,
+  packageSize,
+  packageSha256,
+  packageSignature,
+  schemaVersion,
+  issuedAt,
+  expiresAt,
+}) {
+  return {
+    format: "org.fitfreed.update-channel",
+    schemaVersion: 1,
+    channel: "private-alpha",
+    sequence: 1,
+    issuedAt,
+    expiresAt,
+    release: {
+      version: "0.2.0",
+      publishedAt: issuedAt,
+      minimumSupportedVersion: "0.1.0",
+      librarySchema: {
+        minimumReadableVersion: 1,
+        maximumReadableVersion: schemaVersion,
+        targetVersion: schemaVersion,
+      },
+      releaseNotes: {
+        "en-US": "Synthetic packaged update acceptance release.",
+        "es-ES": "Versión sintética para aceptar la actualización empaquetada.",
+      },
+      platforms: {
+        [target]: {
+          url: packageUrl,
+          size: packageSize,
+          sha256: packageSha256,
+          tauriSignature: packageSignature,
+        },
+      },
+    },
+    withdrawnVersions: [],
+  };
+}
+
+export function createUpdateEnvelope({
+  payload,
+  payloadBytes,
+  metadataSignature,
+  keyId,
+}) {
+  const [target, artifact] = Object.entries(payload.release.platforms)[0];
+  return {
+    version: payload.release.version,
+    platforms: {
+      [target]: {
+        url: artifact.url,
+        signature: artifact.tauriSignature,
+      },
+    },
+    fitfreed: {
+      format: "org.fitfreed.update-envelope",
+      schemaVersion: 1,
+      algorithm: "minisign-ed25519",
+      keyId,
+      payloadBase64: payloadBytes.toString("base64"),
+      signatureBase64: metadataSignature,
+    },
+  };
+}
