@@ -104,6 +104,14 @@ pub struct UpdateRecoveryPreparation<'a> {
     pub authorization: &'a UpdateInstallationAuthorization,
 }
 
+#[derive(Clone, Copy)]
+pub struct UpdateRecoveryRestoration<'a> {
+    pub recovery_root: &'a Path,
+    pub recovery_id: &'a str,
+    pub expected_application_path: &'a Path,
+    pub expected_library_path: &'a Path,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PreparedUpdateRecovery {
     recovery_id: String,
@@ -395,6 +403,237 @@ pub fn verify_prepared_update_recovery(
         .join(ATTEMPTS_DIRECTORY_NAME)
         .join(recovery_id);
     verify_attempt_directory(&attempt_directory, recovery_id)
+}
+
+pub fn restore_active_update_recovery(
+    copier: &impl ApplicationCopyPort,
+    restoration: UpdateRecoveryRestoration<'_>,
+) -> Result<(), UpdateRecoveryError> {
+    if !valid_sha256(restoration.recovery_id) {
+        return Err(UpdateRecoveryError::InvalidInput);
+    }
+    let recovery_root = restoration.recovery_root.canonicalize()?;
+    if read_active_recovery_id(&recovery_root.join(ACTIVE_FILE_NAME))? != restoration.recovery_id {
+        return Err(UpdateRecoveryError::InvalidState);
+    }
+    let attempt_directory = recovery_root
+        .join(ATTEMPTS_DIRECTORY_NAME)
+        .join(restoration.recovery_id);
+    let manifest = read_manifest(&attempt_directory.join(MANIFEST_FILE_NAME))?;
+    validate_manifest(&manifest)?;
+    validate_restoration_destinations(&recovery_root, &manifest, restoration)?;
+    verify_attempt_directory(&attempt_directory, restoration.recovery_id)?;
+    let application_path = PathBuf::from(&manifest.source.application_path);
+    let library_path = PathBuf::from(&manifest.source.library_path);
+
+    match manifest.phase {
+        RecoveryPhaseWire::Recovering => {}
+        RecoveryPhaseWire::Recovered => {
+            return verify_restored_pair(&application_path, &library_path, &manifest);
+        }
+        _ => return Err(UpdateRecoveryError::InvalidTransition),
+    }
+
+    restore_application(
+        copier,
+        &attempt_directory.join(&manifest.application_backup.relative_path),
+        &application_path,
+        restoration.recovery_id,
+        &manifest,
+    )?;
+    restore_library(
+        &attempt_directory.join(&manifest.library_backup.relative_path),
+        &library_path,
+        &manifest,
+    )?;
+    verify_restored_pair(&application_path, &library_path, &manifest)?;
+    transition_active_update_recovery(
+        &recovery_root,
+        restoration.recovery_id,
+        UpdateRecoveryPhase::Recovered,
+    )
+}
+
+fn validate_restoration_destinations(
+    recovery_root: &Path,
+    manifest: &UpdateRecoveryManifest,
+    restoration: UpdateRecoveryRestoration<'_>,
+) -> Result<(), UpdateRecoveryError> {
+    let application_parent = restoration
+        .expected_application_path
+        .parent()
+        .ok_or(UpdateRecoveryError::InvalidInput)?
+        .canonicalize()?;
+    let library_parent = restoration
+        .expected_library_path
+        .parent()
+        .ok_or(UpdateRecoveryError::InvalidInput)?
+        .canonicalize()?;
+    let recovery_parent = recovery_root
+        .parent()
+        .ok_or(UpdateRecoveryError::InvalidState)?
+        .canonicalize()?;
+    let expected_application_path = application_parent.join("FitFreed.app");
+    let expected_library_path = library_parent.join("fitfreed.sqlite");
+    if !restoration.expected_application_path.is_absolute()
+        || restoration
+            .expected_application_path
+            .file_name()
+            .and_then(|name| name.to_str())
+            != Some("FitFreed.app")
+        || !restoration.expected_library_path.is_absolute()
+        || restoration
+            .expected_library_path
+            .file_name()
+            .and_then(|name| name.to_str())
+            != Some("fitfreed.sqlite")
+        || library_parent != recovery_parent
+        || Path::new(&manifest.source.application_path) != expected_application_path
+        || Path::new(&manifest.source.library_path) != expected_library_path
+    {
+        return Err(UpdateRecoveryError::InvalidInput);
+    }
+    reject_symbolic_link_destination(&expected_application_path)?;
+    reject_symbolic_link_destination(&expected_library_path)?;
+    Ok(())
+}
+
+fn reject_symbolic_link_destination(path: &Path) -> Result<(), UpdateRecoveryError> {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.file_type().is_symlink() => Err(UpdateRecoveryError::InvalidState),
+        Ok(_) => Ok(()),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error.into()),
+    }
+}
+
+fn restore_application(
+    copier: &impl ApplicationCopyPort,
+    backup_path: &Path,
+    destination_path: &Path,
+    recovery_id: &str,
+    manifest: &UpdateRecoveryManifest,
+) -> Result<(), UpdateRecoveryError> {
+    if verify_restored_application(destination_path, manifest).is_ok() {
+        return Ok(());
+    }
+    let parent = destination_path
+        .parent()
+        .ok_or(UpdateRecoveryError::InvalidState)?;
+    let staging_path = parent.join(format!(
+        ".FitFreed.app.fitfreed-recovery-{recovery_id}.staging"
+    ));
+    let failed_path = parent.join(format!(
+        ".FitFreed.app.fitfreed-recovery-{recovery_id}.failed"
+    ));
+    remove_owned_application_staging(&staging_path)?;
+    if let Err(_error) = copier.copy_application(backup_path, &staging_path) {
+        let _ = remove_owned_application_staging(&staging_path);
+        return Err(UpdateRecoveryError::ApplicationCopy);
+    }
+    if application_tree_sha256(&staging_path)? != manifest.application_backup.tree_sha256 {
+        return Err(UpdateRecoveryError::InvalidApplicationCopy);
+    }
+    validate_application_bundle(&staging_path, &manifest.source.version)?;
+    sync_tree(&staging_path)?;
+
+    if destination_path.exists() {
+        if failed_path.exists() {
+            return Err(UpdateRecoveryError::InvalidState);
+        }
+        fs::rename(destination_path, &failed_path)?;
+        sync_directory(parent)?;
+    }
+    fs::rename(&staging_path, destination_path)?;
+    sync_directory(parent)?;
+    verify_restored_application(destination_path, manifest)
+}
+
+fn remove_owned_application_staging(path: &Path) -> Result<(), UpdateRecoveryError> {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.file_type().is_dir() => {
+            fs::remove_dir_all(path)?;
+            Ok(())
+        }
+        Ok(_) => Err(UpdateRecoveryError::InvalidState),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error.into()),
+    }
+}
+
+fn restore_library(
+    backup_path: &Path,
+    destination_path: &Path,
+    manifest: &UpdateRecoveryManifest,
+) -> Result<(), UpdateRecoveryError> {
+    let parent = destination_path
+        .parent()
+        .ok_or(UpdateRecoveryError::InvalidState)?;
+    let mut temporary = PrivateStagingFile::new(parent, "fitfreed-library-restoration", ".sqlite")?;
+    let copied_bytes = {
+        let source = File::open(backup_path)?;
+        io::copy(
+            &mut source.take(manifest.library_backup.size_bytes + 1),
+            temporary.file_mut()?,
+        )?
+    };
+    if copied_bytes != manifest.library_backup.size_bytes {
+        return Err(UpdateRecoveryError::InvalidLibraryCopy);
+    }
+    temporary.sync_and_close()?;
+    verify_restored_library(temporary.path(), manifest)?;
+
+    remove_library_sidecar(destination_path, "sqlite-wal")?;
+    remove_library_sidecar(destination_path, "sqlite-shm")?;
+    temporary.persist_replace(destination_path)?;
+    verify_restored_library(destination_path, manifest)
+}
+
+fn remove_library_sidecar(library_path: &Path, extension: &str) -> Result<(), UpdateRecoveryError> {
+    let sidecar = library_path.with_extension(extension);
+    match fs::symlink_metadata(&sidecar) {
+        Ok(metadata) if metadata.file_type().is_file() || metadata.file_type().is_symlink() => {
+            fs::remove_file(sidecar)?;
+            Ok(())
+        }
+        Ok(_) => Err(UpdateRecoveryError::InvalidState),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error.into()),
+    }
+}
+
+fn verify_restored_pair(
+    application_path: &Path,
+    library_path: &Path,
+    manifest: &UpdateRecoveryManifest,
+) -> Result<(), UpdateRecoveryError> {
+    verify_restored_application(application_path, manifest)?;
+    verify_restored_library(library_path, manifest)
+}
+
+fn verify_restored_application(
+    path: &Path,
+    manifest: &UpdateRecoveryManifest,
+) -> Result<(), UpdateRecoveryError> {
+    if application_tree_sha256(path)? != manifest.application_backup.tree_sha256 {
+        return Err(UpdateRecoveryError::InvalidApplicationCopy);
+    }
+    validate_application_bundle(path, &manifest.source.version)
+}
+
+fn verify_restored_library(
+    path: &Path,
+    manifest: &UpdateRecoveryManifest,
+) -> Result<(), UpdateRecoveryError> {
+    let metadata = fs::symlink_metadata(path)?;
+    if !metadata.file_type().is_file()
+        || metadata.len() != manifest.library_backup.size_bytes
+        || file_sha256(path)? != manifest.library_backup.sha256
+    {
+        return Err(UpdateRecoveryError::InvalidLibraryCopy);
+    }
+    verify_library_file(path, i64::from(manifest.source.library_schema_version))
+        .map_err(|_| UpdateRecoveryError::InvalidLibraryCopy)
 }
 
 fn verify_attempt_directory(
@@ -1102,6 +1341,192 @@ mod tests {
     }
 
     #[test]
+    fn restores_the_previous_pair_idempotently_after_candidate_failure() {
+        let harness = Harness::new();
+        let authorization = harness.authorization();
+        let prepared = prepare_update_recovery(
+            &SyntheticApplicationCopier,
+            harness.preparation(&authorization),
+        )
+        .expect("prepared update recovery");
+        enter_recovering(&harness, prepared.recovery_id());
+
+        fs::remove_dir_all(&harness.application_path).expect("removed previous application");
+        create_synthetic_application(&harness.application_path, "0.2.0");
+        let candidate_library = Connection::open(&harness.library_path).expect("candidate library");
+        candidate_library
+            .execute(
+                "UPDATE locale_preference SET locale = 'en-US' WHERE id = 1",
+                [],
+            )
+            .expect("candidate locale");
+        drop(candidate_library);
+        fs::write(
+            harness.library_path.with_extension("sqlite-wal"),
+            "stale wal",
+        )
+        .expect("candidate WAL");
+        fs::write(
+            harness.library_path.with_extension("sqlite-shm"),
+            "stale shm",
+        )
+        .expect("candidate SHM");
+
+        let restoration = UpdateRecoveryRestoration {
+            recovery_root: &harness.recovery_root,
+            recovery_id: prepared.recovery_id(),
+            expected_application_path: &harness.application_path,
+            expected_library_path: &harness.library_path,
+        };
+        restore_active_update_recovery(&SyntheticApplicationCopier, restoration)
+            .expect("restored previous pair");
+        restore_active_update_recovery(&SyntheticApplicationCopier, restoration)
+            .expect("idempotent restored pair");
+
+        validate_application_bundle(&harness.application_path, "0.1.0")
+            .expect("restored application");
+        assert_eq!(
+            Connection::open(&harness.library_path)
+                .expect("restored library")
+                .query_row(
+                    "SELECT locale FROM locale_preference WHERE id = 1",
+                    [],
+                    |row| row.get::<_, String>(0),
+                )
+                .expect("restored locale"),
+            "es-ES"
+        );
+        assert!(!harness.library_path.with_extension("sqlite-wal").exists());
+        assert!(!harness.library_path.with_extension("sqlite-shm").exists());
+        assert_eq!(
+            active_update_recovery_phase(&harness.recovery_root).expect("recovery outcome"),
+            Some((
+                prepared.recovery_id().to_owned(),
+                UpdateRecoveryPhase::Recovered
+            ))
+        );
+    }
+
+    #[test]
+    fn rejects_tampered_recovery_assets_before_mutating_candidate_destinations() {
+        let harness = Harness::new();
+        let authorization = harness.authorization();
+        let prepared = prepare_update_recovery(
+            &SyntheticApplicationCopier,
+            harness.preparation(&authorization),
+        )
+        .expect("prepared update recovery");
+        enter_recovering(&harness, prepared.recovery_id());
+        fs::write(
+            prepared
+                .attempt_directory()
+                .join("previous/FitFreed.app/Contents/Resources/preserved.txt"),
+            "tampered recovery application",
+        )
+        .expect("tampered application backup");
+        fs::remove_dir_all(&harness.application_path).expect("removed previous application");
+        create_synthetic_application(&harness.application_path, "0.2.0");
+
+        assert!(matches!(
+            restore_active_update_recovery(
+                &SyntheticApplicationCopier,
+                UpdateRecoveryRestoration {
+                    recovery_root: &harness.recovery_root,
+                    recovery_id: prepared.recovery_id(),
+                    expected_application_path: &harness.application_path,
+                    expected_library_path: &harness.library_path,
+                },
+            ),
+            Err(UpdateRecoveryError::InvalidApplicationCopy)
+        ));
+
+        validate_application_bundle(&harness.application_path, "0.2.0")
+            .expect("untouched candidate application");
+        assert_eq!(
+            active_update_recovery_phase(&harness.recovery_root).expect("retriable recovery"),
+            Some((
+                prepared.recovery_id().to_owned(),
+                UpdateRecoveryPhase::Recovering
+            ))
+        );
+    }
+
+    #[test]
+    fn resumes_restoration_after_the_candidate_application_was_quarantined() {
+        let harness = Harness::new();
+        let authorization = harness.authorization();
+        let prepared = prepare_update_recovery(
+            &SyntheticApplicationCopier,
+            harness.preparation(&authorization),
+        )
+        .expect("prepared update recovery");
+        enter_recovering(&harness, prepared.recovery_id());
+        let manifest = read_manifest(&prepared.attempt_directory().join(MANIFEST_FILE_NAME))
+            .expect("recovery manifest");
+        let installed_application = PathBuf::from(&manifest.source.application_path);
+        let application_parent = installed_application.parent().expect("application parent");
+        let failed_application = application_parent.join(format!(
+            ".FitFreed.app.fitfreed-recovery-{}.failed",
+            prepared.recovery_id()
+        ));
+        fs::remove_dir_all(&installed_application).expect("removed previous application");
+        create_synthetic_application(&installed_application, "0.2.0");
+        fs::rename(&installed_application, &failed_application)
+            .expect("interrupted candidate quarantine");
+
+        restore_active_update_recovery(
+            &SyntheticApplicationCopier,
+            UpdateRecoveryRestoration {
+                recovery_root: &harness.recovery_root,
+                recovery_id: prepared.recovery_id(),
+                expected_application_path: &harness.application_path,
+                expected_library_path: &harness.library_path,
+            },
+        )
+        .expect("resumed restoration");
+
+        validate_application_bundle(&installed_application, "0.1.0").expect("restored application");
+        validate_application_bundle(&failed_application, "0.2.0")
+            .expect("retained failed candidate");
+        assert_eq!(
+            active_update_recovery_phase(&harness.recovery_root).expect("recovery outcome"),
+            Some((
+                prepared.recovery_id().to_owned(),
+                UpdateRecoveryPhase::Recovered
+            ))
+        );
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn restores_the_pair_with_the_real_macos_application_copier() {
+        let harness = Harness::new();
+        let authorization = harness.authorization();
+        let prepared = prepare_update_recovery(
+            &PlatformApplicationCopier,
+            harness.preparation(&authorization),
+        )
+        .expect("prepared macOS update recovery");
+        enter_recovering(&harness, prepared.recovery_id());
+        fs::remove_dir_all(&harness.application_path).expect("removed previous application");
+        create_synthetic_application(&harness.application_path, "0.2.0");
+
+        restore_active_update_recovery(
+            &PlatformApplicationCopier,
+            UpdateRecoveryRestoration {
+                recovery_root: &harness.recovery_root,
+                recovery_id: prepared.recovery_id(),
+                expected_application_path: &harness.application_path,
+                expected_library_path: &harness.library_path,
+            },
+        )
+        .expect("restored macOS update recovery");
+
+        validate_application_bundle(&harness.application_path, "0.1.0")
+            .expect("restored macOS application");
+    }
+
+    #[test]
     fn rejects_tampered_assets_and_a_second_active_attempt() {
         let harness = Harness::new();
         let authorization = harness.authorization();
@@ -1233,6 +1658,18 @@ mod tests {
             application_tree_sha256(&harness.application_path),
             Err(UpdateRecoveryError::InvalidApplicationCopy)
         ));
+    }
+
+    fn enter_recovering(harness: &Harness, recovery_id: &str) {
+        for phase in [
+            UpdateRecoveryPhase::ReplacementStarted,
+            UpdateRecoveryPhase::ReplacementInstalled,
+            UpdateRecoveryPhase::Launching,
+            UpdateRecoveryPhase::Recovering,
+        ] {
+            transition_active_update_recovery(&harness.recovery_root, recovery_id, phase)
+                .expect("recovery transition");
+        }
     }
 
     fn create_synthetic_application(path: &Path, version: &str) {

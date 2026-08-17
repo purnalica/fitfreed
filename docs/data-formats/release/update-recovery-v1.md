@@ -73,6 +73,10 @@ The library copy uses SQLite's online backup API. Preparation requires the sourc
 
 Restoration verifies the recorded size, SHA-256, SQLite integrity, and source schema again before atomically replacing the inactive library. Stale `-wal` and `-shm` sidecars from the failed candidate are removed only after its process is stopped and the verified replacement is ready.
 
+Application restoration first copies and verifies the preserved bundle at the fixed destination's sibling `.FitFreed.app.fitfreed-recovery-<recoveryId>.staging`. The failed candidate moves to `.FitFreed.app.fitfreed-recovery-<recoveryId>.failed` before the verified staging bundle is promoted. These names are internal recovery state, never caller-selected paths. A restart can discard an incomplete staging bundle, continue after candidate quarantine, or verify an already promoted source bundle. The failed candidate remains until terminal cleanup.
+
+Library restoration uses a private sibling staging file, checks the recorded byte length, digest, schema, and integrity, removes only the fixed `fitfreed.sqlite-wal` and `fitfreed.sqlite-shm` sidecars, and atomically replaces `fitfreed.sqlite`. The recovery root's canonical parent must be the canonical library parent. The installed application and library destinations must exactly match the manifest and independently supplied expected paths before any mutation.
+
 ## Lifecycle
 
 The allowed transitions are:
