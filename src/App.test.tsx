@@ -1528,7 +1528,7 @@ describe("FitFreed import interface", () => {
     const view = render(<App />);
     const training = await screen.findByRole("region", { name: "Training history" });
 
-    expect(within(training).getByText("2 sessions")).toBeVisible();
+    expect(await within(training).findByText("2 sessions")).toBeVisible();
     expect(within(training).getByText("2 training days")).toBeVisible();
     expect(within(training).getAllByRole("button", { name: /View training details/ }))
       .toHaveLength(2);
