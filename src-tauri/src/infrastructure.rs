@@ -49,6 +49,7 @@ use fitfreed_domain::{
 
 mod polar_flow;
 mod source_subject;
+pub mod update;
 
 use polar_flow::{
     assess_artifact, daily_activity_filename_date, training_session_filename_start,
