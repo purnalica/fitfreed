@@ -29,12 +29,12 @@ pub use longitudinal::{
 };
 mod update;
 pub use update::{
-    check_for_updates, dismiss_update, postpone_update, AuthenticatedUpdateSnapshot,
-    LocalizedUpdateText, ManualUpdateReason, PersistedUpdateState, PostponedUpdate,
-    TrustedSnapshotRecord, UpdateChannelPort, UpdateChannelRead, UpdateCheckContext,
-    UpdateCheckOutcome, UpdateCheckStatus, UpdateCheckTrigger, UpdateError, UpdateRelease,
-    UpdateReleaseSummary, UpdateStatePort, UpdateTrustFailure, UpdateWithdrawal,
-    UpdateWithdrawalReason, UpdateWithdrawalSummary,
+    authorize_update_installation, check_for_updates, dismiss_update, postpone_update,
+    AuthenticatedUpdateSnapshot, LocalizedUpdateText, ManualUpdateReason, PersistedUpdateState,
+    PostponedUpdate, TrustedSnapshotRecord, UpdateArtifact, UpdateChannelPort, UpdateChannelRead,
+    UpdateCheckContext, UpdateCheckOutcome, UpdateCheckStatus, UpdateCheckTrigger, UpdateError,
+    UpdateInstallationAuthorization, UpdateRelease, UpdateReleaseSummary, UpdateStatePort,
+    UpdateTrustFailure, UpdateWithdrawal, UpdateWithdrawalReason, UpdateWithdrawalSummary,
 };
 
 #[cfg(test)]

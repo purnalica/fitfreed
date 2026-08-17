@@ -416,7 +416,7 @@ mod tests {
     use std::collections::BTreeMap;
 
     use fitfreed_application::{
-        save_locale_preference, AuthenticatedUpdateSnapshot, LocalizedUpdateText,
+        save_locale_preference, AuthenticatedUpdateSnapshot, LocalizedUpdateText, UpdateArtifact,
         UpdateChannelRead, UpdateRelease,
     };
     use tempfile::TempDir;
@@ -505,6 +505,15 @@ mod tests {
                         ("en-US".to_owned(), "English notes.".to_owned()),
                         ("es-ES".to_owned(), "Notas en español.".to_owned()),
                     ]),
+                },
+                artifact: UpdateArtifact {
+                    target: "darwin-aarch64".to_owned(),
+                    package_url: "https://updates.invalid/fitfreed-0.2.0.app.tar.gz".to_owned(),
+                    expected_size_bytes: 26,
+                    expected_sha256:
+                        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+                            .to_owned(),
+                    package_signature: "synthetic-package-signature".to_owned(),
                 },
             },
             withdrawn_versions: Vec::new(),

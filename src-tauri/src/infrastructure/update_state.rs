@@ -218,9 +218,9 @@ mod tests {
 
     use fitfreed_application::{
         check_for_updates, dismiss_update, postpone_update, AuthenticatedUpdateSnapshot,
-        LocalePreference, LocalizedUpdateText, UpdateChannelPort, UpdateChannelRead,
-        UpdateCheckContext, UpdateCheckStatus, UpdateCheckTrigger, UpdateRelease,
-        UpdateTrustFailure,
+        LocalePreference, LocalizedUpdateText, UpdateArtifact, UpdateChannelPort,
+        UpdateChannelRead, UpdateCheckContext, UpdateCheckStatus, UpdateCheckTrigger,
+        UpdateRelease, UpdateTrustFailure,
     };
     use tempfile::TempDir;
 
@@ -353,6 +353,15 @@ mod tests {
                         ("en-US".to_owned(), "Synthetic release.".to_owned()),
                         ("es-ES".to_owned(), "Versión sintética.".to_owned()),
                     ]),
+                },
+                artifact: UpdateArtifact {
+                    target: "darwin-aarch64".to_owned(),
+                    package_url: "https://updates.invalid/fitfreed-0.2.0.app.tar.gz".to_owned(),
+                    expected_size_bytes: 26,
+                    expected_sha256:
+                        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+                            .to_owned(),
+                    package_signature: "synthetic-package-signature".to_owned(),
                 },
             },
             withdrawn_versions: Vec::new(),

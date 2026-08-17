@@ -60,6 +60,7 @@ requireDependencies("fitfreed-application", [
   "fitfreed-domain",
   "semver",
   "thiserror",
+  "url",
 ]);
 
 const forbiddenAdapterTerms = [
@@ -82,5 +83,5 @@ rejectBoundaryTerms(
 );
 
 process.stdout.write(
-  `${JSON.stringify({ domainDependencies: [], applicationDependencies: ["chrono", "fitfreed-domain", "semver", "thiserror"] })}\n`,
+  `${JSON.stringify({ domainDependencies: [], applicationDependencies: ["chrono", "fitfreed-domain", "semver", "thiserror", "url"] })}\n`,
 );

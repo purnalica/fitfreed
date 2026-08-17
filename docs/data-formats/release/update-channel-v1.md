@@ -15,7 +15,7 @@ The outer object is compatible with Tauri's static updater feed, but its fields 
 - Channel: `private-alpha`.
 - Signature algorithm identifier: `minisign-ed25519`.
 - `payloadBase64` decodes to the exact signed UTF-8 JSON bytes; verification occurs before JSON parsing.
-- The complete HTTP response is limited to 1.5 MiB while streaming. The decoded payload is limited to 1 MiB. Encoded signatures are limited to 16 KiB. URLs are limited to 2,048 characters.
+- The complete HTTP response is limited to 1.5 MiB while streaming. The decoded payload is limited to 1 MiB. An updater package's signed expected size is limited to 1 GiB. Encoded signatures are limited to 16 KiB. URLs are limited to 2,048 characters.
 - Unknown fields are invalid except additional locale keys in localized text objects and additional valid platform target keys.
 
 The metadata endpoint is one static HTTPS URL without user information, query, or fragment components. Metadata redirects are not followed. Connection establishment is limited to 5 seconds and the complete request to 10 seconds. Test-only transport exceptions remain outside this production contract. Every artifact URL also uses HTTPS in a production build; its separately authenticated download behavior is part of the installation contract.
@@ -56,7 +56,7 @@ The envelope deliberately omits unsigned `notes` and `pub_date`. Presentation us
 | `release.releaseNotes.*` | localized string | Authenticated release notes; `en-US` and `es-ES` are mandatory. |
 | `release.platforms.*` | target-keyed object | Authenticated package expectations for each distributed target. |
 | `release.platforms.*.url` | HTTPS URL | Exact updater-package location. Redirects may not cross to an unsigned location or unsupported scheme. |
-| `release.platforms.*.size` | positive integer | Exact downloaded byte length. |
+| `release.platforms.*.size` | integer from 1 through 1,073,741,824 | Exact downloaded byte length. |
 | `release.platforms.*.sha256` | lowercase hexadecimal | SHA-256 of the exact updater-package bytes. |
 | `release.platforms.*.tauriSignature` | Base64 string | Tauri's mandatory Minisign package signature. |
 | `withdrawnVersions` | array | Signed withdrawal policy, unique by exact SemVer. |
@@ -78,7 +78,8 @@ JSON Schema validates shape; the verifier additionally enforces all of these inv
 5. `minimumReadableVersion` is no greater than `maximumReadableVersion`; `targetVersion` is at least `minimumReadableVersion` and never lower than the current library schema selected for update.
 6. A candidate is installable only when it is newer than the installed version, is not withdrawn, the installed version is at least `minimumSupportedVersion`, and the current library schema is inside the declared readable interval.
 7. Normal channel policy never accepts a SemVer downgrade, including when an endpoint or updater comparator presents one.
-8. A downloaded package must pass Tauri signature verification and exact signed `size` and `sha256` comparison before native installation.
+8. An explicit installation request reruns the complete check and must name the exact candidate selected by that fresh authenticated snapshot. Only an installable result yields a host-internal authorization containing its sequence, payload digest, target schema, and current-target package expectations.
+9. A downloaded package must pass Tauri signature verification and exact signed `size` and `sha256` comparison before native installation.
 
 ## Failure and compatibility behavior
 
@@ -86,7 +87,7 @@ Unsupported envelope or payload versions, unknown keys, malformed Base64, invali
 
 An unreachable endpoint, non-success HTTP status, timeout, redirect response, or body read failure is an offline update outcome, not untrusted metadata and not an application failure. A response that exceeds the streaming limit is untrusted and is never buffered beyond one limit-detection byte. An expired otherwise valid payload cannot authorize installation. A lower application baseline, incompatible library schema, installed withdrawal without a safe candidate, or missing current platform produces authenticated manual-recovery guidance rather than a download.
 
-The accepted sequence, payload digest, dismissal, and postponement are local application state. They contain no fitness, health, location, account, provider, or usage values. Diagnostics expose stable reason codes, not endpoint URLs, response bodies, package paths, signed payloads, or key material.
+The accepted sequence, payload digest, dismissal, and postponement are local application state. They contain no fitness, health, location, account, provider, or usage values. Exact package expectations exist only in the transient host-side installation authorization; they are neither persisted nor serialized to React. Diagnostics expose stable reason codes, not endpoint URLs, response bodies, package paths, signed payloads, or key material.
 
 ## Signing and release relationship
 

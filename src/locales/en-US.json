@@ -682,6 +682,7 @@
     "update-state-unavailable": "FitFreed could not read or save the local update state. Preserve the application data and restart before retrying.",
     "update-candidate-changed": "The available update changed before the preference was saved. Check again before choosing an action.",
     "invalid-update-preference": "The update preference was rejected because its version or time was invalid. Check again before choosing an action.",
+    "update-installation-not-allowed": "This release is not authorized for in-app installation. Check again and follow the displayed recovery guidance.",
     "unexpected": "FitFreed encountered an unexpected local error. Restart the application before retrying."
   }
 }

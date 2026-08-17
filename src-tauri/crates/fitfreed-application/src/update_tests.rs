@@ -90,6 +90,14 @@ fn release(version: &str) -> UpdateRelease {
             "Verified update notes.",
             "Notas de actualización verificadas.",
         ),
+        artifact: UpdateArtifact {
+            target: "darwin-aarch64".to_owned(),
+            package_url: "https://updates.invalid/fitfreed-0.2.0-aarch64.app.tar.gz".to_owned(),
+            expected_size_bytes: 26,
+            expected_sha256: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+                .to_owned(),
+            package_signature: "synthetic-package-signature".to_owned(),
+        },
     }
 }
 
@@ -132,6 +140,144 @@ fn channel(read: UpdateChannelRead) -> ControlledChannel {
 
 fn authenticated(snapshot: AuthenticatedUpdateSnapshot) -> UpdateChannelRead {
     UpdateChannelRead::Authenticated(Box::new(snapshot))
+}
+
+#[test]
+fn authorizes_only_the_exact_fresh_candidate_and_preserves_its_package_expectations() {
+    let state = ControlledState::new(PersistedUpdateState::default());
+    let mut installation_context = context(LocalePreference::EnUs);
+    installation_context.trigger = UpdateCheckTrigger::Scheduled;
+
+    let authorization = authorize_update_installation(
+        &channel(authenticated(snapshot(17, "0.2.0"))),
+        &state,
+        installation_context,
+        "0.2.0",
+    )
+    .expect("installation authorization");
+
+    assert_eq!(authorization.version, "0.2.0");
+    assert_eq!(authorization.trusted_sequence, 17);
+    assert_eq!(authorization.trusted_payload_sha256, format!("{:064x}", 17));
+    assert_eq!(authorization.target_library_schema_version, 9);
+    assert_eq!(authorization.artifact.target, "darwin-aarch64");
+    assert_eq!(authorization.artifact.expected_size_bytes, 26);
+    assert_eq!(
+        authorization.artifact.expected_sha256,
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    );
+    assert_eq!(
+        state
+            .state
+            .borrow()
+            .trusted_snapshot
+            .as_ref()
+            .map(|trusted| trusted.sequence),
+        Some(17)
+    );
+}
+
+#[test]
+fn refuses_changed_unavailable_and_invalid_installation_candidates() {
+    let state = ControlledState::new(PersistedUpdateState::default());
+    assert_eq!(
+        authorize_update_installation(
+            &channel(authenticated(snapshot(17, "0.2.0"))),
+            &state,
+            context(LocalePreference::EnUs),
+            "0.3.0",
+        ),
+        Err(UpdateError::CandidateChanged)
+    );
+
+    assert_eq!(
+        authorize_update_installation(
+            &channel(authenticated(snapshot(18, "0.1.0"))),
+            &ControlledState::new(PersistedUpdateState::default()),
+            context(LocalePreference::EnUs),
+            "0.1.0",
+        ),
+        Err(UpdateError::InstallationNotAllowed)
+    );
+    assert_eq!(
+        authorize_update_installation(
+            &channel(authenticated(snapshot(19, "0.2.0"))),
+            &ControlledState::new(PersistedUpdateState::default()),
+            context(LocalePreference::EnUs),
+            "not-semver",
+        ),
+        Err(UpdateError::InvalidPreference)
+    );
+}
+
+#[test]
+fn rejects_invalid_authenticated_package_expectations_before_authorization() {
+    let invalid_artifacts = [
+        {
+            let mut artifact = release("0.2.0").artifact;
+            artifact.package_url = "http://updates.invalid/update.tar.gz".to_owned();
+            artifact
+        },
+        {
+            let mut artifact = release("0.2.0").artifact;
+            artifact.expected_size_bytes = 0;
+            artifact
+        },
+        {
+            let mut artifact = release("0.2.0").artifact;
+            artifact.expected_size_bytes = 1_073_741_825;
+            artifact
+        },
+        {
+            let mut artifact = release("0.2.0").artifact;
+            artifact.target = "unknown-aarch64".to_owned();
+            artifact
+        },
+        {
+            let mut artifact = release("0.2.0").artifact;
+            artifact.package_url = format!(
+                "https://identity:secret{}updates.invalid/update.tar.gz",
+                '@'
+            );
+            artifact
+        },
+        {
+            let mut artifact = release("0.2.0").artifact;
+            artifact.package_url =
+                "https://updates.invalid/update.tar.gz#unsigned-location".to_owned();
+            artifact
+        },
+        {
+            let mut artifact = release("0.2.0").artifact;
+            artifact.expected_sha256 = "invalid".to_owned();
+            artifact
+        },
+        {
+            let mut artifact = release("0.2.0").artifact;
+            artifact.package_signature.clear();
+            artifact
+        },
+    ];
+
+    for artifact in invalid_artifacts {
+        let mut candidate = snapshot(17, "0.2.0");
+        candidate.release.artifact = artifact;
+        let state = ControlledState::new(PersistedUpdateState::default());
+        let outcome = check_for_updates(
+            &channel(authenticated(candidate)),
+            &state,
+            context(LocalePreference::EnUs),
+        )
+        .expect("invalid package expectation outcome");
+
+        assert_eq!(outcome.status, UpdateCheckStatus::Untrusted);
+        assert_eq!(
+            outcome.trust_failure,
+            Some(UpdateTrustFailure::InvalidPayload)
+        );
+        assert!(outcome.installation_authorization.is_none());
+        assert!(state.writes.borrow().is_empty());
+    }
 }
 
 #[test]

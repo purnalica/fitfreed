@@ -91,7 +91,11 @@
           "pattern": "^https://",
           "maxLength": 2048
         },
-        "size": { "type": "integer", "minimum": 1 },
+        "size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1073741824
+        },
         "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
         "tauriSignature": {
           "type": "string",

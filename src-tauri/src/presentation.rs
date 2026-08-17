@@ -66,6 +66,7 @@ impl From<UpdateError> for CommandErrorDto {
             UpdateError::State => "update-state-unavailable",
             UpdateError::CandidateChanged => "update-candidate-changed",
             UpdateError::InvalidPreference => "invalid-update-preference",
+            UpdateError::InstallationNotAllowed => "update-installation-not-allowed",
         };
         Self::new(code)
     }
@@ -1751,6 +1752,7 @@ impl From<ImportPhase> for ImportPhaseDto {
 
 #[cfg(test)]
 mod tests {
+    use fitfreed_application::{UpdateArtifact, UpdateInstallationAuthorization};
     use fitfreed_domain::{ArtifactClassification, ArtifactFamilyCoverage, ImportOperationState};
 
     use super::*;
@@ -1778,6 +1780,23 @@ mod tests {
             postponed_until: None,
             manual_recovery_reason: None,
             trust_failure: Some(UpdateTrustFailure::MirrorMismatch),
+            installation_authorization: Some(UpdateInstallationAuthorization {
+                version: "0.2.0".to_owned(),
+                trusted_sequence: 17,
+                trusted_payload_sha256:
+                    "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef".to_owned(),
+                target_library_schema_version: 9,
+                artifact: UpdateArtifact {
+                    target: "darwin-aarch64".to_owned(),
+                    package_url: "https://updates.invalid/fitfreed-0.2.0-aarch64.app.tar.gz"
+                        .to_owned(),
+                    expected_size_bytes: 26,
+                    expected_sha256:
+                        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+                            .to_owned(),
+                    package_signature: "synthetic-package-signature".to_owned(),
+                },
+            }),
         };
 
         let json = serde_json::to_value(UpdateCheckOutcomeDto::from(outcome))
@@ -1787,11 +1806,19 @@ mod tests {
         assert_eq!(json["release"]["version"], "0.2.0");
         assert_eq!(json["installedWithdrawal"]["reason"], "data-integrity");
         assert_eq!(json["trustFailure"], "mirror-mismatch");
+        assert!(json.get("installationAuthorization").is_none());
+        let serialized = serde_json::to_string(&json).expect("serialized update outcome JSON");
+        assert!(!serialized.contains("updates.invalid"));
+        assert!(!serialized.contains("synthetic-package-signature"));
         for (error, expected) in [
             (UpdateError::Channel, "update-channel-failed"),
             (UpdateError::State, "update-state-unavailable"),
             (UpdateError::CandidateChanged, "update-candidate-changed"),
             (UpdateError::InvalidPreference, "invalid-update-preference"),
+            (
+                UpdateError::InstallationNotAllowed,
+                "update-installation-not-allowed",
+            ),
         ] {
             let error_json =
                 serde_json::to_value(CommandErrorDto::from(error)).expect("update error JSON");

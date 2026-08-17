@@ -682,6 +682,7 @@
     "update-state-unavailable": "FitFreed no ha podido leer o guardar el estado local de actualización. Conserva los datos de la aplicación y reiníciala antes de volver a intentarlo.",
     "update-candidate-changed": "La actualización disponible ha cambiado antes de guardar la preferencia. Vuelve a buscar antes de elegir una acción.",
     "invalid-update-preference": "La preferencia de actualización se ha rechazado porque la versión o la hora no eran válidas. Vuelve a buscar antes de elegir una acción.",
+    "update-installation-not-allowed": "Esta versión no está autorizada para instalarse desde la aplicación. Vuelve a buscar y sigue las indicaciones de recuperación mostradas.",
     "unexpected": "FitFreed ha encontrado un error local inesperado. Reinicia la aplicación antes de volver a intentarlo."
   }
 }

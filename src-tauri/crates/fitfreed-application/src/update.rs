@@ -3,12 +3,14 @@ use std::collections::{BTreeMap, BTreeSet};
 use chrono::{DateTime, Duration, FixedOffset};
 use semver::Version;
 use thiserror::Error;
+use url::Url;
 
 use crate::LocalePreference;
 
 const MAX_METADATA_VALIDITY_DAYS: i64 = 14;
 const MAX_FUTURE_CLOCK_SKEW_MINUTES: i64 = 5;
 const POSTPONEMENT_HOURS: i64 = 24;
+const MAX_UPDATE_PACKAGE_BYTES: u64 = 1_073_741_824;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LocalizedUpdateText {
@@ -36,6 +38,15 @@ impl LocalizedUpdateText {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UpdateArtifact {
+    pub target: String,
+    pub package_url: String,
+    pub expected_size_bytes: u64,
+    pub expected_sha256: String,
+    pub package_signature: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UpdateRelease {
     pub version: String,
     pub published_at: String,
@@ -44,6 +55,7 @@ pub struct UpdateRelease {
     pub maximum_readable_library_schema_version: u32,
     pub target_library_schema_version: u32,
     pub release_notes: LocalizedUpdateText,
+    pub artifact: UpdateArtifact,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -189,6 +201,16 @@ pub struct UpdateCheckOutcome {
     pub postponed_until: Option<String>,
     pub manual_recovery_reason: Option<ManualUpdateReason>,
     pub trust_failure: Option<UpdateTrustFailure>,
+    pub installation_authorization: Option<UpdateInstallationAuthorization>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UpdateInstallationAuthorization {
+    pub version: String,
+    pub trusted_sequence: u64,
+    pub trusted_payload_sha256: String,
+    pub target_library_schema_version: u32,
+    pub artifact: UpdateArtifact,
 }
 
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -201,6 +223,8 @@ pub enum UpdateError {
     CandidateChanged,
     #[error("the update preference input is invalid")]
     InvalidPreference,
+    #[error("the authenticated update is not installable")]
+    InstallationNotAllowed,
 }
 
 pub fn check_for_updates(
@@ -254,6 +278,31 @@ pub fn check_for_updates(
             evaluate_snapshot(&snapshot, &state, &context, installed_version, checked_at)
         }
     }
+}
+
+pub fn authorize_update_installation(
+    channel: &impl UpdateChannelPort,
+    state_port: &impl UpdateStatePort,
+    mut context: UpdateCheckContext,
+    candidate_version: &str,
+) -> Result<UpdateInstallationAuthorization, UpdateError> {
+    Version::parse(candidate_version).map_err(|_| UpdateError::InvalidPreference)?;
+    context.trigger = UpdateCheckTrigger::Manual;
+    let outcome = check_for_updates(channel, state_port, context)?;
+    if outcome
+        .release
+        .as_ref()
+        .map(|release| release.version.as_str())
+        != Some(candidate_version)
+    {
+        return Err(UpdateError::CandidateChanged);
+    }
+    if !outcome.update_action_available {
+        return Err(UpdateError::InstallationNotAllowed);
+    }
+    outcome
+        .installation_authorization
+        .ok_or(UpdateError::InstallationNotAllowed)
 }
 
 pub fn dismiss_update(
@@ -343,6 +392,7 @@ fn evaluate_snapshot(
         postponed_until: None,
         manual_recovery_reason: None,
         trust_failure: None,
+        installation_authorization: None,
     };
 
     let installed_is_withdrawn = outcome.installed_withdrawal.is_some();
@@ -392,6 +442,13 @@ fn evaluate_snapshot(
     }
 
     outcome.update_action_available = true;
+    outcome.installation_authorization = Some(UpdateInstallationAuthorization {
+        version: snapshot.release.version.clone(),
+        trusted_sequence: snapshot.sequence,
+        trusted_payload_sha256: snapshot.payload_sha256.clone(),
+        target_library_schema_version: snapshot.release.target_library_schema_version,
+        artifact: snapshot.release.artifact.clone(),
+    });
 
     if installed_is_withdrawn {
         return Ok(outcome);
@@ -455,6 +512,7 @@ fn validate_snapshot(
         || snapshot.release.target_library_schema_version
             < snapshot.release.maximum_readable_library_schema_version
         || !snapshot.release.release_notes.is_valid()
+        || !valid_update_artifact(&snapshot.release.artifact)
     {
         return Err(UpdateTrustFailure::InvalidPayload);
     }
@@ -531,6 +589,7 @@ fn basic_outcome(context: &UpdateCheckContext, status: UpdateCheckStatus) -> Upd
         postponed_until: None,
         manual_recovery_reason: None,
         trust_failure: None,
+        installation_authorization: None,
     }
 }
 
@@ -554,6 +613,34 @@ fn valid_sha256(value: &str) -> bool {
             .as_bytes()
             .iter()
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(byte))
+}
+
+fn valid_update_artifact(artifact: &UpdateArtifact) -> bool {
+    artifact.expected_size_bytes > 0
+        && artifact.expected_size_bytes <= MAX_UPDATE_PACKAGE_BYTES
+        && valid_sha256(&artifact.expected_sha256)
+        && (16..=16_384).contains(&artifact.package_signature.len())
+        && !artifact.package_signature.trim().is_empty()
+        && valid_update_target(&artifact.target)
+        && artifact.package_url.len() <= 2_048
+        && Url::parse(&artifact.package_url).is_ok_and(|url| {
+            url.scheme() == "https"
+                && url.has_host()
+                && url.username().is_empty()
+                && url.password().is_none()
+                && url.fragment().is_none()
+        })
+}
+
+fn valid_update_target(value: &str) -> bool {
+    let parts: Vec<_> = value.split('-').collect();
+    matches!(parts.as_slice(), [os, architecture]
+        if matches!(*os, "darwin" | "linux" | "windows")
+            && matches!(*architecture, "aarch64" | "x86_64" | "i686" | "armv7"))
+        || matches!(parts.as_slice(), [os, architecture, installer]
+            if matches!(*os, "darwin" | "linux" | "windows")
+                && matches!(*architecture, "aarch64" | "x86_64" | "i686" | "armv7")
+                && matches!(*installer, "app" | "appimage" | "deb" | "rpm" | "msi" | "nsis"))
 }
 
 fn valid_locale_code(value: &str) -> bool {

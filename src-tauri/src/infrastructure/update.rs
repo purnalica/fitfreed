@@ -2,8 +2,8 @@ use std::collections::BTreeMap;
 
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use fitfreed_application::{
-    AuthenticatedUpdateSnapshot, LocalizedUpdateText, UpdateChannelRead, UpdateRelease,
-    UpdateTrustFailure, UpdateWithdrawal, UpdateWithdrawalReason,
+    AuthenticatedUpdateSnapshot, LocalizedUpdateText, UpdateArtifact, UpdateChannelRead,
+    UpdateRelease, UpdateTrustFailure, UpdateWithdrawal, UpdateWithdrawalReason,
 };
 use minisign_verify::{PublicKey, Signature};
 use serde::Deserialize;
@@ -14,6 +14,7 @@ use url::Url;
 pub(crate) const MAX_UPDATE_RESPONSE_BYTES: usize = 1_572_864;
 const MAX_UPDATE_PAYLOAD_BYTES: usize = 1_048_576;
 const MAX_SAFE_JSON_INTEGER: u64 = 9_007_199_254_740_991;
+const MAX_UPDATE_PACKAGE_BYTES: u64 = 1_073_741_824;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SignedUpdateChannelVerifier {
@@ -109,9 +110,11 @@ impl SignedUpdateChannelVerifier {
         }
         validate_platforms(&payload.release.platforms)?;
         validate_mirrors(&envelope, &payload)?;
-        if !payload.release.platforms.contains_key(&self.current_target) {
-            return Err(UpdateTrustFailure::MissingTarget);
-        }
+        let artifact = payload
+            .release
+            .platforms
+            .get(&self.current_target)
+            .ok_or(UpdateTrustFailure::MissingTarget)?;
 
         Ok(AuthenticatedUpdateSnapshot {
             sequence: payload.sequence,
@@ -133,6 +136,13 @@ impl SignedUpdateChannelVerifier {
                 target_library_schema_version: payload.release.library_schema.target_version,
                 release_notes: LocalizedUpdateText {
                     values: payload.release.release_notes,
+                },
+                artifact: UpdateArtifact {
+                    target: self.current_target.clone(),
+                    package_url: artifact.url.clone(),
+                    expected_size_bytes: artifact.size,
+                    expected_sha256: artifact.sha256.clone(),
+                    package_signature: artifact.tauri_signature.clone(),
                 },
             },
             withdrawn_versions: payload
@@ -191,6 +201,7 @@ fn validate_platforms(
     for (target, artifact) in platforms {
         if !valid_target(target)
             || artifact.size == 0
+            || artifact.size > MAX_UPDATE_PACKAGE_BYTES
             || !valid_sha256(&artifact.sha256)
             || artifact.url.len() > 2_048
             || !valid_https_url(&artifact.url)
@@ -569,6 +580,17 @@ mod tests {
             "Versión sintética verificada."
         );
         assert_eq!(snapshot.release.target_library_schema_version, 9);
+        assert_eq!(snapshot.release.artifact.target, "darwin-aarch64");
+        assert_eq!(
+            snapshot.release.artifact.package_url,
+            "https://updates.invalid/fitfreed-0.2.0-aarch64.app.tar.gz"
+        );
+        assert_eq!(snapshot.release.artifact.expected_size_bytes, 26);
+        assert_eq!(
+            snapshot.release.artifact.expected_sha256,
+            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+        );
+        assert!(!snapshot.release.artifact.package_signature.is_empty());
         assert_eq!(snapshot.withdrawn_versions.len(), 1);
         assert_eq!(
             snapshot.withdrawn_versions[0].reason,
@@ -714,6 +736,7 @@ mod tests {
                 Value::String("http://updates.invalid/update.tar.gz".to_owned()),
             ),
             ("size", json!(0)),
+            ("size", json!(MAX_UPDATE_PACKAGE_BYTES + 1)),
             ("sha256", Value::String("invalid".to_owned())),
             ("tauriSignature", Value::String(BASE64.encode("invalid"))),
         ] {
