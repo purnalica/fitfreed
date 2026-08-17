@@ -85,6 +85,16 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
   done
 fi
 
+if [[ "$(uname -s)" == "Linux" ]]; then
+  if require_command pkg-config; then
+    for module in glib-2.0 gio-2.0 gobject-2.0 gtk+-3.0 webkit2gtk-4.1; do
+      if ! pkg-config --exists "$module"; then
+        report_failure "the Tauri Linux development module $module is required"
+      fi
+    done
+  fi
+fi
+
 if (( failure_count > 0 )); then
   printf 'Development environment check found %d problem(s).\n' "$failure_count" >&2
   exit 1

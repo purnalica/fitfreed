@@ -10,6 +10,8 @@ The current product foundation is developed and packaged on macOS first. The rep
 
 Install the Xcode command-line tools and a Rustup installation before setup. Node version managers may read `.nvmrc`; Rustup reads the repository toolchain file automatically. The macOS system commands checked by `npm run doctor` include `ditto`, `hdiutil`, `openssl`, `plutil`, `shasum`, `sqlite3`, and `strings`. No separately installed Tauri, WebdriverIO, SQLite library, or fixture tool is required.
 
+The portable quality lane compiles the pinned Tauri updater refinement on Linux. Debian and Ubuntu contributors running that lane need Tauri's native development packages: `libwebkit2gtk-4.1-dev`, `build-essential`, `curl`, `wget`, `file`, `libxdo-dev`, `libssl-dev`, `libayatana-appindicator3-dev`, `librsvg2-dev`, and `pkg-config`. GitHub Actions installs them explicitly before running `npm run doctor`; the doctor checks the required GLib, GIO, GObject, GTK, and WebKitGTK modules before reporting a usable Linux environment.
+
 ## First setup
 
 From the repository root:
@@ -20,7 +22,7 @@ npm ci
 npm run test:fast
 ```
 
-`npm run doctor` checks the supported Node.js and npm ranges, pinned Rust toolchain, required Rust components, macOS Xcode command-line toolchain, and native packaging and installation-verification commands without requiring installed project dependencies. `npm ci` installs the exact JavaScript graph from `package-lock.json`. The fast lane verifies compile-enforced architecture boundaries, the pinned updater source and provenance, translation catalogs, presentation behavior, the updater refinement test, and all FitFreed Rust workspace tests.
+`npm run doctor` checks the supported Node.js and npm ranges, pinned Rust toolchain, required Rust components, macOS Xcode command-line toolchain and native commands, or the native Tauri development modules used by the Linux quality lane, without requiring installed project dependencies. `npm ci` installs the exact JavaScript graph from `package-lock.json`. The fast lane verifies compile-enforced architecture boundaries, the pinned updater source and provenance, translation catalogs, presentation behavior, the updater refinement test, and all FitFreed Rust workspace tests.
 
 ## Primary commands
 
