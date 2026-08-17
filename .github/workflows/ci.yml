@@ -68,6 +68,9 @@ jobs:
       - name: Verify release contracts
         run: npm run check:release-contracts -- "$FITFREED_RELEASE_VERSION"
 
+      - name: Verify the release upgrade matrix
+        run: npm run check:upgrade-matrix
+
       - name: Verify translation catalogs
         run: npm run check:i18n
 
