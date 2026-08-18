@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "updated": "2026-08-18",
+  "statuses": [
+    {
+      "key": "available",
+      "label": "Available in source",
+      "title": "The trusted data spine",
+      "items": [
+        "Polar Flow ZIP validation and import",
+        "Explicit supported, ignored, and unrecognized coverage",
+        "Safe exact and cumulative reimport",
+        "Provider-neutral SQLite history for activity, training summaries, sleep, and recovery",
+        "Bounded visual comparison and longitudinal context",
+        "en-US and es-ES, packaging, update recovery, and release-shaped tests"
+      ],
+      "source": {
+        "label": "MVP capability boundary",
+        "path": "docs/roadmap.md#milestone-2--mvp"
+      }
+    },
+    {
+      "key": "active",
+      "label": "Active experience work",
+      "title": "The experience being shaped",
+      "items": [
+        "Question-led home and post-import reveal",
+        "Sports and full-history session discovery",
+        "Deep-session MVP boundary awaiting review",
+        "Persistent settings and origin-aware navigation",
+        "Report MVP boundary awaiting review",
+        "A coherent, evaluated, documented macOS product journey"
+      ],
+      "source": {
+        "label": "Active experience delivery plan",
+        "path": "docs/plans/mvp-experience-delivery.md"
+      }
+    },
+    {
+      "key": "later",
+      "label": "Deliberately later",
+      "title": "Expansion after value is proven",
+      "items": [
+        "Additional providers and live APIs",
+        "Linux and Windows distribution",
+        "Local MCP access for authorized agents",
+        "Advanced encryption and extension systems",
+        "Collaborative or hosted analytics",
+        "Features without validated user value"
+      ],
+      "source": {
+        "label": "Post-MVP evolution tracks",
+        "path": "docs/roadmap.md#evolution-tracks-after-the-mvp"
+      }
+    }
+  ]
+}

@@ -115,9 +115,11 @@ The Milestone 0 closure plan is [`plans/milestone-0.md`](plans/milestone-0.md). 
 
 **Dependency:** acceptance of the active interaction direction and its information architecture.
 
-**Included:** question-led and blank report starting points; data and period selection; composable narrative, tables, charts, maps, evidence, coverage, and limitations; sensitive-content review; saved-definition evolution; export recovery; accessibility; focused evaluation of compatible open-source composition, visualisation, pagination, and export libraries; clean-room source evidence for session structure, routes, and sample series; and origin-aware navigation evaluation.
+**Included:** question-led and blank report starting points; data and period selection; composable narrative, tables, charts, maps, evidence, coverage, and limitations; sensitive-content review; saved-definition evolution; export recovery; accessibility; focused evaluation of compatible open-source composition, visualisation, pagination, and export libraries; clean-room source evidence for session structure, routes, and sample series; origin-aware navigation evaluation; and truthful, reviewable communication structures for the repository README and a visual product page.
 
 **Boundary:** the accepted design will determine the smallest complete report and deep-session slices that maximize MVP value. Dependent implementation does not enter the critical path before that evaluation. The stage must not assume either that these capabilities are excluded from the MVP or that their complete long-term systems belong in it. Settings, acquisition guidance, the application shell, and navigation foundations may proceed independently because their product boundary is already accepted.
+
+**Current review material:** the [MVP experience boundary assessment](research/mvp-experience-boundary-assessment.md) recommends concrete report, deep-session, sport-classification, dependency, navigation, and public-communication boundaries. These recommendations are not confirmed scope until product review updates the requirements and this roadmap.
 
 ### Horizon 1 — Broader insight coverage
 

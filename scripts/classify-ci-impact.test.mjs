@@ -25,6 +25,7 @@ test("reuses packaged evidence for an explicit documentation-only change", () =>
     }),
     {
       fullVerification: false,
+      productSurfaceVerification: true,
       reason: "documentation-only",
       changedPathCount: 7,
     },
@@ -38,6 +39,7 @@ test("requires full verification when any executable or release input changes", 
     "scripts/check-markdown-links.mjs",
     "src/App.tsx",
     "src-tauri/src/lib.rs",
+    "site/app.js",
     ".github/workflows/ci.yml",
     "docs/art/proposed-logo.svg",
   ]) {
@@ -49,6 +51,7 @@ test("requires full verification when any executable or release input changes", 
       }),
       {
         fullVerification: true,
+        productSurfaceVerification: false,
         reason: "release-affecting-change",
         changedPathCount: 2,
       },
@@ -85,8 +88,25 @@ test("always performs an explicitly requested hosted verification", () => {
     }),
     {
       fullVerification: true,
+      productSurfaceVerification: false,
       reason: "explicit-verification",
       changedPathCount: 1,
+    },
+  );
+});
+
+test("verifies product surfaces without rebuilding unchanged executable inputs", () => {
+  assert.deepEqual(
+    classifyCiImpact({
+      eventName: "push",
+      comparisonAvailable: true,
+      changedPaths: ["README.md", "docs/product-status.json", "site/index.html", "site/styles.css"],
+    }),
+    {
+      fullVerification: false,
+      productSurfaceVerification: true,
+      reason: "documentation-only",
+      changedPathCount: 4,
     },
   );
 });
@@ -95,14 +115,18 @@ test("keys reusable evidence to every executable and release input", () => {
   const original = fingerprintExecutableEntries([
     "100644 blob source-hash\tsrc/App.tsx",
     "100644 blob readme-hash\tREADME.md",
+    "100644 blob status-hash\tdocs/product-status.json",
     "100644 blob guide-hash\tdocs/user/README.md",
+    "100644 blob site-hash\tsite/index.html",
   ]);
 
   assert.equal(
     fingerprintExecutableEntries([
       "100644 blob source-hash\tsrc/App.tsx",
       "100644 blob changed-readme\tREADME.md",
+      "100644 blob changed-status\tdocs/product-status.json",
       "100644 blob changed-guide\tdocs/user/README.md",
+      "100644 blob changed-site\tsite/index.html",
     ]),
     original,
   );
@@ -110,7 +134,9 @@ test("keys reusable evidence to every executable and release input", () => {
     fingerprintExecutableEntries([
       "100644 blob changed-source\tsrc/App.tsx",
       "100644 blob readme-hash\tREADME.md",
+      "100644 blob status-hash\tdocs/product-status.json",
       "100644 blob guide-hash\tdocs/user/README.md",
+      "100644 blob site-hash\tsite/index.html",
     ]),
     original,
   );
@@ -151,6 +177,8 @@ test("wires the fail-closed classifier into both hosted verification lanes", () 
   assert.match(workflow, /run: node scripts\/classify-ci-impact\.mjs/);
   assert.match(workflow, /uses: actions\/cache\/restore@[0-9a-f]{40}/);
   assert.match(workflow, /run: node scripts\/classify-ci-impact\.mjs resolve/);
+  assert.match(workflow, /npm run check:product-surfaces/);
+  assert.match(workflow, /npm run check:site/);
   assert.match(workflow, /npm run check:workflows/);
   assert.match(workflow, /npm run check:public-release-workflow/);
   assert.match(

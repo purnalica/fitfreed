@@ -2,7 +2,7 @@
 
 ## Status
 
-Direction accepted for execution planning. Report authoring, deep-session scope, and navigation evaluation remain active design work before dependent production implementation. The ordered production sequence is defined in the [MVP experience delivery plan](mvp-experience-delivery.md). Exploratory concepts may exceed the current MVP contracts when that is necessary to evaluate the right product, provided the capability gap remains explicit and no unsupported production behavior is implied.
+Direction accepted for execution planning. The report-authoring, deep-session, sport-classification, navigation, and public-product-surface evaluation has produced a [review-ready MVP boundary recommendation](../research/mvp-experience-boundary-assessment.md); its recommendations remain proposed until product review. The ordered production sequence is defined in the [MVP experience delivery plan](mvp-experience-delivery.md). Exploratory concepts may exceed the current MVP contracts when that is necessary to evaluate the right product, provided the capability gap remains explicit and no unsupported production behavior is implied.
 
 ## Objective
 

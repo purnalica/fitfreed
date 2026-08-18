@@ -6,12 +6,29 @@ Documentation is part of the FitFreed product and its engineering system. A chan
 
 Documentation evolves in the same reviewed increment as the product, architecture, automation, or process it describes. It is not postponed to a cleanup milestone.
 
+## Single source of truth
+
+Single source of truth (SSOT) is a mandatory, cross-cutting FitFreed principle. Every requirement,
+decision, contract, status, procedure, compatibility fact, and product claim has exactly one
+canonical source. Application surfaces, the product page, the README, plans, tests, automation, and
+other documentation may derive from or link to that source; they must not establish a competing
+copy with an independent lifecycle.
+
+When a fact changes, the canonical source changes first in the same increment. Every affected
+consumer is then regenerated, updated, or reduced to a link. Review must reject unexplained
+duplication even when the copies still agree, because agreement at one point in time does not create
+a maintainable contract. If the canonical home is unclear, it is selected explicitly before new
+knowledge is recorded.
+
 ## Audiences and canonical homes
 
 | Audience or knowledge | Canonical home |
 |---|---|
 | Product purpose, scope, behavior, and acceptance | `docs/requirements.md` |
+| Product argument, GDPR framing, and public messaging constraints | `docs/product-thesis.md` |
 | Milestone order and outcome boundaries | `docs/roadmap.md` |
+| Public available, active, and later capability snapshot | `docs/product-status.json`, rendered into entry surfaces by `npm run render:product-surfaces` |
+| Repository and public-product entry surfaces | `README.md` and `site/`, derived from and linked to their canonical product sources |
 | Current thematic architecture | `docs/architecture/` |
 | Durable architecture decisions and their rationale | `docs/architecture/decisions/` |
 | User installation, import, exploration, update, recovery, privacy, and removal guidance | Versioned user-documentation sources selected with the application stack |
@@ -21,7 +38,9 @@ Documentation evolves in the same reviewed increment as the product, architectur
 | Security, support, governance, and community behavior | Root community health files |
 | Temporary or external research inputs | Ignored local research directories under `docs/reports/` or `.local/` |
 
-Each fact has one canonical source. Other documents link to it rather than copying a second version that can drift.
+The table assigns canonical homes; it does not authorize duplication between them. Cross-cutting
+facts are split by responsibility, and each consumer links to the one source that owns the exact
+claim it uses.
 
 ## Documentation required with a change
 
@@ -35,6 +54,10 @@ Every change review determines whether it affects:
 - Product scope, roadmap sequencing, governance, support, or contributor workflow.
 
 Affected canonical documentation is updated in the same commit. A pull request that legitimately requires no documentation change states why.
+
+Review also identifies every affected downstream consumer of the changed source of truth. Updating
+only the canonical document while leaving a stale derived UI, test, page, plan, or command is not a
+complete change.
 
 Commands and examples must be executed from a clean or controlled environment before publication. Screenshots, fixtures, logs, and examples use synthetic data exclusively.
 

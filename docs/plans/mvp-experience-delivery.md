@@ -49,6 +49,7 @@ Existing release and recovery behavior remains protected by its tests. Freezing 
 - A person without an export receives provider-owned acquisition guidance.
 - Navigation returns to the exact exploration origin and restores its meaningful state.
 - Report authoring is a real product capability, not a renamed comparison chart.
+- Public product communication is part of the acquisition experience: the repository README must earn an interested visitor's next minute, while a product page must explain the value and intended experience without presenting roadmap capabilities as already available.
 - Provider facts, FitFreed calculations, user-authored interpretation, uncertainty, and unavailable conclusions remain visibly distinct.
 
 ### Product boundaries that still require evidence
@@ -72,6 +73,7 @@ These are product-scope gates under the autonomous execution policy. Work that d
 | Navigation | One date can request a domain explorer; individual panels own temporary detail state | A single navigation model with canonical destinations and origin-aware restoration |
 | Personal reports | Period comparisons and exact accessible tables exist as disposable views | Versioned report definitions, composition, persistence, deliberate refresh, preview, and export |
 | Trust and inclusion | `en-US` and `es-ES`, WCAG-oriented components, 200% test coverage, local-first operation | Consistent new-shell behavior, focus restoration, appearance and zoom, privacy review, and end-to-end task evidence |
+| Public understanding | A verified product thesis, brand assets, requirements, and roadmap exist | A concise repository entrance and a visual product page that communicate the problem, present value, evidence, current status, and credible direction |
 | Delivery confidence | Impact-aware CI, packaged macOS E2E, performance budgets, installation and update recovery | New journey coverage without rerunning expensive jobs for unchanged executable inputs |
 
 ## Experience acceptance model
@@ -173,8 +175,9 @@ Each increment is a runnable vertical outcome. Within an increment, tests are wr
 6. Construct independent synthetic contracts for the candidate deep-session slice, including absent structure, mixed exercises, missing samples, malformed routes, amended sessions, exact reimport under a newer mapping version, and large bounded series.
 7. Prototype navigation from every meaningful origin and test return restoration, direct entry, stale origin, keyboard history, focus, and 200% layouts.
 8. Score candidate MVP slices by unique user value, completeness, source confidence, privacy risk, performance feasibility, accessibility, implementation dependency, and future discard risk.
+9. Derive one public narrative from `product-thesis.md` for two distinct entry surfaces: a scan-friendly README for users and contributors, and a visual product-page concept for people deciding whether FitFreed is worth following. Both surfaces distinguish present capability, active MVP work, and longer-term direction explicitly.
 
-**Evidence gate:** the product owner receives no request to choose between vague ideas. The gate presents concrete report and deep-session journeys, source-confidence boundaries, dependency and licence findings, and a recommended smallest complete slice. The accepted decisions update `requirements.md` and `roadmap.md` before production capability work that depends on them.
+**Evidence gate:** the product owner receives no request to choose between vague ideas. The gate presents concrete report and deep-session journeys, source-confidence boundaries, dependency and licence findings, a recommended smallest complete slice, and reviewable README and product-page communication structures. The current recommendations are recorded in the [MVP experience boundary assessment](../research/mvp-experience-boundary-assessment.md). The accepted decisions update `requirements.md` and `roadmap.md` before production capability work that depends on them.
 
 **Independent work while the gate is open:** E1 can proceed because its settings, acquisition, shell, and navigation responsibilities are already accepted.
 
@@ -387,6 +390,7 @@ Every increment updates only the canonical homes it affects:
 | Query or report behavior | Versioned Insights contract |
 | SQLite or portable representation | Persistence or portable contract and migration path |
 | User-visible journey | Version-matched `en-US` and `es-ES` user guidance and locale resources |
+| Public promise or product direction | `product-thesis.md` for the argument, `requirements.md` for the promise, `product-status.json` for the public status snapshot, and generated audience-specific entry surfaces |
 | Build, test, debug, translate, or contribute path | Contributor and developer documentation |
 | Release behavior or limitation | Release notes, readiness ledger, operations, and support guidance |
 

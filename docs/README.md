@@ -34,11 +34,13 @@ FitFreed does not have a supported public release yet. The implemented applicati
 
 - [Requirements](requirements.md) define confirmed scope and acceptance.
 - [Roadmap](roadmap.md) defines outcome order and milestone boundaries.
+- [Public product status](product-status.json) is the canonical available, active, and later capability snapshot rendered into the README and product page.
 - [Implemented Milestone 2 plan](plans/milestone-2.md) defines the MVP capability sequence and evidence.
 - [Active Milestone 3 plan](plans/milestone-3.md) defines the public macOS distribution sequence and evidence.
 - [Architecture decision records](architecture/decisions/README.md) preserve durable structural decisions.
 - [Release delivery architecture](architecture/release-delivery.md) separates private evidence preparation from publication authority.
 - [Product thesis](product-thesis.md) explains the GDPR-enabled portability and open-source freedom argument without presenting FitFreed as legal advice or a compliance product.
+- [MVP experience boundary assessment](research/mvp-experience-boundary-assessment.md) presents the report, deep-session, sport-classification, dependency, navigation, and public-communication recommendations awaiting product review.
 
 ## Documentation ownership
 

@@ -124,6 +124,7 @@ The application will retain the information needed to explain which files were p
 - Unit, integration, and end-to-end testing will form the primary evidence for product quality throughout development.
 - Installation and update reliability are adoption-critical: a release that fails either path can immediately and permanently lose users.
 - Repeatable development, verification, documentation, translation, packaging, release, and maintenance processes will be automated wherever reliable automation is possible.
+- Single source of truth is mandatory across product, architecture, code, interface, documentation, planning, and automation; canonical ownership and derived-consumer rules follow [`documentation-policy.md`](documentation-policy.md).
 - Once implementation starts, execution will proceed autonomously through the agreed roadmap and will pause only when human authority, credentials, product decisions, or an external-state change are genuinely required.
 - Technology choices will be driven by product requirements and are not predetermined.
 - Analysis of the real format will precede data-model design and implementation.
@@ -188,6 +189,12 @@ The following decisions define FitFreed across features and releases. They are f
 
 - First run will establish the value of owned history before asking for an archive and will help a person who has not yet requested one.
 - A successful import will reveal the usable period, meaningful coverage, and a conservative first question or comparison instead of celebrating file counts alone.
+
+### The public promise is concrete and honest
+
+- The repository README and product page will lead with the problem FitFreed solves, the outcomes a person can obtain, the ownership model, the product's current state, and a useful path for contributors. They will not lead with framework or ingestion internals.
+- Available behavior, active product work, and deliberately later capabilities will remain visibly distinct. No planned capability will be described as released, and no supported-download action will appear before the applicable release-readiness gate passes.
+- The README is the concise repository gateway; the product page is the visual narrative. Both derive claims from and link to the canonical product thesis, requirements, roadmap, and readiness evidence instead of becoming competing specifications.
 - Returning visits will surface supported paths through the evolving history without relying on coercive streaks, rankings, mystery scores, or notification pressure.
 
 ## Confirmed architectural constraints
@@ -437,7 +444,7 @@ All canonical engineering artifacts and source text will use English. Localized 
 
 ### NFR-010 — Open-source community sustainability
 
-- The repository will include a concise README, contribution guide, code of conduct, security policy, support policy, license, governance information, and issue and pull-request templates before its public launch.
+- The repository will include a concise product-first README, a reviewable product-page source, contribution guide, code of conduct, security policy, support policy, license, governance information, and issue and pull-request templates.
 - The project will publish its supported scope, roadmap, compatibility status, release process, and change history.
 - Contribution units will be independently understandable and reviewable, with suitable issues prepared for first-time contributors when real bounded work exists.
 - Contribution requirements will be proportional to risk and will not impose unexplained process or accidental tooling barriers.

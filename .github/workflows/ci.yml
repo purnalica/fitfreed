@@ -88,8 +88,18 @@ jobs:
         run: npm run doctor
 
       - name: Install locked JavaScript dependencies
-        if: steps.decision.outputs.full-verification == 'true'
+        if: >-
+          steps.decision.outputs.full-verification == 'true' ||
+          steps.impact.outputs.product-surface-verification == 'true'
         run: npm ci
+
+      - name: Verify public product surfaces
+        if: >-
+          steps.decision.outputs.full-verification == 'true' ||
+          steps.impact.outputs.product-surface-verification == 'true'
+        run: |
+          npm run check:product-surfaces
+          npm run check:site
 
       - name: Verify architecture boundaries
         if: steps.decision.outputs.full-verification == 'true'
