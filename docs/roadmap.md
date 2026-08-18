@@ -2,7 +2,7 @@
 
 ## Status
 
-Milestone 1 and Milestone 2 capability implementation and the current Milestone 3 public-release engineering baseline are complete. Apple Silicon on macOS 15.0 or later is the accepted MVP platform boundary. Milestone 3 release acceptance remains active: deterministic trust, candidate, publication, recovery, user, maintainer, and readiness paths pass local and hosted automation with production trust deliberately inactive, while production authority, protected GitHub configuration, exact-candidate evaluation, and public publication remain open in the consolidated readiness ledger.
+Milestone 1 and Milestone 2 capability implementation and the current Milestone 3 public-release engineering baseline are complete. Apple Silicon on macOS 15.0 or later is the accepted MVP platform boundary. Before activating production trust or preparing a public candidate, the project will complete a prototype-led, radical UI and UX review of the implemented MVP journey. This quality intervention does not expand the agreed functional scope and must preserve the verified application, domain, persistence, localization, accessibility, and recovery behavior. Milestone 3 release acceptance remains active but externally gated until the redesigned experience is accepted: deterministic trust, candidate, publication, recovery, user, maintainer, and readiness paths pass local and hosted automation with production trust deliberately inactive, while production authority, protected GitHub configuration, exact-candidate evaluation, and public publication remain open in the consolidated readiness ledger.
 
 ## Purpose
 
