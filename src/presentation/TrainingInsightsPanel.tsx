@@ -175,7 +175,7 @@ export function TrainingInsightsPanel({
       aria-labelledby="training-heading"
       aria-busy={loadingOverview}
     >
-      <h2 id="training-heading">{copy.heading}</h2>
+      <h1 id="training-heading">{copy.heading}</h1>
       {!overview && loadingOverview ? (
         <p>{copy.loading}</p>
       ) : !overview ? (
@@ -192,7 +192,7 @@ export function TrainingInsightsPanel({
               onSubmit={(event) => void applyRange(event)}
             >
               <div>
-                <h3 id="training-filter-heading">{copy.filterHeading}</h3>
+                <h2 id="training-filter-heading">{copy.filterHeading}</h2>
                 <p>{copy.rangeHelp}</p>
               </div>
               <label>
@@ -247,7 +247,7 @@ export function TrainingInsightsPanel({
           {overview.series.map((series, seriesIndex) => (
             <section className="training-series" key={series.seriesRef}>
               {overview.series.length > 1 && (
-                <h3>{copy.series} {number.format(seriesIndex + 1)}</h3>
+                <h2>{copy.series} {number.format(seriesIndex + 1)}</h2>
               )}
               <ul className="training-summary" aria-label={copy.summaryLabel}>
                 <li>
@@ -421,7 +421,7 @@ export function TrainingInsightsPanel({
             <section className="training-detail" aria-labelledby="training-detail-heading">
               <div className="training-detail-heading">
                 <div>
-                  <h3 id="training-detail-heading">{copy.detailHeading}</h3>
+                  <h2 id="training-detail-heading">{copy.detailHeading}</h2>
                   <time dateTime={selected.startedAtLocal}>
                     {formatTrainingDateTime(selected.startedAtLocal, locale)}
                   </time>

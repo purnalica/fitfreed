@@ -724,6 +724,7 @@ async function measureAlternating(executions, scenarios, operation) {
 export async function runInsightsPerformanceJourney({
   archivePath,
   goToHome,
+  openHomeQuestion,
   selectArchive,
   selectLocale,
 }) {
@@ -736,6 +737,7 @@ export async function runInsightsPerformanceJourney({
   await waitForTrainingCoverage();
   await waitForSleepCoverage();
   await waitForRecoveryCoverage();
+  await openHomeQuestion("review-activity-steps", "#activity-heading");
 
   const commonRanges = [
     ["2025-01-01", "2025-01-30"],
@@ -801,6 +803,7 @@ export async function runInsightsPerformanceJourney({
     compareActivityRanges,
   );
 
+  await openHomeQuestion("explore-training-sessions", ".training-insights");
   const trainingFilterRange = ([from, through]) => applyTrainingRange(from, through);
   await measureAlternating(warmUpRuns, commonRanges, trainingFilterRange);
   const trainingCommonFilterTimings = await measureAlternating(
@@ -833,6 +836,7 @@ export async function runInsightsPerformanceJourney({
     compareTrainingRanges,
   );
 
+  await openHomeQuestion("review-sleep-patterns", ".sleep-insights");
   const sleepFilterRange = ([from, through]) => applySleepRange(from, through);
   await measureAlternating(warmUpRuns, commonRanges, sleepFilterRange);
   const sleepCommonFilterTimings = await measureAlternating(20, commonRanges, sleepFilterRange);
@@ -861,6 +865,7 @@ export async function runInsightsPerformanceJourney({
   await measureAlternating(warmUpRuns, sleepDetailDates, openSleepDetail);
   const sleepDetailTimings = await measureAlternating(20, sleepDetailDates, openSleepDetail);
 
+  await openHomeQuestion("review-recovery-patterns", ".recovery-insights");
   const recoveryFilterRange = ([from, through]) => applyRecoveryRange(from, through);
   await measureAlternating(warmUpRuns, commonRanges, recoveryFilterRange);
   const recoveryCommonFilterTimings = await measureAlternating(
@@ -901,6 +906,7 @@ export async function runInsightsPerformanceJourney({
     openRecoveryDetail,
   );
 
+  await openHomeQuestion("align-history", ".longitudinal-insights");
   const longitudinalFilterRange = ([from, through]) => applyLongitudinalRange(from, through);
   await measureAlternating(warmUpRuns, commonRanges, longitudinalFilterRange);
   const longitudinalCommonFilterTimings = await measureAlternating(

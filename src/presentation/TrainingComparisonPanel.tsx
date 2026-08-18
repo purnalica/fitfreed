@@ -226,7 +226,7 @@ export function TrainingComparisonPanel({
   return (
     <div className="training-comparison">
       <div>
-        <h3 id="training-comparison-form-heading">{copy.heading}</h3>
+        <h2 id="training-comparison-form-heading">{copy.heading}</h2>
         <p>{copy.intro}</p>
       </div>
       <form
@@ -260,7 +260,7 @@ export function TrainingComparisonPanel({
         >
           <div className="training-comparison-result-heading">
             <div>
-              <h4 id="training-comparison-heading">{copy.resultHeading}</h4>
+              <h3 id="training-comparison-heading">{copy.resultHeading}</h3>
               <p>{copy.coverageCaution}</p>
             </div>
             <button type="button" className="secondary" onClick={() => setComparison(undefined)}>
@@ -282,7 +282,7 @@ export function TrainingComparisonPanel({
             return (
               <section className="training-comparison-series" key={series.seriesRef}>
                 {comparison.series.length > 1 && (
-                  <h5>{messages.training.series} {number.format(index + 1)}</h5>
+                  <h4>{messages.training.series} {number.format(index + 1)}</h4>
                 )}
                 <div className="comparison-bars" aria-hidden="true">
                   {[

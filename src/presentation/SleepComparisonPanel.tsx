@@ -150,7 +150,7 @@ export function SleepComparisonPanel({
   return (
     <div className="sleep-comparison">
       <div>
-        <h3 id="sleep-comparison-form-heading">{copy.heading}</h3>
+        <h2 id="sleep-comparison-form-heading">{copy.heading}</h2>
         <p>{copy.intro}</p>
       </div>
       <form
@@ -181,7 +181,7 @@ export function SleepComparisonPanel({
         <section className="sleep-comparison-result" aria-labelledby="sleep-comparison-heading">
           <div className="sleep-comparison-result-heading">
             <div>
-              <h4 id="sleep-comparison-heading">{copy.resultHeading}</h4>
+              <h3 id="sleep-comparison-heading">{copy.resultHeading}</h3>
               <p>{copy.coverageCaution}</p>
             </div>
             <button type="button" className="secondary" onClick={() => setComparison(undefined)}>
@@ -197,7 +197,7 @@ export function SleepComparisonPanel({
             return (
               <section className="sleep-comparison-series" key={series.seriesRef}>
                 {comparison.series.length > 1 && (
-                  <h5>{messages.sleep.series} {number.format(index + 1)}</h5>
+                  <h4>{messages.sleep.series} {number.format(index + 1)}</h4>
                 )}
                 <div className="comparison-bars" aria-hidden="true">
                   {[

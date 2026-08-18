@@ -202,7 +202,7 @@ export function RecoveryInsightsPanel({
       aria-labelledby="recovery-heading"
       aria-busy={loadingOverview}
     >
-      <h2 id="recovery-heading">{copy.heading}</h2>
+      <h1 id="recovery-heading">{copy.heading}</h1>
       <p className="recovery-intro">{copy.intro}</p>
       {!overview && loadingOverview ? (
         <p>{copy.loading}</p>
@@ -220,7 +220,7 @@ export function RecoveryInsightsPanel({
               onSubmit={(event) => void applyRange(event)}
             >
               <div>
-                <h3 id="recovery-filter-heading">{copy.filterHeading}</h3>
+                <h2 id="recovery-filter-heading">{copy.filterHeading}</h2>
                 <p>{copy.rangeHelp}</p>
               </div>
               <label>
@@ -276,7 +276,7 @@ export function RecoveryInsightsPanel({
           {overview.series.map((series, seriesIndex) => (
             <section className="recovery-series" key={series.seriesRef}>
               {overview.series.length > 1 && (
-                <h3>{copy.series} {number.format(seriesIndex + 1)}</h3>
+                <h2>{copy.series} {number.format(seriesIndex + 1)}</h2>
               )}
               <ul className="recovery-summary" aria-label={copy.summaryLabel}>
                 <li>
@@ -408,7 +408,7 @@ export function RecoveryInsightsPanel({
             >
               <div className="recovery-detail-heading">
                 <div>
-                  <h3 id="recovery-detail-heading">{copy.detailHeading}</h3>
+                  <h2 id="recovery-detail-heading">{copy.detailHeading}</h2>
                   <time dateTime={selectedNight.recoveryDate}>
                     {date.format(recoveryLocalDate(selectedNight.recoveryDate))}
                   </time>
@@ -434,7 +434,7 @@ export function RecoveryInsightsPanel({
                     </div>
                   </dl>
                   <section className="recovery-subdetail" aria-labelledby="recovery-assessment-heading">
-                    <h4 id="recovery-assessment-heading">{copy.assessmentHeading}</h4>
+                    <h3 id="recovery-assessment-heading">{copy.assessmentHeading}</h3>
                     {detail.sourceAssessment === null ? <p>{copy.assessmentUnavailable}</p> : (
                       <dl className="recovery-detail-metrics">
                         <div><dt>{copy.sourceScheme}</dt><dd>{detail.sourceAssessment.scheme}</dd></div>
@@ -446,7 +446,7 @@ export function RecoveryInsightsPanel({
                     )}
                   </section>
                   <section className="recovery-subdetail" aria-labelledby="recovery-baseline-heading">
-                    <h4 id="recovery-baseline-heading">{copy.baselineHeading}</h4>
+                    <h3 id="recovery-baseline-heading">{copy.baselineHeading}</h3>
                     {detail.sourceBaseline === null ? <p>{copy.baselineUnavailable}</p> : (
                       <dl className="recovery-detail-metrics">
                         <div><dt>{copy.sourceScheme}</dt><dd>{detail.sourceBaseline.scheme}</dd></div>
@@ -460,16 +460,16 @@ export function RecoveryInsightsPanel({
                     )}
                   </section>
                   <section className="recovery-subdetail" aria-labelledby="recovery-guidance-heading">
-                    <h4 id="recovery-guidance-heading">{copy.guidanceHeading}</h4>
+                    <h3 id="recovery-guidance-heading">{copy.guidanceHeading}</h3>
                     {detail.sourceGuidance === null ? <p>{copy.guidanceUnavailable}</p> : (
                       <>
                         <p className="recovery-source-scheme">
                           <strong>{copy.sourceScheme}:</strong> {detail.sourceGuidance.scheme}
                         </p>
                         <div className="recovery-guidance">
-                          <article><h5>{copy.exerciseGuidance}</h5><p>{detail.sourceGuidance.exercise}</p></article>
-                          <article><h5>{copy.sleepGuidance}</h5><p>{detail.sourceGuidance.sleep}</p></article>
-                          <article><h5>{copy.vitalityGuidance}</h5><p>{detail.sourceGuidance.vitality}</p></article>
+                          <article><h4>{copy.exerciseGuidance}</h4><p>{detail.sourceGuidance.exercise}</p></article>
+                          <article><h4>{copy.sleepGuidance}</h4><p>{detail.sourceGuidance.sleep}</p></article>
+                          <article><h4>{copy.vitalityGuidance}</h4><p>{detail.sourceGuidance.vitality}</p></article>
                         </div>
                         <p className="recovery-source-notice">{copy.sourceNotice}</p>
                       </>

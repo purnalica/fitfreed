@@ -193,7 +193,7 @@ export function SleepInsightsPanel({
 
   return (
     <section className="sleep-insights" aria-labelledby="sleep-heading" aria-busy={loadingOverview}>
-      <h2 id="sleep-heading">{copy.heading}</h2>
+      <h1 id="sleep-heading">{copy.heading}</h1>
       {!overview && loadingOverview ? (
         <p>{copy.loading}</p>
       ) : !overview ? (
@@ -210,7 +210,7 @@ export function SleepInsightsPanel({
               onSubmit={(event) => void applyRange(event)}
             >
               <div>
-                <h3 id="sleep-filter-heading">{copy.filterHeading}</h3>
+                <h2 id="sleep-filter-heading">{copy.filterHeading}</h2>
                 <p>{copy.rangeHelp}</p>
               </div>
               <label>
@@ -257,7 +257,7 @@ export function SleepInsightsPanel({
           )}
           {overview.series.map((series, seriesIndex) => (
             <section className="sleep-series" key={series.seriesRef}>
-              {overview.series.length > 1 && <h3>{copy.series} {number.format(seriesIndex + 1)}</h3>}
+              {overview.series.length > 1 && <h2>{copy.series} {number.format(seriesIndex + 1)}</h2>}
               <ul className="sleep-summary" aria-label={copy.summaryLabel}>
                 <li><strong>{number.format(series.summary.observedNights)}</strong><span>{copy.observedNights} · {coverage(series.summary.observedNights, series.summary.calendarDays)}</span></li>
                 <li><strong>{formatSleepDuration(series.summary.averageAsleepMilliseconds, locale, copy.durationUnits, messages.unavailable)}</strong><span>{copy.averageAsleep} · {coverage(series.summary.observedNights, series.summary.calendarDays)}</span></li>
@@ -321,7 +321,7 @@ export function SleepInsightsPanel({
           {selectedNight && (
             <section className="sleep-detail" aria-labelledby="sleep-detail-heading" aria-busy={loadingDetail}>
               <div className="sleep-detail-heading">
-                <div><h3 id="sleep-detail-heading">{copy.detailHeading}</h3><time dateTime={selectedNight.sleepDate}>{date.format(sleepLocalDate(selectedNight.sleepDate))}</time></div>
+                <div><h2 id="sleep-detail-heading">{copy.detailHeading}</h2><time dateTime={selectedNight.sleepDate}>{date.format(sleepLocalDate(selectedNight.sleepDate))}</time></div>
                 <button type="button" className="secondary" onClick={closeDetail}>{copy.closeDetail}</button>
               </div>
               {loadingDetail ? <p>{copy.loadingDetail}</p> : detail ? (
@@ -401,7 +401,7 @@ function SleepDayRow({
 
 function SleepPhaseComposition({ summary, locale, messages }: { summary: SleepPhaseSummary | null; locale: Locale; messages: (typeof catalogs)["en-US"] }) {
   const copy = messages.sleep;
-  if (summary === null) return <section className="sleep-subdetail"><h4>{copy.phaseHeading}</h4><p>{copy.phaseUnavailable}</p></section>;
+  if (summary === null) return <section className="sleep-subdetail"><h3>{copy.phaseHeading}</h3><p>{copy.phaseUnavailable}</p></section>;
   const entries = [
     ["wake", copy.stages.wake, summary.wakeMilliseconds],
     ["rem", copy.stages.rem, summary.remMilliseconds],
@@ -412,7 +412,7 @@ function SleepPhaseComposition({ summary, locale, messages }: { summary: SleepPh
   const total = phaseTotal(summary);
   return (
     <section className="sleep-subdetail" aria-labelledby="sleep-phase-heading">
-      <h4 id="sleep-phase-heading">{copy.phaseHeading}</h4>
+      <h3 id="sleep-phase-heading">{copy.phaseHeading}</h3>
       <div className="sleep-phase-bar" aria-hidden="true">{entries.map(([stage, , value]) => <span key={stage} className={`stage-${stage}`} style={{ width: percentageWidth(value, total) }} />)}</div>
       <dl className="sleep-phase-values">{entries.map(([stage, label, value]) => <div key={stage}><dt><span className={`stage-${stage}`} />{label}</dt><dd>{formatSleepDuration(value, locale, copy.durationUnits, messages.unavailable)}</dd></div>)}</dl>
     </section>
@@ -421,11 +421,11 @@ function SleepPhaseComposition({ summary, locale, messages }: { summary: SleepPh
 
 function SleepTimeline({ detail, locale, messages }: { detail: SleepPeriodDetail; locale: Locale; messages: (typeof catalogs)["en-US"] }) {
   const copy = messages.sleep;
-  if (detail.stageTransitions === null) return <section className="sleep-subdetail"><h4>{copy.timelineHeading}</h4><p>{copy.timelineUnavailable}</p></section>;
+  if (detail.stageTransitions === null) return <section className="sleep-subdetail"><h3>{copy.timelineHeading}</h3><p>{copy.timelineUnavailable}</p></section>;
   const segments = timelineSegments(detail.stageTransitions, detail.spanMilliseconds);
   return (
     <section className="sleep-subdetail" aria-labelledby="sleep-timeline-heading">
-      <h4 id="sleep-timeline-heading">{copy.timelineHeading}</h4>
+      <h3 id="sleep-timeline-heading">{copy.timelineHeading}</h3>
       <div className="sleep-timeline" aria-hidden="true">{segments.map((transition, index) => <span key={`${transition.offsetMilliseconds}:${index}`} className={`stage-${transition.stage}`} style={{ width: transition.width }} />)}</div>
       <div className="sleep-table-scroll" tabIndex={0} aria-label={copy.timelineTable}>
         <table><caption className="sr-only">{copy.timelineTable}</caption><thead><tr><th scope="col">{copy.stageOffset}</th><th scope="col">{copy.stage}</th></tr></thead><tbody>{detail.stageTransitions.map((transition, index) => <tr key={`${transition.offsetMilliseconds}:${index}`}><td>{formatSleepDuration(transition.offsetMilliseconds, locale, copy.durationUnits, messages.unavailable)}</td><td>{copy.stages[transition.stage]}</td></tr>)}</tbody></table>
@@ -436,7 +436,7 @@ function SleepTimeline({ detail, locale, messages }: { detail: SleepPeriodDetail
 
 function SleepScoreDetails({ detail, locale, messages }: { detail: SleepPeriodDetail; locale: Locale; messages: (typeof catalogs)["en-US"] }) {
   const copy = messages.sleep;
-  if (detail.score === null) return <section className="sleep-subdetail"><h4>{copy.scoreHeading}</h4><p>{copy.scoreUnavailable}</p></section>;
+  if (detail.score === null) return <section className="sleep-subdetail"><h3>{copy.scoreHeading}</h3><p>{copy.scoreUnavailable}</p></section>;
   const score = detail.score;
   const values = [
     [copy.scoreComponents.overall, score.overall], [copy.scoreComponents.ownTargetDuration, score.ownTargetDuration],
@@ -448,7 +448,7 @@ function SleepScoreDetails({ detail, locale, messages }: { detail: SleepPeriodDe
   ] as const;
   return (
     <section className="sleep-subdetail" aria-labelledby="sleep-score-heading">
-      <h4 id="sleep-score-heading">{copy.scoreHeading}</h4>
+      <h3 id="sleep-score-heading">{copy.scoreHeading}</h3>
       <dl className="sleep-score-grid">{values.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{formatDecimal(value, locale, messages.unavailable)}</dd></div>)}<div><dt>{copy.relativeRating}</dt><dd>{score.relativeRating === null ? messages.unavailable : `${new Intl.NumberFormat(locale).format(score.relativeRating)} / 5`}</dd></div></dl>
     </section>
   );

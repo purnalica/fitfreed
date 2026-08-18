@@ -25,6 +25,11 @@ import {
   type ApplicationPreferencesLoad,
 } from "./presentation/application-preferences";
 import { SettingsPanel } from "./presentation/SettingsPanel";
+import type {
+  ExploreDestination,
+  LibraryHome,
+} from "./presentation/library-home";
+import { LibraryHomePanel } from "./presentation/LibraryHomePanel";
 import type { SourceAcquisitionGuide } from "./presentation/source-acquisition";
 import { SourcesPanel } from "./presentation/SourcesPanel";
 
@@ -172,6 +177,8 @@ function App() {
   const [preferencesRecovered, setPreferencesRecovered] = useState(false);
   const [preferencesEditorRevision, setPreferencesEditorRevision] = useState(0);
   const [activeHome, setActiveHome] = useState<"explore" | "sources" | "settings">("sources");
+  const [libraryHome, setLibraryHome] = useState<LibraryHome>();
+  const [exploreDestination, setExploreDestination] = useState<ExploreDestination>();
   const [updateLocaleRefreshToken, setUpdateLocaleRefreshToken] = useState(0);
   const [archivePath, setArchivePath] = useState<string>();
   const [sourceGuides, setSourceGuides] = useState<SourceAcquisitionGuide[]>([]);
@@ -224,6 +231,26 @@ function App() {
     const latest = await invoke<ImportOutcome | null>("query_latest_import_outcome");
     setOutcome(latest ?? undefined);
     return latest ?? undefined;
+  }
+
+  async function refreshLibraryHome(
+    afterImportOperationRef: string | null,
+    restoreWorkspace: boolean,
+  ) {
+    const home = await invoke<LibraryHome>("query_library_home", {
+      request: { afterImportOperationRef },
+    });
+    setLibraryHome(home);
+    if (home.availableRange === null) {
+      setExploreDestination(undefined);
+      setActiveHome("sources");
+    } else {
+      setExploreDestination(
+        restoreWorkspace ? home.resumableExploration?.destination : undefined,
+      );
+      setActiveHome("explore");
+    }
+    return home;
   }
 
   useEffect(() => {
@@ -297,12 +324,17 @@ function App() {
 
   useEffect(() => {
     if (!applicationReady) return;
-    refresh().catch((reason) => setErrorCode(commandErrorCode(reason)));
+    refreshLibraryHome(null, true).catch((reason) => setErrorCode(commandErrorCode(reason)));
     refreshOutcome().catch((reason) => setErrorCode(commandErrorCode(reason)));
     invoke<SourceAcquisitionGuide[]>("query_source_acquisition_guides")
       .then(setSourceGuides)
       .catch((reason) => setErrorCode(commandErrorCode(reason)));
   }, [applicationReady]);
+
+  useEffect(() => {
+    if (!applicationReady || exploreDestination !== "activity" || activityOverview) return;
+    refresh().catch((reason) => setErrorCode(commandErrorCode(reason)));
+  }, [applicationReady, exploreDestination]);
 
   useEffect(() => {
     if (!applicationReady) return;
@@ -342,6 +374,21 @@ function App() {
     setPreferencesSavedNotice(false);
   }
 
+  async function returnToLibraryHome() {
+    setErrorCode(undefined);
+    try {
+      await invoke("clear_exploration_workspace");
+      setExploreDestination(undefined);
+      setExplorerNavigation(undefined);
+      setLibraryHome((current) => current
+        ? { ...current, resumableExploration: null }
+        : current);
+      setActiveHome("explore");
+    } catch (reason) {
+      setErrorCode(commandErrorCode(reason));
+    }
+  }
+
   function openExplore() {
     applyApplicationPreferences(savedPreferences);
     setLocale(savedPreferences.locale);
@@ -360,6 +407,28 @@ function App() {
 
   async function openSourceLink(url: string) {
     await openOfficialSourceLink(url);
+  }
+
+  async function openExploration(destination: ExploreDestination) {
+    setErrorCode(undefined);
+    try {
+      await invoke("save_exploration_workspace", { destination });
+      setExploreDestination(destination);
+      setLibraryHome((current) => current
+        ? {
+            ...current,
+            resumableExploration: { version: 1, destination },
+          }
+        : current);
+      setActiveHome("explore");
+    } catch (reason) {
+      setErrorCode(commandErrorCode(reason));
+    }
+  }
+
+  async function openHomeExploration(destination: ExploreDestination) {
+    setExplorerNavigation(undefined);
+    await openExploration(destination);
   }
 
   async function savePreferences(preferences: ApplicationPreferences) {
@@ -435,12 +504,13 @@ function App() {
       const onProgress = new Channel<ImportProgress>();
       onProgress.onmessage = setProgress;
       await invoke<ImportReport>("import_archive", { archivePath, onProgress });
-      await refresh();
+      setActivityOverview(undefined);
       setTrainingRefreshToken((current) => current + 1);
       setSleepRefreshToken((current) => current + 1);
       setRecoveryRefreshToken((current) => current + 1);
       setLongitudinalRefreshToken((current) => current + 1);
-      await refreshOutcome();
+      const latest = await refreshOutcome();
+      await refreshLibraryHome(latest?.operationRef ?? null, false);
     } catch (reason) {
       const code = commandErrorCode(reason);
       if (code === "import-failed") {
@@ -590,8 +660,12 @@ function App() {
     seriesRef: string,
   ) {
     if (domain === "activity") {
-      refresh({ from: localDateValue, through: localDateValue })
-        .then(() => setSelectedActivityDate(localDateValue))
+      invoke("save_exploration_workspace", { destination: "activity" })
+        .then(() => refresh({ from: localDateValue, through: localDateValue }))
+        .then(() => {
+          setExploreDestination("activity");
+          setSelectedActivityDate(localDateValue);
+        })
         .catch((reason) => setErrorCode(commandErrorCode(reason)));
       return;
     }
@@ -602,6 +676,7 @@ function App() {
       localDate: localDateValue,
       requestId: navigationSequence.current,
     });
+    void openExploration(domain);
   }
 
   if (!localeReady) {
@@ -696,6 +771,21 @@ function App() {
             onReset={resetPreferences}
           />
         )}
+        <div hidden={activeHome !== "settings"}>
+          {applicationReady && (
+            <Suspense fallback={null}>
+              <UpdatePanel
+                locale={locale}
+                messages={messages.updates}
+                errors={errorMessages}
+                ready
+                refreshToken={updateLocaleRefreshToken}
+                installationBlocked={busy}
+                onInstallationStateChange={setUpdateInstalling}
+              />
+            </Suspense>
+          )}
+        </div>
         <div className="sources-home" hidden={activeHome !== "sources"}>
           <SourcesPanel
             locale={locale}
@@ -838,27 +928,30 @@ function App() {
           </SourcesPanel>
         </div>
         <div className="explore-home" hidden={activeHome !== "explore"}>
-      <header className="hero">
-        <p className="eyebrow">FitFreed</p>
-        <h1>{messages.title}</h1>
-        <p>{messages.intro}</p>
-      </header>
-
-      {applicationReady && (
-        <Suspense fallback={null}>
-          <UpdatePanel
-            locale={locale}
-            messages={messages.updates}
-            errors={errorMessages}
-            ready
-            refreshToken={updateLocaleRefreshToken}
-            installationBlocked={busy}
-            onInstallationStateChange={setUpdateInstalling}
-          />
-        </Suspense>
+      {!exploreDestination && libraryHome && (
+        <LibraryHomePanel
+          home={libraryHome}
+          locale={locale}
+          messages={messages.home}
+          onExplore={(destination) => void openHomeExploration(destination)}
+          onOpenSources={openSources}
+        />
       )}
 
-      {applicationReady && (
+      {exploreDestination && (
+        <nav className="explorer-return" aria-label={messages.home.backHome}>
+          <button
+            type="button"
+            className="secondary"
+            aria-label={messages.home.backHome}
+            onClick={() => void returnToLibraryHome()}
+          >
+            <span aria-hidden="true">← </span>{messages.home.backHome}
+          </button>
+        </nav>
+      )}
+
+      {applicationReady && exploreDestination === "longitudinal" && (
         <Suspense fallback={null}>
           <LongitudinalInsightsPanel
             locale={locale}
@@ -870,8 +963,9 @@ function App() {
         </Suspense>
       )}
 
+      {exploreDestination === "activity" && (
       <section aria-labelledby="activity-heading">
-        <h2 id="activity-heading">{messages.activity.heading}</h2>
+        <h1 id="activity-heading">{messages.activity.heading}</h1>
         {!activityOverview || activityOverview.series.length === 0 ? (
           <p>{messages.activity.empty}</p>
         ) : (
@@ -884,7 +978,7 @@ function App() {
                 onSubmit={(event) => void applyActivityRange(event)}
               >
                 <div>
-                  <h3 id="activity-filter-heading">{messages.activity.filterHeading}</h3>
+                  <h2 id="activity-filter-heading">{messages.activity.filterHeading}</h2>
                   <p>{messages.activity.rangeHelp}</p>
                 </div>
                 <label>
@@ -953,7 +1047,7 @@ function App() {
             {activityOverview.series.map((series, seriesIndex) => (
               <section className="activity-series" key={series.seriesRef}>
                 {activityOverview.series.length > 1 && (
-                  <h3>{messages.activity.series} {number.format(seriesIndex + 1)}</h3>
+                  <h2>{messages.activity.series} {number.format(seriesIndex + 1)}</h2>
                 )}
                 <ul className="activity-summary" aria-label={messages.activity.heading}>
                   <li>
@@ -1037,7 +1131,7 @@ function App() {
               <section className="activity-detail" aria-labelledby="activity-detail-heading">
                 <div className="activity-detail-heading">
                   <div>
-                    <h3 id="activity-detail-heading">{messages.activity.detailHeading}</h3>
+                    <h2 id="activity-detail-heading">{messages.activity.detailHeading}</h2>
                     <time dateTime={selectedActivityDate}>
                       {date.format(localDate(selectedActivityDate))}
                     </time>
@@ -1058,7 +1152,7 @@ function App() {
                     if (!day) return null;
                     return (
                       <li key={series.seriesRef}>
-                        <h4>{messages.activity.series} {number.format(seriesIndex + 1)}</h4>
+                        <h3>{messages.activity.series} {number.format(seriesIndex + 1)}</h3>
                         <dl>
                           <div>
                             <dt>{messages.steps}</dt>
@@ -1090,8 +1184,10 @@ function App() {
           </>
         )}
       </section>
-      {applicationReady && (
+      )}
+      {applicationReady && exploreDestination && (
         <Suspense fallback={null}>
+          {exploreDestination === "training" && (
           <TrainingInsightsPanel
             locale={locale}
             messages={messages}
@@ -1099,6 +1195,8 @@ function App() {
             navigationRequest={explorerNavigation?.domain === "training" ? explorerNavigation : undefined}
             onError={setErrorCode}
           />
+          )}
+          {exploreDestination === "sleep" && (
           <SleepInsightsPanel
             locale={locale}
             messages={messages}
@@ -1106,6 +1204,8 @@ function App() {
             navigationRequest={explorerNavigation?.domain === "sleep" ? explorerNavigation : undefined}
             onError={setErrorCode}
           />
+          )}
+          {exploreDestination === "recovery" && (
           <RecoveryInsightsPanel
             locale={locale}
             messages={messages}
@@ -1113,6 +1213,7 @@ function App() {
             navigationRequest={explorerNavigation?.domain === "recovery" ? explorerNavigation : undefined}
             onError={setErrorCode}
           />
+          )}
         </Suspense>
       )}
         </div>

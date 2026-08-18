@@ -28,16 +28,19 @@ use zip::ZipArchive;
 
 #[cfg(test)]
 use fitfreed_application::{
-    query_default_recovery_overview, query_default_sleep_overview, query_default_training_overview,
-    query_longitudinal_overview, query_recovery_detail, AppearancePreference, ApplicationError,
+    clear_exploration_workspace, query_default_recovery_overview, query_default_sleep_overview,
+    query_default_training_overview, query_library_home, query_longitudinal_overview,
+    query_recovery_detail, save_exploration_workspace, AppearancePreference, ApplicationError,
+    LibraryDomain, LibraryHomeDateRange, LibraryHomeRequest, LibraryQuestion, LibraryQuestionKind,
     LocalePreference,
 };
 use fitfreed_application::{
     ActivityDateRange, ActivityLibraryPort, ApplicationPreferences, ApplicationPreferencesPort,
-    ArchiveImportPort, ImportOutcomeLibraryPort, ImportPhase, ImportPhaseTimings, ImportProgress,
-    ProfiledImport, RecoveryDateRange, RecoveryLibraryNight, RecoveryLibraryPort, SleepDateRange,
-    SleepLibraryPeriod, SleepLibraryPort, StoredApplicationPreferences, TrainingDateRange,
-    TrainingLibraryPort,
+    ArchiveImportPort, ExplorationWorkspace, ExplorationWorkspacePort, ExploreDestination,
+    ImportOutcomeLibraryPort, ImportPhase, ImportPhaseTimings, ImportProgress, ProfiledImport,
+    RecoveryDateRange, RecoveryLibraryNight, RecoveryLibraryPort, SleepDateRange,
+    SleepLibraryPeriod, SleepLibraryPort, StoredApplicationPreferences, StoredExplorationWorkspace,
+    TrainingDateRange, TrainingLibraryPort,
 };
 use fitfreed_domain::{
     decide_nightly_recovery_reconciliation, decide_reconciliation,
@@ -103,7 +106,7 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 10;
+const SCHEMA_VERSION: i64 = 11;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
@@ -114,6 +117,7 @@ const SCHEMA_V7: &str = include_str!("../migrations/0007_sleep_period.sql");
 const SCHEMA_V8: &str = include_str!("../migrations/0008_nightly_recovery.sql");
 const SCHEMA_V9: &str = include_str!("../migrations/0009_update_state.sql");
 const SCHEMA_V10: &str = include_str!("../migrations/0010_application_preferences.sql");
+const SCHEMA_V11: &str = include_str!("../migrations/0011_exploration_workspace.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
 const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@6";
 const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@1";
@@ -1935,6 +1939,69 @@ pub fn save_application_preferences(
     Ok(())
 }
 
+pub fn load_exploration_workspace_record(
+    database_path: &Path,
+) -> Result<Option<StoredExplorationWorkspace>> {
+    let connection = Connection::open(database_path)?;
+    ensure_schema(&connection)?;
+    connection
+        .query_row(
+            "SELECT workspace_version, destination
+             FROM exploration_workspace
+             WHERE id = 1",
+            [],
+            |row| {
+                Ok(StoredExplorationWorkspace {
+                    version: row.get(0)?,
+                    destination: row.get(1)?,
+                })
+            },
+        )
+        .optional()
+        .map_err(Into::into)
+}
+
+pub fn save_exploration_workspace_record(
+    database_path: &Path,
+    workspace: &ExplorationWorkspace,
+) -> Result<()> {
+    let connection = Connection::open(database_path)?;
+    ensure_schema(&connection)?;
+    connection.execute(
+        "INSERT INTO exploration_workspace (
+             id, workspace_version, destination, updated_at_utc
+         ) VALUES (
+             1, ?1, ?2, strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+         )
+         ON CONFLICT(id) DO UPDATE SET
+             workspace_version = excluded.workspace_version,
+             destination = excluded.destination,
+             updated_at_utc = excluded.updated_at_utc",
+        params![
+            workspace.version,
+            exploration_destination_code(workspace.destination),
+        ],
+    )?;
+    Ok(())
+}
+
+pub fn clear_exploration_workspace_record(database_path: &Path) -> Result<()> {
+    let connection = Connection::open(database_path)?;
+    ensure_schema(&connection)?;
+    connection.execute("DELETE FROM exploration_workspace WHERE id = 1", [])?;
+    Ok(())
+}
+
+fn exploration_destination_code(destination: ExploreDestination) -> &'static str {
+    match destination {
+        ExploreDestination::Activity => "activity",
+        ExploreDestination::Training => "training",
+        ExploreDestination::Sleep => "sleep",
+        ExploreDestination::Recovery => "recovery",
+        ExploreDestination::Longitudinal => "longitudinal",
+    }
+}
+
 pub fn backup_database(source_path: &Path, backup_path: &Path) -> Result<()> {
     if source_path == backup_path || !source_path.is_file() {
         return Err(ImportError::InvalidLibraryBackup(
@@ -2072,7 +2139,10 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         if version < 9 {
             connection.execute_batch(SCHEMA_V9)?;
         }
-        connection.execute_batch(SCHEMA_V10)?;
+        if version < 10 {
+            connection.execute_batch(SCHEMA_V10)?;
+        }
+        connection.execute_batch(SCHEMA_V11)?;
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
         }
@@ -5379,6 +5449,128 @@ impl RecoveryLibraryPort for SqliteLongitudinalLibrary {
     }
 }
 
+pub struct SqliteLibraryHome {
+    database_path: PathBuf,
+}
+
+impl SqliteLibraryHome {
+    pub fn new(database_path: PathBuf) -> Self {
+        Self { database_path }
+    }
+}
+
+impl ActivityLibraryPort for SqliteLibraryHome {
+    fn activity_bounds(&self) -> StandardResult<Option<ActivityDateRange>, String> {
+        SqliteActivityLibrary::new(self.database_path.clone()).activity_bounds()
+    }
+
+    fn activity_origins(&self) -> StandardResult<Vec<String>, String> {
+        SqliteActivityLibrary::new(self.database_path.clone()).activity_origins()
+    }
+
+    fn query_activity(
+        &self,
+        range: &ActivityDateRange,
+    ) -> StandardResult<Vec<DailyActivity>, String> {
+        SqliteActivityLibrary::new(self.database_path.clone()).query_activity(range)
+    }
+}
+
+impl TrainingLibraryPort for SqliteLibraryHome {
+    fn training_bounds(&self) -> StandardResult<Option<TrainingDateRange>, String> {
+        SqliteTrainingLibrary::new(self.database_path.clone()).training_bounds()
+    }
+
+    fn training_origins(&self) -> StandardResult<Vec<String>, String> {
+        SqliteTrainingLibrary::new(self.database_path.clone()).training_origins()
+    }
+
+    fn query_training(
+        &self,
+        range: &TrainingDateRange,
+    ) -> StandardResult<Vec<TrainingSession>, String> {
+        SqliteTrainingLibrary::new(self.database_path.clone()).query_training(range)
+    }
+}
+
+impl SleepLibraryPort for SqliteLibraryHome {
+    fn sleep_bounds(&self) -> StandardResult<Option<SleepDateRange>, String> {
+        SqliteSleepLibrary::new(self.database_path.clone()).sleep_bounds()
+    }
+
+    fn sleep_origins(&self) -> StandardResult<Vec<String>, String> {
+        SqliteSleepLibrary::new(self.database_path.clone()).sleep_origins()
+    }
+
+    fn query_sleep(
+        &self,
+        range: &SleepDateRange,
+    ) -> StandardResult<Vec<SleepLibraryPeriod>, String> {
+        SqliteSleepLibrary::new(self.database_path.clone()).query_sleep(range)
+    }
+
+    fn query_sleep_period(
+        &self,
+        series_ref: &str,
+        sleep_date: &str,
+    ) -> StandardResult<Option<SleepPeriod>, String> {
+        SqliteSleepLibrary::new(self.database_path.clone())
+            .query_sleep_period(series_ref, sleep_date)
+    }
+}
+
+impl RecoveryLibraryPort for SqliteLibraryHome {
+    fn recovery_bounds(&self) -> StandardResult<Option<RecoveryDateRange>, String> {
+        SqliteRecoveryLibrary::new(self.database_path.clone()).recovery_bounds()
+    }
+
+    fn recovery_origins(&self) -> StandardResult<Vec<String>, String> {
+        SqliteRecoveryLibrary::new(self.database_path.clone()).recovery_origins()
+    }
+
+    fn query_recovery(
+        &self,
+        range: &RecoveryDateRange,
+    ) -> StandardResult<Vec<RecoveryLibraryNight>, String> {
+        SqliteRecoveryLibrary::new(self.database_path.clone()).query_recovery(range)
+    }
+
+    fn query_recovery_night(
+        &self,
+        series_ref: &str,
+        recovery_date: &str,
+    ) -> StandardResult<Option<NightlyRecovery>, String> {
+        SqliteRecoveryLibrary::new(self.database_path.clone())
+            .query_recovery_night(series_ref, recovery_date)
+    }
+}
+
+impl ImportOutcomeLibraryPort for SqliteLibraryHome {
+    fn latest_import_outcome(&self) -> StandardResult<Option<ImportOutcome>, String> {
+        SqliteImportOutcomeLibrary::new(self.database_path.clone()).latest_import_outcome()
+    }
+}
+
+impl ExplorationWorkspacePort for SqliteLibraryHome {
+    fn load_exploration_workspace(
+        &self,
+    ) -> StandardResult<Option<StoredExplorationWorkspace>, String> {
+        load_exploration_workspace_record(&self.database_path).map_err(|error| error.to_string())
+    }
+
+    fn save_exploration_workspace(
+        &self,
+        workspace: &ExplorationWorkspace,
+    ) -> StandardResult<(), String> {
+        save_exploration_workspace_record(&self.database_path, workspace)
+            .map_err(|error| error.to_string())
+    }
+
+    fn clear_exploration_workspace(&self) -> StandardResult<(), String> {
+        clear_exploration_workspace_record(&self.database_path).map_err(|error| error.to_string())
+    }
+}
+
 pub struct SqliteImportOutcomeLibrary {
     database_path: PathBuf,
 }
@@ -5619,6 +5811,138 @@ mod tests {
                 "vitalityTip":"Plan a synthetic restorative break."
             }}]"#
         )
+    }
+
+    #[test]
+    fn builds_the_library_home_from_committed_provider_neutral_history() {
+        let harness = Harness::new();
+        let sleep_json = basic_sleep_result_json("2026-01-03");
+        let recovery_json = complete_nightly_recovery_json("2026-01-04");
+        let archive = harness.archive(
+            "library-home.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-library-home-claim"}"#,
+                ),
+                (
+                    "activity-2026-01-01-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"date":"2026-01-01","summary":{"stepCount":3100}}"#,
+                ),
+                (
+                    "training-session_2026-01-02T10-30-00_42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                        "identifier":{"id":"synthetic-home-session"},
+                        "created":"2026-01-02T12:00:00.000",
+                        "modified":"2026-01-02T12:05:00.000",
+                        "startTime":"2026-01-02T10:30:00",
+                        "stopTime":"2026-01-02T11:30:00",
+                        "durationMillis":3600000,
+                        "distanceMeters":10000.5,
+                        "calories":650,
+                        "hrAvg":145,
+                        "hrMax":178
+                    }"#,
+                ),
+                (
+                    "sleep_result_42-11111111-2222-4333-8444-555555555555.json",
+                    &sleep_json,
+                ),
+                (
+                    "nightly_recovery_42-11111111-2222-4333-8444-555555555555.json",
+                    &recovery_json,
+                ),
+            ],
+        );
+
+        let report = import_polar_archive(&harness.database(), &archive)
+            .expect("representative history import");
+        assert_eq!(report.new_observations, 4);
+        let outcome = query_latest_import_outcome(&harness.database())
+            .expect("import outcome query")
+            .expect("committed import outcome");
+        let library = SqliteLibraryHome::new(harness.database());
+
+        let home = query_library_home(
+            &library,
+            LibraryHomeRequest {
+                after_import_operation_ref: Some(outcome.operation_ref),
+            },
+        )
+        .expect("library home");
+
+        assert_eq!(
+            home.available_range,
+            Some(LibraryHomeDateRange {
+                from: "2026-01-01".to_owned(),
+                through: "2026-01-04".to_owned(),
+            })
+        );
+        assert_eq!(
+            home.domains
+                .iter()
+                .map(|domain| domain.domain)
+                .collect::<Vec<_>>(),
+            vec![
+                LibraryDomain::Training,
+                LibraryDomain::Activity,
+                LibraryDomain::Sleep,
+                LibraryDomain::Recovery,
+            ]
+        );
+        assert!(home
+            .domains
+            .iter()
+            .all(|domain| domain.origin_count == 1 && domain.observed_record_count == 1));
+        assert_eq!(
+            home.questions,
+            vec![
+                LibraryQuestion::new(
+                    LibraryQuestionKind::ExploreTrainingSessions,
+                    ExploreDestination::Training,
+                ),
+                LibraryQuestion::new(
+                    LibraryQuestionKind::AlignHistory,
+                    ExploreDestination::Longitudinal,
+                ),
+                LibraryQuestion::new(
+                    LibraryQuestionKind::ReviewActivitySteps,
+                    ExploreDestination::Activity,
+                ),
+                LibraryQuestion::new(
+                    LibraryQuestionKind::ReviewSleepPatterns,
+                    ExploreDestination::Sleep,
+                ),
+                LibraryQuestion::new(
+                    LibraryQuestionKind::ReviewRecoveryPatterns,
+                    ExploreDestination::Recovery,
+                ),
+            ]
+        );
+        let reveal = home.post_import.expect("matching post-import reveal");
+        assert!(!reveal.exact_repeat);
+        assert!(reveal.canonical_history_changed);
+        assert_eq!(reveal.new_observations, 4);
+        assert!(!reveal.source_review_recommended);
+
+        save_exploration_workspace(&library, ExploreDestination::Training)
+            .expect("persist training workspace");
+        let reopened = SqliteLibraryHome::new(harness.database());
+        assert_eq!(
+            query_library_home(&reopened, LibraryHomeRequest::default())
+                .expect("reopened library home")
+                .resumable_exploration
+                .expect("persisted workspace")
+                .destination,
+            ExploreDestination::Training
+        );
+        clear_exploration_workspace(&reopened).expect("clear persisted workspace");
+        assert_eq!(
+            query_library_home(&reopened, LibraryHomeRequest::default())
+                .expect("home after cleared workspace")
+                .resumable_exploration,
+            None
+        );
     }
 
     #[test]
@@ -8516,7 +8840,7 @@ mod tests {
     fn create_schema_baseline(connection: &Connection, version: i64) {
         let migrations = [
             SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8,
-            SCHEMA_V9, SCHEMA_V10,
+            SCHEMA_V9, SCHEMA_V10, SCHEMA_V11,
         ];
         for migration in migrations
             .iter()
@@ -9673,5 +9997,63 @@ mod tests {
                 content_zoom_percent: 100,
             })
         );
+    }
+
+    #[test]
+    fn upgrades_version_ten_with_an_atomic_constrained_exploration_workspace() {
+        let harness = Harness::new();
+        let connection = Connection::open(harness.database()).expect("database");
+        connection
+            .execute_batch("PRAGMA foreign_keys = ON;")
+            .expect("foreign keys");
+        create_schema_baseline(&connection, 10);
+
+        let error = migrate_schema(&connection, true).expect_err("interrupted version eleven");
+        assert!(matches!(error, ImportError::InjectedMigrationInterruption));
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("retained schema version"),
+            10
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_schema
+                     WHERE type = 'table' AND name = 'exploration_workspace'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("rolled-back workspace table"),
+            0
+        );
+
+        migrate_schema(&connection, false).expect("version eleven migration");
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("current schema version"),
+            SCHEMA_VERSION
+        );
+        connection
+            .execute(
+                "INSERT INTO exploration_workspace (
+                     id, workspace_version, destination, updated_at_utc
+                 ) VALUES (1, 1, 'training', '2026-08-18T15:00:00Z')",
+                [],
+            )
+            .expect("valid workspace");
+        assert!(connection
+            .execute(
+                "UPDATE exploration_workspace SET destination = 'provider-route' WHERE id = 1",
+                [],
+            )
+            .is_err());
+        assert!(connection
+            .execute(
+                "UPDATE exploration_workspace SET workspace_version = 2 WHERE id = 1",
+                [],
+            )
+            .is_err());
     }
 }

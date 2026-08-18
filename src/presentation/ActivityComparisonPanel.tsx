@@ -177,7 +177,7 @@ export function ActivityComparisonPanel({
   return (
     <div className="activity-comparison">
       <div>
-        <h3 id="activity-comparison-form-heading">{copy.heading}</h3>
+        <h2 id="activity-comparison-form-heading">{copy.heading}</h2>
         <p>{copy.intro}</p>
       </div>
       <form
@@ -208,7 +208,7 @@ export function ActivityComparisonPanel({
         <section className="activity-comparison-result" aria-labelledby="activity-comparison-heading">
           <div className="activity-comparison-result-heading">
             <div>
-              <h4 id="activity-comparison-heading">{copy.resultHeading}</h4>
+              <h3 id="activity-comparison-heading">{copy.resultHeading}</h3>
               <p>{copy.coverageCaution}</p>
             </div>
             <button type="button" className="secondary" onClick={() => setComparison(undefined)}>
@@ -228,7 +228,7 @@ export function ActivityComparisonPanel({
             );
             return (
               <section className="activity-comparison-series" key={series.seriesRef}>
-                <h5>{messages.activity.series} {number.format(index + 1)}</h5>
+                <h4>{messages.activity.series} {number.format(index + 1)}</h4>
                 <div className="comparison-bars" aria-hidden="true">
                   {[
                     [copy.baseline, series.baseline.totalStepCount],

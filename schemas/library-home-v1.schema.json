@@ -1,0 +1,313 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/library-home-v1.schema.json",
+  "title": "FitFreed library home version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "availableRange",
+    "domains",
+    "questions",
+    "postImport",
+    "resumableExploration"
+  ],
+  "properties": {
+    "availableRange": { "$ref": "#/$defs/optionalRange" },
+    "domains": {
+      "type": "array",
+      "prefixItems": [
+        { "$ref": "#/$defs/trainingDomain" },
+        { "$ref": "#/$defs/activityDomain" },
+        { "$ref": "#/$defs/sleepDomain" },
+        { "$ref": "#/$defs/recoveryDomain" }
+      ],
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "questions": {
+      "type": "array",
+      "uniqueItems": true,
+      "maxItems": 5,
+      "items": { "$ref": "#/$defs/question" }
+    },
+    "postImport": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/postImport" }
+      ]
+    },
+    "resumableExploration": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/explorationWorkspace" }
+      ]
+    }
+  },
+  "$defs": {
+    "localDate": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "through"],
+      "properties": {
+        "from": { "$ref": "#/$defs/localDate" },
+        "through": { "$ref": "#/$defs/localDate" }
+      }
+    },
+    "optionalRange": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/range" }
+      ]
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["measurement", "availableRecords", "observedRecords"],
+      "properties": {
+        "measurement": { "type": "string" },
+        "availableRecords": { "type": "integer", "minimum": 0 },
+        "observedRecords": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "unavailableDomain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "domain",
+        "availableRange",
+        "selectedRange",
+        "originCount",
+        "observedRecordCount",
+        "measurements"
+      ],
+      "properties": {
+        "domain": { "enum": ["training", "activity", "sleep", "recovery"] },
+        "availableRange": { "type": "null" },
+        "selectedRange": { "type": "null" },
+        "originCount": { "const": 0 },
+        "observedRecordCount": { "const": 0 },
+        "measurements": { "type": "array", "maxItems": 0 }
+      }
+    },
+    "availableDomain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "domain",
+        "availableRange",
+        "selectedRange",
+        "originCount",
+        "observedRecordCount",
+        "measurements"
+      ],
+      "properties": {
+        "domain": { "enum": ["training", "activity", "sleep", "recovery"] },
+        "availableRange": { "$ref": "#/$defs/range" },
+        "selectedRange": { "$ref": "#/$defs/range" },
+        "originCount": { "type": "integer", "minimum": 1 },
+        "observedRecordCount": { "type": "integer", "minimum": 1 },
+        "measurements": { "type": "array", "minItems": 1 }
+      }
+    },
+    "trainingMeasurements": {
+      "type": "array",
+      "prefixItems": [
+        { "type": "object", "$ref": "#/$defs/measurement", "properties": { "measurement": { "const": "training-duration" } } },
+        { "type": "object", "$ref": "#/$defs/measurement", "properties": { "measurement": { "const": "training-distance" } } },
+        { "type": "object", "$ref": "#/$defs/measurement", "properties": { "measurement": { "const": "training-energy" } } },
+        { "type": "object", "$ref": "#/$defs/measurement", "properties": { "measurement": { "const": "training-heart-rate" } } }
+      ],
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "activityMeasurements": {
+      "type": "array",
+      "prefixItems": [
+        { "type": "object", "$ref": "#/$defs/measurement", "properties": { "measurement": { "const": "activity-steps" } } }
+      ],
+      "minItems": 1,
+      "maxItems": 1
+    },
+    "sleepMeasurements": {
+      "type": "array",
+      "prefixItems": [
+        { "type": "object", "$ref": "#/$defs/measurement", "properties": { "measurement": { "const": "sleep-duration" } } },
+        { "type": "object", "$ref": "#/$defs/measurement", "properties": { "measurement": { "const": "sleep-interruptions" } } },
+        { "type": "object", "$ref": "#/$defs/measurement", "properties": { "measurement": { "const": "sleep-efficiency" } } },
+        { "type": "object", "$ref": "#/$defs/measurement", "properties": { "measurement": { "const": "sleep-phases" } } },
+        { "type": "object", "$ref": "#/$defs/measurement", "properties": { "measurement": { "const": "sleep-stages" } } },
+        { "type": "object", "$ref": "#/$defs/measurement", "properties": { "measurement": { "const": "sleep-score" } } },
+        { "type": "object", "$ref": "#/$defs/measurement", "properties": { "measurement": { "const": "sleep-goal" } } },
+        { "type": "object", "$ref": "#/$defs/measurement", "properties": { "measurement": { "const": "sleep-power-status" } } }
+      ],
+      "minItems": 8,
+      "maxItems": 8
+    },
+    "recoveryMeasurements": {
+      "type": "array",
+      "prefixItems": [
+        { "type": "object", "$ref": "#/$defs/measurement", "properties": { "measurement": { "const": "recovery-beat-to-beat-interval" } } },
+        { "type": "object", "$ref": "#/$defs/measurement", "properties": { "measurement": { "const": "recovery-heart-rate-variability" } } },
+        { "type": "object", "$ref": "#/$defs/measurement", "properties": { "measurement": { "const": "recovery-breathing-interval" } } },
+        { "type": "object", "$ref": "#/$defs/measurement", "properties": { "measurement": { "const": "recovery-assessment" } } },
+        { "type": "object", "$ref": "#/$defs/measurement", "properties": { "measurement": { "const": "recovery-baseline" } } },
+        { "type": "object", "$ref": "#/$defs/measurement", "properties": { "measurement": { "const": "recovery-guidance" } } }
+      ],
+      "minItems": 6,
+      "maxItems": 6
+    },
+    "trainingDomain": {
+      "oneOf": [
+        {
+          "type": "object",
+          "$ref": "#/$defs/unavailableDomain",
+          "properties": { "domain": { "const": "training" } }
+        },
+        {
+          "type": "object",
+          "$ref": "#/$defs/availableDomain",
+          "properties": {
+            "domain": { "const": "training" },
+            "measurements": { "$ref": "#/$defs/trainingMeasurements" }
+          }
+        }
+      ]
+    },
+    "activityDomain": {
+      "oneOf": [
+        {
+          "type": "object",
+          "$ref": "#/$defs/unavailableDomain",
+          "properties": { "domain": { "const": "activity" } }
+        },
+        {
+          "type": "object",
+          "$ref": "#/$defs/availableDomain",
+          "properties": {
+            "domain": { "const": "activity" },
+            "measurements": { "$ref": "#/$defs/activityMeasurements" }
+          }
+        }
+      ]
+    },
+    "sleepDomain": {
+      "oneOf": [
+        {
+          "type": "object",
+          "$ref": "#/$defs/unavailableDomain",
+          "properties": { "domain": { "const": "sleep" } }
+        },
+        {
+          "type": "object",
+          "$ref": "#/$defs/availableDomain",
+          "properties": {
+            "domain": { "const": "sleep" },
+            "measurements": { "$ref": "#/$defs/sleepMeasurements" }
+          }
+        }
+      ]
+    },
+    "recoveryDomain": {
+      "oneOf": [
+        {
+          "type": "object",
+          "$ref": "#/$defs/unavailableDomain",
+          "properties": { "domain": { "const": "recovery" } }
+        },
+        {
+          "type": "object",
+          "$ref": "#/$defs/availableDomain",
+          "properties": {
+            "domain": { "const": "recovery" },
+            "measurements": { "$ref": "#/$defs/recoveryMeasurements" }
+          }
+        }
+      ]
+    },
+    "question": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "destination"],
+          "properties": {
+            "kind": { "const": "explore-training-sessions" },
+            "destination": { "const": "training" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "destination"],
+          "properties": {
+            "kind": { "const": "align-history" },
+            "destination": { "const": "longitudinal" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "destination"],
+          "properties": {
+            "kind": { "const": "review-activity-steps" },
+            "destination": { "const": "activity" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "destination"],
+          "properties": {
+            "kind": { "const": "review-sleep-patterns" },
+            "destination": { "const": "sleep" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "destination"],
+          "properties": {
+            "kind": { "const": "review-recovery-patterns" },
+            "destination": { "const": "recovery" }
+          }
+        }
+      ]
+    },
+    "postImport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exactRepeat",
+        "canonicalHistoryChanged",
+        "newObservations",
+        "enrichedObservations",
+        "amendedObservations",
+        "sourceReviewRecommended"
+      ],
+      "properties": {
+        "exactRepeat": { "type": "boolean" },
+        "canonicalHistoryChanged": { "type": "boolean" },
+        "newObservations": { "type": "integer", "minimum": 0 },
+        "enrichedObservations": { "type": "integer", "minimum": 0 },
+        "amendedObservations": { "type": "integer", "minimum": 0 },
+        "sourceReviewRecommended": { "type": "boolean" }
+      }
+    },
+    "explorationWorkspace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "destination"],
+      "properties": {
+        "version": { "const": 1 },
+        "destination": {
+          "enum": ["activity", "training", "sleep", "recovery", "longitudinal"]
+        }
+      }
+    }
+  }
+}

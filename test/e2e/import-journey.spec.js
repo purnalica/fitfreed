@@ -73,6 +73,50 @@ async function goToHome(home) {
   await destination.click();
 }
 
+async function returnToLibraryHome(catalog = english) {
+  await goToHome("explore");
+  const returnButtons = await $$(".explorer-return button");
+  if (returnButtons.length > 0 && await returnButtons[0].isDisplayed()) {
+    await returnButtons[0].click();
+  }
+  await expect($(".library-home h1")).toHaveText(catalog.home.title);
+}
+
+async function openHomeQuestion(catalog, kind, expectedSelector) {
+  await returnToLibraryHome(catalog);
+  const expectedLabel = catalog.home.questions[kind];
+  const buttons = await $$(".library-home-questions button");
+  const labels = [];
+  for (const button of buttons) {
+    const label = await button.getText();
+    labels.push(label);
+    if (label.includes(expectedLabel)) {
+      await button.click();
+      await $(expectedSelector).waitForDisplayed({ timeout: 10_000 });
+      return;
+    }
+  }
+  throw new Error(`Home question was not available: ${expectedLabel}; found ${labels.join(" | ")}`);
+}
+
+async function expectLibraryHome(catalog) {
+  await expect($(".library-home h1")).toHaveText(catalog.home.title);
+  const questionButtons = await $$(".library-home-questions button");
+  expect(questionButtons).toHaveLength(Object.keys(catalog.home.questions).length);
+  for (const label of Object.values(catalog.home.questions)) {
+    await expect($(".library-home-questions")).toHaveText(expect.stringContaining(label));
+  }
+  const domainRows = await $$(".library-home-coverage li");
+  expect(domainRows).toHaveLength(Object.keys(catalog.home.domains).length);
+  expect(await $$("#activity-heading, .training-insights, .sleep-insights, .recovery-insights, .longitudinal-insights")).toHaveLength(0);
+}
+
+async function expectComparisonHeading(selector, expectedText) {
+  const heading = await $(selector);
+  await heading.waitForDisplayed({ timeout: 10_000 });
+  await expect(heading).toHaveText(expectedText);
+}
+
 async function selectLocale(locale, destination = "explore") {
   const settings = await $(".shell-header nav button[data-home='settings']");
   await settings.waitForEnabled({ timeout: 10_000 });
@@ -663,12 +707,9 @@ describe("packaged FitFreed import journey", () => {
     expect(sourcesAccessibility.violations).toEqual([]);
 
     await goToHome("explore");
-    await expect($(".recovery-insights")).toHaveText(
-      expect.stringContaining("No imported nightly recovery summaries yet."),
-    );
-    await expect($(".longitudinal-insights")).toHaveText(
-      expect.stringContaining("No imported activity, training, sleep, or recovery history yet."),
-    );
+    await expect($(".library-home-empty h1")).toHaveText(english.home.emptyHeading);
+    expect(await $$(".library-home-questions")).toHaveLength(0);
+    expect(await $$("#activity-heading, .training-insights, .sleep-insights, .recovery-insights, .longitudinal-insights")).toHaveLength(0);
 
     await setAppearanceAndZoom("dark", 175, false);
     await expect($("html")).toHaveAttribute("data-appearance", "system");
@@ -699,7 +740,7 @@ describe("packaged FitFreed import journey", () => {
       "https://support.polar.com/es/how-to-download-all-your-data-from-polar-flow",
     );
     await selectLocale("en-US");
-    await expect($(".explore-home h1")).toHaveText("Your fitness history belongs to you");
+    await expect($(".library-home-empty h1")).toHaveText(english.home.emptyHeading);
 
     await goToHome("sources");
     const dialogMock = await browser.tauri.mock("plugin:dialog|open");
@@ -769,6 +810,14 @@ describe("packaged FitFreed import journey", () => {
     await selectArchive(dialogMock, path.join(fixtureDirectory, "valid.zip"));
     await $("aria/Import selected package").click();
     await waitForNotice("Import completed: 9 recognized, 7 new");
+    await expectLibraryHome(english);
+    await expect($(".library-home-reveal")).toHaveText(
+      expect.stringContaining(english.home.postImportChanged),
+    );
+    await expect($(".library-home-reveal")).toHaveText(
+      expect.stringContaining("7 new observations"),
+    );
+    await goToHome("sources");
     await expectCoverage([
       ["9", "Supported"],
       ["0", "Unsupported"],
@@ -841,7 +890,11 @@ describe("packaged FitFreed import journey", () => {
         action: "Keep the original ZIP if you need the excluded training details.",
       },
     ]);
-    await goToHome("explore");
+    await openHomeQuestion(
+      english,
+      "review-activity-steps",
+      "#activity-heading",
+    );
     await expectHistory([
       ["Jan 1, 2026", "3,100", "Step total available"],
       ["Jan 2, 2026", "4,200", "Step total available"],
@@ -870,6 +923,11 @@ describe("packaged FitFreed import journey", () => {
       "en-US",
       "2026-01-06T07:30:00",
     );
+    await openHomeQuestion(
+      english,
+      "explore-training-sessions",
+      ".training-insights",
+    );
     await expectTrainingRows([
       [enJan5Start, "30 min", "Not available", "Not available"],
       [enJan4Start, "1 h", "10,000 m", "600 kcal"],
@@ -882,6 +940,11 @@ describe("packaged FitFreed import journey", () => {
       ["600 kcal", "Recorded energy · 1 of 2"],
       ["1 of 2", "Sessions with heart rate"],
     ]);
+    await openHomeQuestion(
+      english,
+      "review-sleep-patterns",
+      ".sleep-insights",
+    );
     await expectSleepRows([
       ["Jan 6, 2026", "7 h 30 min", "93.8%", "82", "Details"],
     ]);
@@ -895,6 +958,11 @@ describe("packaged FitFreed import journey", () => {
       ["1 of 1 nights", "Nights with a stage timeline"],
       ["1 of 1 nights", "Nights with recording status · 0 ended after power loss"],
     ]);
+    await openHomeQuestion(
+      english,
+      "review-recovery-patterns",
+      ".recovery-insights",
+    );
     await expectRecoveryRows([
       ["Jan 6, 2026", "900 ms", "42 ms", "Overall status 5 / 6", "Details"],
     ]);
@@ -908,6 +976,11 @@ describe("packaged FitFreed import journey", () => {
       ["1 of 1 nights", "Nights with source guidance"],
       ["0", "Missing nights"],
     ]);
+    await openHomeQuestion(
+      english,
+      "align-history",
+      ".longitudinal-insights",
+    );
     await expectLongitudinalSummary([
       ["7,300", "Total measured steps · 3 of 6 dates"],
       ["2", "Sessions · 2 · Training days"],
@@ -954,14 +1027,22 @@ describe("packaged FitFreed import journey", () => {
     await expect($("#sleep-detail-heading")).toHaveText("Sleep detail");
     await $("aria/Close sleep detail").click();
 
-    await longitudinalLinks[1].click();
+    await openHomeQuestion(
+      english,
+      "align-history",
+      ".longitudinal-insights",
+    );
+    await $('button[aria-label="View aligned details for Jan 6, 2026"]').click();
+    await $("aria/Open recovery explorer for this date").click();
     await expectFilterRange(".recovery-filter", "2026-01-06", "2026-01-06");
     await expect($("#recovery-detail-heading")).toHaveText("Recovery detail");
     await $("aria/Close recovery detail").click();
 
-    await $("aria/Close aligned day detail").click();
-    expect(await $$(".longitudinal-detail")).toHaveLength(0);
-
+    await openHomeQuestion(
+      english,
+      "align-history",
+      ".longitudinal-insights",
+    );
     await $('button[aria-label="View aligned details for Jan 4, 2026"]').click();
     await $("aria/Open training explorer for this date").click();
     await expectFilterRange(".training-filter", "2026-01-04", "2026-01-04");
@@ -971,8 +1052,12 @@ describe("packaged FitFreed import journey", () => {
       [enJan5Start, "30 min", "Not available", "Not available"],
       [enJan4Start, "1 h", "10,000 m", "600 kcal"],
     ]);
-    await $("aria/Close aligned day detail").click();
 
+    await openHomeQuestion(
+      english,
+      "align-history",
+      ".longitudinal-insights",
+    );
     await $('button[aria-label="View aligned details for Jan 1, 2026"]').click();
     await $("aria/Open activity explorer for this date").click();
     await expectFilterRange(".activity-filter", "2026-01-01", "2026-01-01");
@@ -984,7 +1069,6 @@ describe("packaged FitFreed import journey", () => {
       ["Jan 2, 2026", "4,200", "Step total available"],
       ["Jan 3, 2026", "Not available", "Observation available; step total unavailable"],
     ]);
-    await $("aria/Close aligned day detail").click();
 
     await expect($("body")).not.toHaveText(expect.stringContaining("synthetic-device"));
     await expect($("body")).not.toHaveText(expect.stringContaining("fixture-primary-claim"));
@@ -996,6 +1080,11 @@ describe("packaged FitFreed import journey", () => {
     const enSleepEnd = await formatBrowserSleepLocalDateTime(
       "en-US",
       "2026-01-06T06:30:00+01:00",
+    );
+    await openHomeQuestion(
+      english,
+      "review-sleep-patterns",
+      ".sleep-insights",
     );
     await $('button[aria-label="View sleep details for Jan 6, 2026"]').click();
     await expect($("#sleep-detail-heading")).toHaveText("Sleep detail");
@@ -1037,6 +1126,11 @@ describe("packaged FitFreed import journey", () => {
     await $("aria/Close sleep detail").click();
     expect(await $$(".sleep-detail")).toHaveLength(0);
 
+    await openHomeQuestion(
+      english,
+      "review-recovery-patterns",
+      ".recovery-insights",
+    );
     await $('button[aria-label="View recovery details for Jan 6, 2026"]').click();
     await expect($("#recovery-detail-heading")).toHaveText("Recovery detail");
     const recoveryDetailValues = await $$(".recovery-detail-metrics dd");
@@ -1144,7 +1238,8 @@ describe("packaged FitFreed import journey", () => {
         ...spanish.outcome.coverageExplanations["mapped-summary"],
       },
     ]);
-    await goToHome("explore");
+    await returnToLibraryHome(spanish);
+    await expectLibraryHome(spanish);
     const esJan4Start = await formatBrowserTrainingLocalDateTime(
       "es-ES",
       "2026-01-04T06:15:00",
@@ -1156,6 +1251,11 @@ describe("packaged FitFreed import journey", () => {
     const esJan6Start = await formatBrowserTrainingLocalDateTime(
       "es-ES",
       "2026-01-06T07:30:00",
+    );
+    await openHomeQuestion(
+      spanish,
+      "explore-training-sessions",
+      ".training-insights",
     );
     await expectTrainingRows([
       [esJan5Start, "30 min", spanish.unavailable, spanish.unavailable],
@@ -1169,6 +1269,11 @@ describe("packaged FitFreed import journey", () => {
       ["600 kcal", `${spanish.training.totalEnergy} · 1 de 2`],
       ["1 de 2", spanish.training.heartRateCoverage],
     ]);
+    await openHomeQuestion(
+      spanish,
+      "review-sleep-patterns",
+      ".sleep-insights",
+    );
     await expectSleepRows([
       [formatLocalDate("es-ES", "2026-01-06"), "7 h 30 min", "93,8%", "82", spanish.sleep.details],
     ]);
@@ -1182,6 +1287,11 @@ describe("packaged FitFreed import journey", () => {
       [`1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`, spanish.sleep.timelineCoverage],
       [`1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`, `${spanish.sleep.powerCoverage} · 0 ${spanish.sleep.powerLoss}`],
     ]);
+    await openHomeQuestion(
+      spanish,
+      "review-recovery-patterns",
+      ".recovery-insights",
+    );
     await expectRecoveryRows([
       [
         formatLocalDate("es-ES", "2026-01-06"),
@@ -1267,12 +1377,25 @@ describe("packaged FitFreed import journey", () => {
     await goToHome("sources");
     await $("aria/Import selected package").click();
     await waitForNotice("Exact package repeat; history was not duplicated.");
-    await goToHome("explore");
+    await expectLibraryHome(english);
+    await expect($(".library-home-reveal")).toHaveText(
+      expect.stringContaining(english.home.postImportExactRepeat),
+    );
+    await openHomeQuestion(
+      english,
+      "review-activity-steps",
+      "#activity-heading",
+    );
     await expectHistory([
       ["Jan 1, 2026", "3,100", "Step total available"],
       ["Jan 2, 2026", "4,200", "Step total available"],
       ["Jan 3, 2026", "Not available", "Observation available; step total unavailable"],
     ]);
+    await openHomeQuestion(
+      english,
+      "explore-training-sessions",
+      ".training-insights",
+    );
     await expectTrainingRows([
       [enJan5Start, "30 min", "Not available", "Not available"],
       [enJan4Start, "1 h", "10,000 m", "600 kcal"],
@@ -1284,7 +1407,15 @@ describe("packaged FitFreed import journey", () => {
     await waitForNotice(
       "Import completed: 5 recognized, 2 new, 0 enriched, 1 amended, 1 equivalent",
     );
-    await goToHome("explore");
+    await expectLibraryHome(english);
+    await expect($(".library-home-reveal")).toHaveText(
+      expect.stringContaining(english.home.postImportChanged),
+    );
+    await openHomeQuestion(
+      english,
+      "review-activity-steps",
+      "#activity-heading",
+    );
     await expectHistory([
       ["Jan 1, 2026", "3,100", "Step total available"],
       ["Jan 2, 2026", "4,200", "Step total available"],
@@ -1299,6 +1430,11 @@ describe("packaged FitFreed import journey", () => {
       ["1", "Observed days without a step total"],
       ["1", "Days with no observation"],
     ]);
+    await openHomeQuestion(
+      english,
+      "explore-training-sessions",
+      ".training-insights",
+    );
     await expectTrainingRows([
       [enJan6Start, "45 min", "5,000 m", "300 kcal"],
       [enJan5Start, "30 min", "Not available", "Not available"],
@@ -1312,6 +1448,11 @@ describe("packaged FitFreed import journey", () => {
       ["900 kcal", "Recorded energy · 2 of 3"],
       ["2 of 3", "Sessions with heart rate"],
     ]);
+    await openHomeQuestion(
+      english,
+      "align-history",
+      ".longitudinal-insights",
+    );
     await expectLongitudinalSummary([
       ["12,600", "Total measured steps · 4 of 6 dates"],
       ["3", "Sessions · 3 · Training days"],
@@ -1327,6 +1468,11 @@ describe("packaged FitFreed import journey", () => {
       ["Jan 6, 2026", "No observation", "45 min", "7 h 30 min", "900 ms"],
     ]);
 
+    await openHomeQuestion(
+      english,
+      "review-activity-steps",
+      "#activity-heading",
+    );
     await setActivityRange("2026-01-02", "2026-01-04");
     await $("aria/Apply range").click();
     await expectHistory([
@@ -1387,7 +1533,7 @@ describe("packaged FitFreed import journey", () => {
 
     await setComparisonRanges("2026-01-01", "2026-01-02", "2026-01-04", "2026-01-05");
     await $("aria/Compare periods").click();
-    await expect($("#activity-comparison-heading")).toHaveText("Period comparison");
+    await expectComparisonHeading("#activity-comparison-heading", "Period comparison");
     const comparisonRows = await $$(".activity-comparison-result table tbody tr");
     expect(comparisonRows).toHaveLength(5);
     const expectedComparison = [
@@ -1404,6 +1550,11 @@ describe("packaged FitFreed import journey", () => {
       }
     }
 
+    await openHomeQuestion(
+      english,
+      "explore-training-sessions",
+      ".training-insights",
+    );
     const trainingDetailButtons = await $$('button[aria-label^="View training details for"]');
     expect(trainingDetailButtons).toHaveLength(3);
     await trainingDetailButtons[2].click();
@@ -1471,7 +1622,7 @@ describe("packaged FitFreed import journey", () => {
       "2026-01-05",
     );
     await $(".training-comparison button[type='submit']").click();
-    await expect($("#training-comparison-heading")).toHaveText("Training period comparison");
+    await expectComparisonHeading("#training-comparison-heading", "Training period comparison");
     await expectTrainingComparison([
       ["Sessions", "1", "1", "0"],
       ["Training days", "1", "1", "0"],
@@ -1483,6 +1634,11 @@ describe("packaged FitFreed import journey", () => {
       ["Sessions with heart rate", "1", "0", "-1"],
     ]);
 
+    await openHomeQuestion(
+      english,
+      "review-sleep-patterns",
+      ".sleep-insights",
+    );
     await setSleepRange("2026-01-06", "2026-01-06");
     await $(".sleep-filter button[type='submit']").click();
     await expectSleepRows([
@@ -1509,7 +1665,7 @@ describe("packaged FitFreed import journey", () => {
       "2026-01-06",
     );
     await $(".sleep-comparison button[type='submit']").click();
-    await expect($("#sleep-comparison-heading")).toHaveText("Sleep period comparison");
+    await expectComparisonHeading("#sleep-comparison-heading", "Sleep period comparison");
     await expectSleepComparison([
       ["Observed nights", "1", "1", "0"],
       ["Missing nights", "0", "0", "0"],
@@ -1533,8 +1689,13 @@ describe("packaged FitFreed import journey", () => {
     await expect($("[role='alert']")).toHaveText(
       "Choose ordered sleep comparison periods inside the available history, up to 366 nights each.",
     );
-    await expect($("#sleep-comparison-heading")).toHaveText("Sleep period comparison");
+    await expectComparisonHeading("#sleep-comparison-heading", "Sleep period comparison");
 
+    await openHomeQuestion(
+      english,
+      "review-recovery-patterns",
+      ".recovery-insights",
+    );
     await setRecoveryRange("2026-01-06", "2026-01-06");
     await $(".recovery-filter button[type='submit']").click();
     await expectRecoveryRows([
@@ -1561,7 +1722,7 @@ describe("packaged FitFreed import journey", () => {
       "2026-01-06",
     );
     await $(".recovery-comparison button[type='submit']").click();
-    await expect($("#recovery-comparison-heading")).toHaveText("Recovery period comparison");
+    await expectComparisonHeading("#recovery-comparison-heading", "Recovery period comparison");
     await expectRecoveryComparison([
       ["Observed nights", "1", "1", "0"],
       ["Missing nights", "0", "0", "0"],
@@ -1586,8 +1747,13 @@ describe("packaged FitFreed import journey", () => {
     await expect($("[role='alert']")).toHaveText(
       "Choose ordered recovery comparison periods inside the available history, up to 366 nights each.",
     );
-    await expect($("#recovery-comparison-heading")).toHaveText("Recovery period comparison");
+    await expectComparisonHeading("#recovery-comparison-heading", "Recovery period comparison");
 
+    await openHomeQuestion(
+      english,
+      "align-history",
+      ".longitudinal-insights",
+    );
     await setLongitudinalRange("2026-01-04", "2026-01-06");
     await $(".longitudinal-filter button[type='submit']").click();
     await expectLongitudinalSummary([
@@ -1632,7 +1798,8 @@ describe("packaged FitFreed import journey", () => {
       "2026-01-06",
     );
     await $(".longitudinal-comparison button[type='submit']").click();
-    await expect($("#longitudinal-comparison-heading")).toHaveText(
+    await expectComparisonHeading(
+      "#longitudinal-comparison-heading",
       "Longitudinal period comparison",
     );
     await expectLongitudinalComparison([
@@ -1655,11 +1822,21 @@ describe("packaged FitFreed import journey", () => {
     await expect($("[role='alert']")).toHaveText(
       "Choose ordered shared comparison periods inside the complete available history, up to 366 dates each.",
     );
-    await expect($("#longitudinal-comparison-heading")).toHaveText(
+    await expectComparisonHeading(
+      "#longitudinal-comparison-heading",
       "Longitudinal period comparison",
     );
 
     await selectLocale("es-ES");
+    await expectComparisonHeading(
+      "#longitudinal-comparison-heading",
+      spanish.longitudinal.comparison.resultHeading,
+    );
+    await openHomeQuestion(
+      spanish,
+      "review-activity-steps",
+      "#activity-heading",
+    );
     await expectHistory([
       [formatLocalDate("es-ES", "2026-01-01"), "3100", spanish.activity.available],
       [formatLocalDate("es-ES", "2026-01-02"), "4200", spanish.activity.available],
@@ -1674,8 +1851,18 @@ describe("packaged FitFreed import journey", () => {
     await expect($("#activity-detail-heading")).toHaveText(spanish.activity.detailHeading);
     const spanishDetailValues = await $$(".activity-detail dd");
     await expect(spanishDetailValues[1]).toHaveText(spanish.activity.missing);
-    await expect($("#activity-comparison-heading")).toHaveText(
+    await setComparisonRanges("2026-01-01", "2026-01-02", "2026-01-04", "2026-01-05");
+    await $(`aria/${spanish.activity.comparison.compare}`).click();
+    await expectComparisonHeading(
+      "#activity-comparison-heading",
       spanish.activity.comparison.resultHeading,
+    );
+    await $(`aria/${spanish.activity.closeDetail}`).click();
+    await $(".activity-comparison-result button.secondary").click();
+    await openHomeQuestion(
+      spanish,
+      "explore-training-sessions",
+      ".training-insights",
     );
     await expectTrainingRows([
       [esJan6Start, "45 min", "5000 m", "300 kcal"],
@@ -1690,16 +1877,32 @@ describe("packaged FitFreed import journey", () => {
       ["900 kcal", `${spanish.training.totalEnergy} · 2 de 3`],
       ["2 de 3", spanish.training.heartRateCoverage],
     ]);
-    await expect($("#training-comparison-heading")).toHaveText(
+    await setTrainingComparisonRanges(
+      "2026-01-04",
+      "2026-01-04",
+      "2026-01-05",
+      "2026-01-05",
+    );
+    await $(`aria/${spanish.training.comparison.compare}`).click();
+    await expectComparisonHeading(
+      "#training-comparison-heading",
       spanish.training.comparison.resultHeading,
     );
-    await expect($("#sleep-comparison-heading")).toHaveText(
-      spanish.sleep.comparison.resultHeading,
+    await $(".training-comparison-result button.secondary").click();
+    await openHomeQuestion(
+      spanish,
+      "align-history",
+      ".longitudinal-insights",
     );
-    await expect($("#recovery-comparison-heading")).toHaveText(
-      spanish.recovery.comparison.resultHeading,
+    await setLongitudinalComparisonRanges(
+      "2026-01-06",
+      "2026-01-06",
+      "2026-01-06",
+      "2026-01-06",
     );
-    await expect($("#longitudinal-comparison-heading")).toHaveText(
+    await $(".longitudinal-comparison button[type='submit']").click();
+    await expectComparisonHeading(
+      "#longitudinal-comparison-heading",
       spanish.longitudinal.comparison.resultHeading,
     );
     await expectLongitudinalSummary([
@@ -1716,6 +1919,12 @@ describe("packaged FitFreed import journey", () => {
       [formatLocalDate("es-ES", "2026-01-05"), "5300", "30 min", spanish.longitudinal.missing, spanish.longitudinal.missing],
       [formatLocalDate("es-ES", "2026-01-06"), spanish.activity.missing, "45 min", "7 h 30 min", "900 ms"],
     ]);
+    await $(".longitudinal-comparison-result button.secondary").click();
+    await openHomeQuestion(
+      spanish,
+      "explore-training-sessions",
+      ".training-insights",
+    );
     const spanishTrainingDetailButtons = await $$('button[aria-label^="Ver detalles del entrenamiento del"]');
     expect(spanishTrainingDetailButtons).toHaveLength(3);
     await spanishTrainingDetailButtons[2].click();
@@ -1724,7 +1933,27 @@ describe("packaged FitFreed import journey", () => {
     await expect(spanishTrainingDetailValues[4]).toHaveText("10.500 m");
     await expect(spanishTrainingDetailValues[6]).toHaveText("142 ppm");
     await expect(spanishTrainingDetailValues[8]).toHaveText(spanish.training.recordedType);
+    await $(`aria/${spanish.training.closeDetail}`).click();
+    await openHomeQuestion(
+      spanish,
+      "review-sleep-patterns",
+      ".sleep-insights",
+    );
     const spanishSleepDate = formatLocalDate("es-ES", "2026-01-06");
+    await expectSleepRows([
+      [spanishSleepDate, "7 h 30 min", "93,8%", "82", spanish.sleep.details],
+    ]);
+    await setSleepComparisonRanges(
+      "2026-01-06",
+      "2026-01-06",
+      "2026-01-06",
+      "2026-01-06",
+    );
+    await $(".sleep-comparison button[type='submit']").click();
+    await expectComparisonHeading(
+      "#sleep-comparison-heading",
+      spanish.sleep.comparison.resultHeading,
+    );
     await $(`button[aria-label="${spanish.sleep.viewDetails} ${spanishSleepDate}"]`).click();
     await expect($("#sleep-detail-heading")).toHaveText(spanish.sleep.detailHeading);
     const esSleepStart = await formatBrowserSleepLocalDateTime(
@@ -1738,7 +1967,34 @@ describe("packaged FitFreed import journey", () => {
     await expect($("#sleep-phase-heading")).toHaveText(spanish.sleep.phaseHeading);
     await expect($("#sleep-timeline-heading")).toHaveText(spanish.sleep.timelineHeading);
     await expect($("#sleep-score-heading")).toHaveText(spanish.sleep.scoreHeading);
+    await $(`aria/${spanish.sleep.closeDetail}`).click();
+    await $(".sleep-comparison-result button.secondary").click();
+    await openHomeQuestion(
+      spanish,
+      "review-recovery-patterns",
+      ".recovery-insights",
+    );
     const spanishRecoveryDate = formatLocalDate("es-ES", "2026-01-06");
+    await expectRecoveryRows([
+      [
+        spanishRecoveryDate,
+        "900 ms",
+        "42 ms",
+        `${spanish.recovery.overallStatus} 5 / 6`,
+        spanish.recovery.details,
+      ],
+    ]);
+    await setRecoveryComparisonRanges(
+      "2026-01-06",
+      "2026-01-06",
+      "2026-01-06",
+      "2026-01-06",
+    );
+    await $(".recovery-comparison button[type='submit']").click();
+    await expectComparisonHeading(
+      "#recovery-comparison-heading",
+      spanish.recovery.comparison.resultHeading,
+    );
     await $(`button[aria-label="${spanish.recovery.viewDetails} ${spanishRecoveryDate}"]`).click();
     await expect($("#recovery-detail-heading")).toHaveText(spanish.recovery.detailHeading);
     const spanishRecoveryDetailValues = await $$(".recovery-detail-metrics dd");
@@ -1753,27 +2009,18 @@ describe("packaged FitFreed import journey", () => {
     expect(detailHasHorizontalOverflow).toBe(false);
     const detailAccessibility = await new AxeBuilder({ client: browser }).setLegacyMode().analyze();
     expect(detailAccessibility.violations).toEqual([]);
-    await $("aria/Cerrar detalle").click();
-    await $("aria/Cerrar detalle del entrenamiento").click();
-    await $(`aria/${spanish.sleep.closeDetail}`).click();
     await $(`aria/${spanish.recovery.closeDetail}`).click();
-    await $(".activity-comparison-result button.secondary").click();
-    await $(".training-comparison-result button.secondary").click();
-    await $(".sleep-comparison-result button.secondary").click();
     await $(".recovery-comparison-result button.secondary").click();
-    await $(".longitudinal-comparison-result button.secondary").click();
-    expect(await $$(".activity-comparison-result")).toHaveLength(0);
-    expect(await $$(".training-comparison-result")).toHaveLength(0);
-    expect(await $$(".sleep-comparison-result")).toHaveLength(0);
     expect(await $$(".recovery-comparison-result")).toHaveLength(0);
-    expect(await $$(".longitudinal-comparison-result")).toHaveLength(0);
 
     await browser.reloadSession();
-    await expect($(".sources-home h1")).toHaveText(spanish.sources.title);
+    await $(".recovery-insights").waitForDisplayed({ timeout: 10_000 });
     await expect($("html")).toHaveAttribute("data-appearance", "dark");
     expect(await browser.execute(
       () => document.documentElement.style.getPropertyValue("--content-zoom"),
     )).toBe("2");
+    expect(await $$("#activity-heading, .training-insights, .sleep-insights, .longitudinal-insights")).toHaveLength(0);
+    await goToHome("sources");
     await expect($("#outcome-heading")).toHaveText(spanish.outcome.heading);
     await expectFamilyCoverage([
       {
@@ -1796,31 +2043,7 @@ describe("packaged FitFreed import journey", () => {
       },
     ]);
     await goToHome("explore");
-    await expectHistory([
-      [formatLocalDate("es-ES", "2026-01-01"), "3100", spanish.activity.available],
-      [formatLocalDate("es-ES", "2026-01-02"), "4200", spanish.activity.available],
-      [formatLocalDate("es-ES", "2026-01-03"), spanish.unavailable, spanish.activity.unavailable],
-      [formatLocalDate("es-ES", "2026-01-04"), spanish.unavailable, spanish.activity.missing],
-      [formatLocalDate("es-ES", "2026-01-05"), "5300", spanish.activity.available],
-    ]);
-    await expectTrainingRows([
-      [esJan6Start, "45 min", "5000 m", "300 kcal"],
-      [esJan5Start, "30 min", spanish.unavailable, spanish.unavailable],
-      [esJan4Start, "1 h", "10.500 m", "600 kcal"],
-    ]);
-    await expectSleepRows([
-      [formatLocalDate("es-ES", "2026-01-06"), "7 h 30 min", "93,8%", "82", spanish.sleep.details],
-    ]);
-    await expectSleepSummary([
-      ["1", `${spanish.sleep.observedNights} · 1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`],
-      ["7 h 30 min", `${spanish.sleep.averageAsleep} · 1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`],
-      ["93,8%", `${spanish.sleep.averageEfficiency} · 1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`],
-      ["82", `${spanish.sleep.averageScore} · 1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`],
-      ["0 / 1", spanish.sleep.goalMet],
-      [`1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`, spanish.sleep.phaseCoverage],
-      [`1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`, spanish.sleep.timelineCoverage],
-      [`1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`, `${spanish.sleep.powerCoverage} · 0 ${spanish.sleep.powerLoss}`],
-    ]);
+    await $(".recovery-insights").waitForDisplayed({ timeout: 10_000 });
     await expectRecoveryRows([
       [
         formatLocalDate("es-ES", "2026-01-06"),
@@ -1840,20 +2063,12 @@ describe("packaged FitFreed import journey", () => {
       [`1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`, spanish.recovery.guidanceCoverage],
       ["0", spanish.recovery.missingNights],
     ]);
-    await expectLongitudinalSummary([
-      ["12.600", `${spanish.longitudinal.totalSteps} · 4 ${spanish.longitudinal.of} 6 ${spanish.longitudinal.days}`],
-      ["3", `${spanish.longitudinal.sessions} · 3 · ${spanish.longitudinal.trainingDays}`],
-      ["7 h 30 min", `${spanish.longitudinal.averageSleep} · 1 ${spanish.longitudinal.of} 6 ${spanish.longitudinal.days}`],
-      ["900 ms", `${spanish.longitudinal.averageRecovery} · 1 ${spanish.longitudinal.of} 6 ${spanish.longitudinal.days}`],
-    ]);
-    await expectLongitudinalRows([
-      [formatLocalDate("es-ES", "2026-01-01"), "3100", "0 ms", spanish.longitudinal.missing, spanish.longitudinal.missing],
-      [formatLocalDate("es-ES", "2026-01-02"), "4200", "0 ms", spanish.longitudinal.missing, spanish.longitudinal.missing],
-      [formatLocalDate("es-ES", "2026-01-03"), spanish.activity.unavailable, "0 ms", spanish.longitudinal.missing, spanish.longitudinal.missing],
-      [formatLocalDate("es-ES", "2026-01-04"), spanish.activity.missing, "1 h", spanish.longitudinal.missing, spanish.longitudinal.missing],
-      [formatLocalDate("es-ES", "2026-01-05"), "5300", "30 min", spanish.longitudinal.missing, spanish.longitudinal.missing],
-      [formatLocalDate("es-ES", "2026-01-06"), spanish.activity.missing, "45 min", "7 h 30 min", "900 ms"],
-    ]);
+    await returnToLibraryHome(spanish);
+    await expectLibraryHome(spanish);
+    expect(await $$(".library-home-resume")).toHaveLength(0);
+    await browser.reloadSession();
+    await expectLibraryHome(spanish);
+    expect(await $$(".library-home-resume")).toHaveLength(0);
 
   });
 
@@ -1865,6 +2080,9 @@ describe("packaged FitFreed import journey", () => {
     await runInsightsPerformanceJourney({
       archivePath: insightsPerformanceArchive,
       goToHome,
+      openHomeQuestion: (kind, expectedSelector) => (
+        openHomeQuestion(english, kind, expectedSelector)
+      ),
       selectArchive,
       selectLocale,
     });

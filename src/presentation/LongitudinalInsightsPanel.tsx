@@ -153,7 +153,7 @@ export function LongitudinalInsightsPanel({
       aria-labelledby="longitudinal-heading"
       aria-busy={loadingOverview}
     >
-      <h2 id="longitudinal-heading">{copy.heading}</h2>
+      <h1 id="longitudinal-heading">{copy.heading}</h1>
       <p className="longitudinal-intro">{copy.intro}</p>
       {!overview && loadingOverview ? (
         <p>{copy.loading}</p>
@@ -171,7 +171,7 @@ export function LongitudinalInsightsPanel({
               onSubmit={(event) => void applyRange(event)}
             >
               <div>
-                <h3 id="longitudinal-filter-heading">{copy.filterHeading}</h3>
+                <h2 id="longitudinal-filter-heading">{copy.filterHeading}</h2>
                 <p>{copy.rangeHelp}</p>
               </div>
               <label>
@@ -244,7 +244,7 @@ export function LongitudinalInsightsPanel({
             <section className="longitudinal-detail" aria-labelledby="longitudinal-detail-heading">
               <div className="longitudinal-detail-heading">
                 <div>
-                  <h3 id="longitudinal-detail-heading">{copy.detailHeading}</h3>
+                  <h2 id="longitudinal-detail-heading">{copy.detailHeading}</h2>
                   <time dateTime={selectedInsight.day.localDate}>
                     {date.format(recoveryLocalDate(selectedInsight.day.localDate))}
                   </time>
@@ -336,7 +336,7 @@ function LongitudinalSeries({
 
   return (
     <section className="longitudinal-series">
-      {seriesCount > 1 && <h3>{copy.series} {number.format(seriesIndex + 1)}</h3>}
+      {seriesCount > 1 && <h2>{copy.series} {number.format(seriesIndex + 1)}</h2>}
       <ul className="longitudinal-summary" aria-label={copy.summaryLabel}>
         <li><span>{copy.activity}</span><strong>{formatSteps(series.activity.totalStepCount)}</strong><small>{copy.totalSteps} · {coverage(series.activity.observedDays, series.activity.calendarDays)}</small></li>
         <li><span>{copy.training}</span><strong>{number.format(series.training.sessionCount)}</strong><small>{copy.sessions} · {number.format(series.training.trainingDays)} · {copy.trainingDays}</small></li>

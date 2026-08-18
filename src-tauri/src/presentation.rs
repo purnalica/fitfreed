@@ -4,22 +4,25 @@ use fitfreed_application::{
     ActivityComparison, ActivityDateRange, ActivityDayAvailability, ActivityDayInsight,
     ActivityOverview, ActivitySeriesComparison, ActivitySeriesOverview, ActivitySeriesSummary,
     AppearancePreference, ApplicationError, ApplicationPreferences, ApplicationPreferencesLoad,
-    ExpectedSourceArchive, ImportPhase, ImportProgress, InvalidApplicationPreferences,
-    LongitudinalActivityComparison, LongitudinalActivityDay, LongitudinalComparison,
-    LongitudinalDateRange, LongitudinalDayInsight, LongitudinalOverview,
+    ExpectedSourceArchive, ExplorationWorkspace, ExploreDestination, ImportPhase, ImportProgress,
+    InvalidApplicationPreferences, LibraryDomain, LibraryDomainCoverage, LibraryHome,
+    LibraryHomeDateRange, LibraryHomeRequest, LibraryMeasurement, LibraryMeasurementCoverage,
+    LibraryQuestion, LibraryQuestionKind, LongitudinalActivityComparison, LongitudinalActivityDay,
+    LongitudinalComparison, LongitudinalDateRange, LongitudinalDayInsight, LongitudinalOverview,
     LongitudinalRecoveryComparison, LongitudinalRecoveryDay, LongitudinalSeriesComparison,
     LongitudinalSeriesOverview, LongitudinalSleepComparison, LongitudinalSleepDay,
     LongitudinalTrainingComparison, LongitudinalTrainingDay, ManualUpdateReason,
-    OfficialSourceLink, OfficialSourceLinkPurpose, PreferencesLoadStatus, RecoveryComparison,
-    RecoveryDateRange, RecoveryDayAvailability, RecoveryDayInsight, RecoveryNightDetail,
-    RecoveryNightInsight, RecoveryOverview, RecoverySeriesComparison, RecoverySeriesOverview,
-    RecoverySeriesSummary, SleepComparison, SleepDateRange, SleepDayAvailability, SleepDayInsight,
-    SleepOverview, SleepPeriodDetail, SleepPeriodInsight, SleepPhaseTotals, SleepSeriesComparison,
-    SleepSeriesOverview, SleepSeriesSummary, SourceAcquisitionGuide, TrainingComparison,
-    TrainingDateRange, TrainingOverview, TrainingSeriesComparison, TrainingSeriesOverview,
-    TrainingSeriesSummary, TrainingSessionInsight, UpdateCheckOutcome, UpdateCheckStatus,
-    UpdateError, UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind, UpdateReleaseSummary,
-    UpdateTrustFailure, UpdateWithdrawalReason, UpdateWithdrawalSummary,
+    OfficialSourceLink, OfficialSourceLinkPurpose, PostImportReveal, PreferencesLoadStatus,
+    RecoveryComparison, RecoveryDateRange, RecoveryDayAvailability, RecoveryDayInsight,
+    RecoveryNightDetail, RecoveryNightInsight, RecoveryOverview, RecoverySeriesComparison,
+    RecoverySeriesOverview, RecoverySeriesSummary, SleepComparison, SleepDateRange,
+    SleepDayAvailability, SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight,
+    SleepPhaseTotals, SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary,
+    SourceAcquisitionGuide, TrainingComparison, TrainingDateRange, TrainingOverview,
+    TrainingSeriesComparison, TrainingSeriesOverview, TrainingSeriesSummary,
+    TrainingSessionInsight, UpdateCheckOutcome, UpdateCheckStatus, UpdateError,
+    UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind, UpdateReleaseSummary, UpdateTrustFailure,
+    UpdateWithdrawalReason, UpdateWithdrawalSummary,
 };
 
 #[derive(Debug, Deserialize)]
@@ -135,6 +138,231 @@ impl From<SourceAcquisitionGuide> for SourceAcquisitionGuideDto {
     }
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LibraryHomeRequestDto {
+    after_import_operation_ref: Option<String>,
+}
+
+impl From<LibraryHomeRequestDto> for LibraryHomeRequest {
+    fn from(request: LibraryHomeRequestDto) -> Self {
+        Self {
+            after_import_operation_ref: request.after_import_operation_ref,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryHomeDateRangeDto {
+    from: String,
+    through: String,
+}
+
+impl From<LibraryHomeDateRange> for LibraryHomeDateRangeDto {
+    fn from(range: LibraryHomeDateRange) -> Self {
+        Self {
+            from: range.from,
+            through: range.through,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryMeasurementCoverageDto {
+    measurement: &'static str,
+    available_records: usize,
+    observed_records: usize,
+}
+
+impl From<LibraryMeasurementCoverage> for LibraryMeasurementCoverageDto {
+    fn from(coverage: LibraryMeasurementCoverage) -> Self {
+        Self {
+            measurement: library_measurement(coverage.measurement),
+            available_records: coverage.available_records,
+            observed_records: coverage.observed_records,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryDomainCoverageDto {
+    domain: &'static str,
+    available_range: Option<LibraryHomeDateRangeDto>,
+    selected_range: Option<LibraryHomeDateRangeDto>,
+    origin_count: usize,
+    observed_record_count: usize,
+    measurements: Vec<LibraryMeasurementCoverageDto>,
+}
+
+impl From<LibraryDomainCoverage> for LibraryDomainCoverageDto {
+    fn from(coverage: LibraryDomainCoverage) -> Self {
+        Self {
+            domain: library_domain(coverage.domain),
+            available_range: coverage.available_range.map(Into::into),
+            selected_range: coverage.selected_range.map(Into::into),
+            origin_count: coverage.origin_count,
+            observed_record_count: coverage.observed_record_count,
+            measurements: coverage.measurements.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryQuestionDto {
+    kind: &'static str,
+    destination: &'static str,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ExploreDestinationInputDto {
+    Activity,
+    Training,
+    Sleep,
+    Recovery,
+    Longitudinal,
+}
+
+impl From<ExploreDestinationInputDto> for ExploreDestination {
+    fn from(destination: ExploreDestinationInputDto) -> Self {
+        match destination {
+            ExploreDestinationInputDto::Activity => Self::Activity,
+            ExploreDestinationInputDto::Training => Self::Training,
+            ExploreDestinationInputDto::Sleep => Self::Sleep,
+            ExploreDestinationInputDto::Recovery => Self::Recovery,
+            ExploreDestinationInputDto::Longitudinal => Self::Longitudinal,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExplorationWorkspaceDto {
+    version: u32,
+    destination: &'static str,
+}
+
+impl From<ExplorationWorkspace> for ExplorationWorkspaceDto {
+    fn from(workspace: ExplorationWorkspace) -> Self {
+        Self {
+            version: workspace.version,
+            destination: explore_destination(workspace.destination),
+        }
+    }
+}
+
+impl From<LibraryQuestion> for LibraryQuestionDto {
+    fn from(question: LibraryQuestion) -> Self {
+        Self {
+            kind: library_question(question.kind),
+            destination: explore_destination(question.destination),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PostImportRevealDto {
+    exact_repeat: bool,
+    canonical_history_changed: bool,
+    new_observations: usize,
+    enriched_observations: usize,
+    amended_observations: usize,
+    source_review_recommended: bool,
+}
+
+impl From<PostImportReveal> for PostImportRevealDto {
+    fn from(reveal: PostImportReveal) -> Self {
+        Self {
+            exact_repeat: reveal.exact_repeat,
+            canonical_history_changed: reveal.canonical_history_changed,
+            new_observations: reveal.new_observations,
+            enriched_observations: reveal.enriched_observations,
+            amended_observations: reveal.amended_observations,
+            source_review_recommended: reveal.source_review_recommended,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryHomeDto {
+    available_range: Option<LibraryHomeDateRangeDto>,
+    domains: Vec<LibraryDomainCoverageDto>,
+    questions: Vec<LibraryQuestionDto>,
+    post_import: Option<PostImportRevealDto>,
+    resumable_exploration: Option<ExplorationWorkspaceDto>,
+}
+
+impl From<LibraryHome> for LibraryHomeDto {
+    fn from(home: LibraryHome) -> Self {
+        Self {
+            available_range: home.available_range.map(Into::into),
+            domains: home.domains.into_iter().map(Into::into).collect(),
+            questions: home.questions.into_iter().map(Into::into).collect(),
+            post_import: home.post_import.map(Into::into),
+            resumable_exploration: home.resumable_exploration.map(Into::into),
+        }
+    }
+}
+
+fn library_domain(domain: LibraryDomain) -> &'static str {
+    match domain {
+        LibraryDomain::Training => "training",
+        LibraryDomain::Activity => "activity",
+        LibraryDomain::Sleep => "sleep",
+        LibraryDomain::Recovery => "recovery",
+    }
+}
+
+fn library_measurement(measurement: LibraryMeasurement) -> &'static str {
+    match measurement {
+        LibraryMeasurement::TrainingDuration => "training-duration",
+        LibraryMeasurement::TrainingDistance => "training-distance",
+        LibraryMeasurement::TrainingEnergy => "training-energy",
+        LibraryMeasurement::TrainingHeartRate => "training-heart-rate",
+        LibraryMeasurement::ActivitySteps => "activity-steps",
+        LibraryMeasurement::SleepDuration => "sleep-duration",
+        LibraryMeasurement::SleepInterruptions => "sleep-interruptions",
+        LibraryMeasurement::SleepEfficiency => "sleep-efficiency",
+        LibraryMeasurement::SleepPhases => "sleep-phases",
+        LibraryMeasurement::SleepStages => "sleep-stages",
+        LibraryMeasurement::SleepScore => "sleep-score",
+        LibraryMeasurement::SleepGoal => "sleep-goal",
+        LibraryMeasurement::SleepPowerStatus => "sleep-power-status",
+        LibraryMeasurement::RecoveryBeatToBeatInterval => "recovery-beat-to-beat-interval",
+        LibraryMeasurement::RecoveryHeartRateVariability => "recovery-heart-rate-variability",
+        LibraryMeasurement::RecoveryBreathingInterval => "recovery-breathing-interval",
+        LibraryMeasurement::RecoveryAssessment => "recovery-assessment",
+        LibraryMeasurement::RecoveryBaseline => "recovery-baseline",
+        LibraryMeasurement::RecoveryGuidance => "recovery-guidance",
+    }
+}
+
+fn library_question(question: LibraryQuestionKind) -> &'static str {
+    match question {
+        LibraryQuestionKind::ExploreTrainingSessions => "explore-training-sessions",
+        LibraryQuestionKind::AlignHistory => "align-history",
+        LibraryQuestionKind::ReviewActivitySteps => "review-activity-steps",
+        LibraryQuestionKind::ReviewSleepPatterns => "review-sleep-patterns",
+        LibraryQuestionKind::ReviewRecoveryPatterns => "review-recovery-patterns",
+    }
+}
+
+fn explore_destination(destination: ExploreDestination) -> &'static str {
+    match destination {
+        ExploreDestination::Activity => "activity",
+        ExploreDestination::Training => "training",
+        ExploreDestination::Sleep => "sleep",
+        ExploreDestination::Recovery => "recovery",
+        ExploreDestination::Longitudinal => "longitudinal",
+    }
+}
+
 use fitfreed_domain::{
     ArtifactCoverageSummary, ArtifactFamilyCoverage, ImportOutcome, ImportReport,
     SleepPhaseSummary, SleepScore, SleepStage, SleepStageTransition,
@@ -169,6 +397,10 @@ impl From<ApplicationError> for CommandErrorDto {
             ApplicationError::InvalidRecoveryRange(_) => "invalid-recovery-range",
             ApplicationError::InvalidRecoveryReference(_) => "invalid-recovery-reference",
             ApplicationError::InvalidLongitudinalRange(_) => "invalid-longitudinal-range",
+            ApplicationError::InvalidLibraryHomeRequest(_) => "invalid-library-home-request",
+            ApplicationError::InvalidExplorationWorkspace(_) => "invalid-exploration-workspace",
+            ApplicationError::WorkspaceQuery(_) => "exploration-workspace-query-failed",
+            ApplicationError::WorkspaceUpdate(_) => "exploration-workspace-update-failed",
             ApplicationError::OutcomeQuery(_) => "outcome-query-failed",
             ApplicationError::SourceAcquisitionGuideQuery(_) => "source-guide-query-failed",
             ApplicationError::PreferenceQuery(_) => "preference-query-failed",
@@ -2832,6 +3064,116 @@ mod tests {
                     "artifactCount": 1
                 }
             ])
+        );
+    }
+
+    #[test]
+    fn serializes_the_library_home_as_stable_provider_neutral_codes() {
+        let home = LibraryHome {
+            available_range: Some(LibraryHomeDateRange {
+                from: "2026-01-01".to_owned(),
+                through: "2026-01-06".to_owned(),
+            }),
+            domains: vec![LibraryDomainCoverage {
+                domain: LibraryDomain::Training,
+                available_range: Some(LibraryHomeDateRange {
+                    from: "2026-01-04".to_owned(),
+                    through: "2026-01-05".to_owned(),
+                }),
+                selected_range: Some(LibraryHomeDateRange {
+                    from: "2026-01-04".to_owned(),
+                    through: "2026-01-05".to_owned(),
+                }),
+                origin_count: 1,
+                observed_record_count: 2,
+                measurements: vec![LibraryMeasurementCoverage::new(
+                    LibraryMeasurement::TrainingDistance,
+                    1,
+                    2,
+                )],
+            }],
+            questions: vec![LibraryQuestion::new(
+                LibraryQuestionKind::ExploreTrainingSessions,
+                ExploreDestination::Training,
+            )],
+            post_import: Some(PostImportReveal {
+                exact_repeat: false,
+                canonical_history_changed: true,
+                new_observations: 2,
+                enriched_observations: 0,
+                amended_observations: 0,
+                source_review_recommended: true,
+            }),
+            resumable_exploration: Some(ExplorationWorkspace {
+                version: 1,
+                destination: ExploreDestination::Training,
+            }),
+        };
+
+        let json = serde_json::to_value(LibraryHomeDto::from(home)).expect("library home JSON");
+
+        assert_eq!(
+            json,
+            serde_json::json!({
+                "availableRange": { "from": "2026-01-01", "through": "2026-01-06" },
+                "domains": [{
+                    "domain": "training",
+                    "availableRange": { "from": "2026-01-04", "through": "2026-01-05" },
+                    "selectedRange": { "from": "2026-01-04", "through": "2026-01-05" },
+                    "originCount": 1,
+                    "observedRecordCount": 2,
+                    "measurements": [{
+                        "measurement": "training-distance",
+                        "availableRecords": 1,
+                        "observedRecords": 2
+                    }]
+                }],
+                "questions": [{
+                    "kind": "explore-training-sessions",
+                    "destination": "training"
+                }],
+                "postImport": {
+                    "exactRepeat": false,
+                    "canonicalHistoryChanged": true,
+                    "newObservations": 2,
+                    "enrichedObservations": 0,
+                    "amendedObservations": 0,
+                    "sourceReviewRecommended": true
+                },
+                "resumableExploration": {
+                    "version": 1,
+                    "destination": "training"
+                }
+            })
+        );
+
+        let request: LibraryHomeRequestDto = serde_json::from_value(serde_json::json!({
+            "afterImportOperationRef": "synthetic-operation"
+        }))
+        .expect("library home request");
+        assert_eq!(
+            LibraryHomeRequest::from(request),
+            LibraryHomeRequest {
+                after_import_operation_ref: Some("synthetic-operation".to_owned()),
+            }
+        );
+        assert!(
+            serde_json::from_value::<LibraryHomeRequestDto>(serde_json::json!({
+                "afterImportOperationRef": null,
+                "provider": "must-not-cross-the-boundary"
+            }))
+            .is_err()
+        );
+        assert!(matches!(
+            serde_json::from_value::<ExploreDestinationInputDto>(serde_json::json!("recovery"))
+                .expect("exploration destination"),
+            ExploreDestinationInputDto::Recovery
+        ));
+        assert!(
+            serde_json::from_value::<ExploreDestinationInputDto>(serde_json::json!(
+                "provider-route"
+            ))
+            .is_err()
         );
     }
 }

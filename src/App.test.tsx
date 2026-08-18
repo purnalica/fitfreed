@@ -181,6 +181,181 @@ function emptyLongitudinalOverview() {
   return { availableRange: null, selectedRange: null, series: [] };
 }
 
+function longitudinalOverviewWithTrainingDay() {
+  const range = { from: "2026-01-04", through: "2026-01-04" };
+  return {
+    availableRange: range,
+    selectedRange: range,
+    series: [{
+      seriesRef: "synthetic-origin",
+      activity: {
+        calendarDays: 1,
+        observedDays: 0,
+        availableStepDays: 0,
+        unavailableStepDays: 0,
+        missingDays: 1,
+        totalStepCount: null,
+        averageStepCount: null,
+      },
+      training: {
+        calendarDays: 1,
+        trainingDays: 1,
+        sessionCount: 1,
+        totalDurationMilliseconds: "3600000",
+        distanceSessionCount: 0,
+        totalDistanceMeters: null,
+        energySessionCount: 0,
+        totalEnergyKilocalories: null,
+        heartRateSessionCount: 0,
+      },
+      sleep: {
+        calendarDays: 1,
+        observedNights: 0,
+        missingNights: 1,
+        totalAsleepMilliseconds: "0",
+        averageAsleepMilliseconds: null,
+        totalInterruptionMilliseconds: "0",
+        averageInterruptionMilliseconds: null,
+        averageEfficiencyPercent: null,
+        phaseNightCount: 0,
+        phaseTotals: null,
+        stageTimelineNightCount: 0,
+        scoreNightCount: 0,
+        averageOverallScore: null,
+        goalNightCount: 0,
+        goalMetNightCount: 0,
+        powerStatusNightCount: 0,
+        powerLossNightCount: 0,
+      },
+      recovery: {
+        calendarDays: 1,
+        observedNights: 0,
+        missingNights: 1,
+        averageBeatToBeatIntervalMilliseconds: null,
+        rmssdNightCount: 0,
+        averageHeartRateVariabilityRmssdMilliseconds: null,
+        averageBreathingIntervalMilliseconds: null,
+        assessmentNightCount: 0,
+        baselineNightCount: 0,
+        guidanceNightCount: 0,
+      },
+      days: [{
+        localDate: "2026-01-04",
+        activity: { availability: "missing", stepCount: null },
+        training: { sessionCount: 1, totalDurationMilliseconds: "3600000" },
+        sleep: { availability: "missing", asleepMilliseconds: null },
+        recovery: {
+          availability: "missing",
+          beatToBeatIntervalMilliseconds: null,
+          heartRateVariabilityRmssdMilliseconds: null,
+          breathingIntervalMilliseconds: null,
+        },
+      }],
+    }],
+  };
+}
+
+function emptyLibraryHome() {
+  return {
+    availableRange: null,
+    domains: ["training", "activity", "sleep", "recovery"].map((domain) => ({
+      domain,
+      availableRange: null,
+      selectedRange: null,
+      originCount: 0,
+      observedRecordCount: 0,
+      measurements: [],
+    })),
+    questions: [],
+    postImport: null,
+    resumableExploration: null,
+  };
+}
+
+function populatedLibraryHome(overrides: Record<string, unknown> = {}) {
+  const range = { from: "2025-01-01", through: "2026-08-17" };
+  return {
+    availableRange: range,
+    domains: [
+      {
+        domain: "training",
+        availableRange: range,
+        selectedRange: { from: "2026-07-19", through: "2026-08-17" },
+        originCount: 1,
+        observedRecordCount: 24,
+        measurements: [
+          { measurement: "training-duration", availableRecords: 24, observedRecords: 24 },
+          { measurement: "training-distance", availableRecords: 16, observedRecords: 24 },
+          { measurement: "training-energy", availableRecords: 20, observedRecords: 24 },
+          { measurement: "training-heart-rate", availableRecords: 18, observedRecords: 24 },
+        ],
+      },
+      ...emptyLibraryHome().domains.slice(1),
+    ],
+    questions: [
+      { kind: "explore-training-sessions", destination: "training" },
+    ],
+    postImport: null,
+    resumableExploration: null,
+    ...overrides,
+  };
+}
+
+const questionForDestination = {
+  activity: { kind: "review-activity-steps", label: "How has my daily activity changed?" },
+  training: { kind: "explore-training-sessions", label: "Explore my training sessions" },
+  sleep: { kind: "review-sleep-patterns", label: "What patterns are visible in my sleep?" },
+  recovery: {
+    kind: "review-recovery-patterns",
+    label: "What patterns are visible in my recovery?",
+  },
+  longitudinal: {
+    kind: "align-history",
+    label: "How do training, activity, sleep, and recovery align?",
+  },
+} as const;
+
+function offerExploration(
+  destination: keyof typeof questionForDestination,
+  resumable = false,
+) {
+  const question = questionForDestination[destination];
+  const home = populatedLibraryHome({
+    questions: [{ kind: question.kind, destination }],
+    resumableExploration: resumable ? { version: 1, destination } : null,
+  });
+  let savedDestination = resumable ? destination : null;
+  mocks.homeInvoke.mockImplementation((command, arguments_) => {
+    if (command === "query_library_home") {
+      return Promise.resolve({
+        ...home,
+        resumableExploration: savedDestination
+          ? { version: 1, destination: savedDestination }
+          : null,
+      });
+    }
+    if (command === "save_exploration_workspace") {
+      savedDestination = arguments_.destination;
+      return Promise.resolve({ version: 1, destination: arguments_.destination });
+    }
+    if (command === "clear_exploration_workspace") {
+      savedDestination = null;
+      return Promise.resolve(undefined);
+    }
+    throw new Error(`Unexpected Home command: ${command}`);
+  });
+  return question.label;
+}
+
+async function enterExploration(
+  user: ReturnType<typeof userEvent.setup>,
+  destination: keyof typeof questionForDestination,
+) {
+  await user.click(await screen.findByRole("button", {
+    name: questionForDestination[destination].label,
+  }));
+}
+
 function trainingOverview(
   sessions: TestTrainingSession[],
   selectedRange = { from: "2026-01-01", through: "2026-01-31" },
@@ -300,6 +475,7 @@ function sourceAcquisitionGuides() {
 
 const mocks = vi.hoisted(() => ({
   invoke: vi.fn(),
+  homeInvoke: vi.fn(),
   preferencesInvoke: vi.fn(),
   interactiveShellInvoke: vi.fn(),
   recoveryInvoke: vi.fn(),
@@ -319,6 +495,10 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: (command: string, arguments_: Record<string, unknown>) =>
     command === "report_interactive_shell"
       ? mocks.interactiveShellInvoke(command, arguments_)
+      : command === "query_library_home"
+        || command === "save_exploration_workspace"
+        || command === "clear_exploration_workspace"
+      ? mocks.homeInvoke(command, arguments_)
       : command.endsWith("_preferences")
       ? mocks.preferencesInvoke(command, arguments_)
       : command.includes("update")
@@ -351,6 +531,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   mocks.invoke.mockReset();
+  mocks.homeInvoke.mockReset();
   mocks.preferencesInvoke.mockReset();
   mocks.interactiveShellInvoke.mockReset();
   mocks.recoveryInvoke.mockReset();
@@ -383,6 +564,11 @@ beforeEach(() => {
     scheduledFrames.delete(frame);
   }));
   mocks.interactiveShellInvoke.mockResolvedValue(undefined);
+  mocks.homeInvoke.mockImplementation((command) => {
+    if (command === "query_library_home") return Promise.resolve(emptyLibraryHome());
+    if (command === "clear_exploration_workspace") return Promise.resolve(undefined);
+    throw new Error(`Unexpected Home command: ${command}`);
+  });
   mocks.preferencesInvoke.mockImplementation((command, arguments_) => {
     if (command === "load_preferences") return Promise.resolve(storedPreferences);
     if (command === "save_preferences") {
@@ -517,6 +703,213 @@ async function changeLanguageToSpanish(
 }
 
 describe("FitFreed import interface", () => {
+  it("opens a populated library at question-led Home and persists an explicit exploration", async () => {
+    const home = populatedLibraryHome();
+    mocks.homeInvoke.mockImplementation((command, arguments_) => {
+      if (command === "query_library_home") return Promise.resolve(home);
+      if (command === "save_exploration_workspace") {
+        expect(arguments_).toEqual({ destination: "training" });
+        return Promise.resolve({ version: 1, destination: "training" });
+      }
+      if (command === "clear_exploration_workspace") return Promise.resolve(undefined);
+      throw new Error(`Unexpected Home command: ${command}`);
+    });
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: "Your history, ready for your questions" }))
+      .toBeVisible();
+    expect(mocks.homeInvoke).toHaveBeenCalledWith("query_library_home", {
+      request: { afterImportOperationRef: null },
+    });
+    expect(mocks.invoke).not.toHaveBeenCalledWith("query_training_overview", {
+      requestedRange: null,
+    });
+
+    await user.click(screen.getByRole("button", { name: "Explore my training sessions" }));
+    expect(await screen.findByRole("heading", { name: "Training history" })).toBeVisible();
+    expect(mocks.homeInvoke).toHaveBeenCalledWith("save_exploration_workspace", {
+      destination: "training",
+    });
+
+    await user.click(screen.getByRole("button", { name: "Back to Home" }));
+    expect(await screen.findByRole("heading", { name: "Your history, ready for your questions" }))
+      .toBeVisible();
+    expect(mocks.homeInvoke).toHaveBeenCalledWith("clear_exploration_workspace", undefined);
+  });
+
+  it("restores a valid durable exploration without loading unrelated domains", async () => {
+    mocks.homeInvoke.mockImplementation((command) => {
+      if (command === "query_library_home") {
+        return Promise.resolve(populatedLibraryHome({
+          resumableExploration: { version: 1, destination: "training" },
+        }));
+      }
+      throw new Error(`Unexpected Home command: ${command}`);
+    });
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: "Training history" })).toBeVisible();
+    expect(mocks.invoke).not.toHaveBeenCalledWith("query_activity_overview", {
+      requestedRange: null,
+    });
+    expect(mocks.longitudinalInvoke).not.toHaveBeenCalled();
+    expect(mocks.sleepInvoke).not.toHaveBeenCalled();
+    expect(mocks.recoveryInvoke).not.toHaveBeenCalled();
+  });
+
+  it("keeps Home usable when saving a question fails and permits an exact retry", async () => {
+    const home = populatedLibraryHome();
+    let saveFails = true;
+    mocks.homeInvoke.mockImplementation((command) => {
+      if (command === "query_library_home") return Promise.resolve(home);
+      if (command === "save_exploration_workspace") {
+        return saveFails
+          ? Promise.reject({ code: "exploration-workspace-update-failed" })
+          : Promise.resolve({ version: 1, destination: "training" });
+      }
+      throw new Error(`Unexpected Home command: ${command}`);
+    });
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    const question = await screen.findByRole("button", {
+      name: "Explore my training sessions",
+    });
+
+    await user.click(question);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "could not save the exploration safely",
+    );
+    expect(screen.getByRole("heading", { name: "What do you want to understand?" }))
+      .toBeVisible();
+
+    saveFails = false;
+    await user.click(question);
+    expect(await screen.findByRole("heading", { name: "Training history" })).toBeVisible();
+  });
+
+  it("opens and returns from every question without mounting unrelated explorers", async () => {
+    const home = populatedLibraryHome({
+      questions: [
+        { kind: "explore-training-sessions", destination: "training" },
+        { kind: "align-history", destination: "longitudinal" },
+        { kind: "review-activity-steps", destination: "activity" },
+        { kind: "review-sleep-patterns", destination: "sleep" },
+        { kind: "review-recovery-patterns", destination: "recovery" },
+      ],
+    });
+    mocks.homeInvoke.mockImplementation((command, arguments_) => {
+      if (command === "query_library_home") return Promise.resolve(home);
+      if (command === "save_exploration_workspace") {
+        return Promise.resolve({ version: 1, destination: arguments_.destination });
+      }
+      if (command === "clear_exploration_workspace") return Promise.resolve(undefined);
+      throw new Error(`Unexpected Home command: ${command}`);
+    });
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
+      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+
+    for (const [destination, heading] of [
+      ["training", "Training history"],
+      ["longitudinal", "Longitudinal dashboard"],
+      ["activity", "Daily activity overview"],
+      ["sleep", "Sleep history"],
+      ["recovery", "Nightly recovery"],
+    ] as const) {
+      await user.click(await screen.findByRole("button", {
+        name: questionForDestination[destination].label,
+      }));
+      expect(await screen.findByRole("heading", { level: 1, name: heading })).toBeVisible();
+      expect(screen.queryByRole("heading", { name: "What do you want to understand?" }))
+        .not.toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Back to Home" }));
+      expect(await screen.findByRole("heading", { name: "What do you want to understand?" }))
+        .toBeVisible();
+    }
+  });
+
+  it("drops a longitudinal day target before opening a new Home question", async () => {
+    const home = populatedLibraryHome({
+      questions: [
+        { kind: "align-history", destination: "longitudinal" },
+        { kind: "explore-training-sessions", destination: "training" },
+      ],
+    });
+    mocks.homeInvoke.mockImplementation((command, arguments_) => {
+      if (command === "query_library_home") return Promise.resolve(home);
+      if (command === "save_exploration_workspace") {
+        return Promise.resolve({ version: 1, destination: arguments_.destination });
+      }
+      if (command === "clear_exploration_workspace") return Promise.resolve(undefined);
+      throw new Error(`Unexpected Home command: ${command}`);
+    });
+    mocks.longitudinalInvoke.mockImplementation((command) => {
+      if (command === "query_longitudinal_overview") {
+        return Promise.resolve(longitudinalOverviewWithTrainingDay());
+      }
+      throw new Error(`Unexpected longitudinal command: ${command}`);
+    });
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "query_training_overview") {
+        return Promise.resolve(trainingOverview([], arguments_.requestedRange ?? {
+          from: "2026-01-01",
+          through: "2026-01-31",
+        }));
+      }
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole("button", {
+      name: questionForDestination.longitudinal.label,
+    }));
+    await user.click(await screen.findByRole("button", {
+      name: "View aligned details for Jan 4, 2026",
+    }));
+    await user.click(screen.getByRole("link", {
+      name: "Open training explorer for this date",
+    }));
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
+      "query_training_overview",
+      { requestedRange: { from: "2026-01-04", through: "2026-01-04" } },
+    ));
+
+    await user.click(screen.getByRole("button", { name: "Back to Home" }));
+    await user.click(await screen.findByRole("button", {
+      name: questionForDestination.training.label,
+    }));
+
+    await waitFor(() => {
+      const trainingCalls = mocks.invoke.mock.calls.filter(
+        ([command]) => command === "query_training_overview",
+      );
+      expect(trainingCalls.at(-1)?.[1]).toEqual({ requestedRange: null });
+    });
+  });
+
   it("guides first-run acquisition offline and opens only the localized official destinations", async () => {
     emptyLibrary();
     const user = userEvent.setup();
@@ -545,7 +938,7 @@ describe("FitFreed import interface", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Explore" }));
-    expect(screen.getByRole("heading", { name: "Your fitness history belongs to you" }))
+    expect(screen.getByRole("heading", { name: "Start with your own history" }))
       .toBeVisible();
     await changeLanguageToSpanish(user, "sources");
     const spanishGuide = screen.getByRole("region", {
@@ -661,6 +1054,7 @@ describe("FitFreed import interface", () => {
   });
 
   it("preserves the active Explore workspace while Settings is open", async () => {
+    offerExploration("training");
     const earlier: TestTrainingSession = {
       sessionRef: "earlier-session",
       startedAtLocal: "2026-01-18T08:00:00",
@@ -701,7 +1095,7 @@ describe("FitFreed import interface", () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(await screen.findByRole("button", { name: "Explore" }));
+    await enterExploration(user, "training");
     const training = await screen.findByRole("region", { name: "Training history" });
     expect(await within(training).findAllByRole("button", { name: /View training details/ }))
       .toHaveLength(2);
@@ -806,16 +1200,19 @@ describe("FitFreed import interface", () => {
     await act(async () => completeInteractiveShell());
 
     await waitFor(() => {
-      expect(mocks.invoke).toHaveBeenCalledWith("query_activity_overview", {
-        requestedRange: null,
-      });
-      expect(mocks.invoke).toHaveBeenCalledWith("query_training_overview", {
-        requestedRange: null,
+      expect(mocks.homeInvoke).toHaveBeenCalledWith("query_library_home", {
+        request: { afterImportOperationRef: null },
       });
       expect(mocks.invoke).toHaveBeenCalledWith("query_latest_import_outcome", undefined);
-      expect(mocks.longitudinalInvoke).toHaveBeenCalled();
-      expect(mocks.sleepInvoke).toHaveBeenCalled();
-      expect(mocks.recoveryInvoke).toHaveBeenCalled();
+      expect(mocks.invoke).not.toHaveBeenCalledWith("query_activity_overview", {
+        requestedRange: null,
+      });
+      expect(mocks.invoke).not.toHaveBeenCalledWith("query_training_overview", {
+        requestedRange: null,
+      });
+      expect(mocks.longitudinalInvoke).not.toHaveBeenCalled();
+      expect(mocks.sleepInvoke).not.toHaveBeenCalled();
+      expect(mocks.recoveryInvoke).not.toHaveBeenCalled();
       expect(mocks.updateInvoke).toHaveBeenCalledWith(
         "confirm_update_recovery_startup",
         undefined,
@@ -861,7 +1258,7 @@ describe("FitFreed import interface", () => {
     const user = userEvent.setup();
     render(<App />);
     await chooseArchive(user, "/synthetic/valid.zip");
-    await user.click(screen.getByRole("button", { name: "Explore" }));
+    await user.click(screen.getByRole("button", { name: "Settings" }));
     await screen.findByRole("button", { name: "Install and restart" });
 
     await user.click(screen.getByRole("button", { name: "Install and restart" }));
@@ -1294,10 +1691,10 @@ describe("FitFreed import interface", () => {
     expect(await screen.findByRole("heading", { name: "Bring your fitness history home" })).toBeVisible();
     await changeLanguageToSpanish(user);
 
-    expect(screen.getByRole("heading", { name: spanish.title })).toBeVisible();
+    expect(screen.getByRole("heading", { name: spanish.home.emptyHeading })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Ajustes" }));
     expect(screen.getByRole("heading", { name: spanish.updates.heading })).toBeVisible();
     expect(screen.getByRole("button", { name: spanish.updates.checkNow })).toBeEnabled();
-    expect(screen.getByText(spanish.empty)).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Orígenes" }));
     expect(screen.getByRole("heading", { name: spanish.sources.title })).toBeVisible();
     expect(screen.getByRole("button", { name: spanish.choose })).toBeEnabled();
@@ -1422,6 +1819,7 @@ describe("FitFreed import interface", () => {
   });
 
   it("renders exact gap-aware activity insight values and localized availability", async () => {
+    offerExploration("activity");
     const overview = activityOverview([
       {
         localDate: "2026-01-01",
@@ -1440,7 +1838,7 @@ describe("FitFreed import interface", () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(await screen.findByRole("button", { name: "Explore" }));
+    await enterExploration(user, "activity");
     const summary = await screen.findByRole("list", { name: "Daily activity overview" });
     const total = within(summary).getByText("Total steps").closest("li");
     const average = within(summary).getByText("Average per day with steps").closest("li");
@@ -1466,6 +1864,7 @@ describe("FitFreed import interface", () => {
   });
 
   it("filters an inclusive range, rejects invalid input, resets it, and opens daily detail", async () => {
+    offerExploration("activity");
     const complete = activityOverview([
       { localDate: "2026-01-01", stepCount: "1000", availability: "available" },
       { localDate: "2026-01-02", stepCount: "2000", availability: "available" },
@@ -1490,7 +1889,7 @@ describe("FitFreed import interface", () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(await screen.findByRole("button", { name: "Explore" }));
+    await enterExploration(user, "activity");
     const from = await screen.findByLabelText("From");
     const through = screen.getByLabelText("Through");
     expect(from).toHaveValue("2026-01-01");
@@ -1540,6 +1939,7 @@ describe("FitFreed import interface", () => {
   });
 
   it("compares two entered periods with exact changes and visible coverage", async () => {
+    offerExploration("activity");
     const overview = activityOverview([
       { localDate: "2026-01-01", stepCount: "1000", availability: "available" },
       { localDate: "2026-01-02", stepCount: "2000", availability: "available" },
@@ -1562,7 +1962,7 @@ describe("FitFreed import interface", () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(await screen.findByRole("button", { name: "Explore" }));
+    await enterExploration(user, "activity");
     const baselineFrom = await screen.findByLabelText("Baseline from");
     const baselineThrough = screen.getByLabelText("Baseline through");
     const comparisonFrom = screen.getByLabelText("Comparison from");
@@ -1700,6 +2100,41 @@ describe("FitFreed import interface", () => {
     let storedHistory = emptyActivityOverview();
     let importAttempt = 0;
     let latestOutcome: ReturnType<typeof importOutcome> | null = null;
+    let savedDestination: "activity" | null = null;
+    mocks.homeInvoke.mockImplementation((command, arguments_) => {
+      if (command === "query_library_home") {
+        if (storedHistory.series.length === 0) return Promise.resolve(emptyLibraryHome());
+        const requestedOperationRef = arguments_.request.afterImportOperationRef;
+        const currentOutcome = latestOutcome;
+        const postImport = currentOutcome
+          && requestedOperationRef === currentOutcome.operationRef
+          ? {
+              exactRepeat: currentOutcome.exactRepeat,
+              canonicalHistoryChanged: currentOutcome.canonicalHistoryChanged,
+              newObservations: currentOutcome.report.newObservations,
+              enrichedObservations: currentOutcome.report.enrichedObservations,
+              amendedObservations: currentOutcome.report.amendedObservations,
+              sourceReviewRecommended: false,
+            }
+          : null;
+        return Promise.resolve(populatedLibraryHome({
+          questions: [{ kind: "review-activity-steps", destination: "activity" }],
+          postImport,
+          resumableExploration: savedDestination
+            ? { version: 1, destination: savedDestination }
+            : null,
+        }));
+      }
+      if (command === "save_exploration_workspace") {
+        savedDestination = "activity";
+        return Promise.resolve({ version: 1, destination: "activity" });
+      }
+      if (command === "clear_exploration_workspace") {
+        savedDestination = null;
+        return Promise.resolve(undefined);
+      }
+      throw new Error(`Unexpected Home command: ${command}`);
+    });
     mocks.invoke.mockImplementation((command, arguments_) => {
       if (command === "query_activity_overview") return Promise.resolve(storedHistory);
       if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
@@ -1799,10 +2234,16 @@ describe("FitFreed import interface", () => {
 
     await chooseArchive(user, "/synthetic/valid.zip");
     await user.click(screen.getByRole("button", { name: "Import selected package" }));
-    expect(await screen.findByRole("status")).toHaveTextContent("Import completed: 3 recognized, 3 new");
-    await waitFor(() => expect(mocks.sleepInvoke).toHaveBeenCalledTimes(2));
+    expect(await screen.findByRole("status", { name: "Your library grew" }))
+      .toHaveTextContent("3 new observations");
+    expect(mocks.sleepInvoke).not.toHaveBeenCalled();
+    expect(mocks.homeInvoke).toHaveBeenCalledWith("query_library_home", {
+      request: { afterImportOperationRef: "synthetic-operation" },
+    });
+    await user.click(screen.getByRole("button", { name: "Sources" }));
     expect(screen.getByText("Every package artifact was classified.")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Explore" }));
+    await enterExploration(user, "activity");
     const rows = screen.getAllByRole("row");
     expect(rows).toHaveLength(4);
     expect(within(rows[1]).getByText("Jan 1, 2026")).toBeVisible();
@@ -1811,19 +2252,21 @@ describe("FitFreed import interface", () => {
 
     await user.click(screen.getByRole("button", { name: "Sources" }));
     await user.click(screen.getByRole("button", { name: "Import selected package" }));
-    expect(await screen.findByText("Exact package repeat; history was not duplicated.")).toBeVisible();
-    await waitFor(() => expect(mocks.sleepInvoke).toHaveBeenCalledTimes(3));
-    await user.click(screen.getByRole("button", { name: "Explore" }));
+    expect(await screen.findByText(
+      "This package was an exact repeat; your library remains unchanged and duplicate-free.",
+    )).toBeVisible();
+    expect(mocks.sleepInvoke).not.toHaveBeenCalled();
+    await enterExploration(user, "activity");
     expect(screen.getAllByRole("row")).toHaveLength(4);
 
     view.unmount();
     render(<App />);
-    await user.click(await screen.findByRole("button", { name: "Explore" }));
     await waitFor(() => expect(screen.getAllByRole("row")).toHaveLength(4));
     expect(screen.queryByText("5,300")).not.toBeInTheDocument();
   });
 
   it("distinguishes loading, empty, and unavailable training history", async () => {
+    offerExploration("training");
     let resolveTraining: (overview: TestTrainingOverview) => void = () => undefined;
     const pendingTraining = new Promise<TestTrainingOverview>((resolve) => {
       resolveTraining = resolve;
@@ -1836,7 +2279,7 @@ describe("FitFreed import interface", () => {
     });
     const user = userEvent.setup();
     const view = render(<App />);
-    await user.click(await screen.findByRole("button", { name: "Explore" }));
+    await enterExploration(user, "training");
     const training = await screen.findByRole("region", { name: "Training history" });
     expect(within(training).getByText("Loading training history…")).toBeVisible();
     expect(within(training).queryByText("No imported training sessions yet."))
@@ -1846,6 +2289,7 @@ describe("FitFreed import interface", () => {
     expect(await within(training).findByText("No imported training sessions yet.")).toBeVisible();
 
     view.unmount();
+    offerExploration("training");
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
       if (command === "query_training_overview") {
@@ -1855,7 +2299,7 @@ describe("FitFreed import interface", () => {
       throw new Error(`Unexpected command: ${command}`);
     });
     render(<App />);
-    await user.click(await screen.findByRole("button", { name: "Explore" }));
+    await enterExploration(user, "training");
     const unavailable = await screen.findByRole("region", { name: "Training history" });
     expect(await within(unavailable).findByText("Training history could not be loaded."))
       .toBeVisible();
@@ -1865,6 +2309,7 @@ describe("FitFreed import interface", () => {
   });
 
   it("explores, filters, details, compares, localizes, and reloads training sessions", async () => {
+    offerExploration("training");
     const earlier: TestTrainingSession = {
       sessionRef: "earlier-session",
       startedAtLocal: "2026-01-18T08:00:00",
@@ -1934,7 +2379,7 @@ describe("FitFreed import interface", () => {
     });
     const user = userEvent.setup();
     const view = render(<App />);
-    await user.click(await screen.findByRole("button", { name: "Explore" }));
+    await enterExploration(user, "training");
     const training = await screen.findByRole("region", { name: "Training history" });
 
     expect(await within(training).findByText("2 sessions")).toBeVisible();

@@ -150,7 +150,7 @@ export function RecoveryComparisonPanel({
   return (
     <div className="recovery-comparison">
       <div>
-        <h3 id="recovery-comparison-form-heading">{copy.heading}</h3>
+        <h2 id="recovery-comparison-form-heading">{copy.heading}</h2>
         <p>{copy.intro}</p>
       </div>
       <form
@@ -184,7 +184,7 @@ export function RecoveryComparisonPanel({
         >
           <div className="recovery-comparison-result-heading">
             <div>
-              <h4 id="recovery-comparison-heading">{copy.resultHeading}</h4>
+              <h3 id="recovery-comparison-heading">{copy.resultHeading}</h3>
               <p>{copy.coverageCaution}</p>
             </div>
             <button type="button" className="secondary" onClick={() => setComparison(undefined)}>
@@ -203,7 +203,7 @@ export function RecoveryComparisonPanel({
             return (
               <section className="recovery-comparison-series" key={series.seriesRef}>
                 {comparison.series.length > 1 && (
-                  <h5>{messages.recovery.series} {number.format(index + 1)}</h5>
+                  <h4>{messages.recovery.series} {number.format(index + 1)}</h4>
                 )}
                 <div className="comparison-bars" aria-hidden="true">
                   {[

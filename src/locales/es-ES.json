@@ -32,6 +32,69 @@
     "sources": "Orígenes",
     "settings": "Ajustes"
   },
+  "home": {
+    "eyebrow": "Tu biblioteca independiente",
+    "title": "Tu historial, preparado para tus preguntas",
+    "intro": "Empieza con algo que quieras comprender. FitFreed solo ofrece vías respaldadas por los indicios de tu biblioteca local.",
+    "availablePeriod": "Periodo disponible",
+    "rangeSeparator": "–",
+    "questionsHeading": "¿Qué quieres comprender?",
+    "questionsIntro": "Elige una pregunta para abrir los indicios que la sustentan.",
+    "questions": {
+      "explore-training-sessions": "Explorar mis sesiones de entrenamiento",
+      "align-history": "¿Cómo se relacionan mi entrenamiento, actividad, sueño y recuperación?",
+      "review-activity-steps": "¿Cómo ha cambiado mi actividad diaria?",
+      "review-sleep-patterns": "¿Qué patrones aparecen en mi sueño?",
+      "review-recovery-patterns": "¿Qué patrones aparecen en mi recuperación?"
+    },
+    "resumeHeading": "Continúa donde lo dejaste",
+    "resume": {
+      "activity": "Retomar la exploración de actividad",
+      "training": "Retomar la exploración de entrenamientos",
+      "sleep": "Retomar la exploración del sueño",
+      "recovery": "Retomar la exploración de la recuperación",
+      "longitudinal": "Retomar la exploración del historial relacionado"
+    },
+    "coverageHeading": "Tu historial utilizable",
+    "coverageIntro": "La disponibilidad se muestra con honestidad: las mediciones ausentes no se consideran cero.",
+    "domains": {
+      "training": "Entrenamiento",
+      "activity": "Actividad",
+      "sleep": "Sueño",
+      "recovery": "Recuperación"
+    },
+    "records": {
+      "one": "{count} registro",
+      "other": "{count} registros"
+    },
+    "measurements": {
+      "one": "{count} medición disponible",
+      "other": "{count} mediciones disponibles"
+    },
+    "unavailable": "No disponible",
+    "sources": "Revisar la cobertura del origen",
+    "emptyHeading": "Empieza con tu propio historial",
+    "emptyIntro": "Importa una exportación deportiva original para construir una biblioteca privada y descubrir qué preguntas pueden responder sus indicios.",
+    "emptyAction": "Añadir una exportación deportiva",
+    "postImportHeading": "Tu biblioteca ha crecido",
+    "postImportChanged": "La importación confirmada ha añadido o mejorado historial utilizable.",
+    "postImportUnchanged": "La importación confirmada ha conservado tu historial utilizable actual.",
+    "postImportExactRepeat": "Este paquete era una repetición exacta; tu biblioteca permanece sin cambios ni duplicados.",
+    "postImportNew": {
+      "one": "{count} observación nueva",
+      "other": "{count} observaciones nuevas"
+    },
+    "postImportEnriched": {
+      "one": "{count} observación enriquecida",
+      "other": "{count} observaciones enriquecidas"
+    },
+    "postImportAmended": {
+      "one": "{count} observación rectificada",
+      "other": "{count} observaciones rectificadas"
+    },
+    "postImportReview": "Parte de la cobertura del origen requiere tu atención.",
+    "backHome": "Volver a Inicio"
+  },
   "sources": {
     "eyebrow": "Tus orígenes",
     "title": "Trae a casa tu historial deportivo",
@@ -758,6 +821,10 @@
     "invalid-recovery-reference": "Ese detalle de recuperación ya no está disponible. Actualiza el periodo y vuelve a elegir la noche.",
     "invalid-longitudinal-range": "Elige un periodo compartido ordenado dentro de todo el historial disponible, de hasta 366 fechas.",
     "invalid-longitudinal-comparison": "Elige periodos compartidos de comparación ordenados dentro de todo el historial disponible, de hasta 366 fechas cada uno.",
+    "invalid-library-home-request": "FitFreed no ha podido abrir esa vista de la biblioteca porque su contexto no era válido. Vuelve a Inicio e inténtalo de nuevo.",
+    "invalid-exploration-workspace": "La biblioteca actual ya no admite esa exploración. Vuelve a Inicio y elige una pregunta disponible.",
+    "exploration-workspace-query-failed": "FitFreed no ha podido restaurar la exploración anterior. Tu historial no se ha modificado; vuelve a Inicio y elige de nuevo una pregunta.",
+    "exploration-workspace-update-failed": "FitFreed no ha podido guardar la exploración de forma segura. Tu historial no se ha modificado; vuelve a intentar la pregunta.",
     "outcome-query-failed": "FitFreed no ha podido leer el resultado de la última importación. Reinicia la aplicación y verifica la biblioteca antes de volver a importar.",
     "source-guide-query-failed": "FitFreed no ha podido cargar la guía de origen incluida. Reinicia la aplicación; FitFreed no hará conjeturas sobre las instrucciones del proveedor.",
     "official-source-link-failed": "FitFreed no ha podido abrir la página oficial. Las instrucciones sin conexión siguen disponibles; abre directamente la página del proveedor en tu navegador si es necesario.",

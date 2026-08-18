@@ -20,17 +20,18 @@ use std::fs;
 use chrono::{SecondsFormat, Utc};
 use fitfreed_application::{
     authorize_update_installation as authorize_update, check_for_updates as evaluate_updates,
-    dismiss_update as persist_update_dismissal,
+    clear_exploration_workspace as clear_workspace, dismiss_update as persist_update_dismissal,
     load_application_preferences as load_preferences_from_port,
-    postpone_update as persist_update_postponement,
+    postpone_update as persist_update_postponement, query_library_home as build_library_home,
     query_longitudinal_comparison as build_longitudinal_comparison,
     query_longitudinal_overview as build_longitudinal_overview,
     query_source_acquisition_guides as build_source_acquisition_guides,
     reset_application_preferences as reset_preferences_through_port,
-    save_application_preferences as save_preferences_through_port, ApplicationError,
-    ApplicationPreferences, ImportCoordinator, ImportProgress, InvalidApplicationPreferences,
-    LocalePreference, UpdateChannelPort, UpdateCheckContext, UpdateCheckTrigger,
-    UpdateInstallationAuthorization, UpdateRecoveryOutcome,
+    save_application_preferences as save_preferences_through_port,
+    save_exploration_workspace as save_workspace, ApplicationError, ApplicationPreferences,
+    ImportCoordinator, ImportProgress, InvalidApplicationPreferences, LocalePreference,
+    UpdateChannelPort, UpdateCheckContext, UpdateCheckTrigger, UpdateInstallationAuthorization,
+    UpdateRecoveryOutcome,
 };
 use infrastructure::{
     acknowledge_update_recovery_outcome as acknowledge_retained_update_recovery_outcome,
@@ -39,17 +40,18 @@ use infrastructure::{
     install_verified_update, library_schema_version, maintain_update_recovery,
     recover_interrupted_imports, resolve_update_application_path, run_update_recovery_watchdog,
     HttpsUpdateChannel, PolarFlowSourceAcquisitionGuides, SqliteActivityLibrary,
-    SqliteApplicationPreferences, SqliteImportOutcomeLibrary, SqliteLongitudinalLibrary,
-    SqlitePolarFlowArchiveImporter, SqliteRecoveryLibrary, SqliteSleepLibrary,
-    SqliteTrainingLibrary, SqliteUpdateState, UpdateInstallationError, UpdateInstallationRequest,
-    UpdatePackageError, UpdateRecoveryCandidateLease, UpdateRecoveryError,
-    UpdateRecoveryMaintenance, UPDATE_RECOVERY_CANDIDATE_ARGUMENT,
+    SqliteApplicationPreferences, SqliteImportOutcomeLibrary, SqliteLibraryHome,
+    SqliteLongitudinalLibrary, SqlitePolarFlowArchiveImporter, SqliteRecoveryLibrary,
+    SqliteSleepLibrary, SqliteTrainingLibrary, SqliteUpdateState, UpdateInstallationError,
+    UpdateInstallationRequest, UpdatePackageError, UpdateRecoveryCandidateLease,
+    UpdateRecoveryError, UpdateRecoveryMaintenance, UPDATE_RECOVERY_CANDIDATE_ARGUMENT,
     UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
 };
 use presentation::{
     ActivityComparisonDto, ActivityDateRangeDto, ActivityOverviewDto, ApplicationPreferencesDto,
     ApplicationPreferencesInputDto, ApplicationPreferencesLoadDto, CommandErrorDto,
-    ImportOutcomeDto, ImportProgressDto, ImportReportDto, LongitudinalComparisonDto,
+    ExplorationWorkspaceDto, ExploreDestinationInputDto, ImportOutcomeDto, ImportProgressDto,
+    ImportReportDto, LibraryHomeDto, LibraryHomeRequestDto, LongitudinalComparisonDto,
     LongitudinalDateRangeDto, LongitudinalOverviewDto, RecoveryComparisonDto, RecoveryDateRangeDto,
     RecoveryNightDetailDto, RecoveryOverviewDto, SleepComparisonDto, SleepDateRangeDto,
     SleepOverviewDto, SleepPeriodDetailDto, SourceAcquisitionGuideDto, TrainingComparisonDto,
@@ -449,6 +451,36 @@ fn query_longitudinal_comparison(
     build_longitudinal_comparison(&library, baseline_range.into(), comparison_range.into())
         .map(LongitudinalComparisonDto::from)
         .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn query_library_home(
+    app: AppHandle,
+    request: LibraryHomeRequestDto,
+) -> Result<LibraryHomeDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let library = SqliteLibraryHome::new(path);
+    build_library_home(&library, request.into())
+        .map(LibraryHomeDto::from)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn save_exploration_workspace(
+    app: AppHandle,
+    destination: ExploreDestinationInputDto,
+) -> Result<ExplorationWorkspaceDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let library = SqliteLibraryHome::new(path);
+    save_workspace(&library, destination.into())
+        .map(ExplorationWorkspaceDto::from)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn clear_exploration_workspace(app: AppHandle) -> Result<(), CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    clear_workspace(&SqliteLibraryHome::new(path)).map_err(CommandErrorDto::from)
 }
 
 #[tauri::command]
@@ -1276,6 +1308,9 @@ pub fn run() {
             query_recovery_detail,
             query_longitudinal_overview,
             query_longitudinal_comparison,
+            query_library_home,
+            save_exploration_workspace,
+            clear_exploration_workspace,
             query_latest_import_outcome,
             query_source_acquisition_guides,
             load_preferences,

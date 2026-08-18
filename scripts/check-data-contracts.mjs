@@ -1803,6 +1803,320 @@ for (const invalidComparison of [
   }
 }
 
+const libraryHomePath = "docs/data-formats/insights/library-home-v1.md";
+const libraryHome = read(libraryHomePath);
+for (const field of [
+  "afterImportOperationRef",
+  "availableRange",
+  "domains",
+  "domain",
+  "selectedRange",
+  "originCount",
+  "observedRecordCount",
+  "measurements",
+  "measurement",
+  "availableRecords",
+  "observedRecords",
+  "questions",
+  "kind",
+  "destination",
+  "postImport",
+  "exactRepeat",
+  "canonicalHistoryChanged",
+  "newObservations",
+  "enrichedObservations",
+  "amendedObservations",
+  "sourceReviewRecommended",
+  "resumableExploration",
+  "version",
+  "training",
+  "activity",
+  "sleep",
+  "recovery",
+  "longitudinal",
+  "invalid-library-home-request",
+  "invalid-exploration-workspace",
+  "library-query-failed",
+]) {
+  requireMention(libraryHome, field, libraryHomePath);
+}
+
+const libraryHomeQuerySchemaPath = "schemas/library-home-query-v1.schema.json";
+const libraryHomeQuerySchema = JSON.parse(read(libraryHomeQuerySchemaPath));
+const validateLibraryHomeQuery = ajv.compile(libraryHomeQuerySchema);
+for (const query of [
+  { afterImportOperationRef: null },
+  { afterImportOperationRef: "synthetic-import-operation" },
+]) {
+  if (!validateLibraryHomeQuery(query)) {
+    throw new Error(
+      libraryHomeQuerySchemaPath
+        + " rejected a valid query: "
+        + ajv.errorsText(validateLibraryHomeQuery.errors),
+    );
+  }
+}
+
+const explorationWorkspaceSaveSchemaPath = "schemas/exploration-workspace-save-v1.schema.json";
+const explorationWorkspaceSaveSchema = JSON.parse(read(explorationWorkspaceSaveSchemaPath));
+const validateExplorationWorkspaceSave = ajv.compile(explorationWorkspaceSaveSchema);
+for (const destination of ["activity", "training", "sleep", "recovery", "longitudinal"]) {
+  if (!validateExplorationWorkspaceSave({ destination })) {
+    throw new Error(
+      explorationWorkspaceSaveSchemaPath
+        + " rejected a valid destination: "
+        + ajv.errorsText(validateExplorationWorkspaceSave.errors),
+    );
+  }
+}
+for (const invalidWorkspace of [
+  {},
+  { destination: "provider-route" },
+  { destination: "training", seriesRef: "must-not-be-persisted" },
+]) {
+  if (validateExplorationWorkspaceSave(invalidWorkspace)) {
+    throw new Error(explorationWorkspaceSaveSchemaPath + " accepted an invalid workspace");
+  }
+}
+for (const invalidQuery of [
+  {},
+  { afterImportOperationRef: " " },
+  { afterImportOperationRef: null, provider: "must-not-cross-the-boundary" },
+]) {
+  if (validateLibraryHomeQuery(invalidQuery)) {
+    throw new Error(libraryHomeQuerySchemaPath + " accepted an invalid query");
+  }
+}
+
+const libraryHomeSchemaPath = "schemas/library-home-v1.schema.json";
+const libraryHomeSchema = JSON.parse(read(libraryHomeSchemaPath));
+const validateLibraryHomeSchema = ajv.compile(libraryHomeSchema);
+const measurement = (name, availableRecords, observedRecords) => ({
+  measurement: name,
+  availableRecords,
+  observedRecords,
+});
+const syntheticLibraryHome = {
+  availableRange: { from: "2026-01-01", through: "2026-01-06" },
+  domains: [
+    {
+      domain: "training",
+      availableRange: { from: "2026-01-04", through: "2026-01-05" },
+      selectedRange: { from: "2026-01-04", through: "2026-01-05" },
+      originCount: 1,
+      observedRecordCount: 2,
+      measurements: [
+        measurement("training-duration", 2, 2),
+        measurement("training-distance", 1, 2),
+        measurement("training-energy", 1, 2),
+        measurement("training-heart-rate", 1, 2),
+      ],
+    },
+    {
+      domain: "activity",
+      availableRange: { from: "2026-01-01", through: "2026-01-03" },
+      selectedRange: { from: "2026-01-01", through: "2026-01-03" },
+      originCount: 2,
+      observedRecordCount: 2,
+      measurements: [measurement("activity-steps", 1, 2)],
+    },
+    {
+      domain: "sleep",
+      availableRange: { from: "2026-01-06", through: "2026-01-06" },
+      selectedRange: { from: "2026-01-06", through: "2026-01-06" },
+      originCount: 1,
+      observedRecordCount: 1,
+      measurements: [
+        measurement("sleep-duration", 1, 1),
+        measurement("sleep-interruptions", 1, 1),
+        measurement("sleep-efficiency", 1, 1),
+        measurement("sleep-phases", 1, 1),
+        measurement("sleep-stages", 1, 1),
+        measurement("sleep-score", 1, 1),
+        measurement("sleep-goal", 1, 1),
+        measurement("sleep-power-status", 1, 1),
+      ],
+    },
+    {
+      domain: "recovery",
+      availableRange: { from: "2026-01-06", through: "2026-01-06" },
+      selectedRange: { from: "2026-01-06", through: "2026-01-06" },
+      originCount: 1,
+      observedRecordCount: 1,
+      measurements: [
+        measurement("recovery-beat-to-beat-interval", 1, 1),
+        measurement("recovery-heart-rate-variability", 1, 1),
+        measurement("recovery-breathing-interval", 1, 1),
+        measurement("recovery-assessment", 1, 1),
+        measurement("recovery-baseline", 1, 1),
+        measurement("recovery-guidance", 1, 1),
+      ],
+    },
+  ],
+  questions: [
+    { kind: "explore-training-sessions", destination: "training" },
+    { kind: "align-history", destination: "longitudinal" },
+    { kind: "review-activity-steps", destination: "activity" },
+    { kind: "review-sleep-patterns", destination: "sleep" },
+    { kind: "review-recovery-patterns", destination: "recovery" },
+  ],
+  postImport: {
+    exactRepeat: false,
+    canonicalHistoryChanged: true,
+    newObservations: 4,
+    enrichedObservations: 1,
+    amendedObservations: 1,
+    sourceReviewRecommended: true,
+  },
+  resumableExploration: { version: 1, destination: "training" },
+};
+const unavailableDomain = (domain) => ({
+  domain,
+  availableRange: null,
+  selectedRange: null,
+  originCount: 0,
+  observedRecordCount: 0,
+  measurements: [],
+});
+const emptyLibraryHome = {
+  availableRange: null,
+  domains: ["training", "activity", "sleep", "recovery"].map(unavailableDomain),
+  questions: [],
+  postImport: null,
+  resumableExploration: null,
+};
+
+function libraryHomeIsSemanticallyValid(value) {
+  if (!validateLibraryHomeSchema(value)) return false;
+
+  const availableDomains = value.domains.filter((domain) => domain.availableRange !== null);
+  if (availableDomains.length === 0) {
+    return value.availableRange === null
+      && value.questions.length === 0
+      && value.resumableExploration === null;
+  }
+  if (value.availableRange === null) return false;
+
+  const globalFrom = availableDomains
+    .map((domain) => domain.availableRange.from)
+    .reduce((earliest, current) => earliest < current ? earliest : current);
+  const globalThrough = availableDomains
+    .map((domain) => domain.availableRange.through)
+    .reduce((latest, current) => latest > current ? latest : current);
+  if (value.availableRange.from !== globalFrom || value.availableRange.through !== globalThrough) {
+    return false;
+  }
+
+  for (const domain of availableDomains) {
+    if (
+      domain.availableRange.from > domain.availableRange.through
+      || domain.selectedRange.from > domain.selectedRange.through
+      || domain.selectedRange.from < domain.availableRange.from
+      || domain.selectedRange.through > domain.availableRange.through
+      || domain.measurements.some((entry) => (
+        entry.observedRecords !== domain.observedRecordCount
+        || entry.availableRecords > entry.observedRecords
+      ))
+    ) {
+      return false;
+    }
+  }
+
+  const measurementAvailable = (name) => value.domains.some((domain) => (
+    domain.measurements.some((entry) => (
+      entry.measurement === name && entry.availableRecords > 0
+    ))
+  ));
+  const training = measurementAvailable("training-duration");
+  const activity = measurementAvailable("activity-steps");
+  const sleep = measurementAvailable("sleep-duration");
+  const recovery = measurementAvailable("recovery-beat-to-beat-interval");
+  const expectedQuestions = [];
+  if (training) {
+    expectedQuestions.push({ kind: "explore-training-sessions", destination: "training" });
+  }
+  if ([training, activity, sleep, recovery].filter(Boolean).length >= 2) {
+    expectedQuestions.push({ kind: "align-history", destination: "longitudinal" });
+  }
+  if (activity) expectedQuestions.push({ kind: "review-activity-steps", destination: "activity" });
+  if (sleep) expectedQuestions.push({ kind: "review-sleep-patterns", destination: "sleep" });
+  if (recovery) {
+    expectedQuestions.push({ kind: "review-recovery-patterns", destination: "recovery" });
+  }
+  if (JSON.stringify(value.questions) !== JSON.stringify(expectedQuestions)) return false;
+  return value.resumableExploration === null
+    || expectedQuestions.some((question) => (
+      question.destination === value.resumableExploration.destination
+    ));
+}
+
+for (const home of [emptyLibraryHome, syntheticLibraryHome]) {
+  if (!libraryHomeIsSemanticallyValid(home)) {
+    throw new Error(
+      libraryHomeSchemaPath
+        + " rejected a valid response: "
+        + ajv.errorsText(validateLibraryHomeSchema.errors),
+    );
+  }
+}
+for (const invalidHome of [
+  (() => {
+    const value = structuredClone(syntheticLibraryHome);
+    [value.domains[0], value.domains[1]] = [value.domains[1], value.domains[0]];
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticLibraryHome);
+    value.domains[0].measurements[1].measurement = "training-energy";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticLibraryHome);
+    value.domains[1].measurements[0].availableRecords = 3;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticLibraryHome);
+    value.domains[2].measurements[0].observedRecords = 2;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticLibraryHome);
+    value.questions[0].destination = "activity";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticLibraryHome);
+    value.questions.pop();
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticLibraryHome);
+    value.postImport.newObservations = -1;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticLibraryHome);
+    value.provider = "must-not-cross-the-boundary";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticLibraryHome);
+    value.availableRange = null;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticLibraryHome);
+    value.resumableExploration.destination = "activity";
+    value.questions = value.questions.filter((question) => question.destination !== "activity");
+    return value;
+  })(),
+]) {
+  if (libraryHomeIsSemanticallyValid(invalidHome)) {
+    throw new Error(libraryHomeSchemaPath + " accepted an invalid response");
+  }
+}
+
 const updateChannelPath = "docs/data-formats/release/update-channel-v1.md";
 const updateChannel = read(updateChannelPath);
 for (const field of [
@@ -2268,6 +2582,7 @@ for (const contractPath of [
   recoveryOverviewPath,
   recoveryComparisonPath,
   longitudinalPath,
+  libraryHomePath,
   updateChannelPath,
   stableUpdateChannelPath,
   publicUpdateConfigurationPath,
@@ -2330,6 +2645,11 @@ process.stdout.write(
     longitudinalComparisonSchemas: [
       longitudinalComparisonQuerySchemaPath,
       longitudinalComparisonSchemaPath,
+    ],
+    libraryHomeSchemas: [
+      libraryHomeQuerySchemaPath,
+      libraryHomeSchemaPath,
+      explorationWorkspaceSaveSchemaPath,
     ],
     updateChannelSchemas: [
       updateChannelEnvelopeSchemaPath,

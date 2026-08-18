@@ -32,6 +32,69 @@
     "sources": "Sources",
     "settings": "Settings"
   },
+  "home": {
+    "eyebrow": "Your independent library",
+    "title": "Your history, ready for your questions",
+    "intro": "Start with something you want to understand. FitFreed only offers paths supported by evidence in your local library.",
+    "availablePeriod": "Available period",
+    "rangeSeparator": "–",
+    "questionsHeading": "What do you want to understand?",
+    "questionsIntro": "Choose a question to open the evidence behind it.",
+    "questions": {
+      "explore-training-sessions": "Explore my training sessions",
+      "align-history": "How do training, activity, sleep, and recovery align?",
+      "review-activity-steps": "How has my daily activity changed?",
+      "review-sleep-patterns": "What patterns are visible in my sleep?",
+      "review-recovery-patterns": "What patterns are visible in my recovery?"
+    },
+    "resumeHeading": "Continue where you left off",
+    "resume": {
+      "activity": "Resume activity exploration",
+      "training": "Resume training exploration",
+      "sleep": "Resume sleep exploration",
+      "recovery": "Resume recovery exploration",
+      "longitudinal": "Resume aligned-history exploration"
+    },
+    "coverageHeading": "Your usable history",
+    "coverageIntro": "Availability is shown honestly: missing measurements are not treated as zero.",
+    "domains": {
+      "training": "Training",
+      "activity": "Activity",
+      "sleep": "Sleep",
+      "recovery": "Recovery"
+    },
+    "records": {
+      "one": "{count} record",
+      "other": "{count} records"
+    },
+    "measurements": {
+      "one": "{count} measurement available",
+      "other": "{count} measurements available"
+    },
+    "unavailable": "Not available",
+    "sources": "Review source coverage",
+    "emptyHeading": "Start with your own history",
+    "emptyIntro": "Import an original fitness export to build a private library and discover which questions its evidence can answer.",
+    "emptyAction": "Add a fitness export",
+    "postImportHeading": "Your library grew",
+    "postImportChanged": "The committed import added or improved usable history.",
+    "postImportUnchanged": "The committed import preserved your current usable history.",
+    "postImportExactRepeat": "This package was an exact repeat; your library remains unchanged and duplicate-free.",
+    "postImportNew": {
+      "one": "{count} new observation",
+      "other": "{count} new observations"
+    },
+    "postImportEnriched": {
+      "one": "{count} enriched observation",
+      "other": "{count} enriched observations"
+    },
+    "postImportAmended": {
+      "one": "{count} amended observation",
+      "other": "{count} amended observations"
+    },
+    "postImportReview": "Some source coverage needs your attention.",
+    "backHome": "Back to Home"
+  },
   "sources": {
     "eyebrow": "Your sources",
     "title": "Bring your fitness history home",
@@ -758,6 +821,10 @@
     "invalid-recovery-reference": "That recovery detail is no longer available. Refresh the period and choose the night again.",
     "invalid-longitudinal-range": "Choose an ordered shared period inside the complete available history, up to 366 dates.",
     "invalid-longitudinal-comparison": "Choose ordered shared comparison periods inside the complete available history, up to 366 dates each.",
+    "invalid-library-home-request": "FitFreed could not open that library view because its context was invalid. Return to Home and try again.",
+    "invalid-exploration-workspace": "That exploration is no longer supported by the current library. Return to Home and choose an available question.",
+    "exploration-workspace-query-failed": "FitFreed could not restore the previous exploration. Your history is unchanged; return to Home and choose a question again.",
+    "exploration-workspace-update-failed": "FitFreed could not save the exploration safely. Your history is unchanged; try the question again.",
     "outcome-query-failed": "FitFreed could not read the latest import outcome. Restart the application and verify the library before importing again.",
     "source-guide-query-failed": "FitFreed could not load the bundled source guide. Restart the application; FitFreed will not guess provider instructions.",
     "official-source-link-failed": "FitFreed could not open the official page. The offline instructions remain available; open the provider page directly in your browser if needed.",

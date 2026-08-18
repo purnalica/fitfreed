@@ -125,7 +125,7 @@ export function LongitudinalComparisonPanel({
   return (
     <div className="longitudinal-comparison">
       <div>
-        <h3 id="longitudinal-comparison-form-heading">{copy.heading}</h3>
+        <h2 id="longitudinal-comparison-form-heading">{copy.heading}</h2>
         <p>{copy.intro}</p>
       </div>
       <form
@@ -159,7 +159,7 @@ export function LongitudinalComparisonPanel({
         >
           <div className="longitudinal-comparison-result-heading">
             <div>
-              <h4 id="longitudinal-comparison-heading">{copy.resultHeading}</h4>
+              <h3 id="longitudinal-comparison-heading">{copy.resultHeading}</h3>
               <p>{copy.coverageCaution}</p>
             </div>
             <button type="button" className="secondary" onClick={() => setComparison(undefined)}>
@@ -169,7 +169,7 @@ export function LongitudinalComparisonPanel({
           {comparison.series.length === 0 ? <p>{copy.empty}</p> : comparison.series.map((series, index) => (
             <section className="longitudinal-comparison-series" key={series.seriesRef}>
               {comparison.series.length > 1 && (
-                <h5>{messages.longitudinal.series} {number.format(index + 1)}</h5>
+                <h4>{messages.longitudinal.series} {number.format(index + 1)}</h4>
               )}
               <div className="longitudinal-table-scroll" tabIndex={0} aria-label={copy.resultHeading}>
                 <table>

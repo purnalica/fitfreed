@@ -27,6 +27,14 @@ pub use longitudinal::{
     LongitudinalSleepComparison, LongitudinalSleepDay, LongitudinalTrainingComparison,
     LongitudinalTrainingDay,
 };
+mod library_home;
+pub use library_home::{
+    clear_exploration_workspace, query_library_home, save_exploration_workspace,
+    ExplorationWorkspace, ExplorationWorkspacePort, ExploreDestination, LibraryDomain,
+    LibraryDomainCoverage, LibraryHome, LibraryHomeDateRange, LibraryHomePort, LibraryHomeRequest,
+    LibraryMeasurement, LibraryMeasurementCoverage, LibraryQuestion, LibraryQuestionKind,
+    PostImportReveal, StoredExplorationWorkspace,
+};
 mod update;
 pub use update::{
     authorize_update_installation, check_for_updates, dismiss_update, postpone_update,
@@ -51,6 +59,9 @@ pub use source_acquisition::{
 
 #[cfg(test)]
 mod longitudinal_tests;
+
+#[cfg(test)]
+mod library_home_tests;
 
 #[cfg(test)]
 mod update_tests;
@@ -1290,6 +1301,14 @@ pub enum ApplicationError {
     InvalidRecoveryReference(&'static str),
     #[error("invalid longitudinal range: {0}")]
     InvalidLongitudinalRange(&'static str),
+    #[error("invalid library home request: {0}")]
+    InvalidLibraryHomeRequest(&'static str),
+    #[error("invalid exploration workspace: {0}")]
+    InvalidExplorationWorkspace(&'static str),
+    #[error("exploration workspace query failed: {0}")]
+    WorkspaceQuery(String),
+    #[error("exploration workspace update failed: {0}")]
+    WorkspaceUpdate(String),
     #[error("import outcome query failed: {0}")]
     OutcomeQuery(String),
     #[error("source acquisition guide query failed: {0}")]
