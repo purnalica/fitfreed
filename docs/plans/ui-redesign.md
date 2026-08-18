@@ -2,7 +2,7 @@
 
 ## Status
 
-Active. The redesign is the next MVP quality intervention before production trust activation or public-candidate preparation. Product-destination design now precedes implementation planning: exploratory concepts may exceed the current MVP contracts when that is necessary to evaluate the right product, provided the capability gap remains explicit and no unsupported production behavior is implied.
+Direction accepted for execution planning. Report authoring, deep-session scope, and navigation evaluation remain active design work before dependent production implementation. The ordered production sequence is defined in the [MVP experience delivery plan](mvp-experience-delivery.md). Exploratory concepts may exceed the current MVP contracts when that is necessary to evaluate the right product, provided the capability gap remains explicit and no unsupported production behavior is implied.
 
 ## Objective
 
@@ -32,6 +32,7 @@ The redesign must help a person ask and answer at least these classes of questio
 14. Where can I control lasting application preferences such as language, content zoom, and light, dark, or system appearance?
 15. If I do not yet have an export, how do I request and obtain the correct archive from the provider before importing it?
 16. How can I compose a reusable report from my own questions, periods, records, and session criteria, then export it when needed?
+17. After following a record into detail, how do I return to the exact exploration that led me there without losing its state?
 
 The interface distinguishes recorded facts, calculated comparisons, observed co-occurrence, source-specific assessments, and unavailable conclusions. It does not present correlation as causation, invent a readiness score, provide medical interpretation, or disguise missing data as zero.
 
@@ -100,6 +101,12 @@ Session structure must not assume that a provider supplies meaningful phases, in
 A criterion is valid only when the underlying measurements support it. The interface explains unavailable criteria, preserves missing samples, keeps derived segments reproducible, and always provides a path back to the unmodified source timeline. User-defined interpretation belongs to the person's portable library and must not become an undocumented application-only silo.
 
 No private sport selection, route, coordinate, value, date sequence, session structure, or other personal-data fingerprint may influence versioned or exploratory examples. All prototype histories and routes remain independently invented and synthetic.
+
+## Navigation continuity
+
+The same session or date can be opened from sport history, search results, a route family, chronology, comparison, contextual observation, report, or direct restoration. A fixed “back to all sessions” action is therefore insufficient.
+
+The design will evaluate an origin-aware return contract that restores the complete meaningful state of the originating workspace while retaining a stable canonical hierarchy for direct entry. Review scenarios must include nested detail, return after editing a user criterion, comparison selection, filtered list and map views, deep links without an origin, keyboard navigation, restart restoration, and an origin that is no longer available after import or deletion. Return labels state the destination explicitly; breadcrumbs describe hierarchy and do not impersonate transient browser history.
 
 ## Extensible application settings
 

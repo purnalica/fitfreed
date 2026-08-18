@@ -145,6 +145,14 @@ The following decisions define FitFreed across features and releases. They are f
 - Answers will lead to their supporting dates, sessions, samples, calculations, provenance, coverage, and limitations. Summary cards and charts are views over evidence, not substitutes for it.
 - FitFreed will expose only questions it can actually answer. It will not imitate unrestricted natural-language or artificial-intelligence understanding when the available application contracts support only a defined catalogue.
 
+### Navigation preserves exploration context
+
+- Opening a sport, session, date, route, comparison, evidence table, or report will retain the origin of that exploration. The primary return action will name and restore the exact originating view rather than always returning to a fixed collection.
+- Returning will preserve the meaningful state of the origin, including period, search, filters, sort, view mode, selected records, comparison basket, expanded evidence, and scroll position where applicable.
+- Every detail also has a provider-neutral canonical location and hierarchy so a direct link, restored window, notification, report, or MCP handoff remains understandable when no in-application origin exists.
+- Breadcrumbs, contextual return actions, sidebar navigation, keyboard history commands, and operating-system back behavior will express one coherent navigation model. A person will not need to reconstruct prior exploration manually or become trapped in a detail surface.
+- Sensitive state will not be encoded into public or externally transferable links. Restorable navigation state remains local and references opaque application identities.
+
 ### Knowledge has visible authorship
 
 - The interface and exported outputs will distinguish immutable source facts, provider assessments, deterministic FitFreed calculations, observed co-occurrence, user-authored text or criteria, and unavailable conclusions.

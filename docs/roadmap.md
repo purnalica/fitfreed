@@ -2,7 +2,7 @@
 
 ## Status
 
-Milestone 1 and Milestone 2 capability implementation and the current Milestone 3 public-release engineering baseline are complete. Apple Silicon on macOS 15.0 or later is the accepted MVP platform boundary. Before activating production trust or preparing a public candidate, the project will complete a prototype-led, radical UI and UX review of the implemented MVP journey. The review now includes two accepted MVP experience additions: persistent appearance, zoom, and language settings, and provider-specific guidance for obtaining the first supported export. It must preserve the verified application, domain, persistence, localization, accessibility, and recovery behavior. Milestone 3 release acceptance remains active but externally gated until the redesigned experience is accepted: deterministic trust, candidate, publication, recovery, user, maintainer, and readiness paths pass local and hosted automation with production trust deliberately inactive, while production authority, protected GitHub configuration, exact-candidate evaluation, and public publication remain open in the consolidated readiness ledger.
+Milestone 1 and Milestone 2 capability implementation and the current Milestone 3 public-release engineering baseline are complete. Apple Silicon on macOS 15.0 or later is the accepted MVP platform boundary. Before activating production trust or preparing a public candidate, the project will execute the prototype-led UI and UX intervention through the [MVP experience delivery plan](plans/mvp-experience-delivery.md). The accepted direction adds persistent appearance, zoom, and language settings; provider-specific guidance for obtaining the first supported export; question-led sports and session exploration; and origin-aware navigation. Report authoring and deep-session exploration each have an explicit evidence-led MVP scope gate rather than an assumed inclusion or exclusion. The intervention must preserve the verified application, domain, persistence, localization, accessibility, and recovery behavior. Milestone 3 release acceptance remains active but externally gated until the redesigned experience is accepted: deterministic trust, candidate, publication, recovery, user, maintainer, and readiness paths pass local and hosted automation with production trust deliberately inactive, while production authority, protected GitHub configuration, exact-candidate evaluation, and public publication remain open in the consolidated readiness ledger.
 
 ## Purpose
 
@@ -10,7 +10,7 @@ This document is the canonical source for product sequencing and milestone bound
 
 Detailed execution plans will be created per milestone and linked from this roadmap. Implementation issues will derive from those plans rather than replacing them.
 
-The Milestone 0 closure plan is [`plans/milestone-0.md`](plans/milestone-0.md). The completed foundation plan is [`plans/milestone-1.md`](plans/milestone-1.md). The implemented MVP sequence is [`plans/milestone-2.md`](plans/milestone-2.md). The active prototype-led quality intervention is [`plans/ui-redesign.md`](plans/ui-redesign.md). The public-release sequence remains [`plans/milestone-3.md`](plans/milestone-3.md). Technology evidence follows [`technology-evaluation.md`](technology-evaluation.md).
+The Milestone 0 closure plan is [`plans/milestone-0.md`](plans/milestone-0.md). The completed foundation plan is [`plans/milestone-1.md`](plans/milestone-1.md). The implemented MVP sequence is [`plans/milestone-2.md`](plans/milestone-2.md). The accepted product direction is recorded in [`plans/ui-redesign.md`](plans/ui-redesign.md), and its active production sequence is [`plans/mvp-experience-delivery.md`](plans/mvp-experience-delivery.md). The public-release sequence remains [`plans/milestone-3.md`](plans/milestone-3.md). Technology evidence follows [`technology-evaluation.md`](technology-evaluation.md).
 
 ## Planning principles
 
@@ -109,15 +109,15 @@ The Milestone 0 closure plan is [`plans/milestone-0.md`](plans/milestone-0.md). 
 
 **Exit criteria:** Gatekeeper recognizes the application as signed and notarized, every public release gate passes, and no unsigned binary is exposed through the public release channel.
 
-### Next product-design milestone — Personal report authoring
+### Active product-design stage — Personal report authoring and deep-session boundary
 
-**Outcome:** validate how a person composes, saves, refreshes, previews, and exports reproducible reports before selecting implementation technology or scheduling production delivery.
+**Outcome:** validate how a person composes, saves, refreshes, previews, and exports reproducible reports, and establish the smallest evidence-complete deep-session experience, before selecting their MVP production boundaries.
 
 **Dependency:** acceptance of the active interaction direction and its information architecture.
 
-**Included:** question-led and blank starting points; data and period selection; composable narrative, tables, charts, maps, evidence, coverage, and limitations; sensitive-content review; saved-definition evolution; export recovery; accessibility; and focused evaluation of compatible open-source composition, visualisation, pagination, and export libraries.
+**Included:** question-led and blank report starting points; data and period selection; composable narrative, tables, charts, maps, evidence, coverage, and limitations; sensitive-content review; saved-definition evolution; export recovery; accessibility; focused evaluation of compatible open-source composition, visualisation, pagination, and export libraries; clean-room source evidence for session structure, routes, and sample series; and origin-aware navigation evaluation.
 
-**Boundary:** the accepted design will determine the smallest complete authoring and export slice that maximizes MVP value. No report implementation enters the critical path before that evaluation, and the milestone must not assume either that report authoring is excluded from the MVP or that the complete long-term report system belongs in it.
+**Boundary:** the accepted design will determine the smallest complete report and deep-session slices that maximize MVP value. Dependent implementation does not enter the critical path before that evaluation. The stage must not assume either that these capabilities are excluded from the MVP or that their complete long-term systems belong in it. Settings, acquisition guidance, the application shell, and navigation foundations may proceed independently because their product boundary is already accepted.
 
 ### Horizon 1 — Broader insight coverage
 
