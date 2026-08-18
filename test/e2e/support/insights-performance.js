@@ -303,6 +303,39 @@ async function compareTrainingRanges(ranges) {
   return result.duration;
 }
 
+async function navigateTrainingCalendar(scenario) {
+  const result = await browser.executeAsync((expected, done) => {
+    const navigation = Array.from(document.querySelectorAll(".training-calendar header button"))
+      .find((button) => button.getAttribute("aria-label") === expected.buttonLabel);
+    if (!navigation) {
+      done({ duration: null, error: "training calendar navigation was not available" });
+      return;
+    }
+    const started = window.performance.now();
+    navigation.click();
+    function observeResult() {
+      const heading = document.querySelector(".training-calendar h3")?.textContent;
+      const days = document.querySelectorAll(".training-calendar-grid button");
+      if (heading === expected.heading && days.length === expected.dayCount) {
+        document.documentElement.getBoundingClientRect();
+        setTimeout(() => done({
+          duration: window.performance.now() - started,
+          error: null,
+        }));
+        return;
+      }
+      if (window.performance.now() - started > 5_000) {
+        done({ duration: null, error: "training calendar month was not rendered" });
+        return;
+      }
+      setTimeout(observeResult, 16);
+    }
+    setTimeout(observeResult, 16);
+  }, scenario);
+  if (result.error) throw new Error(`${result.error}: ${scenario.heading}`);
+  return result.duration;
+}
+
 async function applySleepRange(from, through) {
   const input = {
     from,
@@ -863,6 +896,33 @@ export async function runInsightsPerformanceJourney({
     comparisonRanges,
     compareTrainingRanges,
   );
+  await applyTrainingRange("2024-01-01", "2025-12-31");
+  await $("aria/Calendar").click();
+  await expect($(".training-calendar h3")).toHaveText("December 2025");
+  const calendarScenarios = [
+    { buttonLabel: "Previous month", heading: "November 2025", dayCount: 30 },
+    { buttonLabel: "Next month", heading: "December 2025", dayCount: 31 },
+  ];
+  await measureAlternating(warmUpRuns, calendarScenarios, navigateTrainingCalendar);
+  const trainingCalendarTimings = await measureAlternating(
+    20,
+    calendarScenarios,
+    navigateTrainingCalendar,
+  );
+  await $("aria/Chronology").click();
+  await browser.waitUntil(
+    async () => (await $$(".training-session-results > li")).length === 25,
+    { timeout: 10_000, timeoutMsg: "training chronology did not return from calendar" },
+  );
+  const comparisonChoices = await $$(
+    ".training-session-result-actions input[type='checkbox']",
+  );
+  for (const choice of comparisonChoices.slice(0, 4)) await choice.click();
+  await expect($(".training-session-comparison")).toHaveText(
+    expect.stringContaining("4 sessions selected"),
+  );
+  expect(await $$(".training-session-comparison thead th")).toHaveLength(5);
+  await $(".training-session-comparison button.secondary").click();
 
   await openHomeQuestion("review-sleep-patterns", ".sleep-insights");
   const sleepFilterRange = ([from, through]) => applySleepRange(from, through);
@@ -977,6 +1037,7 @@ export async function runInsightsPerformanceJourney({
       commonFilter: measurementEvidence(trainingCommonFilterTimings, 500),
       maximumFilter: measurementEvidence(trainingMaximumFilterTimings, 2_000),
       commonComparison: measurementEvidence(trainingCommonComparisonTimings, 500),
+      calendarNavigation: measurementEvidence(trainingCalendarTimings, 500),
     },
     sleep: {
       commonFilter: measurementEvidence(sleepCommonFilterTimings, 500),

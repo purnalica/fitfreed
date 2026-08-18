@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-calendar-v1.schema.json",
+  "title": "FitFreed training-session calendar version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["availableRange", "snapshotRef", "month", "days"],
+  "properties": {
+    "availableRange": {
+      "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-search-v1.schema.json#/$defs/optionalRange"
+    },
+    "snapshotRef": {
+      "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-search-v1.schema.json#/$defs/snapshotRef"
+    },
+    "month": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"
+    },
+    "days": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "localDate",
+          "sourceIndex",
+          "sessionCount",
+          "totalDurationMilliseconds",
+          "distanceSessionCount",
+          "totalDistanceMeters",
+          "heartRateSessionCount"
+        ],
+        "properties": {
+          "localDate": {
+            "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-search-v1.schema.json#/$defs/localDate"
+          },
+          "sourceIndex": { "type": "integer", "minimum": 1 },
+          "sessionCount": { "type": "integer", "minimum": 1 },
+          "totalDurationMilliseconds": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]*)$"
+          },
+          "distanceSessionCount": { "type": "integer", "minimum": 0 },
+          "totalDistanceMeters": {
+            "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-search-v1.schema.json#/$defs/optionalDistance"
+          },
+          "heartRateSessionCount": { "type": "integer", "minimum": 0 }
+        }
+      }
+    }
+  }
+}

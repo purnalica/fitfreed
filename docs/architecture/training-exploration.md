@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production persists provider-neutral session summaries and user-authored sport classifications; full-history session discovery and evidence-complete detail continue through E3 and E4 of the [MVP experience delivery plan](../plans/mvp-experience-delivery.md).
+Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production persists provider-neutral session summaries, user-authored sport classifications, and a disposable discovery workspace. Full-history search, chronology, calendar projection, comparison selection, and restart restoration are implemented through E3; evidence-complete detail continues through E4 of the [MVP experience delivery plan](../plans/mvp-experience-delivery.md).
 
 ## Ownership
 
@@ -48,6 +48,15 @@ coverage, and user-label text without loading detail evidence. Each result carri
 summaries over the complete filtered set rather than reconstructing aggregates from the visible page. Offset
 pages share an opaque mutation snapshot; session or classification changes invalidate later pages instead of
 shifting them silently. Period-comparison windows remain a separate read model and cannot limit discovery.
+
+Calendar discovery projects the same complete-history filters and snapshot into exact source-separated local
+day aggregates. Comparison and open-detail restoration resolve an ordered set of opaque session capabilities
+against that snapshot rather than searching the currently visible page. Presentation persists only the
+versioned applied query, page, view, calendar origin, comparison order, and open session. A stale snapshot
+retains still-valid query intent but clears session-specific evidence; explicit return to Home clears the
+detailed workspace. The normative contracts are the
+[training-session search](../data-formats/insights/training-session-search-v1.md) and
+[training-discovery workspace](../data-formats/insights/training-discovery-workspace-v1.md) specifications.
 
 Mapping changes reassess identical source bytes. The visibility transaction publishes a complete enrichment or leaves the previous session intact. Child identities, order, provenance, and conflicts are versioned in the corresponding canonical, mapping, and persistence specifications when implemented.
 

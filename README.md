@@ -60,12 +60,13 @@ as already implemented production behavior.
 <!-- product-status:start -->
 | Available in source | Active experience work | Deliberately later |
 |---|---|---|
-| Polar Flow ZIP validation and import | Chronology, calendar discovery, and comparison selection | Additional providers and live APIs |
-| Explicit supported, ignored, and unrecognized coverage | Routed and non-routed session evidence workspaces | Linux and Windows distribution |
-| Safe exact and cumulative reimport | Origin-aware navigation across discovery, session, and report workspaces | Local MCP access for authorized agents |
-| Provider-neutral SQLite history for activity, training summaries, sleep, and recovery | Saved evidence reports with self-contained HTML export | Advanced encryption and extension systems |
-| Bounded visual comparison and longitudinal context | A coherent, evaluated, documented macOS product journey | Collaborative or hosted analytics |
+| Polar Flow ZIP validation and import | Routed and non-routed session evidence workspaces | Additional providers and live APIs |
+| Explicit supported, ignored, and unrecognized coverage | Origin-aware navigation across discovery, session, and report workspaces | Linux and Windows distribution |
+| Safe exact and cumulative reimport | Saved evidence reports with self-contained HTML export | Local MCP access for authorized agents |
+| Provider-neutral SQLite history for activity, training summaries, sleep, and recovery | A coherent, evaluated, documented macOS product journey | Advanced encryption and extension systems |
+| Bounded visual comparison and longitudinal context |  | Collaborative or hosted analytics |
 | User-authored sport classification and complete-history session search |  | Features without validated user value |
+| Chronology, source-separated calendar discovery, session comparison, and restart restoration |  |  |
 | Question-led Library Home, post-import reveal, and resumable exploration |  |  |
 | First-run Sources home with offline export guidance and allowlisted official links |  |  |
 | Durable language, appearance, and content zoom settings |  |  |

@@ -8,6 +8,8 @@ export type TrainingSessionSort =
   | "duration-desc"
   | "distance-desc";
 
+export type TrainingDiscoveryView = "chronology" | "calendar";
+
 export interface TrainingSessionSearchRequest {
   from: string | null;
   through: string | null;
@@ -17,6 +19,16 @@ export interface TrainingSessionSearchRequest {
   sort: TrainingSessionSort;
   offset: number;
   limit: number;
+  snapshotRef: string | null;
+}
+
+export interface TrainingSessionCalendarRequest {
+  month: string;
+  from: string | null;
+  through: string | null;
+  sportRefs: string[];
+  requiredMeasurements: TrainingMeasurementFilter[];
+  text: string | null;
   snapshotRef: string | null;
 }
 
@@ -62,4 +74,49 @@ export interface TrainingSessionSearchPage {
   nextOffset: number | null;
   summaries: TrainingSessionSearchSummary[];
   sessions: TrainingSessionSearchItem[];
+}
+
+export interface TrainingSessionCalendarDay {
+  localDate: string;
+  sourceIndex: number;
+  sessionCount: number;
+  totalDurationMilliseconds: string;
+  distanceSessionCount: number;
+  totalDistanceMeters: number | null;
+  heartRateSessionCount: number;
+}
+
+export interface TrainingSessionCalendar {
+  availableRange: { from: string; through: string } | null;
+  snapshotRef: string;
+  month: string;
+  days: TrainingSessionCalendarDay[];
+}
+
+export interface TrainingSessionSelectionRequest {
+  sessionRefs: string[];
+  snapshotRef: string | null;
+}
+
+export interface TrainingSessionSelection {
+  snapshotRef: string;
+  sessions: TrainingSessionSearchItem[];
+}
+
+export interface TrainingDiscoveryWorkspace {
+  version: 1;
+  snapshotRef: string;
+  from: string | null;
+  through: string | null;
+  sportRefs: string[];
+  requiredMeasurements: TrainingMeasurementFilter[];
+  text: string | null;
+  sort: TrainingSessionSort;
+  offset: number;
+  limit: number;
+  view: TrainingDiscoveryView;
+  calendarMonth: string | null;
+  calendarDay: string | null;
+  selectedSessionRefs: string[];
+  openSessionRef: string | null;
 }

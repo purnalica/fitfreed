@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-selection-query-v1.schema.json",
+  "title": "FitFreed training-session selection query version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sessionRefs", "snapshotRef"],
+  "properties": {
+    "sessionRefs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-search-v1.schema.json#/$defs/sessionRef"
+      }
+    },
+    "snapshotRef": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-search-v1.schema.json#/$defs/snapshotRef"
+        }
+      ]
+    }
+  }
+}

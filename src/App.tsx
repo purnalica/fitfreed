@@ -393,6 +393,7 @@ function App() {
   async function returnToLibraryHome() {
     setErrorCode(undefined);
     try {
+      await invoke("clear_training_discovery_workspace");
       await invoke("clear_exploration_workspace");
       setExploreDestination(undefined);
       setExplorerNavigation(undefined);

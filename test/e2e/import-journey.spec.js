@@ -929,6 +929,31 @@ describe("packaged FitFreed import journey", () => {
       [enJan5Start, "30 min", "Not recorded", "Not recorded"],
       [enJan4Start, "1 h", "10,000 m", "600 kcal"],
     ]);
+    const comparisonCheckboxes = await $$(
+      ".training-session-result-actions input[type='checkbox']",
+    );
+    expect(comparisonCheckboxes).toHaveLength(2);
+    await comparisonCheckboxes[0].click();
+    await comparisonCheckboxes[1].click();
+    await expect($(".training-session-comparison")).toHaveText(
+      expect.stringContaining("2 sessions selected"),
+    );
+    expect(await $$(".training-session-comparison tbody tr")).toHaveLength(4);
+    await $(".training-session-comparison button.secondary").click();
+    expect(await $$(".training-session-comparison")).toHaveLength(0);
+
+    await $("aria/Calendar").click();
+    await expect($(".training-calendar h3")).toHaveText("January 2026");
+    await $('button[aria-label*="January 4, 2026"]').click();
+    await expectTrainingRows([[enJan4Start, "1 h", "10,000 m", "600 kcal"]]);
+    await $(".training-session-results button.secondary").click();
+    await expect($("#training-session-detail-heading")).toHaveText("Session summary");
+    await $("aria/Back to calendar").click();
+    await $("aria/Chronology").click();
+    await expectTrainingRows([
+      [enJan5Start, "30 min", "Not recorded", "Not recorded"],
+      [enJan4Start, "1 h", "10,000 m", "600 kcal"],
+    ]);
     await openHomeQuestion(
       english,
       "review-sleep-patterns",
@@ -2103,11 +2128,73 @@ describe("packaged FitFreed import journey", () => {
     await expect($(".training-sport-list > li[data-state='classified'] h3")).toHaveText(
       "Carrera de montaña",
     );
+    const restoredComparisonCheckboxes = await $$(
+      ".training-session-result-actions input[type='checkbox']",
+    );
+    expect(restoredComparisonCheckboxes).toHaveLength(3);
+    await restoredComparisonCheckboxes[0].click();
+    await restoredComparisonCheckboxes[1].click();
+    await $(`aria/${spanish.training.sessionLibrary.calendar}`).click();
+    await expect($(".training-calendar h3")).toHaveText("enero de 2026");
+    await $('button[aria-label*="4 de enero de 2026"]').click();
+    await expectTrainingRows([[esJan4Start, "1 h", "10.500 m", "600 kcal"]]);
+    const restoredDetailButton = await $(
+      'button[aria-label^="Ver detalles de la sesión del"]',
+    );
+    await restoredDetailButton.click();
+    await expect($("#training-session-detail-heading")).toHaveText(
+      spanish.training.sessionLibrary.detailHeading,
+    );
+    await browser.pause(300);
+    const persistedTrainingWorkspace = await browser.executeAsync((done) => {
+      window.__TAURI__.core.invoke("load_training_discovery_workspace")
+        .then((workspace) => done({ workspace, error: null }))
+        .catch((error) => done({ workspace: null, error: String(error) }));
+    });
+    expect(persistedTrainingWorkspace.error).toBeNull();
+    expect(persistedTrainingWorkspace.workspace).toEqual(expect.objectContaining({
+      view: "calendar",
+      calendarMonth: "2026-01",
+      calendarDay: "2026-01-04",
+      openSessionRef: expect.stringMatching(/^session-[0-9a-f]{64}$/),
+      selectedSessionRefs: expect.arrayContaining([
+        expect.stringMatching(/^session-[0-9a-f]{64}$/),
+        expect.stringMatching(/^session-[0-9a-f]{64}$/),
+      ]),
+    }));
     await browser.reloadSession();
     await $(".training-insights").waitForDisplayed({ timeout: 10_000 });
     await expect($(".training-sport-list > li[data-state='classified'] h3")).toHaveText(
       "Carrera de montaña",
     );
+    const restoredTrainingWorkspace = await browser.executeAsync((done) => {
+      window.__TAURI__.core.invoke("load_training_discovery_workspace")
+        .then((workspace) => done({ workspace, error: null }))
+        .catch((error) => done({ workspace: null, error: String(error) }));
+    });
+    expect(restoredTrainingWorkspace.error).toBeNull();
+    expect(restoredTrainingWorkspace.workspace).toEqual(expect.objectContaining({
+      view: "calendar",
+      calendarMonth: "2026-01",
+      calendarDay: "2026-01-04",
+    }));
+    const restoredViewControls = await $$(
+      ".training-session-view-switch input[type='radio']",
+    );
+    expect(restoredViewControls).toHaveLength(2);
+    await expect(restoredViewControls[1]).toBeChecked();
+    await expect($(".training-calendar h3")).toHaveText("enero de 2026");
+    await expect($('button[aria-label*="4 de enero de 2026"]')).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect($(".training-session-comparison")).toHaveText(
+      expect.stringContaining("2 sesiones seleccionadas"),
+    );
+    await expect($("#training-session-detail-heading")).toHaveText(
+      spanish.training.sessionLibrary.detailHeading,
+    );
+    await expect($(`aria/${spanish.training.sessionLibrary.backToCalendar}`)).toBeDisplayed();
     await returnToLibraryHome(spanish);
     await browser.reloadSession();
     await expectLibraryHome(spanish);

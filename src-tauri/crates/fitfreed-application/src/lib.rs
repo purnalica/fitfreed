@@ -28,10 +28,16 @@ pub use sport_discovery::{
 
 mod training_discovery;
 pub use training_discovery::{
-    query_training_sessions, PersistedTrainingSessionSearchPage, TrainingMeasurementFilter,
+    clear_training_discovery_workspace, load_training_discovery_workspace,
+    query_training_session_calendar, query_training_session_selection, query_training_sessions,
+    save_training_discovery_workspace, PersistedTrainingSessionCalendar,
+    PersistedTrainingSessionSearchPage, PersistedTrainingSessionSelection, TrainingDiscoveryView,
+    TrainingDiscoveryWorkspace, TrainingDiscoveryWorkspacePort, TrainingMeasurementFilter,
+    TrainingSessionCalendar, TrainingSessionCalendarDay, TrainingSessionCalendarRequest,
     TrainingSessionDiscoveryPort, TrainingSessionDiscoveryPortError, TrainingSessionSearchItem,
     TrainingSessionSearchPage, TrainingSessionSearchRequest, TrainingSessionSearchSummary,
-    TrainingSessionSort, TrainingSessionSport,
+    TrainingSessionSelection, TrainingSessionSelectionRequest, TrainingSessionSort,
+    TrainingSessionSport,
 };
 
 #[cfg(test)]
@@ -1319,6 +1325,12 @@ pub enum ApplicationError {
     TrainingSessionSearchChanged,
     #[error("training-session search failed: {0}")]
     TrainingSessionSearch(String),
+    #[error("invalid training discovery workspace: {0}")]
+    InvalidTrainingDiscoveryWorkspace(&'static str),
+    #[error("training discovery workspace query failed: {0}")]
+    TrainingDiscoveryWorkspaceQuery(String),
+    #[error("training discovery workspace update failed: {0}")]
+    TrainingDiscoveryWorkspaceUpdate(String),
     #[error("invalid sport classification: {0}")]
     InvalidSportClassification(&'static str),
     #[error("sport classification changed while it was being edited")]

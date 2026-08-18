@@ -385,6 +385,7 @@ function offerExploration(
       savedDestination = null;
       return Promise.resolve(undefined);
     }
+    if (command === "clear_training_discovery_workspace") return Promise.resolve(undefined);
     throw new Error(`Unexpected Home command: ${command}`);
   });
   return question.label;
@@ -542,7 +543,12 @@ vi.mock("@tauri-apps/api/core", () => ({
       : command === "query_library_home"
         || command === "save_exploration_workspace"
         || command === "clear_exploration_workspace"
+        || command === "clear_training_discovery_workspace"
       ? mocks.homeInvoke(command, arguments_)
+      : command === "load_training_discovery_workspace"
+      ? Promise.resolve(null)
+      : command === "save_training_discovery_workspace"
+      ? Promise.resolve(arguments_.workspace)
       : command.endsWith("_preferences")
       ? mocks.preferencesInvoke(command, arguments_)
       : command.includes("update")
@@ -616,6 +622,7 @@ beforeEach(() => {
   mocks.homeInvoke.mockImplementation((command) => {
     if (command === "query_library_home") return Promise.resolve(emptyLibraryHome());
     if (command === "clear_exploration_workspace") return Promise.resolve(undefined);
+    if (command === "clear_training_discovery_workspace") return Promise.resolve(undefined);
     throw new Error(`Unexpected Home command: ${command}`);
   });
   mocks.preferencesInvoke.mockImplementation((command, arguments_) => {
@@ -770,6 +777,7 @@ describe("FitFreed import interface", () => {
         return Promise.resolve({ version: 1, destination: "training" });
       }
       if (command === "clear_exploration_workspace") return Promise.resolve(undefined);
+      if (command === "clear_training_discovery_workspace") return Promise.resolve(undefined);
       throw new Error(`Unexpected Home command: ${command}`);
     });
     mocks.invoke.mockImplementation((command) => {
@@ -799,6 +807,17 @@ describe("FitFreed import interface", () => {
     expect(await screen.findByRole("heading", { name: "Your history, ready for your questions" }))
       .toBeVisible();
     expect(mocks.homeInvoke).toHaveBeenCalledWith("clear_exploration_workspace", undefined);
+    expect(mocks.homeInvoke).toHaveBeenCalledWith(
+      "clear_training_discovery_workspace",
+      undefined,
+    );
+    expect(mocks.homeInvoke.mock.invocationCallOrder[
+      mocks.homeInvoke.mock.calls.findIndex(([command]) => (
+        command === "clear_training_discovery_workspace"
+      ))
+    ]).toBeLessThan(mocks.homeInvoke.mock.invocationCallOrder[
+      mocks.homeInvoke.mock.calls.findIndex(([command]) => command === "clear_exploration_workspace")
+    ]);
   });
 
   it("restores a valid durable exploration without loading unrelated domains", async () => {
@@ -877,6 +896,7 @@ describe("FitFreed import interface", () => {
         return Promise.resolve({ version: 1, destination: arguments_.destination });
       }
       if (command === "clear_exploration_workspace") return Promise.resolve(undefined);
+      if (command === "clear_training_discovery_workspace") return Promise.resolve(undefined);
       throw new Error(`Unexpected Home command: ${command}`);
     });
     mocks.invoke.mockImplementation((command) => {
@@ -920,6 +940,7 @@ describe("FitFreed import interface", () => {
         return Promise.resolve({ version: 1, destination: arguments_.destination });
       }
       if (command === "clear_exploration_workspace") return Promise.resolve(undefined);
+      if (command === "clear_training_discovery_workspace") return Promise.resolve(undefined);
       throw new Error(`Unexpected Home command: ${command}`);
     });
     mocks.longitudinalInvoke.mockImplementation((command) => {
@@ -2210,6 +2231,7 @@ describe("FitFreed import interface", () => {
         savedDestination = null;
         return Promise.resolve(undefined);
       }
+      if (command === "clear_training_discovery_workspace") return Promise.resolve(undefined);
       throw new Error(`Unexpected Home command: ${command}`);
     });
     mocks.invoke.mockImplementation((command, arguments_) => {

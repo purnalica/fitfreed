@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-calendar-query-v1.schema.json",
+  "title": "FitFreed training-session calendar query version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "month",
+    "from",
+    "through",
+    "sportRefs",
+    "requiredMeasurements",
+    "text",
+    "snapshotRef"
+  ],
+  "properties": {
+    "month": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"
+    },
+    "from": {
+      "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-search-query-v1.schema.json#/$defs/optionalLocalDate"
+    },
+    "through": {
+      "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-search-query-v1.schema.json#/$defs/optionalLocalDate"
+    },
+    "sportRefs": {
+      "type": "array",
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-search-query-v1.schema.json#/$defs/sportRef"
+      }
+    },
+    "requiredMeasurements": {
+      "type": "array",
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": { "enum": ["distance", "energy", "heart-rate"] }
+    },
+    "text": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "pattern": "^(?=\\S)(?:(?![\\u0000-\\u001F\\u007F-\\u009F])[\\s\\S])*\\S$"
+        }
+      ]
+    },
+    "snapshotRef": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-search-query-v1.schema.json#/$defs/snapshotRef"
+        }
+      ]
+    }
+  }
+}

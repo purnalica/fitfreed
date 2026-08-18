@@ -13,7 +13,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use chrono::{DateTime, NaiveDate, NaiveDateTime, SecondsFormat, Timelike};
+use chrono::{DateTime, Months, NaiveDate, NaiveDateTime, SecondsFormat, Timelike};
 use regex::Regex;
 use rusqlite::{
     params, params_from_iter,
@@ -41,13 +41,16 @@ use fitfreed_application::{
     ActivityDateRange, ActivityLibraryPort, ApplicationPreferences, ApplicationPreferencesPort,
     ArchiveImportPort, DetectedTrainingSport, ExplorationWorkspace, ExplorationWorkspacePort,
     ExploreDestination, ImportOutcomeLibraryPort, ImportPhase, ImportPhaseTimings, ImportProgress,
-    PersistedTrainingSessionSearchPage, ProfiledImport, RecoveryDateRange, RecoveryLibraryNight,
+    PersistedTrainingSessionCalendar, PersistedTrainingSessionSearchPage,
+    PersistedTrainingSessionSelection, ProfiledImport, RecoveryDateRange, RecoveryLibraryNight,
     RecoveryLibraryPort, SleepDateRange, SleepLibraryPeriod, SleepLibraryPort,
     StoredApplicationPreferences, StoredExplorationWorkspace, TrainingDateRange,
-    TrainingLibraryPort, TrainingMeasurementFilter, TrainingSessionDiscoveryPort,
+    TrainingDiscoveryView, TrainingDiscoveryWorkspace, TrainingDiscoveryWorkspacePort,
+    TrainingLibraryPort, TrainingMeasurementFilter, TrainingSessionCalendarDay,
+    TrainingSessionCalendarRequest, TrainingSessionDiscoveryPort,
     TrainingSessionDiscoveryPortError, TrainingSessionSearchItem, TrainingSessionSearchRequest,
-    TrainingSessionSearchSummary, TrainingSessionSort, TrainingSessionSport,
-    TrainingSportClassification, TrainingSportState, TrainingSportsPort,
+    TrainingSessionSearchSummary, TrainingSessionSelectionRequest, TrainingSessionSort,
+    TrainingSessionSport, TrainingSportClassification, TrainingSportState, TrainingSportsPort,
 };
 use fitfreed_domain::{
     decide_nightly_recovery_reconciliation, decide_reconciliation,
@@ -114,7 +117,7 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 13;
+const SCHEMA_VERSION: i64 = 14;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
@@ -128,6 +131,7 @@ const SCHEMA_V10: &str = include_str!("../migrations/0010_application_preference
 const SCHEMA_V11: &str = include_str!("../migrations/0011_exploration_workspace.sql");
 const SCHEMA_V12: &str = include_str!("../migrations/0012_sport_classification.sql");
 const SCHEMA_V13: &str = include_str!("../migrations/0013_training_session_discovery.sql");
+const SCHEMA_V14: &str = include_str!("../migrations/0014_training_discovery_workspace.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
 const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@6";
 const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@1";
@@ -1678,6 +1682,54 @@ struct TrainingDiscoverySportEntry {
     public_sport: TrainingSessionSport,
 }
 
+fn training_discovery_filter(
+    sport_entries: &[TrainingDiscoverySportEntry],
+    request: &TrainingSessionSearchRequest,
+) -> std::result::Result<(String, Vec<Value>), TrainingSessionDiscoveryPortError> {
+    let selected_entries = select_training_discovery_sports(sport_entries, request)?;
+    let mut values = vec![
+        request.from.clone().map_or(Value::Null, Value::Text),
+        request.through.clone().map_or(Value::Null, Value::Text),
+    ];
+    let mut predicates = vec![
+        "(?1 IS NULL OR session.started_at_local >= ?1 || 'T')".to_owned(),
+        "(?2 IS NULL OR session.started_at_local <= ?2 || 'T23:59:59.999999999')".to_owned(),
+    ];
+    for measurement in &request.required_measurements {
+        predicates.push(match measurement {
+            TrainingMeasurementFilter::Distance => "session.distance_meters IS NOT NULL",
+            TrainingMeasurementFilter::Energy => "session.energy_kilocalories IS NOT NULL",
+            TrainingMeasurementFilter::HeartRate => {
+                "(session.average_heart_rate_bpm IS NOT NULL OR session.maximum_heart_rate_bpm IS NOT NULL)"
+            }
+        }
+        .to_owned());
+    }
+    if let Some(selected_entries) = selected_entries {
+        if selected_entries.is_empty() {
+            predicates.push("0".to_owned());
+        } else {
+            let mut sport_predicates = Vec::with_capacity(selected_entries.len());
+            for entry in selected_entries {
+                let origin_parameter = values.len() + 1;
+                values.push(Value::Text(entry.origin_id.clone()));
+                let sport_parameter = values.len() + 1;
+                values.push(
+                    entry
+                        .source_sport_ref
+                        .clone()
+                        .map_or(Value::Null, Value::Text),
+                );
+                sport_predicates.push(format!(
+                    "(session.origin_id = ?{origin_parameter} AND session.sport_ref IS ?{sport_parameter})"
+                ));
+            }
+            predicates.push(format!("({})", sport_predicates.join(" OR ")));
+        }
+    }
+    Ok((predicates.join(" AND "), values))
+}
+
 fn query_training_session_discovery(
     database_path: &Path,
     request: &TrainingSessionSearchRequest,
@@ -1726,48 +1778,7 @@ fn query_training_session_discovery(
         })
         .collect::<HashMap<_, _>>();
 
-    let selected_entries = select_training_discovery_sports(&sport_entries, request)?;
-    let mut values = vec![
-        request.from.clone().map_or(Value::Null, Value::Text),
-        request.through.clone().map_or(Value::Null, Value::Text),
-    ];
-    let mut predicates = vec![
-        "(?1 IS NULL OR session.started_at_local >= ?1 || 'T')".to_owned(),
-        "(?2 IS NULL OR session.started_at_local <= ?2 || 'T23:59:59.999999999')".to_owned(),
-    ];
-    for measurement in &request.required_measurements {
-        predicates.push(match measurement {
-            TrainingMeasurementFilter::Distance => "session.distance_meters IS NOT NULL",
-            TrainingMeasurementFilter::Energy => "session.energy_kilocalories IS NOT NULL",
-            TrainingMeasurementFilter::HeartRate => {
-                "(session.average_heart_rate_bpm IS NOT NULL OR session.maximum_heart_rate_bpm IS NOT NULL)"
-            }
-        }
-        .to_owned());
-    }
-    if let Some(selected_entries) = selected_entries {
-        if selected_entries.is_empty() {
-            predicates.push("0".to_owned());
-        } else {
-            let mut sport_predicates = Vec::with_capacity(selected_entries.len());
-            for entry in selected_entries {
-                let origin_parameter = values.len() + 1;
-                values.push(Value::Text(entry.origin_id.clone()));
-                let sport_parameter = values.len() + 1;
-                values.push(
-                    entry
-                        .source_sport_ref
-                        .clone()
-                        .map_or(Value::Null, Value::Text),
-                );
-                sport_predicates.push(format!(
-                    "(session.origin_id = ?{origin_parameter} AND session.sport_ref IS ?{sport_parameter})"
-                ));
-            }
-            predicates.push(format!("({})", sport_predicates.join(" OR ")));
-        }
-    }
-    let where_clause = predicates.join(" AND ");
+    let (where_clause, mut values) = training_discovery_filter(&sport_entries, request)?;
     let total_count = transaction
         .query_row(
             &format!("SELECT COUNT(*) FROM training_session AS session WHERE {where_clause}"),
@@ -1972,6 +1983,291 @@ fn query_training_session_discovery(
         snapshot_ref,
         total_count,
         summaries,
+        sessions,
+    })
+}
+
+fn query_training_calendar_discovery(
+    database_path: &Path,
+    request: &TrainingSessionCalendarRequest,
+) -> std::result::Result<PersistedTrainingSessionCalendar, TrainingSessionDiscoveryPortError> {
+    let first = NaiveDate::parse_from_str(&format!("{}-01", request.month), "%Y-%m-%d")
+        .map_err(discovery_failure)?;
+    let month_through = first
+        .checked_add_months(Months::new(1))
+        .and_then(|date| date.pred_opt())
+        .ok_or_else(|| {
+            TrainingSessionDiscoveryPortError::Failure(
+                "training calendar month is outside the supported date range".to_owned(),
+            )
+        })?;
+    let month_from = first.format("%Y-%m-%d").to_string();
+    let month_through = month_through.format("%Y-%m-%d").to_string();
+    let effective_from = request
+        .from
+        .as_ref()
+        .map_or_else(|| month_from.clone(), |from| from.max(&month_from).clone());
+    let effective_through = request.through.as_ref().map_or_else(
+        || month_through.clone(),
+        |through| through.min(&month_through).clone(),
+    );
+    let search_request = TrainingSessionSearchRequest {
+        from: Some(effective_from),
+        through: Some(effective_through),
+        sport_refs: request.sport_refs.clone(),
+        required_measurements: request.required_measurements.clone(),
+        text: request.text.clone(),
+        sort: TrainingSessionSort::StartedAscending,
+        offset: 0,
+        limit: 1,
+        snapshot_ref: request.snapshot_ref.clone(),
+    };
+
+    let mut connection = Connection::open(database_path).map_err(discovery_failure)?;
+    ensure_schema(&connection).map_err(discovery_failure)?;
+    let transaction = connection.transaction().map_err(discovery_failure)?;
+    let revision = transaction
+        .query_row(
+            "SELECT revision FROM training_discovery_revision WHERE id = 1",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .map_err(discovery_failure)?;
+    if revision < 1 {
+        return Err(TrainingSessionDiscoveryPortError::Failure(
+            "training discovery revision is invalid".to_owned(),
+        ));
+    }
+    let snapshot_ref = training_snapshot_ref(revision);
+    if request
+        .snapshot_ref
+        .as_ref()
+        .is_some_and(|expected| expected != &snapshot_ref)
+    {
+        return Err(TrainingSessionDiscoveryPortError::SnapshotChanged);
+    }
+    let available_range = query_training_bounds_on(&transaction).map_err(discovery_failure)?;
+    let sport_entries = query_training_discovery_sports(&transaction).map_err(discovery_failure)?;
+    let source_indices = sport_entries
+        .iter()
+        .map(|entry| entry.origin_id.clone())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .enumerate()
+        .map(|(index, origin)| (origin, index + 1))
+        .collect::<BTreeMap<_, _>>();
+    let (where_clause, values) = training_discovery_filter(&sport_entries, &search_request)?;
+    let query = format!(
+        "SELECT substr(session.started_at_local, 1, 10), session.origin_id,
+                COUNT(*), SUM(session.duration_milliseconds),
+                COUNT(session.distance_meters), SUM(session.distance_meters),
+                SUM(CASE WHEN session.average_heart_rate_bpm IS NOT NULL
+                              OR session.maximum_heart_rate_bpm IS NOT NULL
+                         THEN 1 ELSE 0 END)
+         FROM training_session AS session
+         WHERE {where_clause}
+         GROUP BY substr(session.started_at_local, 1, 10), session.origin_id
+         ORDER BY substr(session.started_at_local, 1, 10), session.origin_id"
+    );
+    let mut statement = transaction.prepare(&query).map_err(discovery_failure)?;
+    let rows = statement
+        .query_map(params_from_iter(values.iter()), |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, i64>(2)?,
+                row.get::<_, i64>(3)?,
+                row.get::<_, i64>(4)?,
+                row.get::<_, Option<f64>>(5)?,
+                row.get::<_, i64>(6)?,
+            ))
+        })
+        .map_err(discovery_failure)?;
+    let mut days = Vec::new();
+    for row in rows {
+        let (
+            local_date,
+            origin_id,
+            session_count,
+            total_duration_milliseconds,
+            distance_session_count,
+            total_distance_meters,
+            heart_rate_session_count,
+        ) = row.map_err(discovery_failure)?;
+        let source_index = source_indices.get(&origin_id).copied().ok_or_else(|| {
+            TrainingSessionDiscoveryPortError::Failure(
+                "training calendar origin has no source index".to_owned(),
+            )
+        })?;
+        days.push(TrainingSessionCalendarDay {
+            local_date,
+            source_index,
+            session_count: persisted_count(session_count, "calendar_session_count")
+                .map_err(discovery_failure)?,
+            total_duration_milliseconds: i128::from(total_duration_milliseconds),
+            distance_session_count: persisted_count(
+                distance_session_count,
+                "calendar_distance_session_count",
+            )
+            .map_err(discovery_failure)?,
+            total_distance_meters,
+            heart_rate_session_count: persisted_count(
+                heart_rate_session_count,
+                "calendar_heart_rate_session_count",
+            )
+            .map_err(discovery_failure)?,
+        });
+    }
+    drop(statement);
+    transaction.commit().map_err(discovery_failure)?;
+    Ok(PersistedTrainingSessionCalendar {
+        available_range,
+        snapshot_ref,
+        days,
+    })
+}
+
+fn query_training_session_selection_discovery(
+    database_path: &Path,
+    request: &TrainingSessionSelectionRequest,
+) -> std::result::Result<PersistedTrainingSessionSelection, TrainingSessionDiscoveryPortError> {
+    let mut connection = Connection::open(database_path).map_err(discovery_failure)?;
+    ensure_schema(&connection).map_err(discovery_failure)?;
+    let transaction = connection.transaction().map_err(discovery_failure)?;
+    let revision = transaction
+        .query_row(
+            "SELECT revision FROM training_discovery_revision WHERE id = 1",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .map_err(discovery_failure)?;
+    if revision < 1 {
+        return Err(TrainingSessionDiscoveryPortError::Failure(
+            "training discovery revision is invalid".to_owned(),
+        ));
+    }
+    let snapshot_ref = training_snapshot_ref(revision);
+    if request
+        .snapshot_ref
+        .as_ref()
+        .is_some_and(|expected| expected != &snapshot_ref)
+    {
+        return Err(TrainingSessionDiscoveryPortError::SnapshotChanged);
+    }
+    let sport_entries = query_training_discovery_sports(&transaction).map_err(discovery_failure)?;
+    let source_indices = sport_entries
+        .iter()
+        .map(|entry| entry.origin_id.clone())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .enumerate()
+        .map(|(index, origin)| (origin, index + 1))
+        .collect::<BTreeMap<_, _>>();
+    let sport_by_identity = sport_entries
+        .into_iter()
+        .map(|entry| {
+            (
+                (entry.origin_id, entry.source_sport_ref),
+                entry.public_sport,
+            )
+        })
+        .collect::<HashMap<_, _>>();
+    let requested = request
+        .session_refs
+        .iter()
+        .map(String::as_str)
+        .collect::<HashSet<_>>();
+    let mut statement = transaction
+        .prepare(
+            "SELECT origin_id, session_id, started_at_local, stopped_at_local,
+                    utc_offset_minutes, duration_milliseconds, distance_meters,
+                    energy_kilocalories, average_heart_rate_bpm, maximum_heart_rate_bpm,
+                    sport_ref, exercise_count
+             FROM training_session
+             ORDER BY origin_id, session_id",
+        )
+        .map_err(discovery_failure)?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, Option<i32>>(4)?,
+                row.get::<_, i64>(5)?,
+                row.get::<_, Option<f64>>(6)?,
+                row.get::<_, Option<i64>>(7)?,
+                row.get::<_, Option<i64>>(8)?,
+                row.get::<_, Option<i64>>(9)?,
+                row.get::<_, Option<String>>(10)?,
+                row.get::<_, Option<i64>>(11)?,
+            ))
+        })
+        .map_err(discovery_failure)?;
+    let mut selected_by_ref = HashMap::new();
+    for row in rows {
+        let (
+            origin_id,
+            session_id,
+            started_at_local,
+            stopped_at_local,
+            utc_offset_minutes,
+            duration_milliseconds,
+            distance_meters,
+            energy_kilocalories,
+            average_heart_rate_bpm,
+            maximum_heart_rate_bpm,
+            source_sport_ref,
+            exercise_count,
+        ) = row.map_err(discovery_failure)?;
+        let session_ref = training_session_ref(&origin_id, &session_id);
+        if !requested.contains(session_ref.as_str()) {
+            continue;
+        }
+        let source_index = source_indices.get(&origin_id).copied().ok_or_else(|| {
+            TrainingSessionDiscoveryPortError::Failure(
+                "selected training session origin has no source index".to_owned(),
+            )
+        })?;
+        let sport = sport_by_identity
+            .get(&(origin_id, source_sport_ref))
+            .cloned()
+            .ok_or_else(|| {
+                TrainingSessionDiscoveryPortError::Failure(
+                    "selected training session sport context is unavailable".to_owned(),
+                )
+            })?;
+        selected_by_ref.insert(
+            session_ref.clone(),
+            TrainingSessionSearchItem {
+                session_ref,
+                source_index,
+                started_at_local,
+                stopped_at_local,
+                utc_offset_minutes,
+                duration_milliseconds,
+                distance_meters,
+                energy_kilocalories,
+                average_heart_rate_bpm,
+                maximum_heart_rate_bpm,
+                exercise_count: exercise_count
+                    .map(|count| persisted_count(count, "exercise_count"))
+                    .transpose()
+                    .map_err(discovery_failure)?,
+                sport,
+            },
+        );
+    }
+    drop(statement);
+    let sessions = request
+        .session_refs
+        .iter()
+        .filter_map(|session_ref| selected_by_ref.remove(session_ref))
+        .collect();
+    transaction.commit().map_err(discovery_failure)?;
+    Ok(PersistedTrainingSessionSelection {
+        snapshot_ref,
         sessions,
     })
 }
@@ -2769,6 +3065,199 @@ pub fn clear_exploration_workspace_record(database_path: &Path) -> Result<()> {
     Ok(())
 }
 
+pub fn load_training_discovery_workspace_record(
+    database_path: &Path,
+) -> Result<Option<TrainingDiscoveryWorkspace>> {
+    let connection = Connection::open(database_path)?;
+    ensure_schema(&connection)?;
+    let stored = connection
+        .query_row(
+            "SELECT workspace_version, snapshot_ref, from_date, through_date,
+                    sport_refs_json, required_measurements_json, text_filter, sort_code,
+                    page_offset, page_limit, view_code, calendar_month, calendar_day,
+                    selected_session_refs_json, open_session_ref
+             FROM training_discovery_workspace
+             WHERE id = 1",
+            [],
+            |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, Option<String>>(2)?,
+                    row.get::<_, Option<String>>(3)?,
+                    row.get::<_, String>(4)?,
+                    row.get::<_, String>(5)?,
+                    row.get::<_, Option<String>>(6)?,
+                    row.get::<_, String>(7)?,
+                    row.get::<_, i64>(8)?,
+                    row.get::<_, i64>(9)?,
+                    row.get::<_, String>(10)?,
+                    row.get::<_, Option<String>>(11)?,
+                    row.get::<_, Option<String>>(12)?,
+                    row.get::<_, String>(13)?,
+                    row.get::<_, Option<String>>(14)?,
+                ))
+            },
+        )
+        .optional()?;
+    let Some((
+        version,
+        snapshot_ref,
+        from,
+        through,
+        sport_refs_json,
+        measurements_json,
+        text,
+        sort_code,
+        offset,
+        limit,
+        view_code,
+        calendar_month,
+        calendar_day,
+        selected_session_refs_json,
+        open_session_ref,
+    )) = stored
+    else {
+        return Ok(None);
+    };
+    let invalid = |reason: &str| ImportError::InvalidTrainingLibrary(reason.to_owned());
+    let sport_refs = serde_json::from_str::<Vec<String>>(&sport_refs_json)
+        .map_err(|_| invalid("stored training workspace sport filters are invalid"))?;
+    let measurement_codes = serde_json::from_str::<Vec<String>>(&measurements_json)
+        .map_err(|_| invalid("stored training workspace measurement filters are invalid"))?;
+    let required_measurements = measurement_codes
+        .into_iter()
+        .map(|code| match code.as_str() {
+            "distance" => Ok(TrainingMeasurementFilter::Distance),
+            "energy" => Ok(TrainingMeasurementFilter::Energy),
+            "heart-rate" => Ok(TrainingMeasurementFilter::HeartRate),
+            _ => Err(invalid(
+                "stored training workspace measurement filter is unknown",
+            )),
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let selected_session_refs = serde_json::from_str::<Vec<String>>(&selected_session_refs_json)
+        .map_err(|_| invalid("stored training workspace selection is invalid"))?;
+    let sort = match sort_code.as_str() {
+        "started-desc" => TrainingSessionSort::StartedDescending,
+        "started-asc" => TrainingSessionSort::StartedAscending,
+        "duration-desc" => TrainingSessionSort::DurationDescending,
+        "distance-desc" => TrainingSessionSort::DistanceDescending,
+        _ => return Err(invalid("stored training workspace sort is unknown")),
+    };
+    let view = match view_code.as_str() {
+        "chronology" => TrainingDiscoveryView::Chronology,
+        "calendar" => TrainingDiscoveryView::Calendar,
+        _ => return Err(invalid("stored training workspace view is unknown")),
+    };
+    Ok(Some(TrainingDiscoveryWorkspace {
+        version: u32::try_from(version)
+            .map_err(|_| invalid("stored training workspace version is invalid"))?,
+        snapshot_ref,
+        from,
+        through,
+        sport_refs,
+        required_measurements,
+        text,
+        sort,
+        offset: usize::try_from(offset)
+            .map_err(|_| invalid("stored training workspace offset is invalid"))?,
+        limit: usize::try_from(limit)
+            .map_err(|_| invalid("stored training workspace limit is invalid"))?,
+        view,
+        calendar_month,
+        calendar_day,
+        selected_session_refs,
+        open_session_ref,
+    }))
+}
+
+pub fn save_training_discovery_workspace_record(
+    database_path: &Path,
+    workspace: &TrainingDiscoveryWorkspace,
+) -> Result<()> {
+    let connection = Connection::open(database_path)?;
+    ensure_schema(&connection)?;
+    let measurement_codes = workspace
+        .required_measurements
+        .iter()
+        .map(|measurement| match measurement {
+            TrainingMeasurementFilter::Distance => "distance",
+            TrainingMeasurementFilter::Energy => "energy",
+            TrainingMeasurementFilter::HeartRate => "heart-rate",
+        })
+        .collect::<Vec<_>>();
+    let sport_refs_json = serde_json::to_string(&workspace.sport_refs)
+        .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
+    let measurements_json = serde_json::to_string(&measurement_codes)
+        .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
+    let selected_session_refs_json = serde_json::to_string(&workspace.selected_session_refs)
+        .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
+    let sort_code = match workspace.sort {
+        TrainingSessionSort::StartedDescending => "started-desc",
+        TrainingSessionSort::StartedAscending => "started-asc",
+        TrainingSessionSort::DurationDescending => "duration-desc",
+        TrainingSessionSort::DistanceDescending => "distance-desc",
+    };
+    let view_code = match workspace.view {
+        TrainingDiscoveryView::Chronology => "chronology",
+        TrainingDiscoveryView::Calendar => "calendar",
+    };
+    connection.execute(
+        "INSERT INTO training_discovery_workspace (
+             id, workspace_version, snapshot_ref, from_date, through_date,
+             sport_refs_json, required_measurements_json, text_filter, sort_code,
+             page_offset, page_limit, view_code, calendar_month, calendar_day,
+             selected_session_refs_json, open_session_ref, updated_at_utc
+         ) VALUES (
+             1, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15,
+             strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+         )
+         ON CONFLICT (id) DO UPDATE SET
+             workspace_version = excluded.workspace_version,
+             snapshot_ref = excluded.snapshot_ref,
+             from_date = excluded.from_date,
+             through_date = excluded.through_date,
+             sport_refs_json = excluded.sport_refs_json,
+             required_measurements_json = excluded.required_measurements_json,
+             text_filter = excluded.text_filter,
+             sort_code = excluded.sort_code,
+             page_offset = excluded.page_offset,
+             page_limit = excluded.page_limit,
+             view_code = excluded.view_code,
+             calendar_month = excluded.calendar_month,
+             calendar_day = excluded.calendar_day,
+             selected_session_refs_json = excluded.selected_session_refs_json,
+             open_session_ref = excluded.open_session_ref,
+             updated_at_utc = excluded.updated_at_utc",
+        params![
+            workspace.version,
+            workspace.snapshot_ref,
+            workspace.from,
+            workspace.through,
+            sport_refs_json,
+            measurements_json,
+            workspace.text,
+            sort_code,
+            workspace.offset,
+            workspace.limit,
+            view_code,
+            workspace.calendar_month,
+            workspace.calendar_day,
+            selected_session_refs_json,
+            workspace.open_session_ref,
+        ],
+    )?;
+    Ok(())
+}
+
+pub fn clear_training_discovery_workspace_record(database_path: &Path) -> Result<()> {
+    let connection = Connection::open(database_path)?;
+    ensure_schema(&connection)?;
+    connection.execute("DELETE FROM training_discovery_workspace WHERE id = 1", [])?;
+    Ok(())
+}
+
 fn exploration_destination_code(destination: ExploreDestination) -> &'static str {
     match destination {
         ExploreDestination::Activity => "activity",
@@ -2925,7 +3414,10 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         if version < 12 {
             connection.execute_batch(SCHEMA_V12)?;
         }
-        connection.execute_batch(SCHEMA_V13)?;
+        if version < 13 {
+            connection.execute_batch(SCHEMA_V13)?;
+        }
+        connection.execute_batch(SCHEMA_V14)?;
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
         }
@@ -6062,6 +6554,44 @@ impl TrainingSessionDiscoveryPort for SqliteTrainingLibrary {
     {
         query_training_session_discovery(&self.database_path, request)
     }
+
+    fn query_training_calendar(
+        &self,
+        request: &TrainingSessionCalendarRequest,
+    ) -> std::result::Result<PersistedTrainingSessionCalendar, TrainingSessionDiscoveryPortError>
+    {
+        query_training_calendar_discovery(&self.database_path, request)
+    }
+
+    fn query_training_session_selection(
+        &self,
+        request: &TrainingSessionSelectionRequest,
+    ) -> std::result::Result<PersistedTrainingSessionSelection, TrainingSessionDiscoveryPortError>
+    {
+        query_training_session_selection_discovery(&self.database_path, request)
+    }
+}
+
+impl TrainingDiscoveryWorkspacePort for SqliteTrainingLibrary {
+    fn load_training_discovery_workspace(
+        &self,
+    ) -> std::result::Result<Option<TrainingDiscoveryWorkspace>, String> {
+        load_training_discovery_workspace_record(&self.database_path)
+            .map_err(|error| error.to_string())
+    }
+
+    fn save_training_discovery_workspace(
+        &self,
+        workspace: &TrainingDiscoveryWorkspace,
+    ) -> std::result::Result<(), String> {
+        save_training_discovery_workspace_record(&self.database_path, workspace)
+            .map_err(|error| error.to_string())
+    }
+
+    fn clear_training_discovery_workspace(&self) -> std::result::Result<(), String> {
+        clear_training_discovery_workspace_record(&self.database_path)
+            .map_err(|error| error.to_string())
+    }
 }
 
 pub struct SqliteTrainingSports {
@@ -7238,7 +7768,7 @@ mod tests {
             TrainingSessionSearchRequest {
                 from: Some("2024-01-01".to_owned()),
                 through: Some("2024-12-31".to_owned()),
-                sport_refs: vec![first_sport],
+                sport_refs: vec![first_sport.clone()],
                 required_measurements: vec![
                     TrainingMeasurementFilter::Distance,
                     TrainingMeasurementFilter::HeartRate,
@@ -7265,6 +7795,62 @@ mod tests {
             Some("Trail running")
         );
 
+        let calendar = fitfreed_application::query_training_session_calendar(
+            &library,
+            TrainingSessionCalendarRequest {
+                month: "2024-01".to_owned(),
+                from: Some("2024-01-01".to_owned()),
+                through: Some("2024-12-31".to_owned()),
+                sport_refs: vec![first_sport],
+                required_measurements: vec![
+                    TrainingMeasurementFilter::Distance,
+                    TrainingMeasurementFilter::HeartRate,
+                ],
+                text: Some("trail".to_owned()),
+                snapshot_ref: Some(filtered.snapshot_ref.clone()),
+            },
+        )
+        .expect("filtered training calendar");
+        assert_eq!(calendar.days.len(), 1);
+        assert_eq!(calendar.days[0].local_date, "2024-01-02");
+        assert_eq!(calendar.days[0].source_index, 1);
+        assert_eq!(calendar.days[0].session_count, 1);
+        assert_eq!(calendar.days[0].total_duration_milliseconds, 3_600_000);
+        assert_eq!(calendar.days[0].distance_session_count, 1);
+        assert_eq!(calendar.days[0].total_distance_meters, Some(10_000.0));
+        assert_eq!(calendar.days[0].heart_rate_session_count, 1);
+
+        let selected_refs = first_page
+            .sessions
+            .iter()
+            .rev()
+            .map(|session| session.session_ref.clone())
+            .collect::<Vec<_>>();
+        let selection = fitfreed_application::query_training_session_selection(
+            &library,
+            TrainingSessionSelectionRequest {
+                session_refs: selected_refs.clone(),
+                snapshot_ref: Some(filtered.snapshot_ref.clone()),
+            },
+        )
+        .expect("ordered training selection");
+        assert_eq!(
+            selection
+                .sessions
+                .iter()
+                .map(|session| session.session_ref.clone())
+                .collect::<Vec<_>>(),
+            selected_refs
+        );
+        assert!(selection.sessions.iter().all(|session| {
+            !session.session_ref.contains("discovery-session")
+                && session
+                    .sport
+                    .sport_ref
+                    .as_deref()
+                    .is_none_or(|sport_ref| !sport_ref.contains("source-sport"))
+        }));
+
         save_training_sport_classification(
             &sports_library,
             SaveSportClassificationRequest {
@@ -7286,6 +7872,73 @@ mod tests {
         assert!(matches!(
             stale,
             Err(ApplicationError::TrainingSessionSearchChanged)
+        ));
+    }
+
+    #[test]
+    fn persists_reopens_clears_and_rejects_corrupt_training_discovery_workspaces() {
+        let harness = Harness::new();
+        let database_path = harness.database();
+        let library = SqliteTrainingLibrary::new(database_path.clone());
+        let workspace = TrainingDiscoveryWorkspace {
+            version: 1,
+            snapshot_ref: format!("training-snapshot-{}", "a".repeat(64)),
+            from: Some("2026-01-01".to_owned()),
+            through: Some("2026-08-18".to_owned()),
+            sport_refs: vec![format!("sport-{}", "b".repeat(64))],
+            required_measurements: vec![
+                TrainingMeasurementFilter::Distance,
+                TrainingMeasurementFilter::HeartRate,
+            ],
+            text: Some("Trail".to_owned()),
+            sort: TrainingSessionSort::DistanceDescending,
+            offset: 25,
+            limit: 25,
+            view: TrainingDiscoveryView::Calendar,
+            calendar_month: Some("2026-08".to_owned()),
+            calendar_day: Some("2026-08-18".to_owned()),
+            selected_session_refs: vec![format!("session-{}", "c".repeat(64))],
+            open_session_ref: Some(format!("session-{}", "d".repeat(64))),
+        };
+
+        assert_eq!(
+            fitfreed_application::save_training_discovery_workspace(&library, workspace.clone(),)
+                .expect("saved training workspace"),
+            workspace
+        );
+        let reopened = SqliteTrainingLibrary::new(database_path.clone());
+        assert_eq!(
+            fitfreed_application::load_training_discovery_workspace(&reopened)
+                .expect("reopened training workspace"),
+            Some(workspace.clone())
+        );
+        fitfreed_application::clear_training_discovery_workspace(&reopened)
+            .expect("cleared training workspace");
+        assert_eq!(
+            fitfreed_application::load_training_discovery_workspace(&reopened)
+                .expect("empty training workspace"),
+            None
+        );
+
+        fitfreed_application::save_training_discovery_workspace(&reopened, workspace)
+            .expect("workspace before corruption");
+        assert!(Connection::open(&database_path)
+            .expect("database")
+            .execute(
+                "UPDATE training_discovery_workspace SET page_offset = 20 WHERE id = 1",
+                [],
+            )
+            .is_err());
+        Connection::open(&database_path)
+            .expect("database")
+            .execute(
+                "UPDATE training_discovery_workspace SET sport_refs_json = '{' WHERE id = 1",
+                [],
+            )
+            .expect("corrupt stored workspace");
+        assert!(matches!(
+            fitfreed_application::load_training_discovery_workspace(&reopened),
+            Err(ApplicationError::TrainingDiscoveryWorkspaceQuery(_))
         ));
     }
 
@@ -10023,7 +10676,7 @@ mod tests {
     fn create_schema_baseline(connection: &Connection, version: i64) {
         let migrations = [
             SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8,
-            SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13,
+            SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14,
         ];
         for migration in migrations
             .iter()
@@ -11446,5 +12099,55 @@ mod tests {
                 .expect("advanced discovery revision"),
             3
         );
+    }
+
+    #[test]
+    fn upgrades_version_thirteen_with_an_atomic_training_discovery_workspace() {
+        let harness = Harness::new();
+        let connection = Connection::open(harness.database()).expect("database");
+        connection
+            .execute_batch("PRAGMA foreign_keys = ON;")
+            .expect("foreign keys");
+        create_schema_baseline(&connection, 13);
+
+        let error = migrate_schema(&connection, true).expect_err("interrupted version fourteen");
+        assert!(matches!(error, ImportError::InjectedMigrationInterruption));
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("retained schema version"),
+            13
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_schema
+                     WHERE type = 'table' AND name = 'training_discovery_workspace'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("rolled-back workspace table"),
+            0
+        );
+
+        migrate_schema(&connection, false).expect("version fourteen migration");
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("current schema version"),
+            SCHEMA_VERSION
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_schema
+                     WHERE type = 'table' AND name = 'training_discovery_workspace'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("workspace table"),
+            1
+        );
+        assert_integrity(&connection);
     }
 }

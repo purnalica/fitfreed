@@ -19,14 +19,17 @@ use fitfreed_application::{
     SavedTrainingSportClassification, SleepComparison, SleepDateRange, SleepDayAvailability,
     SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight, SleepPhaseTotals,
     SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary, SourceAcquisitionGuide,
-    SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange,
-    TrainingMeasurementFilter, TrainingOverview, TrainingSeriesComparison, TrainingSeriesOverview,
-    TrainingSeriesSummary, TrainingSessionInsight, TrainingSessionSearchItem,
-    TrainingSessionSearchPage, TrainingSessionSearchRequest, TrainingSessionSearchSummary,
-    TrainingSessionSort, TrainingSessionSport, TrainingSport, TrainingSportClassification,
-    TrainingSportCoverage, TrainingSportState, TrainingSportsOverview, UpdateCheckOutcome,
-    UpdateCheckStatus, UpdateError, UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind,
-    UpdateReleaseSummary, UpdateTrustFailure, UpdateWithdrawalReason, UpdateWithdrawalSummary,
+    SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange, TrainingDiscoveryView,
+    TrainingDiscoveryWorkspace, TrainingMeasurementFilter, TrainingOverview,
+    TrainingSeriesComparison, TrainingSeriesOverview, TrainingSeriesSummary,
+    TrainingSessionCalendar, TrainingSessionCalendarDay, TrainingSessionCalendarRequest,
+    TrainingSessionInsight, TrainingSessionSearchItem, TrainingSessionSearchPage,
+    TrainingSessionSearchRequest, TrainingSessionSearchSummary, TrainingSessionSelection,
+    TrainingSessionSelectionRequest, TrainingSessionSort, TrainingSessionSport, TrainingSport,
+    TrainingSportClassification, TrainingSportCoverage, TrainingSportState, TrainingSportsOverview,
+    UpdateCheckOutcome, UpdateCheckStatus, UpdateError, UpdateRecoveryOutcome,
+    UpdateRecoveryOutcomeKind, UpdateReleaseSummary, UpdateTrustFailure, UpdateWithdrawalReason,
+    UpdateWithdrawalSummary,
 };
 
 #[derive(Debug, Deserialize)]
@@ -399,6 +402,15 @@ impl From<ApplicationError> for CommandErrorDto {
             ApplicationError::InvalidTrainingSessionSearch(_) => "invalid-training-session-search",
             ApplicationError::TrainingSessionSearchChanged => "training-session-search-changed",
             ApplicationError::TrainingSessionSearch(_) => "training-session-search-failed",
+            ApplicationError::InvalidTrainingDiscoveryWorkspace(_) => {
+                "invalid-training-discovery-workspace"
+            }
+            ApplicationError::TrainingDiscoveryWorkspaceQuery(_) => {
+                "training-discovery-workspace-query-failed"
+            }
+            ApplicationError::TrainingDiscoveryWorkspaceUpdate(_) => {
+                "training-discovery-workspace-update-failed"
+            }
             ApplicationError::InvalidSportClassification(_) => "invalid-sport-classification",
             ApplicationError::SportClassificationConflict => "sport-classification-conflict",
             ApplicationError::SportClassificationQuery(_)
@@ -745,33 +757,68 @@ pub struct TrainingSessionSearchRequestDto {
     snapshot_ref: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TrainingSessionCalendarRequestDto {
+    month: String,
+    from: Option<String>,
+    through: Option<String>,
+    sport_refs: Vec<String>,
+    required_measurements: Vec<String>,
+    text: Option<String>,
+    snapshot_ref: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TrainingSessionSelectionRequestDto {
+    session_refs: Vec<String>,
+    snapshot_ref: Option<String>,
+}
+
+impl From<TrainingSessionSelectionRequestDto> for TrainingSessionSelectionRequest {
+    fn from(request: TrainingSessionSelectionRequestDto) -> Self {
+        Self {
+            session_refs: request.session_refs,
+            snapshot_ref: request.snapshot_ref,
+        }
+    }
+}
+
+fn training_measurements(
+    measurements: Vec<String>,
+) -> Result<Vec<TrainingMeasurementFilter>, ApplicationError> {
+    measurements
+        .into_iter()
+        .map(|measurement| match measurement.as_str() {
+            "distance" => Ok(TrainingMeasurementFilter::Distance),
+            "energy" => Ok(TrainingMeasurementFilter::Energy),
+            "heart-rate" => Ok(TrainingMeasurementFilter::HeartRate),
+            _ => Err(ApplicationError::InvalidTrainingSessionSearch(
+                "measurement filter is invalid",
+            )),
+        })
+        .collect()
+}
+
+fn training_sort(sort: &str) -> Result<TrainingSessionSort, ApplicationError> {
+    match sort {
+        "started-desc" => Ok(TrainingSessionSort::StartedDescending),
+        "started-asc" => Ok(TrainingSessionSort::StartedAscending),
+        "duration-desc" => Ok(TrainingSessionSort::DurationDescending),
+        "distance-desc" => Ok(TrainingSessionSort::DistanceDescending),
+        _ => Err(ApplicationError::InvalidTrainingSessionSearch(
+            "sort is invalid",
+        )),
+    }
+}
+
 impl TryFrom<TrainingSessionSearchRequestDto> for TrainingSessionSearchRequest {
     type Error = ApplicationError;
 
     fn try_from(request: TrainingSessionSearchRequestDto) -> Result<Self, Self::Error> {
-        let required_measurements = request
-            .required_measurements
-            .into_iter()
-            .map(|measurement| match measurement.as_str() {
-                "distance" => Ok(TrainingMeasurementFilter::Distance),
-                "energy" => Ok(TrainingMeasurementFilter::Energy),
-                "heart-rate" => Ok(TrainingMeasurementFilter::HeartRate),
-                _ => Err(ApplicationError::InvalidTrainingSessionSearch(
-                    "measurement filter is invalid",
-                )),
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-        let sort = match request.sort.as_str() {
-            "started-desc" => TrainingSessionSort::StartedDescending,
-            "started-asc" => TrainingSessionSort::StartedAscending,
-            "duration-desc" => TrainingSessionSort::DurationDescending,
-            "distance-desc" => TrainingSessionSort::DistanceDescending,
-            _ => {
-                return Err(ApplicationError::InvalidTrainingSessionSearch(
-                    "sort is invalid",
-                ));
-            }
-        };
+        let required_measurements = training_measurements(request.required_measurements)?;
+        let sort = training_sort(&request.sort)?;
         Ok(Self {
             from: request.from,
             through: request.through,
@@ -781,6 +828,123 @@ impl TryFrom<TrainingSessionSearchRequestDto> for TrainingSessionSearchRequest {
             sort,
             offset: request.offset,
             limit: request.limit,
+            snapshot_ref: request.snapshot_ref,
+        })
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TrainingDiscoveryWorkspaceDto {
+    version: u32,
+    snapshot_ref: String,
+    from: Option<String>,
+    through: Option<String>,
+    sport_refs: Vec<String>,
+    required_measurements: Vec<String>,
+    text: Option<String>,
+    sort: String,
+    offset: usize,
+    limit: usize,
+    view: String,
+    calendar_month: Option<String>,
+    calendar_day: Option<String>,
+    selected_session_refs: Vec<String>,
+    open_session_ref: Option<String>,
+}
+
+impl TryFrom<TrainingDiscoveryWorkspaceDto> for TrainingDiscoveryWorkspace {
+    type Error = ApplicationError;
+
+    fn try_from(workspace: TrainingDiscoveryWorkspaceDto) -> Result<Self, Self::Error> {
+        let view = match workspace.view.as_str() {
+            "chronology" => TrainingDiscoveryView::Chronology,
+            "calendar" => TrainingDiscoveryView::Calendar,
+            _ => {
+                return Err(ApplicationError::InvalidTrainingDiscoveryWorkspace(
+                    "view is invalid",
+                ));
+            }
+        };
+        Ok(Self {
+            version: workspace.version,
+            snapshot_ref: workspace.snapshot_ref,
+            from: workspace.from,
+            through: workspace.through,
+            sport_refs: workspace.sport_refs,
+            required_measurements: training_measurements(workspace.required_measurements).map_err(
+                |_| {
+                    ApplicationError::InvalidTrainingDiscoveryWorkspace(
+                        "measurement filter is invalid",
+                    )
+                },
+            )?,
+            text: workspace.text,
+            sort: training_sort(&workspace.sort).map_err(|_| {
+                ApplicationError::InvalidTrainingDiscoveryWorkspace("sort is invalid")
+            })?,
+            offset: workspace.offset,
+            limit: workspace.limit,
+            view,
+            calendar_month: workspace.calendar_month,
+            calendar_day: workspace.calendar_day,
+            selected_session_refs: workspace.selected_session_refs,
+            open_session_ref: workspace.open_session_ref,
+        })
+    }
+}
+
+impl From<TrainingDiscoveryWorkspace> for TrainingDiscoveryWorkspaceDto {
+    fn from(workspace: TrainingDiscoveryWorkspace) -> Self {
+        Self {
+            version: workspace.version,
+            snapshot_ref: workspace.snapshot_ref,
+            from: workspace.from,
+            through: workspace.through,
+            sport_refs: workspace.sport_refs,
+            required_measurements: workspace
+                .required_measurements
+                .into_iter()
+                .map(|measurement| match measurement {
+                    TrainingMeasurementFilter::Distance => "distance".to_owned(),
+                    TrainingMeasurementFilter::Energy => "energy".to_owned(),
+                    TrainingMeasurementFilter::HeartRate => "heart-rate".to_owned(),
+                })
+                .collect(),
+            text: workspace.text,
+            sort: match workspace.sort {
+                TrainingSessionSort::StartedDescending => "started-desc",
+                TrainingSessionSort::StartedAscending => "started-asc",
+                TrainingSessionSort::DurationDescending => "duration-desc",
+                TrainingSessionSort::DistanceDescending => "distance-desc",
+            }
+            .to_owned(),
+            offset: workspace.offset,
+            limit: workspace.limit,
+            view: match workspace.view {
+                TrainingDiscoveryView::Chronology => "chronology",
+                TrainingDiscoveryView::Calendar => "calendar",
+            }
+            .to_owned(),
+            calendar_month: workspace.calendar_month,
+            calendar_day: workspace.calendar_day,
+            selected_session_refs: workspace.selected_session_refs,
+            open_session_ref: workspace.open_session_ref,
+        }
+    }
+}
+
+impl TryFrom<TrainingSessionCalendarRequestDto> for TrainingSessionCalendarRequest {
+    type Error = ApplicationError;
+
+    fn try_from(request: TrainingSessionCalendarRequestDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            month: request.month,
+            from: request.from,
+            through: request.through,
+            sport_refs: request.sport_refs,
+            required_measurements: training_measurements(request.required_measurements)?,
+            text: request.text,
             snapshot_ref: request.snapshot_ref,
         })
     }
@@ -1087,6 +1251,68 @@ impl From<TrainingSessionSearchPage> for TrainingSessionSearchPageDto {
             next_offset: page.next_offset,
             summaries: page.summaries.into_iter().map(Into::into).collect(),
             sessions: page.sessions.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSessionCalendarDayDto {
+    local_date: String,
+    source_index: usize,
+    session_count: usize,
+    total_duration_milliseconds: String,
+    distance_session_count: usize,
+    total_distance_meters: Option<f64>,
+    heart_rate_session_count: usize,
+}
+
+impl From<TrainingSessionCalendarDay> for TrainingSessionCalendarDayDto {
+    fn from(day: TrainingSessionCalendarDay) -> Self {
+        Self {
+            local_date: day.local_date,
+            source_index: day.source_index,
+            session_count: day.session_count,
+            total_duration_milliseconds: day.total_duration_milliseconds.to_string(),
+            distance_session_count: day.distance_session_count,
+            total_distance_meters: day.total_distance_meters,
+            heart_rate_session_count: day.heart_rate_session_count,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSessionCalendarDto {
+    available_range: Option<TrainingDateRangeDto>,
+    snapshot_ref: String,
+    month: String,
+    days: Vec<TrainingSessionCalendarDayDto>,
+}
+
+impl From<TrainingSessionCalendar> for TrainingSessionCalendarDto {
+    fn from(calendar: TrainingSessionCalendar) -> Self {
+        Self {
+            available_range: calendar.available_range.map(Into::into),
+            snapshot_ref: calendar.snapshot_ref,
+            month: calendar.month,
+            days: calendar.days.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSessionSelectionDto {
+    snapshot_ref: String,
+    sessions: Vec<TrainingSessionSearchItemDto>,
+}
+
+impl From<TrainingSessionSelection> for TrainingSessionSelectionDto {
+    fn from(selection: TrainingSessionSelection) -> Self {
+        Self {
+            snapshot_ref: selection.snapshot_ref,
+            sessions: selection.sessions.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -3315,6 +3541,39 @@ mod tests {
             .is_err()
         );
 
+        let calendar_input: TrainingSessionCalendarRequestDto =
+            serde_json::from_value(serde_json::json!({
+                "month": "2026-08",
+                "from": "2026-01-01",
+                "through": "2026-12-31",
+                "sportRefs": ["sport-synthetic"],
+                "requiredMeasurements": ["distance"],
+                "text": "Trail",
+                "snapshotRef": null
+            }))
+            .expect("training calendar request");
+        let calendar_request = TrainingSessionCalendarRequest::try_from(calendar_input)
+            .expect("valid training calendar transport");
+        assert_eq!(calendar_request.month, "2026-08");
+        assert_eq!(calendar_request.from.as_deref(), Some("2026-01-01"));
+        assert_eq!(
+            calendar_request.required_measurements,
+            vec![TrainingMeasurementFilter::Distance]
+        );
+        assert!(
+            serde_json::from_value::<TrainingSessionCalendarRequestDto>(serde_json::json!({
+                "month": "2026-08",
+                "from": null,
+                "through": null,
+                "sportRefs": [],
+                "requiredMeasurements": [],
+                "text": null,
+                "snapshotRef": null,
+                "originId": "must-not-cross-the-boundary"
+            }))
+            .is_err()
+        );
+
         let page = TrainingSessionSearchPage {
             available_range: Some(TrainingDateRange {
                 from: "2024-01-01".to_owned(),
@@ -3394,6 +3653,108 @@ mod tests {
             .find("sourceSessionId")
             .is_none());
 
+        let calendar_json = serde_json::to_value(TrainingSessionCalendarDto::from(
+            TrainingSessionCalendar {
+                available_range: Some(TrainingDateRange {
+                    from: "2024-01-01".to_owned(),
+                    through: "2026-08-18".to_owned(),
+                }),
+                snapshot_ref:
+                    "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                        .to_owned(),
+                month: "2026-08".to_owned(),
+                days: vec![TrainingSessionCalendarDay {
+                    local_date: "2026-08-18".to_owned(),
+                    source_index: 2,
+                    session_count: 2,
+                    total_duration_milliseconds: 18_446_744_073_709_551_614,
+                    distance_session_count: 1,
+                    total_distance_meters: Some(10_000.5),
+                    heart_rate_session_count: 2,
+                }],
+            },
+        ))
+        .expect("training calendar JSON");
+        assert_eq!(calendar_json["month"], "2026-08");
+        assert_eq!(
+            calendar_json["days"][0]["totalDurationMilliseconds"],
+            "18446744073709551614"
+        );
+        assert_eq!(calendar_json["days"][0]["sourceIndex"], 2);
+
+        let selection_input: TrainingSessionSelectionRequestDto =
+            serde_json::from_value(serde_json::json!({
+                "sessionRefs": [
+                    "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                    "session-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                ],
+                "snapshotRef": "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }))
+            .expect("training selection request");
+        let selection_request = TrainingSessionSelectionRequest::from(selection_input);
+        assert_eq!(selection_request.session_refs.len(), 2);
+        assert_eq!(
+            selection_request.snapshot_ref.as_deref(),
+            Some(
+                "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            )
+        );
+        let selection_json = serde_json::to_value(TrainingSessionSelectionDto::from(
+            TrainingSessionSelection {
+                snapshot_ref: selection_request.snapshot_ref.unwrap(),
+                sessions: Vec::new(),
+            },
+        ))
+        .expect("training selection JSON");
+        assert_eq!(selection_json["sessions"], serde_json::json!([]));
+        assert!(
+            serde_json::from_value::<TrainingSessionSelectionRequestDto>(serde_json::json!({
+                "sessionRefs": [],
+                "snapshotRef": null,
+                "sourceSessionId": "must-not-cross-the-boundary"
+            }))
+            .is_err()
+        );
+
+        let workspace_value = serde_json::json!({
+            "version": 1,
+            "snapshotRef": "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "from": "2026-01-01",
+            "through": "2026-08-18",
+            "sportRefs": [
+                "sport-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            ],
+            "requiredMeasurements": ["distance", "heart-rate"],
+            "text": "Trail",
+            "sort": "distance-desc",
+            "offset": 25,
+            "limit": 25,
+            "view": "calendar",
+            "calendarMonth": "2026-08",
+            "calendarDay": "2026-08-18",
+            "selectedSessionRefs": [
+                "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            ],
+            "openSessionRef":
+                "session-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        });
+        let workspace_input: TrainingDiscoveryWorkspaceDto =
+            serde_json::from_value(workspace_value.clone()).expect("training workspace request");
+        let workspace = TrainingDiscoveryWorkspace::try_from(workspace_input)
+            .expect("valid training workspace transport");
+        assert_eq!(workspace.view, TrainingDiscoveryView::Calendar);
+        assert_eq!(workspace.calendar_day.as_deref(), Some("2026-08-18"));
+        assert_eq!(
+            serde_json::to_value(TrainingDiscoveryWorkspaceDto::from(workspace))
+                .expect("training workspace JSON"),
+            workspace_value
+        );
+        let mut unknown_workspace = workspace_value;
+        unknown_workspace["originId"] = serde_json::json!("must-not-cross-the-boundary");
+        assert!(
+            serde_json::from_value::<TrainingDiscoveryWorkspaceDto>(unknown_workspace).is_err()
+        );
+
         for (error, code) in [
             (
                 ApplicationError::InvalidTrainingSessionSearch("invalid"),
@@ -3406,6 +3767,18 @@ mod tests {
             (
                 ApplicationError::TrainingSessionSearch("failed".to_owned()),
                 "training-session-search-failed",
+            ),
+            (
+                ApplicationError::InvalidTrainingDiscoveryWorkspace("invalid"),
+                "invalid-training-discovery-workspace",
+            ),
+            (
+                ApplicationError::TrainingDiscoveryWorkspaceQuery("failed".to_owned()),
+                "training-discovery-workspace-query-failed",
+            ),
+            (
+                ApplicationError::TrainingDiscoveryWorkspaceUpdate("failed".to_owned()),
+                "training-discovery-workspace-update-failed",
             ),
         ] {
             assert_eq!(

@@ -59,7 +59,7 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Import through the file picker with realistic synthetic ZIP archives.
 - Reimport, cumulative import, interruption, failure recovery, and persisted restart.
 - Sources, Explore, and Settings navigation with preserved workspace state, focus behavior, exploration, filtering, reports, visualizations, all included controls, and accessible alternatives.
-- Full-history training discovery with combined filters, deterministic sorting, coherent forward and backward pagination, library-change recovery, exact results, and lightweight detail.
+- Full-history training discovery with combined filters, deterministic sorting, coherent forward and backward pagination, source-separated calendar traversal, two-through-four-session comparison, exact chronology or calendar return, complete restart restoration, library-change recovery, exact results, and lightweight detail.
 - `en-US` and `es-ES` behavior, including text expansion and locale-aware formatting.
 - Update availability, postponement, download, verification, installation, migration, and recovery.
 - Removal behavior and explicit treatment of the user's data library.

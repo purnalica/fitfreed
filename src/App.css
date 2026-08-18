@@ -308,6 +308,27 @@ th:last-child, td:last-child { text-align: right; }
 .training-session-filter-options label { display: inline-flex; gap: 7px; align-items: center; font-size: .84rem; }
 .training-session-filter-options input { width: auto; }
 .training-session-search-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+.training-session-view-switch { display: inline-flex; gap: 5px; margin: 18px 0 0; padding: 4px; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 12px; }
+.training-session-view-switch legend { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.training-session-view-switch label { position: relative; cursor: pointer; }
+.training-session-view-switch input { position: absolute; opacity: 0; pointer-events: none; }
+.training-session-view-switch span { min-height: 40px; margin: 0; padding: 10px 14px; color: var(--muted); border-radius: 8px; }
+.training-session-view-switch input:checked + span { color: var(--surface); background: var(--accent-deep); }
+.training-session-view-switch input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: 3px; }
+.training-calendar { margin-top: 22px; padding: 18px; background: var(--paper); border: 1px solid var(--line); border-radius: 15px; }
+.training-calendar > header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; }
+.training-calendar > header h3 { margin: 0; text-align: center; text-transform: capitalize; }
+.training-calendar > header button { width: 44px; padding: 8px; }
+.training-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; margin: 16px 0 0; padding: 0; list-style: none; }
+.training-calendar-grid li { min-width: 0; min-height: 58px; }
+.training-calendar-weekday { min-height: auto !important; padding: 5px; color: var(--muted); font-size: .7rem; font-weight: 750; text-align: center; text-transform: uppercase; }
+.training-calendar-grid li > span, .training-calendar-grid li > button { display: grid; align-content: space-between; width: 100%; min-height: 58px; padding: 7px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 9px; text-align: left; }
+.training-calendar-grid li > button { color: var(--ink); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.training-calendar-grid li > button:hover, .training-calendar-grid li > button.selected { background: var(--accent-soft); border-color: var(--accent-deep); }
+.training-calendar-grid li > button > span { color: var(--muted); font-size: .72rem; }
+.training-calendar-grid li > button strong { font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.training-calendar-grid li > button small { overflow: hidden; color: var(--muted); font-size: .6rem; text-overflow: ellipsis; white-space: nowrap; }
+.training-calendar > p { margin: 14px 0 0; color: var(--muted); text-align: center; }
 .training-sessions-unavailable { color: var(--danger-ink); }
 .training-session-summaries { display: grid; gap: 18px; margin-top: 22px; }
 .training-session-summaries h3 { margin: 0 0 10px; font-size: .92rem; }
@@ -328,9 +349,22 @@ th:last-child, td:last-child { text-align: right; }
 .training-session-results dl > div { min-width: 0; padding-top: 8px; border-top: 1px solid var(--line); }
 .training-session-results dt { color: var(--muted); font-size: .7rem; font-weight: 700; }
 .training-session-results dd { margin: 3px 0 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
-.training-session-results article > button { width: 100%; }
+.training-session-result-actions { display: flex; gap: 9px; align-items: center; }
+.training-session-result-actions label { display: flex; align-items: center; min-height: 44px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
+.training-session-result-actions label span { margin: 0 0 0 7px; }
+.training-session-result-actions input { width: auto; min-height: auto; padding: 0; }
+.training-session-result-actions button { flex: 1 1 auto; }
 .training-session-pagination { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; margin-top: 18px; }
 .training-session-pagination span { color: var(--muted); font-size: .8rem; text-align: center; }
+.training-session-comparison { margin-top: 24px; padding: 20px; background: var(--paper); border: 1px solid var(--line); border-radius: 15px; }
+.training-session-comparison > header { display: flex; justify-content: space-between; gap: 18px; align-items: start; }
+.training-session-comparison h3 { margin: 0 0 5px; }
+.training-session-comparison header p, .training-session-comparison > p { margin: 0; color: var(--muted); }
+.training-session-comparison > p { margin-top: 12px; font-weight: 750; }
+.training-session-comparison-table { max-width: 100%; margin-top: 14px; overflow-x: auto; }
+.training-session-comparison table { min-width: 620px; padding: 14px; table-layout: fixed; }
+.training-session-comparison th, .training-session-comparison td { overflow-wrap: anywhere; }
+.training-session-comparison th:not(:first-child), .training-session-comparison td { text-align: right; }
 .training-sports { margin: 22px 0 32px; padding: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 14px 40px rgb(21 29 44 / 7%); }
 .training-sports-heading { display: flex; align-items: start; justify-content: space-between; gap: 24px; }
 .training-sports-heading h2 { margin-bottom: 5px; }
@@ -659,9 +693,16 @@ th:last-child, td:last-child { text-align: right; }
   .training-session-search-fields { grid-template-columns: 1fr; }
   .training-session-search-actions { justify-content: stretch; }
   .training-session-search-actions button { flex: 1 1 100%; }
+  .training-calendar { padding: 12px 8px; }
+  .training-calendar-grid { gap: 2px; }
+  .training-calendar-grid li, .training-calendar-grid li > span, .training-calendar-grid li > button { min-height: 50px; }
+  .training-calendar-grid li > span, .training-calendar-grid li > button { padding: 5px; }
+  .training-session-result-actions { align-items: stretch; flex-direction: column; }
+  .training-session-result-actions label { justify-content: center; }
   .training-session-pagination { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .training-session-pagination span { grid-column: 1 / 3; grid-row: 1; }
   .training-session-pagination button { grid-row: 2; }
+  .training-session-comparison > header { align-items: stretch; flex-direction: column; }
   .training-sports-heading, .training-sport-card-heading { align-items: stretch; flex-direction: column; }
   .training-sports-heading > strong { align-self: start; }
   .training-sport-card-heading button { width: 100%; }

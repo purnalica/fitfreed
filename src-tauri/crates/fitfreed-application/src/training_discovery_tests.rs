@@ -15,6 +15,46 @@ impl TrainingSessionDiscoveryPort for ControlledDiscoveryPort {
     ) -> Result<PersistedTrainingSessionSearchPage, TrainingSessionDiscoveryPortError> {
         self.result.clone()
     }
+
+    fn query_training_calendar(
+        &self,
+        _request: &TrainingSessionCalendarRequest,
+    ) -> Result<PersistedTrainingSessionCalendar, TrainingSessionDiscoveryPortError> {
+        Ok(PersistedTrainingSessionCalendar {
+            available_range: Some(TrainingDateRange {
+                from: "2020-01-01".to_owned(),
+                through: "2026-08-16".to_owned(),
+            }),
+            snapshot_ref: SNAPSHOT.to_owned(),
+            days: vec![TrainingSessionCalendarDay {
+                local_date: "2026-08-16".to_owned(),
+                source_index: 1,
+                session_count: 2,
+                total_duration_milliseconds: 5_400_000,
+                distance_session_count: 1,
+                total_distance_meters: Some(10_000.0),
+                heart_rate_session_count: 2,
+            }],
+        })
+    }
+
+    fn query_training_session_selection(
+        &self,
+        request: &TrainingSessionSelectionRequest,
+    ) -> Result<PersistedTrainingSessionSelection, TrainingSessionDiscoveryPortError> {
+        Ok(PersistedTrainingSessionSelection {
+            snapshot_ref: SNAPSHOT.to_owned(),
+            sessions: request
+                .session_refs
+                .iter()
+                .map(|session_ref| {
+                    let mut selected = item();
+                    selected.session_ref.clone_from(session_ref);
+                    selected
+                })
+                .collect(),
+        })
+    }
 }
 
 fn request() -> TrainingSessionSearchRequest {
@@ -89,6 +129,305 @@ fn page(
             .into_iter()
             .collect(),
         sessions,
+    }
+}
+
+#[test]
+fn returns_an_exact_source_separated_calendar_month() {
+    let port = ControlledDiscoveryPort {
+        result: Ok(page(Vec::new(), 0)),
+    };
+    let result = query_training_session_calendar(
+        &port,
+        TrainingSessionCalendarRequest {
+            month: "2026-08".to_owned(),
+            from: Some("2026-01-01".to_owned()),
+            through: Some("2026-12-31".to_owned()),
+            sport_refs: vec![classified_sport().sport_ref.unwrap()],
+            required_measurements: vec![TrainingMeasurementFilter::HeartRate],
+            text: Some("trail".to_owned()),
+            snapshot_ref: Some(SNAPSHOT.to_owned()),
+        },
+    )
+    .unwrap();
+
+    assert_eq!(result.month, "2026-08");
+    assert_eq!(result.snapshot_ref, SNAPSHOT);
+    assert_eq!(result.days.len(), 1);
+    assert_eq!(result.days[0].local_date, "2026-08-16");
+    assert_eq!(result.days[0].source_index, 1);
+    assert_eq!(result.days[0].session_count, 2);
+    assert_eq!(result.days[0].distance_session_count, 1);
+    assert_eq!(result.days[0].heart_rate_session_count, 2);
+}
+
+#[test]
+fn rejects_invalid_calendar_requests_and_persisted_days() {
+    let port = ControlledDiscoveryPort {
+        result: Ok(page(Vec::new(), 0)),
+    };
+    let invalid_month = query_training_session_calendar(
+        &port,
+        TrainingSessionCalendarRequest {
+            month: "2026-8".to_owned(),
+            from: None,
+            through: None,
+            sport_refs: Vec::new(),
+            required_measurements: Vec::new(),
+            text: None,
+            snapshot_ref: None,
+        },
+    );
+    assert!(matches!(
+        invalid_month,
+        Err(ApplicationError::InvalidTrainingSessionSearch(_))
+    ));
+
+    struct InvalidCalendarPort;
+    impl TrainingSessionDiscoveryPort for InvalidCalendarPort {
+        fn query_training_sessions(
+            &self,
+            _request: &TrainingSessionSearchRequest,
+        ) -> Result<PersistedTrainingSessionSearchPage, TrainingSessionDiscoveryPortError> {
+            unreachable!("calendar validation must not query session pages")
+        }
+
+        fn query_training_calendar(
+            &self,
+            _request: &TrainingSessionCalendarRequest,
+        ) -> Result<PersistedTrainingSessionCalendar, TrainingSessionDiscoveryPortError> {
+            Ok(PersistedTrainingSessionCalendar {
+                available_range: Some(TrainingDateRange {
+                    from: "2020-01-01".to_owned(),
+                    through: "2026-08-16".to_owned(),
+                }),
+                snapshot_ref: SNAPSHOT.to_owned(),
+                days: vec![TrainingSessionCalendarDay {
+                    local_date: "2026-09-01".to_owned(),
+                    source_index: 1,
+                    session_count: 1,
+                    total_duration_milliseconds: 3_600_000,
+                    distance_session_count: 0,
+                    total_distance_meters: None,
+                    heart_rate_session_count: 1,
+                }],
+            })
+        }
+
+        fn query_training_session_selection(
+            &self,
+            _request: &TrainingSessionSelectionRequest,
+        ) -> Result<PersistedTrainingSessionSelection, TrainingSessionDiscoveryPortError> {
+            unreachable!("calendar validation must not query a selection")
+        }
+    }
+
+    let invalid_day = query_training_session_calendar(
+        &InvalidCalendarPort,
+        TrainingSessionCalendarRequest {
+            month: "2026-08".to_owned(),
+            from: None,
+            through: None,
+            sport_refs: Vec::new(),
+            required_measurements: Vec::new(),
+            text: None,
+            snapshot_ref: None,
+        },
+    );
+    assert!(matches!(
+        invalid_day,
+        Err(ApplicationError::TrainingSessionSearch(_))
+    ));
+}
+
+#[test]
+fn resolves_an_ordered_comparison_selection_without_exposing_storage_identity() {
+    let second_ref = format!("session-{}", "d".repeat(64));
+    let result = query_training_session_selection(
+        &ControlledDiscoveryPort {
+            result: Ok(page(Vec::new(), 0)),
+        },
+        TrainingSessionSelectionRequest {
+            session_refs: vec![SESSION.to_owned(), second_ref.clone()],
+            snapshot_ref: Some(SNAPSHOT.to_owned()),
+        },
+    )
+    .unwrap();
+
+    assert_eq!(result.snapshot_ref, SNAPSHOT);
+    assert_eq!(result.sessions.len(), 2);
+    assert_eq!(result.sessions[0].session_ref, SESSION);
+    assert_eq!(result.sessions[1].session_ref, second_ref);
+}
+
+#[test]
+fn rejects_oversized_duplicate_or_incomplete_comparison_selections() {
+    let duplicate = query_training_session_selection(
+        &ControlledDiscoveryPort {
+            result: Ok(page(Vec::new(), 0)),
+        },
+        TrainingSessionSelectionRequest {
+            session_refs: vec![SESSION.to_owned(), SESSION.to_owned()],
+            snapshot_ref: None,
+        },
+    );
+    assert!(matches!(
+        duplicate,
+        Err(ApplicationError::InvalidTrainingSessionSearch(_))
+    ));
+
+    struct MissingSelectionPort;
+    impl TrainingSessionDiscoveryPort for MissingSelectionPort {
+        fn query_training_sessions(
+            &self,
+            _request: &TrainingSessionSearchRequest,
+        ) -> Result<PersistedTrainingSessionSearchPage, TrainingSessionDiscoveryPortError> {
+            unreachable!("selection must not query pages")
+        }
+
+        fn query_training_calendar(
+            &self,
+            _request: &TrainingSessionCalendarRequest,
+        ) -> Result<PersistedTrainingSessionCalendar, TrainingSessionDiscoveryPortError> {
+            unreachable!("selection must not query a calendar")
+        }
+
+        fn query_training_session_selection(
+            &self,
+            _request: &TrainingSessionSelectionRequest,
+        ) -> Result<PersistedTrainingSessionSelection, TrainingSessionDiscoveryPortError> {
+            Ok(PersistedTrainingSessionSelection {
+                snapshot_ref: SNAPSHOT.to_owned(),
+                sessions: vec![item()],
+            })
+        }
+    }
+    let missing = query_training_session_selection(
+        &MissingSelectionPort,
+        TrainingSessionSelectionRequest {
+            session_refs: vec![SESSION.to_owned(), format!("session-{}", "d".repeat(64))],
+            snapshot_ref: None,
+        },
+    );
+    assert!(matches!(
+        missing,
+        Err(ApplicationError::TrainingSessionSearch(_))
+    ));
+}
+
+fn workspace() -> TrainingDiscoveryWorkspace {
+    TrainingDiscoveryWorkspace {
+        version: 1,
+        snapshot_ref: SNAPSHOT.to_owned(),
+        from: Some("2024-01-01".to_owned()),
+        through: Some("2026-08-31".to_owned()),
+        sport_refs: vec![classified_sport().sport_ref.unwrap()],
+        required_measurements: vec![TrainingMeasurementFilter::Distance],
+        text: Some("Trail".to_owned()),
+        sort: TrainingSessionSort::DistanceDescending,
+        offset: 25,
+        limit: 25,
+        view: TrainingDiscoveryView::Calendar,
+        calendar_month: Some("2026-08".to_owned()),
+        calendar_day: Some("2026-08-18".to_owned()),
+        selected_session_refs: vec![SESSION.to_owned()],
+        open_session_ref: Some(SESSION.to_owned()),
+    }
+}
+
+#[test]
+fn saves_loads_and_clears_a_complete_training_discovery_workspace() {
+    struct WorkspacePort {
+        value: Mutex<Option<TrainingDiscoveryWorkspace>>,
+    }
+    impl TrainingDiscoveryWorkspacePort for WorkspacePort {
+        fn load_training_discovery_workspace(
+            &self,
+        ) -> Result<Option<TrainingDiscoveryWorkspace>, String> {
+            Ok(self.value.lock().unwrap().clone())
+        }
+
+        fn save_training_discovery_workspace(
+            &self,
+            workspace: &TrainingDiscoveryWorkspace,
+        ) -> Result<(), String> {
+            *self.value.lock().unwrap() = Some(workspace.clone());
+            Ok(())
+        }
+
+        fn clear_training_discovery_workspace(&self) -> Result<(), String> {
+            *self.value.lock().unwrap() = None;
+            Ok(())
+        }
+    }
+    let port = WorkspacePort {
+        value: Mutex::new(None),
+    };
+    let expected = workspace();
+
+    assert_eq!(
+        save_training_discovery_workspace(&port, expected.clone()).unwrap(),
+        expected
+    );
+    assert_eq!(
+        load_training_discovery_workspace(&port).unwrap(),
+        Some(expected)
+    );
+    clear_training_discovery_workspace(&port).unwrap();
+    assert_eq!(load_training_discovery_workspace(&port).unwrap(), None);
+}
+
+#[test]
+fn rejects_inconsistent_training_discovery_workspaces_before_writing() {
+    struct UnreachableWorkspacePort;
+    impl TrainingDiscoveryWorkspacePort for UnreachableWorkspacePort {
+        fn load_training_discovery_workspace(
+            &self,
+        ) -> Result<Option<TrainingDiscoveryWorkspace>, String> {
+            unreachable!("invalid workspace must not be loaded")
+        }
+
+        fn save_training_discovery_workspace(
+            &self,
+            _workspace: &TrainingDiscoveryWorkspace,
+        ) -> Result<(), String> {
+            unreachable!("invalid workspace must not be written")
+        }
+
+        fn clear_training_discovery_workspace(&self) -> Result<(), String> {
+            unreachable!("invalid workspace must not be cleared")
+        }
+    }
+    let cases = [
+        TrainingDiscoveryWorkspace {
+            version: 2,
+            ..workspace()
+        },
+        TrainingDiscoveryWorkspace {
+            view: TrainingDiscoveryView::Chronology,
+            calendar_month: Some("2026-08".to_owned()),
+            calendar_day: None,
+            ..workspace()
+        },
+        TrainingDiscoveryWorkspace {
+            selected_session_refs: vec![SESSION.to_owned(), SESSION.to_owned()],
+            ..workspace()
+        },
+        TrainingDiscoveryWorkspace {
+            offset: 1,
+            ..workspace()
+        },
+        TrainingDiscoveryWorkspace {
+            offset: 20,
+            limit: 10,
+            ..workspace()
+        },
+    ];
+    for value in cases {
+        assert!(matches!(
+            save_training_discovery_workspace(&UnreachableWorkspacePort, value),
+            Err(ApplicationError::InvalidTrainingDiscoveryWorkspace(_))
+        ));
     }
 }
 

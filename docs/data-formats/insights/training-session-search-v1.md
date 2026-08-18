@@ -13,6 +13,16 @@ This read model contains only lightweight canonical facts. Routes, samples, laps
 segments, and full session inspection belong to later detail contracts and are never loaded speculatively by
 search.
 
+The same discovery boundary also exposes a source-separated calendar and an ordered opaque selection. The
+`query_training_session_calendar` command accepts
+[`training-session-calendar-query-v1.schema.json`](../../../schemas/training-session-calendar-query-v1.schema.json)
+and returns
+[`training-session-calendar-v1.schema.json`](../../../schemas/training-session-calendar-v1.schema.json).
+The `query_training_session_selection` command accepts
+[`training-session-selection-query-v1.schema.json`](../../../schemas/training-session-selection-query-v1.schema.json)
+and returns
+[`training-session-selection-v1.schema.json`](../../../schemas/training-session-selection-v1.schema.json).
+
 ## Query
 
 `from` and `through` are independently optional inclusive local-date bounds. When both exist, `from` cannot
@@ -60,6 +70,28 @@ result. A training day is a distinct local start date within one source. Optiona
 are null exactly when their corresponding session count is zero. Duration and energy totals use decimal
 strings so transport cannot lose integer precision. The summaries and page are read from the same snapshot;
 presentation never reconstructs a complete-history aggregate from the visible page.
+
+## Calendar projection
+
+The calendar query repeats the search `from`, `through`, `sportRefs`, `requiredMeasurements`, and `text`
+filters and replaces pagination and sorting with a required canonical `month` in `YYYY-MM` form. The same
+`snapshotRef` coherence rules apply. The month is intersected with optional date bounds; days outside that
+intersection have no entry.
+
+`days` is ordered by `localDate` and then `sourceIndex`. Each item represents exactly one source on one local
+date and contains positive `sessionCount`, exact decimal-string `totalDurationMilliseconds`,
+`distanceSessionCount`, optional `totalDistanceMeters`, and `heartRateSessionCount`. Multiple sources on the
+same date remain separate. A date without matching sessions has no item. The response repeats `month`,
+`availableRange`, and the accepted `snapshotRef`; calendar and session pages can therefore be combined only
+when their snapshots agree.
+
+## Ordered selection
+
+`sessionRefs` contains one through five unique opaque session references. Four references are available for
+comparison; a fifth may represent a distinct open detail while restoring a workspace. The result contains
+the same number of `sessions` in request order and the accepted `snapshotRef`. A reference that is malformed,
+duplicated, or absent from the current snapshot rejects the complete selection. The resolver never exposes
+canonical origin or source session identity and never substitutes a session from another snapshot.
 
 ## Session and sport context
 

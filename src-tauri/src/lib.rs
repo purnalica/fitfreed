@@ -58,8 +58,11 @@ use presentation::{
     RecoveryNightDetailDto, RecoveryOverviewDto, SaveSportClassificationRequestDto,
     SavedTrainingSportClassificationDto, SleepComparisonDto, SleepDateRangeDto, SleepOverviewDto,
     SleepPeriodDetailDto, SourceAcquisitionGuideDto, TrainingComparisonDto, TrainingDateRangeDto,
-    TrainingOverviewDto, TrainingSessionSearchPageDto, TrainingSessionSearchRequestDto,
-    TrainingSportsOverviewDto, UpdateCheckOutcomeDto, UpdateRecoveryOutcomeDto,
+    TrainingDiscoveryWorkspaceDto, TrainingOverviewDto, TrainingSessionCalendarDto,
+    TrainingSessionCalendarRequestDto, TrainingSessionSearchPageDto,
+    TrainingSessionSearchRequestDto, TrainingSessionSelectionDto,
+    TrainingSessionSelectionRequestDto, TrainingSportsOverviewDto, UpdateCheckOutcomeDto,
+    UpdateRecoveryOutcomeDto,
 };
 use serde::{Deserialize, Serialize};
 use tauri::{ipc::Channel, AppHandle, Emitter, Manager, State};
@@ -358,6 +361,63 @@ fn query_training_sessions(
     let library = SqliteTrainingLibrary::new(path);
     fitfreed_application::query_training_sessions(&library, request)
         .map(Into::into)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn query_training_session_calendar(
+    app: AppHandle,
+    request: TrainingSessionCalendarRequestDto,
+) -> Result<TrainingSessionCalendarDto, CommandErrorDto> {
+    let request = request.try_into().map_err(CommandErrorDto::from)?;
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let library = SqliteTrainingLibrary::new(path);
+    fitfreed_application::query_training_session_calendar(&library, request)
+        .map(Into::into)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn query_training_session_selection(
+    app: AppHandle,
+    request: TrainingSessionSelectionRequestDto,
+) -> Result<TrainingSessionSelectionDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let library = SqliteTrainingLibrary::new(path);
+    fitfreed_application::query_training_session_selection(&library, request.into())
+        .map(Into::into)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn load_training_discovery_workspace(
+    app: AppHandle,
+) -> Result<Option<TrainingDiscoveryWorkspaceDto>, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    fitfreed_application::load_training_discovery_workspace(&SqliteTrainingLibrary::new(path))
+        .map(|workspace| workspace.map(Into::into))
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn save_training_discovery_workspace(
+    app: AppHandle,
+    workspace: TrainingDiscoveryWorkspaceDto,
+) -> Result<TrainingDiscoveryWorkspaceDto, CommandErrorDto> {
+    let workspace = workspace.try_into().map_err(CommandErrorDto::from)?;
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    fitfreed_application::save_training_discovery_workspace(
+        &SqliteTrainingLibrary::new(path),
+        workspace,
+    )
+    .map(Into::into)
+    .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn clear_training_discovery_workspace(app: AppHandle) -> Result<(), CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    fitfreed_application::clear_training_discovery_workspace(&SqliteTrainingLibrary::new(path))
         .map_err(CommandErrorDto::from)
 }
 
@@ -1337,6 +1397,11 @@ pub fn run() {
             query_training_overview,
             query_training_comparison,
             query_training_sessions,
+            query_training_session_calendar,
+            query_training_session_selection,
+            load_training_discovery_workspace,
+            save_training_discovery_workspace,
+            clear_training_discovery_workspace,
             query_training_sports,
             save_training_sport_classification,
             query_sleep_overview,

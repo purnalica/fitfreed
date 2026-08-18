@@ -13,6 +13,7 @@
         "Provider-neutral SQLite history for activity, training summaries, sleep, and recovery",
         "Bounded visual comparison and longitudinal context",
         "User-authored sport classification and complete-history session search",
+        "Chronology, source-separated calendar discovery, session comparison, and restart restoration",
         "Question-led Library Home, post-import reveal, and resumable exploration",
         "First-run Sources home with offline export guidance and allowlisted official links",
         "Durable language, appearance, and content zoom settings",
@@ -28,7 +29,6 @@
       "label": "Active experience work",
       "title": "The experience being shaped",
       "items": [
-        "Chronology, calendar discovery, and comparison selection",
         "Routed and non-routed session evidence workspaces",
         "Origin-aware navigation across discovery, session, and report workspaces",
         "Saved evidence reports with self-contained HTML export",

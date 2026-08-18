@@ -13,8 +13,11 @@ use fitfreed_application::{
     query_activity_comparison, query_activity_overview, query_longitudinal_comparison,
     query_longitudinal_overview, query_recovery_comparison, query_recovery_detail,
     query_recovery_overview, query_sleep_comparison, query_sleep_detail, query_sleep_overview,
-    query_training_comparison, query_training_overview, ActivityDateRange, LongitudinalDateRange,
-    RecoveryDateRange, SleepDateRange, TrainingDateRange,
+    query_training_comparison, query_training_overview, query_training_session_calendar,
+    query_training_session_selection, query_training_sessions, ActivityDateRange,
+    LongitudinalDateRange, RecoveryDateRange, SleepDateRange, TrainingDateRange,
+    TrainingSessionCalendarRequest, TrainingSessionSearchRequest, TrainingSessionSelectionRequest,
+    TrainingSessionSort,
 };
 use fitfreed_lib::infrastructure::{
     query_activity_between, SqliteActivityLibrary, SqliteLongitudinalLibrary,
@@ -150,6 +153,56 @@ fn main() {
         .expect("maximum training comparison")
         .series
         .len()
+    });
+    let training_discovery_request = TrainingSessionSearchRequest {
+        from: None,
+        through: None,
+        sport_refs: Vec::new(),
+        required_measurements: Vec::new(),
+        text: None,
+        sort: TrainingSessionSort::StartedDescending,
+        offset: 0,
+        limit: 25,
+        snapshot_ref: None,
+    };
+    let training_discovery_page =
+        query_training_sessions(&training_library, training_discovery_request.clone())
+            .expect("training discovery setup");
+    let training_discovery = measure(25, || {
+        query_training_sessions(&training_library, training_discovery_request.clone())
+            .expect("training discovery page")
+            .sessions
+            .len()
+    });
+    let training_calendar_request = TrainingSessionCalendarRequest {
+        month: "2025-12".to_owned(),
+        from: None,
+        through: None,
+        sport_refs: Vec::new(),
+        required_measurements: Vec::new(),
+        text: None,
+        snapshot_ref: Some(training_discovery_page.snapshot_ref.clone()),
+    };
+    let training_calendar = measure(ORIGIN_COUNT * 31, || {
+        query_training_session_calendar(&training_library, training_calendar_request.clone())
+            .expect("training calendar month")
+            .days
+            .len()
+    });
+    let training_selection_request = TrainingSessionSelectionRequest {
+        session_refs: training_discovery_page
+            .sessions
+            .iter()
+            .take(4)
+            .map(|session| session.session_ref.clone())
+            .collect(),
+        snapshot_ref: Some(training_discovery_page.snapshot_ref),
+    };
+    let training_session_selection = measure(4, || {
+        query_training_session_selection(&training_library, training_selection_request.clone())
+            .expect("training session selection")
+            .sessions
+            .len()
     });
 
     let sleep_latest_range = sleep_range("2025-12-02", "2025-12-31");
@@ -360,6 +413,21 @@ fn main() {
             COMPLEX_BUDGET_MILLISECONDS,
         ),
         (
+            "training.discoveryPage",
+            &training_discovery,
+            COMMON_BUDGET_MILLISECONDS,
+        ),
+        (
+            "training.calendarMonth",
+            &training_calendar,
+            COMMON_BUDGET_MILLISECONDS,
+        ),
+        (
+            "training.sessionSelection",
+            &training_session_selection,
+            COMMON_BUDGET_MILLISECONDS,
+        ),
+        (
             "sleep.defaultOverview",
             &sleep_default_overview,
             COMMON_BUDGET_MILLISECONDS,
@@ -508,6 +576,18 @@ fn main() {
                     "maximumComparison": measurement_json(
                         &training_maximum_comparison,
                         COMPLEX_BUDGET_MILLISECONDS,
+                    ),
+                    "discoveryPage": measurement_json(
+                        &training_discovery,
+                        COMMON_BUDGET_MILLISECONDS,
+                    ),
+                    "calendarMonth": measurement_json(
+                        &training_calendar,
+                        COMMON_BUDGET_MILLISECONDS,
+                    ),
+                    "sessionSelection": measurement_json(
+                        &training_session_selection,
+                        COMMON_BUDGET_MILLISECONDS,
                     ),
                 },
                 "sleep": {

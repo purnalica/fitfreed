@@ -1052,6 +1052,12 @@ for (const field of [
   "invalid-training-session-search",
   "training-session-search-changed",
   "training-session-search-failed",
+  "query_training_session_calendar",
+  "query_training_session_selection",
+  "month",
+  "days",
+  "localDate",
+  "sessionRefs",
 ]) {
   requireMention(trainingSessionSearch, field, trainingSessionSearchPath);
 }
@@ -1178,6 +1184,196 @@ for (const invalidResponse of [
 ]) {
   if (validateTrainingSessionSearch(invalidResponse)) {
     throw new Error(`${trainingSessionSearchSchemaPath} accepted an invalid response`);
+  }
+}
+
+const trainingSessionCalendarQuerySchemaPath =
+  "schemas/training-session-calendar-query-v1.schema.json";
+const validateTrainingSessionCalendarQuery = ajv.compile(
+  JSON.parse(read(trainingSessionCalendarQuerySchemaPath)),
+);
+const syntheticTrainingSessionCalendarQuery = {
+  month: "2026-08",
+  from: "2026-01-01",
+  through: null,
+  sportRefs: [sportRefDigest],
+  requiredMeasurements: ["distance", "heart-rate"],
+  text: "Trail",
+  snapshotRef: snapshotRefDigest,
+};
+if (!validateTrainingSessionCalendarQuery(syntheticTrainingSessionCalendarQuery)) {
+  throw new Error(
+    `${trainingSessionCalendarQuerySchemaPath} rejected its synthetic query: ${ajv.errorsText(validateTrainingSessionCalendarQuery.errors)}`,
+  );
+}
+for (const invalidQuery of [
+  { ...syntheticTrainingSessionCalendarQuery, month: "2026-13" },
+  { ...syntheticTrainingSessionCalendarQuery, sportRefs: ["source-sport"] },
+  { ...syntheticTrainingSessionCalendarQuery, provider: "must-not-cross-the-boundary" },
+]) {
+  if (validateTrainingSessionCalendarQuery(invalidQuery)) {
+    throw new Error(`${trainingSessionCalendarQuerySchemaPath} accepted an invalid query`);
+  }
+}
+
+const trainingSessionCalendarSchemaPath = "schemas/training-session-calendar-v1.schema.json";
+const validateTrainingSessionCalendar = ajv.compile(
+  JSON.parse(read(trainingSessionCalendarSchemaPath)),
+);
+const syntheticTrainingSessionCalendar = {
+  availableRange: syntheticTrainingSessionSearch.availableRange,
+  snapshotRef: snapshotRefDigest,
+  month: "2026-08",
+  days: [{
+    localDate: "2026-08-18",
+    sourceIndex: 1,
+    sessionCount: 1,
+    totalDurationMilliseconds: "3600000",
+    distanceSessionCount: 1,
+    totalDistanceMeters: 10000.5,
+    heartRateSessionCount: 1,
+  }],
+};
+if (!validateTrainingSessionCalendar(syntheticTrainingSessionCalendar)) {
+  throw new Error(
+    `${trainingSessionCalendarSchemaPath} rejected its synthetic response: ${ajv.errorsText(validateTrainingSessionCalendar.errors)}`,
+  );
+}
+for (const invalidResponse of [
+  { ...syntheticTrainingSessionCalendar, month: "August" },
+  { ...syntheticTrainingSessionCalendar, originId: "must-not-cross-the-boundary" },
+  {
+    ...syntheticTrainingSessionCalendar,
+    days: [{ ...syntheticTrainingSessionCalendar.days[0], sessionCount: 0 }],
+  },
+]) {
+  if (validateTrainingSessionCalendar(invalidResponse)) {
+    throw new Error(`${trainingSessionCalendarSchemaPath} accepted an invalid response`);
+  }
+}
+
+const trainingSessionSelectionQuerySchemaPath =
+  "schemas/training-session-selection-query-v1.schema.json";
+const validateTrainingSessionSelectionQuery = ajv.compile(
+  JSON.parse(read(trainingSessionSelectionQuerySchemaPath)),
+);
+const secondSessionRefDigest = `session-${"d".repeat(64)}`;
+const syntheticTrainingSessionSelectionQuery = {
+  sessionRefs: [secondSessionRefDigest, sessionRefDigest],
+  snapshotRef: snapshotRefDigest,
+};
+if (!validateTrainingSessionSelectionQuery(syntheticTrainingSessionSelectionQuery)) {
+  throw new Error(
+    `${trainingSessionSelectionQuerySchemaPath} rejected its synthetic query: ${ajv.errorsText(validateTrainingSessionSelectionQuery.errors)}`,
+  );
+}
+for (const invalidQuery of [
+  { ...syntheticTrainingSessionSelectionQuery, sessionRefs: [] },
+  { ...syntheticTrainingSessionSelectionQuery, sessionRefs: [sessionRefDigest, sessionRefDigest] },
+  { ...syntheticTrainingSessionSelectionQuery, sourceSessionId: "hidden" },
+]) {
+  if (validateTrainingSessionSelectionQuery(invalidQuery)) {
+    throw new Error(`${trainingSessionSelectionQuerySchemaPath} accepted an invalid query`);
+  }
+}
+
+const trainingSessionSelectionSchemaPath = "schemas/training-session-selection-v1.schema.json";
+const validateTrainingSessionSelection = ajv.compile(
+  JSON.parse(read(trainingSessionSelectionSchemaPath)),
+);
+const secondSyntheticSession = structuredClone(syntheticTrainingSessionSearch.sessions[0]);
+secondSyntheticSession.sessionRef = secondSessionRefDigest;
+const syntheticTrainingSessionSelection = {
+  snapshotRef: snapshotRefDigest,
+  sessions: [secondSyntheticSession, syntheticTrainingSessionSearch.sessions[0]],
+};
+if (!validateTrainingSessionSelection(syntheticTrainingSessionSelection)) {
+  throw new Error(
+    `${trainingSessionSelectionSchemaPath} rejected its synthetic response: ${ajv.errorsText(validateTrainingSessionSelection.errors)}`,
+  );
+}
+for (const invalidResponse of [
+  { ...syntheticTrainingSessionSelection, sessions: [] },
+  { ...syntheticTrainingSessionSelection, originId: "must-not-cross-the-boundary" },
+]) {
+  if (validateTrainingSessionSelection(invalidResponse)) {
+    throw new Error(`${trainingSessionSelectionSchemaPath} accepted an invalid response`);
+  }
+}
+
+const trainingDiscoveryWorkspacePath =
+  "docs/data-formats/insights/training-discovery-workspace-v1.md";
+const trainingDiscoveryWorkspace = read(trainingDiscoveryWorkspacePath);
+for (const field of [
+  "load_training_discovery_workspace",
+  "save_training_discovery_workspace",
+  "clear_training_discovery_workspace",
+  "version",
+  "snapshotRef",
+  "from",
+  "through",
+  "sportRefs",
+  "requiredMeasurements",
+  "text",
+  "sort",
+  "offset",
+  "limit",
+  "view",
+  "chronology",
+  "calendar",
+  "calendarMonth",
+  "calendarDay",
+  "selectedSessionRefs",
+  "openSessionRef",
+  "invalid-training-discovery-workspace",
+  "training-discovery-workspace-query-failed",
+  "training-discovery-workspace-update-failed",
+]) {
+  requireMention(trainingDiscoveryWorkspace, field, trainingDiscoveryWorkspacePath);
+}
+const trainingDiscoveryWorkspaceSchemaPath =
+  "schemas/training-discovery-workspace-v1.schema.json";
+const validateTrainingDiscoveryWorkspace = ajv.compile(
+  JSON.parse(read(trainingDiscoveryWorkspaceSchemaPath)),
+);
+const syntheticTrainingDiscoveryWorkspace = {
+  version: 1,
+  snapshotRef: snapshotRefDigest,
+  from: "2026-01-01",
+  through: "2026-08-18",
+  sportRefs: [sportRefDigest],
+  requiredMeasurements: ["distance", "heart-rate"],
+  text: "Trail",
+  sort: "distance-desc",
+  offset: 25,
+  limit: 25,
+  view: "calendar",
+  calendarMonth: "2026-08",
+  calendarDay: "2026-08-18",
+  selectedSessionRefs: [secondSessionRefDigest, sessionRefDigest],
+  openSessionRef: sessionRefDigest,
+};
+if (!validateTrainingDiscoveryWorkspace(syntheticTrainingDiscoveryWorkspace)) {
+  throw new Error(
+    `${trainingDiscoveryWorkspaceSchemaPath} rejected its synthetic workspace: ${ajv.errorsText(validateTrainingDiscoveryWorkspace.errors)}`,
+  );
+}
+for (const invalidWorkspace of [
+  { ...syntheticTrainingDiscoveryWorkspace, version: 2 },
+  {
+    ...syntheticTrainingDiscoveryWorkspace,
+    view: "chronology",
+  },
+  {
+    ...syntheticTrainingDiscoveryWorkspace,
+    selectedSessionRefs: [sessionRefDigest, sessionRefDigest],
+  },
+  { ...syntheticTrainingDiscoveryWorkspace, offset: 20 },
+  { ...syntheticTrainingDiscoveryWorkspace, limit: 10 },
+  { ...syntheticTrainingDiscoveryWorkspace, originId: "must-not-cross-the-boundary" },
+]) {
+  if (validateTrainingDiscoveryWorkspace(invalidWorkspace)) {
+    throw new Error(`${trainingDiscoveryWorkspaceSchemaPath} accepted an invalid workspace`);
   }
 }
 
@@ -2993,6 +3189,7 @@ for (const contractPath of [
   trainingOverviewPath,
   trainingSportsPath,
   trainingSessionSearchPath,
+  trainingDiscoveryWorkspacePath,
   trainingComparisonPath,
   sleepOverviewPath,
   sleepComparisonPath,
@@ -3039,6 +3236,11 @@ process.stdout.write(
     trainingSessionSearchSchemas: [
       trainingSessionSearchQuerySchemaPath,
       trainingSessionSearchSchemaPath,
+      trainingSessionCalendarQuerySchemaPath,
+      trainingSessionCalendarSchemaPath,
+      trainingSessionSelectionQuerySchemaPath,
+      trainingSessionSelectionSchemaPath,
+      trainingDiscoveryWorkspaceSchemaPath,
     ],
     trainingComparisonSchemas: [
       trainingComparisonQuerySchemaPath,

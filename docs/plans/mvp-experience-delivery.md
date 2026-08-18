@@ -2,7 +2,7 @@
 
 ## Status
 
-Active as of 2026-08-18. D0, P1, E1, and P2 have complete local and hosted acceptance evidence. E2 has reached its complete local checkpoint; hosted executable evidence remains pending. E3 slices 1 and 2 have reached their local checkpoints, and slice 3 is active. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English and Spanish hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md) and [ADR 0024](../architecture/decisions/0024-generate-localized-product-pages.md).
+Active as of 2026-08-18. D0, P1, E1, and P2 have complete local and hosted acceptance evidence. E2 has reached its complete local checkpoint; hosted executable evidence remains pending. All three E3 slices have reached their local checkpoints, and E4 is active. The latest E3 executable fingerprint still requires hosted evidence. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English and Spanish hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md) and [ADR 0024](../architecture/decisions/0024-generate-localized-product-pages.md).
 
 The existing import, reconciliation, persistence, Insights, localization, update-recovery, packaging, and continuous-integration capabilities remain the engineering baseline. This plan changes how those capabilities become a product people can understand and value; it does not discard their verified behavior.
 
@@ -367,6 +367,26 @@ automated accessibility. A second packaged process used an independent generated
 forward and backward pagination over 731 sessions and every applicable interaction budget. This evidence
 accepts slice 2 only; chronology and calendar views, comparison selection, complete workspace restoration,
 and destination-aware session return remain in slice 3.
+
+**Slice 3 local accepted evidence:** chronology and a source-separated local-date calendar now project the
+same complete-history filters and coherent discovery snapshot. A person can move across bounded months,
+open a populated day, compare two through four sessions selected across pages, inspect lightweight exact
+detail, and return to the complete chronology or exact calendar origin. The detailed workspace persists the
+applied query, page, view, month, selected day, ordered comparison, and open session; restart resolves those
+opaque capabilities against the same snapshot, while library changes retain valid query intent and discard
+stale session-specific evidence. Explicit return to Home clears both resumable workspaces.
+
+SQLite schema 14 adds the constrained disposable workspace and an atomic direct migration from version 13.
+Versioned search, calendar, selection, workspace, and persistence contracts have independent synthetic
+validation. The packaged bilingual journey proves calendar and chronology switching, day selection,
+comparison, origin-specific return, durable restart restoration, explicit clearing, and 200% layouts;
+application tests prove stale-snapshot selection clearing. Its separate 731-session process measures calendar
+navigation at 39 ms p95 against the 500 ms budget and selects four exact sessions. The release read-model
+campaign over 14,612 sessions measures a page at 7.369 ms p95,
+a calendar month at 2.951 ms p95, and ordered four-session resolution at 11.006 ms p95. This accepts the E3
+local checkpoint; hosted executable evidence remains pending. Evidence-complete routed and non-routed
+session destinations and their cross-workspace navigation continue in E4, while report-origin navigation
+continues in E5.
 
 ### E4 — Evidence-complete session inspection
 
