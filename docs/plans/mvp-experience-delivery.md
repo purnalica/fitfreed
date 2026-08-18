@@ -2,7 +2,7 @@
 
 ## Status
 
-Active as of 2026-08-18. D0 is accepted and documented; E1 implementation is active. The P1 product-site publication gate must be presented before E1 can be accepted, although E1 work continues independently while P1 is prepared.
+Active as of 2026-08-18. D0 is accepted and documented; E1 implementation is active. The project owner has authorized autonomous publication of the P1 product site. P1 must pass its local and hosted evidence before deployment and before E1 can be accepted.
 
 The existing import, reconciliation, persistence, Insights, localization, update-recovery, packaging, and continuous-integration capabilities remain the engineering baseline. This plan changes how those capabilities become a product people can understand and value; it does not discard their verified behavior.
 
@@ -196,9 +196,9 @@ Each increment is a runnable vertical outcome. Within an increment, tests are wr
 4. Keep download actions unavailable until an eligible immutable GitHub Release exists. Pages never owns binaries, release evidence, or mutable copies of release assets.
 5. Verify the artifact locally and in CI, including internal links, accessibility, localization claims, absence of personal data, and the `/updates/` preservation invariant.
 
-**Publication gate:** the project owner authorizes the first live GitHub Pages deployment after reviewing the exact workflow, artifact, URL, and repository-setting change. This authority does not activate application downloads, releases, update trust, signing, or future public-release publication.
+**Publication authority:** on 2026-08-18 the project owner explicitly authorized the first live GitHub Pages product-site deployment and its in-scope updates without another confirmation. Deployment still requires the exact workflow, artifact, URL, repository setting, and P1 checks to pass. This authority does not activate application downloads, releases, update trust, signing, or future public-release publication.
 
-**Handoff:** technical preparation proceeds autonomously alongside E1. The publication gate is presented as soon as the deployable artifact and its evidence are ready and no later than the E1 acceptance checkpoint.
+**Handoff:** technical preparation and deployment proceed autonomously alongside E1. Publication occurs as soon as the deployable artifact and its evidence are ready and no later than the E1 acceptance checkpoint.
 
 ### E1 — First-run shell, sources, settings, and navigation spine
 
@@ -437,7 +437,7 @@ Human intervention is required only for:
 
 - accepting a material change to platform, privacy, licensing, or product behavior;
 - authorizing a dependency with unresolved license or supply-chain risk;
-- Apple Developer, production signing, protected-environment, tag, release, Pages, or public publication authority;
+- Apple Developer, production signing, protected-environment, tag, release, application-download, update-channel, or public-release publication authority; product-site Pages publication is already authorized under P1;
 - destructive real-library operations; and
 - final human usability or accessibility acceptance that cannot be automated.
 

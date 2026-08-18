@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: public-macos-release
+  group: fitfreed-pages-publication
   cancel-in-progress: false
 
 jobs:

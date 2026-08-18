@@ -65,7 +65,7 @@ A necessary pause reports:
 - Project files and non-destructive local verification may be created or changed within the active task and confirmed scope.
 - The project owner has authorized focused local commits throughout autonomous execution. Each commit must contain one coherent verified increment, use public-safe identity metadata, and pass the repository publication safeguards before creation.
 - The project owner has authorized a normal push to `origin/main` after every verified commit. The complete outgoing range must pass content, secret, and identity checks immediately before each push.
-- Creating tags, force-pushing, pushing another target, publishing releases or packages, or changing remote settings remains a separate action that requires explicit authority.
+- Creating tags, force-pushing, pushing another target, publishing releases or packages, or changing remote settings remains a separate action that requires explicit authority. The project owner authorized the GitHub Pages product-site setting and deployment on 2026-08-18; this does not authorize an application release or update channel.
 - Creating or changing external repositories, packages, releases, update channels, or public communications requires explicit authority for the exact target and action.
 - Credentials, signing identities, notarization access, and destructive personal-data operations remain separate human gates.
 

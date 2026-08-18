@@ -70,7 +70,7 @@ export function validatePublicReleaseWorkflow(source) {
   if (/^  (push|pull_request|pull_request_target|release|schedule):/m.test(trigger)) {
     errors.push("workflow has an automatic or untrusted trigger");
   }
-  requireMatch(errors, source, /concurrency:\n  group: public-macos-release\n  cancel-in-progress: false/, "workflow concurrency must preserve an active release");
+  requireMatch(errors, source, /concurrency:\n  group: fitfreed-pages-publication\n  cancel-in-progress: false/, "workflow concurrency must preserve an active release and serialize Pages publication");
   requirePermissions(errors, source, 0, ["contents: read"], "workflow default");
   if (/continue-on-error:|self-hosted|pull_request_target/.test(source)) {
     errors.push("workflow contains a forbidden failure or runner boundary");

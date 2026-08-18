@@ -1,0 +1,79 @@
+name: Product site
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/pages.yml
+      - assets/brand/**
+      - docs/product-status.json
+      - package-lock.json
+      - package.json
+      - scripts/pages-artifact.mjs
+      - scripts/pages-publication.mjs
+      - scripts/render-product-surfaces.mjs
+      - site/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fitfreed-pages-publication
+  cancel-in-progress: false
+
+jobs:
+  publish-product-site:
+    name: Verify and publish the product site
+    if: github.repository == 'purnalica/fitfreed'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+      pages: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Use the supported Node.js version
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked JavaScript dependencies
+        run: npm ci
+
+      - name: Verify the product claims and source page
+        run: |
+          npm run check:product-surfaces
+          npm run check:site
+
+      - name: Compose the complete Pages artifact
+        run: npm run build:pages
+
+      - name: Refuse to erase an active update snapshot
+        run: npm run verify:pages:preflight
+
+      - name: Upload the complete Pages artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: .artifacts/pages
+          retention-days: 1
+
+      - name: Deploy the complete Pages artifact
+        id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+
+      - name: Verify the exact public site
+        env:
+          FITFREED_PAGES_URL: ${{ steps.deployment.outputs.page_url }}
+        run: npm run verify:pages:remote

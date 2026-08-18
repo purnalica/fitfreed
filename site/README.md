@@ -3,9 +3,9 @@
 ## Status
 
 Reviewable static source for the canonical product site at
-<https://purnalica.github.io/fitfreed/>. Deployment is pending and the source contains no release
-download action. Its statements derive from the product thesis, current capability boundary, active
-experience plan, and roadmap; those documents remain authoritative.
+<https://purnalica.github.io/fitfreed/>. The source contains no release download action. Its
+statements derive from the product thesis, current capability boundary, active experience plan, and
+roadmap; those documents remain authoritative.
 
 The available, active, and later capability block is generated from
 [`docs/product-status.json`](../docs/product-status.json). Change that source and run
@@ -26,6 +26,13 @@ python3 -m http.server 4175 --bind 127.0.0.1
 Open <http://127.0.0.1:4175/site/>. Review at narrow and wide widths, 200% browser zoom, dark system
 appearance, reduced motion, keyboard-only navigation, and automated accessibility analysis before
 any deployment.
+
+`npm run build:pages` creates the ignored, deployable `.artifacts/pages/` tree. The compositor copies
+only the required product assets, converts repository-document links to canonical GitHub links, and
+can carry one complete digest-bound `/updates/` snapshot without changing its bytes. The product
+workflow runs the source checks, compositor, update-preservation preflight, atomic Pages deployment,
+and exact remote-byte verification. It fails before deployment if a product-only artifact would
+erase an active update channel.
 
 [ADR 0020](../docs/architecture/decisions/0020-compose-product-and-update-pages.md) defines the
 canonical URL, one-artifact deployment topology, privacy boundary, release-link ownership, and
