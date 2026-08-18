@@ -13,6 +13,8 @@ use fitfreed_application::{
     decide_update_recovery_watchdog_action, UpdateRecoveryOutcomeKind, UpdateRecoveryPhase,
     UpdateRecoveryWatchdogAction, UpdateRecoveryWatchdogEvent,
 };
+#[cfg(unix)]
+use libc::{getppid, kill, ESRCH, SIGKILL, SIGTERM};
 use sha2::{Digest, Sha256};
 use thiserror::Error;
 
@@ -528,13 +530,13 @@ fn stop_inherited_replacement(
     if !update_recovery_process_is_running(process, executable)? {
         return Ok(());
     }
-    signal_inherited_replacement(process, executable, libc::SIGTERM)?;
+    signal_inherited_replacement(process, executable, SIGTERM)?;
     let deadline = Instant::now() + PROCESS_STOP_TIMEOUT;
     while update_recovery_process_is_running(process, executable)? && Instant::now() < deadline {
         thread::sleep(POLL_INTERVAL);
     }
     if update_recovery_process_is_running(process, executable)? {
-        signal_inherited_replacement(process, executable, libc::SIGKILL)?;
+        signal_inherited_replacement(process, executable, SIGKILL)?;
         let deadline = Instant::now() + PROCESS_STOP_TIMEOUT;
         while update_recovery_process_is_running(process, executable)? && Instant::now() < deadline
         {
@@ -562,9 +564,9 @@ fn signal_inherited_replacement(
     }
     let process_id = i32::try_from(process.process_id())
         .map_err(|_| UpdateRecoveryWatchdogError::UnownedReplacement)?;
-    if unsafe { libc::kill(process_id, signal) } != 0 {
+    if unsafe { kill(process_id, signal) } != 0 {
         let error = io::Error::last_os_error();
-        if error.raw_os_error() != Some(libc::ESRCH) {
+        if error.raw_os_error() != Some(ESRCH) {
             return Err(error.into());
         }
     }
@@ -581,7 +583,7 @@ fn stop_inherited_replacement(
 
 #[cfg(unix)]
 fn original_parent_process_id() -> u32 {
-    unsafe { libc::getppid() as u32 }
+    unsafe { getppid() as u32 }
 }
 
 #[cfg(not(unix))]
@@ -591,34 +593,49 @@ fn original_parent_process_id() -> u32 {
 
 #[cfg(unix)]
 fn stop_original_parent(process_id: u32) -> Result<(), UpdateRecoveryWatchdogError> {
+    stop_original_parent_with(
+        process_id,
+        original_parent_process_id,
+        |process_id, signal| {
+            if unsafe { kill(process_id, signal) } != 0 {
+                let error = io::Error::last_os_error();
+                if error.raw_os_error() != Some(ESRCH) {
+                    return Err(error);
+                }
+            }
+            Ok(())
+        },
+    )
+}
+
+#[cfg(unix)]
+fn stop_original_parent_with(
+    process_id: u32,
+    observed_parent: impl Fn() -> u32,
+    mut send_signal: impl FnMut(i32, i32) -> io::Result<()>,
+) -> Result<(), UpdateRecoveryWatchdogError> {
     let process_id =
         i32::try_from(process_id).map_err(|_| UpdateRecoveryWatchdogError::Readiness)?;
     if process_id <= 1 {
         return Err(UpdateRecoveryWatchdogError::Readiness);
     }
-    if original_parent_process_id() != process_id as u32 {
+    let still_parent = || observed_parent() == process_id as u32;
+    if !still_parent() {
         return Ok(());
     }
-    if unsafe { libc::kill(process_id, libc::SIGTERM) } != 0 {
-        let error = io::Error::last_os_error();
-        if error.kind() != io::ErrorKind::NotFound {
-            return Err(error.into());
-        }
-    }
+    send_signal(process_id, SIGTERM)?;
     let deadline = Instant::now() + PROCESS_STOP_TIMEOUT;
-    while process_is_running(process_id) && Instant::now() < deadline {
+    while still_parent() && Instant::now() < deadline {
         thread::sleep(POLL_INTERVAL);
     }
-    if process_is_running(process_id) {
-        if unsafe { libc::kill(process_id, libc::SIGKILL) } != 0 {
-            return Err(io::Error::last_os_error().into());
-        }
+    if still_parent() {
+        send_signal(process_id, SIGKILL)?;
         let deadline = Instant::now() + PROCESS_STOP_TIMEOUT;
-        while process_is_running(process_id) && Instant::now() < deadline {
+        while still_parent() && Instant::now() < deadline {
             thread::sleep(POLL_INTERVAL);
         }
     }
-    if process_is_running(process_id) {
+    if still_parent() {
         return Err(io::Error::new(
             io::ErrorKind::TimedOut,
             "the original update process did not stop",
@@ -628,11 +645,6 @@ fn stop_original_parent(process_id: u32) -> Result<(), UpdateRecoveryWatchdogErr
     Ok(())
 }
 
-#[cfg(unix)]
-fn process_is_running(process_id: i32) -> bool {
-    unsafe { libc::kill(process_id, 0) == 0 }
-}
-
 #[cfg(not(unix))]
 fn stop_original_parent(_process_id: u32) -> Result<(), UpdateRecoveryWatchdogError> {
     Err(UpdateRecoveryError::UnsupportedPlatform.into())
@@ -640,7 +652,7 @@ fn stop_original_parent(_process_id: u32) -> Result<(), UpdateRecoveryWatchdogEr
 
 #[cfg(test)]
 mod tests {
-    use std::io::Cursor;
+    use std::{cell::Cell, io::Cursor};
 
     use super::*;
 
@@ -719,6 +731,28 @@ mod tests {
         assert!(nonce
             .bytes()
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn treats_reparenting_as_original_application_termination() {
+        let observed_parent = Cell::new(42_u32);
+        let signal_count = Cell::new(0_u8);
+
+        stop_original_parent_with(
+            42,
+            || observed_parent.get(),
+            |process_id, signal| {
+                assert_eq!(process_id, 42);
+                assert_eq!(signal, SIGTERM);
+                signal_count.set(signal_count.get() + 1);
+                observed_parent.set(1);
+                Ok(())
+            },
+        )
+        .expect("reparented watchdog");
+
+        assert_eq!(signal_count.get(), 1);
     }
 
     #[cfg(target_os = "macos")]
