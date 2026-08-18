@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "sourceLocale": "en-US",
+  "fallbackLocale": "en-US",
+  "storageKey": "fitfreed.product-locale",
+  "locales": [
+    {
+      "id": "en-US",
+      "label": "English",
+      "route": "/",
+      "output": "index.html"
+    },
+    {
+      "id": "es-ES",
+      "label": "Español",
+      "route": "/es/",
+      "output": "es/index.html",
+      "catalog": "site/locales/es-ES.json"
+    }
+  ]
+}

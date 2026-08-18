@@ -76,9 +76,9 @@ svg {
   width: min(1420px, calc(100% - 64px));
   min-height: 86px;
   align-items: center;
-  gap: 30px;
+  gap: 22px;
   margin: 0 auto;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: 1fr auto auto auto;
 }
 
 .brand {
@@ -99,6 +99,28 @@ svg {
 }
 
 .site-header nav a:hover {
+  color: var(--purple);
+}
+
+.site-header .locale-switcher {
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+}
+
+.site-header .locale-switcher a {
+  min-width: 34px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 10px;
+  text-align: center;
+}
+
+.site-header .locale-switcher a[aria-current="page"] {
+  background: var(--purple-light);
   color: var(--purple);
 }
 
@@ -219,7 +241,7 @@ svg {
   line-height: 1.5;
 }
 
-.release-note span {
+.release-note > span[aria-hidden="true"] {
   width: 8px;
   height: 8px;
   flex: 0 0 auto;
@@ -832,7 +854,7 @@ svg {
   list-style: none;
 }
 
-.report-copy li span {
+.report-copy li > span:first-child {
   color: #fff;
   font-weight: 800;
 }
@@ -991,7 +1013,7 @@ svg {
   color: var(--purple);
 }
 
-.community blockquote span {
+.community blockquote > span {
   font-family: var(--serif);
   font-size: 90px;
   line-height: 0.5;
@@ -1039,10 +1061,10 @@ footer small {
 
 @media (max-width: 1080px) {
   .site-header {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr auto auto;
   }
 
-  .site-header nav {
+  .site-header nav:not(.locale-switcher) {
     display: none;
   }
 
@@ -1069,7 +1091,7 @@ footer small {
 
   .session-story,
   .reports {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .session-copy,
@@ -1087,7 +1109,11 @@ footer small {
   }
 
   .community {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .community > * {
+    min-width: 0;
   }
 }
 
@@ -1104,24 +1130,41 @@ footer small {
 
   .site-header {
     min-height: 72px;
+    gap: 12px;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .brand {
-    width: 125px;
+    width: 118px;
   }
 
   .header-action {
-    padding: 9px 11px;
-    font-size: 10px;
+    display: none;
+  }
+
+  .site-header .locale-switcher a {
+    min-width: 30px;
+    padding-inline: 6px;
   }
 
   .hero {
     min-height: 0;
     padding: 50px 0 80px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hero > * {
+    min-width: 0;
+  }
+
+  .hero::before {
+    width: 100vw;
+    height: 100vw;
   }
 
   .hero h1 {
-    font-size: clamp(50px, 16vw, 78px);
+    overflow-wrap: anywhere;
+    font-size: clamp(46px, 14vw, 68px);
   }
 
   .hero-product {

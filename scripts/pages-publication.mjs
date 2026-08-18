@@ -72,7 +72,11 @@ export async function preflightPagesPublication({
 async function verifyPublishedPagesOnce({ baseUrl, pagesDirectory, fetchImpl }) {
   const files = relativeFiles(pagesDirectory).filter((file) => file !== ".nojekyll");
   for (const relativePath of files) {
-    const remotePath = relativePath === "index.html" ? "" : relativePath;
+    const remotePath = relativePath === "index.html"
+      ? ""
+      : relativePath.endsWith(`${path.sep}index.html`)
+        ? `${path.dirname(relativePath).split(path.sep).join("/")}/`
+        : relativePath;
     await exactRemoteBytes(
       fetchImpl,
       publicUrl(baseUrl, remotePath),

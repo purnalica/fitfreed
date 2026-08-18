@@ -36,6 +36,8 @@ test("renders README and product-page status from one model", () => {
   assert.match(rendered.readme, /\| Available \| Active \| Later \|/u);
   assert.match(rendered.readme, /Ready & inspectable/u);
   assert.match(rendered.productPage, /data-status="active"/u);
+  assert.match(rendered.productPage, /data-i18n="status\.available\.label"/u);
+  assert.match(rendered.productPage, /data-i18n="status\.active\.items\.0"/u);
   assert.match(rendered.productPage, /Ready &amp; inspectable/u);
   assert.match(rendered.productPage, /Useful &lt; soon/u);
   assert.match(rendered.productPage, /href="\.\.\/docs\/later\.md"/u);

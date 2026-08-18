@@ -2,7 +2,7 @@
 
 ## Status
 
-Active as of 2026-08-18. D0, P1, and E1 have complete local and hosted acceptance evidence. E2 has reached its complete local checkpoint; hosted evidence remains pending until the verified source revision is published. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md). P2 is the next independently deployable public-site increment, followed by E3 application delivery.
+Active as of 2026-08-18. D0, P1, and E1 have complete local and hosted acceptance evidence. E2 has reached its complete local checkpoint; hosted evidence remains pending. P2 has reached its complete local checkpoint and is awaiting exact hosted publication evidence before E3 application delivery. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md).
 
 The existing import, reconciliation, persistence, Insights, localization, update-recovery, packaging, and continuous-integration capabilities remain the engineering baseline. This plan changes how those capabilities become a product people can understand and value; it does not discard their verified behavior.
 
@@ -278,6 +278,18 @@ Commit `1650755` migrated the canonical public and no-redirect updater origin to
 **Sequencing:** P2 does not interrupt the active E2 application vertical. It is an independently deployable public-site increment scheduled after E2 reaches its first complete local vertical checkpoint and before E3 acceptance; it may publish earlier when it cannot delay E2 evidence.
 
 **Evaluation checkpoint:** a fresh browser with Spanish preference reaches Spanish product content, an unsupported preference reaches English, a manual choice survives navigation and reload, and both paths expose identical truthful product status and actions.
+
+**Local accepted evidence:** one canonical `en-US` HTML source and a complete 137-message `es-ES`
+JSON catalog generate deterministic `/` and `/es/` documents under ADR 0024. Exact key-parity checks reject
+missing, extra, empty, duplicated-source, or unmarked messages. Tests cover ordered browser preferences,
+English fallback, persisted-choice precedence, unavailable preferences and storage, stable direct localized
+entry, ordinary-link switching, localized metadata, truthful status, artifact inventory, `/updates/`
+preservation, and exact public-route verification. Both generated documents pass automated accessibility
+analysis. Browser review at wide and 390-pixel viewports covers English and Spanish expansion, light and
+dark appearance, complete assets, and zero page-level horizontal overflow. The integral fast lane passes
+135 automation tests, 77 presentation tests, two updater tests, 171 host and infrastructure tests, 64
+application tests, six domain tests, and two private acceptance tests; documentation, workflow, build,
+format, repository-content, and secret checks are also green.
 
 ### E3 — Sports and session discovery
 

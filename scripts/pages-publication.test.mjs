@@ -32,9 +32,12 @@ function productArtifact() {
 
 test("permits the first product publication and verifies every public byte", async () => {
   const artifact = productArtifact();
+  const fetched = [];
   const fetchImpl = async (url) => {
+    fetched.push(url);
     if (url.endsWith("updates/stable.json")) return response(url, 404);
-    const relative = new URL(url).pathname.slice(1) || "index.html";
+    const pathname = new URL(url).pathname.slice(1);
+    const relative = !pathname ? "index.html" : pathname.endsWith("/") ? `${pathname}index.html` : pathname;
     return response(url, 200, readFileSync(path.join(artifact.pagesDirectory, relative)));
   };
 
@@ -54,6 +57,8 @@ test("permits the first product publication and verifies every public byte", asy
   });
   assert.equal(verified.fileCount, relativeFiles(artifact.pagesDirectory).length - 1);
   assert.equal(verified.updateSnapshot, false);
+  assert.ok(fetched.includes(new URL("es/", baseUrl).toString()), "localized route must be verified at its public URL");
+  assert.ok(!fetched.includes(new URL("es/index.html", baseUrl).toString()));
 
   rmSync(artifact.root, { recursive: true, force: true });
 });

@@ -21,7 +21,7 @@ jobs:
   quality:
     name: Portable quality checks
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     outputs:
       executable-fingerprint: ${{ steps.impact.outputs.executable-fingerprint }}
       full-verification: ${{ steps.decision.outputs.full-verification }}

@@ -12,6 +12,7 @@
         "Safe exact and cumulative reimport",
         "Provider-neutral SQLite history for activity, training summaries, sleep, and recovery",
         "Bounded visual comparison and longitudinal context",
+        "Question-led Library Home, post-import reveal, and resumable exploration",
         "First-run Sources home with offline export guidance and allowlisted official links",
         "Durable language, appearance, and content zoom settings",
         "en-US and es-ES, packaging, update recovery, and release-shaped tests"
@@ -26,7 +27,6 @@
       "label": "Active experience work",
       "title": "The experience being shaped",
       "items": [
-        "Question-led home and post-import reveal",
         "Sports and full-history session discovery",
         "Routed and non-routed session evidence workspaces",
         "Origin-aware navigation across discovery, session, and report workspaces",

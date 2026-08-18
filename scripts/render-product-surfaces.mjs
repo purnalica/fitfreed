@@ -67,16 +67,18 @@ export function renderReadmeStatus(model) {
 
 export function renderProductPageStatus(model) {
   const articles = model.statuses.map((status) => {
-    const items = status.items.map((item) => `              <li>${escapeHtml(item)}</li>`).join("\n");
+    const items = status.items.map((item, index) =>
+      `              <li data-i18n="status.${escapeHtml(status.key)}.items.${index}">${escapeHtml(item)}</li>`,
+    ).join("\n");
     const sourcePath = `../${escapeHtml(status.source.path)}`;
     return [
       `          <article data-status="${escapeHtml(status.key)}">`,
-      `            <span>${escapeHtml(status.label)}</span>`,
-      `            <h3>${escapeHtml(status.title)}</h3>`,
+      `            <span data-i18n="status.${escapeHtml(status.key)}.label">${escapeHtml(status.label)}</span>`,
+      `            <h3 data-i18n="status.${escapeHtml(status.key)}.title">${escapeHtml(status.title)}</h3>`,
       "            <ul>",
       items,
       "            </ul>",
-      `            <a href="${sourcePath}">${escapeHtml(status.source.label)} →</a>`,
+      `            <a href="${sourcePath}" data-i18n="status.${escapeHtml(status.key)}.source">${escapeHtml(status.source.label)} →</a>`,
       "          </article>",
     ].join("\n");
   });

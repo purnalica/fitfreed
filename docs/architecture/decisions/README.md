@@ -36,5 +36,6 @@ This directory contains durable FitFreed architecture decisions. Read [the docum
 - [ADR 0021: Model training detail as attributed evidence](0021-model-training-as-attributed-evidence.md) — Accepted on 2026-08-18.
 - [ADR 0022: Persist reproducible evidence reports](0022-persist-reproducible-evidence-reports.md) — Accepted on 2026-08-18.
 - [ADR 0023: Use fitfreed.org as the public origin](0023-use-fitfreed-org-as-the-public-origin.md) — Accepted on 2026-08-18.
+- [ADR 0024: Generate localized product pages from one source](0024-generate-localized-product-pages.md) — Accepted on 2026-08-18.
 
 Confirmed product constraints remain in `docs/requirements.md`. Public release execution and any future mandatory-update policy remain open until their evidence and product authority gates close.

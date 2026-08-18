@@ -13,8 +13,10 @@ on:
       - release/public-origin.json
       - scripts/pages-artifact.mjs
       - scripts/pages-publication.mjs
+      - scripts/product-page-localization.mjs
       - scripts/public-origin.mjs
       - scripts/render-product-surfaces.mjs
+      - scripts/check-product-page.mjs
       - site/**
   workflow_dispatch:
 

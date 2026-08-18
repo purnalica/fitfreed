@@ -13,6 +13,11 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { promoteStagedDirectory } from "./release-evidence.mjs";
+import {
+  loadProductPageLocalization,
+  renderLocaleRuntime,
+  renderLocalizedProductPages,
+} from "./product-page-localization.mjs";
 import { publicOrigin, publicUpdateUrl } from "./public-origin.mjs";
 
 const repositoryUrl = "https://github.com/purnalica/fitfreed/blob/main/";
@@ -20,6 +25,7 @@ const pagesOrigin = new URL(publicOrigin).origin;
 const pagesUpdatePrefix = new URL("updates/", publicOrigin).pathname;
 const productAssets = Object.freeze([
   "fitfreed-favicon.svg",
+  "fitfreed-logo-dark.svg",
   "fitfreed-logo-mono.svg",
   "fitfreed-logo.svg",
 ]);
@@ -42,11 +48,15 @@ export function relativeFiles(root) {
   return files.sort();
 }
 
-function deployedProductPage(source) {
-  return source.replaceAll(/(href|src)="\.\.\/([^"\n]+)"/gu, (_match, attribute, target) => {
-    const destination = target.startsWith("assets/")
-      ? target
-      : new URL(target, repositoryUrl).toString();
+function deployedProductPage(source, outputFile) {
+  const pageDirectory = path.posix.dirname(outputFile);
+  const artifactReference = (target) => path.posix.relative(pageDirectory, target) || path.posix.basename(target);
+  return source.replaceAll(/(href|src)="([^"\n]+)"/gu, (_match, attribute, target) => {
+    let destination = target;
+    if (target === "styles.css") destination = artifactReference("styles.css");
+    else if (target.endsWith("locale.js")) destination = artifactReference("locale.js");
+    else if (target.startsWith("../assets/")) destination = artifactReference(target.slice(3));
+    else if (target.startsWith("../")) destination = new URL(target.slice(3), repositoryUrl).toString();
     return `${attribute}="${destination}"`;
   });
 }
@@ -126,8 +136,17 @@ export function composePagesArtifact({
   rmSync(stagingDirectory, { recursive: true, force: true });
   mkdirSync(path.join(stagingDirectory, "assets", "brand"), { recursive: true });
   try {
-    const sourcePage = readFileSync(path.join(resolvedRoot, "site", "index.html"), "utf8");
-    writeFileSync(path.join(stagingDirectory, "index.html"), deployedProductPage(sourcePage));
+    const localization = loadProductPageLocalization(resolvedRoot);
+    const localizedPages = renderLocalizedProductPages(localization);
+    for (const [outputFile, page] of Object.entries(localizedPages)) {
+      const outputPath = path.join(stagingDirectory, ...outputFile.split("/"));
+      mkdirSync(path.dirname(outputPath), { recursive: true });
+      writeFileSync(outputPath, deployedProductPage(page, outputFile));
+    }
+    writeFileSync(
+      path.join(stagingDirectory, "locale.js"),
+      renderLocaleRuntime(localization.config),
+    );
     copyFileSync(
       path.join(resolvedRoot, "site", "styles.css"),
       path.join(stagingDirectory, "styles.css"),
