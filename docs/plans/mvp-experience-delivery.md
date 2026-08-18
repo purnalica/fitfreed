@@ -2,7 +2,7 @@
 
 ## Status
 
-Active as of 2026-08-18. D0 is accepted and documented; production implementation begins with E1.
+Active as of 2026-08-18. D0 is accepted and documented; E1 implementation is active. The P1 product-site publication gate must be presented before E1 can be accepted, although E1 work continues independently while P1 is prepared.
 
 The existing import, reconciliation, persistence, Insights, localization, update-recovery, packaging, and continuous-integration capabilities remain the engineering baseline. This plan changes how those capabilities become a product people can understand and value; it does not discard their verified behavior.
 
@@ -183,6 +183,22 @@ Each increment is a runnable vertical outcome. Within an increment, tests are wr
 **Evidence gate:** the [MVP experience boundary assessment](../research/mvp-experience-boundary-assessment.md) presented concrete journeys, source-confidence boundaries, dependency and licence findings, and the smallest complete slices. The accepted decisions are canonical in `requirements.md`, `roadmap.md`, ADR 0021, and ADR 0022.
 
 **Handoff:** E1 proceeds first. E3 through E5 may rely on the accepted D0 boundaries without another routine confirmation.
+
+### P1 — Publish the truthful product entrance
+
+**User value:** someone encountering FitFreed on GitHub can understand the problem, the current product state, and the credible direction without reading the engineering corpus or being promised unavailable functionality.
+
+**Work:**
+
+1. Build one complete GitHub Pages artifact that composes the product site at `/` with the independently generated update channel at `/updates/`; neither producer may erase the other.
+2. Present the product thesis, current capability, active MVP experience, roadmap direction, privacy boundary, and project status with visually scannable evidence.
+3. Link to user documentation, contributor onboarding, support, governance, and the repository through stable routes.
+4. Keep download actions unavailable until an eligible immutable GitHub Release exists. Pages never owns binaries, release evidence, or mutable copies of release assets.
+5. Verify the artifact locally and in CI, including internal links, accessibility, localization claims, absence of personal data, and the `/updates/` preservation invariant.
+
+**Publication gate:** the project owner authorizes the first live GitHub Pages deployment after reviewing the exact workflow, artifact, URL, and repository-setting change. This authority does not activate application downloads, releases, update trust, signing, or future public-release publication.
+
+**Handoff:** technical preparation proceeds autonomously alongside E1. The publication gate is presented as soon as the deployable artifact and its evidence are ready and no later than the E1 acceptance checkpoint.
 
 ### E1 — First-run shell, sources, settings, and navigation spine
 
