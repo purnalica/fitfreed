@@ -11,6 +11,7 @@ This directory is the canonical index for every machine-readable data contract t
 | Provider export | The provider where an adequate public specification exists; otherwise clean-room observation | Descriptive, with every statement labeled by evidence level | Each importer declares exactly what it recognizes, maps, ignores, or rejects |
 | FitFreed canonical model | FitFreed | Normative and provider-neutral | Domain versions evolve through explicit compatibility rules |
 | Source-to-canonical mapping | FitFreed | Normative for importer behavior | Every supported source field has a documented outcome |
+| Source acquisition guidance | FitFreed importer adapter | Normative, versioned, offline-capable, and provider-specific | Every guide identifies its verification date, expected archive, content keys, provider constraints, troubleshooting, and exact official destinations |
 | FitFreed insight read model | FitFreed | Normative, provider-neutral, and question-specific | Report calculations, gaps, ordering, and transport versions evolve explicitly |
 | FitFreed portable export | FitFreed | Normative, open, and independently implementable | Versions, deprecations, and migration paths preserve user exit |
 | Persistence schema | FitFreed implementation | Exact but explicitly non-portable | Every schema version and migration is documented and tested |
@@ -49,6 +50,7 @@ Documentation, schemas, fixtures, implementation, and migrations form one change
 - [`providers/`](providers/) contains descriptive references for source exports.
 - `canonical/` will contain normative domain specifications as concepts enter implementation.
 - `mappings/` will contain normative source-to-canonical mapping tables for supported importers.
+- `guidance/` contains normative application-to-presentation contracts for importer-owned acquisition guidance.
 - `insights/` contains normative query and report read models derived from canonical facts.
 - `portable/` will contain the normative FitFreed export specification before portable export is implemented.
 - `persistence/` will contain implementation schema and migration references once a storage architecture is selected.
@@ -67,6 +69,7 @@ Directories are created with their first real contract; empty specifications are
 - [Polar Flow training session mapping](mappings/polar-flow-training-session.md)
 - [Polar Flow sleep mapping](mappings/polar-flow-sleep.md)
 - [Polar Flow nightly recovery mapping](mappings/polar-flow-nightly-recovery.md)
+- [Source acquisition guide version 1](guidance/source-acquisition-guide-v1.md)
 - [Daily activity overview read model version 1](insights/daily-activity-overview-v1.md)
 - [Daily activity overview read model version 2](insights/daily-activity-overview-v2.md)
 - [Daily activity comparison read model version 1](insights/daily-activity-comparison-v1.md)

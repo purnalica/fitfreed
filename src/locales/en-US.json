@@ -29,7 +29,49 @@
   "shell": {
     "navigation": "Application",
     "explore": "Explore",
+    "sources": "Sources",
     "settings": "Settings"
+  },
+  "sources": {
+    "eyebrow": "Your sources",
+    "title": "Bring your fitness history home",
+    "intro": "Start with the original export ZIP. FitFreed validates it, translates supported records into an independent local library, and leaves the source archive untouched.",
+    "localOnly": "The ZIP and the history built from it stay on this device. FitFreed does not upload them or ask for your provider credentials.",
+    "haveArchiveTitle": "I have the ZIP",
+    "haveArchiveBody": "Choose the original archive supplied by the provider. You can safely import a newer or repeated export later.",
+    "needArchiveTitle": "I need the ZIP",
+    "needArchiveBody": "Follow a concise copy of the last verified official process. The instructions remain available without a network connection.",
+    "showGuide": "Show me how",
+    "guideTitle": "How to obtain your Polar Flow export",
+    "guideIntro": "FitFreed documents the official acquisition path so the first step in owning your data does not depend on guesswork.",
+    "sourceName": "Polar Flow",
+    "expectedArchive": "Expected file: the original {archive} archive",
+    "verifiedOn": "Last verified {date}",
+    "instructionsHeading": "Request and download the archive",
+    "instructions": {
+      "sign-in": "Sign in on the official Polar account page in your default browser.",
+      "open-download-data": "Open the Download your data area in the account menu.",
+      "request-export": "Choose Download to ask Polar to prepare the export.",
+      "wait-for-email": "Wait for Polar's email confirming that the archive is ready. Preparation time varies.",
+      "download-zip": "Use the email link to download the ZIP, keep it unchanged, and return to FitFreed."
+    },
+    "constraintsHeading": "What the provider controls",
+    "constraints": {
+      "preparation-time-varies": "Polar controls preparation and email delivery time; FitFreed cannot see its progress.",
+      "two-week-download-window": "Polar says the prepared export remains available to download for two weeks.",
+      "derived-data-excluded": "Polar says the export excludes some information derived by its services, including examples such as activity and sleep data. FitFreed can only use records present in the ZIP."
+    },
+    "troubleshootingHeading": "If the archive does not arrive or import",
+    "troubleshooting": {
+      "email-delivery": "Check the address and spam folders associated with the provider account. Requesting or tracing the email remains a provider operation.",
+      "expired-download": "If the download window has expired, request a new export from the official account page.",
+      "archive-format": "Select the original ZIP. Do not extract, rename its internal files, or create a new ZIP before importing."
+    },
+    "openAccount": "Open official account page",
+    "openInstructions": "Open official instructions",
+    "externalNotice": "Official pages open in your default browser. Their content and availability are controlled by the provider.",
+    "providerBoundary": "FitFreed never receives your credentials, signs in, requests the export, or downloads it for you.",
+    "guideUnavailable": "The guide for this source is unavailable. FitFreed will not guess provider instructions."
   },
   "activity": {
     "heading": "Daily activity overview",
@@ -717,6 +759,8 @@
     "invalid-longitudinal-range": "Choose an ordered shared period inside the complete available history, up to 366 dates.",
     "invalid-longitudinal-comparison": "Choose ordered shared comparison periods inside the complete available history, up to 366 dates each.",
     "outcome-query-failed": "FitFreed could not read the latest import outcome. Restart the application and verify the library before importing again.",
+    "source-guide-query-failed": "FitFreed could not load the bundled source guide. Restart the application; FitFreed will not guess provider instructions.",
+    "official-source-link-failed": "FitFreed could not open the official page. The offline instructions remain available; open the provider page directly in your browser if needed.",
     "preference-query-failed": "FitFreed could not read the saved application settings. Safe defaults are being used for now; restart the application before changing them.",
     "preference-initialization-failed": "FitFreed could not save the initial application settings. Safe defaults will be used for this session; restart the application to try again.",
     "preference-update-failed": "FitFreed could not save the application settings. The previous settings have been restored; restart the application before trying again.",

@@ -60,6 +60,16 @@ The import application workflow will not depend on the graphical interface. The 
 
 A headless driver is permitted when it shortens feedback loops, enables representative performance tests, or makes failures reproducible. It is supporting tooling rather than a separate MVP delivery path.
 
+### Source acquisition guidance
+
+Source acquisition is a versioned importer capability, not presentation copy and not a network-fetched product feed. The application layer defines a provider-neutral `SourceAcquisitionGuidePort`; each source adapter supplies its own source identifier, guide version, last-verification date, expected archive kind, ordered content keys, provider-controlled constraints, troubleshooting keys, and official links. The application validates the complete result before presentation and treats a missing or invalid guide as unavailable rather than inventing instructions.
+
+The desktop bundle contains the concise procedure and both initial locale catalogs, so a provider outage or website change cannot remove the last verified instructions. Presentation resolves the adapter-owned content keys through the normal localization catalogs. This keeps provider terminology outside the domain and application layers while allowing the adapter, localized presentation resources, tests, and documentation to evolve together.
+
+Opening an official page is always a separate user action through an infrastructure adapter. The desktop capability allowlists only the documented HTTPS destinations; it does not grant generic URL, path, credential, account, or download access. FitFreed never enters credentials, signs in, requests an export, polls provider delivery, or downloads the archive on the person's behalf.
+
+The normative version 1 application-to-presentation contract is documented in [`../data-formats/guidance/source-acquisition-guide-v1.md`](../data-formats/guidance/source-acquisition-guide-v1.md). An adapter guide change increments its own `guideVersion` when the procedure, archive expectation, constraint meaning, troubleshooting meaning, or official destination changes. A verification-only review updates `verifiedOn` without changing the contract schema version.
+
 ### No lowest-common-denominator model
 
 Vendor neutrality does not mean flattening every observation into generic key-value data. The model will distinguish:

@@ -42,6 +42,12 @@ pub use update_recovery::{
     InvalidUpdateRecoveryTransition, UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind,
     UpdateRecoveryPhase, UpdateRecoveryWatchdogAction, UpdateRecoveryWatchdogEvent,
 };
+mod source_acquisition;
+pub use source_acquisition::{
+    query_source_acquisition_guides, ExpectedSourceArchive, OfficialSourceLink,
+    OfficialSourceLinkPurpose, SourceAcquisitionGuide, SourceAcquisitionGuidePort,
+    SOURCE_ACQUISITION_GUIDE_SCHEMA_VERSION,
+};
 
 #[cfg(test)]
 mod longitudinal_tests;
@@ -1286,6 +1292,8 @@ pub enum ApplicationError {
     InvalidLongitudinalRange(&'static str),
     #[error("import outcome query failed: {0}")]
     OutcomeQuery(String),
+    #[error("source acquisition guide query failed: {0}")]
+    SourceAcquisitionGuideQuery(String),
     #[error("application preference query failed: {0}")]
     PreferenceQuery(String),
     #[error("application preference update failed: {0}")]

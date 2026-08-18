@@ -51,6 +51,7 @@ use fitfreed_domain::{
 
 mod local_file;
 mod polar_flow;
+mod source_acquisition;
 mod source_subject;
 pub mod update;
 mod update_channel;
@@ -60,6 +61,7 @@ mod update_recovery;
 mod update_state;
 mod update_watchdog;
 
+pub use source_acquisition::PolarFlowSourceAcquisitionGuides;
 pub use update_channel::{current_update_target, HttpsUpdateChannel};
 pub use update_installation::{
     install_verified_update, UpdateInstallationError, UpdateInstallationRequest,

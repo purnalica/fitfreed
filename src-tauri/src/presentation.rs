@@ -4,21 +4,22 @@ use fitfreed_application::{
     ActivityComparison, ActivityDateRange, ActivityDayAvailability, ActivityDayInsight,
     ActivityOverview, ActivitySeriesComparison, ActivitySeriesOverview, ActivitySeriesSummary,
     AppearancePreference, ApplicationError, ApplicationPreferences, ApplicationPreferencesLoad,
-    ImportPhase, ImportProgress, InvalidApplicationPreferences, LongitudinalActivityComparison,
-    LongitudinalActivityDay, LongitudinalComparison, LongitudinalDateRange, LongitudinalDayInsight,
-    LongitudinalOverview, LongitudinalRecoveryComparison, LongitudinalRecoveryDay,
-    LongitudinalSeriesComparison, LongitudinalSeriesOverview, LongitudinalSleepComparison,
-    LongitudinalSleepDay, LongitudinalTrainingComparison, LongitudinalTrainingDay,
-    ManualUpdateReason, PreferencesLoadStatus, RecoveryComparison, RecoveryDateRange,
-    RecoveryDayAvailability, RecoveryDayInsight, RecoveryNightDetail, RecoveryNightInsight,
-    RecoveryOverview, RecoverySeriesComparison, RecoverySeriesOverview, RecoverySeriesSummary,
-    SleepComparison, SleepDateRange, SleepDayAvailability, SleepDayInsight, SleepOverview,
-    SleepPeriodDetail, SleepPeriodInsight, SleepPhaseTotals, SleepSeriesComparison,
-    SleepSeriesOverview, SleepSeriesSummary, TrainingComparison, TrainingDateRange,
-    TrainingOverview, TrainingSeriesComparison, TrainingSeriesOverview, TrainingSeriesSummary,
-    TrainingSessionInsight, UpdateCheckOutcome, UpdateCheckStatus, UpdateError,
-    UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind, UpdateReleaseSummary, UpdateTrustFailure,
-    UpdateWithdrawalReason, UpdateWithdrawalSummary,
+    ExpectedSourceArchive, ImportPhase, ImportProgress, InvalidApplicationPreferences,
+    LongitudinalActivityComparison, LongitudinalActivityDay, LongitudinalComparison,
+    LongitudinalDateRange, LongitudinalDayInsight, LongitudinalOverview,
+    LongitudinalRecoveryComparison, LongitudinalRecoveryDay, LongitudinalSeriesComparison,
+    LongitudinalSeriesOverview, LongitudinalSleepComparison, LongitudinalSleepDay,
+    LongitudinalTrainingComparison, LongitudinalTrainingDay, ManualUpdateReason,
+    OfficialSourceLink, OfficialSourceLinkPurpose, PreferencesLoadStatus, RecoveryComparison,
+    RecoveryDateRange, RecoveryDayAvailability, RecoveryDayInsight, RecoveryNightDetail,
+    RecoveryNightInsight, RecoveryOverview, RecoverySeriesComparison, RecoverySeriesOverview,
+    RecoverySeriesSummary, SleepComparison, SleepDateRange, SleepDayAvailability, SleepDayInsight,
+    SleepOverview, SleepPeriodDetail, SleepPeriodInsight, SleepPhaseTotals, SleepSeriesComparison,
+    SleepSeriesOverview, SleepSeriesSummary, SourceAcquisitionGuide, TrainingComparison,
+    TrainingDateRange, TrainingOverview, TrainingSeriesComparison, TrainingSeriesOverview,
+    TrainingSeriesSummary, TrainingSessionInsight, UpdateCheckOutcome, UpdateCheckStatus,
+    UpdateError, UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind, UpdateReleaseSummary,
+    UpdateTrustFailure, UpdateWithdrawalReason, UpdateWithdrawalSummary,
 };
 
 #[derive(Debug, Deserialize)]
@@ -80,6 +81,60 @@ impl From<ApplicationPreferencesLoad> for ApplicationPreferencesLoadDto {
         }
     }
 }
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OfficialSourceLinkDto {
+    purpose: &'static str,
+    locale: Option<&'static str>,
+    url: String,
+}
+
+impl From<OfficialSourceLink> for OfficialSourceLinkDto {
+    fn from(link: OfficialSourceLink) -> Self {
+        Self {
+            purpose: match link.purpose {
+                OfficialSourceLinkPurpose::Account => "account",
+                OfficialSourceLinkPurpose::Instructions => "instructions",
+            },
+            locale: link.locale.map(|locale| locale.code()),
+            url: link.url,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourceAcquisitionGuideDto {
+    schema_version: u32,
+    source_id: String,
+    guide_version: String,
+    verified_on: String,
+    expected_archive: &'static str,
+    instruction_keys: Vec<String>,
+    constraint_keys: Vec<String>,
+    troubleshooting_keys: Vec<String>,
+    official_links: Vec<OfficialSourceLinkDto>,
+}
+
+impl From<SourceAcquisitionGuide> for SourceAcquisitionGuideDto {
+    fn from(guide: SourceAcquisitionGuide) -> Self {
+        Self {
+            schema_version: guide.schema_version,
+            source_id: guide.source_id,
+            guide_version: guide.guide_version,
+            verified_on: guide.verified_on,
+            expected_archive: match guide.expected_archive {
+                ExpectedSourceArchive::Zip => "zip",
+            },
+            instruction_keys: guide.instruction_keys,
+            constraint_keys: guide.constraint_keys,
+            troubleshooting_keys: guide.troubleshooting_keys,
+            official_links: guide.official_links.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
 use fitfreed_domain::{
     ArtifactCoverageSummary, ArtifactFamilyCoverage, ImportOutcome, ImportReport,
     SleepPhaseSummary, SleepScore, SleepStage, SleepStageTransition,
@@ -115,6 +170,7 @@ impl From<ApplicationError> for CommandErrorDto {
             ApplicationError::InvalidRecoveryReference(_) => "invalid-recovery-reference",
             ApplicationError::InvalidLongitudinalRange(_) => "invalid-longitudinal-range",
             ApplicationError::OutcomeQuery(_) => "outcome-query-failed",
+            ApplicationError::SourceAcquisitionGuideQuery(_) => "source-guide-query-failed",
             ApplicationError::PreferenceQuery(_) => "preference-query-failed",
             ApplicationError::PreferenceUpdate(_) => "preference-update-failed",
         };
@@ -1837,8 +1893,9 @@ impl From<ImportPhase> for ImportPhaseDto {
 #[cfg(test)]
 mod tests {
     use fitfreed_application::{
-        UpdateArtifact, UpdateInstallationAuthorization, UpdateRecoveryOutcome,
-        UpdateRecoveryOutcomeKind,
+        ExpectedSourceArchive, LocalePreference, OfficialSourceLink, OfficialSourceLinkPurpose,
+        SourceAcquisitionGuide, UpdateArtifact, UpdateInstallationAuthorization,
+        UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind,
     };
     use fitfreed_domain::{ArtifactClassification, ArtifactFamilyCoverage, ImportOperationState};
 
@@ -1868,6 +1925,59 @@ mod tests {
                     "contentZoomPercent": 175
                 },
                 "status": "recovered"
+            })
+        );
+    }
+
+    #[test]
+    fn serializes_the_source_acquisition_guide_contract_without_rendered_copy() {
+        let guide = SourceAcquisitionGuide {
+            schema_version: 1,
+            source_id: "synthetic-source".to_owned(),
+            guide_version: "synthetic-source-acquisition@1".to_owned(),
+            verified_on: "2026-01-15".to_owned(),
+            expected_archive: ExpectedSourceArchive::Zip,
+            instruction_keys: vec!["request-export".to_owned()],
+            constraint_keys: vec!["delivery-time-varies".to_owned()],
+            troubleshooting_keys: vec!["email-not-received".to_owned()],
+            official_links: vec![
+                OfficialSourceLink {
+                    purpose: OfficialSourceLinkPurpose::Account,
+                    locale: None,
+                    url: "https://account.example.test/".to_owned(),
+                },
+                OfficialSourceLink {
+                    purpose: OfficialSourceLinkPurpose::Instructions,
+                    locale: Some(LocalePreference::EsEs),
+                    url: "https://support.example.test/es/export".to_owned(),
+                },
+            ],
+        };
+
+        assert_eq!(
+            serde_json::to_value(SourceAcquisitionGuideDto::from(guide))
+                .expect("source acquisition guide output"),
+            serde_json::json!({
+                "schemaVersion": 1,
+                "sourceId": "synthetic-source",
+                "guideVersion": "synthetic-source-acquisition@1",
+                "verifiedOn": "2026-01-15",
+                "expectedArchive": "zip",
+                "instructionKeys": ["request-export"],
+                "constraintKeys": ["delivery-time-varies"],
+                "troubleshootingKeys": ["email-not-received"],
+                "officialLinks": [
+                    {
+                        "purpose": "account",
+                        "locale": null,
+                        "url": "https://account.example.test/"
+                    },
+                    {
+                        "purpose": "instructions",
+                        "locale": "es-ES",
+                        "url": "https://support.example.test/es/export"
+                    }
+                ]
             })
         );
     }

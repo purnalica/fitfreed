@@ -77,16 +77,16 @@ The unsigned macOS production application and DMG are generated under `src-tauri
 ## Architecture navigation
 
 - `src-tauri/crates/fitfreed-domain` contains provider-neutral concepts and reconciliation policy and has no dependencies.
-- `src-tauri/crates/fitfreed-application` contains use cases, ports, provider-neutral domain Insights calculations, longitudinal composition, progress, and cancellation coordination and depends only on the domain, calendar arithmetic, and its error helper.
-- `src-tauri/src/infrastructure.rs` contains the Polar Flow ZIP/JSON anti-corruption layer, daily-activity, training-summary, sleep, and nightly-recovery mappings, and SQLite adapter.
+- `src-tauri/crates/fitfreed-application` contains use cases, ports, provider-neutral domain Insights calculations, longitudinal composition, source-acquisition guide validation, progress, and cancellation coordination and depends only on the domain, calendar arithmetic, and its error helper.
+- `src-tauri/src/infrastructure.rs` contains the Polar Flow ZIP/JSON anti-corruption layer, daily-activity, training-summary, sleep, and nightly-recovery mappings, SQLite adapter, and bundled Polar Flow acquisition-guide adapter.
 - `src-tauri/src/infrastructure/update_recovery.rs` owns the macOS recovery-pair copy, deterministic application digest, SQLite verification, local manifest, and active-attempt persistence.
 - `src-tauri/src/infrastructure/update_installation.rs` coordinates verified package installation with recovery preparation, watchdog readiness, native replacement, and failure handoff.
 - `src-tauri/src/infrastructure/update_watchdog.rs` owns the preserved-executable process runner, restart-safe candidate observation, confirmation deadline, and recovery execution.
 - `src-tauri/src/lib.rs` and `presentation.rs` are the Tauri host and serialized transport boundary.
 - `src-tauri/vendor/tauri-plugin-updater` is the provenance-checked source refinement selected by ADR 0009; its `README.fitfreed.md` is the mandatory review and upgrade guide.
-- `src` contains the React presentation, its desktop archive-picker adapter, and test-only presentation instrumentation; localized copy exists only under `src/locales`.
+- `src` contains the React presentation, its desktop archive-picker and official-link adapters, and test-only presentation instrumentation; localized copy exists only under `src/locales`. Sources is the first-run home and owns acquisition, import, outcomes, and compatibility evidence; Explore owns history workspaces; Settings owns durable presentation preferences.
 
-The detailed dependency map is [`../architecture/module-map.md`](../architecture/module-map.md), and the machine-readable contract index is [`../data-formats/README.md`](../data-formats/README.md). Source-format, canonical-format, mapping, or persistence changes must update their normative documentation and synthetic contract evidence in the same increment.
+The detailed dependency map is [`../architecture/module-map.md`](../architecture/module-map.md), the importer ownership boundary is [`../architecture/source-integration.md`](../architecture/source-integration.md), and the machine-readable contract index is [`../data-formats/README.md`](../data-formats/README.md). Source-format, acquisition-guide, canonical-format, mapping, or persistence changes must update their normative documentation, localized content when applicable, and synthetic contract evidence in the same increment.
 
 The host starts one process-lifetime update schedule after setup. The ready interface still requests the immediate launch evaluation; later successful scheduled evaluations cross the host boundary through `fitfreed://update-check-completed`. The architecture check prevents the Rust and TypeScript event names from drifting. Tokio's paused clock makes the 24-hour cadence, repeated execution, no-burst behavior, and occupied-operation skip deterministic in the Rust fast lane; no developer should shorten the production interval to make these tests run.
 

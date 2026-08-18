@@ -29,7 +29,49 @@
   "shell": {
     "navigation": "Aplicación",
     "explore": "Explorar",
+    "sources": "Orígenes",
     "settings": "Ajustes"
+  },
+  "sources": {
+    "eyebrow": "Tus orígenes",
+    "title": "Trae a casa tu historial deportivo",
+    "intro": "Empieza con el ZIP original de la exportación. FitFreed lo valida, traduce los registros compatibles a una biblioteca local independiente y no modifica el archivo de origen.",
+    "localOnly": "El ZIP y el historial construido a partir de él permanecen en este dispositivo. FitFreed no los sube ni solicita las credenciales del proveedor.",
+    "haveArchiveTitle": "Ya tengo el ZIP",
+    "haveArchiveBody": "Elige el archivo original suministrado por el proveedor. Más adelante podrás volver a importarlo o cargar una exportación más reciente con seguridad.",
+    "needArchiveTitle": "Necesito obtener el ZIP",
+    "needArchiveBody": "Sigue una copia concisa del último proceso oficial verificado. Las instrucciones siguen disponibles sin conexión a la red.",
+    "showGuide": "Ver cómo obtenerlo",
+    "guideTitle": "Cómo obtener tu exportación de Polar Flow",
+    "guideIntro": "FitFreed documenta la vía oficial de obtención para que el primer paso hacia el control de tus datos no dependa de conjeturas.",
+    "sourceName": "Polar Flow",
+    "expectedArchive": "Archivo esperado: el archivo {archive} original",
+    "verifiedOn": "Última verificación: {date}",
+    "instructionsHeading": "Solicitar y descargar el archivo",
+    "instructions": {
+      "sign-in": "Inicia sesión en la página oficial de la cuenta Polar desde tu navegador predeterminado.",
+      "open-download-data": "Abre el apartado Descarga tus datos en el menú de la cuenta.",
+      "request-export": "Selecciona Descargar para solicitar a Polar que prepare la exportación.",
+      "wait-for-email": "Espera el correo de Polar que confirma que el archivo está listo. El tiempo de preparación puede variar.",
+      "download-zip": "Usa el enlace del correo para descargar el ZIP, consérvalo sin cambios y vuelve a FitFreed."
+    },
+    "constraintsHeading": "Qué controla el proveedor",
+    "constraints": {
+      "preparation-time-varies": "Polar controla el tiempo de preparación y entrega del correo; FitFreed no puede consultar su progreso.",
+      "two-week-download-window": "Polar indica que la exportación preparada permanece disponible para su descarga durante dos semanas.",
+      "derived-data-excluded": "Polar indica que la exportación excluye cierta información derivada por sus servicios e incluye como ejemplos datos de actividad y sueño. FitFreed solo puede usar los registros presentes en el ZIP."
+    },
+    "troubleshootingHeading": "Si el archivo no llega o no se puede importar",
+    "troubleshooting": {
+      "email-delivery": "Comprueba la dirección y las carpetas de correo no deseado asociadas a la cuenta del proveedor. Solicitar o localizar el correo sigue siendo una operación del proveedor.",
+      "expired-download": "Si el plazo de descarga ha caducado, solicita otra exportación desde la página oficial de la cuenta.",
+      "archive-format": "Selecciona el ZIP original. No lo extraigas, no cambies el nombre de sus archivos internos ni crees otro ZIP antes de importarlo."
+    },
+    "openAccount": "Abrir la página oficial de la cuenta",
+    "openInstructions": "Abrir las instrucciones oficiales",
+    "externalNotice": "Las páginas oficiales se abren en tu navegador predeterminado. El proveedor controla su contenido y disponibilidad.",
+    "providerBoundary": "FitFreed nunca recibe tus credenciales, inicia sesión, solicita la exportación ni la descarga por ti.",
+    "guideUnavailable": "La guía de este origen no está disponible. FitFreed no hará conjeturas sobre las instrucciones del proveedor."
   },
   "activity": {
     "heading": "Resumen de actividad diaria",
@@ -717,6 +759,8 @@
     "invalid-longitudinal-range": "Elige un periodo compartido ordenado dentro de todo el historial disponible, de hasta 366 fechas.",
     "invalid-longitudinal-comparison": "Elige periodos compartidos de comparación ordenados dentro de todo el historial disponible, de hasta 366 fechas cada uno.",
     "outcome-query-failed": "FitFreed no ha podido leer el resultado de la última importación. Reinicia la aplicación y verifica la biblioteca antes de volver a importar.",
+    "source-guide-query-failed": "FitFreed no ha podido cargar la guía de origen incluida. Reinicia la aplicación; FitFreed no hará conjeturas sobre las instrucciones del proveedor.",
+    "official-source-link-failed": "FitFreed no ha podido abrir la página oficial. Las instrucciones sin conexión siguen disponibles; abre directamente la página del proveedor en tu navegador si es necesario.",
     "preference-query-failed": "FitFreed no ha podido leer los ajustes guardados de la aplicación. Por ahora se utilizarán valores predeterminados seguros; reinicia la aplicación antes de cambiarlos.",
     "preference-initialization-failed": "FitFreed no ha podido guardar los ajustes iniciales de la aplicación. Se utilizarán valores predeterminados seguros durante esta sesión; reinicia la aplicación para volver a intentarlo.",
     "preference-update-failed": "FitFreed no ha podido guardar los ajustes de la aplicación. Se han restaurado los ajustes anteriores; reinicia la aplicación antes de volver a intentarlo.",

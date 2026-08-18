@@ -41,6 +41,7 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Database constraints, transactions, migrations, queries, rollback, and restart behavior.
 - Import fingerprints, provenance, overlap reconciliation, and retry behavior.
 - Localization catalogs, placeholders, plural rules, and fallback.
+- Versioned source-acquisition guide validation, adapter ownership, exact locale selection, and least-privilege official-link capabilities.
 - Presentation motion declarations and the reduced-motion boundary.
 - Update metadata, signature validation, artifact selection, and migration coordination.
 - Protected release-workflow syntax, exact permissions, action pins, authority isolation, immutable publication, provenance, and direct Pages-byte convergence.
@@ -54,10 +55,10 @@ Automated testing is the primary source of evidence that the product behaves cor
 
 **Primary scope:**
 
-- Install, first run, language selection, and empty-state guidance.
+- Install, first run, both export-acquisition paths, language selection, and empty-state guidance.
 - Import through the file picker with realistic synthetic ZIP archives.
 - Reimport, cumulative import, interruption, failure recovery, and persisted restart.
-- Exploration, filtering, reports, visualizations, all included controls, and accessible alternatives.
+- Sources, Explore, and Settings navigation with preserved workspace state, focus behavior, exploration, filtering, reports, visualizations, all included controls, and accessible alternatives.
 - `en-US` and `es-ES` behavior, including text expansion and locale-aware formatting.
 - Update availability, postponement, download, verification, installation, migration, and recovery.
 - Removal behavior and explicit treatment of the user's data library.

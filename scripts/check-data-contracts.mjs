@@ -343,6 +343,89 @@ const activityOverviewSchemaPath = "schemas/activity-overview-v1.schema.json";
 const activityOverviewSchema = JSON.parse(read(activityOverviewSchemaPath));
 const ajv = new Ajv2020({ allErrors: true, strict: true });
 addFormats(ajv);
+
+const sourceAcquisitionGuidePath = "docs/data-formats/guidance/source-acquisition-guide-v1.md";
+const sourceAcquisitionGuide = read(sourceAcquisitionGuidePath);
+for (const field of [
+  "schemaVersion",
+  "sourceId",
+  "guideVersion",
+  "verifiedOn",
+  "expectedArchive",
+  "instructionKeys",
+  "constraintKeys",
+  "troubleshootingKeys",
+  "officialLinks",
+  "purpose",
+  "locale",
+  "url",
+  "account",
+  "instructions",
+  "zip",
+]) {
+  requireMention(sourceAcquisitionGuide, field, sourceAcquisitionGuidePath);
+}
+const sourceAcquisitionGuideSchemaPath = "schemas/source-acquisition-guide-v1.schema.json";
+const sourceAcquisitionGuideSchema = JSON.parse(read(sourceAcquisitionGuideSchemaPath));
+const validateSourceAcquisitionGuide = ajv.compile(sourceAcquisitionGuideSchema);
+const syntheticSourceAcquisitionGuide = {
+  schemaVersion: 1,
+  sourceId: "synthetic-source",
+  guideVersion: "synthetic-source-acquisition@1",
+  verifiedOn: "2026-01-15",
+  expectedArchive: "zip",
+  instructionKeys: ["open-account", "request-export", "download-archive"],
+  constraintKeys: ["delivery-time-varies"],
+  troubleshootingKeys: ["email-not-received"],
+  officialLinks: [
+    { purpose: "account", locale: null, url: "https://account.example.test/" },
+    {
+      purpose: "instructions",
+      locale: "en-US",
+      url: "https://support.example.test/en/export",
+    },
+  ],
+};
+if (!validateSourceAcquisitionGuide(syntheticSourceAcquisitionGuide)) {
+  throw new Error(
+    `${sourceAcquisitionGuideSchemaPath} rejected its synthetic contract: ${ajv.errorsText(validateSourceAcquisitionGuide.errors)}`,
+  );
+}
+for (const invalidGuide of [
+  { ...syntheticSourceAcquisitionGuide, schemaVersion: 2 },
+  {
+    ...syntheticSourceAcquisitionGuide,
+    instructionKeys: ["open-account", "open-account"],
+  },
+  { ...syntheticSourceAcquisitionGuide, verifiedOn: "2026-02-30" },
+  {
+    ...syntheticSourceAcquisitionGuide,
+    officialLinks: [{ purpose: "account", locale: null, url: "http://account.example.test/" }],
+  },
+  {
+    ...syntheticSourceAcquisitionGuide,
+    officialLinks: [{ purpose: "account", locale: null, url: "https://account.example.test/" }],
+  },
+  {
+    ...syntheticSourceAcquisitionGuide,
+    officialLinks: [
+      syntheticSourceAcquisitionGuide.officialLinks[1],
+      syntheticSourceAcquisitionGuide.officialLinks[1],
+    ],
+  },
+  {
+    ...syntheticSourceAcquisitionGuide,
+    officialLinks: [{
+      purpose: "instructions",
+      locale: "en-US",
+      url: `https://support.example.test/${"a".repeat(2049)}`,
+    }],
+  },
+]) {
+  if (validateSourceAcquisitionGuide(invalidGuide)) {
+    throw new Error(`${sourceAcquisitionGuideSchemaPath} accepted an invalid guide`);
+  }
+}
 const validateActivityOverview = ajv.compile(activityOverviewSchema);
 const syntheticActivityOverview = {
   availableRange: { from: "2026-01-01", through: "2026-01-03" },

@@ -25,6 +25,7 @@ use fitfreed_application::{
     postpone_update as persist_update_postponement,
     query_longitudinal_comparison as build_longitudinal_comparison,
     query_longitudinal_overview as build_longitudinal_overview,
+    query_source_acquisition_guides as build_source_acquisition_guides,
     reset_application_preferences as reset_preferences_through_port,
     save_application_preferences as save_preferences_through_port, ApplicationError,
     ApplicationPreferences, ImportCoordinator, ImportProgress, InvalidApplicationPreferences,
@@ -37,12 +38,13 @@ use infrastructure::{
     confirm_active_update_recovery, current_update_target, download_verified_update,
     install_verified_update, library_schema_version, maintain_update_recovery,
     recover_interrupted_imports, resolve_update_application_path, run_update_recovery_watchdog,
-    HttpsUpdateChannel, SqliteActivityLibrary, SqliteApplicationPreferences,
-    SqliteImportOutcomeLibrary, SqliteLongitudinalLibrary, SqlitePolarFlowArchiveImporter,
-    SqliteRecoveryLibrary, SqliteSleepLibrary, SqliteTrainingLibrary, SqliteUpdateState,
-    UpdateInstallationError, UpdateInstallationRequest, UpdatePackageError,
-    UpdateRecoveryCandidateLease, UpdateRecoveryError, UpdateRecoveryMaintenance,
-    UPDATE_RECOVERY_CANDIDATE_ARGUMENT, UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
+    HttpsUpdateChannel, PolarFlowSourceAcquisitionGuides, SqliteActivityLibrary,
+    SqliteApplicationPreferences, SqliteImportOutcomeLibrary, SqliteLongitudinalLibrary,
+    SqlitePolarFlowArchiveImporter, SqliteRecoveryLibrary, SqliteSleepLibrary,
+    SqliteTrainingLibrary, SqliteUpdateState, UpdateInstallationError, UpdateInstallationRequest,
+    UpdatePackageError, UpdateRecoveryCandidateLease, UpdateRecoveryError,
+    UpdateRecoveryMaintenance, UPDATE_RECOVERY_CANDIDATE_ARGUMENT,
+    UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
 };
 use presentation::{
     ActivityComparisonDto, ActivityDateRangeDto, ActivityOverviewDto, ApplicationPreferencesDto,
@@ -50,8 +52,8 @@ use presentation::{
     ImportOutcomeDto, ImportProgressDto, ImportReportDto, LongitudinalComparisonDto,
     LongitudinalDateRangeDto, LongitudinalOverviewDto, RecoveryComparisonDto, RecoveryDateRangeDto,
     RecoveryNightDetailDto, RecoveryOverviewDto, SleepComparisonDto, SleepDateRangeDto,
-    SleepOverviewDto, SleepPeriodDetailDto, TrainingComparisonDto, TrainingDateRangeDto,
-    TrainingOverviewDto, UpdateCheckOutcomeDto, UpdateRecoveryOutcomeDto,
+    SleepOverviewDto, SleepPeriodDetailDto, SourceAcquisitionGuideDto, TrainingComparisonDto,
+    TrainingDateRangeDto, TrainingOverviewDto, UpdateCheckOutcomeDto, UpdateRecoveryOutcomeDto,
 };
 use serde::{Deserialize, Serialize};
 use tauri::{ipc::Channel, AppHandle, Emitter, Manager, State};
@@ -457,6 +459,13 @@ fn query_latest_import_outcome(
     let library = SqliteImportOutcomeLibrary::new(path);
     fitfreed_application::query_latest_import_outcome(&library)
         .map(|outcome| outcome.map(ImportOutcomeDto::from))
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn query_source_acquisition_guides() -> Result<Vec<SourceAcquisitionGuideDto>, CommandErrorDto> {
+    build_source_acquisition_guides(&PolarFlowSourceAcquisitionGuides)
+        .map(|guides| guides.into_iter().map(Into::into).collect())
         .map_err(CommandErrorDto::from)
 }
 
@@ -1268,6 +1277,7 @@ pub fn run() {
             query_longitudinal_overview,
             query_longitudinal_comparison,
             query_latest_import_outcome,
+            query_source_acquisition_guides,
             load_preferences,
             save_preferences,
             reset_preferences,

@@ -2,7 +2,7 @@
 
 ## Status
 
-Active as of 2026-08-18. D0 and P1 are accepted and documented; E1 implementation is active. The canonical product site is live at <https://purnalica.github.io/fitfreed/> with exact remote-byte verification.
+Active as of 2026-08-18. D0, P1, and the local E1 acceptance checkpoint are complete and documented; E2 is the next active increment. The canonical product site is live at <https://purnalica.github.io/fitfreed/> with exact remote-byte verification. E1 hosted evidence remains to be attached to this plan after the source revision passes GitHub Actions.
 
 The existing import, reconciliation, persistence, Insights, localization, update-recovery, packaging, and continuous-integration capabilities remain the engineering baseline. This plan changes how those capabilities become a product people can understand and value; it does not discard their verified behavior.
 
@@ -229,6 +229,8 @@ Each increment is a runnable vertical outcome. Within an increment, tests are wr
 - User and contributor guidance explains the new shell, settings storage, acquisition ownership, and navigation model.
 
 **Evaluation checkpoint:** the development package is useful to someone who has no export yet. No training-detail or report implementation is needed to evaluate this checkpoint.
+
+**Local accepted evidence:** the versioned provider-neutral guide contract, Polar Flow adapter, Tauri transport, least-privilege opener capability, Sources home, first-run navigation, both locale catalogs, user guidance, and contributor architecture are implemented together. The complete fast lane passed 125 automation tests, 67 React tests, the updater refinement, and every all-feature Rust workspace target. Clippy with warnings denied and both Rust format boundaries passed. The packaged macOS WebView journey then exercised both acquisition paths, every localized guide item, exact English and Spanish official destinations, import cancellation, reimport, restart, 200% zoom, and Axe without violations. Its independently isolated two-year performance scenario also passed every 500 ms common and 2 s maximum p95 budget.
 
 ### E2 — Import-to-first-answer and returning home
 

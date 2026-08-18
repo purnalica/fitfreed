@@ -721,11 +721,17 @@ async function measureAlternating(executions, scenarios, operation) {
   return timings;
 }
 
-export async function runInsightsPerformanceJourney({ archivePath, selectArchive, selectLocale }) {
-  await selectLocale("en-US");
+export async function runInsightsPerformanceJourney({
+  archivePath,
+  goToHome,
+  selectArchive,
+  selectLocale,
+}) {
+  await selectLocale("en-US", "sources");
   const dialogMock = await browser.tauri.mock("plugin:dialog|open");
   await selectArchive(dialogMock, archivePath);
   await $("aria/Import selected package").click();
+  await goToHome("explore");
   await waitForDailyActivityCoverage();
   await waitForTrainingCoverage();
   await waitForSleepCoverage();

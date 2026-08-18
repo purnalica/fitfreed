@@ -11,6 +11,11 @@ The Application updates panel performs a non-blocking launch check after the lan
 1. Follow the [contributor setup](../development/getting-started.md).
 2. Run `npm run fixture:e2e`.
 3. Start the desktop application with `npm run tauri -- dev`.
+
+The first ready screen is Sources. It offers two complete starting paths: select a ZIP that is already available, or choose **Show me how** to read the bundled Polar Flow export procedure. The guide remains available without a network connection and identifies its last verification date, expected archive, provider-controlled constraints, and troubleshooting advice. **Open official account page** and **Open official instructions** are explicit actions that leave FitFreed for allowlisted provider pages; FitFreed never receives credentials, requests the export, waits for provider delivery, or downloads the ZIP. Preserve the downloaded original outside FitFreed.
+
+Use the shell navigation to move among Sources, Explore, and Settings. Sources owns acquisition, import progress, import outcomes, and compatibility evidence. Explore owns the current activity, training, sleep, recovery, and longitudinal workspaces. Settings owns language, appearance, and content zoom. Moving between Sources and Explore preserves the active import and exploration state; leaving Settings without saving discards only its preview values.
+
 4. Open Settings. Preview the interface language, system/light/dark appearance, and content zoom, then leave without saving and confirm the persisted presentation returns. Save a complete set, restart, and confirm it is applied before the ordinary interface appears. Restore defaults and confirm all three settings reset together.
 5. Choose `.artifacts/e2e/fixtures/valid.zip`.
 6. Import the package and inspect its completed status, source, history effect, five coverage categories, family-level reasons and next actions, and the daily-activity overview. Confirm that Training sessions is supported only as a mapped summary, dated Nightly recovery is supported, and Nightly recovery details is deliberately ignored because its samples have no safe identity or date relationship.

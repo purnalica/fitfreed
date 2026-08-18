@@ -47,6 +47,7 @@ const darkBlock = stylesheet.slice(
 );
 const contrastContracts = new Map([
   [".eyebrow", "--accent-deep"],
+  [".source-path > span", "--muted"],
   [".notice", "--ink"],
   [".error", "--danger-ink"],
   [".recovery-summary span", "--ink-soft"],

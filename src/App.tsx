@@ -10,6 +10,7 @@ import {
 import { Channel, invoke } from "@tauri-apps/api/core";
 import "./App.css";
 import { chooseZipArchive } from "./infrastructure/archive-picker";
+import { openOfficialSourceLink } from "./infrastructure/official-source-link";
 import { catalogs, type Locale } from "./locales/catalogs";
 import type {
   ActivityDateRange,
@@ -24,6 +25,8 @@ import {
   type ApplicationPreferencesLoad,
 } from "./presentation/application-preferences";
 import { SettingsPanel } from "./presentation/SettingsPanel";
+import type { SourceAcquisitionGuide } from "./presentation/source-acquisition";
+import { SourcesPanel } from "./presentation/SourcesPanel";
 
 const rendererStartedAt = performance.now();
 
@@ -168,9 +171,10 @@ function App() {
   const [preferencesSavedNotice, setPreferencesSavedNotice] = useState(false);
   const [preferencesRecovered, setPreferencesRecovered] = useState(false);
   const [preferencesEditorRevision, setPreferencesEditorRevision] = useState(0);
-  const [activeHome, setActiveHome] = useState<"explore" | "settings">("explore");
+  const [activeHome, setActiveHome] = useState<"explore" | "sources" | "settings">("sources");
   const [updateLocaleRefreshToken, setUpdateLocaleRefreshToken] = useState(0);
   const [archivePath, setArchivePath] = useState<string>();
+  const [sourceGuides, setSourceGuides] = useState<SourceAcquisitionGuide[]>([]);
   const [activityOverview, setActivityOverview] = useState<ActivityOverview>();
   const [rangeFrom, setRangeFrom] = useState("");
   const [rangeThrough, setRangeThrough] = useState("");
@@ -295,6 +299,9 @@ function App() {
     if (!applicationReady) return;
     refresh().catch((reason) => setErrorCode(commandErrorCode(reason)));
     refreshOutcome().catch((reason) => setErrorCode(commandErrorCode(reason)));
+    invoke<SourceAcquisitionGuide[]>("query_source_acquisition_guides")
+      .then(setSourceGuides)
+      .catch((reason) => setErrorCode(commandErrorCode(reason)));
   }, [applicationReady]);
 
   useEffect(() => {
@@ -341,6 +348,18 @@ function App() {
     setPreferencesSavedNotice(false);
     setPreferencesEditorRevision((current) => current + 1);
     setActiveHome("explore");
+  }
+
+  function openSources() {
+    applyApplicationPreferences(savedPreferences);
+    setLocale(savedPreferences.locale);
+    setPreferencesSavedNotice(false);
+    setPreferencesEditorRevision((current) => current + 1);
+    setActiveHome("sources");
+  }
+
+  async function openSourceLink(url: string) {
+    await openOfficialSourceLink(url);
   }
 
   async function savePreferences(preferences: ApplicationPreferences) {
@@ -596,6 +615,7 @@ function App() {
         <nav aria-label={messages.shell.navigation}>
           <button
             type="button"
+            data-home="explore"
             aria-current={activeHome === "explore" ? "page" : undefined}
             onClick={openExplore}
           >
@@ -603,6 +623,15 @@ function App() {
           </button>
           <button
             type="button"
+            data-home="sources"
+            aria-current={activeHome === "sources" ? "page" : undefined}
+            onClick={openSources}
+          >
+            {messages.shell.sources}
+          </button>
+          <button
+            type="button"
+            data-home="settings"
             aria-current={activeHome === "settings" ? "page" : undefined}
             onClick={() => setActiveHome("settings")}
           >
@@ -621,6 +650,39 @@ function App() {
             {errorMessages[visibleErrorCode] ?? messages.errors.unexpected}
           </p>
         )}
+        {updateRecoveryOutcome && (
+          <section className="update-panel update-recovery-notice">
+            <div
+              className={`update-result update-result-${updateRecoveryOutcome.outcome}`}
+              role="status"
+              aria-labelledby="update-recovery-heading"
+              aria-live="polite"
+            >
+              <h2 id="update-recovery-heading">
+                {updateRecoveryOutcome.outcome === "updated"
+                  ? messages.updates.recovery.updatedHeading
+                  : messages.updates.recovery.recoveredHeading}
+              </h2>
+              <p>
+                {(updateRecoveryOutcome.outcome === "updated"
+                  ? messages.updates.recovery.updated
+                  : messages.updates.recovery.recovered)
+                  .replace("{sourceVersion}", updateRecoveryOutcome.sourceVersion)
+                  .replace("{targetVersion}", updateRecoveryOutcome.targetVersion)}
+              </p>
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => void acknowledgeUpdateRecoveryOutcome()}
+                disabled={updateRecoveryAcknowledging}
+              >
+                {updateRecoveryAcknowledging
+                  ? messages.updates.recovery.acknowledging
+                  : messages.updates.recovery.acknowledge}
+              </button>
+            </div>
+          </section>
+        )}
         {activeHome === "settings" && (
           <SettingsPanel
             key={preferencesEditorRevision}
@@ -634,79 +696,153 @@ function App() {
             onReset={resetPreferences}
           />
         )}
+        <div className="sources-home" hidden={activeHome !== "sources"}>
+          <SourcesPanel
+            locale={locale}
+            messages={messages.sources}
+            importMessages={{
+              choose: messages.choose,
+              import: messages.import,
+              noPackage: messages.noPackage,
+              importing: messages.importing,
+              cancel: messages.cancel,
+              cancelling: messages.cancelling,
+            }}
+            guide={sourceGuides.find((guide) => guide.sourceId === "polar-flow")}
+            archivePath={archivePath}
+            importReady={libraryReady}
+            busy={busy}
+            cancellable={progress?.cancellable ?? false}
+            updateInstalling={updateInstalling}
+            cancelRequested={cancelRequested}
+            onChooseArchive={chooseArchive}
+            onImport={runImport}
+            onCancel={cancelImport}
+            onOpenOfficialLink={openSourceLink}
+            onLinkError={() => setErrorCode("official-source-link-failed")}
+          >
+            {progress && busy && (
+              <section
+                className="progress-panel"
+                aria-labelledby="progress-heading"
+                aria-live="polite"
+              >
+                <h2 id="progress-heading">{messages.phases[progress.phase]}</h2>
+                {progressValue === undefined ? (
+                  <p>{messages.phases[progress.phase]}</p>
+                ) : (
+                  <progress
+                    max="100"
+                    value={progressValue}
+                    aria-label={messages.phases[progress.phase]}
+                  />
+                )}
+              </section>
+            )}
+            {progress?.phase === "cancelled" && !busy && outcome?.state !== "cancelled" && (
+              <p className="notice" role="status" aria-live="polite">{messages.cancelled}</p>
+            )}
+            {outcome && (
+              <section className="outcome-panel" aria-labelledby="outcome-heading">
+                <h2 id="outcome-heading">{messages.outcome.heading}</h2>
+                <p className="notice" role="status" aria-live="polite">
+                  {outcomeSummary(outcome)}
+                </p>
+                <dl className="outcome-metadata">
+                  <div>
+                    <dt>{messages.outcome.status}</dt>
+                    <dd>{messages.outcome.states[outcome.state]}</dd>
+                  </div>
+                  <div>
+                    <dt>{messages.outcome.provider}</dt>
+                    <dd>{providerName(outcome.sourceProvider)}</dd>
+                  </div>
+                  <div>
+                    <dt>{messages.outcome.historyEffect}</dt>
+                    <dd>
+                      {outcome.canonicalHistoryChanged
+                        ? messages.outcome.historyChanged
+                        : messages.outcome.historyUnchanged}
+                    </dd>
+                  </div>
+                </dl>
+                <h3 id="coverage-heading">{messages.outcome.coverageHeading}</h3>
+                <p>
+                  <strong>
+                    {number.format(classifiedArtifacts)} / {number.format(outcome.coverage.total)}
+                  </strong>{" "}
+                  <span>
+                    {messages.outcome.artifactsClassified[
+                      plural.select(classifiedArtifacts) === "one" ? "one" : "other"
+                    ]}.
+                  </span>{" "}
+                  <span>
+                    {outcome.coverageComplete
+                      ? messages.outcome.coverageComplete
+                      : messages.outcome.coverageIncomplete}
+                  </span>
+                </p>
+                <ul className="coverage-summary" aria-labelledby="coverage-heading">
+                  <li><strong>{number.format(outcome.coverage.supported)}</strong><span>{messages.outcome.supported}</span></li>
+                  <li><strong>{number.format(outcome.coverage.unsupported)}</strong><span>{messages.outcome.unsupported}</span></li>
+                  <li><strong>{number.format(outcome.coverage.deliberatelyIgnored)}</strong><span>{messages.outcome.ignored}</span></li>
+                  <li><strong>{number.format(outcome.coverage.unrecognized)}</strong><span>{messages.outcome.unrecognized}</span></li>
+                  <li><strong>{number.format(outcome.coverage.invalid)}</strong><span>{messages.outcome.invalid}</span></li>
+                </ul>
+                {outcome.artifactFamilies.length > 0 && (
+                  <>
+                    <h3 id="family-coverage-heading">{messages.outcome.familyCoverageHeading}</h3>
+                    <table className="family-coverage-table">
+                      <caption className="sr-only">{messages.outcome.familyCoverageHeading}</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">{messages.outcome.familyColumn}</th>
+                          <th scope="col">{messages.outcome.classificationColumn}</th>
+                          <th scope="col">{messages.outcome.artifactCountColumn}</th>
+                          <th scope="col">{messages.outcome.explanationColumn}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {outcome.artifactFamilies.map((family) => {
+                          const explanation = coverageExplanation(family.reasonCode);
+                          return (
+                            <tr key={`${family.familyCode ?? "unrecognized"}:${family.classification}:${family.reasonCode}`}>
+                              <th scope="row" data-label={messages.outcome.familyColumn}>
+                                {familyName(family.familyCode)}
+                              </th>
+                              <td data-label={messages.outcome.classificationColumn}>
+                                {classificationName(family.classification)}
+                              </td>
+                              <td data-label={messages.outcome.artifactCountColumn}>
+                                {number.format(family.artifactCount)}
+                              </td>
+                              <td data-label={messages.outcome.explanationColumn}>
+                                <p>
+                                  <strong>{messages.outcome.reasonLabel}:</strong>{" "}
+                                  {explanation.reason}
+                                </p>
+                                <p>
+                                  <strong>{messages.outcome.nextActionLabel}:</strong>{" "}
+                                  {explanation.action}
+                                </p>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </>
+                )}
+              </section>
+            )}
+          </SourcesPanel>
+        </div>
         <div className="explore-home" hidden={activeHome !== "explore"}>
       <header className="hero">
         <p className="eyebrow">FitFreed</p>
         <h1>{messages.title}</h1>
         <p>{messages.intro}</p>
       </header>
-
-      <section className="controls" aria-labelledby="import-heading">
-        <div>
-          <h2 id="import-heading">{messages.importHeading}</h2>
-          <p className="path">{archivePath ?? messages.noPackage}</p>
-        </div>
-        <button
-          type="button"
-          className="secondary"
-          onClick={chooseArchive}
-          disabled={busy || updateInstalling}
-        >
-          {messages.choose}
-        </button>
-        <button
-          type="button"
-          className="primary"
-          onClick={runImport}
-          disabled={!libraryReady || !archivePath || busy || updateInstalling}
-        >
-          {busy ? messages.importing : messages.import}
-        </button>
-        {busy && progress?.cancellable && (
-          <button
-            type="button"
-            className="cancel"
-            onClick={cancelImport}
-            disabled={cancelRequested}
-          >
-            {cancelRequested ? messages.cancelling : messages.cancel}
-          </button>
-        )}
-      </section>
-
-      {updateRecoveryOutcome && (
-        <section className="update-panel update-recovery-notice">
-          <div
-            className={`update-result update-result-${updateRecoveryOutcome.outcome}`}
-            role="status"
-            aria-labelledby="update-recovery-heading"
-            aria-live="polite"
-          >
-            <h2 id="update-recovery-heading">
-              {updateRecoveryOutcome.outcome === "updated"
-                ? messages.updates.recovery.updatedHeading
-                : messages.updates.recovery.recoveredHeading}
-            </h2>
-            <p>
-              {(updateRecoveryOutcome.outcome === "updated"
-                ? messages.updates.recovery.updated
-                : messages.updates.recovery.recovered)
-                .replace("{sourceVersion}", updateRecoveryOutcome.sourceVersion)
-                .replace("{targetVersion}", updateRecoveryOutcome.targetVersion)}
-            </p>
-            <button
-              type="button"
-              className="secondary"
-              onClick={() => void acknowledgeUpdateRecoveryOutcome()}
-              disabled={updateRecoveryAcknowledging}
-            >
-              {updateRecoveryAcknowledging
-                ? messages.updates.recovery.acknowledging
-                : messages.updates.recovery.acknowledge}
-            </button>
-          </div>
-        </section>
-      )}
 
       {applicationReady && (
         <Suspense fallback={null}>
@@ -722,113 +858,6 @@ function App() {
         </Suspense>
       )}
 
-      {progress && busy && (
-        <section className="progress-panel" aria-labelledby="progress-heading" aria-live="polite">
-          <h2 id="progress-heading">{messages.phases[progress.phase]}</h2>
-          {progressValue === undefined ? (
-            <p>{messages.phases[progress.phase]}</p>
-          ) : (
-            <progress max="100" value={progressValue} aria-label={messages.phases[progress.phase]} />
-          )}
-        </section>
-      )}
-      {progress?.phase === "cancelled" && !busy && outcome?.state !== "cancelled" && (
-        <p className="notice" role="status" aria-live="polite">{messages.cancelled}</p>
-      )}
-
-      {outcome && (
-        <section className="outcome-panel" aria-labelledby="outcome-heading">
-          <h2 id="outcome-heading">{messages.outcome.heading}</h2>
-          <p className="notice" role="status" aria-live="polite">
-            {outcomeSummary(outcome)}
-          </p>
-          <dl className="outcome-metadata">
-            <div>
-              <dt>{messages.outcome.status}</dt>
-              <dd>{messages.outcome.states[outcome.state]}</dd>
-            </div>
-            <div>
-              <dt>{messages.outcome.provider}</dt>
-              <dd>{providerName(outcome.sourceProvider)}</dd>
-            </div>
-            <div>
-              <dt>{messages.outcome.historyEffect}</dt>
-              <dd>
-                {outcome.canonicalHistoryChanged
-                  ? messages.outcome.historyChanged
-                  : messages.outcome.historyUnchanged}
-              </dd>
-            </div>
-          </dl>
-          <h3 id="coverage-heading">{messages.outcome.coverageHeading}</h3>
-          <p>
-            <strong>
-              {number.format(classifiedArtifacts)} / {number.format(outcome.coverage.total)}
-            </strong>{" "}
-            <span>
-              {messages.outcome.artifactsClassified[
-                plural.select(classifiedArtifacts) === "one" ? "one" : "other"
-              ]}.
-            </span>{" "}
-            <span>
-              {outcome.coverageComplete
-                ? messages.outcome.coverageComplete
-                : messages.outcome.coverageIncomplete}
-            </span>
-          </p>
-          <ul className="coverage-summary" aria-labelledby="coverage-heading">
-            <li><strong>{number.format(outcome.coverage.supported)}</strong><span>{messages.outcome.supported}</span></li>
-            <li><strong>{number.format(outcome.coverage.unsupported)}</strong><span>{messages.outcome.unsupported}</span></li>
-            <li><strong>{number.format(outcome.coverage.deliberatelyIgnored)}</strong><span>{messages.outcome.ignored}</span></li>
-            <li><strong>{number.format(outcome.coverage.unrecognized)}</strong><span>{messages.outcome.unrecognized}</span></li>
-            <li><strong>{number.format(outcome.coverage.invalid)}</strong><span>{messages.outcome.invalid}</span></li>
-          </ul>
-          {outcome.artifactFamilies.length > 0 && (
-            <>
-              <h3 id="family-coverage-heading">{messages.outcome.familyCoverageHeading}</h3>
-              <table className="family-coverage-table">
-                <caption className="sr-only">{messages.outcome.familyCoverageHeading}</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">{messages.outcome.familyColumn}</th>
-                    <th scope="col">{messages.outcome.classificationColumn}</th>
-                    <th scope="col">{messages.outcome.artifactCountColumn}</th>
-                    <th scope="col">{messages.outcome.explanationColumn}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {outcome.artifactFamilies.map((family) => {
-                    const explanation = coverageExplanation(family.reasonCode);
-                    return (
-                      <tr key={`${family.familyCode ?? "unrecognized"}:${family.classification}:${family.reasonCode}`}>
-                        <th scope="row" data-label={messages.outcome.familyColumn}>
-                          {familyName(family.familyCode)}
-                        </th>
-                        <td data-label={messages.outcome.classificationColumn}>
-                          {classificationName(family.classification)}
-                        </td>
-                        <td data-label={messages.outcome.artifactCountColumn}>
-                          {number.format(family.artifactCount)}
-                        </td>
-                        <td data-label={messages.outcome.explanationColumn}>
-                          <p>
-                            <strong>{messages.outcome.reasonLabel}:</strong>{" "}
-                            {explanation.reason}
-                          </p>
-                          <p>
-                            <strong>{messages.outcome.nextActionLabel}:</strong>{" "}
-                            {explanation.action}
-                          </p>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </>
-          )}
-        </section>
-      )}
       {applicationReady && (
         <Suspense fallback={null}>
           <LongitudinalInsightsPanel

@@ -5,6 +5,9 @@ import AxeBuilder from "@axe-core/webdriverio";
 
 import { runInsightsPerformanceJourney } from "./support/insights-performance.js";
 
+const english = JSON.parse(
+  fs.readFileSync(new URL("../../src/locales/en-US.json", import.meta.url), "utf8"),
+);
 const spanish = JSON.parse(
   fs.readFileSync(new URL("../../src/locales/es-ES.json", import.meta.url), "utf8"),
 );
@@ -64,8 +67,14 @@ async function persistSettings() {
   }, { timeout: 10_000, timeoutMsg: "the application settings were not saved" });
 }
 
-async function selectLocale(locale) {
-  const settings = await $(".shell-header nav button:nth-child(2)");
+async function goToHome(home) {
+  const destination = await $(`.shell-header nav button[data-home='${home}']`);
+  await destination.waitForEnabled({ timeout: 10_000 });
+  await destination.click();
+}
+
+async function selectLocale(locale, destination = "explore") {
+  const settings = await $(".shell-header nav button[data-home='settings']");
   await settings.waitForEnabled({ timeout: 10_000 });
   await settings.click();
   const select = await $("#application-language");
@@ -84,9 +93,7 @@ async function selectLocale(locale) {
     await expect(select).toHaveValue(locale);
     await persistSettings();
   }
-  const explore = await $(".shell-header nav button:first-child");
-  await explore.waitForEnabled({ timeout: 10_000 });
-  await explore.click();
+  await goToHome(destination);
   await browser.waitUntil(
     () => browser.execute(
       (expectedLocale) => document.documentElement.lang === expectedLocale,
@@ -97,7 +104,7 @@ async function selectLocale(locale) {
 }
 
 async function setAppearanceAndZoom(appearance, zoom, save) {
-  const settings = await $(".shell-header nav button:nth-child(2)");
+  const settings = await $(".shell-header nav button[data-home='settings']");
   await settings.waitForEnabled({ timeout: 10_000 });
   await settings.click();
   const appearanceInput = await $(`input[name='appearance'][value='${appearance}']`);
@@ -128,11 +135,11 @@ async function setAppearanceAndZoom(appearance, zoom, save) {
   if (save) {
     await persistSettings();
   }
-  await $(".shell-header nav button:first-child").click();
+  await goToHome("explore");
 }
 
 async function resetSettings() {
-  await $(".shell-header nav button:nth-child(2)").click();
+  await goToHome("settings");
   const reset = await $(".settings-actions button.secondary");
   await reset.waitForEnabled({ timeout: 10_000 });
   await reset.click();
@@ -143,7 +150,7 @@ async function resetSettings() {
     )),
     { timeout: 10_000, timeoutMsg: "the application settings were not reset" },
   );
-  await $(".shell-header nav button:first-child").click();
+  await goToHome("explore");
 }
 
 async function setActivityRange(from, through) {
@@ -614,10 +621,48 @@ async function expectCoverage(expectedItems) {
   }
 }
 
+async function expectSourceGuide(catalog) {
+  const expectedItems = [
+    ...Object.values(catalog.sources.instructions),
+    ...Object.values(catalog.sources.constraints),
+    ...Object.values(catalog.sources.troubleshooting),
+  ];
+  const items = await $$("#source-acquisition-guide li");
+  expect(items).toHaveLength(expectedItems.length);
+  for (let index = 0; index < expectedItems.length; index += 1) {
+    await expect(items[index]).toHaveText(expectedItems[index]);
+  }
+}
+
 describe("packaged FitFreed import journey", () => {
   it("covers validation, outcomes, coverage, cancellation, reimport, accessibility, performance, and restart", async () => {
-    await expect($("h1")).toHaveText("Your fitness history belongs to you");
+    await expect($(".sources-home h1")).toHaveText("Bring your fitness history home");
     await expect($("aria/Import selected package")).toBeDisabled();
+    const openerMock = await browser.tauri.mock("plugin:opener|open_url");
+    await $("aria/Show me how").click();
+    await expect($("#source-guide-heading")).toHaveText(
+      "How to obtain your Polar Flow export",
+    );
+    await expectSourceGuide(english);
+    await expect($("#source-acquisition-guide")).toHaveText(
+      expect.stringContaining("available to download for two weeks"),
+    );
+    await $("aria/Open official account page").click();
+    await $("aria/Open official instructions").click();
+    await browser.waitUntil(async () => {
+      await openerMock.update();
+      return openerMock.mock.calls.length === 2;
+    }, { timeout: 10_000, timeoutMsg: "official source destinations were not opened" });
+    expect(openerMock.mock.calls.map(([arguments_]) => arguments_.url)).toEqual([
+      "https://account.polar.com/",
+      "https://support.polar.com/en/how-to-download-all-your-data-from-polar-flow",
+    ]);
+    const sourcesAccessibility = await new AxeBuilder({ client: browser })
+      .setLegacyMode()
+      .analyze();
+    expect(sourcesAccessibility.violations).toEqual([]);
+
+    await goToHome("explore");
     await expect($(".recovery-insights")).toHaveText(
       expect.stringContaining("No imported nightly recovery summaries yet."),
     );
@@ -640,11 +685,23 @@ describe("packaged FitFreed import journey", () => {
     await resetSettings();
     await expect($("html")).toHaveAttribute("data-appearance", "system");
 
-    await selectLocale("es-ES");
-    await expect($("h1")).toHaveText(spanish.title);
+    await selectLocale("es-ES", "sources");
+    await expect($(".sources-home h1")).toHaveText(spanish.sources.title);
+    await expect($("#source-guide-heading")).toHaveText(spanish.sources.guideTitle);
+    await expectSourceGuide(spanish);
+    const spanishOpenerMock = await browser.tauri.mock("plugin:opener|open_url");
+    await $("aria/Abrir las instrucciones oficiales").click();
+    await browser.waitUntil(async () => {
+      await spanishOpenerMock.update();
+      return spanishOpenerMock.mock.calls.length === 1;
+    }, { timeout: 10_000, timeoutMsg: "localized official source destination was not opened" });
+    expect(spanishOpenerMock.mock.calls[0][0].url).toBe(
+      "https://support.polar.com/es/how-to-download-all-your-data-from-polar-flow",
+    );
     await selectLocale("en-US");
-    await expect($("h1")).toHaveText("Your fitness history belongs to you");
+    await expect($(".explore-home h1")).toHaveText("Your fitness history belongs to you");
 
+    await goToHome("sources");
     const dialogMock = await browser.tauri.mock("plugin:dialog|open");
     await openArchivePicker(dialogMock, null);
     await expect($(".path")).toHaveText("No package selected");
@@ -656,8 +713,8 @@ describe("packaged FitFreed import journey", () => {
     await $("#progress-heading").waitForDisplayed({ timeout: 1_000 });
     expect(Date.now() - progressStartedAt).toBeLessThanOrEqual(1_000);
 
-    await selectLocale("es-ES");
-    await expect($("h1")).toHaveText(spanish.title);
+    await selectLocale("es-ES", "sources");
+    await expect($(".sources-home h1")).toHaveText(spanish.sources.title);
     const cancel = await $("button.cancel");
     await cancel.waitForDisplayed({ timeout: 1_000 });
     const cancellationStartedAt = Date.now();
@@ -671,11 +728,11 @@ describe("packaged FitFreed import journey", () => {
     );
     expect(Date.now() - cancellationStartedAt).toBeLessThanOrEqual(1_000);
     await waitForNotice(spanish.phases.cancelled, 5_000);
-    await $("button.primary").waitForEnabled({ timeout: 5_000 });
+    await $(`aria/${spanish.import}`).waitForEnabled({ timeout: 5_000 });
     expect(Date.now() - cancellationStartedAt).toBeLessThanOrEqual(5_000);
     expect(await $$(".history-grid table tbody tr")).toHaveLength(0);
 
-    await selectLocale("en-US");
+    await selectLocale("en-US", "sources");
     await selectArchive(dialogMock, path.join(fixtureDirectory, "invalid.zip"));
     await $("aria/Import selected package").click();
     const alert = await $("[role='alert']");
@@ -784,6 +841,7 @@ describe("packaged FitFreed import journey", () => {
         action: "Keep the original ZIP if you need the excluded training details.",
       },
     ]);
+    await goToHome("explore");
     await expectHistory([
       ["Jan 1, 2026", "3,100", "Step total available"],
       ["Jan 2, 2026", "4,200", "Step total available"],
@@ -1021,6 +1079,7 @@ describe("packaged FitFreed import journey", () => {
 
     await selectLocale("es-ES");
     await setAppearanceAndZoom("dark", 200, true);
+    await goToHome("sources");
     await expect($("#outcome-heading")).toHaveText(spanish.outcome.heading);
     await expectCoverage([
       ["9", spanish.outcome.supported],
@@ -1085,6 +1144,7 @@ describe("packaged FitFreed import journey", () => {
         ...spanish.outcome.coverageExplanations["mapped-summary"],
       },
     ]);
+    await goToHome("explore");
     const esJan4Start = await formatBrowserTrainingLocalDateTime(
       "es-ES",
       "2026-01-04T06:15:00",
@@ -1204,8 +1264,10 @@ describe("packaged FitFreed import journey", () => {
     const accessibility = await new AxeBuilder({ client: browser }).setLegacyMode().analyze();
     expect(accessibility.violations).toEqual([]);
 
+    await goToHome("sources");
     await $("aria/Import selected package").click();
     await waitForNotice("Exact package repeat; history was not duplicated.");
+    await goToHome("explore");
     await expectHistory([
       ["Jan 1, 2026", "3,100", "Step total available"],
       ["Jan 2, 2026", "4,200", "Step total available"],
@@ -1216,11 +1278,13 @@ describe("packaged FitFreed import journey", () => {
       [enJan4Start, "1 h", "10,000 m", "600 kcal"],
     ]);
 
+    await goToHome("sources");
     await selectArchive(dialogMock, path.join(fixtureDirectory, "overlap.zip"));
     await $("aria/Import selected package").click();
     await waitForNotice(
       "Import completed: 5 recognized, 2 new, 0 enriched, 1 amended, 1 equivalent",
     );
+    await goToHome("explore");
     await expectHistory([
       ["Jan 1, 2026", "3,100", "Step total available"],
       ["Jan 2, 2026", "4,200", "Step total available"],
@@ -1705,7 +1769,7 @@ describe("packaged FitFreed import journey", () => {
     expect(await $$(".longitudinal-comparison-result")).toHaveLength(0);
 
     await browser.reloadSession();
-    await expect($("h1")).toHaveText(spanish.title);
+    await expect($(".sources-home h1")).toHaveText(spanish.sources.title);
     await expect($("html")).toHaveAttribute("data-appearance", "dark");
     expect(await browser.execute(
       () => document.documentElement.style.getPropertyValue("--content-zoom"),
@@ -1731,6 +1795,7 @@ describe("packaged FitFreed import journey", () => {
         ...spanish.outcome.coverageExplanations["mapped-summary"],
       },
     ]);
+    await goToHome("explore");
     await expectHistory([
       [formatLocalDate("es-ES", "2026-01-01"), "3100", spanish.activity.available],
       [formatLocalDate("es-ES", "2026-01-02"), "4200", spanish.activity.available],
@@ -1793,8 +1858,13 @@ describe("packaged FitFreed import journey", () => {
   });
 
   it("meets domain and longitudinal insight budgets", async () => {
+    process.env.FITFREED_E2E_DATABASE_PATH = path.resolve(
+      `.artifacts/e2e/performance-library-${process.pid}.sqlite`,
+    );
+    await browser.reloadSession();
     await runInsightsPerformanceJourney({
       archivePath: insightsPerformanceArchive,
+      goToHome,
       selectArchive,
       selectLocale,
     });
