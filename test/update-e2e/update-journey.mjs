@@ -207,6 +207,9 @@ async function verifyRecoveryNotice(browser, recoveryId) {
 }
 
 async function verifyJourney(browser) {
+  const explore = await browser.$("[data-home='explore']");
+  await explore.waitForEnabled({ timeout: 15_000 });
+  await explore.click();
   const heading = await browser.$("#update-heading");
   await heading.waitForDisplayed({ timeout: 15_000 });
   const checkNow = await browser.$(".update-panel-heading button");
