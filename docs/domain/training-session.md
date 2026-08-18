@@ -2,9 +2,9 @@
 
 ## Purpose
 
-A Training Session is one provider-neutral summary of a recorded workout from one verified source subject. It gives the user trustworthy longitudinal training history before routes, high-resolution samples, detailed exercise segments, or cross-provider workout matching enter the product.
+A Training Session is one provider-neutral observation of a recorded workout from one verified source subject. Its aggregate summary supports trustworthy longitudinal history, while an evaluated structure can expose source exercises, manual and automatic laps, and pauses without changing aggregate meaning.
 
-The complete normative field and reconciliation contract lives in [canonical training session summary version 1](../data-formats/canonical/training-session.md). This document explains the domain boundary rather than repeating that specification.
+The complete normative contracts live in [canonical training-session summary version 1](../data-formats/canonical/training-session.md) and [canonical training-session structure version 1](../data-formats/canonical/training-session-structure.md). This document explains the domain boundary rather than repeating those specifications.
 
 ## Aggregate boundary
 
@@ -22,4 +22,4 @@ Training uses source-local wall time because it answers when the person experien
 
 ## Privacy boundary
 
-The MVP summary excludes coordinates, routes, notes, comments, device identifiers, physical snapshots, and full-resolution physiological samples. Those fields may remain in the user's original archive but are not copied into the canonical training library by summary version 1.
+The current mapped structure excludes coordinates, routes, zones, notes, comments, device identifiers, physical snapshots, and full-resolution physiological samples. Those fields may remain in the user's original archive but are not copied into the canonical training library. Source exercise identifiers remain protected persistence evidence; presentation receives only domain-separated opaque capabilities.

@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production persists provider-neutral session summaries, user-authored sport classifications, and a disposable discovery workspace. Full-history search, chronology, calendar projection, comparison selection, and restart restoration are implemented through E3; evidence-complete detail continues through E4 of the [MVP experience delivery plan](../plans/mvp-experience-delivery.md).
+Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production persists provider-neutral session summaries, mapped exercise/lap/pause structure, user-authored sport classifications, and a disposable discovery workspace. Full-history search, chronology, calendar projection, comparison selection, restart restoration, and the first structural-detail vertical are implemented; routes, signals, zones, exact samples, and user-authored segmentation continue through E4 of the [MVP experience delivery plan](../plans/mvp-experience-delivery.md).
 
 ## Ownership
 
@@ -58,7 +58,19 @@ detailed workspace. The normative contracts are the
 [training-session search](../data-formats/insights/training-session-search-v1.md) and
 [training-discovery workspace](../data-formats/insights/training-discovery-workspace-v1.md) specifications.
 
-Mapping changes reassess identical source bytes. The visibility transaction publishes a complete enrichment or leaves the previous session intact. Child identities, order, provenance, and conflicts are versioned in the corresponding canonical, mapping, and persistence specifications when implemented.
+The [training-session structure read model](../data-formats/insights/training-session-structure-v1.md)
+loads separately for one opaque session capability under the same discovery snapshot. It preserves
+not-yet-evaluated, absent, present-empty, and populated structure as different states. Application validation
+requires unique domain-separated child capabilities, contiguous source order, valid local timestamps, and
+non-negative finite measurements before presentation receives the result. Provider child identifiers remain
+inside persistence.
+
+Mapping changes reassess identical source bytes. Version 2 training mapping can strictly enrich a summary
+written by version 1, while a later source revision atomically replaces summary and mapped children. Older or
+conflicting evidence changes neither. The visibility transaction publishes one complete result or leaves the
+previous session intact; duplicate sessions or children are never an enrichment strategy. Child identity,
+order, provenance, and conflict semantics are fixed by the canonical, mapping, read-model, and persistence
+specifications.
 
 ## Privacy boundary
 

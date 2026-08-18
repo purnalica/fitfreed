@@ -14,10 +14,10 @@ use fitfreed_application::{
     query_longitudinal_overview, query_recovery_comparison, query_recovery_detail,
     query_recovery_overview, query_sleep_comparison, query_sleep_detail, query_sleep_overview,
     query_training_comparison, query_training_overview, query_training_session_calendar,
-    query_training_session_selection, query_training_sessions, ActivityDateRange,
-    LongitudinalDateRange, RecoveryDateRange, SleepDateRange, TrainingDateRange,
+    query_training_session_selection, query_training_session_structure, query_training_sessions,
+    ActivityDateRange, LongitudinalDateRange, RecoveryDateRange, SleepDateRange, TrainingDateRange,
     TrainingSessionCalendarRequest, TrainingSessionSearchRequest, TrainingSessionSelectionRequest,
-    TrainingSessionSort,
+    TrainingSessionSort, TrainingSessionStructureQuery,
 };
 use fitfreed_lib::infrastructure::{
     query_activity_between, SqliteActivityLibrary, SqliteLongitudinalLibrary,
@@ -43,6 +43,10 @@ struct GeneratedRows {
     activity: usize,
     recovery: usize,
     training: usize,
+    training_structures: usize,
+    training_exercises: usize,
+    training_laps: usize,
+    training_pauses: usize,
     sleep: usize,
     sleep_transitions: usize,
 }
@@ -196,12 +200,24 @@ fn main() {
             .take(4)
             .map(|session| session.session_ref.clone())
             .collect(),
-        snapshot_ref: Some(training_discovery_page.snapshot_ref),
+        snapshot_ref: Some(training_discovery_page.snapshot_ref.clone()),
     };
     let training_session_selection = measure(4, || {
         query_training_session_selection(&training_library, training_selection_request.clone())
             .expect("training session selection")
             .sessions
+            .len()
+    });
+    let training_structure_request = TrainingSessionStructureQuery {
+        session_ref: training_discovery_page.sessions[0].session_ref.clone(),
+        snapshot_ref: Some(training_discovery_page.snapshot_ref),
+    };
+    let training_session_structure = measure(1, || {
+        query_training_session_structure(&training_library, training_structure_request.clone())
+            .expect("training session structure")
+            .structure
+            .and_then(|structure| structure.exercises)
+            .expect("generated training exercises")
             .len()
     });
 
@@ -428,6 +444,11 @@ fn main() {
             COMMON_BUDGET_MILLISECONDS,
         ),
         (
+            "training.sessionStructure",
+            &training_session_structure,
+            COMMON_BUDGET_MILLISECONDS,
+        ),
+        (
             "sleep.defaultOverview",
             &sleep_default_overview,
             COMMON_BUDGET_MILLISECONDS,
@@ -537,6 +558,10 @@ fn main() {
                 "origins": ORIGIN_COUNT,
                 "storedActivityObservations": generated_rows.activity,
                 "storedTrainingSessions": generated_rows.training,
+                "storedTrainingStructures": generated_rows.training_structures,
+                "storedTrainingExercises": generated_rows.training_exercises,
+                "storedTrainingLaps": generated_rows.training_laps,
+                "storedTrainingPauses": generated_rows.training_pauses,
                 "storedSleepPeriods": generated_rows.sleep,
                 "storedSleepTransitions": generated_rows.sleep_transitions,
                 "storedRecoveryNights": generated_rows.recovery,
@@ -587,6 +612,10 @@ fn main() {
                     ),
                     "sessionSelection": measurement_json(
                         &training_session_selection,
+                        COMMON_BUDGET_MILLISECONDS,
+                    ),
+                    "sessionStructure": measurement_json(
+                        &training_session_structure,
                         COMMON_BUDGET_MILLISECONDS,
                     ),
                 },
@@ -682,6 +711,10 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
     let mut activity_rows = 0;
     let mut recovery_rows = 0;
     let mut training_rows = 0;
+    let mut training_structure_rows = 0;
+    let mut training_exercise_rows = 0;
+    let mut training_lap_rows = 0;
+    let mut training_pause_rows = 0;
     let mut sleep_rows = 0;
     let mut sleep_transition_rows = 0;
     {
@@ -776,11 +809,116 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
                         heart_rate.map(|(average, _)| average),
                         heart_rate.map(|(_, maximum)| maximum),
                         format!("synthetic-sport-{}", optional_index % 4),
-                        optional_index % 3,
+                        if local_date == last_date {
+                            1
+                        } else {
+                            optional_index % 3
+                        },
                     ])
                     .expect("insert generated training session");
                 training_rows += 1;
             }
+        }
+    }
+    {
+        let mut structure_statement = transaction
+            .prepare_cached(
+                "INSERT INTO training_session_structure (
+                    origin_id, session_id, exercises_present, mapping_version
+                 ) VALUES (?1, ?2, 1, 'synthetic-training-structure@1')",
+            )
+            .expect("prepare generated training structure insertion");
+        let mut exercise_statement = transaction
+            .prepare_cached(
+                "INSERT INTO training_exercise (
+                    origin_id, session_id, exercise_id, ordinal,
+                    started_at_local, stopped_at_local, utc_offset_minutes,
+                    duration_milliseconds, distance_meters, energy_kilocalories,
+                    sport_ref, manual_laps_present, automatic_laps_present,
+                    pauses_present
+                 ) VALUES (
+                    ?1, ?2, ?3, 0, ?4, ?5, 60, ?6, ?7, ?8, ?9, 1, 1, 1
+                 )",
+            )
+            .expect("prepare generated training exercise insertion");
+        let mut lap_statement = transaction
+            .prepare_cached(
+                "INSERT INTO training_lap (
+                    origin_id, session_id, exercise_id, kind, ordinal,
+                    split_time_milliseconds, duration_milliseconds, distance_meters
+                 ) VALUES (?1, ?2, ?3, ?4, 0, ?5, ?6, ?7)",
+            )
+            .expect("prepare generated training lap insertion");
+        let mut pause_statement = transaction
+            .prepare_cached(
+                "INSERT INTO training_pause (
+                    origin_id, session_id, exercise_id, ordinal,
+                    started_at_local, ended_at_local
+                 ) VALUES (?1, ?2, ?3, 0, ?4, ?5)",
+            )
+            .expect("prepare generated training pause insertion");
+        let day_offset = calendar_days - 1;
+        let date = last_date.format("%Y-%m-%d").to_string();
+        for origin_index in 0..ORIGIN_COUNT {
+            let origin = format!("synthetic-origin-{origin_index}");
+            let session_id = format!("synthetic-session-{origin_index}-{date}");
+            let exercise_id = format!("synthetic-exercise-{origin_index}-{date}");
+            let started_at = last_date
+                .and_hms_opt(6 + u32::try_from(origin_index).expect("origin hour"), 0, 0)
+                .expect("generated exercise start");
+            let optional_index =
+                day_offset + i64::try_from(origin_index).expect("origin index") * 17;
+            let duration_milliseconds = 1_800_000 + optional_index % 5 * 900_000;
+            let stopped_at = started_at + ChronoDuration::milliseconds(duration_milliseconds);
+            let distance_meters =
+                (optional_index % 7 != 0).then_some(duration_milliseconds as f64 / 400.0);
+            let energy_kilocalories =
+                (optional_index % 11 != 0).then_some(200 + optional_index % 700);
+            structure_statement
+                .execute(params![origin, session_id])
+                .expect("insert generated training structure");
+            training_structure_rows += 1;
+            exercise_statement
+                .execute(params![
+                    origin,
+                    session_id,
+                    exercise_id,
+                    started_at.format("%Y-%m-%dT%H:%M:%S").to_string(),
+                    stopped_at.format("%Y-%m-%dT%H:%M:%S").to_string(),
+                    duration_milliseconds,
+                    distance_meters,
+                    energy_kilocalories,
+                    format!("synthetic-sport-{}", optional_index % 4),
+                ])
+                .expect("insert generated training exercise");
+            training_exercise_rows += 1;
+            for kind in ["manual", "automatic"] {
+                lap_statement
+                    .execute(params![
+                        origin,
+                        session_id,
+                        exercise_id,
+                        kind,
+                        duration_milliseconds / 2,
+                        duration_milliseconds / 2,
+                        distance_meters.map(|distance| distance / 2.0),
+                    ])
+                    .expect("insert generated training lap");
+                training_lap_rows += 1;
+            }
+            let pause_started = started_at + ChronoDuration::minutes(10);
+            pause_statement
+                .execute(params![
+                    origin,
+                    session_id,
+                    exercise_id,
+                    pause_started.format("%Y-%m-%dT%H:%M:%S").to_string(),
+                    (pause_started + ChronoDuration::minutes(1))
+                        .format("%Y-%m-%dT%H:%M:%S")
+                        .to_string(),
+                ])
+                .expect("insert generated training pause");
+            training_pause_rows += 1;
         }
     }
     {
@@ -946,6 +1084,10 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
         activity: activity_rows,
         recovery: recovery_rows,
         training: training_rows,
+        training_structures: training_structure_rows,
+        training_exercises: training_exercise_rows,
+        training_laps: training_lap_rows,
+        training_pauses: training_pause_rows,
         sleep: sleep_rows,
         sleep_transitions: sleep_transition_rows,
     }

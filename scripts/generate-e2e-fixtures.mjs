@@ -22,7 +22,7 @@ function trainingSession({
   hrAvg,
   hrMax,
   sportId,
-  exerciseCount,
+  exercises,
 }) {
   return JSON.stringify({
     identifier: { id },
@@ -37,7 +37,7 @@ function trainingSession({
     ...(hrAvg === undefined ? {} : { hrAvg }),
     ...(hrMax === undefined ? {} : { hrMax }),
     ...(sportId === undefined ? {} : { sport: { id: sportId } }),
-    exercises: Array.from({ length: exerciseCount }, () => ({ syntheticExcludedDetail: true })),
+    ...(exercises === undefined ? {} : { exercises }),
   });
 }
 
@@ -216,7 +216,30 @@ await createArchive("valid.zip", [
       hrAvg: 142,
       hrMax: 171,
       sportId: "99",
-      exerciseCount: 1,
+      exercises: [{
+        identifier: { id: "fixture-training-exercise-a" },
+        created: "2026-01-04T08:00:00.000",
+        modified: "2026-01-04T08:05:00.000",
+        startTime: "2026-01-04T06:15:00",
+        stopTime: "2026-01-04T07:15:00",
+        timezoneOffsetMinutes: 60,
+        durationMillis: 3_600_000,
+        distanceMeters: 10_000,
+        calories: 600,
+        sport: { id: "99" },
+        laps: {
+          laps: [{
+            splitTimeMillis: 1_800_000,
+            durationMillis: 1_800_000,
+            distanceMeters: 5_000,
+          }],
+          autoLaps: [],
+        },
+        pauseTimes: [{
+          startTime: "2026-01-04T06:45:00",
+          endTime: "2026-01-04T06:46:00",
+        }],
+      }],
     }),
   ],
   [
@@ -228,7 +251,7 @@ await createArchive("valid.zip", [
       startTime: "2026-01-05T18:00:00",
       stopTime: "2026-01-05T18:30:00",
       durationMillis: 1_800_000,
-      exerciseCount: 0,
+      exercises: [],
     }),
   ],
   [`sleep_result_42-${uuidA}.json`, sleepResult("2026-01-06")],
@@ -271,7 +294,30 @@ await createArchive("overlap.zip", [
       hrAvg: 142,
       hrMax: 171,
       sportId: "99",
-      exerciseCount: 1,
+      exercises: [{
+        identifier: { id: "fixture-training-exercise-a" },
+        created: "2026-01-04T08:00:00.000",
+        modified: "2026-01-04T09:00:00.000",
+        startTime: "2026-01-04T06:15:00",
+        stopTime: "2026-01-04T07:15:00",
+        timezoneOffsetMinutes: 60,
+        durationMillis: 3_600_000,
+        distanceMeters: 10_500,
+        calories: 600,
+        sport: { id: "99" },
+        laps: {
+          laps: [{
+            splitTimeMillis: 1_800_000,
+            durationMillis: 1_800_000,
+            distanceMeters: 5_250,
+          }],
+          autoLaps: [],
+        },
+        pauseTimes: [{
+          startTime: "2026-01-04T06:45:00",
+          endTime: "2026-01-04T06:46:00",
+        }],
+      }],
     }),
   ],
   [
@@ -288,7 +334,31 @@ await createArchive("overlap.zip", [
       hrAvg: 130,
       hrMax: 155,
       sportId: "99",
-      exerciseCount: 2,
+      exercises: [{
+        identifier: { id: "fixture-training-exercise-c-1" },
+        created: "2026-01-06T09:00:00.000",
+        modified: "2026-01-06T09:00:00.000",
+        startTime: "2026-01-06T07:30:00",
+        stopTime: "2026-01-06T08:00:00",
+        timezoneOffsetMinutes: 60,
+        durationMillis: 1_800_000,
+        distanceMeters: 3_500,
+        calories: 220,
+        sport: { id: "99" },
+        laps: { laps: [], autoLaps: [] },
+        pauseTimes: [],
+      }, {
+        identifier: { id: "fixture-training-exercise-c-2" },
+        created: "2026-01-06T09:00:00.000",
+        modified: "2026-01-06T09:00:00.000",
+        startTime: "2026-01-06T08:00:00",
+        stopTime: "2026-01-06T08:15:00",
+        timezoneOffsetMinutes: 60,
+        durationMillis: 900_000,
+        distanceMeters: 1_500,
+        calories: 80,
+        sport: { id: "100" },
+      }],
     }),
   ],
 ]);

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-structure-query-v1.schema.json",
+  "title": "FitFreed training-session structure query version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sessionRef", "snapshotRef"],
+  "properties": {
+    "sessionRef": {
+      "type": "string",
+      "pattern": "^session-[0-9a-f]{64}$"
+    },
+    "snapshotRef": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "string",
+          "pattern": "^training-snapshot-[0-9a-f]{64}$"
+        }
+      ]
+    }
+  }
+}

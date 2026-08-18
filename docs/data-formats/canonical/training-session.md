@@ -59,6 +59,6 @@ Every decision retains import-operation and source-artifact provenance. Amendmen
 
 ## Known loss and compatibility
 
-Version 1 has no route, coordinates, samples, laps, zones, exercise children, sport display name, note, target, device, product, physical snapshot, training-load interpretation, or provider-specific analysis. Importers disclose ignored source information in their mapping specifications.
+Version 1 summary has no route, coordinates, samples, laps, zones, exercise children, sport display name, note, target, device, product, physical snapshot, training-load interpretation, or provider-specific analysis. Recorded exercise, lap, and pause children are defined separately by [canonical training-session structure version 1](training-session-structure.md); they do not alter this summary's identity, fields, or authority. Importers disclose ignored source information in their mapping specifications.
 
 Readers must ignore future additive fields only when the enclosing representation declares a compatible minor extension. A change to identity, units, null meaning, time interpretation, reconciliation, or an invariant requires a new canonical version.

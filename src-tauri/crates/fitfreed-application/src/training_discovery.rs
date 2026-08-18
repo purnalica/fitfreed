@@ -788,8 +788,16 @@ fn validate_session(
 }
 
 fn validate_sport(sport: &TrainingSessionSport) -> Result<(), ApplicationError> {
+    if training_session_sport_is_valid(sport) {
+        Ok(())
+    } else {
+        query_failure("training-session sport context is inconsistent")
+    }
+}
+
+pub(crate) fn training_session_sport_is_valid(sport: &TrainingSessionSport) -> bool {
     match (sport.state, &sport.sport_ref, &sport.classification) {
-        (TrainingSportState::Unavailable, None, None) => Ok(()),
+        (TrainingSportState::Unavailable, None, None) => true,
         (TrainingSportState::Unknown, Some(sport_ref), Some(classification))
             if valid_opaque_ref(sport_ref, SPORT_PREFIX)
                 && classification.canonical_family.is_none()
@@ -798,7 +806,7 @@ fn validate_sport(sport: &TrainingSessionSport) -> Result<(), ApplicationError> 
                     || (classification.authorship.as_deref() == Some("user")
                         && classification.revision > 0)) =>
         {
-            Ok(())
+            true
         }
         (TrainingSportState::Classified, Some(sport_ref), Some(classification))
             if valid_opaque_ref(sport_ref, SPORT_PREFIX)
@@ -815,9 +823,9 @@ fn validate_sport(sport: &TrainingSessionSport) -> Result<(), ApplicationError> 
                     .as_deref()
                     .is_none_or(valid_display_label) =>
         {
-            Ok(())
+            true
         }
-        _ => query_failure("training-session sport context is inconsistent"),
+        _ => false,
     }
 }
 

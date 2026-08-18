@@ -40,8 +40,19 @@ pub use training_discovery::{
     TrainingSessionSport,
 };
 
+mod training_detail;
+pub use training_detail::{
+    query_training_session_structure, PersistedTrainingSessionStructure, TrainingExerciseStructure,
+    TrainingLapStructure, TrainingPauseStructure, TrainingSessionStructurePort,
+    TrainingSessionStructurePortError, TrainingSessionStructureQuery,
+    TrainingSessionStructureResult, TrainingStructure,
+};
+
 #[cfg(test)]
 mod training_discovery_tests;
+
+#[cfg(test)]
+mod training_detail_tests;
 
 #[cfg(test)]
 mod sport_discovery_tests;
@@ -1325,6 +1336,12 @@ pub enum ApplicationError {
     TrainingSessionSearchChanged,
     #[error("training-session search failed: {0}")]
     TrainingSessionSearch(String),
+    #[error("invalid training-session detail: {0}")]
+    InvalidTrainingSessionDetail(&'static str),
+    #[error("training-session detail changed while it was being read")]
+    TrainingSessionDetailChanged,
+    #[error("training-session detail failed: {0}")]
+    TrainingSessionDetail(String),
     #[error("invalid training discovery workspace: {0}")]
     InvalidTrainingDiscoveryWorkspace(&'static str),
     #[error("training discovery workspace query failed: {0}")]

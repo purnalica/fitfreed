@@ -175,7 +175,30 @@ Each evaluated training-session artifact is an object. The `identifier.id`, `cre
 | `sport.id` | Official and observed | optional string reference | Identifier in Polar's separately managed sports catalogue. The evaluated takeout contains decimal-shaped references but no catalogue that resolves them to public names. |
 | `exercises` | Official and observed | optional array | Nested exercise summaries. Absence, one exercise, and multiple exercises are observed. A single nested exercise is not assumed equivalent to the session aggregate. |
 
-The official contract also defines optional names, notes, device and product references, feelings, coordinates, energy-source percentages, recovery time, targets, training benefit and load, tests, hills, comments, exercise statistics, laps, zones, routes, and sample series. They remain outside training-summary version 1 until their domain meaning, privacy boundary, relationship, or product use is specified.
+Evaluated exercise objects also correspond to the official nested `TrainingSession` contract:
+
+| Path | Evidence | Type and optionality | Established meaning or limitation |
+|---|---|---|---|
+| `exercises[].identifier.id` | Official and observed | required non-empty string in evaluated exercises | Exercise-scoped reference. It is unique within each evaluated session and does not replace aggregate identity. |
+| `exercises[].created` | Official and observed | required string in evaluated exercises | Creation time with UTC semantics; not the exercise start. |
+| `exercises[].modified` | Official and observed | required string in evaluated exercises | Child modification evidence. FitFreed uses the aggregate `modified` value for atomic session reconciliation. |
+| `exercises[].startTime` | Official and observed | required string in evaluated exercises | Local exercise start without an embedded offset in the evaluated representation. |
+| `exercises[].stopTime` | Official and observed | required string in evaluated exercises | Local exercise stop, preserved independently from declared duration. |
+| `exercises[].timezoneOffsetMinutes` | Official and observed | optional signed integer | Offset from UTC in minutes; absence remains unknown. |
+| `exercises[].durationMillis` | Official and observed | required non-negative integer in evaluated exercises | Declared exercise duration in milliseconds. |
+| `exercises[].distanceMeters` | Official and observed | optional finite non-negative number | Exercise distance in metres. |
+| `exercises[].calories` | Official and observed | optional non-negative integer | Exercise energy in kilocalories. |
+| `exercises[].sport.id` | Official and observed | optional string reference | Exercise-level reference in Polar's separate sports catalogue. |
+| `exercises[].laps` | Official and observed | optional object | Container for separately ordered source/manual and automatic laps. |
+| `exercises[].laps.laps[]` | Official and observed | optional object array | Source/manual laps with `splitTimeMillis`, `durationMillis`, and optional `distanceMeters`. |
+| `exercises[].laps.autoLaps[]` | Official and observed | optional object array | Automatic laps with the same supported measurement shape. |
+| `exercises[].pauseTimes[]` | Official and observed | optional object array | Ordered pauses with local `startTime` and `endTime`. |
+
+Absent, present-empty, and populated nested collections occur as distinct structural states and are not
+interchangeable. The public API additionally defines optional names, notes, device and product references,
+feelings, coordinates, energy-source percentages, recovery time, targets, training benefit and load, tests,
+hills, comments, exercise statistics, zones, routes, and sample series. They remain outside the current
+mapping until their domain meaning, privacy boundary, relationship, and product use are specified.
 
 ### Relationships and variants
 
@@ -191,7 +214,7 @@ Polar documents an authenticated `/v4/data/sports/list` catalogue that resolves 
 
 Local start and stop values are parsed without using the computer's current time zone. The optional offset is preserved separately. When it is present, an absolute instant may be calculated as local time minus the documented offset; when it is absent, FitFreed must not invent an instant or a time zone. Calendar grouping uses the preserved local start date.
 
-Training-summary version 1 deliberately does not persist `latitude`, `longitude`, nested route waypoints, interval samples, transition samples, RR samples, laps, zones, notes, comments, physical information, device identifiers, or product metadata. Ignoring those fields is known loss in the canonical summary, not evidence that the original ZIP lacks them. The archive member remains classified as supported when its summary is valid; excluded nested content does not become a second successful artifact and is disclosed by the mapping contract.
+Training-structure version 1 persists evaluated exercises, source/manual laps, automatic laps, and pauses while preserving collection absence. It deliberately does not persist `latitude`, `longitude`, nested route waypoints, interval samples, transition samples, RR samples, zones, notes, comments, physical information, device identifiers, or product metadata. Ignoring those fields is known loss, not evidence that the original ZIP lacks them. The archive member remains classified as supported when its current mapping contract passes; excluded nested content does not become a second successful artifact and is disclosed by the mapping contract.
 
 The normative transformation is specified in the [Polar Flow training-session mapping](../mappings/polar-flow-training-session.md). The provider reference remains descriptive evidence and does not define FitFreed behavior by itself.
 

@@ -26,6 +26,7 @@ use fitfreed_application::{
     query_longitudinal_comparison as build_longitudinal_comparison,
     query_longitudinal_overview as build_longitudinal_overview,
     query_source_acquisition_guides as build_source_acquisition_guides,
+    query_training_session_structure as build_training_session_structure,
     query_training_sports as build_training_sports,
     reset_application_preferences as reset_preferences_through_port,
     save_application_preferences as save_preferences_through_port,
@@ -61,7 +62,8 @@ use presentation::{
     TrainingDiscoveryWorkspaceDto, TrainingOverviewDto, TrainingSessionCalendarDto,
     TrainingSessionCalendarRequestDto, TrainingSessionSearchPageDto,
     TrainingSessionSearchRequestDto, TrainingSessionSelectionDto,
-    TrainingSessionSelectionRequestDto, TrainingSportsOverviewDto, UpdateCheckOutcomeDto,
+    TrainingSessionSelectionRequestDto, TrainingSessionStructureQueryDto,
+    TrainingSessionStructureResultDto, TrainingSportsOverviewDto, UpdateCheckOutcomeDto,
     UpdateRecoveryOutcomeDto,
 };
 use serde::{Deserialize, Serialize};
@@ -385,6 +387,17 @@ fn query_training_session_selection(
     let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     let library = SqliteTrainingLibrary::new(path);
     fitfreed_application::query_training_session_selection(&library, request.into())
+        .map(Into::into)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn query_training_session_structure(
+    app: AppHandle,
+    query: TrainingSessionStructureQueryDto,
+) -> Result<TrainingSessionStructureResultDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    build_training_session_structure(&SqliteTrainingLibrary::new(path), query.into())
         .map(Into::into)
         .map_err(CommandErrorDto::from)
 }
@@ -1399,6 +1412,7 @@ pub fn run() {
             query_training_sessions,
             query_training_session_calendar,
             query_training_session_selection,
+            query_training_session_structure,
             load_training_discovery_workspace,
             save_training_discovery_workspace,
             clear_training_discovery_workspace,

@@ -68,7 +68,18 @@ for (let index = 0; index < calendarDays; index += 1) {
     sport: { id: `synthetic-performance-sport-${optionalIndex % 4}` },
     exercises: Array.from(
       { length: optionalIndex % 3 },
-      () => ({ syntheticExcludedDetail: true }),
+      (_, exerciseIndex) => ({
+        identifier: {
+          id: `synthetic-performance-session-${index}-exercise-${exerciseIndex}`,
+        },
+        created: `${date}T23:00:00.000`,
+        modified: `${date}T23:00:00.000`,
+        startTime: startedAt.toISOString().slice(0, 19),
+        stopTime: stoppedAt.toISOString().slice(0, 19),
+        timezoneOffsetMinutes: 60,
+        durationMillis,
+        sport: { id: `synthetic-performance-sport-${optionalIndex % 4}` },
+      }),
     ),
   };
   zip.addBuffer(

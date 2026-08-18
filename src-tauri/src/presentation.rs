@@ -20,13 +20,15 @@ use fitfreed_application::{
     SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight, SleepPhaseTotals,
     SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary, SourceAcquisitionGuide,
     SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange, TrainingDiscoveryView,
-    TrainingDiscoveryWorkspace, TrainingMeasurementFilter, TrainingOverview,
-    TrainingSeriesComparison, TrainingSeriesOverview, TrainingSeriesSummary,
-    TrainingSessionCalendar, TrainingSessionCalendarDay, TrainingSessionCalendarRequest,
-    TrainingSessionInsight, TrainingSessionSearchItem, TrainingSessionSearchPage,
-    TrainingSessionSearchRequest, TrainingSessionSearchSummary, TrainingSessionSelection,
-    TrainingSessionSelectionRequest, TrainingSessionSort, TrainingSessionSport, TrainingSport,
-    TrainingSportClassification, TrainingSportCoverage, TrainingSportState, TrainingSportsOverview,
+    TrainingDiscoveryWorkspace, TrainingExerciseStructure, TrainingLapStructure,
+    TrainingMeasurementFilter, TrainingOverview, TrainingPauseStructure, TrainingSeriesComparison,
+    TrainingSeriesOverview, TrainingSeriesSummary, TrainingSessionCalendar,
+    TrainingSessionCalendarDay, TrainingSessionCalendarRequest, TrainingSessionInsight,
+    TrainingSessionSearchItem, TrainingSessionSearchPage, TrainingSessionSearchRequest,
+    TrainingSessionSearchSummary, TrainingSessionSelection, TrainingSessionSelectionRequest,
+    TrainingSessionSort, TrainingSessionSport, TrainingSessionStructureQuery,
+    TrainingSessionStructureResult, TrainingSport, TrainingSportClassification,
+    TrainingSportCoverage, TrainingSportState, TrainingSportsOverview, TrainingStructure,
     UpdateCheckOutcome, UpdateCheckStatus, UpdateError, UpdateRecoveryOutcome,
     UpdateRecoveryOutcomeKind, UpdateReleaseSummary, UpdateTrustFailure, UpdateWithdrawalReason,
     UpdateWithdrawalSummary,
@@ -402,6 +404,9 @@ impl From<ApplicationError> for CommandErrorDto {
             ApplicationError::InvalidTrainingSessionSearch(_) => "invalid-training-session-search",
             ApplicationError::TrainingSessionSearchChanged => "training-session-search-changed",
             ApplicationError::TrainingSessionSearch(_) => "training-session-search-failed",
+            ApplicationError::InvalidTrainingSessionDetail(_) => "invalid-training-session-detail",
+            ApplicationError::TrainingSessionDetailChanged => "training-session-detail-changed",
+            ApplicationError::TrainingSessionDetail(_) => "training-session-detail-failed",
             ApplicationError::InvalidTrainingDiscoveryWorkspace(_) => {
                 "invalid-training-discovery-workspace"
             }
@@ -774,6 +779,22 @@ pub struct TrainingSessionCalendarRequestDto {
 pub struct TrainingSessionSelectionRequestDto {
     session_refs: Vec<String>,
     snapshot_ref: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TrainingSessionStructureQueryDto {
+    session_ref: String,
+    snapshot_ref: Option<String>,
+}
+
+impl From<TrainingSessionStructureQueryDto> for TrainingSessionStructureQuery {
+    fn from(query: TrainingSessionStructureQueryDto) -> Self {
+        Self {
+            session_ref: query.session_ref,
+            snapshot_ref: query.snapshot_ref,
+        }
+    }
 }
 
 impl From<TrainingSessionSelectionRequestDto> for TrainingSessionSelectionRequest {
@@ -1313,6 +1334,124 @@ impl From<TrainingSessionSelection> for TrainingSessionSelectionDto {
         Self {
             snapshot_ref: selection.snapshot_ref,
             sessions: selection.sessions.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingLapStructureDto {
+    lap_ref: String,
+    ordinal: usize,
+    split_time_milliseconds: String,
+    duration_milliseconds: String,
+    distance_meters: Option<f64>,
+}
+
+impl From<TrainingLapStructure> for TrainingLapStructureDto {
+    fn from(lap: TrainingLapStructure) -> Self {
+        Self {
+            lap_ref: lap.lap_ref,
+            ordinal: lap.ordinal,
+            split_time_milliseconds: lap.split_time_milliseconds.to_string(),
+            duration_milliseconds: lap.duration_milliseconds.to_string(),
+            distance_meters: lap.distance_meters,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingPauseStructureDto {
+    pause_ref: String,
+    ordinal: usize,
+    started_at_local: String,
+    ended_at_local: String,
+}
+
+impl From<TrainingPauseStructure> for TrainingPauseStructureDto {
+    fn from(pause: TrainingPauseStructure) -> Self {
+        Self {
+            pause_ref: pause.pause_ref,
+            ordinal: pause.ordinal,
+            started_at_local: pause.started_at_local,
+            ended_at_local: pause.ended_at_local,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingExerciseStructureDto {
+    exercise_ref: String,
+    ordinal: usize,
+    started_at_local: String,
+    stopped_at_local: String,
+    utc_offset_minutes: Option<i32>,
+    duration_milliseconds: String,
+    distance_meters: Option<f64>,
+    energy_kilocalories: Option<String>,
+    sport: TrainingSessionSportDto,
+    manual_laps: Option<Vec<TrainingLapStructureDto>>,
+    automatic_laps: Option<Vec<TrainingLapStructureDto>>,
+    pauses: Option<Vec<TrainingPauseStructureDto>>,
+}
+
+impl From<TrainingExerciseStructure> for TrainingExerciseStructureDto {
+    fn from(exercise: TrainingExerciseStructure) -> Self {
+        Self {
+            exercise_ref: exercise.exercise_ref,
+            ordinal: exercise.ordinal,
+            started_at_local: exercise.started_at_local,
+            stopped_at_local: exercise.stopped_at_local,
+            utc_offset_minutes: exercise.utc_offset_minutes,
+            duration_milliseconds: exercise.duration_milliseconds.to_string(),
+            distance_meters: exercise.distance_meters,
+            energy_kilocalories: exercise.energy_kilocalories.map(|value| value.to_string()),
+            sport: exercise.sport.into(),
+            manual_laps: exercise
+                .manual_laps
+                .map(|laps| laps.into_iter().map(Into::into).collect()),
+            automatic_laps: exercise
+                .automatic_laps
+                .map(|laps| laps.into_iter().map(Into::into).collect()),
+            pauses: exercise
+                .pauses
+                .map(|pauses| pauses.into_iter().map(Into::into).collect()),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingStructureDto {
+    exercises: Option<Vec<TrainingExerciseStructureDto>>,
+}
+
+impl From<TrainingStructure> for TrainingStructureDto {
+    fn from(structure: TrainingStructure) -> Self {
+        Self {
+            exercises: structure
+                .exercises
+                .map(|exercises| exercises.into_iter().map(Into::into).collect()),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSessionStructureResultDto {
+    snapshot_ref: String,
+    session_ref: String,
+    structure: Option<TrainingStructureDto>,
+}
+
+impl From<TrainingSessionStructureResult> for TrainingSessionStructureResultDto {
+    fn from(result: TrainingSessionStructureResult) -> Self {
+        Self {
+            snapshot_ref: result.snapshot_ref,
+            session_ref: result.session_ref,
+            structure: result.structure.map(Into::into),
         }
     }
 }
@@ -3784,6 +3923,127 @@ mod tests {
             assert_eq!(
                 serde_json::to_value(CommandErrorDto::from(error))
                     .expect("training-session search error JSON"),
+                serde_json::json!({ "code": code })
+            );
+        }
+    }
+
+    #[test]
+    fn validates_and_serializes_the_training_session_structure_transport_contract() {
+        let input: TrainingSessionStructureQueryDto = serde_json::from_value(serde_json::json!({
+            "sessionRef":
+                "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "snapshotRef":
+                "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }))
+        .expect("training-session structure request");
+        let query = TrainingSessionStructureQuery::from(input);
+        assert_eq!(
+            query.session_ref,
+            "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        );
+        assert_eq!(
+            query.snapshot_ref.as_deref(),
+            Some(
+                "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            )
+        );
+        assert!(
+            serde_json::from_value::<TrainingSessionStructureQueryDto>(serde_json::json!({
+                "sessionRef":
+                    "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "snapshotRef": null,
+                "sourceSessionId": "must-not-cross-the-boundary"
+            }))
+            .is_err()
+        );
+
+        let result = TrainingSessionStructureResult {
+            snapshot_ref:
+                "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    .to_owned(),
+            session_ref: "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                .to_owned(),
+            structure: Some(TrainingStructure {
+                exercises: Some(vec![TrainingExerciseStructure {
+                    exercise_ref:
+                        "exercise-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                            .to_owned(),
+                    ordinal: 0,
+                    started_at_local: "2026-08-18T07:30:00".to_owned(),
+                    stopped_at_local: "2026-08-18T08:30:00".to_owned(),
+                    utc_offset_minutes: Some(120),
+                    duration_milliseconds: i64::MAX,
+                    distance_meters: Some(10_000.5),
+                    energy_kilocalories: Some(i64::MAX),
+                    sport: TrainingSessionSport {
+                        sport_ref: Some(
+                            "sport-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                                .to_owned(),
+                        ),
+                        state: TrainingSportState::Classified,
+                        classification: Some(TrainingSportClassification {
+                            canonical_family: Some("running".to_owned()),
+                            display_label: Some("Trail running".to_owned()),
+                            authorship: Some("user".to_owned()),
+                            revision: 1,
+                        }),
+                    },
+                    manual_laps: Some(vec![TrainingLapStructure {
+                        lap_ref:
+                            "lap-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+                                .to_owned(),
+                        ordinal: 0,
+                        split_time_milliseconds: i64::MAX - 1,
+                        duration_milliseconds: i64::MAX,
+                        distance_meters: Some(5_000.25),
+                    }]),
+                    automatic_laps: Some(Vec::new()),
+                    pauses: Some(vec![TrainingPauseStructure {
+                        pause_ref:
+                            "pause-1111111111111111111111111111111111111111111111111111111111111111"
+                                .to_owned(),
+                        ordinal: 0,
+                        started_at_local: "2026-08-18T08:00:00".to_owned(),
+                        ended_at_local: "2026-08-18T08:01:00".to_owned(),
+                    }]),
+                }]),
+            }),
+        };
+        let json = serde_json::to_value(TrainingSessionStructureResultDto::from(result))
+            .expect("training-session structure JSON");
+        assert_eq!(
+            json["structure"]["exercises"][0]["durationMilliseconds"],
+            i64::MAX.to_string()
+        );
+        assert_eq!(
+            json["structure"]["exercises"][0]["manualLaps"][0]["splitTimeMilliseconds"],
+            (i64::MAX - 1).to_string()
+        );
+        assert_eq!(
+            json["structure"]["exercises"][0]["automaticLaps"],
+            serde_json::json!([])
+        );
+        assert!(json.to_string().find("sourceSessionId").is_none());
+        assert!(json.to_string().find("sourceExerciseId").is_none());
+
+        for (error, code) in [
+            (
+                ApplicationError::InvalidTrainingSessionDetail("invalid"),
+                "invalid-training-session-detail",
+            ),
+            (
+                ApplicationError::TrainingSessionDetailChanged,
+                "training-session-detail-changed",
+            ),
+            (
+                ApplicationError::TrainingSessionDetail("failed".to_owned()),
+                "training-session-detail-failed",
+            ),
+        ] {
+            assert_eq!(
+                serde_json::to_value(CommandErrorDto::from(error))
+                    .expect("training-session detail error JSON"),
                 serde_json::json!({ "code": code })
             );
         }

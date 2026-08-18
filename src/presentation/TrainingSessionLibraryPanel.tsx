@@ -19,8 +19,13 @@ import type {
   TrainingSessionSearchPage,
   TrainingSessionSearchRequest,
   TrainingSessionSelection,
+  TrainingSessionSport,
   TrainingSessionSort,
 } from "./training-session-search";
+import type {
+  TrainingLapStructure,
+  TrainingSessionStructureResult,
+} from "./training-session-detail";
 import type { TrainingSport, TrainingSportsOverview } from "./training-sports";
 
 const PAGE_SIZE = 25;
@@ -154,6 +159,9 @@ export function TrainingSessionLibraryPanel({
   const [failed, setFailed] = useState(false);
   const [status, setStatus] = useState<string>();
   const [selected, setSelected] = useState<TrainingSessionSearchItem>();
+  const [detailStructure, setDetailStructure] = useState<TrainingSessionStructureResult>();
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailFailed, setDetailFailed] = useState(false);
   const [detailOrigin, setDetailOrigin] = useState<SessionView>("chronology");
   const [comparison, setComparison] = useState<TrainingSessionSearchItem[]>([]);
   const copy = messages.training.sessionLibrary;
@@ -323,6 +331,34 @@ export function TrainingSessionLibraryPanel({
       active = false;
     };
   }, [refreshToken, initialDate, onAvailableRange, onError]);
+
+  useEffect(() => {
+    let active = true;
+    if (!selected || !page) {
+      setDetailStructure(undefined);
+      setDetailLoading(false);
+      setDetailFailed(false);
+      return () => { active = false; };
+    }
+    setDetailStructure(undefined);
+    setDetailLoading(true);
+    setDetailFailed(false);
+    void invoke<TrainingSessionStructureResult>("query_training_session_structure", {
+      query: {
+        sessionRef: selected.sessionRef,
+        snapshotRef: page.snapshotRef,
+      },
+    }).then((result) => {
+      if (active) setDetailStructure(result);
+    }).catch((reason) => {
+      if (!active) return;
+      setDetailFailed(true);
+      onError(commandErrorCode(reason));
+    }).finally(() => {
+      if (active) setDetailLoading(false);
+    });
+    return () => { active = false; };
+  }, [selected?.sessionRef, page?.snapshotRef, onError]);
 
   useEffect(() => {
     if (!workspaceReady || !page || failed || loading || calendarLoading) return;
@@ -548,15 +584,57 @@ export function TrainingSessionLibraryPanel({
     });
   }
 
+  function trainingSportTitle(
+    sport: TrainingSessionSport,
+    contextualUnknownRefs?: string[],
+  ): string {
+    if (sport.state === "unavailable") return copy.notRecordedType;
+    if (sport.classification?.displayLabel) {
+      return sport.classification.displayLabel;
+    }
+    if (sport.classification?.canonicalFamily) {
+      return messages.training.sports.families[sport.classification.canonicalFamily];
+    }
+    if (sport.state === "unknown" && sport.sportRef && contextualUnknownRefs) {
+      return interpolate(copy.unknownSport, {
+        index: number.format(contextualUnknownRefs.indexOf(sport.sportRef) + 1),
+      });
+    }
+    return sport.state === "unknown" ? copy.unknownType : copy.recordedType;
+  }
+
   function sessionSportTitle(session: TrainingSessionSearchItem): string {
-    if (session.sport.state === "unavailable") return copy.notRecordedType;
-    if (session.sport.classification?.displayLabel) {
-      return session.sport.classification.displayLabel;
-    }
-    if (session.sport.classification?.canonicalFamily) {
-      return messages.training.sports.families[session.sport.classification.canonicalFamily];
-    }
-    return session.sport.state === "unknown" ? copy.unknownType : copy.recordedType;
+    return trainingSportTitle(session.sport);
+  }
+
+  function lapRows(laps: TrainingLapStructure[] | null, heading: string) {
+    return (
+      <section className="training-structure-collection">
+        <h5>{heading}</h5>
+        {laps === null ? <p>{copy.structureNotProvided}</p> : laps.length === 0
+          ? <p>{copy.structureProvidedEmpty}</p>
+          : (
+            <div className="training-table-scroll" tabIndex={0}>
+              <table>
+                <thead><tr>
+                  <th scope="col">{copy.structureNumber}</th>
+                  <th scope="col">{copy.structureSplit}</th>
+                  <th scope="col">{messages.training.duration}</th>
+                  <th scope="col">{messages.training.distance}</th>
+                </tr></thead>
+                <tbody>{laps.map((lap) => (
+                  <tr key={lap.lapRef}>
+                    <th scope="row">{number.format(lap.ordinal + 1)}</th>
+                    <td>{formatDuration(lap.splitTimeMilliseconds, locale, messages.training.durationUnits)}</td>
+                    <td>{formatDuration(lap.durationMilliseconds, locale, messages.training.durationUnits)}</td>
+                    <td>{formatDistance(lap.distanceMeters, locale, copy.metricUnavailable, messages.training.units.meters)}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+          )}
+      </section>
+    );
   }
 
   function coverageLabel(available: number, total: number): string {
@@ -587,6 +665,19 @@ export function TrainingSessionLibraryPanel({
   const weekdays = Array.from({ length: 7 }, (_, index) => weekdayName.format(
     new Date(Date.UTC(2026, 7, 17 + index)),
   ));
+  const detailUnknownSportRefs = detailStructure?.structure?.exercises?.reduce<string[]>(
+    (refs, exercise) => {
+      if (exercise.sport.state === "unknown"
+        && exercise.sport.sportRef
+        && !exercise.sport.classification?.displayLabel
+        && !exercise.sport.classification?.canonicalFamily
+        && !refs.includes(exercise.sport.sportRef)) {
+        refs.push(exercise.sport.sportRef);
+      }
+      return refs;
+    },
+    [],
+  ) ?? [];
 
   return (
     <section
@@ -1093,7 +1184,11 @@ export function TrainingSessionLibraryPanel({
       )}
 
       {selected && (
-        <section className="training-detail" aria-labelledby="training-session-detail-heading">
+        <section
+          className="training-detail"
+          aria-labelledby="training-session-detail-heading"
+          aria-busy={detailLoading}
+        >
           <div className="training-detail-heading">
             <div>
               <h3 id="training-session-detail-heading">{copy.detailHeading}</h3>
@@ -1105,7 +1200,7 @@ export function TrainingSessionLibraryPanel({
               {detailOrigin === "calendar" ? copy.backToCalendar : copy.closeDetail}
             </button>
           </div>
-          <dl>
+          <dl role="group" aria-label={copy.summaryMeasurements}>
             <div><dt>{messages.training.trainingType}</dt><dd>{sessionSportTitle(selected)}</dd></div>
             <div><dt>{messages.training.startedAt}</dt><dd>{formatTrainingDateTime(selected.startedAtLocal, locale)}</dd></div>
             <div><dt>{messages.training.stoppedAt}</dt><dd>{formatTrainingDateTime(selected.stoppedAtLocal, locale)}</dd></div>
@@ -1117,6 +1212,69 @@ export function TrainingSessionLibraryPanel({
             <div><dt>{messages.training.maximumHeartRate}</dt><dd>{formatExactMetric(selected.maximumHeartRateBpm, locale, copy.metricUnavailable, messages.training.units.beatsPerMinute)}</dd></div>
             <div><dt>{messages.training.exerciseCount}</dt><dd>{selected.exerciseCount === null ? copy.metricUnavailable : number.format(selected.exerciseCount)}</dd></div>
           </dl>
+          <section className="training-structure" aria-labelledby="training-structure-heading">
+            <h4 id="training-structure-heading">{copy.structureHeading}</h4>
+            <p>{copy.structureIntro}</p>
+            {detailLoading && <p role="status">{copy.structureLoading}</p>}
+            {detailFailed && <p role="alert">{copy.structureFailed}</p>}
+            {!detailLoading && detailStructure?.structure === null && (
+              <p>{copy.structureNotEvaluated}</p>
+            )}
+            {detailStructure?.structure?.exercises === null && (
+              <p>{copy.exercisesNotProvided}</p>
+            )}
+            {detailStructure?.structure?.exercises?.length === 0 && (
+              <p>{copy.exercisesProvidedEmpty}</p>
+            )}
+            {detailStructure?.structure?.exercises?.map((exercise) => (
+              <article className="training-exercise" key={exercise.exerciseRef}>
+                <header>
+                  <h5>{interpolate(copy.exerciseHeading, {
+                    number: number.format(exercise.ordinal + 1),
+                  })}</h5>
+                  <span>{trainingSportTitle(exercise.sport, detailUnknownSportRefs)}</span>
+                </header>
+                <dl role="group" aria-label={interpolate(copy.exerciseMeasurements, {
+                  number: number.format(exercise.ordinal + 1),
+                })}>
+                  <div><dt>{messages.training.startedAt}</dt><dd>{formatTrainingDateTime(exercise.startedAtLocal, locale)}</dd></div>
+                  <div><dt>{messages.training.stoppedAt}</dt><dd>{formatTrainingDateTime(exercise.stoppedAtLocal, locale)}</dd></div>
+                  <div><dt>{messages.training.duration}</dt><dd>{formatDuration(exercise.durationMilliseconds, locale, messages.training.durationUnits)}</dd></div>
+                  <div><dt>{messages.training.distance}</dt><dd>{formatDistance(exercise.distanceMeters, locale, copy.metricUnavailable, messages.training.units.meters)}</dd></div>
+                  <div><dt>{messages.training.energy}</dt><dd>{formatExactMetric(exercise.energyKilocalories, locale, copy.metricUnavailable, messages.training.units.kilocalories)}</dd></div>
+                </dl>
+                {lapRows(exercise.manualLaps, copy.manualLaps)}
+                {lapRows(exercise.automaticLaps, copy.automaticLaps)}
+                <section className="training-structure-collection">
+                  <h5>{copy.pauses}</h5>
+                  {exercise.pauses === null ? <p>{copy.structureNotProvided}</p>
+                    : exercise.pauses.length === 0 ? <p>{copy.structureProvidedEmpty}</p>
+                    : (
+                      <div className="training-table-scroll" tabIndex={0}>
+                        <table>
+                          <thead><tr>
+                            <th scope="col">{copy.structureNumber}</th>
+                            <th scope="col">{messages.training.startedAt}</th>
+                            <th scope="col">{messages.training.stoppedAt}</th>
+                          </tr></thead>
+                          <tbody>{exercise.pauses.map((pause) => (
+                            <tr key={pause.pauseRef}>
+                              <th scope="row">{number.format(pause.ordinal + 1)}</th>
+                              <td>{formatTrainingDateTime(pause.startedAtLocal, locale)}</td>
+                              <td>{formatTrainingDateTime(pause.endedAtLocal, locale)}</td>
+                            </tr>
+                          ))}</tbody>
+                        </table>
+                      </div>
+                    )}
+                </section>
+              </article>
+            ))}
+            <aside className="training-structure-limitation">
+              <strong>{copy.structureLimitationsHeading}</strong>
+              <p>{copy.structureLimitations}</p>
+            </aside>
+          </section>
         </section>
       )}
     </section>

@@ -2469,6 +2469,32 @@ describe("FitFreed import interface", () => {
         ));
       }
       if (command === "query_training_comparison") return Promise.resolve(comparisonResult);
+      if (command === "query_training_session_structure") {
+        return Promise.resolve({
+          snapshotRef: "snapshot-current",
+          sessionRef: arguments_.query.sessionRef,
+          structure: {
+            exercises: [{
+              exerciseRef: "opaque-exercise",
+              ordinal: 0,
+              startedAtLocal: later.startedAtLocal,
+              stoppedAtLocal: later.stoppedAtLocal,
+              utcOffsetMinutes: later.utcOffsetMinutes,
+              durationMilliseconds: later.durationMilliseconds,
+              distanceMeters: later.distanceMeters,
+              energyKilocalories: later.energyKilocalories,
+              sport: {
+                sportRef: later.sportRef,
+                state: "unknown",
+                classification: null,
+              },
+              manualLaps: [],
+              automaticLaps: null,
+              pauses: [],
+            }],
+          },
+        });
+      }
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
       throw new Error(`Unexpected command: ${command}`);
     });
@@ -2488,9 +2514,20 @@ describe("FitFreed import interface", () => {
     const detail = within(training).getByRole("heading", { name: "Session summary" })
       .closest("section");
     expect(detail).not.toBeNull();
-    expect(within(detail!).getByText("5,000.25 m")).toBeVisible();
+    const summaryMeasurements = within(detail!).getByRole("group", {
+      name: "Session summary measurements",
+    });
+    const summaryDistance = within(summaryMeasurements).getByText("Distance").closest("div");
+    expect(summaryDistance).not.toBeNull();
+    expect(within(summaryDistance!).getByText("5,000.25 m")).toBeVisible();
     expect(within(detail!).getByText("140 bpm")).toBeVisible();
-    expect(within(detail!).getByText("Unknown sport")).toBeVisible();
+    const summaryType = within(summaryMeasurements).getByText("Training type").closest("div");
+    expect(summaryType).not.toBeNull();
+    expect(within(summaryType!).getByText("Unknown sport")).toBeVisible();
+    expect(await within(detail!).findByRole("heading", { name: "Recorded structure" }))
+      .toBeVisible();
+    expect(within(detail!).getByRole("heading", { name: "Exercise 1" })).toBeVisible();
+    expect(detail).toHaveTextContent("Not provided by the source.");
     await user.click(within(detail!).getByRole("button", { name: "Back to session results" }));
     expect(within(training).queryByRole("heading", { name: "Session summary" }))
       .not.toBeInTheDocument();

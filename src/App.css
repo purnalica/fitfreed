@@ -405,6 +405,20 @@ th:last-child, td:last-child { text-align: right; }
 .training-detail dl div { display: grid; grid-template-columns: minmax(110px, auto) minmax(0, 1fr); gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); }
 .training-detail dt { color: var(--muted); font-size: .78rem; font-weight: 700; }
 .training-detail dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+.training-structure { margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--line); }
+.training-structure > h4 { margin: 0 0 5px; font-size: 1.1rem; }
+.training-structure > h4 + p { margin: 0; color: var(--muted); }
+.training-exercise { margin-top: 20px; padding: 18px; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 12px; }
+.training-exercise > header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.training-exercise > header h5 { margin: 0; font-size: 1rem; }
+.training-exercise > header span { color: var(--muted); font-size: .8rem; font-weight: 700; }
+.training-exercise dl { margin-top: 12px; }
+.training-structure-collection { margin-top: 20px; }
+.training-structure-collection h5 { margin: 0 0 9px; font-size: .9rem; }
+.training-structure-collection > p { margin: 0; color: var(--muted); }
+.training-structure-collection table { min-width: 520px; }
+.training-structure-limitation { margin-top: 22px; padding: 14px 16px; color: var(--ink-soft); background: var(--accent-soft); border-left: 4px solid var(--accent); border-radius: 10px; }
+.training-structure-limitation p { margin: 4px 0 0; }
 .training-comparison { margin-top: 32px; padding-top: 28px; border-top: 1px solid var(--line); }
 .training-comparison > div:first-child h2 { margin: 0 0 5px; }
 .training-comparison > div:first-child p { margin: 0; color: var(--muted); }
@@ -723,6 +737,7 @@ th:last-child, td:last-child { text-align: right; }
   .longitudinal-filter-actions button { flex: 1 1 100%; }
   .activity-detail-heading { align-items: stretch; flex-direction: column; }
   .training-detail-heading { align-items: stretch; flex-direction: column; }
+  .training-exercise > header { align-items: stretch; flex-direction: column; }
   .sleep-detail-heading { align-items: stretch; flex-direction: column; }
   .recovery-detail-heading { align-items: stretch; flex-direction: column; }
   .longitudinal-detail-heading { align-items: stretch; flex-direction: column; }

@@ -420,6 +420,26 @@ continues in E5.
 
 **Evaluation checkpoint:** the selected synthetic outdoor and indoor sessions each reveal something not available from the existing summary experience, while missing structures remain honest and usable.
 
+**Recorded-structure slice local accepted evidence:** schema 15, adapter version 7, mapping-set version 2,
+and training mapping version 2 preserve the evaluated exercise collection, source/manual laps, automatic
+laps, and pauses as typed provider-neutral children. Absent, present-empty, populated, and not-yet-evaluated
+states remain distinct. Whole-record reconciliation creates, enriches, amends, preserves, or conflicts the
+summary and its children atomically; reimporting identical bytes from the previous mapping reassesses and
+enriches the existing session without duplicate children. Exercise-only sport references in mixed sessions
+remain distinct opaque unknowns; this slice neither invents a label nor exposes the source value.
+
+The versioned canonical, mapping, provider, persistence, query, response, architecture, user, and performance
+contracts pass their synchronized checks. The complete fast lane passed 135 automation tests, 90 React
+tests, 181 host tests, 85 application tests, and 12 domain tests with strict Clippy and formatting. The
+production `.app` and DMG exclude test instrumentation. The packaged bilingual journey proves one and
+multiple exercises, mixed sports, exact laps, pauses, absent measurements, mapping-aware reimport, restart,
+200% zoom, keyboard semantics, and automated accessibility. The release read-model campaign over 14,612
+sessions measured exact structure retrieval at 7.144 ms p95 against the 500 ms budget. The five-GiB import
+campaign passed at 14.692 s first-import p95, 90.272 ms exact-repeat p95, 1.356 ms paired-query p95, and
+33.703 MiB maximum resident memory. This accepts only the recorded-structure vertical; E4 remains active for
+routes, temporal signals, zones, exact samples, provenance presentation, reusable user criteria, progressive
+million-sample access, and their privacy and performance evidence.
+
 ### E5 — Personal report authoring and export
 
 **User value:** a person can turn an exploration into a reusable, portable result.

@@ -10,6 +10,7 @@ import type {
   TrainingSessionSearchPage,
   TrainingSessionSearchRequest,
 } from "./training-session-search";
+import type { TrainingSessionStructureResult } from "./training-session-detail";
 import { TrainingSessionLibraryPanel } from "./TrainingSessionLibraryPanel";
 import type { TrainingSportsOverview } from "./training-sports";
 
@@ -23,6 +24,10 @@ function emptyWorkspaceCommand(command: string, arguments_: unknown) {
   if (command === "load_training_discovery_workspace") return Promise.resolve(null);
   if (command === "save_training_discovery_workspace") {
     return Promise.resolve((arguments_ as { workspace: TrainingDiscoveryWorkspace }).workspace);
+  }
+  if (command === "query_training_session_structure") {
+    const query = (arguments_ as { query: { sessionRef: string } }).query;
+    return Promise.resolve(trainingStructure(query.sessionRef));
   }
   return undefined;
 }
@@ -88,7 +93,7 @@ function session(
     energyKilocalories: "650",
     averageHeartRateBpm: "145",
     maximumHeartRateBpm: "175",
-    exerciseCount: 1,
+    exerciseCount: 2,
     sport: {
       sportRef: sports.sports[0].sportRef,
       state: "classified",
@@ -100,6 +105,66 @@ function session(
 const newest = session("b", "2026-08-18T07:30:00");
 const second = session("e", "2026-08-17T07:30:00");
 const oldest = session("f", "2024-01-01T07:30:00");
+
+function trainingStructure(sessionRef: string): TrainingSessionStructureResult {
+  return {
+    snapshotRef,
+    sessionRef,
+    structure: {
+      exercises: [{
+        exerciseRef: `exercise-${"1".repeat(64)}`,
+        ordinal: 0,
+        startedAtLocal: "2026-08-18T07:30:00",
+        stoppedAtLocal: "2026-08-18T08:30:00",
+        utcOffsetMinutes: 120,
+        durationMilliseconds: "3600000",
+        distanceMeters: 10000.5,
+        energyKilocalories: "650",
+        sport: {
+          sportRef: `sport-${"9".repeat(64)}`,
+          state: "unknown",
+          classification: {
+            canonicalFamily: null,
+            displayLabel: "Intervals",
+            authorship: "user",
+            revision: 1,
+          },
+        },
+        manualLaps: [{
+          lapRef: `lap-${"2".repeat(64)}`,
+          ordinal: 0,
+          splitTimeMilliseconds: "0",
+          durationMilliseconds: "1800000",
+          distanceMeters: 5000.25,
+        }],
+        automaticLaps: [],
+        pauses: [{
+          pauseRef: `pause-${"3".repeat(64)}`,
+          ordinal: 0,
+          startedAtLocal: "2026-08-18T07:50:00",
+          endedAtLocal: "2026-08-18T07:51:00",
+        }],
+      }, {
+        exerciseRef: `exercise-${"4".repeat(64)}`,
+        ordinal: 1,
+        startedAtLocal: "2026-08-18T08:30:00",
+        stoppedAtLocal: "2026-08-18T08:45:00",
+        utcOffsetMinutes: 120,
+        durationMilliseconds: "900000",
+        distanceMeters: null,
+        energyKilocalories: null,
+        sport: {
+          sportRef: sports.sports[1].sportRef,
+          state: "unknown",
+          classification: sports.sports[1].classification,
+        },
+        manualLaps: null,
+        automaticLaps: null,
+        pauses: null,
+      }],
+    },
+  };
+}
 
 const calendar: TrainingSessionCalendar = {
   availableRange: { from: "2024-01-01", through: "2026-08-18" },
@@ -409,6 +474,23 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(detail).toHaveTextContent("145 bpm");
     expect(detail).toHaveTextContent("175 bpm");
     expect(detail).toHaveTextContent("UTC+02:00");
+    expect(await within(detail!).findByRole("heading", { name: "Recorded structure" }))
+      .toBeVisible();
+    const firstExercise = within(detail!).getByRole("heading", { name: "Exercise 1" })
+      .closest("article");
+    expect(firstExercise).not.toBeNull();
+    expect(within(detail!).getByRole("heading", { name: "Exercise 2" })).toBeVisible();
+    expect(detail).toHaveTextContent("Intervals");
+    expect(detail).toHaveTextContent("Unknown sport 1");
+    expect(detail).not.toHaveTextContent("Unknown sport 2");
+    expect(within(firstExercise!).getByRole("heading", { name: "Source laps" })).toBeVisible();
+    expect(within(firstExercise!).getByRole("heading", { name: "Automatic laps" })).toBeVisible();
+    expect(within(firstExercise!).getByRole("heading", { name: "Pauses" })).toBeVisible();
+    expect(detail).toHaveTextContent("5,000.25 m");
+    expect(detail).toHaveTextContent("Provided by the source with no entries.");
+    expect(detail).not.toHaveTextContent("exercise-");
+    expect(detail).not.toHaveTextContent("lap-");
+    expect(detail).not.toHaveTextContent("pause-");
     await user.click(within(detail!).getByRole("button", { name: "Back to session results" }));
     expect(within(region).queryByRole("heading", { name: "Session summary" }))
       .not.toBeInTheDocument();
@@ -597,6 +679,9 @@ describe("TrainingSessionLibraryPanel", () => {
           },
         });
         return Promise.resolve({ snapshotRef, sessions: [second, newest] });
+      }
+      if (command === "query_training_session_structure") {
+        return Promise.resolve(trainingStructure(arguments_.query.sessionRef));
       }
       throw new Error(`Unexpected command: ${command}`);
     });

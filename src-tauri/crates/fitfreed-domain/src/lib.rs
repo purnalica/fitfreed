@@ -7,6 +7,15 @@ pub use sport_classification::{
 #[cfg(test)]
 mod sport_classification_tests;
 
+mod training_session;
+pub use training_session::{
+    decide_training_session_record_reconciliation, TrainingExercise, TrainingLap, TrainingLapKind,
+    TrainingPause, TrainingSessionRecord, TrainingSessionStructure,
+};
+
+#[cfg(test)]
+mod training_session_tests;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DailyActivity {
     pub origin_id: String,

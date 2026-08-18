@@ -948,6 +948,26 @@ describe("packaged FitFreed import journey", () => {
     await expectTrainingRows([[enJan4Start, "1 h", "10,000 m", "600 kcal"]]);
     await $(".training-session-results button.secondary").click();
     await expect($("#training-session-detail-heading")).toHaveText("Session summary");
+    await expect($("#training-structure-heading")).toHaveText(
+      english.training.sessionLibrary.structureHeading,
+    );
+    const recordedExercises = await $$(".training-exercise");
+    expect(recordedExercises).toHaveLength(1);
+    await expect(recordedExercises[0].$("header h5")).toHaveText("Exercise 1");
+    const recordedCollections = await recordedExercises[0].$$(
+      ".training-structure-collection",
+    );
+    expect(recordedCollections).toHaveLength(3);
+    await expect(recordedCollections[0].$("h5")).toHaveText("Source laps");
+    const sourceLapCells = await recordedCollections[0].$$("tbody tr:first-child th, tbody tr:first-child td");
+    expect(sourceLapCells).toHaveLength(4);
+    await expect(sourceLapCells[1]).toHaveText("30 min");
+    await expect(sourceLapCells[2]).toHaveText("30 min");
+    await expect(sourceLapCells[3]).toHaveText("5,000 m");
+    await expect(recordedCollections[1].$("p")).toHaveText(
+      english.training.sessionLibrary.structureProvidedEmpty,
+    );
+    expect(await recordedCollections[2].$$("tbody tr")).toHaveLength(1);
     await $("aria/Back to calendar").click();
     await $("aria/Chronology").click();
     await expectTrainingRows([
@@ -1596,7 +1616,7 @@ describe("packaged FitFreed import journey", () => {
     expect(trainingDetailButtons).toHaveLength(3);
     await trainingDetailButtons[2].click();
     await expect($("#training-session-detail-heading")).toHaveText("Session summary");
-    const trainingDetailValues = await $$(".training-detail dd");
+    const trainingDetailValues = await $$(`dl[aria-label="${english.training.sessionLibrary.summaryMeasurements}"] dd`);
     const expectedTrainingDetail = [
       "Carrera de montaña",
       enJan4Start,
@@ -1630,7 +1650,7 @@ describe("packaged FitFreed import journey", () => {
       ["0 of 1", "Sessions with heart rate"],
     ]);
     await $('button[aria-label^="View session details for"]').click();
-    const unavailableTrainingDetail = await $$(".training-detail dd");
+    const unavailableTrainingDetail = await $$(`dl[aria-label="${english.training.sessionLibrary.summaryMeasurements}"] dd`);
     await expect(unavailableTrainingDetail[5]).toHaveText("Not recorded");
     await expect(unavailableTrainingDetail[0]).toHaveText("Sport not recorded");
     await expect(unavailableTrainingDetail[9]).toHaveText("0");
@@ -1651,6 +1671,16 @@ describe("packaged FitFreed import journey", () => {
       [enJan5Start, "30 min", "Not recorded", "Not recorded"],
       [enJan4Start, "1 h", "10,500 m", "600 kcal"],
     ]);
+    const completeTrainingDetailButtons = await $$(
+      'button[aria-label^="View session details for"]',
+    );
+    await completeTrainingDetailButtons[0].click();
+    const mixedSportExercises = await $$(".training-exercise");
+    expect(mixedSportExercises).toHaveLength(2);
+    await expect(mixedSportExercises[0].$("header h5")).toHaveText("Exercise 1");
+    await expect(mixedSportExercises[1].$("header h5")).toHaveText("Exercise 2");
+    await expect(mixedSportExercises[1].$("header span")).toHaveText("Unknown sport 1");
+    await $("aria/Back to session results").click();
 
     await setTrainingComparisonRanges(
       "2026-01-04",
@@ -1983,7 +2013,17 @@ describe("packaged FitFreed import journey", () => {
     await expect($("#training-session-detail-heading")).toHaveText(
       spanish.training.sessionLibrary.detailHeading,
     );
-    const spanishTrainingDetailValues = await $$(".training-detail dd");
+    await expect($("#training-structure-heading")).toHaveText(
+      spanish.training.sessionLibrary.structureHeading,
+    );
+    const spanishExercise = await $(".training-exercise");
+    await expect(spanishExercise.$("header h5")).toHaveText("Ejercicio 1");
+    const spanishSourceLapCells = await spanishExercise.$$(
+      ".training-structure-collection:first-of-type tbody tr:first-child th, .training-structure-collection:first-of-type tbody tr:first-child td",
+    );
+    expect(spanishSourceLapCells).toHaveLength(4);
+    await expect(spanishSourceLapCells[3]).toHaveText("5250 m");
+    const spanishTrainingDetailValues = await $$(`dl[aria-label="${spanish.training.sessionLibrary.summaryMeasurements}"] dd`);
     await expect(spanishTrainingDetailValues[5]).toHaveText("10.500 m");
     await expect(spanishTrainingDetailValues[7]).toHaveText("142 ppm");
     await expect(spanishTrainingDetailValues[0]).toHaveText("Carrera de montaña");
@@ -2194,6 +2234,10 @@ describe("packaged FitFreed import journey", () => {
     await expect($("#training-session-detail-heading")).toHaveText(
       spanish.training.sessionLibrary.detailHeading,
     );
+    await expect($("#training-structure-heading")).toHaveText(
+      spanish.training.sessionLibrary.structureHeading,
+    );
+    expect(await $$(".training-exercise")).toHaveLength(1);
     await expect($(`aria/${spanish.training.sessionLibrary.backToCalendar}`)).toBeDisplayed();
     await returnToLibraryHome(spanish);
     await browser.reloadSession();

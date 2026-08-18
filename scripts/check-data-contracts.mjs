@@ -91,9 +91,12 @@ for (const contractValue of [
   "polar-flow-archive@4",
   "polar-flow-archive@5",
   "polar-flow-archive@6",
+  "polar-flow-archive@7",
   "polar-flow-mapping-set@1",
+  "polar-flow-mapping-set@2",
   "polar-flow-daily-activity@1",
   "polar-flow-training-session@1",
+  "polar-flow-training-session@2",
   "polar-flow-sleep@1",
   "polar-flow-nightly-recovery@1",
   "polar-nightly-recharge@1",
@@ -113,6 +116,7 @@ for (const contractValue of [
   "unrecognized",
   "invalid",
   "amend",
+  "enrich",
   "en-US",
   "es-ES",
 ]) {
@@ -137,6 +141,34 @@ const trainingCanonical = read(trainingCanonicalPath);
 for (const fieldMatch of trainingSessionMatch[1].matchAll(/pub ([a-z_]+):/g)) {
   const camelCase = fieldMatch[1].replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
   requireMention(trainingCanonical, camelCase, trainingCanonicalPath);
+}
+
+const trainingStructureDomainPath =
+  "src-tauri/crates/fitfreed-domain/src/training_session.rs";
+const trainingStructureDomain = read(trainingStructureDomainPath);
+const trainingStructureCanonicalPath =
+  "docs/data-formats/canonical/training-session-structure.md";
+const trainingStructureCanonical = read(trainingStructureCanonicalPath);
+for (const structure of [
+  "TrainingLap",
+  "TrainingPause",
+  "TrainingExercise",
+  "TrainingSessionStructure",
+  "TrainingSessionRecord",
+]) {
+  const structureMatch = trainingStructureDomain.match(
+    new RegExp(`pub struct ${structure} \\{([\\s\\S]*?)\\n\\}`),
+  );
+  if (!structureMatch) {
+    throw new Error(`${trainingStructureDomainPath} has no ${structure}`);
+  }
+  for (const fieldMatch of structureMatch[1].matchAll(/pub ([a-z_]+):/g)) {
+    const camelCase = fieldMatch[1].replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    requireMention(trainingStructureCanonical, camelCase, trainingStructureCanonicalPath);
+  }
+}
+for (const contractValue of ["manual", "automatic", "enrich"]) {
+  requireMention(trainingStructureCanonical, contractValue, trainingStructureCanonicalPath);
 }
 
 const sportClassificationDomainPath =
@@ -226,8 +258,8 @@ const trainingMappingPath = "docs/data-formats/mappings/polar-flow-training-sess
 const trainingMapping = read(trainingMappingPath);
 for (const contractValue of [
   sourceAdapterVersion,
-  "polar-flow-mapping-set@1",
-  "polar-flow-training-session@1",
+  "polar-flow-mapping-set@2",
+  "polar-flow-training-session@2",
 ]) {
   requireMention(trainingMapping, contractValue, trainingMappingPath);
 }
@@ -245,6 +277,21 @@ for (const sourceField of [
   "hrMax",
   "sport.id",
   "exercises",
+  "exercises[].identifier.id",
+  "exercises[].created",
+  "exercises[].modified",
+  "exercises[].startTime",
+  "exercises[].stopTime",
+  "exercises[].timezoneOffsetMinutes",
+  "exercises[].durationMillis",
+  "exercises[].distanceMeters",
+  "exercises[].calories",
+  "exercises[].sport.id",
+  "exercises[].laps.laps",
+  "exercises[].laps.autoLaps",
+  "exercises[].pauseTimes",
+  "splitTimeMillis",
+  "endTime",
 ]) {
   requireMention(trainingMapping, sourceField, trainingMappingPath);
 }
@@ -261,6 +308,14 @@ for (const targetField of [
   "maximumHeartRateBpm",
   "sportRef",
   "exerciseCount",
+  "TrainingSessionStructure",
+  "exerciseId",
+  "ordinal",
+  "manualLaps",
+  "automaticLaps",
+  "pauses",
+  "splitTimeMilliseconds",
+  "enrich",
 ]) {
   requireMention(trainingMapping, targetField, trainingMappingPath);
 }
@@ -1298,6 +1353,138 @@ for (const invalidResponse of [
 ]) {
   if (validateTrainingSessionSelection(invalidResponse)) {
     throw new Error(`${trainingSessionSelectionSchemaPath} accepted an invalid response`);
+  }
+}
+
+const trainingSessionStructurePath =
+  "docs/data-formats/insights/training-session-structure-v1.md";
+const trainingSessionStructure = read(trainingSessionStructurePath);
+for (const field of [
+  "query_training_session_structure",
+  "sessionRef",
+  "snapshotRef",
+  "structure",
+  "exercises",
+  "exerciseRef",
+  "ordinal",
+  "startedAtLocal",
+  "stoppedAtLocal",
+  "utcOffsetMinutes",
+  "durationMilliseconds",
+  "distanceMeters",
+  "energyKilocalories",
+  "sport",
+  "manualLaps",
+  "automaticLaps",
+  "pauses",
+  "lapRef",
+  "splitTimeMilliseconds",
+  "pauseRef",
+  "endedAtLocal",
+  "invalid-training-session-detail",
+  "training-session-detail-changed",
+  "training-session-detail-failed",
+]) {
+  requireMention(trainingSessionStructure, field, trainingSessionStructurePath);
+}
+
+const trainingSessionStructureQuerySchemaPath =
+  "schemas/training-session-structure-query-v1.schema.json";
+const validateTrainingSessionStructureQuery = ajv.compile(
+  JSON.parse(read(trainingSessionStructureQuerySchemaPath)),
+);
+const syntheticTrainingSessionStructureQuery = {
+  sessionRef: sessionRefDigest,
+  snapshotRef: snapshotRefDigest,
+};
+if (!validateTrainingSessionStructureQuery(syntheticTrainingSessionStructureQuery)) {
+  throw new Error(
+    `${trainingSessionStructureQuerySchemaPath} rejected its synthetic query: ${ajv.errorsText(validateTrainingSessionStructureQuery.errors)}`,
+  );
+}
+for (const invalidQuery of [
+  { ...syntheticTrainingSessionStructureQuery, sessionRef: "provider-session-id" },
+  { ...syntheticTrainingSessionStructureQuery, snapshotRef: "revision-1" },
+  { ...syntheticTrainingSessionStructureQuery, sourceSessionId: "hidden" },
+]) {
+  if (validateTrainingSessionStructureQuery(invalidQuery)) {
+    throw new Error(`${trainingSessionStructureQuerySchemaPath} accepted an invalid query`);
+  }
+}
+
+const trainingSessionStructureSchemaPath =
+  "schemas/training-session-structure-v1.schema.json";
+const trainingSessionStructureSchema = JSON.parse(read(trainingSessionStructureSchemaPath));
+const validateTrainingSessionStructure = ajv.compile(trainingSessionStructureSchema);
+const syntheticTrainingSessionStructure = {
+  snapshotRef: snapshotRefDigest,
+  sessionRef: sessionRefDigest,
+  structure: {
+    exercises: [{
+      exerciseRef: `exercise-${"e".repeat(64)}`,
+      ordinal: 0,
+      startedAtLocal: "2026-08-18T07:30:00",
+      stoppedAtLocal: "2026-08-18T08:30:00",
+      utcOffsetMinutes: 120,
+      durationMilliseconds: "3600000",
+      distanceMeters: 10000.5,
+      energyKilocalories: "650",
+      sport: syntheticTrainingSessionSearch.sessions[0].sport,
+      manualLaps: [{
+        lapRef: `lap-${"f".repeat(64)}`,
+        ordinal: 0,
+        splitTimeMilliseconds: "1800000",
+        durationMilliseconds: "1800000",
+        distanceMeters: 5000.25,
+      }],
+      automaticLaps: [],
+      pauses: [{
+        pauseRef: `pause-${"1".repeat(64)}`,
+        ordinal: 0,
+        startedAtLocal: "2026-08-18T08:00:00",
+        endedAtLocal: "2026-08-18T08:01:00",
+      }],
+    }],
+  },
+};
+for (const response of [
+  syntheticTrainingSessionStructure,
+  { ...syntheticTrainingSessionStructure, structure: null },
+  {
+    ...syntheticTrainingSessionStructure,
+    structure: { exercises: null },
+  },
+  {
+    ...syntheticTrainingSessionStructure,
+    structure: { exercises: [] },
+  },
+]) {
+  if (!validateTrainingSessionStructure(response)) {
+    throw new Error(
+      `${trainingSessionStructureSchemaPath} rejected a valid response: ${ajv.errorsText(validateTrainingSessionStructure.errors)}`,
+    );
+  }
+}
+for (const invalidResponse of [
+  { ...syntheticTrainingSessionStructure, sourceSessionId: "hidden" },
+  (() => {
+    const value = structuredClone(syntheticTrainingSessionStructure);
+    value.structure.exercises[0].exerciseRef = "source-exercise-id";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticTrainingSessionStructure);
+    value.structure.exercises[0].manualLaps[0].durationMilliseconds = "01";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticTrainingSessionStructure);
+    delete value.structure.exercises[0].pauses;
+    return value;
+  })(),
+]) {
+  if (validateTrainingSessionStructure(invalidResponse)) {
+    throw new Error(`${trainingSessionStructureSchemaPath} accepted an invalid response`);
   }
 }
 
@@ -3179,6 +3366,7 @@ const indexPath = "docs/data-formats/README.md";
 const index = read(indexPath);
 for (const contractPath of [
   canonicalPath,
+  trainingStructureCanonicalPath,
   sportClassificationCanonicalPath,
   sleepCanonicalPath,
   mappingPath,
@@ -3189,6 +3377,7 @@ for (const contractPath of [
   trainingOverviewPath,
   trainingSportsPath,
   trainingSessionSearchPath,
+  trainingSessionStructurePath,
   trainingDiscoveryWorkspacePath,
   trainingComparisonPath,
   sleepOverviewPath,
@@ -3240,6 +3429,8 @@ process.stdout.write(
       trainingSessionCalendarSchemaPath,
       trainingSessionSelectionQuerySchemaPath,
       trainingSessionSelectionSchemaPath,
+      trainingSessionStructureQuerySchemaPath,
+      trainingSessionStructureSchemaPath,
       trainingDiscoveryWorkspaceSchemaPath,
     ],
     trainingComparisonSchemas: [

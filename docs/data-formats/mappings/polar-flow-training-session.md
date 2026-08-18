@@ -1,71 +1,134 @@
-# Polar Flow Training Session Mapping Version 1
+# Polar Flow Training-Session Mapping
 
 ## Status
 
-This is the normative anti-corruption-layer contract for mapping a compatible Polar Flow personal-data-export training-session artifact into [canonical training session summary version 1](../canonical/training-session.md).
+This is the normative anti-corruption-layer contract for mapping a compatible Polar Flow personal-data-export
+training-session artifact into [canonical training-session summary version 1](../canonical/training-session.md)
+and [canonical training-session structure version 1](../canonical/training-session-structure.md).
 
 - Source provider: `polar-flow`
-- Source adapter version introducing support: `polar-flow-archive@4`
-- Current source adapter version: `polar-flow-archive@6`
-- Mapping version: `polar-flow-training-session@1`
+- Source adapter version introducing summary support: `polar-flow-archive@4`
+- Source adapter version introducing structural support: `polar-flow-archive@7`
+- Current source adapter version: `polar-flow-archive@7`
+- Historical summary mapping: `polar-flow-training-session@1`
+- Current summary-and-structure mapping: `polar-flow-training-session@2`
+- Historical operation mapping set: `polar-flow-mapping-set@1`
+- Current operation mapping set: `polar-flow-mapping-set@2`
 - Source evidence: [Polar Flow personal data export reference](../providers/polar-flow.md)
 
 ## Supported artifact boundary
 
-The adapter recognizes the two documented `training-session` filename grammars. Summary support requires a root JSON object and the fields below. Recognition of the filename alone is not successful mapping.
+The adapter recognizes the two documented `training-session` filename grammars. Support requires a root JSON
+object and the fields below; recognition of a filename is not successful mapping. Unknown object fields are
+accepted. A known field with an incompatible type or invalid value, duplicate session or exercise identity,
+or a filename timestamp that disagrees with `startTime` rejects the complete package before canonical
+visibility changes.
 
-Unknown object fields are accepted. Known fields with incompatible types, invalid values, duplicate source identity within one package, or a filename timestamp that disagrees with `startTime` are invalid. Validation and mapping complete before canonical visibility changes.
+## Aggregate summary mapping
 
 | Source path | Requirement and validation | Canonical outcome |
 |---|---|---|
 | resolved source subject | exactly one verified package subject | `originId` |
 | `identifier.id` | required non-empty string | `sessionId` by exact value |
-| `modified` | required local-form ISO 8601 date-time with UTC semantics | separately persisted source revision evidence; not a canonical summary field |
-| `startTime` | required local-form ISO 8601 date-time | `startedAtLocal`; its whole seconds must equal the filename timestamp |
+| `created` | required local-form ISO 8601 date-time with UTC semantics | validated source evidence; not canonical |
+| `modified` | required local-form ISO 8601 date-time with UTC semantics | persisted source revision evidence |
+| `startTime` | required local-form ISO 8601 date-time whose whole seconds match the filename | `startedAtLocal` |
 | `stopTime` | required local-form ISO 8601 date-time | `stoppedAtLocal` |
-| `timezoneOffsetMinutes` | absent or signed integer representable as 32 bits | `utcOffsetMinutes`; absence maps to null |
-| `durationMillis` | required integer from zero through `359999999`, the official maximum | `durationMilliseconds` without derivation |
-| `distanceMeters` | absent or finite number from zero through `9999000`, the official maximum in metres | `distanceMeters`; absence maps to null |
-| `calories` | absent or non-negative integer representable as signed 64 bits | `energyKilocalories`; absence maps to null |
-| `hrAvg` | absent or non-negative integer representable as signed 64 bits | `averageHeartRateBpm`; absence maps to null |
-| `hrMax` | absent or non-negative integer representable as signed 64 bits and not below `hrAvg` when both exist | `maximumHeartRateBpm`; absence maps to null |
-| `sport.id` | absent or non-empty string | `sportRef`; absence maps to null |
-| `exercises` | absent or array | `exerciseCount`; absence maps to null and an array maps to its length |
+| `timezoneOffsetMinutes` | absent or signed 32-bit integer | `utcOffsetMinutes`; absence maps to null |
+| `durationMillis` | integer from zero through `359999999` | `durationMilliseconds` without derivation |
+| `distanceMeters` | absent or finite number from zero through `9999000` | `distanceMeters`; absence maps to null |
+| `calories` | absent or non-negative signed 64-bit integer | `energyKilocalories`; absence maps to null |
+| `hrAvg` | absent or non-negative signed 64-bit integer | `averageHeartRateBpm`; absence maps to null |
+| `hrMax` | absent or non-negative signed 64-bit integer and not below present `hrAvg` | `maximumHeartRateBpm`; absence maps to null |
+| `sport.id` | absent or non-empty string | opaque `sportRef`; absence maps to null |
+| `exercises` | absent or array | `exerciseCount` is null when absent and otherwise the exact array length |
 
-`created` must be a valid local-form ISO 8601 date-time with UTC semantics even though canonical version 1 does not retain it. This protects the documented source shape and leaves revision evidence interpretable.
+Top-level values are authoritative for the aggregate summary. The adapter never substitutes one exercise or
+sums, averages, selects, or otherwise derives summary values from children.
 
-## Aggregate rule
+## Structural assessment and exercise mapping
 
-Top-level session values are authoritative for the summary. The adapter does not replace them with a single exercise and does not sum, average, select, or otherwise derive them from multiple exercises. Child exercise identifiers do not participate in aggregate identity.
+Mapping version 2 always emits a present `TrainingSessionStructure`, proving that the artifact was evaluated
+under the structural contract. An absent `exercises` field produces null `exercises`; a present empty array
+produces an empty collection. Entries retain source array order through `ordinal`.
 
-Nested exercise objects, including missing sport references and mixed sports, are accepted because version 1 uses only collection cardinality. A non-array `exercises` value is invalid.
+| Source exercise path | Requirement and validation | Canonical outcome |
+|---|---|---|
+| `exercises[].identifier.id` | required non-empty string, unique within the session | protected `exerciseId` |
+| `exercises[].created` | required valid local-form ISO 8601 date-time with UTC semantics | validated source evidence; not canonical |
+| `exercises[].modified` | required valid local-form ISO 8601 date-time with UTC semantics | validated source evidence; not independent aggregate revision |
+| `exercises[].startTime` | required valid local-form ISO 8601 date-time | `startedAtLocal` |
+| `exercises[].stopTime` | required valid local-form ISO 8601 date-time not before `startTime` | `stoppedAtLocal` |
+| `exercises[].timezoneOffsetMinutes` | absent or signed 32-bit integer | `utcOffsetMinutes`; absence maps to null |
+| `exercises[].durationMillis` | integer from zero through `359999999` | `durationMilliseconds` |
+| `exercises[].distanceMeters` | absent or finite number from zero through `9999000` | `distanceMeters`; absence maps to null |
+| `exercises[].calories` | absent or non-negative signed 64-bit integer | `energyKilocalories`; absence maps to null |
+| `exercises[].sport.id` | absent or non-empty string | opaque `sportRef`; absence maps to null |
+| `exercises[].laps` | absent or object | absent makes both canonical lap collections null |
+| `exercises[].laps.laps` | absent or array | `manualLaps`, preserving absent, present-empty, and source order |
+| `exercises[].laps.autoLaps` | absent or array | `automaticLaps`, preserving absent, present-empty, and source order |
+| `exercises[].pauseTimes` | absent or array | `pauses`, preserving absent, present-empty, and source order |
 
-## Reimport and revision mapping
+Exercise `created` and `modified` values do not override the session's `modified` reconciliation evidence.
+Mixed exercise sports remain separate evidence and never change the aggregate `sportRef`.
 
-Identity is `(originId, identifier.id)`. Exact canonical equality is equivalent. For differing canonical content, `modified` provides ordering under canonical date-time comparison:
+## Lap and pause mapping
 
-- a later incoming revision amends the visible summary atomically;
-- an earlier incoming revision is preserved as non-visible provenance;
-- an equal revision with different content is a conflict;
-- invalid or unorderable revision timestamps reject the artifact before reconciliation.
+Each `exercises[].laps.laps[]` and `exercises[].laps.autoLaps[]` entry requires integer
+`splitTimeMillis` and `durationMillis` from zero through `359999999`. Optional `distanceMeters` must be finite
+and between zero and `9999000`. Source order becomes zero-based `ordinal`; the enclosing collection provides
+`manual` or `automatic` kind. Source `splitTimeMillis` becomes canonical `splitTimeMilliseconds` and source
+`durationMillis` becomes canonical `durationMilliseconds`, both without derivation. No provider lap identifier
+is required or invented.
 
-Two artifacts with the same mapped identity in one ZIP are invalid independently of their order. A whole-package exact repeat may reuse a completed outcome only when the source adapter and operation mapping-set compatibility versions match. Import operations introduced by this mapping use `polar-flow-mapping-set@1`; per-observation provenance retains `polar-flow-training-session@1` or the applicable family mapping.
+Each `exercises[].pauseTimes[]` entry requires valid local-form `startTime` and `endTime`. The end must not
+precede the start. Source order becomes zero-based `ordinal`; duration is not independently derived or stored.
+
+## Reimport, revision, and mapping upgrade
+
+Identity remains `(originId, identifier.id)`. Reconciliation compares the complete mapped session record:
+
+- absent identity creates summary and structure atomically;
+- complete equality is equivalent;
+- equal summary plus previously unevaluated structure is `enrich`;
+- later `modified` evidence atomically replaces summary and all structure;
+- earlier evidence preserves the complete visible record;
+- equal or unorderable revision with different content is a conflict and changes no visible record.
+
+Two artifacts with the same mapped identity in one ZIP are invalid independently of order. Whole-package
+exact-repeat reuse requires equal archive fingerprint, adapter version, and operation mapping-set version.
+Consequently, a package completed under `polar-flow-mapping-set@1` is reassessed under
+`polar-flow-mapping-set@2`; identical bytes enrich structure without duplicating sessions or children.
+Per-observation provenance records `polar-flow-training-session@2` for current mapping decisions.
+
+## Historical version 1 behavior
+
+`polar-flow-training-session@1`, introduced by `polar-flow-archive@4` and retained through
+`polar-flow-archive@6`, mapped only the aggregate table above. It used `exercises` solely to derive
+`exerciseCount`: absent mapped to null and an array mapped to its length. Nested objects could therefore omit
+all fields because their content was not evaluated. Version 1 deliberately did not create a structural
+assessment and used `polar-flow-mapping-set@1` for exact-repeat compatibility.
+
+Historical canonical rows and provenance remain valid. Their null structural assessment is not equivalent to
+an absent or empty source collection and is eligible for strict mapping-version enrichment.
 
 ## Deliberately unmapped information
 
-Version 1 validates only the types it consumes and deliberately does not persist these known source areas:
+Mapping version 2 still does not persist:
 
-- `latitude`, `longitude`, and every nested route waypoint;
-- `samples`, `transitionSamples`, `rrSamples`, and `transitionRrSamples`;
-- laps, automatic laps, pause intervals, zones, and detailed statistics;
-- `name`, `note`, comments, feelings, targets, training benefit, training load, and recovery time;
-- energy-source percentages, physical information, device, product, and application references;
-- nested exercise measurements and identifiers.
+- `latitude`, `longitude`, routes, or route waypoints;
+- `samples`, `transitionSamples`, `rrSamples`, `transitionRrSamples`, or other signal series;
+- zones, detailed statistics, hills, tests, and source analysis;
+- names, notes, comments, feelings, targets, training benefit, training load, or recovery time;
+- energy-source percentages, physical information, devices, products, or application references.
 
-The exclusion prevents route and full-resolution sample ingestion in the MVP and avoids presenting unresolved source semantics as canonical facts. The containing session artifact is still `supported` when its summary contract passes. User-facing coverage must disclose the summary-only boundary without exposing filenames, identifiers, coordinates, notes, or personal values.
+These fields are not represented as empty canonical collections. Their source bytes remain only in the user's
+original archive. The artifact is `supported` when all mapping-version-2 fields pass; coverage and UI disclose
+the current boundary without exposing locators, identifiers, coordinates, notes, or personal values.
 
 ## Sport limitation
 
-`sport.id` refers to Polar's separately managed sports catalogue. The evaluated takeout does not contain the identifier-to-name catalogue, and its `sport-profiles` artifact does not provide an equivalent join. Version 1 therefore retains the exact reference only as opaque same-source classification evidence. It never guesses a name, copies a private activity label into the public specification, or treats the reference as a cross-provider taxonomy.
-
-Resolving `sportRef` to a canonical sport name or parent class requires a separately versioned catalogue mapping with public evidence and explicit unknown-value behavior.
+Both aggregate and exercise `sport.id` values refer to Polar's separately managed catalogue. The evaluated
+takeout has no authoritative identifier-to-name join. FitFreed retains exact references only as opaque
+same-source classification evidence and applies a user-authored provider-neutral classification separately.
+It never guesses a label or equates a reference with another provider's taxonomy.

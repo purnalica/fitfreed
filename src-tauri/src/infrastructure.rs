@@ -32,35 +32,41 @@ use zip::ZipArchive;
 use fitfreed_application::{
     clear_exploration_workspace, query_default_recovery_overview, query_default_sleep_overview,
     query_default_training_overview, query_library_home, query_longitudinal_overview,
-    query_recovery_detail, query_training_sports, save_exploration_workspace,
-    save_training_sport_classification, AppearancePreference, ApplicationError, LibraryDomain,
-    LibraryHomeDateRange, LibraryHomeRequest, LibraryQuestion, LibraryQuestionKind,
-    LocalePreference, SaveSportClassificationRequest, SportClassificationSaveOutcome,
+    query_recovery_detail, query_training_session_structure, query_training_sports,
+    save_exploration_workspace, save_training_sport_classification, AppearancePreference,
+    ApplicationError, LibraryDomain, LibraryHomeDateRange, LibraryHomeRequest, LibraryQuestion,
+    LibraryQuestionKind, LocalePreference, SaveSportClassificationRequest,
+    SportClassificationSaveOutcome,
 };
 use fitfreed_application::{
     ActivityDateRange, ActivityLibraryPort, ApplicationPreferences, ApplicationPreferencesPort,
     ArchiveImportPort, DetectedTrainingSport, ExplorationWorkspace, ExplorationWorkspacePort,
     ExploreDestination, ImportOutcomeLibraryPort, ImportPhase, ImportPhaseTimings, ImportProgress,
     PersistedTrainingSessionCalendar, PersistedTrainingSessionSearchPage,
-    PersistedTrainingSessionSelection, ProfiledImport, RecoveryDateRange, RecoveryLibraryNight,
-    RecoveryLibraryPort, SleepDateRange, SleepLibraryPeriod, SleepLibraryPort,
-    StoredApplicationPreferences, StoredExplorationWorkspace, TrainingDateRange,
-    TrainingDiscoveryView, TrainingDiscoveryWorkspace, TrainingDiscoveryWorkspacePort,
-    TrainingLibraryPort, TrainingMeasurementFilter, TrainingSessionCalendarDay,
-    TrainingSessionCalendarRequest, TrainingSessionDiscoveryPort,
+    PersistedTrainingSessionSelection, PersistedTrainingSessionStructure, ProfiledImport,
+    RecoveryDateRange, RecoveryLibraryNight, RecoveryLibraryPort, SleepDateRange,
+    SleepLibraryPeriod, SleepLibraryPort, StoredApplicationPreferences, StoredExplorationWorkspace,
+    TrainingDateRange, TrainingDiscoveryView, TrainingDiscoveryWorkspace,
+    TrainingDiscoveryWorkspacePort, TrainingExerciseStructure, TrainingLapStructure,
+    TrainingLibraryPort, TrainingMeasurementFilter, TrainingPauseStructure,
+    TrainingSessionCalendarDay, TrainingSessionCalendarRequest, TrainingSessionDiscoveryPort,
     TrainingSessionDiscoveryPortError, TrainingSessionSearchItem, TrainingSessionSearchRequest,
     TrainingSessionSearchSummary, TrainingSessionSelectionRequest, TrainingSessionSort,
-    TrainingSessionSport, TrainingSportClassification, TrainingSportState, TrainingSportsPort,
+    TrainingSessionSport, TrainingSessionStructurePort, TrainingSessionStructurePortError,
+    TrainingSessionStructureQuery, TrainingSportClassification, TrainingSportState,
+    TrainingSportsPort, TrainingStructure,
 };
 use fitfreed_domain::{
     decide_nightly_recovery_reconciliation, decide_reconciliation,
-    decide_sleep_period_reconciliation, decide_training_session_reconciliation,
+    decide_sleep_period_reconciliation, decide_training_session_record_reconciliation,
     ArtifactClassification, ArtifactCoverageSummary, ArtifactFamilyCoverage, DailyActivity,
     ExistingObservation, ImportOperationState, ImportOutcome, ImportReport, NightlyRecovery,
     ReconciliationDecision, RevisionOrder, SleepPeriod, SleepPhaseSummary, SleepScore, SleepStage,
     SleepStageTransition, SourceSpecificRecoveryAssessment, SourceSpecificRecoveryBaseline,
     SourceSpecificRecoveryGuidance, SportClassification, SportClassificationAuthorship,
-    SportClassificationKey, SportClassificationState, SportFamily, TrainingSession,
+    SportClassificationKey, SportClassificationState, SportFamily, TrainingExercise, TrainingLap,
+    TrainingLapKind, TrainingPause, TrainingSession, TrainingSessionRecord,
+    TrainingSessionStructure,
 };
 
 mod local_file;
@@ -117,7 +123,7 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 14;
+const SCHEMA_VERSION: i64 = 15;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
@@ -132,11 +138,12 @@ const SCHEMA_V11: &str = include_str!("../migrations/0011_exploration_workspace.
 const SCHEMA_V12: &str = include_str!("../migrations/0012_sport_classification.sql");
 const SCHEMA_V13: &str = include_str!("../migrations/0013_training_session_discovery.sql");
 const SCHEMA_V14: &str = include_str!("../migrations/0014_training_discovery_workspace.sql");
+const SCHEMA_V15: &str = include_str!("../migrations/0015_training_session_structure.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
-const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@6";
-const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@1";
+const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@7";
+const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@2";
 const DAILY_ACTIVITY_MAPPING_VERSION: &str = "polar-flow-daily-activity@1";
-const TRAINING_SESSION_MAPPING_VERSION: &str = "polar-flow-training-session@1";
+const TRAINING_SESSION_MAPPING_VERSION: &str = "polar-flow-training-session@2";
 const SLEEP_MAPPING_VERSION: &str = "polar-flow-sleep@1";
 const NIGHTLY_RECOVERY_MAPPING_VERSION: &str = "polar-flow-nightly-recovery@1";
 const NIGHTLY_RECOVERY_SCHEME: &str = "polar-nightly-recharge@1";
@@ -317,7 +324,55 @@ struct PolarTrainingSession {
     #[serde(default)]
     sport: SourceOptional<PolarReference>,
     #[serde(default)]
-    exercises: SourceOptional<ExerciseCollection>,
+    exercises: SourceOptional<Vec<PolarTrainingExercise>>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PolarTrainingExercise {
+    identifier: PolarReference,
+    created: String,
+    modified: String,
+    start_time: String,
+    stop_time: String,
+    #[serde(default)]
+    timezone_offset_minutes: SourceOptional<i32>,
+    duration_millis: i64,
+    #[serde(default)]
+    distance_meters: SourceOptional<f64>,
+    #[serde(default)]
+    calories: SourceOptional<i64>,
+    #[serde(default)]
+    sport: SourceOptional<PolarReference>,
+    #[serde(default)]
+    laps: SourceOptional<PolarTrainingLaps>,
+    #[serde(default)]
+    pause_times: SourceOptional<Vec<PolarTrainingPause>>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PolarTrainingLaps {
+    #[serde(default)]
+    laps: SourceOptional<Vec<PolarTrainingLap>>,
+    #[serde(default)]
+    auto_laps: SourceOptional<Vec<PolarTrainingLap>>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PolarTrainingLap {
+    split_time_millis: i64,
+    duration_millis: i64,
+    #[serde(default)]
+    distance_meters: SourceOptional<f64>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PolarTrainingPause {
+    start_time: String,
+    end_time: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -487,7 +542,7 @@ struct MappedTrainingArtifact {
     locator: String,
     sha256: String,
     source_modified_at_utc: String,
-    observation: TrainingSession,
+    observation: TrainingSessionRecord,
 }
 
 #[derive(Debug)]
@@ -2272,6 +2327,157 @@ fn query_training_session_selection_discovery(
     })
 }
 
+fn query_training_session_structure_discovery(
+    database_path: &Path,
+    query: &TrainingSessionStructureQuery,
+) -> std::result::Result<PersistedTrainingSessionStructure, TrainingSessionStructurePortError> {
+    let mut connection = Connection::open(database_path).map_err(training_detail_failure)?;
+    ensure_schema(&connection).map_err(training_detail_failure)?;
+    let transaction = connection.transaction().map_err(training_detail_failure)?;
+    let revision = transaction
+        .query_row(
+            "SELECT revision FROM training_discovery_revision WHERE id = 1",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .map_err(training_detail_failure)?;
+    if revision < 1 {
+        return Err(TrainingSessionStructurePortError::Failure(
+            "training discovery revision is invalid".to_owned(),
+        ));
+    }
+    let snapshot_ref = training_snapshot_ref(revision);
+    if query
+        .snapshot_ref
+        .as_ref()
+        .is_some_and(|expected| expected != &snapshot_ref)
+    {
+        return Err(TrainingSessionStructurePortError::SnapshotChanged);
+    }
+    let identity = {
+        let mut statement = transaction
+            .prepare(
+                "SELECT origin_id, session_id FROM training_session ORDER BY origin_id, session_id",
+            )
+            .map_err(training_detail_failure)?;
+        let rows = statement
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })
+            .map_err(training_detail_failure)?;
+        let mut identity = None;
+        for row in rows {
+            let (origin_id, session_id) = row.map_err(training_detail_failure)?;
+            if training_session_ref(&origin_id, &session_id) == query.session_ref {
+                identity = Some((origin_id, session_id));
+                break;
+            }
+        }
+        identity
+    }
+    .ok_or(TrainingSessionStructurePortError::NotFound)?;
+    let structure = query_training_session_structure_on(&transaction, &identity.0, &identity.1)
+        .map_err(training_detail_failure)?;
+    let sport_entries = query_training_discovery_sports(&transaction)
+        .map_err(training_detail_failure)?
+        .into_iter()
+        .map(|entry| {
+            (
+                (entry.origin_id, entry.source_sport_ref),
+                entry.public_sport,
+            )
+        })
+        .collect::<HashMap<_, _>>();
+    let structure = structure
+        .map(
+            |structure| -> std::result::Result<_, TrainingSessionStructurePortError> {
+                Ok(TrainingStructure {
+                    exercises: structure
+                        .exercises
+                        .map(|exercises| {
+                            exercises
+                                .into_iter()
+                                .map(|exercise| {
+                                    let sport = sport_entries
+                                        .get(&(identity.0.clone(), exercise.sport_ref.clone()))
+                                        .cloned()
+                                        .ok_or_else(|| {
+                                            TrainingSessionStructurePortError::Failure(
+                                                "training exercise sport context is unavailable"
+                                                    .to_owned(),
+                                            )
+                                        })?;
+                                    let map_laps = |laps: Option<Vec<TrainingLap>>| {
+                                        laps.map(|laps| {
+                                            laps.into_iter()
+                                                .map(|lap| TrainingLapStructure {
+                                                    lap_ref: training_lap_ref(
+                                                        &identity.0,
+                                                        &identity.1,
+                                                        &exercise.exercise_id,
+                                                        lap.kind,
+                                                        lap.ordinal,
+                                                    ),
+                                                    ordinal: lap.ordinal,
+                                                    split_time_milliseconds: lap
+                                                        .split_time_milliseconds,
+                                                    duration_milliseconds: lap
+                                                        .duration_milliseconds,
+                                                    distance_meters: lap.distance_meters,
+                                                })
+                                                .collect()
+                                        })
+                                    };
+                                    let pauses = exercise.pauses.map(|pauses| {
+                                        pauses
+                                            .into_iter()
+                                            .map(|pause| TrainingPauseStructure {
+                                                pause_ref: training_pause_ref(
+                                                    &identity.0,
+                                                    &identity.1,
+                                                    &exercise.exercise_id,
+                                                    pause.ordinal,
+                                                ),
+                                                ordinal: pause.ordinal,
+                                                started_at_local: pause.started_at_local,
+                                                ended_at_local: pause.ended_at_local,
+                                            })
+                                            .collect()
+                                    });
+                                    Ok(TrainingExerciseStructure {
+                                        exercise_ref: training_exercise_ref(
+                                            &identity.0,
+                                            &identity.1,
+                                            &exercise.exercise_id,
+                                        ),
+                                        ordinal: exercise.ordinal,
+                                        started_at_local: exercise.started_at_local,
+                                        stopped_at_local: exercise.stopped_at_local,
+                                        utc_offset_minutes: exercise.utc_offset_minutes,
+                                        duration_milliseconds: exercise.duration_milliseconds,
+                                        distance_meters: exercise.distance_meters,
+                                        energy_kilocalories: exercise.energy_kilocalories,
+                                        sport,
+                                        manual_laps: map_laps(exercise.manual_laps),
+                                        automatic_laps: map_laps(exercise.automatic_laps),
+                                        pauses,
+                                    })
+                                })
+                                .collect::<std::result::Result<Vec<_>, _>>()
+                        })
+                        .transpose()?,
+                })
+            },
+        )
+        .transpose()?;
+    transaction.commit().map_err(training_detail_failure)?;
+    Ok(PersistedTrainingSessionStructure {
+        snapshot_ref,
+        session_ref: query.session_ref.clone(),
+        structure,
+    })
+}
+
 fn query_training_bounds_on(connection: &Connection) -> Result<Option<TrainingDateRange>> {
     let (from, through) = connection.query_row(
         "SELECT substr(MIN(started_at_local), 1, 10),
@@ -2298,17 +2504,22 @@ fn query_training_discovery_sports(
     connection: &Connection,
 ) -> Result<Vec<TrainingDiscoverySportEntry>> {
     let mut statement = connection.prepare(
-        "SELECT DISTINCT session.origin_id, session.sport_ref,
+        "WITH source_sport AS (
+             SELECT origin_id, sport_ref FROM training_session
+             UNION
+             SELECT origin_id, sport_ref FROM training_exercise
+         )
+         SELECT source_sport.origin_id, source_sport.sport_ref,
                 classification.classification_state,
                 classification.canonical_family,
                 classification.display_label,
                 classification.authorship,
                 classification.revision
-         FROM training_session AS session
+         FROM source_sport
          LEFT JOIN sport_classification AS classification
-           ON classification.origin_id = session.origin_id
-          AND classification.source_sport_ref = session.sport_ref
-         ORDER BY session.origin_id, session.sport_ref",
+           ON classification.origin_id = source_sport.origin_id
+          AND classification.source_sport_ref = source_sport.sport_ref
+         ORDER BY source_sport.origin_id, source_sport.sport_ref",
     )?;
     let rows = statement.query_map([], |row| {
         Ok((
@@ -2493,8 +2704,65 @@ fn training_session_ref(origin_id: &str, session_id: &str) -> String {
     format!("session-{:x}", digest.finalize())
 }
 
+fn training_exercise_ref(origin_id: &str, session_id: &str, exercise_id: &str) -> String {
+    let mut digest = Sha256::new();
+    digest.update(b"fitfreed:training-exercise:v1\0");
+    digest.update(origin_id.as_bytes());
+    digest.update(b"\0");
+    digest.update(session_id.as_bytes());
+    digest.update(b"\0");
+    digest.update(exercise_id.as_bytes());
+    format!("exercise-{:x}", digest.finalize())
+}
+
+fn training_lap_ref(
+    origin_id: &str,
+    session_id: &str,
+    exercise_id: &str,
+    kind: TrainingLapKind,
+    ordinal: usize,
+) -> String {
+    let mut digest = Sha256::new();
+    digest.update(b"fitfreed:training-lap:v1\0");
+    digest.update(origin_id.as_bytes());
+    digest.update(b"\0");
+    digest.update(session_id.as_bytes());
+    digest.update(b"\0");
+    digest.update(exercise_id.as_bytes());
+    digest.update(b"\0");
+    digest.update(match kind {
+        TrainingLapKind::Manual => b"manual".as_slice(),
+        TrainingLapKind::Automatic => b"automatic".as_slice(),
+    });
+    digest.update(b"\0");
+    digest.update(ordinal.to_be_bytes());
+    format!("lap-{:x}", digest.finalize())
+}
+
+fn training_pause_ref(
+    origin_id: &str,
+    session_id: &str,
+    exercise_id: &str,
+    ordinal: usize,
+) -> String {
+    let mut digest = Sha256::new();
+    digest.update(b"fitfreed:training-pause:v1\0");
+    digest.update(origin_id.as_bytes());
+    digest.update(b"\0");
+    digest.update(session_id.as_bytes());
+    digest.update(b"\0");
+    digest.update(exercise_id.as_bytes());
+    digest.update(b"\0");
+    digest.update(ordinal.to_be_bytes());
+    format!("pause-{:x}", digest.finalize())
+}
+
 fn discovery_failure(error: impl std::fmt::Display) -> TrainingSessionDiscoveryPortError {
     TrainingSessionDiscoveryPortError::Failure(error.to_string())
+}
+
+fn training_detail_failure(error: impl std::fmt::Display) -> TrainingSessionStructurePortError {
+    TrainingSessionStructurePortError::Failure(error.to_string())
 }
 
 pub fn query_detected_training_sports(database_path: &Path) -> Result<Vec<DetectedTrainingSport>> {
@@ -3417,7 +3685,10 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         if version < 13 {
             connection.execute_batch(SCHEMA_V13)?;
         }
-        connection.execute_batch(SCHEMA_V14)?;
+        if version < 14 {
+            connection.execute_batch(SCHEMA_V14)?;
+        }
+        connection.execute_batch(SCHEMA_V15)?;
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
         }
@@ -3617,8 +3888,8 @@ fn invalidate_duplicate_training_sessions(
     for artifact in mapped_artifacts {
         locators_by_identity
             .entry((
-                artifact.observation.origin_id.as_str(),
-                artifact.observation.session_id.as_str(),
+                artifact.observation.summary.origin_id.as_str(),
+                artifact.observation.summary.session_id.as_str(),
             ))
             .or_default()
             .push(artifact.locator.as_str());
@@ -4309,11 +4580,200 @@ fn invalid_training_artifact(artifact: &str, reason: impl Into<String>) -> Impor
     }
 }
 
+fn map_training_laps(
+    source: SourceOptional<Vec<PolarTrainingLap>>,
+    kind: TrainingLapKind,
+    artifact: &str,
+) -> Result<Option<Vec<TrainingLap>>> {
+    source
+        .into_option()
+        .map(|laps| {
+            laps.into_iter()
+                .enumerate()
+                .map(|(ordinal, lap)| {
+                    if !(0..=359_999_999).contains(&lap.split_time_millis)
+                        || !(0..=359_999_999).contains(&lap.duration_millis)
+                    {
+                        return Err(invalid_training_artifact(
+                            artifact,
+                            "lap timing is outside the documented range",
+                        ));
+                    }
+                    let distance_meters = lap.distance_meters.into_option();
+                    if distance_meters.is_some_and(|value| {
+                        !value.is_finite() || !(0.0..=9_999_000.0).contains(&value)
+                    }) {
+                        return Err(invalid_training_artifact(
+                            artifact,
+                            "lap distanceMeters is outside the documented range",
+                        ));
+                    }
+                    Ok(TrainingLap {
+                        kind,
+                        ordinal,
+                        split_time_milliseconds: lap.split_time_millis,
+                        duration_milliseconds: lap.duration_millis,
+                        distance_meters,
+                    })
+                })
+                .collect()
+        })
+        .transpose()
+}
+
+fn map_training_exercises(
+    source: SourceOptional<Vec<PolarTrainingExercise>>,
+    artifact: &str,
+) -> Result<Option<Vec<TrainingExercise>>> {
+    source
+        .into_option()
+        .map(|exercises| {
+            let mut exercise_ids = BTreeSet::new();
+            exercises
+                .into_iter()
+                .enumerate()
+                .map(|(ordinal, exercise)| {
+                    let PolarTrainingExercise {
+                        identifier,
+                        created,
+                        modified,
+                        start_time,
+                        stop_time,
+                        timezone_offset_minutes,
+                        duration_millis,
+                        distance_meters,
+                        calories,
+                        sport,
+                        laps,
+                        pause_times,
+                    } = exercise;
+                    if identifier.id.trim().is_empty()
+                        || !exercise_ids.insert(identifier.id.clone())
+                    {
+                        return Err(invalid_training_artifact(
+                            artifact,
+                            "exercise identifier.id is blank or duplicated",
+                        ));
+                    }
+                    let _ = parse_source_datetime(&created, "exercise.created", artifact)?;
+                    let _ = parse_source_datetime(&modified, "exercise.modified", artifact)?;
+                    let (started, started_at_local) =
+                        parse_source_datetime(&start_time, "exercise.startTime", artifact)?;
+                    let (stopped, stopped_at_local) =
+                        parse_source_datetime(&stop_time, "exercise.stopTime", artifact)?;
+                    if started > stopped {
+                        return Err(invalid_training_artifact(
+                            artifact,
+                            "exercise stopTime precedes startTime",
+                        ));
+                    }
+                    if !(0..=359_999_999).contains(&duration_millis) {
+                        return Err(invalid_training_artifact(
+                            artifact,
+                            "exercise durationMillis is outside the documented range",
+                        ));
+                    }
+                    let distance_meters = distance_meters.into_option();
+                    if distance_meters.is_some_and(|value| {
+                        !value.is_finite() || !(0.0..=9_999_000.0).contains(&value)
+                    }) {
+                        return Err(invalid_training_artifact(
+                            artifact,
+                            "exercise distanceMeters is outside the documented range",
+                        ));
+                    }
+                    let energy_kilocalories = calories.into_option();
+                    if energy_kilocalories.is_some_and(|value| value < 0) {
+                        return Err(invalid_training_artifact(
+                            artifact,
+                            "exercise calories cannot be negative",
+                        ));
+                    }
+                    let sport_ref = sport.into_option().map(|reference| reference.id);
+                    if sport_ref
+                        .as_ref()
+                        .is_some_and(|reference| reference.trim().is_empty())
+                    {
+                        return Err(invalid_training_artifact(
+                            artifact,
+                            "exercise sport.id cannot be blank",
+                        ));
+                    }
+                    let (manual_laps, automatic_laps) = laps
+                        .into_option()
+                        .map(|source_laps| -> Result<_> {
+                            Ok((
+                                map_training_laps(
+                                    source_laps.laps,
+                                    TrainingLapKind::Manual,
+                                    artifact,
+                                )?,
+                                map_training_laps(
+                                    source_laps.auto_laps,
+                                    TrainingLapKind::Automatic,
+                                    artifact,
+                                )?,
+                            ))
+                        })
+                        .transpose()?
+                        .unwrap_or((None, None));
+                    let pauses = pause_times
+                        .into_option()
+                        .map(|pauses| {
+                            pauses
+                                .into_iter()
+                                .enumerate()
+                                .map(|(ordinal, pause)| {
+                                    let (started, started_at_local) = parse_source_datetime(
+                                        &pause.start_time,
+                                        "pauseTimes[].startTime",
+                                        artifact,
+                                    )?;
+                                    let (ended, ended_at_local) = parse_source_datetime(
+                                        &pause.end_time,
+                                        "pauseTimes[].endTime",
+                                        artifact,
+                                    )?;
+                                    if started > ended {
+                                        return Err(invalid_training_artifact(
+                                            artifact,
+                                            "pause endTime precedes startTime",
+                                        ));
+                                    }
+                                    Ok(TrainingPause {
+                                        ordinal,
+                                        started_at_local,
+                                        ended_at_local,
+                                    })
+                                })
+                                .collect()
+                        })
+                        .transpose()?;
+                    Ok(TrainingExercise {
+                        exercise_id: identifier.id,
+                        ordinal,
+                        started_at_local,
+                        stopped_at_local,
+                        utc_offset_minutes: timezone_offset_minutes.into_option(),
+                        duration_milliseconds: duration_millis,
+                        distance_meters,
+                        energy_kilocalories,
+                        sport_ref,
+                        manual_laps,
+                        automatic_laps,
+                        pauses,
+                    })
+                })
+                .collect()
+        })
+        .transpose()
+}
+
 fn map_training_session(
     origin_id: &str,
     source: PolarTrainingSession,
     artifact: &str,
-) -> Result<(TrainingSession, String)> {
+) -> Result<(TrainingSessionRecord, String)> {
     let PolarTrainingSession {
         identifier,
         created,
@@ -4402,20 +4862,25 @@ fn map_training_session(
         ));
     }
 
+    let exercises = map_training_exercises(exercises, artifact)?;
+    let exercise_count = exercises.as_ref().map(Vec::len);
     Ok((
-        TrainingSession {
-            origin_id: origin_id.to_owned(),
-            session_id: identifier.id,
-            started_at_local,
-            stopped_at_local,
-            utc_offset_minutes: timezone_offset_minutes.into_option(),
-            duration_milliseconds: duration_millis,
-            distance_meters,
-            energy_kilocalories,
-            average_heart_rate_bpm,
-            maximum_heart_rate_bpm,
-            sport_ref,
-            exercise_count: exercises.into_option().map(|value| value.0),
+        TrainingSessionRecord {
+            summary: TrainingSession {
+                origin_id: origin_id.to_owned(),
+                session_id: identifier.id,
+                started_at_local,
+                stopped_at_local,
+                utc_offset_minutes: timezone_offset_minutes.into_option(),
+                duration_milliseconds: duration_millis,
+                distance_meters,
+                energy_kilocalories,
+                average_heart_rate_bpm,
+                maximum_heart_rate_bpm,
+                sport_ref,
+                exercise_count,
+            },
+            structure: Some(TrainingSessionStructure { exercises }),
         },
         source_modified_at_utc,
     ))
@@ -5271,6 +5736,285 @@ fn reconcile(
     Ok(())
 }
 
+fn persisted_training_flag(value: i64, field: &str) -> Result<bool> {
+    match value {
+        0 => Ok(false),
+        1 => Ok(true),
+        _ => Err(ImportError::InvalidTrainingLibrary(format!(
+            "{field} is not a boolean flag"
+        ))),
+    }
+}
+
+fn query_training_session_structure_on(
+    connection: &Connection,
+    origin_id: &str,
+    session_id: &str,
+) -> Result<Option<TrainingSessionStructure>> {
+    let exercises_present = connection
+        .query_row(
+            "SELECT exercises_present FROM training_session_structure
+             WHERE origin_id = ?1 AND session_id = ?2",
+            params![origin_id, session_id],
+            |row| row.get::<_, i64>(0),
+        )
+        .optional()?;
+    let Some(exercises_present) = exercises_present else {
+        return Ok(None);
+    };
+    if !persisted_training_flag(exercises_present, "exercises_present")? {
+        return Ok(Some(TrainingSessionStructure { exercises: None }));
+    }
+
+    let mut statement = connection.prepare(
+        "SELECT exercise_id, ordinal, started_at_local, stopped_at_local,
+                utc_offset_minutes, duration_milliseconds, distance_meters,
+                energy_kilocalories, sport_ref, manual_laps_present,
+                automatic_laps_present, pauses_present
+         FROM training_exercise
+         WHERE origin_id = ?1 AND session_id = ?2
+         ORDER BY ordinal",
+    )?;
+    let rows = statement.query_map(params![origin_id, session_id], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, i64>(1)?,
+            row.get::<_, String>(2)?,
+            row.get::<_, String>(3)?,
+            row.get::<_, Option<i32>>(4)?,
+            row.get::<_, i64>(5)?,
+            row.get::<_, Option<f64>>(6)?,
+            row.get::<_, Option<i64>>(7)?,
+            row.get::<_, Option<String>>(8)?,
+            row.get::<_, i64>(9)?,
+            row.get::<_, i64>(10)?,
+            row.get::<_, i64>(11)?,
+        ))
+    })?;
+    let mut exercises = Vec::new();
+    for row in rows {
+        let (
+            exercise_id,
+            ordinal,
+            started_at_local,
+            stopped_at_local,
+            utc_offset_minutes,
+            duration_milliseconds,
+            distance_meters,
+            energy_kilocalories,
+            sport_ref,
+            manual_laps_present,
+            automatic_laps_present,
+            pauses_present,
+        ) = row?;
+        let ordinal = persisted_count(ordinal, "training_exercise.ordinal")?;
+        let query_laps = |kind: TrainingLapKind| -> Result<Vec<TrainingLap>> {
+            let kind_code = match kind {
+                TrainingLapKind::Manual => "manual",
+                TrainingLapKind::Automatic => "automatic",
+            };
+            let mut statement = connection.prepare(
+                "SELECT ordinal, split_time_milliseconds, duration_milliseconds,
+                        distance_meters
+                 FROM training_lap
+                 WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3
+                   AND kind = ?4
+                 ORDER BY ordinal",
+            )?;
+            let rows = statement.query_map(
+                params![origin_id, session_id, exercise_id, kind_code],
+                |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, i64>(2)?,
+                        row.get::<_, Option<f64>>(3)?,
+                    ))
+                },
+            )?;
+            rows.map(|row| {
+                let (ordinal, split_time_milliseconds, duration_milliseconds, distance_meters) =
+                    row?;
+                Ok(TrainingLap {
+                    kind,
+                    ordinal: persisted_count(ordinal, "training_lap.ordinal")?,
+                    split_time_milliseconds,
+                    duration_milliseconds,
+                    distance_meters,
+                })
+            })
+            .collect()
+        };
+        let manual_laps = persisted_training_flag(manual_laps_present, "manual_laps_present")?
+            .then(|| query_laps(TrainingLapKind::Manual))
+            .transpose()?;
+        let automatic_laps =
+            persisted_training_flag(automatic_laps_present, "automatic_laps_present")?
+                .then(|| query_laps(TrainingLapKind::Automatic))
+                .transpose()?;
+        let pauses = if persisted_training_flag(pauses_present, "pauses_present")? {
+            let mut pause_statement = connection.prepare(
+                "SELECT ordinal, started_at_local, ended_at_local
+                 FROM training_pause
+                 WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3
+                 ORDER BY ordinal",
+            )?;
+            let pause_rows =
+                pause_statement.query_map(params![origin_id, session_id, exercise_id], |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                    ))
+                })?;
+            Some(
+                pause_rows
+                    .map(|row| {
+                        let (ordinal, started_at_local, ended_at_local) = row?;
+                        Ok(TrainingPause {
+                            ordinal: persisted_count(ordinal, "training_pause.ordinal")?,
+                            started_at_local,
+                            ended_at_local,
+                        })
+                    })
+                    .collect::<Result<Vec<_>>>()?,
+            )
+        } else {
+            None
+        };
+        exercises.push(TrainingExercise {
+            exercise_id,
+            ordinal,
+            started_at_local,
+            stopped_at_local,
+            utc_offset_minutes,
+            duration_milliseconds,
+            distance_meters,
+            energy_kilocalories,
+            sport_ref,
+            manual_laps,
+            automatic_laps,
+            pauses,
+        });
+    }
+    drop(statement);
+    Ok(Some(TrainingSessionStructure {
+        exercises: Some(exercises),
+    }))
+}
+
+fn replace_training_session_structure(
+    transaction: &Transaction<'_>,
+    record: &TrainingSessionRecord,
+) -> Result<()> {
+    let summary = &record.summary;
+    transaction.execute(
+        "DELETE FROM training_pause WHERE origin_id = ?1 AND session_id = ?2",
+        params![summary.origin_id, summary.session_id],
+    )?;
+    transaction.execute(
+        "DELETE FROM training_lap WHERE origin_id = ?1 AND session_id = ?2",
+        params![summary.origin_id, summary.session_id],
+    )?;
+    transaction.execute(
+        "DELETE FROM training_exercise WHERE origin_id = ?1 AND session_id = ?2",
+        params![summary.origin_id, summary.session_id],
+    )?;
+    transaction.execute(
+        "DELETE FROM training_session_structure WHERE origin_id = ?1 AND session_id = ?2",
+        params![summary.origin_id, summary.session_id],
+    )?;
+    let Some(structure) = &record.structure else {
+        return Ok(());
+    };
+    transaction.execute(
+        "INSERT INTO training_session_structure (
+             origin_id, session_id, exercises_present, mapping_version
+         ) VALUES (?1, ?2, ?3, ?4)",
+        params![
+            summary.origin_id,
+            summary.session_id,
+            structure.exercises.is_some(),
+            TRAINING_SESSION_MAPPING_VERSION,
+        ],
+    )?;
+    let Some(exercises) = &structure.exercises else {
+        return Ok(());
+    };
+    for exercise in exercises {
+        transaction.execute(
+            "INSERT INTO training_exercise (
+                 origin_id, session_id, exercise_id, ordinal, started_at_local,
+                 stopped_at_local, utc_offset_minutes, duration_milliseconds,
+                 distance_meters, energy_kilocalories, sport_ref,
+                 manual_laps_present, automatic_laps_present, pauses_present
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+            params![
+                summary.origin_id,
+                summary.session_id,
+                exercise.exercise_id,
+                exercise.ordinal,
+                exercise.started_at_local,
+                exercise.stopped_at_local,
+                exercise.utc_offset_minutes,
+                exercise.duration_milliseconds,
+                exercise.distance_meters,
+                exercise.energy_kilocalories,
+                exercise.sport_ref,
+                exercise.manual_laps.is_some(),
+                exercise.automatic_laps.is_some(),
+                exercise.pauses.is_some(),
+            ],
+        )?;
+        for laps in [&exercise.manual_laps, &exercise.automatic_laps]
+            .into_iter()
+            .flatten()
+        {
+            for lap in laps {
+                let kind = match lap.kind {
+                    TrainingLapKind::Manual => "manual",
+                    TrainingLapKind::Automatic => "automatic",
+                };
+                transaction.execute(
+                    "INSERT INTO training_lap (
+                         origin_id, session_id, exercise_id, kind, ordinal,
+                         split_time_milliseconds, duration_milliseconds, distance_meters
+                     ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                    params![
+                        summary.origin_id,
+                        summary.session_id,
+                        exercise.exercise_id,
+                        kind,
+                        lap.ordinal,
+                        lap.split_time_milliseconds,
+                        lap.duration_milliseconds,
+                        lap.distance_meters,
+                    ],
+                )?;
+            }
+        }
+        if let Some(pauses) = &exercise.pauses {
+            for pause in pauses {
+                transaction.execute(
+                    "INSERT INTO training_pause (
+                         origin_id, session_id, exercise_id, ordinal,
+                         started_at_local, ended_at_local
+                     ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                    params![
+                        summary.origin_id,
+                        summary.session_id,
+                        exercise.exercise_id,
+                        pause.ordinal,
+                        pause.started_at_local,
+                        pause.ended_at_local,
+                    ],
+                )?;
+            }
+        }
+    }
+    Ok(())
+}
+
 fn reconcile_training_session(
     transaction: &Transaction<'_>,
     operation_id: i64,
@@ -5278,6 +6022,7 @@ fn reconcile_training_session(
     report: &mut ImportReport,
 ) -> Result<()> {
     let incoming = &artifact.observation;
+    let incoming_summary = &incoming.summary;
     let existing = transaction
         .query_row(
             "SELECT source_modified_at_utc, started_at_local, stopped_at_local,
@@ -5286,13 +6031,13 @@ fn reconcile_training_session(
                     sport_ref, exercise_count
              FROM training_session
              WHERE origin_id = ?1 AND session_id = ?2",
-            params![incoming.origin_id, incoming.session_id],
+            params![incoming_summary.origin_id, incoming_summary.session_id],
             |row| {
                 Ok((
                     row.get::<_, String>(0)?,
                     TrainingSession {
-                        origin_id: incoming.origin_id.clone(),
-                        session_id: incoming.session_id.clone(),
+                        origin_id: incoming_summary.origin_id.clone(),
+                        session_id: incoming_summary.session_id.clone(),
                         started_at_local: row.get(1)?,
                         stopped_at_local: row.get(2)?,
                         utc_offset_minutes: row.get(3)?,
@@ -5319,6 +6064,21 @@ fn reconcile_training_session(
             },
         )
         .optional()?;
+    let existing = existing
+        .map(|(source_modified_at_utc, summary)| -> Result<_> {
+            Ok((
+                source_modified_at_utc,
+                TrainingSessionRecord {
+                    structure: query_training_session_structure_on(
+                        transaction,
+                        &summary.origin_id,
+                        &summary.session_id,
+                    )?,
+                    summary,
+                },
+            ))
+        })
+        .transpose()?;
     let revision_order =
         existing
             .as_ref()
@@ -5329,12 +6089,12 @@ fn reconcile_training_session(
                     CmpOrdering::Greater => RevisionOrder::Newer,
                 }
             });
-    let decision = decide_training_session_reconciliation(
+    let decision = decide_training_session_record_reconciliation(
         existing.as_ref().map(|value| &value.1),
         incoming,
         revision_order,
     );
-    let exercise_count = incoming
+    let exercise_count = incoming_summary
         .exercise_count
         .map(i64::try_from)
         .transpose()
@@ -5350,23 +6110,27 @@ fn reconcile_training_session(
                      maximum_heart_rate_bpm, sport_ref, exercise_count
                  ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
                 params![
-                    incoming.origin_id,
-                    incoming.session_id,
+                    incoming_summary.origin_id,
+                    incoming_summary.session_id,
                     artifact.source_modified_at_utc,
-                    incoming.started_at_local,
-                    incoming.stopped_at_local,
-                    incoming.utc_offset_minutes,
-                    incoming.duration_milliseconds,
-                    incoming.distance_meters,
-                    incoming.energy_kilocalories,
-                    incoming.average_heart_rate_bpm,
-                    incoming.maximum_heart_rate_bpm,
-                    incoming.sport_ref,
+                    incoming_summary.started_at_local,
+                    incoming_summary.stopped_at_local,
+                    incoming_summary.utc_offset_minutes,
+                    incoming_summary.duration_milliseconds,
+                    incoming_summary.distance_meters,
+                    incoming_summary.energy_kilocalories,
+                    incoming_summary.average_heart_rate_bpm,
+                    incoming_summary.maximum_heart_rate_bpm,
+                    incoming_summary.sport_ref,
                     exercise_count,
                 ],
             )?;
+            replace_training_session_structure(transaction, incoming)?;
         }
         ReconciliationDecision::Equivalent | ReconciliationDecision::Preserve => {}
+        ReconciliationDecision::Enrich => {
+            replace_training_session_structure(transaction, incoming)?;
+        }
         ReconciliationDecision::Amend => {
             transaction.execute(
                 "UPDATE training_session
@@ -5383,21 +6147,22 @@ fn reconcile_training_session(
                      exercise_count = ?13
                  WHERE origin_id = ?1 AND session_id = ?2",
                 params![
-                    incoming.origin_id,
-                    incoming.session_id,
+                    incoming_summary.origin_id,
+                    incoming_summary.session_id,
                     artifact.source_modified_at_utc,
-                    incoming.started_at_local,
-                    incoming.stopped_at_local,
-                    incoming.utc_offset_minutes,
-                    incoming.duration_milliseconds,
-                    incoming.distance_meters,
-                    incoming.energy_kilocalories,
-                    incoming.average_heart_rate_bpm,
-                    incoming.maximum_heart_rate_bpm,
-                    incoming.sport_ref,
+                    incoming_summary.started_at_local,
+                    incoming_summary.stopped_at_local,
+                    incoming_summary.utc_offset_minutes,
+                    incoming_summary.duration_milliseconds,
+                    incoming_summary.distance_meters,
+                    incoming_summary.energy_kilocalories,
+                    incoming_summary.average_heart_rate_bpm,
+                    incoming_summary.maximum_heart_rate_bpm,
+                    incoming_summary.sport_ref,
                     exercise_count,
                 ],
             )?;
+            replace_training_session_structure(transaction, incoming)?;
         }
         ReconciliationDecision::Conflict => {
             let existing_source_modified_at_utc = &existing
@@ -5412,19 +6177,14 @@ fn reconcile_training_session(
                  ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'json-root', ?7)",
                 params![
                     operation_id,
-                    incoming.origin_id,
-                    incoming.session_id,
+                    incoming_summary.origin_id,
+                    incoming_summary.session_id,
                     existing_source_modified_at_utc,
                     artifact.source_modified_at_utc,
                     artifact.locator,
                     TRAINING_SESSION_MAPPING_VERSION,
                 ],
             )?;
-        }
-        ReconciliationDecision::Enrich => {
-            return Err(ImportError::InvalidReconciliationDecision(
-                "training session",
-            ));
         }
     }
 
@@ -5436,8 +6196,8 @@ fn reconcile_training_session(
              reconciliation_decision, contributes_to_visible_state
          ) VALUES (?1, ?2, ?3, ?4, 'json-root', ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
         params![
-            incoming.origin_id,
-            incoming.session_id,
+            incoming_summary.origin_id,
+            incoming_summary.session_id,
             operation_id,
             artifact.locator,
             artifact.sha256,
@@ -5450,6 +6210,7 @@ fn reconcile_training_session(
                 decision,
                 ReconciliationDecision::Create
                     | ReconciliationDecision::Equivalent
+                    | ReconciliationDecision::Enrich
                     | ReconciliationDecision::Amend
             ),
         ],
@@ -6572,6 +7333,16 @@ impl TrainingSessionDiscoveryPort for SqliteTrainingLibrary {
     }
 }
 
+impl TrainingSessionStructurePort for SqliteTrainingLibrary {
+    fn query_training_session_structure(
+        &self,
+        query: &TrainingSessionStructureQuery,
+    ) -> std::result::Result<PersistedTrainingSessionStructure, TrainingSessionStructurePortError>
+    {
+        query_training_session_structure_discovery(&self.database_path, query)
+    }
+}
+
 impl TrainingDiscoveryWorkspacePort for SqliteTrainingLibrary {
     fn load_training_discovery_workspace(
         &self,
@@ -7368,7 +8139,7 @@ mod tests {
     }
 
     #[test]
-    fn imports_a_training_summary_without_persisting_excluded_detail() {
+    fn imports_supported_training_structure_without_persisting_routes_or_samples() {
         let harness = Harness::new();
         let archive = harness.archive(
             "training-summary.zip",
@@ -7396,8 +8167,26 @@ mod tests {
                     "longitude":-4.5,
                     "exercises":[{
                         "identifier":{"id":"synthetic-exercise"},
-                        "sport":{"id":"synthetic-sport"},
-                        "route":{"wayPoints":[{"latitude":12.5,"longitude":-4.5}]},
+                        "created":"2026-01-02T12:00:00.000",
+                        "modified":"2026-01-02T12:05:00.000",
+                        "startTime":"2026-01-02T10:30:00",
+                        "stopTime":"2026-01-02T11:30:00",
+                        "timezoneOffsetMinutes":60,
+                        "durationMillis":3600000,
+                        "distanceMeters":10000.5,
+                        "calories":650,
+                        "sport":{"id":"synthetic-exercise-sport"},
+                        "laps":{
+                            "laps":[{"splitTimeMillis":0,"durationMillis":1800000}],
+                            "autoLaps":[
+                                {"splitTimeMillis":0,"durationMillis":900000,"distanceMeters":2500}
+                            ]
+                        },
+                        "pauseTimes":[{
+                            "startTime":"2026-01-02T10:50:00",
+                            "endTime":"2026-01-02T10:51:00"
+                        }],
+                        "routes":{"route":{"startTime":"2026-01-02T10:30:00","wayPoints":[{"latitude":12.5,"longitude":-4.5,"elapsedMillis":0}]}},
                         "samples":{"samples":[{"type":"HEART_RATE","values":[120,121]}]}
                     }]
                     }"#,
@@ -7459,6 +8248,31 @@ mod tests {
         assert_eq!(overview.series.len(), 1);
         assert_eq!(overview.series[0].summary.session_count, 1);
         assert_eq!(overview.series[0].sessions.len(), 1);
+        let structure = query_training_session_structure(
+            &library,
+            TrainingSessionStructureQuery {
+                session_ref: training_session_ref(&history[0].origin_id, "synthetic-session"),
+                snapshot_ref: None,
+            },
+        )
+        .expect("training structure read model")
+        .structure
+        .expect("evaluated structure")
+        .exercises
+        .expect("source exercise collection");
+        assert_eq!(structure.len(), 1);
+        let exercise = &structure[0];
+        assert_eq!(exercise.ordinal, 0);
+        assert!(!exercise.exercise_ref.contains("synthetic-exercise"));
+        assert_eq!(exercise.sport.state, TrainingSportState::Unknown);
+        assert!(exercise
+            .sport
+            .sport_ref
+            .as_deref()
+            .is_some_and(|sport_ref| !sport_ref.contains("synthetic-exercise-sport")));
+        assert_eq!(exercise.manual_laps.as_ref().unwrap().len(), 1);
+        assert_eq!(exercise.automatic_laps.as_ref().unwrap().len(), 1);
+        assert_eq!(exercise.pauses.as_ref().unwrap().len(), 1);
 
         let connection = Connection::open(harness.database()).expect("database");
         let table_names = connection
@@ -7471,6 +8285,81 @@ mod tests {
         assert!(!table_names.iter().any(|name| {
             name.contains("route") || name.contains("sample") || name.contains("waypoint")
         }));
+    }
+
+    #[test]
+    fn reimports_identical_bytes_after_a_mapping_upgrade_and_enriches_without_duplicates() {
+        let harness = Harness::new();
+        let archive = harness.archive(
+            "training-mapping-upgrade.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-training-upgrade-claim"}"#,
+                ),
+                (
+                    "training-session_2026-01-02T10-30-00_42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                        "identifier":{"id":"synthetic-upgrade-session"},
+                        "created":"2026-01-02T12:00:00.000",
+                        "modified":"2026-01-02T12:05:00.000",
+                        "startTime":"2026-01-02T10:30:00",
+                        "stopTime":"2026-01-02T11:30:00",
+                        "durationMillis":3600000,
+                        "exercises":[{
+                            "identifier":{"id":"synthetic-upgrade-exercise"},
+                            "created":"2026-01-02T12:00:00.000",
+                            "modified":"2026-01-02T12:05:00.000",
+                            "startTime":"2026-01-02T10:30:00",
+                            "stopTime":"2026-01-02T11:30:00",
+                            "durationMillis":3600000,
+                            "laps":{"laps":[{
+                                "splitTimeMillis":0,
+                                "durationMillis":1800000
+                            }]}
+                        }]
+                    }"#,
+                ),
+            ],
+        );
+        import_polar_archive(&harness.database(), &archive).expect("initial mapped import");
+
+        let connection = Connection::open(harness.database()).expect("database");
+        connection
+            .execute_batch(
+                "PRAGMA foreign_keys = ON;
+                 DELETE FROM training_pause;
+                 DELETE FROM training_lap;
+                 DELETE FROM training_exercise;
+                 DELETE FROM training_session_structure;
+                 UPDATE import_operation
+                 SET source_adapter_version = 'polar-flow-archive@6',
+                     mapping_version = 'polar-flow-mapping-set@1';
+                 UPDATE training_session_provenance
+                 SET source_adapter_version = 'polar-flow-archive@6',
+                     mapping_version = 'polar-flow-training-session@1';",
+            )
+            .expect("simulate version-one persisted library");
+        drop(connection);
+
+        let enriched =
+            import_polar_archive(&harness.database(), &archive).expect("mapping upgrade import");
+        assert!(!enriched.exact_repeat);
+        assert_eq!(enriched.enriched_observations, 1);
+        assert_eq!(
+            query_training_sessions(&harness.database()).unwrap().len(),
+            1
+        );
+        let structure = query_training_session_structure_on(
+            &Connection::open(harness.database()).unwrap(),
+            &query_training_sessions(&harness.database()).unwrap()[0].origin_id,
+            "synthetic-upgrade-session",
+        )
+        .unwrap()
+        .unwrap();
+        let exercises = structure.exercises.unwrap();
+        assert_eq!(exercises.len(), 1);
+        assert_eq!(exercises[0].manual_laps.as_ref().unwrap().len(), 1);
     }
 
     #[test]
@@ -8979,7 +9868,7 @@ mod tests {
     #[test]
     fn reconciles_training_revisions_without_archive_order_precedence() {
         let harness = Harness::new();
-        let training_json = |modified: &str, duration: i64| {
+        let training_json = |modified: &str, duration: i64, lap_distance: i64| {
             format!(
                 r#"{{
                     "identifier":{{"id":"synthetic-session"}},
@@ -8987,15 +9876,28 @@ mod tests {
                     "modified":"{modified}",
                     "startTime":"2026-01-02T10:30:00",
                     "stopTime":"2026-01-02T11:30:00",
-                    "durationMillis":{duration}
+                    "durationMillis":{duration},
+                    "exercises":[{{
+                        "identifier":{{"id":"synthetic-exercise"}},
+                        "created":"2026-01-02T12:00:00.000",
+                        "modified":"{modified}",
+                        "startTime":"2026-01-02T10:30:00",
+                        "stopTime":"2026-01-02T11:30:00",
+                        "durationMillis":{duration},
+                        "laps":{{"laps":[{{
+                            "splitTimeMillis":0,
+                            "durationMillis":{duration},
+                            "distanceMeters":{lap_distance}
+                        }}]}}
+                    }}]
                 }}"#
             )
         };
-        let first_json = training_json("2026-01-02T12:05:00.000", 3_600_000);
+        let first_json = training_json("2026-01-02T12:05:00.000", 3_600_000, 100);
         let equivalent_json = first_json.clone();
-        let amended_json = training_json("2026-01-03T09:00:00.000", 3_700_000);
-        let older_json = training_json("2026-01-02T13:00:00.000", 3_500_000);
-        let conflict_json = training_json("2026-01-03T09:00:00.000", 3_800_000);
+        let amended_json = training_json("2026-01-03T09:00:00.000", 3_700_000, 200);
+        let older_json = training_json("2026-01-02T13:00:00.000", 3_500_000, 300);
+        let conflict_json = training_json("2026-01-03T09:00:00.000", 3_800_000, 400);
         let packages = [
             (
                 "first.zip",
@@ -9074,6 +9976,21 @@ mod tests {
         assert_eq!(
             connection
                 .query_row(
+                    "SELECT COUNT(*), MIN(distance_meters), MAX(distance_meters)
+                     FROM training_lap",
+                    [],
+                    |row| Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, f64>(1)?,
+                        row.get::<_, f64>(2)?,
+                    )),
+                )
+                .expect("visible amended lap"),
+            (1, 200.0, 200.0)
+        );
+        assert_eq!(
+            connection
+                .query_row(
                     "SELECT COUNT(*) FROM training_session_conflict",
                     [],
                     |row| { row.get::<_, i64>(0) }
@@ -9143,13 +10060,17 @@ mod tests {
             without_optionals.to_vec(),
         )
         .expect("minimal training summary");
-        assert_eq!(minimal.observation.utc_offset_minutes, None);
-        assert_eq!(minimal.observation.distance_meters, None);
-        assert_eq!(minimal.observation.energy_kilocalories, None);
-        assert_eq!(minimal.observation.average_heart_rate_bpm, None);
-        assert_eq!(minimal.observation.maximum_heart_rate_bpm, None);
-        assert_eq!(minimal.observation.sport_ref, None);
-        assert_eq!(minimal.observation.exercise_count, None);
+        assert_eq!(minimal.observation.summary.utc_offset_minutes, None);
+        assert_eq!(minimal.observation.summary.distance_meters, None);
+        assert_eq!(minimal.observation.summary.energy_kilocalories, None);
+        assert_eq!(minimal.observation.summary.average_heart_rate_bpm, None);
+        assert_eq!(minimal.observation.summary.maximum_heart_rate_bpm, None);
+        assert_eq!(minimal.observation.summary.sport_ref, None);
+        assert_eq!(minimal.observation.summary.exercise_count, None);
+        assert_eq!(
+            minimal.observation.structure,
+            Some(TrainingSessionStructure { exercises: None })
+        );
 
         let multiple = decode_training_session(
             "synthetic-origin",
@@ -9162,14 +10083,33 @@ mod tests {
                 "startTime":"2026-01-02T10:30:00.123000000",
                 "stopTime":"2026-01-02T11:40:00.123000000",
                 "durationMillis":4200000,
-                "exercises":[{"sport":{"id":"one"}},{"sport":{"id":"two"}}]
+                "exercises":[
+                    {
+                        "identifier":{"id":"exercise-one"},
+                        "created":"2026-01-02T12:00:00.123",
+                        "modified":"2026-01-02T12:05:00.123",
+                        "startTime":"2026-01-02T10:30:00.123",
+                        "stopTime":"2026-01-02T11:00:00.123",
+                        "durationMillis":1800000,
+                        "sport":{"id":"one"}
+                    },
+                    {
+                        "identifier":{"id":"exercise-two"},
+                        "created":"2026-01-02T12:00:00.123",
+                        "modified":"2026-01-02T12:05:00.123",
+                        "startTime":"2026-01-02T11:00:00.123",
+                        "stopTime":"2026-01-02T11:40:00.123",
+                        "durationMillis":2400000,
+                        "sport":{"id":"two"}
+                    }
+                ]
             }"#
             .to_vec(),
         )
         .expect("multiple-exercise training summary");
-        assert_eq!(multiple.observation.exercise_count, Some(2));
+        assert_eq!(multiple.observation.summary.exercise_count, Some(2));
         assert_eq!(
-            multiple.observation.started_at_local,
+            multiple.observation.summary.started_at_local,
             "2026-01-02T10:30:00.123"
         );
         assert_eq!(multiple.source_modified_at_utc, "2026-01-02T12:05:00.123");
@@ -9208,6 +10148,26 @@ mod tests {
             (
                 locator,
                 r#"{"identifier":{"id":"synthetic"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"exercises":{}}"#,
+                "invalid-supported-artifact",
+            ),
+            (
+                locator,
+                r#"{"identifier":{"id":"synthetic"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"exercises":[{"identifier":{"id":"duplicate"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:00:00","durationMillis":1800000},{"identifier":{"id":"duplicate"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T11:00:00","stopTime":"2026-01-02T11:30:00","durationMillis":1800000}]}"#,
+                "invalid-supported-artifact",
+            ),
+            (
+                locator,
+                r#"{"identifier":{"id":"synthetic"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"exercises":[{"identifier":{"id":"exercise"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T11:30:00","stopTime":"2026-01-02T10:30:00","durationMillis":3600000}]}"#,
+                "invalid-supported-artifact",
+            ),
+            (
+                locator,
+                r#"{"identifier":{"id":"synthetic"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"exercises":[{"identifier":{"id":"exercise"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"laps":{"laps":[{"splitTimeMillis":-1,"durationMillis":1800000}]}}]}"#,
+                "invalid-supported-artifact",
+            ),
+            (
+                locator,
+                r#"{"identifier":{"id":"synthetic"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"exercises":[{"identifier":{"id":"exercise"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"pauseTimes":[{"startTime":"2026-01-02T10:50:00","endTime":"2026-01-02T10:49:00"}]}]}"#,
                 "invalid-supported-artifact",
             ),
             (
@@ -10676,7 +11636,7 @@ mod tests {
     fn create_schema_baseline(connection: &Connection, version: i64) {
         let migrations = [
             SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8,
-            SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14,
+            SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15,
         ];
         for migration in migrations
             .iter()
@@ -10883,12 +11843,20 @@ mod tests {
             connection
                 .query_row(
                     "SELECT COUNT(*) FROM sqlite_schema
-                     WHERE type = 'table' AND name LIKE 'training_session%'",
+                     WHERE type = 'table' AND name IN (
+                         'training_session',
+                         'training_session_provenance',
+                         'training_session_conflict',
+                         'training_session_structure',
+                         'training_exercise',
+                         'training_lap',
+                         'training_pause'
+                     )",
                     [],
                     |row| row.get::<_, i64>(0),
                 )
                 .expect("training tables"),
-            3
+            7
         );
         assert_eq!(
             connection

@@ -52,14 +52,14 @@ An exact reimport does not duplicate canonical history. Fast reuse is allowed on
 Version 0.1.0 provides:
 
 - daily-activity overview, range, exact day detail, and period comparison;
-- complete-history training-session search with date, sport, authored-label, and measurement filters, stable pagination and sorting, lightweight exact session summary, and period comparison;
+- complete-history training-session search with date, sport, authored-label, and measurement filters, stable pagination and sorting, exact session summary, exercise/lap/pause structure, and period comparison;
 - primary-sleep overview, range, phases, timeline and score detail, and period comparison;
 - dated nightly-recovery overview, range, exact source-context detail, and period comparison; and
 - one provider-neutral longitudinal dashboard with a shared range, aligned exact day synopsis, navigation, and period comparison.
 
 Every visual has exact values or a table alternative. Missing and unavailable observations do not become zero. Histories from different opaque origins remain separate. The longitudinal view reports recorded co-occurrence only; it does not infer causation, readiness, diagnosis, or advice.
 
-Routes, full-resolution training and physiological samples, undated recovery samples, additional providers, portable normalized export, and user-controlled backup and restore are not included. Consult the [Polar Flow compatibility reference](../data-formats/providers/polar-flow.md) for the exact evaluated families and shapes.
+Routes, zones, training and physiological signal series, exact samples, undated recovery samples, additional providers, portable normalized export, and user-controlled backup and restore are not included. Consult the [Polar Flow compatibility reference](../data-formats/providers/polar-flow.md) for the exact evaluated families and shapes.
 
 ## Local data and privacy
 
