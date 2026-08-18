@@ -56,7 +56,7 @@ This registry is the public coverage index. Detailed shapes, fields, identities,
 | Daily activity | Daily summaries, activity samples, and inactivity events | Filename grammar, source-subject correlation, filename/content date consistency, duplicate-date rejection, and the documented shape-based canonical step-count mapping are supported; compatibility is limited to the evaluated structural matrix |
 | Continuous heart rate | Partitioned high-resolution daily heart-rate samples | Recognized and deliberately ignored because full-resolution physiological exploration is excluded from the MVP |
 | Beat-to-beat samples | Partitioned high-resolution physiological samples | Recognized and deliberately ignored because full-resolution physiological exploration is excluded from the MVP |
-| Training | Sessions, exercises, laps, zones, routes, and sample series | Session summaries are supported; routes, full-resolution samples, laps, zones, and nested exercise measurements are deliberately not persisted by summary mapping version 1 |
+| Training | Sessions, exercises, laps, zones, routes, and sample series | Session summaries, exercise/lap/pause structure, and primary and transition route waypoints are supported through training mapping version 3; zones and full-resolution signal series remain deliberately unmapped |
 | Planning | Calendar entries, targets, favorites, programs, and personal events | Recognized and unsupported |
 | Sleep | Sleep timing, phases, interruptions, continuity, and scores | Result and score arrays are supported by mapping version 1; compatibility remains limited to the evaluated split-artifact structure and documented API correspondence |
 | Recovery | Nightly recovery measurements, recommendations, and related physiological observations | Dated nightly-recovery summaries are specified for mapping version 1; the undated sample blob is deliberately excluded because no safe record relationship is established |
@@ -193,11 +193,20 @@ Evaluated exercise objects also correspond to the official nested `TrainingSessi
 | `exercises[].laps.laps[]` | Official and observed | optional object array | Source/manual laps with `splitTimeMillis`, `durationMillis`, and optional `distanceMeters`. |
 | `exercises[].laps.autoLaps[]` | Official and observed | optional object array | Automatic laps with the same supported measurement shape. |
 | `exercises[].pauseTimes[]` | Official and observed | optional object array | Ordered pauses with local `startTime` and `endTime`. |
+| `exercises[].routes` | Observed with official route correspondence | optional object | Container whose absence differs from a present object without route kinds. |
+| `exercises[].routes.route` | Observed with official route correspondence | optional object | Primary exercise route with a local `startTime` and ordered `wayPoints`. |
+| `exercises[].routes.transitionRoute` | Observed with official route correspondence | optional object | Separately attributed transition route in multisport-compatible source structure. |
+| route `.startTime` | Official correspondence and observed | required string in evaluated route objects | Source-local route start without an embedded offset in the evaluated representation. |
+| route `.wayPoints[]` | Official correspondence and observed | required ordered array in evaluated route objects | Recorded locations; an empty array is structurally valid for current mapping. |
+| `.wayPoints[].latitude` | Official correspondence and observed | required finite number | WGS84 latitude in degrees. |
+| `.wayPoints[].longitude` | Official correspondence and observed | required finite number | WGS84 longitude in degrees. |
+| `.wayPoints[].altitude` | Official correspondence and observed | optional finite number | Recorded altitude in metres. |
+| `.wayPoints[].elapsedMillis` | Observed | optional non-negative integer | Elapsed route offset in milliseconds; the API location model uses a duration-valued time field rather than this takeout field name. |
 
 Absent, present-empty, and populated nested collections occur as distinct structural states and are not
 interchangeable. The public API additionally defines optional names, notes, device and product references,
 feelings, coordinates, energy-source percentages, recovery time, targets, training benefit and load, tests,
-hills, comments, exercise statistics, zones, routes, and sample series. They remain outside the current
+hills, comments, exercise statistics, zones, and sample series. They remain outside the current
 mapping until their domain meaning, privacy boundary, relationship, and product use are specified.
 
 ### Relationships and variants
@@ -214,7 +223,7 @@ Polar documents an authenticated `/v4/data/sports/list` catalogue that resolves 
 
 Local start and stop values are parsed without using the computer's current time zone. The optional offset is preserved separately. When it is present, an absolute instant may be calculated as local time minus the documented offset; when it is absent, FitFreed must not invent an instant or a time zone. Calendar grouping uses the preserved local start date.
 
-Training-structure version 1 persists evaluated exercises, source/manual laps, automatic laps, and pauses while preserving collection absence. It deliberately does not persist `latitude`, `longitude`, nested route waypoints, interval samples, transition samples, RR samples, zones, notes, comments, physical information, device identifiers, or product metadata. Ignoring those fields is known loss, not evidence that the original ZIP lacks them. The archive member remains classified as supported when its current mapping contract passes; excluded nested content does not become a second successful artifact and is disclosed by the mapping contract.
+Training-structure version 1 persists evaluated exercises, source/manual laps, automatic laps, and pauses while preserving collection absence. Training-route version 1 separately persists primary and transition route waypoints so lightweight structure reads never load sensitive geometry. The current mapping deliberately does not persist standalone session or exercise `latitude` and `longitude`, interval samples, transition samples, RR samples, zones, notes, comments, physical information, device identifiers, or product metadata. Ignoring those fields is known loss, not evidence that the original ZIP lacks them. The archive member remains classified as supported when its current mapping contract passes; excluded nested content does not become a second successful artifact and is disclosed by the mapping contract.
 
 The normative transformation is specified in the [Polar Flow training-session mapping](../mappings/polar-flow-training-session.md). The provider reference remains descriptive evidence and does not define FitFreed behavior by itself.
 

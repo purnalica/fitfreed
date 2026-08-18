@@ -839,8 +839,8 @@ describe("packaged FitFreed import journey", () => {
         family: "Training sessions",
         classification: "Supported",
         count: "2",
-        reason: "The session summary is mapped; routes and full-resolution details stay only in the original ZIP.",
-        action: "Keep the original ZIP if you need the excluded training details.",
+        reason: "Session summaries, exercise structure, laps, pauses, and recorded routes are mapped; time-series signals and zones stay only in the original ZIP.",
+        action: "Keep the original ZIP if you need the excluded training signals.",
       },
     ]);
     await openHomeQuestion(
@@ -968,6 +968,35 @@ describe("packaged FitFreed import journey", () => {
       english.training.sessionLibrary.structureProvidedEmpty,
     );
     expect(await recordedCollections[2].$$("tbody tr")).toHaveLength(1);
+    await browser.waitUntil(async () => (await $$(".training-route")).length === 2, {
+      timeout: 10_000,
+      timeoutMsg: "recorded primary and transition routes were not displayed",
+    });
+    const recordedRoutes = await $$(".training-route");
+    await expect(recordedRoutes[0].$("h6")).toHaveText(
+      english.training.sessionLibrary.primaryRoute,
+    );
+    await expect(recordedRoutes[1].$("h6")).toHaveText(
+      english.training.sessionLibrary.transitionRoute,
+    );
+    await expect(recordedRoutes[0].$("svg")).toHaveAttribute(
+      "aria-label",
+      expect.stringContaining("5 recorded points"),
+    );
+    await expect(recordedRoutes[0].$(".training-route-privacy")).toHaveText(
+      expect.stringContaining(english.training.sessionLibrary.routePrivacy),
+    );
+    const exactRouteToggle = await recordedRoutes[0].$("button");
+    await exactRouteToggle.click();
+    await browser.waitUntil(
+      async () => (await recordedRoutes[0].$$(".training-route-exact tbody tr")).length === 5,
+      { timeout: 10_000, timeoutMsg: "exact recorded route points were not displayed" },
+    );
+    const exactRouteRows = await recordedRoutes[0].$$(".training-route-exact tbody tr");
+    await expect(exactRouteRows[0]).toHaveText(expect.stringContaining("40"));
+    await expect(exactRouteRows[4]).toHaveText(expect.stringContaining("40.04"));
+    await exactRouteToggle.click();
+    expect(await recordedRoutes[0].$$(".training-route-exact")).toHaveLength(0);
     await $("aria/Back to calendar").click();
     await $("aria/Chronology").click();
     await expectTrainingRows([
@@ -1269,7 +1298,7 @@ describe("packaged FitFreed import journey", () => {
         family: spanish.outcome.familyNames["polar-flow-training-session"],
         classification: spanish.outcome.familyClassifications.supported,
         count: "2",
-        ...spanish.outcome.coverageExplanations["mapped-summary"],
+        ...spanish.outcome.coverageExplanations["mapped-training-evidence"],
       },
     ]);
     await returnToLibraryHome(spanish);
@@ -2023,6 +2052,16 @@ describe("packaged FitFreed import journey", () => {
     );
     expect(spanishSourceLapCells).toHaveLength(4);
     await expect(spanishSourceLapCells[3]).toHaveText("5250 m");
+    await browser.waitUntil(async () => (await $$(".training-route")).length === 2, {
+      timeout: 10_000,
+      timeoutMsg: "localized recorded routes were not displayed",
+    });
+    await expect($(".training-route-primary h6")).toHaveText(
+      spanish.training.sessionLibrary.primaryRoute,
+    );
+    await expect($(".training-route-primary .training-route-privacy")).toHaveText(
+      expect.stringContaining(spanish.training.sessionLibrary.routePrivacy),
+    );
     const spanishTrainingDetailValues = await $$(`dl[aria-label="${spanish.training.sessionLibrary.summaryMeasurements}"] dd`);
     await expect(spanishTrainingDetailValues[5]).toHaveText("10.500 m");
     await expect(spanishTrainingDetailValues[7]).toHaveText("142 ppm");
@@ -2133,7 +2172,7 @@ describe("packaged FitFreed import journey", () => {
         family: spanish.outcome.familyNames["polar-flow-training-session"],
         classification: spanish.outcome.familyClassifications.supported,
         count: "2",
-        ...spanish.outcome.coverageExplanations["mapped-summary"],
+        ...spanish.outcome.coverageExplanations["mapped-training-evidence"],
       },
     ]);
     await goToHome("explore");

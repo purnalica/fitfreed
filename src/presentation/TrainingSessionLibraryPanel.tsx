@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
 import { type catalogs, type Locale } from "../locales/catalogs";
@@ -26,9 +26,50 @@ import type {
   TrainingLapStructure,
   TrainingSessionStructureResult,
 } from "./training-session-detail";
+import type {
+  TrainingRouteOverview,
+  TrainingRoutePoint,
+  TrainingRoutePointsResult,
+  TrainingSessionRoutesResult,
+} from "./training-session-route";
 import type { TrainingSport, TrainingSportsOverview } from "./training-sports";
 
 const PAGE_SIZE = 25;
+const ROUTE_VISUAL_POINT_LIMIT = 400;
+const EXACT_ROUTE_PAGE_SIZE = 100;
+
+function routeSvgPoints(points: TrainingRoutePoint[]): string {
+  if (points.length === 0) return "";
+  const unwrapped: Array<{ latitude: number; longitude: number }> = [];
+  points.forEach((point) => {
+    let longitude = point.longitudeDegrees;
+    const previous = unwrapped.at(-1)?.longitude;
+    if (previous !== undefined) {
+      while (longitude - previous > 180) longitude -= 360;
+      while (longitude - previous < -180) longitude += 360;
+    }
+    unwrapped.push({ latitude: point.latitudeDegrees, longitude });
+  });
+  const longitudes = unwrapped.map((point) => point.longitude);
+  const latitudes = unwrapped.map((point) => point.latitude);
+  const minimumLongitude = Math.min(...longitudes);
+  const maximumLongitude = Math.max(...longitudes);
+  const minimumLatitude = Math.min(...latitudes);
+  const maximumLatitude = Math.max(...latitudes);
+  const longitudeSpan = maximumLongitude - minimumLongitude;
+  const latitudeSpan = maximumLatitude - minimumLatitude;
+  const width = 592;
+  const height = 272;
+  return unwrapped.map((point) => {
+    const x = longitudeSpan === 0
+      ? 320
+      : 24 + (point.longitude - minimumLongitude) / longitudeSpan * width;
+    const y = latitudeSpan === 0
+      ? 160
+      : 24 + (maximumLatitude - point.latitude) / latitudeSpan * height;
+    return `${x.toFixed(2)},${y.toFixed(2)}`;
+  }).join(" ");
+}
 
 interface TrainingSessionLibraryPanelProps {
   locale: Locale;
@@ -162,6 +203,14 @@ export function TrainingSessionLibraryPanel({
   const [detailStructure, setDetailStructure] = useState<TrainingSessionStructureResult>();
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailFailed, setDetailFailed] = useState(false);
+  const [detailRoutes, setDetailRoutes] = useState<TrainingSessionRoutesResult>();
+  const [routesLoading, setRoutesLoading] = useState(false);
+  const [routesFailed, setRoutesFailed] = useState(false);
+  const [exactRouteRef, setExactRouteRef] = useState<string>();
+  const [exactRoutePoints, setExactRoutePoints] = useState<TrainingRoutePointsResult>();
+  const [exactRouteLoading, setExactRouteLoading] = useState(false);
+  const [exactRouteFailed, setExactRouteFailed] = useState(false);
+  const exactRequestSequence = useRef(0);
   const [detailOrigin, setDetailOrigin] = useState<SessionView>("chronology");
   const [comparison, setComparison] = useState<TrainingSessionSearchItem[]>([]);
   const copy = messages.training.sessionLibrary;
@@ -180,6 +229,10 @@ export function TrainingSessionLibraryPanel({
     timeZone: "UTC",
   }), [locale]);
   const textTooLong = [...draft.text.trim()].length > 80;
+  const coordinate = useMemo(() => new Intl.NumberFormat(locale, {
+    useGrouping: false,
+    maximumSignificantDigits: 17,
+  }), [locale]);
 
   async function query(
     criteria: SearchDraft,
@@ -356,6 +409,40 @@ export function TrainingSessionLibraryPanel({
       onError(commandErrorCode(reason));
     }).finally(() => {
       if (active) setDetailLoading(false);
+    });
+    return () => { active = false; };
+  }, [selected?.sessionRef, page?.snapshotRef, onError]);
+
+  useEffect(() => {
+    let active = true;
+    exactRequestSequence.current += 1;
+    setExactRouteRef(undefined);
+    setExactRoutePoints(undefined);
+    setExactRouteLoading(false);
+    setExactRouteFailed(false);
+    if (!selected || !page) {
+      setDetailRoutes(undefined);
+      setRoutesLoading(false);
+      setRoutesFailed(false);
+      return () => { active = false; };
+    }
+    setDetailRoutes(undefined);
+    setRoutesLoading(true);
+    setRoutesFailed(false);
+    void invoke<TrainingSessionRoutesResult>("query_training_session_routes", {
+      query: {
+        sessionRef: selected.sessionRef,
+        snapshotRef: page.snapshotRef,
+        maxVisualPoints: ROUTE_VISUAL_POINT_LIMIT,
+      },
+    }).then((result) => {
+      if (active) setDetailRoutes(result);
+    }).catch((reason) => {
+      if (!active) return;
+      setRoutesFailed(true);
+      onError(commandErrorCode(reason));
+    }).finally(() => {
+      if (active) setRoutesLoading(false);
     });
     return () => { active = false; };
   }, [selected?.sessionRef, page?.snapshotRef, onError]);
@@ -633,6 +720,204 @@ export function TrainingSessionLibraryPanel({
               </table>
             </div>
           )}
+      </section>
+    );
+  }
+
+  async function loadExactRoutePoints(routeRef: string, offset: number) {
+    if (!selected || !page) return;
+    const sequence = exactRequestSequence.current + 1;
+    exactRequestSequence.current = sequence;
+    setExactRouteRef(routeRef);
+    setExactRouteLoading(true);
+    setExactRouteFailed(false);
+    try {
+      const result = await invoke<TrainingRoutePointsResult>("query_training_route_points", {
+        query: {
+          sessionRef: selected.sessionRef,
+          routeRef,
+          snapshotRef: page.snapshotRef,
+          offset,
+          limit: EXACT_ROUTE_PAGE_SIZE,
+        },
+      });
+      if (exactRequestSequence.current === sequence) setExactRoutePoints(result);
+    } catch (reason) {
+      if (exactRequestSequence.current !== sequence) return;
+      setExactRouteFailed(true);
+      onError(commandErrorCode(reason));
+    } finally {
+      if (exactRequestSequence.current === sequence) setExactRouteLoading(false);
+    }
+  }
+
+  function toggleExactRoutePoints(routeRef: string) {
+    if (exactRouteRef === routeRef) {
+      exactRequestSequence.current += 1;
+      setExactRouteRef(undefined);
+      setExactRoutePoints(undefined);
+      setExactRouteLoading(false);
+      setExactRouteFailed(false);
+      return;
+    }
+    setExactRoutePoints(undefined);
+    void loadExactRoutePoints(routeRef, 0);
+  }
+
+  function routeCard(route: TrainingRouteOverview, exerciseOrdinal: number) {
+    const kind = route.kind === "primary" ? copy.primaryRoute : copy.transitionRoute;
+    const summary = interpolate(copy.routeVisualSummary, {
+      kind,
+      count: number.format(route.pointCount),
+    });
+    const svgPoints = routeSvgPoints(route.visualPoints);
+    const exactOpen = exactRouteRef === route.routeRef;
+    const pageFrom = exactRoutePoints && exactRoutePoints.points.length > 0
+      ? exactRoutePoints.offset + 1
+      : 0;
+    const pageThrough = exactRoutePoints
+      ? exactRoutePoints.offset + exactRoutePoints.points.length
+      : 0;
+    const pageStatus = exactRoutePoints && exactRoutePoints.points.length === 1
+      ? interpolate(copy.routePointPage, {
+        from: number.format(pageFrom),
+        total: number.format(exactRoutePoints.pointCount),
+      })
+      : exactRoutePoints ? interpolate(copy.routePointsPage, {
+        from: number.format(pageFrom),
+        through: number.format(pageThrough),
+        total: number.format(exactRoutePoints.pointCount),
+      }) : undefined;
+    const headingId = `training-route-${exerciseOrdinal}-${route.kind}`;
+    return (
+      <article className={`training-route training-route-${route.kind}`} key={route.routeRef}>
+        <h6 id={headingId}>{kind}</h6>
+        <div className="training-route-visual">
+          {route.visualPoints.length === 0 ? <p>{copy.routeEmpty}</p> : (
+            <svg viewBox="0 0 640 320" role="img" aria-label={summary}>
+              <title>{summary}</title>
+              <rect x="1" y="1" width="638" height="318" rx="18" />
+              {route.visualPoints.length === 1 ? (
+                <circle className="training-route-single" cx="320" cy="160" r="7" />
+              ) : (
+                <>
+                  <polyline points={svgPoints} />
+                  <circle className="training-route-start" cx={svgPoints.split(" ")[0]?.split(",")[0]} cy={svgPoints.split(" ")[0]?.split(",")[1]} r="6" />
+                  <circle className="training-route-end" cx={svgPoints.split(" ").at(-1)?.split(",")[0]} cy={svgPoints.split(" ").at(-1)?.split(",")[1]} r="6" />
+                </>
+              )}
+            </svg>
+          )}
+          {route.visualPoints.length === 1 && <p>{copy.routeSinglePoint}</p>}
+        </div>
+        <dl role="group" aria-label={kind}>
+          <div><dt>{copy.routeStart}</dt><dd>{formatTrainingDateTime(route.startedAtLocal, locale)}</dd></div>
+          <div><dt>{copy.routePointCount}</dt><dd>{number.format(route.pointCount)}</dd></div>
+          <div><dt>{copy.routeAltitudeCoverage}</dt><dd>{coverageLabel(route.altitudePointCount, route.pointCount)}</dd></div>
+          <div><dt>{copy.routeElapsedCoverage}</dt><dd>{coverageLabel(route.elapsedPointCount, route.pointCount)}</dd></div>
+        </dl>
+        <aside className="training-route-privacy">
+          <strong>{copy.routePrivacyHeading}</strong>
+          <p>{copy.routePrivacy}</p>
+        </aside>
+        <button
+          type="button"
+          className="secondary"
+          aria-expanded={exactOpen}
+          aria-controls={`${headingId}-exact`}
+          onClick={() => toggleExactRoutePoints(route.routeRef)}
+        >
+          {exactOpen ? copy.hideExactRoutePoints : copy.viewExactRoutePoints}
+        </button>
+        {exactOpen && (
+          <section
+            id={`${headingId}-exact`}
+            className="training-route-exact"
+            role="region"
+            aria-label={copy.exactRouteHeading}
+            aria-busy={exactRouteLoading}
+          >
+            <h6>{copy.exactRouteHeading}</h6>
+            {exactRouteLoading && <p role="status">{copy.exactRouteLoading}</p>}
+            {exactRouteFailed && <p role="alert">{copy.exactRouteFailed}</p>}
+            {exactRoutePoints && exactRoutePoints.routeRef === route.routeRef && (
+              <>
+                <p aria-live="polite">{pageStatus}</p>
+                <div className="training-table-scroll" tabIndex={0}>
+                  <table>
+                    <thead><tr>
+                      <th scope="col">{copy.routePointNumber}</th>
+                      <th scope="col">{copy.routeLatitude}</th>
+                      <th scope="col">{copy.routeLongitude}</th>
+                      <th scope="col">{copy.routeAltitude}</th>
+                      <th scope="col">{copy.routeElapsed}</th>
+                    </tr></thead>
+                    <tbody>{exactRoutePoints.points.map((point) => (
+                      <tr key={point.ordinal}>
+                        <th scope="row">{number.format(point.ordinal + 1)}</th>
+                        <td>{coordinate.format(point.latitudeDegrees)}</td>
+                        <td>{coordinate.format(point.longitudeDegrees)}</td>
+                        <td>{point.altitudeMeters === null
+                          ? copy.metricUnavailable
+                          : `${coordinate.format(point.altitudeMeters)} ${messages.training.units.meters}`}</td>
+                        <td>{point.elapsedMilliseconds === null
+                          ? copy.metricUnavailable
+                          : formatDuration(point.elapsedMilliseconds, locale, messages.training.durationUnits)}</td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+                <div className="training-route-pagination">
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={exactRouteLoading || exactRoutePoints.offset === 0}
+                    onClick={() => void loadExactRoutePoints(
+                      route.routeRef,
+                      Math.max(0, exactRoutePoints.offset - EXACT_ROUTE_PAGE_SIZE),
+                    )}
+                  >{copy.previousRoutePoints}</button>
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={exactRouteLoading || exactRoutePoints.nextOffset === null}
+                    onClick={() => void loadExactRoutePoints(
+                      route.routeRef,
+                      exactRoutePoints.nextOffset ?? exactRoutePoints.offset,
+                    )}
+                  >{copy.nextRoutePoints}</button>
+                </div>
+              </>
+            )}
+          </section>
+        )}
+      </article>
+    );
+  }
+
+  function exerciseRouteEvidence(exerciseRef: string, exerciseOrdinal: number) {
+    const assessed = detailRoutes?.routes?.exercises?.find(
+      (exercise) => exercise.exerciseRef === exerciseRef,
+    );
+    if (!assessed) return null;
+    if (assessed.routes === null) {
+      return (
+        <section className="training-exercise-routes">
+          <h5>{copy.routeHeading}</h5>
+          <p>{copy.routesNotProvided}</p>
+        </section>
+      );
+    }
+    const routes = [assessed.routes.primary, assessed.routes.transition].filter(
+      (route): route is TrainingRouteOverview => route !== null,
+    );
+    return (
+      <section className="training-exercise-routes">
+        <h5>{copy.routeHeading}</h5>
+        <p>{copy.routeIntro}</p>
+        {routes.length === 0
+          ? <p>{copy.routesProvidedEmpty}</p>
+          : routes.map((route) => routeCard(route, exerciseOrdinal))}
       </section>
     );
   }
@@ -1217,6 +1502,8 @@ export function TrainingSessionLibraryPanel({
             <p>{copy.structureIntro}</p>
             {detailLoading && <p role="status">{copy.structureLoading}</p>}
             {detailFailed && <p role="alert">{copy.structureFailed}</p>}
+            {routesLoading && <p role="status">{copy.routeLoading}</p>}
+            {routesFailed && <p role="alert">{copy.routeFailed}</p>}
             {!detailLoading && detailStructure?.structure === null && (
               <p>{copy.structureNotEvaluated}</p>
             )}
@@ -1225,6 +1512,15 @@ export function TrainingSessionLibraryPanel({
             )}
             {detailStructure?.structure?.exercises?.length === 0 && (
               <p>{copy.exercisesProvidedEmpty}</p>
+            )}
+            {!routesLoading && detailRoutes?.routes === null && (
+              <p>{copy.routeNotEvaluated}</p>
+            )}
+            {detailRoutes?.routes?.exercises === null && (
+              <p>{copy.routeExercisesNotProvided}</p>
+            )}
+            {detailRoutes?.routes?.exercises?.length === 0 && (
+              <p>{copy.routeExercisesProvidedEmpty}</p>
             )}
             {detailStructure?.structure?.exercises?.map((exercise) => (
               <article className="training-exercise" key={exercise.exerciseRef}>
@@ -1268,6 +1564,7 @@ export function TrainingSessionLibraryPanel({
                       </div>
                     )}
                 </section>
+                {exerciseRouteEvidence(exercise.exerciseRef, exercise.ordinal)}
               </article>
             ))}
             <aside className="training-structure-limitation">

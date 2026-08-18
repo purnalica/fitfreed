@@ -9,8 +9,10 @@ mod sport_classification_tests;
 
 mod training_session;
 pub use training_session::{
-    decide_training_session_record_reconciliation, TrainingExercise, TrainingLap, TrainingLapKind,
-    TrainingPause, TrainingSessionRecord, TrainingSessionStructure,
+    decide_training_session_record_reconciliation, TrainingExercise,
+    TrainingExerciseRouteAssessment, TrainingLap, TrainingLapKind, TrainingPause, TrainingRoute,
+    TrainingRouteKind, TrainingRoutePoint, TrainingRoutes, TrainingSessionRecord,
+    TrainingSessionRouteAssessment, TrainingSessionStructure,
 };
 
 #[cfg(test)]

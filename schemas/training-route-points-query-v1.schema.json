@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-route-points-query-v1.schema.json",
+  "title": "FitFreed exact training-route points query version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sessionRef", "routeRef", "snapshotRef", "offset", "limit"],
+  "properties": {
+    "sessionRef": { "type": "string", "pattern": "^session-[0-9a-f]{64}$" },
+    "routeRef": { "type": "string", "pattern": "^route-[0-9a-f]{64}$" },
+    "snapshotRef": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "string", "pattern": "^training-snapshot-[0-9a-f]{64}$" }
+      ]
+    },
+    "offset": { "type": "integer", "minimum": 0 },
+    "limit": { "type": "integer", "minimum": 1, "maximum": 250 }
+  }
+}

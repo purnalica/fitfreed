@@ -32,29 +32,33 @@ use zip::ZipArchive;
 use fitfreed_application::{
     clear_exploration_workspace, query_default_recovery_overview, query_default_sleep_overview,
     query_default_training_overview, query_library_home, query_longitudinal_overview,
-    query_recovery_detail, query_training_session_structure, query_training_sports,
-    save_exploration_workspace, save_training_sport_classification, AppearancePreference,
-    ApplicationError, LibraryDomain, LibraryHomeDateRange, LibraryHomeRequest, LibraryQuestion,
-    LibraryQuestionKind, LocalePreference, SaveSportClassificationRequest,
-    SportClassificationSaveOutcome,
+    query_recovery_detail, query_training_route_points, query_training_session_routes,
+    query_training_session_structure, query_training_sports, save_exploration_workspace,
+    save_training_sport_classification, AppearancePreference, ApplicationError, LibraryDomain,
+    LibraryHomeDateRange, LibraryHomeRequest, LibraryQuestion, LibraryQuestionKind,
+    LocalePreference, SaveSportClassificationRequest, SportClassificationSaveOutcome,
 };
 use fitfreed_application::{
     ActivityDateRange, ActivityLibraryPort, ApplicationPreferences, ApplicationPreferencesPort,
     ArchiveImportPort, DetectedTrainingSport, ExplorationWorkspace, ExplorationWorkspacePort,
     ExploreDestination, ImportOutcomeLibraryPort, ImportPhase, ImportPhaseTimings, ImportProgress,
-    PersistedTrainingSessionCalendar, PersistedTrainingSessionSearchPage,
-    PersistedTrainingSessionSelection, PersistedTrainingSessionStructure, ProfiledImport,
-    RecoveryDateRange, RecoveryLibraryNight, RecoveryLibraryPort, SleepDateRange,
-    SleepLibraryPeriod, SleepLibraryPort, StoredApplicationPreferences, StoredExplorationWorkspace,
-    TrainingDateRange, TrainingDiscoveryView, TrainingDiscoveryWorkspace,
-    TrainingDiscoveryWorkspacePort, TrainingExerciseStructure, TrainingLapStructure,
+    PersistedTrainingRoutePoints, PersistedTrainingSessionCalendar, PersistedTrainingSessionRoutes,
+    PersistedTrainingSessionSearchPage, PersistedTrainingSessionSelection,
+    PersistedTrainingSessionStructure, ProfiledImport, RecoveryDateRange, RecoveryLibraryNight,
+    RecoveryLibraryPort, SleepDateRange, SleepLibraryPeriod, SleepLibraryPort,
+    StoredApplicationPreferences, StoredExplorationWorkspace, TrainingDateRange,
+    TrainingDiscoveryView, TrainingDiscoveryWorkspace, TrainingDiscoveryWorkspacePort,
+    TrainingExerciseRoutesView, TrainingExerciseStructure, TrainingLapStructure,
     TrainingLibraryPort, TrainingMeasurementFilter, TrainingPauseStructure,
-    TrainingSessionCalendarDay, TrainingSessionCalendarRequest, TrainingSessionDiscoveryPort,
-    TrainingSessionDiscoveryPortError, TrainingSessionSearchItem, TrainingSessionSearchRequest,
-    TrainingSessionSearchSummary, TrainingSessionSelectionRequest, TrainingSessionSort,
-    TrainingSessionSport, TrainingSessionStructurePort, TrainingSessionStructurePortError,
-    TrainingSessionStructureQuery, TrainingSportClassification, TrainingSportState,
-    TrainingSportsPort, TrainingStructure,
+    TrainingRouteCollectionView, TrainingRouteKindView, TrainingRouteOverview,
+    TrainingRoutePointView, TrainingRoutePointsQuery, TrainingSessionCalendarDay,
+    TrainingSessionCalendarRequest, TrainingSessionDiscoveryPort,
+    TrainingSessionDiscoveryPortError, TrainingSessionRoutePort, TrainingSessionRoutePortError,
+    TrainingSessionRouteQuery, TrainingSessionRoutesView, TrainingSessionSearchItem,
+    TrainingSessionSearchRequest, TrainingSessionSearchSummary, TrainingSessionSelectionRequest,
+    TrainingSessionSort, TrainingSessionSport, TrainingSessionStructurePort,
+    TrainingSessionStructurePortError, TrainingSessionStructureQuery, TrainingSportClassification,
+    TrainingSportState, TrainingSportsPort, TrainingStructure,
 };
 use fitfreed_domain::{
     decide_nightly_recovery_reconciliation, decide_reconciliation,
@@ -64,9 +68,10 @@ use fitfreed_domain::{
     ReconciliationDecision, RevisionOrder, SleepPeriod, SleepPhaseSummary, SleepScore, SleepStage,
     SleepStageTransition, SourceSpecificRecoveryAssessment, SourceSpecificRecoveryBaseline,
     SourceSpecificRecoveryGuidance, SportClassification, SportClassificationAuthorship,
-    SportClassificationKey, SportClassificationState, SportFamily, TrainingExercise, TrainingLap,
-    TrainingLapKind, TrainingPause, TrainingSession, TrainingSessionRecord,
-    TrainingSessionStructure,
+    SportClassificationKey, SportClassificationState, SportFamily, TrainingExercise,
+    TrainingExerciseRouteAssessment, TrainingLap, TrainingLapKind, TrainingPause, TrainingRoute,
+    TrainingRouteKind, TrainingRoutePoint, TrainingRoutes, TrainingSession, TrainingSessionRecord,
+    TrainingSessionRouteAssessment, TrainingSessionStructure,
 };
 
 mod local_file;
@@ -123,7 +128,7 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 15;
+const SCHEMA_VERSION: i64 = 16;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
@@ -139,11 +144,12 @@ const SCHEMA_V12: &str = include_str!("../migrations/0012_sport_classification.s
 const SCHEMA_V13: &str = include_str!("../migrations/0013_training_session_discovery.sql");
 const SCHEMA_V14: &str = include_str!("../migrations/0014_training_discovery_workspace.sql");
 const SCHEMA_V15: &str = include_str!("../migrations/0015_training_session_structure.sql");
+const SCHEMA_V16: &str = include_str!("../migrations/0016_training_session_routes.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
-const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@7";
-const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@2";
+const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@8";
+const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@3";
 const DAILY_ACTIVITY_MAPPING_VERSION: &str = "polar-flow-daily-activity@1";
-const TRAINING_SESSION_MAPPING_VERSION: &str = "polar-flow-training-session@2";
+const TRAINING_SESSION_MAPPING_VERSION: &str = "polar-flow-training-session@3";
 const SLEEP_MAPPING_VERSION: &str = "polar-flow-sleep@1";
 const NIGHTLY_RECOVERY_MAPPING_VERSION: &str = "polar-flow-nightly-recovery@1";
 const NIGHTLY_RECOVERY_SCHEME: &str = "polar-nightly-recharge@1";
@@ -348,6 +354,8 @@ struct PolarTrainingExercise {
     laps: SourceOptional<PolarTrainingLaps>,
     #[serde(default)]
     pause_times: SourceOptional<Vec<PolarTrainingPause>>,
+    #[serde(default)]
+    routes: SourceOptional<PolarTrainingRoutes>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -373,6 +381,33 @@ struct PolarTrainingLap {
 struct PolarTrainingPause {
     start_time: String,
     end_time: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PolarTrainingRoutes {
+    #[serde(default)]
+    route: SourceOptional<PolarTrainingRoute>,
+    #[serde(default)]
+    transition_route: SourceOptional<PolarTrainingRoute>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PolarTrainingRoute {
+    start_time: String,
+    way_points: Vec<PolarTrainingRoutePoint>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PolarTrainingRoutePoint {
+    latitude: f64,
+    longitude: f64,
+    #[serde(default)]
+    altitude: SourceOptional<f64>,
+    #[serde(default)]
+    elapsed_millis: SourceOptional<i64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -2478,6 +2513,394 @@ fn query_training_session_structure_discovery(
     })
 }
 
+fn route_snapshot_and_identity(
+    transaction: &Transaction<'_>,
+    session_ref: &str,
+    expected_snapshot_ref: Option<&str>,
+) -> std::result::Result<(String, String, String), TrainingSessionRoutePortError> {
+    let revision = transaction
+        .query_row(
+            "SELECT revision FROM training_discovery_revision WHERE id = 1",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .map_err(training_route_failure)?;
+    if revision < 1 {
+        return Err(TrainingSessionRoutePortError::Failure(
+            "training discovery revision is invalid".to_owned(),
+        ));
+    }
+    let snapshot_ref = training_snapshot_ref(revision);
+    if expected_snapshot_ref.is_some_and(|expected| expected != snapshot_ref) {
+        return Err(TrainingSessionRoutePortError::SnapshotChanged);
+    }
+    let mut statement = transaction
+        .prepare(
+            "SELECT origin_id, session_id FROM training_session ORDER BY origin_id, session_id",
+        )
+        .map_err(training_route_failure)?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })
+        .map_err(training_route_failure)?;
+    for row in rows {
+        let (origin_id, session_id) = row.map_err(training_route_failure)?;
+        if training_session_ref(&origin_id, &session_id) == session_ref {
+            return Ok((snapshot_ref, origin_id, session_id));
+        }
+    }
+    Err(TrainingSessionRoutePortError::NotFound)
+}
+
+fn training_route_kind_view(kind: TrainingRouteKind) -> TrainingRouteKindView {
+    match kind {
+        TrainingRouteKind::Primary => TrainingRouteKindView::Primary,
+        TrainingRouteKind::Transition => TrainingRouteKindView::Transition,
+    }
+}
+
+fn query_training_route_overview_on(
+    transaction: &Transaction<'_>,
+    origin_id: &str,
+    session_id: &str,
+    exercise_id: &str,
+    kind: TrainingRouteKind,
+    max_visual_points: usize,
+) -> std::result::Result<Option<TrainingRouteOverview>, TrainingSessionRoutePortError> {
+    let kind_code = training_route_kind_code(kind);
+    let persisted = transaction
+        .query_row(
+            "SELECT started_at_local, point_count, altitude_point_count,
+                    elapsed_point_count
+             FROM training_route
+             WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3 AND kind = ?4",
+            params![origin_id, session_id, exercise_id, kind_code],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, i64>(2)?,
+                    row.get::<_, i64>(3)?,
+                ))
+            },
+        )
+        .optional()
+        .map_err(training_route_failure)?;
+    let Some((started_at_local, point_count, altitude_point_count, elapsed_point_count)) =
+        persisted
+    else {
+        return Ok(None);
+    };
+    let point_count = persisted_count(point_count, "training_route.point_count")
+        .map_err(training_route_failure)?;
+    let altitude_point_count =
+        persisted_count(altitude_point_count, "training_route.altitude_point_count")
+            .map_err(training_route_failure)?;
+    let elapsed_point_count =
+        persisted_count(elapsed_point_count, "training_route.elapsed_point_count")
+            .map_err(training_route_failure)?;
+    let selected_count = point_count.min(max_visual_points);
+    let selected_ordinals = (0..selected_count)
+        .map(|index| {
+            if selected_count <= 1 {
+                0
+            } else {
+                ((index as u128 * (point_count - 1) as u128) / (selected_count - 1) as u128)
+                    as usize
+            }
+        })
+        .collect::<Vec<_>>();
+    let visual_points = if selected_ordinals.is_empty() {
+        Vec::new()
+    } else {
+        let placeholders = (0..selected_ordinals.len())
+            .map(|_| "?")
+            .collect::<Vec<_>>()
+            .join(", ");
+        let sql = format!(
+            "SELECT ordinal, latitude_degrees, longitude_degrees, altitude_meters,
+                    elapsed_milliseconds
+             FROM training_route_point
+             WHERE origin_id = ? AND session_id = ? AND exercise_id = ? AND kind = ?
+               AND ordinal IN ({placeholders})
+             ORDER BY ordinal"
+        );
+        let mut values = vec![
+            Value::Text(origin_id.to_owned()),
+            Value::Text(session_id.to_owned()),
+            Value::Text(exercise_id.to_owned()),
+            Value::Text(kind_code.to_owned()),
+        ];
+        for ordinal in selected_ordinals {
+            values.push(Value::Integer(i64::try_from(ordinal).map_err(|_| {
+                TrainingSessionRoutePortError::Failure(
+                    "route point ordinal is too large".to_owned(),
+                )
+            })?));
+        }
+        let mut statement = transaction.prepare(&sql).map_err(training_route_failure)?;
+        let rows = statement
+            .query_map(params_from_iter(values), |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, f64>(1)?,
+                    row.get::<_, f64>(2)?,
+                    row.get::<_, Option<f64>>(3)?,
+                    row.get::<_, Option<i64>>(4)?,
+                ))
+            })
+            .map_err(training_route_failure)?;
+        rows.map(|row| {
+            let (
+                ordinal,
+                latitude_degrees,
+                longitude_degrees,
+                altitude_meters,
+                elapsed_milliseconds,
+            ) = row.map_err(training_route_failure)?;
+            Ok(TrainingRoutePointView {
+                ordinal: persisted_count(ordinal, "training_route_point.ordinal")
+                    .map_err(training_route_failure)?,
+                latitude_degrees,
+                longitude_degrees,
+                altitude_meters,
+                elapsed_milliseconds,
+            })
+        })
+        .collect::<std::result::Result<Vec<_>, TrainingSessionRoutePortError>>()?
+    };
+    Ok(Some(TrainingRouteOverview {
+        route_ref: training_route_ref(origin_id, session_id, exercise_id, kind),
+        kind: training_route_kind_view(kind),
+        started_at_local,
+        point_count,
+        altitude_point_count,
+        elapsed_point_count,
+        visual_points,
+    }))
+}
+
+fn query_training_session_routes_discovery(
+    database_path: &Path,
+    query: &TrainingSessionRouteQuery,
+) -> std::result::Result<PersistedTrainingSessionRoutes, TrainingSessionRoutePortError> {
+    let mut connection = Connection::open(database_path).map_err(training_route_failure)?;
+    ensure_schema(&connection).map_err(training_route_failure)?;
+    let transaction = connection.transaction().map_err(training_route_failure)?;
+    let (snapshot_ref, origin_id, session_id) = route_snapshot_and_identity(
+        &transaction,
+        &query.session_ref,
+        query.snapshot_ref.as_deref(),
+    )?;
+    let exercises_present = transaction
+        .query_row(
+            "SELECT exercises_present FROM training_session_route_assessment
+             WHERE origin_id = ?1 AND session_id = ?2",
+            params![origin_id, session_id],
+            |row| row.get::<_, i64>(0),
+        )
+        .optional()
+        .map_err(training_route_failure)?;
+    let routes = match exercises_present {
+        None => None,
+        Some(value)
+            if !persisted_training_flag(value, "route exercises_present")
+                .map_err(training_route_failure)? =>
+        {
+            Some(TrainingSessionRoutesView { exercises: None })
+        }
+        Some(_) => {
+            let mut statement = transaction
+                .prepare(
+                    "SELECT exercise_id, ordinal, routes_present
+                     FROM training_exercise_route_assessment
+                     WHERE origin_id = ?1 AND session_id = ?2
+                     ORDER BY ordinal",
+                )
+                .map_err(training_route_failure)?;
+            let rows = statement
+                .query_map(params![origin_id, session_id], |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, i64>(2)?,
+                    ))
+                })
+                .map_err(training_route_failure)?;
+            let mut exercises = Vec::new();
+            for row in rows {
+                let (exercise_id, ordinal, routes_present) = row.map_err(training_route_failure)?;
+                let routes = if persisted_training_flag(routes_present, "routes_present")
+                    .map_err(training_route_failure)?
+                {
+                    Some(TrainingRouteCollectionView {
+                        primary: query_training_route_overview_on(
+                            &transaction,
+                            &origin_id,
+                            &session_id,
+                            &exercise_id,
+                            TrainingRouteKind::Primary,
+                            query.max_visual_points,
+                        )?,
+                        transition: query_training_route_overview_on(
+                            &transaction,
+                            &origin_id,
+                            &session_id,
+                            &exercise_id,
+                            TrainingRouteKind::Transition,
+                            query.max_visual_points,
+                        )?,
+                    })
+                } else {
+                    None
+                };
+                exercises.push(TrainingExerciseRoutesView {
+                    exercise_ref: training_exercise_ref(&origin_id, &session_id, &exercise_id),
+                    ordinal: persisted_count(ordinal, "training exercise route ordinal")
+                        .map_err(training_route_failure)?,
+                    routes,
+                });
+            }
+            drop(statement);
+            Some(TrainingSessionRoutesView {
+                exercises: Some(exercises),
+            })
+        }
+    };
+    transaction.commit().map_err(training_route_failure)?;
+    Ok(PersistedTrainingSessionRoutes {
+        snapshot_ref,
+        session_ref: query.session_ref.clone(),
+        routes,
+    })
+}
+
+fn query_training_route_points_discovery(
+    database_path: &Path,
+    query: &TrainingRoutePointsQuery,
+) -> std::result::Result<PersistedTrainingRoutePoints, TrainingSessionRoutePortError> {
+    let mut connection = Connection::open(database_path).map_err(training_route_failure)?;
+    ensure_schema(&connection).map_err(training_route_failure)?;
+    let transaction = connection.transaction().map_err(training_route_failure)?;
+    let (snapshot_ref, origin_id, session_id) = route_snapshot_and_identity(
+        &transaction,
+        &query.session_ref,
+        query.snapshot_ref.as_deref(),
+    )?;
+    let mut route_statement = transaction
+        .prepare(
+            "SELECT exercise_id, kind, point_count
+             FROM training_route
+             WHERE origin_id = ?1 AND session_id = ?2
+             ORDER BY exercise_id, kind",
+        )
+        .map_err(training_route_failure)?;
+    let route_rows = route_statement
+        .query_map(params![origin_id, session_id], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, i64>(2)?,
+            ))
+        })
+        .map_err(training_route_failure)?;
+    let mut identity = None;
+    for row in route_rows {
+        let (exercise_id, kind, point_count) = row.map_err(training_route_failure)?;
+        let kind = match kind.as_str() {
+            "primary" => TrainingRouteKind::Primary,
+            "transition" => TrainingRouteKind::Transition,
+            _ => {
+                return Err(TrainingSessionRoutePortError::Failure(
+                    "stored route kind is invalid".to_owned(),
+                ))
+            }
+        };
+        if training_route_ref(&origin_id, &session_id, &exercise_id, kind) == query.route_ref {
+            identity = Some((
+                exercise_id,
+                kind,
+                persisted_count(point_count, "training_route.point_count")
+                    .map_err(training_route_failure)?,
+            ));
+            break;
+        }
+    }
+    drop(route_statement);
+    let (exercise_id, kind, point_count) =
+        identity.ok_or(TrainingSessionRoutePortError::NotFound)?;
+    let offset = i64::try_from(query.offset).map_err(|_| {
+        TrainingSessionRoutePortError::Failure("route point offset is too large".to_owned())
+    })?;
+    let limit = i64::try_from(query.limit).map_err(|_| {
+        TrainingSessionRoutePortError::Failure("route point limit is too large".to_owned())
+    })?;
+    let mut statement = transaction
+        .prepare(
+            "SELECT ordinal, latitude_degrees, longitude_degrees, altitude_meters,
+                    elapsed_milliseconds
+             FROM training_route_point
+             WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3 AND kind = ?4
+             ORDER BY ordinal
+             LIMIT ?5 OFFSET ?6",
+        )
+        .map_err(training_route_failure)?;
+    let rows = statement
+        .query_map(
+            params![
+                origin_id,
+                session_id,
+                exercise_id,
+                training_route_kind_code(kind),
+                limit,
+                offset
+            ],
+            |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, f64>(1)?,
+                    row.get::<_, f64>(2)?,
+                    row.get::<_, Option<f64>>(3)?,
+                    row.get::<_, Option<i64>>(4)?,
+                ))
+            },
+        )
+        .map_err(training_route_failure)?;
+    let points = rows
+        .map(|row| {
+            let (
+                ordinal,
+                latitude_degrees,
+                longitude_degrees,
+                altitude_meters,
+                elapsed_milliseconds,
+            ) = row.map_err(training_route_failure)?;
+            Ok(TrainingRoutePointView {
+                ordinal: persisted_count(ordinal, "training_route_point.ordinal")
+                    .map_err(training_route_failure)?,
+                latitude_degrees,
+                longitude_degrees,
+                altitude_meters,
+                elapsed_milliseconds,
+            })
+        })
+        .collect::<std::result::Result<Vec<_>, TrainingSessionRoutePortError>>()?;
+    drop(statement);
+    let next_offset =
+        (query.offset + points.len() < point_count).then_some(query.offset + points.len());
+    transaction.commit().map_err(training_route_failure)?;
+    Ok(PersistedTrainingRoutePoints {
+        snapshot_ref,
+        session_ref: query.session_ref.clone(),
+        route_ref: query.route_ref.clone(),
+        point_count,
+        offset: query.offset,
+        points,
+        next_offset,
+    })
+}
+
 fn query_training_bounds_on(connection: &Connection) -> Result<Option<TrainingDateRange>> {
     let (from, through) = connection.query_row(
         "SELECT substr(MIN(started_at_local), 1, 10),
@@ -2757,12 +3180,34 @@ fn training_pause_ref(
     format!("pause-{:x}", digest.finalize())
 }
 
+fn training_route_ref(
+    origin_id: &str,
+    session_id: &str,
+    exercise_id: &str,
+    kind: TrainingRouteKind,
+) -> String {
+    let mut digest = Sha256::new();
+    digest.update(b"fitfreed:training-route:v1\0");
+    digest.update(origin_id.as_bytes());
+    digest.update(b"\0");
+    digest.update(session_id.as_bytes());
+    digest.update(b"\0");
+    digest.update(exercise_id.as_bytes());
+    digest.update(b"\0");
+    digest.update(training_route_kind_code(kind).as_bytes());
+    format!("route-{:x}", digest.finalize())
+}
+
 fn discovery_failure(error: impl std::fmt::Display) -> TrainingSessionDiscoveryPortError {
     TrainingSessionDiscoveryPortError::Failure(error.to_string())
 }
 
 fn training_detail_failure(error: impl std::fmt::Display) -> TrainingSessionStructurePortError {
     TrainingSessionStructurePortError::Failure(error.to_string())
+}
+
+fn training_route_failure(error: impl std::fmt::Display) -> TrainingSessionRoutePortError {
+    TrainingSessionRoutePortError::Failure(error.to_string())
 }
 
 pub fn query_detected_training_sports(database_path: &Path) -> Result<Vec<DetectedTrainingSport>> {
@@ -3688,7 +4133,10 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         if version < 14 {
             connection.execute_batch(SCHEMA_V14)?;
         }
-        connection.execute_batch(SCHEMA_V15)?;
+        if version < 15 {
+            connection.execute_batch(SCHEMA_V15)?;
+        }
+        connection.execute_batch(SCHEMA_V16)?;
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
         }
@@ -4621,15 +5069,23 @@ fn map_training_laps(
         .transpose()
 }
 
+struct MappedTrainingExercises {
+    structure: Option<Vec<TrainingExercise>>,
+    routes: Option<Vec<TrainingExerciseRouteAssessment>>,
+}
+
 fn map_training_exercises(
     source: SourceOptional<Vec<PolarTrainingExercise>>,
     artifact: &str,
-) -> Result<Option<Vec<TrainingExercise>>> {
-    source
-        .into_option()
-        .map(|exercises| {
+) -> Result<MappedTrainingExercises> {
+    match source.into_option() {
+        None => Ok(MappedTrainingExercises {
+            structure: None,
+            routes: None,
+        }),
+        Some(exercises) => {
             let mut exercise_ids = BTreeSet::new();
-            exercises
+            let mapped = exercises
                 .into_iter()
                 .enumerate()
                 .map(|(ordinal, exercise)| {
@@ -4646,6 +5102,7 @@ fn map_training_exercises(
                         sport,
                         laps,
                         pause_times,
+                        routes,
                     } = exercise;
                     if identifier.id.trim().is_empty()
                         || !exercise_ids.insert(identifier.id.clone())
@@ -4749,24 +5206,118 @@ fn map_training_exercises(
                                 .collect()
                         })
                         .transpose()?;
-                    Ok(TrainingExercise {
-                        exercise_id: identifier.id,
+                    let route_assessment = TrainingExerciseRouteAssessment {
+                        exercise_id: identifier.id.clone(),
                         ordinal,
-                        started_at_local,
-                        stopped_at_local,
-                        utc_offset_minutes: timezone_offset_minutes.into_option(),
-                        duration_milliseconds: duration_millis,
-                        distance_meters,
-                        energy_kilocalories,
-                        sport_ref,
-                        manual_laps,
-                        automatic_laps,
-                        pauses,
-                    })
+                        routes: map_training_routes(routes, artifact)?,
+                    };
+                    Ok((
+                        TrainingExercise {
+                            exercise_id: identifier.id,
+                            ordinal,
+                            started_at_local,
+                            stopped_at_local,
+                            utc_offset_minutes: timezone_offset_minutes.into_option(),
+                            duration_milliseconds: duration_millis,
+                            distance_meters,
+                            energy_kilocalories,
+                            sport_ref,
+                            manual_laps,
+                            automatic_laps,
+                            pauses,
+                        },
+                        route_assessment,
+                    ))
                 })
-                .collect()
+                .collect::<Result<Vec<_>>>()?;
+            let (exercises, routes) = mapped.into_iter().unzip();
+            Ok(MappedTrainingExercises {
+                structure: Some(exercises),
+                routes: Some(routes),
+            })
+        }
+    }
+}
+
+fn map_training_routes(
+    source: SourceOptional<PolarTrainingRoutes>,
+    artifact: &str,
+) -> Result<Option<TrainingRoutes>> {
+    source
+        .into_option()
+        .map(|routes| {
+            Ok(TrainingRoutes {
+                primary: routes
+                    .route
+                    .into_option()
+                    .map(|route| map_training_route(route, TrainingRouteKind::Primary, artifact))
+                    .transpose()?,
+                transition: routes
+                    .transition_route
+                    .into_option()
+                    .map(|route| map_training_route(route, TrainingRouteKind::Transition, artifact))
+                    .transpose()?,
+            })
         })
         .transpose()
+}
+
+fn map_training_route(
+    source: PolarTrainingRoute,
+    kind: TrainingRouteKind,
+    artifact: &str,
+) -> Result<TrainingRoute> {
+    let (_, started_at_local) =
+        parse_source_datetime(&source.start_time, "routes route.startTime", artifact)?;
+    let mut previous_elapsed = None;
+    let points = source
+        .way_points
+        .into_iter()
+        .enumerate()
+        .map(|(ordinal, point)| {
+            if !point.latitude.is_finite()
+                || !(-90.0..=90.0).contains(&point.latitude)
+                || !point.longitude.is_finite()
+                || !(-180.0..=180.0).contains(&point.longitude)
+            {
+                return Err(invalid_training_artifact(
+                    artifact,
+                    "route coordinates are outside the documented range",
+                ));
+            }
+            let altitude_meters = point.altitude.into_option();
+            if altitude_meters.is_some_and(|value| !value.is_finite()) {
+                return Err(invalid_training_artifact(
+                    artifact,
+                    "route altitude is not finite",
+                ));
+            }
+            let elapsed_milliseconds = point.elapsed_millis.into_option();
+            if elapsed_milliseconds.is_some_and(|value| {
+                value < 0 || previous_elapsed.is_some_and(|previous| value < previous)
+            }) {
+                return Err(invalid_training_artifact(
+                    artifact,
+                    "route elapsed offsets are negative or unordered",
+                ));
+            }
+            if let Some(elapsed) = elapsed_milliseconds {
+                previous_elapsed = Some(elapsed);
+            }
+            Ok(TrainingRoutePoint {
+                ordinal,
+                latitude_degrees: point.latitude,
+                longitude_degrees: point.longitude,
+                altitude_meters,
+                elapsed_milliseconds,
+            })
+        })
+        .collect::<Result<_>>()?;
+    Ok(TrainingRoute {
+        kind,
+        started_at_local,
+        points,
+    })
 }
 
 fn map_training_session(
@@ -4862,7 +5413,10 @@ fn map_training_session(
         ));
     }
 
-    let exercises = map_training_exercises(exercises, artifact)?;
+    let MappedTrainingExercises {
+        structure: exercises,
+        routes: route_exercises,
+    } = map_training_exercises(exercises, artifact)?;
     let exercise_count = exercises.as_ref().map(Vec::len);
     Ok((
         TrainingSessionRecord {
@@ -4881,6 +5435,9 @@ fn map_training_session(
                 exercise_count,
             },
             structure: Some(TrainingSessionStructure { exercises }),
+            routes: Some(TrainingSessionRouteAssessment {
+                exercises: route_exercises,
+            }),
         },
         source_modified_at_utc,
     ))
@@ -5903,6 +6460,197 @@ fn query_training_session_structure_on(
     }))
 }
 
+fn training_route_kind_code(kind: TrainingRouteKind) -> &'static str {
+    match kind {
+        TrainingRouteKind::Primary => "primary",
+        TrainingRouteKind::Transition => "transition",
+    }
+}
+
+fn query_training_route_on(
+    connection: &Connection,
+    origin_id: &str,
+    session_id: &str,
+    exercise_id: &str,
+    kind: TrainingRouteKind,
+) -> Result<Option<TrainingRoute>> {
+    let kind_code = training_route_kind_code(kind);
+    let route = connection
+        .query_row(
+            "SELECT started_at_local, point_count, altitude_point_count,
+                    elapsed_point_count
+             FROM training_route
+             WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3 AND kind = ?4",
+            params![origin_id, session_id, exercise_id, kind_code],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, i64>(2)?,
+                    row.get::<_, i64>(3)?,
+                ))
+            },
+        )
+        .optional()?;
+    let Some((started_at_local, point_count, altitude_point_count, elapsed_point_count)) = route
+    else {
+        return Ok(None);
+    };
+    let point_count = persisted_count(point_count, "training_route.point_count")?;
+    let altitude_point_count =
+        persisted_count(altitude_point_count, "training_route.altitude_point_count")?;
+    let elapsed_point_count =
+        persisted_count(elapsed_point_count, "training_route.elapsed_point_count")?;
+    let mut statement = connection.prepare(
+        "SELECT ordinal, latitude_degrees, longitude_degrees, altitude_meters,
+                elapsed_milliseconds
+         FROM training_route_point
+         WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3 AND kind = ?4
+         ORDER BY ordinal",
+    )?;
+    let rows = statement.query_map(
+        params![origin_id, session_id, exercise_id, kind_code],
+        |row| {
+            Ok((
+                row.get::<_, i64>(0)?,
+                row.get::<_, f64>(1)?,
+                row.get::<_, f64>(2)?,
+                row.get::<_, Option<f64>>(3)?,
+                row.get::<_, Option<i64>>(4)?,
+            ))
+        },
+    )?;
+    let mut points = Vec::new();
+    let mut previous_elapsed_milliseconds = None;
+    for row in rows {
+        let (ordinal, latitude_degrees, longitude_degrees, altitude_meters, elapsed_milliseconds) =
+            row?;
+        let ordinal = persisted_count(ordinal, "training_route_point.ordinal")?;
+        if ordinal != points.len() {
+            return Err(ImportError::InvalidTrainingLibrary(
+                "training route point ordinals are not contiguous".to_owned(),
+            ));
+        }
+        if !latitude_degrees.is_finite()
+            || !(-90.0..=90.0).contains(&latitude_degrees)
+            || !longitude_degrees.is_finite()
+            || !(-180.0..=180.0).contains(&longitude_degrees)
+            || altitude_meters.is_some_and(|value| !value.is_finite())
+            || elapsed_milliseconds.is_some_and(|value| value < 0)
+            || previous_elapsed_milliseconds
+                .zip(elapsed_milliseconds)
+                .is_some_and(|(previous, current)| current < previous)
+        {
+            return Err(ImportError::InvalidTrainingLibrary(
+                "training route point evidence is invalid".to_owned(),
+            ));
+        }
+        if elapsed_milliseconds.is_some() {
+            previous_elapsed_milliseconds = elapsed_milliseconds;
+        }
+        points.push(TrainingRoutePoint {
+            ordinal,
+            latitude_degrees,
+            longitude_degrees,
+            altitude_meters,
+            elapsed_milliseconds,
+        });
+    }
+    if points.len() != point_count
+        || points
+            .iter()
+            .filter(|point| point.altitude_meters.is_some())
+            .count()
+            != altitude_point_count
+        || points
+            .iter()
+            .filter(|point| point.elapsed_milliseconds.is_some())
+            .count()
+            != elapsed_point_count
+    {
+        return Err(ImportError::InvalidTrainingLibrary(
+            "training route point counts are inconsistent".to_owned(),
+        ));
+    }
+    Ok(Some(TrainingRoute {
+        kind,
+        started_at_local,
+        points,
+    }))
+}
+
+fn query_training_session_routes_on(
+    connection: &Connection,
+    origin_id: &str,
+    session_id: &str,
+) -> Result<Option<TrainingSessionRouteAssessment>> {
+    let exercises_present = connection
+        .query_row(
+            "SELECT exercises_present FROM training_session_route_assessment
+             WHERE origin_id = ?1 AND session_id = ?2",
+            params![origin_id, session_id],
+            |row| row.get::<_, i64>(0),
+        )
+        .optional()?;
+    let Some(exercises_present) = exercises_present else {
+        return Ok(None);
+    };
+    if !persisted_training_flag(exercises_present, "route exercises_present")? {
+        return Ok(Some(TrainingSessionRouteAssessment { exercises: None }));
+    }
+    let mut statement = connection.prepare(
+        "SELECT exercise_id, ordinal, routes_present
+         FROM training_exercise_route_assessment
+         WHERE origin_id = ?1 AND session_id = ?2
+         ORDER BY ordinal",
+    )?;
+    let rows = statement.query_map(params![origin_id, session_id], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, i64>(1)?,
+            row.get::<_, i64>(2)?,
+        ))
+    })?;
+    let mut exercises = Vec::new();
+    for row in rows {
+        let (exercise_id, ordinal, routes_present) = row?;
+        let ordinal = persisted_count(ordinal, "training exercise route ordinal")?;
+        if ordinal != exercises.len() {
+            return Err(ImportError::InvalidTrainingLibrary(
+                "training exercise route ordinals are not contiguous".to_owned(),
+            ));
+        }
+        let routes = persisted_training_flag(routes_present, "routes_present")?
+            .then(|| -> Result<_> {
+                Ok(TrainingRoutes {
+                    primary: query_training_route_on(
+                        connection,
+                        origin_id,
+                        session_id,
+                        &exercise_id,
+                        TrainingRouteKind::Primary,
+                    )?,
+                    transition: query_training_route_on(
+                        connection,
+                        origin_id,
+                        session_id,
+                        &exercise_id,
+                        TrainingRouteKind::Transition,
+                    )?,
+                })
+            })
+            .transpose()?;
+        exercises.push(TrainingExerciseRouteAssessment {
+            exercise_id,
+            ordinal,
+            routes,
+        });
+    }
+    Ok(Some(TrainingSessionRouteAssessment {
+        exercises: Some(exercises),
+    }))
+}
+
 fn replace_training_session_structure(
     transaction: &Transaction<'_>,
     record: &TrainingSessionRecord,
@@ -6015,6 +6763,144 @@ fn replace_training_session_structure(
     Ok(())
 }
 
+fn delete_training_session_routes(
+    transaction: &Transaction<'_>,
+    summary: &TrainingSession,
+) -> Result<()> {
+    transaction.execute(
+        "DELETE FROM training_route_point WHERE origin_id = ?1 AND session_id = ?2",
+        params![summary.origin_id, summary.session_id],
+    )?;
+    transaction.execute(
+        "DELETE FROM training_route WHERE origin_id = ?1 AND session_id = ?2",
+        params![summary.origin_id, summary.session_id],
+    )?;
+    transaction.execute(
+        "DELETE FROM training_exercise_route_assessment
+         WHERE origin_id = ?1 AND session_id = ?2",
+        params![summary.origin_id, summary.session_id],
+    )?;
+    transaction.execute(
+        "DELETE FROM training_session_route_assessment
+         WHERE origin_id = ?1 AND session_id = ?2",
+        params![summary.origin_id, summary.session_id],
+    )?;
+    Ok(())
+}
+
+fn insert_training_session_routes(
+    transaction: &Transaction<'_>,
+    record: &TrainingSessionRecord,
+) -> Result<()> {
+    let summary = &record.summary;
+    let Some(assessment) = &record.routes else {
+        return Ok(());
+    };
+    transaction.execute(
+        "INSERT INTO training_session_route_assessment (
+             origin_id, session_id, exercises_present, mapping_version
+         ) VALUES (?1, ?2, ?3, ?4)",
+        params![
+            summary.origin_id,
+            summary.session_id,
+            assessment.exercises.is_some(),
+            TRAINING_SESSION_MAPPING_VERSION,
+        ],
+    )?;
+    let Some(exercises) = &assessment.exercises else {
+        return Ok(());
+    };
+    for exercise in exercises {
+        transaction.execute(
+            "INSERT INTO training_exercise_route_assessment (
+                 origin_id, session_id, exercise_id, ordinal, routes_present
+             ) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![
+                summary.origin_id,
+                summary.session_id,
+                exercise.exercise_id,
+                exercise.ordinal,
+                exercise.routes.is_some(),
+            ],
+        )?;
+        let Some(routes) = &exercise.routes else {
+            continue;
+        };
+        for route in [&routes.primary, &routes.transition].into_iter().flatten() {
+            let kind = training_route_kind_code(route.kind);
+            let point_count = i64::try_from(route.points.len()).map_err(|_| {
+                invalid_training_artifact("canonical route", "route point count is too large")
+            })?;
+            let altitude_point_count = i64::try_from(
+                route
+                    .points
+                    .iter()
+                    .filter(|point| point.altitude_meters.is_some())
+                    .count(),
+            )
+            .map_err(|_| {
+                invalid_training_artifact("canonical route", "route altitude count is too large")
+            })?;
+            let elapsed_point_count = i64::try_from(
+                route
+                    .points
+                    .iter()
+                    .filter(|point| point.elapsed_milliseconds.is_some())
+                    .count(),
+            )
+            .map_err(|_| {
+                invalid_training_artifact("canonical route", "route elapsed count is too large")
+            })?;
+            transaction.execute(
+                "INSERT INTO training_route (
+                     origin_id, session_id, exercise_id, kind, started_at_local,
+                     point_count, altitude_point_count, elapsed_point_count
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                params![
+                    summary.origin_id,
+                    summary.session_id,
+                    exercise.exercise_id,
+                    kind,
+                    route.started_at_local,
+                    point_count,
+                    altitude_point_count,
+                    elapsed_point_count,
+                ],
+            )?;
+            for point in &route.points {
+                transaction.execute(
+                    "INSERT INTO training_route_point (
+                         origin_id, session_id, exercise_id, kind, ordinal,
+                         latitude_degrees, longitude_degrees, altitude_meters,
+                         elapsed_milliseconds
+                     ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                    params![
+                        summary.origin_id,
+                        summary.session_id,
+                        exercise.exercise_id,
+                        kind,
+                        point.ordinal,
+                        point.latitude_degrees,
+                        point.longitude_degrees,
+                        point.altitude_meters,
+                        point.elapsed_milliseconds,
+                    ],
+                )?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn replace_training_session_evidence(
+    transaction: &Transaction<'_>,
+    record: &TrainingSessionRecord,
+) -> Result<()> {
+    delete_training_session_routes(transaction, &record.summary)?;
+    replace_training_session_structure(transaction, record)?;
+    insert_training_session_routes(transaction, record)
+}
+
 fn reconcile_training_session(
     transaction: &Transaction<'_>,
     operation_id: i64,
@@ -6074,6 +6960,11 @@ fn reconcile_training_session(
                         &summary.origin_id,
                         &summary.session_id,
                     )?,
+                    routes: query_training_session_routes_on(
+                        transaction,
+                        &summary.origin_id,
+                        &summary.session_id,
+                    )?,
                     summary,
                 },
             ))
@@ -6125,11 +7016,11 @@ fn reconcile_training_session(
                     exercise_count,
                 ],
             )?;
-            replace_training_session_structure(transaction, incoming)?;
+            replace_training_session_evidence(transaction, incoming)?;
         }
         ReconciliationDecision::Equivalent | ReconciliationDecision::Preserve => {}
         ReconciliationDecision::Enrich => {
-            replace_training_session_structure(transaction, incoming)?;
+            replace_training_session_evidence(transaction, incoming)?;
         }
         ReconciliationDecision::Amend => {
             transaction.execute(
@@ -6162,7 +7053,7 @@ fn reconcile_training_session(
                     exercise_count,
                 ],
             )?;
-            replace_training_session_structure(transaction, incoming)?;
+            replace_training_session_evidence(transaction, incoming)?;
         }
         ReconciliationDecision::Conflict => {
             let existing_source_modified_at_utc = &existing
@@ -7343,6 +8234,22 @@ impl TrainingSessionStructurePort for SqliteTrainingLibrary {
     }
 }
 
+impl TrainingSessionRoutePort for SqliteTrainingLibrary {
+    fn query_training_session_routes(
+        &self,
+        query: &TrainingSessionRouteQuery,
+    ) -> std::result::Result<PersistedTrainingSessionRoutes, TrainingSessionRoutePortError> {
+        query_training_session_routes_discovery(&self.database_path, query)
+    }
+
+    fn query_training_route_points(
+        &self,
+        query: &TrainingRoutePointsQuery,
+    ) -> std::result::Result<PersistedTrainingRoutePoints, TrainingSessionRoutePortError> {
+        query_training_route_points_discovery(&self.database_path, query)
+    }
+}
+
 impl TrainingDiscoveryWorkspacePort for SqliteTrainingLibrary {
     fn load_training_discovery_workspace(
         &self,
@@ -8139,7 +9046,7 @@ mod tests {
     }
 
     #[test]
-    fn imports_supported_training_structure_without_persisting_routes_or_samples() {
+    fn imports_structure_and_routes_without_persisting_unmapped_samples() {
         let harness = Harness::new();
         let archive = harness.archive(
             "training-summary.zip",
@@ -8186,7 +9093,25 @@ mod tests {
                             "startTime":"2026-01-02T10:50:00",
                             "endTime":"2026-01-02T10:51:00"
                         }],
-                        "routes":{"route":{"startTime":"2026-01-02T10:30:00","wayPoints":[{"latitude":12.5,"longitude":-4.5,"elapsedMillis":0}]}},
+                        "routes":{
+                            "route":{
+                                "startTime":"2026-01-02T10:30:00",
+                                "wayPoints":[
+                                    {"latitude":40.00,"longitude":-3.00,"altitude":650.0,"elapsedMillis":0},
+                                    {"latitude":40.01,"longitude":-3.01,"elapsedMillis":1000},
+                                    {"latitude":40.02,"longitude":-3.02,"altitude":652.0,"elapsedMillis":2000},
+                                    {"latitude":40.03,"longitude":-3.03,"altitude":653.0},
+                                    {"latitude":40.04,"longitude":-3.04,"altitude":654.0,"elapsedMillis":4000}
+                                ]
+                            },
+                            "transitionRoute":{
+                                "startTime":"2026-01-02T11:25:00",
+                                "wayPoints":[
+                                    {"latitude":41.00,"longitude":-4.00,"elapsedMillis":0},
+                                    {"latitude":41.01,"longitude":-4.01,"elapsedMillis":500}
+                                ]
+                            }
+                        },
                         "samples":{"samples":[{"type":"HEART_RATE","values":[120,121]}]}
                     }]
                     }"#,
@@ -8248,18 +9173,21 @@ mod tests {
         assert_eq!(overview.series.len(), 1);
         assert_eq!(overview.series[0].summary.session_count, 1);
         assert_eq!(overview.series[0].sessions.len(), 1);
-        let structure = query_training_session_structure(
+        let session_ref = training_session_ref(&history[0].origin_id, "synthetic-session");
+        let structure_result = query_training_session_structure(
             &library,
             TrainingSessionStructureQuery {
-                session_ref: training_session_ref(&history[0].origin_id, "synthetic-session"),
+                session_ref: session_ref.clone(),
                 snapshot_ref: None,
             },
         )
-        .expect("training structure read model")
-        .structure
-        .expect("evaluated structure")
-        .exercises
-        .expect("source exercise collection");
+        .expect("training structure read model");
+        let snapshot_ref = structure_result.snapshot_ref.clone();
+        let structure = structure_result
+            .structure
+            .expect("evaluated structure")
+            .exercises
+            .expect("source exercise collection");
         assert_eq!(structure.len(), 1);
         let exercise = &structure[0];
         assert_eq!(exercise.ordinal, 0);
@@ -8274,6 +9202,64 @@ mod tests {
         assert_eq!(exercise.automatic_laps.as_ref().unwrap().len(), 1);
         assert_eq!(exercise.pauses.as_ref().unwrap().len(), 1);
 
+        let routes = query_training_session_routes(
+            &library,
+            TrainingSessionRouteQuery {
+                session_ref: session_ref.clone(),
+                snapshot_ref: Some(snapshot_ref.clone()),
+                max_visual_points: 3,
+            },
+        )
+        .expect("training route overview")
+        .routes
+        .expect("evaluated routes")
+        .exercises
+        .expect("route exercise collection");
+        assert_eq!(routes.len(), 1);
+        assert_eq!(routes[0].exercise_ref, exercise.exercise_ref);
+        let route_collection = routes[0].routes.as_ref().expect("route container");
+        let primary = route_collection.primary.as_ref().expect("primary route");
+        assert_eq!(primary.point_count, 5);
+        assert_eq!(primary.altitude_point_count, 4);
+        assert_eq!(primary.elapsed_point_count, 4);
+        assert_eq!(
+            primary
+                .visual_points
+                .iter()
+                .map(|point| point.ordinal)
+                .collect::<Vec<_>>(),
+            vec![0, 2, 4]
+        );
+        assert_eq!(
+            route_collection
+                .transition
+                .as_ref()
+                .expect("transition route")
+                .point_count,
+            2
+        );
+        let exact = query_training_route_points(
+            &library,
+            TrainingRoutePointsQuery {
+                session_ref,
+                route_ref: primary.route_ref.clone(),
+                snapshot_ref: Some(snapshot_ref),
+                offset: 1,
+                limit: 2,
+            },
+        )
+        .expect("exact route page");
+        assert_eq!(
+            exact
+                .points
+                .iter()
+                .map(|point| point.ordinal)
+                .collect::<Vec<_>>(),
+            vec![1, 2]
+        );
+        assert_eq!(exact.next_offset, Some(3));
+        assert_eq!(exact.points[0].latitude_degrees, 40.01);
+
         let connection = Connection::open(harness.database()).expect("database");
         let table_names = connection
             .prepare("SELECT name FROM sqlite_schema WHERE type = 'table' ORDER BY name")
@@ -8282,9 +9268,33 @@ mod tests {
             .expect("table rows")
             .collect::<std::result::Result<Vec<_>, _>>()
             .expect("table names");
-        assert!(!table_names.iter().any(|name| {
-            name.contains("route") || name.contains("sample") || name.contains("waypoint")
-        }));
+        assert!(table_names.iter().any(|name| name == "training_route"));
+        assert!(table_names
+            .iter()
+            .any(|name| name == "training_route_point"));
+        assert!(!table_names.iter().any(|name| name.contains("sample")));
+
+        connection
+            .execute(
+                "UPDATE training_route_point
+                 SET elapsed_milliseconds = 3000
+                 WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3
+                   AND kind = 'primary' AND ordinal = 1",
+                params![
+                    &history[0].origin_id,
+                    "synthetic-session",
+                    "synthetic-exercise"
+                ],
+            )
+            .expect("corrupt elapsed ordering");
+        assert!(matches!(
+            query_training_session_routes_on(
+                &connection,
+                &history[0].origin_id,
+                "synthetic-session",
+            ),
+            Err(ImportError::InvalidTrainingLibrary(_))
+        ));
     }
 
     #[test]
@@ -8316,7 +9326,14 @@ mod tests {
                             "laps":{"laps":[{
                                 "splitTimeMillis":0,
                                 "durationMillis":1800000
-                            }]}
+                            }]},
+                            "routes":{"route":{
+                                "startTime":"2026-01-02T10:30:00",
+                                "wayPoints":[
+                                    {"latitude":35.0,"longitude":-5.0,"elapsedMillis":0},
+                                    {"latitude":35.1,"longitude":-5.1,"elapsedMillis":1000}
+                                ]
+                            }}
                         }]
                     }"#,
                 ),
@@ -8328,18 +9345,18 @@ mod tests {
         connection
             .execute_batch(
                 "PRAGMA foreign_keys = ON;
-                 DELETE FROM training_pause;
-                 DELETE FROM training_lap;
-                 DELETE FROM training_exercise;
-                 DELETE FROM training_session_structure;
+                 DELETE FROM training_route_point;
+                 DELETE FROM training_route;
+                 DELETE FROM training_exercise_route_assessment;
+                 DELETE FROM training_session_route_assessment;
                  UPDATE import_operation
-                 SET source_adapter_version = 'polar-flow-archive@6',
-                     mapping_version = 'polar-flow-mapping-set@1';
+                 SET source_adapter_version = 'polar-flow-archive@7',
+                     mapping_version = 'polar-flow-mapping-set@2';
                  UPDATE training_session_provenance
-                 SET source_adapter_version = 'polar-flow-archive@6',
-                     mapping_version = 'polar-flow-training-session@1';",
+                 SET source_adapter_version = 'polar-flow-archive@7',
+                     mapping_version = 'polar-flow-training-session@2';",
             )
-            .expect("simulate version-one persisted library");
+            .expect("simulate version-two persisted library");
         drop(connection);
 
         let enriched =
@@ -8360,6 +9377,28 @@ mod tests {
         let exercises = structure.exercises.unwrap();
         assert_eq!(exercises.len(), 1);
         assert_eq!(exercises[0].manual_laps.as_ref().unwrap().len(), 1);
+        let routes = query_training_session_routes_on(
+            &Connection::open(harness.database()).unwrap(),
+            &query_training_sessions(&harness.database()).unwrap()[0].origin_id,
+            "synthetic-upgrade-session",
+        )
+        .unwrap()
+        .unwrap()
+        .exercises
+        .unwrap();
+        assert_eq!(routes.len(), 1);
+        assert_eq!(
+            routes[0]
+                .routes
+                .as_ref()
+                .unwrap()
+                .primary
+                .as_ref()
+                .unwrap()
+                .points
+                .len(),
+            2
+        );
     }
 
     #[test]
@@ -10071,6 +11110,10 @@ mod tests {
             minimal.observation.structure,
             Some(TrainingSessionStructure { exercises: None })
         );
+        assert_eq!(
+            minimal.observation.routes,
+            Some(TrainingSessionRouteAssessment { exercises: None })
+        );
 
         let multiple = decode_training_session(
             "synthetic-origin",
@@ -10168,6 +11211,16 @@ mod tests {
             (
                 locator,
                 r#"{"identifier":{"id":"synthetic"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"exercises":[{"identifier":{"id":"exercise"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"pauseTimes":[{"startTime":"2026-01-02T10:50:00","endTime":"2026-01-02T10:49:00"}]}]}"#,
+                "invalid-supported-artifact",
+            ),
+            (
+                locator,
+                r#"{"identifier":{"id":"synthetic"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"exercises":[{"identifier":{"id":"exercise"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"routes":{"route":{"startTime":"2026-01-02T10:30:00","wayPoints":[{"latitude":91,"longitude":0}]}}}]}"#,
+                "invalid-supported-artifact",
+            ),
+            (
+                locator,
+                r#"{"identifier":{"id":"synthetic"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"exercises":[{"identifier":{"id":"exercise"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"routes":{"route":{"startTime":"2026-01-02T10:30:00","wayPoints":[{"latitude":40,"longitude":-3,"elapsedMillis":2000},{"latitude":40.1,"longitude":-3.1,"elapsedMillis":1000}]}}}]}"#,
                 "invalid-supported-artifact",
             ),
             (

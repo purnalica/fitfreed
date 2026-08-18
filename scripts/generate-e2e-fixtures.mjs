@@ -10,6 +10,29 @@ const uuidA = "11111111-2222-4333-8444-555555555555";
 const uuidB = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
 const uuidC = "12345678-90ab-4cde-8f01-234567890abc";
 const syntheticUsername = "fixture-primary-claim";
+
+function recordedOutdoorRoutes() {
+  return {
+    route: {
+      startTime: "2026-01-04T06:15:00",
+      wayPoints: [
+        { latitude: 40, longitude: -3, altitude: 650, elapsedMillis: 0 },
+        { latitude: 40.01, longitude: -3.01, altitude: 652, elapsedMillis: 900_000 },
+        { latitude: 40.02, longitude: -3.02, altitude: 655, elapsedMillis: 1_800_000 },
+        { latitude: 40.03, longitude: -3.03, altitude: 653, elapsedMillis: 2_700_000 },
+        { latitude: 40.04, longitude: -3.04, altitude: 648, elapsedMillis: 3_600_000 },
+      ],
+    },
+    transitionRoute: {
+      startTime: "2026-01-04T07:14:00",
+      wayPoints: [
+        { latitude: 40.04, longitude: -3.04, elapsedMillis: 0 },
+        { latitude: 40.041, longitude: -3.041, elapsedMillis: 60_000 },
+      ],
+    },
+  };
+}
+
 function trainingSession({
   id,
   created,
@@ -239,6 +262,7 @@ await createArchive("valid.zip", [
           startTime: "2026-01-04T06:45:00",
           endTime: "2026-01-04T06:46:00",
         }],
+        routes: recordedOutdoorRoutes(),
       }],
     }),
   ],
@@ -317,6 +341,7 @@ await createArchive("overlap.zip", [
           startTime: "2026-01-04T06:45:00",
           endTime: "2026-01-04T06:46:00",
         }],
+        routes: recordedOutdoorRoutes(),
       }],
     }),
   ],

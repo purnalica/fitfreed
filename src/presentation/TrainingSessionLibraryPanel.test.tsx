@@ -11,6 +11,10 @@ import type {
   TrainingSessionSearchRequest,
 } from "./training-session-search";
 import type { TrainingSessionStructureResult } from "./training-session-detail";
+import type {
+  TrainingRoutePointsResult,
+  TrainingSessionRoutesResult,
+} from "./training-session-route";
 import { TrainingSessionLibraryPanel } from "./TrainingSessionLibraryPanel";
 import type { TrainingSportsOverview } from "./training-sports";
 
@@ -28,6 +32,21 @@ function emptyWorkspaceCommand(command: string, arguments_: unknown) {
   if (command === "query_training_session_structure") {
     const query = (arguments_ as { query: { sessionRef: string } }).query;
     return Promise.resolve(trainingStructure(query.sessionRef));
+  }
+  if (command === "query_training_session_routes") {
+    const query = (arguments_ as { query: { sessionRef: string } }).query;
+    return Promise.resolve(trainingRoutes(query.sessionRef));
+  }
+  if (command === "query_training_route_points") {
+    const query = (arguments_ as {
+      query: { sessionRef: string; routeRef: string; offset: number; limit: number };
+    }).query;
+    return Promise.resolve(trainingRoutePoints(
+      query.sessionRef,
+      query.routeRef,
+      query.offset,
+      query.limit,
+    ));
   }
   return undefined;
 }
@@ -163,6 +182,65 @@ function trainingStructure(sessionRef: string): TrainingSessionStructureResult {
         pauses: null,
       }],
     },
+  };
+}
+
+const primaryRouteRef = `route-${"5".repeat(64)}`;
+const primaryRoutePoints = Array.from({ length: 101 }, (_, ordinal) => ({
+  ordinal,
+  latitudeDegrees: 40 + ordinal / 1_000,
+  longitudeDegrees: -3 - ordinal / 1_000,
+  altitudeMeters: ordinal % 2 === 0 ? 650 + ordinal : null,
+  elapsedMilliseconds: String(ordinal * 1_000),
+}));
+
+function trainingRoutes(sessionRef: string): TrainingSessionRoutesResult {
+  return {
+    snapshotRef,
+    sessionRef,
+    routes: {
+      exercises: [{
+        exerciseRef: `exercise-${"1".repeat(64)}`,
+        ordinal: 0,
+        routes: {
+          primary: {
+            routeRef: primaryRouteRef,
+            kind: "primary",
+            startedAtLocal: "2026-08-18T07:30:00",
+            pointCount: primaryRoutePoints.length,
+            altitudePointCount: 51,
+            elapsedPointCount: primaryRoutePoints.length,
+            projection: "source-ordinal-v1",
+            visualPoints: primaryRoutePoints,
+          },
+          transition: null,
+        },
+      }, {
+        exerciseRef: `exercise-${"4".repeat(64)}`,
+        ordinal: 1,
+        routes: null,
+      }],
+    },
+  };
+}
+
+function trainingRoutePoints(
+  sessionRef: string,
+  routeRef: string,
+  offset: number,
+  limit: number,
+): TrainingRoutePointsResult {
+  const points = primaryRoutePoints.slice(offset, offset + limit);
+  return {
+    snapshotRef,
+    sessionRef,
+    routeRef,
+    pointCount: primaryRoutePoints.length,
+    offset,
+    points,
+    nextOffset: offset + points.length < primaryRoutePoints.length
+      ? offset + points.length
+      : null,
   };
 }
 
@@ -486,6 +564,31 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(within(firstExercise!).getByRole("heading", { name: "Source laps" })).toBeVisible();
     expect(within(firstExercise!).getByRole("heading", { name: "Automatic laps" })).toBeVisible();
     expect(within(firstExercise!).getByRole("heading", { name: "Pauses" })).toBeVisible();
+    expect(await within(firstExercise!).findByRole("heading", { name: "Primary route" }))
+      .toBeVisible();
+    expect(within(firstExercise!).getByRole("img", {
+      name: /Primary route with 101 recorded points/,
+    })).toBeVisible();
+    expect(firstExercise).toHaveTextContent("Route geometry stays on this device");
+    await user.click(within(firstExercise!).getByRole("button", {
+      name: "Inspect exact recorded points",
+    }));
+    const exactRegion = await within(firstExercise!).findByRole("region", {
+      name: "Exact recorded route points",
+    });
+    expect(within(exactRegion).getAllByRole("row")).toHaveLength(101);
+    expect(exactRegion).toHaveTextContent("40");
+    expect(exactRegion).toHaveTextContent("-3");
+    await user.click(within(exactRegion).getByRole("button", { name: "Next route points" }));
+    expect(await within(exactRegion).findByText("Point 101 of 101")).toBeVisible();
+    await user.click(within(exactRegion).getByRole("button", { name: "Previous route points" }));
+    expect(await within(exactRegion).findByText("Points 1–100 of 101")).toBeVisible();
+    await user.click(within(firstExercise!).getByRole("button", {
+      name: "Hide exact recorded points",
+    }));
+    expect(within(firstExercise!).queryByRole("region", {
+      name: "Exact recorded route points",
+    })).not.toBeInTheDocument();
     expect(detail).toHaveTextContent("5,000.25 m");
     expect(detail).toHaveTextContent("Provided by the source with no entries.");
     expect(detail).not.toHaveTextContent("exercise-");
@@ -682,6 +785,9 @@ describe("TrainingSessionLibraryPanel", () => {
       }
       if (command === "query_training_session_structure") {
         return Promise.resolve(trainingStructure(arguments_.query.sessionRef));
+      }
+      if (command === "query_training_session_routes") {
+        return Promise.resolve(trainingRoutes(arguments_.query.sessionRef));
       }
       throw new Error(`Unexpected command: ${command}`);
     });

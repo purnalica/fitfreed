@@ -419,6 +419,26 @@ th:last-child, td:last-child { text-align: right; }
 .training-structure-collection table { min-width: 520px; }
 .training-structure-limitation { margin-top: 22px; padding: 14px 16px; color: var(--ink-soft); background: var(--accent-soft); border-left: 4px solid var(--accent); border-radius: 10px; }
 .training-structure-limitation p { margin: 4px 0 0; }
+.training-exercise-routes { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+.training-exercise-routes > h5 { margin: 0 0 5px; font-size: .95rem; }
+.training-exercise-routes > p { margin: 0; color: var(--muted); }
+.training-route { margin-top: 16px; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.training-route > h6,
+.training-route-exact > h6 { margin: 0 0 10px; font-size: .9rem; }
+.training-route-visual svg { display: block; width: 100%; min-height: 180px; max-height: 340px; }
+.training-route-visual rect { fill: var(--surface-soft); stroke: var(--line); }
+.training-route-visual polyline { fill: none; stroke: var(--accent); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.training-route-transition .training-route-visual polyline { stroke-dasharray: 10 8; }
+.training-route-start { fill: var(--surface); stroke: var(--accent); stroke-width: 4; vector-effect: non-scaling-stroke; }
+.training-route-end,
+.training-route-single { fill: var(--accent); stroke: var(--surface); stroke-width: 3; vector-effect: non-scaling-stroke; }
+.training-route-visual > p { color: var(--muted); }
+.training-route dl { margin: 14px 0; }
+.training-route-privacy { margin: 14px 0; padding: 12px 14px; background: var(--accent-soft); border-left: 4px solid var(--accent); border-radius: 8px; }
+.training-route-privacy p { margin: 4px 0 0; color: var(--ink-soft); }
+.training-route-exact { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+.training-route-exact table { min-width: 720px; }
+.training-route-pagination { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; }
 .training-comparison { margin-top: 32px; padding-top: 28px; border-top: 1px solid var(--line); }
 .training-comparison > div:first-child h2 { margin: 0 0 5px; }
 .training-comparison > div:first-child p { margin: 0; color: var(--muted); }

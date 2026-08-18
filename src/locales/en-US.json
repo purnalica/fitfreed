@@ -304,8 +304,42 @@
       "structureProvidedEmpty": "Provided by the source with no entries.",
       "structureNumber": "Number",
       "structureSplit": "Elapsed at start",
+      "routeHeading": "Recorded routes",
+      "routeIntro": "Trace the movement recorded for each exercise and inspect every original coordinate when you need exact evidence.",
+      "routeLoading": "Loading recorded routes…",
+      "routeFailed": "Recorded routes could not be loaded from your local library.",
+      "routeNotEvaluated": "This session was imported before routes were evaluated. Reimport its source archive to enrich it without creating a duplicate.",
+      "routeExercisesNotProvided": "The source did not provide exercises from which routes could be assessed.",
+      "routeExercisesProvidedEmpty": "The source provided no exercises from which routes could be assessed.",
+      "routesNotProvided": "The source did not provide a route container for this exercise.",
+      "routesProvidedEmpty": "The source provided a route container without a primary or transition route.",
+      "primaryRoute": "Primary route",
+      "transitionRoute": "Transition route",
+      "routeVisualSummary": "{kind} with {count} recorded points. Neutral local trace without map tiles.",
+      "routeStart": "Route start",
+      "routePointCount": "Recorded points",
+      "routeAltitudeCoverage": "Altitude values",
+      "routeElapsedCoverage": "Elapsed-time values",
+      "routeEmpty": "The route contains no recorded points.",
+      "routeSinglePoint": "The route contains one recorded location; no segment has been invented.",
+      "routePrivacyHeading": "Route geometry stays on this device",
+      "routePrivacy": "This trace uses local SVG only. It does not contact a tile service, geocoder, or any other external location service.",
+      "viewExactRoutePoints": "Inspect exact recorded points",
+      "hideExactRoutePoints": "Hide exact recorded points",
+      "exactRouteHeading": "Exact recorded route points",
+      "exactRouteLoading": "Loading exact route points…",
+      "exactRouteFailed": "Exact route points could not be loaded from your local library.",
+      "routePointNumber": "Point",
+      "routeLatitude": "Latitude",
+      "routeLongitude": "Longitude",
+      "routeAltitude": "Altitude",
+      "routeElapsed": "Elapsed time",
+      "routePointsPage": "Points {from}–{through} of {total}",
+      "routePointPage": "Point {from} of {total}",
+      "previousRoutePoints": "Previous route points",
+      "nextRoutePoints": "Next route points",
       "structureLimitationsHeading": "Current evidence boundary",
-      "structureLimitations": "Route geometry, time-series signals, zones, and exact samples remain in the source archive but are not yet inspectable in this build. FitFreed does not infer or fabricate them."
+      "structureLimitations": "Time-series signals, zones, and exact signal samples remain in the source archive but are not yet inspectable in this build. FitFreed does not infer or fabricate them."
     },
     "sports": {
       "heading": "Your sports",
@@ -736,9 +770,9 @@
         "reason": "The data is mapped into the current library.",
         "action": "No action is needed."
       },
-      "mapped-summary": {
-        "reason": "The session summary is mapped; routes and full-resolution details stay only in the original ZIP.",
-        "action": "Keep the original ZIP if you need the excluded training details."
+      "mapped-training-evidence": {
+        "reason": "Session summaries, exercise structure, laps, pauses, and recorded routes are mapped; time-series signals and zones stay only in the original ZIP.",
+        "action": "Keep the original ZIP if you need the excluded training signals."
       },
       "mapped-sleep-periods": {
         "reason": "Sleep periods, phases, and interruptions are mapped; alarm behavior and source-only metadata stay only in the original ZIP.",

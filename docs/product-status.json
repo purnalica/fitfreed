@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-08-18",
+  "updated": "2026-08-19",
   "statuses": [
     {
       "key": "available",
@@ -10,11 +10,12 @@
         "Polar Flow ZIP validation and import",
         "Explicit supported, ignored, and unrecognized coverage",
         "Safe exact and cumulative reimport",
-        "Provider-neutral SQLite history for activity, training summaries, sleep, and recovery",
+        "Provider-neutral SQLite history for activity, training summaries, structure, routes, sleep, and recovery",
         "Bounded visual comparison and longitudinal context",
         "User-authored sport classification and complete-history session search",
         "Chronology, source-separated calendar discovery, session comparison, and restart restoration",
         "Recorded exercise, mixed-sport, source-lap, automatic-lap, and pause inspection",
+        "Private local primary and transition route traces with paginated exact points",
         "Question-led Library Home, post-import reveal, and resumable exploration",
         "First-run Sources home with offline export guidance and allowlisted official links",
         "Durable language, appearance, and content zoom settings",
@@ -30,7 +31,7 @@
       "label": "Active experience work",
       "title": "The experience being shaped",
       "items": [
-        "Routes, temporal signals, exact samples, provenance, and user-authored session segmentation",
+        "Temporal signals, zones, exact signal samples, provenance, and user-authored session segmentation",
         "Origin-aware navigation across discovery, session, and report workspaces",
         "Saved evidence reports with self-contained HTML export",
         "A coherent, evaluated, documented macOS product journey"

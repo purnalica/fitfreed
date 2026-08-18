@@ -48,11 +48,23 @@ pub use training_detail::{
     TrainingSessionStructureResult, TrainingStructure,
 };
 
+mod training_route;
+pub use training_route::{
+    query_training_route_points, query_training_session_routes, PersistedTrainingRoutePoints,
+    PersistedTrainingSessionRoutes, TrainingExerciseRoutesView, TrainingRouteCollectionView,
+    TrainingRouteKindView, TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
+    TrainingRoutePointsResult, TrainingSessionRoutePort, TrainingSessionRoutePortError,
+    TrainingSessionRouteQuery, TrainingSessionRoutesResult, TrainingSessionRoutesView,
+};
+
 #[cfg(test)]
 mod training_discovery_tests;
 
 #[cfg(test)]
 mod training_detail_tests;
+
+#[cfg(test)]
+mod training_route_tests;
 
 #[cfg(test)]
 mod sport_discovery_tests;

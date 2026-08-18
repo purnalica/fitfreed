@@ -304,8 +304,42 @@
       "structureProvidedEmpty": "Proporcionado por el origen sin elementos.",
       "structureNumber": "Número",
       "structureSplit": "Tiempo transcurrido al inicio",
+      "routeHeading": "Rutas registradas",
+      "routeIntro": "Sigue el movimiento registrado para cada ejercicio y consulta cada coordenada original cuando necesites evidencia exacta.",
+      "routeLoading": "Cargando las rutas registradas…",
+      "routeFailed": "No se han podido cargar las rutas registradas desde tu biblioteca local.",
+      "routeNotEvaluated": "Esta sesión se importó antes de evaluar las rutas. Vuelve a importar su archivo de origen para enriquecerla sin crear un duplicado.",
+      "routeExercisesNotProvided": "El origen no proporcionó ejercicios a partir de los cuales se pudieran evaluar rutas.",
+      "routeExercisesProvidedEmpty": "El origen no proporcionó ningún ejercicio a partir del cual se pudieran evaluar rutas.",
+      "routesNotProvided": "El origen no proporcionó un contenedor de rutas para este ejercicio.",
+      "routesProvidedEmpty": "El origen proporcionó un contenedor de rutas sin ruta principal ni de transición.",
+      "primaryRoute": "Ruta principal",
+      "transitionRoute": "Ruta de transición",
+      "routeVisualSummary": "{kind} con {count} puntos registrados. Trazado local neutro sin teselas de mapa.",
+      "routeStart": "Inicio de la ruta",
+      "routePointCount": "Puntos registrados",
+      "routeAltitudeCoverage": "Valores de altitud",
+      "routeElapsedCoverage": "Valores de tiempo transcurrido",
+      "routeEmpty": "La ruta no contiene puntos registrados.",
+      "routeSinglePoint": "La ruta contiene una ubicación registrada; no se ha inventado ningún tramo.",
+      "routePrivacyHeading": "La geometría de la ruta permanece en este dispositivo",
+      "routePrivacy": "Este trazado solo utiliza un SVG local. No contacta con ningún servicio externo de mapas, geocodificación o ubicación.",
+      "viewExactRoutePoints": "Consultar los puntos registrados exactos",
+      "hideExactRoutePoints": "Ocultar los puntos registrados exactos",
+      "exactRouteHeading": "Puntos exactos de la ruta registrada",
+      "exactRouteLoading": "Cargando los puntos exactos de la ruta…",
+      "exactRouteFailed": "No se han podido cargar los puntos exactos de la ruta desde tu biblioteca local.",
+      "routePointNumber": "Punto",
+      "routeLatitude": "Latitud",
+      "routeLongitude": "Longitud",
+      "routeAltitude": "Altitud",
+      "routeElapsed": "Tiempo transcurrido",
+      "routePointsPage": "Puntos {from}–{through} de {total}",
+      "routePointPage": "Punto {from} de {total}",
+      "previousRoutePoints": "Puntos de ruta anteriores",
+      "nextRoutePoints": "Puntos de ruta siguientes",
       "structureLimitationsHeading": "Límite actual de la evidencia",
-      "structureLimitations": "La geometría de ruta, las señales temporales, las zonas y las muestras exactas permanecen en el archivo de origen, pero todavía no se pueden consultar en esta versión. FitFreed no las infiere ni las inventa."
+      "structureLimitations": "Las señales temporales, las zonas y las muestras exactas de señales permanecen en el archivo de origen, pero todavía no se pueden consultar en esta versión. FitFreed no las infiere ni las inventa."
     },
     "sports": {
       "heading": "Tus deportes",
@@ -736,9 +770,9 @@
         "reason": "Los datos se incorporan a la biblioteca actual.",
         "action": "No es necesaria ninguna acción."
       },
-      "mapped-summary": {
-        "reason": "Se incorpora el resumen de la sesión; las rutas y los detalles a resolución completa permanecen únicamente en el ZIP original.",
-        "action": "Conserva el ZIP original si necesitas los detalles de entrenamiento excluidos."
+      "mapped-training-evidence": {
+        "reason": "Se incorporan los resúmenes de sesión, la estructura de ejercicios, las vueltas, las pausas y las rutas registradas; las señales temporales y las zonas permanecen únicamente en el ZIP original.",
+        "action": "Conserva el ZIP original si necesitas las señales de entrenamiento excluidas."
       },
       "mapped-sleep-periods": {
         "reason": "Se incorporan los periodos, las fases y las interrupciones del sueño; el comportamiento de las alarmas y los metadatos exclusivos del origen permanecen únicamente en el ZIP original.",

@@ -23,6 +23,10 @@ Every nested optional collection uses the same strict distinction: null is absen
 present-empty, and a populated collection contains source-ordered evidence. Importers never infer one state
 from another.
 
+The record's independent optional `routes` field follows the assessment states specified by
+[canonical training-session route version 1](training-session-route.md). It does not make route geometry part
+of this lightweight structure contract.
+
 ## `TrainingExercise`
 
 `TrainingSessionStructure.exercises` is an optional ordered collection. Each `TrainingExercise` contains:
@@ -90,10 +94,12 @@ duplicate children.
 
 ## Known loss and compatibility
 
-Version 1 has no route, coordinates, zones, samples, heart-rate series, speed or pace series, altitude series,
-power series, cadence series, user-authored segments, notes, targets, devices, or provider analysis. These are
-not represented as empty collections. Their later introduction requires explicit canonical and read-model
-contracts with resource and privacy boundaries.
+Version 1 has no zones, samples, heart-rate series, speed or pace series, altitude series, power series,
+cadence series, user-authored segments, notes, targets, devices, or provider analysis. These are not
+represented as empty collections. Routes and coordinates are specified independently by
+[canonical training-session route version 1](training-session-route.md), so lightweight structure does not
+load sensitive geometry. Other later additions require explicit canonical and read-model contracts with
+resource and privacy boundaries.
 
 Changing assessment-state meaning, collection optionality, identity, order, units, time interpretation,
 reconciliation, or an invariant requires a new canonical version.

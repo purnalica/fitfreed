@@ -202,11 +202,11 @@ fn validate_pauses<'a>(
     Ok(())
 }
 
-fn parse_local_datetime(value: &str) -> Option<NaiveDateTime> {
+pub(crate) fn parse_local_datetime(value: &str) -> Option<NaiveDateTime> {
     NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%S%.f").ok()
 }
 
-fn valid_ref(value: &str, prefix: &str) -> bool {
+pub(crate) fn valid_ref(value: &str, prefix: &str) -> bool {
     value.len() == prefix.len() + 64
         && value.starts_with(prefix)
         && value[prefix.len()..]

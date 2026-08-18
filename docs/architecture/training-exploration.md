@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production persists provider-neutral session summaries, mapped exercise/lap/pause structure, user-authored sport classifications, and a disposable discovery workspace. Full-history search, chronology, calendar projection, comparison selection, restart restoration, and the first structural-detail vertical are implemented; routes, signals, zones, exact samples, and user-authored segmentation continue through E4 of the [MVP experience delivery plan](../plans/mvp-experience-delivery.md).
+Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production persists provider-neutral session summaries, mapped exercise/lap/pause structure, primary and transition routes with exact points, user-authored sport classifications, and a disposable discovery workspace. Full-history search, chronology, calendar projection, comparison selection, restart restoration, structural detail, bounded local route traces, and exact route pagination are implemented. Temporal signals, zones, exact signal samples, provenance presentation, and user-authored segmentation continue through E4 of the [MVP experience delivery plan](../plans/mvp-experience-delivery.md).
 
 ## Ownership
 
@@ -65,12 +65,20 @@ requires unique domain-separated child capabilities, contiguous source order, va
 non-negative finite measurements before presentation receives the result. Provider child identifiers remain
 inside persistence.
 
+The independent [training-session route read models](../data-formats/insights/training-session-route-v1.md)
+preserve unevaluated, absent, present-empty, and populated route states. The overview selects at most 500
+exact source points per route with the documented endpoint-preserving `source-ordinal-v1` algorithm; the
+exact query returns stable contiguous pages of at most 250 points. Primary and transition routes remain
+separate, point ordinals prove visual provenance, and no route query loads the complete geometry merely to
+draw its bounded trace.
+
 Mapping changes reassess identical source bytes. Version 2 training mapping can strictly enrich a summary
-written by version 1, while a later source revision atomically replaces summary and mapped children. Older or
+written by version 1, and version 3 can strictly enrich equal version-2 summary and structure with evaluated
+route evidence. A later source revision atomically replaces summary and all mapped children. Older or
 conflicting evidence changes neither. The visibility transaction publishes one complete result or leaves the
-previous session intact; duplicate sessions or children are never an enrichment strategy. Child identity,
-order, provenance, and conflict semantics are fixed by the canonical, mapping, read-model, and persistence
-specifications.
+previous session intact; duplicate sessions, exercises, routes, or points are never an enrichment strategy.
+Child identity, order, provenance, and conflict semantics are fixed by the canonical, mapping, read-model,
+and persistence specifications.
 
 ## Privacy boundary
 

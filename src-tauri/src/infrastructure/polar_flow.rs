@@ -216,7 +216,7 @@ static ARTIFACT_RULES: LazyLock<Vec<ArtifactRule>> = LazyLock::new(|| {
             ),
             "polar-flow-training-session",
             SupportedArtifact::TrainingSession,
-            "mapped-summary",
+            "mapped-training-evidence",
         ),
         rule(
             format!(r"^training-target-{DATE_PATTERN}-{NUMERIC_PATTERN}-{UUID_PATTERN}\.json$"),
@@ -294,7 +294,7 @@ mod tests {
             let assessment = assess_artifact(&name);
             assert_eq!(assessment.family, Some("polar-flow-training-session"));
             assert_eq!(assessment.classification, ArtifactClassification::Supported);
-            assert_eq!(assessment.reason_code, "mapped-summary");
+            assert_eq!(assessment.reason_code, "mapped-training-evidence");
             assert_eq!(
                 assessment.supported_artifact,
                 Some(SupportedArtifact::TrainingSession)

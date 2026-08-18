@@ -12,18 +12,22 @@ use fitfreed_application::{
     LongitudinalRecoveryComparison, LongitudinalRecoveryDay, LongitudinalSeriesComparison,
     LongitudinalSeriesOverview, LongitudinalSleepComparison, LongitudinalSleepDay,
     LongitudinalTrainingComparison, LongitudinalTrainingDay, ManualUpdateReason,
-    OfficialSourceLink, OfficialSourceLinkPurpose, PostImportReveal, PreferencesLoadStatus,
-    RecoveryComparison, RecoveryDateRange, RecoveryDayAvailability, RecoveryDayInsight,
-    RecoveryNightDetail, RecoveryNightInsight, RecoveryOverview, RecoverySeriesComparison,
-    RecoverySeriesOverview, RecoverySeriesSummary, SaveSportClassificationRequest,
-    SavedTrainingSportClassification, SleepComparison, SleepDateRange, SleepDayAvailability,
-    SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight, SleepPhaseTotals,
-    SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary, SourceAcquisitionGuide,
-    SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange, TrainingDiscoveryView,
-    TrainingDiscoveryWorkspace, TrainingExerciseStructure, TrainingLapStructure,
-    TrainingMeasurementFilter, TrainingOverview, TrainingPauseStructure, TrainingSeriesComparison,
+    OfficialSourceLink, OfficialSourceLinkPurpose, PersistedTrainingRoutePoints, PostImportReveal,
+    PreferencesLoadStatus, RecoveryComparison, RecoveryDateRange, RecoveryDayAvailability,
+    RecoveryDayInsight, RecoveryNightDetail, RecoveryNightInsight, RecoveryOverview,
+    RecoverySeriesComparison, RecoverySeriesOverview, RecoverySeriesSummary,
+    SaveSportClassificationRequest, SavedTrainingSportClassification, SleepComparison,
+    SleepDateRange, SleepDayAvailability, SleepDayInsight, SleepOverview, SleepPeriodDetail,
+    SleepPeriodInsight, SleepPhaseTotals, SleepSeriesComparison, SleepSeriesOverview,
+    SleepSeriesSummary, SourceAcquisitionGuide, SportClassificationSaveOutcome, TrainingComparison,
+    TrainingDateRange, TrainingDiscoveryView, TrainingDiscoveryWorkspace,
+    TrainingExerciseRoutesView, TrainingExerciseStructure, TrainingLapStructure,
+    TrainingMeasurementFilter, TrainingOverview, TrainingPauseStructure,
+    TrainingRouteCollectionView, TrainingRouteKindView, TrainingRouteOverview,
+    TrainingRoutePointView, TrainingRoutePointsQuery, TrainingSeriesComparison,
     TrainingSeriesOverview, TrainingSeriesSummary, TrainingSessionCalendar,
     TrainingSessionCalendarDay, TrainingSessionCalendarRequest, TrainingSessionInsight,
+    TrainingSessionRouteQuery, TrainingSessionRoutesResult, TrainingSessionRoutesView,
     TrainingSessionSearchItem, TrainingSessionSearchPage, TrainingSessionSearchRequest,
     TrainingSessionSearchSummary, TrainingSessionSelection, TrainingSessionSelectionRequest,
     TrainingSessionSort, TrainingSessionSport, TrainingSessionStructureQuery,
@@ -788,6 +792,46 @@ pub struct TrainingSessionStructureQueryDto {
     snapshot_ref: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TrainingSessionRouteQueryDto {
+    session_ref: String,
+    snapshot_ref: Option<String>,
+    max_visual_points: usize,
+}
+
+impl From<TrainingSessionRouteQueryDto> for TrainingSessionRouteQuery {
+    fn from(query: TrainingSessionRouteQueryDto) -> Self {
+        Self {
+            session_ref: query.session_ref,
+            snapshot_ref: query.snapshot_ref,
+            max_visual_points: query.max_visual_points,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TrainingRoutePointsQueryDto {
+    session_ref: String,
+    route_ref: String,
+    snapshot_ref: Option<String>,
+    offset: usize,
+    limit: usize,
+}
+
+impl From<TrainingRoutePointsQueryDto> for TrainingRoutePointsQuery {
+    fn from(query: TrainingRoutePointsQueryDto) -> Self {
+        Self {
+            session_ref: query.session_ref,
+            route_ref: query.route_ref,
+            snapshot_ref: query.snapshot_ref,
+            offset: query.offset,
+            limit: query.limit,
+        }
+    }
+}
+
 impl From<TrainingSessionStructureQueryDto> for TrainingSessionStructureQuery {
     fn from(query: TrainingSessionStructureQueryDto) -> Self {
         Self {
@@ -1452,6 +1496,157 @@ impl From<TrainingSessionStructureResult> for TrainingSessionStructureResultDto 
             snapshot_ref: result.snapshot_ref,
             session_ref: result.session_ref,
             structure: result.structure.map(Into::into),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingRoutePointDto {
+    ordinal: usize,
+    latitude_degrees: f64,
+    longitude_degrees: f64,
+    altitude_meters: Option<f64>,
+    elapsed_milliseconds: Option<String>,
+}
+
+impl From<TrainingRoutePointView> for TrainingRoutePointDto {
+    fn from(point: TrainingRoutePointView) -> Self {
+        Self {
+            ordinal: point.ordinal,
+            latitude_degrees: point.latitude_degrees,
+            longitude_degrees: point.longitude_degrees,
+            altitude_meters: point.altitude_meters,
+            elapsed_milliseconds: point.elapsed_milliseconds.map(|value| value.to_string()),
+        }
+    }
+}
+
+fn training_route_kind(kind: TrainingRouteKindView) -> &'static str {
+    match kind {
+        TrainingRouteKindView::Primary => "primary",
+        TrainingRouteKindView::Transition => "transition",
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingRouteOverviewDto {
+    route_ref: String,
+    kind: &'static str,
+    started_at_local: String,
+    point_count: usize,
+    altitude_point_count: usize,
+    elapsed_point_count: usize,
+    projection: &'static str,
+    visual_points: Vec<TrainingRoutePointDto>,
+}
+
+impl From<TrainingRouteOverview> for TrainingRouteOverviewDto {
+    fn from(route: TrainingRouteOverview) -> Self {
+        Self {
+            route_ref: route.route_ref,
+            kind: training_route_kind(route.kind),
+            started_at_local: route.started_at_local,
+            point_count: route.point_count,
+            altitude_point_count: route.altitude_point_count,
+            elapsed_point_count: route.elapsed_point_count,
+            projection: "source-ordinal-v1",
+            visual_points: route.visual_points.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingRouteCollectionDto {
+    primary: Option<TrainingRouteOverviewDto>,
+    transition: Option<TrainingRouteOverviewDto>,
+}
+
+impl From<TrainingRouteCollectionView> for TrainingRouteCollectionDto {
+    fn from(routes: TrainingRouteCollectionView) -> Self {
+        Self {
+            primary: routes.primary.map(Into::into),
+            transition: routes.transition.map(Into::into),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingExerciseRoutesDto {
+    exercise_ref: String,
+    ordinal: usize,
+    routes: Option<TrainingRouteCollectionDto>,
+}
+
+impl From<TrainingExerciseRoutesView> for TrainingExerciseRoutesDto {
+    fn from(exercise: TrainingExerciseRoutesView) -> Self {
+        Self {
+            exercise_ref: exercise.exercise_ref,
+            ordinal: exercise.ordinal,
+            routes: exercise.routes.map(Into::into),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSessionRoutesDto {
+    exercises: Option<Vec<TrainingExerciseRoutesDto>>,
+}
+
+impl From<TrainingSessionRoutesView> for TrainingSessionRoutesDto {
+    fn from(routes: TrainingSessionRoutesView) -> Self {
+        Self {
+            exercises: routes
+                .exercises
+                .map(|exercises| exercises.into_iter().map(Into::into).collect()),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSessionRoutesResultDto {
+    snapshot_ref: String,
+    session_ref: String,
+    routes: Option<TrainingSessionRoutesDto>,
+}
+
+impl From<TrainingSessionRoutesResult> for TrainingSessionRoutesResultDto {
+    fn from(result: TrainingSessionRoutesResult) -> Self {
+        Self {
+            snapshot_ref: result.snapshot_ref,
+            session_ref: result.session_ref,
+            routes: result.routes.map(Into::into),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingRoutePointsResultDto {
+    snapshot_ref: String,
+    session_ref: String,
+    route_ref: String,
+    point_count: usize,
+    offset: usize,
+    points: Vec<TrainingRoutePointDto>,
+    next_offset: Option<usize>,
+}
+
+impl From<PersistedTrainingRoutePoints> for TrainingRoutePointsResultDto {
+    fn from(result: PersistedTrainingRoutePoints) -> Self {
+        Self {
+            snapshot_ref: result.snapshot_ref,
+            session_ref: result.session_ref,
+            route_ref: result.route_ref,
+            point_count: result.point_count,
+            offset: result.offset,
+            points: result.points.into_iter().map(Into::into).collect(),
+            next_offset: result.next_offset,
         }
     }
 }
@@ -4047,6 +4242,118 @@ mod tests {
                 serde_json::json!({ "code": code })
             );
         }
+    }
+
+    #[test]
+    fn validates_and_serializes_bounded_and_exact_route_transport_contracts() {
+        let input: TrainingSessionRouteQueryDto = serde_json::from_value(serde_json::json!({
+            "sessionRef":
+                "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "snapshotRef":
+                "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "maxVisualPoints": 200
+        }))
+        .expect("training-session route request");
+        let query = TrainingSessionRouteQuery::from(input);
+        assert_eq!(query.max_visual_points, 200);
+        assert!(
+            serde_json::from_value::<TrainingSessionRouteQueryDto>(serde_json::json!({
+                "sessionRef":
+                    "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "snapshotRef": null,
+                "maxVisualPoints": 200,
+                "sourceExerciseId": "must-not-cross-the-boundary"
+            }))
+            .is_err()
+        );
+
+        let result = TrainingSessionRoutesResult {
+            snapshot_ref:
+                "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    .to_owned(),
+            session_ref: "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                .to_owned(),
+            routes: Some(TrainingSessionRoutesView {
+                exercises: Some(vec![TrainingExerciseRoutesView {
+                    exercise_ref:
+                        "exercise-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                            .to_owned(),
+                    ordinal: 0,
+                    routes: Some(TrainingRouteCollectionView {
+                        primary: Some(TrainingRouteOverview {
+                            route_ref:
+                                "route-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                                    .to_owned(),
+                            kind: TrainingRouteKindView::Primary,
+                            started_at_local: "2026-08-18T07:30:00".to_owned(),
+                            point_count: 1,
+                            altitude_point_count: 1,
+                            elapsed_point_count: 1,
+                            visual_points: vec![TrainingRoutePointView {
+                                ordinal: 0,
+                                latitude_degrees: 40.0,
+                                longitude_degrees: -3.0,
+                                altitude_meters: Some(650.0),
+                                elapsed_milliseconds: Some(i64::MAX),
+                            }],
+                        }),
+                        transition: None,
+                    }),
+                }]),
+            }),
+        };
+        let json = serde_json::to_value(TrainingSessionRoutesResultDto::from(result))
+            .expect("training-session routes JSON");
+        assert_eq!(
+            json["routes"]["exercises"][0]["routes"]["primary"]["projection"],
+            "source-ordinal-v1"
+        );
+        assert_eq!(
+            json["routes"]["exercises"][0]["routes"]["primary"]["visualPoints"][0]
+                ["elapsedMilliseconds"],
+            i64::MAX.to_string()
+        );
+        assert!(json.to_string().find("sourceExerciseId").is_none());
+
+        let exact_input: TrainingRoutePointsQueryDto = serde_json::from_value(serde_json::json!({
+            "sessionRef":
+                "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "routeRef":
+                "route-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "snapshotRef": null,
+            "offset": 0,
+            "limit": 250
+        }))
+        .expect("exact route points request");
+        let exact_query = TrainingRoutePointsQuery::from(exact_input);
+        assert_eq!(exact_query.limit, 250);
+        assert_eq!(exact_query.offset, 0);
+
+        let exact = PersistedTrainingRoutePoints {
+            snapshot_ref:
+                "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    .to_owned(),
+            session_ref: "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                .to_owned(),
+            route_ref: "route-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                .to_owned(),
+            point_count: 1,
+            offset: 0,
+            points: vec![TrainingRoutePointView {
+                ordinal: 0,
+                latitude_degrees: 40.0,
+                longitude_degrees: -3.0,
+                altitude_meters: None,
+                elapsed_milliseconds: Some(i64::MAX),
+            }],
+            next_offset: None,
+        };
+        let exact_json = serde_json::to_value(TrainingRoutePointsResultDto::from(exact))
+            .expect("exact route points JSON");
+        assert_eq!(
+            exact_json["points"][0]["elapsedMilliseconds"],
+            i64::MAX.to_string()
+        );
     }
 
     #[test]

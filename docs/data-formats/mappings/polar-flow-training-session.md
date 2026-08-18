@@ -4,16 +4,19 @@
 
 This is the normative anti-corruption-layer contract for mapping a compatible Polar Flow personal-data-export
 training-session artifact into [canonical training-session summary version 1](../canonical/training-session.md)
-and [canonical training-session structure version 1](../canonical/training-session-structure.md).
+and the independent [training-session structure](../canonical/training-session-structure.md) and
+[training-session route](../canonical/training-session-route.md) contracts.
 
 - Source provider: `polar-flow`
 - Source adapter version introducing summary support: `polar-flow-archive@4`
 - Source adapter version introducing structural support: `polar-flow-archive@7`
-- Current source adapter version: `polar-flow-archive@7`
+- Source adapter version introducing route support: `polar-flow-archive@8`
+- Current source adapter version: `polar-flow-archive@8`
 - Historical summary mapping: `polar-flow-training-session@1`
-- Current summary-and-structure mapping: `polar-flow-training-session@2`
-- Historical operation mapping set: `polar-flow-mapping-set@1`
-- Current operation mapping set: `polar-flow-mapping-set@2`
+- Historical summary-and-structure mapping: `polar-flow-training-session@2`
+- Current summary, structure, and route mapping: `polar-flow-training-session@3`
+- Historical operation mapping sets: `polar-flow-mapping-set@1`, `polar-flow-mapping-set@2`
+- Current operation mapping set: `polar-flow-mapping-set@3`
 - Source evidence: [Polar Flow personal data export reference](../providers/polar-flow.md)
 
 ## Supported artifact boundary
@@ -48,7 +51,7 @@ sums, averages, selects, or otherwise derives summary values from children.
 
 ## Structural assessment and exercise mapping
 
-Mapping version 2 always emits a present `TrainingSessionStructure`, proving that the artifact was evaluated
+Mapping versions 2 and 3 always emit a present `TrainingSessionStructure`, proving that the artifact was evaluated
 under the structural contract. An absent `exercises` field produces null `exercises`; a present empty array
 produces an empty collection. Entries retain source array order through `ordinal`.
 
@@ -84,22 +87,46 @@ is required or invented.
 Each `exercises[].pauseTimes[]` entry requires valid local-form `startTime` and `endTime`. The end must not
 precede the start. Source order becomes zero-based `ordinal`; duration is not independently derived or stored.
 
+## Route assessment and waypoint mapping
+
+Mapping version 3 always emits a present `TrainingSessionRouteAssessment`. Its `exercises` state exactly
+matches the source `exercises` field. Every present exercise receives a route assessment tied to the same
+protected `exerciseId` and zero-based `ordinal` as structure.
+
+| Source exercise path | Requirement and validation | Canonical outcome |
+|---|---|---|
+| `exercises[].routes` | absent or object | null exercise `routes` when absent; present route collection otherwise |
+| `exercises[].routes.route` | absent or object | optional `primary` route |
+| `exercises[].routes.transitionRoute` | absent or object | optional `transition` route, never merged with primary |
+| route `.startTime` | required valid local-form ISO 8601 date-time | `startedAtLocal` |
+| route `.wayPoints` | required array | exact ordered `points`, including present-empty |
+| `.wayPoints[].latitude` | required finite number from -90 through 90 | `latitudeDegrees` |
+| `.wayPoints[].longitude` | required finite number from -180 through 180 | `longitudeDegrees` |
+| `.wayPoints[].altitude` | absent or finite number | optional `altitudeMeters` |
+| `.wayPoints[].elapsedMillis` | absent or non-negative signed 64-bit integer | optional `elapsedMilliseconds` |
+
+Waypoint source order becomes contiguous zero-based `ordinal`. Present elapsed values must be
+non-decreasing even when other points omit the field. Missing values are not interpolated. Empty routes,
+one-point routes, repeated points, and primary and transition identity are preserved rather than repaired.
+
 ## Reimport, revision, and mapping upgrade
 
 Identity remains `(originId, identifier.id)`. Reconciliation compares the complete mapped session record:
 
-- absent identity creates summary and structure atomically;
+- absent identity creates summary, structure, and route assessment atomically;
 - complete equality is equivalent;
-- equal summary plus previously unevaluated structure is `enrich`;
-- later `modified` evidence atomically replaces summary and all structure;
+- equal evaluated fields plus previously unevaluated structure or routes is `enrich` when no evaluated field
+  changes or regresses;
+- later `modified` evidence atomically replaces summary and every mapped child;
 - earlier evidence preserves the complete visible record;
 - equal or unorderable revision with different content is a conflict and changes no visible record.
 
 Two artifacts with the same mapped identity in one ZIP are invalid independently of order. Whole-package
 exact-repeat reuse requires equal archive fingerprint, adapter version, and operation mapping-set version.
-Consequently, a package completed under `polar-flow-mapping-set@1` is reassessed under
-`polar-flow-mapping-set@2`; identical bytes enrich structure without duplicating sessions or children.
-Per-observation provenance records `polar-flow-training-session@2` for current mapping decisions.
+Consequently, a package completed under `polar-flow-mapping-set@1` or `polar-flow-mapping-set@2` is
+reassessed under `polar-flow-mapping-set@3`; identical bytes enrich missing structure or route evidence
+without duplicating sessions, exercises, routes, or points. Per-observation provenance records
+`polar-flow-training-session@3` for current mapping decisions.
 
 ## Historical version 1 behavior
 
@@ -112,18 +139,25 @@ assessment and used `polar-flow-mapping-set@1` for exact-repeat compatibility.
 Historical canonical rows and provenance remain valid. Their null structural assessment is not equivalent to
 an absent or empty source collection and is eligible for strict mapping-version enrichment.
 
+## Historical version 2 behavior
+
+`polar-flow-training-session@2`, introduced by `polar-flow-archive@7`, added exercise, lap, and pause
+structure under `polar-flow-mapping-set@2`. Route containers and waypoints remained unevaluated. Existing
+version-2 rows therefore have null route assessment and are eligible for strict enrichment under version 3
+without changing their equal structure or summary.
+
 ## Deliberately unmapped information
 
-Mapping version 2 still does not persist:
+Mapping version 3 still does not persist:
 
-- `latitude`, `longitude`, routes, or route waypoints;
+- session- or exercise-level standalone `latitude` and `longitude` fields outside route waypoints;
 - `samples`, `transitionSamples`, `rrSamples`, `transitionRrSamples`, or other signal series;
 - zones, detailed statistics, hills, tests, and source analysis;
 - names, notes, comments, feelings, targets, training benefit, training load, or recovery time;
 - energy-source percentages, physical information, devices, products, or application references.
 
 These fields are not represented as empty canonical collections. Their source bytes remain only in the user's
-original archive. The artifact is `supported` when all mapping-version-2 fields pass; coverage and UI disclose
+original archive. The artifact is `supported` when all mapping-version-3 fields pass; coverage and UI disclose
 the current boundary without exposing locators, identifiers, coordinates, notes, or personal values.
 
 ## Sport limitation

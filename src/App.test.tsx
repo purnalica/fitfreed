@@ -1670,7 +1670,7 @@ describe("FitFreed import interface", () => {
         {
           familyCode: "polar-flow-training-session",
           classification: "supported",
-          reasonCode: "mapped-summary",
+          reasonCode: "mapped-training-evidence",
           artifactCount: 1,
         },
       ],
@@ -1705,7 +1705,7 @@ describe("FitFreed import interface", () => {
       name: /Sleep scores Supported 1 Reason: Sleep score components are mapped; scoring baselines stay only in the original ZIP\. Next action: Keep the original ZIP if you need the excluded scoring context/,
     })).toBeVisible();
     expect(within(coverage).getByRole("row", {
-      name: /Training sessions Supported 1 Reason: The session summary is mapped; routes and full-resolution details stay only in the original ZIP\. Next action: Keep the original ZIP if you need the excluded training details/,
+      name: /Training sessions Supported 1 Reason: Session summaries, exercise structure, laps, pauses, and recorded routes are mapped; time-series signals and zones stay only in the original ZIP\. Next action: Keep the original ZIP if you need the excluded training signals/,
     })).toBeVisible();
     expect(screen.queryByText(/activity-2026-01-01/)).not.toBeInTheDocument();
 
@@ -1724,7 +1724,7 @@ describe("FitFreed import interface", () => {
       name: /Puntuaciones del sueño Compatible 1 Motivo: Se incorporan los componentes de la puntuación del sueño; las referencias de puntuación permanecen únicamente en el ZIP original\. Siguiente acción: Conserva el ZIP original si necesitas el contexto de puntuación excluido/,
     })).toBeVisible();
     expect(within(spanishCoverage).getByRole("row", {
-      name: /Sesiones de entrenamiento Compatible 1 Motivo: Se incorpora el resumen de la sesión; las rutas y los detalles a resolución completa permanecen únicamente en el ZIP original\. Siguiente acción: Conserva el ZIP original si necesitas los detalles de entrenamiento excluidos/,
+      name: /Sesiones de entrenamiento Compatible 1 Motivo: Se incorporan los resúmenes de sesión, la estructura de ejercicios, las vueltas, las pausas y las rutas registradas; las señales temporales y las zonas permanecen únicamente en el ZIP original\. Siguiente acción: Conserva el ZIP original si necesitas las señales de entrenamiento excluidas/,
     })).toBeVisible();
   });
 
@@ -2491,6 +2491,19 @@ describe("FitFreed import interface", () => {
               manualLaps: [],
               automaticLaps: null,
               pauses: [],
+            }],
+          },
+        });
+      }
+      if (command === "query_training_session_routes") {
+        return Promise.resolve({
+          snapshotRef: "snapshot-current",
+          sessionRef: arguments_.query.sessionRef,
+          routes: {
+            exercises: [{
+              exerciseRef: "opaque-exercise",
+              ordinal: 0,
+              routes: null,
             }],
           },
         });

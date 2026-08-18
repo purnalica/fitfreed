@@ -92,11 +92,14 @@ for (const contractValue of [
   "polar-flow-archive@5",
   "polar-flow-archive@6",
   "polar-flow-archive@7",
+  "polar-flow-archive@8",
   "polar-flow-mapping-set@1",
   "polar-flow-mapping-set@2",
+  "polar-flow-mapping-set@3",
   "polar-flow-daily-activity@1",
   "polar-flow-training-session@1",
   "polar-flow-training-session@2",
+  "polar-flow-training-session@3",
   "polar-flow-sleep@1",
   "polar-flow-nightly-recovery@1",
   "polar-nightly-recharge@1",
@@ -169,6 +172,31 @@ for (const structure of [
 }
 for (const contractValue of ["manual", "automatic", "enrich"]) {
   requireMention(trainingStructureCanonical, contractValue, trainingStructureCanonicalPath);
+}
+
+const trainingRouteCanonicalPath =
+  "docs/data-formats/canonical/training-session-route.md";
+const trainingRouteCanonical = read(trainingRouteCanonicalPath);
+for (const structure of [
+  "TrainingRoutePoint",
+  "TrainingRoute",
+  "TrainingRoutes",
+  "TrainingExerciseRouteAssessment",
+  "TrainingSessionRouteAssessment",
+]) {
+  const structureMatch = trainingStructureDomain.match(
+    new RegExp(`pub struct ${structure} \\{([\\s\\S]*?)\\n\\}`),
+  );
+  if (!structureMatch) {
+    throw new Error(`${trainingStructureDomainPath} has no ${structure}`);
+  }
+  for (const fieldMatch of structureMatch[1].matchAll(/pub ([a-z_]+):/g)) {
+    const camelCase = fieldMatch[1].replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    requireMention(trainingRouteCanonical, camelCase, trainingRouteCanonicalPath);
+  }
+}
+for (const contractValue of ["primary", "transition", "enrich"]) {
+  requireMention(trainingRouteCanonical, contractValue, trainingRouteCanonicalPath);
 }
 
 const sportClassificationDomainPath =
@@ -258,8 +286,8 @@ const trainingMappingPath = "docs/data-formats/mappings/polar-flow-training-sess
 const trainingMapping = read(trainingMappingPath);
 for (const contractValue of [
   sourceAdapterVersion,
-  "polar-flow-mapping-set@2",
-  "polar-flow-training-session@2",
+  "polar-flow-mapping-set@3",
+  "polar-flow-training-session@3",
 ]) {
   requireMention(trainingMapping, contractValue, trainingMappingPath);
 }
@@ -290,6 +318,14 @@ for (const sourceField of [
   "exercises[].laps.laps",
   "exercises[].laps.autoLaps",
   "exercises[].pauseTimes",
+  "exercises[].routes",
+  "exercises[].routes.route",
+  "exercises[].routes.transitionRoute",
+  ".wayPoints",
+  ".wayPoints[].latitude",
+  ".wayPoints[].longitude",
+  ".wayPoints[].altitude",
+  ".wayPoints[].elapsedMillis",
   "splitTimeMillis",
   "endTime",
 ]) {
@@ -315,6 +351,13 @@ for (const targetField of [
   "automaticLaps",
   "pauses",
   "splitTimeMilliseconds",
+  "TrainingSessionRouteAssessment",
+  "latitudeDegrees",
+  "longitudeDegrees",
+  "altitudeMeters",
+  "elapsedMilliseconds",
+  "primary",
+  "transition",
   "enrich",
 ]) {
   requireMention(trainingMapping, targetField, trainingMappingPath);
@@ -1485,6 +1528,187 @@ for (const invalidResponse of [
 ]) {
   if (validateTrainingSessionStructure(invalidResponse)) {
     throw new Error(`${trainingSessionStructureSchemaPath} accepted an invalid response`);
+  }
+}
+
+const trainingSessionRoutePath =
+  "docs/data-formats/insights/training-session-route-v1.md";
+const trainingSessionRoute = read(trainingSessionRoutePath);
+for (const field of [
+  "query_training_session_routes",
+  "query_training_route_points",
+  "sessionRef",
+  "snapshotRef",
+  "maxVisualPoints",
+  "routes",
+  "exercises",
+  "exerciseRef",
+  "routeRef",
+  "kind",
+  "startedAtLocal",
+  "pointCount",
+  "altitudePointCount",
+  "elapsedPointCount",
+  "visualPoints",
+  "ordinal",
+  "latitudeDegrees",
+  "longitudeDegrees",
+  "altitudeMeters",
+  "elapsedMilliseconds",
+  "source-ordinal-v1",
+  "offset",
+  "limit",
+  "points",
+  "nextOffset",
+  "invalid-training-session-detail",
+  "training-session-detail-changed",
+  "training-session-detail-failed",
+]) {
+  requireMention(trainingSessionRoute, field, trainingSessionRoutePath);
+}
+
+const trainingSessionRouteQuerySchemaPath =
+  "schemas/training-session-route-query-v1.schema.json";
+const validateTrainingSessionRouteQuery = ajv.compile(
+  JSON.parse(read(trainingSessionRouteQuerySchemaPath)),
+);
+const syntheticTrainingSessionRouteQuery = {
+  sessionRef: sessionRefDigest,
+  snapshotRef: snapshotRefDigest,
+  maxVisualPoints: 200,
+};
+if (!validateTrainingSessionRouteQuery(syntheticTrainingSessionRouteQuery)) {
+  throw new Error(
+    `${trainingSessionRouteQuerySchemaPath} rejected its synthetic query: ${ajv.errorsText(validateTrainingSessionRouteQuery.errors)}`,
+  );
+}
+for (const invalidQuery of [
+  { ...syntheticTrainingSessionRouteQuery, maxVisualPoints: 1 },
+  { ...syntheticTrainingSessionRouteQuery, maxVisualPoints: 501 },
+  { ...syntheticTrainingSessionRouteQuery, sourceSessionId: "hidden" },
+]) {
+  if (validateTrainingSessionRouteQuery(invalidQuery)) {
+    throw new Error(`${trainingSessionRouteQuerySchemaPath} accepted an invalid query`);
+  }
+}
+
+const routeRefDigest = `route-${"2".repeat(64)}`;
+const trainingSessionRouteSchemaPath =
+  "schemas/training-session-route-v1.schema.json";
+const trainingSessionRouteSchema = JSON.parse(read(trainingSessionRouteSchemaPath));
+const validateTrainingSessionRoute = ajv.compile(trainingSessionRouteSchema);
+const syntheticRoutePoint = {
+  ordinal: 0,
+  latitudeDegrees: 40.0,
+  longitudeDegrees: -3.0,
+  altitudeMeters: 650.0,
+  elapsedMilliseconds: "0",
+};
+const syntheticTrainingSessionRoute = {
+  snapshotRef: snapshotRefDigest,
+  sessionRef: sessionRefDigest,
+  routes: {
+    exercises: [{
+      exerciseRef: `exercise-${"e".repeat(64)}`,
+      ordinal: 0,
+      routes: {
+        primary: {
+          routeRef: routeRefDigest,
+          kind: "primary",
+          startedAtLocal: "2026-08-18T07:30:00",
+          pointCount: 1,
+          altitudePointCount: 1,
+          elapsedPointCount: 1,
+          projection: "source-ordinal-v1",
+          visualPoints: [syntheticRoutePoint],
+        },
+        transition: null,
+      },
+    }],
+  },
+};
+for (const response of [
+  syntheticTrainingSessionRoute,
+  { ...syntheticTrainingSessionRoute, routes: null },
+  { ...syntheticTrainingSessionRoute, routes: { exercises: null } },
+  { ...syntheticTrainingSessionRoute, routes: { exercises: [] } },
+]) {
+  if (!validateTrainingSessionRoute(response)) {
+    throw new Error(
+      `${trainingSessionRouteSchemaPath} rejected a valid response: ${ajv.errorsText(validateTrainingSessionRoute.errors)}`,
+    );
+  }
+}
+for (const invalidResponse of [
+  { ...syntheticTrainingSessionRoute, sourceExerciseId: "hidden" },
+  (() => {
+    const value = structuredClone(syntheticTrainingSessionRoute);
+    value.routes.exercises[0].routes.primary.projection = "smoothed";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticTrainingSessionRoute);
+    value.routes.exercises[0].routes.primary.visualPoints[0].latitudeDegrees = 91;
+    return value;
+  })(),
+]) {
+  if (validateTrainingSessionRoute(invalidResponse)) {
+    throw new Error(`${trainingSessionRouteSchemaPath} accepted an invalid response`);
+  }
+}
+
+const trainingRoutePointsQuerySchemaPath =
+  "schemas/training-route-points-query-v1.schema.json";
+const validateTrainingRoutePointsQuery = ajv.compile(
+  JSON.parse(read(trainingRoutePointsQuerySchemaPath)),
+);
+const syntheticTrainingRoutePointsQuery = {
+  sessionRef: sessionRefDigest,
+  routeRef: routeRefDigest,
+  snapshotRef: snapshotRefDigest,
+  offset: 0,
+  limit: 250,
+};
+if (!validateTrainingRoutePointsQuery(syntheticTrainingRoutePointsQuery)) {
+  throw new Error(
+    `${trainingRoutePointsQuerySchemaPath} rejected its synthetic query: ${ajv.errorsText(validateTrainingRoutePointsQuery.errors)}`,
+  );
+}
+for (const invalidQuery of [
+  { ...syntheticTrainingRoutePointsQuery, limit: 0 },
+  { ...syntheticTrainingRoutePointsQuery, limit: 251 },
+  { ...syntheticTrainingRoutePointsQuery, sourceRouteId: "hidden" },
+]) {
+  if (validateTrainingRoutePointsQuery(invalidQuery)) {
+    throw new Error(`${trainingRoutePointsQuerySchemaPath} accepted an invalid query`);
+  }
+}
+
+const trainingRoutePointsSchemaPath = "schemas/training-route-points-v1.schema.json";
+const validateTrainingRoutePoints = ajv.compile(
+  JSON.parse(read(trainingRoutePointsSchemaPath)),
+);
+const syntheticTrainingRoutePoints = {
+  snapshotRef: snapshotRefDigest,
+  sessionRef: sessionRefDigest,
+  routeRef: routeRefDigest,
+  pointCount: 1,
+  offset: 0,
+  points: [syntheticRoutePoint],
+  nextOffset: null,
+};
+if (!validateTrainingRoutePoints(syntheticTrainingRoutePoints)) {
+  throw new Error(
+    `${trainingRoutePointsSchemaPath} rejected its synthetic response: ${ajv.errorsText(validateTrainingRoutePoints.errors)}`,
+  );
+}
+for (const invalidResponse of [
+  { ...syntheticTrainingRoutePoints, elapsedMilliseconds: 0 },
+  { ...syntheticTrainingRoutePoints, providerRouteId: "hidden" },
+  { ...syntheticTrainingRoutePoints, points: [{ ...syntheticRoutePoint, ordinal: -1 }] },
+]) {
+  if (validateTrainingRoutePoints(invalidResponse)) {
+    throw new Error(`${trainingRoutePointsSchemaPath} accepted an invalid response`);
   }
 }
 
@@ -3367,6 +3591,7 @@ const index = read(indexPath);
 for (const contractPath of [
   canonicalPath,
   trainingStructureCanonicalPath,
+  trainingRouteCanonicalPath,
   sportClassificationCanonicalPath,
   sleepCanonicalPath,
   mappingPath,
@@ -3378,6 +3603,7 @@ for (const contractPath of [
   trainingSportsPath,
   trainingSessionSearchPath,
   trainingSessionStructurePath,
+  trainingSessionRoutePath,
   trainingDiscoveryWorkspacePath,
   trainingComparisonPath,
   sleepOverviewPath,
@@ -3431,6 +3657,10 @@ process.stdout.write(
       trainingSessionSelectionSchemaPath,
       trainingSessionStructureQuerySchemaPath,
       trainingSessionStructureSchemaPath,
+      trainingSessionRouteQuerySchemaPath,
+      trainingSessionRouteSchemaPath,
+      trainingRoutePointsQuerySchemaPath,
+      trainingRoutePointsSchemaPath,
       trainingDiscoveryWorkspaceSchemaPath,
     ],
     trainingComparisonSchemas: [

@@ -28,7 +28,7 @@ const catalogs = localeFiles.map((file) => {
 const canonicalKeys = [...catalogs[0].entries.keys()].sort();
 const coverageReasonCodes = [
   "mapped",
-  "mapped-summary",
+  "mapped-training-evidence",
   "mapped-sleep-periods",
   "mapped-sleep-scores",
   "mapped-recovery-summaries",

@@ -43,10 +43,51 @@ pub struct TrainingSessionStructure {
     pub exercises: Option<Vec<TrainingExercise>>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TrainingRouteKind {
+    Primary,
+    Transition,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TrainingRoutePoint {
+    pub ordinal: usize,
+    pub latitude_degrees: f64,
+    pub longitude_degrees: f64,
+    pub altitude_meters: Option<f64>,
+    pub elapsed_milliseconds: Option<i64>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TrainingRoute {
+    pub kind: TrainingRouteKind,
+    pub started_at_local: String,
+    pub points: Vec<TrainingRoutePoint>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TrainingRoutes {
+    pub primary: Option<TrainingRoute>,
+    pub transition: Option<TrainingRoute>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TrainingExerciseRouteAssessment {
+    pub exercise_id: String,
+    pub ordinal: usize,
+    pub routes: Option<TrainingRoutes>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TrainingSessionRouteAssessment {
+    pub exercises: Option<Vec<TrainingExerciseRouteAssessment>>,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct TrainingSessionRecord {
     pub summary: TrainingSession,
     pub structure: Option<TrainingSessionStructure>,
+    pub routes: Option<TrainingSessionRouteAssessment>,
 }
 
 pub fn decide_training_session_record_reconciliation(
@@ -60,9 +101,14 @@ pub fn decide_training_session_record_reconciliation(
     if existing == incoming {
         return ReconciliationDecision::Equivalent;
     }
+    let structure_compatible = existing.structure == incoming.structure
+        || (existing.structure.is_none() && incoming.structure.is_some());
+    let routes_compatible = existing.routes == incoming.routes
+        || (existing.routes.is_none() && incoming.routes.is_some());
     if existing.summary == incoming.summary
-        && existing.structure.is_none()
-        && incoming.structure.is_some()
+        && structure_compatible
+        && routes_compatible
+        && (existing.structure != incoming.structure || existing.routes != incoming.routes)
     {
         return ReconciliationDecision::Enrich;
     }

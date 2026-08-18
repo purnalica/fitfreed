@@ -50,7 +50,7 @@ Run:
 npm run benchmark:insights
 ```
 
-The release-mode Rust example creates a temporary schema-version-15 SQLite library through the production migration path, generates ten calendar years for four opaque origins, and inserts deterministic daily observations, one training session, one primary sleep period, and one nightly-recovery observation per origin and date. Daily activity includes available, unavailable, and missing observations; training includes varied durations and deterministic optional distance, energy, heart-rate, sport-reference, and exercise-count coverage; sleep includes deterministic phase, score, goal, timeline, and recording-status data; recovery varies shared intervals while retaining typed source assessment, baseline, and guidance. The scale contains 14,612 training sessions, 14,612 primary sleep periods, 58,448 sleep transitions, and 14,612 recovery nights. No generated database survives the process.
+The release-mode Rust example creates a temporary schema-version-16 SQLite library through the production migration path, generates ten calendar years for four opaque origins, and inserts deterministic daily observations, one training session, one primary sleep period, and one nightly-recovery observation per origin and date. Daily activity includes available, unavailable, and missing observations; training includes varied durations and deterministic optional distance, energy, heart-rate, sport-reference, and exercise-count coverage; sleep includes deterministic phase, score, goal, timeline, and recording-status data; recovery varies shared intervals while retaining typed source assessment, baseline, and guidance. The scale contains 14,612 training sessions, 14,612 primary sleep periods, 58,448 sleep transitions, and 14,612 recovery nights. No generated database survives the process.
 
 It measures the SQLite adapter plus application read model separately for daily activity, training sessions, sleep, recovery, and their longitudinal composition. Each path covers:
 
@@ -63,11 +63,12 @@ It measures the SQLite adapter plus application read model separately for daily 
 Sleep and recovery additionally measure exact detail retrieval for one identity. Sleep overview and comparison must not load high-resolution transition rows; recovery overview and comparison must not load baseline values or guidance text. Each detail path loads only the selected identity's complete information. Longitudinal measurements execute the global range and origin composition plus all four established domain models; they must not use a persisted report cache.
 
 Training additionally stores one independently invented recorded structure for each origin at the latest
-date. Each contains one exercise, one source lap, one automatic lap, and one pause. The gate measures the
-first 25-session complete-history discovery page, one source-separated calendar month, ordered resolution
-of four opaque session capabilities, and exact retrieval of one recorded structure against one coherent
-snapshot. These paths include the concrete SQLite adapter and application validation and use the
-common-interaction budget.
+date. Each contains one exercise, one source lap, one automatic lap, one pause, and a 250,000-point primary
+route, for one million independently generated route points in total. The gate measures the first 25-session
+complete-history discovery page, one source-separated calendar month, ordered resolution of four opaque
+session capabilities, exact retrieval of one recorded structure, a 400-point bounded route overview, and a
+250-point exact route page against one coherent snapshot. These paths include the concrete SQLite adapter
+and application validation and use the common-interaction budget.
 
 Each interaction has 10 warm-up executions and 100 measured executions. Durations are sorted and p95 uses zero-based index `ceil((n - 1) * 0.95)`. Default and common interactions must remain within 500 ms p95; maximum-range interactions must remain within the 2-second complex-visualization budget. The local output reports application version, source revision, host profile, free storage, generated scale, database size, run policy, median, p95, maximum, budget result, and peak process memory. Public documentation follows the same minimized evidence boundary as the other benchmarks.
 

@@ -13,11 +13,13 @@ use fitfreed_application::{
     query_activity_comparison, query_activity_overview, query_longitudinal_comparison,
     query_longitudinal_overview, query_recovery_comparison, query_recovery_detail,
     query_recovery_overview, query_sleep_comparison, query_sleep_detail, query_sleep_overview,
-    query_training_comparison, query_training_overview, query_training_session_calendar,
+    query_training_comparison, query_training_overview, query_training_route_points,
+    query_training_session_calendar, query_training_session_routes,
     query_training_session_selection, query_training_session_structure, query_training_sessions,
     ActivityDateRange, LongitudinalDateRange, RecoveryDateRange, SleepDateRange, TrainingDateRange,
-    TrainingSessionCalendarRequest, TrainingSessionSearchRequest, TrainingSessionSelectionRequest,
-    TrainingSessionSort, TrainingSessionStructureQuery,
+    TrainingRoutePointsQuery, TrainingSessionCalendarRequest, TrainingSessionRouteQuery,
+    TrainingSessionSearchRequest, TrainingSessionSelectionRequest, TrainingSessionSort,
+    TrainingSessionStructureQuery,
 };
 use fitfreed_lib::infrastructure::{
     query_activity_between, SqliteActivityLibrary, SqliteLongitudinalLibrary,
@@ -28,6 +30,7 @@ use serde_json::{json, Value};
 use tempfile::tempdir;
 
 const ORIGIN_COUNT: usize = 4;
+const ROUTE_POINTS_PER_ORIGIN: usize = 250_000;
 const WARM_UP_RUNS: usize = 10;
 const MEASURED_RUNS: usize = 100;
 const COMMON_BUDGET_MILLISECONDS: f64 = 500.0;
@@ -47,6 +50,8 @@ struct GeneratedRows {
     training_exercises: usize,
     training_laps: usize,
     training_pauses: usize,
+    training_routes: usize,
+    training_route_points: usize,
     sleep: usize,
     sleep_transitions: usize,
 }
@@ -210,7 +215,7 @@ fn main() {
     });
     let training_structure_request = TrainingSessionStructureQuery {
         session_ref: training_discovery_page.sessions[0].session_ref.clone(),
-        snapshot_ref: Some(training_discovery_page.snapshot_ref),
+        snapshot_ref: Some(training_discovery_page.snapshot_ref.clone()),
     };
     let training_session_structure = measure(1, || {
         query_training_session_structure(&training_library, training_structure_request.clone())
@@ -218,6 +223,49 @@ fn main() {
             .structure
             .and_then(|structure| structure.exercises)
             .expect("generated training exercises")
+            .len()
+    });
+    let training_route_request = TrainingSessionRouteQuery {
+        session_ref: training_discovery_page.sessions[0].session_ref.clone(),
+        snapshot_ref: Some(training_discovery_page.snapshot_ref.clone()),
+        max_visual_points: 400,
+    };
+    let training_route_setup =
+        query_training_session_routes(&training_library, training_route_request.clone())
+            .expect("training route setup");
+    let training_route_ref = training_route_setup
+        .routes
+        .and_then(|routes| routes.exercises)
+        .expect("generated route exercises")[0]
+        .routes
+        .as_ref()
+        .and_then(|routes| routes.primary.as_ref())
+        .expect("generated primary route")
+        .route_ref
+        .clone();
+    let training_route_overview = measure(400, || {
+        query_training_session_routes(&training_library, training_route_request.clone())
+            .expect("training route overview")
+            .routes
+            .and_then(|routes| routes.exercises)
+            .expect("generated route exercises")
+            .into_iter()
+            .filter_map(|exercise| exercise.routes)
+            .filter_map(|routes| routes.primary)
+            .map(|route| route.visual_points.len())
+            .sum()
+    });
+    let training_route_points_request = TrainingRoutePointsQuery {
+        session_ref: training_discovery_page.sessions[0].session_ref.clone(),
+        route_ref: training_route_ref,
+        snapshot_ref: Some(training_discovery_page.snapshot_ref),
+        offset: ROUTE_POINTS_PER_ORIGIN / 2,
+        limit: 250,
+    };
+    let training_route_exact_page = measure(250, || {
+        query_training_route_points(&training_library, training_route_points_request.clone())
+            .expect("exact training route page")
+            .points
             .len()
     });
 
@@ -449,6 +497,16 @@ fn main() {
             COMMON_BUDGET_MILLISECONDS,
         ),
         (
+            "training.routeOverview",
+            &training_route_overview,
+            COMMON_BUDGET_MILLISECONDS,
+        ),
+        (
+            "training.routeExactPage",
+            &training_route_exact_page,
+            COMMON_BUDGET_MILLISECONDS,
+        ),
+        (
             "sleep.defaultOverview",
             &sleep_default_overview,
             COMMON_BUDGET_MILLISECONDS,
@@ -562,6 +620,8 @@ fn main() {
                 "storedTrainingExercises": generated_rows.training_exercises,
                 "storedTrainingLaps": generated_rows.training_laps,
                 "storedTrainingPauses": generated_rows.training_pauses,
+                "storedTrainingRoutes": generated_rows.training_routes,
+                "storedTrainingRoutePoints": generated_rows.training_route_points,
                 "storedSleepPeriods": generated_rows.sleep,
                 "storedSleepTransitions": generated_rows.sleep_transitions,
                 "storedRecoveryNights": generated_rows.recovery,
@@ -616,6 +676,14 @@ fn main() {
                     ),
                     "sessionStructure": measurement_json(
                         &training_session_structure,
+                        COMMON_BUDGET_MILLISECONDS,
+                    ),
+                    "routeOverview": measurement_json(
+                        &training_route_overview,
+                        COMMON_BUDGET_MILLISECONDS,
+                    ),
+                    "routeExactPage": measurement_json(
+                        &training_route_exact_page,
                         COMMON_BUDGET_MILLISECONDS,
                     ),
                 },
@@ -715,6 +783,8 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
     let mut training_exercise_rows = 0;
     let mut training_lap_rows = 0;
     let mut training_pause_rows = 0;
+    let mut training_route_rows = 0;
+    let mut training_route_point_rows = 0;
     let mut sleep_rows = 0;
     let mut sleep_transition_rows = 0;
     {
@@ -857,6 +927,37 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
                  ) VALUES (?1, ?2, ?3, 0, ?4, ?5)",
             )
             .expect("prepare generated training pause insertion");
+        let mut route_assessment_statement = transaction
+            .prepare_cached(
+                "INSERT INTO training_session_route_assessment (
+                    origin_id, session_id, exercises_present, mapping_version
+                 ) VALUES (?1, ?2, 1, 'synthetic-training-route@1')",
+            )
+            .expect("prepare generated training route assessment insertion");
+        let mut exercise_route_assessment_statement = transaction
+            .prepare_cached(
+                "INSERT INTO training_exercise_route_assessment (
+                    origin_id, session_id, exercise_id, ordinal, routes_present
+                 ) VALUES (?1, ?2, ?3, 0, 1)",
+            )
+            .expect("prepare generated exercise route assessment insertion");
+        let mut route_statement = transaction
+            .prepare_cached(
+                "INSERT INTO training_route (
+                    origin_id, session_id, exercise_id, kind, started_at_local,
+                    point_count, altitude_point_count, elapsed_point_count
+                 ) VALUES (?1, ?2, ?3, 'primary', ?4, ?5, ?5, ?5)",
+            )
+            .expect("prepare generated training route insertion");
+        let mut route_point_statement = transaction
+            .prepare_cached(
+                "INSERT INTO training_route_point (
+                    origin_id, session_id, exercise_id, kind, ordinal,
+                    latitude_degrees, longitude_degrees, altitude_meters,
+                    elapsed_milliseconds
+                 ) VALUES (?1, ?2, ?3, 'primary', ?4, ?5, ?6, ?7, ?8)",
+            )
+            .expect("prepare generated training route point insertion");
         let day_offset = calendar_days - 1;
         let date = last_date.format("%Y-%m-%d").to_string();
         for origin_index in 0..ORIGIN_COUNT {
@@ -919,6 +1020,41 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
                 ])
                 .expect("insert generated training pause");
             training_pause_rows += 1;
+            route_assessment_statement
+                .execute(params![origin, session_id])
+                .expect("insert generated training route assessment");
+            exercise_route_assessment_statement
+                .execute(params![origin, session_id, exercise_id])
+                .expect("insert generated exercise route assessment");
+            route_statement
+                .execute(params![
+                    origin,
+                    session_id,
+                    exercise_id,
+                    started_at.format("%Y-%m-%dT%H:%M:%S").to_string(),
+                    i64::try_from(ROUTE_POINTS_PER_ORIGIN).expect("route point count"),
+                ])
+                .expect("insert generated training route");
+            training_route_rows += 1;
+            for point_index in 0..ROUTE_POINTS_PER_ORIGIN {
+                let progress = point_index as f64 / ROUTE_POINTS_PER_ORIGIN as f64;
+                let point_ordinal = i64::try_from(point_index).expect("route point index");
+                let elapsed_milliseconds = point_ordinal * duration_milliseconds
+                    / i64::try_from(ROUTE_POINTS_PER_ORIGIN - 1).expect("route point denominator");
+                route_point_statement
+                    .execute(params![
+                        origin,
+                        session_id,
+                        exercise_id,
+                        point_ordinal,
+                        35.0 + progress / 4.0,
+                        -5.0 + progress / 4.0,
+                        600.0 + (point_index % 500) as f64 / 10.0,
+                        elapsed_milliseconds,
+                    ])
+                    .expect("insert generated training route point");
+                training_route_point_rows += 1;
+            }
         }
     }
     {
@@ -1088,6 +1224,8 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
         training_exercises: training_exercise_rows,
         training_laps: training_lap_rows,
         training_pauses: training_pause_rows,
+        training_routes: training_route_rows,
+        training_route_points: training_route_point_rows,
         sleep: sleep_rows,
         sleep_transitions: sleep_transition_rows,
     }
