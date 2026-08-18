@@ -211,11 +211,11 @@ async function applyTrainingRange(from, through) {
   const input = {
     from,
     through,
-    expectedRows: inclusiveDays(from, through),
+    expectedRows: Math.min(inclusiveDays(from, through), 25),
     expectedFirstDateTime: `${through}T06:00:00`,
   };
   const result = await browser.executeAsync((expected, done) => {
-    const inputs = document.querySelectorAll(".training-filter input[type='date']");
+    const inputs = document.querySelectorAll(".training-session-search input[type='date']");
     const setValue = Object.getOwnPropertyDescriptor(
       window.HTMLInputElement.prototype,
       "value",
@@ -226,9 +226,9 @@ async function applyTrainingRange(from, through) {
       inputs[index].dispatchEvent(new Event("change", { bubbles: true }));
     });
     const started = window.performance.now();
-    document.querySelector(".training-filter button[type='submit']").click();
+    document.querySelector(".training-session-search button[type='submit']").click();
     function observeResult() {
-      const rows = document.querySelectorAll(".training-history-grid table tbody tr");
+      const rows = document.querySelectorAll(".training-session-results > li");
       const renderedFirstDateTime = rows[0]?.querySelector("time")?.getAttribute("datetime");
       if (
         rows.length === expected.expectedRows
@@ -817,6 +817,21 @@ export async function runInsightsPerformanceJourney({
   );
 
   await openHomeQuestion("explore-training-sessions", ".training-insights");
+  await browser.waitUntil(
+    async () => (await $$(".training-session-results > li")).length === 25,
+    { timeout: 10_000, timeoutMsg: "full-history training page did not render" },
+  );
+  await expect($(".training-session-result-count")).toHaveText(
+    "1–25 of 731 matching sessions",
+  );
+  await $("aria/Next page").click();
+  await expect($(".training-session-result-count")).toHaveText(
+    "26–50 of 731 matching sessions",
+  );
+  await $("aria/Previous page").click();
+  await expect($(".training-session-result-count")).toHaveText(
+    "1–25 of 731 matching sessions",
+  );
   const trainingFilterRange = ([from, through]) => applyTrainingRange(from, through);
   await measureAlternating(warmUpRuns, commonRanges, trainingFilterRange);
   const trainingCommonFilterTimings = await measureAlternating(

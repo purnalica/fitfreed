@@ -1,6 +1,6 @@
 use std::{
     cmp::Ordering as CmpOrdering,
-    collections::{HashMap, HashSet},
+    collections::{BTreeMap, BTreeSet, HashMap, HashSet},
     fmt::{Formatter, Result as FmtResult},
     fs::File,
     io::{self, Read, Seek, SeekFrom},
@@ -16,7 +16,9 @@ use std::{
 use chrono::{DateTime, NaiveDate, NaiveDateTime, SecondsFormat, Timelike};
 use regex::Regex;
 use rusqlite::{
-    params, types::Type, Connection, Error as SqliteError, OptionalExtension, Row, Transaction,
+    params, params_from_iter,
+    types::{Type, Value},
+    Connection, Error as SqliteError, OptionalExtension, Row, Transaction,
 };
 use serde::{
     de::{IgnoredAny, SeqAccess, Visitor},
@@ -34,15 +36,18 @@ use fitfreed_application::{
     save_training_sport_classification, AppearancePreference, ApplicationError, LibraryDomain,
     LibraryHomeDateRange, LibraryHomeRequest, LibraryQuestion, LibraryQuestionKind,
     LocalePreference, SaveSportClassificationRequest, SportClassificationSaveOutcome,
-    TrainingSportState,
 };
 use fitfreed_application::{
     ActivityDateRange, ActivityLibraryPort, ApplicationPreferences, ApplicationPreferencesPort,
     ArchiveImportPort, DetectedTrainingSport, ExplorationWorkspace, ExplorationWorkspacePort,
     ExploreDestination, ImportOutcomeLibraryPort, ImportPhase, ImportPhaseTimings, ImportProgress,
-    ProfiledImport, RecoveryDateRange, RecoveryLibraryNight, RecoveryLibraryPort, SleepDateRange,
-    SleepLibraryPeriod, SleepLibraryPort, StoredApplicationPreferences, StoredExplorationWorkspace,
-    TrainingDateRange, TrainingLibraryPort, TrainingSportsPort,
+    PersistedTrainingSessionSearchPage, ProfiledImport, RecoveryDateRange, RecoveryLibraryNight,
+    RecoveryLibraryPort, SleepDateRange, SleepLibraryPeriod, SleepLibraryPort,
+    StoredApplicationPreferences, StoredExplorationWorkspace, TrainingDateRange,
+    TrainingLibraryPort, TrainingMeasurementFilter, TrainingSessionDiscoveryPort,
+    TrainingSessionDiscoveryPortError, TrainingSessionSearchItem, TrainingSessionSearchRequest,
+    TrainingSessionSearchSummary, TrainingSessionSort, TrainingSessionSport,
+    TrainingSportClassification, TrainingSportState, TrainingSportsPort,
 };
 use fitfreed_domain::{
     decide_nightly_recovery_reconciliation, decide_reconciliation,
@@ -109,7 +114,7 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 12;
+const SCHEMA_VERSION: i64 = 13;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
@@ -122,6 +127,7 @@ const SCHEMA_V9: &str = include_str!("../migrations/0009_update_state.sql");
 const SCHEMA_V10: &str = include_str!("../migrations/0010_application_preferences.sql");
 const SCHEMA_V11: &str = include_str!("../migrations/0011_exploration_workspace.sql");
 const SCHEMA_V12: &str = include_str!("../migrations/0012_sport_classification.sql");
+const SCHEMA_V13: &str = include_str!("../migrations/0013_training_session_discovery.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
 const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@6";
 const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@1";
@@ -1666,6 +1672,535 @@ pub fn query_training_between(
     .collect()
 }
 
+struct TrainingDiscoverySportEntry {
+    origin_id: String,
+    source_sport_ref: Option<String>,
+    public_sport: TrainingSessionSport,
+}
+
+fn query_training_session_discovery(
+    database_path: &Path,
+    request: &TrainingSessionSearchRequest,
+) -> std::result::Result<PersistedTrainingSessionSearchPage, TrainingSessionDiscoveryPortError> {
+    let mut connection = Connection::open(database_path).map_err(discovery_failure)?;
+    ensure_schema(&connection).map_err(discovery_failure)?;
+    let transaction = connection.transaction().map_err(discovery_failure)?;
+    let revision = transaction
+        .query_row(
+            "SELECT revision FROM training_discovery_revision WHERE id = 1",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .map_err(discovery_failure)?;
+    if revision < 1 {
+        return Err(TrainingSessionDiscoveryPortError::Failure(
+            "training discovery revision is invalid".to_owned(),
+        ));
+    }
+    let snapshot_ref = training_snapshot_ref(revision);
+    if request
+        .snapshot_ref
+        .as_ref()
+        .is_some_and(|expected| expected != &snapshot_ref)
+    {
+        return Err(TrainingSessionDiscoveryPortError::SnapshotChanged);
+    }
+
+    let available_range = query_training_bounds_on(&transaction).map_err(discovery_failure)?;
+    let sport_entries = query_training_discovery_sports(&transaction).map_err(discovery_failure)?;
+    let source_indices = sport_entries
+        .iter()
+        .map(|entry| entry.origin_id.clone())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .enumerate()
+        .map(|(index, origin)| (origin, index + 1))
+        .collect::<BTreeMap<_, _>>();
+    let sport_by_identity = sport_entries
+        .iter()
+        .map(|entry| {
+            (
+                (entry.origin_id.clone(), entry.source_sport_ref.clone()),
+                entry.public_sport.clone(),
+            )
+        })
+        .collect::<HashMap<_, _>>();
+
+    let selected_entries = select_training_discovery_sports(&sport_entries, request)?;
+    let mut values = vec![
+        request.from.clone().map_or(Value::Null, Value::Text),
+        request.through.clone().map_or(Value::Null, Value::Text),
+    ];
+    let mut predicates = vec![
+        "(?1 IS NULL OR session.started_at_local >= ?1 || 'T')".to_owned(),
+        "(?2 IS NULL OR session.started_at_local <= ?2 || 'T23:59:59.999999999')".to_owned(),
+    ];
+    for measurement in &request.required_measurements {
+        predicates.push(match measurement {
+            TrainingMeasurementFilter::Distance => "session.distance_meters IS NOT NULL",
+            TrainingMeasurementFilter::Energy => "session.energy_kilocalories IS NOT NULL",
+            TrainingMeasurementFilter::HeartRate => {
+                "(session.average_heart_rate_bpm IS NOT NULL OR session.maximum_heart_rate_bpm IS NOT NULL)"
+            }
+        }
+        .to_owned());
+    }
+    if let Some(selected_entries) = selected_entries {
+        if selected_entries.is_empty() {
+            predicates.push("0".to_owned());
+        } else {
+            let mut sport_predicates = Vec::with_capacity(selected_entries.len());
+            for entry in selected_entries {
+                let origin_parameter = values.len() + 1;
+                values.push(Value::Text(entry.origin_id.clone()));
+                let sport_parameter = values.len() + 1;
+                values.push(
+                    entry
+                        .source_sport_ref
+                        .clone()
+                        .map_or(Value::Null, Value::Text),
+                );
+                sport_predicates.push(format!(
+                    "(session.origin_id = ?{origin_parameter} AND session.sport_ref IS ?{sport_parameter})"
+                ));
+            }
+            predicates.push(format!("({})", sport_predicates.join(" OR ")));
+        }
+    }
+    let where_clause = predicates.join(" AND ");
+    let total_count = transaction
+        .query_row(
+            &format!("SELECT COUNT(*) FROM training_session AS session WHERE {where_clause}"),
+            params_from_iter(values.iter()),
+            |row| row.get::<_, i64>(0),
+        )
+        .map_err(discovery_failure)
+        .and_then(|count| {
+            usize::try_from(count).map_err(|_| {
+                TrainingSessionDiscoveryPortError::Failure(
+                    "training-session result count is invalid".to_owned(),
+                )
+            })
+        })?;
+
+    let summary_query = format!(
+        "SELECT session.origin_id,
+                COUNT(DISTINCT substr(session.started_at_local, 1, 10)),
+                COUNT(*), SUM(session.duration_milliseconds),
+                COUNT(session.distance_meters), SUM(session.distance_meters),
+                COUNT(session.energy_kilocalories), SUM(session.energy_kilocalories),
+                SUM(CASE WHEN session.average_heart_rate_bpm IS NOT NULL
+                              OR session.maximum_heart_rate_bpm IS NOT NULL
+                         THEN 1 ELSE 0 END)
+         FROM training_session AS session
+         WHERE {where_clause}
+         GROUP BY session.origin_id
+         ORDER BY session.origin_id"
+    );
+    let mut summary_statement = transaction
+        .prepare(&summary_query)
+        .map_err(discovery_failure)?;
+    let summary_rows = summary_statement
+        .query_map(params_from_iter(values.iter()), |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, i64>(1)?,
+                row.get::<_, i64>(2)?,
+                row.get::<_, i64>(3)?,
+                row.get::<_, i64>(4)?,
+                row.get::<_, Option<f64>>(5)?,
+                row.get::<_, i64>(6)?,
+                row.get::<_, Option<i64>>(7)?,
+                row.get::<_, i64>(8)?,
+            ))
+        })
+        .map_err(discovery_failure)?;
+    let mut summaries = Vec::new();
+    for row in summary_rows {
+        let (
+            origin_id,
+            training_days,
+            session_count,
+            total_duration_milliseconds,
+            distance_session_count,
+            total_distance_meters,
+            energy_session_count,
+            total_energy_kilocalories,
+            heart_rate_session_count,
+        ) = row.map_err(discovery_failure)?;
+        let source_index = source_indices.get(&origin_id).copied().ok_or_else(|| {
+            TrainingSessionDiscoveryPortError::Failure(
+                "training-session summary origin has no source index".to_owned(),
+            )
+        })?;
+        summaries.push(TrainingSessionSearchSummary {
+            source_index,
+            training_days: persisted_count(training_days, "training_days")
+                .map_err(discovery_failure)?,
+            session_count: persisted_count(session_count, "session_count")
+                .map_err(discovery_failure)?,
+            total_duration_milliseconds: i128::from(total_duration_milliseconds),
+            distance_session_count: persisted_count(
+                distance_session_count,
+                "distance_session_count",
+            )
+            .map_err(discovery_failure)?,
+            total_distance_meters,
+            energy_session_count: persisted_count(energy_session_count, "energy_session_count")
+                .map_err(discovery_failure)?,
+            total_energy_kilocalories: total_energy_kilocalories.map(i128::from),
+            heart_rate_session_count: persisted_count(
+                heart_rate_session_count,
+                "heart_rate_session_count",
+            )
+            .map_err(discovery_failure)?,
+        });
+    }
+    drop(summary_statement);
+
+    let order_clause = match request.sort {
+        TrainingSessionSort::StartedDescending => {
+            "session.started_at_local DESC, session.origin_id, session.session_id"
+        }
+        TrainingSessionSort::StartedAscending => {
+            "session.started_at_local, session.origin_id, session.session_id"
+        }
+        TrainingSessionSort::DurationDescending => {
+            "session.duration_milliseconds DESC, session.started_at_local DESC, session.origin_id, session.session_id"
+        }
+        TrainingSessionSort::DistanceDescending => {
+            "session.distance_meters DESC, session.started_at_local DESC, session.origin_id, session.session_id"
+        }
+    };
+    let limit_parameter = values.len() + 1;
+    values.push(Value::Integer(i64::try_from(request.limit).map_err(
+        |_| {
+            TrainingSessionDiscoveryPortError::Failure(
+                "training-session page size is too large".to_owned(),
+            )
+        },
+    )?));
+    let offset_parameter = values.len() + 1;
+    values.push(Value::Integer(i64::try_from(request.offset).map_err(
+        |_| {
+            TrainingSessionDiscoveryPortError::Failure(
+                "training-session page offset is too large".to_owned(),
+            )
+        },
+    )?));
+    let query = format!(
+        "SELECT session.origin_id, session.session_id, session.started_at_local,
+                session.stopped_at_local, session.utc_offset_minutes,
+                session.duration_milliseconds, session.distance_meters,
+                session.energy_kilocalories, session.average_heart_rate_bpm,
+                session.maximum_heart_rate_bpm, session.sport_ref, session.exercise_count
+         FROM training_session AS session
+         WHERE {where_clause}
+         ORDER BY {order_clause}
+         LIMIT ?{limit_parameter} OFFSET ?{offset_parameter}"
+    );
+    let mut statement = transaction.prepare(&query).map_err(discovery_failure)?;
+    let rows = statement
+        .query_map(params_from_iter(values.iter()), |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, Option<i32>>(4)?,
+                row.get::<_, i64>(5)?,
+                row.get::<_, Option<f64>>(6)?,
+                row.get::<_, Option<i64>>(7)?,
+                row.get::<_, Option<i64>>(8)?,
+                row.get::<_, Option<i64>>(9)?,
+                row.get::<_, Option<String>>(10)?,
+                row.get::<_, Option<i64>>(11)?,
+            ))
+        })
+        .map_err(discovery_failure)?;
+    let mut sessions = Vec::new();
+    for row in rows {
+        let (
+            origin_id,
+            session_id,
+            started_at_local,
+            stopped_at_local,
+            utc_offset_minutes,
+            duration_milliseconds,
+            distance_meters,
+            energy_kilocalories,
+            average_heart_rate_bpm,
+            maximum_heart_rate_bpm,
+            source_sport_ref,
+            exercise_count,
+        ) = row.map_err(discovery_failure)?;
+        let source_index = source_indices.get(&origin_id).copied().ok_or_else(|| {
+            TrainingSessionDiscoveryPortError::Failure(
+                "training-session origin has no source index".to_owned(),
+            )
+        })?;
+        let sport = sport_by_identity
+            .get(&(origin_id.clone(), source_sport_ref.clone()))
+            .cloned()
+            .ok_or_else(|| {
+                TrainingSessionDiscoveryPortError::Failure(
+                    "training-session sport context is unavailable".to_owned(),
+                )
+            })?;
+        sessions.push(TrainingSessionSearchItem {
+            session_ref: training_session_ref(&origin_id, &session_id),
+            source_index,
+            started_at_local,
+            stopped_at_local,
+            utc_offset_minutes,
+            duration_milliseconds,
+            distance_meters,
+            energy_kilocalories,
+            average_heart_rate_bpm,
+            maximum_heart_rate_bpm,
+            exercise_count: exercise_count
+                .map(|count| persisted_count(count, "exercise_count"))
+                .transpose()
+                .map_err(discovery_failure)?,
+            sport,
+        });
+    }
+    drop(statement);
+    transaction.commit().map_err(discovery_failure)?;
+    Ok(PersistedTrainingSessionSearchPage {
+        available_range,
+        snapshot_ref,
+        total_count,
+        summaries,
+        sessions,
+    })
+}
+
+fn query_training_bounds_on(connection: &Connection) -> Result<Option<TrainingDateRange>> {
+    let (from, through) = connection.query_row(
+        "SELECT substr(MIN(started_at_local), 1, 10),
+                substr(MAX(started_at_local), 1, 10)
+         FROM training_session",
+        [],
+        |row| {
+            Ok((
+                row.get::<_, Option<String>>(0)?,
+                row.get::<_, Option<String>>(1)?,
+            ))
+        },
+    )?;
+    match (from, through) {
+        (None, None) => Ok(None),
+        (Some(from), Some(through)) => Ok(Some(TrainingDateRange { from, through })),
+        _ => Err(ImportError::InvalidTrainingLibrary(
+            "training bounds are incomplete".to_owned(),
+        )),
+    }
+}
+
+fn query_training_discovery_sports(
+    connection: &Connection,
+) -> Result<Vec<TrainingDiscoverySportEntry>> {
+    let mut statement = connection.prepare(
+        "SELECT DISTINCT session.origin_id, session.sport_ref,
+                classification.classification_state,
+                classification.canonical_family,
+                classification.display_label,
+                classification.authorship,
+                classification.revision
+         FROM training_session AS session
+         LEFT JOIN sport_classification AS classification
+           ON classification.origin_id = session.origin_id
+          AND classification.source_sport_ref = session.sport_ref
+         ORDER BY session.origin_id, session.sport_ref",
+    )?;
+    let rows = statement.query_map([], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, Option<String>>(1)?,
+            row.get::<_, Option<String>>(2)?,
+            row.get::<_, Option<String>>(3)?,
+            row.get::<_, Option<String>>(4)?,
+            row.get::<_, Option<String>>(5)?,
+            row.get::<_, Option<i64>>(6)?,
+        ))
+    })?;
+    rows.map(|row| {
+        let (origin_id, source_sport_ref, state, family, label, authorship, revision) = row?;
+        let public_sport = match source_sport_ref.as_deref() {
+            None => {
+                if state.is_some()
+                    || family.is_some()
+                    || label.is_some()
+                    || authorship.is_some()
+                    || revision.is_some()
+                {
+                    return Err(ImportError::InvalidTrainingLibrary(
+                        "unavailable sport contains a classification".to_owned(),
+                    ));
+                }
+                TrainingSessionSport {
+                    sport_ref: None,
+                    state: TrainingSportState::Unavailable,
+                    classification: None,
+                }
+            }
+            Some(source_sport_ref) => {
+                let key =
+                    SportClassificationKey::new(origin_id.clone(), source_sport_ref.to_owned())
+                        .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
+                let classification =
+                    restore_sport_classification(key, state, family, label, authorship, revision)?;
+                let public_classification = TrainingSportClassification {
+                    canonical_family: classification
+                        .canonical_family()
+                        .map(|value| value.as_code().to_owned()),
+                    display_label: classification.display_label().map(str::to_owned),
+                    authorship: classification.authorship().map(|value| match value {
+                        SportClassificationAuthorship::User => "user".to_owned(),
+                    }),
+                    revision: classification.revision(),
+                };
+                let public_state = match classification.state() {
+                    SportClassificationState::Unknown => TrainingSportState::Unknown,
+                    SportClassificationState::Classified => TrainingSportState::Classified,
+                };
+                TrainingSessionSport {
+                    sport_ref: Some(detected_sport_ref(classification.key())),
+                    state: public_state,
+                    classification: Some(public_classification),
+                }
+            }
+        };
+        Ok(TrainingDiscoverySportEntry {
+            origin_id,
+            source_sport_ref,
+            public_sport,
+        })
+    })
+    .collect()
+}
+
+fn restore_sport_classification(
+    key: SportClassificationKey,
+    state: Option<String>,
+    canonical_family: Option<String>,
+    display_label: Option<String>,
+    authorship: Option<String>,
+    revision: Option<i64>,
+) -> Result<SportClassification> {
+    match (state, authorship, revision) {
+        (None, None, None) if canonical_family.is_none() && display_label.is_none() => {
+            Ok(SportClassification::unresolved(key))
+        }
+        (Some(state), Some(authorship), Some(revision)) => {
+            let state = match state.as_str() {
+                "unknown" => SportClassificationState::Unknown,
+                "classified" => SportClassificationState::Classified,
+                _ => {
+                    return Err(ImportError::InvalidTrainingLibrary(
+                        "stored sport classification state is invalid".to_owned(),
+                    ));
+                }
+            };
+            let authorship = match authorship.as_str() {
+                "user" => SportClassificationAuthorship::User,
+                _ => {
+                    return Err(ImportError::InvalidTrainingLibrary(
+                        "stored sport classification authorship is invalid".to_owned(),
+                    ));
+                }
+            };
+            let canonical_family = canonical_family
+                .as_deref()
+                .map(SportFamily::from_code)
+                .transpose()
+                .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
+            let revision = u64::try_from(revision).map_err(|_| {
+                ImportError::InvalidTrainingLibrary(
+                    "stored sport classification revision is invalid".to_owned(),
+                )
+            })?;
+            SportClassification::restore(
+                key,
+                state,
+                canonical_family,
+                display_label,
+                Some(authorship),
+                revision,
+            )
+            .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))
+        }
+        _ => Err(ImportError::InvalidTrainingLibrary(
+            "stored sport classification is incomplete".to_owned(),
+        )),
+    }
+}
+
+fn select_training_discovery_sports<'a>(
+    entries: &'a [TrainingDiscoverySportEntry],
+    request: &TrainingSessionSearchRequest,
+) -> std::result::Result<
+    Option<Vec<&'a TrainingDiscoverySportEntry>>,
+    TrainingSessionDiscoveryPortError,
+> {
+    if request.sport_refs.is_empty() && request.text.is_none() {
+        return Ok(None);
+    }
+    for sport_ref in &request.sport_refs {
+        if !entries
+            .iter()
+            .any(|entry| entry.public_sport.sport_ref.as_deref() == Some(sport_ref.as_str()))
+        {
+            return Err(TrainingSessionDiscoveryPortError::UnknownSportReference);
+        }
+    }
+    let normalized_text = request.text.as_ref().map(|text| text.to_lowercase());
+    Ok(Some(
+        entries
+            .iter()
+            .filter(|entry| {
+                request.sport_refs.is_empty()
+                    || entry
+                        .public_sport
+                        .sport_ref
+                        .as_ref()
+                        .is_some_and(|sport_ref| request.sport_refs.contains(sport_ref))
+            })
+            .filter(|entry| {
+                normalized_text.as_ref().is_none_or(|text| {
+                    entry
+                        .public_sport
+                        .classification
+                        .as_ref()
+                        .and_then(|classification| classification.display_label.as_ref())
+                        .is_some_and(|label| label.to_lowercase().contains(text))
+                })
+            })
+            .collect(),
+    ))
+}
+
+fn training_snapshot_ref(revision: i64) -> String {
+    let mut digest = Sha256::new();
+    digest.update(b"fitfreed:training-discovery-snapshot:v1\0");
+    digest.update(revision.to_be_bytes());
+    format!("training-snapshot-{:x}", digest.finalize())
+}
+
+fn training_session_ref(origin_id: &str, session_id: &str) -> String {
+    let mut digest = Sha256::new();
+    digest.update(b"fitfreed:training-session:v1\0");
+    digest.update(origin_id.as_bytes());
+    digest.update(b"\0");
+    digest.update(session_id.as_bytes());
+    format!("session-{:x}", digest.finalize())
+}
+
+fn discovery_failure(error: impl std::fmt::Display) -> TrainingSessionDiscoveryPortError {
+    TrainingSessionDiscoveryPortError::Failure(error.to_string())
+}
+
 pub fn query_detected_training_sports(database_path: &Path) -> Result<Vec<DetectedTrainingSport>> {
     let connection = Connection::open(database_path)?;
     ensure_schema(&connection)?;
@@ -1774,54 +2309,14 @@ fn decode_detected_training_sport(
     };
     let key = SportClassificationKey::new(origin_id.clone(), source_sport_ref)
         .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
-    let classification = match (state, authorship, revision) {
-        (None, None, None) if canonical_family.is_none() && display_label.is_none() => {
-            SportClassification::unresolved(key.clone())
-        }
-        (Some(state), Some(authorship), Some(revision)) => {
-            let state = match state.as_str() {
-                "unknown" => SportClassificationState::Unknown,
-                "classified" => SportClassificationState::Classified,
-                _ => {
-                    return Err(ImportError::InvalidTrainingLibrary(
-                        "stored sport classification state is invalid".to_owned(),
-                    ));
-                }
-            };
-            let authorship = match authorship.as_str() {
-                "user" => SportClassificationAuthorship::User,
-                _ => {
-                    return Err(ImportError::InvalidTrainingLibrary(
-                        "stored sport classification authorship is invalid".to_owned(),
-                    ));
-                }
-            };
-            let canonical_family = canonical_family
-                .as_deref()
-                .map(SportFamily::from_code)
-                .transpose()
-                .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
-            let revision = u64::try_from(revision).map_err(|_| {
-                ImportError::InvalidTrainingLibrary(
-                    "stored sport classification revision is invalid".to_owned(),
-                )
-            })?;
-            SportClassification::restore(
-                key.clone(),
-                state,
-                canonical_family,
-                display_label,
-                Some(authorship),
-                revision,
-            )
-            .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?
-        }
-        _ => {
-            return Err(ImportError::InvalidTrainingLibrary(
-                "stored sport classification is incomplete".to_owned(),
-            ));
-        }
-    };
+    let classification = restore_sport_classification(
+        key.clone(),
+        state,
+        canonical_family,
+        display_label,
+        authorship,
+        revision,
+    )?;
     Ok(DetectedTrainingSport {
         sport_ref: Some(detected_sport_ref(&key)),
         origin_id,
@@ -2427,7 +2922,10 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         if version < 11 {
             connection.execute_batch(SCHEMA_V11)?;
         }
-        connection.execute_batch(SCHEMA_V12)?;
+        if version < 12 {
+            connection.execute_batch(SCHEMA_V12)?;
+        }
+        connection.execute_batch(SCHEMA_V13)?;
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
         }
@@ -5556,6 +6054,16 @@ impl TrainingLibraryPort for SqliteTrainingLibrary {
     }
 }
 
+impl TrainingSessionDiscoveryPort for SqliteTrainingLibrary {
+    fn query_training_sessions(
+        &self,
+        request: &TrainingSessionSearchRequest,
+    ) -> std::result::Result<PersistedTrainingSessionSearchPage, TrainingSessionDiscoveryPortError>
+    {
+        query_training_session_discovery(&self.database_path, request)
+    }
+}
+
 pub struct SqliteTrainingSports {
     database_path: PathBuf,
 }
@@ -6579,6 +7087,206 @@ mod tests {
             )
             .expect("sport discovery query plan");
         assert!(query_plan.contains("training_session_origin_sport_start"));
+    }
+
+    #[test]
+    fn searches_the_complete_training_history_with_stable_pages_and_combinable_filters() {
+        let harness = Harness::new();
+        let archive = harness.archive(
+            "training-discovery.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-training-discovery-claim"}"#,
+                ),
+                (
+                    "training-session_2024-01-02T10-30-00_42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                    "identifier":{"id":"discovery-session-a"},
+                    "created":"2024-01-02T12:00:00.000",
+                    "modified":"2024-01-02T12:05:00.000",
+                    "startTime":"2024-01-02T10:30:00",
+                    "stopTime":"2024-01-02T11:30:00",
+                    "durationMillis":3600000,
+                    "distanceMeters":10000,
+                    "calories":650,
+                    "hrAvg":145,
+                    "hrMax":178,
+                    "sport":{"id":"source-sport-a"}
+                    }"#,
+                ),
+                (
+                    "training-session_2025-02-03T07-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                    "identifier":{"id":"discovery-session-b"},
+                    "created":"2025-02-03T08:00:00.000",
+                    "modified":"2025-02-03T08:05:00.000",
+                    "startTime":"2025-02-03T07:00:00",
+                    "stopTime":"2025-02-03T07:45:00",
+                    "durationMillis":2700000,
+                    "distanceMeters":18000,
+                    "sport":{"id":"source-sport-b"}
+                    }"#,
+                ),
+                (
+                    "training-session_2026-03-04T18-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                    "identifier":{"id":"discovery-session-c"},
+                    "created":"2026-03-04T19:00:00.000",
+                    "modified":"2026-03-04T19:05:00.000",
+                    "startTime":"2026-03-04T18:00:00",
+                    "stopTime":"2026-03-04T18:30:00",
+                    "durationMillis":1800000
+                    }"#,
+                ),
+            ],
+        );
+        import_polar_archive(&harness.database(), &archive).expect("training discovery import");
+        let sports_library = SqliteTrainingSports::new(harness.database());
+        let sports = query_training_sports(&sports_library).expect("sport discovery");
+        let first_sport = sports
+            .sports
+            .iter()
+            .find(|sport| sport.first_local_date == "2024-01-02")
+            .and_then(|sport| sport.sport_ref.clone())
+            .expect("first opaque sport reference");
+        let second_sport = sports
+            .sports
+            .iter()
+            .find(|sport| sport.first_local_date == "2025-02-03")
+            .and_then(|sport| sport.sport_ref.clone())
+            .expect("second opaque sport reference");
+        save_training_sport_classification(
+            &sports_library,
+            SaveSportClassificationRequest {
+                sport_ref: first_sport.clone(),
+                expected_revision: 0,
+                canonical_family: Some("running".to_owned()),
+                display_label: Some("Trail running".to_owned()),
+            },
+        )
+        .expect("searchable sport classification");
+        let library = SqliteTrainingLibrary::new(harness.database());
+        let base_request = TrainingSessionSearchRequest {
+            from: None,
+            through: None,
+            sport_refs: Vec::new(),
+            required_measurements: Vec::new(),
+            text: None,
+            sort: TrainingSessionSort::StartedDescending,
+            offset: 0,
+            limit: 2,
+            snapshot_ref: None,
+        };
+
+        let first_page =
+            fitfreed_application::query_training_sessions(&library, base_request.clone())
+                .expect("first training page");
+        assert_eq!(
+            first_page.available_range.as_ref().unwrap().from,
+            "2024-01-02"
+        );
+        assert_eq!(
+            first_page.available_range.as_ref().unwrap().through,
+            "2026-03-04"
+        );
+        assert_eq!(first_page.total_count, 3);
+        assert_eq!(first_page.summaries.len(), 1);
+        assert_eq!(first_page.summaries[0].training_days, 3);
+        assert_eq!(first_page.summaries[0].session_count, 3);
+        assert_eq!(
+            first_page.summaries[0].total_duration_milliseconds,
+            8_100_000
+        );
+        assert_eq!(first_page.summaries[0].distance_session_count, 2);
+        assert_eq!(
+            first_page.summaries[0].total_distance_meters,
+            Some(28_000.0)
+        );
+        assert_eq!(first_page.summaries[0].energy_session_count, 1);
+        assert_eq!(first_page.summaries[0].total_energy_kilocalories, Some(650));
+        assert_eq!(first_page.summaries[0].heart_rate_session_count, 1);
+        assert_eq!(first_page.sessions.len(), 2);
+        assert_eq!(
+            first_page.sessions[0].started_at_local,
+            "2026-03-04T18:00:00"
+        );
+        assert_eq!(first_page.next_offset, Some(2));
+        assert!(first_page
+            .sessions
+            .iter()
+            .all(|session| !session.session_ref.contains("discovery-session")));
+
+        let second_page = fitfreed_application::query_training_sessions(
+            &library,
+            TrainingSessionSearchRequest {
+                offset: 2,
+                snapshot_ref: Some(first_page.snapshot_ref.clone()),
+                ..base_request.clone()
+            },
+        )
+        .expect("second training page");
+        assert_eq!(second_page.sessions.len(), 1);
+        assert_eq!(
+            second_page.sessions[0].started_at_local,
+            "2024-01-02T10:30:00"
+        );
+        assert_eq!(second_page.next_offset, None);
+
+        let filtered = fitfreed_application::query_training_sessions(
+            &library,
+            TrainingSessionSearchRequest {
+                from: Some("2024-01-01".to_owned()),
+                through: Some("2024-12-31".to_owned()),
+                sport_refs: vec![first_sport],
+                required_measurements: vec![
+                    TrainingMeasurementFilter::Distance,
+                    TrainingMeasurementFilter::HeartRate,
+                ],
+                text: Some("TRAIL".to_owned()),
+                sort: TrainingSessionSort::DistanceDescending,
+                offset: 0,
+                limit: 25,
+                snapshot_ref: None,
+            },
+        )
+        .expect("filtered training page");
+        assert_eq!(filtered.total_count, 1);
+        assert_eq!(filtered.summaries[0].training_days, 1);
+        assert_eq!(filtered.summaries[0].session_count, 1);
+        assert_eq!(filtered.summaries[0].distance_session_count, 1);
+        assert_eq!(filtered.summaries[0].heart_rate_session_count, 1);
+        assert_eq!(
+            filtered.sessions[0]
+                .sport
+                .classification
+                .as_ref()
+                .and_then(|classification| classification.display_label.as_deref()),
+            Some("Trail running")
+        );
+
+        save_training_sport_classification(
+            &sports_library,
+            SaveSportClassificationRequest {
+                sport_ref: second_sport,
+                expected_revision: 0,
+                canonical_family: Some("cycling".to_owned()),
+                display_label: None,
+            },
+        )
+        .expect("snapshot-changing classification");
+        let stale = fitfreed_application::query_training_sessions(
+            &library,
+            TrainingSessionSearchRequest {
+                offset: 2,
+                snapshot_ref: Some(first_page.snapshot_ref),
+                ..base_request
+            },
+        );
+        assert!(matches!(
+            stale,
+            Err(ApplicationError::TrainingSessionSearchChanged)
+        ));
     }
 
     #[test]
@@ -9315,7 +10023,7 @@ mod tests {
     fn create_schema_baseline(connection: &Connection, version: i64) {
         let migrations = [
             SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8,
-            SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12,
+            SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13,
         ];
         for migration in migrations
             .iter()
@@ -10626,5 +11334,117 @@ mod tests {
                 [],
             )
             .is_err());
+    }
+
+    #[test]
+    fn upgrades_version_twelve_with_atomic_training_discovery_evidence() {
+        let harness = Harness::new();
+        let connection = Connection::open(harness.database()).expect("database");
+        connection
+            .execute_batch("PRAGMA foreign_keys = ON;")
+            .expect("foreign keys");
+        create_schema_baseline(&connection, 12);
+
+        let error = migrate_schema(&connection, true).expect_err("interrupted version thirteen");
+        assert!(matches!(error, ImportError::InjectedMigrationInterruption));
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("retained schema version"),
+            12
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_schema
+                     WHERE type = 'table' AND name = 'training_discovery_revision'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("rolled-back discovery revision"),
+            0
+        );
+
+        migrate_schema(&connection, false).expect("version thirteen migration");
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("current schema version"),
+            SCHEMA_VERSION
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT revision FROM training_discovery_revision WHERE id = 1",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("initial discovery revision"),
+            1
+        );
+        for index in [
+            "training_session_duration_start_identity",
+            "training_session_distance_start_identity",
+        ] {
+            assert_eq!(
+                connection
+                    .query_row(
+                        "SELECT COUNT(*) FROM sqlite_schema WHERE type = 'index' AND name = ?1",
+                        [index],
+                        |row| row.get::<_, i64>(0),
+                    )
+                    .expect("training discovery index"),
+                1
+            );
+        }
+
+        connection
+            .execute(
+                "INSERT INTO observation_origin (
+                     id, source_provider, correlation_state, created_at_utc
+                 ) VALUES (
+                     'discovery-origin', 'synthetic-provider', 'verified',
+                     '2026-08-18T18:00:00Z'
+                 )",
+                [],
+            )
+            .expect("synthetic origin");
+        connection
+            .execute(
+                "INSERT INTO training_session (
+                     origin_id, session_id, source_modified_at_utc, started_at_local,
+                     stopped_at_local, utc_offset_minutes, duration_milliseconds,
+                     distance_meters, energy_kilocalories, average_heart_rate_bpm,
+                     maximum_heart_rate_bpm, sport_ref, exercise_count
+                 ) VALUES (
+                     'discovery-origin', 'session-1', '2026-08-18T18:00:00Z',
+                     '2026-08-18T18:00:00', '2026-08-18T19:00:00', 120, 3600000,
+                     10000, 600, 145, 175, 'running', 1
+                 )",
+                [],
+            )
+            .expect("training mutation");
+        connection
+            .execute(
+                "INSERT INTO sport_classification (
+                     origin_id, source_sport_ref, classification_state, canonical_family,
+                     display_label, authorship, revision, updated_at_utc
+                 ) VALUES (
+                     'discovery-origin', 'running', 'classified', 'running',
+                     'Trail running', 'user', 1, '2026-08-18T18:01:00Z'
+                 )",
+                [],
+            )
+            .expect("classification mutation");
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT revision FROM training_discovery_revision WHERE id = 1",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("advanced discovery revision"),
+            3
+        );
     }
 }

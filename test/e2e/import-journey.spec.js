@@ -3,7 +3,15 @@ import path from "node:path";
 
 import AxeBuilder from "@axe-core/webdriverio";
 
-import { runInsightsPerformanceJourney } from "./support/insights-performance.js";
+import {
+  goToHome,
+  openArchivePicker,
+  openHomeQuestion,
+  persistSettings,
+  returnToLibraryHome,
+  selectArchive,
+  selectLocale,
+} from "./support/application-actions.js";
 
 const english = JSON.parse(
   fs.readFileSync(new URL("../../src/locales/en-US.json", import.meta.url), "utf8"),
@@ -13,7 +21,6 @@ const spanish = JSON.parse(
 );
 const fixtureDirectory = process.env.FITFREED_E2E_FIXTURE_DIRECTORY;
 const largeArchive = process.env.FITFREED_E2E_LARGE_ARCHIVE;
-const insightsPerformanceArchive = process.env.FITFREED_E2E_INSIGHTS_PERFORMANCE_ARCHIVE;
 
 async function waitForNotice(fragment, timeout = 10_000) {
   await browser.waitUntil(
@@ -26,77 +33,6 @@ async function waitForNotice(fragment, timeout = 10_000) {
     },
     { timeout, timeoutMsg: `status did not contain ${fragment}` },
   );
-}
-
-async function openArchivePicker(dialogMock, selectedPath) {
-  await dialogMock.mockReturnValue(selectedPath);
-  await dialogMock.update();
-  const expectedCallCount = dialogMock.mock.calls.length + 1;
-  await $("aria/Choose ZIP package").click();
-  await browser.waitUntil(
-    async () => {
-      await dialogMock.update();
-      return dialogMock.mock.calls.length >= expectedCallCount;
-    },
-    { timeout: 10_000, timeoutMsg: "archive picker was not invoked" },
-  );
-  expect(dialogMock.mock.calls[expectedCallCount - 1][0]).toEqual({
-    options: {
-      multiple: false,
-      directory: false,
-      filters: [{ name: "ZIP", extensions: ["zip"] }],
-    },
-  });
-}
-
-async function selectArchive(dialogMock, archivePath) {
-  await openArchivePicker(dialogMock, archivePath);
-  await expect($(".path")).toHaveText(archivePath);
-}
-
-async function persistSettings() {
-  const status = await $(".settings-status");
-  const previewStatus = await status.getText();
-  const save = await $(".settings-actions button[type='submit']");
-  await save.waitForEnabled({ timeout: 10_000 });
-  await save.click();
-  await browser.waitUntil(async () => {
-    const currentStatus = await $(".settings-status").getText();
-    const currentSave = await $(".settings-actions button[type='submit']");
-    return currentStatus !== previewStatus && !(await currentSave.isEnabled());
-  }, { timeout: 10_000, timeoutMsg: "the application settings were not saved" });
-}
-
-async function goToHome(home) {
-  const destination = await $(`.shell-header nav button[data-home='${home}']`);
-  await destination.waitForEnabled({ timeout: 10_000 });
-  await destination.click();
-}
-
-async function returnToLibraryHome(catalog = english) {
-  await goToHome("explore");
-  const returnButtons = await $$(".explorer-return button");
-  if (returnButtons.length > 0 && await returnButtons[0].isDisplayed()) {
-    await returnButtons[0].click();
-  }
-  await expect($(".library-home h1")).toHaveText(catalog.home.title);
-}
-
-async function openHomeQuestion(catalog, kind, expectedSelector) {
-  await returnToLibraryHome(catalog);
-  const expectedLabel = catalog.home.questions[kind];
-  const buttons = await $$(".library-home-questions button");
-  const labels = [];
-  for (const button of buttons) {
-    const label = await button.getText();
-    labels.push(label);
-    if (label.includes(expectedLabel)) {
-      await button.click();
-      await $(expectedSelector).waitForDisplayed({ timeout: 10_000 });
-      return;
-    }
-  }
-  throw new Error(`Home question was not available: ${expectedLabel}; found ${labels.join(" | ")}`);
 }
 
 async function expectLibraryHome(catalog) {
@@ -115,36 +51,6 @@ async function expectComparisonHeading(selector, expectedText) {
   const heading = await $(selector);
   await heading.waitForDisplayed({ timeout: 10_000 });
   await expect(heading).toHaveText(expectedText);
-}
-
-async function selectLocale(locale, destination = "explore") {
-  const settings = await $(".shell-header nav button[data-home='settings']");
-  await settings.waitForEnabled({ timeout: 10_000 });
-  await settings.click();
-  const select = await $("#application-language");
-  await select.waitForEnabled({ timeout: 10_000 });
-  if (await select.getValue() !== locale) {
-    await browser.execute((nextLocale) => {
-      const select = document.querySelector("#application-language");
-      const setValue = Object.getOwnPropertyDescriptor(
-        window.HTMLSelectElement.prototype,
-        "value",
-      ).set;
-      setValue.call(select, nextLocale);
-      select.dispatchEvent(new Event("input", { bubbles: true }));
-      select.dispatchEvent(new Event("change", { bubbles: true }));
-    }, locale);
-    await expect(select).toHaveValue(locale);
-    await persistSettings();
-  }
-  await goToHome(destination);
-  await browser.waitUntil(
-    () => browser.execute(
-      (expectedLocale) => document.documentElement.lang === expectedLocale,
-      locale,
-    ),
-    { timeout: 10_000, timeoutMsg: `the ${locale} preference was not applied` },
-  );
 }
 
 async function setAppearanceAndZoom(appearance, zoom, save) {
@@ -306,7 +212,7 @@ async function expectActivitySummary(expectedItems) {
 async function setTrainingRange(from, through) {
   const values = [from, through];
   await browser.execute((nextValues) => {
-    const inputs = document.querySelectorAll(".training-filter input[type='date']");
+    const inputs = document.querySelectorAll(".training-session-search input[type='date']");
     const setValue = Object.getOwnPropertyDescriptor(
       window.HTMLInputElement.prototype,
       "value",
@@ -317,7 +223,7 @@ async function setTrainingRange(from, through) {
       input.dispatchEvent(new Event("change", { bubbles: true }));
     });
   }, values);
-  const inputs = await $$(".training-filter input[type='date']");
+  const inputs = await $$(".training-session-search input[type='date']");
   expect(inputs).toHaveLength(2);
   for (let index = 0; index < values.length; index += 1) {
     await expect(inputs[index]).toHaveValue(values[index]);
@@ -351,7 +257,7 @@ async function setTrainingComparisonRanges(
 }
 
 async function expectTrainingRows(expectedRows) {
-  const selector = ".training-history-grid table tbody tr";
+  const selector = ".training-session-results > li";
   try {
     await browser.waitUntil(async () => (await $$(selector)).length === expectedRows.length, {
       timeout: 10_000,
@@ -367,10 +273,12 @@ async function expectTrainingRows(expectedRows) {
   }
   const rows = await $$(selector);
   for (let index = 0; index < expectedRows.length; index += 1) {
-    const cells = await rows[index].$$("td");
-    for (let cellIndex = 0; cellIndex < expectedRows[index].length; cellIndex += 1) {
-      await expect(cells[cellIndex]).toHaveText(expectedRows[index][cellIndex]);
-    }
+    await expect(rows[index].$("time")).toHaveText(expectedRows[index][0]);
+    const values = await rows[index].$$("dd");
+    expect(values).toHaveLength(4);
+    await expect(values[0]).toHaveText(expectedRows[index][1]);
+    await expect(values[1]).toHaveText(expectedRows[index][2]);
+    await expect(values[2]).toHaveText(expectedRows[index][3]);
   }
 }
 
@@ -985,7 +893,7 @@ describe("packaged FitFreed import journey", () => {
       expect.stringContaining("Named by you"),
     );
     await expectTrainingRows([
-      [enJan5Start, "30 min", "Not available", "Not available"],
+      [enJan5Start, "30 min", "Not recorded", "Not recorded"],
       [enJan4Start, "1 h", "10,000 m", "600 kcal"],
     ]);
     await expectTrainingSummary([
@@ -995,6 +903,31 @@ describe("packaged FitFreed import journey", () => {
       ["10,000 m", "Recorded distance · 1 of 2"],
       ["600 kcal", "Recorded energy · 1 of 2"],
       ["1 of 2", "Sessions with heart rate"],
+    ]);
+    const trainingSessionSports = await $$(".training-session-results .training-session-sport");
+    expect(trainingSessionSports).toHaveLength(2);
+    await expect(trainingSessionSports[1]).toHaveText("Trail running");
+    const trainingTextFilter = await $(".training-session-text-filter input");
+    await trainingTextFilter.waitForEnabled({ timeout: 10_000 });
+    await trainingTextFilter.setValue("trail");
+    const trainingFilterGroups = await $$(".training-session-filter-options");
+    expect(trainingFilterGroups).toHaveLength(2);
+    const sportCheckbox = await trainingFilterGroups[0].$("input[type='checkbox']");
+    await sportCheckbox.click();
+    await expect(sportCheckbox).toBeChecked();
+    const measurementCheckboxes = await trainingFilterGroups[1].$$("input[type='checkbox']");
+    expect(measurementCheckboxes).toHaveLength(3);
+    for (const checkbox of measurementCheckboxes) {
+      await checkbox.click();
+      await expect(checkbox).toBeChecked();
+    }
+    await $(".training-session-search select").selectByAttribute("value", "distance-desc");
+    await $(".training-session-search button[type='submit']").click();
+    await expectTrainingRows([[enJan4Start, "1 h", "10,000 m", "600 kcal"]]);
+    await $(".training-session-search button.secondary").click();
+    await expectTrainingRows([
+      [enJan5Start, "30 min", "Not recorded", "Not recorded"],
+      [enJan4Start, "1 h", "10,000 m", "600 kcal"],
     ]);
     await openHomeQuestion(
       english,
@@ -1101,11 +1034,11 @@ describe("packaged FitFreed import journey", () => {
     );
     await $('button[aria-label="View aligned details for Jan 4, 2026"]').click();
     await $("aria/Open training explorer for this date").click();
-    await expectFilterRange(".training-filter", "2026-01-04", "2026-01-04");
+    await expectFilterRange(".training-session-search", "2026-01-04", "2026-01-04");
     await expectTrainingRows([[enJan4Start, "1 h", "10,000 m", "600 kcal"]]);
-    await $(".training-filter button.secondary").click();
+    await $(".training-session-search button.secondary").click();
     await expectTrainingRows([
-      [enJan5Start, "30 min", "Not available", "Not available"],
+      [enJan5Start, "30 min", "Not recorded", "Not recorded"],
       [enJan4Start, "1 h", "10,000 m", "600 kcal"],
     ]);
 
@@ -1326,7 +1259,12 @@ describe("packaged FitFreed import journey", () => {
       "Carrera de montaña",
     );
     await expectTrainingRows([
-      [esJan5Start, "30 min", spanish.unavailable, spanish.unavailable],
+      [
+        esJan5Start,
+        "30 min",
+        spanish.training.sessionLibrary.metricUnavailable,
+        spanish.training.sessionLibrary.metricUnavailable,
+      ],
       [esJan4Start, "1 h", "10.000 m", "600 kcal"],
     ]);
     await expectTrainingSummary([
@@ -1468,7 +1406,7 @@ describe("packaged FitFreed import journey", () => {
       "Carrera de montaña",
     );
     await expectTrainingRows([
-      [enJan5Start, "30 min", "Not available", "Not available"],
+      [enJan5Start, "30 min", "Not recorded", "Not recorded"],
       [enJan4Start, "1 h", "10,000 m", "600 kcal"],
     ]);
 
@@ -1511,7 +1449,7 @@ describe("packaged FitFreed import journey", () => {
     );
     await expectTrainingRows([
       [enJan6Start, "45 min", "5,000 m", "300 kcal"],
-      [enJan5Start, "30 min", "Not available", "Not available"],
+      [enJan5Start, "30 min", "Not recorded", "Not recorded"],
       [enJan4Start, "1 h", "10,500 m", "600 kcal"],
     ]);
     await expectTrainingSummary([
@@ -1629,12 +1567,13 @@ describe("packaged FitFreed import journey", () => {
       "explore-training-sessions",
       ".training-insights",
     );
-    const trainingDetailButtons = await $$('button[aria-label^="View training details for"]');
+    const trainingDetailButtons = await $$('button[aria-label^="View session details for"]');
     expect(trainingDetailButtons).toHaveLength(3);
     await trainingDetailButtons[2].click();
-    await expect($("#training-detail-heading")).toHaveText("Training detail");
+    await expect($("#training-session-detail-heading")).toHaveText("Session summary");
     const trainingDetailValues = await $$(".training-detail dd");
     const expectedTrainingDetail = [
+      "Carrera de montaña",
       enJan4Start,
       enJan4Stop,
       "UTC+01:00",
@@ -1643,20 +1582,19 @@ describe("packaged FitFreed import journey", () => {
       "600 kcal",
       "142 bpm",
       "171 bpm",
-      "Recorded training type",
       "1",
     ];
     expect(trainingDetailValues).toHaveLength(expectedTrainingDetail.length);
     for (let index = 0; index < expectedTrainingDetail.length; index += 1) {
       await expect(trainingDetailValues[index]).toHaveText(expectedTrainingDetail[index]);
     }
-    await $("aria/Close training detail").click();
+    await $("aria/Back to session results").click();
     expect(await $$(".training-detail")).toHaveLength(0);
 
     await setTrainingRange("2026-01-05", "2026-01-05");
-    await $(".training-filter button[type='submit']").click();
+    await $(".training-session-search button[type='submit']").click();
     await expectTrainingRows([
-      [enJan5Start, "30 min", "Not available", "Not available"],
+      [enJan5Start, "30 min", "Not recorded", "Not recorded"],
     ]);
     await expectTrainingSummary([
       ["1 session", "Sessions"],
@@ -1666,26 +1604,26 @@ describe("packaged FitFreed import journey", () => {
       ["Not available", "Recorded energy · 0 of 1"],
       ["0 of 1", "Sessions with heart rate"],
     ]);
-    await $('button[aria-label^="View training details for"]').click();
+    await $('button[aria-label^="View session details for"]').click();
     const unavailableTrainingDetail = await $$(".training-detail dd");
-    await expect(unavailableTrainingDetail[4]).toHaveText("Not available");
-    await expect(unavailableTrainingDetail[8]).toHaveText("Training type not available");
+    await expect(unavailableTrainingDetail[5]).toHaveText("Not recorded");
+    await expect(unavailableTrainingDetail[0]).toHaveText("Sport not recorded");
     await expect(unavailableTrainingDetail[9]).toHaveText("0");
-    await $("aria/Close training detail").click();
+    await $("aria/Back to session results").click();
 
     await setTrainingRange("2026-01-06", "2026-01-05");
-    await $(".training-filter button[type='submit']").click();
+    await $(".training-session-search button[type='submit']").click();
     await expect($("[role='alert']")).toHaveText(
-      "Choose an ordered training range inside the available history, up to 366 days.",
+      "Choose an ordered training-session date range and a personal sport name of up to 80 characters.",
     );
     await expectTrainingRows([
-      [enJan5Start, "30 min", "Not available", "Not available"],
+      [enJan5Start, "30 min", "Not recorded", "Not recorded"],
     ]);
 
-    await $(".training-filter button.secondary").click();
+    await $(".training-session-search button.secondary").click();
     await expectTrainingRows([
       [enJan6Start, "45 min", "5,000 m", "300 kcal"],
-      [enJan5Start, "30 min", "Not available", "Not available"],
+      [enJan5Start, "30 min", "Not recorded", "Not recorded"],
       [enJan4Start, "1 h", "10,500 m", "600 kcal"],
     ]);
 
@@ -1940,7 +1878,12 @@ describe("packaged FitFreed import journey", () => {
     );
     await expectTrainingRows([
       [esJan6Start, "45 min", "5000 m", "300 kcal"],
-      [esJan5Start, "30 min", spanish.unavailable, spanish.unavailable],
+      [
+        esJan5Start,
+        "30 min",
+        spanish.training.sessionLibrary.metricUnavailable,
+        spanish.training.sessionLibrary.metricUnavailable,
+      ],
       [esJan4Start, "1 h", "10.500 m", "600 kcal"],
     ]);
     await expectTrainingSummary([
@@ -2009,15 +1952,17 @@ describe("packaged FitFreed import journey", () => {
       "running",
       "Carrera de montaña",
     );
-    const spanishTrainingDetailButtons = await $$('button[aria-label^="Ver detalles del entrenamiento del"]');
+    const spanishTrainingDetailButtons = await $$('button[aria-label^="Ver detalles de la sesión del"]');
     expect(spanishTrainingDetailButtons).toHaveLength(3);
     await spanishTrainingDetailButtons[2].click();
-    await expect($("#training-detail-heading")).toHaveText(spanish.training.detailHeading);
+    await expect($("#training-session-detail-heading")).toHaveText(
+      spanish.training.sessionLibrary.detailHeading,
+    );
     const spanishTrainingDetailValues = await $$(".training-detail dd");
-    await expect(spanishTrainingDetailValues[4]).toHaveText("10.500 m");
-    await expect(spanishTrainingDetailValues[6]).toHaveText("142 ppm");
-    await expect(spanishTrainingDetailValues[8]).toHaveText(spanish.training.recordedType);
-    await $(`aria/${spanish.training.closeDetail}`).click();
+    await expect(spanishTrainingDetailValues[5]).toHaveText("10.500 m");
+    await expect(spanishTrainingDetailValues[7]).toHaveText("142 ppm");
+    await expect(spanishTrainingDetailValues[0]).toHaveText("Carrera de montaña");
+    await $(`aria/${spanish.training.sessionLibrary.closeDetail}`).click();
     await openHomeQuestion(
       spanish,
       "review-sleep-patterns",
@@ -2168,21 +2113,5 @@ describe("packaged FitFreed import journey", () => {
     await expectLibraryHome(spanish);
     expect(await $$(".library-home-resume")).toHaveLength(0);
 
-  });
-
-  it("meets domain and longitudinal insight budgets", async () => {
-    process.env.FITFREED_E2E_DATABASE_PATH = path.resolve(
-      `.artifacts/e2e/performance-library-${process.pid}.sqlite`,
-    );
-    await browser.reloadSession();
-    await runInsightsPerformanceJourney({
-      archivePath: insightsPerformanceArchive,
-      goToHome,
-      openHomeQuestion: (kind, expectedSelector) => (
-        openHomeQuestion(english, kind, expectedSelector)
-      ),
-      selectArchive,
-      selectLocale,
-    });
   });
 });

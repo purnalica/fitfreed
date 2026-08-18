@@ -26,6 +26,17 @@ pub use sport_discovery::{
     TrainingSportCoverage, TrainingSportState, TrainingSportsOverview, TrainingSportsPort,
 };
 
+mod training_discovery;
+pub use training_discovery::{
+    query_training_sessions, PersistedTrainingSessionSearchPage, TrainingMeasurementFilter,
+    TrainingSessionDiscoveryPort, TrainingSessionDiscoveryPortError, TrainingSessionSearchItem,
+    TrainingSessionSearchPage, TrainingSessionSearchRequest, TrainingSessionSearchSummary,
+    TrainingSessionSort, TrainingSessionSport,
+};
+
+#[cfg(test)]
+mod training_discovery_tests;
+
 #[cfg(test)]
 mod sport_discovery_tests;
 
@@ -1302,6 +1313,12 @@ pub enum ApplicationError {
     InvalidActivityRange(&'static str),
     #[error("invalid training range: {0}")]
     InvalidTrainingRange(&'static str),
+    #[error("invalid training-session search: {0}")]
+    InvalidTrainingSessionSearch(&'static str),
+    #[error("training-session search changed while it was being paged")]
+    TrainingSessionSearchChanged,
+    #[error("training-session search failed: {0}")]
+    TrainingSessionSearch(String),
     #[error("invalid sport classification: {0}")]
     InvalidSportClassification(&'static str),
     #[error("sport classification changed while it was being edited")]

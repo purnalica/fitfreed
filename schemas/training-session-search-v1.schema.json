@@ -1,0 +1,271 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-search-v1.schema.json",
+  "title": "FitFreed training-session search version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "availableRange",
+    "snapshotRef",
+    "totalCount",
+    "offset",
+    "limit",
+    "nextOffset",
+    "summaries",
+    "sessions"
+  ],
+  "properties": {
+    "availableRange": { "$ref": "#/$defs/optionalRange" },
+    "snapshotRef": { "$ref": "#/$defs/snapshotRef" },
+    "totalCount": { "type": "integer", "minimum": 0 },
+    "offset": { "type": "integer", "minimum": 0 },
+    "limit": { "type": "integer", "minimum": 1, "maximum": 100 },
+    "nextOffset": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "integer", "minimum": 1 }
+      ]
+    },
+    "summaries": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/summary" }
+    },
+    "sessions": {
+      "type": "array",
+      "maxItems": 100,
+      "items": { "$ref": "#/$defs/session" }
+    }
+  },
+  "$defs": {
+    "localDate": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "localDateTime": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?$"
+    },
+    "range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "through"],
+      "properties": {
+        "from": { "$ref": "#/$defs/localDate" },
+        "through": { "$ref": "#/$defs/localDate" }
+      }
+    },
+    "optionalRange": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/range" }
+      ]
+    },
+    "snapshotRef": {
+      "type": "string",
+      "pattern": "^training-snapshot-[0-9a-f]{64}$"
+    },
+    "sessionRef": {
+      "type": "string",
+      "pattern": "^session-[0-9a-f]{64}$"
+    },
+    "sportRef": {
+      "type": "string",
+      "pattern": "^sport-[0-9a-f]{64}$"
+    },
+    "optionalUnsignedDecimal": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "string", "pattern": "^(0|[1-9][0-9]*)$" }
+      ]
+    },
+    "optionalDistance": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "number", "minimum": 0 }
+      ]
+    },
+    "optionalCount": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "integer", "minimum": 0 }
+      ]
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourceIndex",
+        "trainingDays",
+        "sessionCount",
+        "totalDurationMilliseconds",
+        "distanceSessionCount",
+        "totalDistanceMeters",
+        "energySessionCount",
+        "totalEnergyKilocalories",
+        "heartRateSessionCount"
+      ],
+      "properties": {
+        "sourceIndex": { "type": "integer", "minimum": 1 },
+        "trainingDays": { "type": "integer", "minimum": 1 },
+        "sessionCount": { "type": "integer", "minimum": 1 },
+        "totalDurationMilliseconds": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "distanceSessionCount": { "type": "integer", "minimum": 0 },
+        "totalDistanceMeters": { "$ref": "#/$defs/optionalDistance" },
+        "energySessionCount": { "type": "integer", "minimum": 0 },
+        "totalEnergyKilocalories": { "$ref": "#/$defs/optionalUnsignedDecimal" },
+        "heartRateSessionCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "optionalOffset": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "integer", "minimum": -2147483648, "maximum": 2147483647 }
+      ]
+    },
+    "family": {
+      "enum": [
+        "running",
+        "cycling",
+        "swimming",
+        "walking",
+        "hiking",
+        "strength",
+        "mobility",
+        "racket-sport",
+        "team-sport",
+        "winter-sport",
+        "water-sport",
+        "other"
+      ]
+    },
+    "optionalFamily": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/family" }
+      ]
+    },
+    "optionalDisplayLabel": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "pattern": "^(?=\\S)(?:(?![\\u0000-\\u001F\\u007F-\\u009F])[\\s\\S])*\\S$"
+        }
+      ]
+    },
+    "unresolvedClassification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonicalFamily", "displayLabel", "authorship", "revision"],
+      "properties": {
+        "canonicalFamily": { "type": "null" },
+        "displayLabel": { "type": "null" },
+        "authorship": { "type": "null" },
+        "revision": { "const": 0 }
+      }
+    },
+    "authoredUnknownClassification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonicalFamily", "displayLabel", "authorship", "revision"],
+      "properties": {
+        "canonicalFamily": { "type": "null" },
+        "displayLabel": { "type": "null" },
+        "authorship": { "const": "user" },
+        "revision": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "classifiedClassification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonicalFamily", "displayLabel", "authorship", "revision"],
+      "properties": {
+        "canonicalFamily": { "$ref": "#/$defs/optionalFamily" },
+        "displayLabel": { "$ref": "#/$defs/optionalDisplayLabel" },
+        "authorship": { "const": "user" },
+        "revision": { "type": "integer", "minimum": 1 }
+      },
+      "anyOf": [
+        { "properties": { "canonicalFamily": { "$ref": "#/$defs/family" } } },
+        { "properties": { "displayLabel": { "type": "string" } } }
+      ]
+    },
+    "sport": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sportRef", "state", "classification"],
+          "properties": {
+            "sportRef": { "type": "null" },
+            "state": { "const": "unavailable" },
+            "classification": { "type": "null" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sportRef", "state", "classification"],
+          "properties": {
+            "sportRef": { "$ref": "#/$defs/sportRef" },
+            "state": { "const": "unknown" },
+            "classification": {
+              "oneOf": [
+                { "$ref": "#/$defs/unresolvedClassification" },
+                { "$ref": "#/$defs/authoredUnknownClassification" }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sportRef", "state", "classification"],
+          "properties": {
+            "sportRef": { "$ref": "#/$defs/sportRef" },
+            "state": { "const": "classified" },
+            "classification": { "$ref": "#/$defs/classifiedClassification" }
+          }
+        }
+      ]
+    },
+    "session": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sessionRef",
+        "sourceIndex",
+        "startedAtLocal",
+        "stoppedAtLocal",
+        "utcOffsetMinutes",
+        "durationMilliseconds",
+        "distanceMeters",
+        "energyKilocalories",
+        "averageHeartRateBpm",
+        "maximumHeartRateBpm",
+        "exerciseCount",
+        "sport"
+      ],
+      "properties": {
+        "sessionRef": { "$ref": "#/$defs/sessionRef" },
+        "sourceIndex": { "type": "integer", "minimum": 1 },
+        "startedAtLocal": { "$ref": "#/$defs/localDateTime" },
+        "stoppedAtLocal": { "$ref": "#/$defs/localDateTime" },
+        "utcOffsetMinutes": { "$ref": "#/$defs/optionalOffset" },
+        "durationMilliseconds": { "type": "string", "pattern": "^(0|[1-9][0-9]*)$" },
+        "distanceMeters": { "$ref": "#/$defs/optionalDistance" },
+        "energyKilocalories": { "$ref": "#/$defs/optionalUnsignedDecimal" },
+        "averageHeartRateBpm": { "$ref": "#/$defs/optionalUnsignedDecimal" },
+        "maximumHeartRateBpm": { "$ref": "#/$defs/optionalUnsignedDecimal" },
+        "exerciseCount": { "$ref": "#/$defs/optionalCount" },
+        "sport": { "$ref": "#/$defs/sport" }
+      }
+    }
+  }
+}

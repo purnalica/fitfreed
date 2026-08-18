@@ -19,6 +19,7 @@ interface TrainingSportsPanelProps {
   messages: (typeof catalogs)["en-US"];
   refreshToken: number;
   onError: (code: string | undefined) => void;
+  onChange?: () => void;
 }
 
 interface ClassificationDraft {
@@ -57,6 +58,7 @@ export function TrainingSportsPanel({
   messages,
   refreshToken,
   onError,
+  onChange,
 }: TrainingSportsPanelProps) {
   const [overview, setOverview] = useState<TrainingSportsOverview>();
   const [loading, setLoading] = useState(true);
@@ -143,6 +145,7 @@ export function TrainingSportsPanel({
       setOverview(result.overview);
       setDraft(undefined);
       setStatus(result.outcome === "changed" ? copy.saved : copy.unchanged);
+      if (result.outcome === "changed") onChange?.();
     } catch (reason) {
       const code = commandErrorCode(reason);
       onError(code);

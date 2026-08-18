@@ -121,12 +121,14 @@ describe("TrainingSportsPanel", () => {
       throw new Error(`Unexpected command: ${command}`);
     });
     const user = userEvent.setup();
+    const onChange = vi.fn();
     render(
       <TrainingSportsPanel
         locale="en-US"
         messages={catalogs["en-US"]}
         refreshToken={0}
         onError={vi.fn()}
+        onChange={onChange}
       />,
     );
 
@@ -183,6 +185,7 @@ describe("TrainingSportsPanel", () => {
       },
     ));
     expect(await within(region).findByRole("heading", { name: "Gravel cycling" })).toBeVisible();
+    expect(onChange).toHaveBeenCalledTimes(1);
     expect(within(region).getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent))
       .toEqual(["Gravel cycling", "Trail running", "Sport not recorded"]);
     expect(within(region).getByRole("status")).toHaveTextContent(
@@ -207,6 +210,7 @@ describe("TrainingSportsPanel", () => {
       },
     ));
     expect(await within(region).findByRole("heading", { name: "Unknown sport 1" })).toBeVisible();
+    expect(onChange).toHaveBeenCalledTimes(2);
     expect(within(region).getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent))
       .toEqual(["Trail running", "Unknown sport 1", "Sport not recorded"]);
   });

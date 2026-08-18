@@ -60,12 +60,13 @@ as already implemented production behavior.
 <!-- product-status:start -->
 | Available in source | Active experience work | Deliberately later |
 |---|---|---|
-| Polar Flow ZIP validation and import | Sports and full-history session discovery | Additional providers and live APIs |
+| Polar Flow ZIP validation and import | Chronology, calendar discovery, and comparison selection | Additional providers and live APIs |
 | Explicit supported, ignored, and unrecognized coverage | Routed and non-routed session evidence workspaces | Linux and Windows distribution |
 | Safe exact and cumulative reimport | Origin-aware navigation across discovery, session, and report workspaces | Local MCP access for authorized agents |
 | Provider-neutral SQLite history for activity, training summaries, sleep, and recovery | Saved evidence reports with self-contained HTML export | Advanced encryption and extension systems |
 | Bounded visual comparison and longitudinal context | A coherent, evaluated, documented macOS product journey | Collaborative or hosted analytics |
-| Question-led Library Home, post-import reveal, and resumable exploration |  | Features without validated user value |
+| User-authored sport classification and complete-history session search |  | Features without validated user value |
+| Question-led Library Home, post-import reveal, and resumable exploration |  |  |
 | First-run Sources home with offline export guidance and allowlisted official links |  |  |
 | Durable language, appearance, and content zoom settings |  |  |
 | en-US and es-ES, packaging, update recovery, and release-shaped tests |  |  |

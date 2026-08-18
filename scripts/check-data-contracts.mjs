@@ -1004,6 +1004,183 @@ if (validateSavedSportClassification({
   throw new Error(`${savedSportClassificationSchemaPath} accepted an invalid result`);
 }
 
+const trainingSessionSearchPath =
+  "docs/data-formats/insights/training-session-search-v1.md";
+const trainingSessionSearch = read(trainingSessionSearchPath);
+for (const field of [
+  "query_training_sessions",
+  "from",
+  "through",
+  "sportRefs",
+  "requiredMeasurements",
+  "text",
+  "sort",
+  "offset",
+  "limit",
+  "snapshotRef",
+  "started-desc",
+  "started-asc",
+  "duration-desc",
+  "distance-desc",
+  "availableRange",
+  "totalCount",
+  "nextOffset",
+  "summaries",
+  "sessions",
+  "sessionRef",
+  "sourceIndex",
+  "startedAtLocal",
+  "stoppedAtLocal",
+  "utcOffsetMinutes",
+  "durationMilliseconds",
+  "distanceMeters",
+  "energyKilocalories",
+  "averageHeartRateBpm",
+  "maximumHeartRateBpm",
+  "exerciseCount",
+  "sportRef",
+  "state",
+  "classification",
+  "trainingDays",
+  "sessionCount",
+  "totalDurationMilliseconds",
+  "distanceSessionCount",
+  "totalDistanceMeters",
+  "energySessionCount",
+  "totalEnergyKilocalories",
+  "heartRateSessionCount",
+  "invalid-training-session-search",
+  "training-session-search-changed",
+  "training-session-search-failed",
+]) {
+  requireMention(trainingSessionSearch, field, trainingSessionSearchPath);
+}
+
+const trainingSessionSearchQuerySchemaPath =
+  "schemas/training-session-search-query-v1.schema.json";
+const trainingSessionSearchQuerySchema = JSON.parse(read(trainingSessionSearchQuerySchemaPath));
+const validateTrainingSessionSearchQuery = ajv.compile(trainingSessionSearchQuerySchema);
+const sportRefDigest = `sport-${"c".repeat(64)}`;
+const snapshotRefDigest = `training-snapshot-${"a".repeat(64)}`;
+const sessionRefDigest = `session-${"b".repeat(64)}`;
+const syntheticTrainingSessionSearchQuery = {
+  from: "2025-01-01",
+  through: null,
+  sportRefs: [sportRefDigest],
+  requiredMeasurements: ["distance", "heart-rate"],
+  text: "Trail",
+  sort: "distance-desc",
+  offset: 0,
+  limit: 25,
+  snapshotRef: null,
+};
+for (const query of [
+  syntheticTrainingSessionSearchQuery,
+  {
+    ...syntheticTrainingSessionSearchQuery,
+    from: null,
+    sportRefs: [],
+    requiredMeasurements: [],
+    text: null,
+    sort: "started-desc",
+    snapshotRef: snapshotRefDigest,
+  },
+]) {
+  if (!validateTrainingSessionSearchQuery(query)) {
+    throw new Error(
+      `${trainingSessionSearchQuerySchemaPath} rejected a valid query: ${ajv.errorsText(validateTrainingSessionSearchQuery.errors)}`,
+    );
+  }
+}
+for (const invalidQuery of [
+  { ...syntheticTrainingSessionSearchQuery, sportRefs: ["source-sport"] },
+  { ...syntheticTrainingSessionSearchQuery, requiredMeasurements: ["distance", "distance"] },
+  { ...syntheticTrainingSessionSearchQuery, text: " padded " },
+  { ...syntheticTrainingSessionSearchQuery, sort: "provider-order" },
+  { ...syntheticTrainingSessionSearchQuery, snapshotRef: "revision-1" },
+  { ...syntheticTrainingSessionSearchQuery, provider: "must-not-cross-the-boundary" },
+]) {
+  if (validateTrainingSessionSearchQuery(invalidQuery)) {
+    throw new Error(`${trainingSessionSearchQuerySchemaPath} accepted an invalid query`);
+  }
+}
+
+const trainingSessionSearchSchemaPath = "schemas/training-session-search-v1.schema.json";
+const trainingSessionSearchSchema = JSON.parse(read(trainingSessionSearchSchemaPath));
+if (JSON.stringify(trainingSessionSearchSchema.$defs.family.enum) !== JSON.stringify(sportFamilyCodes)) {
+  throw new Error(`${trainingSessionSearchSchemaPath} family codes differ from the domain`);
+}
+const validateTrainingSessionSearch = ajv.compile(trainingSessionSearchSchema);
+const syntheticTrainingSessionSearch = {
+  availableRange: { from: "2024-01-01", through: "2026-08-18" },
+  snapshotRef: snapshotRefDigest,
+  totalCount: 1,
+  offset: 0,
+  limit: 25,
+  nextOffset: null,
+  summaries: [{
+    sourceIndex: 1,
+    trainingDays: 1,
+    sessionCount: 1,
+    totalDurationMilliseconds: "3600000",
+    distanceSessionCount: 1,
+    totalDistanceMeters: 10000.5,
+    energySessionCount: 1,
+    totalEnergyKilocalories: "650",
+    heartRateSessionCount: 1,
+  }],
+  sessions: [{
+    sessionRef: sessionRefDigest,
+    sourceIndex: 1,
+    startedAtLocal: "2026-08-18T07:30:00",
+    stoppedAtLocal: "2026-08-18T08:30:00",
+    utcOffsetMinutes: 120,
+    durationMilliseconds: "3600000",
+    distanceMeters: 10000.5,
+    energyKilocalories: "650",
+    averageHeartRateBpm: "145",
+    maximumHeartRateBpm: "175",
+    exerciseCount: 1,
+    sport: {
+      sportRef: sportRefDigest,
+      state: "classified",
+      classification: {
+        canonicalFamily: "running",
+        displayLabel: "Trail running",
+        authorship: "user",
+        revision: 1,
+      },
+    },
+  }],
+};
+if (!validateTrainingSessionSearch(syntheticTrainingSessionSearch)) {
+  throw new Error(
+    `${trainingSessionSearchSchemaPath} rejected its synthetic response: ${ajv.errorsText(validateTrainingSessionSearch.errors)}`,
+  );
+}
+for (const invalidResponse of [
+  { ...structuredClone(syntheticTrainingSessionSearch), sourceSessionId: "hidden" },
+  (() => {
+    const value = structuredClone(syntheticTrainingSessionSearch);
+    value.sessions[0].sessionRef = "discovery-session";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticTrainingSessionSearch);
+    value.sessions[0].sport.state = "unavailable";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticTrainingSessionSearch);
+    value.sessions[0].durationMilliseconds = "01";
+    return value;
+  })(),
+]) {
+  if (validateTrainingSessionSearch(invalidResponse)) {
+    throw new Error(`${trainingSessionSearchSchemaPath} accepted an invalid response`);
+  }
+}
+
 const trainingComparisonPath = "docs/data-formats/insights/training-comparison-v1.md";
 const trainingComparison = read(trainingComparisonPath);
 for (const field of [
@@ -2815,6 +2992,7 @@ for (const contractPath of [
   activityComparisonPath,
   trainingOverviewPath,
   trainingSportsPath,
+  trainingSessionSearchPath,
   trainingComparisonPath,
   sleepOverviewPath,
   sleepComparisonPath,
@@ -2857,6 +3035,10 @@ process.stdout.write(
       trainingSportsSchemaPath,
       sportClassificationSaveSchemaPath,
       savedSportClassificationSchemaPath,
+    ],
+    trainingSessionSearchSchemas: [
+      trainingSessionSearchQuerySchemaPath,
+      trainingSessionSearchSchemaPath,
     ],
     trainingComparisonSchemas: [
       trainingComparisonQuerySchemaPath,

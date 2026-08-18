@@ -2,7 +2,7 @@
 
 ## Status
 
-Active as of 2026-08-18. D0, P1, E1, and P2 have complete local and hosted acceptance evidence. E2 has reached its complete local checkpoint; hosted executable evidence remains pending. E3 application delivery is active. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English and Spanish hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md) and [ADR 0024](../architecture/decisions/0024-generate-localized-product-pages.md).
+Active as of 2026-08-18. D0, P1, E1, and P2 have complete local and hosted acceptance evidence. E2 has reached its complete local checkpoint; hosted executable evidence remains pending. E3 slices 1 and 2 have reached their local checkpoints, and slice 3 is active. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English and Spanish hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md) and [ADR 0024](../architecture/decisions/0024-generate-localized-product-pages.md).
 
 The existing import, reconciliation, persistence, Insights, localization, update-recovery, packaging, and continuous-integration capabilities remain the engineering baseline. This plan changes how those capabilities become a product people can understand and value; it does not discard their verified behavior.
 
@@ -346,7 +346,27 @@ renderer. SQLite schema 12 migrates atomically, uses the sport-discovery index, 
 through restart, exact reimport, and cumulative reimport. Domain, application, persistence, transport, JSON
 Schema, bilingual component, accessibility, and packaged macOS WebView tests pass. The packaged journey also
 proves English-to-Spanish editing and restoration after a process restart. This evidence accepts slice 1 only;
-full-history session search, filtering, alternative views, and navigation remain in slices 2 and 3.
+it does not accept the session-search, alternative-view, or navigation slices.
+
+**Slice 2 local accepted evidence:** a distinct provider-neutral discovery port now searches the complete
+canonical training library with inclusive date, opaque sport, authored-label, and combined measurement
+filters; four deterministic orders; exact source-separated summaries over the complete filtered result; and
+bounded 25-session pages. Session, sport, and snapshot capabilities expose no provider or persistence
+identity. SQLite schema 13 adds indexed duration and distance traversal plus a mutation revision that keeps
+count, summaries, classification context, and page inside one coherent read transaction and rejects a stale
+next page. The application validates every request and persisted result before transport, including exact
+summary coverage and missing-value invariants.
+
+The localized session library enters every filter, exercises every sort, clears and restores results, opens
+lightweight exact detail, reports empty and failed states, and restarts coherently after a simulated library
+change. The complete portable lane passed documentation, schema 1–13 migration, architecture, localization,
+85 React, 177 host, 73 application, and nine domain tests together with strict formatting and Clippy. The
+packaged functional journey passed combined sport, text, date, distance, energy, and heart-rate filtering,
+source summaries, missing measurements, detail, reimport, restart, both locales, 200% content zoom, and
+automated accessibility. A second packaged process used an independent generated library to prove exact
+forward and backward pagination over 731 sessions and every applicable interaction budget. This evidence
+accepts slice 2 only; chronology and calendar views, comparison selection, complete workspace restoration,
+and destination-aware session return remain in slice 3.
 
 ### E4 — Evidence-complete session inspection
 

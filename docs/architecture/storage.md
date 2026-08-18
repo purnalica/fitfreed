@@ -4,7 +4,7 @@
 
 Current architecture after [ADR 0002](decisions/0002-select-sqlite-storage.md). SQLite is the only storage engine in the application and the authoritative local-library format. It does not replace the documented portable FitFreed data contract.
 
-The current implemented schema and compatibility boundary are documented in the [SQLite version 12 persistence specification](../data-formats/persistence/sqlite-v12.md). It preserves the complete provider-neutral fitness library through version 8, authenticated-update state from version 9, application preferences from version 10, a resumable exploration destination from version 11, and user-authored sport classifications from version 12. Earlier specifications remain immutable migration history.
+The current implemented schema and compatibility boundary are documented in the [SQLite version 13 persistence specification](../data-formats/persistence/sqlite-v13.md). It preserves the complete provider-neutral fitness library through version 8, authenticated-update state from version 9, application preferences from version 10, a resumable exploration destination from version 11, user-authored sport classifications from version 12, and coherent full-history training discovery evidence from version 13. Earlier specifications remain immutable migration history.
 
 ## Ownership
 
@@ -59,6 +59,8 @@ Schema version 10 renames the locale-only row to `application_preference` and ex
 Schema version 11 stores one constrained, versioned exploration destination for Library Home resume. It contains no filters, source identifiers, user text, or provider detail and is cleared through the same application port that validates it.
 
 Schema version 12 stores a current user-authored sport-classification revision keyed by exact observation origin and source sport reference. Absence means revision-zero unknown; a user reset persists an authored unknown revision. A covering training-session index supports detected-sport grouping without exposing the key to presentation. Import and reimport do not write authored meaning.
+
+Schema version 13 adds a singleton training-discovery revision advanced by canonical session and authored-classification triggers. Search derives an opaque snapshot reference from it and rejects later offset pages after a mutation. The same read transaction returns the exact count, source-separated filtered aggregates, classification context, and bounded page; application rules validate their coupling before presentation. Duration and distance indexes support deterministic longest- and farthest-first pages; existing start and sport indexes support chronological, date, and sport paths. The revision is synchronization evidence, not a fitness fact or event log.
 
 New origin and evidence rows become durable only inside the same visibility transaction as canonical history and operation completion. Existing development origins migrate as unverified origins without invented evidence. Exact-repeat lookup may inherit an origin only from a completed operation whose correlation state is verified; an old package fingerprint alone cannot authorize subject resolution.
 

@@ -58,8 +58,8 @@ use presentation::{
     RecoveryNightDetailDto, RecoveryOverviewDto, SaveSportClassificationRequestDto,
     SavedTrainingSportClassificationDto, SleepComparisonDto, SleepDateRangeDto, SleepOverviewDto,
     SleepPeriodDetailDto, SourceAcquisitionGuideDto, TrainingComparisonDto, TrainingDateRangeDto,
-    TrainingOverviewDto, TrainingSportsOverviewDto, UpdateCheckOutcomeDto,
-    UpdateRecoveryOutcomeDto,
+    TrainingOverviewDto, TrainingSessionSearchPageDto, TrainingSessionSearchRequestDto,
+    TrainingSportsOverviewDto, UpdateCheckOutcomeDto, UpdateRecoveryOutcomeDto,
 };
 use serde::{Deserialize, Serialize};
 use tauri::{ipc::Channel, AppHandle, Emitter, Manager, State};
@@ -346,6 +346,19 @@ fn query_training_comparison(
     )
     .map(TrainingComparisonDto::from)
     .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn query_training_sessions(
+    app: AppHandle,
+    request: TrainingSessionSearchRequestDto,
+) -> Result<TrainingSessionSearchPageDto, CommandErrorDto> {
+    let request = request.try_into().map_err(CommandErrorDto::from)?;
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let library = SqliteTrainingLibrary::new(path);
+    fitfreed_application::query_training_sessions(&library, request)
+        .map(Into::into)
+        .map_err(CommandErrorDto::from)
 }
 
 #[tauri::command]
@@ -1323,6 +1336,7 @@ pub fn run() {
             query_activity_comparison,
             query_training_overview,
             query_training_comparison,
+            query_training_sessions,
             query_training_sports,
             save_training_sport_classification,
             query_sleep_overview,

@@ -42,6 +42,13 @@ otherwise equal labels would create ambiguity.
 
 Session identity and lightweight structure load independently from large routes and series. Visual queries request bounded windows and an explicit resolution; exact queries are stable and paginated. A downsampled point never masquerades as a recorded sample, and every visual offers an exact accessible path.
 
+The [training-session search contract](../data-formats/insights/training-session-search-v1.md) is the
+complete-history discovery path. It combines optional local-date bounds, opaque sports, required-measurement
+coverage, and user-label text without loading detail evidence. Each result carries exact source-separated
+summaries over the complete filtered set rather than reconstructing aggregates from the visible page. Offset
+pages share an opaque mutation snapshot; session or classification changes invalidate later pages instead of
+shifting them silently. Period-comparison windows remain a separate read model and cannot limit discovery.
+
 Mapping changes reassess identical source bytes. The visibility transaction publishes a complete enrichment or leaves the previous session intact. Child identities, order, provenance, and conflicts are versioned in the corresponding canonical, mapping, and persistence specifications when implemented.
 
 ## Privacy boundary

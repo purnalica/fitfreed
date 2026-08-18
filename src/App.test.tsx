@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { catalogs } from "./locales/catalogs";
 import type { ApplicationPreferencesLoad } from "./presentation/application-preferences";
+import type { TrainingSessionSearchPage } from "./presentation/training-session-search";
 
 const spanish = catalogs["es-ES"];
 
@@ -167,6 +168,48 @@ function activityComparison(
 
 function emptyTrainingOverview(): TestTrainingOverview {
   return { availableRange: null, selectedRange: null, series: [] };
+}
+
+function trainingSessionSearchPage(
+  sessions: TestTrainingSession[],
+  availableRange: { from: string; through: string } | null = {
+    from: "2026-01-01",
+    through: "2026-01-31",
+  },
+): TrainingSessionSearchPage {
+  return {
+    availableRange,
+    snapshotRef: "snapshot-current",
+    totalCount: sessions.length,
+    offset: 0,
+    limit: 25,
+    nextOffset: null,
+    summaries: sessions.map((session, index) => ({
+      sourceIndex: index + 1,
+      trainingDays: 1,
+      sessionCount: 1,
+      totalDurationMilliseconds: session.durationMilliseconds,
+      distanceSessionCount: session.distanceMeters === null ? 0 : 1,
+      totalDistanceMeters: session.distanceMeters,
+      energySessionCount: session.energyKilocalories === null ? 0 : 1,
+      totalEnergyKilocalories: session.energyKilocalories,
+      heartRateSessionCount:
+        session.averageHeartRateBpm === null && session.maximumHeartRateBpm === null ? 0 : 1,
+    })),
+    sessions: sessions.map((session, index) => ({
+      ...session,
+      sourceIndex: index + 1,
+      sport: {
+        sportRef: session.sportRef,
+        state: session.sportRef === null ? "unavailable" : "unknown",
+        classification: null,
+      },
+    })),
+  };
+}
+
+function emptyTrainingSessionSearchPage(): TrainingSessionSearchPage {
+  return trainingSessionSearchPage([], null);
 }
 
 function emptySleepOverview() {
@@ -617,6 +660,9 @@ beforeEach(() => {
     if (command === "query_training_overview") {
       return Promise.resolve(emptyTrainingOverview());
     }
+    if (command === "query_training_sessions") {
+      return Promise.resolve(emptyTrainingSessionSearchPage());
+    }
     if (command === "query_latest_import_outcome") {
       return Promise.resolve(null);
     }
@@ -883,11 +929,11 @@ describe("FitFreed import interface", () => {
       throw new Error(`Unexpected longitudinal command: ${command}`);
     });
     mocks.invoke.mockImplementation((command, arguments_) => {
-      if (command === "query_training_overview") {
-        return Promise.resolve(trainingOverview([], arguments_.requestedRange ?? {
-          from: "2026-01-01",
-          through: "2026-01-31",
-        }));
+      if (command === "query_training_sessions") {
+        const requested = arguments_.request;
+        return Promise.resolve(trainingSessionSearchPage([], requested.from
+          ? { from: requested.from, through: requested.through }
+          : { from: "2026-01-01", through: "2026-01-31" }));
       }
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
       throw new Error(`Unexpected command: ${command}`);
@@ -904,10 +950,19 @@ describe("FitFreed import interface", () => {
     await user.click(screen.getByRole("link", {
       name: "Open training explorer for this date",
     }));
-    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
-      "query_training_overview",
-      { requestedRange: { from: "2026-01-04", through: "2026-01-04" } },
-    ));
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith("query_training_sessions", {
+      request: {
+        from: "2026-01-04",
+        through: "2026-01-04",
+        sportRefs: [],
+        requiredMeasurements: [],
+        text: null,
+        sort: "started-desc",
+        offset: 0,
+        limit: 25,
+        snapshotRef: null,
+      },
+    }));
 
     await user.click(screen.getByRole("button", { name: "Back to Home" }));
     await user.click(await screen.findByRole("button", {
@@ -916,9 +971,9 @@ describe("FitFreed import interface", () => {
 
     await waitFor(() => {
       const trainingCalls = mocks.invoke.mock.calls.filter(
-        ([command]) => command === "query_training_overview",
+        ([command]) => command === "query_training_sessions",
       );
-      expect(trainingCalls.at(-1)?.[1]).toEqual({ requestedRange: null });
+      expect(trainingCalls.at(-1)?.[1]?.request).toMatchObject({ from: null, through: null });
     });
   });
 
@@ -1087,19 +1142,12 @@ describe("FitFreed import interface", () => {
       stoppedAtLocal: "2026-01-20T10:00:00",
       durationMilliseconds: "3600000",
     };
-    const fullOverview = trainingOverview([later, earlier]);
-    const filteredOverview = trainingOverview(
-      [later],
-      { from: "2026-01-20", through: "2026-01-20" },
-    );
     mocks.invoke.mockImplementation((command, arguments_) => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
-      if (command === "query_training_overview") {
-        return Promise.resolve(
-          arguments_.requestedRange?.from === "2026-01-20"
-            ? filteredOverview
-            : fullOverview,
-        );
+      if (command === "query_training_sessions") {
+        return Promise.resolve(trainingSessionSearchPage(
+          arguments_.request.from === "2026-01-20" ? [later] : [later, earlier],
+        ));
       }
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
       throw new Error(`Unexpected command: ${command}`);
@@ -1109,16 +1157,16 @@ describe("FitFreed import interface", () => {
 
     await enterExploration(user, "training");
     const training = await screen.findByRole("region", { name: "Training history" });
-    expect(await within(training).findAllByRole("button", { name: /View training details/ }))
+    expect(await within(training).findAllByRole("button", { name: /View session details/ }))
       .toHaveLength(2);
-    const filter = within(training).getByRole("form", { name: "Explore a training period" });
-    await user.clear(within(filter).getByLabelText("From"));
-    await user.type(within(filter).getByLabelText("From"), "2026-01-20");
-    await user.clear(within(filter).getByLabelText("Through"));
-    await user.type(within(filter).getByLabelText("Through"), "2026-01-20");
-    await user.click(within(filter).getByRole("button", { name: "Apply training period" }));
+    const filter = within(training).getByRole("form", { name: "Filter sessions" });
+    await user.clear(within(filter).getByLabelText("From date"));
+    await user.type(within(filter).getByLabelText("From date"), "2026-01-20");
+    await user.clear(within(filter).getByLabelText("Through date"));
+    await user.type(within(filter).getByLabelText("Through date"), "2026-01-20");
+    await user.click(within(filter).getByRole("button", { name: "Apply filters" }));
     await waitFor(() => expect(within(training)
-      .getAllByRole("button", { name: /View training details/ })).toHaveLength(1));
+      .getAllByRole("button", { name: /View session details/ })).toHaveLength(1));
 
     await user.click(screen.getByRole("button", { name: "Settings" }));
     expect(screen.getByRole("region", { name: "Make FitFreed feel right on this device" }))
@@ -1127,11 +1175,11 @@ describe("FitFreed import interface", () => {
 
     const restoredTraining = screen.getByRole("region", { name: "Training history" });
     const restoredFilter = within(restoredTraining).getByRole("form", {
-      name: "Explore a training period",
+      name: "Filter sessions",
     });
-    expect(within(restoredFilter).getByLabelText("From")).toHaveValue("2026-01-20");
-    expect(within(restoredFilter).getByLabelText("Through")).toHaveValue("2026-01-20");
-    expect(within(restoredTraining).getAllByRole("button", { name: /View training details/ }))
+    expect(within(restoredFilter).getByLabelText("From date")).toHaveValue("2026-01-20");
+    expect(within(restoredFilter).getByLabelText("Through date")).toHaveValue("2026-01-20");
+    expect(within(restoredTraining).getAllByRole("button", { name: /View session details/ }))
       .toHaveLength(1);
   });
 
@@ -2296,13 +2344,13 @@ describe("FitFreed import interface", () => {
 
   it("distinguishes loading, empty, and unavailable training history", async () => {
     offerExploration("training");
-    let resolveTraining: (overview: TestTrainingOverview) => void = () => undefined;
-    const pendingTraining = new Promise<TestTrainingOverview>((resolve) => {
+    let resolveTraining: (page: TrainingSessionSearchPage) => void = () => undefined;
+    const pendingTraining = new Promise<TrainingSessionSearchPage>((resolve) => {
       resolveTraining = resolve;
     });
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
-      if (command === "query_training_overview") return pendingTraining;
+      if (command === "query_training_sessions") return pendingTraining;
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
       throw new Error(`Unexpected command: ${command}`);
     });
@@ -2310,18 +2358,18 @@ describe("FitFreed import interface", () => {
     const view = render(<App />);
     await enterExploration(user, "training");
     const training = await screen.findByRole("region", { name: "Training history" });
-    expect(within(training).getByText("Loading training history…")).toBeVisible();
+    expect(within(training).getByText("Searching your complete training history…")).toBeVisible();
     expect(within(training).queryByText("No imported training sessions yet."))
       .not.toBeInTheDocument();
 
-    resolveTraining(emptyTrainingOverview());
+    resolveTraining(emptyTrainingSessionSearchPage());
     expect(await within(training).findByText("No imported training sessions yet.")).toBeVisible();
 
     view.unmount();
     offerExploration("training");
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
-      if (command === "query_training_overview") {
+      if (command === "query_training_sessions") {
         return Promise.reject({ code: "library-query-failed" });
       }
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
@@ -2330,7 +2378,9 @@ describe("FitFreed import interface", () => {
     render(<App />);
     await enterExploration(user, "training");
     const unavailable = await screen.findByRole("region", { name: "Training history" });
-    expect(await within(unavailable).findByText("Training history could not be loaded."))
+    expect(await within(unavailable).findByText(
+      "Training sessions could not be loaded from the local library.",
+    ))
       .toBeVisible();
     expect(screen.getByRole("alert")).toHaveTextContent(
       "FitFreed could not read fitness history.",
@@ -2366,10 +2416,6 @@ describe("FitFreed import interface", () => {
       exerciseCount: 1,
     };
     const fullOverview = trainingOverview([later, earlier]);
-    const filteredOverview = trainingOverview(
-      [later],
-      { from: "2026-01-20", through: "2026-01-20" },
-    );
     const baseline = trainingOverview(
       [earlier],
       { from: "2026-01-18", through: "2026-01-18" },
@@ -2395,12 +2441,10 @@ describe("FitFreed import interface", () => {
     };
     mocks.invoke.mockImplementation((command, arguments_) => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
-      if (command === "query_training_overview") {
-        return Promise.resolve(
-          arguments_.requestedRange?.from === "2026-01-20"
-            ? filteredOverview
-            : fullOverview,
-        );
+      if (command === "query_training_sessions") {
+        return Promise.resolve(trainingSessionSearchPage(
+          arguments_.request.from === "2026-01-20" ? [later] : [later, earlier],
+        ));
       }
       if (command === "query_training_comparison") return Promise.resolve(comparisonResult);
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
@@ -2411,38 +2455,44 @@ describe("FitFreed import interface", () => {
     await enterExploration(user, "training");
     const training = await screen.findByRole("region", { name: "Training history" });
 
-    expect(await within(training).findByText("2 sessions")).toBeVisible();
-    expect(within(training).getByText("2 training days")).toBeVisible();
-    expect(within(training).getAllByRole("button", { name: /View training details/ }))
+    expect(await within(training).findByText("1–2 of 2 matching sessions")).toBeVisible();
+    expect(within(training).getAllByRole("button", { name: /View session details/ }))
       .toHaveLength(2);
     expect(within(training).queryByText("opaque-sport-a")).not.toBeInTheDocument();
 
     await user.click(
-      within(training).getAllByRole("button", { name: /View training details/ })[0],
+      within(training).getAllByRole("button", { name: /View session details/ })[0],
     );
-    const detail = within(training).getByRole("region", { name: "Training detail" });
-    expect(within(detail).getByText("5,000.25 m")).toBeVisible();
-    expect(within(detail).getByText("140 bpm")).toBeVisible();
-    expect(within(detail).getByText("Recorded training type")).toBeVisible();
-    await user.click(within(detail).getByRole("button", { name: "Close training detail" }));
-    expect(within(training).queryByRole("region", { name: "Training detail" }))
+    const detail = within(training).getByRole("heading", { name: "Session summary" })
+      .closest("section");
+    expect(detail).not.toBeNull();
+    expect(within(detail!).getByText("5,000.25 m")).toBeVisible();
+    expect(within(detail!).getByText("140 bpm")).toBeVisible();
+    expect(within(detail!).getByText("Unknown sport")).toBeVisible();
+    await user.click(within(detail!).getByRole("button", { name: "Back to session results" }));
+    expect(within(training).queryByRole("heading", { name: "Session summary" }))
       .not.toBeInTheDocument();
 
-    const filter = within(training).getByRole("form", { name: "Explore a training period" });
-    await user.clear(within(filter).getByLabelText("From"));
-    await user.type(within(filter).getByLabelText("From"), "2026-01-20");
-    await user.clear(within(filter).getByLabelText("Through"));
-    await user.type(within(filter).getByLabelText("Through"), "2026-01-20");
-    await user.click(within(filter).getByRole("button", { name: "Apply training period" }));
-    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith("query_training_overview", {
-      requestedRange: { from: "2026-01-20", through: "2026-01-20" },
+    const filter = within(training).getByRole("form", { name: "Filter sessions" });
+    await user.clear(within(filter).getByLabelText("From date"));
+    await user.type(within(filter).getByLabelText("From date"), "2026-01-20");
+    await user.clear(within(filter).getByLabelText("Through date"));
+    await user.type(within(filter).getByLabelText("Through date"), "2026-01-20");
+    await user.click(within(filter).getByRole("button", { name: "Apply filters" }));
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith("query_training_sessions", {
+      request: expect.objectContaining({
+        from: "2026-01-20",
+        through: "2026-01-20",
+        offset: 0,
+        snapshotRef: null,
+      }),
     }));
-    expect(within(training).getAllByRole("button", { name: /View training details/ }))
+    expect(within(training).getAllByRole("button", { name: /View session details/ }))
       .toHaveLength(1);
 
-    await user.click(within(filter).getByRole("button", { name: "Latest 30-day window" }));
+    await user.click(within(filter).getByRole("button", { name: "Clear filters" }));
     await waitFor(() => expect(within(training)
-      .getAllByRole("button", { name: /View training details/ })).toHaveLength(2));
+      .getAllByRole("button", { name: /View session details/ })).toHaveLength(2));
 
     const comparisonForm = within(training).getByRole("form", {
       name: "Compare training periods",
@@ -2474,15 +2524,15 @@ describe("FitFreed import interface", () => {
     expect(within(training).queryByRole("region", { name: "Training period comparison" }))
       .not.toBeInTheDocument();
 
-    await user.clear(within(filter).getByLabelText("From"));
-    await user.type(within(filter).getByLabelText("From"), "2026-01-21");
-    await user.clear(within(filter).getByLabelText("Through"));
-    await user.type(within(filter).getByLabelText("Through"), "2026-01-20");
-    await user.click(within(filter).getByRole("button", { name: "Apply training period" }));
+    await user.clear(within(filter).getByLabelText("From date"));
+    await user.type(within(filter).getByLabelText("From date"), "2026-01-21");
+    await user.clear(within(filter).getByLabelText("Through date"));
+    await user.type(within(filter).getByLabelText("Through date"), "2026-01-20");
+    await user.click(within(filter).getByRole("button", { name: "Apply filters" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Choose an ordered training range inside the available history, up to 366 days.",
+      "Choose an ordered training-session date range and a personal sport name of up to 80 characters.",
     );
-    expect(within(training).getAllByRole("button", { name: /View training details/ }))
+    expect(within(training).getAllByRole("button", { name: /View session details/ }))
       .toHaveLength(2);
 
     await changeLanguageToSpanish(user);
@@ -2492,7 +2542,7 @@ describe("FitFreed import interface", () => {
     render(<App />);
     await user.click(await screen.findByRole("button", { name: "Explorar" }));
     const restored = await screen.findByRole("region", { name: "Historial de entrenamientos" });
-    expect(await within(restored).findAllByRole("button", { name: /Ver detalles del entrenamiento/ }))
+    expect(await within(restored).findAllByRole("button", { name: /Ver detalles de la sesión/ }))
       .toHaveLength(2);
   });
 });

@@ -19,12 +19,14 @@ use fitfreed_application::{
     SavedTrainingSportClassification, SleepComparison, SleepDateRange, SleepDayAvailability,
     SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight, SleepPhaseTotals,
     SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary, SourceAcquisitionGuide,
-    SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange, TrainingOverview,
-    TrainingSeriesComparison, TrainingSeriesOverview, TrainingSeriesSummary,
-    TrainingSessionInsight, TrainingSport, TrainingSportClassification, TrainingSportCoverage,
-    TrainingSportState, TrainingSportsOverview, UpdateCheckOutcome, UpdateCheckStatus, UpdateError,
-    UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind, UpdateReleaseSummary, UpdateTrustFailure,
-    UpdateWithdrawalReason, UpdateWithdrawalSummary,
+    SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange,
+    TrainingMeasurementFilter, TrainingOverview, TrainingSeriesComparison, TrainingSeriesOverview,
+    TrainingSeriesSummary, TrainingSessionInsight, TrainingSessionSearchItem,
+    TrainingSessionSearchPage, TrainingSessionSearchRequest, TrainingSessionSearchSummary,
+    TrainingSessionSort, TrainingSessionSport, TrainingSport, TrainingSportClassification,
+    TrainingSportCoverage, TrainingSportState, TrainingSportsOverview, UpdateCheckOutcome,
+    UpdateCheckStatus, UpdateError, UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind,
+    UpdateReleaseSummary, UpdateTrustFailure, UpdateWithdrawalReason, UpdateWithdrawalSummary,
 };
 
 #[derive(Debug, Deserialize)]
@@ -394,6 +396,9 @@ impl From<ApplicationError> for CommandErrorDto {
             ApplicationError::Query(_) => "library-query-failed",
             ApplicationError::InvalidActivityRange(_) => "invalid-activity-range",
             ApplicationError::InvalidTrainingRange(_) => "invalid-training-range",
+            ApplicationError::InvalidTrainingSessionSearch(_) => "invalid-training-session-search",
+            ApplicationError::TrainingSessionSearchChanged => "training-session-search-changed",
+            ApplicationError::TrainingSessionSearch(_) => "training-session-search-failed",
             ApplicationError::InvalidSportClassification(_) => "invalid-sport-classification",
             ApplicationError::SportClassificationConflict => "sport-classification-conflict",
             ApplicationError::SportClassificationQuery(_)
@@ -728,6 +733,61 @@ pub struct TrainingDateRangeDto {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TrainingSessionSearchRequestDto {
+    from: Option<String>,
+    through: Option<String>,
+    sport_refs: Vec<String>,
+    required_measurements: Vec<String>,
+    text: Option<String>,
+    sort: String,
+    offset: usize,
+    limit: usize,
+    snapshot_ref: Option<String>,
+}
+
+impl TryFrom<TrainingSessionSearchRequestDto> for TrainingSessionSearchRequest {
+    type Error = ApplicationError;
+
+    fn try_from(request: TrainingSessionSearchRequestDto) -> Result<Self, Self::Error> {
+        let required_measurements = request
+            .required_measurements
+            .into_iter()
+            .map(|measurement| match measurement.as_str() {
+                "distance" => Ok(TrainingMeasurementFilter::Distance),
+                "energy" => Ok(TrainingMeasurementFilter::Energy),
+                "heart-rate" => Ok(TrainingMeasurementFilter::HeartRate),
+                _ => Err(ApplicationError::InvalidTrainingSessionSearch(
+                    "measurement filter is invalid",
+                )),
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let sort = match request.sort.as_str() {
+            "started-desc" => TrainingSessionSort::StartedDescending,
+            "started-asc" => TrainingSessionSort::StartedAscending,
+            "duration-desc" => TrainingSessionSort::DurationDescending,
+            "distance-desc" => TrainingSessionSort::DistanceDescending,
+            _ => {
+                return Err(ApplicationError::InvalidTrainingSessionSearch(
+                    "sort is invalid",
+                ));
+            }
+        };
+        Ok(Self {
+            from: request.from,
+            through: request.through,
+            sport_refs: request.sport_refs,
+            required_measurements,
+            text: request.text,
+            sort,
+            offset: request.offset,
+            limit: request.limit,
+            snapshot_ref: request.snapshot_ref,
+        })
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SaveSportClassificationRequestDto {
     sport_ref: String,
     expected_revision: u64,
@@ -768,6 +828,32 @@ impl From<TrainingSportClassification> for TrainingSportClassificationDto {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct TrainingSessionSportDto {
+    sport_ref: Option<String>,
+    state: &'static str,
+    classification: Option<TrainingSportClassificationDto>,
+}
+
+impl From<TrainingSessionSport> for TrainingSessionSportDto {
+    fn from(sport: TrainingSessionSport) -> Self {
+        Self {
+            sport_ref: sport.sport_ref,
+            state: training_sport_state_code(sport.state),
+            classification: sport.classification.map(Into::into),
+        }
+    }
+}
+
+fn training_sport_state_code(state: TrainingSportState) -> &'static str {
+    match state {
+        TrainingSportState::Unknown => "unknown",
+        TrainingSportState::Classified => "classified",
+        TrainingSportState::Unavailable => "unavailable",
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TrainingSportCoverageDto {
     session_count: usize,
     total_duration_milliseconds: String,
@@ -803,11 +889,7 @@ impl From<TrainingSport> for TrainingSportDto {
         Self {
             sport_ref: sport.sport_ref,
             source_index: sport.source_index,
-            state: match sport.state {
-                TrainingSportState::Unknown => "unknown",
-                TrainingSportState::Classified => "classified",
-                TrainingSportState::Unavailable => "unavailable",
-            },
+            state: training_sport_state_code(sport.state),
             classification: sport.classification.map(Into::into),
             first_local_date: sport.first_local_date,
             last_local_date: sport.last_local_date,
@@ -905,6 +987,106 @@ impl From<TrainingSessionInsight> for TrainingSessionInsightDto {
                 .map(|value| value.to_string()),
             sport_ref: session.sport_ref,
             exercise_count: session.exercise_count,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSessionSearchItemDto {
+    session_ref: String,
+    source_index: usize,
+    started_at_local: String,
+    stopped_at_local: String,
+    utc_offset_minutes: Option<i32>,
+    duration_milliseconds: String,
+    distance_meters: Option<f64>,
+    energy_kilocalories: Option<String>,
+    average_heart_rate_bpm: Option<String>,
+    maximum_heart_rate_bpm: Option<String>,
+    exercise_count: Option<usize>,
+    sport: TrainingSessionSportDto,
+}
+
+impl From<TrainingSessionSearchItem> for TrainingSessionSearchItemDto {
+    fn from(session: TrainingSessionSearchItem) -> Self {
+        Self {
+            session_ref: session.session_ref,
+            source_index: session.source_index,
+            started_at_local: session.started_at_local,
+            stopped_at_local: session.stopped_at_local,
+            utc_offset_minutes: session.utc_offset_minutes,
+            duration_milliseconds: session.duration_milliseconds.to_string(),
+            distance_meters: session.distance_meters,
+            energy_kilocalories: session.energy_kilocalories.map(|value| value.to_string()),
+            average_heart_rate_bpm: session
+                .average_heart_rate_bpm
+                .map(|value| value.to_string()),
+            maximum_heart_rate_bpm: session
+                .maximum_heart_rate_bpm
+                .map(|value| value.to_string()),
+            exercise_count: session.exercise_count,
+            sport: session.sport.into(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSessionSearchSummaryDto {
+    source_index: usize,
+    training_days: usize,
+    session_count: usize,
+    total_duration_milliseconds: String,
+    distance_session_count: usize,
+    total_distance_meters: Option<f64>,
+    energy_session_count: usize,
+    total_energy_kilocalories: Option<String>,
+    heart_rate_session_count: usize,
+}
+
+impl From<TrainingSessionSearchSummary> for TrainingSessionSearchSummaryDto {
+    fn from(summary: TrainingSessionSearchSummary) -> Self {
+        Self {
+            source_index: summary.source_index,
+            training_days: summary.training_days,
+            session_count: summary.session_count,
+            total_duration_milliseconds: summary.total_duration_milliseconds.to_string(),
+            distance_session_count: summary.distance_session_count,
+            total_distance_meters: summary.total_distance_meters,
+            energy_session_count: summary.energy_session_count,
+            total_energy_kilocalories: summary
+                .total_energy_kilocalories
+                .map(|value| value.to_string()),
+            heart_rate_session_count: summary.heart_rate_session_count,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSessionSearchPageDto {
+    available_range: Option<TrainingDateRangeDto>,
+    snapshot_ref: String,
+    total_count: usize,
+    offset: usize,
+    limit: usize,
+    next_offset: Option<usize>,
+    summaries: Vec<TrainingSessionSearchSummaryDto>,
+    sessions: Vec<TrainingSessionSearchItemDto>,
+}
+
+impl From<TrainingSessionSearchPage> for TrainingSessionSearchPageDto {
+    fn from(page: TrainingSessionSearchPage) -> Self {
+        Self {
+            available_range: page.available_range.map(Into::into),
+            snapshot_ref: page.snapshot_ref,
+            total_count: page.total_count,
+            offset: page.offset,
+            limit: page.limit,
+            next_offset: page.next_offset,
+            summaries: page.summaries.into_iter().map(Into::into).collect(),
+            sessions: page.sessions.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -3086,6 +3268,149 @@ mod tests {
         ] {
             assert_eq!(
                 serde_json::to_value(CommandErrorDto::from(error)).expect("sport error JSON"),
+                serde_json::json!({ "code": code })
+            );
+        }
+    }
+
+    #[test]
+    fn validates_and_serializes_the_training_session_search_transport_contract() {
+        let input: TrainingSessionSearchRequestDto =
+            serde_json::from_value(serde_json::json!({
+                "from": "2025-01-01",
+                "through": null,
+                "sportRefs": ["sport-synthetic"],
+                "requiredMeasurements": ["distance", "heart-rate"],
+                "text": "Trail",
+                "sort": "distance-desc",
+                "offset": 25,
+                "limit": 25,
+                "snapshotRef": "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }))
+            .expect("training-session search request");
+        let request = TrainingSessionSearchRequest::try_from(input)
+            .expect("valid training-session search transport");
+        assert_eq!(request.from.as_deref(), Some("2025-01-01"));
+        assert_eq!(
+            request.required_measurements,
+            vec![
+                TrainingMeasurementFilter::Distance,
+                TrainingMeasurementFilter::HeartRate,
+            ]
+        );
+        assert_eq!(request.sort, TrainingSessionSort::DistanceDescending);
+        assert!(
+            serde_json::from_value::<TrainingSessionSearchRequestDto>(serde_json::json!({
+                "from": null,
+                "through": null,
+                "sportRefs": [],
+                "requiredMeasurements": [],
+                "text": null,
+                "sort": "started-desc",
+                "offset": 0,
+                "limit": 25,
+                "snapshotRef": null,
+                "sourceSessionId": "must-not-cross-the-boundary"
+            }))
+            .is_err()
+        );
+
+        let page = TrainingSessionSearchPage {
+            available_range: Some(TrainingDateRange {
+                from: "2024-01-01".to_owned(),
+                through: "2026-08-18".to_owned(),
+            }),
+            snapshot_ref:
+                "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    .to_owned(),
+            total_count: 26,
+            offset: 25,
+            limit: 25,
+            next_offset: None,
+            summaries: vec![TrainingSessionSearchSummary {
+                source_index: 2,
+                training_days: 25,
+                session_count: 26,
+                total_duration_milliseconds: 18_446_744_073_709_551_614,
+                distance_session_count: 25,
+                total_distance_meters: Some(250_000.5),
+                energy_session_count: 24,
+                total_energy_kilocalories: Some(9_223_372_036_854_775_808),
+                heart_rate_session_count: 23,
+            }],
+            sessions: vec![TrainingSessionSearchItem {
+                session_ref:
+                    "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                        .to_owned(),
+                source_index: 2,
+                started_at_local: "2026-08-18T07:30:00".to_owned(),
+                stopped_at_local: "2026-08-18T08:30:00".to_owned(),
+                utc_offset_minutes: Some(120),
+                duration_milliseconds: i64::MAX,
+                distance_meters: Some(10_000.5),
+                energy_kilocalories: Some(i64::MAX),
+                average_heart_rate_bpm: Some(145),
+                maximum_heart_rate_bpm: Some(175),
+                exercise_count: Some(1),
+                sport: TrainingSessionSport {
+                    sport_ref: Some("sport-synthetic".to_owned()),
+                    state: TrainingSportState::Classified,
+                    classification: Some(TrainingSportClassification {
+                        canonical_family: Some("running".to_owned()),
+                        display_label: Some("Trail running".to_owned()),
+                        authorship: Some("user".to_owned()),
+                        revision: 1,
+                    }),
+                },
+            }],
+        };
+        let json = serde_json::to_value(TrainingSessionSearchPageDto::from(page))
+            .expect("training-session search JSON");
+        assert_eq!(json["totalCount"], 26);
+        assert_eq!(json["summaries"][0]["sessionCount"], 26);
+        assert_eq!(
+            json["summaries"][0]["totalDurationMilliseconds"],
+            "18446744073709551614"
+        );
+        assert_eq!(
+            json["summaries"][0]["totalEnergyKilocalories"],
+            "9223372036854775808"
+        );
+        assert_eq!(
+            json["sessions"][0]["durationMilliseconds"],
+            i64::MAX.to_string()
+        );
+        assert_eq!(
+            json["sessions"][0]["energyKilocalories"],
+            i64::MAX.to_string()
+        );
+        assert_eq!(json["sessions"][0]["sport"]["state"], "classified");
+        assert_eq!(
+            json["sessions"][0]["sport"]["classification"]["displayLabel"],
+            "Trail running"
+        );
+        assert!(json["sessions"][0]
+            .to_string()
+            .find("sourceSessionId")
+            .is_none());
+
+        for (error, code) in [
+            (
+                ApplicationError::InvalidTrainingSessionSearch("invalid"),
+                "invalid-training-session-search",
+            ),
+            (
+                ApplicationError::TrainingSessionSearchChanged,
+                "training-session-search-changed",
+            ),
+            (
+                ApplicationError::TrainingSessionSearch("failed".to_owned()),
+                "training-session-search-failed",
+            ),
+        ] {
+            assert_eq!(
+                serde_json::to_value(CommandErrorDto::from(error))
+                    .expect("training-session search error JSON"),
                 serde_json::json!({ "code": code })
             );
         }
