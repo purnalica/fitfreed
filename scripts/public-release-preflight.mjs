@@ -14,6 +14,7 @@ const revisionPattern = /^[0-9a-f]{40,64}$/;
 const releaseEnvironmentName = "public-macos-release";
 const repositoryName = "purnalica/fitfreed";
 const pagesUrl = publicOrigin;
+const pagesDomain = new URL(pagesUrl).hostname;
 const requiredWorkflows = ["ci.yml", "repository-safety.yml"];
 
 function run(command, args) {
@@ -77,11 +78,21 @@ export function validatePublicPagesConfiguration(pages) {
   }
   if (pages?.https_enforced !== true) errors.push("GitHub Pages must enforce HTTPS");
   if (pages?.html_url !== pagesUrl) errors.push("GitHub Pages URL is invalid");
+  if (pages?.cname !== pagesDomain) {
+    errors.push(`GitHub Pages custom domain must be ${pagesDomain}`);
+  }
+  if (pages?.protected_domain_state !== "verified") {
+    errors.push("GitHub Pages must use a verified domain");
+  }
+  if (pages?.pending_domain_unverified_at !== null) {
+    errors.push("GitHub Pages domain verification must not be pending");
+  }
   if (errors.length > 0) throw new Error(errors.join("\n"));
   return {
     source: "workflow",
     httpsEnforced: true,
     url: pagesUrl,
+    verifiedDomain: true,
   };
 }
 
@@ -178,6 +189,7 @@ export function validatePublicReleaseInvocation({
     publicPages?.url !== pagesUrl
     || publicPages?.source !== "workflow"
     || publicPages?.httpsEnforced !== true
+    || publicPages?.verifiedDomain !== true
   ) {
     errors.push("public Pages evidence is invalid");
   }

@@ -2,7 +2,7 @@
 
 ## Status
 
-Active as of 2026-08-18. D0, P1, and the local E1 acceptance checkpoint are complete and documented; E2 is the next active increment. P1 passed exact remote-byte verification at the generated project address. The canonical <https://fitfreed.org/> origin now has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, and the intended redirect behavior; exact hosted reacceptance of the origin-aware revision remains pending under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md). E1 hosted evidence remains to be attached after its source revision passes GitHub Actions.
+Active as of 2026-08-18. D0, P1, and E1 have complete local and hosted acceptance evidence. E2 has reached its complete local checkpoint; hosted evidence remains pending until the verified source revision is published. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md). P2 is the next independently deployable public-site increment, followed by E3 application delivery.
 
 The existing import, reconciliation, persistence, Insights, localization, update-recovery, packaging, and continuous-integration capabilities remain the engineering baseline. This plan changes how those capabilities become a product people can understand and value; it does not discard their verified behavior.
 
@@ -202,6 +202,8 @@ Each increment is a runnable vertical outcome. Within an increment, tests are wr
 
 **Accepted evidence:** commit `f8032aa` passed the local product-surface, page, documentation, workflow-topology, update-preservation, repository-content, and 125-script-test checks. The [hosted product-site workflow](https://github.com/purnalica/fitfreed/actions/runs/32143028575) then composed one artifact, confirmed that no update snapshot existed to preserve, deployed it through the `github-pages` environment, and verified every public product byte without redirects. The site exposes no supported download.
 
+Commit `1650755` migrated the canonical public and no-redirect updater origin to `https://fitfreed.org/` through the versioned public-origin contract. GitHub reports the custom domain as organization-verified with enforced HTTPS; GitHub Pages health accepted both the apex records and the `www` redirect CNAME. The [custom-origin deployment](https://github.com/purnalica/fitfreed/actions/runs/32147443685) preserved the inactive update boundary, deployed the complete artifact, and verified all five public files byte-for-byte at the canonical HTTPS origin without redirects.
+
 ### E1 — First-run shell, sources, settings, and navigation spine
 
 **User value:** a new or returning person understands where to begin and never becomes trapped in a screen.
@@ -232,6 +234,8 @@ Each increment is a runnable vertical outcome. Within an increment, tests are wr
 
 **Local accepted evidence:** the versioned provider-neutral guide contract, Polar Flow adapter, Tauri transport, least-privilege opener capability, Sources home, first-run navigation, both locale catalogs, user guidance, and contributor architecture are implemented together. The complete fast lane passed 125 automation tests, 67 React tests, the updater refinement, and every all-feature Rust workspace target. Clippy with warnings denied and both Rust format boundaries passed. The packaged macOS WebView journey then exercised both acquisition paths, every localized guide item, exact English and Spanish official destinations, import cancellation, reimport, restart, 200% zoom, and Axe without violations. Its independently isolated two-year performance scenario also passed every 500 ms common and 2 s maximum p95 budget.
 
+**Hosted accepted evidence:** source `85f241e1d573489d7f82fca5aab3f283da25571b` passed the [complete GitHub Actions campaign](https://github.com/purnalica/fitfreed/actions/runs/32151950344). The portable job passed every fast gate and the bounded updater refinement. The macOS job passed private release preparation, cold launch, full-scale import, Insights performance, recovery preparation, installation boundaries, the instrumented packaged journey, and both real packaged update outcomes before recording the immutable executable-input fingerprint.
+
 ### E2 — Import-to-first-answer and returning home
 
 **User value:** import produces an immediate reason to explore, and reopening the application begins with history rather than maintenance controls.
@@ -256,6 +260,24 @@ Each increment is a runnable vertical outcome. Within an increment, tests are wr
 - Packaged E2E imports realistic synthetic archives, reaches an answer without manual scrolling through source diagnostics, reimports, extends history, restarts, and confirms that the visible next steps update from canonical state.
 
 **Evaluation checkpoint:** a reviewer can explain FitFreed's value after first import and can reach supporting evidence from the first answer.
+
+**Local accepted evidence:** the provider-neutral Library Home application contract composes the established activity, training, sleep, recovery, longitudinal, and canonical import-outcome use cases without a persistence shortcut. SQLite schema 11 stores only a versioned, answerable exploration destination and safely ignores stale or unavailable state. Composition, presentation, persistence, migration, restart, exact-repeat, overlap, missing-data, multiple-origin, and lazy-mount tests pass. The complete presentation suite passes 77 tests with 733 messages in each complete locale catalog. The packaged macOS WebView journey imports realistic synthetic history, reaches every available question, verifies source limitations, traverses English and Spanish detail and comparison controls, exercises 200% dark-mode accessibility without violations, resumes exactly one saved explorer, clears it through an explicit Home return, and proves the cleared state after another restart. Its independent two-year performance scenario passes every 500 ms common and 2 s maximum p95 budget across the five exploration paths.
+
+### P2 — Localize the public product entrance
+
+**User value:** an English- or Spanish-speaking visitor can understand FitFreed's promise immediately and can retain an explicit language choice without creating an account.
+
+**Work:**
+
+1. Keep `en-US` as the canonical product-page source and fallback, and generate a complete `es-ES` surface from separate translation resources compatible with the project translation workflow.
+2. On the first visit, select Spanish only when the browser's ordered language preferences contain supported Spanish; use English when preferences are absent, unreadable, or unsupported.
+3. Provide a visible manual language control on every localized page, persist the visitor's explicit choice locally, and give that choice precedence over later automatic detection.
+4. Keep locale routing, canonical and alternate-language metadata, internal links, and readiness-gated download destinations deterministic. Language selection must not redirect, localize, or otherwise alter the language-neutral `/updates/` protocol surface.
+5. Extend product-surface, translation, accessibility, Pages-artifact, and exact hosted-byte checks to cover both locales, direct localized entry, automatic fallback, manual switching, persistence, keyboard use, and translated-text expansion.
+
+**Sequencing:** P2 does not interrupt the active E2 application vertical. It is an independently deployable public-site increment scheduled after E2 reaches its first complete local vertical checkpoint and before E3 acceptance; it may publish earlier when it cannot delay E2 evidence.
+
+**Evaluation checkpoint:** a fresh browser with Spanish preference reaches Spanish product content, an unsupported preference reaches English, a manual choice survives navigation and reload, and both paths expose identical truthful product status and actions.
 
 ### E3 — Sports and session discovery
 

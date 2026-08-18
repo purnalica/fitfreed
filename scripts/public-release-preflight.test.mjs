@@ -62,6 +62,7 @@ function invocation() {
       source: "workflow",
       httpsEnforced: true,
       url: publicOrigin,
+      verifiedDomain: true,
     },
     workflowEvidence: {
       requiredWorkflows: ["ci.yml", "repository-safety.yml"],
@@ -121,26 +122,36 @@ test("rejects an implicit, bypassable, unreviewed, or branch-open environment", 
   );
 });
 
-test("accepts only the HTTPS Actions-backed project Pages site", () => {
+test("accepts only the verified HTTPS Actions-backed custom Pages origin", () => {
   assert.deepEqual(validatePublicPagesConfiguration({
     build_type: "workflow",
+    cname: "fitfreed.org",
     https_enforced: true,
     html_url: publicOrigin,
+    pending_domain_unverified_at: null,
+    protected_domain_state: "verified",
   }), {
     source: "workflow",
     httpsEnforced: true,
     url: publicOrigin,
+    verifiedDomain: true,
   });
 
   for (const [mutate, expected] of [
     [(pages) => { pages.build_type = "legacy"; }, /GitHub Actions/],
     [(pages) => { pages.https_enforced = false; }, /enforce HTTPS/],
     [(pages) => { pages.html_url = "https://example.invalid/"; }, /URL is invalid/],
+    [(pages) => { pages.cname = "www.fitfreed.org"; }, /custom domain/],
+    [(pages) => { pages.protected_domain_state = "unverified"; }, /verified domain/],
+    [(pages) => { pages.pending_domain_unverified_at = "2026-08-18T00:00:00Z"; }, /pending/],
   ]) {
     const pages = {
       build_type: "workflow",
+      cname: "fitfreed.org",
       https_enforced: true,
       html_url: publicOrigin,
+      pending_domain_unverified_at: null,
+      protected_domain_state: "verified",
     };
     mutate(pages);
     assert.throws(() => validatePublicPagesConfiguration(pages), expected);
