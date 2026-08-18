@@ -18,6 +18,8 @@ The architecture will follow Clean Architecture and Domain-Driven Design (DDD).
 
 Enable people who hold data in vendor platforms to understand and benefit from their own history without depending on the exploration and reporting capabilities selected by those platforms. Data portability is only meaningful when people also have practical software that can use, present, and analyze the exported data.
 
+FitFreed has one product utility: enable a person to consult their imported history and derive understandable, trustworthy information from it. Import, storage, coverage accounting, format compatibility, and update delivery are enabling capabilities, not user value in isolation. An experience that stops at ingestion status, raw records, or generic summary cards does not meet the product objective.
+
 Allow later exports and additional supported sources to be incorporated without duplicating or losing previously imported information.
 
 The product must provide an exceptional user experience and an exceptional developer experience. Open-source sustainability is a product objective: the project must actively reduce the cost of understanding, using, contributing to, reviewing, and maintaining it.
