@@ -2,7 +2,7 @@
 
 ## Status
 
-Active as of 2026-08-18. D0 is accepted and documented; E1 implementation is active. The project owner has authorized autonomous publication of the P1 product site. P1 must pass its local and hosted evidence before deployment and before E1 can be accepted.
+Active as of 2026-08-18. D0 and P1 are accepted and documented; E1 implementation is active. The canonical product site is live at <https://purnalica.github.io/fitfreed/> with exact remote-byte verification.
 
 The existing import, reconciliation, persistence, Insights, localization, update-recovery, packaging, and continuous-integration capabilities remain the engineering baseline. This plan changes how those capabilities become a product people can understand and value; it does not discard their verified behavior.
 
@@ -199,6 +199,8 @@ Each increment is a runnable vertical outcome. Within an increment, tests are wr
 **Publication authority:** on 2026-08-18 the project owner explicitly authorized the first live GitHub Pages product-site deployment and its in-scope updates without another confirmation. Deployment still requires the exact workflow, artifact, URL, repository setting, and P1 checks to pass. This authority does not activate application downloads, releases, update trust, signing, or future public-release publication.
 
 **Handoff:** technical preparation and deployment proceed autonomously alongside E1. Publication occurs as soon as the deployable artifact and its evidence are ready and no later than the E1 acceptance checkpoint.
+
+**Accepted evidence:** commit `f8032aa` passed the local product-surface, page, documentation, workflow-topology, update-preservation, repository-content, and 125-script-test checks. The [hosted product-site workflow](https://github.com/purnalica/fitfreed/actions/runs/32143028575) then composed one artifact, confirmed that no update snapshot existed to preserve, deployed it through the `github-pages` environment, and verified every public product byte without redirects. The site exposes no supported download.
 
 ### E1 — First-run shell, sources, settings, and navigation spine
 
