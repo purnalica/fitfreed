@@ -2,7 +2,7 @@
 
 ## Status
 
-Active as of 2026-08-18. Milestone 2 capability implementation is complete. Its remaining update-authority, controlled-distribution, and participant-evaluation gates do not block this engineering plan; they join the final public-release readiness audit.
+Active as of 2026-08-18. Milestone 2 capability implementation and the current Milestone 3 engineering baseline are complete. Source `3f462add258f8bf4b233c3f99cb6f97559c8e3fe` passed the complete local campaign, [hosted continuous integration](https://github.com/purnalica/fitfreed/actions/runs/32084588520), and [repository safety](https://github.com/purnalica/fitfreed/actions/runs/32084588507) with production trust deliberately inactive. The milestone remains open for production authority, protected GitHub configuration, the exact signed and notarized candidate, human evaluation, and public publication.
 
 ## Objective
 
@@ -18,7 +18,7 @@ No unsigned binary may enter a public channel. No production private key, passwo
 
 ## Increment M3.1 — Executable platform boundary
 
-**Status:** implementation and local verification complete; exact-source hosted acceptance is pending.
+**Status:** implementation and hosted engineering acceptance complete. The exact public candidate must preserve and reverify this boundary.
 
 **Outcome:** the public macOS target is stated and enforced consistently as Apple Silicon on macOS 15.0 or later.
 
@@ -32,7 +32,7 @@ No unsigned binary may enter a public channel. No production private key, passwo
 
 ## Increment M3.2 — Public channel and embedded trust
 
-**Status:** implementation and local acceptance complete; hosted acceptance pending publication of the source revision.
+**Status:** implementation and hosted engineering acceptance complete with production trust deliberately inactive. Production-key activation and exact-candidate acceptance remain separate gates.
 
 **Outcome:** a public production build can discover only an authenticated stable channel through a direct privacy-minimizing HTTPS endpoint, while ordinary builds remain deliberately unconfigured.
 
@@ -51,7 +51,7 @@ Local evidence on 2026-08-17: both closed update-channel schemas and the public 
 
 ## Increment M3.3 — Signed, notarized release automation
 
-**Status:** engineering and local acceptance complete; exact-source normal CI is pending. Production workflow execution remains gated separately by the production trust root, protected GitHub configuration, exact release tag, and explicit public-release authority.
+**Status:** engineering, local acceptance, and exact-source normal CI are complete. Production workflow execution remains gated separately by the production trust root, protected GitHub configuration, exact release tag, and explicit public-release authority.
 
 **Outcome:** one manually authorized, exact-tag-bound workflow can build, sign, notarize, staple, inspect, attest, stage, and publish a public candidate without exposing release credentials to untrusted jobs.
 
@@ -66,11 +66,13 @@ Local evidence on 2026-08-17: both closed update-channel schemas and the public 
 
 **Acceptance evidence:** all preparation and inspection behavior passes with synthetic or ad-hoc test identities where Apple permits it; the exact public candidate additionally requires a real Developer ID, successful Apple notarization, Gatekeeper acceptance, protected-environment execution, provenance, and remote byte verification.
 
-Local evidence on 2026-08-18: the complete fast lane passed 115 automation tests, 51 presentation tests, 2 bounded-updater tests, 161 desktop-host tests, 52 application tests, 6 domain tests, and 2 private-reference acceptance predicate tests. The workflow passed its closed topology and permission contract plus pinned `actionlint` 1.7.12 and ShellCheck 0.10.0 validation. Synthetic release boundaries covered ephemeral authority materialization and cleanup, exact source and tag resolution, immutable asset publication, source-bound attestations, release-link verification, direct non-redirecting Pages convergence, complete distributed-byte reopening, sealed candidate transport, and temporary evidence removal. This does not claim Developer ID, Apple notarization, GitHub environment protection, public publication, or remote production evidence.
+Local evidence on 2026-08-18: the complete fast lane passed 115 automation tests, 51 presentation tests, 2 bounded-updater tests, 162 desktop-host tests, 52 application tests, 6 domain tests, and 2 private-reference acceptance predicate tests. The workflow passed its closed topology and permission contract plus pinned `actionlint` 1.7.12 and ShellCheck 0.10.0 validation. Synthetic release boundaries covered ephemeral authority materialization and cleanup, exact source and tag resolution, immutable asset publication, source-bound attestations, release-link verification, direct non-redirecting Pages convergence, complete distributed-byte reopening, sealed candidate transport, and temporary evidence removal.
+
+Hosted evidence on 2026-08-18: source `3f462add258f8bf4b233c3f99cb6f97559c8e3fe` passed portable checks and the complete Apple Silicon campaign, including clean packaging, one hundred cold launches, full-scale import, Insights performance, update-recovery preparation, installation and failure boundaries, packaged UI behavior, and successful replacement plus forced rollback. The workflow recorded the exact executable-input fingerprint for fail-closed reuse by documentation-only revisions. This evidence does not claim Developer ID, Apple notarization, production updater authority, GitHub environment protection, public publication, or remote production bytes.
 
 ## Increment M3.4 — Public operation, user guidance, and readiness
 
-**Status:** in progress. Version-matched public user guidance, a shared candidate-evaluation procedure, maintainer operations and incident recovery, sealed pre-publication evaluation, and the consolidated readiness ledger are implemented. Local regression and hosted documentation acceptance remain.
+**Status:** engineering preparation, local regression, and hosted documentation acceptance are complete. Version-matched public user guidance, a shared candidate-evaluation procedure, maintainer operations and incident recovery, sealed pre-publication evaluation, and the consolidated readiness ledger are implemented. Exact-candidate automated and human evaluation plus public operation remain acceptance gates.
 
 **Outcome:** users and maintainers can install, verify, update, recover, remove, support, and withdraw a public FitFreed release without hidden project knowledge.
 
