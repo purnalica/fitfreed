@@ -2,7 +2,7 @@
 
 ## Status
 
-Active as of 2026-08-18. D0, P1, and E1 have complete local and hosted acceptance evidence. E2 has reached its complete local checkpoint; hosted evidence remains pending. P2 has reached its complete local checkpoint and is awaiting exact hosted publication evidence before E3 application delivery. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md).
+Active as of 2026-08-18. D0, P1, E1, and P2 have complete local and hosted acceptance evidence. E2 has reached its complete local checkpoint; hosted executable evidence remains pending. E3 application delivery is active. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English and Spanish hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md) and [ADR 0024](../architecture/decisions/0024-generate-localized-product-pages.md).
 
 The existing import, reconciliation, persistence, Insights, localization, update-recovery, packaging, and continuous-integration capabilities remain the engineering baseline. This plan changes how those capabilities become a product people can understand and value; it does not discard their verified behavior.
 
@@ -290,6 +290,13 @@ dark appearance, complete assets, and zero page-level horizontal overflow. The i
 135 automation tests, 77 presentation tests, two updater tests, 171 host and infrastructure tests, 64
 application tests, six domain tests, and two private acceptance tests; documentation, workflow, build,
 format, repository-content, and secret checks are also green.
+
+**Hosted accepted evidence:** source `3c1fceaa0bbf3af88872c4c645a07622f0b85b50` passed the
+[product-site publication](https://github.com/purnalica/fitfreed/actions/runs/32161349157). The workflow
+generated and deployed both locale surfaces as one artifact, preserved the language-neutral update
+boundary, and verified every hosted byte at the canonical HTTPS origin. Direct requests to `/` and `/es/`
+return the declared `en-US` and `es-ES` documents with reciprocal language metadata and truthful localized
+content. Repository safety passed independently for the same source revision.
 
 ### E3 — Sports and session discovery
 
