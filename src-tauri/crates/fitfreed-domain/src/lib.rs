@@ -1,3 +1,12 @@
+mod sport_classification;
+pub use sport_classification::{
+    author_sport_classification, SportClassification, SportClassificationAuthorship,
+    SportClassificationError, SportClassificationKey, SportClassificationState, SportFamily,
+};
+
+#[cfg(test)]
+mod sport_classification_tests;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DailyActivity {
     pub origin_id: String,

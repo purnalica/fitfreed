@@ -17,6 +17,7 @@ import type {
   TrainingOverview,
   TrainingSessionInsight,
 } from "./training-insights";
+import { TrainingSportsPanel } from "./TrainingSportsPanel";
 
 interface TrainingInsightsPanelProps {
   locale: Locale;
@@ -176,6 +177,12 @@ export function TrainingInsightsPanel({
       aria-busy={loadingOverview}
     >
       <h1 id="training-heading">{copy.heading}</h1>
+      <TrainingSportsPanel
+        locale={locale}
+        messages={messages}
+        refreshToken={refreshToken}
+        onError={onError}
+      />
       {!overview && loadingOverview ? (
         <p>{copy.loading}</p>
       ) : !overview ? (

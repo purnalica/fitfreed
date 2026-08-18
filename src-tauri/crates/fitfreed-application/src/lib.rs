@@ -18,6 +18,17 @@ use fitfreed_domain::{
     SourceSpecificRecoveryBaseline, SourceSpecificRecoveryGuidance, TrainingSession,
 };
 
+mod sport_discovery;
+pub use sport_discovery::{
+    query_training_sports, save_training_sport_classification, DetectedTrainingSport,
+    SaveSportClassificationRequest, SavedTrainingSportClassification,
+    SportClassificationSaveOutcome, TrainingSport, TrainingSportClassification,
+    TrainingSportCoverage, TrainingSportState, TrainingSportsOverview, TrainingSportsPort,
+};
+
+#[cfg(test)]
+mod sport_discovery_tests;
+
 mod longitudinal;
 pub use longitudinal::{
     query_longitudinal_comparison, query_longitudinal_overview, LongitudinalActivityComparison,
@@ -1291,6 +1302,14 @@ pub enum ApplicationError {
     InvalidActivityRange(&'static str),
     #[error("invalid training range: {0}")]
     InvalidTrainingRange(&'static str),
+    #[error("invalid sport classification: {0}")]
+    InvalidSportClassification(&'static str),
+    #[error("sport classification changed while it was being edited")]
+    SportClassificationConflict,
+    #[error("sport classification query failed: {0}")]
+    SportClassificationQuery(String),
+    #[error("sport classification update failed: {0}")]
+    SportClassificationUpdate(String),
     #[error("invalid sleep range: {0}")]
     InvalidSleepRange(&'static str),
     #[error("invalid sleep reference: {0}")]

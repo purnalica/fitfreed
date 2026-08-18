@@ -304,6 +304,18 @@ content. Repository safety passed independently for the same source revision.
 
 **Precondition:** FR-026 and ADR 0021 establish the accepted sport-classification path. Opaque provider references are never displayed as invented sport names.
 
+**Execution slices:**
+
+1. Deliver detected-sport coverage and persistent user classification through domain invariants,
+   compare-and-save storage, application read models, localized editing, restart, and reimport evidence.
+2. Replace bounded-year summary loading as the discovery path with indexed full-history pagination,
+   combinable date, sport, measurement, and text filters, stable sorting, and exact accessible results.
+3. Add chronology and calendar views, comparison selection, complete workspace restoration, session
+   navigation and return, full-scale performance evidence, and the packaged bilingual journey.
+
+Each slice remains executable from the ordinary application. A lower-layer contract without its observable
+user outcome is not an accepted E3 increment.
+
 **Application and architecture:**
 
 - Define the provider-neutral sport classification and unknown-value behavior, including the relationship between shared sport concepts, source-specific evidence, and any user-authored label.
@@ -324,6 +336,17 @@ content. Repository safety passed independently for the same source revision.
 - Packaged E2E proves the discovery journey with at least four independently invented sports, multiple years, indoor and outdoor sessions, missing measurements, reimport, and both locales.
 
 **Evaluation checkpoint:** a reviewer can find a specified synthetic session by at least three distinct paths and return to each origin without reconstruction.
+
+**Slice 1 local accepted evidence:** detected sport groups now span the complete canonical training library,
+preserve origin separation, expose only opaque presentation references, and distinguish classified, unknown,
+and source-unavailable evidence. A user can assign a broad localized family, add an optional personal label,
+amend it, cancel an edit, or explicitly return it to unknown. Compare-and-save revisions reject stale editors,
+while the save response returns the application-owned refreshed ordering instead of duplicating it in the
+renderer. SQLite schema 12 migrates atomically, uses the sport-discovery index, and preserves authored values
+through restart, exact reimport, and cumulative reimport. Domain, application, persistence, transport, JSON
+Schema, bilingual component, accessibility, and packaged macOS WebView tests pass. The packaged journey also
+proves English-to-Spanish editing and restoration after a process restart. This evidence accepts slice 1 only;
+full-history session search, filtering, alternative views, and navigation remain in slices 2 and 3.
 
 ### E4 — Evidence-complete session inspection
 

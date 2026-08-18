@@ -4,7 +4,7 @@
 
 Current architecture after [ADR 0002](decisions/0002-select-sqlite-storage.md). SQLite is the only storage engine in the application and the authoritative local-library format. It does not replace the documented portable FitFreed data contract.
 
-The current implemented schema and compatibility boundary are documented in the [SQLite version 10 persistence specification](../data-formats/persistence/sqlite-v10.md). It preserves the complete provider-neutral fitness library through version 8 and authenticated-update state from version 9, then replaces the locale-only row with one validated application-preference set. Earlier specifications remain immutable migration history.
+The current implemented schema and compatibility boundary are documented in the [SQLite version 12 persistence specification](../data-formats/persistence/sqlite-v12.md). It preserves the complete provider-neutral fitness library through version 8, authenticated-update state from version 9, application preferences from version 10, a resumable exploration destination from version 11, and user-authored sport classifications from version 12. Earlier specifications remain immutable migration history.
 
 ## Ownership
 
@@ -55,6 +55,10 @@ Schema version 8 adds nightly recovery keyed by origin and source-assigned recov
 Schema version 9 adds the singleton authenticated-update replay high-water mark, trusted release identity, and mutually exclusive dismissal or postponement preference. It contains no endpoint, trust key, package material, installation identifier, or usage event. Installation recovery remains a separate filesystem-backed contract; update state is included in a whole-library backup but excluded from the portable fitness model.
 
 Schema version 10 renames the locale-only row to `application_preference` and extends it with a fixed preference-contract version, system/light/dark appearance, and 100%–200% content zoom. The application reads, validates, recovers, saves, resets, backs up, and restores the complete set atomically. Preview state remains presentation-only and is discarded when the user leaves Settings without saving.
+
+Schema version 11 stores one constrained, versioned exploration destination for Library Home resume. It contains no filters, source identifiers, user text, or provider detail and is cleared through the same application port that validates it.
+
+Schema version 12 stores a current user-authored sport-classification revision keyed by exact observation origin and source sport reference. Absence means revision-zero unknown; a user reset persists an authored unknown revision. A covering training-session index supports detected-sport grouping without exposing the key to presentation. Import and reimport do not write authored meaning.
 
 New origin and evidence rows become durable only inside the same visibility transaction as canonical history and operation completion. Existing development origins migrate as unverified origins without invented evidence. Exact-repeat lookup may inherit an origin only from a completed operation whose correlation state is verified; an old package fingerprint alone cannot authorize subject resolution.
 

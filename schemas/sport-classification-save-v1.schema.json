@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/sport-classification-save-v1.schema.json",
+  "title": "FitFreed sport classification save version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["request"],
+  "properties": {
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sportRef",
+        "expectedRevision",
+        "canonicalFamily",
+        "displayLabel"
+      ],
+      "properties": {
+        "sportRef": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "expectedRevision": { "type": "integer", "minimum": 0 },
+        "canonicalFamily": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "enum": [
+                "running",
+                "cycling",
+                "swimming",
+                "walking",
+                "hiking",
+                "strength",
+                "mobility",
+                "racket-sport",
+                "team-sport",
+                "winter-sport",
+                "water-sport",
+                "other"
+              ]
+            }
+          ]
+        },
+        "displayLabel": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^(?=\\S)(?:(?![\\u0000-\\u001F\\u007F-\\u009F])[\\s\\S])*\\S$"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

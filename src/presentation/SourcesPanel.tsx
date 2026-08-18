@@ -22,6 +22,7 @@ interface SourcesPanelProps {
   messages: SourcesMessages;
   importMessages: ImportMessages;
   guide: SourceAcquisitionGuide | undefined;
+  guideLoading: boolean;
   archivePath: string | undefined;
   importReady: boolean;
   busy: boolean;
@@ -41,6 +42,7 @@ export function SourcesPanel({
   messages,
   importMessages,
   guide,
+  guideLoading,
   archivePath,
   importReady,
   busy,
@@ -128,6 +130,8 @@ export function SourcesPanel({
             className="secondary"
             aria-expanded={guideVisible}
             aria-controls="source-acquisition-guide"
+            aria-busy={guideLoading}
+            disabled={guideLoading}
             onClick={() => setGuideVisible(true)}
           >
             {messages.showGuide}

@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production currently persists provider-neutral session summaries only; implementation proceeds through E3 and E4 of the [MVP experience delivery plan](../plans/mvp-experience-delivery.md).
+Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production persists provider-neutral session summaries and user-authored sport classifications; full-history session discovery and evidence-complete detail continue through E3 and E4 of the [MVP experience delivery plan](../plans/mvp-experience-delivery.md).
 
 ## Ownership
 
@@ -21,6 +21,22 @@ One canonical session can expose three non-interchangeable layers:
 3. User-authored evidence: sport classification and reusable segment criteria with explicit authorship and revision.
 
 Every read model retains layer attribution and provenance. Reimport or recalculation may enrich or regenerate the applicable layer but cannot rewrite another layer silently.
+
+## Sport-classification boundary
+
+The [canonical sport-classification contract](../data-formats/canonical/sport-classification.md) resolves
+meaning without changing source evidence. Application and persistence may handle the exact
+`(originId, sourceSportRef)` key, but presentation receives only an opaque stable `sportRef`, explicit
+unknown or unavailable state, localized family code, optional user label, authorship, revision, and
+aggregate coverage. Source references and origin identities never become labels.
+
+An absent authored value is revision-zero unknown. Resetting a value writes a new user-authored unknown
+revision rather than deleting the history of user intent. Compare-and-save revision checks reject stale
+editors. Import and reimport can reveal a new source reference but cannot create or overwrite its meaning.
+
+Broad FitFreed family codes support localized navigation across providers. They do not assert that equal
+families identify the same activity, session, or person. Exact origin separation remains visible whenever
+otherwise equal labels would create ambiguity.
 
 ## Query and scale boundary
 

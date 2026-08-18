@@ -64,6 +64,7 @@ describe("SourcesPanel", () => {
         messages={catalogs["en-US"].sources}
         importMessages={importMessages}
         guide={guide}
+        guideLoading={false}
         archivePath="/synthetic/export.zip"
         importReady
         busy={false}
@@ -122,6 +123,7 @@ describe("SourcesPanel", () => {
           cancelling: catalogs["es-ES"].cancelling,
         }}
         guide={undefined}
+        guideLoading={false}
         archivePath={undefined}
         importReady={false}
         busy={false}
@@ -144,6 +146,34 @@ describe("SourcesPanel", () => {
       .toBeDisabled();
   });
 
+  it("does not report missing guidance while the local guide is still loading", () => {
+    render(
+      <SourcesPanel
+        locale="en-US"
+        messages={catalogs["en-US"].sources}
+        importMessages={importMessages}
+        guide={undefined}
+        guideLoading
+        archivePath={undefined}
+        importReady={false}
+        busy={false}
+        cancellable={false}
+        updateInstalling={false}
+        cancelRequested={false}
+        onChooseArchive={vi.fn()}
+        onImport={vi.fn()}
+        onCancel={vi.fn()}
+        onOpenOfficialLink={vi.fn()}
+        onLinkError={vi.fn()}
+      />,
+    );
+
+    const showGuide = screen.getByRole("button", { name: "Show me how" });
+    expect(showGuide).toBeDisabled();
+    expect(showGuide).toHaveAttribute("aria-busy", "true");
+    expect(screen.queryByText(/guide for this source is unavailable/i)).not.toBeInTheDocument();
+  });
+
   it("supports cancellation and blocks mutable source controls during an update", async () => {
     const user = userEvent.setup();
     const onCancel = vi.fn().mockResolvedValue(undefined);
@@ -153,6 +183,7 @@ describe("SourcesPanel", () => {
         messages={catalogs["en-US"].sources}
         importMessages={importMessages}
         guide={guide}
+        guideLoading={false}
         archivePath="/synthetic/export.zip"
         importReady
         busy
@@ -176,6 +207,7 @@ describe("SourcesPanel", () => {
         messages={catalogs["en-US"].sources}
         importMessages={importMessages}
         guide={guide}
+        guideLoading={false}
         archivePath="/synthetic/export.zip"
         importReady
         busy={false}

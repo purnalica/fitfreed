@@ -15,12 +15,14 @@ use fitfreed_application::{
     OfficialSourceLink, OfficialSourceLinkPurpose, PostImportReveal, PreferencesLoadStatus,
     RecoveryComparison, RecoveryDateRange, RecoveryDayAvailability, RecoveryDayInsight,
     RecoveryNightDetail, RecoveryNightInsight, RecoveryOverview, RecoverySeriesComparison,
-    RecoverySeriesOverview, RecoverySeriesSummary, SleepComparison, SleepDateRange,
-    SleepDayAvailability, SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight,
-    SleepPhaseTotals, SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary,
-    SourceAcquisitionGuide, TrainingComparison, TrainingDateRange, TrainingOverview,
+    RecoverySeriesOverview, RecoverySeriesSummary, SaveSportClassificationRequest,
+    SavedTrainingSportClassification, SleepComparison, SleepDateRange, SleepDayAvailability,
+    SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight, SleepPhaseTotals,
+    SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary, SourceAcquisitionGuide,
+    SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange, TrainingOverview,
     TrainingSeriesComparison, TrainingSeriesOverview, TrainingSeriesSummary,
-    TrainingSessionInsight, UpdateCheckOutcome, UpdateCheckStatus, UpdateError,
+    TrainingSessionInsight, TrainingSport, TrainingSportClassification, TrainingSportCoverage,
+    TrainingSportState, TrainingSportsOverview, UpdateCheckOutcome, UpdateCheckStatus, UpdateError,
     UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind, UpdateReleaseSummary, UpdateTrustFailure,
     UpdateWithdrawalReason, UpdateWithdrawalSummary,
 };
@@ -392,6 +394,10 @@ impl From<ApplicationError> for CommandErrorDto {
             ApplicationError::Query(_) => "library-query-failed",
             ApplicationError::InvalidActivityRange(_) => "invalid-activity-range",
             ApplicationError::InvalidTrainingRange(_) => "invalid-training-range",
+            ApplicationError::InvalidSportClassification(_) => "invalid-sport-classification",
+            ApplicationError::SportClassificationConflict => "sport-classification-conflict",
+            ApplicationError::SportClassificationQuery(_)
+            | ApplicationError::SportClassificationUpdate(_) => "sport-classification-failed",
             ApplicationError::InvalidSleepRange(_) => "invalid-sleep-range",
             ApplicationError::InvalidSleepReference(_) => "invalid-sleep-reference",
             ApplicationError::InvalidRecoveryRange(_) => "invalid-recovery-range",
@@ -718,6 +724,133 @@ pub struct ActivityComparisonDto {
 pub struct TrainingDateRangeDto {
     from: String,
     through: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SaveSportClassificationRequestDto {
+    sport_ref: String,
+    expected_revision: u64,
+    canonical_family: Option<String>,
+    display_label: Option<String>,
+}
+
+impl From<SaveSportClassificationRequestDto> for SaveSportClassificationRequest {
+    fn from(request: SaveSportClassificationRequestDto) -> Self {
+        Self {
+            sport_ref: request.sport_ref,
+            expected_revision: request.expected_revision,
+            canonical_family: request.canonical_family,
+            display_label: request.display_label,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSportClassificationDto {
+    canonical_family: Option<String>,
+    display_label: Option<String>,
+    authorship: Option<String>,
+    revision: u64,
+}
+
+impl From<TrainingSportClassification> for TrainingSportClassificationDto {
+    fn from(classification: TrainingSportClassification) -> Self {
+        Self {
+            canonical_family: classification.canonical_family,
+            display_label: classification.display_label,
+            authorship: classification.authorship,
+            revision: classification.revision,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSportCoverageDto {
+    session_count: usize,
+    total_duration_milliseconds: String,
+    distance_session_count: usize,
+    heart_rate_session_count: usize,
+}
+
+impl From<TrainingSportCoverage> for TrainingSportCoverageDto {
+    fn from(coverage: TrainingSportCoverage) -> Self {
+        Self {
+            session_count: coverage.session_count,
+            total_duration_milliseconds: coverage.total_duration_milliseconds.to_string(),
+            distance_session_count: coverage.distance_session_count,
+            heart_rate_session_count: coverage.heart_rate_session_count,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSportDto {
+    sport_ref: Option<String>,
+    source_index: usize,
+    state: &'static str,
+    classification: Option<TrainingSportClassificationDto>,
+    first_local_date: String,
+    last_local_date: String,
+    coverage: TrainingSportCoverageDto,
+}
+
+impl From<TrainingSport> for TrainingSportDto {
+    fn from(sport: TrainingSport) -> Self {
+        Self {
+            sport_ref: sport.sport_ref,
+            source_index: sport.source_index,
+            state: match sport.state {
+                TrainingSportState::Unknown => "unknown",
+                TrainingSportState::Classified => "classified",
+                TrainingSportState::Unavailable => "unavailable",
+            },
+            classification: sport.classification.map(Into::into),
+            first_local_date: sport.first_local_date,
+            last_local_date: sport.last_local_date,
+            coverage: sport.coverage.into(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSportsOverviewDto {
+    origin_count: usize,
+    session_count: usize,
+    sports: Vec<TrainingSportDto>,
+}
+
+impl From<TrainingSportsOverview> for TrainingSportsOverviewDto {
+    fn from(overview: TrainingSportsOverview) -> Self {
+        Self {
+            origin_count: overview.origin_count,
+            session_count: overview.session_count,
+            sports: overview.sports.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SavedTrainingSportClassificationDto {
+    outcome: &'static str,
+    overview: TrainingSportsOverviewDto,
+}
+
+impl From<SavedTrainingSportClassification> for SavedTrainingSportClassificationDto {
+    fn from(saved: SavedTrainingSportClassification) -> Self {
+        Self {
+            outcome: match saved.outcome {
+                SportClassificationSaveOutcome::Changed => "changed",
+                SportClassificationSaveOutcome::Unchanged => "unchanged",
+            },
+            overview: saved.overview.into(),
+        }
+    }
 }
 
 impl From<TrainingDateRangeDto> for TrainingDateRange {
@@ -2815,6 +2948,147 @@ mod tests {
             comparison_json["series"][0]["energyKilocaloriesChange"],
             "9223372036854775808"
         );
+    }
+
+    #[test]
+    fn validates_and_serializes_the_training_sport_transport_contract() {
+        let request: SaveSportClassificationRequestDto =
+            serde_json::from_value(serde_json::json!({
+                "sportRef": "sport-synthetic",
+                "expectedRevision": 4,
+                "canonicalFamily": "cycling",
+                "displayLabel": "Gravel cycling"
+            }))
+            .expect("sport classification request");
+        assert_eq!(
+            SaveSportClassificationRequest::from(request),
+            SaveSportClassificationRequest {
+                sport_ref: "sport-synthetic".to_owned(),
+                expected_revision: 4,
+                canonical_family: Some("cycling".to_owned()),
+                display_label: Some("Gravel cycling".to_owned()),
+            }
+        );
+        assert!(
+            serde_json::from_value::<SaveSportClassificationRequestDto>(serde_json::json!({
+                "sportRef": "sport-synthetic",
+                "expectedRevision": 4,
+                "canonicalFamily": null,
+                "displayLabel": null,
+                "sourceSportRef": "must-not-cross-the-boundary"
+            }))
+            .is_err()
+        );
+
+        let classified = TrainingSport {
+            sport_ref: Some("sport-synthetic".to_owned()),
+            source_index: 2,
+            state: TrainingSportState::Classified,
+            classification: Some(TrainingSportClassification {
+                canonical_family: Some("cycling".to_owned()),
+                display_label: Some("Gravel cycling".to_owned()),
+                authorship: Some("user".to_owned()),
+                revision: 5,
+            }),
+            first_local_date: "2025-01-02".to_owned(),
+            last_local_date: "2026-08-17".to_owned(),
+            coverage: TrainingSportCoverage {
+                session_count: 7,
+                total_duration_milliseconds: 25_200_000,
+                distance_session_count: 6,
+                heart_rate_session_count: 5,
+            },
+        };
+        let overview = TrainingSportsOverview {
+            origin_count: 2,
+            session_count: 8,
+            sports: vec![
+                classified.clone(),
+                TrainingSport {
+                    sport_ref: None,
+                    source_index: 1,
+                    state: TrainingSportState::Unavailable,
+                    classification: None,
+                    first_local_date: "2026-03-04".to_owned(),
+                    last_local_date: "2026-03-04".to_owned(),
+                    coverage: TrainingSportCoverage {
+                        session_count: 1,
+                        total_duration_milliseconds: 1_800_000,
+                        distance_session_count: 0,
+                        heart_rate_session_count: 0,
+                    },
+                },
+            ],
+        };
+        assert_eq!(
+            serde_json::to_value(TrainingSportsOverviewDto::from(overview.clone()))
+                .expect("training sports overview JSON"),
+            serde_json::json!({
+                "originCount": 2,
+                "sessionCount": 8,
+                "sports": [{
+                    "sportRef": "sport-synthetic",
+                    "sourceIndex": 2,
+                    "state": "classified",
+                    "classification": {
+                        "canonicalFamily": "cycling",
+                        "displayLabel": "Gravel cycling",
+                        "authorship": "user",
+                        "revision": 5
+                    },
+                    "firstLocalDate": "2025-01-02",
+                    "lastLocalDate": "2026-08-17",
+                    "coverage": {
+                        "sessionCount": 7,
+                        "totalDurationMilliseconds": "25200000",
+                        "distanceSessionCount": 6,
+                        "heartRateSessionCount": 5
+                    }
+                }, {
+                    "sportRef": null,
+                    "sourceIndex": 1,
+                    "state": "unavailable",
+                    "classification": null,
+                    "firstLocalDate": "2026-03-04",
+                    "lastLocalDate": "2026-03-04",
+                    "coverage": {
+                        "sessionCount": 1,
+                        "totalDurationMilliseconds": "1800000",
+                        "distanceSessionCount": 0,
+                        "heartRateSessionCount": 0
+                    }
+                }]
+            })
+        );
+        assert_eq!(
+            serde_json::to_value(SavedTrainingSportClassificationDto::from(
+                SavedTrainingSportClassification {
+                    outcome: SportClassificationSaveOutcome::Changed,
+                    overview,
+                },
+            ))
+            .expect("saved sport classification JSON")["outcome"],
+            "changed"
+        );
+        for (error, code) in [
+            (
+                ApplicationError::InvalidSportClassification("invalid"),
+                "invalid-sport-classification",
+            ),
+            (
+                ApplicationError::SportClassificationConflict,
+                "sport-classification-conflict",
+            ),
+            (
+                ApplicationError::SportClassificationQuery("failed".to_owned()),
+                "sport-classification-failed",
+            ),
+        ] {
+            assert_eq!(
+                serde_json::to_value(CommandErrorDto::from(error)).expect("sport error JSON"),
+                serde_json::json!({ "code": code })
+            );
+        }
     }
 
     #[test]

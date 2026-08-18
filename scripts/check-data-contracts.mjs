@@ -139,6 +139,43 @@ for (const fieldMatch of trainingSessionMatch[1].matchAll(/pub ([a-z_]+):/g)) {
   requireMention(trainingCanonical, camelCase, trainingCanonicalPath);
 }
 
+const sportClassificationDomainPath =
+  "src-tauri/crates/fitfreed-domain/src/sport_classification.rs";
+const sportClassificationDomain = read(sportClassificationDomainPath);
+const sportClassificationCanonicalPath =
+  "docs/data-formats/canonical/sport-classification.md";
+const sportClassificationCanonical = read(sportClassificationCanonicalPath);
+for (const field of [
+  "originId",
+  "sourceSportRef",
+  "sportRef",
+  "state",
+  "canonicalFamily",
+  "displayLabel",
+  "authorship",
+  "revision",
+  "unknown",
+  "classified",
+  "unavailable",
+  "user",
+]) {
+  requireMention(sportClassificationCanonical, field, sportClassificationCanonicalPath);
+}
+const sportFamilyMethod = sportClassificationDomain.match(
+  /pub const fn as_code\(self\)[\s\S]*?\n    }\n/,
+);
+if (!sportFamilyMethod) {
+  throw new Error(`${sportClassificationDomainPath} has no SportFamily::as_code`);
+}
+const sportFamilyCodes = [...sportFamilyMethod[0].matchAll(/=> "([a-z-]+)"/g)]
+  .map((match) => match[1]);
+if (sportFamilyCodes.length === 0 || new Set(sportFamilyCodes).size !== sportFamilyCodes.length) {
+  throw new Error(`${sportClassificationDomainPath} has invalid family codes`);
+}
+for (const family of sportFamilyCodes) {
+  requireMention(sportClassificationCanonical, family, sportClassificationCanonicalPath);
+}
+
 const sleepCanonicalPath = "docs/data-formats/canonical/sleep-period.md";
 const sleepCanonical = read(sleepCanonicalPath);
 for (const structure of [
@@ -765,6 +802,206 @@ const invalidTrainingOverview = structuredClone(syntheticTrainingOverview);
 invalidTrainingOverview.series[0].sessions[0].durationMilliseconds = "01";
 if (validateTrainingOverview(invalidTrainingOverview)) {
   throw new Error(`${trainingOverviewSchemaPath} accepted a non-canonical duration`);
+}
+
+const trainingSportsPath = "docs/data-formats/insights/training-sports-v1.md";
+const trainingSports = read(trainingSportsPath);
+for (const field of [
+  "query_training_sports",
+  "save_training_sport_classification",
+  "originCount",
+  "sessionCount",
+  "sports",
+  "sportRef",
+  "sourceIndex",
+  "state",
+  "classification",
+  "canonicalFamily",
+  "displayLabel",
+  "authorship",
+  "revision",
+  "firstLocalDate",
+  "lastLocalDate",
+  "coverage",
+  "totalDurationMilliseconds",
+  "distanceSessionCount",
+  "heartRateSessionCount",
+  "unknown",
+  "classified",
+  "unavailable",
+  "expectedRevision",
+  "changed",
+  "unchanged",
+  "invalid-sport-classification",
+  "sport-classification-conflict",
+  "sport-classification-failed",
+]) {
+  requireMention(trainingSports, field, trainingSportsPath);
+}
+for (const family of sportFamilyCodes) requireMention(trainingSports, family, trainingSportsPath);
+
+const trainingSportsSchemaPath = "schemas/training-sports-v1.schema.json";
+const trainingSportsSchema = JSON.parse(read(trainingSportsSchemaPath));
+const schemaFamilyCodes = trainingSportsSchema.$defs.family.enum;
+if (JSON.stringify(schemaFamilyCodes) !== JSON.stringify(sportFamilyCodes)) {
+  throw new Error(`${trainingSportsSchemaPath} family codes differ from the domain`);
+}
+const validateTrainingSports = ajv.compile(trainingSportsSchema);
+const syntheticUnknownSport = {
+  sportRef: "sport-unknown",
+  sourceIndex: 2,
+  state: "unknown",
+  classification: {
+    canonicalFamily: null,
+    displayLabel: null,
+    authorship: null,
+    revision: 0,
+  },
+  firstLocalDate: "2025-01-02",
+  lastLocalDate: "2026-08-17",
+  coverage: {
+    sessionCount: 3,
+    totalDurationMilliseconds: "7200000",
+    distanceSessionCount: 2,
+    heartRateSessionCount: 1,
+  },
+};
+const syntheticClassifiedSport = {
+  ...structuredClone(syntheticUnknownSport),
+  sportRef: "sport-cycling",
+  sourceIndex: 1,
+  state: "classified",
+  classification: {
+    canonicalFamily: "cycling",
+    displayLabel: "Gravel cycling",
+    authorship: "user",
+    revision: 4,
+  },
+};
+const syntheticUnavailableSport = {
+  ...structuredClone(syntheticUnknownSport),
+  sportRef: null,
+  sourceIndex: 1,
+  state: "unavailable",
+  classification: null,
+  coverage: {
+    sessionCount: 1,
+    totalDurationMilliseconds: "1800000",
+    distanceSessionCount: 0,
+    heartRateSessionCount: 0,
+  },
+};
+const syntheticTrainingSports = {
+  originCount: 2,
+  sessionCount: 7,
+  sports: [
+    syntheticClassifiedSport,
+    syntheticUnknownSport,
+    syntheticUnavailableSport,
+  ],
+};
+if (!validateTrainingSports(syntheticTrainingSports)) {
+  throw new Error(
+    `${trainingSportsSchemaPath} rejected its synthetic response: ${ajv.errorsText(validateTrainingSports.errors)}`,
+  );
+}
+for (const invalidOverview of [
+  {
+    ...structuredClone(syntheticTrainingSports),
+    provider: "must-not-cross-the-boundary",
+  },
+  (() => {
+    const value = structuredClone(syntheticTrainingSports);
+    value.sports[0].classification.canonicalFamily = "provider-cycling";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticTrainingSports);
+    value.sports[0].classification.canonicalFamily = null;
+    value.sports[0].classification.displayLabel = null;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticTrainingSports);
+    value.sports[2].sportRef = "invented-sport";
+    return value;
+  })(),
+]) {
+  if (validateTrainingSports(invalidOverview)) {
+    throw new Error(`${trainingSportsSchemaPath} accepted an invalid response`);
+  }
+}
+
+const sportClassificationSaveSchemaPath =
+  "schemas/sport-classification-save-v1.schema.json";
+const sportClassificationSaveSchema = JSON.parse(read(sportClassificationSaveSchemaPath));
+const validateSportClassificationSave = ajv.compile(sportClassificationSaveSchema);
+const syntheticSportClassificationSave = {
+  request: {
+    sportRef: "sport-cycling",
+    expectedRevision: 4,
+    canonicalFamily: "cycling",
+    displayLabel: "Gravel cycling",
+  },
+};
+for (const request of [
+  syntheticSportClassificationSave,
+  {
+    request: {
+      ...syntheticSportClassificationSave.request,
+      canonicalFamily: null,
+      displayLabel: null,
+    },
+  },
+]) {
+  if (!validateSportClassificationSave(request)) {
+    throw new Error(
+      `${sportClassificationSaveSchemaPath} rejected a valid request: ${ajv.errorsText(validateSportClassificationSave.errors)}`,
+    );
+  }
+}
+for (const invalidRequest of [
+  {},
+  {
+    request: {
+      ...syntheticSportClassificationSave.request,
+      canonicalFamily: "provider-cycling",
+    },
+  },
+  {
+    request: {
+      ...syntheticSportClassificationSave.request,
+      displayLabel: " leading space",
+    },
+  },
+  {
+    ...syntheticSportClassificationSave,
+    sourceSportRef: "must-not-cross-the-boundary",
+  },
+]) {
+  if (validateSportClassificationSave(invalidRequest)) {
+    throw new Error(`${sportClassificationSaveSchemaPath} accepted an invalid request`);
+  }
+}
+
+const savedSportClassificationSchemaPath =
+  "schemas/saved-sport-classification-v1.schema.json";
+const savedSportClassificationSchema = JSON.parse(read(savedSportClassificationSchemaPath));
+const validateSavedSportClassification = ajv.compile(savedSportClassificationSchema);
+const syntheticSavedSportClassification = {
+  outcome: "changed",
+  overview: syntheticTrainingSports,
+};
+if (!validateSavedSportClassification(syntheticSavedSportClassification)) {
+  throw new Error(
+    `${savedSportClassificationSchemaPath} rejected a valid result: ${ajv.errorsText(validateSavedSportClassification.errors)}`,
+  );
+}
+if (validateSavedSportClassification({
+  ...syntheticSavedSportClassification,
+  outcome: "saved",
+})) {
+  throw new Error(`${savedSportClassificationSchemaPath} accepted an invalid result`);
 }
 
 const trainingComparisonPath = "docs/data-formats/insights/training-comparison-v1.md";
@@ -2569,6 +2806,7 @@ const indexPath = "docs/data-formats/README.md";
 const index = read(indexPath);
 for (const contractPath of [
   canonicalPath,
+  sportClassificationCanonicalPath,
   sleepCanonicalPath,
   mappingPath,
   sleepMappingPath,
@@ -2576,6 +2814,7 @@ for (const contractPath of [
   activityOverviewV2Path,
   activityComparisonPath,
   trainingOverviewPath,
+  trainingSportsPath,
   trainingComparisonPath,
   sleepOverviewPath,
   sleepComparisonPath,
@@ -2613,6 +2852,11 @@ process.stdout.write(
     trainingOverviewSchemas: [
       trainingOverviewQuerySchemaPath,
       trainingOverviewSchemaPath,
+    ],
+    trainingSportsSchemas: [
+      trainingSportsSchemaPath,
+      sportClassificationSaveSchemaPath,
+      savedSportClassificationSchemaPath,
     ],
     trainingComparisonSchemas: [
       trainingComparisonQuerySchemaPath,
@@ -2660,7 +2904,7 @@ process.stdout.write(
     publicUpdateConfigurationSchema: publicUpdateConfigurationSchemaPath,
     updateRecoverySchema: updateRecoverySchemaPath,
     updateRecoveryOutcomeSchema: updateRecoveryOutcomeSchemaPath,
-    canonicalFields: 56,
+    canonicalFields: 64,
     mappingFields: 75,
   }) + "\n",
 );

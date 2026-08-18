@@ -1,0 +1,315 @@
+use std::sync::Mutex;
+
+use fitfreed_domain::{
+    SportClassification, SportClassificationAuthorship, SportClassificationKey,
+    SportClassificationState, SportFamily,
+};
+
+use super::{
+    query_training_sports, save_training_sport_classification, ApplicationError,
+    DetectedTrainingSport, SaveSportClassificationRequest, SportClassificationSaveOutcome,
+    TrainingSportState, TrainingSportsPort,
+};
+
+fn detected_sport(
+    sport_ref: &str,
+    origin_id: &str,
+    source_sport_ref: &str,
+    session_count: usize,
+) -> DetectedTrainingSport {
+    DetectedTrainingSport {
+        sport_ref: Some(sport_ref.to_owned()),
+        origin_id: origin_id.to_owned(),
+        classification: Some(SportClassification::unresolved(
+            SportClassificationKey::new(origin_id, source_sport_ref).expect("classification key"),
+        )),
+        first_local_date: "2025-01-02".to_owned(),
+        last_local_date: "2026-08-17".to_owned(),
+        session_count,
+        total_duration_milliseconds: 7_200_000,
+        distance_session_count: session_count.saturating_sub(1),
+        heart_rate_session_count: session_count.saturating_sub(2),
+    }
+}
+
+fn unavailable_sport(origin_id: &str) -> DetectedTrainingSport {
+    DetectedTrainingSport {
+        sport_ref: None,
+        origin_id: origin_id.to_owned(),
+        classification: None,
+        first_local_date: "2026-03-01".to_owned(),
+        last_local_date: "2026-03-01".to_owned(),
+        session_count: 1,
+        total_duration_milliseconds: 1_800_000,
+        distance_session_count: 0,
+        heart_rate_session_count: 0,
+    }
+}
+
+#[derive(Default)]
+struct ControlledTrainingSportsPort {
+    detected: Mutex<Vec<DetectedTrainingSport>>,
+    saves: Mutex<Vec<(u64, SportClassification)>>,
+    reject_save: bool,
+}
+
+impl ControlledTrainingSportsPort {
+    fn with(detected: Vec<DetectedTrainingSport>) -> Self {
+        Self {
+            detected: Mutex::new(detected),
+            ..Self::default()
+        }
+    }
+}
+
+impl TrainingSportsPort for ControlledTrainingSportsPort {
+    fn query_detected_training_sports(&self) -> Result<Vec<DetectedTrainingSport>, String> {
+        Ok(self.detected.lock().expect("detected sports").clone())
+    }
+
+    fn find_detected_training_sport(
+        &self,
+        sport_ref: &str,
+    ) -> Result<Option<DetectedTrainingSport>, String> {
+        Ok(self
+            .detected
+            .lock()
+            .expect("detected sports")
+            .iter()
+            .find(|sport| sport.sport_ref.as_deref() == Some(sport_ref))
+            .cloned())
+    }
+
+    fn compare_and_save_sport_classification(
+        &self,
+        expected_revision: u64,
+        classification: &SportClassification,
+    ) -> Result<bool, String> {
+        self.saves
+            .lock()
+            .expect("classification saves")
+            .push((expected_revision, classification.clone()));
+        if self.reject_save {
+            return Ok(false);
+        }
+        let mut detected = self.detected.lock().expect("detected sports");
+        let existing = detected
+            .iter_mut()
+            .find(|sport| {
+                sport.classification.as_ref().map(SportClassification::key)
+                    == Some(classification.key())
+            })
+            .expect("saved detected sport");
+        existing.classification = Some(classification.clone());
+        Ok(true)
+    }
+}
+
+#[test]
+fn composes_classified_unknown_and_unavailable_sports_without_source_references() {
+    let unresolved = detected_sport("sport-unknown", "origin-b", "opaque-93", 3);
+    let mut classified = detected_sport("sport-running", "origin-a", "opaque-12", 4);
+    classified.classification = Some(
+        SportClassification::restore(
+            classified
+                .classification
+                .as_ref()
+                .expect("classification")
+                .key()
+                .clone(),
+            SportClassificationState::Classified,
+            Some(SportFamily::Running),
+            Some("Trail running".to_owned()),
+            Some(SportClassificationAuthorship::User),
+            2,
+        )
+        .expect("restored classification"),
+    );
+    let unavailable = unavailable_sport("origin-a");
+    let overview = query_training_sports(&ControlledTrainingSportsPort::with(vec![
+        unresolved,
+        unavailable,
+        classified,
+    ]))
+    .expect("training sports overview");
+
+    assert_eq!(overview.origin_count, 2);
+    assert_eq!(overview.session_count, 8);
+    assert_eq!(overview.sports.len(), 3);
+    assert_eq!(overview.sports[0].state, TrainingSportState::Classified);
+    assert_eq!(overview.sports[0].source_index, 1);
+    assert_eq!(
+        overview.sports[0].sport_ref.as_deref(),
+        Some("sport-running")
+    );
+    assert_eq!(
+        overview.sports[0]
+            .classification
+            .as_ref()
+            .and_then(|classification| classification.display_label.as_deref()),
+        Some("Trail running")
+    );
+    assert_eq!(overview.sports[1].state, TrainingSportState::Unknown);
+    assert_eq!(overview.sports[1].source_index, 2);
+    assert_eq!(overview.sports[2].state, TrainingSportState::Unavailable);
+    assert_eq!(overview.sports[2].source_index, 1);
+}
+
+#[test]
+fn saves_idempotent_amended_and_explicit_unknown_classifications_with_revision_checks() {
+    let port = ControlledTrainingSportsPort::with(vec![detected_sport(
+        "sport-cycling",
+        "origin-a",
+        "opaque-7",
+        6,
+    )]);
+    let saved = save_training_sport_classification(
+        &port,
+        SaveSportClassificationRequest {
+            sport_ref: "sport-cycling".to_owned(),
+            expected_revision: 0,
+            canonical_family: Some("cycling".to_owned()),
+            display_label: Some("Gravel cycling".to_owned()),
+        },
+    )
+    .expect("saved classification");
+    assert_eq!(saved.outcome, SportClassificationSaveOutcome::Changed);
+    assert_eq!(
+        saved.overview.sports[0].state,
+        TrainingSportState::Classified
+    );
+    assert_eq!(
+        saved.overview.sports[0]
+            .classification
+            .as_ref()
+            .expect("classification")
+            .revision,
+        1
+    );
+
+    let unchanged = save_training_sport_classification(
+        &port,
+        SaveSportClassificationRequest {
+            sport_ref: "sport-cycling".to_owned(),
+            expected_revision: 1,
+            canonical_family: Some("cycling".to_owned()),
+            display_label: Some("Gravel cycling".to_owned()),
+        },
+    )
+    .expect("idempotent classification");
+    assert_eq!(unchanged.outcome, SportClassificationSaveOutcome::Unchanged);
+
+    let reset = save_training_sport_classification(
+        &port,
+        SaveSportClassificationRequest {
+            sport_ref: "sport-cycling".to_owned(),
+            expected_revision: 1,
+            canonical_family: None,
+            display_label: None,
+        },
+    )
+    .expect("authored unknown");
+    assert_eq!(reset.outcome, SportClassificationSaveOutcome::Changed);
+    assert_eq!(reset.overview.sports[0].state, TrainingSportState::Unknown);
+    assert_eq!(
+        reset.overview.sports[0]
+            .classification
+            .as_ref()
+            .expect("classification")
+            .revision,
+        2
+    );
+
+    assert_eq!(port.saves.lock().expect("classification saves").len(), 2);
+}
+
+#[test]
+fn rejects_stale_invalid_and_unclassifiable_requests_without_writes() {
+    let port = ControlledTrainingSportsPort {
+        detected: Mutex::new(vec![detected_sport(
+            "sport-running",
+            "origin-a",
+            "opaque-1",
+            2,
+        )]),
+        saves: Mutex::new(Vec::new()),
+        reject_save: true,
+    };
+    assert!(matches!(
+        save_training_sport_classification(
+            &port,
+            SaveSportClassificationRequest {
+                sport_ref: "sport-running".to_owned(),
+                expected_revision: 0,
+                canonical_family: Some("running".to_owned()),
+                display_label: None,
+            },
+        ),
+        Err(ApplicationError::SportClassificationConflict)
+    ));
+    assert!(matches!(
+        save_training_sport_classification(
+            &port,
+            SaveSportClassificationRequest {
+                sport_ref: "sport-running".to_owned(),
+                expected_revision: 0,
+                canonical_family: Some("provider-code".to_owned()),
+                display_label: None,
+            },
+        ),
+        Err(ApplicationError::InvalidSportClassification(_))
+    ));
+    assert!(matches!(
+        save_training_sport_classification(
+            &port,
+            SaveSportClassificationRequest {
+                sport_ref: "missing-sport".to_owned(),
+                expected_revision: 0,
+                canonical_family: None,
+                display_label: Some("Running".to_owned()),
+            },
+        ),
+        Err(ApplicationError::InvalidSportClassification(_))
+    ));
+    assert!(matches!(
+        save_training_sport_classification(
+            &port,
+            SaveSportClassificationRequest {
+                sport_ref: "sport-running".to_owned(),
+                expected_revision: 0,
+                canonical_family: None,
+                display_label: Some(" Leading space".to_owned()),
+            },
+        ),
+        Err(ApplicationError::InvalidSportClassification(_))
+    ));
+}
+
+#[test]
+fn rejects_inconsistent_detected_sport_sets_instead_of_returning_partial_discovery() {
+    let duplicate_unavailable = vec![unavailable_sport("origin-a"), unavailable_sport("origin-a")];
+    let mut invalid_coverage = detected_sport("sport-running", "origin-a", "opaque-1", 2);
+    invalid_coverage.distance_session_count = 3;
+    let mut reversed_dates = detected_sport("sport-cycling", "origin-a", "opaque-2", 2);
+    reversed_dates.first_local_date = "2026-08-18".to_owned();
+    reversed_dates.last_local_date = "2026-08-17".to_owned();
+    let mut mismatched_origin = detected_sport("sport-swimming", "origin-a", "opaque-3", 2);
+    mismatched_origin.origin_id = "origin-b".to_owned();
+    let mismatched_availability = DetectedTrainingSport {
+        sport_ref: Some("sport-unavailable".to_owned()),
+        ..unavailable_sport("origin-a")
+    };
+
+    for detected in [
+        duplicate_unavailable,
+        vec![invalid_coverage],
+        vec![reversed_dates],
+        vec![mismatched_origin],
+        vec![mismatched_availability],
+    ] {
+        assert!(matches!(
+            query_training_sports(&ControlledTrainingSportsPort::with(detected)),
+            Err(ApplicationError::SportClassificationQuery(_))
+        ));
+    }
+}

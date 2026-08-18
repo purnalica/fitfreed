@@ -483,6 +483,7 @@ const mocks = vi.hoisted(() => ({
   sleepInvoke: vi.fn(),
   updateInvoke: vi.fn(),
   sourceInvoke: vi.fn(),
+  sportsInvoke: vi.fn(),
   open: vi.fn(),
   openUrl: vi.fn(),
   listen: vi.fn(),
@@ -505,6 +506,9 @@ vi.mock("@tauri-apps/api/core", () => ({
       ? mocks.updateInvoke(command, arguments_)
       : command === "query_source_acquisition_guides"
       ? mocks.sourceInvoke(command, arguments_)
+      : command === "query_training_sports"
+        || command === "save_training_sport_classification"
+      ? mocks.sportsInvoke(command, arguments_)
       : command.startsWith("query_longitudinal_")
       ? mocks.longitudinalInvoke(command, arguments_)
       : command.startsWith("query_recovery_")
@@ -528,6 +532,7 @@ vi.mock("@tauri-apps/plugin-opener", () => ({
 
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   mocks.invoke.mockReset();
@@ -539,6 +544,7 @@ afterEach(() => {
   mocks.sleepInvoke.mockReset();
   mocks.updateInvoke.mockReset();
   mocks.sourceInvoke.mockReset();
+  mocks.sportsInvoke.mockReset();
   mocks.open.mockReset();
   mocks.openUrl.mockReset();
   mocks.listen.mockReset();
@@ -597,6 +603,12 @@ beforeEach(() => {
   mocks.longitudinalInvoke.mockResolvedValue(emptyLongitudinalOverview());
   mocks.sleepInvoke.mockResolvedValue(emptySleepOverview());
   mocks.sourceInvoke.mockResolvedValue(sourceAcquisitionGuides());
+  mocks.sportsInvoke.mockImplementation((command) => {
+    if (command === "query_training_sports") {
+      return Promise.resolve({ originCount: 0, sessionCount: 0, sports: [] });
+    }
+    throw new Error(`Unexpected sports command: ${command}`);
+  });
   mocks.openUrl.mockResolvedValue(undefined);
   mocks.invoke.mockImplementation((command) => {
     if (command === "query_activity_overview") {
@@ -1133,20 +1145,15 @@ describe("FitFreed import interface", () => {
     );
   });
 
-  it("reports the interactive shell only after locale startup and a rendered frame", async () => {
+  it("reports the painted shell before deferred startup without awaiting diagnostic settlement", async () => {
     const user = userEvent.setup();
     let completePreferences!: (load: ApplicationPreferencesLoad) => void;
-    let completeInteractiveShell!: () => void;
     let renderFrame: FrameRequestCallback | undefined;
     vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => {
       renderFrame = callback;
       return 1;
     }));
-    mocks.interactiveShellInvoke.mockImplementation(() =>
-      new Promise<void>((resolve) => {
-        completeInteractiveShell = resolve;
-      })
-    );
+    mocks.interactiveShellInvoke.mockImplementation(() => new Promise<void>(() => undefined));
     mocks.preferencesInvoke.mockImplementation((command) => {
       if (command === "load_preferences") {
         return new Promise((resolve) => {
@@ -1185,20 +1192,6 @@ describe("FitFreed import interface", () => {
     expect(startupArguments.rendererStartupMilliseconds.signal).toBeGreaterThanOrEqual(
       startupArguments.rendererStartupMilliseconds.localeReady,
     );
-    expect(mocks.invoke).not.toHaveBeenCalledWith("query_activity_overview", {
-      requestedRange: null,
-    });
-    expect(mocks.invoke).not.toHaveBeenCalledWith("query_training_overview", {
-      requestedRange: null,
-    });
-    expect(mocks.invoke).not.toHaveBeenCalledWith("query_latest_import_outcome", undefined);
-    expect(mocks.longitudinalInvoke).not.toHaveBeenCalled();
-    expect(mocks.sleepInvoke).not.toHaveBeenCalled();
-    expect(mocks.recoveryInvoke).not.toHaveBeenCalled();
-    expect(mocks.updateInvoke).not.toHaveBeenCalled();
-
-    await act(async () => completeInteractiveShell());
-
     await waitFor(() => {
       expect(mocks.homeInvoke).toHaveBeenCalledWith("query_library_home", {
         request: { afterImportOperationRef: null },
@@ -1222,6 +1215,42 @@ describe("FitFreed import interface", () => {
         undefined,
       );
     });
+    expect(mocks.interactiveShellInvoke.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.homeInvoke.mock.invocationCallOrder[0],
+    );
+    expect(mocks.interactiveShellInvoke.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.sourceInvoke.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("continues startup without emitting painted-shell evidence when no frame is delivered", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("requestAnimationFrame", vi.fn(() => 1));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+
+    render(<App />);
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(mocks.sourceInvoke).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+
+    expect(mocks.interactiveShellInvoke).not.toHaveBeenCalled();
+    expect(mocks.homeInvoke).toHaveBeenCalledWith("query_library_home", {
+      request: { afterImportOperationRef: null },
+    });
+    expect(mocks.sourceInvoke).toHaveBeenCalledWith(
+      "query_source_acquisition_guides",
+      undefined,
+    );
+    expect(mocks.updateInvoke).toHaveBeenCalledWith(
+      "check_for_updates_on_launch",
+      undefined,
+    );
   });
 
   it("blocks mutable desktop controls while an update installation owns the application", async () => {

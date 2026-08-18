@@ -34,6 +34,7 @@ import type { SourceAcquisitionGuide } from "./presentation/source-acquisition";
 import { SourcesPanel } from "./presentation/SourcesPanel";
 
 const rendererStartedAt = performance.now();
+const INTERACTIVE_SHELL_FRAME_TIMEOUT_MILLISECONDS = 1_000;
 
 const ActivityComparisonPanel = lazy(() =>
   import("./presentation/ActivityComparisonPanel").then((module) => ({
@@ -181,7 +182,7 @@ function App() {
   const [exploreDestination, setExploreDestination] = useState<ExploreDestination>();
   const [updateLocaleRefreshToken, setUpdateLocaleRefreshToken] = useState(0);
   const [archivePath, setArchivePath] = useState<string>();
-  const [sourceGuides, setSourceGuides] = useState<SourceAcquisitionGuide[]>([]);
+  const [sourceGuides, setSourceGuides] = useState<SourceAcquisitionGuide[]>();
   const [activityOverview, setActivityOverview] = useState<ActivityOverview>();
   const [rangeFrom, setRangeFrom] = useState("");
   const [rangeThrough, setRangeThrough] = useState("");
@@ -304,21 +305,33 @@ function App() {
   useEffect(() => {
     if (!localeReady || !libraryReady) return;
     let active = true;
+    let startupContinued = false;
+    function continueStartup(reportPaintedShell: boolean) {
+      if (!active || startupContinued) return;
+      startupContinued = true;
+      if (reportPaintedShell) {
+        void invoke("report_interactive_shell", {
+          rendererStartupMilliseconds: {
+            localeReady: localeReadyMilliseconds.current,
+            signal: performance.now() - rendererStartedAt,
+          },
+        }).catch(() => undefined);
+      }
+      setApplicationReady(true);
+    }
+    let frameTimeout = 0;
     const frame = requestAnimationFrame(() => {
-      invoke("report_interactive_shell", {
-        rendererStartupMilliseconds: {
-          localeReady: localeReadyMilliseconds.current,
-          signal: performance.now() - rendererStartedAt,
-        },
-      })
-        .catch(() => undefined)
-        .finally(() => {
-          if (active) setApplicationReady(true);
-        });
+      window.clearTimeout(frameTimeout);
+      continueStartup(true);
     });
+    frameTimeout = window.setTimeout(() => {
+      cancelAnimationFrame(frame);
+      continueStartup(false);
+    }, INTERACTIVE_SHELL_FRAME_TIMEOUT_MILLISECONDS);
     return () => {
       active = false;
       cancelAnimationFrame(frame);
+      window.clearTimeout(frameTimeout);
     };
   }, [libraryReady, localeReady]);
 
@@ -328,7 +341,10 @@ function App() {
     refreshOutcome().catch((reason) => setErrorCode(commandErrorCode(reason)));
     invoke<SourceAcquisitionGuide[]>("query_source_acquisition_guides")
       .then(setSourceGuides)
-      .catch((reason) => setErrorCode(commandErrorCode(reason)));
+      .catch((reason) => {
+        setSourceGuides([]);
+        setErrorCode(commandErrorCode(reason));
+      });
   }, [applicationReady]);
 
   useEffect(() => {
@@ -798,7 +814,8 @@ function App() {
               cancel: messages.cancel,
               cancelling: messages.cancelling,
             }}
-            guide={sourceGuides.find((guide) => guide.sourceId === "polar-flow")}
+            guide={sourceGuides?.find((guide) => guide.sourceId === "polar-flow")}
+            guideLoading={sourceGuides === undefined}
             archivePath={archivePath}
             importReady={libraryReady}
             busy={busy}

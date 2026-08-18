@@ -103,7 +103,8 @@ function evidence(measurements) {
       commonMeasuredRuns: 20,
       maximumMeasuredRuns: 7,
       percentile: "sorted zero-based index ceil((n - 1) * 0.95)",
-      scope: "packaged Tauri command, React update, and rendered exact domain or longitudinal view",
+      completionBoundary: "exact DOM observed after synchronous layout on the following browser task",
+      scope: "packaged Tauri command, SQLite and application work, transport, React update, and exact laid-out domain or longitudinal view",
     },
     measurements,
   };
@@ -136,7 +137,8 @@ async function applyActivityRange(from, through) {
         rows.length === expected.expectedRows
         && renderedFirstDate === expected.expectedFirstDate
       ) {
-        requestAnimationFrame(() => done({
+        document.documentElement.getBoundingClientRect();
+        setTimeout(() => done({
           duration: window.performance.now() - started,
           error: null,
         }));
@@ -146,9 +148,9 @@ async function applyActivityRange(from, through) {
         done({ duration: null, error: "activity range was not rendered" });
         return;
       }
-      requestAnimationFrame(observeResult);
+      setTimeout(observeResult, 16);
     }
-    requestAnimationFrame(observeResult);
+    setTimeout(observeResult, 16);
   }, input);
   if (result.error) throw new Error(`${result.error}: ${from} through ${through}`);
   return result.duration;
@@ -186,7 +188,8 @@ async function compareActivityRanges(ranges) {
         + ".activity-comparison-result table tbody tr:first-child td",
       );
       if (cells.length === 4 && cells[1].textContent === expected.expectedBaselineTotal) {
-        requestAnimationFrame(() => done({
+        document.documentElement.getBoundingClientRect();
+        setTimeout(() => done({
           duration: window.performance.now() - started,
           error: null,
         }));
@@ -196,9 +199,9 @@ async function compareActivityRanges(ranges) {
         done({ duration: null, error: "activity comparison was not rendered" });
         return;
       }
-      requestAnimationFrame(observeResult);
+      setTimeout(observeResult, 16);
     }
-    requestAnimationFrame(observeResult);
+    setTimeout(observeResult, 16);
   }, input);
   if (result.error) throw new Error(result.error);
   return result.duration;
@@ -231,7 +234,8 @@ async function applyTrainingRange(from, through) {
         rows.length === expected.expectedRows
         && renderedFirstDateTime === expected.expectedFirstDateTime
       ) {
-        requestAnimationFrame(() => done({
+        document.documentElement.getBoundingClientRect();
+        setTimeout(() => done({
           duration: window.performance.now() - started,
           error: null,
         }));
@@ -241,9 +245,9 @@ async function applyTrainingRange(from, through) {
         done({ duration: null, error: "training range was not rendered" });
         return;
       }
-      requestAnimationFrame(observeResult);
+      setTimeout(observeResult, 16);
     }
-    requestAnimationFrame(observeResult);
+    setTimeout(observeResult, 16);
   }, input);
   if (result.error) throw new Error(`${result.error}: ${from} through ${through}`);
   return result.duration;
@@ -280,7 +284,8 @@ async function compareTrainingRanges(ranges) {
         + ".training-comparison-result table tbody tr:first-child td",
       );
       if (cells.length === 4 && cells[1].textContent === expected.expectedBaselineSessions) {
-        requestAnimationFrame(() => done({
+        document.documentElement.getBoundingClientRect();
+        setTimeout(() => done({
           duration: window.performance.now() - started,
           error: null,
         }));
@@ -290,9 +295,9 @@ async function compareTrainingRanges(ranges) {
         done({ duration: null, error: "training comparison was not rendered" });
         return;
       }
-      requestAnimationFrame(observeResult);
+      setTimeout(observeResult, 16);
     }
-    requestAnimationFrame(observeResult);
+    setTimeout(observeResult, 16);
   }, input);
   if (result.error) throw new Error(result.error);
   return result.duration;
@@ -322,7 +327,8 @@ async function applySleepRange(from, through) {
       const rows = document.querySelectorAll(".sleep-history-grid table tbody tr");
       const renderedFirstDate = rows[0]?.querySelector("time")?.getAttribute("datetime");
       if (rows.length === expected.expectedRows && renderedFirstDate === expected.expectedFirstDate) {
-        requestAnimationFrame(() => done({
+        document.documentElement.getBoundingClientRect();
+        setTimeout(() => done({
           duration: window.performance.now() - started,
           error: null,
         }));
@@ -332,9 +338,9 @@ async function applySleepRange(from, through) {
         done({ duration: null, error: "sleep range was not rendered" });
         return;
       }
-      requestAnimationFrame(observeResult);
+      setTimeout(observeResult, 16);
     }
-    requestAnimationFrame(observeResult);
+    setTimeout(observeResult, 16);
   }, input);
   if (result.error) throw new Error(`${result.error}: ${from} through ${through}`);
   return result.duration;
@@ -371,7 +377,8 @@ async function compareSleepRanges(ranges) {
         + ".sleep-comparison-result table tbody tr:first-child td",
       );
       if (cells.length === 4 && cells[1].textContent === expected.expectedBaselineNights) {
-        requestAnimationFrame(() => done({
+        document.documentElement.getBoundingClientRect();
+        setTimeout(() => done({
           duration: window.performance.now() - started,
           error: null,
         }));
@@ -381,9 +388,9 @@ async function compareSleepRanges(ranges) {
         done({ duration: null, error: "sleep comparison was not rendered" });
         return;
       }
-      requestAnimationFrame(observeResult);
+      setTimeout(observeResult, 16);
     }
-    requestAnimationFrame(observeResult);
+    setTimeout(observeResult, 16);
   }, input);
   if (result.error) throw new Error(result.error);
   return result.duration;
@@ -405,7 +412,8 @@ async function openSleepDetail(sleepDate) {
       const renderedDate = detail?.querySelector("time")?.getAttribute("datetime");
       const transitions = detail?.querySelectorAll(".sleep-timeline + .sleep-table-scroll tbody tr");
       if (renderedDate === expectedDate && transitions?.length === 5) {
-        requestAnimationFrame(() => done({
+        document.documentElement.getBoundingClientRect();
+        setTimeout(() => done({
           duration: window.performance.now() - started,
           error: null,
         }));
@@ -415,9 +423,9 @@ async function openSleepDetail(sleepDate) {
         done({ duration: null, error: "sleep detail was not rendered" });
         return;
       }
-      requestAnimationFrame(observeResult);
+      setTimeout(observeResult, 16);
     }
-    requestAnimationFrame(observeResult);
+    setTimeout(observeResult, 16);
   }, sleepDate);
   if (result.error) throw new Error(`${result.error}: ${sleepDate}`);
   await $(".sleep-detail-heading button").click();
@@ -452,7 +460,8 @@ async function applyRecoveryRange(from, through) {
       const rows = document.querySelectorAll(".recovery-history-grid table tbody tr");
       const renderedFirstDate = rows[0]?.querySelector("time")?.getAttribute("datetime");
       if (rows.length === expected.expectedRows && renderedFirstDate === expected.expectedFirstDate) {
-        requestAnimationFrame(() => done({
+        document.documentElement.getBoundingClientRect();
+        setTimeout(() => done({
           duration: window.performance.now() - started,
           error: null,
         }));
@@ -462,9 +471,9 @@ async function applyRecoveryRange(from, through) {
         done({ duration: null, error: "recovery range was not rendered" });
         return;
       }
-      requestAnimationFrame(observeResult);
+      setTimeout(observeResult, 16);
     }
-    requestAnimationFrame(observeResult);
+    setTimeout(observeResult, 16);
   }, input);
   if (result.error) throw new Error(`${result.error}: ${from} through ${through}`);
   return result.duration;
@@ -501,7 +510,8 @@ async function compareRecoveryRanges(ranges) {
         + ".recovery-comparison-result table tbody tr:first-child td",
       );
       if (cells.length === 4 && cells[1].textContent === expected.expectedBaselineNights) {
-        requestAnimationFrame(() => done({
+        document.documentElement.getBoundingClientRect();
+        setTimeout(() => done({
           duration: window.performance.now() - started,
           error: null,
         }));
@@ -511,9 +521,9 @@ async function compareRecoveryRanges(ranges) {
         done({ duration: null, error: "recovery comparison was not rendered" });
         return;
       }
-      requestAnimationFrame(observeResult);
+      setTimeout(observeResult, 16);
     }
-    requestAnimationFrame(observeResult);
+    setTimeout(observeResult, 16);
   }, input);
   if (result.error) throw new Error(result.error);
   return result.duration;
@@ -535,7 +545,8 @@ async function openRecoveryDetail(recoveryDate) {
       const renderedDate = detail?.querySelector("time")?.getAttribute("datetime");
       const guidance = detail?.querySelectorAll(".recovery-guidance article");
       if (renderedDate === expectedDate && guidance?.length === 3) {
-        requestAnimationFrame(() => done({
+        document.documentElement.getBoundingClientRect();
+        setTimeout(() => done({
           duration: window.performance.now() - started,
           error: null,
         }));
@@ -545,9 +556,9 @@ async function openRecoveryDetail(recoveryDate) {
         done({ duration: null, error: "recovery detail was not rendered" });
         return;
       }
-      requestAnimationFrame(observeResult);
+      setTimeout(observeResult, 16);
     }
-    requestAnimationFrame(observeResult);
+    setTimeout(observeResult, 16);
   }, recoveryDate);
   if (result.error) throw new Error(`${result.error}: ${recoveryDate}`);
   await $(".recovery-detail-heading button").click();
@@ -584,7 +595,8 @@ async function applyLongitudinalRange(from, through) {
       );
       const renderedFirstDate = rows[0]?.querySelector("time")?.getAttribute("datetime");
       if (rows.length === expected.expectedRows && renderedFirstDate === expected.expectedFirstDate) {
-        requestAnimationFrame(() => done({
+        document.documentElement.getBoundingClientRect();
+        setTimeout(() => done({
           duration: window.performance.now() - started,
           error: null,
         }));
@@ -594,9 +606,9 @@ async function applyLongitudinalRange(from, through) {
         done({ duration: null, error: "longitudinal range was not rendered" });
         return;
       }
-      requestAnimationFrame(observeResult);
+      setTimeout(observeResult, 16);
     }
-    requestAnimationFrame(observeResult);
+    setTimeout(observeResult, 16);
   }, input);
   if (result.error) throw new Error(`${result.error}: ${from} through ${through}`);
   return result.duration;
@@ -634,7 +646,8 @@ async function compareLongitudinalRanges(ranges) {
         + ".longitudinal-comparison-result table tbody tr:first-child td",
       );
       if (cells.length === 4 && cells[1].textContent === expected.expectedBaselineTotal) {
-        requestAnimationFrame(() => done({
+        document.documentElement.getBoundingClientRect();
+        setTimeout(() => done({
           duration: window.performance.now() - started,
           error: null,
         }));
@@ -644,9 +657,9 @@ async function compareLongitudinalRanges(ranges) {
         done({ duration: null, error: "longitudinal comparison was not rendered" });
         return;
       }
-      requestAnimationFrame(observeResult);
+      setTimeout(observeResult, 16);
     }
-    requestAnimationFrame(observeResult);
+    setTimeout(observeResult, 16);
   }, input);
   if (result.error) throw new Error(result.error);
   return result.duration;

@@ -383,6 +383,46 @@ async function expectTrainingSummary(expectedItems) {
   }
 }
 
+async function trainingSportCard(title) {
+  const cards = await $$(".training-sport-list > li");
+  for (const card of cards) {
+    if (await card.$("h3").getText() === title) return card;
+  }
+  throw new Error(`Training sport card was not available: ${title}`);
+}
+
+async function saveSportClassification(catalog, currentTitle, family, label) {
+  const card = await trainingSportCard(currentTitle);
+  await card.$("button").click();
+  const editor = await card.$("form");
+  await expect(editor.$("label[for^='sport-family-']")).toHaveText(
+    catalog.training.sports.family,
+  );
+  await expect(editor.$("label[for^='sport-label-']")).toHaveText(
+    catalog.training.sports.displayLabel,
+  );
+  await editor.$("select").selectByAttribute("value", family);
+  const input = await editor.$("input");
+  await input.clearValue();
+  await input.setValue(label);
+  await editor.$("button[type='submit']").click();
+  await browser.waitUntil(
+    async () => (await card.$("h3").getText()) === label,
+    { timeout: 10_000, timeoutMsg: `sport classification was not saved as ${label}` },
+  );
+  await waitForNotice(catalog.training.sports.saved);
+}
+
+async function resetSportClassification(catalog, currentTitle) {
+  const card = await trainingSportCard(currentTitle);
+  await card.$("button").click();
+  await card.$(`aria/${catalog.training.sports.reset}`).click();
+  await browser.waitUntil(
+    async () => (await card.getAttribute("data-state")) === "unknown",
+    { timeout: 10_000, timeoutMsg: "sport classification did not return to unknown" },
+  );
+}
+
 async function expectTrainingComparison(expectedRows) {
   const rows = await $$(".training-comparison-result table tbody tr");
   expect(rows).toHaveLength(expectedRows.length);
@@ -683,7 +723,12 @@ describe("packaged FitFreed import journey", () => {
     await expect($(".sources-home h1")).toHaveText("Bring your fitness history home");
     await expect($("aria/Import selected package")).toBeDisabled();
     const openerMock = await browser.tauri.mock("plugin:opener|open_url");
-    await $("aria/Show me how").click();
+    const showSourceGuide = await $("aria/Show me how");
+    await showSourceGuide.waitForEnabled({
+      timeout: 10_000,
+      timeoutMsg: "the offline source guide did not finish loading",
+    });
+    await showSourceGuide.click();
     await expect($("#source-guide-heading")).toHaveText(
       "How to obtain your Polar Flow export",
     );
@@ -927,6 +972,17 @@ describe("packaged FitFreed import journey", () => {
       english,
       "explore-training-sessions",
       ".training-insights",
+    );
+    expect(await $$(".training-sport-list > li")).toHaveLength(2);
+    await expect($(".training-sport-list > li[data-state='unknown'] h3")).toHaveText(
+      "Unknown sport 1",
+    );
+    await expect($(".training-sport-list > li[data-state='unavailable'] h3")).toHaveText(
+      "Sport not recorded",
+    );
+    await saveSportClassification(english, "Unknown sport 1", "running", "Trail running");
+    await expect($(".training-sport-list > li[data-state='classified']")).toHaveText(
+      expect.stringContaining("Named by you"),
     );
     await expectTrainingRows([
       [enJan5Start, "30 min", "Not available", "Not available"],
@@ -1257,6 +1313,18 @@ describe("packaged FitFreed import journey", () => {
       "explore-training-sessions",
       ".training-insights",
     );
+    await expect($(".training-sport-list > li[data-state='classified'] h3")).toHaveText(
+      "Trail running",
+    );
+    await expect($(".training-sport-list > li[data-state='classified']")).toHaveText(
+      expect.stringContaining(spanish.training.sports.classifiedByYou),
+    );
+    await saveSportClassification(
+      spanish,
+      "Trail running",
+      "running",
+      "Carrera de montaña",
+    );
     await expectTrainingRows([
       [esJan5Start, "30 min", spanish.unavailable, spanish.unavailable],
       [esJan4Start, "1 h", "10.000 m", "600 kcal"],
@@ -1396,6 +1464,9 @@ describe("packaged FitFreed import journey", () => {
       "explore-training-sessions",
       ".training-insights",
     );
+    await expect($(".training-sport-list > li[data-state='classified'] h3")).toHaveText(
+      "Carrera de montaña",
+    );
     await expectTrainingRows([
       [enJan5Start, "30 min", "Not available", "Not available"],
       [enJan4Start, "1 h", "10,000 m", "600 kcal"],
@@ -1434,6 +1505,9 @@ describe("packaged FitFreed import journey", () => {
       english,
       "explore-training-sessions",
       ".training-insights",
+    );
+    await expect($(".training-sport-list > li[data-state='classified'] h3")).toHaveText(
+      "Carrera de montaña",
     );
     await expectTrainingRows([
       [enJan6Start, "45 min", "5,000 m", "300 kcal"],
@@ -1925,6 +1999,16 @@ describe("packaged FitFreed import journey", () => {
       "explore-training-sessions",
       ".training-insights",
     );
+    await resetSportClassification(spanish, "Carrera de montaña");
+    await expect($(".training-sport-list > li[data-state='unknown'] h3")).toHaveText(
+      spanish.training.sports.unknown.replace("{index}", "1"),
+    );
+    await saveSportClassification(
+      spanish,
+      spanish.training.sports.unknown.replace("{index}", "1"),
+      "running",
+      "Carrera de montaña",
+    );
     const spanishTrainingDetailButtons = await $$('button[aria-label^="Ver detalles del entrenamiento del"]');
     expect(spanishTrainingDetailButtons).toHaveLength(3);
     await spanishTrainingDetailButtons[2].click();
@@ -2066,6 +2150,20 @@ describe("packaged FitFreed import journey", () => {
     await returnToLibraryHome(spanish);
     await expectLibraryHome(spanish);
     expect(await $$(".library-home-resume")).toHaveLength(0);
+    await openHomeQuestion(
+      spanish,
+      "explore-training-sessions",
+      ".training-insights",
+    );
+    await expect($(".training-sport-list > li[data-state='classified'] h3")).toHaveText(
+      "Carrera de montaña",
+    );
+    await browser.reloadSession();
+    await $(".training-insights").waitForDisplayed({ timeout: 10_000 });
+    await expect($(".training-sport-list > li[data-state='classified'] h3")).toHaveText(
+      "Carrera de montaña",
+    );
+    await returnToLibraryHome(spanish);
     await browser.reloadSession();
     await expectLibraryHome(spanish);
     expect(await $$(".library-home-resume")).toHaveLength(0);

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/saved-sport-classification-v1.schema.json",
+  "title": "FitFreed saved sport classification version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["outcome", "overview"],
+  "properties": {
+    "outcome": { "enum": ["changed", "unchanged"] },
+    "overview": {
+      "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-sports-v1.schema.json"
+    }
+  }
+}

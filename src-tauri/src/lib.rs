@@ -26,12 +26,14 @@ use fitfreed_application::{
     query_longitudinal_comparison as build_longitudinal_comparison,
     query_longitudinal_overview as build_longitudinal_overview,
     query_source_acquisition_guides as build_source_acquisition_guides,
+    query_training_sports as build_training_sports,
     reset_application_preferences as reset_preferences_through_port,
     save_application_preferences as save_preferences_through_port,
-    save_exploration_workspace as save_workspace, ApplicationError, ApplicationPreferences,
-    ImportCoordinator, ImportProgress, InvalidApplicationPreferences, LocalePreference,
-    UpdateChannelPort, UpdateCheckContext, UpdateCheckTrigger, UpdateInstallationAuthorization,
-    UpdateRecoveryOutcome,
+    save_exploration_workspace as save_workspace,
+    save_training_sport_classification as persist_training_sport_classification, ApplicationError,
+    ApplicationPreferences, ImportCoordinator, ImportProgress, InvalidApplicationPreferences,
+    LocalePreference, UpdateChannelPort, UpdateCheckContext, UpdateCheckTrigger,
+    UpdateInstallationAuthorization, UpdateRecoveryOutcome,
 };
 use infrastructure::{
     acknowledge_update_recovery_outcome as acknowledge_retained_update_recovery_outcome,
@@ -42,10 +44,10 @@ use infrastructure::{
     HttpsUpdateChannel, PolarFlowSourceAcquisitionGuides, SqliteActivityLibrary,
     SqliteApplicationPreferences, SqliteImportOutcomeLibrary, SqliteLibraryHome,
     SqliteLongitudinalLibrary, SqlitePolarFlowArchiveImporter, SqliteRecoveryLibrary,
-    SqliteSleepLibrary, SqliteTrainingLibrary, SqliteUpdateState, UpdateInstallationError,
-    UpdateInstallationRequest, UpdatePackageError, UpdateRecoveryCandidateLease,
-    UpdateRecoveryError, UpdateRecoveryMaintenance, UPDATE_RECOVERY_CANDIDATE_ARGUMENT,
-    UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
+    SqliteSleepLibrary, SqliteTrainingLibrary, SqliteTrainingSports, SqliteUpdateState,
+    UpdateInstallationError, UpdateInstallationRequest, UpdatePackageError,
+    UpdateRecoveryCandidateLease, UpdateRecoveryError, UpdateRecoveryMaintenance,
+    UPDATE_RECOVERY_CANDIDATE_ARGUMENT, UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
 };
 use presentation::{
     ActivityComparisonDto, ActivityDateRangeDto, ActivityOverviewDto, ApplicationPreferencesDto,
@@ -53,9 +55,11 @@ use presentation::{
     ExplorationWorkspaceDto, ExploreDestinationInputDto, ImportOutcomeDto, ImportProgressDto,
     ImportReportDto, LibraryHomeDto, LibraryHomeRequestDto, LongitudinalComparisonDto,
     LongitudinalDateRangeDto, LongitudinalOverviewDto, RecoveryComparisonDto, RecoveryDateRangeDto,
-    RecoveryNightDetailDto, RecoveryOverviewDto, SleepComparisonDto, SleepDateRangeDto,
-    SleepOverviewDto, SleepPeriodDetailDto, SourceAcquisitionGuideDto, TrainingComparisonDto,
-    TrainingDateRangeDto, TrainingOverviewDto, UpdateCheckOutcomeDto, UpdateRecoveryOutcomeDto,
+    RecoveryNightDetailDto, RecoveryOverviewDto, SaveSportClassificationRequestDto,
+    SavedTrainingSportClassificationDto, SleepComparisonDto, SleepDateRangeDto, SleepOverviewDto,
+    SleepPeriodDetailDto, SourceAcquisitionGuideDto, TrainingComparisonDto, TrainingDateRangeDto,
+    TrainingOverviewDto, TrainingSportsOverviewDto, UpdateCheckOutcomeDto,
+    UpdateRecoveryOutcomeDto,
 };
 use serde::{Deserialize, Serialize};
 use tauri::{ipc::Channel, AppHandle, Emitter, Manager, State};
@@ -342,6 +346,25 @@ fn query_training_comparison(
     )
     .map(TrainingComparisonDto::from)
     .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn query_training_sports(app: AppHandle) -> Result<TrainingSportsOverviewDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    build_training_sports(&SqliteTrainingSports::new(path))
+        .map(TrainingSportsOverviewDto::from)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn save_training_sport_classification(
+    app: AppHandle,
+    request: SaveSportClassificationRequestDto,
+) -> Result<SavedTrainingSportClassificationDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    persist_training_sport_classification(&SqliteTrainingSports::new(path), request.into())
+        .map(SavedTrainingSportClassificationDto::from)
+        .map_err(CommandErrorDto::from)
 }
 
 #[tauri::command]
@@ -1300,6 +1323,8 @@ pub fn run() {
             query_activity_comparison,
             query_training_overview,
             query_training_comparison,
+            query_training_sports,
+            save_training_sport_classification,
             query_sleep_overview,
             query_sleep_comparison,
             query_sleep_detail,
