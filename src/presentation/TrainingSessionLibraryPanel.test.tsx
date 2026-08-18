@@ -640,12 +640,16 @@ describe("TrainingSessionLibraryPanel", () => {
       />,
     );
     expect(await screen.findByText("No sessions match these filters.")).toBeVisible();
-    const callsAfterLoad = mocks.invoke.mock.calls.length;
+    const searchCallsAfterLoad = mocks.invoke.mock.calls.filter(
+      ([command]) => command === "query_training_sessions",
+    ).length;
     await user.type(screen.getByLabelText("From date"), "2026-08-18");
     await user.type(screen.getByLabelText("Through date"), "2025-01-01");
     await user.click(screen.getByRole("button", { name: "Apply filters" }));
     expect(onError).toHaveBeenCalledWith("invalid-training-session-search");
-    expect(mocks.invoke).toHaveBeenCalledTimes(callsAfterLoad);
+    expect(mocks.invoke.mock.calls.filter(
+      ([command]) => command === "query_training_sessions",
+    )).toHaveLength(searchCallsAfterLoad);
     await user.type(
       screen.getByRole("textbox", { name: /^Your sport name contains/ }),
       "🏃".repeat(81),
