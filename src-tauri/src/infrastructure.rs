@@ -29,13 +29,15 @@ use zip::ZipArchive;
 #[cfg(test)]
 use fitfreed_application::{
     query_default_recovery_overview, query_default_sleep_overview, query_default_training_overview,
-    query_longitudinal_overview, query_recovery_detail, ApplicationError,
+    query_longitudinal_overview, query_recovery_detail, AppearancePreference, ApplicationError,
+    LocalePreference,
 };
 use fitfreed_application::{
-    ActivityDateRange, ActivityLibraryPort, ArchiveImportPort, ImportOutcomeLibraryPort,
-    ImportPhase, ImportPhaseTimings, ImportProgress, LocalePreference, LocalePreferencePort,
+    ActivityDateRange, ActivityLibraryPort, ApplicationPreferences, ApplicationPreferencesPort,
+    ArchiveImportPort, ImportOutcomeLibraryPort, ImportPhase, ImportPhaseTimings, ImportProgress,
     ProfiledImport, RecoveryDateRange, RecoveryLibraryNight, RecoveryLibraryPort, SleepDateRange,
-    SleepLibraryPeriod, SleepLibraryPort, TrainingDateRange, TrainingLibraryPort,
+    SleepLibraryPeriod, SleepLibraryPort, StoredApplicationPreferences, TrainingDateRange,
+    TrainingLibraryPort,
 };
 use fitfreed_domain::{
     decide_nightly_recovery_reconciliation, decide_reconciliation,
@@ -99,7 +101,7 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 9;
+const SCHEMA_VERSION: i64 = 10;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
@@ -109,6 +111,7 @@ const SCHEMA_V6: &str = include_str!("../migrations/0006_training_session_summar
 const SCHEMA_V7: &str = include_str!("../migrations/0007_sleep_period.sql");
 const SCHEMA_V8: &str = include_str!("../migrations/0008_nightly_recovery.sql");
 const SCHEMA_V9: &str = include_str!("../migrations/0009_update_state.sql");
+const SCHEMA_V10: &str = include_str!("../migrations/0010_application_preferences.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
 const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@6";
 const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@1";
@@ -175,8 +178,6 @@ pub enum ImportError {
     InvalidNightlyRecoveryLibrary(String),
     #[error("invalid persisted non-negative count in {column}: {value}")]
     InvalidPersistedCount { column: &'static str, value: i64 },
-    #[error("invalid persisted locale preference: {0}")]
-    InvalidPersistedLocale(String),
     #[error("invalid persisted update state: {0}")]
     InvalidPersistedUpdateState(String),
     #[error("invalid library correlation-key length: {0}")]
@@ -1880,33 +1881,54 @@ fn persisted_count(value: i64, column: &'static str) -> Result<usize> {
     usize::try_from(value).map_err(|_| ImportError::InvalidPersistedCount { column, value })
 }
 
-pub fn load_locale_preference(database_path: &Path) -> Result<Option<LocalePreference>> {
+pub fn load_application_preferences_record(
+    database_path: &Path,
+) -> Result<Option<StoredApplicationPreferences>> {
     let connection = Connection::open(database_path)?;
     ensure_schema(&connection)?;
-    let locale = connection
+    connection
         .query_row(
-            "SELECT locale FROM locale_preference WHERE id = 1",
+            "SELECT preference_version, locale, appearance, content_zoom_percent
+             FROM application_preference
+             WHERE id = 1",
             [],
-            |row| row.get::<_, String>(0),
+            |row| {
+                Ok(StoredApplicationPreferences {
+                    version: row.get(0)?,
+                    locale: row.get(1)?,
+                    appearance: row.get(2)?,
+                    content_zoom_percent: row.get(3)?,
+                })
+            },
         )
-        .optional()?;
-    locale
-        .map(|code| {
-            LocalePreference::from_code(&code).ok_or(ImportError::InvalidPersistedLocale(code))
-        })
-        .transpose()
+        .optional()
+        .map_err(Into::into)
 }
 
-pub fn save_locale_preference(database_path: &Path, locale: LocalePreference) -> Result<()> {
+pub fn save_application_preferences(
+    database_path: &Path,
+    preferences: &ApplicationPreferences,
+) -> Result<()> {
     let connection = Connection::open(database_path)?;
     ensure_schema(&connection)?;
     connection.execute(
-        "INSERT INTO locale_preference (id, locale, updated_at_utc)
-         VALUES (1, ?1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+        "INSERT INTO application_preference (
+             id, locale, updated_at_utc, preference_version, appearance, content_zoom_percent
+         ) VALUES (
+             1, ?1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), ?2, ?3, ?4
+         )
          ON CONFLICT(id) DO UPDATE SET
              locale = excluded.locale,
-             updated_at_utc = excluded.updated_at_utc",
-        [locale.code()],
+             updated_at_utc = excluded.updated_at_utc,
+             preference_version = excluded.preference_version,
+             appearance = excluded.appearance,
+             content_zoom_percent = excluded.content_zoom_percent",
+        params![
+            preferences.locale.code(),
+            preferences.version,
+            preferences.appearance.code(),
+            preferences.content_zoom_percent,
+        ],
     )?;
     Ok(())
 }
@@ -2045,7 +2067,10 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         if version < 8 {
             connection.execute_batch(SCHEMA_V8)?;
         }
-        connection.execute_batch(SCHEMA_V9)?;
+        if version < 9 {
+            connection.execute_batch(SCHEMA_V9)?;
+        }
+        connection.execute_batch(SCHEMA_V10)?;
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
         }
@@ -2630,8 +2655,7 @@ fn terminal_code(error: &ImportError) -> &'static str {
         ImportError::OutcomePersistence { .. } => "outcome-persistence-failure",
         ImportError::InvalidPersistedOperationState(_)
         | ImportError::InvalidPersistedArtifactClassification(_)
-        | ImportError::InvalidPersistedCount { .. }
-        | ImportError::InvalidPersistedLocale(_) => "invalid-persisted-import-outcome",
+        | ImportError::InvalidPersistedCount { .. } => "invalid-persisted-import-outcome",
         ImportError::InvalidPersistedUpdateState(_) => "invalid-update-state",
         ImportError::InvalidActivityLibrary(_) => "invalid-activity-library",
         ImportError::InvalidTrainingLibrary(_) => "invalid-training-library",
@@ -5369,23 +5393,24 @@ impl ImportOutcomeLibraryPort for SqliteImportOutcomeLibrary {
     }
 }
 
-pub struct SqliteLocalePreferences {
+pub struct SqliteApplicationPreferences {
     database_path: PathBuf,
 }
 
-impl SqliteLocalePreferences {
+impl SqliteApplicationPreferences {
     pub fn new(database_path: PathBuf) -> Self {
         Self { database_path }
     }
 }
 
-impl LocalePreferencePort for SqliteLocalePreferences {
-    fn load_locale(&self) -> std::result::Result<Option<LocalePreference>, String> {
-        load_locale_preference(&self.database_path).map_err(|error| error.to_string())
+impl ApplicationPreferencesPort for SqliteApplicationPreferences {
+    fn load_preferences(&self) -> StandardResult<Option<StoredApplicationPreferences>, String> {
+        load_application_preferences_record(&self.database_path).map_err(|error| error.to_string())
     }
 
-    fn save_locale(&self, locale: LocalePreference) -> std::result::Result<(), String> {
-        save_locale_preference(&self.database_path, locale).map_err(|error| error.to_string())
+    fn save_preferences(&self, preferences: &ApplicationPreferences) -> StandardResult<(), String> {
+        save_application_preferences(&self.database_path, preferences)
+            .map_err(|error| error.to_string())
     }
 }
 
@@ -8489,7 +8514,7 @@ mod tests {
     fn create_schema_baseline(connection: &Connection, version: i64) {
         let migrations = [
             SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8,
-            SCHEMA_V9,
+            SCHEMA_V9, SCHEMA_V10,
         ];
         for migration in migrations
             .iter()
@@ -9487,24 +9512,28 @@ mod tests {
     }
 
     #[test]
-    fn persists_the_locale_preference_across_library_reopens() {
+    fn persists_the_versioned_application_preference_set_across_library_reopens() {
         let harness = Harness::new();
 
         assert_eq!(
-            load_locale_preference(&harness.database()).expect("empty preference"),
+            load_application_preferences_record(&harness.database())
+                .expect("empty application preferences"),
             None
         );
-        save_locale_preference(&harness.database(), LocalePreference::EsEs)
-            .expect("saved preference");
+        let preferences =
+            ApplicationPreferences::new(LocalePreference::EsEs, AppearancePreference::Dark, 170)
+                .expect("valid application preferences");
+        save_application_preferences(&harness.database(), &preferences)
+            .expect("saved application preferences");
         assert_eq!(
-            load_locale_preference(&harness.database()).expect("reopened preference"),
-            Some(LocalePreference::EsEs)
-        );
-        save_locale_preference(&harness.database(), LocalePreference::EnUs)
-            .expect("updated preference");
-        assert_eq!(
-            load_locale_preference(&harness.database()).expect("updated preference query"),
-            Some(LocalePreference::EnUs)
+            load_application_preferences_record(&harness.database())
+                .expect("reopened application preferences"),
+            Some(StoredApplicationPreferences {
+                version: 1,
+                locale: "es-ES".to_owned(),
+                appearance: "dark".to_owned(),
+                content_zoom_percent: 170,
+            })
         );
     }
 
@@ -9570,12 +9599,77 @@ mod tests {
         assert_eq!(
             connection
                 .query_row(
-                    "SELECT locale FROM locale_preference WHERE id = 1",
+                    "SELECT locale FROM application_preference WHERE id = 1",
                     [],
                     |row| row.get::<_, String>(0),
                 )
                 .expect("preserved preference"),
             "es-ES"
+        );
+    }
+
+    #[test]
+    fn upgrades_version_nine_preferences_atomically_and_preserves_the_locale() {
+        let harness = Harness::new();
+        let connection = Connection::open(harness.database()).expect("database");
+        connection
+            .execute_batch("PRAGMA foreign_keys = ON;")
+            .expect("foreign keys");
+        create_schema_baseline(&connection, 9);
+        connection
+            .execute(
+                "INSERT INTO locale_preference (id, locale, updated_at_utc)
+                 VALUES (1, 'es-ES', '2026-08-18T12:00:00Z')",
+                [],
+            )
+            .expect("version nine locale");
+
+        let error = migrate_schema(&connection, true).expect_err("interrupted version ten");
+        assert!(matches!(error, ImportError::InjectedMigrationInterruption));
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("retained schema version"),
+            9
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_schema
+                     WHERE type = 'table' AND name = 'locale_preference'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("rolled-back locale table"),
+            1
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_schema
+                     WHERE type = 'table' AND name = 'application_preference'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("rolled-back application table"),
+            0
+        );
+
+        migrate_schema(&connection, false).expect("version ten migration");
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("current schema version"),
+            SCHEMA_VERSION
+        );
+        assert_eq!(
+            load_application_preferences_record(&harness.database()).expect("migrated preferences"),
+            Some(StoredApplicationPreferences {
+                version: 1,
+                locale: "es-ES".to_owned(),
+                appearance: "system".to_owned(),
+                content_zoom_percent: 100,
+            })
         );
     }
 }

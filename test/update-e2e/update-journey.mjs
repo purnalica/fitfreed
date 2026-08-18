@@ -117,6 +117,9 @@ function sqliteValues(libraryPath, statement) {
 }
 
 async function selectSpanish(browser) {
+  const settings = await browser.$("aria/Settings");
+  await settings.waitForEnabled({ timeout: 15_000 });
+  await settings.click();
   const select = await browser.$("select");
   await select.waitForEnabled({ timeout: 15_000 });
   await browser.execute(() => {
@@ -133,6 +136,21 @@ async function selectSpanish(browser) {
     timeout: 15_000,
     timeoutMsg: "the Spanish locale was not selected",
   });
+  const previewStatus = await (await browser.$(".settings-status")).getText();
+  const save = await browser.$(`aria/${spanish.settings.save}`);
+  await save.waitForEnabled({ timeout: 15_000 });
+  await save.click();
+  await browser.waitUntil(async () => {
+    const status = await (await browser.$(".settings-status")).getText();
+    const currentSave = await browser.$(".settings-actions button[type='submit']");
+    return status !== previewStatus && !(await currentSave.isEnabled());
+  }, {
+    timeout: 15_000,
+    timeoutMsg: "the Spanish locale was not saved",
+  });
+  const explore = await browser.$(`aria/${spanish.shell.explore}`);
+  await explore.waitForEnabled({ timeout: 15_000 });
+  await explore.click();
 }
 
 function applicationProcessIds() {
@@ -216,14 +234,14 @@ async function verifyJourney(browser) {
   assert.deepEqual(
     sqliteValues(
       databasePath,
-      "PRAGMA integrity_check; SELECT locale FROM locale_preference WHERE id = 1;",
+      "PRAGMA integrity_check; SELECT locale FROM application_preference WHERE id = 1;",
     ),
     ["ok", "es-ES"],
   );
   assert.deepEqual(
     sqliteValues(
       path.join(recovery.attemptDirectory, "previous/fitfreed.sqlite"),
-      "PRAGMA integrity_check; SELECT locale FROM locale_preference WHERE id = 1;",
+      "PRAGMA integrity_check; SELECT locale FROM application_preference WHERE id = 1;",
     ),
     ["ok", "es-ES"],
   );

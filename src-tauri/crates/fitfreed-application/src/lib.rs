@@ -584,6 +584,123 @@ impl LocalePreference {
     }
 }
 
+pub const APPLICATION_PREFERENCES_VERSION: u32 = 1;
+pub const MINIMUM_CONTENT_ZOOM_PERCENT: u16 = 100;
+pub const MAXIMUM_CONTENT_ZOOM_PERCENT: u16 = 200;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AppearancePreference {
+    System,
+    Light,
+    Dark,
+}
+
+impl AppearancePreference {
+    pub const fn from_code(code: &str) -> Option<Self> {
+        match code.as_bytes() {
+            b"system" => Some(Self::System),
+            b"light" => Some(Self::Light),
+            b"dark" => Some(Self::Dark),
+            _ => None,
+        }
+    }
+
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::System => "system",
+            Self::Light => "light",
+            Self::Dark => "dark",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ApplicationPreferences {
+    pub version: u32,
+    pub locale: LocalePreference,
+    pub appearance: AppearancePreference,
+    pub content_zoom_percent: u16,
+}
+
+impl ApplicationPreferences {
+    pub fn new(
+        locale: LocalePreference,
+        appearance: AppearancePreference,
+        content_zoom_percent: u16,
+    ) -> Result<Self, InvalidApplicationPreferences> {
+        if !(MINIMUM_CONTENT_ZOOM_PERCENT..=MAXIMUM_CONTENT_ZOOM_PERCENT)
+            .contains(&content_zoom_percent)
+        {
+            return Err(InvalidApplicationPreferences::ContentZoom);
+        }
+        Ok(Self {
+            version: APPLICATION_PREFERENCES_VERSION,
+            locale,
+            appearance,
+            content_zoom_percent,
+        })
+    }
+
+    pub fn defaults(locale: LocalePreference) -> Self {
+        Self::new(
+            locale,
+            AppearancePreference::System,
+            MINIMUM_CONTENT_ZOOM_PERCENT,
+        )
+        .expect("application preference defaults are valid")
+    }
+}
+
+#[derive(Debug, Error, PartialEq, Eq)]
+pub enum InvalidApplicationPreferences {
+    #[error("application preference version is unsupported")]
+    Version,
+    #[error("application preference locale is unsupported")]
+    Locale,
+    #[error("application appearance is unsupported")]
+    Appearance,
+    #[error("content zoom must be from 100 through 200 percent")]
+    ContentZoom,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StoredApplicationPreferences {
+    pub version: i64,
+    pub locale: String,
+    pub appearance: String,
+    pub content_zoom_percent: i64,
+}
+
+impl TryFrom<StoredApplicationPreferences> for ApplicationPreferences {
+    type Error = InvalidApplicationPreferences;
+
+    fn try_from(stored: StoredApplicationPreferences) -> Result<Self, Self::Error> {
+        if stored.version != i64::from(APPLICATION_PREFERENCES_VERSION) {
+            return Err(InvalidApplicationPreferences::Version);
+        }
+        let locale = LocalePreference::from_code(&stored.locale)
+            .ok_or(InvalidApplicationPreferences::Locale)?;
+        let appearance = AppearancePreference::from_code(&stored.appearance)
+            .ok_or(InvalidApplicationPreferences::Appearance)?;
+        let content_zoom_percent = u16::try_from(stored.content_zoom_percent)
+            .map_err(|_| InvalidApplicationPreferences::ContentZoom)?;
+        Self::new(locale, appearance, content_zoom_percent)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PreferencesLoadStatus {
+    Current,
+    Initialized,
+    Recovered,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ApplicationPreferencesLoad {
+    pub preferences: ApplicationPreferences,
+    pub status: PreferencesLoadStatus,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ImportPhase {
     Fingerprinting,
@@ -1136,9 +1253,9 @@ pub trait ImportOutcomeLibraryPort {
     fn latest_import_outcome(&self) -> Result<Option<ImportOutcome>, String>;
 }
 
-pub trait LocalePreferencePort {
-    fn load_locale(&self) -> Result<Option<LocalePreference>, String>;
-    fn save_locale(&self, locale: LocalePreference) -> Result<(), String>;
+pub trait ApplicationPreferencesPort {
+    fn load_preferences(&self) -> Result<Option<StoredApplicationPreferences>, String>;
+    fn save_preferences(&self, preferences: &ApplicationPreferences) -> Result<(), String>;
 }
 
 #[derive(Debug, Error)]
@@ -1169,9 +1286,9 @@ pub enum ApplicationError {
     InvalidLongitudinalRange(&'static str),
     #[error("import outcome query failed: {0}")]
     OutcomeQuery(String),
-    #[error("locale preference query failed: {0}")]
+    #[error("application preference query failed: {0}")]
     PreferenceQuery(String),
-    #[error("locale preference update failed: {0}")]
+    #[error("application preference update failed: {0}")]
     PreferenceUpdate(String),
 }
 
@@ -3201,19 +3318,65 @@ pub fn query_latest_import_outcome(
         .map_err(ApplicationError::OutcomeQuery)
 }
 
-pub fn load_locale_preference(
-    port: &dyn LocalePreferencePort,
-) -> Result<Option<LocalePreference>, ApplicationError> {
-    port.load_locale()
-        .map_err(ApplicationError::PreferenceQuery)
+pub fn load_application_preferences(
+    port: &dyn ApplicationPreferencesPort,
+    default_locale: LocalePreference,
+) -> Result<ApplicationPreferencesLoad, ApplicationError> {
+    let stored = port
+        .load_preferences()
+        .map_err(ApplicationError::PreferenceQuery)?;
+    match stored {
+        Some(stored) => match ApplicationPreferences::try_from(stored) {
+            Ok(preferences) => Ok(ApplicationPreferencesLoad {
+                preferences,
+                status: PreferencesLoadStatus::Current,
+            }),
+            Err(_) => initialize_application_preferences(
+                port,
+                default_locale,
+                PreferencesLoadStatus::Recovered,
+            ),
+        },
+        None => initialize_application_preferences(
+            port,
+            default_locale,
+            PreferencesLoadStatus::Initialized,
+        ),
+    }
 }
 
-pub fn save_locale_preference(
-    port: &dyn LocalePreferencePort,
-    locale: LocalePreference,
+fn initialize_application_preferences(
+    port: &dyn ApplicationPreferencesPort,
+    default_locale: LocalePreference,
+    status: PreferencesLoadStatus,
+) -> Result<ApplicationPreferencesLoad, ApplicationError> {
+    let preferences = ApplicationPreferences::defaults(default_locale);
+    port.save_preferences(&preferences)
+        .map_err(ApplicationError::PreferenceUpdate)?;
+    Ok(ApplicationPreferencesLoad {
+        preferences,
+        status,
+    })
+}
+
+pub fn save_application_preferences(
+    port: &dyn ApplicationPreferencesPort,
+    preferences: &ApplicationPreferences,
 ) -> Result<(), ApplicationError> {
-    port.save_locale(locale)
+    port.save_preferences(preferences)
         .map_err(ApplicationError::PreferenceUpdate)
+}
+
+pub fn reset_application_preferences(
+    port: &dyn ApplicationPreferencesPort,
+    default_locale: LocalePreference,
+) -> Result<ApplicationPreferencesLoad, ApplicationError> {
+    let preferences = ApplicationPreferences::defaults(default_locale);
+    save_application_preferences(port, &preferences)?;
+    Ok(ApplicationPreferencesLoad {
+        preferences,
+        status: PreferencesLoadStatus::Current,
+    })
 }
 
 #[cfg(test)]
@@ -3229,7 +3392,19 @@ mod tests {
 
     struct ControlledOutcomePort;
 
-    struct ControlledLocalePort;
+    struct ControlledApplicationPreferencesPort {
+        stored: Mutex<Option<StoredApplicationPreferences>>,
+        saved: Mutex<Vec<ApplicationPreferences>>,
+    }
+
+    impl ControlledApplicationPreferencesPort {
+        fn with(stored: Option<StoredApplicationPreferences>) -> Self {
+            Self {
+                stored: Mutex::new(stored),
+                saved: Mutex::new(Vec::new()),
+            }
+        }
+    }
 
     impl ArchiveImportPort for ControlledImportPort {
         fn import_archive(
@@ -3265,13 +3440,16 @@ mod tests {
         }
     }
 
-    impl LocalePreferencePort for ControlledLocalePort {
-        fn load_locale(&self) -> Result<Option<LocalePreference>, String> {
-            Ok(Some(LocalePreference::EsEs))
+    impl ApplicationPreferencesPort for ControlledApplicationPreferencesPort {
+        fn load_preferences(&self) -> Result<Option<StoredApplicationPreferences>, String> {
+            Ok(self.stored.lock().expect("stored preference lock").clone())
         }
 
-        fn save_locale(&self, locale: LocalePreference) -> Result<(), String> {
-            assert_eq!(locale, LocalePreference::EnUs);
+        fn save_preferences(&self, preferences: &ApplicationPreferences) -> Result<(), String> {
+            self.saved
+                .lock()
+                .expect("saved preference lock")
+                .push(preferences.clone());
             Ok(())
         }
     }
@@ -3818,18 +3996,90 @@ mod tests {
     }
 
     #[test]
-    fn loads_and_updates_a_validated_locale_through_the_preference_port() {
+    fn validates_supported_locale_codes() {
         assert_eq!(
             LocalePreference::from_code("es-ES"),
             Some(LocalePreference::EsEs)
         );
         assert_eq!(LocalePreference::from_code("es"), None);
+    }
+
+    #[test]
+    fn validates_the_versioned_application_preference_set() {
+        let preferences =
+            ApplicationPreferences::new(LocalePreference::EsEs, AppearancePreference::Dark, 150)
+                .expect("valid preferences");
+
+        assert_eq!(preferences.version, APPLICATION_PREFERENCES_VERSION);
+        assert_eq!(preferences.locale, LocalePreference::EsEs);
+        assert_eq!(preferences.appearance, AppearancePreference::Dark);
+        assert_eq!(preferences.content_zoom_percent, 150);
+        assert!(matches!(
+            ApplicationPreferences::new(LocalePreference::EnUs, AppearancePreference::System, 99,),
+            Err(InvalidApplicationPreferences::ContentZoom)
+        ));
+        assert!(matches!(
+            ApplicationPreferences::new(LocalePreference::EnUs, AppearancePreference::Light, 201,),
+            Err(InvalidApplicationPreferences::ContentZoom)
+        ));
+    }
+
+    #[test]
+    fn initializes_and_recovers_the_application_preference_set_through_one_port() {
+        let empty_port = ControlledApplicationPreferencesPort::with(None);
+        let initialized = load_application_preferences(&empty_port, LocalePreference::EsEs)
+            .expect("initialized preferences");
+        assert_eq!(initialized.status, PreferencesLoadStatus::Initialized);
         assert_eq!(
-            load_locale_preference(&ControlledLocalePort).expect("locale query"),
-            Some(LocalePreference::EsEs)
+            initialized.preferences,
+            ApplicationPreferences::defaults(LocalePreference::EsEs)
         );
-        save_locale_preference(&ControlledLocalePort, LocalePreference::EnUs)
-            .expect("locale update");
+        assert_eq!(
+            *empty_port.saved.lock().expect("initialized save"),
+            vec![ApplicationPreferences::defaults(LocalePreference::EsEs)]
+        );
+
+        let invalid_port =
+            ControlledApplicationPreferencesPort::with(Some(StoredApplicationPreferences {
+                version: 99,
+                locale: "es-ES".to_owned(),
+                appearance: "dark".to_owned(),
+                content_zoom_percent: 150,
+            }));
+        let recovered = load_application_preferences(&invalid_port, LocalePreference::EnUs)
+            .expect("recovered preferences");
+        assert_eq!(recovered.status, PreferencesLoadStatus::Recovered);
+        assert_eq!(
+            recovered.preferences,
+            ApplicationPreferences::defaults(LocalePreference::EnUs)
+        );
+        assert_eq!(
+            *invalid_port.saved.lock().expect("recovery save"),
+            vec![ApplicationPreferences::defaults(LocalePreference::EnUs)]
+        );
+    }
+
+    #[test]
+    fn resets_the_complete_application_preference_set_atomically() {
+        let port = ControlledApplicationPreferencesPort::with(Some(StoredApplicationPreferences {
+            version: i64::from(APPLICATION_PREFERENCES_VERSION),
+            locale: "es-ES".to_owned(),
+            appearance: "dark".to_owned(),
+            content_zoom_percent: 175,
+        }));
+
+        let reset = reset_application_preferences(&port, LocalePreference::EnUs)
+            .expect("reset preferences");
+
+        assert_eq!(reset.status, PreferencesLoadStatus::Current);
+        assert_eq!(
+            reset.preferences,
+            ApplicationPreferences::defaults(LocalePreference::EnUs)
+        );
+        assert_eq!(
+            *port.saved.lock().expect("reset save"),
+            vec![ApplicationPreferences::defaults(LocalePreference::EnUs)]
+        );
     }
 
     fn training_session(

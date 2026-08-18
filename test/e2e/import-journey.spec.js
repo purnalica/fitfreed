@@ -51,19 +51,99 @@ async function selectArchive(dialogMock, archivePath) {
   await expect($(".path")).toHaveText(archivePath);
 }
 
+async function persistSettings() {
+  const status = await $(".settings-status");
+  const previewStatus = await status.getText();
+  const save = await $(".settings-actions button[type='submit']");
+  await save.waitForEnabled({ timeout: 10_000 });
+  await save.click();
+  await browser.waitUntil(async () => {
+    const currentStatus = await $(".settings-status").getText();
+    const currentSave = await $(".settings-actions button[type='submit']");
+    return currentStatus !== previewStatus && !(await currentSave.isEnabled());
+  }, { timeout: 10_000, timeoutMsg: "the application settings were not saved" });
+}
+
 async function selectLocale(locale) {
-  await $("select").waitForEnabled({ timeout: 10_000 });
-  await browser.execute((nextLocale) => {
-    const select = document.querySelector("select");
+  const settings = await $(".shell-header nav button:nth-child(2)");
+  await settings.waitForEnabled({ timeout: 10_000 });
+  await settings.click();
+  const select = await $("#application-language");
+  await select.waitForEnabled({ timeout: 10_000 });
+  if (await select.getValue() !== locale) {
+    await browser.execute((nextLocale) => {
+      const select = document.querySelector("#application-language");
+      const setValue = Object.getOwnPropertyDescriptor(
+        window.HTMLSelectElement.prototype,
+        "value",
+      ).set;
+      setValue.call(select, nextLocale);
+      select.dispatchEvent(new Event("input", { bubbles: true }));
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    }, locale);
+    await expect(select).toHaveValue(locale);
+    await persistSettings();
+  }
+  const explore = await $(".shell-header nav button:first-child");
+  await explore.waitForEnabled({ timeout: 10_000 });
+  await explore.click();
+  await browser.waitUntil(
+    () => browser.execute(
+      (expectedLocale) => document.documentElement.lang === expectedLocale,
+      locale,
+    ),
+    { timeout: 10_000, timeoutMsg: `the ${locale} preference was not applied` },
+  );
+}
+
+async function setAppearanceAndZoom(appearance, zoom, save) {
+  const settings = await $(".shell-header nav button:nth-child(2)");
+  await settings.waitForEnabled({ timeout: 10_000 });
+  await settings.click();
+  const appearanceInput = await $(`input[name='appearance'][value='${appearance}']`);
+  await appearanceInput.waitForEnabled({ timeout: 10_000 });
+  await appearanceInput.click();
+  await browser.execute((nextZoom) => {
+    const select = document.querySelector("#application-content-zoom");
     const setValue = Object.getOwnPropertyDescriptor(
       window.HTMLSelectElement.prototype,
       "value",
     ).set;
-    setValue.call(select, nextLocale);
+    setValue.call(select, String(nextZoom));
     select.dispatchEvent(new Event("input", { bubbles: true }));
     select.dispatchEvent(new Event("change", { bubbles: true }));
-  }, locale);
-  await expect($("select")).toHaveValue(locale);
+  }, zoom);
+  await expect($("#application-content-zoom")).toHaveValue(String(zoom));
+  await browser.waitUntil(
+    () => browser.execute(
+      ({ expectedAppearance, expectedZoom }) => (
+        document.documentElement.dataset.appearance === expectedAppearance
+        && document.documentElement.style.getPropertyValue("--content-zoom")
+          === String(expectedZoom / 100)
+      ),
+      { expectedAppearance: appearance, expectedZoom: zoom },
+    ),
+    { timeout: 10_000, timeoutMsg: "the appearance preview was not applied" },
+  );
+  if (save) {
+    await persistSettings();
+  }
+  await $(".shell-header nav button:first-child").click();
+}
+
+async function resetSettings() {
+  await $(".shell-header nav button:nth-child(2)").click();
+  const reset = await $(".settings-actions button.secondary");
+  await reset.waitForEnabled({ timeout: 10_000 });
+  await reset.click();
+  await browser.waitUntil(
+    () => browser.execute(() => (
+      document.documentElement.dataset.appearance === "system"
+      && document.documentElement.style.getPropertyValue("--content-zoom") === "1"
+    )),
+    { timeout: 10_000, timeoutMsg: "the application settings were not reset" },
+  );
+  await $(".shell-header nav button:first-child").click();
 }
 
 async function setActivityRange(from, through) {
@@ -221,10 +301,19 @@ async function setTrainingComparisonRanges(
 
 async function expectTrainingRows(expectedRows) {
   const selector = ".training-history-grid table tbody tr";
-  await browser.waitUntil(async () => (await $$(selector)).length === expectedRows.length, {
-    timeout: 10_000,
-    timeoutMsg: `training history did not contain ${expectedRows.length} rows`,
-  });
+  try {
+    await browser.waitUntil(async () => (await $$(selector)).length === expectedRows.length, {
+      timeout: 10_000,
+      timeoutMsg: `training history did not contain ${expectedRows.length} rows`,
+    });
+  } catch (error) {
+    const actualRows = await $$(selector);
+    const training = await $(".training-insights").getText();
+    throw new Error(
+      `training history contained ${actualRows.length} rows instead of ${expectedRows.length}; `
+      + `visible training text: ${training}; ${String(error)}`,
+    );
+  }
   const rows = await $$(selector);
   for (let index = 0; index < expectedRows.length; index += 1) {
     const cells = await rows[index].$$("td");
@@ -535,6 +624,21 @@ describe("packaged FitFreed import journey", () => {
     await expect($(".longitudinal-insights")).toHaveText(
       expect.stringContaining("No imported activity, training, sleep, or recovery history yet."),
     );
+
+    await setAppearanceAndZoom("dark", 175, false);
+    await expect($("html")).toHaveAttribute("data-appearance", "system");
+    expect(await browser.execute(
+      () => document.documentElement.style.getPropertyValue("--content-zoom"),
+    )).toBe("1");
+    await setAppearanceAndZoom("light", 200, true);
+    await expect($("html")).toHaveAttribute("data-appearance", "light");
+    await browser.reloadSession();
+    await expect($("html")).toHaveAttribute("data-appearance", "light");
+    expect(await browser.execute(
+      () => document.documentElement.style.getPropertyValue("--content-zoom"),
+    )).toBe("2");
+    await resetSettings();
+    await expect($("html")).toHaveAttribute("data-appearance", "system");
 
     await selectLocale("es-ES");
     await expect($("h1")).toHaveText(spanish.title);
@@ -916,6 +1020,7 @@ describe("packaged FitFreed import journey", () => {
     await expect($("body")).not.toHaveText(expect.stringContaining("fixture-training-session"));
 
     await selectLocale("es-ES");
+    await setAppearanceAndZoom("dark", 200, true);
     await expect($("#outcome-heading")).toHaveText(spanish.outcome.heading);
     await expectCoverage([
       ["9", spanish.outcome.supported],
@@ -1036,9 +1141,10 @@ describe("packaged FitFreed import journey", () => {
       [`1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`, spanish.recovery.guidanceCoverage],
       ["0", spanish.recovery.missingNights],
     ]);
-    await browser.execute(() => {
-      document.documentElement.style.fontSize = "200%";
-    });
+    await expect($("html")).toHaveAttribute("data-appearance", "dark");
+    expect(await browser.execute(
+      () => document.documentElement.style.getPropertyValue("--content-zoom"),
+    )).toBe("2");
     const overflowState = await browser.execute(() => ({
       scrollX: window.scrollX,
       scrollWidth: document.documentElement.scrollWidth,
@@ -1093,9 +1199,6 @@ describe("packaged FitFreed import journey", () => {
       }), overflowState);
       throw new Error(`localized recovery view overflowed: ${JSON.stringify(overflowEvidence)}`);
     }
-    await browser.execute(() => {
-      document.documentElement.style.fontSize = "";
-    });
     await selectLocale("en-US");
 
     const accessibility = await new AxeBuilder({ client: browser }).setLegacyMode().analyze();
@@ -1580,18 +1683,12 @@ describe("packaged FitFreed import journey", () => {
     await expect($(".recovery-source-notice")).toHaveText(
       spanish.recovery.sourceNotice,
     );
-    await browser.execute(() => {
-      document.documentElement.style.fontSize = "200%";
-    });
     const detailHasHorizontalOverflow = await browser.execute(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
     );
     expect(detailHasHorizontalOverflow).toBe(false);
     const detailAccessibility = await new AxeBuilder({ client: browser }).setLegacyMode().analyze();
     expect(detailAccessibility.violations).toEqual([]);
-    await browser.execute(() => {
-      document.documentElement.style.fontSize = "";
-    });
     await $("aria/Cerrar detalle").click();
     await $("aria/Cerrar detalle del entrenamiento").click();
     await $(`aria/${spanish.sleep.closeDetail}`).click();
@@ -1609,6 +1706,10 @@ describe("packaged FitFreed import journey", () => {
 
     await browser.reloadSession();
     await expect($("h1")).toHaveText(spanish.title);
+    await expect($("html")).toHaveAttribute("data-appearance", "dark");
+    expect(await browser.execute(
+      () => document.documentElement.style.getPropertyValue("--content-zoom"),
+    )).toBe("2");
     await expect($("#outcome-heading")).toHaveText(spanish.outcome.heading);
     await expectFamilyCoverage([
       {

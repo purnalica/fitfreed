@@ -45,14 +45,29 @@ const darkBlock = stylesheet.slice(
   darkStart,
   nextMediaStart < 0 ? stylesheet.length : nextMediaStart,
 );
-for (const selector of [".eyebrow", ".notice", ".error"]) {
+const contrastContracts = new Map([
+  [".eyebrow", "--accent-deep"],
+  [".notice", "--ink"],
+  [".error", "--danger-ink"],
+  [".recovery-summary span", "--ink-soft"],
+]);
+const explicitDarkStart = stylesheet.indexOf(':root[data-appearance="dark"]');
+if (explicitDarkStart < 0) throw new Error("App.css must define explicit dark appearance tokens");
+const explicitDarkEnd = stylesheet.indexOf("}", explicitDarkStart);
+const explicitDarkBlock = stylesheet.slice(explicitDarkStart, explicitDarkEnd);
+for (const [selector, token] of contrastContracts) {
   const escapedSelector = selector.replace(".", "\\.");
-  const foregroundRule = new RegExp(`${escapedSelector}\\s*\\{[^}]*\\bcolor:`);
-  if (!foregroundRule.test(darkBlock)) {
-    throw new Error(`${selector} must define a dark-appearance foreground color`);
+  const foregroundRule = new RegExp(
+    `${escapedSelector}\\s*\\{[^}]*\\bcolor:\\s*var\\(${token}\\)`,
+  );
+  if (!foregroundRule.test(stylesheet)) {
+    throw new Error(`${selector} must use its contrast foreground token ${token}`);
+  }
+  if (!explicitDarkBlock.includes(`${token}:`) || !darkBlock.includes(`${token}:`)) {
+    throw new Error(`${token} must exist for explicit and system dark appearance`);
   }
 }
 
 process.stdout.write(
-  `${JSON.stringify({ motionDeclarations: motionDeclarations.length, reducedMotionBoundary: true, darkContrastOverrides: 3 })}\n`,
+  `${JSON.stringify({ motionDeclarations: motionDeclarations.length, reducedMotionBoundary: true, darkContrastOverrides: contrastContracts.size })}\n`,
 );

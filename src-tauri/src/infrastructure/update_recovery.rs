@@ -2416,7 +2416,7 @@ mod tests {
             super::super::ensure_schema(&connection).expect("current library schema");
             connection
                 .execute(
-                    "INSERT INTO locale_preference (id, locale, updated_at_utc)
+                    "INSERT INTO application_preference (id, locale, updated_at_utc)
                      VALUES (1, 'es-ES', '2026-08-17T08:00:00Z')",
                     [],
                 )
@@ -2521,7 +2521,7 @@ mod tests {
         let locale = Connection::open(backup_library)
             .expect("backup library")
             .query_row(
-                "SELECT locale FROM locale_preference WHERE id = 1",
+                "SELECT locale FROM application_preference WHERE id = 1",
                 [],
                 |row| row.get::<_, String>(0),
             )
@@ -2813,7 +2813,7 @@ mod tests {
         let candidate_library = Connection::open(&harness.library_path).expect("candidate library");
         candidate_library
             .execute(
-                "UPDATE locale_preference SET locale = 'en-US' WHERE id = 1",
+                "UPDATE application_preference SET locale = 'en-US' WHERE id = 1",
                 [],
             )
             .expect("candidate locale");
@@ -2846,7 +2846,7 @@ mod tests {
             Connection::open(&harness.library_path)
                 .expect("restored library")
                 .query_row(
-                    "SELECT locale FROM locale_preference WHERE id = 1",
+                    "SELECT locale FROM application_preference WHERE id = 1",
                     [],
                     |row| row.get::<_, String>(0),
                 )

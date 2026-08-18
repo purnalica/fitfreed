@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
 import { catalogs } from "./locales/catalogs";
+import type { ApplicationPreferencesLoad } from "./presentation/application-preferences";
 
 const spanish = catalogs["es-ES"];
 
@@ -263,6 +264,7 @@ function importOutcome(overrides: Record<string, unknown> = {}) {
 
 const mocks = vi.hoisted(() => ({
   invoke: vi.fn(),
+  preferencesInvoke: vi.fn(),
   interactiveShellInvoke: vi.fn(),
   recoveryInvoke: vi.fn(),
   longitudinalInvoke: vi.fn(),
@@ -279,6 +281,8 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: (command: string, arguments_: Record<string, unknown>) =>
     command === "report_interactive_shell"
       ? mocks.interactiveShellInvoke(command, arguments_)
+      : command.endsWith("_preferences")
+      ? mocks.preferencesInvoke(command, arguments_)
       : command.includes("update")
       ? mocks.updateInvoke(command, arguments_)
       : command.startsWith("query_longitudinal_")
@@ -303,6 +307,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   mocks.invoke.mockReset();
+  mocks.preferencesInvoke.mockReset();
   mocks.interactiveShellInvoke.mockReset();
   mocks.recoveryInvoke.mockReset();
   mocks.longitudinalInvoke.mockReset();
@@ -313,6 +318,7 @@ afterEach(() => {
 });
 
 beforeEach(() => {
+  let storedPreferences = preferencesLoad();
   let nextFrame = 0;
   const scheduledFrames = new Map<number, FrameRequestCallback>();
   vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => {
@@ -331,6 +337,29 @@ beforeEach(() => {
     scheduledFrames.delete(frame);
   }));
   mocks.interactiveShellInvoke.mockResolvedValue(undefined);
+  mocks.preferencesInvoke.mockImplementation((command, arguments_) => {
+    if (command === "load_preferences") return Promise.resolve(storedPreferences);
+    if (command === "save_preferences") {
+      storedPreferences = {
+        preferences: {
+          version: 1,
+          ...(arguments_.preferences as Omit<
+            ApplicationPreferencesLoad["preferences"],
+            "version"
+          >),
+        },
+        status: "current",
+      };
+      return Promise.resolve(storedPreferences.preferences);
+    }
+    if (command === "reset_preferences") {
+      storedPreferences = preferencesLoad(
+        arguments_.defaultLocale as "en-US" | "es-ES",
+      );
+      return Promise.resolve(storedPreferences);
+    }
+    throw new Error(`Unexpected preference command: ${command}`);
+  });
   mocks.listen.mockResolvedValue(() => {});
   mocks.recoveryInvoke.mockResolvedValue(emptyRecoveryOverview());
   mocks.longitudinalInvoke.mockResolvedValue(emptyLongitudinalOverview());
@@ -352,21 +381,60 @@ beforeEach(() => {
   });
 });
 
+function preferencesLoad(
+  locale: "en-US" | "es-ES" = "en-US",
+  status: ApplicationPreferencesLoad["status"] = "current",
+): ApplicationPreferencesLoad {
+  return {
+    preferences: {
+      version: 1,
+      locale,
+      appearance: "system",
+      contentZoomPercent: 100,
+    },
+    status,
+  };
+}
+
 function emptyLibrary(initialLocale: "en-US" | "es-ES" | null = "en-US") {
-  let storedLocale = initialLocale;
-  mocks.invoke.mockImplementation((command, arguments_) => {
+  let storedPreferences = preferencesLoad(initialLocale ?? "en-US", initialLocale ? "current" : "initialized");
+  mocks.preferencesInvoke.mockImplementation((command, arguments_) => {
+    if (command === "load_preferences") {
+      if (initialLocale === null) {
+        storedPreferences = preferencesLoad(
+          arguments_.defaultLocale as "en-US" | "es-ES",
+          "initialized",
+        );
+      }
+      return Promise.resolve(storedPreferences);
+    }
+    if (command === "save_preferences") {
+      storedPreferences = {
+        preferences: {
+          version: 1,
+          ...(arguments_.preferences as Omit<
+            ApplicationPreferencesLoad["preferences"],
+            "version"
+          >),
+        },
+        status: "current",
+      };
+      return Promise.resolve(storedPreferences.preferences);
+    }
+    if (command === "reset_preferences") {
+      storedPreferences = preferencesLoad(arguments_.defaultLocale as "en-US" | "es-ES");
+      return Promise.resolve(storedPreferences);
+    }
+    throw new Error(`Unexpected preference command: ${command}`);
+  });
+  mocks.invoke.mockImplementation((command) => {
     if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
     if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
     if (command === "query_latest_import_outcome") return Promise.resolve(null);
-    if (command === "load_locale") return Promise.resolve(storedLocale);
-    if (command === "save_locale") {
-      storedLocale = arguments_.locale;
-      return Promise.resolve();
-    }
     throw new Error(`Unexpected command: ${command}`);
   });
   return {
-    locale: () => storedLocale,
+    locale: () => storedPreferences.preferences.locale,
   };
 }
 
@@ -376,10 +444,196 @@ async function chooseArchive(user: ReturnType<typeof userEvent.setup>, path: str
   expect(screen.getByText(path)).toBeVisible();
 }
 
+async function changeLanguageToSpanish(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("button", { name: "Settings" }));
+  await user.selectOptions(screen.getByLabelText("Interface language"), "es-ES");
+  await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Explorar" })).toBeVisible());
+  await user.click(screen.getByRole("button", { name: "Explorar" }));
+}
+
 describe("FitFreed import interface", () => {
+  it("applies the complete saved preference set before revealing the ordinary shell", async () => {
+    let completePreferences!: (load: ApplicationPreferencesLoad) => void;
+    mocks.preferencesInvoke.mockImplementation((command) => {
+      if (command === "load_preferences") {
+        return new Promise((resolve) => {
+          completePreferences = resolve;
+        });
+      }
+      throw new Error(`Unexpected preference command: ${command}`);
+    });
+
+    render(<App />);
+
+    await waitFor(() => expect(completePreferences).toBeTypeOf("function"));
+    expect(screen.queryByRole("heading", { name: /fitness history belongs/i }))
+      .not.toBeInTheDocument();
+
+    await act(async () => completePreferences({
+      preferences: {
+        version: 1,
+        locale: "es-ES",
+        appearance: "dark",
+        contentZoomPercent: 175,
+      },
+      status: "current",
+    }));
+
+    expect(await screen.findByRole("heading", { name: spanish.title })).toBeVisible();
+    expect(document.documentElement).toHaveAttribute("lang", "es-ES");
+    expect(document.documentElement).toHaveAttribute("data-appearance", "dark");
+    expect(document.documentElement.style.getPropertyValue("--content-zoom")).toBe("1.75");
+    expect(mocks.preferencesInvoke).toHaveBeenCalledWith("load_preferences", {
+      defaultLocale: "en-US",
+    });
+  });
+
+  it("previews, saves, restores, and resets every setting from the Settings home", async () => {
+    emptyLibrary();
+    const user = userEvent.setup();
+    const view = render(<App />);
+
+    await user.click(await screen.findByRole("button", { name: "Settings" }));
+    await user.selectOptions(screen.getByLabelText("Interface language"), "es-ES");
+    await user.click(screen.getByRole("radio", { name: "Oscuro" }));
+    await user.selectOptions(
+      screen.getByLabelText("Ampliación predeterminada del contenido"),
+      "200",
+    );
+    expect(document.documentElement).toHaveAttribute("data-appearance", "dark");
+    expect(document.documentElement.style.getPropertyValue("--content-zoom")).toBe("2");
+
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+    await waitFor(() => expect(mocks.preferencesInvoke).toHaveBeenCalledWith(
+      "save_preferences",
+      {
+        preferences: {
+          locale: "es-ES",
+          appearance: "dark",
+          contentZoomPercent: 200,
+        },
+      },
+    ));
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Ajustes guardados en este dispositivo.",
+    );
+
+    view.unmount();
+    render(<App />);
+    await user.click(await screen.findByRole("button", { name: "Ajustes" }));
+    expect(screen.getByRole("radio", { name: "Oscuro" })).toBeChecked();
+    expect(screen.getByLabelText("Ampliación predeterminada del contenido")).toHaveValue("200");
+
+    await user.click(screen.getByRole("button", { name: "Restaurar valores predeterminados" }));
+    await waitFor(() => expect(mocks.preferencesInvoke).toHaveBeenCalledWith(
+      "reset_preferences",
+      { defaultLocale: "en-US" },
+    ));
+    expect(document.documentElement).toHaveAttribute("data-appearance", "system");
+    expect(document.documentElement.style.getPropertyValue("--content-zoom")).toBe("1");
+  });
+
+  it("discards an unsaved appearance preview when leaving Settings", async () => {
+    emptyLibrary();
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole("button", { name: "Settings" }));
+    await user.click(screen.getByRole("radio", { name: "Dark" }));
+    await user.selectOptions(screen.getByLabelText("Default content zoom"), "175");
+    expect(document.documentElement).toHaveAttribute("data-appearance", "dark");
+
+    await user.click(screen.getByRole("button", { name: "Explore" }));
+
+    expect(document.documentElement).toHaveAttribute("data-appearance", "system");
+    expect(document.documentElement.style.getPropertyValue("--content-zoom")).toBe("1");
+    await user.click(screen.getByRole("button", { name: "Settings" }));
+    expect(screen.getByRole("radio", { name: "System" })).toBeChecked();
+    expect(screen.getByLabelText("Default content zoom")).toHaveValue("100");
+  });
+
+  it("preserves the active Explore workspace while Settings is open", async () => {
+    const earlier: TestTrainingSession = {
+      sessionRef: "earlier-session",
+      startedAtLocal: "2026-01-18T08:00:00",
+      stoppedAtLocal: "2026-01-18T08:30:00",
+      utcOffsetMinutes: null,
+      durationMilliseconds: "1800000",
+      distanceMeters: null,
+      energyKilocalories: null,
+      averageHeartRateBpm: null,
+      maximumHeartRateBpm: null,
+      sportRef: null,
+      exerciseCount: null,
+    };
+    const later: TestTrainingSession = {
+      ...earlier,
+      sessionRef: "later-session",
+      startedAtLocal: "2026-01-20T09:00:00",
+      stoppedAtLocal: "2026-01-20T10:00:00",
+      durationMilliseconds: "3600000",
+    };
+    const fullOverview = trainingOverview([later, earlier]);
+    const filteredOverview = trainingOverview(
+      [later],
+      { from: "2026-01-20", through: "2026-01-20" },
+    );
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
+      if (command === "query_training_overview") {
+        return Promise.resolve(
+          arguments_.requestedRange?.from === "2026-01-20"
+            ? filteredOverview
+            : fullOverview,
+        );
+      }
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+
+    const training = await screen.findByRole("region", { name: "Training history" });
+    expect(await within(training).findAllByRole("button", { name: /View training details/ }))
+      .toHaveLength(2);
+    const filter = within(training).getByRole("form", { name: "Explore a training period" });
+    await user.clear(within(filter).getByLabelText("From"));
+    await user.type(within(filter).getByLabelText("From"), "2026-01-20");
+    await user.clear(within(filter).getByLabelText("Through"));
+    await user.type(within(filter).getByLabelText("Through"), "2026-01-20");
+    await user.click(within(filter).getByRole("button", { name: "Apply training period" }));
+    await waitFor(() => expect(within(training)
+      .getAllByRole("button", { name: /View training details/ })).toHaveLength(1));
+
+    await user.click(screen.getByRole("button", { name: "Settings" }));
+    expect(screen.getByRole("region", { name: "Make FitFreed feel right on this device" }))
+      .toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Explore" }));
+
+    const restoredTraining = screen.getByRole("region", { name: "Training history" });
+    const restoredFilter = within(restoredTraining).getByRole("form", {
+      name: "Explore a training period",
+    });
+    expect(within(restoredFilter).getByLabelText("From")).toHaveValue("2026-01-20");
+    expect(within(restoredFilter).getByLabelText("Through")).toHaveValue("2026-01-20");
+    expect(within(restoredTraining).getAllByRole("button", { name: /View training details/ }))
+      .toHaveLength(1);
+  });
+
+  it("discloses when an invalid stored preference set was safely recovered", async () => {
+    emptyLibrary();
+    mocks.preferencesInvoke.mockResolvedValue(preferencesLoad("en-US", "recovered"));
+    render(<App />);
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "FitFreed restored safe application defaults because the stored settings were not compatible",
+    );
+  });
+
   it("reports the interactive shell only after locale startup and a rendered frame", async () => {
     const user = userEvent.setup();
-    let completeLocale!: (locale: "en-US") => void;
+    let completePreferences!: (load: ApplicationPreferencesLoad) => void;
     let completeInteractiveShell!: () => void;
     let renderFrame: FrameRequestCallback | undefined;
     vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => {
@@ -391,26 +645,29 @@ describe("FitFreed import interface", () => {
         completeInteractiveShell = resolve;
       })
     );
+    mocks.preferencesInvoke.mockImplementation((command) => {
+      if (command === "load_preferences") {
+        return new Promise((resolve) => {
+          completePreferences = resolve;
+        });
+      }
+      throw new Error(`Unexpected preference command: ${command}`);
+    });
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
       if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
-      if (command === "load_locale") {
-        return new Promise((resolve) => {
-          completeLocale = resolve;
-        });
-      }
       throw new Error(`Unexpected command: ${command}`);
     });
 
     render(<App />);
 
-    await waitFor(() => expect(completeLocale).toBeTypeOf("function"));
-    await chooseArchive(user, "/synthetic/pending-startup.zip");
-    expect(screen.getByRole("button", { name: "Import selected package" })).toBeDisabled();
+    await waitFor(() => expect(completePreferences).toBeTypeOf("function"));
+    expect(screen.queryByRole("button", { name: "Choose ZIP package" })).not.toBeInTheDocument();
     expect(mocks.interactiveShellInvoke).not.toHaveBeenCalled();
-    await act(async () => completeLocale("en-US"));
+    await act(async () => completePreferences(preferencesLoad()));
     await waitFor(() => expect(renderFrame).toBeTypeOf("function"));
+    await chooseArchive(user, "/synthetic/pending-startup.zip");
     expect(screen.getByRole("button", { name: "Import selected package" })).toBeEnabled();
     expect(mocks.interactiveShellInvoke).not.toHaveBeenCalled();
     await act(async () => renderFrame?.(performance.now()));
@@ -502,23 +759,26 @@ describe("FitFreed import interface", () => {
 
     expect(screen.getByRole("button", { name: "Choose ZIP package" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Import selected package" })).toBeDisabled();
-    expect(screen.getByRole("combobox", { name: "Language" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Settings" }));
+    expect(screen.getByLabelText("Interface language")).toBeDisabled();
+    expect(screen.getByLabelText("Default content zoom")).toBeDisabled();
 
     await act(async () => rejectInstallation({ code: "update-native-installer-failed" }));
+    await waitFor(() => expect(screen.getByLabelText("Interface language")).toBeEnabled());
+    await user.click(screen.getByRole("button", { name: "Explore" }));
     await waitFor(() => expect(
       screen.getByRole("button", { name: "Choose ZIP package" }),
     ).toBeEnabled());
     expect(screen.getByRole("button", { name: "Import selected package" })).toBeEnabled();
-    expect(screen.getByRole("combobox", { name: "Language" })).toBeEnabled();
   });
 
   it("keeps library actions unavailable when startup recovery fails", async () => {
     const user = userEvent.setup();
-    mocks.invoke.mockImplementation((command) => {
-      if (command === "load_locale") {
+    mocks.preferencesInvoke.mockImplementation((command) => {
+      if (command === "load_preferences") {
         return Promise.reject({ code: "library-unavailable" });
       }
-      throw new Error(`Unexpected command: ${command}`);
+      throw new Error(`Unexpected preference command: ${command}`);
     });
 
     render(<App />);
@@ -528,9 +788,11 @@ describe("FitFreed import interface", () => {
     );
     await chooseArchive(user, "/synthetic/unavailable-library.zip");
     expect(screen.getByRole("button", { name: "Import selected package" })).toBeDisabled();
-    expect(screen.getByRole("combobox", { name: "Language" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Settings" }));
+    expect(screen.getByLabelText("Interface language")).toBeDisabled();
     expect(mocks.interactiveShellInvoke).not.toHaveBeenCalled();
-    expect(mocks.invoke).toHaveBeenCalledTimes(1);
+    expect(mocks.preferencesInvoke).toHaveBeenCalledTimes(1);
+    expect(mocks.invoke).not.toHaveBeenCalled();
     expect(mocks.longitudinalInvoke).not.toHaveBeenCalled();
     expect(mocks.sleepInvoke).not.toHaveBeenCalled();
     expect(mocks.recoveryInvoke).not.toHaveBeenCalled();
@@ -538,27 +800,30 @@ describe("FitFreed import interface", () => {
   });
 
   it("requests backend-owned update confirmation only after locale startup completes", async () => {
-    let completeLocale!: (locale: "en-US") => void;
+    let completePreferences!: (load: ApplicationPreferencesLoad) => void;
+    mocks.preferencesInvoke.mockImplementation((command) => {
+      if (command === "load_preferences") {
+        return new Promise((resolve) => {
+          completePreferences = resolve;
+        });
+      }
+      throw new Error(`Unexpected preference command: ${command}`);
+    });
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
       if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
-      if (command === "load_locale") {
-        return new Promise((resolve) => {
-          completeLocale = resolve;
-        });
-      }
       throw new Error(`Unexpected command: ${command}`);
     });
 
     render(<App />);
 
-    await waitFor(() => expect(completeLocale).toBeTypeOf("function"));
+    await waitFor(() => expect(completePreferences).toBeTypeOf("function"));
     expect(mocks.updateInvoke).not.toHaveBeenCalledWith(
       "confirm_update_recovery_startup",
       undefined,
     );
-    await act(async () => completeLocale("en-US"));
+    await act(async () => completePreferences(preferencesLoad()));
     await waitFor(() => expect(mocks.updateInvoke).toHaveBeenCalledWith(
       "confirm_update_recovery_startup",
       undefined,
@@ -809,8 +1074,6 @@ describe("FitFreed import interface", () => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
       if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(latestOutcome);
-      if (command === "load_locale") return Promise.resolve("en-US");
-      if (command === "save_locale") return Promise.resolve();
       throw new Error(`Unexpected command: ${command}`);
     });
     const user = userEvent.setup();
@@ -841,7 +1104,7 @@ describe("FitFreed import interface", () => {
     })).toBeVisible();
     expect(screen.queryByText(/activity-2026-01-01/)).not.toBeInTheDocument();
 
-    await user.selectOptions(screen.getByRole("combobox", { name: "Language" }), "es-ES");
+    await changeLanguageToSpanish(user);
     const spanishCoverage = screen.getByRole("table", { name: "Cobertura por familia de datos" });
     expect(within(spanishCoverage).getByRole("row", {
       name: /Actividad diaria No válido 1 Motivo: El contenido reconocido no ha superado la validación\. Siguiente acción: Conserva el ZIP original y comunica el problema de compatibilidad/,
@@ -866,8 +1129,6 @@ describe("FitFreed import interface", () => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
       if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(latestOutcome);
-      if (command === "load_locale") return Promise.resolve("en-US");
-      if (command === "save_locale") return Promise.resolve();
       if (command === "import_archive") {
         latestOutcome = importOutcome({
           state: "rejected",
@@ -910,7 +1171,7 @@ describe("FitFreed import interface", () => {
     expect(screen.getByText("Import rejected; no history was changed.")).toBeVisible();
     expect(screen.queryByText(/fixture-(?:primary|other)-claim/)).not.toBeInTheDocument();
 
-    await user.selectOptions(screen.getByRole("combobox", { name: "Language" }), "es-ES");
+    await changeLanguageToSpanish(user);
     expect(screen.getByRole("alert")).toHaveTextContent(
       "FitFreed no lo combinará automáticamente con el historial existente",
     );
@@ -922,9 +1183,7 @@ describe("FitFreed import interface", () => {
     const view = render(<App />);
 
     expect(await screen.findByRole("heading", { name: "Your fitness history belongs to you" })).toBeVisible();
-    const language = screen.getByRole("combobox", { name: "Language" });
-    await waitFor(() => expect(language).toBeEnabled());
-    await user.selectOptions(language, "es-ES");
+    await changeLanguageToSpanish(user);
 
     expect(screen.getByRole("heading", { name: spanish.title })).toBeVisible();
     expect(screen.getByRole("heading", { name: spanish.importHeading })).toBeVisible();
@@ -966,14 +1225,16 @@ describe("FitFreed import interface", () => {
 
   it("keeps the operating-system locale for the session when first-run persistence fails", async () => {
     vi.spyOn(window.navigator, "languages", "get").mockReturnValue(["es-ES"]);
+    mocks.preferencesInvoke.mockImplementation((command) => {
+      if (command === "load_preferences") {
+        return Promise.reject({ code: "preference-update-failed" });
+      }
+      throw new Error(`Unexpected preference command: ${command}`);
+    });
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
       if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
-      if (command === "load_locale") return Promise.resolve(null);
-      if (command === "save_locale") {
-        return Promise.reject({ code: "preference-update-failed" });
-      }
       throw new Error(`Unexpected command: ${command}`);
     });
 
@@ -983,30 +1244,33 @@ describe("FitFreed import interface", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       spanish.errors["preference-initialization-failed"],
     );
-    expect(screen.getByRole("combobox", { name: spanish.language })).toBeEnabled();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Ajustes" }));
+    expect(screen.getByLabelText("Idioma de la interfaz")).toBeEnabled();
   });
 
   it("restores the previous locale when persistence fails", async () => {
+    mocks.preferencesInvoke.mockImplementation((command) => {
+      if (command === "load_preferences") return Promise.resolve(preferencesLoad());
+      if (command === "save_preferences") {
+        return Promise.reject({ code: "preference-update-failed" });
+      }
+      throw new Error(`Unexpected preference command: ${command}`);
+    });
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
       if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
-      if (command === "load_locale") return Promise.resolve("en-US");
-      if (command === "save_locale") {
-        return Promise.reject({ code: "preference-update-failed" });
-      }
       throw new Error(`Unexpected command: ${command}`);
     });
     const user = userEvent.setup();
     render(<App />);
-    const language = await screen.findByRole("combobox", { name: "Language" });
-    await waitFor(() => expect(language).toBeEnabled());
+    await user.click(await screen.findByRole("button", { name: "Settings" }));
+    await user.selectOptions(screen.getByLabelText("Interface language"), "es-ES");
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
 
-    await user.selectOptions(language, "es-ES");
-
-    await waitFor(() => expect(screen.getByRole("combobox", { name: "Language" })).toHaveValue("en-US"));
+    await waitFor(() => expect(screen.getByLabelText("Interface language")).toHaveValue("en-US"));
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "could not save the selected language",
+      "could not save the application settings",
     );
   });
 
@@ -1035,9 +1299,9 @@ describe("FitFreed import interface", () => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
       if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(singularOutcome);
-      if (command === "load_locale") return Promise.resolve("es-ES");
       throw new Error(`Unexpected command: ${command}`);
     });
+    mocks.preferencesInvoke.mockResolvedValue(preferencesLoad("es-ES"));
 
     render(<App />);
 
@@ -1061,8 +1325,6 @@ describe("FitFreed import interface", () => {
       if (command === "query_activity_overview") return Promise.resolve(overview);
       if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
-      if (command === "load_locale") return Promise.resolve("en-US");
-      if (command === "save_locale") return Promise.resolve();
       throw new Error(`Unexpected command: ${command}`);
     });
     const user = userEvent.setup();
@@ -1085,7 +1347,7 @@ describe("FitFreed import interface", () => {
     expect(within(rows[2]).getByText("No observation")).toBeVisible();
     expect(within(rows[3]).getByText("Observation available; step total unavailable")).toBeVisible();
 
-    await user.selectOptions(screen.getByRole("combobox", { name: "Language" }), "es-ES");
+    await changeLanguageToSpanish(user);
     const spanishHistory = screen.getByRole("table", { name: spanish.activity.heading });
     const spanishRows = within(spanishHistory).getAllByRole("row");
     expect(within(spanishRows[2]).getByText(spanish.activity.missing)).toBeVisible();
@@ -1112,8 +1374,6 @@ describe("FitFreed import interface", () => {
       }
       if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
-      if (command === "load_locale") return Promise.resolve("en-US");
-      if (command === "save_locale") return Promise.resolve();
       throw new Error(`Unexpected command: ${command}`);
     });
     const user = userEvent.setup();
@@ -1185,8 +1445,6 @@ describe("FitFreed import interface", () => {
       if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_activity_comparison") return Promise.resolve(comparison);
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
-      if (command === "load_locale") return Promise.resolve("en-US");
-      if (command === "save_locale") return Promise.resolve();
       throw new Error(`Unexpected command: ${command}`);
     });
     const user = userEvent.setup();
@@ -1269,8 +1527,6 @@ describe("FitFreed import interface", () => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
       if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(latestOutcome);
-      if (command === "load_locale") return Promise.resolve("en-US");
-      if (command === "save_locale") return Promise.resolve();
       if (command === "import_archive") {
         onProgress = arguments_.onProgress;
         onProgress?.onmessage?.({
@@ -1314,7 +1570,7 @@ describe("FitFreed import interface", () => {
     expect(await screen.findByRole("progressbar", { name: "Importing and reconciling artifacts" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Choose ZIP package" })).toBeDisabled();
 
-    await user.selectOptions(screen.getByRole("combobox", { name: "Language" }), "es-ES");
+    await changeLanguageToSpanish(user);
     expect(screen.getByRole("heading", { name: spanish.title })).toBeVisible();
     await user.click(screen.getByRole("button", { name: spanish.cancel }));
 
@@ -1335,8 +1591,6 @@ describe("FitFreed import interface", () => {
       if (command === "query_activity_overview") return Promise.resolve(storedHistory);
       if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(latestOutcome);
-      if (command === "load_locale") return Promise.resolve("en-US");
-      if (command === "save_locale") return Promise.resolve();
       if (command === "import_archive") {
         importAttempt += 1;
         if (importAttempt === 1) {
@@ -1461,8 +1715,6 @@ describe("FitFreed import interface", () => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
       if (command === "query_training_overview") return pendingTraining;
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
-      if (command === "load_locale") return Promise.resolve("en-US");
-      if (command === "save_locale") return Promise.resolve();
       throw new Error(`Unexpected command: ${command}`);
     });
     const view = render(<App />);
@@ -1481,8 +1733,6 @@ describe("FitFreed import interface", () => {
         return Promise.reject({ code: "library-query-failed" });
       }
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
-      if (command === "load_locale") return Promise.resolve("en-US");
-      if (command === "save_locale") return Promise.resolve();
       throw new Error(`Unexpected command: ${command}`);
     });
     render(<App />);
@@ -1560,8 +1810,6 @@ describe("FitFreed import interface", () => {
       }
       if (command === "query_training_comparison") return Promise.resolve(comparisonResult);
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
-      if (command === "load_locale") return Promise.resolve("en-US");
-      if (command === "save_locale") return Promise.resolve();
       throw new Error(`Unexpected command: ${command}`);
     });
     const user = userEvent.setup();
@@ -1642,13 +1890,13 @@ describe("FitFreed import interface", () => {
     expect(within(training).getAllByRole("button", { name: /View training details/ }))
       .toHaveLength(2);
 
-    await user.selectOptions(screen.getByRole("combobox", { name: "Language" }), "es-ES");
+    await changeLanguageToSpanish(user);
     expect(screen.getByRole("region", { name: "Historial de entrenamientos" })).toBeVisible();
 
     view.unmount();
     render(<App />);
-    const restored = await screen.findByRole("region", { name: "Training history" });
-    expect(await within(restored).findAllByRole("button", { name: /View training details/ }))
+    const restored = await screen.findByRole("region", { name: "Historial de entrenamientos" });
+    expect(await within(restored).findAllByRole("button", { name: /Ver detalles del entrenamiento/ }))
       .toHaveLength(2);
   });
 });

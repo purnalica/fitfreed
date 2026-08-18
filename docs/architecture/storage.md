@@ -4,7 +4,7 @@
 
 Current architecture after [ADR 0002](decisions/0002-select-sqlite-storage.md). SQLite is the only storage engine in the application and the authoritative local-library format. It does not replace the documented portable FitFreed data contract.
 
-The current implemented schema and compatibility boundary are documented in the [SQLite version 9 persistence specification](../data-formats/persistence/sqlite-v9.md). It preserves the complete provider-neutral fitness library through version 8 and adds restart-safe authenticated-update policy and user-notification preferences without storing channel or package material. Earlier specifications remain immutable migration history.
+The current implemented schema and compatibility boundary are documented in the [SQLite version 10 persistence specification](../data-formats/persistence/sqlite-v10.md). It preserves the complete provider-neutral fitness library through version 8 and authenticated-update state from version 9, then replaces the locale-only row with one validated application-preference set. Earlier specifications remain immutable migration history.
 
 ## Ownership
 
@@ -53,6 +53,8 @@ The sleep Insights adapter derives bounds, the ordered distinct origin catalog, 
 Schema version 8 adds nightly recovery keyed by origin and source-assigned recovery date. Shared interval and RMSSD measurements are stored beside constrained, versioned source-specific assessment, baseline, and guidance components. Strict optional enrichment can replace visible state; omitted known information is preserved, and changed known facts or schemes become explicit conflicts because the source supplies no orderable record revision. The undated recovery blob is classified but never joined or stored: file order, array position, sample content, and delivery tokens are not identity evidence. `nightly_recovery_date_origin` supports chronological range reads; report aggregation remains application-owned.
 
 Schema version 9 adds the singleton authenticated-update replay high-water mark, trusted release identity, and mutually exclusive dismissal or postponement preference. It contains no endpoint, trust key, package material, installation identifier, or usage event. Installation recovery remains a separate filesystem-backed contract; update state is included in a whole-library backup but excluded from the portable fitness model.
+
+Schema version 10 renames the locale-only row to `application_preference` and extends it with a fixed preference-contract version, system/light/dark appearance, and 100%–200% content zoom. The application reads, validates, recovers, saves, resets, backs up, and restores the complete set atomically. Preview state remains presentation-only and is discarded when the user leaves Settings without saving.
 
 New origin and evidence rows become durable only inside the same visibility transaction as canonical history and operation completion. Existing development origins migrate as unverified origins without invented evidence. Exact-repeat lookup may inherit an origin only from a completed operation whose correlation state is verified; an old package fingerprint alone cannot authorize subject resolution.
 

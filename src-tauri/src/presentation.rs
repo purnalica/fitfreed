@@ -3,22 +3,83 @@ use serde::{Deserialize, Serialize};
 use fitfreed_application::{
     ActivityComparison, ActivityDateRange, ActivityDayAvailability, ActivityDayInsight,
     ActivityOverview, ActivitySeriesComparison, ActivitySeriesOverview, ActivitySeriesSummary,
-    ApplicationError, ImportPhase, ImportProgress, LongitudinalActivityComparison,
+    AppearancePreference, ApplicationError, ApplicationPreferences, ApplicationPreferencesLoad,
+    ImportPhase, ImportProgress, InvalidApplicationPreferences, LongitudinalActivityComparison,
     LongitudinalActivityDay, LongitudinalComparison, LongitudinalDateRange, LongitudinalDayInsight,
     LongitudinalOverview, LongitudinalRecoveryComparison, LongitudinalRecoveryDay,
     LongitudinalSeriesComparison, LongitudinalSeriesOverview, LongitudinalSleepComparison,
     LongitudinalSleepDay, LongitudinalTrainingComparison, LongitudinalTrainingDay,
-    ManualUpdateReason, RecoveryComparison, RecoveryDateRange, RecoveryDayAvailability,
-    RecoveryDayInsight, RecoveryNightDetail, RecoveryNightInsight, RecoveryOverview,
-    RecoverySeriesComparison, RecoverySeriesOverview, RecoverySeriesSummary, SleepComparison,
-    SleepDateRange, SleepDayAvailability, SleepDayInsight, SleepOverview, SleepPeriodDetail,
-    SleepPeriodInsight, SleepPhaseTotals, SleepSeriesComparison, SleepSeriesOverview,
-    SleepSeriesSummary, TrainingComparison, TrainingDateRange, TrainingOverview,
-    TrainingSeriesComparison, TrainingSeriesOverview, TrainingSeriesSummary,
+    ManualUpdateReason, PreferencesLoadStatus, RecoveryComparison, RecoveryDateRange,
+    RecoveryDayAvailability, RecoveryDayInsight, RecoveryNightDetail, RecoveryNightInsight,
+    RecoveryOverview, RecoverySeriesComparison, RecoverySeriesOverview, RecoverySeriesSummary,
+    SleepComparison, SleepDateRange, SleepDayAvailability, SleepDayInsight, SleepOverview,
+    SleepPeriodDetail, SleepPeriodInsight, SleepPhaseTotals, SleepSeriesComparison,
+    SleepSeriesOverview, SleepSeriesSummary, TrainingComparison, TrainingDateRange,
+    TrainingOverview, TrainingSeriesComparison, TrainingSeriesOverview, TrainingSeriesSummary,
     TrainingSessionInsight, UpdateCheckOutcome, UpdateCheckStatus, UpdateError,
     UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind, UpdateReleaseSummary, UpdateTrustFailure,
     UpdateWithdrawalReason, UpdateWithdrawalSummary,
 };
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ApplicationPreferencesInputDto {
+    locale: String,
+    appearance: String,
+    content_zoom_percent: u16,
+}
+
+impl TryFrom<ApplicationPreferencesInputDto> for ApplicationPreferences {
+    type Error = InvalidApplicationPreferences;
+
+    fn try_from(input: ApplicationPreferencesInputDto) -> Result<Self, Self::Error> {
+        let locale = fitfreed_application::LocalePreference::from_code(&input.locale)
+            .ok_or(InvalidApplicationPreferences::Locale)?;
+        let appearance = AppearancePreference::from_code(&input.appearance)
+            .ok_or(InvalidApplicationPreferences::Appearance)?;
+        Self::new(locale, appearance, input.content_zoom_percent)
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApplicationPreferencesDto {
+    version: u32,
+    locale: &'static str,
+    appearance: &'static str,
+    content_zoom_percent: u16,
+}
+
+impl From<ApplicationPreferences> for ApplicationPreferencesDto {
+    fn from(preferences: ApplicationPreferences) -> Self {
+        Self {
+            version: preferences.version,
+            locale: preferences.locale.code(),
+            appearance: preferences.appearance.code(),
+            content_zoom_percent: preferences.content_zoom_percent,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApplicationPreferencesLoadDto {
+    preferences: ApplicationPreferencesDto,
+    status: &'static str,
+}
+
+impl From<ApplicationPreferencesLoad> for ApplicationPreferencesLoadDto {
+    fn from(load: ApplicationPreferencesLoad) -> Self {
+        Self {
+            preferences: load.preferences.into(),
+            status: match load.status {
+                PreferencesLoadStatus::Current => "current",
+                PreferencesLoadStatus::Initialized => "initialized",
+                PreferencesLoadStatus::Recovered => "recovered",
+            },
+        }
+    }
+}
 use fitfreed_domain::{
     ArtifactCoverageSummary, ArtifactFamilyCoverage, ImportOutcome, ImportReport,
     SleepPhaseSummary, SleepScore, SleepStage, SleepStageTransition,
@@ -1782,6 +1843,59 @@ mod tests {
     use fitfreed_domain::{ArtifactClassification, ArtifactFamilyCoverage, ImportOperationState};
 
     use super::*;
+
+    #[test]
+    fn validates_and_serializes_the_application_preferences_transport_contract() {
+        let input: ApplicationPreferencesInputDto = serde_json::from_value(serde_json::json!({
+            "locale": "es-ES",
+            "appearance": "dark",
+            "contentZoomPercent": 175
+        }))
+        .expect("preference input");
+        let preferences = ApplicationPreferences::try_from(input).expect("valid preferences");
+        let load = ApplicationPreferencesLoadDto::from(ApplicationPreferencesLoad {
+            preferences,
+            status: PreferencesLoadStatus::Recovered,
+        });
+
+        assert_eq!(
+            serde_json::to_value(load).expect("preference output"),
+            serde_json::json!({
+                "preferences": {
+                    "version": 1,
+                    "locale": "es-ES",
+                    "appearance": "dark",
+                    "contentZoomPercent": 175
+                },
+                "status": "recovered"
+            })
+        );
+    }
+
+    #[test]
+    fn rejects_unsupported_application_preferences_at_the_transport_boundary() {
+        for input in [
+            serde_json::json!({
+                "locale": "fr-FR",
+                "appearance": "system",
+                "contentZoomPercent": 100
+            }),
+            serde_json::json!({
+                "locale": "en-US",
+                "appearance": "sepia",
+                "contentZoomPercent": 100
+            }),
+            serde_json::json!({
+                "locale": "en-US",
+                "appearance": "light",
+                "contentZoomPercent": 99
+            }),
+        ] {
+            let input: ApplicationPreferencesInputDto =
+                serde_json::from_value(input).expect("preference input shape");
+            assert!(ApplicationPreferences::try_from(input).is_err());
+        }
+    }
 
     #[test]
     fn serializes_update_outcomes_and_errors_as_stable_codes() {

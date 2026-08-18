@@ -2,13 +2,13 @@ use std::{env, path::Path, process::ExitCode};
 
 use chrono::{SecondsFormat, Utc};
 use fitfreed_application::{
-    load_locale_preference, save_locale_preference, LocalePreference, UpdateArtifact,
-    UpdateInstallationAuthorization, UpdateRecoveryPhase,
+    load_application_preferences, save_application_preferences, ApplicationPreferences,
+    LocalePreference, UpdateArtifact, UpdateInstallationAuthorization, UpdateRecoveryPhase,
 };
 use fitfreed_lib::infrastructure::{
     active_update_recovery_phase, current_update_target, library_schema_version,
     prepare_update_recovery, verify_prepared_update_recovery, PlatformApplicationCopier,
-    SqliteLocalePreferences, UpdateRecoveryPreparation,
+    SqliteApplicationPreferences, UpdateRecoveryPreparation,
 };
 use serde_json::json;
 use tempfile::tempdir;
@@ -27,8 +27,13 @@ fn main() -> ExitCode {
         return report_failure("temporary-directory-unavailable");
     };
     let library_path = directory.path().join("fitfreed.sqlite");
-    let preferences = SqliteLocalePreferences::new(library_path.clone());
-    if save_locale_preference(&preferences, LocalePreference::EsEs).is_err() {
+    let preferences = SqliteApplicationPreferences::new(library_path.clone());
+    if save_application_preferences(
+        &preferences,
+        &ApplicationPreferences::defaults(LocalePreference::EsEs),
+    )
+    .is_err()
+    {
         return report_failure("synthetic-library-unavailable");
     }
     let Ok(target) = current_update_target() else {
@@ -73,9 +78,10 @@ fn main() -> ExitCode {
     else {
         return report_failure("active-recovery-mismatch");
     };
-    let Ok(Some(locale)) = load_locale_preference(&preferences) else {
+    let Ok(loaded) = load_application_preferences(&preferences, LocalePreference::EnUs) else {
         return report_failure("preserved-locale-unavailable");
     };
+    let locale = loaded.preferences.locale;
     let accepted = active_id == prepared.recovery_id()
         && locale == LocalePreference::EsEs
         && prepared.source_library_schema_version() == library_schema_version();

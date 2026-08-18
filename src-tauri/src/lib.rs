@@ -20,11 +20,16 @@ use std::fs;
 use chrono::{SecondsFormat, Utc};
 use fitfreed_application::{
     authorize_update_installation as authorize_update, check_for_updates as evaluate_updates,
-    dismiss_update as persist_update_dismissal, postpone_update as persist_update_postponement,
+    dismiss_update as persist_update_dismissal,
+    load_application_preferences as load_preferences_from_port,
+    postpone_update as persist_update_postponement,
     query_longitudinal_comparison as build_longitudinal_comparison,
-    query_longitudinal_overview as build_longitudinal_overview, ApplicationError,
-    ImportCoordinator, ImportProgress, LocalePreference, UpdateChannelPort, UpdateCheckContext,
-    UpdateCheckTrigger, UpdateInstallationAuthorization, UpdateRecoveryOutcome,
+    query_longitudinal_overview as build_longitudinal_overview,
+    reset_application_preferences as reset_preferences_through_port,
+    save_application_preferences as save_preferences_through_port, ApplicationError,
+    ApplicationPreferences, ImportCoordinator, ImportProgress, InvalidApplicationPreferences,
+    LocalePreference, UpdateChannelPort, UpdateCheckContext, UpdateCheckTrigger,
+    UpdateInstallationAuthorization, UpdateRecoveryOutcome,
 };
 use infrastructure::{
     acknowledge_update_recovery_outcome as acknowledge_retained_update_recovery_outcome,
@@ -32,15 +37,16 @@ use infrastructure::{
     confirm_active_update_recovery, current_update_target, download_verified_update,
     install_verified_update, library_schema_version, maintain_update_recovery,
     recover_interrupted_imports, resolve_update_application_path, run_update_recovery_watchdog,
-    HttpsUpdateChannel, SqliteActivityLibrary, SqliteImportOutcomeLibrary, SqliteLocalePreferences,
-    SqliteLongitudinalLibrary, SqlitePolarFlowArchiveImporter, SqliteRecoveryLibrary,
-    SqliteSleepLibrary, SqliteTrainingLibrary, SqliteUpdateState, UpdateInstallationError,
-    UpdateInstallationRequest, UpdatePackageError, UpdateRecoveryCandidateLease,
-    UpdateRecoveryError, UpdateRecoveryMaintenance, UPDATE_RECOVERY_CANDIDATE_ARGUMENT,
-    UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
+    HttpsUpdateChannel, SqliteActivityLibrary, SqliteApplicationPreferences,
+    SqliteImportOutcomeLibrary, SqliteLongitudinalLibrary, SqlitePolarFlowArchiveImporter,
+    SqliteRecoveryLibrary, SqliteSleepLibrary, SqliteTrainingLibrary, SqliteUpdateState,
+    UpdateInstallationError, UpdateInstallationRequest, UpdatePackageError,
+    UpdateRecoveryCandidateLease, UpdateRecoveryError, UpdateRecoveryMaintenance,
+    UPDATE_RECOVERY_CANDIDATE_ARGUMENT, UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
 };
 use presentation::{
-    ActivityComparisonDto, ActivityDateRangeDto, ActivityOverviewDto, CommandErrorDto,
+    ActivityComparisonDto, ActivityDateRangeDto, ActivityOverviewDto, ApplicationPreferencesDto,
+    ApplicationPreferencesInputDto, ApplicationPreferencesLoadDto, CommandErrorDto,
     ImportOutcomeDto, ImportProgressDto, ImportReportDto, LongitudinalComparisonDto,
     LongitudinalDateRangeDto, LongitudinalOverviewDto, RecoveryComparisonDto, RecoveryDateRangeDto,
     RecoveryNightDetailDto, RecoveryOverviewDto, SleepComparisonDto, SleepDateRangeDto,
@@ -454,29 +460,68 @@ fn query_latest_import_outcome(
         .map_err(CommandErrorDto::from)
 }
 
+fn supported_locale(code: &str) -> Result<LocalePreference, CommandErrorDto> {
+    LocalePreference::from_code(code).ok_or_else(|| CommandErrorDto::new("invalid-locale"))
+}
+
+fn map_invalid_application_preferences(error: InvalidApplicationPreferences) -> CommandErrorDto {
+    CommandErrorDto::new(match error {
+        InvalidApplicationPreferences::Version => "invalid-preference-version",
+        InvalidApplicationPreferences::Locale => "invalid-locale",
+        InvalidApplicationPreferences::Appearance => "invalid-appearance",
+        InvalidApplicationPreferences::ContentZoom => "invalid-content-zoom",
+    })
+}
+
 #[tauri::command]
-async fn load_locale(
+async fn load_preferences(
     app: AppHandle,
     startup_recovery: State<'_, Arc<StartupLibraryRecovery>>,
-) -> Result<Option<String>, CommandErrorDto> {
+    default_locale: String,
+) -> Result<ApplicationPreferencesLoadDto, CommandErrorDto> {
+    let default_locale = supported_locale(&default_locale)?;
     startup_recovery
         .await_ready()
         .await
         .map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
-    let preferences = SqliteLocalePreferences::new(path);
-    fitfreed_application::load_locale_preference(&preferences)
-        .map(|locale| locale.map(|value| value.code().to_owned()))
+    load_preferences_from_port(&SqliteApplicationPreferences::new(path), default_locale)
+        .map(Into::into)
         .map_err(CommandErrorDto::from)
 }
 
 #[tauri::command]
-fn save_locale(app: AppHandle, locale: String) -> Result<(), CommandErrorDto> {
-    let locale = LocalePreference::from_code(&locale)
-        .ok_or_else(|| CommandErrorDto::new("invalid-locale"))?;
+async fn save_preferences(
+    app: AppHandle,
+    startup_recovery: State<'_, Arc<StartupLibraryRecovery>>,
+    preferences: ApplicationPreferencesInputDto,
+) -> Result<ApplicationPreferencesDto, CommandErrorDto> {
+    let preferences = ApplicationPreferences::try_from(preferences)
+        .map_err(map_invalid_application_preferences)?;
+    startup_recovery
+        .await_ready()
+        .await
+        .map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
-    let preferences = SqliteLocalePreferences::new(path);
-    fitfreed_application::save_locale_preference(&preferences, locale)
+    save_preferences_through_port(&SqliteApplicationPreferences::new(path), &preferences)
+        .map_err(CommandErrorDto::from)?;
+    Ok(preferences.into())
+}
+
+#[tauri::command]
+async fn reset_preferences(
+    app: AppHandle,
+    startup_recovery: State<'_, Arc<StartupLibraryRecovery>>,
+    default_locale: String,
+) -> Result<ApplicationPreferencesLoadDto, CommandErrorDto> {
+    let default_locale = supported_locale(&default_locale)?;
+    startup_recovery
+        .await_ready()
+        .await
+        .map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    reset_preferences_through_port(&SqliteApplicationPreferences::new(path), default_locale)
+        .map(Into::into)
         .map_err(CommandErrorDto::from)
 }
 
@@ -569,11 +614,7 @@ fn perform_update_check(
     checked_at: String,
     trigger: UpdateCheckTrigger,
 ) -> Result<UpdateCheckOutcomeDto, CommandErrorDto> {
-    let locale = fitfreed_application::load_locale_preference(&SqliteLocalePreferences::new(
-        database_path.clone(),
-    ))
-    .map_err(|_| CommandErrorDto::new("update-state-unavailable"))?
-    .unwrap_or(LocalePreference::EnUs);
+    let locale = load_update_locale(database_path.clone())?;
     let state = SqliteUpdateState::new(database_path);
     evaluate_updates(
         channel,
@@ -691,11 +732,7 @@ fn perform_update_authorization(
     checked_at: String,
     candidate_version: &str,
 ) -> Result<UpdateInstallationAuthorization, CommandErrorDto> {
-    let locale = fitfreed_application::load_locale_preference(&SqliteLocalePreferences::new(
-        database_path.clone(),
-    ))
-    .map_err(|_| CommandErrorDto::new("update-state-unavailable"))?
-    .unwrap_or(LocalePreference::EnUs);
+    let locale = load_update_locale(database_path.clone())?;
     authorize_update(
         channel,
         &SqliteUpdateState::new(database_path),
@@ -709,6 +746,15 @@ fn perform_update_authorization(
         candidate_version,
     )
     .map_err(CommandErrorDto::from)
+}
+
+fn load_update_locale(database_path: PathBuf) -> Result<LocalePreference, CommandErrorDto> {
+    load_preferences_from_port(
+        &SqliteApplicationPreferences::new(database_path),
+        LocalePreference::EnUs,
+    )
+    .map(|loaded| loaded.preferences.locale)
+    .map_err(|_| CommandErrorDto::new("update-state-unavailable"))
 }
 
 fn map_exclusive_operation_error(error: ApplicationError) -> CommandErrorDto {
@@ -1222,8 +1268,9 @@ pub fn run() {
             query_longitudinal_overview,
             query_longitudinal_comparison,
             query_latest_import_outcome,
-            load_locale,
-            save_locale,
+            load_preferences,
+            save_preferences,
+            reset_preferences,
             check_for_updates_on_launch,
             check_for_updates,
             dismiss_available_update,
@@ -1247,8 +1294,8 @@ mod tests {
 
     use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
     use fitfreed_application::{
-        save_locale_preference, AuthenticatedUpdateSnapshot, LocalizedUpdateText, UpdateArtifact,
-        UpdateChannelRead, UpdateRelease,
+        AuthenticatedUpdateSnapshot, LocalizedUpdateText, UpdateArtifact, UpdateChannelRead,
+        UpdateRelease,
     };
     use minisign::KeyPair;
     use tempfile::TempDir;
@@ -1341,11 +1388,11 @@ mod tests {
     fn host_update_check_uses_the_installed_build_schema_and_persisted_locale() {
         let directory = TempDir::new().expect("temporary directory");
         let database_path = directory.path().join("library.sqlite");
-        save_locale_preference(
-            &SqliteLocalePreferences::new(database_path.clone()),
-            LocalePreference::EsEs,
+        save_preferences_through_port(
+            &SqliteApplicationPreferences::new(database_path.clone()),
+            &ApplicationPreferences::defaults(LocalePreference::EsEs),
         )
-        .expect("Spanish preference");
+        .expect("Spanish preferences");
         let channel = FixedUpdateChannel(UpdateChannelRead::Authenticated(Box::new(
             authenticated_update_snapshot(),
         )));
@@ -1362,7 +1409,10 @@ mod tests {
 
         assert_eq!(json["installedVersion"], env!("CARGO_PKG_VERSION"));
         assert_eq!(json["status"], "available");
-        assert_eq!(json["release"]["targetLibrarySchemaVersion"], 9);
+        assert_eq!(
+            json["release"]["targetLibrarySchemaVersion"],
+            library_schema_version()
+        );
         assert_eq!(json["release"]["releaseNotes"], "Notas en español.");
     }
 
@@ -1393,6 +1443,31 @@ mod tests {
 
         assert!(timestamp.ends_with('Z'));
         assert!(chrono::DateTime::parse_from_rfc3339(&timestamp).is_ok());
+    }
+
+    #[test]
+    fn host_maps_each_invalid_application_preference_to_a_stable_code() {
+        for (error, code) in [
+            (
+                InvalidApplicationPreferences::Version,
+                "invalid-preference-version",
+            ),
+            (InvalidApplicationPreferences::Locale, "invalid-locale"),
+            (
+                InvalidApplicationPreferences::Appearance,
+                "invalid-appearance",
+            ),
+            (
+                InvalidApplicationPreferences::ContentZoom,
+                "invalid-content-zoom",
+            ),
+        ] {
+            assert_eq!(
+                serde_json::to_value(map_invalid_application_preferences(error))
+                    .expect("command error JSON")["code"],
+                code
+            );
+        }
     }
 
     #[tokio::test(start_paused = true)]

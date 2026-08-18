@@ -14,9 +14,9 @@ At startup the application resolves its locale in this order:
 2. the first supported language in the operating system's ordered language list; or
 3. `en-US` when no operating-system language is supported.
 
-The selected locale is stored in the singleton `locale_preference` row documented by the [SQLite version 3 specification](../data-formats/persistence/sqlite-v3.md). If first-run persistence fails, the derived system locale remains active for that session and localized guidance explains that restart will retry initialization. A failed explicit update restores the previous visible locale. Locale changes never rewrite imported information.
+The selected locale is one member of the atomic `application_preference` set documented by the [SQLite version 10 specification](../data-formats/persistence/sqlite-v10.md). If first-run persistence fails, the derived system locale remains active for that session and localized guidance explains that restart will retry initialization. A failed explicit save restores the previous complete visible preference set. Locale changes never rewrite imported information.
 
-Authenticated update text is selected in the application layer from the persisted locale; React never selects a raw signed-language map. After a locale change is saved, the update panel repeats its launch-style evaluation so any visible signed release notes use the new locale. A failed locale save restores the previous interface and does not trigger that refresh.
+Authenticated update text is selected in the application layer from the persisted locale; React never selects a raw signed-language map. After the preference set is saved, the update panel repeats its launch-style evaluation so any visible signed release notes use the new locale. A failed save restores the previous interface and does not trigger that refresh.
 
 ## Formatting and pluralization
 

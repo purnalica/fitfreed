@@ -18,6 +18,12 @@ import type {
 } from "./presentation/activity-insights";
 import { commandErrorCode } from "./presentation/command-error";
 import type { ExplorerNavigationRequest } from "./presentation/explorer-navigation";
+import {
+  applyApplicationPreferences,
+  type ApplicationPreferences,
+  type ApplicationPreferencesLoad,
+} from "./presentation/application-preferences";
+import { SettingsPanel } from "./presentation/SettingsPanel";
 
 const rendererStartedAt = performance.now();
 
@@ -152,7 +158,17 @@ function App() {
   const [libraryReady, setLibraryReady] = useState(false);
   const localeReadyMilliseconds = useRef(0);
   const [applicationReady, setApplicationReady] = useState(false);
-  const [localeSaving, setLocaleSaving] = useState(false);
+  const [savedPreferences, setSavedPreferences] = useState<ApplicationPreferences>(() => ({
+    version: 1,
+    locale: systemLocale(),
+    appearance: "system",
+    contentZoomPercent: 100,
+  }));
+  const [preferencesSaving, setPreferencesSaving] = useState(false);
+  const [preferencesSavedNotice, setPreferencesSavedNotice] = useState(false);
+  const [preferencesRecovered, setPreferencesRecovered] = useState(false);
+  const [preferencesEditorRevision, setPreferencesEditorRevision] = useState(0);
+  const [activeHome, setActiveHome] = useState<"explore" | "settings">("explore");
   const [updateLocaleRefreshToken, setUpdateLocaleRefreshToken] = useState(0);
   const [archivePath, setArchivePath] = useState<string>();
   const [activityOverview, setActivityOverview] = useState<ActivityOverview>();
@@ -208,24 +224,34 @@ function App() {
 
   useEffect(() => {
     let active = true;
-    async function initializeLocale() {
-      let initializingPreference = false;
+    async function initializePreferences() {
+      const defaultLocale = systemLocale();
       try {
-        const stored = await invoke<Locale | null>("load_locale");
-        const selected = stored ?? systemLocale();
-        initializingPreference = stored === null;
+        const loaded = await invoke<ApplicationPreferencesLoad>("load_preferences", {
+          defaultLocale,
+        });
         if (active) {
-          setLocale(selected);
+          applyApplicationPreferences(loaded.preferences);
+          setSavedPreferences(loaded.preferences);
+          setLocale(loaded.preferences.locale);
+          setPreferencesRecovered(loaded.status === "recovered");
           setLibraryReady(true);
-        }
-        if (stored === null) {
-          await invoke("save_locale", { locale: selected });
         }
       } catch (reason) {
         if (active) {
           const code = commandErrorCode(reason);
+          const defaults: ApplicationPreferences = {
+            version: 1,
+            locale: defaultLocale,
+            appearance: "system",
+            contentZoomPercent: 100,
+          };
+          applyApplicationPreferences(defaults);
+          setSavedPreferences(defaults);
+          setLocale(defaultLocale);
+          if (code === "preference-update-failed") setLibraryReady(true);
           setErrorCode(
-            initializingPreference && code === "preference-update-failed"
+            code === "preference-update-failed"
               ? "preference-initialization-failed"
               : code,
           );
@@ -238,7 +264,7 @@ function App() {
       }
     }
 
-    initializeLocale();
+    initializePreferences();
     return () => {
       active = false;
     };
@@ -303,19 +329,71 @@ function App() {
     }
   }
 
-  async function changeLocale(next: Locale) {
-    const previous = locale;
-    setLocale(next);
-    setLocaleSaving(true);
+  function previewPreferences(preferences: ApplicationPreferences) {
+    applyApplicationPreferences(preferences);
+    setLocale(preferences.locale);
+    setPreferencesSavedNotice(false);
+  }
+
+  function openExplore() {
+    applyApplicationPreferences(savedPreferences);
+    setLocale(savedPreferences.locale);
+    setPreferencesSavedNotice(false);
+    setPreferencesEditorRevision((current) => current + 1);
+    setActiveHome("explore");
+  }
+
+  async function savePreferences(preferences: ApplicationPreferences) {
+    const previous = savedPreferences;
+    setPreferencesSaving(true);
     setErrorCode(undefined);
     try {
-      await invoke("save_locale", { locale: next });
+      const saved = await invoke<ApplicationPreferences>("save_preferences", {
+        preferences: {
+          locale: preferences.locale,
+          appearance: preferences.appearance,
+          contentZoomPercent: preferences.contentZoomPercent,
+        },
+      });
+      applyApplicationPreferences(saved);
+      setSavedPreferences(saved);
+      setLocale(saved.locale);
+      setPreferencesSavedNotice(true);
+      setPreferencesRecovered(false);
+      setPreferencesEditorRevision((current) => current + 1);
       setUpdateLocaleRefreshToken((current) => current + 1);
     } catch (reason) {
-      setLocale(previous);
+      applyApplicationPreferences(previous);
+      setLocale(previous.locale);
+      setPreferencesEditorRevision((current) => current + 1);
       setErrorCode(commandErrorCode(reason));
     } finally {
-      setLocaleSaving(false);
+      setPreferencesSaving(false);
+    }
+  }
+
+  async function resetPreferences() {
+    const previous = savedPreferences;
+    setPreferencesSaving(true);
+    setErrorCode(undefined);
+    try {
+      const reset = await invoke<ApplicationPreferencesLoad>("reset_preferences", {
+        defaultLocale: systemLocale(),
+      });
+      applyApplicationPreferences(reset.preferences);
+      setSavedPreferences(reset.preferences);
+      setLocale(reset.preferences.locale);
+      setPreferencesSavedNotice(true);
+      setPreferencesRecovered(false);
+      setPreferencesEditorRevision((current) => current + 1);
+      setUpdateLocaleRefreshToken((current) => current + 1);
+    } catch (reason) {
+      applyApplicationPreferences(previous);
+      setLocale(previous.locale);
+      setPreferencesEditorRevision((current) => current + 1);
+      setErrorCode(commandErrorCode(reason));
+    } finally {
+      setPreferencesSaving(false);
     }
   }
 
@@ -507,8 +585,56 @@ function App() {
     });
   }
 
+  if (!localeReady) {
+    return <main className="startup-surface" aria-busy="true" aria-label="FitFreed" />;
+  }
+
   return (
-    <main>
+    <div className="app-shell">
+      <header className="shell-header">
+        <strong className="shell-brand">FitFreed</strong>
+        <nav aria-label={messages.shell.navigation}>
+          <button
+            type="button"
+            aria-current={activeHome === "explore" ? "page" : undefined}
+            onClick={openExplore}
+          >
+            {messages.shell.explore}
+          </button>
+          <button
+            type="button"
+            aria-current={activeHome === "settings" ? "page" : undefined}
+            onClick={() => setActiveHome("settings")}
+          >
+            {messages.shell.settings}
+          </button>
+        </nav>
+      </header>
+      <main className="app-content">
+        {preferencesRecovered && (
+          <p className="notice" role="status" aria-live="polite">
+            {messages.settings.recovered}
+          </p>
+        )}
+        {visibleErrorCode && (
+          <p className="error" role="alert">
+            {errorMessages[visibleErrorCode] ?? messages.errors.unexpected}
+          </p>
+        )}
+        {activeHome === "settings" && (
+          <SettingsPanel
+            key={preferencesEditorRevision}
+            savedPreferences={savedPreferences}
+            messages={messages.settings}
+            disabled={!libraryReady || updateInstalling}
+            saving={preferencesSaving}
+            savedNotice={preferencesSavedNotice}
+            onPreview={previewPreferences}
+            onSave={savePreferences}
+            onReset={resetPreferences}
+          />
+        )}
+        <div className="explore-home" hidden={activeHome !== "explore"}>
       <header className="hero">
         <p className="eyebrow">FitFreed</p>
         <h1>{messages.title}</h1>
@@ -546,17 +672,6 @@ function App() {
             {cancelRequested ? messages.cancelling : messages.cancel}
           </button>
         )}
-        <label>
-          <span>{messages.language}</span>
-          <select
-            value={locale}
-            onChange={(event) => void changeLocale(event.target.value as Locale)}
-            disabled={!libraryReady || localeSaving || updateInstalling}
-          >
-            <option value="en-US">{messages.localeEnglish}</option>
-            <option value="es-ES">{messages.localeSpanish}</option>
-          </select>
-        </label>
       </section>
 
       {updateRecoveryOutcome && (
@@ -714,12 +829,6 @@ function App() {
           )}
         </section>
       )}
-      {visibleErrorCode && (
-        <p className="error" role="alert">
-          {errorMessages[visibleErrorCode] ?? messages.errors.unexpected}
-        </p>
-      )}
-
       {applicationReady && (
         <Suspense fallback={null}>
           <LongitudinalInsightsPanel
@@ -977,7 +1086,9 @@ function App() {
           />
         </Suspense>
       )}
-    </main>
+        </div>
+      </main>
+    </div>
   );
 }
 

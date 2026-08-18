@@ -43,7 +43,7 @@ The current 0.1.0 list is empty because it is the first intended private alpha a
 
 For a value below the target, opening the library applies every later immutable migration atomically, retains valid existing information, advances `PRAGMA user_version` to the target, and passes SQLite integrity checking. The target value is the no-op compatibility case. Schema 0 means creation of a new library and is not a retained compatibility baseline. A schema newer than the target is rejected without downgrade or mutation.
 
-The current target supports schemas 1 through 9. This does not assert that nine application releases existed.
+The current target supports schemas 1 through 10. This does not assert that ten application releases existed.
 
 ## Release and test obligations
 
