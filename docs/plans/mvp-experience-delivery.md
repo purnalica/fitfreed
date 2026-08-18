@@ -2,7 +2,7 @@
 
 ## Status
 
-Active as of 2026-08-18. D0, P1, E1, and P2 have complete local and hosted acceptance evidence. E2 has reached its complete local checkpoint; hosted executable evidence remains pending. All three E3 slices have reached their local checkpoints, and E4 is active. The latest E3 executable fingerprint still requires hosted evidence. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English and Spanish hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md) and [ADR 0024](../architecture/decisions/0024-generate-localized-product-pages.md).
+Active as of 2026-08-19. D0, P1, E1, and P2 have complete local and hosted acceptance evidence. E2 has reached its complete local checkpoint; hosted executable evidence remains pending. All three E3 slices have reached their local checkpoints. The recorded-structure and route slices of E4 have reached their local checkpoints, and E4 remains active. The latest executable fingerprint still requires hosted evidence. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English and Spanish hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md) and [ADR 0024](../architecture/decisions/0024-generate-localized-product-pages.md).
 
 The existing import, reconciliation, persistence, Insights, localization, update-recovery, packaging, and continuous-integration capabilities remain the engineering baseline. This plan changes how those capabilities become a product people can understand and value; it does not discard their verified behavior.
 
@@ -436,9 +436,27 @@ multiple exercises, mixed sports, exact laps, pauses, absent measurements, mappi
 200% zoom, keyboard semantics, and automated accessibility. The release read-model campaign over 14,612
 sessions measured exact structure retrieval at 7.144 ms p95 against the 500 ms budget. The five-GiB import
 campaign passed at 14.692 s first-import p95, 90.272 ms exact-repeat p95, 1.356 ms paired-query p95, and
-33.703 MiB maximum resident memory. This accepts only the recorded-structure vertical; E4 remains active for
-routes, temporal signals, zones, exact samples, provenance presentation, reusable user criteria, progressive
-million-sample access, and their privacy and performance evidence.
+33.703 MiB maximum resident memory. This accepts only the recorded-structure vertical.
+
+**Route slice local accepted evidence:** schema 16, adapter version 8, mapping-set version 3, and training
+mapping version 3 preserve independent primary and transition routes and every ordered waypoint below the
+same provider-neutral exercise identity. Unevaluated, absent, present-empty, zero-point, one-point, and
+populated states remain distinct. Exact reimport from mapping version 2 enriches the existing session without
+duplicate routes or points, while invalid coordinates and elapsed ordering fail before visibility.
+
+The session workspace now draws an endpoint-preserving selection of at most 400 exact source points with
+local SVG, makes no tile or geocoder request, identifies route kind without relying on color, and exposes
+every original coordinate through stable 100-row UI pages backed by a 250-row application maximum. The
+packaged bilingual journey proves primary and transition presentation, privacy disclosure, visual-to-table
+parity, exact-point opening and closing, localization, 200% layout coverage, restart, keyboard semantics, and
+automated accessibility. The complete fast lane passed 135 automation tests, 90 React tests, 182 host tests,
+91 application tests, and 13 domain tests with strict Clippy and formatting.
+
+The local Apple Silicon read-model campaign stored one million independently generated route points. The
+bounded 400-point overview measured 7.303 ms p95 and the 250-point exact page measured 12.167 ms p95 against
+the 500 ms budget, with 21.391 MiB peak process memory for the complete campaign. E4 remains active for
+temporal signals, zones, exact signal samples, provenance presentation, reusable user criteria, progressive
+signal access, and their privacy and performance evidence.
 
 ### E5 — Personal report authoring and export
 

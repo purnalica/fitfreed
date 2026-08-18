@@ -4,7 +4,7 @@
 
 Current architecture after [ADR 0002](decisions/0002-select-sqlite-storage.md). SQLite is the only storage engine in the application and the authoritative local-library format. It does not replace the documented portable FitFreed data contract.
 
-The current implemented schema and compatibility boundary are documented in the [SQLite version 15 persistence specification](../data-formats/persistence/sqlite-v15.md). It preserves the complete provider-neutral fitness library through version 8, authenticated-update state from version 9, application preferences from version 10, a resumable exploration destination from version 11, user-authored sport classifications from version 12, coherent full-history training discovery evidence from version 13, the disposable training-discovery workspace from version 14, and mapped training exercises, laps, and pauses from version 15. Earlier specifications remain immutable migration history.
+The current implemented schema and compatibility boundary are documented in the [SQLite version 16 persistence specification](../data-formats/persistence/sqlite-v16.md). It preserves the complete provider-neutral fitness library through version 8, authenticated-update state from version 9, application preferences from version 10, a resumable exploration destination from version 11, user-authored sport classifications from version 12, coherent full-history training discovery evidence from version 13, the disposable training-discovery workspace from version 14, mapped training exercises, laps, and pauses from version 15, and primary and transition route assessments with exact points from version 16. Earlier specifications remain immutable migration history.
 
 ## Ownership
 
