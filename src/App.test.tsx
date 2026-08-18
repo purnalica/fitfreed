@@ -2244,7 +2244,7 @@ describe("FitFreed import interface", () => {
     expect(screen.getByText("Every package artifact was classified.")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Explore" }));
     await enterExploration(user, "activity");
-    const rows = screen.getAllByRole("row");
+    const rows = await screen.findAllByRole("row");
     expect(rows).toHaveLength(4);
     expect(within(rows[1]).getByText("Jan 1, 2026")).toBeVisible();
     expect(within(rows[1]).getByText("3,100")).toBeVisible();
@@ -2257,7 +2257,7 @@ describe("FitFreed import interface", () => {
     )).toBeVisible();
     expect(mocks.sleepInvoke).not.toHaveBeenCalled();
     await enterExploration(user, "activity");
-    expect(screen.getAllByRole("row")).toHaveLength(4);
+    expect(await screen.findAllByRole("row")).toHaveLength(4);
 
     view.unmount();
     render(<App />);
