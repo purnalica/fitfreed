@@ -102,7 +102,9 @@ The application will provide understandable navigation and querying of imported 
 
 The application will let users compose, save, revisit, refresh, and export their own reports. A report may begin from a question, exploration, session, or reusable blank definition and combine periods, sports, sessions, measurements, comparisons, user-defined segmentation, narrative, exact values, tables, charts, maps, provenance, coverage, and limitations.
 
-Saved reports will retain a documented, versioned, reproducible definition rather than only copied presentation values. The authoring experience will preview output, expose sensitive content, distinguish source facts, FitFreed calculations, user-authored text, and unavailable conclusions, and make refresh after new imports or calculation changes deliberate. The exact export formats will be selected during the report-authoring design milestone.
+Saved reports will retain a documented, versioned, reproducible definition rather than only copied presentation values. The authoring experience will preview output, expose sensitive content, distinguish source facts, FitFreed calculations, user-authored text, and unavailable conclusions, and make refresh after new imports or calculation changes deliberate.
+
+The first report will be an ordered evidence document with finding, comparison, session, chart, exact-table, coverage-and-limitation, and narrative blocks, plus a route block when route evidence is available. Its normative export will be deterministic self-contained HTML with embedded styles and graphics, semantic headings and tables, no scripts or external requests, declared locale and units, and explicit provenance, coverage, limitations, authorship, definition version, and source revision. Native PDF, formulas, arbitrary queries, free-form layout, shared templates, scheduled generation, and plug-in blocks are outside the MVP.
 
 ### FR-006 — Visualization
 
@@ -357,6 +359,24 @@ All user-facing features included in the first release will be available in Engl
 - Credentials and refresh tokens will use operating-system protected storage, never enter logs or portable data exports, and remain revocable independently of the local library.
 - Offline use and historical exploration will remain available when a provider is unreachable, access is revoked, or an API is discontinued.
 
+### FR-025 — Evidence-complete session exploration
+
+- The MVP will provide one common session workspace that proves an outdoor routed session and an indoor or non-routed session without assuming every source supplies laps, phases, routes, or samples.
+- Supported source exercises, source and automatic laps, pauses, zones, routes, and numeric sample series will retain distinct identity, ordering, provenance, optionality, and mapping version beneath a provider-neutral session identity.
+- The initial numeric sample families are heart rate, speed or pace, cumulative distance, altitude, cadence, and power only where their exact enumeration, unit, interval, origin, missing-value encoding, valid range, and reconciliation behavior are documented and verified.
+- Visual queries will be bounded and may use attributed downsampling; exact values will remain available through a stable paginated alternative.
+- The initial reusable `SegmentCriterion` variants are equal elapsed time, equal distance, heart-rate zone, and manual boundaries. Each will declare measurement prerequisites, units, applicability, attribution, and evaluation version; unavailable prerequisites will be explained rather than guessed.
+- Source structure, FitFreed-derived segments, and user-authored criteria will remain visibly distinct, reversible, and independently inspectable.
+- Precise route geometry will remain local. The MVP route view will use local project-rendered geometry without an external tile request, and export will require sensitive-content review.
+- Reimporting identical source bytes after a mapping upgrade will reassess and atomically enrich the existing session without duplicating its session, exercise, lap, route, or series identities.
+
+### FR-026 — User-authored sport classification
+
+- An unresolved source sport reference will remain explicitly unknown until trustworthy evidence or the user supplies a classification; the application will never invent a sport name from an opaque provider value.
+- A provider-neutral classification will be scoped by observation origin and exact source sport reference and may contain a canonical sport family and user display label with authorship and revision.
+- Classification will survive restart, reimport, migration, and portable backup without overwriting source evidence.
+- A future provider catalogue or connected API may offer a provenance-bearing suggestion but will not silently replace a user choice.
+
 ## Confirmed MVP scope
 
 The MVP is a private unsigned macOS alpha that provides one complete user journey:
@@ -366,18 +386,21 @@ The MVP is a private unsigned macOS alpha that provides one complete user journe
 3. Inspect phased progress and a coverage report that distinguishes supported, unsupported, deliberately ignored, unrecognized, and invalid data, then explains each data family and the applicable next action.
 4. Persist normalized data locally and recover it after restarting the application.
 5. Explore a longitudinal dashboard covering daily activity, training sessions, sleep, and recovery.
-6. Filter the history, open detail views, and compare selected periods through a visual report.
-7. Reimport the same archive without duplicates and import a later overlapping archive cumulatively.
-8. Receive actionable guidance for invalid, partial, unsupported, interrupted, or failed imports.
+6. Find a remembered session through sport, chronology, search, or filtering and return to the exact originating exploration state.
+7. Inspect one routed and one non-routed session through supported structure, signals, exact evidence, provenance, limitations, and reusable user segmentation.
+8. Compose, save, reopen, deliberately refresh, preview, and export an ordered evidence report as self-contained HTML.
+9. Reimport the same archive without duplicates and import a later overlapping archive cumulatively.
+10. Receive actionable guidance for invalid, partial, unsupported, interrupted, or failed imports.
 
 The MVP also publishes the Polar Flow export-format reference required by FR-019 for every file family evaluated by the importer, including explicit gaps and unsupported structures. It publishes the FitFreed specifications required by FR-020 for every canonical concept, mapping, persisted schema, migration, and portable representation implemented by the MVP.
 
-The personal-report-authoring design milestone will select the smallest complete composition and export journey that maximizes the value and distinctiveness of the MVP. The MVP boundary will be refined from that evaluated design before implementation; neither exclusion of report authoring nor delivery of the complete long-term report system is assumed in advance.
+The accepted report, deep-session, segmentation, and sport-classification boundaries are defined by FR-005, FR-025, and FR-026. Their architecture is recorded in ADRs 0021 and 0022, and their production sequence is E3 through E5 of the MVP experience delivery plan.
 
 The MVP explicitly excludes:
 
-- Route maps and detailed geospatial exploration.
-- Full-resolution physiological and training sample exploration.
+- External-tile cartography, route atlases, route search, and geospatial analysis beyond the local session route.
+- Sample families and provider-specific training structures outside the verified FR-025 set.
+- Free-form report layout, formulas, arbitrary queries, native PDF generation, cloud collaboration, and scheduled reports.
 - Additional source providers.
 - Linux and Windows packages.
 - Apple code signing, notarization, and public binary distribution.
@@ -695,7 +718,9 @@ The final criteria will be refined during analysis. At minimum, they must cover:
 - Cumulative import of a later export.
 - Correct persistence and recovery after restarting the application.
 - Exploration of all information types included in scope.
-- Correct generation of agreed reports.
+- Creation, persistence, deliberate refresh, preview, and deterministic self-contained HTML export of an agreed evidence report.
+- Bounded visual and exact inspection of the accepted routed and non-routed session verticals, including honest missing structures and reusable criteria.
+- User-authored sport classification that preserves unknown and source-evidence states across restart and reimport.
 - Functional verification of all filters, controls, and interactions in every visualization.
 - Understandable handling of invalid, partial, or unsupported data.
 - Verified installation and execution on every declared platform.

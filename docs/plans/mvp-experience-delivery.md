@@ -2,7 +2,7 @@
 
 ## Status
 
-Planned as of 2026-08-18. The accepted product-experience direction now has an implementation sequence. Production implementation has not started under this plan.
+Active as of 2026-08-18. D0 is accepted and documented; production implementation begins with E1.
 
 The existing import, reconciliation, persistence, Insights, localization, update-recovery, packaging, and continuous-integration capabilities remain the engineering baseline. This plan changes how those capabilities become a product people can understand and value; it does not discard their verified behavior.
 
@@ -52,14 +52,15 @@ Existing release and recovery behavior remains protected by its tests. Freezing 
 - Public product communication is part of the acquisition experience: the repository README must earn an interested visitor's next minute, while a product page must explain the value and intended experience without presenting roadmap capabilities as already available.
 - Provider facts, FitFreed calculations, user-authored interpretation, uncertainty, and unavailable conclusions remain visibly distinct.
 
-### Product boundaries that still require evidence
+### Product boundaries closed by D0
 
-Two decisions cannot be made responsibly from the visual prototype alone:
+The product owner accepted the evidence-led boundaries documented in [requirements](../requirements.md), [ADR 0021](../architecture/decisions/0021-model-training-as-attributed-evidence.md), and [ADR 0022](../architecture/decisions/0022-persist-reproducible-evidence-reports.md):
 
-1. **Deep-session MVP boundary.** The current confirmed MVP excludes routes and full-resolution samples, while the accepted product direction identifies session structure, temporal signals, routes, and exact evidence as the clearest differentiator. Clean-room source analysis, performance evidence, and an evidence-complete interaction prototype must establish the smallest deep-session slice worth shipping.
-2. **Personal-report MVP boundary.** The report-authoring design milestone must establish the smallest complete composition, persistence, refresh, preview, and export journey. A screenshot exporter is too weak; the complete long-term report system is too broad.
+1. **Deep-session MVP boundary.** One common attributed session workspace proves a routed and a non-routed vertical, the verified initial series set, bounded visuals, paginated exact evidence, local route rendering, and the initial versioned `SegmentCriterion` variants.
+2. **Personal-report MVP boundary.** One ordered evidence report supports typed blocks, persistence, deliberate refresh, sensitive-content review, and deterministic self-contained HTML export.
+3. **Sport-classification boundary.** Provider-neutral user authorship resolves opaque source references without guessed sport names or an MVP provider-account dependency.
 
-These are product-scope gates under the autonomous execution policy. Work that does not depend on their outcome continues while the evidence is prepared.
+These decisions close the D0 human gate. Expanding them materially remains a product-scope decision under the autonomous execution policy.
 
 ## Current capability and gap map
 
@@ -98,7 +99,7 @@ Every drill-down has an explicit destination-aware return action. Returning rest
 
 ### 5. The result can outlive the screen
 
-The accepted report slice lets a person deliberately select evidence, add interpretation, save a reproducible definition, reopen it after restart, understand whether new imports affect it, preview sensitive content, and export through at least one dependable format selected by the report-design gate.
+The accepted report slice lets a person deliberately select evidence, add interpretation, save a reproducible definition, reopen it after restart, understand whether new imports affect it, preview sensitive content, and export deterministic self-contained HTML.
 
 ## Information architecture target
 
@@ -163,6 +164,8 @@ Each increment is a runnable vertical outcome. Within an increment, tests are wr
 
 ### D0 — Resolve the two value boundaries
 
+**Status:** accepted and complete on 2026-08-18.
+
 **Outcome:** report authoring and deep-session exploration have enough evidence for one explicit MVP scope decision each.
 
 **Work:**
@@ -177,9 +180,9 @@ Each increment is a runnable vertical outcome. Within an increment, tests are wr
 8. Score candidate MVP slices by unique user value, completeness, source confidence, privacy risk, performance feasibility, accessibility, implementation dependency, and future discard risk.
 9. Derive one public narrative from `product-thesis.md` for two distinct entry surfaces: a scan-friendly README for users and contributors, and a visual product-page concept for people deciding whether FitFreed is worth following. Both surfaces distinguish present capability, active MVP work, and longer-term direction explicitly.
 
-**Evidence gate:** the product owner receives no request to choose between vague ideas. The gate presents concrete report and deep-session journeys, source-confidence boundaries, dependency and licence findings, a recommended smallest complete slice, and reviewable README and product-page communication structures. The current recommendations are recorded in the [MVP experience boundary assessment](../research/mvp-experience-boundary-assessment.md). The accepted decisions update `requirements.md` and `roadmap.md` before production capability work that depends on them.
+**Evidence gate:** the [MVP experience boundary assessment](../research/mvp-experience-boundary-assessment.md) presented concrete journeys, source-confidence boundaries, dependency and licence findings, and the smallest complete slices. The accepted decisions are canonical in `requirements.md`, `roadmap.md`, ADR 0021, and ADR 0022.
 
-**Independent work while the gate is open:** E1 can proceed because its settings, acquisition, shell, and navigation responsibilities are already accepted.
+**Handoff:** E1 proceeds first. E3 through E5 may rely on the accepted D0 boundaries without another routine confirmation.
 
 ### E1 — First-run shell, sources, settings, and navigation spine
 
@@ -238,7 +241,7 @@ Each increment is a runnable vertical outcome. Within an increment, tests are wr
 
 **User value:** a person can locate a remembered workout and understand the shape of their sports history.
 
-**Precondition:** D0 has established a safe sport-classification path. Opaque provider references are never displayed as invented sport names.
+**Precondition:** FR-026 and ADR 0021 establish the accepted sport-classification path. Opaque provider references are never displayed as invented sport names.
 
 **Application and architecture:**
 
@@ -265,7 +268,7 @@ Each increment is a runnable vertical outcome. Within an increment, tests are wr
 
 **User value:** opening a session answers “what happened?” rather than repeating its summary row.
 
-**Precondition:** the deep-session scope decision from D0 is accepted and documented.
+**Precondition:** FR-025 and ADR 0021 define the accepted deep-session scope.
 
 **Application and architecture:**
 
@@ -297,7 +300,7 @@ Each increment is a runnable vertical outcome. Within an increment, tests are wr
 
 **User value:** a person can turn an exploration into a reusable, portable result.
 
-**Precondition:** the report scope and export format decision from D0 is accepted and the selected report blocks have authoritative application queries.
+**Precondition:** FR-005 and ADR 0022 define the accepted report scope and export format; implementation waits only for authoritative application queries required by each selected block.
 
 **Application and architecture:**
 
@@ -416,7 +419,6 @@ Implementation proceeds without routine confirmation through accepted increments
 
 Human intervention is required only for:
 
-- accepting the D0 deep-session and report MVP scope decisions;
 - accepting a material change to platform, privacy, licensing, or product behavior;
 - authorizing a dependency with unresolved license or supply-chain risk;
 - Apple Developer, production signing, protected-environment, tag, release, Pages, or public publication authority;

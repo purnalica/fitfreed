@@ -2,7 +2,7 @@
 
 ## Current boundary
 
-Public release automation is deliberately inactive. The checked-in update configuration contains no production trust key, GitHub Pages and the `public-macos-release` environment are not configured, repository release immutability is disabled, and no Apple or updater signing credential is available. These are release gates, not reasons to weaken or bypass the workflow.
+Public release automation is deliberately inactive. The checked-in update configuration contains no production trust key, GitHub Pages and the `public-macos-release` environment are not configured, repository release immutability is disabled, and no Apple or updater signing credential is available. The documented command currently prepares the verified two-file update snapshot; ADR 0020 additionally requires the exact product site to be composed before Pages upload, and that implementation gate remains open. These are release gates, not reasons to weaken or bypass the workflow.
 
 No command in normal continuous integration creates a tag, GitHub Release, Pages deployment, or public binary. The standing authorization for ordinary commits and pushes does not authorize any of those operations.
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-Active as of 2026-08-18. Milestone 2 capability implementation and the current Milestone 3 engineering baseline are complete. Source `3f462add258f8bf4b233c3f99cb6f97559c8e3fe` passed the complete local campaign, [hosted continuous integration](https://github.com/purnalica/fitfreed/actions/runs/32084588520), and [repository safety](https://github.com/purnalica/fitfreed/actions/runs/32084588507) with production trust deliberately inactive. The milestone remains open for production authority, protected GitHub configuration, the exact signed and notarized candidate, human evaluation, and public publication.
+Active as of 2026-08-18. The pre-intervention Milestone 2 capability and Milestone 3 engineering baselines are complete. Source `3f462add258f8bf4b233c3f99cb6f97559c8e3fe` passed the complete local campaign, [hosted continuous integration](https://github.com/purnalica/fitfreed/actions/runs/32084588520), and [repository safety](https://github.com/purnalica/fitfreed/actions/runs/32084588507) with production trust deliberately inactive. The accepted E1–E6 experience scope and ADR 0020 Pages compositor reopen final release readiness without invalidating that historical evidence. The milestone also remains open for production authority, protected GitHub configuration, the exact signed and notarized candidate, human evaluation, and public publication.
 
 ## Objective
 
@@ -51,7 +51,7 @@ Local evidence on 2026-08-17: both closed update-channel schemas and the public 
 
 ## Increment M3.3 — Signed, notarized release automation
 
-**Status:** engineering, local acceptance, and exact-source normal CI are complete. Production workflow execution remains gated separately by the production trust root, protected GitHub configuration, exact release tag, and explicit public-release authority.
+**Status:** the update-only engineering baseline, local acceptance, and exact-source normal CI are complete. ADR 0020 reopens Pages assembly and publication verification so the product site and update snapshot are composed atomically. Production workflow execution remains gated separately by the production trust root, protected GitHub configuration, exact release tag, and explicit public-release authority.
 
 **Outcome:** one manually authorized, exact-tag-bound workflow can build, sign, notarize, staple, inspect, attest, stage, and publish a public candidate without exposing release credentials to untrusted jobs.
 

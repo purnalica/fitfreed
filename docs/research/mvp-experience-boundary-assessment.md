@@ -2,10 +2,11 @@
 
 ## Status
 
-Recommendation ready for product-owner review as of 2026-08-18. This assessment resolves the
-evidence work in D0 of the [MVP experience delivery plan](../plans/mvp-experience-delivery.md); it
-does not change confirmed production scope until the recommendations are accepted and reflected in
-the requirements and roadmap.
+Accepted by the product owner on 2026-08-18. This assessment closes the evidence work in D0 of the
+[MVP experience delivery plan](../plans/mvp-experience-delivery.md). Current product behavior is
+canonical in [requirements](../requirements.md); structural decisions are canonical in
+[ADR 0021](../architecture/decisions/0021-model-training-as-attributed-evidence.md) and
+[ADR 0022](../architecture/decisions/0022-persist-reproducible-evidence-reports.md).
 
 ## Decision objective
 
@@ -212,12 +213,12 @@ Neither surface becomes a second roadmap, compatibility ledger, or legal specifi
 status blocks are generated from the shared snapshot, and they link to the other canonical sources
 for detail.
 
-## Acceptance decisions requested
+## Accepted decisions
 
-1. Accept the ordered evidence report and self-contained HTML as the report MVP boundary.
-2. Accept the common deep-session workspace with one routed and one non-routed vertical, the initial
-   typed sample set, and the initial `SegmentCriterion` variants.
-3. Accept user-authored provider-neutral sport classification as the offline MVP path.
+1. The ordered evidence report and self-contained HTML are the report MVP boundary.
+2. The common deep-session workspace with one routed and one non-routed vertical, the initial typed
+   sample set, and the initial `SegmentCriterion` variants is the session-detail MVP boundary.
+3. User-authored provider-neutral sport classification is the offline MVP path.
 
-If accepted, `requirements.md` and `roadmap.md` become authoritative for these boundaries; E3, E4,
-and E5 production contracts then proceed through the lower layers before their UI.
+`requirements.md` and `roadmap.md` are authoritative for these boundaries. E3, E4, and E5 production
+contracts proceed through the lower layers before their UI.

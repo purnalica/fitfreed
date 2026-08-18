@@ -39,8 +39,10 @@ FitFreed does not have a supported public release yet. The implemented applicati
 - [Active Milestone 3 plan](plans/milestone-3.md) defines the public macOS distribution sequence and evidence.
 - [Architecture decision records](architecture/decisions/README.md) preserve durable structural decisions.
 - [Release delivery architecture](architecture/release-delivery.md) separates private evidence preparation from publication authority and defines the composed product-site and update-channel deployment.
+- [Training exploration architecture](architecture/training-exploration.md) defines attributed session evidence, user criteria, classification, bounded series, and route privacy.
+- [Reporting architecture](architecture/reporting.md) defines reproducible report definitions and deterministic self-contained HTML export.
 - [Product thesis](product-thesis.md) explains the GDPR-enabled portability and open-source freedom argument without presenting FitFreed as legal advice or a compliance product.
-- [MVP experience boundary assessment](research/mvp-experience-boundary-assessment.md) presents the report, deep-session, sport-classification, dependency, navigation, and public-communication recommendations awaiting product review.
+- [MVP experience boundary assessment](research/mvp-experience-boundary-assessment.md) records the accepted report, deep-session, sport-classification, dependency, navigation, and public-communication evidence.
 
 ## Documentation ownership
 
