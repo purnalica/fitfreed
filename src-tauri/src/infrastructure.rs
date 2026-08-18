@@ -581,6 +581,25 @@ struct MappedTrainingArtifact {
 }
 
 #[derive(Debug)]
+struct ValidatedTrainingArtifact {
+    locator: String,
+    sha256: String,
+    origin_id: String,
+    session_id: String,
+}
+
+impl From<MappedTrainingArtifact> for ValidatedTrainingArtifact {
+    fn from(artifact: MappedTrainingArtifact) -> Self {
+        Self {
+            locator: artifact.locator,
+            sha256: artifact.sha256,
+            origin_id: artifact.observation.summary.origin_id,
+            session_id: artifact.observation.summary.session_id,
+        }
+    }
+}
+
+#[derive(Debug)]
 struct MappedSleepResultArtifact {
     locator: String,
     sha256: String,
@@ -942,7 +961,7 @@ fn execute_import(
     ));
 
     let mut mapped_artifacts = Vec::with_capacity(processable_artifacts);
-    let mut mapped_training_artifacts = Vec::new();
+    let mut validated_training_artifacts = Vec::new();
     let mut mapped_sleep_result_artifacts = Vec::new();
     let mut mapped_sleep_score_artifacts = Vec::new();
     let mut mapped_nightly_recoveries = Vec::new();
@@ -1096,7 +1115,7 @@ fn execute_import(
                             Some(&artifact_sha256),
                             assessment.reason_code,
                         )?;
-                        mapped_training_artifacts.push(mapped);
+                        validated_training_artifacts.push(mapped.into());
                     }
                     Err(error) => {
                         let reason_code = match &error {
@@ -1206,7 +1225,7 @@ fn execute_import(
     if let Some(error) = invalidate_duplicate_training_sessions(
         connection,
         operation_id,
-        mapped_training_artifacts.as_slice(),
+        validated_training_artifacts.as_slice(),
     )? {
         if first_invalid.is_none() {
             first_invalid = Some(error);
@@ -1266,7 +1285,7 @@ fn execute_import(
     let mut report = ImportReport::assessed();
     report.recognized_artifacts = processable_artifacts;
     if !mapped_artifacts.is_empty()
-        || !mapped_training_artifacts.is_empty()
+        || !validated_training_artifacts.is_empty()
         || !mapped_sleep_periods.is_empty()
         || !mapped_nightly_recoveries.is_empty()
     {
@@ -1282,9 +1301,29 @@ fn execute_import(
             return Err(ImportError::InjectedInterruption(index + 1));
         }
     }
-    for (training_index, artifact) in mapped_training_artifacts.iter().enumerate() {
+    for (training_index, validated) in validated_training_artifacts.iter().enumerate() {
+        ensure_not_cancelled(cancellation)?;
+        let decode_started = Instant::now();
+        let mut member = archive.by_name(&validated.locator)?;
+        let bytes = read_bytes(&mut member, &validated.locator, cancellation)?;
+        let artifact_sha256 = sha256_bytes(&bytes);
+        if artifact_sha256 != validated.sha256 {
+            return Err(ImportError::InvalidContainer(
+                "training artifact changed between validation and reconciliation".to_owned(),
+            ));
+        }
+        let artifact =
+            decode_training_session(origin_id, &validated.locator, &artifact_sha256, bytes)?;
+        if artifact.observation.summary.origin_id != validated.origin_id
+            || artifact.observation.summary.session_id != validated.session_id
+        {
+            return Err(ImportError::InvalidContainer(
+                "training identity changed between validation and reconciliation".to_owned(),
+            ));
+        }
+        timings.read_decode_map_milliseconds += milliseconds(decode_started.elapsed());
         let reconciliation_started = Instant::now();
-        reconcile_training_session(&transaction, operation_id, artifact, &mut report)?;
+        reconcile_training_session(&transaction, operation_id, &artifact, &mut report)?;
         timings.reconciliation_milliseconds += milliseconds(reconciliation_started.elapsed());
         if interrupt_after == Some(mapped_artifacts.len() + training_index + 1) {
             return Err(ImportError::InjectedInterruption(
@@ -1297,10 +1336,10 @@ fn execute_import(
         reconcile_sleep_period(&transaction, operation_id, period, &mut report)?;
         timings.reconciliation_milliseconds += milliseconds(reconciliation_started.elapsed());
         if interrupt_after
-            == Some(mapped_artifacts.len() + mapped_training_artifacts.len() + sleep_index + 1)
+            == Some(mapped_artifacts.len() + validated_training_artifacts.len() + sleep_index + 1)
         {
             return Err(ImportError::InjectedInterruption(
-                mapped_artifacts.len() + mapped_training_artifacts.len() + sleep_index + 1,
+                mapped_artifacts.len() + validated_training_artifacts.len() + sleep_index + 1,
             ));
         }
     }
@@ -1311,7 +1350,7 @@ fn execute_import(
         if interrupt_after
             == Some(
                 mapped_artifacts.len()
-                    + mapped_training_artifacts.len()
+                    + validated_training_artifacts.len()
                     + mapped_sleep_periods.len()
                     + recovery_index
                     + 1,
@@ -1319,7 +1358,7 @@ fn execute_import(
         {
             return Err(ImportError::InjectedInterruption(
                 mapped_artifacts.len()
-                    + mapped_training_artifacts.len()
+                    + validated_training_artifacts.len()
                     + mapped_sleep_periods.len()
                     + recovery_index
                     + 1,
@@ -4330,15 +4369,12 @@ fn invalidate_duplicate_daily_activity(
 fn invalidate_duplicate_training_sessions(
     connection: &Connection,
     operation_id: i64,
-    mapped_artifacts: &[MappedTrainingArtifact],
+    artifacts: &[ValidatedTrainingArtifact],
 ) -> Result<Option<ImportError>> {
     let mut locators_by_identity: HashMap<(&str, &str), Vec<&str>> = HashMap::new();
-    for artifact in mapped_artifacts {
+    for artifact in artifacts {
         locators_by_identity
-            .entry((
-                artifact.observation.summary.origin_id.as_str(),
-                artifact.observation.summary.session_id.as_str(),
-            ))
+            .entry((artifact.origin_id.as_str(), artifact.session_id.as_str()))
             .or_default()
             .push(artifact.locator.as_str());
     }

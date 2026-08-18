@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented Milestone 1 lifecycle foundation with the Milestone 2 source-subject and multi-family extensions. [ADR 0002](decisions/0002-select-sqlite-storage.md) selects SQLite as the single system of record. Schema version 2 implements durable states, terminal outcomes, coverage, provenance, an atomic visibility boundary, and startup recovery; schema version 4 adds library-scoped source-subject correlation under [ADR 0005](decisions/0005-use-library-scoped-source-subject-correlation.md); schema version 5 adds an activity range-query index; schema version 6 adds training-summary revision reconciliation and a distinct amendment outcome; schema version 7 adds split-artifact sleep joining; schema version 8 adds typed nightly-recovery summary reconciliation while deliberately excluding an undated sample blob. Every extension preserves the same visibility boundary. The desktop presents localized terminal summaries, five-category totals, a privacy-safe family breakdown with reasons and next actions, subject-correlation failures, and provider-neutral activity, training, sleep, and recovery Insights.
+Implemented Milestone 1 lifecycle foundation with the Milestone 2 source-subject and multi-family extensions. [ADR 0002](decisions/0002-select-sqlite-storage.md) selects SQLite as the single system of record. Schema version 2 implements durable states, terminal outcomes, coverage, provenance, an atomic visibility boundary, and startup recovery; schema versions 4 through 8 add source-subject correlation and the first canonical families; and schemas 15 and 16 add recorded training structure and route evidence without changing that boundary. Every extension preserves the same visibility boundary. The desktop presents localized terminal summaries, five-category totals, a privacy-safe family breakdown with reasons and next actions, subject-correlation failures, and provider-neutral activity, training, sleep, and recovery Insights.
 
 ## Goal
 
@@ -71,6 +71,8 @@ An exact package fingerprint may take a fast path that avoids repeated parsing o
 
 Supported artifacts are streamed through their source adapter. Structural validation and the anti-corruption layer produce typed normalized observations and local provenance locators in bounded batches. Relationships between separately exported artifacts, such as sleep results and scores, are validated and joined completely before any candidate becomes visible.
 
+Training artifacts use a deliberate two-pass boundary. The first pass performs complete semantic mapping, records coverage, detects duplicate aggregate identities, and then retains only a lightweight locator, digest, and identity manifest. It does not retain all mapped sessions, routes, or future signal values in process memory. After the complete package is accepted, the visibility transaction reopens each exact member, verifies its digest and identity against that manifest, remaps it, and reconciles one session at a time. Any second-pass failure rolls back every canonical change. The cost is one additional bounded parse per training artifact; the benefit is package-level atomicity without memory proportional to the complete training history or a second durable staging schema with private cleanup state.
+
 Staged candidates are not queryable as fitness history. Temporary state is private, bounded, permission-restricted, and either resumable under an exact implementation/version contract or safely disposable. Raw personal values never enter general application logs, public diagnostics, or test snapshots.
 
 Known unsupported, deliberately ignored, and unrecognized artifacts remain in coverage. Invalid content intended for a supported mapping rejects the package unless a family specification explicitly defines an independently committable boundary and explains the resulting partial outcome. The MVP default is package-level atomicity for supported mappings.
@@ -97,7 +99,7 @@ The visibility boundary atomically publishes:
 - the completed state that makes the already prepared complete coverage final;
 - the completed import outcome.
 
-The implementation persists coverage under a non-terminal operation and maps the current bounded activity, training-summary, sleep, and dated nightly-recovery candidates outside one long database transaction. Split sleep artifacts are assembled only after both supported families validate. Dated recovery summaries deliberately exclude undated sample blobs that have no safe identity relationship. The visible switch is atomic. The desktop presents localized terminal summaries, family guidance, and provider-neutral activity, training, sleep, and recovery Insights. Larger high-resolution families still require measured bounded staging rather than retaining their parsed content in memory.
+The implementation persists coverage under a non-terminal operation. Bounded activity, sleep, and dated nightly-recovery candidates are mapped before the visibility transaction; training candidates follow the two-pass manifest boundary and are remapped one at a time inside it. Split sleep artifacts are assembled only after both supported families validate. Dated recovery summaries deliberately exclude undated sample blobs that have no safe identity relationship. The visible switch is atomic. The desktop presents localized terminal summaries, family guidance, and provider-neutral activity, training, sleep, and recovery Insights. High-resolution training additions must retain this per-artifact memory bound and pass measured import and query budgets.
 
 Cancellation requested after committing begins is deferred until the atomic boundary resolves. The interface explains this brief non-cancellable phase.
 
@@ -145,7 +147,7 @@ The family breakdown prioritizes invalid, unrecognized, unsupported, and deliber
 
 ## Pending decisions
 
-- Bounded SQLite staging for high-resolution families and whether resumability is worth its privacy, versioning, and cleanup complexity.
+- Whether a future source family with a single artifact above the current per-member bound needs private resumable SQLite staging instead of the two-pass training boundary.
 - The exact cancellation granularity and resource budgets after representative synthetic measurements.
 - Family-specific exceptions, if any, to package-level atomicity for supported mappings.
 - Retention duration and user controls for completed import operations and detailed provenance.
