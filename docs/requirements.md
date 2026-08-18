@@ -100,7 +100,9 @@ The application will provide understandable navigation and querying of imported 
 
 ### FR-005 — Reports
 
-The application will produce reports. The report catalog, parameters, degree of customization, and output formats remain to be defined.
+The application will let users compose, save, revisit, refresh, and export their own reports. A report may begin from a question, exploration, session, or reusable blank definition and combine periods, sports, sessions, measurements, comparisons, user-defined segmentation, narrative, exact values, tables, charts, maps, provenance, coverage, and limitations.
+
+Saved reports will retain a documented, versioned, reproducible definition rather than only copied presentation values. The authoring experience will preview output, expose sensitive content, distinguish source facts, FitFreed calculations, user-authored text, and unavailable conclusions, and make refresh after new imports or calculation changes deliberate. The exact export formats will be selected during the report-authoring design milestone.
 
 ### FR-006 — Visualization
 
@@ -126,6 +128,59 @@ The application will retain the information needed to explain which files were p
 - Technology choices will be driven by product requirements and are not predetermined.
 - Analysis of the real format will precede data-model design and implementation.
 - The architecture will follow Clean Architecture and DDD.
+
+## Product experience contract
+
+The following decisions define FitFreed across features and releases. They are functional and design requirements, not a commitment to the current prototype's particular layout. A future interface may replace every screen while preserving this contract. Capabilities still enter delivery through the milestone boundaries in [`roadmap.md`](roadmap.md); this contract does not move post-MVP work onto the MVP critical path.
+
+### The person's history is the product
+
+- FitFreed will open toward what a person can understand, revisit, compare, or create from their history rather than toward ingestion status, generic metrics, or provider structure.
+- The sports history is the central product object. Sports, session collections, individual sessions, routes, chronology, and exact evidence are connected scales of the same history rather than unrelated feature silos.
+- Activity, sleep, recovery, and other health-adjacent records provide relevant context without displacing training as the primary exploration hierarchy or implying medical interpretation.
+
+### Questions lead; metrics support
+
+- Primary journeys will begin from recognisable user questions, records, or prior explorations. They will not require knowledge of source filenames, schemas, database concepts, or provider terminology.
+- Answers will lead to their supporting dates, sessions, samples, calculations, provenance, coverage, and limitations. Summary cards and charts are views over evidence, not substitutes for it.
+- FitFreed will expose only questions it can actually answer. It will not imitate unrestricted natural-language or artificial-intelligence understanding when the available application contracts support only a defined catalogue.
+
+### Knowledge has visible authorship
+
+- The interface and exported outputs will distinguish immutable source facts, provider assessments, deterministic FitFreed calculations, observed co-occurrence, user-authored text or criteria, and unavailable conclusions.
+- Provider-supplied structure, FitFreed-derived views, and user-defined session segmentation will remain visibly attributed, reversible, and independently inspectable.
+- Reimport, synchronization, recalculation, or report refresh will not silently rewrite a person's authored interpretation or present a later calculation as an original source fact.
+
+### Uncertainty remains part of the answer
+
+- Missing measurements, partial coverage, unsupported source content, incompatible criteria, and comparison limitations will be presented where they affect an answer rather than hidden in a remote diagnostic screen or collapsed into one overall score.
+- Absence will not be treated as zero, correlation will not be presented as causation, and provider or FitFreed scores will not become unexplained judgments about readiness, health, effort, or personal worth.
+- Visual emphasis will never remove access to exact values, units, provenance, or an accessible non-visual alternative.
+
+### Ownership is an end-to-end journey
+
+- FitFreed will help a person obtain an initial provider export, establish a historical local library, incorporate later archives safely, and—when supported—keep it current through explicitly authorized provider APIs.
+- The person will be able to reinterpret the library through reusable criteria, create reproducible reports, export documented representations, and grant revocable, scoped local MCP access to supported questions.
+- No stage will replace one provider lock-in with a FitFreed-only dead end. Normalized data, report definitions, personal criteria, provenance, and compatibility semantics will be documented and portable when their capability enters scope.
+
+### Local-first trust is shown through control
+
+- Local processing, offline continuity, absence of a required FitFreed account, and explicit control over destructive or sensitive operations will be communicated at the moment they matter rather than only in legal documentation.
+- Location, physiological, credential, agent-access, and bulk-export capabilities will use specific permission and privacy decisions; a broad preference or connection will not imply unrestricted authority.
+- Provider account screens, API availability, delivery timing, and export contents remain provider-controlled. FitFreed will state that boundary and never imply affiliation or authority it does not have.
+
+### Extensibility remains understandable
+
+- Provider-neutral navigation and use cases remain stable as providers, sports, measurements, report blocks, settings, and agent capabilities are added.
+- General ownership, privacy, and storage language will use platform-neutral device terminology. A platform name will appear only when instructions or behavior genuinely differ for that operating system.
+- Persistent preferences, source-library operations, exploration controls, report authoring, and external connections have distinct conceptual homes. New controls will join the home that owns their outcome instead of accumulating in a miscellaneous panel.
+- Sport-specific meaning will be preserved through extensions to a common session identity; new sports will not be flattened into a lowest-common-denominator collection of generic metrics.
+
+### Every visit should offer a useful next step
+
+- First run will establish the value of owned history before asking for an archive and will help a person who has not yet requested one.
+- A successful import will reveal the usable period, meaningful coverage, and a conservative first question or comparison instead of celebrating file counts alone.
+- Returning visits will surface supported paths through the evolving history without relying on coercive streaks, rankings, mystery scores, or notification pressure.
 
 ## Confirmed architectural constraints
 
@@ -254,12 +309,43 @@ All user-facing features included in the first release will be available in Engl
 - Documentation will distinguish the stable portable contract from replaceable persistence details. A storage engine or internal schema will not silently become the only way to recover a user's normalized data.
 - No new or changed FitFreed data field, mapping, migration, or portable representation will be complete until its corresponding specification and compatibility status are updated.
 
+### FR-021 — Persistent application settings
+
+- The application will provide a dedicated and extensible settings space rather than scattering persistent preferences across unrelated screens.
+- Initial preferences will include interface language, default content zoom from 100% through 200%, and system, light, or dark appearance.
+- Preferences will have safe defaults, explain their effect, survive restart, recover from invalid or obsolete values, and provide an explicit way to restore defaults.
+- Settings will distinguish preferences from data-library operations and group future controls by user outcome, including accessibility, imports, data and privacy, updates, and application information.
+
+### FR-022 — Provider export acquisition guidance
+
+- The import journey will help a user who does not yet have an export obtain the supported archive through the provider's official process.
+- Each importer will own versioned guidance containing a concise offline-capable procedure, the expected archive, provider-controlled delivery constraints, official links, troubleshooting information, and the date on which the instructions were last verified.
+- Guidance will distinguish FitFreed from the provider and will not automate credential entry, account access, or archive download on the user's behalf.
+- A provider website change will not make already available local instructions disappear, and unsupported or uncertain instructions will be identified rather than guessed.
+
+### FR-023 — Local Model Context Protocol access
+
+- FitFreed will be able to expose a local Model Context Protocol (MCP) server so user-authorized artificial-intelligence agents can query supported information from the person's library.
+- MCP resources and tools will use provider-neutral application use cases rather than reading the database or provider artifacts directly.
+- Access will be disabled by default, explicitly enabled by the user, limited by declared capabilities and privacy scopes, observable, revocable, and bound to the local device unless a later product decision defines a separately secured remote boundary.
+- Responses will preserve provenance, coverage, units, missing-data semantics, and FitFreed's distinction between recorded facts, calculations, user-authored interpretation, and unavailable conclusions.
+- Sensitive routes, physiological records, bulk extraction, and write-capable operations will require separately designed permissions; enabling general MCP access will not imply authority for all library contents or mutations.
+
+### FR-024 — Incremental connected-provider synchronization
+
+- After a historical export has established the library, FitFreed will be able to connect to supported provider APIs and ingest newly available records without requiring repeated full exports.
+- Connected synchronization will be implemented through source-specific adapters behind the same provider-neutral ingestion and reconciliation boundaries as archive import.
+- Each connector will declare authorization scopes, available history window, supported data families, polling or notification behavior, rate limits, freshness, known omissions, revocation, and deletion behavior.
+- API records and archive records from the same provider will reconcile through explicit source identity and revision rules; connection order will not create duplicates, silently overwrite richer history, or invent equivalence.
+- Credentials and refresh tokens will use operating-system protected storage, never enter logs or portable data exports, and remain revocable independently of the local library.
+- Offline use and historical exploration will remain available when a provider is unreachable, access is revoked, or an API is discontinued.
+
 ## Confirmed MVP scope
 
 The MVP is a private unsigned macOS alpha that provides one complete user journey:
 
-1. Launch the application in `en-US` or `es-ES`.
-2. Select and import a Polar Flow takeout ZIP archive directly.
+1. Launch the application in `en-US` or `es-ES` and persistently configure language, content zoom, and system, light, or dark appearance.
+2. Obtain a Polar Flow account export through verified provider guidance when needed, then select and import the ZIP archive directly.
 3. Inspect phased progress and a coverage report that distinguishes supported, unsupported, deliberately ignored, unrecognized, and invalid data, then explains each data family and the applicable next action.
 4. Persist normalized data locally and recover it after restarting the application.
 5. Explore a longitudinal dashboard covering daily activity, training sessions, sleep, and recovery.
@@ -268,6 +354,8 @@ The MVP is a private unsigned macOS alpha that provides one complete user journe
 8. Receive actionable guidance for invalid, partial, unsupported, interrupted, or failed imports.
 
 The MVP also publishes the Polar Flow export-format reference required by FR-019 for every file family evaluated by the importer, including explicit gaps and unsupported structures. It publishes the FitFreed specifications required by FR-020 for every canonical concept, mapping, persisted schema, migration, and portable representation implemented by the MVP.
+
+The personal-report-authoring design milestone will select the smallest complete composition and export journey that maximizes the value and distinctiveness of the MVP. The MVP boundary will be refined from that evaluated design before implementation; neither exclusion of report authoring nor delivery of the complete long-term report system is assumed in advance.
 
 The MVP explicitly excludes:
 
@@ -278,6 +366,8 @@ The MVP explicitly excludes:
 - Apple code signing, notarization, and public binary distribution.
 - Advanced application-level encryption.
 - A runtime importer plug-in marketplace.
+- Model Context Protocol access.
+- Connected provider-API synchronization.
 
 ### NFR-001 — Local scalability
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-Milestone 1 and Milestone 2 capability implementation and the current Milestone 3 public-release engineering baseline are complete. Apple Silicon on macOS 15.0 or later is the accepted MVP platform boundary. Before activating production trust or preparing a public candidate, the project will complete a prototype-led, radical UI and UX review of the implemented MVP journey. This quality intervention does not expand the agreed functional scope and must preserve the verified application, domain, persistence, localization, accessibility, and recovery behavior. Milestone 3 release acceptance remains active but externally gated until the redesigned experience is accepted: deterministic trust, candidate, publication, recovery, user, maintainer, and readiness paths pass local and hosted automation with production trust deliberately inactive, while production authority, protected GitHub configuration, exact-candidate evaluation, and public publication remain open in the consolidated readiness ledger.
+Milestone 1 and Milestone 2 capability implementation and the current Milestone 3 public-release engineering baseline are complete. Apple Silicon on macOS 15.0 or later is the accepted MVP platform boundary. Before activating production trust or preparing a public candidate, the project will complete a prototype-led, radical UI and UX review of the implemented MVP journey. The review now includes two accepted MVP experience additions: persistent appearance, zoom, and language settings, and provider-specific guidance for obtaining the first supported export. It must preserve the verified application, domain, persistence, localization, accessibility, and recovery behavior. Milestone 3 release acceptance remains active but externally gated until the redesigned experience is accepted: deterministic trust, candidate, publication, recovery, user, maintainer, and readiness paths pass local and hosted automation with production trust deliberately inactive, while production authority, protected GitHub configuration, exact-candidate evaluation, and public publication remain open in the consolidated readiness ledger.
 
 ## Purpose
 
@@ -109,9 +109,19 @@ The Milestone 0 closure plan is [`plans/milestone-0.md`](plans/milestone-0.md). 
 
 **Exit criteria:** Gatekeeper recognizes the application as signed and notarized, every public release gate passes, and no unsigned binary is exposed through the public release channel.
 
+### Next product-design milestone — Personal report authoring
+
+**Outcome:** validate how a person composes, saves, refreshes, previews, and exports reproducible reports before selecting implementation technology or scheduling production delivery.
+
+**Dependency:** acceptance of the active interaction direction and its information architecture.
+
+**Included:** question-led and blank starting points; data and period selection; composable narrative, tables, charts, maps, evidence, coverage, and limitations; sensitive-content review; saved-definition evolution; export recovery; accessibility; and focused evaluation of compatible open-source composition, visualisation, pagination, and export libraries.
+
+**Boundary:** the accepted design will determine the smallest complete authoring and export slice that maximizes MVP value. No report implementation enters the critical path before that evaluation, and the milestone must not assume either that report authoring is excluded from the MVP or that the complete long-term report system belongs in it.
+
 ### Horizon 1 — Broader insight coverage
 
-**Outcome:** expand the supported Polar Flow domains, relationships, reports, and visualizations beyond the MVP while preserving import compatibility and performance.
+**Outcome:** expand the supported Polar Flow domains, relationships, user-authored reports, exports, and visualizations beyond the MVP while preserving import compatibility and performance.
 
 **Planning level:** outcome only until MVP evaluation identifies the highest-value sequence.
 
@@ -129,15 +139,16 @@ Minimum operating-system versions, architectures, packaging, signing, and update
 ### Data-source track
 
 1. Polar Flow importer in the MVP.
-2. Additional provider importers, potentially including Garmin, selected by user value and available export formats.
+2. Incremental provider-API connectors that extend an established historical library with newly available records.
+3. Additional provider importers and matching incremental connectors, potentially including Garmin, selected by user value and available export and API capabilities.
 
-The relative scheduling of platform expansion and additional data sources remains a product decision after MVP evaluation. Neither track may compromise the provider-neutral core.
+Archive import remains the historical baseline; a provider API is an incremental convenience, not a substitute for historical portability. Connector authorization, limited history windows, unavailable data families, rate limits, revocation, outages, and API discontinuation remain explicit. The relative scheduling of platform expansion and additional data sources remains a product decision after MVP evaluation. Neither track may compromise the provider-neutral core.
 
 ### Horizon 2 — Mature personal analytics
 
-**Outcome:** provide deeper longitudinal analysis, comparison, export, and advanced visualization capabilities based on validated user needs.
+**Outcome:** provide deeper longitudinal analysis, comparison, export, and advanced visualization capabilities based on validated user needs, then expose supported library questions to user-authorized artificial-intelligence agents through a local Model Context Protocol boundary.
 
-**Planning level:** outcome only; no Horizon 2 capability is an MVP prerequisite.
+**Planning level:** outcome only; no Horizon 2 capability is an MVP prerequisite. MCP access remains disabled by default and requires a separate permission, privacy, observability, and revocation design before implementation.
 
 ### Horizon 3 — Sustainable ecosystem
 
