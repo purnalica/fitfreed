@@ -6,6 +6,7 @@ import {
   publicUpdateBuildEnvironment,
   validatePublicUpdateConfiguration,
 } from "./public-update-configuration.mjs";
+import { publicUpdateEndpoint } from "./public-origin.mjs";
 
 const inactiveConfiguration = JSON.parse(
   readFileSync(new URL("../release/public-update-channel.json", import.meta.url), "utf8"),
@@ -40,8 +41,7 @@ test("maps complete active public trust to compile-time inputs without private m
 
   assert.deepEqual(environment, {
     FITFREED_PUBLIC_UPDATE_CONTRACT: "stable-v2",
-    FITFREED_PUBLIC_UPDATE_ENDPOINT:
-      "https://purnalica.github.io/fitfreed/updates/stable.json",
+    FITFREED_PUBLIC_UPDATE_ENDPOINT: publicUpdateEndpoint,
     FITFREED_PUBLIC_UPDATE_TRUST: JSON.stringify({
       "stable.synthetic-1": activeConfiguration.keys[0].publicKey,
       "stable.synthetic-2": activeConfiguration.keys[1].publicKey,

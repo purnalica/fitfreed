@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { inspectReleaseContracts } from "./check-release-contracts.mjs";
+import { publicOrigin } from "./public-origin.mjs";
 import { loadPublicUpdateConfiguration } from "./public-update-configuration.mjs";
 import { loadPublicReleasePolicy } from "./public-release-policy.mjs";
 import { inspectPublicReleaseWorkflow } from "./public-release-workflow.mjs";
@@ -12,7 +13,7 @@ const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url))
 const revisionPattern = /^[0-9a-f]{40,64}$/;
 const releaseEnvironmentName = "public-macos-release";
 const repositoryName = "purnalica/fitfreed";
-const pagesUrl = "https://purnalica.github.io/fitfreed/";
+const pagesUrl = publicOrigin;
 const requiredWorkflows = ["ci.yml", "repository-safety.yml"];
 
 function run(command, args) {

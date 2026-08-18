@@ -34,9 +34,9 @@ The ephemeral authority installer writes private material only under the hosted 
 
 An accountable maintainer configures these prerequisites before the first release dispatch:
 
-1. Make `release/public-update-channel.json` active with the reviewed public updater key and keep the metadata endpoint equal to `https://purnalica.github.io/fitfreed/updates/stable.json`.
+1. Make `release/public-update-channel.json` active with the reviewed public updater key and keep the metadata endpoint derived from `release/public-origin.json`: `https://fitfreed.org/updates/stable.json`.
 2. Enable immutable Releases for the repository.
-3. Configure GitHub Pages to deploy from Actions at the canonical HTTPS project URL.
+3. Verify `fitfreed.org` for the `purnalica` organization, configure it as the Actions-backed Pages custom domain with the documented apex and `www` DNS records, and enforce HTTPS.
 4. Create `public-macos-release` with at least one required reviewer, prevent self-review, disable administrator bypass, and admit only tags matching the single `v*` tag policy.
 5. Add the exact protected secrets and non-secret variables documented in [public release preparation](public-release.md).
 6. Confirm private vulnerability reporting, Issues, and the documented support routes are available.

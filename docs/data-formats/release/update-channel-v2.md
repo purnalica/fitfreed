@@ -16,7 +16,7 @@ Version 2 preserves the fields, bounds, exact-byte signature model, semantic che
 - The complete response is limited to 1.5 MiB, the decoded payload to 1 MiB, a package to 1 GiB, an encoded signature to 16 KiB, and a URL to 2,048 characters.
 - Unknown fields are invalid except additional locale keys and valid target keys admitted by the schemas.
 
-The public metadata endpoint is the static direct HTTPS URL `https://purnalica.github.io/fitfreed/updates/stable.json`, without credentials, user information, query, or fragment. Metadata and package redirects are not followed. Connection establishment is limited to five seconds; the metadata request is limited to ten seconds and a bounded package request to fifteen minutes.
+The public metadata endpoint is the static direct HTTPS URL `https://fitfreed.org/updates/stable.json`, derived from the versioned [public-origin contract](public-origin-v1.md), without credentials, user information, query, or fragment. Metadata and package redirects are not followed. Connection establishment is limited to five seconds; the metadata request is limited to ten seconds and a bounded package request to fifteen minutes.
 
 ## Envelope fields
 

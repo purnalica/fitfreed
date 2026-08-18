@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 
+import { publicUpdateEndpoint, publicUpdateUrl } from "./public-origin.mjs";
 import { publicReleaseAssets } from "./public-release-publication.mjs";
 import {
   downloadVerifiedPagesSnapshot,
@@ -33,13 +34,13 @@ function fixture() {
   const archiveName = "FitFreed_0.1.0_aarch64.app.tar.gz";
   return {
     archiveBytes,
-    archiveUrl: `https://purnalica.github.io/fitfreed/updates/${version}/${archiveName}`,
+    archiveUrl: publicUpdateUrl(`${version}/${archiveName}`),
     pagesDirectory: mkdtempSync(path.join(tmpdir(), "fitfreed-pages-verification-")),
     stableBytes,
-    stableUrl: "https://purnalica.github.io/fitfreed/updates/stable.json",
+    stableUrl: publicUpdateEndpoint,
     manifest: {
       release: { version },
-      update: { metadataEndpoint: "https://purnalica.github.io/fitfreed/updates/stable.json" },
+      update: { metadataEndpoint: publicUpdateEndpoint },
       artifacts: [
         {
           kind: "stable-update-envelope",
@@ -182,7 +183,7 @@ test("verifies one immutable public distribution from its remote boundaries", as
   const archive = input.manifest.artifacts.find(
     ({ kind }) => kind === "macos-updater-archive",
   );
-  const archiveUrl = `https://purnalica.github.io/fitfreed/updates/0.1.0/${archive.path}`;
+  const archiveUrl = publicUpdateUrl(`0.1.0/${archive.path}`);
   const fetchImplementation = async (url) => {
     const source = url === stableUrl
       ? path.join(input.pagesDirectory, "updates", "stable.json")

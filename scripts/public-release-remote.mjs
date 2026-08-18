@@ -12,6 +12,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { validatePublicReleaseManifest } from "./public-release-evidence.mjs";
+import { publicUpdateUrl } from "./public-origin.mjs";
 import {
   publicReleaseAssetNames,
   publicReleaseAssets,
@@ -100,7 +101,7 @@ export async function downloadVerifiedPagesSnapshot({
       expected: stable,
     },
     {
-      url: `https://purnalica.github.io/fitfreed/updates/${manifest.release.version}/${archive.path}`,
+      url: publicUpdateUrl(`${manifest.release.version}/${archive.path}`),
       destination: path.join(
         pagesDirectory,
         "updates",

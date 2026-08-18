@@ -5,6 +5,8 @@ import { dirname, resolve } from "node:path";
 import axe from "axe-core";
 import { JSDOM } from "jsdom";
 
+import { publicOrigin } from "./public-origin.mjs";
+
 const pagePath = "site/index.html";
 const pageDirectory = dirname(pagePath);
 const source = readFileSync(pagePath, "utf8");
@@ -16,6 +18,7 @@ const { document } = dom.window;
 
 assert.equal(document.documentElement.lang, "en", "product page must declare its source locale");
 assert.equal(document.title, "FitFreed — Your fitness data, freed");
+assert.equal(document.querySelector('link[rel="canonical"]')?.href, publicOrigin);
 assert.ok(document.querySelector('meta[name="description"]')?.content.includes("fitness exports"));
 assert.equal(document.querySelectorAll("h1").length, 1, "product page must have exactly one h1");
 assert.match(document.querySelector("h1").textContent, /fitness history/i);

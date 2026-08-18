@@ -3,8 +3,9 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { relativeFiles } from "./pages-artifact.mjs";
+import { publicOrigin } from "./public-origin.mjs";
 
-const canonicalPagesUrl = "https://purnalica.github.io/fitfreed/";
+const canonicalPagesUrl = publicOrigin;
 
 function publicUrl(baseUrl, relativePath) {
   return new URL(relativePath.split(path.sep).join("/"), baseUrl).toString();

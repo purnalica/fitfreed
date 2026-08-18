@@ -13,10 +13,11 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { promoteStagedDirectory } from "./release-evidence.mjs";
+import { publicOrigin, publicUpdateUrl } from "./public-origin.mjs";
 
 const repositoryUrl = "https://github.com/purnalica/fitfreed/blob/main/";
-const pagesOrigin = "https://purnalica.github.io";
-const pagesUpdatePrefix = "/fitfreed/updates/";
+const pagesOrigin = new URL(publicOrigin).origin;
+const pagesUpdatePrefix = new URL("updates/", publicOrigin).pathname;
 const productAssets = Object.freeze([
   "fitfreed-favicon.svg",
   "fitfreed-logo-mono.svg",
@@ -94,6 +95,9 @@ function validateUpdateSnapshot(updateDirectory) {
   }
   if (payload.release.version !== packagePath.split("/")[0]) {
     throw new Error("update snapshot version directory does not match its payload");
+  }
+  if (artifact.url !== publicUpdateUrl(packagePath)) {
+    throw new Error("update snapshot package URL is not canonical");
   }
   return payload.release.version;
 }

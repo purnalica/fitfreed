@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 
+import { publicUpdateUrl } from "./public-origin.mjs";
 import { validatePublicReleaseManifest } from "./public-release-evidence.mjs";
 import {
   loadPublicUpdateConfiguration,
@@ -154,8 +155,9 @@ function verifyStableUpdate(releaseDirectory, manifest, configuration, errors) {
       path.join(releaseDirectory, signatureArtifact.path),
       "utf8",
     ).trim();
-    const expectedUrl =
-      `https://purnalica.github.io/fitfreed/updates/${manifest.release.version}/${archiveArtifact.path}`;
+    const expectedUrl = publicUpdateUrl(
+      `${manifest.release.version}/${archiveArtifact.path}`,
+    );
 
     if (envelope.version !== manifest.release.version) errors.push("stable envelope version mismatch");
     if (payload.release.version !== manifest.release.version) errors.push("stable payload version mismatch");

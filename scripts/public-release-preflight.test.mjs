@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { publicOrigin } from "./public-origin.mjs";
 import {
   validateProtectedReleaseEnvironment,
   validatePublicPagesConfiguration,
@@ -60,7 +61,7 @@ function invocation() {
     publicPages: {
       source: "workflow",
       httpsEnforced: true,
-      url: "https://purnalica.github.io/fitfreed/",
+      url: publicOrigin,
     },
     workflowEvidence: {
       requiredWorkflows: ["ci.yml", "repository-safety.yml"],
@@ -124,11 +125,11 @@ test("accepts only the HTTPS Actions-backed project Pages site", () => {
   assert.deepEqual(validatePublicPagesConfiguration({
     build_type: "workflow",
     https_enforced: true,
-    html_url: "https://purnalica.github.io/fitfreed/",
+    html_url: publicOrigin,
   }), {
     source: "workflow",
     httpsEnforced: true,
-    url: "https://purnalica.github.io/fitfreed/",
+    url: publicOrigin,
   });
 
   for (const [mutate, expected] of [
@@ -139,7 +140,7 @@ test("accepts only the HTTPS Actions-backed project Pages site", () => {
     const pages = {
       build_type: "workflow",
       https_enforced: true,
-      html_url: "https://purnalica.github.io/fitfreed/",
+      html_url: publicOrigin,
     };
     mutate(pages);
     assert.throws(() => validatePublicPagesConfiguration(pages), expected);

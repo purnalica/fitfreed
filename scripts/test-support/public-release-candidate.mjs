@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { createPublicReleaseManifest } from "../public-release-evidence.mjs";
+import { publicUpdateEndpoint } from "../public-origin.mjs";
 import { stageStableUpdateChannel } from "../public-update-staging.mjs";
 import { inspectArtifact, renderChecksumFile } from "../release-evidence.mjs";
 
@@ -11,7 +12,7 @@ export const publicUpdateConfiguration = {
   schemaVersion: 1,
   status: "active",
   contract: "stable-v2",
-  metadataEndpoint: "https://purnalica.github.io/fitfreed/updates/stable.json",
+  metadataEndpoint: publicUpdateEndpoint,
   keys: [
     {
       id: "stable.synthetic-1",

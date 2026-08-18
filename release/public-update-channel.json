@@ -3,6 +3,6 @@
   "schemaVersion": 1,
   "status": "inactive",
   "contract": "stable-v2",
-  "metadataEndpoint": "https://purnalica.github.io/fitfreed/updates/stable.json",
+  "metadataEndpoint": "https://fitfreed.org/updates/stable.json",
   "keys": []
 }

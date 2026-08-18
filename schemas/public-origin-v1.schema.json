@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/public-origin-v1.schema.json",
+  "title": "FitFreed public origin version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "schemaVersion", "canonicalOrigin"],
+  "properties": {
+    "format": { "const": "org.fitfreed.public-origin" },
+    "schemaVersion": { "const": 1 },
+    "canonicalOrigin": {
+      "type": "string",
+      "format": "uri",
+      "maxLength": 2048
+    }
+  }
+}

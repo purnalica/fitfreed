@@ -1345,7 +1345,7 @@ mod tests {
                 .expect("synthetic trust JSON");
         assert!(public_update_channel_from_build_configuration(
             Some("stable-v2"),
-            Some("https://purnalica.github.io/fitfreed/updates/stable.json"),
+            Some("https://fitfreed.org/updates/stable.json"),
             Some(&trust),
         )
         .expect("complete public configuration")

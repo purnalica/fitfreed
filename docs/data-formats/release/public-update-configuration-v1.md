@@ -14,7 +14,7 @@ This configuration does not contain or name environment secrets, private keys, A
 | `schemaVersion` | integer | Configuration version; exactly `1`. |
 | `status` | enumeration | `inactive` or `active`. |
 | `contract` | fixed string | `stable-v2`, selecting the public [update contract](update-channel-v2.md). |
-| `metadataEndpoint` | HTTPS URL | Exact direct endpoint `https://purnalica.github.io/fitfreed/updates/stable.json`. |
+| `metadataEndpoint` | HTTPS URL | Exact direct endpoint derived from the canonical [public-origin contract](public-origin-v1.md): `https://fitfreed.org/updates/stable.json`. |
 | `keys` | array | Zero to eight public Minisign trust entries. |
 | `keys.*.id` | string | Signed-envelope key identifier. Values are unique. |
 | `keys.*.publicKey` | Base64 string | Public Minisign key text encoded as Base64. |

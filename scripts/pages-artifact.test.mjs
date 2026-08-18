@@ -12,6 +12,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { composePagesArtifact, relativeFiles } from "./pages-artifact.mjs";
+import { publicUpdateUrl } from "./public-origin.mjs";
 
 const repositoryRoot = path.resolve(new URL("..", import.meta.url).pathname);
 
@@ -31,7 +32,7 @@ function syntheticUpdateSnapshot(root) {
       version: "0.1.0",
       platforms: {
         "darwin-aarch64": {
-          url: `https://purnalica.github.io/fitfreed/updates/0.1.0/${packageName}`,
+          url: publicUpdateUrl(`0.1.0/${packageName}`),
           size: packageBytes.length,
           sha256: sha256(packageBytes),
         },

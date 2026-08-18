@@ -9,9 +9,10 @@ import {
   preflightPagesPublication,
   verifyPublishedPages,
 } from "./pages-publication.mjs";
+import { publicOrigin } from "./public-origin.mjs";
 
 const repositoryRoot = path.resolve(new URL("..", import.meta.url).pathname);
-const baseUrl = "https://purnalica.github.io/fitfreed/";
+const baseUrl = publicOrigin;
 
 function response(url, status, bytes = "") {
   return {
@@ -33,7 +34,7 @@ test("permits the first product publication and verifies every public byte", asy
   const artifact = productArtifact();
   const fetchImpl = async (url) => {
     if (url.endsWith("updates/stable.json")) return response(url, 404);
-    const relative = new URL(url).pathname.slice("/fitfreed/".length) || "index.html";
+    const relative = new URL(url).pathname.slice(1) || "index.html";
     return response(url, 200, readFileSync(path.join(artifact.pagesDirectory, relative)));
   };
 

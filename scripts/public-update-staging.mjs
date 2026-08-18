@@ -12,13 +12,13 @@ import path from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 
+import { publicUpdateUrl } from "./public-origin.mjs";
 import { validatePublicUpdateConfiguration } from "./public-update-configuration.mjs";
 import { promoteStagedDirectory } from "./release-evidence.mjs";
 import { createUpdateEnvelope, createUpdatePayload } from "./update-e2e-contract.mjs";
 
 const semanticVersion =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
-const publicUpdateOrigin = "https://purnalica.github.io";
 const maximumValidityMilliseconds = 14 * 24 * 60 * 60 * 1_000;
 
 function compileValidators() {
@@ -130,10 +130,7 @@ export function stageStableUpdateChannel({
   }
   const packageSignature = readFileSync(packageSignaturePath, "utf8").trim();
   const packageName = publicPackageName(version);
-  const packageUrl = new URL(
-    `/fitfreed/updates/${version}/${packageName}`,
-    publicUpdateOrigin,
-  ).toString();
+  const packageUrl = publicUpdateUrl(`${version}/${packageName}`);
   const packageBytes = readFileSync(packagePath);
   const payload = createUpdatePayload({
     contractSchemaVersion: 2,

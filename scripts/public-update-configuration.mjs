@@ -5,8 +5,9 @@ import { fileURLToPath } from "node:url";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 
-const expectedMetadataEndpoint =
-  "https://purnalica.github.io/fitfreed/updates/stable.json";
+import { publicUpdateEndpoint } from "./public-origin.mjs";
+
+const expectedMetadataEndpoint = publicUpdateEndpoint;
 const schema = JSON.parse(
   readFileSync(
     new URL("../schemas/public-update-configuration-v1.schema.json", import.meta.url),

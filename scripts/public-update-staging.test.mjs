@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 
+import { publicUpdateEndpoint, publicUpdateUrl } from "./public-origin.mjs";
 import { stageStableUpdateChannel } from "./public-update-staging.mjs";
 
 function fixture() {
@@ -29,7 +30,7 @@ function fixture() {
       schemaVersion: 1,
       status: "active",
       contract: "stable-v2",
-      metadataEndpoint: "https://purnalica.github.io/fitfreed/updates/stable.json",
+      metadataEndpoint: publicUpdateEndpoint,
       keys: [
         {
           id: "stable.synthetic-1",
@@ -101,7 +102,7 @@ test("stages one atomic Pages snapshot with exact stable metadata and package by
   assert.equal(payload.release.version, "0.2.0");
   assert.equal(
     artifact.url,
-    "https://purnalica.github.io/fitfreed/updates/0.2.0/FitFreed_0.2.0_aarch64.app.tar.gz",
+    publicUpdateUrl("0.2.0/FitFreed_0.2.0_aarch64.app.tar.gz"),
   );
   assert.equal(artifact.size, values.packageBytes.length);
   assert.equal(artifact.sha256, createHash("sha256").update(values.packageBytes).digest("hex"));

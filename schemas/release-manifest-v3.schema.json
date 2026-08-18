@@ -99,7 +99,9 @@
       "properties": {
         "contract": { "const": "stable-v2" },
         "metadataEndpoint": {
-          "const": "https://purnalica.github.io/fitfreed/updates/stable.json"
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048
         },
         "keyId": {
           "type": "string",

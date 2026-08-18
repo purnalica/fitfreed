@@ -98,5 +98,6 @@ Directories are created with their first real contract; empty specifications are
 - [Public stable update channel version 2](release/update-channel-v2.md)
 - [Public update build configuration version 1](release/public-update-configuration-v1.md)
 - [Public release policy version 1](release/public-release-policy-v1.md)
+- [Public origin version 1](release/public-origin-v1.md)
 - [Update recovery version 1](release/update-recovery-v1.md)
 - [Update recovery outcome version 1](../../schemas/update-recovery-outcome-v1.schema.json)

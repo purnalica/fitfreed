@@ -2,7 +2,7 @@
 
 ## Status
 
-Active as of 2026-08-18. D0, P1, and the local E1 acceptance checkpoint are complete and documented; E2 is the next active increment. The canonical product site is live at <https://purnalica.github.io/fitfreed/> with exact remote-byte verification. E1 hosted evidence remains to be attached to this plan after the source revision passes GitHub Actions.
+Active as of 2026-08-18. D0, P1, and the local E1 acceptance checkpoint are complete and documented; E2 is the next active increment. P1 passed exact remote-byte verification at the generated project address. The canonical <https://fitfreed.org/> origin now has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, and the intended redirect behavior; exact hosted reacceptance of the origin-aware revision remains pending under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md). E1 hosted evidence remains to be attached after its source revision passes GitHub Actions.
 
 The existing import, reconciliation, persistence, Insights, localization, update-recovery, packaging, and continuous-integration capabilities remain the engineering baseline. This plan changes how those capabilities become a product people can understand and value; it does not discard their verified behavior.
 

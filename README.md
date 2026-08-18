@@ -8,7 +8,7 @@ FitFreed is a local-first, open-source desktop application for importing persona
 finding sessions and patterns across years, inspecting the evidence behind them, and keeping useful
 results outside the platform that recorded them.
 
-[Visit the product site](https://purnalica.github.io/fitfreed/) · [Review the roadmap](docs/roadmap.md) ·
+[Visit the product site](https://fitfreed.org/) · [Review the roadmap](docs/roadmap.md) ·
 [Evaluate the current source](docs/user/development-preview.md) · [Contribute](CONTRIBUTING.md)
 
 > **No supported release is available yet.** The current source contains a tested macOS engineering

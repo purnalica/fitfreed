@@ -10,8 +10,10 @@ on:
       - docs/product-status.json
       - package-lock.json
       - package.json
+      - release/public-origin.json
       - scripts/pages-artifact.mjs
       - scripts/pages-publication.mjs
+      - scripts/public-origin.mjs
       - scripts/render-product-surfaces.mjs
       - site/**
   workflow_dispatch:

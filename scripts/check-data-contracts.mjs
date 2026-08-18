@@ -4,6 +4,11 @@ import { fileURLToPath } from "node:url";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 
+import {
+  publicUpdateUrl,
+  validatePublicOriginConfiguration,
+} from "./public-origin.mjs";
+
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 function read(relativePath) {
@@ -14,6 +19,21 @@ function requireMention(content, value, documentPath) {
   if (!content.includes(`\`${value}\``)) {
     throw new Error(`${documentPath} does not document ${value}`);
   }
+}
+
+const publicOriginConfigurationPath = "release/public-origin.json";
+const publicOriginConfiguration = JSON.parse(read(publicOriginConfigurationPath));
+validatePublicOriginConfiguration(publicOriginConfiguration);
+const publicOriginDocumentPath = "docs/data-formats/release/public-origin-v1.md";
+const publicOriginDocument = read(publicOriginDocumentPath);
+for (const field of [
+  "org.fitfreed.public-origin",
+  "format",
+  "schemaVersion",
+  "canonicalOrigin",
+  publicOriginConfiguration.canonicalOrigin,
+]) {
+  requireMention(publicOriginDocument, field, publicOriginDocumentPath);
 }
 
 const infrastructurePath = "src-tauri/src/infrastructure.rs";
@@ -1988,7 +2008,7 @@ syntheticStableUpdateChannelPayload.channel = "stable";
 syntheticStableUpdateChannelPayload.release.version = "0.2.0";
 syntheticStableUpdateChannelPayload.release.minimumSupportedVersion = "0.1.0";
 syntheticStableUpdateChannelPayload.release.platforms["darwin-aarch64"].url =
-  "https://purnalica.github.io/fitfreed/updates/0.2.0/FitFreed_aarch64.app.tar.gz";
+  publicUpdateUrl("0.2.0/FitFreed_aarch64.app.tar.gz");
 syntheticStableUpdateChannelPayload.withdrawnVersions[0].replacementVersion = "0.2.0";
 if (!validateStableUpdateChannelPayload(syntheticStableUpdateChannelPayload)) {
   throw new Error(
@@ -2014,7 +2034,7 @@ for (const invalidPayload of [
   (() => {
     const value = structuredClone(syntheticStableUpdateChannelPayload);
     value.release.platforms["darwin-aarch64"].url =
-      "http://purnalica.github.io/fitfreed/updates/FitFreed.app.tar.gz";
+      "http://fitfreed.org/updates/FitFreed.app.tar.gz";
     return value;
   })(),
   { ...syntheticStableUpdateChannelPayload, untrustedMirror: true },

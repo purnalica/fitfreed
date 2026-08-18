@@ -4,6 +4,7 @@ import path from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 
+import { publicUpdateEndpoint } from "./public-origin.mjs";
 import { validateReviewedReleaseNotes } from "./release-notes.mjs";
 
 const semanticVersion =
@@ -106,7 +107,7 @@ export function createPublicReleaseManifest({
     },
     update: {
       contract: "stable-v2",
-      metadataEndpoint: "https://purnalica.github.io/fitfreed/updates/stable.json",
+      metadataEndpoint: publicUpdateEndpoint,
       keyId: updateKeyId,
       sequence: updateSequence,
     },
@@ -133,6 +134,9 @@ export function validatePublicReleaseManifest(manifest) {
     );
   }
   if (manifest?.schemaVersion !== 3) errors.push("unsupported public manifest schema version");
+  if (manifest?.update?.metadataEndpoint !== publicUpdateEndpoint) {
+    errors.push("public release manifest update endpoint is not canonical");
+  }
   if (!semanticVersion.test(manifest?.release?.version ?? "")) {
     errors.push("invalid public release version");
   }

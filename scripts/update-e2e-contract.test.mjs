@@ -78,8 +78,7 @@ test("constructs a distinct public stable v2 contract without changing private-a
     },
     withdrawnVersions: [],
     target: "darwin-aarch64",
-    packageUrl:
-      "https://purnalica.github.io/fitfreed/updates/1.2.3/FitFreed_1.2.3_aarch64.app.tar.gz",
+    packageUrl: "https://updates.example.test/1.2.3/FitFreed_1.2.3_aarch64.app.tar.gz",
     packageSize: 42,
     packageSha256: "a".repeat(64),
     packageSignature: "cGFja2FnZS1zaWduYXR1cmU=",

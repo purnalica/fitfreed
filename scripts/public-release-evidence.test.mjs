@@ -52,6 +52,7 @@ test("creates the closed public stable evidence contract from final signed artif
   assert.equal(manifest.trust.codeSigning.hardenedRuntime, true);
   assert.equal(manifest.trust.notarization.gatekeeperAccepted, true);
   assert.equal(manifest.update.contract, "stable-v2");
+  assert.equal(manifest.update.metadataEndpoint, "https://fitfreed.org/updates/stable.json");
   assert.deepEqual(manifest.provenanceRequirements.generatedSubjects, [
     "release-manifest.json",
     "SHA256SUMS",
@@ -66,6 +67,16 @@ test("creates the closed public stable evidence contract from final signed artif
     [...manifest.artifacts.map(({ path }) => path)].sort((left, right) =>
       left.localeCompare(right, "en"),
     ),
+  );
+});
+
+test("rejects a public release manifest bound to a non-canonical update endpoint", () => {
+  const manifest = createManifest();
+  manifest.update.metadataEndpoint = "https://updates.example.test/stable.json";
+
+  assert.throws(
+    () => validatePublicReleaseManifest(manifest),
+    /update endpoint is not canonical/,
   );
 });
 
