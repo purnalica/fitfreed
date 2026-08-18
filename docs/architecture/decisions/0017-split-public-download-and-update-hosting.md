@@ -1,6 +1,6 @@
 # ADR 0017: Split public download and update hosting
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR 0020](0020-compose-product-and-update-pages.md) on 2026-08-18
 - **Date:** 2026-08-17
 - **Decision owners:** FitFreed maintainers
 - **Related requirements:** [Product requirements](../../requirements.md)

@@ -2,9 +2,10 @@
 
 ## Status
 
-Reviewable static product-page source. It is not deployed and contains no release download action.
-Its statements derive from the product thesis, current capability boundary, active experience plan,
-and roadmap; those documents remain authoritative.
+Reviewable static source for the canonical product site at
+<https://purnalica.github.io/fitfreed/>. Deployment is pending and the source contains no release
+download action. Its statements derive from the product thesis, current capability boundary, active
+experience plan, and roadmap; those documents remain authoritative.
 
 The available, active, and later capability block is generated from
 [`docs/product-status.json`](../docs/product-status.json). Change that source and run
@@ -26,6 +27,7 @@ Open <http://127.0.0.1:4175/site/>. Review at narrow and wide widths, 200% brows
 appearance, reduced motion, keyboard-only navigation, and automated accessibility analysis before
 any deployment.
 
-Publication requires a separate decision about the canonical URL, deployment workflow, analytics
-boundary, localization, release calls to action, and rollback. The page must never claim a supported
-download before the readiness ledger permits one.
+[ADR 0020](../docs/architecture/decisions/0020-compose-product-and-update-pages.md) defines the
+canonical URL, one-artifact deployment topology, privacy boundary, release-link ownership, and
+rollback constraint. The page must never claim a supported download before the readiness ledger
+permits one.

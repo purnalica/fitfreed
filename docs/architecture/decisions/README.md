@@ -29,8 +29,9 @@ This directory contains durable FitFreed architecture decisions. Read [the docum
 - [ADR 0014: Drive packaged macOS E2E with WebdriverIO](0014-drive-packaged-macos-e2e-with-webdriverio.md) — Accepted on 2026-08-17.
 - [ADR 0015: Qualify performance evidence by execution environment](0015-qualify-performance-evidence-by-execution-environment.md) — Accepted on 2026-08-17.
 - [ADR 0016: Support Apple Silicon on macOS 15 or later](0016-support-apple-silicon-on-macos-15-or-later.md) — Accepted on 2026-08-17.
-- [ADR 0017: Split public download and update hosting](0017-split-public-download-and-update-hosting.md) — Accepted on 2026-08-17.
+- [ADR 0017: Split public download and update hosting](0017-split-public-download-and-update-hosting.md) — Superseded by ADR 0020 on 2026-08-18.
 - [ADR 0018: Publish through one protected evidence pipeline](0018-publish-through-one-protected-evidence-pipeline.md) — Superseded by ADR 0019 on 2026-08-18.
 - [ADR 0019: Separate candidate build from public promotion](0019-separate-candidate-build-from-public-promotion.md) — Accepted on 2026-08-18.
+- [ADR 0020: Compose the product site and update channel in one Pages deployment](0020-compose-product-and-update-pages.md) — Accepted on 2026-08-18.
 
 Confirmed product constraints remain in `docs/requirements.md`. Public release execution and any future mandatory-update policy remain open until their evidence and product authority gates close.

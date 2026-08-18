@@ -195,6 +195,8 @@ The following decisions define FitFreed across features and releases. They are f
 - The repository README and product page will lead with the problem FitFreed solves, the outcomes a person can obtain, the ownership model, the product's current state, and a useful path for contributors. They will not lead with framework or ingestion internals.
 - Available behavior, active product work, and deliberately later capabilities will remain visibly distinct. No planned capability will be described as released, and no supported-download action will appear before the applicable release-readiness gate passes.
 - The README is the concise repository gateway; the product page is the visual narrative. Both derive claims from and link to the canonical product thesis, requirements, roadmap, and readiness evidence instead of becoming competing specifications.
+- `https://purnalica.github.io/fitfreed/` will be the canonical public product entrance. It will turn interest into an honest next action through product evaluation, documentation, support, security, contribution, or a readiness-gated download.
+- Supported download actions will resolve to the immutable GitHub Release and its evidence. The product site will not duplicate release ownership or present an unsigned or unaccepted package as supported.
 - Returning visits will surface supported paths through the evolving history without relying on coercive streaks, rankings, mystery scores, or notification pressure.
 
 ## Confirmed architectural constraints
