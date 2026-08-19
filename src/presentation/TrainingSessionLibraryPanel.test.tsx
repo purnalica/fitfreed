@@ -533,16 +533,18 @@ function page(
 
 function renderPanel(onError = vi.fn()) {
   const onAvailableRange = vi.fn();
+  const onCreateReport = vi.fn();
   render(
     <TrainingSessionLibraryPanel
       locale="en-US"
       messages={catalogs["en-US"]}
       refreshToken={0}
       onAvailableRange={onAvailableRange}
+      onCreateReport={onCreateReport}
       onError={onError}
     />,
   );
-  return { onAvailableRange, onError };
+  return { onAvailableRange, onCreateReport, onError };
 }
 
 afterEach(cleanup);
@@ -575,7 +577,7 @@ describe("TrainingSessionLibraryPanel", () => {
       throw new Error(`Unexpected command: ${command}`);
     });
     const user = userEvent.setup();
-    renderPanel();
+    const { onCreateReport } = renderPanel();
     const region = await screen.findByRole("region", { name: "Find a training session" });
 
     await user.click(within(region).getByRole("checkbox", {
@@ -623,6 +625,13 @@ describe("TrainingSessionLibraryPanel", () => {
     });
     await user.click(within(region).getByRole("button", { name: /View session details for/ }));
     expect(within(region).getByRole("heading", { name: "Session summary" })).toBeVisible();
+    await user.click(within(region).getByRole("button", {
+      name: "Build a report from this session",
+    }));
+    expect(onCreateReport).toHaveBeenCalledWith({
+      snapshotRef,
+      session: newest,
+    });
     await user.click(within(region).getByRole("button", { name: "Back to calendar" }));
     expect(within(region).getByRole("heading", { name: "August 2026" })).toBeVisible();
     expect(within(region).queryByRole("heading", { name: "Session summary" }))
@@ -969,6 +978,7 @@ describe("TrainingSessionLibraryPanel", () => {
         messages={catalogs["en-US"]}
         refreshToken={0}
         onAvailableRange={vi.fn()}
+        onCreateReport={vi.fn()}
         onError={onError}
       />,
     );

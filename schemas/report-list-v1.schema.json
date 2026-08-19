@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/report-list-v1.schema.json",
+  "title": "FitFreed report list version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["reports"],
+  "properties": {
+    "reports": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["reportRef", "title", "locale", "sourceSnapshotRef", "revision"],
+        "properties": {
+          "reportRef": { "$ref": "report-definition-v1.schema.json#/$defs/reportRef" },
+          "title": { "$ref": "report-definition-v1.schema.json#/properties/title" },
+          "locale": { "$ref": "report-definition-v1.schema.json#/properties/locale" },
+          "sourceSnapshotRef": { "$ref": "report-definition-v1.schema.json#/$defs/snapshotRef" },
+          "revision": { "type": "string", "pattern": "^[1-9][0-9]*$" }
+        }
+      }
+    }
+  }
+}

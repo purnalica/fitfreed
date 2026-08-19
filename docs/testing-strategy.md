@@ -97,7 +97,11 @@ Local and continuous-integration workflows will invoke the same underlying comma
 - A mandatory macOS job prepares the source-bound production package, enforces its process-to-painted-shell cold-launch budget, then builds the instrumented Tauri package and executes the focused packaged E2E journey with independently generated synthetic fixtures whenever executable or release inputs change and for every explicit manual or release-candidate verification request.
 - The same macOS job generates an ephemeral HTTPS authority and Minisign key, builds synthetic 0.1.0 and 0.2.0 applications, and proves both native replacement with candidate confirmation and rejected-candidate recovery to the exact previous application/library pair.
 - Test-only WebDriver plugins and capabilities are feature-gated. A separate packaging assertion proves that they are absent from the production application.
-- The instrumented presentation replaces only the operating-system archive-picker boundary with the WebdriverIO mock registry. Tests synchronize on the recorded dialog invocation before asserting cancellation or selection; unchanged initial UI state is not accepted as evidence that the picker completed.
+- The instrumented presentation replaces only operating-system interaction boundaries that cannot be driven
+  reliably through the embedded WebView: archive selection, explicit official-link opening, and report export
+  destination selection. Each adapter uses the WebdriverIO mock registry while preserving its complete options
+  and result contract. Tests synchronize on the recorded invocation before asserting cancellation, selection,
+  or output; unchanged UI state is not accepted as evidence that an operating-system action completed.
 - The functional journey and the full-scale Insights campaign run as separate packaged application processes with distinct generated SQLite libraries. Changing an environment variable inside an active WebDriver session is not isolation evidence; no scenario may inherit canonical history, preferences, or workspace state from another scenario.
 - Axe runs in its single-context legacy mode because the embedded macOS driver does not support the auxiliary browser window used by Axe's multi-context algorithm. The rule engine and violation assertions remain enabled.
 - Privacy-safe failure reports, logs, and screenshots are retained as short-lived workflow artifacts. Application libraries, private paths, real exports, and derived personal values are never uploaded.

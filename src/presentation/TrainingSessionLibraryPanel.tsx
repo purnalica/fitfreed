@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { type catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
+import type { SessionReportOrigin } from "./session-report";
 import {
   formatDistance,
   formatDuration,
@@ -126,6 +127,7 @@ interface TrainingSessionLibraryPanelProps {
   refreshToken: number;
   initialDate?: string;
   onAvailableRange: (range: { from: string; through: string } | null) => void;
+  onCreateReport: (origin: SessionReportOrigin) => void;
   onError: (code: string | undefined) => void;
 }
 
@@ -232,6 +234,7 @@ export function TrainingSessionLibraryPanel({
   refreshToken,
   initialDate,
   onAvailableRange,
+  onCreateReport,
   onError,
 }: TrainingSessionLibraryPanelProps) {
   const [draft, setDraft] = useState<SearchDraft>(() => emptyDraft(initialDate));
@@ -1883,9 +1886,21 @@ export function TrainingSessionLibraryPanel({
                 {formatTrainingDateTime(selected.startedAtLocal, locale)}
               </time>
             </div>
-            <button type="button" className="secondary" onClick={() => setSelected(undefined)}>
-              {detailOrigin === "calendar" ? copy.backToCalendar : copy.closeDetail}
-            </button>
+            <div className="training-detail-actions">
+              <button
+                type="button"
+                onClick={() => onCreateReport({
+                  snapshotRef: page?.snapshotRef ?? "",
+                  session: selected,
+                })}
+                disabled={!page?.snapshotRef}
+              >
+                {copy.createReport}
+              </button>
+              <button type="button" className="secondary" onClick={() => setSelected(undefined)}>
+                {detailOrigin === "calendar" ? copy.backToCalendar : copy.closeDetail}
+              </button>
+            </div>
           </div>
           <dl role="group" aria-label={copy.summaryMeasurements}>
             <div><dt>{messages.training.trainingType}</dt><dd>{sessionSportTitle(selected)}</dd></div>

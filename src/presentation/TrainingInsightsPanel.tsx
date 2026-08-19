@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { type catalogs, type Locale } from "../locales/catalogs";
 import type { ExplorerNavigationRequest } from "./explorer-navigation";
+import type { SessionReportOrigin } from "./session-report";
 import { TrainingComparisonPanel } from "./TrainingComparisonPanel";
 import type { TrainingDateRange } from "./training-insights";
 import { TrainingSessionLibraryPanel } from "./TrainingSessionLibraryPanel";
@@ -12,6 +13,7 @@ interface TrainingInsightsPanelProps {
   messages: (typeof catalogs)["en-US"];
   refreshToken: number;
   navigationRequest?: ExplorerNavigationRequest;
+  onCreateReport: (origin: SessionReportOrigin) => void;
   onError: (code: string | undefined) => void;
 }
 
@@ -30,6 +32,7 @@ export function TrainingInsightsPanel({
   messages,
   refreshToken,
   navigationRequest,
+  onCreateReport,
   onError,
 }: TrainingInsightsPanelProps) {
   const [availableRange, setAvailableRange] = useState<TrainingDateRange | null>(null);
@@ -44,6 +47,7 @@ export function TrainingInsightsPanel({
         refreshToken={refreshToken + classificationRevision}
         initialDate={navigationRequest?.localDate}
         onAvailableRange={setAvailableRange}
+        onCreateReport={onCreateReport}
         onError={onError}
       />
       <TrainingSportsPanel

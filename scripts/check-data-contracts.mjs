@@ -4364,6 +4364,205 @@ for (const invalidOutcome of [
   }
 }
 
+const reportDefinitionCanonicalPath = "docs/data-formats/canonical/report-definition.md";
+const reportDefinitionPortablePath = "docs/data-formats/portable/report-definition-v1.md";
+const sessionReportPath = "docs/data-formats/insights/session-report-v1.md";
+const reportHtmlPath = "docs/data-formats/portable/report-html-v1.md";
+const reportDefinitionSchemaPath = "schemas/report-definition-v1.schema.json";
+const sessionReportCreateSchemaPath = "schemas/session-report-create-v1.schema.json";
+const sessionReportUpdateSchemaPath = "schemas/session-report-update-v1.schema.json";
+const reportListSchemaPath = "schemas/report-list-v1.schema.json";
+const sessionReportResolutionSchemaPath = "schemas/session-report-resolution-v1.schema.json";
+const sessionReportExportSchemaPath = "schemas/session-report-export-v1.schema.json";
+const reportExportReceiptSchemaPath = "schemas/report-export-receipt-v1.schema.json";
+
+for (const [documentPath, fields] of [
+  [reportDefinitionCanonicalPath, [
+    "reportRef", "title", "locale", "sourceSnapshotRef", "origin", "provenancePolicy",
+    "authorship", "definitionVersion", "revision", "blocks", "session-evidence", "narrative",
+  ]],
+  [reportDefinitionPortablePath, [
+    "application/vnd.fitfreed.report-definition+json;version=1", "origin.sessionRef",
+    "sessionRef", "revision",
+  ]],
+  [sessionReportPath, [
+    "resolvedSnapshotRef", "status", "sensitiveContents", "limitations",
+    "report-definition-conflict", "report-export-cancelled", "report-export-failed",
+  ]],
+  [reportHtmlPath, ["metric-v1", "text/html", "data-fitfreed-report-version"]],
+]) {
+  const document = read(documentPath);
+  for (const field of fields) requireMention(document, field, documentPath);
+}
+
+function compileReportSchema(schemaPath) {
+  return ajv.compile(JSON.parse(read(schemaPath)));
+}
+
+function assertReportContract(validate, schemaPath, value) {
+  if (!validate(value)) {
+    throw new Error(
+      `${schemaPath} rejected its synthetic value: ${ajv.errorsText(validate.errors)}`,
+    );
+  }
+}
+
+for (const dependencyPath of [
+  trainingSessionSearchSchemaPath,
+  trainingSessionProvenanceSchemaPath,
+]) {
+  const dependency = JSON.parse(read(dependencyPath));
+  if (!ajv.getSchema(dependency.$id)) ajv.addSchema(dependency);
+}
+
+const validateReportDefinition = compileReportSchema(reportDefinitionSchemaPath);
+const validateSessionReportCreate = compileReportSchema(sessionReportCreateSchemaPath);
+const validateSessionReportUpdate = compileReportSchema(sessionReportUpdateSchemaPath);
+const validateReportList = compileReportSchema(reportListSchemaPath);
+const validateSessionReportResolution = compileReportSchema(sessionReportResolutionSchemaPath);
+const validateSessionReportExport = compileReportSchema(sessionReportExportSchemaPath);
+const validateReportExportReceipt = compileReportSchema(reportExportReceiptSchemaPath);
+const reportRefDigest = `report-${"3".repeat(64)}`;
+const firstReportBlockRefDigest = `report-block-${"4".repeat(64)}`;
+const secondReportBlockRefDigest = `report-block-${"5".repeat(64)}`;
+const syntheticReportDefinition = {
+  reportRef: reportRefDigest,
+  title: "Morning progression",
+  locale: "en-US",
+  sourceSnapshotRef: snapshotRefDigest,
+  origin: { kind: "session", sessionRef: sessionRefDigest },
+  provenancePolicy: "current-attribution",
+  authorship: "user",
+  definitionVersion: 1,
+  revision: "1",
+  blocks: [
+    {
+      blockRef: firstReportBlockRefDigest,
+      kind: "session-evidence",
+      sessionRef: sessionRefDigest,
+      includePhysiologicalContext: true,
+    },
+    {
+      blockRef: secondReportBlockRefDigest,
+      kind: "narrative",
+      body: "The final section felt controlled.",
+    },
+  ],
+};
+assertReportContract(
+  validateReportDefinition,
+  reportDefinitionSchemaPath,
+  syntheticReportDefinition,
+);
+for (const invalidDefinition of [
+  { ...structuredClone(syntheticReportDefinition), definitionVersion: 2 },
+  { ...structuredClone(syntheticReportDefinition), revision: "01" },
+  { ...structuredClone(syntheticReportDefinition), providerSessionId: "must-not-cross" },
+  (() => {
+    const value = structuredClone(syntheticReportDefinition);
+    value.blocks.reverse();
+    return value;
+  })(),
+]) {
+  if (validateReportDefinition(invalidDefinition)) {
+    throw new Error(`${reportDefinitionSchemaPath} accepted an invalid definition`);
+  }
+}
+
+const syntheticSessionReportCreate = {
+  title: syntheticReportDefinition.title,
+  locale: syntheticReportDefinition.locale,
+  sessionRef: sessionRefDigest,
+  sourceSnapshotRef: snapshotRefDigest,
+  includePhysiologicalContext: true,
+  narrative: syntheticReportDefinition.blocks[1].body,
+};
+assertReportContract(
+  validateSessionReportCreate,
+  sessionReportCreateSchemaPath,
+  syntheticSessionReportCreate,
+);
+if (validateSessionReportCreate({ ...syntheticSessionReportCreate, locale: "en-GB" })) {
+  throw new Error(`${sessionReportCreateSchemaPath} accepted an unsupported locale`);
+}
+
+const syntheticSessionReportUpdate = {
+  reportRef: reportRefDigest,
+  expectedRevision: "1",
+  title: "Morning progression review",
+  locale: "es-ES",
+  includePhysiologicalContext: false,
+  narrative: "El tramo final se mantuvo controlado.",
+};
+assertReportContract(
+  validateSessionReportUpdate,
+  sessionReportUpdateSchemaPath,
+  syntheticSessionReportUpdate,
+);
+if (validateSessionReportUpdate({ ...syntheticSessionReportUpdate, expectedRevision: "0" })) {
+  throw new Error(`${sessionReportUpdateSchemaPath} accepted a zero revision`);
+}
+
+const syntheticReportList = {
+  reports: [{
+    reportRef: reportRefDigest,
+    title: syntheticReportDefinition.title,
+    locale: syntheticReportDefinition.locale,
+    sourceSnapshotRef: snapshotRefDigest,
+    revision: "1",
+  }],
+};
+assertReportContract(validateReportList, reportListSchemaPath, syntheticReportList);
+if (validateReportList({ reports: [{ ...syntheticReportList.reports[0], narrative: "private" }] })) {
+  throw new Error(`${reportListSchemaPath} accepted narrative content in a bounded list`);
+}
+
+const syntheticSessionReportResolution = {
+  definition: syntheticReportDefinition,
+  resolvedSnapshotRef: snapshotRefDigest,
+  status: "current",
+  session: syntheticTrainingSessionSearch.sessions[0],
+  provenance: syntheticTrainingSessionProvenance.current,
+  sensitiveContents: [{ kind: "heart-rate", included: true }],
+  limitations: [],
+};
+assertReportContract(
+  validateSessionReportResolution,
+  sessionReportResolutionSchemaPath,
+  syntheticSessionReportResolution,
+);
+if (validateSessionReportResolution({
+  ...structuredClone(syntheticSessionReportResolution),
+  sensitiveContents: [{ kind: "location", included: true }],
+})) {
+  throw new Error(`${sessionReportResolutionSchemaPath} accepted unreviewed location content`);
+}
+
+const syntheticSessionReportExport = {
+  reportRef: reportRefDigest,
+  expectedRevision: "1",
+  expectedSourceSnapshotRef: snapshotRefDigest,
+  includePhysiologicalContext: false,
+  destinationPath: "/private/synthetic/fitfreed-report.html",
+};
+assertReportContract(
+  validateSessionReportExport,
+  sessionReportExportSchemaPath,
+  syntheticSessionReportExport,
+);
+if (validateSessionReportExport({ ...syntheticSessionReportExport, destinationPath: "" })) {
+  throw new Error(`${sessionReportExportSchemaPath} accepted an empty destination`);
+}
+
+assertReportContract(
+  validateReportExportReceipt,
+  reportExportReceiptSchemaPath,
+  { byteCount: "4096" },
+);
+if (validateReportExportReceipt({ byteCount: "04" })) {
+  throw new Error(`${reportExportReceiptSchemaPath} accepted a non-canonical byte count`);
+}
+
 const indexPath = "docs/data-formats/README.md";
 const index = read(indexPath);
 for (const contractPath of [
@@ -4399,6 +4598,10 @@ for (const contractPath of [
   stableUpdateChannelPath,
   publicUpdateConfigurationPath,
   updateRecoveryPath,
+  reportDefinitionCanonicalPath,
+  reportDefinitionPortablePath,
+  sessionReportPath,
+  reportHtmlPath,
   ...persistencePaths,
 ]) {
   const relativeContract = path.relative(path.dirname(indexPath), contractPath);
@@ -4508,6 +4711,15 @@ process.stdout.write(
     publicUpdateConfigurationSchema: publicUpdateConfigurationSchemaPath,
     updateRecoverySchema: updateRecoverySchemaPath,
     updateRecoveryOutcomeSchema: updateRecoveryOutcomeSchemaPath,
+    reportSchemas: [
+      reportDefinitionSchemaPath,
+      sessionReportCreateSchemaPath,
+      sessionReportUpdateSchemaPath,
+      reportListSchemaPath,
+      sessionReportResolutionSchemaPath,
+      sessionReportExportSchemaPath,
+      reportExportReceiptSchemaPath,
+    ],
     canonicalFields: 64,
     mappingFields: 75,
   }) + "\n",

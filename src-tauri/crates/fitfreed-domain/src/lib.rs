@@ -7,6 +7,16 @@ pub use sport_classification::{
 #[cfg(test)]
 mod sport_classification_tests;
 
+mod report_definition;
+pub use report_definition::{
+    author_session_report, ReportAuthorship, ReportBlock, ReportBlockContent, ReportDefinition,
+    ReportDefinitionError, ReportLocale, ReportOrigin, ReportProvenancePolicy,
+    REPORT_DEFINITION_VERSION,
+};
+
+#[cfg(test)]
+mod report_definition_tests;
+
 mod segment_criterion;
 pub use segment_criterion::{
     author_segment_criterion, SegmentCriterion, SegmentCriterionAuthorship,

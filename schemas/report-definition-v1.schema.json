@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/report-definition-v1.schema.json",
+  "title": "FitFreed report definition version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "reportRef",
+    "title",
+    "locale",
+    "sourceSnapshotRef",
+    "origin",
+    "provenancePolicy",
+    "authorship",
+    "definitionVersion",
+    "revision",
+    "blocks"
+  ],
+  "properties": {
+    "reportRef": { "$ref": "#/$defs/reportRef" },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120,
+      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+    },
+    "locale": { "enum": ["en-US", "es-ES"] },
+    "sourceSnapshotRef": { "$ref": "#/$defs/snapshotRef" },
+    "origin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "sessionRef"],
+      "properties": {
+        "kind": { "const": "session" },
+        "sessionRef": { "$ref": "#/$defs/sessionRef" }
+      }
+    },
+    "provenancePolicy": { "const": "current-attribution" },
+    "authorship": { "const": "user" },
+    "definitionVersion": { "const": 1 },
+    "revision": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+    "blocks": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [
+        { "$ref": "#/$defs/sessionBlock" },
+        { "$ref": "#/$defs/narrativeBlock" }
+      ]
+    }
+  },
+  "$defs": {
+    "reportRef": { "type": "string", "pattern": "^report-[0-9a-f]{64}$" },
+    "blockRef": { "type": "string", "pattern": "^report-block-[0-9a-f]{64}$" },
+    "sessionRef": { "type": "string", "pattern": "^session-[0-9a-f]{64}$" },
+    "snapshotRef": { "type": "string", "pattern": "^training-snapshot-[0-9a-f]{64}$" },
+    "sessionBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blockRef", "kind", "sessionRef", "includePhysiologicalContext"],
+      "properties": {
+        "blockRef": { "$ref": "#/$defs/blockRef" },
+        "kind": { "const": "session-evidence" },
+        "sessionRef": { "$ref": "#/$defs/sessionRef" },
+        "includePhysiologicalContext": { "type": "boolean" }
+      }
+    },
+    "narrativeBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blockRef", "kind", "body"],
+      "properties": {
+        "blockRef": { "$ref": "#/$defs/blockRef" },
+        "kind": { "const": "narrative" },
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10000,
+          "pattern": "^[^\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f\\u007f]+$"
+        }
+      }
+    }
+  }
+}

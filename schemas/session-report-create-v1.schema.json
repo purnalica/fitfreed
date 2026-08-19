@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/session-report-create-v1.schema.json",
+  "title": "FitFreed session report creation version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "title",
+    "locale",
+    "sessionRef",
+    "sourceSnapshotRef",
+    "includePhysiologicalContext",
+    "narrative"
+  ],
+  "properties": {
+    "title": { "$ref": "report-definition-v1.schema.json#/properties/title" },
+    "locale": { "$ref": "report-definition-v1.schema.json#/properties/locale" },
+    "sessionRef": { "$ref": "report-definition-v1.schema.json#/$defs/sessionRef" },
+    "sourceSnapshotRef": { "$ref": "report-definition-v1.schema.json#/$defs/snapshotRef" },
+    "includePhysiologicalContext": { "type": "boolean" },
+    "narrative": { "$ref": "report-definition-v1.schema.json#/$defs/narrativeBlock/properties/body" }
+  }
+}

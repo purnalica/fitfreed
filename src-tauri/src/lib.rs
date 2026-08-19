@@ -22,9 +22,13 @@ use fitfreed_application::{
     apply_training_segment_criterion as apply_segment_criterion_through_port,
     authorize_update_installation as authorize_update, check_for_updates as evaluate_updates,
     clear_exploration_workspace as clear_workspace,
+    create_session_report as create_session_report_through_port,
     create_training_segment_criterion as create_segment_criterion_through_port,
     dismiss_update as persist_update_dismissal,
+    export_session_report as export_session_report_through_port,
+    list_reports as list_reports_through_port,
     load_application_preferences as load_preferences_from_port,
+    load_report_definition as load_report_definition_through_port,
     move_training_segment_criterion as move_segment_criterion_through_port,
     postpone_update as persist_update_postponement, query_library_home as build_library_home,
     query_longitudinal_comparison as build_longitudinal_comparison,
@@ -41,13 +45,15 @@ use fitfreed_application::{
     query_training_sports as build_training_sports,
     remove_training_segment_criterion as remove_segment_criterion_through_port,
     reset_application_preferences as reset_preferences_through_port,
+    resolve_session_report as resolve_session_report_through_port,
     save_application_preferences as save_preferences_through_port,
     save_exploration_workspace as save_workspace,
     save_training_sport_classification as persist_training_sport_classification,
+    update_session_report as update_session_report_through_port,
     update_training_segment_criterion as update_segment_criterion_through_port, ApplicationError,
     ApplicationPreferences, ImportCoordinator, ImportProgress, InvalidApplicationPreferences,
-    LocalePreference, UpdateChannelPort, UpdateCheckContext, UpdateCheckTrigger,
-    UpdateInstallationAuthorization, UpdateRecoveryOutcome,
+    LocalePreference, ReportExportCancellation, UpdateChannelPort, UpdateCheckContext,
+    UpdateCheckTrigger, UpdateInstallationAuthorization, UpdateRecoveryOutcome,
 };
 use infrastructure::{
     acknowledge_update_recovery_outcome as acknowledge_retained_update_recovery_outcome,
@@ -55,23 +61,26 @@ use infrastructure::{
     confirm_active_update_recovery, current_update_target, download_verified_update,
     install_verified_update, library_schema_version, maintain_update_recovery,
     recover_interrupted_imports, resolve_update_application_path, run_update_recovery_watchdog,
-    HttpsUpdateChannel, PolarFlowSourceAcquisitionGuides, SqliteActivityLibrary,
-    SqliteApplicationPreferences, SqliteImportOutcomeLibrary, SqliteLibraryHome,
-    SqliteLongitudinalLibrary, SqlitePolarFlowArchiveImporter, SqliteRecoveryLibrary,
-    SqliteSleepLibrary, SqliteTrainingLibrary, SqliteTrainingSports, SqliteUpdateState,
-    UpdateInstallationError, UpdateInstallationRequest, UpdatePackageError,
-    UpdateRecoveryCandidateLease, UpdateRecoveryError, UpdateRecoveryMaintenance,
-    UPDATE_RECOVERY_CANDIDATE_ARGUMENT, UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
+    HttpsUpdateChannel, PolarFlowSourceAcquisitionGuides, SelfContainedHtmlReportExporter,
+    SqliteActivityLibrary, SqliteApplicationPreferences, SqliteImportOutcomeLibrary,
+    SqliteLibraryHome, SqliteLongitudinalLibrary, SqlitePolarFlowArchiveImporter,
+    SqliteRecoveryLibrary, SqliteReportLibrary, SqliteSleepLibrary, SqliteTrainingLibrary,
+    SqliteTrainingSports, SqliteUpdateState, UpdateInstallationError, UpdateInstallationRequest,
+    UpdatePackageError, UpdateRecoveryCandidateLease, UpdateRecoveryError,
+    UpdateRecoveryMaintenance, UPDATE_RECOVERY_CANDIDATE_ARGUMENT,
+    UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
 };
 use presentation::{
     ActivityComparisonDto, ActivityDateRangeDto, ActivityOverviewDto, ApplicationPreferencesDto,
     ApplicationPreferencesInputDto, ApplicationPreferencesLoadDto, CommandErrorDto,
-    CreateTrainingSegmentCriterionRequestDto, ExplorationWorkspaceDto, ExploreDestinationInputDto,
-    ImportOutcomeDto, ImportProgressDto, ImportReportDto, LibraryHomeDto, LibraryHomeRequestDto,
-    LongitudinalComparisonDto, LongitudinalDateRangeDto, LongitudinalOverviewDto,
-    MoveTrainingSegmentCriterionRequestDto, RecoveryComparisonDto, RecoveryDateRangeDto,
-    RecoveryNightDetailDto, RecoveryOverviewDto, SaveSportClassificationRequestDto,
-    SavedTrainingSportClassificationDto, SleepComparisonDto, SleepDateRangeDto, SleepOverviewDto,
+    CreateSessionReportRequestDto, CreateTrainingSegmentCriterionRequestDto,
+    ExplorationWorkspaceDto, ExploreDestinationInputDto, ImportOutcomeDto, ImportProgressDto,
+    ImportReportDto, LibraryHomeDto, LibraryHomeRequestDto, LongitudinalComparisonDto,
+    LongitudinalDateRangeDto, LongitudinalOverviewDto, MoveTrainingSegmentCriterionRequestDto,
+    RecoveryComparisonDto, RecoveryDateRangeDto, RecoveryNightDetailDto, RecoveryOverviewDto,
+    ReportDefinitionDto, ReportExportReceiptDto, ReportListDto, ResolvedSessionReportDto,
+    SaveSportClassificationRequestDto, SavedTrainingSportClassificationDto,
+    SessionReportExportRequestDto, SleepComparisonDto, SleepDateRangeDto, SleepOverviewDto,
     SleepPeriodDetailDto, SourceAcquisitionGuideDto, TrainingComparisonDto, TrainingDateRangeDto,
     TrainingDiscoveryWorkspaceDto, TrainingOverviewDto, TrainingRoutePointsQueryDto,
     TrainingRoutePointsResultDto, TrainingSegmentCriterionMutationRequestDto,
@@ -84,7 +93,8 @@ use presentation::{
     TrainingSessionSignalsResultDto, TrainingSessionStructureQueryDto,
     TrainingSessionStructureResultDto, TrainingSessionZonesQueryDto, TrainingSessionZonesResultDto,
     TrainingSignalSamplesQueryDto, TrainingSignalSamplesResultDto, TrainingSportsOverviewDto,
-    UpdateCheckOutcomeDto, UpdateRecoveryOutcomeDto, UpdateTrainingSegmentCriterionRequestDto,
+    UpdateCheckOutcomeDto, UpdateRecoveryOutcomeDto, UpdateSessionReportRequestDto,
+    UpdateTrainingSegmentCriterionRequestDto,
 };
 use serde::{Deserialize, Serialize};
 use tauri::{ipc::Channel, AppHandle, Emitter, Manager, State};
@@ -274,6 +284,53 @@ impl UpdateOperationCoordinator {
 
     fn try_reserve(&self) -> Option<AsyncMutexGuard<'_, ()>> {
         self.operation.try_lock().ok()
+    }
+}
+
+#[derive(Clone, Default)]
+struct ReportExportCoordinator {
+    active: Arc<Mutex<Option<Arc<ReportExportCancellation>>>>,
+}
+
+impl ReportExportCoordinator {
+    fn begin(&self) -> Result<ReportExportOperation, ()> {
+        let mut active = self.active.lock().map_err(|_| ())?;
+        if active.is_some() {
+            return Err(());
+        }
+        let cancellation = Arc::new(ReportExportCancellation::new());
+        *active = Some(Arc::clone(&cancellation));
+        Ok(ReportExportOperation {
+            active: Arc::clone(&self.active),
+            cancellation,
+        })
+    }
+
+    fn cancel(&self) -> Result<bool, ()> {
+        let active = self.active.lock().map_err(|_| ())?;
+        let Some(cancellation) = active.as_ref() else {
+            return Ok(false);
+        };
+        cancellation.cancel();
+        Ok(true)
+    }
+}
+
+struct ReportExportOperation {
+    active: Arc<Mutex<Option<Arc<ReportExportCancellation>>>>,
+    cancellation: Arc<ReportExportCancellation>,
+}
+
+impl Drop for ReportExportOperation {
+    fn drop(&mut self) {
+        if let Ok(mut active) = self.active.lock() {
+            if active
+                .as_ref()
+                .is_some_and(|current| Arc::ptr_eq(current, &self.cancellation))
+            {
+                *active = None;
+            }
+        }
     }
 }
 
@@ -603,6 +660,108 @@ fn save_training_sport_classification(
     persist_training_sport_classification(&SqliteTrainingSports::new(path), request.into())
         .map(SavedTrainingSportClassificationDto::from)
         .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn create_session_report(
+    app: AppHandle,
+    request: CreateSessionReportRequestDto,
+) -> Result<ReportDefinitionDto, CommandErrorDto> {
+    let request = request.try_into()?;
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    create_session_report_through_port(
+        &SqliteReportLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path),
+        request,
+    )
+    .map(Into::into)
+    .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn update_session_report(
+    app: AppHandle,
+    request: UpdateSessionReportRequestDto,
+) -> Result<ReportDefinitionDto, CommandErrorDto> {
+    let request = request.try_into()?;
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    update_session_report_through_port(&SqliteReportLibrary::new(path), request)
+        .map(Into::into)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn list_reports(app: AppHandle) -> Result<ReportListDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    list_reports_through_port(&SqliteReportLibrary::new(path))
+        .map(Into::into)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn load_report_definition(
+    app: AppHandle,
+    report_ref: String,
+) -> Result<ReportDefinitionDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    load_report_definition_through_port(&SqliteReportLibrary::new(path), &report_ref)
+        .map(Into::into)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn resolve_session_report(
+    app: AppHandle,
+    report_ref: String,
+) -> Result<ResolvedSessionReportDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    resolve_session_report_through_port(
+        &SqliteReportLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path),
+        &report_ref,
+    )
+    .map(Into::into)
+    .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+async fn export_session_report(
+    app: AppHandle,
+    coordinator: State<'_, ReportExportCoordinator>,
+    request: SessionReportExportRequestDto,
+) -> Result<ReportExportReceiptDto, CommandErrorDto> {
+    let request = request.try_into()?;
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let operation = coordinator
+        .begin()
+        .map_err(|_| CommandErrorDto::new("report-export-active"))?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let cancellation = Arc::clone(&operation.cancellation);
+        let result = export_session_report_through_port(
+            &SqliteReportLibrary::new(path.clone()),
+            &SqliteTrainingLibrary::new(path.clone()),
+            &SqliteTrainingLibrary::new(path),
+            &SelfContainedHtmlReportExporter,
+            request,
+            &cancellation,
+        )
+        .map(Into::into)
+        .map_err(CommandErrorDto::from);
+        drop(operation);
+        result
+    })
+    .await
+    .map_err(|_| CommandErrorDto::new("desktop-task-failed"))?
+}
+
+#[tauri::command]
+fn cancel_report_export(
+    coordinator: State<'_, ReportExportCoordinator>,
+) -> Result<bool, CommandErrorDto> {
+    coordinator
+        .cancel()
+        .map_err(|_| CommandErrorDto::new("report-export-state-unavailable"))
 }
 
 #[tauri::command]
@@ -1514,6 +1673,7 @@ pub fn run() {
     let update_coordinator = Arc::new(UpdateOperationCoordinator::default());
     builder
         .manage(ImportCoordinator::default())
+        .manage(ReportExportCoordinator::default())
         .manage(interactive_shell_signal)
         .manage(Arc::clone(&startup_recovery))
         .manage(PendingUpdateRecoveryConfirmation::new(
@@ -1582,6 +1742,13 @@ pub fn run() {
             clear_training_discovery_workspace,
             query_training_sports,
             save_training_sport_classification,
+            create_session_report,
+            update_session_report,
+            list_reports,
+            load_report_definition,
+            resolve_session_report,
+            export_session_report,
+            cancel_report_export,
             query_sleep_overview,
             query_sleep_comparison,
             query_sleep_detail,
@@ -2093,6 +2260,21 @@ mod tests {
         assert_eq!(pending.has_matching_lease(&candidate), Ok(true));
         assert_eq!(pending.release_lease(&candidate), Ok(()));
         assert_eq!(pending.has_matching_lease(&candidate), Ok(false));
+    }
+
+    #[test]
+    fn coordinates_cancellation_and_releases_each_report_export_operation() {
+        let coordinator = ReportExportCoordinator::default();
+        assert_eq!(coordinator.cancel(), Ok(false));
+
+        let operation = coordinator.begin().expect("first report export");
+        assert!(coordinator.begin().is_err());
+        assert_eq!(coordinator.cancel(), Ok(true));
+        assert!(operation.cancellation.is_cancelled());
+
+        drop(operation);
+        let next = coordinator.begin().expect("next report export");
+        assert!(!next.cancellation.is_cancelled());
     }
 
     fn authenticated_update_snapshot() -> AuthenticatedUpdateSnapshot {

@@ -55,17 +55,18 @@ use fitfreed_application::{
     PersistedTrainingSessionSegmentation, PersistedTrainingSessionSelection,
     PersistedTrainingSessionSignals, PersistedTrainingSessionStructure,
     PersistedTrainingSessionZones, PersistedTrainingSignalSamples, ProfiledImport,
-    RecoveryDateRange, RecoveryLibraryNight, RecoveryLibraryPort, SegmentSignalEvidence,
-    SegmentSignalKind, SegmentSignalSample, SleepDateRange, SleepLibraryPeriod, SleepLibraryPort,
-    StoredApplicationPreferences, StoredExplorationWorkspace, TrainingDateRange,
-    TrainingDiscoveryView, TrainingDiscoveryWorkspace, TrainingDiscoveryWorkspacePort,
-    TrainingExerciseRoutesView, TrainingExerciseSignalsView, TrainingExerciseStructure,
-    TrainingExerciseZonesView, TrainingLapStructure, TrainingLibraryPort,
-    TrainingMeasurementFilter, TrainingPauseStructure, TrainingProvenanceCurrentView,
-    TrainingProvenanceDecisionView, TrainingProvenanceEventView, TrainingRouteCollectionView,
-    TrainingRouteKindView, TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
-    TrainingSegmentCriterionDirection, TrainingSegmentationPort, TrainingSegmentationPortError,
-    TrainingSessionCalendarDay, TrainingSessionCalendarRequest, TrainingSessionDiscoveryPort,
+    RecoveryDateRange, RecoveryLibraryNight, RecoveryLibraryPort, ReportDefinitionPort,
+    ReportDefinitionPortError, SegmentSignalEvidence, SegmentSignalKind, SegmentSignalSample,
+    SleepDateRange, SleepLibraryPeriod, SleepLibraryPort, StoredApplicationPreferences,
+    StoredExplorationWorkspace, TrainingDateRange, TrainingDiscoveryView,
+    TrainingDiscoveryWorkspace, TrainingDiscoveryWorkspacePort, TrainingExerciseRoutesView,
+    TrainingExerciseSignalsView, TrainingExerciseStructure, TrainingExerciseZonesView,
+    TrainingLapStructure, TrainingLibraryPort, TrainingMeasurementFilter, TrainingPauseStructure,
+    TrainingProvenanceCurrentView, TrainingProvenanceDecisionView, TrainingProvenanceEventView,
+    TrainingRouteCollectionView, TrainingRouteKindView, TrainingRouteOverview,
+    TrainingRoutePointView, TrainingRoutePointsQuery, TrainingSegmentCriterionDirection,
+    TrainingSegmentationPort, TrainingSegmentationPortError, TrainingSessionCalendarDay,
+    TrainingSessionCalendarRequest, TrainingSessionDiscoveryPort,
     TrainingSessionDiscoveryPortError, TrainingSessionProvenancePort,
     TrainingSessionProvenancePortError, TrainingSessionProvenanceQuery, TrainingSessionRoutePort,
     TrainingSessionRoutePortError, TrainingSessionRouteQuery, TrainingSessionRoutesView,
@@ -87,12 +88,13 @@ use fitfreed_domain::{
     decide_sleep_period_reconciliation, decide_training_session_record_reconciliation,
     ArtifactClassification, ArtifactCoverageSummary, ArtifactFamilyCoverage, DailyActivity,
     ExistingObservation, ImportOperationState, ImportOutcome, ImportReport, NightlyRecovery,
-    ReconciliationDecision, RevisionOrder, SegmentCriterion, SegmentCriterionAuthorship,
-    SegmentCriterionDefinition, SleepPeriod, SleepPhaseSummary, SleepScore, SleepStage,
-    SleepStageTransition, SourceSpecificRecoveryAssessment, SourceSpecificRecoveryBaseline,
-    SourceSpecificRecoveryGuidance, SportClassification, SportClassificationAuthorship,
-    SportClassificationKey, SportClassificationState, SportFamily, TrainingExercise,
-    TrainingExerciseRouteAssessment, TrainingExerciseSignalAssessment,
+    ReconciliationDecision, ReportAuthorship, ReportBlock, ReportBlockContent, ReportDefinition,
+    ReportLocale, ReportOrigin, ReportProvenancePolicy, RevisionOrder, SegmentCriterion,
+    SegmentCriterionAuthorship, SegmentCriterionDefinition, SleepPeriod, SleepPhaseSummary,
+    SleepScore, SleepStage, SleepStageTransition, SourceSpecificRecoveryAssessment,
+    SourceSpecificRecoveryBaseline, SourceSpecificRecoveryGuidance, SportClassification,
+    SportClassificationAuthorship, SportClassificationKey, SportClassificationState, SportFamily,
+    TrainingExercise, TrainingExerciseRouteAssessment, TrainingExerciseSignalAssessment,
     TrainingExerciseZoneAssessment, TrainingLap, TrainingLapKind, TrainingPause, TrainingRoute,
     TrainingRouteKind, TrainingRoutePoint, TrainingRoutes, TrainingSession, TrainingSessionRecord,
     TrainingSessionRouteAssessment, TrainingSessionSignalAssessment, TrainingSessionStructure,
@@ -103,6 +105,7 @@ use fitfreed_domain::{
 
 mod local_file;
 mod polar_flow;
+mod report_html;
 mod source_acquisition;
 mod source_subject;
 pub mod update;
@@ -113,6 +116,7 @@ mod update_recovery;
 mod update_state;
 mod update_watchdog;
 
+pub use report_html::SelfContainedHtmlReportExporter;
 pub use source_acquisition::PolarFlowSourceAcquisitionGuides;
 pub use update_channel::{current_update_target, HttpsUpdateChannel};
 pub use update_installation::{
@@ -155,7 +159,7 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 19;
+const SCHEMA_VERSION: i64 = 20;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
@@ -175,6 +179,7 @@ const SCHEMA_V16: &str = include_str!("../migrations/0016_training_session_route
 const SCHEMA_V17: &str = include_str!("../migrations/0017_training_session_signals.sql");
 const SCHEMA_V18: &str = include_str!("../migrations/0018_training_segment_criteria.sql");
 const SCHEMA_V19: &str = include_str!("../migrations/0019_training_session_zones.sql");
+const SCHEMA_V20: &str = include_str!("../migrations/0020_report_definitions.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
 const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@10";
 const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@5";
@@ -6052,7 +6057,10 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         if version < 18 {
             connection.execute_batch(SCHEMA_V18)?;
         }
-        connection.execute_batch(SCHEMA_V19)?;
+        if version < 19 {
+            connection.execute_batch(SCHEMA_V19)?;
+        }
+        connection.execute_batch(SCHEMA_V20)?;
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
         }
@@ -11311,6 +11319,372 @@ impl SqliteTrainingLibrary {
     }
 }
 
+pub struct SqliteReportLibrary {
+    database_path: PathBuf,
+}
+
+impl SqliteReportLibrary {
+    pub fn new(database_path: PathBuf) -> Self {
+        Self { database_path }
+    }
+}
+
+impl ReportDefinitionPort for SqliteReportLibrary {
+    fn new_report_ref(&self) -> StandardResult<String, ReportDefinitionPortError> {
+        new_report_opaque_ref(&self.database_path, "report-")
+    }
+
+    fn new_report_block_ref(&self) -> StandardResult<String, ReportDefinitionPortError> {
+        new_report_opaque_ref(&self.database_path, "report-block-")
+    }
+
+    fn create_report_definition(
+        &self,
+        definition: &ReportDefinition,
+    ) -> StandardResult<(), ReportDefinitionPortError> {
+        let mut connection = open_report_connection(&self.database_path)?;
+        let transaction = connection.transaction().map_err(report_database_error)?;
+        insert_report_definition(&transaction, definition)?;
+        transaction.commit().map_err(report_database_error)
+    }
+
+    fn load_report_definition(
+        &self,
+        report_ref: &str,
+    ) -> StandardResult<Option<ReportDefinition>, ReportDefinitionPortError> {
+        let connection = open_report_connection(&self.database_path)?;
+        load_report_definition_record(&connection, report_ref)
+    }
+
+    fn list_report_definitions(
+        &self,
+    ) -> StandardResult<Vec<ReportDefinition>, ReportDefinitionPortError> {
+        let connection = open_report_connection(&self.database_path)?;
+        let mut statement = connection
+            .prepare(
+                "SELECT report_ref
+                 FROM report_definition
+                 ORDER BY updated_at_utc DESC, report_ref ASC
+                 LIMIT 1001",
+            )
+            .map_err(report_database_error)?;
+        let report_refs = statement
+            .query_map([], |row| row.get::<_, String>(0))
+            .map_err(report_database_error)?
+            .collect::<StandardResult<Vec<_>, _>>()
+            .map_err(report_database_error)?;
+        drop(statement);
+        report_refs
+            .into_iter()
+            .map(|report_ref| {
+                load_report_definition_record(&connection, &report_ref)?.ok_or_else(|| {
+                    ReportDefinitionPortError::Failure(
+                        "listed report definition disappeared".to_owned(),
+                    )
+                })
+            })
+            .collect()
+    }
+
+    fn compare_and_save_report_definition(
+        &self,
+        expected_revision: u64,
+        definition: &ReportDefinition,
+    ) -> StandardResult<bool, ReportDefinitionPortError> {
+        let expected_next_revision = expected_revision.checked_add(1).ok_or_else(|| {
+            ReportDefinitionPortError::Failure("report revision overflowed".to_owned())
+        })?;
+        if definition.revision() != expected_next_revision {
+            return Err(ReportDefinitionPortError::Failure(
+                "saved report revision is not the expected successor".to_owned(),
+            ));
+        }
+        let expected_revision = i64::try_from(expected_revision).map_err(|_| {
+            ReportDefinitionPortError::Failure("expected report revision exceeds SQLite".to_owned())
+        })?;
+        let revision = i64::try_from(definition.revision()).map_err(|_| {
+            ReportDefinitionPortError::Failure("report revision exceeds SQLite".to_owned())
+        })?;
+        let mut connection = open_report_connection(&self.database_path)?;
+        let transaction = connection.transaction().map_err(report_database_error)?;
+        let changed = transaction
+            .execute(
+                "UPDATE report_definition
+                 SET title = ?2,
+                     locale = ?3,
+                     source_snapshot_ref = ?4,
+                     origin_kind = 'session',
+                     origin_session_ref = ?5,
+                     provenance_policy = ?6,
+                     authorship = 'user',
+                     definition_version = ?7,
+                     revision = ?8,
+                     updated_at_utc = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+                 WHERE report_ref = ?1 AND revision = ?9",
+                params![
+                    definition.report_ref(),
+                    definition.title(),
+                    definition.locale().code(),
+                    definition.source_snapshot_ref(),
+                    report_origin_session_ref(definition),
+                    definition.provenance_policy().code(),
+                    i64::from(definition.definition_version()),
+                    revision,
+                    expected_revision,
+                ],
+            )
+            .map_err(report_database_error)?;
+        if changed == 0 {
+            transaction.rollback().map_err(report_database_error)?;
+            return Ok(false);
+        }
+        transaction
+            .execute(
+                "DELETE FROM report_block WHERE report_ref = ?1",
+                [definition.report_ref()],
+            )
+            .map_err(report_database_error)?;
+        insert_report_blocks(&transaction, definition)?;
+        transaction.commit().map_err(report_database_error)?;
+        Ok(true)
+    }
+}
+
+fn open_report_connection(
+    database_path: &Path,
+) -> StandardResult<Connection, ReportDefinitionPortError> {
+    let connection = Connection::open(database_path).map_err(report_database_error)?;
+    ensure_schema(&connection)
+        .map_err(|error| ReportDefinitionPortError::Failure(error.to_string()))?;
+    Ok(connection)
+}
+
+fn new_report_opaque_ref(
+    database_path: &Path,
+    prefix: &str,
+) -> StandardResult<String, ReportDefinitionPortError> {
+    let connection = open_report_connection(database_path)?;
+    connection
+        .query_row("SELECT ?1 || lower(hex(randomblob(32)))", [prefix], |row| {
+            row.get(0)
+        })
+        .map_err(report_database_error)
+}
+
+fn insert_report_definition(
+    transaction: &Transaction<'_>,
+    definition: &ReportDefinition,
+) -> StandardResult<(), ReportDefinitionPortError> {
+    let revision = i64::try_from(definition.revision()).map_err(|_| {
+        ReportDefinitionPortError::Failure("report revision exceeds SQLite".to_owned())
+    })?;
+    transaction
+        .execute(
+            "INSERT INTO report_definition (
+                 report_ref, title, locale, source_snapshot_ref, origin_kind,
+                 origin_session_ref, provenance_policy, authorship, definition_version,
+                 revision, created_at_utc, updated_at_utc
+             ) VALUES (
+                 ?1, ?2, ?3, ?4, 'session', ?5, ?6, 'user', ?7, ?8,
+                 strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                 strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+             )",
+            params![
+                definition.report_ref(),
+                definition.title(),
+                definition.locale().code(),
+                definition.source_snapshot_ref(),
+                report_origin_session_ref(definition),
+                definition.provenance_policy().code(),
+                i64::from(definition.definition_version()),
+                revision,
+            ],
+        )
+        .map_err(report_database_error)?;
+    insert_report_blocks(transaction, definition)
+}
+
+fn insert_report_blocks(
+    transaction: &Transaction<'_>,
+    definition: &ReportDefinition,
+) -> StandardResult<(), ReportDefinitionPortError> {
+    for (ordinal, block) in definition.blocks().iter().enumerate() {
+        let ordinal = i64::try_from(ordinal).map_err(|_| {
+            ReportDefinitionPortError::Failure("report block ordinal exceeds SQLite".to_owned())
+        })?;
+        match block.content() {
+            ReportBlockContent::SessionEvidence {
+                session_ref,
+                include_physiological_context,
+            } => {
+                transaction
+                    .execute(
+                        "INSERT INTO report_block (
+                             report_ref, block_ref, ordinal, kind, session_ref,
+                             include_physiological_context, narrative_body
+                         ) VALUES (?1, ?2, ?3, 'session-evidence', ?4, ?5, NULL)",
+                        params![
+                            definition.report_ref(),
+                            block.block_ref(),
+                            ordinal,
+                            session_ref,
+                            i64::from(*include_physiological_context),
+                        ],
+                    )
+                    .map_err(report_database_error)?;
+            }
+            ReportBlockContent::Narrative { body } => {
+                transaction
+                    .execute(
+                        "INSERT INTO report_block (
+                             report_ref, block_ref, ordinal, kind, session_ref,
+                             include_physiological_context, narrative_body
+                         ) VALUES (?1, ?2, ?3, 'narrative', NULL, NULL, ?4)",
+                        params![definition.report_ref(), block.block_ref(), ordinal, body,],
+                    )
+                    .map_err(report_database_error)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn load_report_definition_record(
+    connection: &Connection,
+    report_ref: &str,
+) -> StandardResult<Option<ReportDefinition>, ReportDefinitionPortError> {
+    let header = connection
+        .query_row(
+            "SELECT title, locale, source_snapshot_ref, origin_kind, origin_session_ref,
+                    provenance_policy, authorship, definition_version, revision
+             FROM report_definition
+             WHERE report_ref = ?1",
+            [report_ref],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, String>(3)?,
+                    row.get::<_, String>(4)?,
+                    row.get::<_, String>(5)?,
+                    row.get::<_, String>(6)?,
+                    row.get::<_, i64>(7)?,
+                    row.get::<_, i64>(8)?,
+                ))
+            },
+        )
+        .optional()
+        .map_err(report_database_error)?;
+    let Some((
+        title,
+        locale,
+        source_snapshot_ref,
+        origin_kind,
+        origin_session_ref,
+        provenance_policy,
+        authorship,
+        definition_version,
+        revision,
+    )) = header
+    else {
+        return Ok(None);
+    };
+    if origin_kind != "session" || authorship != "user" {
+        return Err(invalid_report_record("report header codes are invalid"));
+    }
+    let locale = ReportLocale::from_code(&locale)
+        .ok_or_else(|| invalid_report_record("report locale is invalid"))?;
+    let provenance_policy = ReportProvenancePolicy::from_code(&provenance_policy)
+        .ok_or_else(|| invalid_report_record("report provenance policy is invalid"))?;
+    let definition_version = u32::try_from(definition_version)
+        .map_err(|_| invalid_report_record("report definition version is invalid"))?;
+    let revision =
+        u64::try_from(revision).map_err(|_| invalid_report_record("report revision is invalid"))?;
+    let mut statement = connection
+        .prepare(
+            "SELECT block_ref, kind, session_ref, include_physiological_context, narrative_body
+             FROM report_block
+             WHERE report_ref = ?1
+             ORDER BY ordinal ASC",
+        )
+        .map_err(report_database_error)?;
+    let persisted_blocks = statement
+        .query_map([report_ref], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, Option<String>>(2)?,
+                row.get::<_, Option<i64>>(3)?,
+                row.get::<_, Option<String>>(4)?,
+            ))
+        })
+        .map_err(report_database_error)?
+        .collect::<StandardResult<Vec<_>, _>>()
+        .map_err(report_database_error)?;
+    let blocks = persisted_blocks
+        .into_iter()
+        .map(
+            |(block_ref, kind, session_ref, include_physiological_context, narrative_body)| {
+                let content = match kind.as_str() {
+                    "session-evidence" => ReportBlockContent::SessionEvidence {
+                        session_ref: session_ref.ok_or_else(|| {
+                            invalid_report_record("session report block has no session")
+                        })?,
+                        include_physiological_context: match include_physiological_context {
+                            Some(0) => false,
+                            Some(1) => true,
+                            _ => {
+                                return Err(invalid_report_record(
+                                    "session report block has invalid sensitivity",
+                                ));
+                            }
+                        },
+                    },
+                    "narrative" => ReportBlockContent::Narrative {
+                        body: narrative_body.ok_or_else(|| {
+                            invalid_report_record("narrative report block has no body")
+                        })?,
+                    },
+                    _ => return Err(invalid_report_record("report block kind is invalid")),
+                };
+                ReportBlock::restore(block_ref, content)
+                    .map_err(|error| invalid_report_record(&error.to_string()))
+            },
+        )
+        .collect::<StandardResult<Vec<_>, _>>()?;
+    ReportDefinition::restore(
+        report_ref,
+        title,
+        locale,
+        source_snapshot_ref,
+        ReportOrigin::Session {
+            session_ref: origin_session_ref,
+        },
+        provenance_policy,
+        ReportAuthorship::User,
+        definition_version,
+        revision,
+        blocks,
+    )
+    .map(Some)
+    .map_err(|error| invalid_report_record(&error.to_string()))
+}
+
+fn report_origin_session_ref(definition: &ReportDefinition) -> &str {
+    match definition.origin() {
+        ReportOrigin::Session { session_ref } => session_ref,
+    }
+}
+
+fn report_database_error(error: SqliteError) -> ReportDefinitionPortError {
+    ReportDefinitionPortError::Failure(error.to_string())
+}
+
+fn invalid_report_record(message: &str) -> ReportDefinitionPortError {
+    ReportDefinitionPortError::Failure(format!("invalid persisted report definition: {message}"))
+}
+
 impl TrainingLibraryPort for SqliteTrainingLibrary {
     fn training_bounds(&self) -> std::result::Result<Option<TrainingDateRange>, String> {
         query_training_bounds(&self.database_path).map_err(|error| error.to_string())
@@ -11931,6 +12305,7 @@ impl ApplicationPreferencesPort for SqliteApplicationPreferences {
 
 #[cfg(test)]
 mod tests {
+    use fitfreed_domain::author_session_report;
     use std::io::Write;
     use tempfile::TempDir;
     use zip::{write::SimpleFileOptions, ZipWriter};
@@ -11965,6 +12340,185 @@ mod tests {
             writer.finish().expect("complete ZIP");
             path
         }
+    }
+
+    fn persisted_report_definition() -> ReportDefinition {
+        persisted_report_definition_with_seed('1', "Morning progression")
+    }
+
+    fn persisted_report_definition_with_seed(seed: char, title: &str) -> ReportDefinition {
+        let digest = seed.to_string().repeat(64);
+        let narrative_digest = format!(
+            "{}{}",
+            seed.to_string().repeat(63),
+            if seed == '0' { '1' } else { '0' }
+        );
+        let session_ref = format!("session-{digest}");
+        ReportDefinition::create_session_report(
+            format!("report-{digest}"),
+            title,
+            ReportLocale::EnUs,
+            format!("training-snapshot-{digest}"),
+            ReportBlock::session_evidence(format!("report-block-{digest}"), &session_ref, true)
+                .expect("session report block"),
+            ReportBlock::narrative(
+                format!("report-block-{narrative_digest}"),
+                "The final section felt controlled.",
+            )
+            .expect("narrative report block"),
+        )
+        .expect("report definition")
+    }
+
+    #[test]
+    fn persists_lists_edits_and_retains_report_definitions_across_restart_and_import() {
+        let harness = Harness::new();
+        let library = SqliteReportLibrary::new(harness.database());
+        let report = persisted_report_definition();
+
+        library
+            .create_report_definition(&report)
+            .expect("persist report definition");
+        assert_eq!(
+            library
+                .load_report_definition(report.report_ref())
+                .expect("load report definition"),
+            Some(report.clone())
+        );
+        assert_eq!(
+            library
+                .list_report_definitions()
+                .expect("list report definitions"),
+            vec![report.clone()]
+        );
+
+        let edited = author_session_report(
+            &report,
+            "Morning progression reviewed",
+            ReportLocale::EsEs,
+            false,
+            "A conservative interpretation.",
+        )
+        .expect("edited report definition");
+        assert!(library
+            .compare_and_save_report_definition(1, &edited)
+            .expect("save exact report revision"));
+        assert!(!library
+            .compare_and_save_report_definition(1, &edited)
+            .expect("reject stale report revision"));
+
+        let archive = harness.archive(
+            "later-history.zip",
+            &[(
+                "activity-2026-08-18-11111111-2222-4333-8444-555555555555.json",
+                r#"{"date":"2026-08-18","summary":{"stepCount":4200}}"#,
+            )],
+        );
+        import_archive(&harness.database(), &archive, "polar:synthetic").expect("later import");
+
+        let reopened = SqliteReportLibrary::new(harness.database());
+        assert_eq!(
+            reopened
+                .load_report_definition(report.report_ref())
+                .expect("reopen report definition"),
+            Some(edited)
+        );
+    }
+
+    #[test]
+    fn lists_multiple_reports_by_effective_save_and_rejects_incompatible_rows_non_destructively() {
+        let harness = Harness::new();
+        let library = SqliteReportLibrary::new(harness.database());
+        let older = persisted_report_definition_with_seed('a', "Older report");
+        let newer = persisted_report_definition_with_seed('b', "Newer report");
+        library
+            .create_report_definition(&older)
+            .expect("persist older report");
+        library
+            .create_report_definition(&newer)
+            .expect("persist newer report");
+
+        let connection = Connection::open(harness.database()).expect("report database");
+        connection
+            .execute(
+                "UPDATE report_definition
+                 SET updated_at_utc = CASE report_ref
+                     WHEN ?1 THEN '2026-08-18T08:00:00.000Z'
+                     ELSE '2026-08-18T09:00:00.000Z'
+                 END",
+                [older.report_ref()],
+            )
+            .expect("stable report ordering evidence");
+        assert_eq!(
+            library
+                .list_report_definitions()
+                .expect("ordered report list"),
+            vec![newer.clone(), older]
+        );
+
+        connection
+            .pragma_update(None, "ignore_check_constraints", true)
+            .expect("enable incompatible-row fixture");
+        connection
+            .execute(
+                "UPDATE report_definition SET definition_version = 2 WHERE report_ref = ?1",
+                [newer.report_ref()],
+            )
+            .expect("persist incompatible definition fixture");
+        connection
+            .pragma_update(None, "ignore_check_constraints", false)
+            .expect("restore check constraints");
+
+        assert!(matches!(
+            library.load_report_definition(newer.report_ref()),
+            Err(ReportDefinitionPortError::Failure(message))
+                if message.contains("report definition version is unsupported")
+        ));
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM report_definition WHERE report_ref = ?1",
+                    [newer.report_ref()],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("incompatible report remains recoverable"),
+            1
+        );
+    }
+
+    #[test]
+    fn upgrades_version_nineteen_with_report_storage_atomically() {
+        let harness = Harness::new();
+        let connection = Connection::open(harness.database()).expect("database");
+        create_schema_baseline(&connection, 19);
+
+        let error = migrate_schema(&connection, true).expect_err("interrupted version twenty");
+        assert!(matches!(error, ImportError::InjectedMigrationInterruption));
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_schema
+                     WHERE type = 'table' AND name IN ('report_definition', 'report_block')",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("rolled-back report tables"),
+            0
+        );
+
+        migrate_schema(&connection, false).expect("version twenty migration");
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_schema
+                     WHERE type = 'table' AND name IN ('report_definition', 'report_block')",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("report tables"),
+            2
+        );
+        assert_integrity(&connection);
     }
 
     fn staged_sleep_result_json(night: &str) -> String {
@@ -16534,6 +17088,7 @@ mod tests {
         let migrations = [
             SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8,
             SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15,
+            SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20,
         ];
         for migration in migrations
             .iter()

@@ -2,7 +2,7 @@
 
 ## Status
 
-Active as of 2026-08-19. D0, P1, E1, and P2 have complete local and hosted acceptance evidence. E2 has reached its complete local checkpoint; hosted executable evidence remains pending. All three E3 slices and all seven E4 slices have reached their local checkpoints. E5 personal report authoring and export is active. The latest executable fingerprint still requires hosted evidence. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English and Spanish hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md) and [ADR 0024](../architecture/decisions/0024-generate-localized-product-pages.md).
+Active as of 2026-08-19. D0, P1, E1, and P2 have complete local and hosted acceptance evidence. E2 has reached its complete local checkpoint; hosted executable evidence remains pending. All three E3 slices and all seven E4 slices have reached their local checkpoints. The first E5 vertical has reached its local checkpoint with durable session-origin authorship, privacy review, and deterministic self-contained HTML export; the additional accepted blocks, start paths, and deliberate refresh remain active. The latest executable fingerprint still requires hosted evidence. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English and Spanish hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md) and [ADR 0024](../architecture/decisions/0024-generate-localized-product-pages.md).
 
 The existing import, reconciliation, persistence, Insights, localization, update-recovery, packaging, and continuous-integration capabilities remain the engineering baseline. This plan changes how those capabilities become a product people can understand and value; it does not discard their verified behavior.
 
@@ -571,6 +571,14 @@ executable fingerprint.
 
 **Precondition:** FR-005 and ADR 0022 define the accepted report scope and export format; implementation waits only for authoritative application queries required by each selected block.
 
+**Delivery sequence:** E5 starts with a session-origin vertical that persists a versioned report containing
+resolved session evidence and user narrative, reopens it after restart, reviews its included sensitive
+content, and exports deterministic self-contained HTML. This proves the durable model, authoritative query,
+SQLite, transport, editor, and output-adapter boundaries through one immediately useful artifact. Later E5
+slices add the remaining accepted finding, comparison, chart, exact-table, coverage-and-limitation, and route
+blocks; question, exploration, and blank starts; then deliberate refresh and complete origin-aware return.
+Each slice remains runnable and documented but E5 is accepted only after the complete FR-005 journey passes.
+
 **Application and architecture:**
 
 - Introduce a versioned `ReportDefinition` in Insights with identity, title, ordered blocks, query parameters, presentation choices, user narrative, provenance policy, sensitivity flags, refresh state, and compatibility behavior.
@@ -592,6 +600,16 @@ executable fingerprint.
 - UI tests type narrative and configuration values, add/remove/reorder multiple blocks, save, reload, refresh, preview, export, and recover from invalid input and adapter failure.
 - Export tests reopen the generated output independently, verify deterministic structure and declared metadata, and confirm that cancellation or failure leaves no misleading completed file.
 - Packaged E2E creates a report from an exploration, restarts, reopens it, imports more data, reviews a deliberate refresh, exports it, and verifies accessible content in both locales.
+
+**First vertical local checkpoint:** the version-1 definition contains one authoritative session-evidence block
+and one plain-text narrative block. Domain and application tests protect invariants, authorship, optimistic
+edits, current and stale resolution, sensitivity reduction, authorization, and cancellation. SQLite tests
+cover atomic v19 migration, multiple definitions, ordering, edit conflict, restart, non-destructive reimport,
+and incompatible-row retention. Presentation tests exercise real field input, validation, creation, editing,
+reopening, privacy review, destination cancellation, adapter failure, stale export blocking, exact return, and
+both locales. The packaged macOS journey creates and reopens the report, independently reads the exported
+HTML, reimports new evidence, verifies stale behavior after restart, and passes the complete packaged
+performance campaign. This is an evaluable checkpoint, not completion of the remaining E5 delivery sequence.
 
 **Evaluation checkpoint:** a reviewer can create a useful artifact without learning provider or database terminology and can explain which parts are recorded, calculated, or authored.
 

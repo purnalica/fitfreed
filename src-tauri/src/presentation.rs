@@ -1,15 +1,18 @@
+use std::path::PathBuf;
+
 use serde::{Deserialize, Serialize};
 
 use fitfreed_application::{
     ActivityComparison, ActivityDateRange, ActivityDayAvailability, ActivityDayInsight,
     ActivityOverview, ActivitySeriesComparison, ActivitySeriesOverview, ActivitySeriesSummary,
     AppearancePreference, ApplicationError, ApplicationPreferences, ApplicationPreferencesLoad,
-    AppliedTrainingSegmentCriterion, CreateTrainingSegmentCriterionRequest, ExpectedSourceArchive,
-    ExplorationWorkspace, ExploreDestination, ImportPhase, ImportProgress,
-    InvalidApplicationPreferences, LibraryDomain, LibraryDomainCoverage, LibraryHome,
-    LibraryHomeDateRange, LibraryHomeRequest, LibraryMeasurement, LibraryMeasurementCoverage,
-    LibraryQuestion, LibraryQuestionKind, LongitudinalActivityComparison, LongitudinalActivityDay,
-    LongitudinalComparison, LongitudinalDateRange, LongitudinalDayInsight, LongitudinalOverview,
+    AppliedTrainingSegmentCriterion, CreateSessionReportRequest,
+    CreateTrainingSegmentCriterionRequest, ExpectedSourceArchive, ExplorationWorkspace,
+    ExploreDestination, ImportPhase, ImportProgress, InvalidApplicationPreferences, LibraryDomain,
+    LibraryDomainCoverage, LibraryHome, LibraryHomeDateRange, LibraryHomeRequest,
+    LibraryMeasurement, LibraryMeasurementCoverage, LibraryQuestion, LibraryQuestionKind,
+    LongitudinalActivityComparison, LongitudinalActivityDay, LongitudinalComparison,
+    LongitudinalDateRange, LongitudinalDayInsight, LongitudinalOverview,
     LongitudinalRecoveryComparison, LongitudinalRecoveryDay, LongitudinalSeriesComparison,
     LongitudinalSeriesOverview, LongitudinalSleepComparison, LongitudinalSleepDay,
     LongitudinalTrainingComparison, LongitudinalTrainingDay, ManualUpdateReason,
@@ -17,11 +20,13 @@ use fitfreed_application::{
     PersistedTrainingRoutePoints, PersistedTrainingSignalSamples, PostImportReveal,
     PreferencesLoadStatus, RecoveryComparison, RecoveryDateRange, RecoveryDayAvailability,
     RecoveryDayInsight, RecoveryNightDetail, RecoveryNightInsight, RecoveryOverview,
-    RecoverySeriesComparison, RecoverySeriesOverview, RecoverySeriesSummary,
-    SaveSportClassificationRequest, SavedTrainingSportClassification, SegmentApplicabilityView,
-    SegmentMeasurementView, SleepComparison, SleepDateRange, SleepDayAvailability, SleepDayInsight,
-    SleepOverview, SleepPeriodDetail, SleepPeriodInsight, SleepPhaseTotals, SleepSeriesComparison,
-    SleepSeriesOverview, SleepSeriesSummary, SourceAcquisitionGuide,
+    RecoverySeriesComparison, RecoverySeriesOverview, RecoverySeriesSummary, ReportExportReceipt,
+    ReportLimitation, ReportResolutionStatus, ReportSensitiveContent, ReportSensitiveContentKind,
+    ReportSessionEvidence, ReportSummary, ResolvedSessionReport, SaveSportClassificationRequest,
+    SavedTrainingSportClassification, SegmentApplicabilityView, SegmentMeasurementView,
+    SessionReportExportRequest, SleepComparison, SleepDateRange, SleepDayAvailability,
+    SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight, SleepPhaseTotals,
+    SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary, SourceAcquisitionGuide,
     SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange, TrainingDerivedSegment,
     TrainingDiscoveryView, TrainingDiscoveryWorkspace, TrainingExerciseRoutesView,
     TrainingExerciseSegmentation, TrainingExerciseSignalsView, TrainingExerciseStructure,
@@ -47,8 +52,9 @@ use fitfreed_application::{
     TrainingSportState, TrainingSportsOverview, TrainingStructure, TrainingZoneCollectionView,
     TrainingZoneGroupView, TrainingZoneKindView, TrainingZoneUnitView, TrainingZoneView,
     UpdateCheckOutcome, UpdateCheckStatus, UpdateError, UpdateRecoveryOutcome,
-    UpdateRecoveryOutcomeKind, UpdateReleaseSummary, UpdateTrainingSegmentCriterionRequest,
-    UpdateTrustFailure, UpdateWithdrawalReason, UpdateWithdrawalSummary,
+    UpdateRecoveryOutcomeKind, UpdateReleaseSummary, UpdateSessionReportRequest,
+    UpdateTrainingSegmentCriterionRequest, UpdateTrustFailure, UpdateWithdrawalReason,
+    UpdateWithdrawalSummary,
 };
 
 #[derive(Debug, Deserialize)]
@@ -390,9 +396,10 @@ fn explore_destination(destination: ExploreDestination) -> &'static str {
 }
 
 use fitfreed_domain::{
-    ArtifactCoverageSummary, ArtifactFamilyCoverage, ImportOutcome, ImportReport, SegmentCriterion,
-    SegmentCriterionAuthorship, SegmentCriterionDefinition, SleepPhaseSummary, SleepScore,
-    SleepStage, SleepStageTransition, SourceSpecificRecoveryAssessment,
+    ArtifactCoverageSummary, ArtifactFamilyCoverage, ImportOutcome, ImportReport, ReportAuthorship,
+    ReportBlockContent, ReportDefinition, ReportLocale, ReportOrigin, ReportProvenancePolicy,
+    SegmentCriterion, SegmentCriterionAuthorship, SegmentCriterionDefinition, SleepPhaseSummary,
+    SleepScore, SleepStage, SleepStageTransition, SourceSpecificRecoveryAssessment,
     SourceSpecificRecoveryBaseline, SourceSpecificRecoveryGuidance,
 };
 
@@ -433,6 +440,15 @@ impl From<ApplicationError> for CommandErrorDto {
             ApplicationError::TrainingSegmentationChanged => "training-segmentation-changed",
             ApplicationError::TrainingSegmentationQuery(_)
             | ApplicationError::TrainingSegmentationUpdate(_) => "training-segmentation-failed",
+            ApplicationError::InvalidReportDefinition(_) => "invalid-report-definition",
+            ApplicationError::ReportNotFound => "report-not-found",
+            ApplicationError::ReportDefinitionConflict => "report-definition-conflict",
+            ApplicationError::ReportSourceChanged => "report-source-changed",
+            ApplicationError::ReportEvidenceUnavailable => "report-evidence-unavailable",
+            ApplicationError::ReportDefinitionQuery(_) => "report-definition-query-failed",
+            ApplicationError::ReportDefinitionUpdate(_) => "report-definition-update-failed",
+            ApplicationError::ReportExportCancelled => "report-export-cancelled",
+            ApplicationError::ReportExport(_) => "report-export-failed",
             ApplicationError::InvalidTrainingDiscoveryWorkspace(_) => {
                 "invalid-training-discovery-workspace"
             }
@@ -2322,6 +2338,353 @@ pub struct TrainingSessionProvenanceResultDto {
     events: Vec<TrainingProvenanceEventDto>,
 }
 
+#[derive(Debug, Serialize)]
+#[serde(
+    tag = "kind",
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase"
+)]
+pub enum ReportBlockDto {
+    SessionEvidence {
+        block_ref: String,
+        session_ref: String,
+        include_physiological_context: bool,
+    },
+    Narrative {
+        block_ref: String,
+        body: String,
+    },
+}
+
+#[derive(Debug, Serialize)]
+#[serde(
+    tag = "kind",
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase"
+)]
+pub enum ReportOriginDto {
+    Session { session_ref: String },
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReportDefinitionDto {
+    report_ref: String,
+    title: String,
+    locale: &'static str,
+    source_snapshot_ref: String,
+    origin: ReportOriginDto,
+    provenance_policy: &'static str,
+    authorship: &'static str,
+    definition_version: u32,
+    revision: String,
+    blocks: Vec<ReportBlockDto>,
+}
+
+impl From<ReportDefinition> for ReportDefinitionDto {
+    fn from(definition: ReportDefinition) -> Self {
+        let origin = match definition.origin() {
+            ReportOrigin::Session { session_ref } => ReportOriginDto::Session {
+                session_ref: session_ref.clone(),
+            },
+        };
+        let blocks = definition
+            .blocks()
+            .iter()
+            .map(|block| match block.content() {
+                ReportBlockContent::SessionEvidence {
+                    session_ref,
+                    include_physiological_context,
+                } => ReportBlockDto::SessionEvidence {
+                    block_ref: block.block_ref().to_owned(),
+                    session_ref: session_ref.clone(),
+                    include_physiological_context: *include_physiological_context,
+                },
+                ReportBlockContent::Narrative { body } => ReportBlockDto::Narrative {
+                    block_ref: block.block_ref().to_owned(),
+                    body: body.clone(),
+                },
+            })
+            .collect();
+        let provenance_policy = match definition.provenance_policy() {
+            ReportProvenancePolicy::CurrentAttribution => "current-attribution",
+        };
+        let authorship = match definition.authorship() {
+            ReportAuthorship::User => "user",
+        };
+        Self {
+            report_ref: definition.report_ref().to_owned(),
+            title: definition.title().to_owned(),
+            locale: definition.locale().code(),
+            source_snapshot_ref: definition.source_snapshot_ref().to_owned(),
+            origin,
+            provenance_policy,
+            authorship,
+            definition_version: definition.definition_version(),
+            revision: definition.revision().to_string(),
+            blocks,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CreateSessionReportRequestDto {
+    title: String,
+    locale: String,
+    session_ref: String,
+    source_snapshot_ref: String,
+    include_physiological_context: bool,
+    narrative: String,
+}
+
+impl TryFrom<CreateSessionReportRequestDto> for CreateSessionReportRequest {
+    type Error = CommandErrorDto;
+
+    fn try_from(request: CreateSessionReportRequestDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            title: request.title,
+            locale: report_locale(&request.locale)?,
+            session_ref: request.session_ref,
+            source_snapshot_ref: request.source_snapshot_ref,
+            include_physiological_context: request.include_physiological_context,
+            narrative: request.narrative,
+        })
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct UpdateSessionReportRequestDto {
+    report_ref: String,
+    expected_revision: String,
+    title: String,
+    locale: String,
+    include_physiological_context: bool,
+    narrative: String,
+}
+
+impl TryFrom<UpdateSessionReportRequestDto> for UpdateSessionReportRequest {
+    type Error = CommandErrorDto;
+
+    fn try_from(request: UpdateSessionReportRequestDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            report_ref: request.report_ref,
+            expected_revision: parse_canonical_u64(
+                &request.expected_revision,
+                "invalid-report-definition",
+            )?,
+            title: request.title,
+            locale: report_locale(&request.locale)?,
+            include_physiological_context: request.include_physiological_context,
+            narrative: request.narrative,
+        })
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReportSummaryDto {
+    report_ref: String,
+    title: String,
+    locale: &'static str,
+    source_snapshot_ref: String,
+    revision: String,
+}
+
+impl From<ReportSummary> for ReportSummaryDto {
+    fn from(report: ReportSummary) -> Self {
+        Self {
+            report_ref: report.report_ref,
+            title: report.title,
+            locale: report.locale.code(),
+            source_snapshot_ref: report.source_snapshot_ref,
+            revision: report.revision.to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReportListDto {
+    reports: Vec<ReportSummaryDto>,
+}
+
+impl From<Vec<ReportSummary>> for ReportListDto {
+    fn from(reports: Vec<ReportSummary>) -> Self {
+        Self {
+            reports: reports.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReportSessionEvidenceDto {
+    session_ref: String,
+    source_index: usize,
+    started_at_local: String,
+    stopped_at_local: String,
+    utc_offset_minutes: Option<i32>,
+    duration_milliseconds: String,
+    distance_meters: Option<f64>,
+    energy_kilocalories: Option<String>,
+    average_heart_rate_bpm: Option<String>,
+    maximum_heart_rate_bpm: Option<String>,
+    exercise_count: Option<usize>,
+    sport: TrainingSessionSportDto,
+}
+
+impl From<ReportSessionEvidence> for ReportSessionEvidenceDto {
+    fn from(session: ReportSessionEvidence) -> Self {
+        Self {
+            session_ref: session.session_ref,
+            source_index: session.source_index,
+            started_at_local: session.started_at_local,
+            stopped_at_local: session.stopped_at_local,
+            utc_offset_minutes: session.utc_offset_minutes,
+            duration_milliseconds: session.duration_milliseconds.to_string(),
+            distance_meters: session.distance_meters,
+            energy_kilocalories: session.energy_kilocalories.map(|value| value.to_string()),
+            average_heart_rate_bpm: session
+                .average_heart_rate_bpm
+                .map(|value| value.to_string()),
+            maximum_heart_rate_bpm: session
+                .maximum_heart_rate_bpm
+                .map(|value| value.to_string()),
+            exercise_count: session.exercise_count,
+            sport: session.sport.into(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReportSensitiveContentDto {
+    kind: &'static str,
+    included: bool,
+}
+
+impl From<ReportSensitiveContent> for ReportSensitiveContentDto {
+    fn from(content: ReportSensitiveContent) -> Self {
+        Self {
+            kind: match content.kind {
+                ReportSensitiveContentKind::HeartRate => "heart-rate",
+            },
+            included: content.included,
+        }
+    }
+}
+
+fn report_limitation(limitation: ReportLimitation) -> &'static str {
+    match limitation {
+        ReportLimitation::DistanceUnavailable => "distance-unavailable",
+        ReportLimitation::EnergyUnavailable => "energy-unavailable",
+        ReportLimitation::HeartRateUnavailable => "heart-rate-unavailable",
+        ReportLimitation::SportUnclassified => "sport-unclassified",
+        ReportLimitation::SportUnavailable => "sport-unavailable",
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResolvedSessionReportDto {
+    definition: ReportDefinitionDto,
+    resolved_snapshot_ref: String,
+    status: &'static str,
+    session: ReportSessionEvidenceDto,
+    provenance: TrainingProvenanceCurrentDto,
+    sensitive_contents: Vec<ReportSensitiveContentDto>,
+    limitations: Vec<&'static str>,
+}
+
+impl From<ResolvedSessionReport> for ResolvedSessionReportDto {
+    fn from(report: ResolvedSessionReport) -> Self {
+        Self {
+            definition: report.definition.into(),
+            resolved_snapshot_ref: report.resolved_snapshot_ref,
+            status: match report.status {
+                ReportResolutionStatus::Current => "current",
+                ReportResolutionStatus::Stale => "stale",
+            },
+            session: report.session.into(),
+            provenance: report.provenance.into(),
+            sensitive_contents: report
+                .sensitive_contents
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            limitations: report
+                .limitations
+                .into_iter()
+                .map(report_limitation)
+                .collect(),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SessionReportExportRequestDto {
+    report_ref: String,
+    expected_revision: String,
+    expected_source_snapshot_ref: String,
+    include_physiological_context: bool,
+    destination_path: String,
+}
+
+impl TryFrom<SessionReportExportRequestDto> for SessionReportExportRequest {
+    type Error = CommandErrorDto;
+
+    fn try_from(request: SessionReportExportRequestDto) -> Result<Self, Self::Error> {
+        if request.destination_path.is_empty() || request.destination_path.len() > 32_768 {
+            return Err(CommandErrorDto::new("invalid-report-definition"));
+        }
+        let destination = PathBuf::from(request.destination_path);
+        if !destination.is_absolute() || destination.file_name().is_none() {
+            return Err(CommandErrorDto::new("invalid-report-definition"));
+        }
+        Ok(Self {
+            report_ref: request.report_ref,
+            expected_revision: parse_canonical_u64(
+                &request.expected_revision,
+                "invalid-report-definition",
+            )?,
+            expected_source_snapshot_ref: request.expected_source_snapshot_ref,
+            include_physiological_context: request.include_physiological_context,
+            destination,
+        })
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReportExportReceiptDto {
+    byte_count: String,
+}
+
+impl From<ReportExportReceipt> for ReportExportReceiptDto {
+    fn from(receipt: ReportExportReceipt) -> Self {
+        Self {
+            byte_count: receipt.byte_count.to_string(),
+        }
+    }
+}
+
+fn report_locale(code: &str) -> Result<ReportLocale, CommandErrorDto> {
+    ReportLocale::from_code(code).ok_or_else(|| CommandErrorDto::new("invalid-report-definition"))
+}
+
+fn parse_canonical_u64(value: &str, error_code: &'static str) -> Result<u64, CommandErrorDto> {
+    let parsed = value
+        .parse::<u64>()
+        .map_err(|_| CommandErrorDto::new(error_code))?;
+    if parsed == 0 || parsed.to_string() != value {
+        return Err(CommandErrorDto::new(error_code));
+    }
+    Ok(parsed)
+}
+
 impl From<TrainingSessionProvenanceResult> for TrainingSessionProvenanceResultDto {
     fn from(result: TrainingSessionProvenanceResult) -> Self {
         Self {
@@ -3930,6 +4293,7 @@ mod tests {
         UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind,
     };
     use fitfreed_domain::{ArtifactClassification, ArtifactFamilyCoverage, ImportOperationState};
+    use serde_json::{from_value, json};
 
     use super::*;
 
@@ -6061,5 +6425,96 @@ mod tests {
             ))
             .is_err()
         );
+    }
+
+    #[test]
+    fn validates_report_mutation_and_export_transport_boundaries() {
+        let create: CreateSessionReportRequestDto =
+            from_value(json!({
+                "title": "Morning progression",
+                "locale": "en-US",
+                "sessionRef":
+                    "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "sourceSnapshotRef":
+                    "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "includePhysiologicalContext": true,
+                "narrative": "The final section felt controlled."
+            }))
+            .expect("report creation request");
+        let create = CreateSessionReportRequest::try_from(create).expect("valid creation");
+        assert_eq!(create.locale, ReportLocale::EnUs);
+        assert!(create.include_physiological_context);
+        assert!(from_value::<CreateSessionReportRequestDto>(json!({
+            "title": "Morning progression",
+            "locale": "en-GB",
+            "sessionRef": "session-reference",
+            "sourceSnapshotRef": "snapshot-reference",
+            "includePhysiologicalContext": true,
+            "narrative": "Interpretation",
+            "providerIdentity": "must-not-cross-the-boundary"
+        }))
+        .is_err());
+
+        let update: UpdateSessionReportRequestDto = from_value(json!({
+            "reportRef":
+                "report-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "expectedRevision": "2",
+            "title": "Morning progression review",
+            "locale": "es-ES",
+            "includePhysiologicalContext": false,
+            "narrative": "El tramo final se mantuvo controlado."
+        }))
+        .expect("report update request");
+        assert_eq!(
+            UpdateSessionReportRequest::try_from(update)
+                .expect("valid report update")
+                .expected_revision,
+            2
+        );
+        for revision in ["0", "02", "+2", "18446744073709551616"] {
+            let invalid: UpdateSessionReportRequestDto = from_value(json!({
+                "reportRef":
+                    "report-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                "expectedRevision": revision,
+                "title": "Morning progression review",
+                "locale": "es-ES",
+                "includePhysiologicalContext": false,
+                "narrative": "El tramo final se mantuvo controlado."
+            }))
+            .expect("structurally valid update request");
+            assert!(UpdateSessionReportRequest::try_from(invalid).is_err());
+        }
+
+        let export: SessionReportExportRequestDto =
+            from_value(json!({
+                "reportRef":
+                    "report-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                "expectedRevision": "2",
+                "expectedSourceSnapshotRef":
+                    "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "includePhysiologicalContext": false,
+                "destinationPath": "/private/synthetic/report.html"
+            }))
+            .expect("report export request");
+        assert_eq!(
+            SessionReportExportRequest::try_from(export)
+                .expect("valid export")
+                .destination,
+            PathBuf::from("/private/synthetic/report.html")
+        );
+        for destination_path in ["", "relative/report.html", "/"] {
+            let invalid: SessionReportExportRequestDto =
+                from_value(json!({
+                    "reportRef":
+                        "report-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                    "expectedRevision": "2",
+                    "expectedSourceSnapshotRef":
+                        "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "includePhysiologicalContext": false,
+                    "destinationPath": destination_path
+                }))
+                .expect("structurally valid export request");
+            assert!(SessionReportExportRequest::try_from(invalid).is_err());
+        }
     }
 }

@@ -43,7 +43,9 @@ One private reference export passed privacy-minimized activity, training, sleep,
 origin-correlation, coverage, and reimport predicates; that single evaluation does not establish universal
 compatibility or open the public boundary.
 
-The [development preview guide](development-preview.md) is the only current application walkthrough. It identifies the documented compatibility shape, synthetic runnable steps, expected detailed and longitudinal range, detail, navigation, and comparison behavior, and missing product capabilities.
+The [development preview guide](development-preview.md) is the primary end-to-end application walkthrough. It identifies the documented compatibility shape, synthetic runnable steps, expected detailed and longitudinal range, detail, navigation, and comparison behavior, and missing product capabilities.
+
+The [session report guide](reports.md) explains the implemented session-to-report journey, durable editing, stale-source boundary, explicit physiological-content review, deterministic local HTML export, and current format limitations.
 
 The [private development package guide](private-development-packages.md) explains integrity verification and the unsigned evaluation boundary. It does not turn a development package into a supported release.
 

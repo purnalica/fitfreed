@@ -21,6 +21,7 @@ const spanish = JSON.parse(
 );
 const fixtureDirectory = process.env.FITFREED_E2E_FIXTURE_DIRECTORY;
 const largeArchive = process.env.FITFREED_E2E_LARGE_ARCHIVE;
+const reportOutput = path.resolve(".artifacts/e2e/evidence/session-report.html");
 
 async function waitForNotice(fragment, timeout = 10_000) {
   await browser.waitUntil(
@@ -628,6 +629,7 @@ async function expectSourceGuide(catalog) {
 
 describe("packaged FitFreed import journey", () => {
   it("covers validation, outcomes, coverage, cancellation, reimport, accessibility, performance, and restart", async () => {
+    fs.rmSync(reportOutput, { force: true });
     await expect($(".sources-home h1")).toHaveText("Bring your fitness history home");
     await expect($("aria/Import selected package")).toBeDisabled();
     const openerMock = await browser.tauri.mock("plugin:opener|open_url");
@@ -1174,6 +1176,63 @@ describe("packaged FitFreed import journey", () => {
         === "Race plan",
       { timeout: 10_000, timeoutMsg: "the criterion order was not updated" },
     );
+    await $(`aria/${english.training.sessionLibrary.createReport}`).click();
+    await expect($(".reports-hero h1")).toHaveText(english.reports.heading);
+    const reportTitle = await $('.report-editor input[maxlength="120"]');
+    await reportTitle.clearValue();
+    await reportTitle.setValue("Synthetic ridge progression");
+    await $('.report-editor textarea').setValue(
+      "Held the intended effort and finished the final climb with control.",
+    );
+    await $('.report-editor button[type="submit"]').click();
+    await waitForNotice(english.reports.saved);
+    await expect($(".report-preview h3")).toHaveText("Synthetic ridge progression");
+    await expect($(".report-preview")).toHaveText(
+      expect.stringContaining("Held the intended effort and finished the final climb with control."),
+    );
+    await expect($(".report-preview")).toHaveText(expect.stringContaining("Trail running"));
+    expect(await $$(".report-list > li")).toHaveLength(1);
+
+    await $(`aria/${english.reports.reviewExport}`).click();
+    const privacyReview = await $(".report-privacy-review");
+    await expect(privacyReview).toHaveText(expect.stringContaining(english.reports.routeExcluded));
+    const exportHeartRate = await privacyReview.$('input[type="checkbox"]');
+    await expect(exportHeartRate).toBeChecked();
+    await exportHeartRate.click();
+    const saveDialogMock = await browser.tauri.mock("plugin:dialog|save");
+    await saveDialogMock.mockReturnValue(reportOutput);
+    await saveDialogMock.update();
+    const saveCallCount = saveDialogMock.mock.calls.length;
+    await privacyReview.$(`aria/${english.reports.chooseDestination}`).click();
+    await browser.waitUntil(async () => {
+      await saveDialogMock.update();
+      return saveDialogMock.mock.calls.length === saveCallCount + 1;
+    }, { timeout: 10_000, timeoutMsg: "report destination was not requested" });
+    expect(saveDialogMock.mock.calls[saveCallCount][0]).toEqual({
+      options: {
+        defaultPath: "Synthetic-ridge-progression.html",
+        filters: [{ name: "HTML", extensions: ["html"] }],
+      },
+    });
+    await browser.waitUntil(() => fs.existsSync(reportOutput), {
+      timeout: 10_000,
+      timeoutMsg: "the self-contained report was not written",
+    });
+    await waitForNotice("Self-contained HTML exported");
+    const exportedReport = fs.readFileSync(reportOutput, "utf8");
+    expect(exportedReport).toContain('data-fitfreed-report-version="1"');
+    expect(exportedReport).toContain(
+      "Held the intended effort and finished the final climb with control.",
+    );
+    expect(exportedReport).toContain("polar-flow-training-session@5");
+    expect(exportedReport).not.toContain("Average heart rate");
+    expect(exportedReport).not.toContain("Maximum heart rate");
+    expect(exportedReport).not.toContain("latitude");
+    expect(exportedReport).not.toContain("longitude");
+    expect(exportedReport).not.toContain("<script");
+    expect(exportedReport).not.toContain("https://");
+    await $(`aria/${english.reports.backToSession}`).click();
+    await expect($("#training-session-detail-heading")).toHaveText("Session summary");
     await $("aria/Back to calendar").click();
     await $("aria/Chronology").click();
     await expectTrainingRows([
@@ -2508,6 +2567,18 @@ describe("packaged FitFreed import journey", () => {
     await expect(restartedCriteria[0].$("h6")).toHaveText("Race plan");
     await expect(restartedCriteria[1].$("h6")).toHaveText("Quarter-hour blocks");
     await expect($(`aria/${spanish.training.sessionLibrary.backToCalendar}`)).toBeDisplayed();
+    await goToHome("reports");
+    await expect($(".reports-hero h1")).toHaveText(spanish.reports.heading);
+    await $('.report-list button').click();
+    await expect($(".report-preview h3")).toHaveText("Synthetic ridge progression");
+    await expect($(".report-preview")).toHaveText(
+      expect.stringContaining(
+        "Held the intended effort and finished the final climb with control.",
+      ),
+    );
+    await expect($(".report-status-stale")).toHaveText(spanish.reports.status.stale);
+    await expect($(".report-stale")).toHaveText(expect.stringContaining(spanish.reports.stale));
+    await expect($(`aria/${spanish.reports.reviewExport}`)).toBeDisabled();
     await returnToLibraryHome(spanish);
     await browser.reloadSession();
     await expectLibraryHome(spanish);

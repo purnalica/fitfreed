@@ -5,6 +5,9 @@ import os from "node:os";
 const applicationVersion = JSON.parse(
   fs.readFileSync(new URL("../../../package.json", import.meta.url), "utf8"),
 ).version;
+const english = JSON.parse(
+  fs.readFileSync(new URL("../../../src/locales/en-US.json", import.meta.url), "utf8"),
+);
 const firstDate = Date.UTC(2024, 0, 1);
 const calendarDays = 731;
 const warmUpRuns = 4;
@@ -391,7 +394,7 @@ async function measureTrainingSignalOverview() {
     setTimeout(observeResult, 16);
   });
   if (result.error) throw new Error(result.error);
-  await $(".training-detail-heading button").click();
+  await $(`aria/${english.training.sessionLibrary.closeDetail}`).click();
   await browser.waitUntil(
     async () => (await $$(".training-detail")).length === 0,
     { timeout: 5_000, timeoutMsg: "training signal detail did not close" },
@@ -434,7 +437,7 @@ async function measureTrainingSignalExactPage() {
     setTimeout(observeResult, 16);
   });
   if (result.error) throw new Error(result.error);
-  await $(".training-detail-heading button").click();
+  await $(`aria/${english.training.sessionLibrary.closeDetail}`).click();
   await browser.waitUntil(
     async () => (await $$(".training-detail")).length === 0,
     { timeout: 5_000, timeoutMsg: "exact training signal detail did not close" },

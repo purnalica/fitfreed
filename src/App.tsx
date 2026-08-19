@@ -32,6 +32,7 @@ import type {
 import { LibraryHomePanel } from "./presentation/LibraryHomePanel";
 import type { SourceAcquisitionGuide } from "./presentation/source-acquisition";
 import { SourcesPanel } from "./presentation/SourcesPanel";
+import type { SessionReportOrigin } from "./presentation/session-report";
 
 const rendererStartedAt = performance.now();
 const INTERACTIVE_SHELL_FRAME_TIMEOUT_MILLISECONDS = 1_000;
@@ -44,6 +45,11 @@ const ActivityComparisonPanel = lazy(() =>
 const TrainingInsightsPanel = lazy(() =>
   import("./presentation/TrainingInsightsPanel").then((module) => ({
     default: module.TrainingInsightsPanel,
+  }))
+);
+const ReportsPanel = lazy(() =>
+  import("./presentation/ReportsPanel").then((module) => ({
+    default: module.ReportsPanel,
   }))
 );
 const LongitudinalInsightsPanel = lazy(() =>
@@ -177,7 +183,9 @@ function App() {
   const [preferencesSavedNotice, setPreferencesSavedNotice] = useState(false);
   const [preferencesRecovered, setPreferencesRecovered] = useState(false);
   const [preferencesEditorRevision, setPreferencesEditorRevision] = useState(0);
-  const [activeHome, setActiveHome] = useState<"explore" | "sources" | "settings">("sources");
+  const [activeHome, setActiveHome] = useState<
+    "explore" | "reports" | "sources" | "settings"
+  >("sources");
   const [libraryHome, setLibraryHome] = useState<LibraryHome>();
   const [exploreDestination, setExploreDestination] = useState<ExploreDestination>();
   const [updateLocaleRefreshToken, setUpdateLocaleRefreshToken] = useState(0);
@@ -189,6 +197,8 @@ function App() {
   const [rangeLoading, setRangeLoading] = useState(false);
   const [selectedActivityDate, setSelectedActivityDate] = useState<string>();
   const [trainingRefreshToken, setTrainingRefreshToken] = useState(0);
+  const [reportOrigin, setReportOrigin] = useState<SessionReportOrigin>();
+  const [reportOriginRequestId, setReportOriginRequestId] = useState(0);
   const [sleepRefreshToken, setSleepRefreshToken] = useState(0);
   const [recoveryRefreshToken, setRecoveryRefreshToken] = useState(0);
   const [longitudinalRefreshToken, setLongitudinalRefreshToken] = useState(0);
@@ -420,6 +430,22 @@ function App() {
     setPreferencesSavedNotice(false);
     setPreferencesEditorRevision((current) => current + 1);
     setActiveHome("sources");
+  }
+
+  function openReports() {
+    applyApplicationPreferences(savedPreferences);
+    setLocale(savedPreferences.locale);
+    setPreferencesSavedNotice(false);
+    setPreferencesEditorRevision((current) => current + 1);
+    setReportOrigin(undefined);
+    setActiveHome("reports");
+  }
+
+  function createReportFromSession(origin: SessionReportOrigin) {
+    setErrorCode(undefined);
+    setReportOrigin(origin);
+    setReportOriginRequestId((current) => current + 1);
+    setActiveHome("reports");
   }
 
   async function openSourceLink(url: string) {
@@ -723,6 +749,14 @@ function App() {
           </button>
           <button
             type="button"
+            data-home="reports"
+            aria-current={activeHome === "reports" ? "page" : undefined}
+            onClick={openReports}
+          >
+            {messages.shell.reports}
+          </button>
+          <button
+            type="button"
             data-home="settings"
             aria-current={activeHome === "settings" ? "page" : undefined}
             onClick={() => setActiveHome("settings")}
@@ -944,6 +978,21 @@ function App() {
               </section>
             )}
           </SourcesPanel>
+        </div>
+        <div className="reports-home" hidden={activeHome !== "reports"}>
+          {applicationReady && activeHome === "reports" && (
+            <Suspense fallback={null}>
+              <ReportsPanel
+                locale={locale}
+                messages={messages}
+                origin={reportOrigin}
+                originRequestId={reportOriginRequestId}
+                disabled={!libraryReady || busy || updateInstalling}
+                onReturnToOrigin={() => setActiveHome("explore")}
+                onError={setErrorCode}
+              />
+            </Suspense>
+          )}
         </div>
         <div className="explore-home" hidden={activeHome !== "explore"}>
       {!exploreDestination && libraryHome && (
@@ -1211,6 +1260,7 @@ function App() {
             messages={messages}
             refreshToken={trainingRefreshToken}
             navigationRequest={explorerNavigation?.domain === "training" ? explorerNavigation : undefined}
+            onCreateReport={createReportFromSession}
             onError={setErrorCode}
           />
           )}

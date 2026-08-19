@@ -529,6 +529,7 @@ const mocks = vi.hoisted(() => ({
   sourceInvoke: vi.fn(),
   sportsInvoke: vi.fn(),
   open: vi.fn(),
+  save: vi.fn(),
   openUrl: vi.fn(),
   listen: vi.fn(),
 }));
@@ -573,6 +574,7 @@ vi.mock("@tauri-apps/api/event", () => ({
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: mocks.open,
+  save: mocks.save,
 }));
 
 vi.mock("@tauri-apps/plugin-opener", () => ({
@@ -595,6 +597,7 @@ afterEach(() => {
   mocks.sourceInvoke.mockReset();
   mocks.sportsInvoke.mockReset();
   mocks.open.mockReset();
+  mocks.save.mockReset();
   mocks.openUrl.mockReset();
   mocks.listen.mockReset();
 });
@@ -673,6 +676,7 @@ beforeEach(() => {
     if (command === "query_latest_import_outcome") {
       return Promise.resolve(null);
     }
+    if (command === "list_reports") return Promise.resolve({ reports: [] });
     throw new Error(`Unexpected command: ${command}`);
   });
   mocks.updateInvoke.mockImplementation((command) => {
@@ -742,6 +746,7 @@ function emptyLibrary(initialLocale: "en-US" | "es-ES" | null = "en-US") {
     if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
     if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
     if (command === "query_latest_import_outcome") return Promise.resolve(null);
+    if (command === "list_reports") return Promise.resolve({ reports: [] });
     throw new Error(`Unexpected command: ${command}`);
   });
   return {
@@ -1120,6 +1125,31 @@ describe("FitFreed import interface", () => {
     ));
     expect(document.documentElement).toHaveAttribute("data-appearance", "system");
     expect(document.documentElement.style.getPropertyValue("--content-zoom")).toBe("1");
+  });
+
+  it("loads Reports only when opened and remounts it after leaving", async () => {
+    emptyLibrary();
+    const user = userEvent.setup();
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: "Bring your fitness history home" }))
+      .toBeVisible();
+    expect(mocks.invoke).not.toHaveBeenCalledWith("list_reports", undefined);
+
+    await user.click(screen.getByRole("button", { name: "Reports" }));
+    expect(await screen.findByRole("heading", {
+      name: "Turn recorded evidence into something you can use",
+    })).toBeVisible();
+    expect(mocks.invoke.mock.calls.filter(([command]) => command === "list_reports")).toHaveLength(1);
+
+    await user.click(screen.getByRole("button", { name: "Sources" }));
+    expect(screen.queryByRole("heading", {
+      name: "Turn recorded evidence into something you can use",
+    })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Reports" }));
+    await waitFor(() => expect(
+      mocks.invoke.mock.calls.filter(([command]) => command === "list_reports"),
+    ).toHaveLength(2));
   });
 
   it("discards an unsaved appearance preview when leaving Settings", async () => {

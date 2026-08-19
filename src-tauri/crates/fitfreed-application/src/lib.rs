@@ -18,6 +18,20 @@ use fitfreed_domain::{
     SourceSpecificRecoveryBaseline, SourceSpecificRecoveryGuidance, TrainingSession,
 };
 
+mod reporting;
+pub use reporting::{
+    create_session_report, export_session_report, list_reports, load_report_definition,
+    resolve_session_report, update_session_report, AuthorizedSessionReportExport,
+    CreateSessionReportRequest, ReportDefinitionPort, ReportDefinitionPortError,
+    ReportExportCancellation, ReportExportPort, ReportExportPortError, ReportExportReceipt,
+    ReportLimitation, ReportResolutionStatus, ReportSensitiveContent, ReportSensitiveContentKind,
+    ReportSessionEvidence, ReportSummary, ResolvedSessionReport, SessionReportExportRequest,
+    UpdateSessionReportRequest,
+};
+
+#[cfg(test)]
+mod reporting_tests;
+
 mod sport_discovery;
 pub use sport_discovery::{
     query_training_sports, save_training_sport_classification, DetectedTrainingSport,
@@ -1418,6 +1432,24 @@ pub enum ApplicationError {
     TrainingSegmentationQuery(String),
     #[error("training segmentation update failed: {0}")]
     TrainingSegmentationUpdate(String),
+    #[error("invalid report definition: {0}")]
+    InvalidReportDefinition(String),
+    #[error("report definition was not found")]
+    ReportNotFound,
+    #[error("report definition changed while it was being edited")]
+    ReportDefinitionConflict,
+    #[error("report source evidence changed")]
+    ReportSourceChanged,
+    #[error("report source evidence is unavailable")]
+    ReportEvidenceUnavailable,
+    #[error("report definition query failed: {0}")]
+    ReportDefinitionQuery(String),
+    #[error("report definition update failed: {0}")]
+    ReportDefinitionUpdate(String),
+    #[error("report export was cancelled")]
+    ReportExportCancelled,
+    #[error("report export failed: {0}")]
+    ReportExport(String),
     #[error("invalid training discovery workspace: {0}")]
     InvalidTrainingDiscoveryWorkspace(&'static str),
     #[error("training discovery workspace query failed: {0}")]

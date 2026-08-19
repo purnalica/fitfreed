@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/session-report-resolution-v1.schema.json",
+  "title": "FitFreed resolved session report version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "definition",
+    "resolvedSnapshotRef",
+    "status",
+    "session",
+    "provenance",
+    "sensitiveContents",
+    "limitations"
+  ],
+  "properties": {
+    "definition": { "$ref": "report-definition-v1.schema.json" },
+    "resolvedSnapshotRef": { "$ref": "report-definition-v1.schema.json#/$defs/snapshotRef" },
+    "status": { "enum": ["current", "stale"] },
+    "session": {
+      "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-search-v1.schema.json#/$defs/session"
+    },
+    "provenance": {
+      "$ref": "training-session-provenance-v1.schema.json#/$defs/current"
+    },
+    "sensitiveContents": {
+      "type": "array",
+      "maxItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "included"],
+        "properties": {
+          "kind": { "const": "heart-rate" },
+          "included": { "type": "boolean" }
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "distance-unavailable",
+          "energy-unavailable",
+          "heart-rate-unavailable",
+          "sport-unclassified",
+          "sport-unavailable"
+        ]
+      }
+    }
+  }
+}
