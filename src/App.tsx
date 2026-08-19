@@ -190,6 +190,7 @@ function App() {
   const [activeHome, setActiveHome] = useState<
     "explore" | "reports" | "sources" | "settings"
   >("sources");
+  const homeNavigationRevision = useRef(0);
   const [libraryHome, setLibraryHome] = useState<LibraryHome>();
   const [exploreDestination, setExploreDestination] = useState<ExploreDestination>();
   const [updateLocaleRefreshToken, setUpdateLocaleRefreshToken] = useState(0);
@@ -264,18 +265,23 @@ function App() {
     afterImportOperationRef: string | null,
     restoreWorkspace: boolean,
   ) {
+    const navigationRevision = homeNavigationRevision.current;
     const home = await invoke<LibraryHome>("query_library_home", {
       request: { afterImportOperationRef },
     });
     setLibraryHome(home);
     if (home.availableRange === null) {
       setExploreDestination(undefined);
-      setActiveHome("sources");
+      if (homeNavigationRevision.current === navigationRevision) {
+        setActiveHome("sources");
+      }
     } else {
       setExploreDestination(
         restoreWorkspace ? home.resumableExploration?.destination : undefined,
       );
-      setActiveHome("explore");
+      if (homeNavigationRevision.current === navigationRevision) {
+        setActiveHome("explore");
+      }
     }
     return home;
   }
@@ -416,7 +422,18 @@ function App() {
     setPreferencesSavedNotice(false);
   }
 
+  function beginHomeNavigation() {
+    homeNavigationRevision.current += 1;
+    return homeNavigationRevision.current;
+  }
+
+  function navigateHome(destination: "explore" | "reports" | "sources" | "settings") {
+    beginHomeNavigation();
+    setActiveHome(destination);
+  }
+
   async function returnToLibraryHome() {
+    const navigationRevision = beginHomeNavigation();
     setErrorCode(undefined);
     try {
       await invoke("clear_training_discovery_workspace");
@@ -428,7 +445,9 @@ function App() {
       setLibraryHome((current) => current
         ? { ...current, resumableExploration: null }
         : current);
-      setActiveHome("explore");
+      if (homeNavigationRevision.current === navigationRevision) {
+        setActiveHome("explore");
+      }
     } catch (reason) {
       setErrorCode(commandErrorCode(reason));
     }
@@ -439,7 +458,7 @@ function App() {
     setLocale(savedPreferences.locale);
     setPreferencesSavedNotice(false);
     setPreferencesEditorRevision((current) => current + 1);
-    setActiveHome("explore");
+    navigateHome("explore");
   }
 
   function openSources() {
@@ -447,7 +466,7 @@ function App() {
     setLocale(savedPreferences.locale);
     setPreferencesSavedNotice(false);
     setPreferencesEditorRevision((current) => current + 1);
-    setActiveHome("sources");
+    navigateHome("sources");
   }
 
   function openReports() {
@@ -459,7 +478,7 @@ function App() {
     setReportReturnRef(undefined);
     setReportOpenRequest(undefined);
     setReportReturnFocusRequest(undefined);
-    setActiveHome("reports");
+    navigateHome("reports");
   }
 
   function createReport(origin: ReportStartOrigin) {
@@ -467,7 +486,7 @@ function App() {
     setReportReturnFocusRequest(undefined);
     setReportOrigin(origin);
     setReportOriginRequestId((current) => current + 1);
-    setActiveHome("reports");
+    navigateHome("reports");
   }
 
   async function openSourceLink(url: string) {
@@ -475,6 +494,7 @@ function App() {
   }
 
   async function openExploration(destination: ExploreDestination) {
+    const navigationRevision = beginHomeNavigation();
     setErrorCode(undefined);
     try {
       await invoke("save_exploration_workspace", { destination });
@@ -485,7 +505,9 @@ function App() {
             resumableExploration: { version: 1, destination },
           }
         : current);
-      setActiveHome("explore");
+      if (homeNavigationRevision.current === navigationRevision) {
+        setActiveHome("explore");
+      }
     } catch (reason) {
       setErrorCode(commandErrorCode(reason));
     }
@@ -506,7 +528,7 @@ function App() {
         kind: reportOrigin?.kind === "session" ? "session" : "comparison",
         requestId: reportReturnFocusSequence.current,
       });
-      setActiveHome("explore");
+      navigateHome("explore");
       return;
     }
     navigationSequence.current += 1;
@@ -519,7 +541,7 @@ function App() {
     setExploreDestination("training");
     setReportReturnFocusRequest(undefined);
     setReportReturnRef(target.reportRef);
-    setActiveHome("explore");
+    navigateHome("explore");
   }
 
   function returnToReport() {
@@ -534,7 +556,7 @@ function App() {
     setReportReturnRef(undefined);
     setReportOrigin(undefined);
     setReportReturnFocusRequest(undefined);
-    setActiveHome("reports");
+    navigateHome("reports");
   }
 
   async function savePreferences(preferences: ApplicationPreferences) {
@@ -824,7 +846,7 @@ function App() {
             type="button"
             data-home="settings"
             aria-current={activeHome === "settings" ? "page" : undefined}
-            onClick={() => setActiveHome("settings")}
+            onClick={() => navigateHome("settings")}
           >
             {messages.shell.settings}
           </button>

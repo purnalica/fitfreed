@@ -1129,11 +1129,24 @@ describe("FitFreed import interface", () => {
 
   it("loads Reports only when opened and remounts it after leaving", async () => {
     emptyLibrary();
+    let resolveLibraryHome: (home: ReturnType<typeof emptyLibraryHome>) => void = () => undefined;
+    const pendingLibraryHome = new Promise<ReturnType<typeof emptyLibraryHome>>((resolve) => {
+      resolveLibraryHome = resolve;
+    });
+    mocks.homeInvoke.mockImplementation((command) => {
+      if (command === "query_library_home") return pendingLibraryHome;
+      if (command === "clear_exploration_workspace") return Promise.resolve(undefined);
+      if (command === "clear_training_discovery_workspace") return Promise.resolve(undefined);
+      throw new Error(`Unexpected Home command: ${command}`);
+    });
     const user = userEvent.setup();
     render(<App />);
 
     expect(await screen.findByRole("heading", { name: "Bring your fitness history home" }))
       .toBeVisible();
+    await waitFor(() => expect(mocks.homeInvoke).toHaveBeenCalledWith("query_library_home", {
+      request: { afterImportOperationRef: null },
+    }));
     expect(mocks.invoke).not.toHaveBeenCalledWith("list_reports", undefined);
 
     await user.click(screen.getByRole("button", { name: "Reports" }));
@@ -1141,6 +1154,11 @@ describe("FitFreed import interface", () => {
       name: "Turn recorded evidence into something you can use",
     })).toBeVisible();
     expect(mocks.invoke.mock.calls.filter(([command]) => command === "list_reports")).toHaveLength(1);
+    await act(async () => resolveLibraryHome(emptyLibraryHome()));
+    expect(screen.getByRole("button", { name: "Reports" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
 
     await user.click(screen.getByRole("button", { name: "Sources" }));
     expect(screen.queryByRole("heading", {
