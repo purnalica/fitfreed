@@ -76,6 +76,14 @@ pub use training_zone::{
     TrainingZoneGroupView, TrainingZoneKindView, TrainingZoneUnitView, TrainingZoneView,
 };
 
+mod training_provenance;
+pub use training_provenance::{
+    query_training_session_provenance, PersistedTrainingSessionProvenance,
+    TrainingProvenanceCurrentView, TrainingProvenanceDecisionView, TrainingProvenanceEventView,
+    TrainingSessionProvenancePort, TrainingSessionProvenancePortError,
+    TrainingSessionProvenanceQuery, TrainingSessionProvenanceResult, TrainingSourceProviderView,
+};
+
 mod training_segmentation;
 pub use training_segmentation::{
     apply_training_segment_criterion, create_training_segment_criterion,
@@ -105,6 +113,9 @@ mod training_signal_tests;
 
 #[cfg(test)]
 mod training_zone_tests;
+
+#[cfg(test)]
+mod training_provenance_tests;
 
 #[cfg(test)]
 mod training_segmentation_tests;

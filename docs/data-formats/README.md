@@ -87,6 +87,7 @@ Directories are created with their first real contract; empty specifications are
 - [Training-session route read models version 1](insights/training-session-route-v1.md)
 - [Training-session signal read models version 1](insights/training-session-signal-v1.md)
 - [Training-session zone read model version 1](insights/training-session-zone-v1.md)
+- [Training-session provenance read model version 1](insights/training-session-provenance-v1.md)
 - [Training-session segmentation read model version 1](insights/training-session-segmentation-v1.md)
 - [Training-discovery workspace version 1](insights/training-discovery-workspace-v1.md)
 - [Sleep overview and detail read model version 1](insights/sleep-overview-v1.md)

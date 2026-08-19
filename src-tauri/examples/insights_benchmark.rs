@@ -14,15 +14,16 @@ use fitfreed_application::{
     query_longitudinal_overview, query_recovery_comparison, query_recovery_detail,
     query_recovery_overview, query_sleep_comparison, query_sleep_detail, query_sleep_overview,
     query_training_comparison, query_training_overview, query_training_route_points,
-    query_training_session_calendar, query_training_session_routes,
-    query_training_session_segmentation, query_training_session_selection,
-    query_training_session_signals, query_training_session_structure, query_training_session_zones,
-    query_training_sessions, query_training_signal_samples, ActivityDateRange,
-    LongitudinalDateRange, RecoveryDateRange, SleepDateRange, TrainingDateRange,
-    TrainingRoutePointsQuery, TrainingSessionCalendarRequest, TrainingSessionRouteQuery,
-    TrainingSessionSearchRequest, TrainingSessionSegmentationQuery,
-    TrainingSessionSelectionRequest, TrainingSessionSignalsQuery, TrainingSessionSort,
-    TrainingSessionStructureQuery, TrainingSessionZonesQuery, TrainingSignalSamplesQuery,
+    query_training_session_calendar, query_training_session_provenance,
+    query_training_session_routes, query_training_session_segmentation,
+    query_training_session_selection, query_training_session_signals,
+    query_training_session_structure, query_training_session_zones, query_training_sessions,
+    query_training_signal_samples, ActivityDateRange, LongitudinalDateRange, RecoveryDateRange,
+    SleepDateRange, TrainingDateRange, TrainingRoutePointsQuery, TrainingSessionCalendarRequest,
+    TrainingSessionProvenanceQuery, TrainingSessionRouteQuery, TrainingSessionSearchRequest,
+    TrainingSessionSegmentationQuery, TrainingSessionSelectionRequest, TrainingSessionSignalsQuery,
+    TrainingSessionSort, TrainingSessionStructureQuery, TrainingSessionZonesQuery,
+    TrainingSignalSamplesQuery,
 };
 use fitfreed_lib::infrastructure::{
     query_activity_between, SqliteActivityLibrary, SqliteLongitudinalLibrary,
@@ -52,6 +53,7 @@ struct GeneratedRows {
     activity: usize,
     recovery: usize,
     training: usize,
+    training_provenance_events: usize,
     training_structures: usize,
     training_exercises: usize,
     training_laps: usize,
@@ -237,6 +239,18 @@ fn main() {
             .structure
             .and_then(|structure| structure.exercises)
             .expect("generated training exercises")
+            .len()
+    });
+    let training_provenance_request = TrainingSessionProvenanceQuery {
+        session_ref: training_discovery_page.sessions[0].session_ref.clone(),
+        snapshot_ref: Some(training_discovery_page.snapshot_ref.clone()),
+        offset: 0,
+        limit: 25,
+    };
+    let training_provenance = measure(1, || {
+        query_training_session_provenance(&training_library, training_provenance_request.clone())
+            .expect("training session provenance")
+            .events
             .len()
     });
     let training_route_request = TrainingSessionRouteQuery {
@@ -604,6 +618,11 @@ fn main() {
             COMMON_BUDGET_MILLISECONDS,
         ),
         (
+            "training.sessionProvenance",
+            &training_provenance,
+            COMMON_BUDGET_MILLISECONDS,
+        ),
+        (
             "training.routeOverview",
             &training_route_overview,
             COMMON_BUDGET_MILLISECONDS,
@@ -743,6 +762,7 @@ fn main() {
                 "origins": ORIGIN_COUNT,
                 "storedActivityObservations": generated_rows.activity,
                 "storedTrainingSessions": generated_rows.training,
+                "storedTrainingProvenanceEvents": generated_rows.training_provenance_events,
                 "storedTrainingStructures": generated_rows.training_structures,
                 "storedTrainingExercises": generated_rows.training_exercises,
                 "storedTrainingLaps": generated_rows.training_laps,
@@ -811,6 +831,10 @@ fn main() {
                     ),
                     "sessionStructure": measurement_json(
                         &training_session_structure,
+                        COMMON_BUDGET_MILLISECONDS,
+                    ),
+                    "sessionProvenance": measurement_json(
+                        &training_provenance,
                         COMMON_BUDGET_MILLISECONDS,
                     ),
                     "routeOverview": measurement_json(
@@ -930,6 +954,7 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
     let mut activity_rows = 0;
     let mut recovery_rows = 0;
     let mut training_rows = 0;
+    let mut training_provenance_event_rows = 0;
     let mut training_structure_rows = 0;
     let mut training_exercise_rows = 0;
     let mut training_lap_rows = 0;
@@ -947,11 +972,33 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
     let mut sleep_rows = 0;
     let mut sleep_transition_rows = 0;
     {
+        transaction
+            .execute(
+                "INSERT INTO import_operation (
+                    id, operation_ref, package_sha256, state, source_provider,
+                    source_adapter_version, mapping_version, started_at_utc, updated_at_utc,
+                    completed_at_utc, exact_repeat, repeated_operation_id, coverage_complete,
+                    total_artifacts, supported_artifacts, unsupported_artifacts,
+                    ignored_artifacts, unrecognized_artifacts, invalid_artifacts,
+                    recognized_artifacts, new_observations, equivalent_observations,
+                    enriched_observations, amended_observations, preserved_observations,
+                    conflicts, canonical_history_changed, temporary_state_removed,
+                    terminal_code, recovery_note
+                 ) VALUES (
+                    1, 'synthetic-insights-provenance', NULL, 'completed', 'polar-flow',
+                    'polar-flow-archive@10', 'polar-flow-mapping-set@5',
+                    '2025-12-31T23:00:00Z', '2025-12-31T23:00:00Z',
+                    '2025-12-31T23:00:00Z', 0, NULL, 1,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, NULL, NULL
+                 )",
+                [],
+            )
+            .expect("insert generated provenance import operation");
         let mut statement = transaction
             .prepare_cached(
                 "INSERT INTO observation_origin (
                     id, source_provider, correlation_state, created_at_utc
-                 ) VALUES (?1, 'synthetic-provider', 'verified', '2016-01-01T00:00:00Z')",
+                 ) VALUES (?1, 'polar-flow', 'verified', '2016-01-01T00:00:00Z')",
             )
             .expect("prepare generated origin insertion");
         for origin_index in 0..ORIGIN_COUNT {
@@ -1005,6 +1052,21 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
                  )",
             )
             .expect("prepare generated training insertion");
+        let mut provenance_statement = transaction
+            .prepare_cached(
+                "INSERT INTO training_session_provenance (
+                    origin_id, session_id, import_operation_id, artifact_locator,
+                    source_record_locator, source_artifact_sha256, source_provider,
+                    source_adapter_version, mapping_version, source_modified_at_utc,
+                    reconciliation_decision, contributes_to_visible_state
+                 ) VALUES (
+                    ?1, ?2, 1, 'synthetic-training-session.json', 'json-root',
+                    '0000000000000000000000000000000000000000000000000000000000000000',
+                    'polar-flow', 'polar-flow-archive@10',
+                    'polar-flow-training-session@5', ?3, 'create', 1
+                 )",
+            )
+            .expect("prepare generated training provenance insertion");
         for origin_index in 0..ORIGIN_COUNT {
             let origin = format!("synthetic-origin-{origin_index}");
             for day_offset in 0..calendar_days {
@@ -1046,6 +1108,14 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
                     ])
                     .expect("insert generated training session");
                 training_rows += 1;
+                provenance_statement
+                    .execute(params![
+                        origin,
+                        format!("synthetic-session-{origin_index}-{date}"),
+                        format!("{date}T23:00:00")
+                    ])
+                    .expect("insert generated training provenance");
+                training_provenance_event_rows += 1;
             }
         }
     }
@@ -1558,6 +1628,7 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
         activity: activity_rows,
         recovery: recovery_rows,
         training: training_rows,
+        training_provenance_events: training_provenance_event_rows,
         training_structures: training_structure_rows,
         training_exercises: training_exercise_rows,
         training_laps: training_lap_rows,

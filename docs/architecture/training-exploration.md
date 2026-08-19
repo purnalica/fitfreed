@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production persists provider-neutral session summaries, mapped exercise/lap/pause structure, primary and transition routes with exact points, supported exercise and transition signals with exact samples, supported recorded zones with exact aggregates, user-authored sport classifications and reusable segment criteria, and a disposable discovery workspace. Full-history search, chronology, calendar projection, comparison selection, restart restoration, structural detail, bounded local route traces, exact route pagination, gap-aware bounded signal charts, exact signal pagination, recorded-zone inspection, and user-authored segmentation are implemented. Complete provenance presentation and progressive cross-signal inspection continue through E4 of the [MVP experience delivery plan](../plans/mvp-experience-delivery.md).
+Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production persists provider-neutral session summaries, mapped exercise/lap/pause structure, primary and transition routes with exact points, supported exercise and transition signals with exact samples, supported recorded zones with exact aggregates, user-authored sport classifications and reusable segment criteria, and a disposable discovery workspace. Full-history search, chronology, calendar projection, comparison selection, restart restoration, structural detail, bounded local route traces, exact route pagination, gap-aware bounded signal charts, exact signal pagination, recorded-zone inspection, user-authored segmentation, and on-demand session provenance are implemented. Progressive cross-signal inspection continues through E4 of the [MVP experience delivery plan](../plans/mvp-experience-delivery.md).
 
 ## Ownership
 
@@ -92,6 +92,19 @@ routes, or temporal signals.
 Recorded zones are aggregate source evidence, not a timeline. Presentation may compare known values within
 one group but cannot invent occurrence order or boundaries. Source groups remain separate from FitFreed-
 derived and user-authored segmentation even when their numeric bounds look similar.
+
+## Provenance inspection boundary
+
+The [training-session provenance read model](../data-formats/insights/training-session-provenance-v1.md)
+exposes an append-only, oldest-first history only after an explicit user action. The current attribution and
+each bounded event identify the supported provider, source revision time, local observation time,
+interpretation versions, reconciliation decision, and whether that evidence supports the visible session.
+Ascending pagination remains stable when later evidence appends without changing canonical session facts.
+
+Artifact and package locators, hashes, import-operation identity, provider record identity, observation
+origin, and source-subject evidence never cross the application boundary. Presentation localizes the closed
+provider and decision vocabulary, explains technical versions progressively, and never asks a person to use
+private evidence as a public diagnostic.
 
 ## Personal segmentation boundary
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-Active as of 2026-08-19. D0, P1, E1, and P2 have complete local and hosted acceptance evidence. E2 has reached its complete local checkpoint; hosted executable evidence remains pending. All three E3 slices have reached their local checkpoints. The recorded-structure, route, temporal-signal, and reusable-segmentation slices of E4 have reached their local checkpoints, and E4 remains active. The latest executable fingerprint still requires hosted evidence. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English and Spanish hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md) and [ADR 0024](../architecture/decisions/0024-generate-localized-product-pages.md).
+Active as of 2026-08-19. D0, P1, E1, and P2 have complete local and hosted acceptance evidence. E2 has reached its complete local checkpoint; hosted executable evidence remains pending. All three E3 slices have reached their local checkpoints. The recorded-structure, route, temporal-signal, reusable-segmentation, recorded-zone, and session-provenance slices of E4 have reached their local checkpoints, and E4 remains active. The latest executable fingerprint still requires hosted evidence. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English and Spanish hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md) and [ADR 0024](../architecture/decisions/0024-generate-localized-product-pages.md).
 
 The existing import, reconciliation, persistence, Insights, localization, update-recovery, packaging, and continuous-integration capabilities remain the engineering baseline. This plan changes how those capabilities become a product people can understand and value; it does not discard their verified behavior.
 
@@ -519,6 +519,28 @@ The local Apple Silicon read-model campaign stored the maximum supported 65,536 
 zones across four sessions. Complete exact retrieval measured 20.846 ms p95 against the 500 ms budget; the
 complete campaign used 26.297 MiB peak process memory. E4 remains active for complete provenance
 presentation and progressive cross-signal inspection.
+
+**Session-provenance slice local accepted evidence:** the versioned query and response contracts expose an
+on-demand, privacy-bounded account of how a training session entered and evolved in the local library. The
+application contract accepts validated provider-neutral source codes, while the Polar Flow adapter maps its
+own provider, adapter, and training-mapping versions. Stable oldest-first pages retain create, equivalent,
+enrich, and amend contributions; preserve and conflict remain visible without being misrepresented as
+current contributors. The result reports complete contributor and non-contributor counts and derives current
+attribution from the latest contributing event.
+
+The session workspace loads this history only when requested, presents ten exact events per page, supports
+retry and reversible pagination in both locales, and resets stale state when the selected session or library
+snapshot changes. Archive names, package or content digests, provider identifiers, source-subject evidence,
+operation identifiers, and local paths remain outside the transport contract and interface. The mapping-aware
+integration journey proves an initial create under training mapping version 4 followed by enrichment under
+version 5 without duplicate sessions, while the packaged bilingual journey proves disclosure, navigation,
+localization, restart, keyboard semantics, and automated accessibility.
+
+The complete fast lane passed 135 repository-automation tests, 101 React tests, 186 host tests, 116
+application tests, 19 domain tests, and two private acceptance tests with strict Clippy and formatting. The
+local Apple Silicon read-model campaign stored one event for each of 14,612 independently generated sessions.
+Stable provenance retrieval measured 6.381 ms p95 against the 500 ms budget; the complete campaign used
+27.734 MiB peak process memory. E4 remains active only for progressive cross-signal inspection.
 
 ### E5 — Personal report authoring and export
 

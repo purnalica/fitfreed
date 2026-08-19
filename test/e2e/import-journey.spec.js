@@ -839,8 +839,8 @@ describe("packaged FitFreed import journey", () => {
         family: "Training sessions",
         classification: "Supported",
         count: "2",
-        reason: "Session summaries, exercise structure, laps, pauses, recorded routes, and supported time-series signals are mapped; provider zones and unsupported signal types stay only in the original ZIP.",
-        action: "Keep the original ZIP if you need provider zones or unsupported signal types.",
+        reason: "Session summaries, exercise structure, laps, pauses, recorded routes, supported time-series signals, and supported recorded zones are mapped; unsupported zone groups and signal types stay only in the original ZIP.",
+        action: "Keep the original ZIP if you need unsupported zone groups or signal types.",
       },
     ]);
     await openHomeQuestion(
@@ -1061,6 +1061,27 @@ describe("packaged FitFreed import journey", () => {
     await expect($(".training-exercise-zones")).not.toHaveText(
       expect.stringContaining("ZONE_TYPE_"),
     );
+    expect(await $$(".training-provenance")).toHaveLength(0);
+    await $('button[aria-controls="training-session-provenance"]').click();
+    await browser.waitUntil(
+      async () => (await $$(".training-provenance tbody tr")).length === 1,
+      { timeout: 10_000, timeoutMsg: "session provenance was not displayed on demand" },
+    );
+    const provenance = await $(".training-provenance");
+    await expect(provenance.$("h4")).toHaveText(
+      english.training.sessionLibrary.provenanceHeading,
+    );
+    await expect(provenance).toHaveText(expect.stringContaining("Polar Flow"));
+    await expect(provenance).toHaveText(
+      expect.stringContaining(english.training.sessionLibrary.provenanceDecisions.create),
+    );
+    await expect(provenance).toHaveText(expect.stringContaining("polar-flow-archive@10"));
+    await expect(provenance).toHaveText(
+      expect.stringContaining("polar-flow-training-session@5"),
+    );
+    await expect(provenance).not.toHaveText(expect.stringContaining("training-session_"));
+    await $('button[aria-controls="training-session-provenance"]').click();
+    expect(await $$(".training-provenance")).toHaveLength(0);
     const segmentation = await $(".training-segmentation");
     await expect(segmentation.$("h4")).toHaveText(
       english.training.sessionLibrary.segmentHeading,
@@ -2214,6 +2235,20 @@ describe("packaged FitFreed import journey", () => {
     expect(await localizedCriteria[0].$$("tbody tr")).toHaveLength(3);
     await expect(localizedCriteria[1].$("h6")).toHaveText("Quarter-hour blocks");
     expect(await localizedCriteria[1].$$("tbody tr")).toHaveLength(4);
+    await $('button[aria-controls="training-session-provenance"]').click();
+    await browser.waitUntil(
+      async () => (await $$(".training-provenance tbody tr")).length > 0,
+      { timeout: 10_000, timeoutMsg: "localized session provenance was not displayed" },
+    );
+    const spanishProvenance = await $(".training-provenance");
+    await expect(spanishProvenance.$("h4")).toHaveText(
+      spanish.training.sessionLibrary.provenanceHeading,
+    );
+    await expect(spanishProvenance).toHaveText(
+      expect.stringContaining(spanish.training.sessionLibrary.provenanceProvider),
+    );
+    await expect(spanishProvenance).toHaveText(expect.stringContaining("Polar Flow"));
+    await $('button[aria-controls="training-session-provenance"]').click();
     const spanishTrainingDetailValues = await $$(`dl[aria-label="${spanish.training.sessionLibrary.summaryMeasurements}"] dd`);
     await expect(spanishTrainingDetailValues[5]).toHaveText("10.500 m");
     await expect(spanishTrainingDetailValues[7]).toHaveText("142 ppm");

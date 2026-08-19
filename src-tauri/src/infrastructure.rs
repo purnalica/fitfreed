@@ -34,7 +34,7 @@ use fitfreed_application::{
     create_training_segment_criterion, move_training_segment_criterion,
     query_default_recovery_overview, query_default_sleep_overview, query_default_training_overview,
     query_library_home, query_longitudinal_overview, query_recovery_detail,
-    query_training_route_points, query_training_session_routes,
+    query_training_route_points, query_training_session_provenance, query_training_session_routes,
     query_training_session_segmentation, query_training_session_signals,
     query_training_session_structure, query_training_session_zones, query_training_signal_samples,
     query_training_sports, remove_training_segment_criterion, save_exploration_workspace,
@@ -50,34 +50,37 @@ use fitfreed_application::{
     ArchiveImportPort, DetectedTrainingSport, ExplorationWorkspace, ExplorationWorkspacePort,
     ExploreDestination, ImportOutcomeLibraryPort, ImportPhase, ImportPhaseTimings, ImportProgress,
     PersistedTrainingExerciseSegmentation, PersistedTrainingRoutePoints,
-    PersistedTrainingSessionCalendar, PersistedTrainingSessionRoutes,
-    PersistedTrainingSessionSearchPage, PersistedTrainingSessionSegmentation,
-    PersistedTrainingSessionSelection, PersistedTrainingSessionSignals,
-    PersistedTrainingSessionStructure, PersistedTrainingSessionZones,
-    PersistedTrainingSignalSamples, ProfiledImport, RecoveryDateRange, RecoveryLibraryNight,
-    RecoveryLibraryPort, SegmentSignalEvidence, SegmentSignalKind, SegmentSignalSample,
-    SleepDateRange, SleepLibraryPeriod, SleepLibraryPort, StoredApplicationPreferences,
-    StoredExplorationWorkspace, TrainingDateRange, TrainingDiscoveryView,
-    TrainingDiscoveryWorkspace, TrainingDiscoveryWorkspacePort, TrainingExerciseRoutesView,
-    TrainingExerciseSignalsView, TrainingExerciseStructure, TrainingExerciseZonesView,
-    TrainingLapStructure, TrainingLibraryPort, TrainingMeasurementFilter, TrainingPauseStructure,
-    TrainingRouteCollectionView, TrainingRouteKindView, TrainingRouteOverview,
-    TrainingRoutePointView, TrainingRoutePointsQuery, TrainingSegmentCriterionDirection,
-    TrainingSegmentationPort, TrainingSegmentationPortError, TrainingSessionCalendarDay,
-    TrainingSessionCalendarRequest, TrainingSessionDiscoveryPort,
-    TrainingSessionDiscoveryPortError, TrainingSessionRoutePort, TrainingSessionRoutePortError,
-    TrainingSessionRouteQuery, TrainingSessionRoutesView, TrainingSessionSearchItem,
-    TrainingSessionSearchRequest, TrainingSessionSearchSummary, TrainingSessionSegmentationQuery,
-    TrainingSessionSelectionRequest, TrainingSessionSignalPort, TrainingSessionSignalPortError,
-    TrainingSessionSignalsQuery, TrainingSessionSignalsView, TrainingSessionSort,
-    TrainingSessionSport, TrainingSessionStructurePort, TrainingSessionStructurePortError,
-    TrainingSessionStructureQuery, TrainingSessionZonePort, TrainingSessionZonePortError,
-    TrainingSessionZonesQuery, TrainingSessionZonesView, TrainingSignalCollectionView,
-    TrainingSignalKindView, TrainingSignalRoleView, TrainingSignalSampleView,
-    TrainingSignalSamplesQuery, TrainingSignalSeriesOverview, TrainingSignalUnitView,
-    TrainingSignalVisualSampleView, TrainingSportClassification, TrainingSportState,
-    TrainingSportsPort, TrainingStructure, TrainingZoneCollectionView, TrainingZoneGroupView,
-    TrainingZoneKindView, TrainingZoneUnitView, TrainingZoneView,
+    PersistedTrainingSessionCalendar, PersistedTrainingSessionProvenance,
+    PersistedTrainingSessionRoutes, PersistedTrainingSessionSearchPage,
+    PersistedTrainingSessionSegmentation, PersistedTrainingSessionSelection,
+    PersistedTrainingSessionSignals, PersistedTrainingSessionStructure,
+    PersistedTrainingSessionZones, PersistedTrainingSignalSamples, ProfiledImport,
+    RecoveryDateRange, RecoveryLibraryNight, RecoveryLibraryPort, SegmentSignalEvidence,
+    SegmentSignalKind, SegmentSignalSample, SleepDateRange, SleepLibraryPeriod, SleepLibraryPort,
+    StoredApplicationPreferences, StoredExplorationWorkspace, TrainingDateRange,
+    TrainingDiscoveryView, TrainingDiscoveryWorkspace, TrainingDiscoveryWorkspacePort,
+    TrainingExerciseRoutesView, TrainingExerciseSignalsView, TrainingExerciseStructure,
+    TrainingExerciseZonesView, TrainingLapStructure, TrainingLibraryPort,
+    TrainingMeasurementFilter, TrainingPauseStructure, TrainingProvenanceCurrentView,
+    TrainingProvenanceDecisionView, TrainingProvenanceEventView, TrainingRouteCollectionView,
+    TrainingRouteKindView, TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
+    TrainingSegmentCriterionDirection, TrainingSegmentationPort, TrainingSegmentationPortError,
+    TrainingSessionCalendarDay, TrainingSessionCalendarRequest, TrainingSessionDiscoveryPort,
+    TrainingSessionDiscoveryPortError, TrainingSessionProvenancePort,
+    TrainingSessionProvenancePortError, TrainingSessionProvenanceQuery, TrainingSessionRoutePort,
+    TrainingSessionRoutePortError, TrainingSessionRouteQuery, TrainingSessionRoutesView,
+    TrainingSessionSearchItem, TrainingSessionSearchRequest, TrainingSessionSearchSummary,
+    TrainingSessionSegmentationQuery, TrainingSessionSelectionRequest, TrainingSessionSignalPort,
+    TrainingSessionSignalPortError, TrainingSessionSignalsQuery, TrainingSessionSignalsView,
+    TrainingSessionSort, TrainingSessionSport, TrainingSessionStructurePort,
+    TrainingSessionStructurePortError, TrainingSessionStructureQuery, TrainingSessionZonePort,
+    TrainingSessionZonePortError, TrainingSessionZonesQuery, TrainingSessionZonesView,
+    TrainingSignalCollectionView, TrainingSignalKindView, TrainingSignalRoleView,
+    TrainingSignalSampleView, TrainingSignalSamplesQuery, TrainingSignalSeriesOverview,
+    TrainingSignalUnitView, TrainingSignalVisualSampleView, TrainingSourceProviderView,
+    TrainingSportClassification, TrainingSportState, TrainingSportsPort, TrainingStructure,
+    TrainingZoneCollectionView, TrainingZoneGroupView, TrainingZoneKindView, TrainingZoneUnitView,
+    TrainingZoneView,
 };
 use fitfreed_domain::{
     decide_nightly_recovery_reconciliation, decide_reconciliation,
@@ -3823,6 +3826,261 @@ fn query_training_session_zones_discovery(
     })
 }
 
+fn provenance_snapshot_and_identity(
+    transaction: &Transaction<'_>,
+    session_ref: &str,
+    expected_snapshot_ref: Option<&str>,
+) -> std::result::Result<(String, String, String), TrainingSessionProvenancePortError> {
+    let revision = transaction
+        .query_row(
+            "SELECT revision FROM training_discovery_revision WHERE id = 1",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .map_err(training_provenance_failure)?;
+    if revision < 1 {
+        return Err(TrainingSessionProvenancePortError::Failure(
+            "training discovery revision is invalid".to_owned(),
+        ));
+    }
+    let snapshot_ref = training_snapshot_ref(revision);
+    if expected_snapshot_ref.is_some_and(|expected| expected != snapshot_ref) {
+        return Err(TrainingSessionProvenancePortError::SnapshotChanged);
+    }
+    let mut statement = transaction
+        .prepare(
+            "SELECT origin_id, session_id FROM training_session ORDER BY origin_id, session_id",
+        )
+        .map_err(training_provenance_failure)?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })
+        .map_err(training_provenance_failure)?;
+    for row in rows {
+        let (origin_id, session_id) = row.map_err(training_provenance_failure)?;
+        if training_session_ref(&origin_id, &session_id) == session_ref {
+            return Ok((snapshot_ref, origin_id, session_id));
+        }
+    }
+    Err(TrainingSessionProvenancePortError::NotFound)
+}
+
+fn training_source_provider_view(
+    value: &str,
+) -> std::result::Result<TrainingSourceProviderView, TrainingSessionProvenancePortError> {
+    match value {
+        SOURCE_PROVIDER => TrainingSourceProviderView::restore(value.to_owned()).ok_or_else(|| {
+            training_provenance_failure("stored training provenance provider is invalid")
+        }),
+        _ => Err(training_provenance_failure(
+            "stored training provenance provider is invalid",
+        )),
+    }
+}
+
+fn training_provenance_decision_view(
+    value: &str,
+) -> std::result::Result<TrainingProvenanceDecisionView, TrainingSessionProvenancePortError> {
+    match value {
+        "create" => Ok(TrainingProvenanceDecisionView::Create),
+        "equivalent" => Ok(TrainingProvenanceDecisionView::Equivalent),
+        "enrich" => Ok(TrainingProvenanceDecisionView::Enrich),
+        "amend" => Ok(TrainingProvenanceDecisionView::Amend),
+        "preserve" => Ok(TrainingProvenanceDecisionView::Preserve),
+        "conflict" => Ok(TrainingProvenanceDecisionView::Conflict),
+        _ => Err(training_provenance_failure(
+            "stored training provenance decision is invalid",
+        )),
+    }
+}
+
+fn training_provenance_utc(
+    value: &str,
+    field: &str,
+) -> std::result::Result<String, TrainingSessionProvenancePortError> {
+    if let Ok(parsed) = DateTime::parse_from_rfc3339(value) {
+        if parsed.offset().local_minus_utc() != 0 {
+            return Err(training_provenance_failure(format!(
+                "stored {field} is not UTC"
+            )));
+        }
+        return Ok(parsed.to_rfc3339_opts(SecondsFormat::AutoSi, true));
+    }
+    let parsed = NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%S%.f").map_err(|_| {
+        training_provenance_failure(format!("stored {field} is not a supported timestamp"))
+    })?;
+    Ok(parsed
+        .and_utc()
+        .to_rfc3339_opts(SecondsFormat::AutoSi, true))
+}
+
+fn query_training_session_provenance_discovery(
+    database_path: &Path,
+    query: &TrainingSessionProvenanceQuery,
+) -> std::result::Result<PersistedTrainingSessionProvenance, TrainingSessionProvenancePortError> {
+    let mut connection = Connection::open(database_path).map_err(training_provenance_failure)?;
+    ensure_schema(&connection).map_err(training_provenance_failure)?;
+    let transaction = connection
+        .transaction()
+        .map_err(training_provenance_failure)?;
+    let (snapshot_ref, origin_id, session_id) = provenance_snapshot_and_identity(
+        &transaction,
+        &query.session_ref,
+        query.snapshot_ref.as_deref(),
+    )?;
+    let (total_event_count, contributing_event_count, non_contributing_event_count) = transaction
+        .query_row(
+            "SELECT COUNT(*),
+                    COALESCE(SUM(contributes_to_visible_state), 0),
+                    COALESCE(SUM(1 - contributes_to_visible_state), 0)
+             FROM training_session_provenance
+             WHERE origin_id = ?1 AND session_id = ?2",
+            params![origin_id, session_id],
+            |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, i64>(2)?,
+                ))
+            },
+        )
+        .map_err(training_provenance_failure)?;
+    let total_event_count = persisted_count(total_event_count, "training provenance event count")
+        .map_err(training_provenance_failure)?;
+    if total_event_count == 0 {
+        return Err(TrainingSessionProvenancePortError::NotFound);
+    }
+    let contributing_event_count = persisted_count(
+        contributing_event_count,
+        "contributing training provenance event count",
+    )
+    .map_err(training_provenance_failure)?;
+    let non_contributing_event_count = persisted_count(
+        non_contributing_event_count,
+        "non-contributing training provenance event count",
+    )
+    .map_err(training_provenance_failure)?;
+
+    let current = transaction
+        .query_row(
+            "SELECT source_provider, source_modified_at_utc,
+                    source_adapter_version, mapping_version
+             FROM training_session_provenance
+             WHERE origin_id = ?1 AND session_id = ?2
+               AND contributes_to_visible_state = 1
+             ORDER BY id DESC
+             LIMIT 1",
+            params![origin_id, session_id],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, String>(3)?,
+                ))
+            },
+        )
+        .optional()
+        .map_err(training_provenance_failure)?
+        .ok_or_else(|| {
+            training_provenance_failure("training provenance has no contributing evidence")
+        })?;
+    let current = TrainingProvenanceCurrentView {
+        provider: training_source_provider_view(&current.0)?,
+        source_modified_at_utc: training_provenance_utc(
+            &current.1,
+            "training provenance source modification time",
+        )?,
+        source_adapter_version: current.2,
+        mapping_version: current.3,
+        contributing_event_count,
+        non_contributing_event_count,
+    };
+
+    let limit = i64::try_from(query.limit)
+        .map_err(|_| training_provenance_failure("training provenance limit is too large"))?;
+    let offset = i64::try_from(query.offset)
+        .map_err(|_| training_provenance_failure("training provenance offset is too large"))?;
+    let mut statement = transaction
+        .prepare(
+            "SELECT provenance.source_provider,
+                    provenance.source_adapter_version,
+                    provenance.mapping_version,
+                    provenance.source_modified_at_utc,
+                    provenance.reconciliation_decision,
+                    provenance.contributes_to_visible_state,
+                    operation.completed_at_utc
+             FROM training_session_provenance AS provenance
+             JOIN import_operation AS operation
+               ON operation.id = provenance.import_operation_id
+             WHERE provenance.origin_id = ?1 AND provenance.session_id = ?2
+             ORDER BY provenance.id
+             LIMIT ?3 OFFSET ?4",
+        )
+        .map_err(training_provenance_failure)?;
+    let rows = statement
+        .query_map(params![origin_id, session_id, limit, offset], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, i64>(5)?,
+                row.get::<_, Option<String>>(6)?,
+            ))
+        })
+        .map_err(training_provenance_failure)?;
+    let mut events = Vec::new();
+    for (index, row) in rows.enumerate() {
+        let (
+            provider,
+            source_adapter_version,
+            mapping_version,
+            source_modified_at_utc,
+            decision,
+            contributes_to_visible_state,
+            observed_at_utc,
+        ) = row.map_err(training_provenance_failure)?;
+        let observed_at_utc = observed_at_utc.ok_or_else(|| {
+            training_provenance_failure("training provenance import is not complete")
+        })?;
+        let ordinal = query.offset.checked_add(index).ok_or_else(|| {
+            training_provenance_failure("training provenance ordinal is too large")
+        })?;
+        events.push(TrainingProvenanceEventView {
+            ordinal,
+            observed_at_utc: training_provenance_utc(
+                &observed_at_utc,
+                "training provenance observation time",
+            )?,
+            source_modified_at_utc: training_provenance_utc(
+                &source_modified_at_utc,
+                "training provenance source modification time",
+            )?,
+            provider: training_source_provider_view(&provider)?,
+            source_adapter_version,
+            mapping_version,
+            decision: training_provenance_decision_view(&decision)?,
+            contributes_to_visible_state: persisted_training_flag(
+                contributes_to_visible_state,
+                "training provenance contribution",
+            )
+            .map_err(training_provenance_failure)?,
+        });
+    }
+    drop(statement);
+    transaction.commit().map_err(training_provenance_failure)?;
+    Ok(PersistedTrainingSessionProvenance {
+        snapshot_ref,
+        session_ref: query.session_ref.clone(),
+        total_event_count,
+        current,
+        events,
+    })
+}
+
 fn query_training_session_segmentation_discovery(
     database_path: &Path,
     query: &TrainingSessionSegmentationQuery,
@@ -4851,6 +5109,12 @@ fn training_signal_failure(error: impl std::fmt::Display) -> TrainingSessionSign
 
 fn training_zone_failure(error: impl std::fmt::Display) -> TrainingSessionZonePortError {
     TrainingSessionZonePortError::Failure(error.to_string())
+}
+
+fn training_provenance_failure(
+    error: impl std::fmt::Display,
+) -> TrainingSessionProvenancePortError {
+    TrainingSessionProvenancePortError::Failure(error.to_string())
 }
 
 pub fn query_detected_training_sports(database_path: &Path) -> Result<Vec<DetectedTrainingSport>> {
@@ -11146,6 +11410,16 @@ impl TrainingSessionZonePort for SqliteTrainingLibrary {
     }
 }
 
+impl TrainingSessionProvenancePort for SqliteTrainingLibrary {
+    fn query_training_session_provenance(
+        &self,
+        query: &TrainingSessionProvenanceQuery,
+    ) -> std::result::Result<PersistedTrainingSessionProvenance, TrainingSessionProvenancePortError>
+    {
+        query_training_session_provenance_discovery(&self.database_path, query)
+    }
+}
+
 impl TrainingSegmentationPort for SqliteTrainingLibrary {
     fn query_training_session_segmentation(
         &self,
@@ -12808,6 +13082,60 @@ mod tests {
         let groups = &zones[0].zones.as_ref().unwrap().groups;
         assert_eq!(groups.len(), 1);
         assert_eq!(groups[0].zones.as_ref().unwrap().len(), 1);
+
+        let session = query_training_sessions(&harness.database())
+            .expect("training history for provenance")
+            .into_iter()
+            .next()
+            .expect("training session for provenance");
+        let session_ref = training_session_ref(&session.origin_id, &session.session_id);
+        let library = SqliteTrainingLibrary::new(harness.database());
+        let first_page = query_training_session_provenance(
+            &library,
+            TrainingSessionProvenanceQuery {
+                session_ref: session_ref.clone(),
+                snapshot_ref: None,
+                offset: 0,
+                limit: 1,
+            },
+        )
+        .expect("first provenance page");
+        assert_eq!(first_page.total_event_count, 2);
+        assert_eq!(first_page.next_offset, Some(1));
+        assert_eq!(first_page.current.contributing_event_count, 2);
+        assert_eq!(first_page.current.non_contributing_event_count, 0);
+        assert_eq!(
+            first_page.current.mapping_version,
+            TRAINING_SESSION_MAPPING_VERSION
+        );
+        assert_eq!(
+            first_page.events[0].decision,
+            TrainingProvenanceDecisionView::Create
+        );
+        assert_eq!(
+            first_page.events[0].mapping_version,
+            "polar-flow-training-session@4"
+        );
+
+        let last_page = query_training_session_provenance(
+            &library,
+            TrainingSessionProvenanceQuery {
+                session_ref,
+                snapshot_ref: Some(first_page.snapshot_ref),
+                offset: 1,
+                limit: 1,
+            },
+        )
+        .expect("last provenance page");
+        assert_eq!(last_page.next_offset, None);
+        assert_eq!(
+            last_page.events[0].decision,
+            TrainingProvenanceDecisionView::Enrich
+        );
+        assert_eq!(
+            last_page.events[0].mapping_version,
+            TRAINING_SESSION_MAPPING_VERSION
+        );
     }
 
     #[test]

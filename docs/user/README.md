@@ -28,8 +28,10 @@ unevaluated, absent, empty, and populated exercise/lap/pause, route, signal, and
 routes render as bounded local SVG traces with no external location request, while exact paginated tables retain
 every recorded coordinate. Supported exercise and transition signals render as gap-aware bounded charts with
 paginated access to every original sample. Supported recorded heart-rate, speed, and power zones preserve
-their exact bounds and applicable aggregates without implying a timeline. Unsupported zone kinds, unsupported
-signal types, and provenance presentation remain excluded. Sleep views distinguish missing nights from zero sleep and disclose optional phase, score, goal,
+their exact bounds and applicable aggregates without implying a timeline. Session provenance loads only on
+request and distinguishes source revision time, local import time, interpretation versions, and reconciliation
+effects without revealing package identifiers or local paths. Unsupported zone kinds, unsupported signal
+types, and cross-signal inspection remain excluded. Sleep views distinguish missing nights from zero sleep and disclose optional phase, score, goal,
 timeline, and recording-status coverage. Recovery views disclose gaps and measurement coverage, keep
 provider assessments, baselines, and guidance source-specific, and exclude undated samples that cannot be
 joined safely.

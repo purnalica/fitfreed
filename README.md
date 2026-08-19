@@ -60,7 +60,7 @@ as already implemented production behavior.
 <!-- product-status:start -->
 | Available in source | Active experience work | Deliberately later |
 |---|---|---|
-| Polar Flow ZIP validation and import | Source provenance and progressive cross-signal inspection | Additional providers and live APIs |
+| Polar Flow ZIP validation and import | Progressive cross-signal inspection | Additional providers and live APIs |
 | Explicit supported, ignored, and unrecognized coverage | Origin-aware navigation across discovery, session, and report workspaces | Linux and Windows distribution |
 | Safe exact and cumulative reimport | Saved evidence reports with self-contained HTML export | Local MCP access for authorized agents |
 | Provider-neutral SQLite history for activity, training summaries, structure, routes, signals, sleep, and recovery | A coherent, evaluated, documented macOS product journey | Advanced encryption and extension systems |
@@ -76,6 +76,7 @@ as already implemented production behavior.
 | First-run Sources home with offline export guidance and allowlisted official links |  |  |
 | Durable language, appearance, and content zoom settings |  |  |
 | en-US and es-ES, packaging, update recovery, and release-shaped tests |  |  |
+| On-demand privacy-bounded session provenance and reconciliation history |  |  |
 
 Status sources: [MVP capability boundary](docs/roadmap.md#milestone-2--mvp) · [Active experience delivery plan](docs/plans/mvp-experience-delivery.md) · [Post-MVP evolution tracks](docs/roadmap.md#evolution-tracks-after-the-mvp).
 <!-- product-status:end -->

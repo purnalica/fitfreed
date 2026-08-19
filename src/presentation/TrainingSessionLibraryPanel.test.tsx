@@ -20,6 +20,7 @@ import type {
   TrainingSessionSignalsResult,
 } from "./training-session-signal";
 import type { TrainingSessionSegmentationResult } from "./training-session-segmentation";
+import type { TrainingSessionProvenanceResult } from "./training-session-provenance";
 import type { TrainingSessionZonesResult } from "./training-session-zone";
 import { TrainingSessionLibraryPanel } from "./TrainingSessionLibraryPanel";
 import type { TrainingSportsOverview } from "./training-sports";
@@ -76,6 +77,10 @@ function emptyWorkspaceCommand(command: string, arguments_: unknown) {
   if (command === "query_training_session_segmentation") {
     const query = (arguments_ as { query: { sessionRef: string } }).query;
     return Promise.resolve(trainingSegmentation(query.sessionRef));
+  }
+  if (command === "query_training_session_provenance") {
+    const query = (arguments_ as { query: { sessionRef: string } }).query;
+    return Promise.resolve(trainingProvenance(query.sessionRef));
   }
   return undefined;
 }
@@ -411,6 +416,35 @@ function trainingSegmentation(sessionRef: string): TrainingSessionSegmentationRe
       ordinal: 1,
       durationMilliseconds: "900000",
       appliedCriteria: [],
+    }],
+  };
+}
+
+function trainingProvenance(sessionRef: string): TrainingSessionProvenanceResult {
+  return {
+    snapshotRef,
+    sessionRef,
+    totalEventCount: 1,
+    offset: 0,
+    limit: 10,
+    nextOffset: null,
+    current: {
+      provider: "polar-flow",
+      sourceModifiedAtUtc: "2026-08-17T18:30:00Z",
+      sourceAdapterVersion: "polar-flow-archive@10",
+      mappingVersion: "polar-flow-training-session@5",
+      contributingEventCount: 1,
+      nonContributingEventCount: 0,
+    },
+    events: [{
+      ordinal: 0,
+      observedAtUtc: "2026-08-17T18:31:00Z",
+      sourceModifiedAtUtc: "2026-08-17T18:30:00Z",
+      provider: "polar-flow",
+      sourceAdapterVersion: "polar-flow-archive@10",
+      mappingVersion: "polar-flow-training-session@5",
+      decision: "create",
+      contributesToVisibleState: true,
     }],
   };
 }
@@ -802,6 +836,30 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(zones).toHaveTextContent(
       "1 unsupported source zone group was preserved as an explicit count.",
     );
+    expect(mocks.invoke.mock.calls.filter(
+      ([command]) => command === "query_training_session_provenance",
+    )).toHaveLength(0);
+    await user.click(within(detail!).getByRole("button", {
+      name: "How did this session get here?",
+    }));
+    const provenance = await within(detail!).findByRole("region", {
+      name: "Session provenance",
+    });
+    expect(provenance).toHaveTextContent("Polar Flow");
+    expect(provenance).toHaveTextContent("Added the session");
+    expect(mocks.invoke).toHaveBeenCalledWith("query_training_session_provenance", {
+      query: {
+        sessionRef: newest.sessionRef,
+        snapshotRef,
+        offset: 0,
+        limit: 10,
+      },
+    });
+    await user.click(within(detail!).getByRole("button", {
+      name: "Hide session provenance",
+    }));
+    expect(within(detail!).queryByRole("region", { name: "Session provenance" }))
+      .not.toBeInTheDocument();
     const secondExercise = within(detail!).getByRole("heading", { name: "Exercise 2" })
       .closest("article");
     expect(secondExercise).toHaveTextContent(

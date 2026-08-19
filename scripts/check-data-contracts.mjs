@@ -2359,6 +2359,137 @@ for (const invalidResponse of [
   }
 }
 
+const trainingSessionProvenancePath =
+  "docs/data-formats/insights/training-session-provenance-v1.md";
+const trainingSessionProvenance = read(trainingSessionProvenancePath);
+for (const field of [
+  "query_training_session_provenance",
+  "training-session-provenance-query-v1.schema.json",
+  "training-session-provenance-v1.schema.json",
+  "sessionRef",
+  "snapshotRef",
+  "offset",
+  "limit",
+  "nextOffset",
+  "current",
+  "totalEventCount",
+  "provider",
+  "sourceModifiedAtUtc",
+  "observedAtUtc",
+  "sourceAdapterVersion",
+  "mappingVersion",
+  "contributingEventCount",
+  "nonContributingEventCount",
+  "decision",
+  "contributesToVisibleState",
+  "polar-flow",
+  "create",
+  "equivalent",
+  "enrich",
+  "amend",
+  "preserve",
+  "conflict",
+  "invalid-training-session-detail",
+  "training-session-detail-changed",
+  "training-session-detail-failed",
+]) {
+  requireMention(trainingSessionProvenance, field, trainingSessionProvenancePath);
+}
+
+const trainingSessionProvenanceQuerySchemaPath =
+  "schemas/training-session-provenance-query-v1.schema.json";
+const validateTrainingSessionProvenanceQuery = ajv.compile(
+  JSON.parse(read(trainingSessionProvenanceQuerySchemaPath)),
+);
+const syntheticTrainingSessionProvenanceQuery = {
+  sessionRef: sessionRefDigest,
+  snapshotRef: snapshotRefDigest,
+  offset: 0,
+  limit: 10,
+};
+for (const query of [
+  syntheticTrainingSessionProvenanceQuery,
+  { ...syntheticTrainingSessionProvenanceQuery, snapshotRef: null },
+]) {
+  if (!validateTrainingSessionProvenanceQuery(query)) {
+    throw new Error(
+      `${trainingSessionProvenanceQuerySchemaPath} rejected a valid query: ${ajv.errorsText(validateTrainingSessionProvenanceQuery.errors)}`,
+    );
+  }
+}
+for (const invalidQuery of [
+  { ...syntheticTrainingSessionProvenanceQuery, limit: 26 },
+  { ...syntheticTrainingSessionProvenanceQuery, artifactLocator: "private.json" },
+]) {
+  if (validateTrainingSessionProvenanceQuery(invalidQuery)) {
+    throw new Error(`${trainingSessionProvenanceQuerySchemaPath} accepted an invalid query`);
+  }
+}
+
+const trainingSessionProvenanceSchemaPath =
+  "schemas/training-session-provenance-v1.schema.json";
+const validateTrainingSessionProvenance = ajv.compile(
+  JSON.parse(read(trainingSessionProvenanceSchemaPath)),
+);
+const syntheticTrainingSessionProvenance = {
+  snapshotRef: snapshotRefDigest,
+  sessionRef: sessionRefDigest,
+  totalEventCount: 2,
+  offset: 0,
+  limit: 1,
+  nextOffset: 1,
+  current: {
+    provider: "polar-flow",
+    sourceModifiedAtUtc: "2026-08-18T18:00:00Z",
+    sourceAdapterVersion: "polar-flow-archive@10",
+    mappingVersion: "polar-flow-training-session@5",
+    contributingEventCount: 1,
+    nonContributingEventCount: 1,
+  },
+  events: [{
+    ordinal: 0,
+    observedAtUtc: "2026-08-19T01:00:00Z",
+    sourceModifiedAtUtc: "2026-08-18T18:00:00Z",
+    provider: "polar-flow",
+    sourceAdapterVersion: "polar-flow-archive@10",
+    mappingVersion: "polar-flow-training-session@5",
+    decision: "create",
+    contributesToVisibleState: true,
+  }],
+};
+if (!validateTrainingSessionProvenance(syntheticTrainingSessionProvenance)) {
+  throw new Error(
+    `${trainingSessionProvenanceSchemaPath} rejected its synthetic response: ${ajv.errorsText(validateTrainingSessionProvenance.errors)}`,
+  );
+}
+for (const invalidResponse of [
+  { ...syntheticTrainingSessionProvenance, artifactSha256: "0".repeat(64) },
+  { ...syntheticTrainingSessionProvenance, totalEventCount: 0 },
+  {
+    ...syntheticTrainingSessionProvenance,
+    current: { ...syntheticTrainingSessionProvenance.current, provider: "private-provider" },
+  },
+  {
+    ...syntheticTrainingSessionProvenance,
+    current: {
+      ...syntheticTrainingSessionProvenance.current,
+      sourceModifiedAtUtc: "2026-08-18T20:00:00+02:00",
+    },
+  },
+  {
+    ...syntheticTrainingSessionProvenance,
+    events: [{
+      ...syntheticTrainingSessionProvenance.events[0],
+      decision: "conflict",
+      contributesToVisibleState: true,
+    }],
+  },
+]) {
+  if (validateTrainingSessionProvenance(invalidResponse)) {
+    throw new Error(`${trainingSessionProvenanceSchemaPath} accepted an invalid response`);
+  }
+}
+
 const trainingDiscoveryWorkspacePath =
   "docs/data-formats/insights/training-discovery-workspace-v1.md";
 const trainingDiscoveryWorkspace = read(trainingDiscoveryWorkspacePath);
@@ -4255,6 +4386,7 @@ for (const contractPath of [
   trainingSessionRoutePath,
   trainingSessionSignalPath,
   trainingSessionZonePath,
+  trainingSessionProvenancePath,
   trainingDiscoveryWorkspacePath,
   trainingComparisonPath,
   sleepOverviewPath,
@@ -4321,6 +4453,10 @@ process.stdout.write(
     trainingSessionZoneSchemas: [
       trainingSessionZonesQuerySchemaPath,
       trainingSessionZonesSchemaPath,
+    ],
+    trainingSessionProvenanceSchemas: [
+      trainingSessionProvenanceQuerySchemaPath,
+      trainingSessionProvenanceSchemaPath,
     ],
     trainingComparisonSchemas: [
       trainingComparisonQuerySchemaPath,

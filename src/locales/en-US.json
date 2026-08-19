@@ -206,8 +206,14 @@
     "distanceCoverage": "Sessions with distance",
     "energyCoverage": "Sessions with energy",
     "heartRateCoverage": "Sessions with heart rate",
-    "sessionUnit": { "one": "session", "other": "sessions" },
-    "trainingDayUnit": { "one": "training day", "other": "training days" },
+    "sessionUnit": {
+      "one": "session",
+      "other": "sessions"
+    },
+    "trainingDayUnit": {
+      "one": "training day",
+      "other": "training days"
+    },
     "of": "of",
     "emptyRange": "No training sessions start inside this period.",
     "visual": "Session duration in the selected period",
@@ -425,6 +431,47 @@
         "one": "{count} unsupported source zone group was preserved as an explicit count.",
         "other": "{count} unsupported source zone groups were preserved as an explicit count."
       },
+      "provenanceAction": "How did this session get here?",
+      "provenanceHide": "Hide session provenance",
+      "provenanceHeading": "Session provenance",
+      "provenanceIntro": "See which source evidence supports this session and how later imports were reconciled. Private package identifiers and local paths stay hidden.",
+      "provenanceLoading": "Loading session provenance…",
+      "provenanceFailed": "Provenance could not be loaded from your local library.",
+      "provenanceRetry": "Retry provenance",
+      "provenanceCurrentHeading": "What supports this session now",
+      "provenanceCurrentIntro": "The latest contributing evidence defines the current source attribution and interpretation.",
+      "provenanceProvider": "Data source",
+      "provenanceSourceRevision": "Source revision",
+      "provenanceEvidenceCount": "Evidence history",
+      "provenanceEvidenceCountValue": "{contributing} supporting · {nonContributing} non-supporting",
+      "provenanceProviders": {
+        "polar-flow": "Polar Flow"
+      },
+      "provenanceTechnicalHeading": "Technical interpretation details",
+      "provenanceSourceAdapter": "Source compatibility",
+      "provenanceMapping": "Session interpretation",
+      "provenanceHistoryHeading": "Import evidence history",
+      "provenanceHistoryIntro": "Oldest first. Source revision time is separate from the time FitFreed finished evaluating the import on this device.",
+      "provenanceEvent": "Event",
+      "provenanceObservedAt": "Imported on this device",
+      "provenanceOutcome": "Outcome",
+      "provenanceEffect": "Effect",
+      "provenanceInterpretation": "Interpretation versions",
+      "provenanceDecisions": {
+        "create": "Added the session",
+        "equivalent": "Confirmed the same information",
+        "enrich": "Added new compatible evidence",
+        "amend": "Updated the session from a newer revision",
+        "preserve": "Kept a newer revision",
+        "conflict": "Detected conflicting evidence"
+      },
+      "provenanceEffects": {
+        "contributing": "Supports the current session",
+        "nonContributing": "Did not change the current session"
+      },
+      "provenancePage": "Events {from}–{through} of {total}",
+      "provenancePrevious": "Previous evidence",
+      "provenanceNext": "Next evidence",
       "segmentHeading": "Your session segments",
       "segmentIntro": "Define useful views when recorded laps or phases do not answer your question. Your criteria never alter the imported session.",
       "segmentAttributionHeading": "Authorship stays visible",
@@ -492,7 +539,7 @@
       "segmentHeartRateSummary": "Recorded values from {minimum} through {maximum} bpm",
       "segmentManualSummary": "{count} manual boundaries",
       "structureLimitationsHeading": "Current evidence boundary",
-      "structureLimitations": "Provider-defined zones and unsupported signal types remain outside this view. Their absence is explicit; FitFreed does not infer or fabricate them. Personal criteria are separate from source structure and can always be removed without changing recorded evidence."
+      "structureLimitations": "Unsupported zone groups and signal types remain outside this view. Their absence is explicit; FitFreed does not infer or fabricate them. Personal criteria are separate from source structure and can always be removed without changing recorded evidence."
     },
     "sports": {
       "heading": "Your sports",
@@ -510,7 +557,10 @@
       "classifiedByYou": "Named by you",
       "unknownExplanation": "The source contains a sport reference, but no trustworthy name is available.",
       "notRecordedExplanation": "These sessions contain no source sport reference, so FitFreed cannot classify them.",
-      "sessions": { "one": "{count} session", "other": "{count} sessions" },
+      "sessions": {
+        "one": "{count} session",
+        "other": "{count} sessions"
+      },
       "period": "{from} to {through}",
       "duration": "Total duration",
       "distanceCoverage": "Distance in {available} of {total} sessions",
@@ -854,13 +904,34 @@
   "exactRepeat": "Exact package repeat; history was not duplicated.",
   "completed": "Import completed",
   "counts": {
-    "recognized": { "one": "recognized", "other": "recognized" },
-    "created": { "one": "new", "other": "new" },
-    "enriched": { "one": "enriched", "other": "enriched" },
-    "amended": { "one": "amended", "other": "amended" },
-    "equivalent": { "one": "equivalent", "other": "equivalent" },
-    "preserved": { "one": "preserved", "other": "preserved" },
-    "conflicts": { "one": "conflict", "other": "conflicts" }
+    "recognized": {
+      "one": "recognized",
+      "other": "recognized"
+    },
+    "created": {
+      "one": "new",
+      "other": "new"
+    },
+    "enriched": {
+      "one": "enriched",
+      "other": "enriched"
+    },
+    "amended": {
+      "one": "amended",
+      "other": "amended"
+    },
+    "equivalent": {
+      "one": "equivalent",
+      "other": "equivalent"
+    },
+    "preserved": {
+      "one": "preserved",
+      "other": "preserved"
+    },
+    "conflicts": {
+      "one": "conflict",
+      "other": "conflicts"
+    }
   },
   "outcome": {
     "heading": "Latest import outcome",
@@ -871,7 +942,10 @@
     "historyChanged": "Canonical history changed",
     "historyUnchanged": "Canonical history unchanged",
     "coverageHeading": "Package coverage",
-    "artifactsClassified": { "one": "artifact classified", "other": "artifacts classified" },
+    "artifactsClassified": {
+      "one": "artifact classified",
+      "other": "artifacts classified"
+    },
     "coverageComplete": "Every package artifact was classified.",
     "coverageIncomplete": "Coverage is incomplete because processing stopped before every artifact was classified.",
     "supported": "Supported",
@@ -924,8 +998,8 @@
         "action": "No action is needed."
       },
       "mapped-training-evidence": {
-        "reason": "Session summaries, exercise structure, laps, pauses, recorded routes, and supported time-series signals are mapped; provider zones and unsupported signal types stay only in the original ZIP.",
-        "action": "Keep the original ZIP if you need provider zones or unsupported signal types."
+        "reason": "Session summaries, exercise structure, laps, pauses, recorded routes, supported time-series signals, and supported recorded zones are mapped; unsupported zone groups and signal types stay only in the original ZIP.",
+        "action": "Keep the original ZIP if you need unsupported zone groups or signal types."
       },
       "mapped-sleep-periods": {
         "reason": "Sleep periods, phases, and interruptions are mapped; alarm behavior and source-only metadata stay only in the original ZIP.",

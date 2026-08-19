@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/training-session-provenance-v1.schema.json",
+  "title": "FitFreed training-session provenance response version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "snapshotRef",
+    "sessionRef",
+    "totalEventCount",
+    "offset",
+    "limit",
+    "nextOffset",
+    "current",
+    "events"
+  ],
+  "properties": {
+    "snapshotRef": { "$ref": "#/$defs/snapshotRef" },
+    "sessionRef": { "$ref": "#/$defs/sessionRef" },
+    "totalEventCount": { "$ref": "#/$defs/positiveCount" },
+    "offset": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 999999
+    },
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 25
+    },
+    "nextOffset": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 999999
+        }
+      ]
+    },
+    "current": { "$ref": "#/$defs/current" },
+    "events": {
+      "type": "array",
+      "maxItems": 25,
+      "items": { "$ref": "#/$defs/event" }
+    }
+  },
+  "$defs": {
+    "snapshotRef": {
+      "type": "string",
+      "pattern": "^training-snapshot-[0-9a-f]{64}$"
+    },
+    "sessionRef": {
+      "type": "string",
+      "pattern": "^session-[0-9a-f]{64}$"
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "positiveCount": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000000
+    },
+    "ordinal": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 999999
+    },
+    "utcDateTime": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "provider": {
+      "enum": ["polar-flow"]
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9.-]*@[1-9][0-9]*$",
+      "maxLength": 128
+    },
+    "current": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "sourceModifiedAtUtc",
+        "sourceAdapterVersion",
+        "mappingVersion",
+        "contributingEventCount",
+        "nonContributingEventCount"
+      ],
+      "properties": {
+        "provider": { "$ref": "#/$defs/provider" },
+        "sourceModifiedAtUtc": { "$ref": "#/$defs/utcDateTime" },
+        "sourceAdapterVersion": { "$ref": "#/$defs/version" },
+        "mappingVersion": { "$ref": "#/$defs/version" },
+        "contributingEventCount": { "$ref": "#/$defs/positiveCount" },
+        "nonContributingEventCount": { "$ref": "#/$defs/count" }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ordinal",
+        "observedAtUtc",
+        "sourceModifiedAtUtc",
+        "provider",
+        "sourceAdapterVersion",
+        "mappingVersion",
+        "decision",
+        "contributesToVisibleState"
+      ],
+      "properties": {
+        "ordinal": { "$ref": "#/$defs/ordinal" },
+        "observedAtUtc": { "$ref": "#/$defs/utcDateTime" },
+        "sourceModifiedAtUtc": { "$ref": "#/$defs/utcDateTime" },
+        "provider": { "$ref": "#/$defs/provider" },
+        "sourceAdapterVersion": { "$ref": "#/$defs/version" },
+        "mappingVersion": { "$ref": "#/$defs/version" },
+        "decision": {
+          "enum": ["create", "equivalent", "enrich", "amend", "preserve", "conflict"]
+        },
+        "contributesToVisibleState": { "type": "boolean" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "decision": { "enum": ["preserve", "conflict"] }
+            },
+            "required": ["decision"]
+          },
+          "then": {
+            "properties": {
+              "contributesToVisibleState": { "const": false }
+            }
+          },
+          "else": {
+            "properties": {
+              "contributesToVisibleState": { "const": true }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

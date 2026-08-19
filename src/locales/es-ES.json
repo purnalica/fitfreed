@@ -206,8 +206,14 @@
     "distanceCoverage": "Sesiones con distancia",
     "energyCoverage": "Sesiones con energía",
     "heartRateCoverage": "Sesiones con frecuencia cardíaca",
-    "sessionUnit": { "one": "sesión", "other": "sesiones" },
-    "trainingDayUnit": { "one": "día de entrenamiento", "other": "días de entrenamiento" },
+    "sessionUnit": {
+      "one": "sesión",
+      "other": "sesiones"
+    },
+    "trainingDayUnit": {
+      "one": "día de entrenamiento",
+      "other": "días de entrenamiento"
+    },
     "of": "de",
     "emptyRange": "No comienza ninguna sesión de entrenamiento dentro de este periodo.",
     "visual": "Duración de las sesiones en el periodo seleccionado",
@@ -425,6 +431,47 @@
         "one": "Se ha conservado {count} grupo de zonas de origen no compatible como recuento explícito.",
         "other": "Se han conservado {count} grupos de zonas de origen no compatibles como recuento explícito."
       },
+      "provenanceAction": "¿Cómo llegó esta sesión hasta aquí?",
+      "provenanceHide": "Ocultar la procedencia de la sesión",
+      "provenanceHeading": "Procedencia de la sesión",
+      "provenanceIntro": "Consulta qué evidencia de origen sustenta esta sesión y cómo se conciliaron las importaciones posteriores. Los identificadores privados de los paquetes y las rutas locales permanecen ocultos.",
+      "provenanceLoading": "Cargando la procedencia de la sesión…",
+      "provenanceFailed": "No se ha podido cargar la procedencia desde tu biblioteca local.",
+      "provenanceRetry": "Reintentar la procedencia",
+      "provenanceCurrentHeading": "Qué sustenta ahora esta sesión",
+      "provenanceCurrentIntro": "La evidencia contribuyente más reciente define la atribución y la interpretación actuales del origen.",
+      "provenanceProvider": "Origen de los datos",
+      "provenanceSourceRevision": "Revisión en el origen",
+      "provenanceEvidenceCount": "Historial de evidencias",
+      "provenanceEvidenceCountValue": "{contributing} de respaldo · {nonContributing} sin respaldo",
+      "provenanceProviders": {
+        "polar-flow": "Polar Flow"
+      },
+      "provenanceTechnicalHeading": "Detalles técnicos de la interpretación",
+      "provenanceSourceAdapter": "Compatibilidad con el origen",
+      "provenanceMapping": "Interpretación de la sesión",
+      "provenanceHistoryHeading": "Historial de evidencias de importación",
+      "provenanceHistoryIntro": "Primero las más antiguas. La hora de revisión en el origen es distinta de la hora a la que FitFreed terminó de evaluar la importación en este dispositivo.",
+      "provenanceEvent": "Evento",
+      "provenanceObservedAt": "Importación en este dispositivo",
+      "provenanceOutcome": "Resultado",
+      "provenanceEffect": "Efecto",
+      "provenanceInterpretation": "Versiones de interpretación",
+      "provenanceDecisions": {
+        "create": "Añadió la sesión",
+        "equivalent": "Confirmó la misma información",
+        "enrich": "Añadió evidencia nueva compatible",
+        "amend": "Actualizó la sesión con una revisión más reciente",
+        "preserve": "Conservó una revisión más reciente",
+        "conflict": "Detectó evidencia contradictoria"
+      },
+      "provenanceEffects": {
+        "contributing": "Sustenta la sesión actual",
+        "nonContributing": "No cambió la sesión actual"
+      },
+      "provenancePage": "Eventos {from}–{through} de {total}",
+      "provenancePrevious": "Evidencias anteriores",
+      "provenanceNext": "Evidencias siguientes",
       "segmentHeading": "Tus segmentos de la sesión",
       "segmentIntro": "Define vistas útiles cuando las vueltas o fases registradas no respondan a tu pregunta. Tus criterios nunca modifican la sesión importada.",
       "segmentAttributionHeading": "La autoría permanece visible",
@@ -492,7 +539,7 @@
       "segmentHeartRateSummary": "Valores registrados desde {minimum} hasta {maximum} ppm",
       "segmentManualSummary": "{count} límites manuales",
       "structureLimitationsHeading": "Límite actual de la evidencia",
-      "structureLimitations": "Las zonas definidas por el proveedor y los tipos de señal no compatibles quedan fuera de esta vista. Su ausencia es explícita; FitFreed no los infiere ni los inventa. Los criterios personales están separados de la estructura de origen y siempre pueden eliminarse sin cambiar la evidencia registrada."
+      "structureLimitations": "Los grupos de zonas y los tipos de señal no compatibles quedan fuera de esta vista. Su ausencia es explícita; FitFreed no los infiere ni los inventa. Los criterios personales están separados de la estructura de origen y siempre pueden eliminarse sin cambiar la evidencia registrada."
     },
     "sports": {
       "heading": "Tus deportes",
@@ -510,7 +557,10 @@
       "classifiedByYou": "Nombrado por ti",
       "unknownExplanation": "El origen contiene una referencia de deporte, pero no hay disponible un nombre fiable.",
       "notRecordedExplanation": "Estas sesiones no contienen ninguna referencia de deporte de origen, por lo que FitFreed no puede clasificarlas.",
-      "sessions": { "one": "{count} sesión", "other": "{count} sesiones" },
+      "sessions": {
+        "one": "{count} sesión",
+        "other": "{count} sesiones"
+      },
       "period": "{from} a {through}",
       "duration": "Duración total",
       "distanceCoverage": "Distancia en {available} de {total} sesiones",
@@ -854,13 +904,34 @@
   "exactRepeat": "El paquete es una repetición exacta; el historial no se ha duplicado.",
   "completed": "Importación completada",
   "counts": {
-    "recognized": { "one": "reconocido", "other": "reconocidos" },
-    "created": { "one": "nuevo", "other": "nuevos" },
-    "enriched": { "one": "enriquecido", "other": "enriquecidos" },
-    "amended": { "one": "enmendado", "other": "enmendados" },
-    "equivalent": { "one": "equivalente", "other": "equivalentes" },
-    "preserved": { "one": "conservado", "other": "conservados" },
-    "conflicts": { "one": "conflicto", "other": "conflictos" }
+    "recognized": {
+      "one": "reconocido",
+      "other": "reconocidos"
+    },
+    "created": {
+      "one": "nuevo",
+      "other": "nuevos"
+    },
+    "enriched": {
+      "one": "enriquecido",
+      "other": "enriquecidos"
+    },
+    "amended": {
+      "one": "enmendado",
+      "other": "enmendados"
+    },
+    "equivalent": {
+      "one": "equivalente",
+      "other": "equivalentes"
+    },
+    "preserved": {
+      "one": "conservado",
+      "other": "conservados"
+    },
+    "conflicts": {
+      "one": "conflicto",
+      "other": "conflictos"
+    }
   },
   "outcome": {
     "heading": "Resultado de la última importación",
@@ -871,7 +942,10 @@
     "historyChanged": "El historial canónico ha cambiado",
     "historyUnchanged": "El historial canónico no ha cambiado",
     "coverageHeading": "Cobertura del paquete",
-    "artifactsClassified": { "one": "artefacto clasificado", "other": "artefactos clasificados" },
+    "artifactsClassified": {
+      "one": "artefacto clasificado",
+      "other": "artefactos clasificados"
+    },
     "coverageComplete": "Todos los artefactos del paquete han sido clasificados.",
     "coverageIncomplete": "La cobertura está incompleta porque el procesamiento se detuvo antes de clasificar todos los artefactos.",
     "supported": "Compatibles",
@@ -924,8 +998,8 @@
         "action": "No es necesaria ninguna acción."
       },
       "mapped-training-evidence": {
-        "reason": "Se incorporan los resúmenes de sesión, la estructura de ejercicios, las vueltas, las pausas, las rutas registradas y las señales temporales compatibles; las zonas del proveedor y los tipos de señal no compatibles permanecen únicamente en el ZIP original.",
-        "action": "Conserva el ZIP original si necesitas las zonas del proveedor o los tipos de señal no compatibles."
+        "reason": "Se incorporan los resúmenes de sesión, la estructura de ejercicios, las vueltas, las pausas, las rutas registradas, las señales temporales compatibles y las zonas registradas compatibles; los grupos de zonas y los tipos de señal no compatibles permanecen únicamente en el ZIP original.",
+        "action": "Conserva el ZIP original si necesitas grupos de zonas o tipos de señal no compatibles."
       },
       "mapped-sleep-periods": {
         "reason": "Se incorporan los periodos, las fases y las interrupciones del sueño; el comportamiento de las alarmas y los metadatos exclusivos del origen permanecen únicamente en el ZIP original.",

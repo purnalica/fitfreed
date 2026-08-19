@@ -42,6 +42,7 @@ import type {
 import type { TrainingSessionZonesResult } from "./training-session-zone";
 import type { TrainingSport, TrainingSportsOverview } from "./training-sports";
 import { TrainingSegmentationPanel } from "./TrainingSegmentationPanel";
+import { TrainingSessionProvenancePanel } from "./TrainingSessionProvenancePanel";
 import { TrainingSessionZonesPanel } from "./TrainingSessionZonesPanel";
 
 const PAGE_SIZE = 25;
@@ -1974,6 +1975,15 @@ export function TrainingSessionLibraryPanel({
             ))}
             {page && (
               <TrainingSegmentationPanel
+                sessionRef={selected.sessionRef}
+                snapshotRef={page.snapshotRef}
+                locale={locale}
+                messages={messages}
+                onError={onError}
+              />
+            )}
+            {page && (
+              <TrainingSessionProvenancePanel
                 sessionRef={selected.sessionRef}
                 snapshotRef={page.snapshotRef}
                 locale={locale}

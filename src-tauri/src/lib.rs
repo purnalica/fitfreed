@@ -31,6 +31,7 @@ use fitfreed_application::{
     query_longitudinal_overview as build_longitudinal_overview,
     query_source_acquisition_guides as build_source_acquisition_guides,
     query_training_route_points as build_training_route_points,
+    query_training_session_provenance as build_training_session_provenance,
     query_training_session_routes as build_training_session_routes,
     query_training_session_segmentation as build_training_session_segmentation,
     query_training_session_signals as build_training_session_signals,
@@ -74,15 +75,16 @@ use presentation::{
     SleepPeriodDetailDto, SourceAcquisitionGuideDto, TrainingComparisonDto, TrainingDateRangeDto,
     TrainingDiscoveryWorkspaceDto, TrainingOverviewDto, TrainingRoutePointsQueryDto,
     TrainingRoutePointsResultDto, TrainingSegmentCriterionMutationRequestDto,
-    TrainingSessionCalendarDto, TrainingSessionCalendarRequestDto, TrainingSessionRouteQueryDto,
-    TrainingSessionRoutesResultDto, TrainingSessionSearchPageDto, TrainingSessionSearchRequestDto,
-    TrainingSessionSegmentationQueryDto, TrainingSessionSegmentationResultDto,
-    TrainingSessionSelectionDto, TrainingSessionSelectionRequestDto,
-    TrainingSessionSignalsQueryDto, TrainingSessionSignalsResultDto,
-    TrainingSessionStructureQueryDto, TrainingSessionStructureResultDto,
-    TrainingSessionZonesQueryDto, TrainingSessionZonesResultDto, TrainingSignalSamplesQueryDto,
-    TrainingSignalSamplesResultDto, TrainingSportsOverviewDto, UpdateCheckOutcomeDto,
-    UpdateRecoveryOutcomeDto, UpdateTrainingSegmentCriterionRequestDto,
+    TrainingSessionCalendarDto, TrainingSessionCalendarRequestDto,
+    TrainingSessionProvenanceQueryDto, TrainingSessionProvenanceResultDto,
+    TrainingSessionRouteQueryDto, TrainingSessionRoutesResultDto, TrainingSessionSearchPageDto,
+    TrainingSessionSearchRequestDto, TrainingSessionSegmentationQueryDto,
+    TrainingSessionSegmentationResultDto, TrainingSessionSelectionDto,
+    TrainingSessionSelectionRequestDto, TrainingSessionSignalsQueryDto,
+    TrainingSessionSignalsResultDto, TrainingSessionStructureQueryDto,
+    TrainingSessionStructureResultDto, TrainingSessionZonesQueryDto, TrainingSessionZonesResultDto,
+    TrainingSignalSamplesQueryDto, TrainingSignalSamplesResultDto, TrainingSportsOverviewDto,
+    UpdateCheckOutcomeDto, UpdateRecoveryOutcomeDto, UpdateTrainingSegmentCriterionRequestDto,
 };
 use serde::{Deserialize, Serialize};
 use tauri::{ipc::Channel, AppHandle, Emitter, Manager, State};
@@ -460,6 +462,17 @@ fn query_training_session_zones(
 ) -> Result<TrainingSessionZonesResultDto, CommandErrorDto> {
     let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     build_training_session_zones(&SqliteTrainingLibrary::new(path), query.into())
+        .map(Into::into)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn query_training_session_provenance(
+    app: AppHandle,
+    query: TrainingSessionProvenanceQueryDto,
+) -> Result<TrainingSessionProvenanceResultDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    build_training_session_provenance(&SqliteTrainingLibrary::new(path), query.into())
         .map(Into::into)
         .map_err(CommandErrorDto::from)
 }
@@ -1556,6 +1569,7 @@ pub fn run() {
             query_training_route_points,
             query_training_session_signals,
             query_training_session_zones,
+            query_training_session_provenance,
             query_training_signal_samples,
             query_training_session_segmentation,
             create_training_segment_criterion,

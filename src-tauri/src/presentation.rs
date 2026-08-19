@@ -26,14 +26,16 @@ use fitfreed_application::{
     TrainingDiscoveryView, TrainingDiscoveryWorkspace, TrainingExerciseRoutesView,
     TrainingExerciseSegmentation, TrainingExerciseSignalsView, TrainingExerciseStructure,
     TrainingExerciseZonesView, TrainingLapStructure, TrainingMeasurementFilter, TrainingOverview,
-    TrainingPauseStructure, TrainingRouteCollectionView, TrainingRouteKindView,
+    TrainingPauseStructure, TrainingProvenanceCurrentView, TrainingProvenanceDecisionView,
+    TrainingProvenanceEventView, TrainingRouteCollectionView, TrainingRouteKindView,
     TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
     TrainingSegmentCriterionDirection, TrainingSegmentCriterionMutationRequest,
     TrainingSeriesComparison, TrainingSeriesOverview, TrainingSeriesSummary,
     TrainingSessionCalendar, TrainingSessionCalendarDay, TrainingSessionCalendarRequest,
-    TrainingSessionInsight, TrainingSessionRouteQuery, TrainingSessionRoutesResult,
-    TrainingSessionRoutesView, TrainingSessionSearchItem, TrainingSessionSearchPage,
-    TrainingSessionSearchRequest, TrainingSessionSearchSummary, TrainingSessionSegmentationQuery,
+    TrainingSessionInsight, TrainingSessionProvenanceQuery, TrainingSessionProvenanceResult,
+    TrainingSessionRouteQuery, TrainingSessionRoutesResult, TrainingSessionRoutesView,
+    TrainingSessionSearchItem, TrainingSessionSearchPage, TrainingSessionSearchRequest,
+    TrainingSessionSearchSummary, TrainingSessionSegmentationQuery,
     TrainingSessionSegmentationResult, TrainingSessionSelection, TrainingSessionSelectionRequest,
     TrainingSessionSignalsQuery, TrainingSessionSignalsResult, TrainingSessionSignalsView,
     TrainingSessionSort, TrainingSessionSport, TrainingSessionStructureQuery,
@@ -41,12 +43,12 @@ use fitfreed_application::{
     TrainingSessionZonesView, TrainingSignalCollectionView, TrainingSignalKindView,
     TrainingSignalRoleView, TrainingSignalSampleView, TrainingSignalSamplesQuery,
     TrainingSignalSeriesOverview, TrainingSignalUnitView, TrainingSignalVisualSampleView,
-    TrainingSport, TrainingSportClassification, TrainingSportCoverage, TrainingSportState,
-    TrainingSportsOverview, TrainingStructure, TrainingZoneCollectionView, TrainingZoneGroupView,
-    TrainingZoneKindView, TrainingZoneUnitView, TrainingZoneView, UpdateCheckOutcome,
-    UpdateCheckStatus, UpdateError, UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind,
-    UpdateReleaseSummary, UpdateTrainingSegmentCriterionRequest, UpdateTrustFailure,
-    UpdateWithdrawalReason, UpdateWithdrawalSummary,
+    TrainingSourceProviderView, TrainingSport, TrainingSportClassification, TrainingSportCoverage,
+    TrainingSportState, TrainingSportsOverview, TrainingStructure, TrainingZoneCollectionView,
+    TrainingZoneGroupView, TrainingZoneKindView, TrainingZoneUnitView, TrainingZoneView,
+    UpdateCheckOutcome, UpdateCheckStatus, UpdateError, UpdateRecoveryOutcome,
+    UpdateRecoveryOutcomeKind, UpdateReleaseSummary, UpdateTrainingSegmentCriterionRequest,
+    UpdateTrustFailure, UpdateWithdrawalReason, UpdateWithdrawalSummary,
 };
 
 #[derive(Debug, Deserialize)]
@@ -885,6 +887,26 @@ pub struct TrainingSignalSamplesQueryDto {
 pub struct TrainingSessionZonesQueryDto {
     session_ref: String,
     snapshot_ref: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TrainingSessionProvenanceQueryDto {
+    session_ref: String,
+    snapshot_ref: Option<String>,
+    offset: usize,
+    limit: usize,
+}
+
+impl From<TrainingSessionProvenanceQueryDto> for TrainingSessionProvenanceQuery {
+    fn from(query: TrainingSessionProvenanceQueryDto) -> Self {
+        Self {
+            session_ref: query.session_ref,
+            snapshot_ref: query.snapshot_ref,
+            offset: query.offset,
+            limit: query.limit,
+        }
+    }
 }
 
 impl From<TrainingSessionZonesQueryDto> for TrainingSessionZonesQuery {
@@ -2216,6 +2238,101 @@ impl From<TrainingSessionZonesResult> for TrainingSessionZonesResultDto {
             snapshot_ref: result.snapshot_ref,
             session_ref: result.session_ref,
             zones: result.zones.map(Into::into),
+        }
+    }
+}
+
+fn training_source_provider(provider: TrainingSourceProviderView) -> String {
+    provider.code().to_owned()
+}
+
+fn training_provenance_decision(decision: TrainingProvenanceDecisionView) -> &'static str {
+    match decision {
+        TrainingProvenanceDecisionView::Create => "create",
+        TrainingProvenanceDecisionView::Equivalent => "equivalent",
+        TrainingProvenanceDecisionView::Enrich => "enrich",
+        TrainingProvenanceDecisionView::Amend => "amend",
+        TrainingProvenanceDecisionView::Preserve => "preserve",
+        TrainingProvenanceDecisionView::Conflict => "conflict",
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingProvenanceCurrentDto {
+    provider: String,
+    source_modified_at_utc: String,
+    source_adapter_version: String,
+    mapping_version: String,
+    contributing_event_count: usize,
+    non_contributing_event_count: usize,
+}
+
+impl From<TrainingProvenanceCurrentView> for TrainingProvenanceCurrentDto {
+    fn from(current: TrainingProvenanceCurrentView) -> Self {
+        Self {
+            provider: training_source_provider(current.provider),
+            source_modified_at_utc: current.source_modified_at_utc,
+            source_adapter_version: current.source_adapter_version,
+            mapping_version: current.mapping_version,
+            contributing_event_count: current.contributing_event_count,
+            non_contributing_event_count: current.non_contributing_event_count,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingProvenanceEventDto {
+    ordinal: usize,
+    observed_at_utc: String,
+    source_modified_at_utc: String,
+    provider: String,
+    source_adapter_version: String,
+    mapping_version: String,
+    decision: &'static str,
+    contributes_to_visible_state: bool,
+}
+
+impl From<TrainingProvenanceEventView> for TrainingProvenanceEventDto {
+    fn from(event: TrainingProvenanceEventView) -> Self {
+        Self {
+            ordinal: event.ordinal,
+            observed_at_utc: event.observed_at_utc,
+            source_modified_at_utc: event.source_modified_at_utc,
+            provider: training_source_provider(event.provider),
+            source_adapter_version: event.source_adapter_version,
+            mapping_version: event.mapping_version,
+            decision: training_provenance_decision(event.decision),
+            contributes_to_visible_state: event.contributes_to_visible_state,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSessionProvenanceResultDto {
+    snapshot_ref: String,
+    session_ref: String,
+    total_event_count: usize,
+    offset: usize,
+    limit: usize,
+    next_offset: Option<usize>,
+    current: TrainingProvenanceCurrentDto,
+    events: Vec<TrainingProvenanceEventDto>,
+}
+
+impl From<TrainingSessionProvenanceResult> for TrainingSessionProvenanceResultDto {
+    fn from(result: TrainingSessionProvenanceResult) -> Self {
+        Self {
+            snapshot_ref: result.snapshot_ref,
+            session_ref: result.session_ref,
+            total_event_count: result.total_event_count,
+            offset: result.offset,
+            limit: result.limit,
+            next_offset: result.next_offset,
+            current: result.current.into(),
+            events: result.events.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -5356,6 +5473,97 @@ mod tests {
             1
         );
         assert!(json.to_string().find("sourceZoneType").is_none());
+    }
+
+    #[test]
+    fn validates_and_serializes_privacy_bounded_training_provenance_contracts() {
+        let input: TrainingSessionProvenanceQueryDto =
+            serde_json::from_value(serde_json::json!({
+                "sessionRef":
+                    "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "snapshotRef":
+                    "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "offset": 0,
+                "limit": 10
+            }))
+            .expect("training-session provenance request");
+        let query = TrainingSessionProvenanceQuery::from(input);
+        assert_eq!(query.offset, 0);
+        assert_eq!(query.limit, 10);
+        assert!(
+            serde_json::from_value::<TrainingSessionProvenanceQueryDto>(serde_json::json!({
+                "sessionRef":
+                    "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "snapshotRef": null,
+                "offset": 0,
+                "limit": 10,
+                "artifactLocator": "private.zip"
+            }))
+            .is_err()
+        );
+
+        let result = TrainingSessionProvenanceResult {
+            snapshot_ref:
+                "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    .to_owned(),
+            session_ref: "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                .to_owned(),
+            total_event_count: 2,
+            offset: 0,
+            limit: 10,
+            next_offset: None,
+            current: TrainingProvenanceCurrentView {
+                provider: TrainingSourceProviderView::restore("polar-flow".to_owned())
+                    .expect("supported provider code"),
+                source_modified_at_utc: "2026-08-17T18:30:00Z".to_owned(),
+                source_adapter_version: "polar-flow-archive@10".to_owned(),
+                mapping_version: "polar-flow-training-session@5".to_owned(),
+                contributing_event_count: 1,
+                non_contributing_event_count: 1,
+            },
+            events: vec![
+                TrainingProvenanceEventView {
+                    ordinal: 0,
+                    observed_at_utc: "2026-08-17T18:31:00Z".to_owned(),
+                    source_modified_at_utc: "2026-08-17T18:30:00Z".to_owned(),
+                    provider: TrainingSourceProviderView::restore("polar-flow".to_owned())
+                        .expect("supported provider code"),
+                    source_adapter_version: "polar-flow-archive@10".to_owned(),
+                    mapping_version: "polar-flow-training-session@5".to_owned(),
+                    decision: TrainingProvenanceDecisionView::Create,
+                    contributes_to_visible_state: true,
+                },
+                TrainingProvenanceEventView {
+                    ordinal: 1,
+                    observed_at_utc: "2026-08-18T08:00:00Z".to_owned(),
+                    source_modified_at_utc: "2026-08-16T10:00:00Z".to_owned(),
+                    provider: TrainingSourceProviderView::restore("polar-flow".to_owned())
+                        .expect("supported provider code"),
+                    source_adapter_version: "polar-flow-archive@10".to_owned(),
+                    mapping_version: "polar-flow-training-session@5".to_owned(),
+                    decision: TrainingProvenanceDecisionView::Preserve,
+                    contributes_to_visible_state: false,
+                },
+            ],
+        };
+        let json = serde_json::to_value(TrainingSessionProvenanceResultDto::from(result))
+            .expect("training-session provenance JSON");
+        assert_eq!(json["current"]["provider"], "polar-flow");
+        assert_eq!(json["events"][0]["decision"], "create");
+        assert_eq!(json["events"][1]["decision"], "preserve");
+        assert_eq!(json["events"][1]["contributesToVisibleState"], false);
+        let encoded = json.to_string();
+        for private_field in [
+            "artifactLocator",
+            "sourceRecordLocator",
+            "sourceArtifactSha256",
+            "originId",
+            "providerRecordId",
+            "importOperationId",
+            "localPath",
+        ] {
+            assert!(!encoded.contains(private_field));
+        }
     }
 
     #[test]
