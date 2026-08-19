@@ -772,6 +772,7 @@ th:last-child, td:last-child { text-align: right; }
 .report-workspace { display: grid; gap: 18px; min-width: 0; }
 .report-empty-editor { min-height: 240px; padding-top: 54px; text-align: center; }
 .report-empty-editor p { max-width: 48ch; margin-inline: auto; color: var(--muted); }
+.report-start-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 22px; }
 .report-editor { display: grid; gap: 18px; }
 .report-field { display: grid; gap: 6px; }
 .report-field > input, .report-field > textarea { width: 100%; color: var(--ink); background: var(--paper); }

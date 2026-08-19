@@ -1331,7 +1331,7 @@ describe("packaged FitFreed import journey", () => {
     });
     await waitForNotice("Self-contained HTML exported");
     const exportedReport = fs.readFileSync(reportOutput, "utf8");
-    expect(exportedReport).toContain('data-fitfreed-report-version="3"');
+    expect(exportedReport).toContain('data-fitfreed-report-version="4"');
     expect(exportedReport).toContain(
       "Held the intended effort and finished the final climb with control.",
     );
@@ -2090,6 +2090,39 @@ describe("packaged FitFreed import journey", () => {
       ["Sessions with energy", "1", "0", "-1"],
       ["Sessions with heart rate", "1", "0", "-1"],
     ]);
+    await $(`aria/${english.training.comparison.createReport}`).click();
+    await expect($(".reports-hero h1")).toHaveText(english.reports.heading);
+    await setReportComparisonRanges("2026-01-04", "2026-01-04", "2026-01-05", "2026-01-05");
+    expect(await $$(".report-block-editor:has(.report-analysis-block-help)"))
+      .toHaveLength(5);
+    const comparisonReportTitle = await $('.report-editor input[maxlength="120"]');
+    await comparisonReportTitle.clearValue();
+    await comparisonReportTitle.setValue("Synthetic comparison answer");
+    await $(".report-editor textarea").setValue(
+      "The recorded duration decreased; the reason remains my interpretation.",
+    );
+    await $('.report-editor button[type="submit"]').click();
+    await waitForNotice(english.reports.saved);
+    await expect($(".report-preview h3")).toHaveText("Synthetic comparison answer");
+    await expect($(".report-preview")).toHaveText(
+      expect.stringContaining(
+        "The recorded duration decreased; the reason remains my interpretation.",
+      ),
+    );
+    await expect($(".report-preview")).not.toHaveText(expect.stringContaining("Polar Flow"));
+    expect(await $$(".report-list > li")).toHaveLength(2);
+    await $(`aria/${english.reports.backToComparison}`).click();
+    await expectComparisonHeading("#training-comparison-heading", "Training period comparison");
+    await expectTrainingComparison([
+      ["Sessions", "1", "1", "0"],
+      ["Training days", "1", "1", "0"],
+      ["Total duration", "1 h", "30 min", "−30 min"],
+      ["Recorded distance", "10,500 m", "Not available", "Not available"],
+      ["Recorded energy", "600 kcal", "Not available", "Not available"],
+      ["Sessions with distance", "1", "0", "-1"],
+      ["Sessions with energy", "1", "0", "-1"],
+      ["Sessions with heart rate", "1", "0", "-1"],
+    ]);
 
     await openHomeQuestion(
       english,
@@ -2694,7 +2727,22 @@ describe("packaged FitFreed import journey", () => {
     await expect($(`aria/${spanish.training.sessionLibrary.backToCalendar}`)).toBeDisplayed();
     await goToHome("reports");
     await expect($(".reports-hero h1")).toHaveText(spanish.reports.heading);
-    await $('.report-list button').click();
+    const restartedReports = await $$(".report-list button");
+    expect(restartedReports).toHaveLength(2);
+    await expect(restartedReports[0]).toHaveText(
+      expect.stringContaining("Synthetic comparison answer"),
+    );
+    await expect(restartedReports[1]).toHaveText(
+      expect.stringContaining("Synthetic ridge progression"),
+    );
+    await restartedReports[0].click();
+    await expect($(".report-preview h3")).toHaveText("Synthetic comparison answer");
+    await expect($(".report-preview")).toHaveText(
+      expect.stringContaining(
+        "The recorded duration decreased; the reason remains my interpretation.",
+      ),
+    );
+    await (await $$(".report-list button"))[1].click();
     await expect($(".report-preview h3")).toHaveText("Synthetic ridge progression");
     await expect($(".report-preview")).toHaveText(
       expect.stringContaining(

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/prepared-report-start-v1.schema.json",
+  "title": "FitFreed prepared report start version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sourceSnapshotRef", "origin", "suggestedQuery"],
+  "properties": {
+    "sourceSnapshotRef": { "$ref": "report-definition-v3.schema.json#/$defs/snapshotRef" },
+    "origin": { "$ref": "report-start-v1.schema.json" },
+    "suggestedQuery": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "report-definition-v3.schema.json#/$defs/trainingComparisonQuery" }
+      ]
+    }
+  }
+}

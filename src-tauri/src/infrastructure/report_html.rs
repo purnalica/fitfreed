@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, fs, io::Write, path::Path};
 
 use fitfreed_application::{
-    AuthorizedSessionReportExport, ReportExportCancellation, ReportExportPort,
+    AuthorizedReportExport, ReportEvidenceProvenance, ReportExportCancellation, ReportExportPort,
     ReportExportPortError, ReportExportReceipt, ReportLimitation, ReportRouteEvidence,
     TrainingComparison, TrainingRouteKindView, TrainingSeriesComparison, TrainingSeriesSummary,
     TrainingSessionSport, TrainingSportState,
@@ -27,7 +27,7 @@ pub struct SelfContainedHtmlReportExporter;
 impl ReportExportPort for SelfContainedHtmlReportExporter {
     fn export_report(
         &self,
-        report: &AuthorizedSessionReportExport,
+        report: &AuthorizedReportExport,
         destination: &Path,
         cancellation: &ReportExportCancellation,
     ) -> Result<ReportExportReceipt, ReportExportPortError> {
@@ -72,7 +72,7 @@ impl ReportExportPort for SelfContainedHtmlReportExporter {
 }
 
 fn render_report(
-    report: &AuthorizedSessionReportExport,
+    report: &AuthorizedReportExport,
     cancellation: &ReportExportCancellation,
 ) -> Result<String, ReportExportPortError> {
     ensure_active(cancellation)?;
@@ -141,7 +141,7 @@ fn render_report(
         ensure_active(cancellation)?;
         match block.content() {
             ReportBlockContent::SessionEvidence { .. } => {
-                render_session_section(&mut html, report, labels)
+                render_session_section(&mut html, report, labels)?
             }
             ReportBlockContent::Route { .. } => {
                 let route = routes.get(block.block_ref()).ok_or_else(|| {
@@ -228,51 +228,65 @@ fn render_report(
     html.push_str("<section aria-labelledby=\"provenance-heading\"><h2 id=\"provenance-heading\">");
     html.push_str(labels.provenance);
     html.push_str("</h2><p class=\"attribution\">");
-    html.push_str(labels.current_attribution);
-    html.push_str("</p><dl><dt>");
-    html.push_str(labels.source);
-    html.push_str("</dt><dd>");
-    push_escaped(&mut html, source_label(report.provenance.provider.code()));
-    html.push_str("</dd><dt>");
-    html.push_str(labels.source_modified);
-    html.push_str("</dt><dd><time datetime=\"");
-    push_escaped_attribute(&mut html, &report.provenance.source_modified_at_utc);
-    html.push_str("\">");
-    push_escaped(&mut html, &report.provenance.source_modified_at_utc);
-    html.push_str("</time></dd>");
-    push_code_term(
-        &mut html,
-        labels.source_adapter,
-        &report.provenance.source_adapter_version,
-    );
-    push_code_term(
-        &mut html,
-        labels.mapping,
-        &report.provenance.mapping_version,
-    );
-    push_data_term(
-        &mut html,
-        labels.contributing_events,
-        &report.provenance.contributing_event_count.to_string(),
-        &report.provenance.contributing_event_count.to_string(),
-        None,
-    );
-    push_data_term(
-        &mut html,
-        labels.non_contributing_events,
-        &report.provenance.non_contributing_event_count.to_string(),
-        &report.provenance.non_contributing_event_count.to_string(),
-        None,
-    );
-    html.push_str("</dl></section></main></body></html>\n");
+    match &report.provenance {
+        ReportEvidenceProvenance::Session(provenance) => {
+            html.push_str(labels.current_attribution);
+            html.push_str("</p><dl><dt>");
+            html.push_str(labels.source);
+            html.push_str("</dt><dd>");
+            push_escaped(&mut html, source_label(provenance.provider.code()));
+            html.push_str("</dd><dt>");
+            html.push_str(labels.source_modified);
+            html.push_str("</dt><dd><time datetime=\"");
+            push_escaped_attribute(&mut html, &provenance.source_modified_at_utc);
+            html.push_str("\">");
+            push_escaped(&mut html, &provenance.source_modified_at_utc);
+            html.push_str("</time></dd>");
+            push_code_term(
+                &mut html,
+                labels.source_adapter,
+                &provenance.source_adapter_version,
+            );
+            push_code_term(&mut html, labels.mapping, &provenance.mapping_version);
+            push_data_term(
+                &mut html,
+                labels.contributing_events,
+                &provenance.contributing_event_count.to_string(),
+                &provenance.contributing_event_count.to_string(),
+                None,
+            );
+            push_data_term(
+                &mut html,
+                labels.non_contributing_events,
+                &provenance.non_contributing_event_count.to_string(),
+                &provenance.non_contributing_event_count.to_string(),
+                None,
+            );
+            html.push_str("</dl>");
+        }
+        ReportEvidenceProvenance::LibrarySnapshot => {
+            html.push_str(labels.library_snapshot_attribution);
+            html.push_str("</p>");
+        }
+        ReportEvidenceProvenance::AuthoredOnly => {
+            html.push_str(labels.authored_only_attribution);
+            html.push_str("</p>");
+        }
+    }
+    html.push_str("</section></main></body></html>\n");
     Ok(html)
 }
 
 fn render_session_section(
     html: &mut String,
-    report: &AuthorizedSessionReportExport,
+    report: &AuthorizedReportExport,
     labels: &Labels,
-) {
+) -> Result<(), ReportExportPortError> {
+    let session = report.session.as_ref().ok_or_else(|| {
+        ReportExportPortError::Failure(
+            "authorized session report evidence is unavailable".to_owned(),
+        )
+    })?;
     html.push_str("<section aria-labelledby=\"session-heading\"><h2 id=\"session-heading\">");
     html.push_str(labels.session_evidence);
     html.push_str("</h2><p class=\"attribution\">");
@@ -280,23 +294,23 @@ fn render_session_section(
     html.push_str("</p><dl><dt>");
     html.push_str(labels.started);
     html.push_str("</dt><dd><time>");
-    push_escaped(html, &report.session.started_at_local);
+    push_escaped(html, &session.started_at_local);
     html.push_str("</time></dd><dt>");
     html.push_str(labels.stopped);
     html.push_str("</dt><dd><time>");
-    push_escaped(html, &report.session.stopped_at_local);
+    push_escaped(html, &session.stopped_at_local);
     html.push_str("</time></dd>");
-    if let Some(offset) = report.session.utc_offset_minutes {
+    if let Some(offset) = session.utc_offset_minutes {
         push_term(html, labels.utc_offset, &format_utc_offset(offset));
     }
     push_data_term(
         html,
         labels.duration,
-        &report.session.duration_milliseconds.to_string(),
-        &format_duration(report.session.duration_milliseconds, labels),
+        &session.duration_milliseconds.to_string(),
+        &format_duration(session.duration_milliseconds, labels),
         Some("ms"),
     );
-    if let Some(distance) = report.session.distance_meters {
+    if let Some(distance) = session.distance_meters {
         push_data_term(
             html,
             labels.distance,
@@ -309,7 +323,7 @@ fn render_session_section(
             Some("m"),
         );
     }
-    if let Some(energy) = report.session.energy_kilocalories {
+    if let Some(energy) = session.energy_kilocalories {
         push_data_term(
             html,
             labels.energy,
@@ -319,7 +333,7 @@ fn render_session_section(
         );
     }
     if report.include_physiological_context {
-        if let Some(average) = report.session.average_heart_rate_bpm {
+        if let Some(average) = session.average_heart_rate_bpm {
             push_data_term(
                 html,
                 labels.average_heart_rate,
@@ -328,7 +342,7 @@ fn render_session_section(
                 Some("bpm"),
             );
         }
-        if let Some(maximum) = report.session.maximum_heart_rate_bpm {
+        if let Some(maximum) = session.maximum_heart_rate_bpm {
             push_data_term(
                 html,
                 labels.maximum_heart_rate,
@@ -338,12 +352,8 @@ fn render_session_section(
             );
         }
     }
-    push_term(
-        html,
-        labels.sport,
-        &sport_label(&report.session.sport, labels),
-    );
-    if let Some(count) = report.session.exercise_count {
+    push_term(html, labels.sport, &sport_label(&session.sport, labels));
+    if let Some(count) = session.exercise_count {
         push_data_term(
             html,
             labels.exercises,
@@ -353,6 +363,7 @@ fn render_session_section(
         );
     }
     html.push_str("</dl></section>");
+    Ok(())
 }
 
 fn render_narrative_section(html: &mut String, body: &str, labels: &Labels) {
@@ -366,7 +377,7 @@ fn render_narrative_section(html: &mut String, body: &str, labels: &Labels) {
 }
 
 fn report_training_comparison(
-    report: &AuthorizedSessionReportExport,
+    report: &AuthorizedReportExport,
 ) -> Result<&TrainingComparison, ReportExportPortError> {
     report.training_comparison.as_ref().ok_or_else(|| {
         ReportExportPortError::Failure(
@@ -974,36 +985,32 @@ fn route_kind_label(kind: TrainingRouteKindView, labels: &Labels) -> &'static st
     }
 }
 
-fn validate_evidence(report: &AuthorizedSessionReportExport) -> Result<(), ReportExportPortError> {
-    let invalid_distance = report
-        .session
-        .distance_meters
-        .is_some_and(|value| !value.is_finite() || value < 0.0);
-    if report.session.duration_milliseconds < 0
-        || invalid_distance
-        || report
-            .session
-            .energy_kilocalories
-            .is_some_and(|value| value < 0)
-        || report
-            .session
-            .average_heart_rate_bpm
-            .is_some_and(|value| value < 0)
-        || report
-            .session
-            .maximum_heart_rate_bpm
-            .is_some_and(|value| value < 0)
-    {
-        return Err(ReportExportPortError::Failure(
-            "report evidence is outside the supported numeric domain".to_owned(),
-        ));
+fn validate_evidence(report: &AuthorizedReportExport) -> Result<(), ReportExportPortError> {
+    if let Some(session) = &report.session {
+        let invalid_distance = session
+            .distance_meters
+            .is_some_and(|value| !value.is_finite() || value < 0.0);
+        if session.duration_milliseconds < 0
+            || invalid_distance
+            || session.energy_kilocalories.is_some_and(|value| value < 0)
+            || session
+                .average_heart_rate_bpm
+                .is_some_and(|value| value < 0)
+            || session
+                .maximum_heart_rate_bpm
+                .is_some_and(|value| value < 0)
+        {
+            return Err(ReportExportPortError::Failure(
+                "report evidence is outside the supported numeric domain".to_owned(),
+            ));
+        }
     }
     validate_training_comparison_evidence(report)?;
     Ok(())
 }
 
 fn validate_training_comparison_evidence(
-    report: &AuthorizedSessionReportExport,
+    report: &AuthorizedReportExport,
 ) -> Result<(), ReportExportPortError> {
     let expected_query =
         report
@@ -1329,6 +1336,8 @@ struct Labels {
     no_known_limitations: &'static str,
     provenance: &'static str,
     current_attribution: &'static str,
+    library_snapshot_attribution: &'static str,
+    authored_only_attribution: &'static str,
     source: &'static str,
     source_modified: &'static str,
     source_adapter: &'static str,
@@ -1417,6 +1426,10 @@ static EN_US: Labels = Labels {
     no_known_limitations: "No known limitations affect this version-1 summary.",
     provenance: "Provenance",
     current_attribution: "Current contributing source attribution",
+    library_snapshot_attribution:
+        "Calculated from the identified revision of the locally imported training library.",
+    authored_only_attribution:
+        "This report currently contains user-authored content and no imported evidence.",
     source: "Source",
     source_modified: "Source revision time",
     source_adapter: "Source adapter",
@@ -1498,6 +1511,10 @@ static ES_ES: Labels = Labels {
     no_known_limitations: "No hay limitaciones conocidas que afecten a este resumen de versión 1.",
     provenance: "Procedencia",
     current_attribution: "Atribución actual del origen contribuyente",
+    library_snapshot_attribution:
+        "Calculado a partir de la revisión identificada de la biblioteca local de entrenamientos importados.",
+    authored_only_attribution:
+        "Este informe contiene actualmente texto escrito por el usuario y ninguna evidencia importada.",
     source: "Origen",
     source_modified: "Fecha de revisión en el origen",
     source_adapter: "Adaptador del origen",
@@ -1530,17 +1547,14 @@ mod tests {
         TrainingSeriesSummary, TrainingSessionSport, TrainingSourceProviderView,
     };
     use fitfreed_domain::{
-        ReportBlock, ReportDateRange, ReportDefinition, ReportTrainingComparisonQuery,
-        ReportTrainingMetric, REPORT_DEFINITION_VERSION,
+        ReportBlock, ReportDateRange, ReportDefinition, ReportOrigin, ReportQuestion,
+        ReportTrainingComparisonQuery, ReportTrainingMetric, REPORT_DEFINITION_VERSION,
     };
     use tempfile::tempdir;
 
     use super::*;
 
-    fn report(
-        locale: ReportLocale,
-        include_physiological_context: bool,
-    ) -> AuthorizedSessionReportExport {
+    fn report(locale: ReportLocale, include_physiological_context: bool) -> AuthorizedReportExport {
         let session_ref =
             "session-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
         let definition = ReportDefinition::create_session_report(
@@ -1561,12 +1575,12 @@ mod tests {
             .expect("narrative block"),
         )
         .expect("report definition");
-        AuthorizedSessionReportExport {
+        AuthorizedReportExport {
             definition,
             resolved_snapshot_ref:
                 "training-snapshot-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
                     .to_owned(),
-            session: ReportSessionEvidence {
+            session: Some(ReportSessionEvidence {
                 session_ref: session_ref.to_owned(),
                 source_index: 1,
                 started_at_local: "2026-08-18T07:30:00.000".to_owned(),
@@ -1583,10 +1597,10 @@ mod tests {
                     state: TrainingSportState::Unavailable,
                     classification: None,
                 },
-            },
+            }),
             routes: vec![],
             training_comparison: None,
-            provenance: TrainingProvenanceCurrentView {
+            provenance: ReportEvidenceProvenance::Session(TrainingProvenanceCurrentView {
                 provider: TrainingSourceProviderView::restore("polar-flow".to_owned())
                     .expect("provider"),
                 source_modified_at_utc: "2026-08-18T08:00:00Z".to_owned(),
@@ -1594,15 +1608,20 @@ mod tests {
                 mapping_version: "polar-flow-training-session@5".to_owned(),
                 contributing_event_count: 2,
                 non_contributing_event_count: 1,
-            },
+            }),
             limitations: vec![ReportLimitation::SportUnavailable],
             include_physiological_context,
         }
     }
 
-    fn routed_report(included: bool) -> AuthorizedSessionReportExport {
+    fn routed_report(included: bool) -> AuthorizedReportExport {
         let mut resolved = report(ReportLocale::EnUs, false);
-        let session_ref = resolved.session.session_ref.clone();
+        let session_ref = resolved
+            .session
+            .as_ref()
+            .expect("session evidence")
+            .session_ref
+            .clone();
         let route_ref = "route-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
         let route_block_ref =
             "report-block-1111111111111111111111111111111111111111111111111111111111111111";
@@ -1652,9 +1671,14 @@ mod tests {
         resolved
     }
 
-    fn analytical_report(locale: ReportLocale) -> AuthorizedSessionReportExport {
+    fn analytical_report(locale: ReportLocale) -> AuthorizedReportExport {
         let mut resolved = report(locale, false);
-        let session_ref = resolved.session.session_ref.clone();
+        let session_ref = resolved
+            .session
+            .as_ref()
+            .expect("session evidence")
+            .session_ref
+            .clone();
         let query = ReportTrainingComparisonQuery::new(
             ReportDateRange::new("2026-01-01", "2026-01-31").expect("baseline range"),
             ReportDateRange::new("2026-02-01", "2026-02-28").expect("comparison range"),
@@ -1731,6 +1755,60 @@ mod tests {
                 energy_kilocalories_change: Some(500),
             }],
         });
+        resolved
+    }
+
+    fn blank_report() -> AuthorizedReportExport {
+        let definition = ReportDefinition::compose_report(
+            "report-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            "My <training> notes",
+            ReportLocale::EnUs,
+            "training-snapshot-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            ReportOrigin::Blank,
+            vec![ReportBlock::narrative(
+                "report-block-abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+                "Only my words & <script>never code</script>.",
+            )
+            .expect("narrative block")],
+        )
+        .expect("blank report definition");
+        AuthorizedReportExport {
+            definition,
+            resolved_snapshot_ref:
+                "training-snapshot-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+                    .to_owned(),
+            session: None,
+            routes: Vec::new(),
+            training_comparison: None,
+            provenance: ReportEvidenceProvenance::AuthoredOnly,
+            limitations: Vec::new(),
+            include_physiological_context: false,
+        }
+    }
+
+    fn question_report() -> AuthorizedReportExport {
+        let mut resolved = analytical_report(ReportLocale::EnUs);
+        let blocks = resolved
+            .definition
+            .blocks()
+            .iter()
+            .filter(|block| !matches!(block.content(), ReportBlockContent::SessionEvidence { .. }))
+            .cloned()
+            .collect();
+        resolved.definition = ReportDefinition::compose_report(
+            resolved.definition.report_ref(),
+            "How has my recent training changed?",
+            ReportLocale::EnUs,
+            resolved.definition.source_snapshot_ref(),
+            ReportOrigin::Question {
+                question: ReportQuestion::TrainingPeriodComparisonV1,
+            },
+            blocks,
+        )
+        .expect("question report definition");
+        resolved.session = None;
+        resolved.provenance = ReportEvidenceProvenance::LibrarySnapshot;
+        resolved.limitations = Vec::new();
         resolved
     }
 
@@ -1848,6 +1926,31 @@ mod tests {
     }
 
     #[test]
+    fn renders_non_session_reports_without_inventing_session_or_provider_evidence() {
+        let blank =
+            render_report(&blank_report(), &ReportExportCancellation::new()).expect("blank report");
+        assert!(blank.contains("My &lt;training&gt; notes"));
+        assert!(blank.contains("Only my words &amp; &lt;script&gt;never code&lt;/script&gt;."));
+        assert!(blank.contains(
+            "This report currently contains user-authored content and no imported evidence."
+        ));
+        assert!(!blank.contains("Session evidence"));
+        assert!(!blank.contains("Polar Flow"));
+        assert!(!blank.contains("polar-flow-training-session"));
+
+        let question = render_report(&question_report(), &ReportExportCancellation::new())
+            .expect("question report");
+        assert!(question.contains("How has my recent training changed?"));
+        assert!(question.contains(
+            "Calculated from the identified revision of the locally imported training library."
+        ));
+        assert!(question.contains("Training finding"));
+        assert!(!question.contains("Session evidence"));
+        assert!(!question.contains("Polar Flow"));
+        assert!(!question.contains("polar-flow-training-session"));
+    }
+
+    #[test]
     fn rejects_missing_or_inconsistent_training_comparison_evidence() {
         let mut missing = analytical_report(ReportLocale::EnUs);
         missing.training_comparison = None;
@@ -1919,7 +2022,11 @@ mod tests {
         assert!(!missing_parent.exists());
 
         let mut invalid = report(ReportLocale::EnUs, true);
-        invalid.session.distance_meters = Some(f64::NAN);
+        invalid
+            .session
+            .as_mut()
+            .expect("session evidence")
+            .distance_meters = Some(f64::NAN);
         assert!(matches!(
             SelfContainedHtmlReportExporter.export_report(
                 &invalid,

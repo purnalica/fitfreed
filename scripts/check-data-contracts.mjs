@@ -4376,9 +4376,20 @@ const reportDefinitionCanonicalV3Path = "docs/data-formats/canonical/report-defi
 const reportDefinitionPortableV3Path = "docs/data-formats/portable/report-definition-v3.md";
 const sessionReportV3Path = "docs/data-formats/insights/session-report-v3.md";
 const reportHtmlV3Path = "docs/data-formats/portable/report-html-v3.md";
+const reportDefinitionCanonicalV4Path = "docs/data-formats/canonical/report-definition-v4.md";
+const reportDefinitionPortableV4Path = "docs/data-formats/portable/report-definition-v4.md";
+const reportV4Path = "docs/data-formats/insights/report-v4.md";
+const reportHtmlV4Path = "docs/data-formats/portable/report-html-v4.md";
 const reportDefinitionSchemaPath = "schemas/report-definition-v1.schema.json";
 const reportDefinitionV2SchemaPath = "schemas/report-definition-v2.schema.json";
 const reportDefinitionV3SchemaPath = "schemas/report-definition-v3.schema.json";
+const reportDefinitionV4SchemaPath = "schemas/report-definition-v4.schema.json";
+const reportStartSchemaPath = "schemas/report-start-v1.schema.json";
+const preparedReportStartSchemaPath = "schemas/prepared-report-start-v1.schema.json";
+const reportCreateV4SchemaPath = "schemas/report-create-v4.schema.json";
+const reportUpdateV4SchemaPath = "schemas/report-update-v4.schema.json";
+const reportResolutionV4SchemaPath = "schemas/report-resolution-v4.schema.json";
+const reportExportV4SchemaPath = "schemas/report-export-v4.schema.json";
 const sessionReportCreateSchemaPath = "schemas/session-report-create-v1.schema.json";
 const sessionReportCreateV2SchemaPath = "schemas/session-report-create-v2.schema.json";
 const sessionReportCreateV3SchemaPath = "schemas/session-report-create-v3.schema.json";
@@ -4434,6 +4445,21 @@ for (const [documentPath, fields] of [
   [reportHtmlV3Path, [
     "data-fitfreed-report-version", "training-finding", "CSS-only", "<data>",
   ]],
+  [reportDefinitionCanonicalV4Path, [
+    "definitionVersion", "session", "question", "exploration", "blank",
+    "sourceSnapshotRef", "authored-only",
+  ]],
+  [reportDefinitionPortableV4Path, [
+    "application/vnd.fitfreed.report-definition+json;version=4", "report-start-v1.schema.json",
+    "report-create-v4.schema.json", "report-resolution-v4.schema.json", "provenance",
+  ]],
+  [reportV4Path, [
+    "prepared-report-start-v1", "expectedRevision", "trainingComparison",
+    "library-snapshot", "authored-only", "report-source-changed",
+  ]],
+  [reportHtmlV4Path, [
+    "text/html", "data-fitfreed-report-version", "library-snapshot", "authored-only", "<data>",
+  ]],
 ]) {
   const document = read(documentPath);
   for (const field of fields) requireMention(document, field, documentPath);
@@ -4462,18 +4488,25 @@ for (const dependencyPath of [
 const validateReportDefinition = compileReportSchema(reportDefinitionSchemaPath);
 const validateReportDefinitionV2 = compileReportSchema(reportDefinitionV2SchemaPath);
 const validateReportDefinitionV3 = compileReportSchema(reportDefinitionV3SchemaPath);
+const validateReportDefinitionV4 = compileReportSchema(reportDefinitionV4SchemaPath);
+const validateReportStart = compileReportSchema(reportStartSchemaPath);
+const validatePreparedReportStart = compileReportSchema(preparedReportStartSchemaPath);
 const validateSessionReportCreate = compileReportSchema(sessionReportCreateSchemaPath);
 const validateSessionReportCreateV2 = compileReportSchema(sessionReportCreateV2SchemaPath);
 const validateSessionReportCreateV3 = compileReportSchema(sessionReportCreateV3SchemaPath);
+const validateReportCreateV4 = compileReportSchema(reportCreateV4SchemaPath);
 const validateSessionReportUpdate = compileReportSchema(sessionReportUpdateSchemaPath);
 const validateSessionReportUpdateV2 = compileReportSchema(sessionReportUpdateV2SchemaPath);
 const validateSessionReportUpdateV3 = compileReportSchema(sessionReportUpdateV3SchemaPath);
+const validateReportUpdateV4 = compileReportSchema(reportUpdateV4SchemaPath);
 const validateReportList = compileReportSchema(reportListSchemaPath);
 const validateSessionReportResolution = compileReportSchema(sessionReportResolutionSchemaPath);
 const validateSessionReportResolutionV2 = compileReportSchema(sessionReportResolutionV2SchemaPath);
 const validateSessionReportResolutionV3 = compileReportSchema(sessionReportResolutionV3SchemaPath);
+const validateReportResolutionV4 = compileReportSchema(reportResolutionV4SchemaPath);
 const validateSessionReportExport = compileReportSchema(sessionReportExportSchemaPath);
 const validateSessionReportExportV2 = compileReportSchema(sessionReportExportV2SchemaPath);
+const validateReportExportV4 = compileReportSchema(reportExportV4SchemaPath);
 const validateReportExportReceipt = compileReportSchema(reportExportReceiptSchemaPath);
 const reportRefDigest = `report-${"3".repeat(64)}`;
 const firstReportBlockRefDigest = `report-block-${"4".repeat(64)}`;
@@ -4894,6 +4927,167 @@ if (validateSessionReportResolutionV3({
   throw new Error(`${sessionReportResolutionV3SchemaPath} accepted provider identity`);
 }
 
+const syntheticQuestionOrigin = {
+  kind: "question",
+  question: "training-period-comparison",
+  questionVersion: 1,
+};
+const syntheticExplorationOrigin = {
+  kind: "exploration",
+  query: structuredClone(analyticalQuestion),
+};
+const syntheticQuestionDefinitionV4 = {
+  ...structuredClone(syntheticReportDefinitionV3),
+  definitionVersion: 4,
+  origin: syntheticQuestionOrigin,
+  blocks: [
+    ...structuredClone(analyticalBlocks),
+    structuredClone(syntheticReportDefinition.blocks[1]),
+  ],
+};
+const syntheticExplorationDefinitionV4 = {
+  ...structuredClone(syntheticQuestionDefinitionV4),
+  origin: syntheticExplorationOrigin,
+};
+const syntheticBlankDefinitionV4 = {
+  ...structuredClone(syntheticQuestionDefinitionV4),
+  origin: { kind: "blank" },
+  blocks: [structuredClone(syntheticReportDefinition.blocks[1])],
+};
+const syntheticSessionDefinitionV4 = {
+  ...structuredClone(syntheticReportDefinitionV3),
+  definitionVersion: 4,
+};
+for (const definition of [
+  syntheticSessionDefinitionV4,
+  syntheticQuestionDefinitionV4,
+  syntheticExplorationDefinitionV4,
+  syntheticBlankDefinitionV4,
+]) {
+  assertReportContract(validateReportDefinitionV4, reportDefinitionV4SchemaPath, definition);
+}
+for (const invalidDefinition of [
+  { ...structuredClone(syntheticQuestionDefinitionV4), definitionVersion: 3 },
+  {
+    ...structuredClone(syntheticQuestionDefinitionV4),
+    blocks: [structuredClone(syntheticReportDefinition.blocks[1])],
+  },
+  {
+    ...structuredClone(syntheticBlankDefinitionV4),
+    blocks: [
+      structuredClone(syntheticReportDefinition.blocks[0]),
+      structuredClone(syntheticReportDefinition.blocks[1]),
+    ],
+  },
+]) {
+  if (validateReportDefinitionV4(invalidDefinition)) {
+    throw new Error(`${reportDefinitionV4SchemaPath} accepted an invalid definition`);
+  }
+}
+
+for (const start of [
+  syntheticQuestionOrigin,
+  syntheticExplorationOrigin,
+  { kind: "blank" },
+]) {
+  assertReportContract(validateReportStart, reportStartSchemaPath, start);
+}
+if (validateReportStart({ kind: "session", sessionRef: sessionRefDigest })) {
+  throw new Error(`${reportStartSchemaPath} accepted a session start`);
+}
+const syntheticPreparedReportStart = {
+  sourceSnapshotRef: snapshotRefDigest,
+  origin: syntheticQuestionOrigin,
+  suggestedQuery: structuredClone(analyticalQuestion),
+};
+assertReportContract(
+  validatePreparedReportStart,
+  preparedReportStartSchemaPath,
+  syntheticPreparedReportStart,
+);
+if (validatePreparedReportStart({
+  ...structuredClone(syntheticPreparedReportStart),
+  origin: { kind: "session", sessionRef: sessionRefDigest },
+})) {
+  throw new Error(`${preparedReportStartSchemaPath} accepted a session origin`);
+}
+
+const syntheticReportCreateV4 = {
+  title: syntheticQuestionDefinitionV4.title,
+  locale: syntheticQuestionDefinitionV4.locale,
+  sourceSnapshotRef: snapshotRefDigest,
+  origin: syntheticQuestionOrigin,
+  blocks: syntheticQuestionDefinitionV4.blocks.map(({ blockRef: _blockRef, ...block }) => block),
+};
+assertReportContract(validateReportCreateV4, reportCreateV4SchemaPath, syntheticReportCreateV4);
+if (validateReportCreateV4({
+  ...structuredClone(syntheticReportCreateV4),
+  blocks: [structuredClone(syntheticReportCreateV4.blocks.at(-1))],
+})) {
+  throw new Error(`${reportCreateV4SchemaPath} accepted a question without analytical evidence`);
+}
+
+const syntheticReportUpdateV4 = {
+  reportRef: reportRefDigest,
+  expectedRevision: "1",
+  title: syntheticQuestionDefinitionV4.title,
+  locale: "es-ES",
+  blocks: structuredClone(syntheticQuestionDefinitionV4.blocks),
+};
+assertReportContract(validateReportUpdateV4, reportUpdateV4SchemaPath, syntheticReportUpdateV4);
+if (validateReportUpdateV4({ ...syntheticReportUpdateV4, expectedRevision: "01" })) {
+  throw new Error(`${reportUpdateV4SchemaPath} accepted a non-canonical revision`);
+}
+
+const syntheticQuestionResolutionV4 = {
+  definition: syntheticQuestionDefinitionV4,
+  resolvedSnapshotRef: snapshotRefDigest,
+  status: "current",
+  session: null,
+  routes: [],
+  trainingComparison: structuredClone(syntheticTrainingComparison),
+  provenance: { kind: "library-snapshot" },
+  sensitiveContents: [],
+  limitations: [],
+};
+assertReportContract(
+  validateReportResolutionV4,
+  reportResolutionV4SchemaPath,
+  syntheticQuestionResolutionV4,
+);
+const syntheticBlankResolutionV4 = {
+  ...structuredClone(syntheticQuestionResolutionV4),
+  definition: syntheticBlankDefinitionV4,
+  trainingComparison: null,
+  provenance: { kind: "authored-only" },
+};
+assertReportContract(
+  validateReportResolutionV4,
+  reportResolutionV4SchemaPath,
+  syntheticBlankResolutionV4,
+);
+for (const invalidResolution of [
+  { ...structuredClone(syntheticQuestionResolutionV4), session: syntheticTrainingSessionSearch.sessions[0] },
+  { ...structuredClone(syntheticQuestionResolutionV4), provenance: { kind: "authored-only" } },
+  { ...structuredClone(syntheticBlankResolutionV4), provenance: { kind: "library-snapshot" } },
+]) {
+  if (validateReportResolutionV4(invalidResolution)) {
+    throw new Error(`${reportResolutionV4SchemaPath} accepted inconsistent evidence provenance`);
+  }
+}
+
+assertReportContract(
+  validateReportExportV4,
+  reportExportV4SchemaPath,
+  syntheticSessionReportExportV2,
+);
+if (validateReportExportV4({
+  ...structuredClone(syntheticSessionReportExportV2),
+  destinationPath: "",
+})) {
+  throw new Error(`${reportExportV4SchemaPath} accepted an empty destination`);
+}
+
 assertReportContract(
   validateReportExportReceipt,
   reportExportReceiptSchemaPath,
@@ -4950,6 +5144,10 @@ for (const contractPath of [
   reportDefinitionPortableV3Path,
   sessionReportV3Path,
   reportHtmlV3Path,
+  reportDefinitionCanonicalV4Path,
+  reportDefinitionPortableV4Path,
+  reportV4Path,
+  reportHtmlV4Path,
   ...persistencePaths,
 ]) {
   const relativeContract = path.relative(path.dirname(indexPath), contractPath);
@@ -5063,6 +5261,11 @@ process.stdout.write(
       reportDefinitionSchemaPath,
       reportDefinitionV2SchemaPath,
       reportDefinitionV3SchemaPath,
+      reportDefinitionV4SchemaPath,
+      reportStartSchemaPath,
+      preparedReportStartSchemaPath,
+      reportCreateV4SchemaPath,
+      reportUpdateV4SchemaPath,
       sessionReportCreateSchemaPath,
       sessionReportCreateV2SchemaPath,
       sessionReportCreateV3SchemaPath,
@@ -5073,8 +5276,10 @@ process.stdout.write(
       sessionReportResolutionSchemaPath,
       sessionReportResolutionV2SchemaPath,
       sessionReportResolutionV3SchemaPath,
+      reportResolutionV4SchemaPath,
       sessionReportExportSchemaPath,
       sessionReportExportV2SchemaPath,
+      reportExportV4SchemaPath,
       reportExportReceiptSchemaPath,
     ],
     canonicalFields: 64,

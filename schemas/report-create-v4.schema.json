@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/report-create-v4.schema.json",
+  "title": "FitFreed report creation version 4",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["title", "locale", "sourceSnapshotRef", "origin", "blocks"],
+  "properties": {
+    "title": { "$ref": "report-definition-v4.schema.json#/properties/title" },
+    "locale": { "$ref": "report-definition-v4.schema.json#/properties/locale" },
+    "sourceSnapshotRef": { "$ref": "report-definition-v4.schema.json#/$defs/snapshotRef" },
+    "origin": { "$ref": "report-definition-v4.schema.json#/$defs/origin" },
+    "blocks": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": { "$ref": "#/$defs/draftBlock" },
+      "allOf": [
+        {
+          "contains": { "$ref": "session-report-create-v3.schema.json#/$defs/narrativeDraft" },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": { "$ref": "session-report-create-v3.schema.json#/$defs/sessionDraft" },
+          "minContains": 0,
+          "maxContains": 1
+        },
+        {
+          "contains": { "$ref": "session-report-create-v3.schema.json#/$defs/findingDraft" },
+          "minContains": 0,
+          "maxContains": 1
+        },
+        {
+          "contains": { "$ref": "session-report-create-v3.schema.json#/$defs/comparisonDraft" },
+          "minContains": 0,
+          "maxContains": 1
+        },
+        {
+          "contains": { "$ref": "session-report-create-v3.schema.json#/$defs/chartDraft" },
+          "minContains": 0,
+          "maxContains": 1
+        },
+        {
+          "contains": { "$ref": "session-report-create-v3.schema.json#/$defs/tableDraft" },
+          "minContains": 0,
+          "maxContains": 1
+        },
+        {
+          "contains": { "$ref": "session-report-create-v3.schema.json#/$defs/coverageDraft" },
+          "minContains": 0,
+          "maxContains": 1
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "origin": {
+            "type": "object",
+            "properties": { "kind": { "const": "session" } }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "blocks": {
+            "type": "array",
+            "contains": { "$ref": "session-report-create-v3.schema.json#/$defs/sessionDraft" },
+            "minContains": 1,
+            "maxContains": 1
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "blocks": {
+            "type": "array",
+            "allOf": [
+              {
+                "contains": { "$ref": "session-report-create-v3.schema.json#/$defs/sessionDraft" },
+                "minContains": 0,
+                "maxContains": 0
+              },
+              {
+                "contains": { "$ref": "session-report-create-v3.schema.json#/$defs/routeDraft" },
+                "minContains": 0,
+                "maxContains": 0
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "origin": {
+            "type": "object",
+            "properties": { "kind": { "enum": ["question", "exploration"] } }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "blocks": {
+            "type": "array",
+            "contains": { "$ref": "#/$defs/analyticalDraft" },
+            "minContains": 1
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "draftBlock": {
+      "oneOf": [
+        { "$ref": "session-report-create-v3.schema.json#/$defs/sessionDraft" },
+        { "$ref": "session-report-create-v3.schema.json#/$defs/routeDraft" },
+        { "$ref": "session-report-create-v3.schema.json#/$defs/narrativeDraft" },
+        { "$ref": "session-report-create-v3.schema.json#/$defs/findingDraft" },
+        { "$ref": "session-report-create-v3.schema.json#/$defs/comparisonDraft" },
+        { "$ref": "session-report-create-v3.schema.json#/$defs/chartDraft" },
+        { "$ref": "session-report-create-v3.schema.json#/$defs/tableDraft" },
+        { "$ref": "session-report-create-v3.schema.json#/$defs/coverageDraft" }
+      ]
+    },
+    "analyticalDraft": {
+      "oneOf": [
+        { "$ref": "session-report-create-v3.schema.json#/$defs/findingDraft" },
+        { "$ref": "session-report-create-v3.schema.json#/$defs/comparisonDraft" },
+        { "$ref": "session-report-create-v3.schema.json#/$defs/chartDraft" },
+        { "$ref": "session-report-create-v3.schema.json#/$defs/tableDraft" },
+        { "$ref": "session-report-create-v3.schema.json#/$defs/coverageDraft" }
+      ]
+    }
+  }
+}

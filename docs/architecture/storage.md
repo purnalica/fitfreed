@@ -94,6 +94,13 @@ optimistic revision, origin, and saved source snapshot without copying resolved 
 rewrite authored reports. Opaque source references deliberately survive missing or changed evidence so the
 application can present stale or unavailable resolution explicitly.
 
+Schema version 21 generalizes ordered report blocks with route identity and endpoint-redaction choices.
+Schema version 22 adds versioned training-comparison intent without storing results. Schema version 23
+generalizes report origins to session, question, exploration, and blank. Its relational checks require the
+exact fields for each origin and continue to prohibit provider accounts, rendered output, resolved totals,
+and destination paths. All three migrations copy prior definitions and blocks atomically; imports and
+reimports remain unable to rewrite authored rows.
+
 New origin and evidence rows become durable only inside the same visibility transaction as canonical history and operation completion. Existing development origins migrate as unverified origins without invented evidence. Exact-repeat lookup may inherit an origin only from a completed operation whose correlation state is verified; an old package fingerprint alone cannot authorize subject resolution.
 
 Exact-repeat reuse is additionally scoped to the current source provider, adapter version, and mapping version. Identical bytes are reassessed after any compatibility-contract change, so a previous outcome cannot bypass validation added by a newer adapter.

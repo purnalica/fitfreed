@@ -2,7 +2,7 @@
 
 ## Status
 
-Active as of 2026-08-19. D0, P1, E1, P2, E2, all three E3 slices, all seven E4 slices, and the first three E5 verticals have complete local and hosted acceptance evidence. The accepted E5 verticals provide durable session-origin authorship, ordered route composition, and one coherent training-period comparison family with shared preview, privacy review, persistence, and deterministic self-contained HTML export. Question, exploration, and blank starts, deliberate refresh, and complete report navigation remain active. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English and Spanish hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md) and [ADR 0024](../architecture/decisions/0024-generate-localized-product-pages.md).
+Active as of 2026-08-19. D0, P1, E1, P2, E2, all three E3 slices, all seven E4 slices, and the first three E5 verticals have complete local and hosted acceptance evidence; the fourth E5 vertical has complete local acceptance. The accepted E5 verticals provide durable session-origin authorship, ordered route composition, one coherent training-period comparison family, and question-led, exploration-led, session-led, and blank starts with shared preview, privacy review, persistence, and deterministic self-contained HTML export. Deliberate refresh and complete report navigation remain active. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English and Spanish hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md) and [ADR 0024](../architecture/decisions/0024-generate-localized-product-pages.md).
 
 The existing import, reconciliation, persistence, Insights, localization, update-recovery, packaging, and continuous-integration capabilities remain the engineering baseline. This plan changes how those capabilities become a product people can understand and value; it does not discard their verified behavior.
 
@@ -576,8 +576,8 @@ resolved session evidence and user narrative, reopens it after restart, reviews 
 content, and exports deterministic self-contained HTML. This proves the durable model, authoritative query,
 SQLite, transport, editor, and output-adapter boundaries through one immediately useful artifact. The next
 two slices added route composition and the accepted finding, comparison, chart, exact-table, and
-coverage-and-limitation family. Remaining E5 slices add question, exploration, and blank starts, then
-deliberate refresh and complete origin-aware return.
+coverage-and-limitation family. The fourth slice added question, exploration, and blank starts. Remaining E5
+slices add deliberate refresh and complete origin-aware return.
 Each slice remains runnable and documented but E5 is accepted only after the complete FR-005 journey passes.
 
 **Application and architecture:**
@@ -640,8 +640,25 @@ The same executable-input fingerprint passed the complete
 [hosted campaign](https://github.com/purnalica/fitfreed/actions/runs/32257914407): portable quality checks,
 private release preparation, cold launch, full-scale import, Insights performance, update-recovery
 preparation, installation boundaries, the instrumented packaged journey, and packaged update replacement
-and forced recovery. Question, exploration, and blank starts, deliberate refresh, and complete report-origin
-navigation remain active.
+and forced recovery.
+
+**Multi-origin start local checkpoint:** version 4 gives every accepted entry path one durable workflow.
+Question starts derive conservative adjacent periods from the current training range; exploration starts
+retain the exact completed comparison query; blank starts persist authored narrative without claiming data
+evidence and can add analysis later; session starts retain their recorded-evidence boundary. The shared
+definition records its typed origin and never invents a provider, session, or provenance for a non-session
+report. SQLite schema 23 migrates older definitions without rewriting them and constrains every origin shape.
+
+Domain, application, persistence, migration, transport, public-schema, component, HTML, and navigation tests
+cover creation, editing, exact-query retention, authored-only provenance, later analysis from a blank start,
+multiple saved reports, restart, and exact comparison return. The complete fast lane passed 137 automation
+tests, 121 React tests, 206 host tests, 135 application tests, 32 domain tests, strict Clippy, formatting,
+and the production build. The packaged
+macOS journey created session and exploration reports, returned to the exact comparison, reopened both after
+restart, and independently verified the exported output. The packaged performance campaign passed every
+500-millisecond common and 2-second maximum p95 budget; its slowest measured interaction was 113
+milliseconds. Hosted acceptance remains pending for this exact executable-input fingerprint. Deliberate
+refresh and complete report-origin navigation remain active.
 
 **Evaluation checkpoint:** a reviewer can create a useful artifact without learning provider or database terminology and can explain which parts are recorded, calculated, or authored.
 

@@ -23,15 +23,18 @@ use fitfreed_application::{
     authorize_update_installation as authorize_update, check_for_updates as evaluate_updates,
     clear_exploration_workspace as clear_workspace,
     create_composed_session_report as create_composed_session_report_through_port,
+    create_report as create_report_through_port,
     create_session_report as create_session_report_through_port,
     create_training_segment_criterion as create_segment_criterion_through_port,
-    dismiss_update as persist_update_dismissal,
+    dismiss_update as persist_update_dismissal, export_report as export_report_through_port,
     export_session_report as export_session_report_through_port,
     list_reports as list_reports_through_port,
     load_application_preferences as load_preferences_from_port,
     load_report_definition as load_report_definition_through_port,
     move_training_segment_criterion as move_segment_criterion_through_port,
-    postpone_update as persist_update_postponement, query_library_home as build_library_home,
+    postpone_update as persist_update_postponement,
+    prepare_report_start as prepare_report_start_through_port,
+    query_library_home as build_library_home,
     query_longitudinal_comparison as build_longitudinal_comparison,
     query_longitudinal_overview as build_longitudinal_overview,
     query_source_acquisition_guides as build_source_acquisition_guides,
@@ -46,11 +49,13 @@ use fitfreed_application::{
     query_training_sports as build_training_sports,
     remove_training_segment_criterion as remove_segment_criterion_through_port,
     reset_application_preferences as reset_preferences_through_port,
+    resolve_report as resolve_report_through_port,
     resolve_session_report as resolve_session_report_through_port,
     save_application_preferences as save_preferences_through_port,
     save_exploration_workspace as save_workspace,
     save_training_sport_classification as persist_training_sport_classification,
     update_composed_session_report as update_composed_session_report_through_port,
+    update_report as update_report_through_port,
     update_session_report as update_session_report_through_port,
     update_training_segment_criterion as update_segment_criterion_through_port, ApplicationError,
     ApplicationPreferences, ImportCoordinator, ImportProgress, InvalidApplicationPreferences,
@@ -75,13 +80,14 @@ use infrastructure::{
 use presentation::{
     ActivityComparisonDto, ActivityDateRangeDto, ActivityOverviewDto, ApplicationPreferencesDto,
     ApplicationPreferencesInputDto, ApplicationPreferencesLoadDto, CommandErrorDto,
-    CreateComposedSessionReportRequestDto, CreateSessionReportRequestDto,
+    CreateComposedSessionReportRequestDto, CreateReportRequestDto, CreateSessionReportRequestDto,
     CreateTrainingSegmentCriterionRequestDto, ExplorationWorkspaceDto, ExploreDestinationInputDto,
     ImportOutcomeDto, ImportProgressDto, ImportReportDto, LibraryHomeDto, LibraryHomeRequestDto,
     LongitudinalComparisonDto, LongitudinalDateRangeDto, LongitudinalOverviewDto,
-    MoveTrainingSegmentCriterionRequestDto, RecoveryComparisonDto, RecoveryDateRangeDto,
-    RecoveryNightDetailDto, RecoveryOverviewDto, ReportDefinitionDto, ReportExportReceiptDto,
-    ReportListDto, ResolvedSessionReportDto, SaveSportClassificationRequestDto,
+    MoveTrainingSegmentCriterionRequestDto, PreparedReportStartDto, RecoveryComparisonDto,
+    RecoveryDateRangeDto, RecoveryNightDetailDto, RecoveryOverviewDto, ReportDefinitionDto,
+    ReportExportReceiptDto, ReportExportRequestDto, ReportListDto, ReportStartDto,
+    ResolvedReportDto, ResolvedSessionReportDto, SaveSportClassificationRequestDto,
     SavedTrainingSportClassificationDto, SessionReportExportRequestDto, SleepComparisonDto,
     SleepDateRangeDto, SleepOverviewDto, SleepPeriodDetailDto, SourceAcquisitionGuideDto,
     TrainingComparisonDto, TrainingDateRangeDto, TrainingDiscoveryWorkspaceDto,
@@ -96,8 +102,8 @@ use presentation::{
     TrainingSessionStructureQueryDto, TrainingSessionStructureResultDto,
     TrainingSessionZonesQueryDto, TrainingSessionZonesResultDto, TrainingSignalSamplesQueryDto,
     TrainingSignalSamplesResultDto, TrainingSportsOverviewDto, UpdateCheckOutcomeDto,
-    UpdateComposedSessionReportRequestDto, UpdateRecoveryOutcomeDto, UpdateSessionReportRequestDto,
-    UpdateTrainingSegmentCriterionRequestDto,
+    UpdateComposedSessionReportRequestDto, UpdateRecoveryOutcomeDto, UpdateReportRequestDto,
+    UpdateSessionReportRequestDto, UpdateTrainingSegmentCriterionRequestDto,
 };
 use serde::{Deserialize, Serialize};
 use tauri::{ipc::Channel, AppHandle, Emitter, Manager, State};
@@ -666,6 +672,54 @@ fn save_training_sport_classification(
 }
 
 #[tauri::command]
+fn prepare_report_start(
+    app: AppHandle,
+    start: ReportStartDto,
+) -> Result<PreparedReportStartDto, CommandErrorDto> {
+    let start = start.try_into()?;
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    prepare_report_start_through_port(&SqliteTrainingLibrary::new(path), start)
+        .map(Into::into)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn create_report(
+    app: AppHandle,
+    request: CreateReportRequestDto,
+) -> Result<ReportDefinitionDto, CommandErrorDto> {
+    let request = request.try_into()?;
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    create_report_through_port(
+        &SqliteReportLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path),
+        request,
+    )
+    .map(Into::into)
+    .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn update_report(
+    app: AppHandle,
+    request: UpdateReportRequestDto,
+) -> Result<ReportDefinitionDto, CommandErrorDto> {
+    let request = request.try_into()?;
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    update_report_through_port(
+        &SqliteReportLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path),
+        request,
+    )
+    .map(Into::into)
+    .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
 fn create_session_report(
     app: AppHandle,
     request: CreateSessionReportRequestDto,
@@ -764,6 +818,56 @@ fn resolve_session_report(
     )
     .map(Into::into)
     .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn resolve_report(
+    app: AppHandle,
+    report_ref: String,
+) -> Result<ResolvedReportDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    resolve_report_through_port(
+        &SqliteReportLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path),
+        &report_ref,
+    )
+    .map(Into::into)
+    .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+async fn export_report(
+    app: AppHandle,
+    coordinator: State<'_, ReportExportCoordinator>,
+    request: ReportExportRequestDto,
+) -> Result<ReportExportReceiptDto, CommandErrorDto> {
+    let request = request.try_into()?;
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let operation = coordinator
+        .begin()
+        .map_err(|_| CommandErrorDto::new("report-export-active"))?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let cancellation = Arc::clone(&operation.cancellation);
+        let result = export_report_through_port(
+            &SqliteReportLibrary::new(path.clone()),
+            &SqliteTrainingLibrary::new(path.clone()),
+            &SqliteTrainingLibrary::new(path.clone()),
+            &SqliteTrainingLibrary::new(path.clone()),
+            &SqliteTrainingLibrary::new(path),
+            &SelfContainedHtmlReportExporter,
+            request,
+            &cancellation,
+        )
+        .map(Into::into)
+        .map_err(CommandErrorDto::from);
+        drop(operation);
+        result
+    })
+    .await
+    .map_err(|_| CommandErrorDto::new("desktop-task-failed"))?
 }
 
 #[tauri::command]
@@ -1785,13 +1889,18 @@ pub fn run() {
             clear_training_discovery_workspace,
             query_training_sports,
             save_training_sport_classification,
+            prepare_report_start,
+            create_report,
+            update_report,
             create_session_report,
             create_composed_session_report,
             update_session_report,
             update_composed_session_report,
             list_reports,
             load_report_definition,
+            resolve_report,
             resolve_session_report,
+            export_report,
             export_session_report,
             cancel_report_export,
             query_sleep_overview,

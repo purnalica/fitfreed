@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/report-start-v1.schema.json",
+  "title": "FitFreed report start version 1",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "question", "questionVersion"],
+      "properties": {
+        "kind": { "const": "question" },
+        "question": { "const": "training-period-comparison" },
+        "questionVersion": { "const": 1 }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "query"],
+      "properties": {
+        "kind": { "const": "exploration" },
+        "query": { "$ref": "report-definition-v3.schema.json#/$defs/trainingComparisonQuery" }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": { "kind": { "const": "blank" } }
+    }
+  ]
+}

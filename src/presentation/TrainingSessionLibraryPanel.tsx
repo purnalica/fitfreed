@@ -1857,6 +1857,7 @@ export function TrainingSessionLibraryPanel({
               <button
                 type="button"
                 onClick={() => onCreateReport({
+                  kind: "session",
                   snapshotRef: page?.snapshotRef ?? "",
                   session: selected,
                 })}

@@ -4,6 +4,7 @@ import type { TrainingRouteKind, TrainingRoutePoint } from "./training-session-r
 import type { TrainingComparison, TrainingDateRange } from "./training-insights";
 
 export interface SessionReportOrigin {
+  kind: "session";
   snapshotRef: string;
   session: TrainingSessionSearchItem;
 }
@@ -93,12 +94,42 @@ export interface ReportDefinition {
   title: string;
   locale: "en-US" | "es-ES";
   sourceSnapshotRef: string;
-  origin: { kind: "session"; sessionRef: string };
+  origin: ReportOrigin;
   provenancePolicy: "current-attribution";
   authorship: "user";
-  definitionVersion: 1 | 2 | 3;
+  definitionVersion: 1 | 2 | 3 | 4;
   revision: string;
   blocks: ReportBlock[];
+}
+
+export type ReportOrigin =
+  | { kind: "session"; sessionRef: string }
+  | {
+      kind: "question";
+      question: "training-period-comparison";
+      questionVersion: 1;
+    }
+  | { kind: "exploration"; query: ReportTrainingComparisonQuery }
+  | { kind: "blank" };
+
+export type ReportStartOrigin =
+  | SessionReportOrigin
+  | { kind: "question" }
+  | { kind: "exploration"; query: ReportTrainingComparisonQuery };
+
+export type ReportStart =
+  | {
+      kind: "question";
+      question: "training-period-comparison";
+      questionVersion: 1;
+    }
+  | { kind: "exploration"; query: ReportTrainingComparisonQuery }
+  | { kind: "blank" };
+
+export interface PreparedReportStart {
+  sourceSnapshotRef: string;
+  origin: Exclude<ReportOrigin, { kind: "session" }>;
+  suggestedQuery: ReportTrainingComparisonQuery | null;
 }
 
 export interface ReportSummary {
@@ -120,17 +151,27 @@ export type ReportLimitation =
   | "sport-unclassified"
   | "sport-unavailable";
 
-export interface ResolvedSessionReport {
+export interface ResolvedReport {
   definition: ReportDefinition;
   resolvedSnapshotRef: string;
   status: "current" | "stale";
-  session: TrainingSessionSearchItem;
+  session: TrainingSessionSearchItem | null;
   routes: ReportRouteEvidence[];
   trainingComparison: TrainingComparison | null;
-  provenance: TrainingProvenanceCurrent;
+  provenance: ReportEvidenceProvenance;
   sensitiveContents: ReportSensitiveContent[];
   limitations: ReportLimitation[];
 }
+
+export type ReportEvidenceProvenance =
+  | { kind: "session"; current: TrainingProvenanceCurrent }
+  | { kind: "library-snapshot" }
+  | { kind: "authored-only" };
+
+export type ResolvedSessionReport = ResolvedReport & {
+  session: TrainingSessionSearchItem;
+  provenance: { kind: "session"; current: TrainingProvenanceCurrent };
+};
 
 export interface ReportRouteEvidence {
   blockRef: string;

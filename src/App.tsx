@@ -32,7 +32,7 @@ import type {
 import { LibraryHomePanel } from "./presentation/LibraryHomePanel";
 import type { SourceAcquisitionGuide } from "./presentation/source-acquisition";
 import { SourcesPanel } from "./presentation/SourcesPanel";
-import type { SessionReportOrigin } from "./presentation/session-report";
+import type { ReportStartOrigin } from "./presentation/session-report";
 
 const rendererStartedAt = performance.now();
 const INTERACTIVE_SHELL_FRAME_TIMEOUT_MILLISECONDS = 1_000;
@@ -197,7 +197,7 @@ function App() {
   const [rangeLoading, setRangeLoading] = useState(false);
   const [selectedActivityDate, setSelectedActivityDate] = useState<string>();
   const [trainingRefreshToken, setTrainingRefreshToken] = useState(0);
-  const [reportOrigin, setReportOrigin] = useState<SessionReportOrigin>();
+  const [reportOrigin, setReportOrigin] = useState<ReportStartOrigin>();
   const [reportOriginRequestId, setReportOriginRequestId] = useState(0);
   const [sleepRefreshToken, setSleepRefreshToken] = useState(0);
   const [recoveryRefreshToken, setRecoveryRefreshToken] = useState(0);
@@ -441,7 +441,7 @@ function App() {
     setActiveHome("reports");
   }
 
-  function createReportFromSession(origin: SessionReportOrigin) {
+  function createReport(origin: ReportStartOrigin) {
     setErrorCode(undefined);
     setReportOrigin(origin);
     setReportOriginRequestId((current) => current + 1);
@@ -1260,7 +1260,7 @@ function App() {
             messages={messages}
             refreshToken={trainingRefreshToken}
             navigationRequest={explorerNavigation?.domain === "training" ? explorerNavigation : undefined}
-            onCreateReport={createReportFromSession}
+            onCreateReport={createReport}
             onError={setErrorCode}
           />
           )}

@@ -2499,6 +2499,15 @@ describe("FitFreed import interface", () => {
         ));
       }
       if (command === "query_training_comparison") return Promise.resolve(comparisonResult);
+      if (command === "list_reports") return Promise.resolve({ reports: [] });
+      if (command === "prepare_report_start") return Promise.resolve({
+        sourceSnapshotRef: "snapshot-current",
+        origin: {
+          kind: "exploration",
+          query: arguments_.start.query,
+        },
+        suggestedQuery: arguments_.start.query,
+      });
       if (command === "query_training_session_structure") {
         return Promise.resolve({
           snapshotRef: "snapshot-current",
@@ -2668,7 +2677,29 @@ describe("FitFreed import interface", () => {
     });
     expect(within(comparisonRegion).getByText("+250 kcal")).toBeVisible();
     expect(within(comparisonRegion).getAllByText("Not available").length).toBeGreaterThan(0);
-    await user.click(within(comparisonRegion).getByRole("button", { name: "Clear comparison" }));
+    await user.click(within(comparisonRegion).getByRole("button", {
+      name: "Turn this comparison into a report",
+    }));
+    const reportQuery = {
+      question: "training-period-comparison",
+      questionVersion: 1,
+      baselineRange: { from: "2026-01-18", through: "2026-01-18" },
+      comparisonRange: { from: "2026-01-20", through: "2026-01-20" },
+    };
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
+      "prepare_report_start",
+      { start: { kind: "exploration", query: reportQuery } },
+    ));
+    expect(await screen.findByRole("heading", {
+      name: "Turn recorded evidence into something you can use",
+    })).toBeVisible();
+    expect(screen.getByLabelText("Baseline starts")).toHaveValue("2026-01-18");
+    await user.click(screen.getByRole("button", { name: "Back to the comparison" }));
+    const restoredComparison = within(training).getByRole("region", {
+      name: "Training period comparison",
+    });
+    expect(within(restoredComparison).getByText("+250 kcal")).toBeVisible();
+    await user.click(within(restoredComparison).getByRole("button", { name: "Clear comparison" }));
     expect(within(training).queryByRole("region", { name: "Training period comparison" }))
       .not.toBeInTheDocument();
 

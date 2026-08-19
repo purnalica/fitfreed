@@ -12,7 +12,8 @@ const MAX_REPORT_BLOCKS: usize = 32;
 pub const MAX_ROUTE_ENDPOINT_REDACTION_METERS: u32 = 5_000;
 pub const REPORT_DEFINITION_VERSION_V1: u32 = 1;
 pub const REPORT_DEFINITION_VERSION_V2: u32 = 2;
-pub const REPORT_DEFINITION_VERSION: u32 = 3;
+pub const REPORT_DEFINITION_VERSION_V3: u32 = 3;
+pub const REPORT_DEFINITION_VERSION: u32 = 4;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReportQuestion {
@@ -197,7 +198,16 @@ impl ReportProvenancePolicy {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ReportOrigin {
-    Session { session_ref: String },
+    Session {
+        session_ref: String,
+    },
+    Question {
+        question: ReportQuestion,
+    },
+    Exploration {
+        query: ReportTrainingComparisonQuery,
+    },
+    Blank,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -433,14 +443,32 @@ impl ReportDefinition {
         session_ref: impl Into<String>,
         blocks: Vec<ReportBlock>,
     ) -> Result<Self, ReportDefinitionError> {
-        Self::restore(
+        Self::compose_report(
             report_ref,
-            normalize_title(title)?,
+            title,
             locale,
             source_snapshot_ref,
             ReportOrigin::Session {
                 session_ref: session_ref.into(),
             },
+            blocks,
+        )
+    }
+
+    pub fn compose_report(
+        report_ref: impl Into<String>,
+        title: &str,
+        locale: ReportLocale,
+        source_snapshot_ref: impl Into<String>,
+        origin: ReportOrigin,
+        blocks: Vec<ReportBlock>,
+    ) -> Result<Self, ReportDefinitionError> {
+        Self::restore(
+            report_ref,
+            normalize_title(title)?,
+            locale,
+            source_snapshot_ref,
+            origin,
             ReportProvenancePolicy::CurrentAttribution,
             ReportAuthorship::User,
             REPORT_DEFINITION_VERSION,
@@ -479,7 +507,8 @@ impl ReportDefinition {
         match definition_version {
             REPORT_DEFINITION_VERSION_V1 => validate_version_one_blocks(&origin, &blocks)?,
             REPORT_DEFINITION_VERSION_V2 => validate_version_two_blocks(&origin, &blocks)?,
-            REPORT_DEFINITION_VERSION => validate_version_three_blocks(&origin, &blocks)?,
+            REPORT_DEFINITION_VERSION_V3 => validate_version_three_blocks(&origin, &blocks)?,
+            REPORT_DEFINITION_VERSION => validate_version_four_blocks(&origin, &blocks)?,
             _ => return Err(ReportDefinitionError::UnsupportedDefinitionVersion),
         }
         Ok(Self {
@@ -589,6 +618,15 @@ pub fn revise_session_report(
     locale: ReportLocale,
     blocks: Vec<ReportBlock>,
 ) -> Result<ReportDefinition, ReportDefinitionError> {
+    revise_report(existing, title, locale, blocks)
+}
+
+pub fn revise_report(
+    existing: &ReportDefinition,
+    title: &str,
+    locale: ReportLocale,
+    blocks: Vec<ReportBlock>,
+) -> Result<ReportDefinition, ReportDefinitionError> {
     let title = normalize_title(title)?;
     if existing.title == title
         && existing.locale == locale
@@ -637,7 +675,10 @@ fn validate_version_one_blocks(
     }
     let ReportOrigin::Session {
         session_ref: origin,
-    } = origin;
+    } = origin
+    else {
+        return Err(ReportDefinitionError::InvalidVersionOneBlockOrder);
+    };
     let ReportBlockContent::SessionEvidence { session_ref, .. } = blocks[0].content() else {
         return Err(ReportDefinitionError::InvalidVersionOneBlockOrder);
     };
@@ -653,17 +694,17 @@ fn validate_version_two_blocks(
     origin: &ReportOrigin,
     blocks: &[ReportBlock],
 ) -> Result<(), ReportDefinitionError> {
-    validate_composable_blocks(origin, blocks, false)
+    validate_legacy_composable_blocks(origin, blocks, false)
 }
 
 fn validate_version_three_blocks(
     origin: &ReportOrigin,
     blocks: &[ReportBlock],
 ) -> Result<(), ReportDefinitionError> {
-    validate_composable_blocks(origin, blocks, true)
+    validate_legacy_composable_blocks(origin, blocks, true)
 }
 
-fn validate_composable_blocks(
+fn validate_legacy_composable_blocks(
     origin: &ReportOrigin,
     blocks: &[ReportBlock],
     allow_training_comparison: bool,
@@ -673,7 +714,10 @@ fn validate_composable_blocks(
     }
     let ReportOrigin::Session {
         session_ref: origin,
-    } = origin;
+    } = origin
+    else {
+        return Err(ReportDefinitionError::InvalidVersionTwoComposition);
+    };
     validate_identifier(origin, SESSION_ID_PREFIX)
         .map_err(|_| ReportDefinitionError::InvalidSessionIdentifier)?;
     let mut block_refs = BTreeSet::new();
@@ -757,6 +801,138 @@ fn validate_composable_blocks(
         return Err(ReportDefinitionError::InvalidVersionTwoComposition);
     }
     Ok(())
+}
+
+fn validate_version_four_blocks(
+    origin: &ReportOrigin,
+    blocks: &[ReportBlock],
+) -> Result<(), ReportDefinitionError> {
+    if !(1..=MAX_REPORT_BLOCKS).contains(&blocks.len()) {
+        return Err(ReportDefinitionError::InvalidVersionFourComposition);
+    }
+    let mut block_refs = BTreeSet::new();
+    let mut route_refs = BTreeSet::new();
+    let mut session_count = 0;
+    let mut narrative_count = 0;
+    let mut analytical_count = 0;
+    let mut training_comparison_kinds = BTreeSet::new();
+    let mut training_comparison_query = None;
+    for block in blocks {
+        if !block_refs.insert(block.block_ref()) {
+            return Err(ReportDefinitionError::DuplicateBlockIdentifier);
+        }
+        match block.content() {
+            ReportBlockContent::SessionEvidence { session_ref, .. } => {
+                session_count += 1;
+                if !origin_allows_session(origin, session_ref)? {
+                    return Err(ReportDefinitionError::InvalidVersionFourComposition);
+                }
+            }
+            ReportBlockContent::Route {
+                session_ref,
+                route_ref,
+                ..
+            } => {
+                if !origin_allows_session(origin, session_ref)? {
+                    return Err(ReportDefinitionError::InvalidVersionFourComposition);
+                }
+                if !route_refs.insert(route_ref) {
+                    return Err(ReportDefinitionError::DuplicateRouteIdentifier);
+                }
+            }
+            ReportBlockContent::Narrative { .. } => narrative_count += 1,
+            ReportBlockContent::TrainingFinding { query, .. } => {
+                analytical_count += 1;
+                validate_training_comparison_block(
+                    true,
+                    "training-finding",
+                    query,
+                    &mut training_comparison_kinds,
+                    &mut training_comparison_query,
+                )?;
+            }
+            ReportBlockContent::TrainingComparison { query } => {
+                analytical_count += 1;
+                validate_training_comparison_block(
+                    true,
+                    "training-comparison",
+                    query,
+                    &mut training_comparison_kinds,
+                    &mut training_comparison_query,
+                )?;
+            }
+            ReportBlockContent::TrainingChart { query, .. } => {
+                analytical_count += 1;
+                validate_training_comparison_block(
+                    true,
+                    "training-chart",
+                    query,
+                    &mut training_comparison_kinds,
+                    &mut training_comparison_query,
+                )?;
+            }
+            ReportBlockContent::TrainingExactTable { query } => {
+                analytical_count += 1;
+                validate_training_comparison_block(
+                    true,
+                    "training-exact-table",
+                    query,
+                    &mut training_comparison_kinds,
+                    &mut training_comparison_query,
+                )?;
+            }
+            ReportBlockContent::TrainingCoverage { query } => {
+                analytical_count += 1;
+                validate_training_comparison_block(
+                    true,
+                    "training-coverage",
+                    query,
+                    &mut training_comparison_kinds,
+                    &mut training_comparison_query,
+                )?;
+            }
+        }
+    }
+    let valid_origin_shape = match origin {
+        ReportOrigin::Session { session_ref } => {
+            validate_identifier(session_ref, SESSION_ID_PREFIX)
+                .map_err(|_| ReportDefinitionError::InvalidSessionIdentifier)?;
+            session_count == 1
+        }
+        ReportOrigin::Question { question } => {
+            session_count == 0
+                && route_refs.is_empty()
+                && analytical_count > 0
+                && training_comparison_query.is_some_and(|query| query.question() == *question)
+        }
+        ReportOrigin::Exploration { query } => {
+            session_count == 0
+                && route_refs.is_empty()
+                && analytical_count > 0
+                && training_comparison_query
+                    .is_some_and(|answer| answer.question() == query.question())
+        }
+        ReportOrigin::Blank => session_count == 0 && route_refs.is_empty(),
+    };
+    if !valid_origin_shape || narrative_count != 1 {
+        return Err(ReportDefinitionError::InvalidVersionFourComposition);
+    }
+    Ok(())
+}
+
+fn origin_allows_session(
+    origin: &ReportOrigin,
+    candidate: &str,
+) -> Result<bool, ReportDefinitionError> {
+    let ReportOrigin::Session { session_ref } = origin else {
+        return Ok(false);
+    };
+    validate_identifier(session_ref, SESSION_ID_PREFIX)
+        .map_err(|_| ReportDefinitionError::InvalidSessionIdentifier)?;
+    if session_ref != candidate {
+        return Err(ReportDefinitionError::SessionOriginMismatch);
+    }
+    Ok(true)
 }
 
 fn validate_training_comparison_block<'a>(
@@ -907,6 +1083,7 @@ pub enum ReportDefinitionError {
     NonCanonicalNarrative,
     InvalidVersionOneBlockOrder,
     InvalidVersionTwoComposition,
+    InvalidVersionFourComposition,
     DuplicateBlockIdentifier,
     DuplicateRouteIdentifier,
     InvalidRouteEndpointRedaction,
@@ -945,6 +1122,9 @@ impl fmt::Display for ReportDefinitionError {
             }
             Self::InvalidVersionTwoComposition => {
                 "version-two report composition requires one session and one narrative block"
+            }
+            Self::InvalidVersionFourComposition => {
+                "version-four report composition exceeds its origin authority"
             }
             Self::DuplicateBlockIdentifier => "report block identifiers are duplicated",
             Self::DuplicateRouteIdentifier => "report route identifiers are duplicated",

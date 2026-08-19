@@ -5,10 +5,11 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
+use chrono::{Days, NaiveDate};
 use fitfreed_domain::{
-    author_session_report, revise_session_report, ReportBlock, ReportBlockContent, ReportDateRange,
-    ReportDefinition, ReportLocale, ReportOrigin, ReportTrainingComparisonQuery,
-    ReportTrainingMetric, MAX_ROUTE_ENDPOINT_REDACTION_METERS,
+    author_session_report, revise_report, revise_session_report, ReportBlock, ReportBlockContent,
+    ReportDateRange, ReportDefinition, ReportLocale, ReportOrigin, ReportQuestion,
+    ReportTrainingComparisonQuery, ReportTrainingMetric, MAX_ROUTE_ENDPOINT_REDACTION_METERS,
 };
 
 use crate::{
@@ -76,7 +77,7 @@ pub struct UpdateSessionReportRequest {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum SessionReportBlockDraftContent {
+pub enum ReportBlockDraftContent {
     SessionEvidence {
         include_physiological_context: bool,
     },
@@ -107,9 +108,48 @@ pub enum SessionReportBlockDraftContent {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SessionReportBlockDraft {
+pub struct ReportBlockDraft {
     pub block_ref: Option<String>,
-    pub content: SessionReportBlockDraftContent,
+    pub content: ReportBlockDraftContent,
+}
+
+pub type SessionReportBlockDraftContent = ReportBlockDraftContent;
+pub type SessionReportBlockDraft = ReportBlockDraft;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ReportStart {
+    Question {
+        question: ReportQuestion,
+    },
+    Exploration {
+        query: ReportTrainingComparisonQuery,
+    },
+    Blank,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PreparedReportStart {
+    pub source_snapshot_ref: String,
+    pub origin: ReportOrigin,
+    pub suggested_query: Option<ReportTrainingComparisonQuery>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CreateReportRequest {
+    pub title: String,
+    pub locale: ReportLocale,
+    pub source_snapshot_ref: String,
+    pub origin: ReportOrigin,
+    pub blocks: Vec<ReportBlockDraft>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UpdateReportRequest {
+    pub report_ref: String,
+    pub expected_revision: u64,
+    pub title: String,
+    pub locale: ReportLocale,
+    pub blocks: Vec<ReportBlockDraft>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -210,19 +250,39 @@ pub struct ResolvedSessionReport {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct AuthorizedSessionReportExport {
+pub enum ReportEvidenceProvenance {
+    Session(TrainingProvenanceCurrentView),
+    LibrarySnapshot,
+    AuthoredOnly,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ResolvedReport {
     pub definition: ReportDefinition,
     pub resolved_snapshot_ref: String,
-    pub session: ReportSessionEvidence,
+    pub status: ReportResolutionStatus,
+    pub session: Option<ReportSessionEvidence>,
     pub routes: Vec<ReportRouteEvidence>,
     pub training_comparison: Option<TrainingComparison>,
-    pub provenance: TrainingProvenanceCurrentView,
+    pub provenance: ReportEvidenceProvenance,
+    pub sensitive_contents: Vec<ReportSensitiveContent>,
+    pub limitations: Vec<ReportLimitation>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct AuthorizedReportExport {
+    pub definition: ReportDefinition,
+    pub resolved_snapshot_ref: String,
+    pub session: Option<ReportSessionEvidence>,
+    pub routes: Vec<ReportRouteEvidence>,
+    pub training_comparison: Option<TrainingComparison>,
+    pub provenance: ReportEvidenceProvenance,
     pub limitations: Vec<ReportLimitation>,
     pub include_physiological_context: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SessionReportExportRequest {
+pub struct ReportExportRequest {
     pub report_ref: String,
     pub expected_revision: u64,
     pub expected_source_snapshot_ref: String,
@@ -230,6 +290,9 @@ pub struct SessionReportExportRequest {
     pub route_choices: Vec<ReportRouteExportChoice>,
     pub destination: PathBuf,
 }
+
+pub type AuthorizedSessionReportExport = AuthorizedReportExport;
+pub type SessionReportExportRequest = ReportExportRequest;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReportRouteExportChoice {
@@ -252,7 +315,7 @@ pub enum ReportExportPortError {
 pub trait ReportExportPort {
     fn export_report(
         &self,
-        report: &AuthorizedSessionReportExport,
+        report: &AuthorizedReportExport,
         destination: &Path,
         cancellation: &ReportExportCancellation,
     ) -> Result<ReportExportReceipt, ReportExportPortError>;
@@ -277,6 +340,96 @@ impl ReportExportCancellation {
     pub fn is_cancelled(&self) -> bool {
         self.cancelled.load(Ordering::SeqCst)
     }
+}
+
+pub fn prepare_report_start(
+    training_port: &dyn TrainingLibraryPort,
+    start: ReportStart,
+) -> Result<PreparedReportStart, ApplicationError> {
+    let source_snapshot_ref = current_training_snapshot(training_port)?;
+    let available_range = training_port
+        .training_bounds()
+        .map_err(ApplicationError::ReportDefinitionQuery)?
+        .ok_or(ApplicationError::ReportEvidenceUnavailable)?;
+    let suggested_query = match &start {
+        ReportStart::Question { question } => {
+            if *question != ReportQuestion::TrainingPeriodComparisonV1 {
+                return Err(ApplicationError::InvalidReportDefinition(
+                    "report question is unsupported".to_owned(),
+                ));
+            }
+            Some(default_training_comparison_query(&available_range)?)
+        }
+        ReportStart::Exploration { query } => {
+            validate_query_within_available_range(query, &available_range)?;
+            Some(query.clone())
+        }
+        ReportStart::Blank => Some(default_training_comparison_query(&available_range)?),
+    };
+    ensure_training_snapshot(training_port, &source_snapshot_ref)?;
+    let origin = match start {
+        ReportStart::Question { question } => ReportOrigin::Question { question },
+        ReportStart::Exploration { query } => ReportOrigin::Exploration { query },
+        ReportStart::Blank => ReportOrigin::Blank,
+    };
+    Ok(PreparedReportStart {
+        source_snapshot_ref,
+        origin,
+        suggested_query,
+    })
+}
+
+pub fn create_report(
+    report_port: &dyn ReportDefinitionPort,
+    training_port: &dyn TrainingSessionDiscoveryPort,
+    route_port: &dyn TrainingSessionRoutePort,
+    comparison_port: &dyn TrainingLibraryPort,
+    request: CreateReportRequest,
+) -> Result<ReportDefinition, ApplicationError> {
+    if request.blocks.iter().any(|block| block.block_ref.is_some()) {
+        return Err(ApplicationError::InvalidReportDefinition(
+            "new report blocks cannot supply existing identities".to_owned(),
+        ));
+    }
+    let session_ref = match &request.origin {
+        ReportOrigin::Session { session_ref } => {
+            resolve_exact_session(
+                training_port,
+                session_ref,
+                Some(request.source_snapshot_ref.clone()),
+            )?;
+            validate_route_drafts(
+                route_port,
+                session_ref,
+                &request.source_snapshot_ref,
+                &request.blocks,
+            )?;
+            Some(session_ref.as_str())
+        }
+        ReportOrigin::Question { .. } | ReportOrigin::Exploration { .. } | ReportOrigin::Blank => {
+            ensure_training_snapshot(comparison_port, &request.source_snapshot_ref)?;
+            None
+        }
+    };
+    let report_ref = report_port
+        .new_report_ref()
+        .map_err(map_definition_query_error)?;
+    let blocks = materialize_blocks(report_port, session_ref, request.blocks, None)?;
+    let definition = ReportDefinition::compose_report(
+        report_ref,
+        &request.title,
+        request.locale,
+        request.source_snapshot_ref,
+        request.origin,
+        blocks,
+    )
+    .map_err(invalid_definition)?;
+    validate_report_origin_query(comparison_port, &definition)?;
+    validate_report_training_comparison(comparison_port, &definition)?;
+    report_port
+        .create_report_definition(&definition)
+        .map_err(map_definition_update_error)?;
+    Ok(definition)
 }
 
 pub fn create_session_report(
@@ -347,7 +500,12 @@ pub fn create_composed_session_report(
     let report_ref = report_port
         .new_report_ref()
         .map_err(map_definition_query_error)?;
-    let blocks = materialize_blocks(report_port, &request.session_ref, request.blocks, None)?;
+    let blocks = materialize_blocks(
+        report_port,
+        Some(&request.session_ref),
+        request.blocks,
+        None,
+    )?;
     let definition = ReportDefinition::compose_session_report(
         report_ref,
         &request.title,
@@ -397,6 +555,74 @@ pub fn update_session_report(
     Ok(authored)
 }
 
+pub fn update_report(
+    report_port: &dyn ReportDefinitionPort,
+    training_port: &dyn TrainingSessionDiscoveryPort,
+    route_port: &dyn TrainingSessionRoutePort,
+    comparison_port: &dyn TrainingLibraryPort,
+    request: UpdateReportRequest,
+) -> Result<ReportDefinition, ApplicationError> {
+    if request.expected_revision == 0 {
+        return Err(ApplicationError::InvalidReportDefinition(
+            "expected report revision is zero".to_owned(),
+        ));
+    }
+    let existing = load_report_definition(report_port, &request.report_ref)?;
+    if existing.revision() != request.expected_revision {
+        return Err(ApplicationError::ReportDefinitionConflict);
+    }
+    let session_ref = match existing.origin() {
+        ReportOrigin::Session { session_ref } => {
+            resolve_exact_session(
+                training_port,
+                session_ref,
+                Some(existing.source_snapshot_ref().to_owned()),
+            )?;
+            validate_route_drafts(
+                route_port,
+                session_ref,
+                existing.source_snapshot_ref(),
+                &request.blocks,
+            )?;
+            Some(session_ref.as_str())
+        }
+        ReportOrigin::Question { .. } | ReportOrigin::Exploration { .. } | ReportOrigin::Blank => {
+            ensure_training_snapshot(comparison_port, existing.source_snapshot_ref())?;
+            None
+        }
+    };
+    let existing_kinds = existing
+        .blocks()
+        .iter()
+        .map(|block| {
+            (
+                block.block_ref().to_owned(),
+                definition_block_kind(block.content()),
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+    let blocks = materialize_blocks(
+        report_port,
+        session_ref,
+        request.blocks,
+        Some(&existing_kinds),
+    )?;
+    let revised = revise_report(&existing, &request.title, request.locale, blocks)
+        .map_err(invalid_definition)?;
+    validate_report_origin_query(comparison_port, &revised)?;
+    validate_report_training_comparison(comparison_port, &revised)?;
+    if revised.revision() == existing.revision() {
+        return Ok(revised);
+    }
+    let saved = report_port
+        .compare_and_save_report_definition(request.expected_revision, &revised)
+        .map_err(map_definition_update_error)?;
+    if !saved {
+        return Err(ApplicationError::ReportDefinitionConflict);
+    }
+    Ok(revised)
+}
+
 pub fn update_composed_session_report(
     report_port: &dyn ReportDefinitionPort,
     training_port: &dyn TrainingSessionDiscoveryPort,
@@ -413,7 +639,7 @@ pub fn update_composed_session_report(
     if existing.revision() != request.expected_revision {
         return Err(ApplicationError::ReportDefinitionConflict);
     }
-    let session_ref = report_origin_session_ref(&existing).to_owned();
+    let session_ref = report_origin_session_ref(&existing)?.to_owned();
     resolve_exact_session(
         training_port,
         &session_ref,
@@ -437,7 +663,7 @@ pub fn update_composed_session_report(
         .collect::<BTreeMap<_, _>>();
     let blocks = materialize_blocks(
         report_port,
-        &session_ref,
+        Some(&session_ref),
         request.blocks,
         Some(&existing_kinds),
     )?;
@@ -513,22 +739,101 @@ pub fn resolve_session_report(
     )
 }
 
+pub fn resolve_report(
+    report_port: &dyn ReportDefinitionPort,
+    training_port: &dyn TrainingSessionDiscoveryPort,
+    route_port: &dyn TrainingSessionRoutePort,
+    provenance_port: &dyn TrainingSessionProvenancePort,
+    comparison_port: &dyn TrainingLibraryPort,
+    report_ref: &str,
+) -> Result<ResolvedReport, ApplicationError> {
+    let definition = load_report_definition(report_port, report_ref)?;
+    resolve_report_definition(
+        training_port,
+        route_port,
+        provenance_port,
+        comparison_port,
+        definition,
+        None,
+    )
+}
+
+fn resolve_report_definition(
+    training_port: &dyn TrainingSessionDiscoveryPort,
+    route_port: &dyn TrainingSessionRoutePort,
+    provenance_port: &dyn TrainingSessionProvenancePort,
+    comparison_port: &dyn TrainingLibraryPort,
+    definition: ReportDefinition,
+    cancellation: Option<&ReportExportCancellation>,
+) -> Result<ResolvedReport, ApplicationError> {
+    ensure_resolution_active(cancellation)?;
+    if matches!(definition.origin(), ReportOrigin::Session { .. }) {
+        let resolved = resolve_definition(
+            training_port,
+            route_port,
+            provenance_port,
+            comparison_port,
+            definition,
+            cancellation,
+        )?;
+        return Ok(ResolvedReport {
+            definition: resolved.definition,
+            resolved_snapshot_ref: resolved.resolved_snapshot_ref,
+            status: resolved.status,
+            session: Some(resolved.session),
+            routes: resolved.routes,
+            training_comparison: resolved.training_comparison,
+            provenance: ReportEvidenceProvenance::Session(resolved.provenance),
+            sensitive_contents: resolved.sensitive_contents,
+            limitations: resolved.limitations,
+        });
+    }
+    let resolved_snapshot_ref = current_training_snapshot(comparison_port)?;
+    let status = if resolved_snapshot_ref == definition.source_snapshot_ref() {
+        ReportResolutionStatus::Current
+    } else {
+        ReportResolutionStatus::Stale
+    };
+    let training_comparison = resolve_report_training_comparison(
+        comparison_port,
+        &definition,
+        &resolved_snapshot_ref,
+        cancellation,
+    )?;
+    let provenance = if training_comparison.is_some() {
+        ReportEvidenceProvenance::LibrarySnapshot
+    } else {
+        ReportEvidenceProvenance::AuthoredOnly
+    };
+    Ok(ResolvedReport {
+        definition,
+        resolved_snapshot_ref,
+        status,
+        session: None,
+        routes: Vec::new(),
+        training_comparison,
+        provenance,
+        sensitive_contents: Vec::new(),
+        limitations: Vec::new(),
+    })
+}
+
 #[allow(clippy::too_many_arguments)]
-pub fn export_session_report(
+pub fn export_report(
     report_port: &dyn ReportDefinitionPort,
     training_port: &dyn TrainingSessionDiscoveryPort,
     route_port: &dyn TrainingSessionRoutePort,
     provenance_port: &dyn TrainingSessionProvenancePort,
     comparison_port: &dyn TrainingLibraryPort,
     export_port: &dyn ReportExportPort,
-    request: SessionReportExportRequest,
+    request: ReportExportRequest,
     cancellation: &ReportExportCancellation,
 ) -> Result<ReportExportReceipt, ApplicationError> {
     if cancellation.is_cancelled() {
         return Err(ApplicationError::ReportExportCancelled);
     }
     let definition = load_report_definition(report_port, &request.report_ref)?;
-    let resolved = resolve_definition(
+    let mut resolved = resolve_report_definition(
         training_port,
         route_port,
         provenance_port,
@@ -544,34 +849,47 @@ pub fn export_session_report(
     {
         return Err(ApplicationError::ReportSourceChanged);
     }
-    let definition_includes_physiology = report_includes_physiology(&resolved.definition)?;
-    if request.include_physiological_context && !definition_includes_physiology {
-        return Err(ApplicationError::InvalidReportDefinition(
-            "export cannot add physiological context excluded by the saved report".to_owned(),
-        ));
-    }
-    let mut session = resolved.session;
-    if !request.include_physiological_context {
-        session.average_heart_rate_bpm = None;
-        session.maximum_heart_rate_bpm = None;
-    }
-    let routes = authorize_export_routes(
-        route_port,
-        &resolved.definition,
-        &resolved.resolved_snapshot_ref,
-        resolved.routes,
-        &request.route_choices,
-        cancellation,
-    )?;
-    let export = AuthorizedSessionReportExport {
+    let include_physiological_context = if let Some(session) = resolved.session.as_mut() {
+        let definition_includes_physiology = report_includes_physiology(&resolved.definition)?;
+        if request.include_physiological_context && !definition_includes_physiology {
+            return Err(ApplicationError::InvalidReportDefinition(
+                "export cannot add physiological context excluded by the saved report".to_owned(),
+            ));
+        }
+        if !request.include_physiological_context {
+            session.average_heart_rate_bpm = None;
+            session.maximum_heart_rate_bpm = None;
+        }
+        request.include_physiological_context
+    } else {
+        if request.include_physiological_context || !request.route_choices.is_empty() {
+            return Err(ApplicationError::InvalidReportDefinition(
+                "report origin does not authorize session export choices".to_owned(),
+            ));
+        }
+        false
+    };
+    let routes = if resolved.session.is_some() {
+        authorize_export_routes(
+            route_port,
+            &resolved.definition,
+            &resolved.resolved_snapshot_ref,
+            resolved.routes,
+            &request.route_choices,
+            cancellation,
+        )?
+    } else {
+        Vec::new()
+    };
+    let export = AuthorizedReportExport {
         definition: resolved.definition,
         resolved_snapshot_ref: resolved.resolved_snapshot_ref,
-        session,
+        session: resolved.session,
         routes,
         training_comparison: resolved.training_comparison,
         provenance: resolved.provenance,
         limitations: resolved.limitations,
-        include_physiological_context: request.include_physiological_context,
+        include_physiological_context,
     };
     export_port
         .export_report(&export, &request.destination, cancellation)
@@ -579,6 +897,29 @@ pub fn export_session_report(
             ReportExportPortError::Cancelled => ApplicationError::ReportExportCancelled,
             ReportExportPortError::Failure(message) => ApplicationError::ReportExport(message),
         })
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn export_session_report(
+    report_port: &dyn ReportDefinitionPort,
+    training_port: &dyn TrainingSessionDiscoveryPort,
+    route_port: &dyn TrainingSessionRoutePort,
+    provenance_port: &dyn TrainingSessionProvenancePort,
+    comparison_port: &dyn TrainingLibraryPort,
+    export_port: &dyn ReportExportPort,
+    request: SessionReportExportRequest,
+    cancellation: &ReportExportCancellation,
+) -> Result<ReportExportReceipt, ApplicationError> {
+    export_report(
+        report_port,
+        training_port,
+        route_port,
+        provenance_port,
+        comparison_port,
+        export_port,
+        request,
+        cancellation,
+    )
 }
 
 fn resolve_definition(
@@ -693,8 +1034,8 @@ fn resolve_exact_session(
 
 fn materialize_blocks(
     report_port: &dyn ReportDefinitionPort,
-    session_ref: &str,
-    drafts: Vec<SessionReportBlockDraft>,
+    session_ref: Option<&str>,
+    drafts: Vec<ReportBlockDraft>,
     existing_kinds: Option<&BTreeMap<String, &'static str>>,
 ) -> Result<Vec<ReportBlock>, ApplicationError> {
     let mut supplied_refs = BTreeSet::new();
@@ -727,35 +1068,46 @@ fn materialize_blocks(
                     .map_err(map_definition_query_error)?,
             };
             match draft.content {
-                SessionReportBlockDraftContent::SessionEvidence {
+                ReportBlockDraftContent::SessionEvidence {
                     include_physiological_context,
                 } => ReportBlock::session_evidence(
                     block_ref,
-                    session_ref,
+                    session_ref.ok_or_else(|| {
+                        ApplicationError::InvalidReportDefinition(
+                            "report origin does not authorize session evidence".to_owned(),
+                        )
+                    })?,
                     include_physiological_context,
                 ),
-                SessionReportBlockDraftContent::Route {
+                ReportBlockDraftContent::Route {
                     route_ref,
                     endpoint_redaction_meters,
-                } => {
-                    ReportBlock::route(block_ref, session_ref, route_ref, endpoint_redaction_meters)
-                }
-                SessionReportBlockDraftContent::Narrative { body } => {
+                } => ReportBlock::route(
+                    block_ref,
+                    session_ref.ok_or_else(|| {
+                        ApplicationError::InvalidReportDefinition(
+                            "report origin does not authorize route evidence".to_owned(),
+                        )
+                    })?,
+                    route_ref,
+                    endpoint_redaction_meters,
+                ),
+                ReportBlockDraftContent::Narrative { body } => {
                     ReportBlock::narrative(block_ref, &body)
                 }
-                SessionReportBlockDraftContent::TrainingFinding { query, metric } => {
+                ReportBlockDraftContent::TrainingFinding { query, metric } => {
                     ReportBlock::training_finding(block_ref, query, metric)
                 }
-                SessionReportBlockDraftContent::TrainingComparison { query } => {
+                ReportBlockDraftContent::TrainingComparison { query } => {
                     ReportBlock::training_comparison(block_ref, query)
                 }
-                SessionReportBlockDraftContent::TrainingChart { query, metric } => {
+                ReportBlockDraftContent::TrainingChart { query, metric } => {
                     ReportBlock::training_chart(block_ref, query, metric)
                 }
-                SessionReportBlockDraftContent::TrainingExactTable { query } => {
+                ReportBlockDraftContent::TrainingExactTable { query } => {
                     ReportBlock::training_exact_table(block_ref, query)
                 }
-                SessionReportBlockDraftContent::TrainingCoverage { query } => {
+                ReportBlockDraftContent::TrainingCoverage { query } => {
                     ReportBlock::training_coverage(block_ref, query)
                 }
             }
@@ -853,7 +1205,7 @@ fn resolve_report_routes(
     if route_blocks.is_empty() {
         return Ok(Vec::new());
     }
-    let session_ref = report_origin_session_ref(definition);
+    let session_ref = report_origin_session_ref(definition)?;
     let overviews = query_report_route_overviews(route_port, session_ref, snapshot_ref)?;
     route_blocks
         .into_iter()
@@ -1095,7 +1447,7 @@ fn authorize_export_routes(
             ));
         }
     }
-    let session_ref = report_origin_session_ref(definition);
+    let session_ref = report_origin_session_ref(definition)?;
     let overviews = if resolved_routes.iter().any(|route| {
         choices_by_block
             .get(route.block_ref.as_str())
@@ -1216,6 +1568,91 @@ fn ensure_training_snapshot(
     Ok(())
 }
 
+fn current_training_snapshot(port: &dyn TrainingLibraryPort) -> Result<String, ApplicationError> {
+    port.training_snapshot_ref()
+        .map_err(ApplicationError::ReportDefinitionQuery)?
+        .ok_or(ApplicationError::ReportEvidenceUnavailable)
+}
+
+fn default_training_comparison_query(
+    available: &TrainingDateRange,
+) -> Result<ReportTrainingComparisonQuery, ApplicationError> {
+    let earliest = parse_report_start_date(&available.from)?;
+    let latest = parse_report_start_date(&available.through)?;
+    if earliest > latest {
+        return Err(ApplicationError::ReportDefinitionQuery(
+            "training bounds are unordered".to_owned(),
+        ));
+    }
+    let inclusive_days = u64::try_from((latest - earliest).num_days() + 1).map_err(|_| {
+        ApplicationError::ReportDefinitionQuery("training bounds are invalid".to_owned())
+    })?;
+    let window_days = (inclusive_days / 2).clamp(1, 30);
+    let comparison_through = latest;
+    let comparison_from = latest
+        .checked_sub_days(Days::new(window_days - 1))
+        .ok_or_else(|| {
+            ApplicationError::ReportDefinitionQuery("training bounds underflowed".to_owned())
+        })?;
+    let (baseline_from, baseline_through) = if inclusive_days == 1 {
+        (earliest, earliest)
+    } else {
+        let through = comparison_from
+            .checked_sub_days(Days::new(1))
+            .ok_or_else(|| {
+                ApplicationError::ReportDefinitionQuery("training bounds underflowed".to_owned())
+            })?;
+        let from = through
+            .checked_sub_days(Days::new(window_days - 1))
+            .ok_or_else(|| {
+                ApplicationError::ReportDefinitionQuery("training bounds underflowed".to_owned())
+            })?;
+        (from, through)
+    };
+    let format = |date: NaiveDate| date.format("%Y-%m-%d").to_string();
+    let baseline = ReportDateRange::new(&format(baseline_from), &format(baseline_through))
+        .map_err(invalid_definition)?;
+    let comparison = ReportDateRange::new(&format(comparison_from), &format(comparison_through))
+        .map_err(invalid_definition)?;
+    Ok(ReportTrainingComparisonQuery::new(baseline, comparison))
+}
+
+fn parse_report_start_date(value: &str) -> Result<NaiveDate, ApplicationError> {
+    NaiveDate::parse_from_str(value, "%Y-%m-%d").map_err(|_| {
+        ApplicationError::ReportDefinitionQuery(
+            "training bounds contain an invalid date".to_owned(),
+        )
+    })
+}
+
+fn validate_query_within_available_range(
+    query: &ReportTrainingComparisonQuery,
+    available: &TrainingDateRange,
+) -> Result<(), ApplicationError> {
+    let within = |range: &ReportDateRange| {
+        range.from() >= available.from.as_str() && range.through() <= available.through.as_str()
+    };
+    if !within(query.baseline_range()) || !within(query.comparison_range()) {
+        return Err(ApplicationError::ReportEvidenceUnavailable);
+    }
+    Ok(())
+}
+
+fn validate_report_origin_query(
+    port: &dyn TrainingLibraryPort,
+    definition: &ReportDefinition,
+) -> Result<(), ApplicationError> {
+    let ReportOrigin::Exploration { query } = definition.origin() else {
+        return Ok(());
+    };
+    let available = port
+        .training_bounds()
+        .map_err(ApplicationError::ReportDefinitionQuery)?
+        .ok_or(ApplicationError::ReportEvidenceUnavailable)?;
+    validate_query_within_available_range(query, &available)?;
+    ensure_training_snapshot(port, definition.source_snapshot_ref())
+}
+
 fn training_range(range: &ReportDateRange) -> TrainingDateRange {
     TrainingDateRange {
         from: range.from().to_owned(),
@@ -1282,9 +1719,14 @@ fn report_includes_physiology(definition: &ReportDefinition) -> Result<bool, App
         })
 }
 
-fn report_origin_session_ref(definition: &ReportDefinition) -> &str {
+fn report_origin_session_ref(definition: &ReportDefinition) -> Result<&str, ApplicationError> {
     match definition.origin() {
-        ReportOrigin::Session { session_ref } => session_ref,
+        ReportOrigin::Session { session_ref } => Ok(session_ref),
+        ReportOrigin::Question { .. } | ReportOrigin::Exploration { .. } | ReportOrigin::Blank => {
+            Err(ApplicationError::InvalidReportDefinition(
+                "report origin does not contain a session".to_owned(),
+            ))
+        }
     }
 }
 

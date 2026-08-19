@@ -629,6 +629,7 @@ describe("TrainingSessionLibraryPanel", () => {
       name: "Build a report from this session",
     }));
     expect(onCreateReport).toHaveBeenCalledWith({
+      kind: "session",
       snapshotRef,
       session: newest,
     });

@@ -53,6 +53,26 @@ fn comparison_query() -> ReportTrainingComparisonQuery {
     )
 }
 
+fn analytical_blocks(query: &ReportTrainingComparisonQuery) -> Vec<ReportBlock> {
+    vec![
+        ReportBlock::training_finding(
+            FINDING_BLOCK_REF,
+            query.clone(),
+            ReportTrainingMetric::SessionCount,
+        )
+        .expect("finding"),
+        ReportBlock::training_comparison(COMPARISON_BLOCK_REF, query.clone()).expect("comparison"),
+        ReportBlock::training_chart(
+            CHART_BLOCK_REF,
+            query.clone(),
+            ReportTrainingMetric::Duration,
+        )
+        .expect("chart"),
+        ReportBlock::training_exact_table(TABLE_BLOCK_REF, query.clone()).expect("exact table"),
+        ReportBlock::training_coverage(COVERAGE_BLOCK_REF, query.clone()).expect("coverage"),
+    ]
+}
+
 #[test]
 fn creates_a_canonical_user_authored_session_report() {
     let report = ReportDefinition::create_session_report(
@@ -183,6 +203,151 @@ fn composes_one_versioned_training_comparison_as_five_independent_views() {
     );
     assert_eq!(query.question().code(), "training-period-comparison");
     assert_eq!(query.question().version(), 1);
+}
+
+#[test]
+fn composes_question_exploration_and_blank_origins_without_session_authority() {
+    let query = comparison_query();
+    let mut question_blocks = analytical_blocks(&query);
+    question_blocks.push(narrative_block("A question-led interpretation."));
+    let question = ReportDefinition::compose_report(
+        REPORT_REF,
+        "How did my training change?",
+        ReportLocale::EnUs,
+        SNAPSHOT_REF,
+        ReportOrigin::Question {
+            question: ReportQuestion::TrainingPeriodComparisonV1,
+        },
+        question_blocks,
+    )
+    .expect("question report");
+
+    assert_eq!(question.definition_version(), REPORT_DEFINITION_VERSION);
+    assert_eq!(
+        question.origin(),
+        &ReportOrigin::Question {
+            question: ReportQuestion::TrainingPeriodComparisonV1,
+        }
+    );
+    assert!(question.blocks().iter().all(|block| !matches!(
+        block.content(),
+        ReportBlockContent::SessionEvidence { .. } | ReportBlockContent::Route { .. }
+    )));
+
+    let mut exploration_blocks = analytical_blocks(&query);
+    exploration_blocks.push(narrative_block("An exploration-led interpretation."));
+    let exploration = ReportDefinition::compose_report(
+        REPORT_REF,
+        "Selected comparison",
+        ReportLocale::EnUs,
+        SNAPSHOT_REF,
+        ReportOrigin::Exploration {
+            query: query.clone(),
+        },
+        exploration_blocks,
+    )
+    .expect("exploration report");
+    assert_eq!(
+        exploration.origin(),
+        &ReportOrigin::Exploration {
+            query: query.clone(),
+        }
+    );
+
+    let blank = ReportDefinition::compose_report(
+        REPORT_REF,
+        "Reusable notes",
+        ReportLocale::EnUs,
+        SNAPSHOT_REF,
+        ReportOrigin::Blank,
+        vec![narrative_block("Start with an authored interpretation.")],
+    )
+    .expect("blank report");
+    assert_eq!(blank.origin(), &ReportOrigin::Blank);
+    assert_eq!(blank.blocks().len(), 1);
+
+    let mut expanded_blocks = analytical_blocks(&query);
+    expanded_blocks.push(narrative_block("Start with an authored interpretation."));
+    let expanded = revise_report(
+        &blank,
+        "Reusable comparison",
+        ReportLocale::EnUs,
+        expanded_blocks,
+    )
+    .expect("expanded blank report");
+    assert_eq!(expanded.origin(), &ReportOrigin::Blank);
+    assert_eq!(expanded.revision(), 2);
+    assert_eq!(expanded.blocks().len(), 6);
+}
+
+#[test]
+fn rejects_evidence_that_exceeds_the_report_origin_authority() {
+    let query = comparison_query();
+    let question_origin = ReportOrigin::Question {
+        question: ReportQuestion::TrainingPeriodComparisonV1,
+    };
+    assert_eq!(
+        ReportDefinition::compose_report(
+            REPORT_REF,
+            "Question with session",
+            ReportLocale::EnUs,
+            SNAPSHOT_REF,
+            question_origin.clone(),
+            vec![
+                session_block(false),
+                ReportBlock::training_comparison(COMPARISON_BLOCK_REF, query.clone())
+                    .expect("comparison"),
+                narrative_block("Evidence"),
+            ],
+        )
+        .expect_err("session authority cannot be invented"),
+        ReportDefinitionError::InvalidVersionFourComposition
+    );
+    assert_eq!(
+        ReportDefinition::compose_report(
+            REPORT_REF,
+            "Question without answer",
+            ReportLocale::EnUs,
+            SNAPSHOT_REF,
+            question_origin,
+            vec![narrative_block("Evidence")],
+        )
+        .expect_err("question needs an answer"),
+        ReportDefinitionError::InvalidVersionFourComposition
+    );
+    assert_eq!(
+        ReportDefinition::compose_report(
+            REPORT_REF,
+            "Blank route",
+            ReportLocale::EnUs,
+            SNAPSHOT_REF,
+            ReportOrigin::Blank,
+            vec![route_block(200), narrative_block("Evidence")],
+        )
+        .expect_err("blank origin cannot authorize a route"),
+        ReportDefinitionError::InvalidVersionFourComposition
+    );
+
+    let other_query = ReportTrainingComparisonQuery::new(
+        ReportDateRange::new("2025-01-01", "2025-01-30").expect("baseline"),
+        ReportDateRange::new("2025-02-01", "2025-03-02").expect("comparison"),
+    );
+    let exploration = ReportDefinition::compose_report(
+        REPORT_REF,
+        "Exploration with a revised answer",
+        ReportLocale::EnUs,
+        SNAPSHOT_REF,
+        ReportOrigin::Exploration {
+            query: query.clone(),
+        },
+        vec![
+            ReportBlock::training_comparison(COMPARISON_BLOCK_REF, other_query)
+                .expect("comparison"),
+            narrative_block("Evidence"),
+        ],
+    )
+    .expect("the original exploration remains distinct from the authored answer");
+    assert_eq!(exploration.origin(), &ReportOrigin::Exploration { query });
 }
 
 #[test]
@@ -420,7 +585,7 @@ fn rejects_invalid_route_authority_and_incomplete_compositions() {
             vec![session_block(false), route_block(200)],
         )
         .expect_err("missing narrative"),
-        ReportDefinitionError::InvalidVersionTwoComposition
+        ReportDefinitionError::InvalidVersionFourComposition
     );
 }
 
@@ -604,7 +769,7 @@ fn rejects_unsupported_versions_zero_revisions_and_oversized_text() {
     );
 
     for (definition_version, revision, expected) in [
-        (4, 1, ReportDefinitionError::UnsupportedDefinitionVersion),
+        (5, 1, ReportDefinitionError::UnsupportedDefinitionVersion),
         (
             REPORT_DEFINITION_VERSION_V1,
             0,

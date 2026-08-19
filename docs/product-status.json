@@ -26,7 +26,8 @@
         "On-demand privacy-bounded session provenance and reconciliation history",
         "Selectable same-role signal alignment with exact sample paths",
         "Composable session and route reports with privacy-reviewed self-contained HTML export",
-        "Versioned training-period findings, comparisons, charts, exact tables, and coverage views"
+        "Versioned training-period findings, comparisons, charts, exact tables, and coverage views",
+        "Question-led, exploration-led, session-led, and blank report starts with durable authored results"
       ],
       "source": {
         "label": "MVP capability boundary",
@@ -39,7 +40,7 @@
       "title": "The experience being shaped",
       "items": [
         "Origin-aware navigation across discovery, session, and report workspaces",
-        "Question, exploration, and blank report starts with deliberate refresh",
+        "Deliberate report refresh with an explicit before-and-after review",
         "A coherent, evaluated, documented macOS product journey"
       ],
       "source": {

@@ -1,10 +1,23 @@
-# Create and Export a Session Report
+# Create, Revisit, and Export a Report
 
 ## Availability
 
 This guide describes the implemented report vertical in development builds. It does not announce a supported public release. Follow the [development preview boundary](development-preview.md) and use synthetic data until an exact public version activates real-export guidance.
 
-## Create a report from a session
+## Choose how to start
+
+Open **Reports** to see saved reports and two direct starts:
+
+- **Compare recent training periods** prepares two bounded adjacent periods from the current local library,
+  selects the five analytical views, and asks for your interpretation.
+- **Start a blank report** begins with only a title and your interpretation. You can add comparison evidence
+  before saving or after reopening it.
+
+A completed **Training period comparison** also offers **Turn this comparison into a report**. The report
+retains the exact periods that produced the visible result. **Back to the comparison** restores that mounted
+exploration and its result.
+
+The fourth start is a specific training session:
 
 1. Open **Explore**, choose **Explore my training sessions**, and find a session through chronology, calendar, or the available filters.
 2. Open **Session summary** and select **Build a report from this session**. FitFreed carries the exact session and training-library snapshot into Reports; it does not copy a value from the visible page.
@@ -16,31 +29,36 @@ This guide describes the implemented report vertical in development builds. It d
 8. Move any block up or down to define the report order. The session summary and narrative are required; route and analytical blocks can be added and removed.
 9. Select **Save report**. FitFreed validates the session, routes, and analytical periods against the exact current training snapshot before storing the definition under **Saved reports**. It survives restart and reimport independently from the provider ZIP.
 
-New reports use definition version 3: exactly one session-evidence block, exactly one plain-text narrative,
-zero or more distinct routes, and at most one of each analytical view in any order. Version-1 and version-2
-reports remain readable and become version 3 only when edited. The current composer does not yet support a
-question, exploration, or blank starting point, deliberate source refresh, lap or exact-sample blocks, PDF,
-or spreadsheet output.
+New reports use definition version 4. Every report has exactly one plain-text narrative and may contain at
+most one of each analytical view. Session-origin reports additionally require one session-evidence block and
+may contain distinct routes. Question and exploration origins require analytical evidence. Blank reports may
+remain narrative-only or gain analytical evidence later without changing how they began. Versions 1–3 remain
+readable and become version 4 only when edited. Deliberate source refresh, lap or exact-sample blocks, native
+PDF, spreadsheet output, and free-form layout are not yet available.
 
 ## Reopen and edit
 
-Open **Reports** from the application navigation and select a saved report. FitFreed resolves its session through the current authoritative library and shows the saved revision, recorded summary, your narrative, coverage limitations, and provenance.
+Open **Reports** from the application navigation and select a saved report. FitFreed resolves only the
+evidence selected by its definition through the current authoritative library and shows the saved revision,
+your narrative, applicable recorded or calculated evidence, coverage limitations, and provenance.
 
-Edit the title, narrative, heart-rate choice, route selection, endpoint protection, analytical views, periods,
-measurements, or block order and select **Save changes**. FitFreed reruns the shared comparison before saving.
-Concurrent edits are rejected instead of overwriting a newer revision. Import and reimport never rewrite
-authored report rows.
+Edit the title, narrative, applicable heart-rate choice, route selection, endpoint protection, analytical
+views, periods, measurements, or block order and select **Save changes**. FitFreed reruns the shared
+comparison before saving. Concurrent edits are rejected instead of overwriting a newer revision. Import and
+reimport never rewrite authored report rows.
 
 If the training snapshot changed after the report was saved, the report is marked **Source changed**. Its authorship remains available, but export is blocked. The current version has no deliberate refresh action; do not recreate or silently retarget the report as a workaround.
 
 ## Review and export
 
 1. Open a current saved report and select **Review and export**.
-2. Read the complete content boundary. It includes the recorded session summary, selected comparison totals,
-findings, chart shapes, exact tables, coverage notices, your title and narrative, source attribution,
-definition metadata, and only the selected route shapes. Exact training samples remain excluded.
-3. If the saved definition permits heart-rate context, decide whether this individual export should retain it. Review may remove sensitive content but cannot add content excluded by the saved definition.
-4. Review every route independently. You may omit its geometry or increase endpoint protection for this export; you cannot reduce the protection saved in the definition.
+2. Read the complete content boundary. It includes only the applicable recorded session summary, selected
+comparison totals, findings, chart shapes, exact tables, coverage notices, your title and narrative, source
+attribution, definition metadata, and reviewed route shapes. Exact training samples remain excluded.
+3. For a session report whose definition permits heart-rate context, decide whether this individual export
+should retain it. Review may remove sensitive content but cannot add content excluded by the definition.
+4. Review every available route independently. You may omit its geometry or increase endpoint protection for
+this export; you cannot reduce the protection saved in the definition.
 5. Select **Choose destination and export**, then choose a local HTML file through the operating-system dialog.
 
 The result is one deterministic, self-contained HTML file with embedded styling and no script, external
@@ -60,5 +78,7 @@ Cancellation or a failure before completion leaves no partial file that looks co
 - Route inclusion is explicit, uses endpoint redaction, and receives a second independent review before each export. Omitting geometry does not remove the saved route block.
 - Period-comparison totals may reveal habits and changes even without exact samples. Review their ranges,
   values, and coverage before sharing.
-- The report identifies Polar Flow only as the recorded source attribution where applicable; its data model and report identity remain provider-neutral.
+- A session report identifies Polar Flow only as recorded source attribution where applicable. Analytical
+  non-session reports identify the local-library revision, while narrative-only reports explicitly claim no
+  imported evidence. The data model and report identity remain provider-neutral.
 - Never attach a real report or screenshot containing personal values to a public issue.

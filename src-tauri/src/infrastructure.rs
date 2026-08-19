@@ -89,7 +89,7 @@ use fitfreed_domain::{
     ArtifactClassification, ArtifactCoverageSummary, ArtifactFamilyCoverage, DailyActivity,
     ExistingObservation, ImportOperationState, ImportOutcome, ImportReport, NightlyRecovery,
     ReconciliationDecision, ReportAuthorship, ReportBlock, ReportBlockContent, ReportDateRange,
-    ReportDefinition, ReportLocale, ReportOrigin, ReportProvenancePolicy,
+    ReportDefinition, ReportLocale, ReportOrigin, ReportProvenancePolicy, ReportQuestion,
     ReportTrainingComparisonQuery, ReportTrainingMetric, RevisionOrder, SegmentCriterion,
     SegmentCriterionAuthorship, SegmentCriterionDefinition, SleepPeriod, SleepPhaseSummary,
     SleepScore, SleepStage, SleepStageTransition, SourceSpecificRecoveryAssessment,
@@ -160,7 +160,7 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 22;
+const SCHEMA_VERSION: i64 = 23;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
@@ -183,6 +183,7 @@ const SCHEMA_V19: &str = include_str!("../migrations/0019_training_session_zones
 const SCHEMA_V20: &str = include_str!("../migrations/0020_report_definitions.sql");
 const SCHEMA_V21: &str = include_str!("../migrations/0021_composable_route_reports.sql");
 const SCHEMA_V22: &str = include_str!("../migrations/0022_training_comparison_reports.sql");
+const SCHEMA_V23: &str = include_str!("../migrations/0023_report_start_origins.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
 const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@10";
 const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@5";
@@ -6072,6 +6073,9 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         if version < 22 {
             connection.execute_batch(SCHEMA_V22)?;
         }
+        if version < 23 {
+            connection.execute_batch(SCHEMA_V23)?;
+        }
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
         }
@@ -11418,26 +11422,40 @@ impl ReportDefinitionPort for SqliteReportLibrary {
         })?;
         let mut connection = open_report_connection(&self.database_path)?;
         let transaction = connection.transaction().map_err(report_database_error)?;
+        let origin = report_origin_columns(definition);
         let changed = transaction
             .execute(
                 "UPDATE report_definition
                  SET title = ?2,
                      locale = ?3,
                      source_snapshot_ref = ?4,
-                     origin_kind = 'session',
-                     origin_session_ref = ?5,
-                     provenance_policy = ?6,
+                     origin_kind = ?5,
+                     origin_session_ref = ?6,
+                     origin_question_kind = ?7,
+                     origin_question_version = ?8,
+                     origin_baseline_from = ?9,
+                     origin_baseline_through = ?10,
+                     origin_comparison_from = ?11,
+                     origin_comparison_through = ?12,
+                     provenance_policy = ?13,
                      authorship = 'user',
-                     definition_version = ?7,
-                     revision = ?8,
+                     definition_version = ?14,
+                     revision = ?15,
                      updated_at_utc = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
-                 WHERE report_ref = ?1 AND revision = ?9",
+                 WHERE report_ref = ?1 AND revision = ?16",
                 params![
                     definition.report_ref(),
                     definition.title(),
                     definition.locale().code(),
                     definition.source_snapshot_ref(),
-                    report_origin_session_ref(definition),
+                    origin.kind,
+                    origin.session_ref,
+                    origin.question_kind,
+                    origin.question_version,
+                    origin.baseline_from,
+                    origin.baseline_through,
+                    origin.comparison_from,
+                    origin.comparison_through,
                     definition.provenance_policy().code(),
                     i64::from(definition.definition_version()),
                     revision,
@@ -11489,14 +11507,18 @@ fn insert_report_definition(
     let revision = i64::try_from(definition.revision()).map_err(|_| {
         ReportDefinitionPortError::Failure("report revision exceeds SQLite".to_owned())
     })?;
+    let origin = report_origin_columns(definition);
     transaction
         .execute(
             "INSERT INTO report_definition (
                  report_ref, title, locale, source_snapshot_ref, origin_kind,
-                 origin_session_ref, provenance_policy, authorship, definition_version,
+                 origin_session_ref, origin_question_kind, origin_question_version,
+                 origin_baseline_from, origin_baseline_through, origin_comparison_from,
+                 origin_comparison_through, provenance_policy, authorship, definition_version,
                  revision, created_at_utc, updated_at_utc
              ) VALUES (
-                 ?1, ?2, ?3, ?4, 'session', ?5, ?6, 'user', ?7, ?8,
+                 ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12,
+                 ?13, 'user', ?14, ?15,
                  strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
                  strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
              )",
@@ -11505,7 +11527,14 @@ fn insert_report_definition(
                 definition.title(),
                 definition.locale().code(),
                 definition.source_snapshot_ref(),
-                report_origin_session_ref(definition),
+                origin.kind,
+                origin.session_ref,
+                origin.question_kind,
+                origin.question_version,
+                origin.baseline_from,
+                origin.baseline_through,
+                origin.comparison_from,
+                origin.comparison_through,
                 definition.provenance_policy().code(),
                 i64::from(definition.definition_version()),
                 revision,
@@ -11695,6 +11724,8 @@ fn load_report_definition_record(
     let header = connection
         .query_row(
             "SELECT title, locale, source_snapshot_ref, origin_kind, origin_session_ref,
+                    origin_question_kind, origin_question_version, origin_baseline_from,
+                    origin_baseline_through, origin_comparison_from, origin_comparison_through,
                     provenance_policy, authorship, definition_version, revision
              FROM report_definition
              WHERE report_ref = ?1",
@@ -11705,11 +11736,17 @@ fn load_report_definition_record(
                     row.get::<_, String>(1)?,
                     row.get::<_, String>(2)?,
                     row.get::<_, String>(3)?,
-                    row.get::<_, String>(4)?,
-                    row.get::<_, String>(5)?,
-                    row.get::<_, String>(6)?,
-                    row.get::<_, i64>(7)?,
-                    row.get::<_, i64>(8)?,
+                    row.get::<_, Option<String>>(4)?,
+                    row.get::<_, Option<String>>(5)?,
+                    row.get::<_, Option<i64>>(6)?,
+                    row.get::<_, Option<String>>(7)?,
+                    row.get::<_, Option<String>>(8)?,
+                    row.get::<_, Option<String>>(9)?,
+                    row.get::<_, Option<String>>(10)?,
+                    row.get::<_, String>(11)?,
+                    row.get::<_, String>(12)?,
+                    row.get::<_, i64>(13)?,
+                    row.get::<_, i64>(14)?,
                 ))
             },
         )
@@ -11721,6 +11758,12 @@ fn load_report_definition_record(
         source_snapshot_ref,
         origin_kind,
         origin_session_ref,
+        origin_question_kind,
+        origin_question_version,
+        origin_baseline_from,
+        origin_baseline_through,
+        origin_comparison_from,
+        origin_comparison_through,
         provenance_policy,
         authorship,
         definition_version,
@@ -11729,9 +11772,19 @@ fn load_report_definition_record(
     else {
         return Ok(None);
     };
-    if origin_kind != "session" || authorship != "user" {
+    if authorship != "user" {
         return Err(invalid_report_record("report header codes are invalid"));
     }
+    let origin = restore_report_origin(
+        &origin_kind,
+        origin_session_ref,
+        origin_question_kind,
+        origin_question_version,
+        origin_baseline_from,
+        origin_baseline_through,
+        origin_comparison_from,
+        origin_comparison_through,
+    )?;
     let locale = ReportLocale::from_code(&locale)
         .ok_or_else(|| invalid_report_record("report locale is invalid"))?;
     let provenance_policy = ReportProvenancePolicy::from_code(&provenance_policy)
@@ -11840,9 +11893,7 @@ fn load_report_definition_record(
         title,
         locale,
         source_snapshot_ref,
-        ReportOrigin::Session {
-            session_ref: origin_session_ref,
-        },
+        origin,
         provenance_policy,
         ReportAuthorship::User,
         definition_version,
@@ -11893,9 +11944,130 @@ fn restore_training_report_metric(
         .ok_or_else(|| invalid_report_record("training report metric is invalid"))
 }
 
-fn report_origin_session_ref(definition: &ReportDefinition) -> &str {
+struct ReportOriginColumns<'a> {
+    kind: &'static str,
+    session_ref: Option<&'a str>,
+    question_kind: Option<&'static str>,
+    question_version: Option<i64>,
+    baseline_from: Option<&'a str>,
+    baseline_through: Option<&'a str>,
+    comparison_from: Option<&'a str>,
+    comparison_through: Option<&'a str>,
+}
+
+fn report_origin_columns(definition: &ReportDefinition) -> ReportOriginColumns<'_> {
     match definition.origin() {
-        ReportOrigin::Session { session_ref } => session_ref,
+        ReportOrigin::Session { session_ref } => ReportOriginColumns {
+            kind: "session",
+            session_ref: Some(session_ref),
+            question_kind: None,
+            question_version: None,
+            baseline_from: None,
+            baseline_through: None,
+            comparison_from: None,
+            comparison_through: None,
+        },
+        ReportOrigin::Question { question } => ReportOriginColumns {
+            kind: "question",
+            session_ref: None,
+            question_kind: Some(question.code()),
+            question_version: Some(i64::from(question.version())),
+            baseline_from: None,
+            baseline_through: None,
+            comparison_from: None,
+            comparison_through: None,
+        },
+        ReportOrigin::Exploration { query } => ReportOriginColumns {
+            kind: "exploration",
+            session_ref: None,
+            question_kind: Some(query.question().code()),
+            question_version: Some(i64::from(query.question().version())),
+            baseline_from: Some(query.baseline_range().from()),
+            baseline_through: Some(query.baseline_range().through()),
+            comparison_from: Some(query.comparison_range().from()),
+            comparison_through: Some(query.comparison_range().through()),
+        },
+        ReportOrigin::Blank => ReportOriginColumns {
+            kind: "blank",
+            session_ref: None,
+            question_kind: None,
+            question_version: None,
+            baseline_from: None,
+            baseline_through: None,
+            comparison_from: None,
+            comparison_through: None,
+        },
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn restore_report_origin(
+    kind: &str,
+    session_ref: Option<String>,
+    question_kind: Option<String>,
+    question_version: Option<i64>,
+    baseline_from: Option<String>,
+    baseline_through: Option<String>,
+    comparison_from: Option<String>,
+    comparison_through: Option<String>,
+) -> StandardResult<ReportOrigin, ReportDefinitionPortError> {
+    let no_question = || {
+        question_kind.is_none()
+            && question_version.is_none()
+            && baseline_from.is_none()
+            && baseline_through.is_none()
+            && comparison_from.is_none()
+            && comparison_through.is_none()
+    };
+    match kind {
+        "session" if session_ref.is_some() && no_question() => Ok(ReportOrigin::Session {
+            session_ref: session_ref.expect("checked session origin"),
+        }),
+        "question"
+            if session_ref.is_none()
+                && baseline_from.is_none()
+                && baseline_through.is_none()
+                && comparison_from.is_none()
+                && comparison_through.is_none() =>
+        {
+            let version = question_version
+                .and_then(|value| u32::try_from(value).ok())
+                .ok_or_else(|| invalid_report_record("report origin question is invalid"))?;
+            let question = question_kind
+                .as_deref()
+                .and_then(|code| ReportQuestion::from_code_and_version(code, version))
+                .ok_or_else(|| invalid_report_record("report origin question is invalid"))?;
+            Ok(ReportOrigin::Question { question })
+        }
+        "exploration" if session_ref.is_none() => {
+            let version = question_version
+                .and_then(|value| u32::try_from(value).ok())
+                .ok_or_else(|| invalid_report_record("report exploration question is invalid"))?;
+            let question_kind = question_kind
+                .as_deref()
+                .ok_or_else(|| invalid_report_record("report exploration question is invalid"))?;
+            let range = |from: Option<String>, through: Option<String>| {
+                ReportDateRange::new(
+                    from.as_deref().ok_or_else(|| {
+                        invalid_report_record("report exploration range has no start")
+                    })?,
+                    through.as_deref().ok_or_else(|| {
+                        invalid_report_record("report exploration range has no end")
+                    })?,
+                )
+                .map_err(|error| invalid_report_record(&error.to_string()))
+            };
+            let query = ReportTrainingComparisonQuery::restore(
+                question_kind,
+                version,
+                range(baseline_from, baseline_through)?,
+                range(comparison_from, comparison_through)?,
+            )
+            .map_err(|error| invalid_report_record(&error.to_string()))?;
+            Ok(ReportOrigin::Exploration { query })
+        }
+        "blank" if session_ref.is_none() && no_question() => Ok(ReportOrigin::Blank),
+        _ => Err(invalid_report_record("report origin is invalid")),
     }
 }
 
@@ -12544,7 +12716,9 @@ impl ApplicationPreferencesPort for SqliteApplicationPreferences {
 
 #[cfg(test)]
 mod tests {
-    use fitfreed_domain::{author_session_report, revise_session_report};
+    use fitfreed_domain::{
+        author_session_report, revise_report, revise_session_report, ReportQuestion,
+    };
     use std::io::Write;
     use tempfile::TempDir;
     use zip::{write::SimpleFileOptions, ZipWriter};
@@ -12694,6 +12868,74 @@ mod tests {
         .expect("training comparison report definition")
     }
 
+    fn persisted_question_report_definition() -> ReportDefinition {
+        let query = ReportTrainingComparisonQuery::new(
+            ReportDateRange::new("2026-01-01", "2026-01-31").expect("baseline range"),
+            ReportDateRange::new("2026-02-01", "2026-02-28").expect("comparison range"),
+        );
+        ReportDefinition::compose_report(
+            format!("report-{}", "2".repeat(64)),
+            "What changed in my training?",
+            ReportLocale::EnUs,
+            format!("training-snapshot-{}", "2".repeat(64)),
+            ReportOrigin::Question {
+                question: ReportQuestion::TrainingPeriodComparisonV1,
+            },
+            vec![
+                ReportBlock::training_comparison(format!("report-block-{}", "3".repeat(64)), query)
+                    .expect("comparison block"),
+                ReportBlock::narrative(
+                    format!("report-block-{}", "4".repeat(64)),
+                    "The comparison remains descriptive.",
+                )
+                .expect("narrative block"),
+            ],
+        )
+        .expect("question report definition")
+    }
+
+    fn persisted_blank_report_definition() -> ReportDefinition {
+        ReportDefinition::compose_report(
+            format!("report-{}", "5".repeat(64)),
+            "Reusable notes",
+            ReportLocale::EsEs,
+            format!("training-snapshot-{}", "5".repeat(64)),
+            ReportOrigin::Blank,
+            vec![ReportBlock::narrative(
+                format!("report-block-{}", "6".repeat(64)),
+                "Una interpretación propia.",
+            )
+            .expect("narrative block")],
+        )
+        .expect("blank report definition")
+    }
+
+    fn persisted_exploration_report_definition() -> ReportDefinition {
+        let query = ReportTrainingComparisonQuery::new(
+            ReportDateRange::new("2026-03-01", "2026-03-31").expect("baseline range"),
+            ReportDateRange::new("2026-04-01", "2026-04-30").expect("comparison range"),
+        );
+        ReportDefinition::compose_report(
+            format!("report-{}", "7".repeat(64)),
+            "Spring comparison",
+            ReportLocale::EnUs,
+            format!("training-snapshot-{}", "7".repeat(64)),
+            ReportOrigin::Exploration {
+                query: query.clone(),
+            },
+            vec![
+                ReportBlock::training_comparison(format!("report-block-{}", "8".repeat(64)), query)
+                    .expect("comparison block"),
+                ReportBlock::narrative(
+                    format!("report-block-{}", "9".repeat(64)),
+                    "Saved from the original exploration.",
+                )
+                .expect("narrative block"),
+            ],
+        )
+        .expect("exploration report definition")
+    }
+
     #[test]
     fn persists_lists_edits_and_retains_report_definitions_across_restart_and_import() {
         let harness = Harness::new();
@@ -12772,7 +13014,9 @@ mod tests {
                 report.blocks()[2].clone(),
                 ReportBlock::route(
                     report.blocks()[1].block_ref(),
-                    report_origin_session_ref(&report),
+                    report_origin_columns(&report)
+                        .session_ref
+                        .expect("session report origin"),
                     format!("route-{}", "6".repeat(64)),
                     500,
                 )
@@ -12854,6 +13098,60 @@ mod tests {
     }
 
     #[test]
+    fn persists_reopens_and_revises_question_exploration_and_blank_report_origins() {
+        let harness = Harness::new();
+        let library = SqliteReportLibrary::new(harness.database());
+        let question = persisted_question_report_definition();
+        let exploration = persisted_exploration_report_definition();
+        let blank = persisted_blank_report_definition();
+
+        library
+            .create_report_definition(&question)
+            .expect("persist question report");
+        library
+            .create_report_definition(&exploration)
+            .expect("persist exploration report");
+        library
+            .create_report_definition(&blank)
+            .expect("persist blank report");
+        assert_eq!(
+            library
+                .load_report_definition(exploration.report_ref())
+                .expect("reopen exploration report"),
+            Some(exploration)
+        );
+        assert_eq!(
+            library
+                .load_report_definition(question.report_ref())
+                .expect("reopen question report"),
+            Some(question)
+        );
+        assert_eq!(
+            library
+                .load_report_definition(blank.report_ref())
+                .expect("reopen blank report"),
+            Some(blank.clone())
+        );
+
+        let revised = revise_report(
+            &blank,
+            "Notas reutilizables",
+            ReportLocale::EsEs,
+            blank.blocks().to_vec(),
+        )
+        .expect("revise blank report");
+        assert!(library
+            .compare_and_save_report_definition(1, &revised)
+            .expect("save revised blank report"));
+        assert_eq!(
+            SqliteReportLibrary::new(harness.database())
+                .load_report_definition(blank.report_ref())
+                .expect("reopen revised blank report"),
+            Some(revised)
+        );
+    }
+
+    #[test]
     fn lists_multiple_reports_by_effective_save_and_rejects_incompatible_rows_non_destructively() {
         let harness = Harness::new();
         let library = SqliteReportLibrary::new(harness.database());
@@ -12889,7 +13187,7 @@ mod tests {
             .expect("enable incompatible-row fixture");
         connection
             .execute(
-                "UPDATE report_definition SET definition_version = 4 WHERE report_ref = ?1",
+                "UPDATE report_definition SET definition_version = 5 WHERE report_ref = ?1",
                 [newer.report_ref()],
             )
             .expect("persist incompatible definition fixture");
@@ -17621,6 +17919,7 @@ mod tests {
             SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8,
             SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15,
             SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22,
+            SCHEMA_V23,
         ];
         for migration in migrations
             .iter()
@@ -17761,7 +18060,7 @@ mod tests {
             connection
                 .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
                 .expect("upgraded version"),
-            22
+            SCHEMA_VERSION
         );
         assert_eq!(
             connection

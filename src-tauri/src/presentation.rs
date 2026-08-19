@@ -6,7 +6,7 @@ use fitfreed_application::{
     ActivityComparison, ActivityDateRange, ActivityDayAvailability, ActivityDayInsight,
     ActivityOverview, ActivitySeriesComparison, ActivitySeriesOverview, ActivitySeriesSummary,
     AppearancePreference, ApplicationError, ApplicationPreferences, ApplicationPreferencesLoad,
-    AppliedTrainingSegmentCriterion, CreateComposedSessionReportRequest,
+    AppliedTrainingSegmentCriterion, CreateComposedSessionReportRequest, CreateReportRequest,
     CreateSessionReportRequest, CreateTrainingSegmentCriterionRequest, ExpectedSourceArchive,
     ExplorationWorkspace, ExploreDestination, ImportPhase, ImportProgress,
     InvalidApplicationPreferences, LibraryDomain, LibraryDomainCoverage, LibraryHome,
@@ -18,30 +18,31 @@ use fitfreed_application::{
     LongitudinalTrainingComparison, LongitudinalTrainingDay, ManualUpdateReason,
     MoveTrainingSegmentCriterionRequest, OfficialSourceLink, OfficialSourceLinkPurpose,
     PersistedTrainingRoutePoints, PersistedTrainingSignalSamples, PostImportReveal,
-    PreferencesLoadStatus, RecoveryComparison, RecoveryDateRange, RecoveryDayAvailability,
-    RecoveryDayInsight, RecoveryNightDetail, RecoveryNightInsight, RecoveryOverview,
-    RecoverySeriesComparison, RecoverySeriesOverview, RecoverySeriesSummary, ReportExportReceipt,
-    ReportLimitation, ReportResolutionStatus, ReportRouteEvidence, ReportRouteExportChoice,
-    ReportSensitiveContent, ReportSensitiveContentKind, ReportSessionEvidence, ReportSummary,
+    PreferencesLoadStatus, PreparedReportStart, RecoveryComparison, RecoveryDateRange,
+    RecoveryDayAvailability, RecoveryDayInsight, RecoveryNightDetail, RecoveryNightInsight,
+    RecoveryOverview, RecoverySeriesComparison, RecoverySeriesOverview, RecoverySeriesSummary,
+    ReportEvidenceProvenance, ReportExportReceipt, ReportExportRequest, ReportLimitation,
+    ReportResolutionStatus, ReportRouteEvidence, ReportRouteExportChoice, ReportSensitiveContent,
+    ReportSensitiveContentKind, ReportSessionEvidence, ReportStart, ReportSummary, ResolvedReport,
     ResolvedSessionReport, SaveSportClassificationRequest, SavedTrainingSportClassification,
     SegmentApplicabilityView, SegmentMeasurementView, SessionReportBlockDraft,
-    SessionReportBlockDraftContent, SessionReportExportRequest, SleepComparison, SleepDateRange,
-    SleepDayAvailability, SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight,
-    SleepPhaseTotals, SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary,
-    SourceAcquisitionGuide, SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange,
-    TrainingDerivedSegment, TrainingDiscoveryView, TrainingDiscoveryWorkspace,
-    TrainingExerciseRoutesView, TrainingExerciseSegmentation, TrainingExerciseSignalsView,
-    TrainingExerciseStructure, TrainingExerciseZonesView, TrainingLapStructure,
-    TrainingMeasurementFilter, TrainingOverview, TrainingPauseStructure,
-    TrainingProvenanceCurrentView, TrainingProvenanceDecisionView, TrainingProvenanceEventView,
-    TrainingRouteCollectionView, TrainingRouteKindView, TrainingRouteOverview,
-    TrainingRoutePointView, TrainingRoutePointsQuery, TrainingSegmentCriterionDirection,
-    TrainingSegmentCriterionMutationRequest, TrainingSeriesComparison, TrainingSeriesOverview,
-    TrainingSeriesSummary, TrainingSessionCalendar, TrainingSessionCalendarDay,
-    TrainingSessionCalendarRequest, TrainingSessionInsight, TrainingSessionProvenanceQuery,
-    TrainingSessionProvenanceResult, TrainingSessionRouteQuery, TrainingSessionRoutesResult,
-    TrainingSessionRoutesView, TrainingSessionSearchItem, TrainingSessionSearchPage,
-    TrainingSessionSearchRequest, TrainingSessionSearchSummary, TrainingSessionSegmentationQuery,
+    SessionReportBlockDraftContent, SleepComparison, SleepDateRange, SleepDayAvailability,
+    SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight, SleepPhaseTotals,
+    SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary, SourceAcquisitionGuide,
+    SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange, TrainingDerivedSegment,
+    TrainingDiscoveryView, TrainingDiscoveryWorkspace, TrainingExerciseRoutesView,
+    TrainingExerciseSegmentation, TrainingExerciseSignalsView, TrainingExerciseStructure,
+    TrainingExerciseZonesView, TrainingLapStructure, TrainingMeasurementFilter, TrainingOverview,
+    TrainingPauseStructure, TrainingProvenanceCurrentView, TrainingProvenanceDecisionView,
+    TrainingProvenanceEventView, TrainingRouteCollectionView, TrainingRouteKindView,
+    TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
+    TrainingSegmentCriterionDirection, TrainingSegmentCriterionMutationRequest,
+    TrainingSeriesComparison, TrainingSeriesOverview, TrainingSeriesSummary,
+    TrainingSessionCalendar, TrainingSessionCalendarDay, TrainingSessionCalendarRequest,
+    TrainingSessionInsight, TrainingSessionProvenanceQuery, TrainingSessionProvenanceResult,
+    TrainingSessionRouteQuery, TrainingSessionRoutesResult, TrainingSessionRoutesView,
+    TrainingSessionSearchItem, TrainingSessionSearchPage, TrainingSessionSearchRequest,
+    TrainingSessionSearchSummary, TrainingSessionSegmentationQuery,
     TrainingSessionSegmentationResult, TrainingSessionSelection, TrainingSessionSelectionRequest,
     TrainingSessionSignalsQuery, TrainingSessionSignalsResult, TrainingSessionSignalsView,
     TrainingSessionSort, TrainingSessionSport, TrainingSessionStructureQuery,
@@ -53,7 +54,7 @@ use fitfreed_application::{
     TrainingSportState, TrainingSportsOverview, TrainingStructure, TrainingZoneCollectionView,
     TrainingZoneGroupView, TrainingZoneKindView, TrainingZoneUnitView, TrainingZoneView,
     UpdateCheckOutcome, UpdateCheckStatus, UpdateComposedSessionReportRequest, UpdateError,
-    UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind, UpdateReleaseSummary,
+    UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind, UpdateReleaseSummary, UpdateReportRequest,
     UpdateSessionReportRequest, UpdateTrainingSegmentCriterionRequest, UpdateTrustFailure,
     UpdateWithdrawalReason, UpdateWithdrawalSummary,
 };
@@ -399,9 +400,9 @@ fn explore_destination(destination: ExploreDestination) -> &'static str {
 use fitfreed_domain::{
     ArtifactCoverageSummary, ArtifactFamilyCoverage, ImportOutcome, ImportReport, ReportAuthorship,
     ReportBlockContent, ReportDateRange, ReportDefinition, ReportLocale, ReportOrigin,
-    ReportProvenancePolicy, ReportTrainingComparisonQuery, ReportTrainingMetric, SegmentCriterion,
-    SegmentCriterionAuthorship, SegmentCriterionDefinition, SleepPhaseSummary, SleepScore,
-    SleepStage, SleepStageTransition, SourceSpecificRecoveryAssessment,
+    ReportProvenancePolicy, ReportQuestion, ReportTrainingComparisonQuery, ReportTrainingMetric,
+    SegmentCriterion, SegmentCriterionAuthorship, SegmentCriterionDefinition, SleepPhaseSummary,
+    SleepScore, SleepStage, SleepStageTransition, SourceSpecificRecoveryAssessment,
     SourceSpecificRecoveryBaseline, SourceSpecificRecoveryGuidance,
 };
 
@@ -2445,14 +2446,63 @@ impl From<&ReportTrainingComparisonQuery> for ReportTrainingComparisonQueryDto {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(
     tag = "kind",
     rename_all = "kebab-case",
-    rename_all_fields = "camelCase"
+    rename_all_fields = "camelCase",
+    deny_unknown_fields
 )]
 pub enum ReportOriginDto {
-    Session { session_ref: String },
+    Session {
+        session_ref: String,
+    },
+    Question {
+        question: String,
+        question_version: u32,
+    },
+    Exploration {
+        query: ReportTrainingComparisonQueryDto,
+    },
+    Blank {},
+}
+
+impl TryFrom<ReportOriginDto> for ReportOrigin {
+    type Error = CommandErrorDto;
+
+    fn try_from(origin: ReportOriginDto) -> Result<Self, Self::Error> {
+        match origin {
+            ReportOriginDto::Session { session_ref } => Ok(Self::Session { session_ref }),
+            ReportOriginDto::Question {
+                question,
+                question_version,
+            } => ReportQuestion::from_code_and_version(&question, question_version)
+                .map(|question| Self::Question { question })
+                .ok_or_else(|| CommandErrorDto::new("invalid-report-definition")),
+            ReportOriginDto::Exploration { query } => Ok(Self::Exploration {
+                query: query.try_into()?,
+            }),
+            ReportOriginDto::Blank {} => Ok(Self::Blank),
+        }
+    }
+}
+
+impl From<&ReportOrigin> for ReportOriginDto {
+    fn from(origin: &ReportOrigin) -> Self {
+        match origin {
+            ReportOrigin::Session { session_ref } => Self::Session {
+                session_ref: session_ref.clone(),
+            },
+            ReportOrigin::Question { question } => Self::Question {
+                question: question.code().to_owned(),
+                question_version: question.version(),
+            },
+            ReportOrigin::Exploration { query } => Self::Exploration {
+                query: query.into(),
+            },
+            ReportOrigin::Blank => Self::Blank {},
+        }
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -2472,11 +2522,7 @@ pub struct ReportDefinitionDto {
 
 impl From<ReportDefinition> for ReportDefinitionDto {
     fn from(definition: ReportDefinition) -> Self {
-        let origin = match definition.origin() {
-            ReportOrigin::Session { session_ref } => ReportOriginDto::Session {
-                session_ref: session_ref.clone(),
-            },
-        };
+        let origin = definition.origin().into();
         let blocks = definition
             .blocks()
             .iter()
@@ -2555,6 +2601,120 @@ impl From<ReportDefinition> for ReportDefinitionDto {
             revision: definition.revision().to_string(),
             blocks,
         }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(
+    tag = "kind",
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase",
+    deny_unknown_fields
+)]
+pub enum ReportStartDto {
+    Question {
+        question: String,
+        question_version: u32,
+    },
+    Exploration {
+        query: ReportTrainingComparisonQueryDto,
+    },
+    Blank {},
+}
+
+impl TryFrom<ReportStartDto> for ReportStart {
+    type Error = CommandErrorDto;
+
+    fn try_from(start: ReportStartDto) -> Result<Self, Self::Error> {
+        match start {
+            ReportStartDto::Question {
+                question,
+                question_version,
+            } => ReportQuestion::from_code_and_version(&question, question_version)
+                .map(|question| Self::Question { question })
+                .ok_or_else(|| CommandErrorDto::new("invalid-report-definition")),
+            ReportStartDto::Exploration { query } => Ok(Self::Exploration {
+                query: query.try_into()?,
+            }),
+            ReportStartDto::Blank {} => Ok(Self::Blank),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PreparedReportStartDto {
+    source_snapshot_ref: String,
+    origin: ReportOriginDto,
+    suggested_query: Option<ReportTrainingComparisonQueryDto>,
+}
+
+impl From<PreparedReportStart> for PreparedReportStartDto {
+    fn from(prepared: PreparedReportStart) -> Self {
+        Self {
+            source_snapshot_ref: prepared.source_snapshot_ref,
+            origin: (&prepared.origin).into(),
+            suggested_query: prepared.suggested_query.as_ref().map(Into::into),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CreateReportRequestDto {
+    title: String,
+    locale: String,
+    source_snapshot_ref: String,
+    origin: ReportOriginDto,
+    blocks: Vec<SessionReportBlockDraftDto>,
+}
+
+impl TryFrom<CreateReportRequestDto> for CreateReportRequest {
+    type Error = CommandErrorDto;
+
+    fn try_from(request: CreateReportRequestDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            title: request.title,
+            locale: report_locale(&request.locale)?,
+            source_snapshot_ref: request.source_snapshot_ref,
+            origin: request.origin.try_into()?,
+            blocks: request
+                .blocks
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<_, _>>()?,
+        })
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct UpdateReportRequestDto {
+    report_ref: String,
+    expected_revision: String,
+    title: String,
+    locale: String,
+    blocks: Vec<SessionReportBlockDraftDto>,
+}
+
+impl TryFrom<UpdateReportRequestDto> for UpdateReportRequest {
+    type Error = CommandErrorDto;
+
+    fn try_from(request: UpdateReportRequestDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            report_ref: request.report_ref,
+            expected_revision: parse_canonical_u64(
+                &request.expected_revision,
+                "invalid-report-definition",
+            )?,
+            title: request.title,
+            locale: report_locale(&request.locale)?,
+            blocks: request
+                .blocks
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<_, _>>()?,
+        })
     }
 }
 
@@ -2973,6 +3133,73 @@ impl From<ResolvedSessionReport> for ResolvedSessionReportDto {
     }
 }
 
+#[derive(Debug, Serialize)]
+#[serde(
+    tag = "kind",
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase"
+)]
+pub enum ReportEvidenceProvenanceDto {
+    Session {
+        current: TrainingProvenanceCurrentDto,
+    },
+    LibrarySnapshot,
+    AuthoredOnly,
+}
+
+impl From<ReportEvidenceProvenance> for ReportEvidenceProvenanceDto {
+    fn from(provenance: ReportEvidenceProvenance) -> Self {
+        match provenance {
+            ReportEvidenceProvenance::Session(current) => Self::Session {
+                current: current.into(),
+            },
+            ReportEvidenceProvenance::LibrarySnapshot => Self::LibrarySnapshot,
+            ReportEvidenceProvenance::AuthoredOnly => Self::AuthoredOnly,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResolvedReportDto {
+    definition: ReportDefinitionDto,
+    resolved_snapshot_ref: String,
+    status: &'static str,
+    session: Option<ReportSessionEvidenceDto>,
+    routes: Vec<ReportRouteEvidenceDto>,
+    training_comparison: Option<TrainingComparisonDto>,
+    provenance: ReportEvidenceProvenanceDto,
+    sensitive_contents: Vec<ReportSensitiveContentDto>,
+    limitations: Vec<&'static str>,
+}
+
+impl From<ResolvedReport> for ResolvedReportDto {
+    fn from(report: ResolvedReport) -> Self {
+        Self {
+            definition: report.definition.into(),
+            resolved_snapshot_ref: report.resolved_snapshot_ref,
+            status: match report.status {
+                ReportResolutionStatus::Current => "current",
+                ReportResolutionStatus::Stale => "stale",
+            },
+            session: report.session.map(Into::into),
+            routes: report.routes.into_iter().map(Into::into).collect(),
+            training_comparison: report.training_comparison.map(Into::into),
+            provenance: report.provenance.into(),
+            sensitive_contents: report
+                .sensitive_contents
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            limitations: report
+                .limitations
+                .into_iter()
+                .map(report_limitation)
+                .collect(),
+        }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SessionReportExportRequestDto {
@@ -2984,6 +3211,8 @@ pub struct SessionReportExportRequestDto {
     route_choices: Vec<ReportRouteExportChoiceDto>,
     destination_path: String,
 }
+
+pub type ReportExportRequestDto = SessionReportExportRequestDto;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -3003,7 +3232,7 @@ impl From<ReportRouteExportChoiceDto> for ReportRouteExportChoice {
     }
 }
 
-impl TryFrom<SessionReportExportRequestDto> for SessionReportExportRequest {
+impl TryFrom<SessionReportExportRequestDto> for ReportExportRequest {
     type Error = CommandErrorDto;
 
     fn try_from(request: SessionReportExportRequestDto) -> Result<Self, Self::Error> {
@@ -6870,7 +7099,7 @@ mod tests {
             }))
             .expect("report export request");
         assert_eq!(
-            SessionReportExportRequest::try_from(export)
+            ReportExportRequest::try_from(export)
                 .expect("valid export")
                 .destination,
             PathBuf::from("/private/synthetic/report.html")
@@ -6887,8 +7116,75 @@ mod tests {
                     "destinationPath": destination_path
                 }))
                 .expect("structurally valid export request");
-            assert!(SessionReportExportRequest::try_from(invalid).is_err());
+            assert!(ReportExportRequest::try_from(invalid).is_err());
         }
+    }
+
+    #[test]
+    fn validates_and_serializes_every_report_start_origin_without_provider_identity() {
+        let query = json!({
+            "question": "training-period-comparison",
+            "questionVersion": 1,
+            "baselineRange": { "from": "2026-01-01", "through": "2026-01-31" },
+            "comparisonRange": { "from": "2026-02-01", "through": "2026-02-28" }
+        });
+        let question: ReportStartDto = from_value(json!({
+            "kind": "question",
+            "question": "training-period-comparison",
+            "questionVersion": 1
+        }))
+        .expect("question start");
+        assert!(matches!(
+            ReportStart::try_from(question).expect("valid question start"),
+            ReportStart::Question {
+                question: ReportQuestion::TrainingPeriodComparisonV1
+            }
+        ));
+        let exploration: ReportStartDto = from_value(json!({
+            "kind": "exploration",
+            "query": query
+        }))
+        .expect("exploration start");
+        assert!(matches!(
+            ReportStart::try_from(exploration).expect("valid exploration start"),
+            ReportStart::Exploration { query }
+                if query.comparison_range().through() == "2026-02-28"
+        ));
+        let blank: ReportStartDto = from_value(json!({ "kind": "blank" })).expect("blank start");
+        assert_eq!(
+            ReportStart::try_from(blank).expect("valid blank start"),
+            ReportStart::Blank
+        );
+
+        let create: CreateReportRequestDto = from_value(json!({
+            "title": "Reusable notes",
+            "locale": "en-US",
+            "sourceSnapshotRef":
+                "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "origin": { "kind": "blank" },
+            "blocks": [{
+                "kind": "narrative",
+                "blockRef": null,
+                "body": "My own interpretation."
+            }]
+        }))
+        .expect("blank report request");
+        let create = CreateReportRequest::try_from(create).expect("valid blank report request");
+        assert_eq!(create.origin, ReportOrigin::Blank);
+        assert!(from_value::<ReportStartDto>(json!({
+            "kind": "question",
+            "question": "training-period-comparison",
+            "questionVersion": 2
+        }))
+        .is_ok_and(|start| ReportStart::try_from(start).is_err()));
+        assert!(from_value::<CreateReportRequestDto>(json!({
+            "title": "Reusable notes",
+            "locale": "en-US",
+            "sourceSnapshotRef": "training-snapshot-reference",
+            "origin": { "kind": "blank", "provider": "must-not-cross-the-boundary" },
+            "blocks": []
+        }))
+        .is_err());
     }
 
     #[test]
@@ -7019,7 +7315,7 @@ mod tests {
         .expect("analytical report definition");
         let definition_json =
             serde_json::to_value(ReportDefinitionDto::from(definition)).expect("definition JSON");
-        assert_eq!(definition_json["definitionVersion"], 3);
+        assert_eq!(definition_json["definitionVersion"], 4);
         assert_eq!(
             definition_json["blocks"][2],
             json!({

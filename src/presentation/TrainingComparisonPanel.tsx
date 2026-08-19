@@ -9,12 +9,14 @@ import type {
   TrainingDateRange,
   TrainingSeriesSummary,
 } from "./training-insights";
+import type { ReportTrainingComparisonQuery } from "./session-report";
 
 interface TrainingComparisonPanelProps {
   availableRange: TrainingDateRange;
   initialRange: TrainingDateRange;
   locale: Locale;
   messages: (typeof catalogs)["en-US"];
+  onCreateReport: (query: ReportTrainingComparisonQuery) => void;
   onError: (code: string | undefined) => void;
 }
 
@@ -37,6 +39,7 @@ export function TrainingComparisonPanel({
   initialRange,
   locale,
   messages,
+  onCreateReport,
   onError,
 }: TrainingComparisonPanelProps) {
   const [baselineRange, setBaselineRange] = useState(initialRange);
@@ -266,6 +269,19 @@ export function TrainingComparisonPanel({
             <button type="button" className="secondary" onClick={() => setComparison(undefined)}>
               {copy.clear}
             </button>
+            {comparison.baselineRange && comparison.comparisonRange && (
+              <button
+                type="button"
+                onClick={() => onCreateReport({
+                  question: "training-period-comparison",
+                  questionVersion: 1,
+                  baselineRange: comparison.baselineRange as TrainingDateRange,
+                  comparisonRange: comparison.comparisonRange as TrainingDateRange,
+                })}
+              >
+                {copy.createReport}
+              </button>
+            )}
           </div>
           {comparison.series.map((series, index) => {
             const maximum = [

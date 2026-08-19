@@ -11,16 +11,18 @@ import type {
   ReportDefinition,
   ReportExportReceipt,
   ReportList,
+  ReportOrigin,
   ReportRouteEvidence,
+  ReportStart,
+  ReportStartOrigin,
   ReportSummary,
   ReportTrainingComparisonQuery,
   ReportTrainingMetric,
-  ResolvedSessionReport,
+  ResolvedReport,
   RouteReportBlock,
+  PreparedReportStart,
   SessionReportBlockDraft,
-  SessionReportOrigin,
 } from "./session-report";
-import { sessionReportBlock } from "./session-report";
 import {
   formatDistance,
   formatDuration,
@@ -68,7 +70,7 @@ const REPORT_TRAINING_METRICS: ReportTrainingMetric[] = [
 interface ReportsPanelProps {
   locale: Locale;
   messages: (typeof catalogs)["en-US"];
-  origin?: SessionReportOrigin;
+  origin?: ReportStartOrigin;
   originRequestId: number;
   disabled: boolean;
   onReturnToOrigin: () => void;
@@ -79,7 +81,9 @@ interface EditorState {
   reportRef?: string;
   revision?: string;
   sourceSnapshotRef: string;
-  sessionRef: string;
+  origin: ReportOrigin;
+  sessionRef?: string;
+  suggestedQuery?: ReportTrainingComparisonQuery;
   title: string;
   blocks: SessionReportBlockDraft[];
 }
@@ -171,10 +175,28 @@ function editorFromDefinition(definition: ReportDefinition): EditorState {
     reportRef: definition.reportRef,
     revision: definition.revision,
     sourceSnapshotRef: definition.sourceSnapshotRef,
-    sessionRef: definition.origin.sessionRef,
+    origin: definition.origin,
+    sessionRef: definition.origin.kind === "session"
+      ? definition.origin.sessionRef
+      : undefined,
+    suggestedQuery: definition.origin.kind === "exploration"
+      ? definition.origin.query
+      : definition.blocks.find(isAnalyticalReportBlock)?.query,
     title: definition.title,
     blocks: definition.blocks.map(draftFromBlock),
   };
+}
+
+function analyticalDrafts(
+  query: ReportTrainingComparisonQuery,
+): SessionReportBlockDraft[] {
+  return [
+    { kind: "training-finding", query, metric: "session-count" },
+    { kind: "training-comparison", query },
+    { kind: "training-chart", query, metric: "duration" },
+    { kind: "training-exact-table", query },
+    { kind: "training-coverage", query },
+  ];
 }
 
 function flattenRoutes(result: TrainingSessionRoutesResult): TrainingRouteOverview[] {
@@ -222,7 +244,7 @@ export function ReportsPanel({
   const [listLoading, setListLoading] = useState(true);
   const [listFailed, setListFailed] = useState(false);
   const [editor, setEditor] = useState<EditorState>();
-  const [resolved, setResolved] = useState<ResolvedSessionReport>();
+  const [resolved, setResolved] = useState<ResolvedReport>();
   const [availableRoutes, setAvailableRoutes] = useState<TrainingRouteOverview[]>([]);
   const [routesLoading, setRoutesLoading] = useState(false);
   const [routesFailed, setRoutesFailed] = useState(false);
@@ -256,34 +278,91 @@ export function ReportsPanel({
     void refreshList();
   }, []);
 
-  useEffect(() => {
-    if (!origin || originRequestId === 0) return;
-    setEditor({
-      sourceSnapshotRef: origin.snapshotRef,
-      sessionRef: origin.session.sessionRef,
-      title: interpolate(copy.defaultTitle, {
-        date: formatTrainingDateTime(origin.session.startedAtLocal, locale),
-      }),
-      blocks: [
-        {
-          kind: "session-evidence",
-          includePhysiologicalContext:
-            origin.session.averageHeartRateBpm !== null
-            || origin.session.maximumHeartRateBpm !== null,
-        },
-        { kind: "narrative", body: "" },
-      ],
-    });
+  function resetTransientReportState() {
     setResolved(undefined);
     setLocalError(undefined);
     setSavedNotice(false);
     setPrivacyReviewOpen(false);
     setExportedBytes(undefined);
+  }
+
+  async function beginPreparedReport(start: ReportStart, title: string) {
+    setResolving(true);
+    setLocalError(undefined);
+    try {
+      const prepared = await invoke<PreparedReportStart>("prepare_report_start", { start });
+      let blocks: SessionReportBlockDraft[];
+      if (prepared.origin.kind === "blank") {
+        blocks = [{ kind: "narrative", body: "" }];
+      } else if (prepared.suggestedQuery) {
+        blocks = [
+          ...analyticalDrafts(prepared.suggestedQuery),
+          { kind: "narrative", body: "" },
+        ];
+      } else {
+        throw new Error("invalid-report-definition");
+      }
+      setEditor({
+        sourceSnapshotRef: prepared.sourceSnapshotRef,
+        origin: prepared.origin,
+        suggestedQuery: prepared.suggestedQuery ?? undefined,
+        title,
+        blocks,
+      });
+      resetTransientReportState();
+    } catch (reason) {
+      const code = commandErrorCode(reason);
+      setLocalError(code);
+      onError(code);
+    } finally {
+      setResolving(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!origin || originRequestId === 0) return;
+    if (origin.kind === "session") {
+      setEditor({
+        sourceSnapshotRef: origin.snapshotRef,
+        origin: { kind: "session", sessionRef: origin.session.sessionRef },
+        sessionRef: origin.session.sessionRef,
+        suggestedQuery: defaultComparisonQuery(origin.session.startedAtLocal),
+        title: interpolate(copy.defaultTitle, {
+          date: formatTrainingDateTime(origin.session.startedAtLocal, locale),
+        }),
+        blocks: [
+          {
+            kind: "session-evidence",
+            includePhysiologicalContext:
+              origin.session.averageHeartRateBpm !== null
+              || origin.session.maximumHeartRateBpm !== null,
+          },
+          { kind: "narrative", body: "" },
+        ],
+      });
+      resetTransientReportState();
+      return;
+    }
+    if (origin.kind === "question") {
+      void beginPreparedReport(
+        {
+          kind: "question",
+          question: "training-period-comparison",
+          questionVersion: 1,
+        },
+        copy.questionDefaultTitle,
+      );
+      return;
+    }
+    void beginPreparedReport(
+      { kind: "exploration", query: origin.query },
+      copy.explorationDefaultTitle,
+    );
   }, [originRequestId]);
 
   useEffect(() => {
     let active = true;
-    if (!editor) {
+    if (!editor?.sessionRef) {
       setAvailableRoutes([]);
       setRoutesLoading(false);
       setRoutesFailed(false);
@@ -314,14 +393,27 @@ export function ReportsPanel({
     setResolving(true);
     setLocalError(undefined);
     try {
-      const result = await invoke<ResolvedSessionReport>("resolve_session_report", {
+      const result = await invoke<ResolvedReport>("resolve_report", {
         reportRef,
       });
+      const nextEditor = editorFromDefinition(result.definition);
+      if (
+        nextEditor.origin.kind === "blank"
+        && !nextEditor.suggestedQuery
+        && result.status === "current"
+      ) {
+        const prepared = await invoke<PreparedReportStart>("prepare_report_start", {
+          start: { kind: "blank" },
+        });
+        if (prepared.sourceSnapshotRef === nextEditor.sourceSnapshotRef) {
+          nextEditor.suggestedQuery = prepared.suggestedQuery ?? undefined;
+        }
+      }
       setResolved(result);
-      setEditor(editorFromDefinition(result.definition));
-      setExportPhysiology(
-        sessionReportBlock(result.definition).includePhysiologicalContext,
-      );
+      setEditor(nextEditor);
+      setExportPhysiology(result.definition.blocks.some(
+        (block) => block.kind === "session-evidence" && block.includePhysiologicalContext,
+      ));
       setPrivacyReviewOpen(false);
       setExportedBytes(undefined);
       return result;
@@ -399,9 +491,8 @@ export function ReportsPanel({
   function addAnalyticalBlock(kind: AnalyticalBlockKind) {
     setEditor((current) => {
       if (!current || current.blocks.some((block) => block.kind === kind)) return current;
-      const startedAtLocal = resolved?.session.startedAtLocal ?? origin?.session.startedAtLocal;
-      if (!startedAtLocal) return current;
-      const query = comparisonQuery(current.blocks) ?? defaultComparisonQuery(startedAtLocal);
+      const query = comparisonQuery(current.blocks) ?? current.suggestedQuery;
+      if (!query) return current;
       const block: SessionReportBlockDraft = kind === "training-finding"
         ? { kind, query, metric: "session-count" }
         : kind === "training-chart"
@@ -452,7 +543,7 @@ export function ReportsPanel({
     try {
       let definition: ReportDefinition;
       if (editor.reportRef && editor.revision) {
-        definition = await invoke<ReportDefinition>("update_composed_session_report", {
+        definition = await invoke<ReportDefinition>("update_report", {
           request: {
             reportRef: editor.reportRef,
             expectedRevision: editor.revision,
@@ -462,12 +553,12 @@ export function ReportsPanel({
           },
         });
       } else {
-        definition = await invoke<ReportDefinition>("create_composed_session_report", {
+        definition = await invoke<ReportDefinition>("create_report", {
           request: {
             title,
             locale,
-            sessionRef: editor.sessionRef,
             sourceSnapshotRef: editor.sourceSnapshotRef,
+            origin: editor.origin,
             blocks,
           },
         });
@@ -488,9 +579,9 @@ export function ReportsPanel({
 
   function beginPrivacyReview() {
     if (!resolved || resolved.status !== "current") return;
-    setExportPhysiology(
-      sessionReportBlock(resolved.definition).includePhysiologicalContext,
-    );
+    setExportPhysiology(resolved.definition.blocks.some(
+      (block) => block.kind === "session-evidence" && block.includePhysiologicalContext,
+    ));
     setExportRoutes(Object.fromEntries(resolved.routes.map((route) => [
       route.blockRef,
       {
@@ -533,7 +624,7 @@ export function ReportsPanel({
     setLocalError(undefined);
     setExportedBytes(undefined);
     try {
-      const receipt = await invoke<ReportExportReceipt>("export_session_report", {
+      const receipt = await invoke<ReportExportReceipt>("export_report", {
         request: {
           reportRef: resolved.definition.reportRef,
           expectedRevision: resolved.definition.revision,
@@ -915,6 +1006,7 @@ export function ReportsPanel({
     if (!resolved) return null;
     if (isAnalyticalReportBlock(block)) return renderAnalyticalPreview(block);
     if (block.kind === "session-evidence") {
+      if (!resolved.session) return null;
       return (
         <article key={block.blockRef}>
           <h3>{copy.sessionBlockHeading}</h3>
@@ -955,10 +1047,14 @@ export function ReportsPanel({
 
   const physiologyAvailable = resolved
     ? resolved.sensitiveContents.some((content) => content.kind === "heart-rate")
-    : origin?.session.averageHeartRateBpm !== null
-      || origin?.session.maximumHeartRateBpm !== null;
+    : origin?.kind === "session" && (
+      origin.session.averageHeartRateBpm !== null
+      || origin.session.maximumHeartRateBpm !== null
+    );
   const savedPhysiologyAllowed = resolved
-    ? sessionReportBlock(resolved.definition).includePhysiologicalContext
+    ? resolved.definition.blocks.some(
+      (block) => block.kind === "session-evidence" && block.includePhysiologicalContext,
+    )
     : editor?.blocks.some(
       (block) => block.kind === "session-evidence" && block.includePhysiologicalContext,
     ) ?? false;
@@ -983,7 +1079,8 @@ export function ReportsPanel({
 
       {origin && (
         <button type="button" className="secondary" onClick={onReturnToOrigin}>
-          <span aria-hidden="true">← </span>{copy.backToSession}
+          <span aria-hidden="true">← </span>
+          {origin.kind === "session" ? copy.backToSession : copy.backToComparison}
         </button>
       )}
 
@@ -1032,6 +1129,33 @@ export function ReportsPanel({
             <section className="report-empty-editor">
               <h2>{copy.chooseHeading}</h2>
               <p>{copy.chooseBody}</p>
+              <div className="report-start-actions">
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => void beginPreparedReport(
+                    {
+                      kind: "question",
+                      question: "training-period-comparison",
+                      questionVersion: 1,
+                    },
+                    copy.questionDefaultTitle,
+                  )}
+                >
+                  {copy.startQuestion}
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={disabled}
+                  onClick={() => void beginPreparedReport(
+                    { kind: "blank" },
+                    copy.blankDefaultTitle,
+                  )}
+                >
+                  {copy.startBlank}
+                </button>
+              </div>
             </section>
           )}
           {resolving && <p role="status">{copy.resolving}</p>}
@@ -1208,6 +1332,7 @@ export function ReportsPanel({
                 </ol>
               </section>
 
+              {editor.sessionRef && (
               <section className="report-route-picker" aria-labelledby="report-add-route-heading">
                 <h3 id="report-add-route-heading">{copy.addRouteHeading}</h3>
                 <p>{copy.addRouteIntro}</p>
@@ -1240,6 +1365,7 @@ export function ReportsPanel({
                   && unselectedRoutes.length === 0
                   && <p>{copy.allRoutesAdded}</p>}
               </section>
+              )}
 
               <section className="report-analysis-picker" aria-labelledby="report-analysis-heading">
                 <div>
@@ -1393,8 +1519,20 @@ export function ReportsPanel({
               <details>
                 <summary>{copy.provenanceHeading}</summary>
                 <dl>
-                  <div><dt>{copy.source}</dt><dd>{resolved.provenance.provider === "polar-flow" ? "Polar Flow" : resolved.provenance.provider}</dd></div>
-                  <div><dt>{copy.mapping}</dt><dd><code>{resolved.provenance.mappingVersion}</code></dd></div>
+                  {resolved.provenance.kind === "session" && (
+                    <>
+                      <div><dt>{copy.source}</dt><dd>{resolved.provenance.current.provider === "polar-flow" ? "Polar Flow" : resolved.provenance.current.provider}</dd></div>
+                      <div><dt>{copy.mapping}</dt><dd><code>{resolved.provenance.current.mappingVersion}</code></dd></div>
+                    </>
+                  )}
+                  {resolved.provenance.kind !== "session" && (
+                    <div>
+                      <dt>{copy.source}</dt>
+                      <dd>{resolved.provenance.kind === "library-snapshot"
+                        ? copy.librarySnapshotProvenance
+                        : copy.authoredOnlyProvenance}</dd>
+                    </div>
+                  )}
                   <div><dt>{copy.definitionVersion}</dt><dd>{resolved.definition.definitionVersion}</dd></div>
                   <div><dt>{copy.definitionRevision}</dt><dd>{resolved.definition.revision}</dd></div>
                 </dl>
@@ -1411,13 +1549,13 @@ export function ReportsPanel({
               <h2 id="report-privacy-heading">{copy.privacyHeading}</h2>
               <p>{copy.privacyIntro}</p>
               <ul>
-                <li>{copy.sessionSummaryIncluded}</li>
+                {resolved.session && <li>{copy.sessionSummaryIncluded}</li>}
                 {resolved.trainingComparison && <li>{copy.analysisExportIncluded}</li>}
                 <li>{copy.narrativeIncluded}</li>
                 <li>{copy.provenanceIncluded}</li>
                 <li>{copy.exactSamplesExcluded}</li>
               </ul>
-              {physiologyAvailable && (
+              {resolved.session && physiologyAvailable && (
                 <label className="report-sensitive-choice">
                   <input
                     type="checkbox"

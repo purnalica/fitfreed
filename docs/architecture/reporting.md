@@ -2,12 +2,19 @@
 
 ## Status
 
-Implemented session, route, and training-period comparison composition under [ADR 0022](decisions/0022-persist-reproducible-evidence-reports.md) and E5 of the [MVP experience delivery plan](../plans/mvp-experience-delivery.md). The application persists, reopens, edits, resolves, privacy-reviews, and exports immutable version-1 definitions, composable version-2 definitions, and analytical version-3 definitions. Additional start paths and deliberate source refresh remain later E5 increments; a stale definition cannot be exported yet.
+Implemented session, route, training-period comparison, question, exploration, and blank composition under
+[ADR 0022](decisions/0022-persist-reproducible-evidence-reports.md) and E5 of the
+[MVP experience delivery plan](../plans/mvp-experience-delivery.md). The application persists, reopens,
+edits, resolves, privacy-reviews, and exports immutable version-1 definitions, composable version-2
+definitions, analytical version-3 definitions, and provider-neutral multi-origin version-4 definitions.
+Deliberate source refresh remains the next E5 increment; a stale definition cannot be exported yet.
 
 ## Ownership
 
 - The domain owns report identity, ordered typed blocks, authorship, compatibility, sensitivity choices, and definition invariants that are independent of a specific calculation or output technology.
-- The application owns creation, editing, resolution, stale detection, preview composition, and export orchestration through explicit query and output ports. A later increment must add deliberate refresh as a use case rather than mutating a stale definition implicitly.
+- The application owns preparation, creation, editing, resolution, stale detection, preview composition,
+  and export orchestration through explicit query and output ports. A later increment must add deliberate
+  refresh as a use case rather than mutating a stale definition implicitly.
 - Insights queries remain the authoritative calculation paths. Report resolution references them; it does not copy their rules or read database rows.
 - Persistence stores and migrates versioned definitions transactionally with the local library.
 - Presentation owns the editor interaction, preview, privacy review, and explicit file-destination request.
@@ -15,7 +22,26 @@ Implemented session, route, and training-period comparison composition under [AD
 
 ## Definition and resolved output
 
-`ReportDefinition` is durable user-authored information. Version 1 remains readable as one fixed session block followed by one narrative. Version 2 contains 2–32 semantic positions, requires exactly one session block and one narrative, and can include each authoritative route from the origin session once. Version 3 adds the training-period block family. Every block can be reordered; optional blocks can be added or removed. Existing identities are preserved through edits, and editing an earlier definition produces a version-3 successor without rewriting the historical row during migration.
+`ReportDefinition` is durable user-authored information. Version 1 remains readable as one fixed session
+block followed by one narrative. Version 2 contains 2–32 semantic positions, requires exactly one session
+block and one narrative, and can include each authoritative route from the origin session once. Version 3
+adds the training-period block family. Version 4 separates stable origin intent from the evolving answer and
+accepts session, versioned-question, exact-exploration, and blank origins. Every block can be reordered;
+optional blocks can be added or removed. Existing identities are preserved through edits, and editing an
+earlier definition produces a version-4 successor without rewriting historical migration input.
+
+## Report starts
+
+`prepare_report_start` is the single application entry for question, exploration, and blank starts. It
+binds the start to one current training snapshot, validates exploration queries, and derives bounded adjacent
+periods for the supported question. Blank starts receive the same query only as optional composition help;
+their persisted origin remains blank. Session starts already carry an exact session and snapshot capability
+from the authoritative session search result and therefore require no separate preparation.
+
+Question and exploration origins require coherent analytical evidence and prohibit session or route blocks.
+Blank origins may remain narrative-only or gain analytical blocks later. Reopening a narrative-only blank
+definition prepares a suggestion only when the current snapshot still equals its saved snapshot. No start
+path stores a provider object, copied calculation, or presentation-only workspace state.
 
 A route block stores only the origin session capability, route capability, and an authored 0–5,000-metre endpoint-redaction choice. The application verifies membership through `TrainingSessionRoutePort`, obtains exact points through the same authoritative route port, and performs two memory-bounded passes: total cumulative haversine distance followed by deterministic selection of recorded points inside the retained interval. Internal report processing requests at most 10,000 points per page; the separate interactive exact-point contract remains capped at 250. It neither interpolates coordinates nor reads route tables. At most 500 retained recorded points cross into the resolved report.
 
@@ -28,8 +54,8 @@ Finding, comparison, chart, exact-table, and coverage blocks are five implemente
 versioned baseline and comparison ranges; the domain rejects mixed parameters and duplicate analytical
 kinds. Finding and chart blocks select a supported metric, while the other blocks retain the complete
 authoritative result. The application resolves the family once through `TrainingLibraryPort` and the
-established training comparison use case. Persistence schema 22 stores only question intent, React receives
-the resolved provider-neutral projection, and version-3 HTML renders the authorized projection without
+established training comparison use case. Persistence schemas 22 and 23 store only question and origin
+intent, React receives the resolved provider-neutral projection, and version-3 or version-4 HTML renders it without
 reading SQLite. Snapshot checks surround the single comparison query so a concurrent import cannot combine
 revisions.
 
@@ -39,4 +65,11 @@ The first normative output is a self-contained semantic HTML document with embed
 
 Sensitive-content review is an application decision before rendering. Review can remove physiological context allowed by the saved definition, omit each route, or increase its endpoint redaction. It cannot add excluded physiology, introduce another route, or reduce the saved location protection. Exact choices are bound to block identities before the adapter runs.
 
-Version-2 and version-3 HTML render selected route blocks as normalized local SVG shapes in definition order. Version-3 analytical blocks use exact visible tables and CSS-only bars from one authorized comparison. Recorded latitude, longitude, altitude, elapsed point values, exact training samples, and opaque source-series identities never enter the generated bytes; omission, complete redaction, unavailable measurements, and descriptive-only interpretation remain explicit. The adapter receives only the authorized bounded projection and cannot infer additional authority.
+Version-2 through version-4 HTML render selected route blocks as normalized local SVG shapes in definition
+order. Version-3 and version-4 analytical blocks use exact visible tables and CSS-only bars from one
+authorized comparison. Version-4 provenance is discriminated: session attribution includes the current
+source, analytical non-session output names the local-library revision, and narrative-only output explicitly
+states that it contains no imported evidence. Recorded latitude, longitude, altitude, elapsed point values,
+exact training samples, opaque source-series identities, and nonexistent provider relationships never enter
+the generated bytes. The adapter receives only the authorized bounded projection and cannot infer additional
+authority.

@@ -2,8 +2,8 @@ use std::{path::Path, sync::Mutex};
 
 use fitfreed_domain::{
     author_session_report, ReportBlockContent, ReportDateRange, ReportDefinition, ReportLocale,
-    ReportTrainingComparisonQuery, ReportTrainingMetric, TrainingSession,
-    REPORT_DEFINITION_VERSION, REPORT_DEFINITION_VERSION_V1,
+    ReportOrigin, ReportQuestion, ReportTrainingComparisonQuery, ReportTrainingMetric,
+    TrainingSession, REPORT_DEFINITION_VERSION, REPORT_DEFINITION_VERSION_V1,
 };
 
 use super::*;
@@ -140,7 +140,7 @@ impl TrainingLibraryPort for AnalyticalTrainingPort {
     fn training_bounds(&self) -> Result<Option<TrainingDateRange>, String> {
         Ok(Some(TrainingDateRange {
             from: "2026-01-01".to_owned(),
-            through: "2026-02-28".to_owned(),
+            through: "2026-03-01".to_owned(),
         }))
     }
 
@@ -492,6 +492,322 @@ fn analytical_composition() -> CreateComposedSessionReportRequest {
             },
         ],
     }
+}
+
+fn analytical_drafts(query: &ReportTrainingComparisonQuery) -> Vec<ReportBlockDraft> {
+    vec![
+        ReportBlockDraft {
+            block_ref: None,
+            content: ReportBlockDraftContent::TrainingFinding {
+                query: query.clone(),
+                metric: ReportTrainingMetric::SessionCount,
+            },
+        },
+        ReportBlockDraft {
+            block_ref: None,
+            content: ReportBlockDraftContent::TrainingComparison {
+                query: query.clone(),
+            },
+        },
+        ReportBlockDraft {
+            block_ref: None,
+            content: ReportBlockDraftContent::TrainingChart {
+                query: query.clone(),
+                metric: ReportTrainingMetric::Duration,
+            },
+        },
+        ReportBlockDraft {
+            block_ref: None,
+            content: ReportBlockDraftContent::TrainingExactTable {
+                query: query.clone(),
+            },
+        },
+        ReportBlockDraft {
+            block_ref: None,
+            content: ReportBlockDraftContent::TrainingCoverage {
+                query: query.clone(),
+            },
+        },
+        ReportBlockDraft {
+            block_ref: None,
+            content: ReportBlockDraftContent::Narrative {
+                body: "A descriptive interpretation.".to_owned(),
+            },
+        },
+    ]
+}
+
+#[test]
+fn prepares_question_exploration_and_blank_starts_from_one_current_snapshot() {
+    let training = AnalyticalTrainingPort::current();
+    let question = prepare_report_start(
+        &training,
+        ReportStart::Question {
+            question: ReportQuestion::TrainingPeriodComparisonV1,
+        },
+    )
+    .expect("question start");
+
+    assert_eq!(question.source_snapshot_ref, SNAPSHOT_REF);
+    assert_eq!(
+        question.origin,
+        ReportOrigin::Question {
+            question: ReportQuestion::TrainingPeriodComparisonV1,
+        }
+    );
+    let suggested = question.suggested_query.expect("suggested query");
+    assert_eq!(suggested.baseline_range().from(), "2026-01-01");
+    assert_eq!(suggested.baseline_range().through(), "2026-01-30");
+    assert_eq!(suggested.comparison_range().from(), "2026-01-31");
+    assert_eq!(suggested.comparison_range().through(), "2026-03-01");
+
+    let exploration_query = ReportTrainingComparisonQuery::new(
+        ReportDateRange::new("2026-01-01", "2026-01-31").expect("baseline"),
+        ReportDateRange::new("2026-02-01", "2026-02-28").expect("comparison"),
+    );
+    let exploration = prepare_report_start(
+        &training,
+        ReportStart::Exploration {
+            query: exploration_query.clone(),
+        },
+    )
+    .expect("exploration start");
+    assert_eq!(
+        exploration.origin,
+        ReportOrigin::Exploration {
+            query: exploration_query.clone(),
+        }
+    );
+    assert_eq!(exploration.suggested_query, Some(exploration_query));
+
+    let blank = prepare_report_start(&training, ReportStart::Blank).expect("blank start");
+    assert_eq!(blank.origin, ReportOrigin::Blank);
+    assert!(blank.suggested_query.is_some());
+    assert!(training.queries.lock().expect("queries").is_empty());
+}
+
+#[test]
+fn creates_and_resolves_question_and_blank_reports_without_session_evidence() {
+    let reports = MemoryReportPort::default();
+    let training = AnalyticalTrainingPort::current();
+    let prepared = prepare_report_start(
+        &training,
+        ReportStart::Question {
+            question: ReportQuestion::TrainingPeriodComparisonV1,
+        },
+    )
+    .expect("question start");
+    let query = prepared.suggested_query.expect("suggested query");
+    let created = create_report(
+        &reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &training,
+        CreateReportRequest {
+            title: "How did my training change?".to_owned(),
+            locale: ReportLocale::EnUs,
+            source_snapshot_ref: prepared.source_snapshot_ref,
+            origin: prepared.origin,
+            blocks: analytical_drafts(&query),
+        },
+    )
+    .expect("question report");
+    assert!(matches!(created.origin(), ReportOrigin::Question { .. }));
+
+    let resolved = resolve_report(
+        &reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &StubProvenancePort,
+        &training,
+        REPORT_REF,
+    )
+    .expect("resolved question report");
+    assert!(resolved.session.is_none());
+    assert!(resolved.routes.is_empty());
+    assert!(matches!(
+        resolved.provenance,
+        ReportEvidenceProvenance::LibrarySnapshot
+    ));
+    assert!(resolved.training_comparison.is_some());
+
+    let blank_reports = MemoryReportPort::default();
+    let blank = prepare_report_start(&training, ReportStart::Blank).expect("blank start");
+    create_report(
+        &blank_reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &training,
+        CreateReportRequest {
+            title: "Reusable notes".to_owned(),
+            locale: ReportLocale::EnUs,
+            source_snapshot_ref: blank.source_snapshot_ref,
+            origin: blank.origin,
+            blocks: vec![ReportBlockDraft {
+                block_ref: None,
+                content: ReportBlockDraftContent::Narrative {
+                    body: "Start with my own interpretation.".to_owned(),
+                },
+            }],
+        },
+    )
+    .expect("blank report");
+    let resolved_blank = resolve_report(
+        &blank_reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &StubProvenancePort,
+        &training,
+        REPORT_REF,
+    )
+    .expect("resolved blank report");
+    assert!(resolved_blank.session.is_none());
+    assert!(matches!(
+        resolved_blank.provenance,
+        ReportEvidenceProvenance::AuthoredOnly
+    ));
+    assert!(resolved_blank.training_comparison.is_none());
+}
+
+#[test]
+fn expands_a_blank_report_without_replacing_its_origin_or_concurrent_revision() {
+    let reports = MemoryReportPort::default();
+    let training = AnalyticalTrainingPort::current();
+    let blank = prepare_report_start(&training, ReportStart::Blank).expect("blank start");
+    let suggested = blank.suggested_query.expect("suggested query");
+    create_report(
+        &reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &training,
+        CreateReportRequest {
+            title: "Reusable notes".to_owned(),
+            locale: ReportLocale::EnUs,
+            source_snapshot_ref: blank.source_snapshot_ref,
+            origin: blank.origin,
+            blocks: vec![ReportBlockDraft {
+                block_ref: None,
+                content: ReportBlockDraftContent::Narrative {
+                    body: "Start with my own interpretation.".to_owned(),
+                },
+            }],
+        },
+    )
+    .expect("blank report");
+    let narrative_ref = reports.reports.lock().expect("reports")[0].blocks()[0]
+        .block_ref()
+        .to_owned();
+    let mut expanded = analytical_drafts(&suggested);
+    expanded.last_mut().expect("narrative").block_ref = Some(narrative_ref);
+
+    let revised = update_report(
+        &reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &training,
+        UpdateReportRequest {
+            report_ref: REPORT_REF.to_owned(),
+            expected_revision: 1,
+            title: "Reusable comparison".to_owned(),
+            locale: ReportLocale::EnUs,
+            blocks: expanded,
+        },
+    )
+    .expect("expanded report");
+    assert_eq!(revised.origin(), &ReportOrigin::Blank);
+    assert_eq!(revised.revision(), 2);
+    assert!(revised.blocks().iter().any(|block| matches!(
+        block.content(),
+        ReportBlockContent::TrainingComparison { .. }
+    )));
+
+    assert!(matches!(
+        update_report(
+            &reports,
+            &StubTrainingPort {
+                snapshot_ref: SNAPSHOT_REF.to_owned(),
+            },
+            &StubRoutePort,
+            &training,
+            UpdateReportRequest {
+                report_ref: REPORT_REF.to_owned(),
+                expected_revision: 1,
+                title: "Stale edit".to_owned(),
+                locale: ReportLocale::EnUs,
+                blocks: vec![],
+            },
+        ),
+        Err(ApplicationError::ReportDefinitionConflict)
+    ));
+}
+
+#[test]
+fn exports_a_blank_report_without_inventing_session_or_provider_evidence() {
+    let reports = MemoryReportPort::default();
+    let training = AnalyticalTrainingPort::current();
+    let blank = prepare_report_start(&training, ReportStart::Blank).expect("blank start");
+    create_report(
+        &reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &training,
+        CreateReportRequest {
+            title: "Reusable notes".to_owned(),
+            locale: ReportLocale::EnUs,
+            source_snapshot_ref: blank.source_snapshot_ref,
+            origin: blank.origin,
+            blocks: vec![ReportBlockDraft {
+                block_ref: None,
+                content: ReportBlockDraftContent::Narrative {
+                    body: "My interpretation remains explicitly authored.".to_owned(),
+                },
+            }],
+        },
+    )
+    .expect("blank report");
+    let output = RecordingExportPort::default();
+
+    export_report(
+        &reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &StubProvenancePort,
+        &training,
+        &output,
+        ReportExportRequest {
+            report_ref: REPORT_REF.to_owned(),
+            expected_revision: 1,
+            expected_source_snapshot_ref: SNAPSHOT_REF.to_owned(),
+            include_physiological_context: false,
+            route_choices: vec![],
+            destination: "/tmp/fitfreed-blank-report.html".into(),
+        },
+        &ReportExportCancellation::new(),
+    )
+    .expect("blank report export");
+
+    let exports = output.exports.lock().expect("exports");
+    assert!(exports[0].session.is_none());
+    assert!(matches!(
+        exports[0].provenance,
+        ReportEvidenceProvenance::AuthoredOnly
+    ));
 }
 
 #[test]
@@ -954,8 +1270,9 @@ fn exports_only_current_explicitly_reviewed_content() {
     assert_eq!(receipt.byte_count, 512);
     let exports = output.exports.lock().expect("exports");
     assert_eq!(exports.len(), 1);
-    assert_eq!(exports[0].session.average_heart_rate_bpm, None);
-    assert_eq!(exports[0].session.maximum_heart_rate_bpm, None);
+    let session = exports[0].session.as_ref().expect("session evidence");
+    assert_eq!(session.average_heart_rate_bpm, None);
+    assert_eq!(session.maximum_heart_rate_bpm, None);
     assert!(!exports[0].include_physiological_context);
 }
 
