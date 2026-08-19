@@ -36,8 +36,8 @@ use fitfreed_application::{
     query_library_home, query_longitudinal_overview, query_recovery_detail,
     query_training_route_points, query_training_session_routes,
     query_training_session_segmentation, query_training_session_signals,
-    query_training_session_structure, query_training_signal_samples, query_training_sports,
-    remove_training_segment_criterion, save_exploration_workspace,
+    query_training_session_structure, query_training_session_zones, query_training_signal_samples,
+    query_training_sports, remove_training_segment_criterion, save_exploration_workspace,
     save_training_sport_classification, update_training_segment_criterion, AppearancePreference,
     ApplicationError, CreateTrainingSegmentCriterionRequest, LibraryDomain, LibraryHomeDateRange,
     LibraryHomeRequest, LibraryQuestion, LibraryQuestionKind, LocalePreference,
@@ -53,12 +53,13 @@ use fitfreed_application::{
     PersistedTrainingSessionCalendar, PersistedTrainingSessionRoutes,
     PersistedTrainingSessionSearchPage, PersistedTrainingSessionSegmentation,
     PersistedTrainingSessionSelection, PersistedTrainingSessionSignals,
-    PersistedTrainingSessionStructure, PersistedTrainingSignalSamples, ProfiledImport,
-    RecoveryDateRange, RecoveryLibraryNight, RecoveryLibraryPort, SegmentSignalEvidence,
-    SegmentSignalKind, SegmentSignalSample, SleepDateRange, SleepLibraryPeriod, SleepLibraryPort,
-    StoredApplicationPreferences, StoredExplorationWorkspace, TrainingDateRange,
-    TrainingDiscoveryView, TrainingDiscoveryWorkspace, TrainingDiscoveryWorkspacePort,
-    TrainingExerciseRoutesView, TrainingExerciseSignalsView, TrainingExerciseStructure,
+    PersistedTrainingSessionStructure, PersistedTrainingSessionZones,
+    PersistedTrainingSignalSamples, ProfiledImport, RecoveryDateRange, RecoveryLibraryNight,
+    RecoveryLibraryPort, SegmentSignalEvidence, SegmentSignalKind, SegmentSignalSample,
+    SleepDateRange, SleepLibraryPeriod, SleepLibraryPort, StoredApplicationPreferences,
+    StoredExplorationWorkspace, TrainingDateRange, TrainingDiscoveryView,
+    TrainingDiscoveryWorkspace, TrainingDiscoveryWorkspacePort, TrainingExerciseRoutesView,
+    TrainingExerciseSignalsView, TrainingExerciseStructure, TrainingExerciseZonesView,
     TrainingLapStructure, TrainingLibraryPort, TrainingMeasurementFilter, TrainingPauseStructure,
     TrainingRouteCollectionView, TrainingRouteKindView, TrainingRouteOverview,
     TrainingRoutePointView, TrainingRoutePointsQuery, TrainingSegmentCriterionDirection,
@@ -70,10 +71,13 @@ use fitfreed_application::{
     TrainingSessionSelectionRequest, TrainingSessionSignalPort, TrainingSessionSignalPortError,
     TrainingSessionSignalsQuery, TrainingSessionSignalsView, TrainingSessionSort,
     TrainingSessionSport, TrainingSessionStructurePort, TrainingSessionStructurePortError,
-    TrainingSessionStructureQuery, TrainingSignalCollectionView, TrainingSignalKindView,
-    TrainingSignalRoleView, TrainingSignalSampleView, TrainingSignalSamplesQuery,
-    TrainingSignalSeriesOverview, TrainingSignalUnitView, TrainingSignalVisualSampleView,
-    TrainingSportClassification, TrainingSportState, TrainingSportsPort, TrainingStructure,
+    TrainingSessionStructureQuery, TrainingSessionZonePort, TrainingSessionZonePortError,
+    TrainingSessionZonesQuery, TrainingSessionZonesView, TrainingSignalCollectionView,
+    TrainingSignalKindView, TrainingSignalRoleView, TrainingSignalSampleView,
+    TrainingSignalSamplesQuery, TrainingSignalSeriesOverview, TrainingSignalUnitView,
+    TrainingSignalVisualSampleView, TrainingSportClassification, TrainingSportState,
+    TrainingSportsPort, TrainingStructure, TrainingZoneCollectionView, TrainingZoneGroupView,
+    TrainingZoneKindView, TrainingZoneUnitView, TrainingZoneView,
 };
 use fitfreed_domain::{
     decide_nightly_recovery_reconciliation, decide_reconciliation,
@@ -85,11 +89,13 @@ use fitfreed_domain::{
     SleepStageTransition, SourceSpecificRecoveryAssessment, SourceSpecificRecoveryBaseline,
     SourceSpecificRecoveryGuidance, SportClassification, SportClassificationAuthorship,
     SportClassificationKey, SportClassificationState, SportFamily, TrainingExercise,
-    TrainingExerciseRouteAssessment, TrainingExerciseSignalAssessment, TrainingLap,
-    TrainingLapKind, TrainingPause, TrainingRoute, TrainingRouteKind, TrainingRoutePoint,
-    TrainingRoutes, TrainingSession, TrainingSessionRecord, TrainingSessionRouteAssessment,
-    TrainingSessionSignalAssessment, TrainingSessionStructure, TrainingSignalKind,
-    TrainingSignalSample, TrainingSignalSeries, TrainingSignalUnit, TrainingSignals,
+    TrainingExerciseRouteAssessment, TrainingExerciseSignalAssessment,
+    TrainingExerciseZoneAssessment, TrainingLap, TrainingLapKind, TrainingPause, TrainingRoute,
+    TrainingRouteKind, TrainingRoutePoint, TrainingRoutes, TrainingSession, TrainingSessionRecord,
+    TrainingSessionRouteAssessment, TrainingSessionSignalAssessment, TrainingSessionStructure,
+    TrainingSessionZoneAssessment, TrainingSignalKind, TrainingSignalSample, TrainingSignalSeries,
+    TrainingSignalUnit, TrainingSignals, TrainingZone, TrainingZoneGroup, TrainingZoneKind,
+    TrainingZoneUnit, TrainingZones,
 };
 
 mod local_file;
@@ -146,7 +152,7 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 18;
+const SCHEMA_VERSION: i64 = 19;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
@@ -165,11 +171,12 @@ const SCHEMA_V15: &str = include_str!("../migrations/0015_training_session_struc
 const SCHEMA_V16: &str = include_str!("../migrations/0016_training_session_routes.sql");
 const SCHEMA_V17: &str = include_str!("../migrations/0017_training_session_signals.sql");
 const SCHEMA_V18: &str = include_str!("../migrations/0018_training_segment_criteria.sql");
+const SCHEMA_V19: &str = include_str!("../migrations/0019_training_session_zones.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
-const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@9";
-const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@4";
+const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@10";
+const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@5";
 const DAILY_ACTIVITY_MAPPING_VERSION: &str = "polar-flow-daily-activity@1";
-const TRAINING_SESSION_MAPPING_VERSION: &str = "polar-flow-training-session@4";
+const TRAINING_SESSION_MAPPING_VERSION: &str = "polar-flow-training-session@5";
 const SLEEP_MAPPING_VERSION: &str = "polar-flow-sleep@1";
 const NIGHTLY_RECOVERY_MAPPING_VERSION: &str = "polar-flow-nightly-recovery@1";
 const NIGHTLY_RECOVERY_SCHEME: &str = "polar-nightly-recharge@1";
@@ -378,6 +385,30 @@ struct PolarTrainingExercise {
     routes: SourceOptional<PolarTrainingRoutes>,
     #[serde(default)]
     samples: SourceOptional<PolarTrainingSamples>,
+    #[serde(default)]
+    zones: SourceOptional<Vec<PolarTrainingZoneGroup>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct PolarTrainingZoneGroup {
+    r#type: String,
+    #[serde(default)]
+    zones: SourceOptional<Vec<PolarTrainingZone>>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PolarTrainingZone {
+    #[serde(default)]
+    lower_limit: SourceOptional<f64>,
+    #[serde(default)]
+    higher_limit: SourceOptional<f64>,
+    #[serde(default)]
+    in_zone: SourceOptional<i64>,
+    #[serde(default)]
+    distance_meters: SourceOptional<f64>,
+    #[serde(default)]
+    muscle_load: SourceOptional<f64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -3660,6 +3691,138 @@ fn load_segment_criteria(
         .collect()
 }
 
+fn zone_snapshot_and_identity(
+    transaction: &Transaction<'_>,
+    session_ref: &str,
+    expected_snapshot_ref: Option<&str>,
+) -> std::result::Result<(String, String, String), TrainingSessionZonePortError> {
+    let revision = transaction
+        .query_row(
+            "SELECT revision FROM training_discovery_revision WHERE id = 1",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .map_err(training_zone_failure)?;
+    if revision < 1 {
+        return Err(TrainingSessionZonePortError::Failure(
+            "training discovery revision is invalid".to_owned(),
+        ));
+    }
+    let snapshot_ref = training_snapshot_ref(revision);
+    if expected_snapshot_ref.is_some_and(|expected| expected != snapshot_ref) {
+        return Err(TrainingSessionZonePortError::SnapshotChanged);
+    }
+    let mut statement = transaction
+        .prepare(
+            "SELECT origin_id, session_id FROM training_session ORDER BY origin_id, session_id",
+        )
+        .map_err(training_zone_failure)?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })
+        .map_err(training_zone_failure)?;
+    for row in rows {
+        let (origin_id, session_id) = row.map_err(training_zone_failure)?;
+        if training_session_ref(&origin_id, &session_id) == session_ref {
+            return Ok((snapshot_ref, origin_id, session_id));
+        }
+    }
+    Err(TrainingSessionZonePortError::NotFound)
+}
+
+fn training_zone_kind_view(kind: TrainingZoneKind) -> TrainingZoneKindView {
+    match kind {
+        TrainingZoneKind::HeartRate => TrainingZoneKindView::HeartRate,
+        TrainingZoneKind::Speed => TrainingZoneKindView::Speed,
+        TrainingZoneKind::Power => TrainingZoneKindView::Power,
+    }
+}
+
+fn training_zone_unit_view(unit: TrainingZoneUnit) -> TrainingZoneUnitView {
+    match unit {
+        TrainingZoneUnit::BeatsPerMinute => TrainingZoneUnitView::BeatsPerMinute,
+        TrainingZoneUnit::KilometersPerHour => TrainingZoneUnitView::KilometersPerHour,
+        TrainingZoneUnit::Watts => TrainingZoneUnitView::Watts,
+    }
+}
+
+fn query_training_session_zones_discovery(
+    database_path: &Path,
+    query: &TrainingSessionZonesQuery,
+) -> std::result::Result<PersistedTrainingSessionZones, TrainingSessionZonePortError> {
+    let mut connection = Connection::open(database_path).map_err(training_zone_failure)?;
+    ensure_schema(&connection).map_err(training_zone_failure)?;
+    let transaction = connection.transaction().map_err(training_zone_failure)?;
+    let (snapshot_ref, origin_id, session_id) = zone_snapshot_and_identity(
+        &transaction,
+        &query.session_ref,
+        query.snapshot_ref.as_deref(),
+    )?;
+    let zones = query_training_session_zones_on(&transaction, &origin_id, &session_id)
+        .map_err(training_zone_failure)?
+        .map(|assessment| TrainingSessionZonesView {
+            exercises: assessment.exercises.map(|exercises| {
+                exercises
+                    .into_iter()
+                    .map(|exercise| TrainingExerciseZonesView {
+                        exercise_ref: training_exercise_ref(
+                            &origin_id,
+                            &session_id,
+                            &exercise.exercise_id,
+                        ),
+                        ordinal: exercise.ordinal,
+                        zones: exercise.zones.map(|zones| TrainingZoneCollectionView {
+                            groups: zones
+                                .groups
+                                .into_iter()
+                                .map(|group| TrainingZoneGroupView {
+                                    zone_group_ref: training_zone_group_ref(
+                                        &origin_id,
+                                        &session_id,
+                                        &exercise.exercise_id,
+                                        group.ordinal,
+                                    ),
+                                    ordinal: group.ordinal,
+                                    kind: training_zone_kind_view(group.kind),
+                                    unit: training_zone_unit_view(group.unit),
+                                    zones: group.zones.map(|zone_values| {
+                                        zone_values
+                                            .into_iter()
+                                            .map(|zone| TrainingZoneView {
+                                                zone_ref: training_zone_ref(
+                                                    &origin_id,
+                                                    &session_id,
+                                                    &exercise.exercise_id,
+                                                    group.ordinal,
+                                                    zone.ordinal,
+                                                ),
+                                                ordinal: zone.ordinal,
+                                                lower_limit: zone.lower_limit,
+                                                higher_limit: zone.higher_limit,
+                                                time_in_zone_milliseconds: zone
+                                                    .time_in_zone_milliseconds,
+                                                distance_meters: zone.distance_meters,
+                                                muscle_load: zone.muscle_load,
+                                            })
+                                            .collect()
+                                    }),
+                                })
+                                .collect(),
+                            unsupported_group_count: zones.unsupported_group_count,
+                        }),
+                    })
+                    .collect()
+            }),
+        });
+    transaction.commit().map_err(training_zone_failure)?;
+    Ok(PersistedTrainingSessionZones {
+        snapshot_ref,
+        session_ref: query.session_ref.clone(),
+        zones,
+    })
+}
+
 fn query_training_session_segmentation_discovery(
     database_path: &Path,
     query: &TrainingSessionSegmentationQuery,
@@ -4631,6 +4794,45 @@ fn training_signal_ref(
     format!("signal-{:x}", digest.finalize())
 }
 
+fn training_zone_group_ref(
+    origin_id: &str,
+    session_id: &str,
+    exercise_id: &str,
+    ordinal: usize,
+) -> String {
+    let mut digest = Sha256::new();
+    digest.update(b"fitfreed:training-zone-group:v1\0");
+    digest.update(origin_id.as_bytes());
+    digest.update(b"\0");
+    digest.update(session_id.as_bytes());
+    digest.update(b"\0");
+    digest.update(exercise_id.as_bytes());
+    digest.update(b"\0");
+    digest.update(ordinal.to_be_bytes());
+    format!("zone-group-{:x}", digest.finalize())
+}
+
+fn training_zone_ref(
+    origin_id: &str,
+    session_id: &str,
+    exercise_id: &str,
+    group_ordinal: usize,
+    ordinal: usize,
+) -> String {
+    let mut digest = Sha256::new();
+    digest.update(b"fitfreed:training-zone:v1\0");
+    digest.update(origin_id.as_bytes());
+    digest.update(b"\0");
+    digest.update(session_id.as_bytes());
+    digest.update(b"\0");
+    digest.update(exercise_id.as_bytes());
+    digest.update(b"\0");
+    digest.update(group_ordinal.to_be_bytes());
+    digest.update(b"\0");
+    digest.update(ordinal.to_be_bytes());
+    format!("zone-{:x}", digest.finalize())
+}
+
 fn discovery_failure(error: impl std::fmt::Display) -> TrainingSessionDiscoveryPortError {
     TrainingSessionDiscoveryPortError::Failure(error.to_string())
 }
@@ -4645,6 +4847,10 @@ fn training_route_failure(error: impl std::fmt::Display) -> TrainingSessionRoute
 
 fn training_signal_failure(error: impl std::fmt::Display) -> TrainingSessionSignalPortError {
     TrainingSessionSignalPortError::Failure(error.to_string())
+}
+
+fn training_zone_failure(error: impl std::fmt::Display) -> TrainingSessionZonePortError {
+    TrainingSessionZonePortError::Failure(error.to_string())
 }
 
 pub fn query_detected_training_sports(database_path: &Path) -> Result<Vec<DetectedTrainingSport>> {
@@ -5579,7 +5785,10 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         if version < 17 {
             connection.execute_batch(SCHEMA_V17)?;
         }
-        connection.execute_batch(SCHEMA_V18)?;
+        if version < 18 {
+            connection.execute_batch(SCHEMA_V18)?;
+        }
+        connection.execute_batch(SCHEMA_V19)?;
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
         }
@@ -6513,6 +6722,7 @@ struct MappedTrainingExercises {
     structure: Option<Vec<TrainingExercise>>,
     routes: Option<Vec<TrainingExerciseRouteAssessment>>,
     signals: Option<Vec<TrainingExerciseSignalAssessment>>,
+    zones: Option<Vec<TrainingExerciseZoneAssessment>>,
 }
 
 fn map_training_exercises(
@@ -6524,6 +6734,7 @@ fn map_training_exercises(
             structure: None,
             routes: None,
             signals: None,
+            zones: None,
         }),
         Some(exercises) => {
             let mut exercise_ids = BTreeSet::new();
@@ -6546,6 +6757,7 @@ fn map_training_exercises(
                         pause_times,
                         routes,
                         samples,
+                        zones,
                     } = exercise;
                     if identifier.id.trim().is_empty()
                         || !exercise_ids.insert(identifier.id.clone())
@@ -6659,6 +6871,11 @@ fn map_training_exercises(
                         ordinal,
                         signals: map_training_signals(samples, artifact)?,
                     };
+                    let zone_assessment = TrainingExerciseZoneAssessment {
+                        exercise_id: identifier.id.clone(),
+                        ordinal,
+                        zones: map_training_zones(zones, artifact)?,
+                    };
                     Ok((
                         TrainingExercise {
                             exercise_id: identifier.id,
@@ -6676,24 +6893,150 @@ fn map_training_exercises(
                         },
                         route_assessment,
                         signal_assessment,
+                        zone_assessment,
                     ))
                 })
                 .collect::<Result<Vec<_>>>()?;
             let mut exercises = Vec::with_capacity(mapped.len());
             let mut routes = Vec::with_capacity(mapped.len());
             let mut signals = Vec::with_capacity(mapped.len());
-            for (exercise, route, signal) in mapped {
+            let mut zones = Vec::with_capacity(mapped.len());
+            for (exercise, route, signal, zone) in mapped {
                 exercises.push(exercise);
                 routes.push(route);
                 signals.push(signal);
+                zones.push(zone);
             }
             Ok(MappedTrainingExercises {
                 structure: Some(exercises),
                 routes: Some(routes),
                 signals: Some(signals),
+                zones: Some(zones),
             })
         }
     }
+}
+
+fn map_training_zones(
+    source: SourceOptional<Vec<PolarTrainingZoneGroup>>,
+    artifact: &str,
+) -> Result<Option<TrainingZones>> {
+    const MAX_ZONE_GROUPS: usize = 64;
+    const MAX_ZONES_PER_GROUP: usize = 256;
+
+    source
+        .into_option()
+        .map(|source_groups| {
+            if source_groups.len() > MAX_ZONE_GROUPS {
+                return Err(invalid_training_artifact(
+                    artifact,
+                    "zone group count exceeds the documented compatibility bound",
+                ));
+            }
+            let mut groups = Vec::new();
+            let mut unsupported_group_count = 0_usize;
+            for source_group in source_groups {
+                let (kind, unit) = match source_group.r#type.as_str() {
+                    "ZONE_TYPE_HEART_RATE" => (
+                        TrainingZoneKind::HeartRate,
+                        TrainingZoneUnit::BeatsPerMinute,
+                    ),
+                    "ZONE_TYPE_SPEED" => {
+                        (TrainingZoneKind::Speed, TrainingZoneUnit::KilometersPerHour)
+                    }
+                    "ZONE_TYPE_POWER" => (TrainingZoneKind::Power, TrainingZoneUnit::Watts),
+                    _ => {
+                        unsupported_group_count =
+                            unsupported_group_count.checked_add(1).ok_or_else(|| {
+                                invalid_training_artifact(
+                                    artifact,
+                                    "unsupported zone group count overflows",
+                                )
+                            })?;
+                        continue;
+                    }
+                };
+                let zones = source_group
+                    .zones
+                    .into_option()
+                    .map(|source_zones| {
+                        if source_zones.len() > MAX_ZONES_PER_GROUP {
+                            return Err(invalid_training_artifact(
+                                artifact,
+                                "zone count exceeds the documented compatibility bound",
+                            ));
+                        }
+                        source_zones
+                            .into_iter()
+                            .enumerate()
+                            .map(|(ordinal, source_zone)| {
+                                map_training_zone(source_zone, kind, ordinal, artifact)
+                            })
+                            .collect()
+                    })
+                    .transpose()?;
+                groups.push(TrainingZoneGroup {
+                    ordinal: groups.len(),
+                    kind,
+                    unit,
+                    zones,
+                });
+            }
+            Ok(TrainingZones {
+                groups,
+                unsupported_group_count,
+            })
+        })
+        .transpose()
+}
+
+fn map_training_zone(
+    source: PolarTrainingZone,
+    kind: TrainingZoneKind,
+    ordinal: usize,
+    artifact: &str,
+) -> Result<TrainingZone> {
+    let lower_limit = source.lower_limit.into_option().ok_or_else(|| {
+        invalid_training_artifact(artifact, "supported zone lowerLimit is missing")
+    })?;
+    let higher_limit = source.higher_limit.into_option().ok_or_else(|| {
+        invalid_training_artifact(artifact, "supported zone higherLimit is missing")
+    })?;
+    let time_in_zone_milliseconds = source.in_zone.into_option();
+    let distance_meters = source.distance_meters.into_option();
+    let muscle_load = source.muscle_load.into_option();
+    if !lower_limit.is_finite()
+        || lower_limit < 0.0
+        || !higher_limit.is_finite()
+        || higher_limit < lower_limit
+        || time_in_zone_milliseconds.is_some_and(|value| value < 0)
+        || distance_meters.is_some_and(|value| !value.is_finite() || value < 0.0)
+        || muscle_load.is_some_and(|value| !value.is_finite() || value < 0.0)
+    {
+        return Err(invalid_training_artifact(
+            artifact,
+            "zone values are outside the documented range",
+        ));
+    }
+    let aggregates_match_kind = match kind {
+        TrainingZoneKind::HeartRate => distance_meters.is_none() && muscle_load.is_none(),
+        TrainingZoneKind::Speed => muscle_load.is_none(),
+        TrainingZoneKind::Power => distance_meters.is_none(),
+    };
+    if !aggregates_match_kind {
+        return Err(invalid_training_artifact(
+            artifact,
+            "zone aggregate is incompatible with its documented type",
+        ));
+    }
+    Ok(TrainingZone {
+        ordinal,
+        lower_limit,
+        higher_limit,
+        time_in_zone_milliseconds,
+        distance_meters,
+        muscle_load,
+    })
 }
 
 fn map_training_signals(
@@ -6993,6 +7336,7 @@ fn map_training_session(
         structure: exercises,
         routes: route_exercises,
         signals: signal_exercises,
+        zones: zone_exercises,
     } = map_training_exercises(exercises, artifact)?;
     let exercise_count = exercises.as_ref().map(Vec::len);
     Ok((
@@ -7017,6 +7361,9 @@ fn map_training_session(
             }),
             signals: Some(TrainingSessionSignalAssessment {
                 exercises: signal_exercises,
+            }),
+            zones: Some(TrainingSessionZoneAssessment {
+                exercises: zone_exercises,
             }),
         },
         source_modified_at_utc,
@@ -8514,6 +8861,259 @@ fn query_training_session_signals_on(
     }))
 }
 
+fn training_zone_kind_code(kind: TrainingZoneKind) -> &'static str {
+    match kind {
+        TrainingZoneKind::HeartRate => "heart-rate",
+        TrainingZoneKind::Speed => "speed",
+        TrainingZoneKind::Power => "power",
+    }
+}
+
+fn training_zone_unit_code(unit: TrainingZoneUnit) -> &'static str {
+    match unit {
+        TrainingZoneUnit::BeatsPerMinute => "beats-per-minute",
+        TrainingZoneUnit::KilometersPerHour => "kilometers-per-hour",
+        TrainingZoneUnit::Watts => "watts",
+    }
+}
+
+fn training_zone_kind_and_unit(
+    kind: &str,
+    unit: &str,
+) -> Result<(TrainingZoneKind, TrainingZoneUnit)> {
+    match (kind, unit) {
+        ("heart-rate", "beats-per-minute") => Ok((
+            TrainingZoneKind::HeartRate,
+            TrainingZoneUnit::BeatsPerMinute,
+        )),
+        ("speed", "kilometers-per-hour") => {
+            Ok((TrainingZoneKind::Speed, TrainingZoneUnit::KilometersPerHour))
+        }
+        ("power", "watts") => Ok((TrainingZoneKind::Power, TrainingZoneUnit::Watts)),
+        _ => Err(ImportError::InvalidTrainingLibrary(
+            "training zone kind and unit are inconsistent".to_owned(),
+        )),
+    }
+}
+
+fn training_zone_is_valid(zone: &TrainingZone, kind: TrainingZoneKind) -> bool {
+    if !zone.lower_limit.is_finite()
+        || zone.lower_limit < 0.0
+        || !zone.higher_limit.is_finite()
+        || zone.higher_limit < zone.lower_limit
+        || zone
+            .time_in_zone_milliseconds
+            .is_some_and(|value| value < 0)
+        || zone
+            .distance_meters
+            .is_some_and(|value| !value.is_finite() || value < 0.0)
+        || zone
+            .muscle_load
+            .is_some_and(|value| !value.is_finite() || value < 0.0)
+    {
+        return false;
+    }
+    match kind {
+        TrainingZoneKind::HeartRate => zone.distance_meters.is_none() && zone.muscle_load.is_none(),
+        TrainingZoneKind::Speed => zone.muscle_load.is_none(),
+        TrainingZoneKind::Power => zone.distance_meters.is_none(),
+    }
+}
+
+fn query_training_zone_group_zones_on(
+    connection: &Connection,
+    origin_id: &str,
+    session_id: &str,
+    exercise_id: &str,
+    group_ordinal: usize,
+    kind: TrainingZoneKind,
+) -> Result<Vec<TrainingZone>> {
+    let mut statement = connection.prepare(
+        "SELECT ordinal, lower_limit, higher_limit, time_in_zone_milliseconds,
+                distance_meters, muscle_load
+         FROM training_zone
+         WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3
+           AND group_ordinal = ?4
+         ORDER BY ordinal",
+    )?;
+    let rows = statement.query_map(
+        params![origin_id, session_id, exercise_id, group_ordinal],
+        |row| {
+            Ok((
+                row.get::<_, i64>(0)?,
+                row.get::<_, f64>(1)?,
+                row.get::<_, f64>(2)?,
+                row.get::<_, Option<i64>>(3)?,
+                row.get::<_, Option<f64>>(4)?,
+                row.get::<_, Option<f64>>(5)?,
+            ))
+        },
+    )?;
+    let mut zones = Vec::new();
+    for row in rows {
+        let (
+            ordinal,
+            lower_limit,
+            higher_limit,
+            time_in_zone_milliseconds,
+            distance_meters,
+            muscle_load,
+        ) = row?;
+        let zone = TrainingZone {
+            ordinal: persisted_count(ordinal, "training zone ordinal")?,
+            lower_limit,
+            higher_limit,
+            time_in_zone_milliseconds,
+            distance_meters,
+            muscle_load,
+        };
+        if zone.ordinal != zones.len() || !training_zone_is_valid(&zone, kind) {
+            return Err(ImportError::InvalidTrainingLibrary(
+                "training zones are invalid".to_owned(),
+            ));
+        }
+        zones.push(zone);
+    }
+    if zones.len() > 256 {
+        return Err(ImportError::InvalidTrainingLibrary(
+            "training zone count exceeds the supported bound".to_owned(),
+        ));
+    }
+    Ok(zones)
+}
+
+fn query_training_zone_groups_on(
+    connection: &Connection,
+    origin_id: &str,
+    session_id: &str,
+    exercise_id: &str,
+) -> Result<Vec<TrainingZoneGroup>> {
+    let mut statement = connection.prepare(
+        "SELECT ordinal, kind, unit, zones_present
+         FROM training_zone_group
+         WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3
+         ORDER BY ordinal",
+    )?;
+    let rows = statement.query_map(params![origin_id, session_id, exercise_id], |row| {
+        Ok((
+            row.get::<_, i64>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, String>(2)?,
+            row.get::<_, i64>(3)?,
+        ))
+    })?;
+    let mut groups = Vec::new();
+    for row in rows {
+        let (ordinal, kind, unit, zones_present) = row?;
+        let ordinal = persisted_count(ordinal, "training zone group ordinal")?;
+        if ordinal != groups.len() {
+            return Err(ImportError::InvalidTrainingLibrary(
+                "training zone group ordinals are not contiguous".to_owned(),
+            ));
+        }
+        let (kind, unit) = training_zone_kind_and_unit(&kind, &unit)?;
+        let persisted_zones = query_training_zone_group_zones_on(
+            connection,
+            origin_id,
+            session_id,
+            exercise_id,
+            ordinal,
+            kind,
+        )?;
+        let zones = if persisted_training_flag(zones_present, "zones_present")? {
+            Some(persisted_zones)
+        } else if persisted_zones.is_empty() {
+            None
+        } else {
+            return Err(ImportError::InvalidTrainingLibrary(
+                "absent zone band collection has child evidence".to_owned(),
+            ));
+        };
+        groups.push(TrainingZoneGroup {
+            ordinal,
+            kind,
+            unit,
+            zones,
+        });
+    }
+    if groups.len() > 64 {
+        return Err(ImportError::InvalidTrainingLibrary(
+            "training zone group count exceeds the supported bound".to_owned(),
+        ));
+    }
+    Ok(groups)
+}
+
+fn query_training_session_zones_on(
+    connection: &Connection,
+    origin_id: &str,
+    session_id: &str,
+) -> Result<Option<TrainingSessionZoneAssessment>> {
+    let exercises_present = connection
+        .query_row(
+            "SELECT exercises_present FROM training_session_zone_assessment
+             WHERE origin_id = ?1 AND session_id = ?2",
+            params![origin_id, session_id],
+            |row| row.get::<_, i64>(0),
+        )
+        .optional()?;
+    let Some(exercises_present) = exercises_present else {
+        return Ok(None);
+    };
+    if !persisted_training_flag(exercises_present, "zone exercises_present")? {
+        return Ok(Some(TrainingSessionZoneAssessment { exercises: None }));
+    }
+    let mut statement = connection.prepare(
+        "SELECT exercise_id, ordinal, zones_present, unsupported_group_count
+         FROM training_exercise_zone_assessment
+         WHERE origin_id = ?1 AND session_id = ?2
+         ORDER BY ordinal",
+    )?;
+    let rows = statement.query_map(params![origin_id, session_id], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, i64>(1)?,
+            row.get::<_, i64>(2)?,
+            row.get::<_, i64>(3)?,
+        ))
+    })?;
+    let mut exercises = Vec::new();
+    for row in rows {
+        let (exercise_id, ordinal, zones_present, unsupported_group_count) = row?;
+        let ordinal = persisted_count(ordinal, "training exercise zone ordinal")?;
+        if ordinal != exercises.len() {
+            return Err(ImportError::InvalidTrainingLibrary(
+                "training exercise zone ordinals are not contiguous".to_owned(),
+            ));
+        }
+        let groups =
+            query_training_zone_groups_on(connection, origin_id, session_id, &exercise_id)?;
+        let zones = if persisted_training_flag(zones_present, "zones_present")? {
+            Some(TrainingZones {
+                groups,
+                unsupported_group_count: persisted_count(
+                    unsupported_group_count,
+                    "unsupported_group_count",
+                )?,
+            })
+        } else if groups.is_empty() && unsupported_group_count == 0 {
+            None
+        } else {
+            return Err(ImportError::InvalidTrainingLibrary(
+                "absent zone collection has child evidence".to_owned(),
+            ));
+        };
+        exercises.push(TrainingExerciseZoneAssessment {
+            exercise_id,
+            ordinal,
+            zones,
+        });
+    }
+    Ok(Some(TrainingSessionZoneAssessment {
+        exercises: Some(exercises),
+    }))
+}
+
 fn replace_training_session_structure(
     transaction: &Transaction<'_>,
     record: &TrainingSessionRecord,
@@ -8989,15 +9589,177 @@ fn insert_training_session_signals(
     Ok(())
 }
 
+fn delete_training_session_zones(
+    transaction: &Transaction<'_>,
+    summary: &TrainingSession,
+) -> Result<()> {
+    transaction.execute(
+        "DELETE FROM training_zone WHERE origin_id = ?1 AND session_id = ?2",
+        params![summary.origin_id, summary.session_id],
+    )?;
+    transaction.execute(
+        "DELETE FROM training_zone_group WHERE origin_id = ?1 AND session_id = ?2",
+        params![summary.origin_id, summary.session_id],
+    )?;
+    transaction.execute(
+        "DELETE FROM training_exercise_zone_assessment
+         WHERE origin_id = ?1 AND session_id = ?2",
+        params![summary.origin_id, summary.session_id],
+    )?;
+    transaction.execute(
+        "DELETE FROM training_session_zone_assessment
+         WHERE origin_id = ?1 AND session_id = ?2",
+        params![summary.origin_id, summary.session_id],
+    )?;
+    Ok(())
+}
+
+fn insert_training_session_zones(
+    transaction: &Transaction<'_>,
+    record: &TrainingSessionRecord,
+) -> Result<()> {
+    let summary = &record.summary;
+    let Some(assessment) = &record.zones else {
+        return Ok(());
+    };
+    transaction.execute(
+        "INSERT INTO training_session_zone_assessment (
+             origin_id, session_id, exercises_present, mapping_version
+         ) VALUES (?1, ?2, ?3, ?4)",
+        params![
+            summary.origin_id,
+            summary.session_id,
+            assessment.exercises.is_some(),
+            TRAINING_SESSION_MAPPING_VERSION,
+        ],
+    )?;
+    let Some(exercises) = &assessment.exercises else {
+        return Ok(());
+    };
+    if record
+        .structure
+        .as_ref()
+        .and_then(|value| value.exercises.as_ref())
+        .is_none_or(|structure| {
+            structure.len() != exercises.len()
+                || structure.iter().zip(exercises).any(|(left, right)| {
+                    left.exercise_id != right.exercise_id || left.ordinal != right.ordinal
+                })
+        })
+    {
+        return Err(ImportError::InvalidTrainingLibrary(
+            "zone and structural exercise identities differ".to_owned(),
+        ));
+    }
+    for exercise in exercises {
+        let unsupported_group_count = exercise
+            .zones
+            .as_ref()
+            .map_or(0, |zones| zones.unsupported_group_count);
+        transaction.execute(
+            "INSERT INTO training_exercise_zone_assessment (
+                 origin_id, session_id, exercise_id, ordinal, zones_present,
+                 unsupported_group_count
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                summary.origin_id,
+                summary.session_id,
+                exercise.exercise_id,
+                exercise.ordinal,
+                exercise.zones.is_some(),
+                i64::try_from(unsupported_group_count).map_err(|_| invalid_training_artifact(
+                    "canonical zone",
+                    "unsupported zone group count is too large",
+                ))?,
+            ],
+        )?;
+        let Some(zones) = &exercise.zones else {
+            continue;
+        };
+        if zones.groups.len() > 64 {
+            return Err(ImportError::InvalidTrainingLibrary(
+                "canonical zone group count exceeds the supported bound".to_owned(),
+            ));
+        }
+        for (group_ordinal, group) in zones.groups.iter().enumerate() {
+            let valid_kind_unit = matches!(
+                (group.kind, group.unit),
+                (
+                    TrainingZoneKind::HeartRate,
+                    TrainingZoneUnit::BeatsPerMinute
+                ) | (TrainingZoneKind::Speed, TrainingZoneUnit::KilometersPerHour)
+                    | (TrainingZoneKind::Power, TrainingZoneUnit::Watts)
+            );
+            if group.ordinal != group_ordinal || !valid_kind_unit {
+                return Err(ImportError::InvalidTrainingLibrary(
+                    "canonical zone group is invalid".to_owned(),
+                ));
+            }
+            transaction.execute(
+                "INSERT INTO training_zone_group (
+                     origin_id, session_id, exercise_id, ordinal, kind, unit,
+                     zones_present
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                params![
+                    summary.origin_id,
+                    summary.session_id,
+                    exercise.exercise_id,
+                    group.ordinal,
+                    training_zone_kind_code(group.kind),
+                    training_zone_unit_code(group.unit),
+                    group.zones.is_some(),
+                ],
+            )?;
+            let Some(zone_values) = &group.zones else {
+                continue;
+            };
+            if zone_values.len() > 256 {
+                return Err(ImportError::InvalidTrainingLibrary(
+                    "canonical zone count exceeds the supported bound".to_owned(),
+                ));
+            }
+            for (zone_ordinal, zone) in zone_values.iter().enumerate() {
+                if zone.ordinal != zone_ordinal || !training_zone_is_valid(zone, group.kind) {
+                    return Err(ImportError::InvalidTrainingLibrary(
+                        "canonical zone is invalid".to_owned(),
+                    ));
+                }
+                transaction.execute(
+                    "INSERT INTO training_zone (
+                         origin_id, session_id, exercise_id, group_ordinal, ordinal,
+                         lower_limit, higher_limit, time_in_zone_milliseconds,
+                         distance_meters, muscle_load
+                     ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                    params![
+                        summary.origin_id,
+                        summary.session_id,
+                        exercise.exercise_id,
+                        group.ordinal,
+                        zone.ordinal,
+                        zone.lower_limit,
+                        zone.higher_limit,
+                        zone.time_in_zone_milliseconds,
+                        zone.distance_meters,
+                        zone.muscle_load,
+                    ],
+                )?;
+            }
+        }
+    }
+    Ok(())
+}
+
 fn replace_training_session_evidence(
     transaction: &Transaction<'_>,
     record: &TrainingSessionRecord,
 ) -> Result<()> {
+    delete_training_session_zones(transaction, &record.summary)?;
     delete_training_session_signals(transaction, &record.summary)?;
     delete_training_session_routes(transaction, &record.summary)?;
     replace_training_session_structure(transaction, record)?;
     insert_training_session_routes(transaction, record)?;
-    insert_training_session_signals(transaction, record)
+    insert_training_session_signals(transaction, record)?;
+    insert_training_session_zones(transaction, record)
 }
 
 fn reconcile_training_session(
@@ -9065,6 +9827,11 @@ fn reconcile_training_session(
                         &summary.session_id,
                     )?,
                     signals: query_training_session_signals_on(
+                        transaction,
+                        &summary.origin_id,
+                        &summary.session_id,
+                    )?,
+                    zones: query_training_session_zones_on(
                         transaction,
                         &summary.origin_id,
                         &summary.session_id,
@@ -10370,6 +11137,15 @@ impl TrainingSessionSignalPort for SqliteTrainingLibrary {
     }
 }
 
+impl TrainingSessionZonePort for SqliteTrainingLibrary {
+    fn query_training_session_zones(
+        &self,
+        query: &TrainingSessionZonesQuery,
+    ) -> std::result::Result<PersistedTrainingSessionZones, TrainingSessionZonePortError> {
+        query_training_session_zones_discovery(&self.database_path, query)
+    }
+}
+
 impl TrainingSegmentationPort for SqliteTrainingLibrary {
     fn query_training_session_segmentation(
         &self,
@@ -11347,7 +12123,38 @@ mod tests {
                                 {"type":"TEMPERATURE","intervalMillis":500,"values":[18.5,18.6]}
                             ],
                             "rrSamples":[800,810]
-                        }
+                        },
+                        "zones":[
+                            {
+                                "type":"ZONE_TYPE_HEART_RATE",
+                                "zones":[
+                                    {"lowerLimit":120,"higherLimit":139,"inZone":900000},
+                                    {"lowerLimit":140,"higherLimit":159}
+                                ]
+                            },
+                            {
+                                "type":"ZONE_TYPE_SPEED",
+                                "zones":[{
+                                    "lowerLimit":8.0,
+                                    "higherLimit":10.0,
+                                    "inZone":600000,
+                                    "distanceMeters":2500.5
+                                }]
+                            },
+                            {
+                                "type":"ZONE_TYPE_POWER",
+                                "zones":[{
+                                    "lowerLimit":180,
+                                    "higherLimit":219,
+                                    "inZone":300000,
+                                    "muscleLoad":42.5
+                                }]
+                            },
+                            {
+                                "type":"ZONE_TYPE_FIT_FAT",
+                                "zones":[{"higherLimit":1.0}]
+                            }
+                        ]
                     }]
                     }"#,
                 ),
@@ -11557,6 +12364,42 @@ mod tests {
         );
         assert_eq!(exact_samples.next_offset, Some(3));
 
+        let zones = query_training_session_zones(
+            &library,
+            TrainingSessionZonesQuery {
+                session_ref: session_ref.clone(),
+                snapshot_ref: Some(snapshot_ref.clone()),
+            },
+        )
+        .expect("training zone evidence")
+        .zones
+        .expect("evaluated zones")
+        .exercises
+        .expect("zone exercise collection");
+        assert_eq!(zones.len(), 1);
+        assert_eq!(zones[0].exercise_ref, exercise.exercise_ref);
+        let zone_collection = zones[0].zones.as_ref().expect("zone collection");
+        assert_eq!(zone_collection.unsupported_group_count, 1);
+        assert_eq!(zone_collection.groups.len(), 3);
+        assert_eq!(
+            zone_collection.groups[0].kind,
+            TrainingZoneKindView::HeartRate
+        );
+        let heart_rate_zones = zone_collection.groups[0]
+            .zones
+            .as_ref()
+            .expect("heart-rate zones");
+        assert_eq!(heart_rate_zones.len(), 2);
+        assert_eq!(heart_rate_zones[1].time_in_zone_milliseconds, None);
+        assert_eq!(
+            zone_collection.groups[1].zones.as_ref().unwrap()[0].distance_meters,
+            Some(2500.5)
+        );
+        assert_eq!(
+            zone_collection.groups[2].zones.as_ref().unwrap()[0].muscle_load,
+            Some(42.5)
+        );
+
         let equal_time = create_training_segment_criterion(
             &library,
             CreateTrainingSegmentCriterionRequest {
@@ -11757,6 +12600,11 @@ mod tests {
         assert!(table_names
             .iter()
             .any(|name| name == "training_exercise_segment_criterion"));
+        assert!(table_names
+            .iter()
+            .any(|name| name == "training_session_zone_assessment"));
+        assert!(table_names.iter().any(|name| name == "training_zone_group"));
+        assert!(table_names.iter().any(|name| name == "training_zone"));
         assert_eq!(
             connection
                 .query_row("SELECT COUNT(*) FROM training_signal_series", [], |row| {
@@ -11772,6 +12620,22 @@ mod tests {
                 })
                 .expect("mapped signal sample count"),
             7
+        );
+        assert_eq!(
+            connection
+                .query_row("SELECT COUNT(*) FROM training_zone_group", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .expect("mapped zone group count"),
+            3
+        );
+        assert_eq!(
+            connection
+                .query_row("SELECT COUNT(*) FROM training_zone", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .expect("mapped zone count"),
+            4
         );
 
         connection
@@ -11838,7 +12702,15 @@ mod tests {
                                 "type":"HEART_RATE",
                                 "intervalMillis":1000,
                                 "values":[130,"NaN",140]
-                            }]}
+                            }]},
+                            "zones":[{
+                                "type":"ZONE_TYPE_HEART_RATE",
+                                "zones":[{
+                                    "lowerLimit":130,
+                                    "higherLimit":149,
+                                    "inZone":1200000
+                                }]
+                            }]
                         }]
                     }"#,
                 ),
@@ -11850,22 +12722,18 @@ mod tests {
         connection
             .execute_batch(
                 "PRAGMA foreign_keys = ON;
-                 DELETE FROM training_signal_sample;
-                 DELETE FROM training_signal_series;
-                 DELETE FROM training_exercise_signal_assessment;
-                 DELETE FROM training_session_signal_assessment;
-                 DELETE FROM training_route_point;
-                 DELETE FROM training_route;
-                 DELETE FROM training_exercise_route_assessment;
-                 DELETE FROM training_session_route_assessment;
+                 DELETE FROM training_zone;
+                 DELETE FROM training_zone_group;
+                 DELETE FROM training_exercise_zone_assessment;
+                 DELETE FROM training_session_zone_assessment;
                  UPDATE import_operation
-                 SET source_adapter_version = 'polar-flow-archive@8',
-                     mapping_version = 'polar-flow-mapping-set@3';
+                 SET source_adapter_version = 'polar-flow-archive@9',
+                     mapping_version = 'polar-flow-mapping-set@4';
                  UPDATE training_session_provenance
-                 SET source_adapter_version = 'polar-flow-archive@8',
-                     mapping_version = 'polar-flow-training-session@3';",
+                 SET source_adapter_version = 'polar-flow-archive@9',
+                     mapping_version = 'polar-flow-training-session@4';",
             )
-            .expect("simulate version-three persisted library");
+            .expect("simulate version-four persisted library");
         drop(connection);
 
         let enriched =
@@ -11927,6 +12795,19 @@ mod tests {
             .unwrap()[0];
         assert_eq!(heart_rate.samples.len(), 3);
         assert_eq!(heart_rate.samples[1].value, None);
+        let zones = query_training_session_zones_on(
+            &Connection::open(harness.database()).unwrap(),
+            &query_training_sessions(&harness.database()).unwrap()[0].origin_id,
+            "synthetic-upgrade-session",
+        )
+        .unwrap()
+        .unwrap()
+        .exercises
+        .unwrap();
+        assert_eq!(zones.len(), 1);
+        let groups = &zones[0].zones.as_ref().unwrap().groups;
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].zones.as_ref().unwrap().len(), 1);
     }
 
     #[test]
@@ -13710,6 +14591,10 @@ mod tests {
             minimal.observation.signals,
             Some(TrainingSessionSignalAssessment { exercises: None })
         );
+        assert_eq!(
+            minimal.observation.zones,
+            Some(TrainingSessionZoneAssessment { exercises: None })
+        );
 
         let multiple = decode_training_session(
             "synthetic-origin",
@@ -13832,6 +14717,26 @@ mod tests {
             (
                 locator,
                 r#"{"identifier":{"id":"synthetic"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"exercises":[{"identifier":{"id":"exercise"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"samples":{"samples":[{"type":"SPEED","intervalMillis":1000,"values":[-1]}]}}]}"#,
+                "invalid-supported-artifact",
+            ),
+            (
+                locator,
+                r#"{"identifier":{"id":"synthetic"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"exercises":[{"identifier":{"id":"exercise"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"zones":[{"type":"ZONE_TYPE_HEART_RATE","zones":[{"higherLimit":140,"inZone":1000}]}]}]}"#,
+                "invalid-supported-artifact",
+            ),
+            (
+                locator,
+                r#"{"identifier":{"id":"synthetic"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"exercises":[{"identifier":{"id":"exercise"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"zones":[{"type":"ZONE_TYPE_SPEED","zones":[{"lowerLimit":10,"higherLimit":9,"inZone":1000}]}]}]}"#,
+                "invalid-supported-artifact",
+            ),
+            (
+                locator,
+                r#"{"identifier":{"id":"synthetic"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"exercises":[{"identifier":{"id":"exercise"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"zones":[{"type":"ZONE_TYPE_HEART_RATE","zones":[{"lowerLimit":120,"higherLimit":140,"inZone":-1}]}]}]}"#,
+                "invalid-supported-artifact",
+            ),
+            (
+                locator,
+                r#"{"identifier":{"id":"synthetic"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"exercises":[{"identifier":{"id":"exercise"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"zones":[{"type":"ZONE_TYPE_HEART_RATE","zones":[{"lowerLimit":120,"higherLimit":140,"distanceMeters":10}]}]}]}"#,
                 "invalid-supported-artifact",
             ),
             (

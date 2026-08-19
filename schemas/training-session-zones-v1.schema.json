@@ -1,0 +1,189 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-zones-v1.schema.json",
+  "title": "FitFreed training-session zone evidence version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["snapshotRef", "sessionRef", "zones"],
+  "properties": {
+    "snapshotRef": { "$ref": "#/$defs/snapshotRef" },
+    "sessionRef": { "$ref": "#/$defs/sessionRef" },
+    "zones": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/assessment" }] }
+  },
+  "$defs": {
+    "snapshotRef": { "type": "string", "pattern": "^training-snapshot-[0-9a-f]{64}$" },
+    "sessionRef": { "type": "string", "pattern": "^session-[0-9a-f]{64}$" },
+    "exerciseRef": { "type": "string", "pattern": "^exercise-[0-9a-f]{64}$" },
+    "zoneGroupRef": { "type": "string", "pattern": "^zone-group-[0-9a-f]{64}$" },
+    "zoneRef": { "type": "string", "pattern": "^zone-[0-9a-f]{64}$" },
+    "milliseconds": { "type": "string", "pattern": "^(0|[1-9][0-9]*)$" },
+    "nullableNonNegativeNumber": {
+      "oneOf": [{ "type": "null" }, { "type": "number", "minimum": 0 }]
+    },
+    "zone": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "zoneRef",
+        "ordinal",
+        "lowerLimit",
+        "higherLimit",
+        "timeInZoneMilliseconds",
+        "distanceMeters",
+        "muscleLoad"
+      ],
+      "properties": {
+        "zoneRef": { "$ref": "#/$defs/zoneRef" },
+        "ordinal": { "type": "integer", "minimum": 0, "maximum": 255 },
+        "lowerLimit": { "type": "number", "minimum": 0 },
+        "higherLimit": { "type": "number", "minimum": 0 },
+        "timeInZoneMilliseconds": {
+          "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/milliseconds" }]
+        },
+        "distanceMeters": { "$ref": "#/$defs/nullableNonNegativeNumber" },
+        "muscleLoad": { "$ref": "#/$defs/nullableNonNegativeNumber" }
+      }
+    },
+    "zoneCollection": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "array",
+          "maxItems": 256,
+          "items": { "$ref": "#/$defs/zone" }
+        }
+      ]
+    },
+    "group": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["zoneGroupRef", "ordinal", "kind", "unit", "zones"],
+      "properties": {
+        "zoneGroupRef": { "$ref": "#/$defs/zoneGroupRef" },
+        "ordinal": { "type": "integer", "minimum": 0, "maximum": 63 },
+        "kind": { "enum": ["heart-rate", "speed", "power"] },
+        "unit": { "enum": ["beats-per-minute", "kilometers-per-hour", "watts"] },
+        "zones": { "$ref": "#/$defs/zoneCollection" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "heart-rate" } } },
+          "then": {
+            "properties": {
+              "unit": { "const": "beats-per-minute" },
+              "zones": {
+                "oneOf": [
+                  { "type": "null" },
+                  {
+                    "type": "array",
+                    "maxItems": 256,
+                    "items": {
+                      "allOf": [
+                        { "$ref": "#/$defs/zone" },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "distanceMeters": { "type": "null" },
+                            "muscleLoad": { "type": "null" }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "speed" } } },
+          "then": {
+            "properties": {
+              "unit": { "const": "kilometers-per-hour" },
+              "zones": {
+                "oneOf": [
+                  { "type": "null" },
+                  {
+                    "type": "array",
+                    "maxItems": 256,
+                    "items": {
+                      "allOf": [
+                        { "$ref": "#/$defs/zone" },
+                        {
+                          "type": "object",
+                          "properties": { "muscleLoad": { "type": "null" } }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "power" } } },
+          "then": {
+            "properties": {
+              "unit": { "const": "watts" },
+              "zones": {
+                "oneOf": [
+                  { "type": "null" },
+                  {
+                    "type": "array",
+                    "maxItems": 256,
+                    "items": {
+                      "allOf": [
+                        { "$ref": "#/$defs/zone" },
+                        {
+                          "type": "object",
+                          "properties": { "distanceMeters": { "type": "null" } }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "zoneEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["groups", "unsupportedGroupCount"],
+      "properties": {
+        "groups": {
+          "type": "array",
+          "maxItems": 64,
+          "items": { "$ref": "#/$defs/group" }
+        },
+        "unsupportedGroupCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "exercise": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exerciseRef", "ordinal", "zones"],
+      "properties": {
+        "exerciseRef": { "$ref": "#/$defs/exerciseRef" },
+        "ordinal": { "type": "integer", "minimum": 0 },
+        "zones": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/zoneEvidence" }] }
+      }
+    },
+    "assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exercises"],
+      "properties": {
+        "exercises": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "array", "items": { "$ref": "#/$defs/exercise" } }
+          ]
+        }
+      }
+    }
+  }
+}

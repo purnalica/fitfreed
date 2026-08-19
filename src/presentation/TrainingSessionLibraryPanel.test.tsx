@@ -20,6 +20,7 @@ import type {
   TrainingSessionSignalsResult,
 } from "./training-session-signal";
 import type { TrainingSessionSegmentationResult } from "./training-session-segmentation";
+import type { TrainingSessionZonesResult } from "./training-session-zone";
 import { TrainingSessionLibraryPanel } from "./TrainingSessionLibraryPanel";
 import type { TrainingSportsOverview } from "./training-sports";
 
@@ -56,6 +57,10 @@ function emptyWorkspaceCommand(command: string, arguments_: unknown) {
   if (command === "query_training_session_signals") {
     const query = (arguments_ as { query: { sessionRef: string } }).query;
     return Promise.resolve(trainingSignals(query.sessionRef));
+  }
+  if (command === "query_training_session_zones") {
+    const query = (arguments_ as { query: { sessionRef: string } }).query;
+    return Promise.resolve(trainingZones(query.sessionRef));
   }
   if (command === "query_training_signal_samples") {
     const query = (arguments_ as {
@@ -317,6 +322,49 @@ function trainingSignals(sessionRef: string): TrainingSessionSignalsResult {
         exerciseRef: `exercise-${"4".repeat(64)}`,
         ordinal: 1,
         signals: null,
+      }],
+    },
+  };
+}
+
+function trainingZones(sessionRef: string): TrainingSessionZonesResult {
+  return {
+    snapshotRef,
+    sessionRef,
+    zones: {
+      exercises: [{
+        exerciseRef: `exercise-${"1".repeat(64)}`,
+        ordinal: 0,
+        zones: {
+          groups: [{
+            zoneGroupRef: `zone-group-${"7".repeat(64)}`,
+            ordinal: 0,
+            kind: "heart-rate",
+            unit: "beats-per-minute",
+            zones: [{
+              zoneRef: `zone-${"8".repeat(64)}`,
+              ordinal: 0,
+              lowerLimit: 120,
+              higherLimit: 139,
+              timeInZoneMilliseconds: "900000",
+              distanceMeters: null,
+              muscleLoad: null,
+            }, {
+              zoneRef: `zone-${"9".repeat(64)}`,
+              ordinal: 1,
+              lowerLimit: 140,
+              higherLimit: 159,
+              timeInZoneMilliseconds: null,
+              distanceMeters: null,
+              muscleLoad: null,
+            }],
+          }],
+          unsupportedGroupCount: 1,
+        },
+      }, {
+        exerciseRef: `exercise-${"4".repeat(64)}`,
+        ordinal: 1,
+        zones: null,
       }],
     },
   };
@@ -744,16 +792,30 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(within(firstExercise!).queryByRole("region", {
       name: "Exact Heart rate samples",
     })).not.toBeInTheDocument();
+    const zones = await within(firstExercise!).findByRole("region", {
+      name: "Recorded zones",
+    });
+    expect(within(zones).getByRole("region", { name: "Heart rate · group 1" }))
+      .toHaveTextContent("120–139 bpm");
+    expect(zones).toHaveTextContent("15 min");
+    expect(zones).toHaveTextContent("Not recorded");
+    expect(zones).toHaveTextContent(
+      "1 unsupported source zone group was preserved as an explicit count.",
+    );
     const secondExercise = within(detail!).getByRole("heading", { name: "Exercise 2" })
       .closest("article");
     expect(secondExercise).toHaveTextContent(
       "The source did not provide a signal container for this exercise.",
+    );
+    expect(secondExercise).toHaveTextContent(
+      "The source did not provide a zone container for this exercise.",
     );
     expect(detail).toHaveTextContent("5,000.25 m");
     expect(detail).toHaveTextContent("Provided by the source with no entries.");
     expect(detail).not.toHaveTextContent("exercise-");
     expect(detail).not.toHaveTextContent("lap-");
     expect(detail).not.toHaveTextContent("pause-");
+    expect(detail).not.toHaveTextContent("zone-");
     await user.click(within(detail!).getByRole("button", { name: "Back to session results" }));
     expect(within(region).queryByRole("heading", { name: "Session summary" }))
       .not.toBeInTheDocument();
@@ -955,6 +1017,9 @@ describe("TrainingSessionLibraryPanel", () => {
       }
       if (command === "query_training_session_signals") {
         return Promise.resolve(trainingSignals(arguments_.query.sessionRef));
+      }
+      if (command === "query_training_session_zones") {
+        return Promise.resolve(trainingZones(arguments_.query.sessionRef));
       }
       if (command === "query_training_session_segmentation") {
         return Promise.resolve(trainingSegmentation(arguments_.query.sessionRef));

@@ -56,7 +56,7 @@ This registry is the public coverage index. Detailed shapes, fields, identities,
 | Daily activity | Daily summaries, activity samples, and inactivity events | Filename grammar, source-subject correlation, filename/content date consistency, duplicate-date rejection, and the documented shape-based canonical step-count mapping are supported; compatibility is limited to the evaluated structural matrix |
 | Continuous heart rate | Partitioned high-resolution daily heart-rate samples | Recognized and deliberately ignored because full-resolution physiological exploration is excluded from the MVP |
 | Beat-to-beat samples | Partitioned high-resolution physiological samples | Recognized and deliberately ignored because full-resolution physiological exploration is excluded from the MVP |
-| Training | Sessions, exercises, laps, zones, routes, and sample series | Session summaries, exercise/lap/pause structure, primary and transition routes, and documented regular signal series are supported through training mapping version 4; zones, RR values, irregular samples, and unknown series remain deliberately unmapped |
+| Training | Sessions, exercises, laps, zones, routes, and sample series | Session summaries, exercise/lap/pause structure, primary and transition routes, documented regular signal series, and heart-rate, speed, and power zone distributions are supported through training mapping version 5; RR values, irregular samples, unknown series, and unsupported zone kinds remain deliberately unmapped |
 | Planning | Calendar entries, targets, favorites, programs, and personal events | Recognized and unsupported |
 | Sleep | Sleep timing, phases, interruptions, continuity, and scores | Result and score arrays are supported by mapping version 1; compatibility remains limited to the evaluated split-artifact structure and documented API correspondence |
 | Recovery | Nightly recovery measurements, recommendations, and related physiological observations | Dated nightly-recovery summaries are specified for mapping version 1; the undated sample blob is deliberately excluded because no safe record relationship is established |
@@ -208,6 +208,14 @@ Evaluated exercise objects also correspond to the official nested `TrainingSessi
 | regular series `.type` | Official correspondence and observed | required string in evaluated series | Source measurement enumeration; only explicitly mapped meanings enter the canonical vocabulary. |
 | regular series `.intervalMillis` | Official correspondence and observed | required positive integer in evaluated series | Regular interval in milliseconds. |
 | regular series `.values[]` | Official correspondence and observed | required ordered array of numbers or the string `NaN` | Source slot values; `NaN` represents an unavailable slot rather than zero. |
+| `exercises[].zones` | Official and observed | optional ordered array | Aggregate zone groups attributed to the exercise; absence differs from present-empty. |
+| zone group `.type` | Official correspondence and observed | required string | The API enum defines `HEART_RATE`, `SPEED`, `POWER`, `FIT_FAT`, and `UNSPECIFIED`; the takeout uses corresponding `ZONE_TYPE_` tokens in the evaluated shapes. |
+| zone group `.zones` | Official and observed | optional ordered array | Aggregate bands for one zone kind; absence differs from present-empty. |
+| zone band `.lowerLimit` | Official and observed | required number in the API and every mapped evaluated band | Lower bound in the group type's unit. |
+| zone band `.higherLimit` | Official and observed | required number in the API and every mapped evaluated band | Higher bound in the group type's unit. |
+| zone band `.inZone` | Official and observed | required integer in the API; absent or integer in the evaluated takeout | Aggregate time in milliseconds. Takeout absence is unknown, not zero. |
+| zone band `.distanceMeters` | Official and observed | optional number for speed zones | Aggregate distance in metres. |
+| zone band `.muscleLoad` | Official and observed | optional number for power zones | Source-recorded muscle load; no cross-kind or medical meaning is inferred. |
 
 **Evidence: Official correspondence and observed.** The evaluated regular-series type set includes altitude,
 cadence, distance, heart rate, speed, temperature, explicit left-crank current power, and more specialized
@@ -217,17 +225,25 @@ speed, metres for distance and altitude, rotations per minute for cadence, degre
 and watts for power. This correspondence does not make the API a specification of takeout field names or
 historical archive compatibility.
 
+**Evidence: Official correspondence and observed.** Polar's current zone contract establishes heart-rate,
+speed, power, fit-versus-fat, and unspecified group meanings, milliseconds for time in zone, metres for speed
+zone distance, and power-zone muscle load. The evaluated takeout uses `ZONE_TYPE_HEART_RATE`,
+`ZONE_TYPE_SPEED`, `ZONE_TYPE_POWER`, and `ZONE_TYPE_FIT_FAT`; it also contains a mapped band without
+`inZone`, although the current API marks that field required. FitFreed therefore documents the takeout
+absence explicitly instead of treating the API as a stricter archive guarantee.
+
 Absent, present-empty, and populated nested collections occur as distinct structural states and are not
 interchangeable. The public API additionally defines optional names, notes, device and product references,
 feelings, coordinates, energy-source percentages, recovery time, targets, training benefit and load, tests,
-hills, comments, exercise statistics, zones, and sample series. They remain outside the current
-mapping until their domain meaning, privacy boundary, relationship, and product use are specified.
+hills, comments, exercise statistics, zones, and sample series. Only the explicitly documented regular-series
+and zone meanings enter the current mapping; every other optional field remains outside it until its domain
+meaning, privacy boundary, relationship, and product use are specified.
 
 ### Relationships and variants
 
 **Evidence: Official and observed.** A session is the aggregate root and `exercises` is an optional child collection. The evaluated package contains sessions without the collection, single-exercise sessions, and multiple-exercise sessions. For single-exercise sessions, aggregate start, stop, duration, distance, and other summary values may agree or differ from the child. Multiple exercises may use different sport references. FitFreed therefore maps the aggregate fields directly and never substitutes, sums, or otherwise derives them from exercises.
 
-The optional top-level `sport.id` is present for the evaluated single- and multiple-exercise variants and absent for the evaluated no-exercise variant. When both the aggregate and every exercise have sport references, evaluated single-exercise references agree with the aggregate, while evaluated multiple-exercise sessions may contain different child references. Regular signal collections occur on exercises rather than at aggregate identity level. These observations describe compatibility evidence rather than a universal invariant.
+The optional top-level `sport.id` is present for the evaluated single- and multiple-exercise variants and absent for the evaluated no-exercise variant. When both the aggregate and every exercise have sport references, evaluated single-exercise references agree with the aggregate, while evaluated multiple-exercise sessions may contain different child references. Regular signal and zone collections occur on exercises rather than at aggregate identity level. These observations describe compatibility evidence rather than a universal invariant.
 
 Polar documents an authenticated `/v4/data/sports/list` catalogue that resolves sport identifiers to names and parent sports. That catalogue is not present in the evaluated takeout, and the observed `sport-profiles` artifact contains user settings keyed by a different source field rather than the required identifier-to-name catalogue. Training-summary version 1 preserves the aggregate sport reference as opaque source classification evidence. It does not publish, guess, or present a sport name from that value.
 
@@ -237,7 +253,7 @@ Polar documents an authenticated `/v4/data/sports/list` catalogue that resolves 
 
 Local start and stop values are parsed without using the computer's current time zone. The optional offset is preserved separately. When it is present, an absolute instant may be calculated as local time minus the documented offset; when it is absent, FitFreed must not invent an instant or a time zone. Calendar grouping uses the preserved local start date.
 
-Training-structure version 1 persists evaluated exercises, source/manual laps, automatic laps, and pauses while preserving collection absence. Training-route version 1 separately persists primary and transition route waypoints so lightweight structure reads never load sensitive geometry. Training-signal version 1 persists supported primary and transition regular series with exact unavailable slots, while counting unmapped regular types without publishing their tokens or values. The current mapping deliberately does not persist standalone session or exercise `latitude` and `longitude`, RR samples, irregular samples, zones, notes, comments, physical information, device identifiers, or product metadata. Ignoring those fields is known loss, not evidence that the original ZIP lacks them. The archive member remains classified as supported when its current mapping contract passes; excluded nested content does not become a second successful artifact and is disclosed by the mapping contract.
+Training-structure version 1 persists evaluated exercises, source/manual laps, automatic laps, and pauses while preserving collection absence. Training-route version 1 separately persists primary and transition route waypoints so lightweight structure reads never load sensitive geometry. Training-signal version 1 persists supported primary and transition regular series with exact unavailable slots, while counting unmapped regular types without publishing their tokens or values. Training-zone version 1 persists exact heart-rate, speed, and power aggregate bands while counting unsupported groups without retaining their tokens or values. The current mapping deliberately does not persist standalone session or exercise `latitude` and `longitude`, RR samples, irregular samples, unsupported zone values, notes, comments, physical information, device identifiers, or product metadata. Ignoring those fields is known loss, not evidence that the original ZIP lacks them. The archive member remains classified as supported when its current mapping contract passes; excluded nested content does not become a second successful artifact and is disclosed by the mapping contract.
 
 The normative transformation is specified in the [Polar Flow training-session mapping](../mappings/polar-flow-training-session.md). The provider reference remains descriptive evidence and does not define FitFreed behavior by itself.
 

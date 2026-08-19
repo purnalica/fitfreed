@@ -24,11 +24,12 @@ key and therefore performs no update request or installation.
 The independently generated synthetic journey covers both first-run acquisition paths, question-led
 exploration, range filtering, exact aligned day detail, navigation to authoritative explorers, two-period
 comparison, mapping-aware reimport, cumulative import, and restart. Training detail distinguishes
-unevaluated, absent, empty, and populated exercise/lap/pause, route, and signal states. Primary and transition
+unevaluated, absent, empty, and populated exercise/lap/pause, route, signal, and recorded-zone states. Primary and transition
 routes render as bounded local SVG traces with no external location request, while exact paginated tables retain
 every recorded coordinate. Supported exercise and transition signals render as gap-aware bounded charts with
-paginated access to every original sample. Provider-defined zones, unsupported signal types, and provenance
-presentation remain excluded. Sleep views distinguish missing nights from zero sleep and disclose optional phase, score, goal,
+paginated access to every original sample. Supported recorded heart-rate, speed, and power zones preserve
+their exact bounds and applicable aggregates without implying a timeline. Unsupported zone kinds, unsupported
+signal types, and provenance presentation remain excluded. Sleep views distinguish missing nights from zero sleep and disclose optional phase, score, goal,
 timeline, and recording-status coverage. Recovery views disclose gaps and measurement coverage, keep
 provider assessments, baselines, and guidance source-specific, and exclude undated samples that cannot be
 joined safely.

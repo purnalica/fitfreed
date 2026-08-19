@@ -463,6 +463,19 @@ th:last-child, td:last-child { text-align: right; }
 .training-signal-exact > h6 { margin: 0 0 10px; font-size: .9rem; }
 .training-signal-exact table { min-width: 520px; }
 .training-signal-pagination { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; }
+.training-exercise-zones { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+.training-exercise-zones > h5 { margin: 0 0 5px; font-size: .95rem; }
+.training-exercise-zones > p { margin: 0; color: var(--muted); }
+.training-zone-attribution { display: inline-block; margin-top: 12px !important; padding: 5px 9px; color: var(--accent-strong) !important; background: var(--accent-soft); border-radius: 999px; font-size: .76rem; font-weight: 750; letter-spacing: .02em; }
+.training-zone-group { margin-top: 14px; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.training-zone-group > h6 { margin: 0 0 12px; font-size: .9rem; }
+.training-zone-group > p { margin: 0; color: var(--muted); }
+.training-zone-group table { min-width: 760px; }
+.training-zone-distribution { display: grid; gap: 8px; margin: 0 0 16px; padding: 12px; background: var(--surface-soft); border-radius: 9px; }
+.training-zone-bar-row { display: grid; grid-template-columns: minmax(58px, auto) minmax(120px, 1fr) minmax(92px, auto); align-items: center; gap: 10px; color: var(--ink-soft); font-size: .78rem; }
+.training-zone-bar-track { display: block; height: 11px; overflow: hidden; background: var(--line); border-radius: 999px; }
+.training-zone-bar-track > span { display: block; min-width: 0; height: 100%; background: var(--accent); border-radius: inherit; }
+.training-zone-unsupported { margin: 14px 0 0 !important; padding: 10px 12px; color: var(--ink-soft) !important; background: var(--warning-soft); border-radius: 8px; font-size: .8rem; }
 .training-segmentation { margin-top: 28px; padding-top: 24px; border-top: 2px solid var(--accent); }
 .training-segmentation > h4 { margin: 0 0 5px; font-size: 1.1rem; }
 .training-segmentation > h4 + p { margin: 0; color: var(--muted); }

@@ -1033,6 +1033,34 @@ describe("packaged FitFreed import journey", () => {
     );
     await exactSignalToggle.click();
     expect(await recordedSignals[0].$$(".training-signal-exact")).toHaveLength(0);
+    await browser.waitUntil(async () => (await $$(".training-zone-group")).length === 3, {
+      timeout: 10_000,
+      timeoutMsg: "recorded heart-rate, speed, and power zones were not displayed",
+    });
+    await expect($(".training-exercise-zones > h5")).toHaveText(
+      english.training.sessionLibrary.zoneHeading,
+    );
+    const recordedZoneGroups = await $$(".training-zone-group");
+    await expect(recordedZoneGroups[0].$("h6")).toHaveText("Heart rate · group 1");
+    await expect(recordedZoneGroups[0].$(".training-zone-distribution")).toHaveAttribute(
+      "aria-label",
+      "Heart rate distribution with recorded time for 1 of 2 zones.",
+    );
+    const heartRateZoneRows = await recordedZoneGroups[0].$$("tbody tr");
+    expect(heartRateZoneRows).toHaveLength(2);
+    await expect(heartRateZoneRows[0]).toHaveText(expect.stringContaining("120–139 bpm"));
+    await expect(heartRateZoneRows[0]).toHaveText(expect.stringContaining("15 min"));
+    await expect(heartRateZoneRows[1]).toHaveText(
+      expect.stringContaining(english.training.sessionLibrary.zoneNotRecorded),
+    );
+    await expect(recordedZoneGroups[1]).toHaveText(expect.stringContaining("2,500.5 m"));
+    await expect(recordedZoneGroups[2]).toHaveText(expect.stringContaining("42.5"));
+    await expect($(".training-zone-unsupported")).toHaveText(
+      expect.stringContaining("1 unsupported source zone group"),
+    );
+    await expect($(".training-exercise-zones")).not.toHaveText(
+      expect.stringContaining("ZONE_TYPE_"),
+    );
     const segmentation = await $(".training-segmentation");
     await expect(segmentation.$("h4")).toHaveText(
       english.training.sessionLibrary.segmentHeading,

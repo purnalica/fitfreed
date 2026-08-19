@@ -68,6 +68,14 @@ pub use training_signal::{
     TrainingSignalVisualSampleView,
 };
 
+mod training_zone;
+pub use training_zone::{
+    query_training_session_zones, PersistedTrainingSessionZones, TrainingExerciseZonesView,
+    TrainingSessionZonePort, TrainingSessionZonePortError, TrainingSessionZonesQuery,
+    TrainingSessionZonesResult, TrainingSessionZonesView, TrainingZoneCollectionView,
+    TrainingZoneGroupView, TrainingZoneKindView, TrainingZoneUnitView, TrainingZoneView,
+};
+
 mod training_segmentation;
 pub use training_segmentation::{
     apply_training_segment_criterion, create_training_segment_criterion,
@@ -94,6 +102,9 @@ mod training_route_tests;
 
 #[cfg(test)]
 mod training_signal_tests;
+
+#[cfg(test)]
+mod training_zone_tests;
 
 #[cfg(test)]
 mod training_segmentation_tests;

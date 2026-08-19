@@ -63,6 +63,35 @@ function recordedTrainingSignals() {
   };
 }
 
+function recordedTrainingZones() {
+  return [{
+    type: "ZONE_TYPE_HEART_RATE",
+    zones: [{ lowerLimit: 120, higherLimit: 139, inZone: 900_000 }, {
+      lowerLimit: 140,
+      higherLimit: 159,
+    }],
+  }, {
+    type: "ZONE_TYPE_SPEED",
+    zones: [{
+      lowerLimit: 8,
+      higherLimit: 10,
+      inZone: 600_000,
+      distanceMeters: 2_500.5,
+    }],
+  }, {
+    type: "ZONE_TYPE_POWER",
+    zones: [{
+      lowerLimit: 180,
+      higherLimit: 219,
+      inZone: 300_000,
+      muscleLoad: 42.5,
+    }],
+  }, {
+    type: "ZONE_TYPE_FIT_FAT",
+    zones: [{ lowerLimit: 0, higherLimit: 1, inZone: 0 }],
+  }];
+}
+
 function trainingSession({
   id,
   created,
@@ -294,6 +323,7 @@ await createArchive("valid.zip", [
         }],
         routes: recordedOutdoorRoutes(),
         samples: recordedTrainingSignals(),
+        zones: recordedTrainingZones(),
       }],
     }),
   ],
@@ -374,6 +404,7 @@ await createArchive("overlap.zip", [
         }],
         routes: recordedOutdoorRoutes(),
         samples: recordedTrainingSignals(),
+        zones: recordedTrainingZones(),
       }],
     }),
   ],

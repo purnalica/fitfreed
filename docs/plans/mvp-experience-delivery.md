@@ -494,9 +494,31 @@ localization, evaluation-version disclosure, 200% layout, and restart restoratio
 passed 135 repository-automation tests, 95 React tests, 184 host tests, 105 application tests, 18 domain
 tests, and two private acceptance tests with strict Clippy and formatting. The local read-model campaign
 recalculated a heart-rate criterion by streaming 100,000 exact source slots at 23.889 ms p95 against the
-500 ms budget; the complete campaign used 22.797 MiB peak process memory. E4 remains active for
-provider-defined zones, provenance presentation, progressive cross-signal inspection, and their privacy and
-performance evidence.
+500 ms budget; the complete campaign used 22.797 MiB peak process memory. At that checkpoint, E4 continued
+with recorded zones, provenance presentation, and progressive cross-signal inspection.
+
+**Recorded-zone slice local accepted evidence:** schema 19, adapter version 10, mapping-set version 5, and
+training mapping version 5 preserve independently evaluated exercise zone collections. Supported heart-rate,
+speed, and power groups retain their canonical units, source order, exact bounds, and only the applicable
+recorded time, distance, or muscle-load aggregates. Unevaluated, absent, present-empty, populated,
+unsupported-group, unavailable-aggregate, zero, and not-applicable states remain distinct. Unsupported source
+vocabulary and values do not cross the anti-corruption boundary. Reimport of identical bytes from mapping
+version 4 enriches the existing session without duplicate groups or zones, while invalid shapes, bounds,
+units, counts, and kind-specific aggregates fail before visibility.
+
+The session workspace presents each source group as aggregate evidence with an accessible distribution and
+exact table. It does not invent a timeline, lap, phase, or relationship to FitFreed-derived segmentation. The
+packaged bilingual journey proves all three supported kinds, missing and kind-specific aggregates,
+unsupported-group disclosure without provider tokens, mapping-aware amendment, restart, 200% layout,
+keyboard semantics, and automated accessibility. The complete fast lane passed 135 repository-automation
+tests, 98 React tests, 185 host tests, 110 application tests, 19 domain tests, and two private acceptance tests
+with strict Clippy and formatting. Packaged update replacement and forced recovery also passed against schema
+19.
+
+The local Apple Silicon read-model campaign stored the maximum supported 65,536 independently generated
+zones across four sessions. Complete exact retrieval measured 20.846 ms p95 against the 500 ms budget; the
+complete campaign used 26.297 MiB peak process memory. E4 remains active for complete provenance
+presentation and progressive cross-signal inspection.
 
 ### E5 — Personal report authoring and export
 

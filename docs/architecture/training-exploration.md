@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production persists provider-neutral session summaries, mapped exercise/lap/pause structure, primary and transition routes with exact points, supported exercise and transition signals with exact samples, user-authored sport classifications and reusable segment criteria, and a disposable discovery workspace. Full-history search, chronology, calendar projection, comparison selection, restart restoration, structural detail, bounded local route traces, exact route pagination, gap-aware bounded signal charts, exact signal pagination, and user-authored segmentation are implemented. Provider-defined zones, provenance presentation, and progressive cross-signal inspection continue through E4 of the [MVP experience delivery plan](../plans/mvp-experience-delivery.md).
+Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production persists provider-neutral session summaries, mapped exercise/lap/pause structure, primary and transition routes with exact points, supported exercise and transition signals with exact samples, supported recorded zones with exact aggregates, user-authored sport classifications and reusable segment criteria, and a disposable discovery workspace. Full-history search, chronology, calendar projection, comparison selection, restart restoration, structural detail, bounded local route traces, exact route pagination, gap-aware bounded signal charts, exact signal pagination, recorded-zone inspection, and user-authored segmentation are implemented. Complete provenance presentation and progressive cross-signal inspection continue through E4 of the [MVP experience delivery plan](../plans/mvp-experience-delivery.md).
 
 ## Ownership
 
@@ -82,6 +82,17 @@ The exact query returns stable contiguous pages of at most 250 slots. Exercise a
 kind, unit, interval, source ordinal, and sample ordinal remain explicit, and no signal query loads a complete
 series merely to draw a bounded chart.
 
+The independent [training-session zone read model](../data-formats/insights/training-session-zone-v1.md)
+preserves unevaluated, absent, present-empty, populated, unsupported-group, and unavailable-aggregate states.
+It exposes only heart-rate, speed, and power groups whose units have canonical meaning. The complete exact
+collection remains bounded by documented importer compatibility limits and is never downsampled. Recorded
+time, distance, or muscle load remains null when missing and is never derived from the exercise summary,
+routes, or temporal signals.
+
+Recorded zones are aggregate source evidence, not a timeline. Presentation may compare known values within
+one group but cannot invent occurrence order or boundaries. Source groups remain separate from FitFreed-
+derived and user-authored segmentation even when their numeric bounds look similar.
+
 ## Personal segmentation boundary
 
 The [canonical segment criterion](../data-formats/canonical/segment-criterion.md) is reusable user-authored
@@ -99,7 +110,8 @@ states separately. Derived segments are recalculated rather than persisted as ca
 
 Mapping changes reassess identical source bytes. Version 2 training mapping can strictly enrich a summary
 written by version 1, version 3 can strictly enrich equal version-2 summary and structure with evaluated
-route evidence, and version 4 can strictly enrich version-3 evidence with supported temporal signals. A later source revision atomically replaces summary and all mapped children. Older or
+route evidence, version 4 can strictly enrich version-3 evidence with supported temporal signals, and version
+5 can strictly enrich equal version-4 evidence with source-recorded zones. A later source revision atomically replaces summary and all mapped children. Older or
 conflicting evidence changes neither. The visibility transaction publishes one complete result or leaves the
 previous session intact; duplicate sessions, exercises, routes, or points are never an enrichment strategy.
 Child identity, order, provenance, and conflict semantics are fixed by the canonical, mapping, read-model,
@@ -107,7 +119,7 @@ and persistence specifications.
 
 ## Privacy boundary
 
-Route geometry and physiological or performance signals are local sensitive data. The first renderers use
+Route geometry, physiological or performance signals, and their recorded zone aggregates are local sensitive data. The first renderers use
 local SVG and no external visualization service. Route or signal export, MCP access, and future remote
 cartography each require their own explicit permission or privacy boundary; the existence of evidence in the
 library grants none of them.

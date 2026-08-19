@@ -16,12 +16,13 @@ use fitfreed_application::{
     query_training_comparison, query_training_overview, query_training_route_points,
     query_training_session_calendar, query_training_session_routes,
     query_training_session_segmentation, query_training_session_selection,
-    query_training_session_signals, query_training_session_structure, query_training_sessions,
-    query_training_signal_samples, ActivityDateRange, LongitudinalDateRange, RecoveryDateRange,
-    SleepDateRange, TrainingDateRange, TrainingRoutePointsQuery, TrainingSessionCalendarRequest,
-    TrainingSessionRouteQuery, TrainingSessionSearchRequest, TrainingSessionSegmentationQuery,
+    query_training_session_signals, query_training_session_structure, query_training_session_zones,
+    query_training_sessions, query_training_signal_samples, ActivityDateRange,
+    LongitudinalDateRange, RecoveryDateRange, SleepDateRange, TrainingDateRange,
+    TrainingRoutePointsQuery, TrainingSessionCalendarRequest, TrainingSessionRouteQuery,
+    TrainingSessionSearchRequest, TrainingSessionSegmentationQuery,
     TrainingSessionSelectionRequest, TrainingSessionSignalsQuery, TrainingSessionSort,
-    TrainingSessionStructureQuery, TrainingSignalSamplesQuery,
+    TrainingSessionStructureQuery, TrainingSessionZonesQuery, TrainingSignalSamplesQuery,
 };
 use fitfreed_lib::infrastructure::{
     query_activity_between, SqliteActivityLibrary, SqliteLongitudinalLibrary,
@@ -34,6 +35,8 @@ use tempfile::tempdir;
 const ORIGIN_COUNT: usize = 4;
 const ROUTE_POINTS_PER_ORIGIN: usize = 250_000;
 const SIGNAL_SAMPLES_PER_ORIGIN: usize = 100_000;
+const ZONE_GROUPS_PER_ORIGIN: usize = 64;
+const ZONES_PER_GROUP: usize = 256;
 const WARM_UP_RUNS: usize = 10;
 const MEASURED_RUNS: usize = 100;
 const COMMON_BUDGET_MILLISECONDS: f64 = 500.0;
@@ -57,6 +60,10 @@ struct GeneratedRows {
     training_route_points: usize,
     training_signals: usize,
     training_signal_samples: usize,
+    training_zone_session_assessments: usize,
+    training_zone_exercise_assessments: usize,
+    training_zone_groups: usize,
+    training_zones: usize,
     training_segment_criteria: usize,
     training_segment_applications: usize,
     sleep: usize,
@@ -317,6 +324,25 @@ fn main() {
             .expect("exact training signal page")
             .samples
             .len()
+    });
+    let training_zones_request = TrainingSessionZonesQuery {
+        session_ref: training_discovery_page.sessions[0].session_ref.clone(),
+        snapshot_ref: Some(training_discovery_page.snapshot_ref.clone()),
+    };
+    let expected_zones = ZONE_GROUPS_PER_ORIGIN * ZONES_PER_GROUP;
+    let training_zones = measure(expected_zones, || {
+        query_training_session_zones(&training_library, training_zones_request.clone())
+            .expect("training zone detail")
+            .zones
+            .and_then(|zones| zones.exercises)
+            .expect("generated zone exercises")[0]
+            .zones
+            .as_ref()
+            .expect("generated zone collection")
+            .groups
+            .iter()
+            .map(|group| group.zones.as_ref().expect("generated zone values").len())
+            .sum()
     });
     let training_segmentation_request = TrainingSessionSegmentationQuery {
         session_ref: training_discovery_page.sessions[0].session_ref.clone(),
@@ -598,6 +624,11 @@ fn main() {
             COMMON_BUDGET_MILLISECONDS,
         ),
         (
+            "training.recordedZones",
+            &training_zones,
+            COMMON_BUDGET_MILLISECONDS,
+        ),
+        (
             "training.segmentation",
             &training_segmentation,
             COMMON_BUDGET_MILLISECONDS,
@@ -720,6 +751,10 @@ fn main() {
                 "storedTrainingRoutePoints": generated_rows.training_route_points,
                 "storedTrainingSignals": generated_rows.training_signals,
                 "storedTrainingSignalSamples": generated_rows.training_signal_samples,
+                "storedTrainingZoneSessionAssessments": generated_rows.training_zone_session_assessments,
+                "storedTrainingZoneExerciseAssessments": generated_rows.training_zone_exercise_assessments,
+                "storedTrainingZoneGroups": generated_rows.training_zone_groups,
+                "storedTrainingZones": generated_rows.training_zones,
                 "storedTrainingSegmentCriteria": generated_rows.training_segment_criteria,
                 "storedTrainingSegmentApplications": generated_rows.training_segment_applications,
                 "storedSleepPeriods": generated_rows.sleep,
@@ -792,6 +827,10 @@ fn main() {
                     ),
                     "signalExactPage": measurement_json(
                         &training_signal_exact_page,
+                        COMMON_BUDGET_MILLISECONDS,
+                    ),
+                    "recordedZones": measurement_json(
+                        &training_zones,
                         COMMON_BUDGET_MILLISECONDS,
                     ),
                     "segmentation": measurement_json(
@@ -899,6 +938,10 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
     let mut training_route_point_rows = 0;
     let mut training_signal_rows = 0;
     let mut training_signal_sample_rows = 0;
+    let mut training_zone_session_assessment_rows = 0;
+    let mut training_zone_exercise_assessment_rows = 0;
+    let mut training_zone_group_rows = 0;
+    let mut training_zone_rows = 0;
     let mut training_segment_criterion_rows = 0;
     let mut training_segment_application_rows = 0;
     let mut sleep_rows = 0;
@@ -1110,6 +1153,38 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
                  ) VALUES (?1, ?2, ?3, 'primary', 0, ?4, ?5)",
             )
             .expect("prepare generated training signal sample insertion");
+        let mut zone_assessment_statement = transaction
+            .prepare_cached(
+                "INSERT INTO training_session_zone_assessment (
+                    origin_id, session_id, exercises_present, mapping_version
+                 ) VALUES (?1, ?2, 1, 'synthetic-training-zones@1')",
+            )
+            .expect("prepare generated training zone assessment insertion");
+        let mut exercise_zone_assessment_statement = transaction
+            .prepare_cached(
+                "INSERT INTO training_exercise_zone_assessment (
+                    origin_id, session_id, exercise_id, ordinal, zones_present,
+                    unsupported_group_count
+                 ) VALUES (?1, ?2, ?3, 0, 1, 1)",
+            )
+            .expect("prepare generated exercise zone assessment insertion");
+        let mut zone_group_statement = transaction
+            .prepare_cached(
+                "INSERT INTO training_zone_group (
+                    origin_id, session_id, exercise_id, ordinal, kind, unit,
+                    zones_present
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 1)",
+            )
+            .expect("prepare generated training zone group insertion");
+        let mut zone_statement = transaction
+            .prepare_cached(
+                "INSERT INTO training_zone (
+                    origin_id, session_id, exercise_id, group_ordinal, ordinal,
+                    lower_limit, higher_limit, time_in_zone_milliseconds,
+                    distance_meters, muscle_load
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            )
+            .expect("prepare generated training zone insertion");
         let mut segment_criterion_statement = transaction
             .prepare_cached(
                 "INSERT INTO segment_criterion (
@@ -1256,6 +1331,55 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
                     ])
                     .expect("insert generated training signal sample");
                 training_signal_sample_rows += 1;
+            }
+            zone_assessment_statement
+                .execute(params![origin, session_id])
+                .expect("insert generated training zone assessment");
+            training_zone_session_assessment_rows += 1;
+            exercise_zone_assessment_statement
+                .execute(params![origin, session_id, exercise_id])
+                .expect("insert generated exercise zone assessment");
+            training_zone_exercise_assessment_rows += 1;
+            for group_index in 0..ZONE_GROUPS_PER_ORIGIN {
+                let (kind, unit) = match group_index % 3 {
+                    0 => ("heart-rate", "beats-per-minute"),
+                    1 => ("speed", "kilometers-per-hour"),
+                    _ => ("power", "watts"),
+                };
+                zone_group_statement
+                    .execute(params![
+                        origin,
+                        session_id,
+                        exercise_id,
+                        i64::try_from(group_index).expect("zone group index"),
+                        kind,
+                        unit,
+                    ])
+                    .expect("insert generated training zone group");
+                training_zone_group_rows += 1;
+                for zone_index in 0..ZONES_PER_GROUP {
+                    let lower_limit = (zone_index * 2) as f64;
+                    let zone_ordinal = i64::try_from(zone_index).expect("zone index");
+                    let time_in_zone_milliseconds =
+                        (zone_index % 17 != 0).then_some(zone_ordinal * 1_000);
+                    let distance_meters = (kind == "speed").then_some(zone_index as f64 * 25.0);
+                    let muscle_load = (kind == "power").then_some(zone_index as f64 / 4.0);
+                    zone_statement
+                        .execute(params![
+                            origin,
+                            session_id,
+                            exercise_id,
+                            i64::try_from(group_index).expect("zone group index"),
+                            zone_ordinal,
+                            lower_limit,
+                            lower_limit + 1.5,
+                            time_in_zone_milliseconds,
+                            distance_meters,
+                            muscle_load,
+                        ])
+                        .expect("insert generated training zone");
+                    training_zone_rows += 1;
+                }
             }
             let criterion_id = format!("criterion-{:064x}", origin_index + 1);
             segment_criterion_statement
@@ -1442,6 +1566,10 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
         training_route_points: training_route_point_rows,
         training_signals: training_signal_rows,
         training_signal_samples: training_signal_sample_rows,
+        training_zone_session_assessments: training_zone_session_assessment_rows,
+        training_zone_exercise_assessments: training_zone_exercise_assessment_rows,
+        training_zone_groups: training_zone_group_rows,
+        training_zones: training_zone_rows,
         training_segment_criteria: training_segment_criterion_rows,
         training_segment_applications: training_segment_application_rows,
         sleep: sleep_rows,

@@ -4,7 +4,7 @@
 
 Current architecture after [ADR 0002](decisions/0002-select-sqlite-storage.md). SQLite is the only storage engine in the application and the authoritative local-library format. It does not replace the documented portable FitFreed data contract.
 
-The current implemented schema and compatibility boundary are documented in the [SQLite version 18 persistence specification](../data-formats/persistence/sqlite-v18.md). It preserves the complete provider-neutral fitness library through version 8, authenticated-update state from version 9, application preferences from version 10, a resumable exploration destination from version 11, user-authored sport classifications from version 12, coherent full-history training discovery evidence from version 13, the disposable training-discovery workspace from version 14, mapped training exercises, laps, and pauses from version 15, primary and transition route assessments with exact points from version 16, regular temporal training signals with exact unavailable slots from version 17, and reusable personal segmentation criteria from version 18. Earlier specifications remain immutable migration history.
+The current implemented schema and compatibility boundary are documented in the [SQLite version 19 persistence specification](../data-formats/persistence/sqlite-v19.md). It preserves the complete provider-neutral fitness library through version 8, authenticated-update state from version 9, application preferences from version 10, a resumable exploration destination from version 11, user-authored sport classifications from version 12, coherent full-history training discovery evidence from version 13, the disposable training-discovery workspace from version 14, mapped training exercises, laps, and pauses from version 15, primary and transition route assessments with exact points from version 16, regular temporal training signals with exact unavailable slots from version 17, reusable personal segmentation criteria from version 18, and provider-recorded training-zone assessments from version 19. Earlier specifications remain immutable migration history.
 
 ## Ownership
 
@@ -80,6 +80,13 @@ Schema version 18 stores reusable user-authored segment criteria and their order
 Derived segments remain application-owned calculations over the current duration or streamed exact signal
 evidence and are not persisted as provider facts. Criteria survive exact reimport, use optimistic revisions,
 and remain visibly independent from source laps and FitFreed-derived boundaries.
+
+Schema version 19 stores provider-recorded training-zone assessments independently for each exercise.
+Supported heart-rate, speed, and power groups retain ordered zone bounds and their applicable aggregate time,
+distance, and muscle-load measurements. Missing measurements remain distinguishable from zero and from metrics
+that do not apply to a group kind. Unsupported group kinds contribute only a count; provider vocabulary and
+values that FitFreed cannot interpret are not persisted. Zone evidence reconciles atomically with the complete
+session record and advances the coherent training-discovery snapshot when changed.
 
 New origin and evidence rows become durable only inside the same visibility transaction as canonical history and operation completion. Existing development origins migrate as unverified origins without invented evidence. Exact-repeat lookup may inherit an origin only from a completed operation whose correlation state is verified; an old package fingerprint alone cannot authorize subject resolution.
 

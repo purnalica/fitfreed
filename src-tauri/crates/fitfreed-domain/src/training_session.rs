@@ -139,12 +139,63 @@ pub struct TrainingSessionSignalAssessment {
     pub exercises: Option<Vec<TrainingExerciseSignalAssessment>>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TrainingZoneKind {
+    HeartRate,
+    Speed,
+    Power,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TrainingZoneUnit {
+    BeatsPerMinute,
+    KilometersPerHour,
+    Watts,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TrainingZone {
+    pub ordinal: usize,
+    pub lower_limit: f64,
+    pub higher_limit: f64,
+    pub time_in_zone_milliseconds: Option<i64>,
+    pub distance_meters: Option<f64>,
+    pub muscle_load: Option<f64>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TrainingZoneGroup {
+    pub ordinal: usize,
+    pub kind: TrainingZoneKind,
+    pub unit: TrainingZoneUnit,
+    pub zones: Option<Vec<TrainingZone>>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TrainingZones {
+    pub groups: Vec<TrainingZoneGroup>,
+    pub unsupported_group_count: usize,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TrainingExerciseZoneAssessment {
+    pub exercise_id: String,
+    pub ordinal: usize,
+    pub zones: Option<TrainingZones>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TrainingSessionZoneAssessment {
+    pub exercises: Option<Vec<TrainingExerciseZoneAssessment>>,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct TrainingSessionRecord {
     pub summary: TrainingSession,
     pub structure: Option<TrainingSessionStructure>,
     pub routes: Option<TrainingSessionRouteAssessment>,
     pub signals: Option<TrainingSessionSignalAssessment>,
+    pub zones: Option<TrainingSessionZoneAssessment>,
 }
 
 pub fn decide_training_session_record_reconciliation(
@@ -164,13 +215,17 @@ pub fn decide_training_session_record_reconciliation(
         || (existing.routes.is_none() && incoming.routes.is_some());
     let signals_compatible = existing.signals == incoming.signals
         || (existing.signals.is_none() && incoming.signals.is_some());
+    let zones_compatible =
+        existing.zones == incoming.zones || (existing.zones.is_none() && incoming.zones.is_some());
     if existing.summary == incoming.summary
         && structure_compatible
         && routes_compatible
         && signals_compatible
+        && zones_compatible
         && (existing.structure != incoming.structure
             || existing.routes != incoming.routes
-            || existing.signals != incoming.signals)
+            || existing.signals != incoming.signals
+            || existing.zones != incoming.zones)
     {
         return ReconciliationDecision::Enrich;
     }

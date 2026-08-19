@@ -25,25 +25,28 @@ use fitfreed_application::{
     SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange, TrainingDerivedSegment,
     TrainingDiscoveryView, TrainingDiscoveryWorkspace, TrainingExerciseRoutesView,
     TrainingExerciseSegmentation, TrainingExerciseSignalsView, TrainingExerciseStructure,
-    TrainingLapStructure, TrainingMeasurementFilter, TrainingOverview, TrainingPauseStructure,
-    TrainingRouteCollectionView, TrainingRouteKindView, TrainingRouteOverview,
-    TrainingRoutePointView, TrainingRoutePointsQuery, TrainingSegmentCriterionDirection,
-    TrainingSegmentCriterionMutationRequest, TrainingSeriesComparison, TrainingSeriesOverview,
-    TrainingSeriesSummary, TrainingSessionCalendar, TrainingSessionCalendarDay,
-    TrainingSessionCalendarRequest, TrainingSessionInsight, TrainingSessionRouteQuery,
-    TrainingSessionRoutesResult, TrainingSessionRoutesView, TrainingSessionSearchItem,
-    TrainingSessionSearchPage, TrainingSessionSearchRequest, TrainingSessionSearchSummary,
-    TrainingSessionSegmentationQuery, TrainingSessionSegmentationResult, TrainingSessionSelection,
-    TrainingSessionSelectionRequest, TrainingSessionSignalsQuery, TrainingSessionSignalsResult,
-    TrainingSessionSignalsView, TrainingSessionSort, TrainingSessionSport,
-    TrainingSessionStructureQuery, TrainingSessionStructureResult, TrainingSignalCollectionView,
-    TrainingSignalKindView, TrainingSignalRoleView, TrainingSignalSampleView,
-    TrainingSignalSamplesQuery, TrainingSignalSeriesOverview, TrainingSignalUnitView,
-    TrainingSignalVisualSampleView, TrainingSport, TrainingSportClassification,
-    TrainingSportCoverage, TrainingSportState, TrainingSportsOverview, TrainingStructure,
-    UpdateCheckOutcome, UpdateCheckStatus, UpdateError, UpdateRecoveryOutcome,
-    UpdateRecoveryOutcomeKind, UpdateReleaseSummary, UpdateTrainingSegmentCriterionRequest,
-    UpdateTrustFailure, UpdateWithdrawalReason, UpdateWithdrawalSummary,
+    TrainingExerciseZonesView, TrainingLapStructure, TrainingMeasurementFilter, TrainingOverview,
+    TrainingPauseStructure, TrainingRouteCollectionView, TrainingRouteKindView,
+    TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
+    TrainingSegmentCriterionDirection, TrainingSegmentCriterionMutationRequest,
+    TrainingSeriesComparison, TrainingSeriesOverview, TrainingSeriesSummary,
+    TrainingSessionCalendar, TrainingSessionCalendarDay, TrainingSessionCalendarRequest,
+    TrainingSessionInsight, TrainingSessionRouteQuery, TrainingSessionRoutesResult,
+    TrainingSessionRoutesView, TrainingSessionSearchItem, TrainingSessionSearchPage,
+    TrainingSessionSearchRequest, TrainingSessionSearchSummary, TrainingSessionSegmentationQuery,
+    TrainingSessionSegmentationResult, TrainingSessionSelection, TrainingSessionSelectionRequest,
+    TrainingSessionSignalsQuery, TrainingSessionSignalsResult, TrainingSessionSignalsView,
+    TrainingSessionSort, TrainingSessionSport, TrainingSessionStructureQuery,
+    TrainingSessionStructureResult, TrainingSessionZonesQuery, TrainingSessionZonesResult,
+    TrainingSessionZonesView, TrainingSignalCollectionView, TrainingSignalKindView,
+    TrainingSignalRoleView, TrainingSignalSampleView, TrainingSignalSamplesQuery,
+    TrainingSignalSeriesOverview, TrainingSignalUnitView, TrainingSignalVisualSampleView,
+    TrainingSport, TrainingSportClassification, TrainingSportCoverage, TrainingSportState,
+    TrainingSportsOverview, TrainingStructure, TrainingZoneCollectionView, TrainingZoneGroupView,
+    TrainingZoneKindView, TrainingZoneUnitView, TrainingZoneView, UpdateCheckOutcome,
+    UpdateCheckStatus, UpdateError, UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind,
+    UpdateReleaseSummary, UpdateTrainingSegmentCriterionRequest, UpdateTrustFailure,
+    UpdateWithdrawalReason, UpdateWithdrawalSummary,
 };
 
 #[derive(Debug, Deserialize)]
@@ -875,6 +878,22 @@ pub struct TrainingSignalSamplesQueryDto {
     snapshot_ref: Option<String>,
     offset: usize,
     limit: usize,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TrainingSessionZonesQueryDto {
+    session_ref: String,
+    snapshot_ref: Option<String>,
+}
+
+impl From<TrainingSessionZonesQueryDto> for TrainingSessionZonesQuery {
+    fn from(query: TrainingSessionZonesQueryDto) -> Self {
+        Self {
+            session_ref: query.session_ref,
+            snapshot_ref: query.snapshot_ref,
+        }
+    }
 }
 
 impl From<TrainingSignalSamplesQueryDto> for TrainingSignalSamplesQuery {
@@ -2063,6 +2082,142 @@ pub struct TrainingSessionSignalsResultDto {
     snapshot_ref: String,
     session_ref: String,
     signals: Option<TrainingSessionSignalsDto>,
+}
+
+fn training_zone_kind(kind: TrainingZoneKindView) -> &'static str {
+    match kind {
+        TrainingZoneKindView::HeartRate => "heart-rate",
+        TrainingZoneKindView::Speed => "speed",
+        TrainingZoneKindView::Power => "power",
+    }
+}
+
+fn training_zone_unit(unit: TrainingZoneUnitView) -> &'static str {
+    match unit {
+        TrainingZoneUnitView::BeatsPerMinute => "beats-per-minute",
+        TrainingZoneUnitView::KilometersPerHour => "kilometers-per-hour",
+        TrainingZoneUnitView::Watts => "watts",
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingZoneDto {
+    zone_ref: String,
+    ordinal: usize,
+    lower_limit: f64,
+    higher_limit: f64,
+    time_in_zone_milliseconds: Option<String>,
+    distance_meters: Option<f64>,
+    muscle_load: Option<f64>,
+}
+
+impl From<TrainingZoneView> for TrainingZoneDto {
+    fn from(zone: TrainingZoneView) -> Self {
+        Self {
+            zone_ref: zone.zone_ref,
+            ordinal: zone.ordinal,
+            lower_limit: zone.lower_limit,
+            higher_limit: zone.higher_limit,
+            time_in_zone_milliseconds: zone
+                .time_in_zone_milliseconds
+                .map(|value| value.to_string()),
+            distance_meters: zone.distance_meters,
+            muscle_load: zone.muscle_load,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingZoneGroupDto {
+    zone_group_ref: String,
+    ordinal: usize,
+    kind: &'static str,
+    unit: &'static str,
+    zones: Option<Vec<TrainingZoneDto>>,
+}
+
+impl From<TrainingZoneGroupView> for TrainingZoneGroupDto {
+    fn from(group: TrainingZoneGroupView) -> Self {
+        Self {
+            zone_group_ref: group.zone_group_ref,
+            ordinal: group.ordinal,
+            kind: training_zone_kind(group.kind),
+            unit: training_zone_unit(group.unit),
+            zones: group
+                .zones
+                .map(|zones| zones.into_iter().map(Into::into).collect()),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingZoneCollectionDto {
+    groups: Vec<TrainingZoneGroupDto>,
+    unsupported_group_count: usize,
+}
+
+impl From<TrainingZoneCollectionView> for TrainingZoneCollectionDto {
+    fn from(zones: TrainingZoneCollectionView) -> Self {
+        Self {
+            groups: zones.groups.into_iter().map(Into::into).collect(),
+            unsupported_group_count: zones.unsupported_group_count,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingExerciseZonesDto {
+    exercise_ref: String,
+    ordinal: usize,
+    zones: Option<TrainingZoneCollectionDto>,
+}
+
+impl From<TrainingExerciseZonesView> for TrainingExerciseZonesDto {
+    fn from(exercise: TrainingExerciseZonesView) -> Self {
+        Self {
+            exercise_ref: exercise.exercise_ref,
+            ordinal: exercise.ordinal,
+            zones: exercise.zones.map(Into::into),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSessionZonesDto {
+    exercises: Option<Vec<TrainingExerciseZonesDto>>,
+}
+
+impl From<TrainingSessionZonesView> for TrainingSessionZonesDto {
+    fn from(zones: TrainingSessionZonesView) -> Self {
+        Self {
+            exercises: zones
+                .exercises
+                .map(|exercises| exercises.into_iter().map(Into::into).collect()),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSessionZonesResultDto {
+    snapshot_ref: String,
+    session_ref: String,
+    zones: Option<TrainingSessionZonesDto>,
+}
+
+impl From<TrainingSessionZonesResult> for TrainingSessionZonesResultDto {
+    fn from(result: TrainingSessionZonesResult) -> Self {
+        Self {
+            snapshot_ref: result.snapshot_ref,
+            session_ref: result.session_ref,
+            zones: result.zones.map(Into::into),
+        }
+    }
 }
 
 impl From<TrainingSessionSignalsResult> for TrainingSessionSignalsResultDto {
@@ -5126,6 +5281,81 @@ mod tests {
         assert_eq!(exact_json["kind"], "temperature");
         assert_eq!(exact_json["samples"][0]["value"], -5.5);
         assert_eq!(exact_json["samples"][0]["elapsedMilliseconds"], "0");
+    }
+
+    #[test]
+    fn validates_and_serializes_exact_recorded_zone_transport_contracts() {
+        let input: TrainingSessionZonesQueryDto = serde_json::from_value(serde_json::json!({
+            "sessionRef":
+                "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "snapshotRef":
+                "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }))
+        .expect("training-session zone request");
+        let query = TrainingSessionZonesQuery::from(input);
+        assert!(query.snapshot_ref.is_some());
+        assert!(
+            serde_json::from_value::<TrainingSessionZonesQueryDto>(serde_json::json!({
+                "sessionRef":
+                    "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "snapshotRef": null,
+                "sourceZoneType": "ZONE_TYPE_HEART_RATE"
+            }))
+            .is_err()
+        );
+
+        let result = TrainingSessionZonesResult {
+            snapshot_ref:
+                "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    .to_owned(),
+            session_ref: "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                .to_owned(),
+            zones: Some(TrainingSessionZonesView {
+                exercises: Some(vec![TrainingExerciseZonesView {
+                    exercise_ref:
+                        "exercise-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                            .to_owned(),
+                    ordinal: 0,
+                    zones: Some(TrainingZoneCollectionView {
+                        groups: vec![TrainingZoneGroupView {
+                            zone_group_ref:
+                                "zone-group-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                                    .to_owned(),
+                            ordinal: 0,
+                            kind: TrainingZoneKindView::HeartRate,
+                            unit: TrainingZoneUnitView::BeatsPerMinute,
+                            zones: Some(vec![TrainingZoneView {
+                                zone_ref:
+                                    "zone-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                                        .to_owned(),
+                                ordinal: 0,
+                                lower_limit: 140.0,
+                                higher_limit: 159.0,
+                                time_in_zone_milliseconds: Some(i64::MAX),
+                                distance_meters: None,
+                                muscle_load: None,
+                            }]),
+                        }],
+                        unsupported_group_count: 1,
+                    }),
+                }]),
+            }),
+        };
+        let json = serde_json::to_value(TrainingSessionZonesResultDto::from(result))
+            .expect("training-session zones JSON");
+        let group = &json["zones"]["exercises"][0]["zones"]["groups"][0];
+        assert_eq!(group["kind"], "heart-rate");
+        assert_eq!(group["unit"], "beats-per-minute");
+        assert_eq!(
+            group["zones"][0]["timeInZoneMilliseconds"],
+            i64::MAX.to_string()
+        );
+        assert!(group["zones"][0]["distanceMeters"].is_null());
+        assert_eq!(
+            json["zones"]["exercises"][0]["zones"]["unsupportedGroupCount"],
+            1
+        );
+        assert!(json.to_string().find("sourceZoneType").is_none());
     }
 
     #[test]

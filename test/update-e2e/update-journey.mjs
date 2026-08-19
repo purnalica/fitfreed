@@ -148,9 +148,6 @@ async function selectSpanish(browser) {
     timeout: 15_000,
     timeoutMsg: "the Spanish locale was not saved",
   });
-  const explore = await browser.$(`aria/${spanish.shell.explore}`);
-  await explore.waitForEnabled({ timeout: 15_000 });
-  await explore.click();
 }
 
 function applicationProcessIds() {
@@ -207,9 +204,9 @@ async function verifyRecoveryNotice(browser, recoveryId) {
 }
 
 async function verifyJourney(browser) {
-  const explore = await browser.$("[data-home='explore']");
-  await explore.waitForEnabled({ timeout: 15_000 });
-  await explore.click();
+  const settings = await browser.$("[data-home='settings']");
+  await settings.waitForEnabled({ timeout: 15_000 });
+  await settings.click();
   const heading = await browser.$("#update-heading");
   await heading.waitForDisplayed({ timeout: 15_000 });
   const checkNow = await browser.$(".update-panel-heading button");

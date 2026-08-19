@@ -31,6 +31,10 @@ The independent optional `signals` field follows the assessment states specified
 [canonical training-session signal version 1](training-session-signal.md). It does not make temporal samples
 part of this lightweight structure contract.
 
+The independent optional `zones` field follows the assessment states specified by
+[canonical training-session zone version 1](training-session-zone.md). It does not make source-recorded
+aggregate distributions part of this lightweight structure contract.
+
 ## `TrainingExercise`
 
 `TrainingSessionStructure.exercises` is an optional ordered collection. Each `TrainingExercise` contains:
@@ -98,12 +102,12 @@ duplicate children.
 
 ## Known loss and compatibility
 
-Version 1 has no zones, samples, heart-rate series, speed or pace series, altitude series, power series,
-cadence series, user-authored segments, notes, targets, devices, or provider analysis. These are not
-represented as empty collections. Routes and coordinates are specified independently by
-[canonical training-session route version 1](training-session-route.md), so lightweight structure does not
-load sensitive geometry. Other later additions require explicit canonical and read-model contracts with
-resource and privacy boundaries.
+Version 1 has no samples, heart-rate series, speed or pace series, altitude series, power series, cadence
+series, user-authored segments, notes, targets, devices, or provider analysis. These are not represented as
+empty collections. Routes, signals, and source-recorded zones are specified independently by their canonical
+contracts, so lightweight structure does not load sensitive geometry, temporal samples, or aggregate zone
+distributions. Other later additions require explicit canonical and read-model contracts with resource and
+privacy boundaries.
 
 Changing assessment-state meaning, collection optionality, identity, order, units, time interpretation,
 reconciliation, or an invariant requires a new canonical version.

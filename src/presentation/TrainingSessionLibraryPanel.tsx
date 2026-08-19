@@ -39,8 +39,10 @@ import type {
   TrainingSessionSignalsResult,
   TrainingSignalVisualSample,
 } from "./training-session-signal";
+import type { TrainingSessionZonesResult } from "./training-session-zone";
 import type { TrainingSport, TrainingSportsOverview } from "./training-sports";
 import { TrainingSegmentationPanel } from "./TrainingSegmentationPanel";
+import { TrainingSessionZonesPanel } from "./TrainingSessionZonesPanel";
 
 const PAGE_SIZE = 25;
 const ROUTE_VISUAL_POINT_LIMIT = 400;
@@ -259,6 +261,9 @@ export function TrainingSessionLibraryPanel({
   const [detailSignals, setDetailSignals] = useState<TrainingSessionSignalsResult>();
   const [signalsLoading, setSignalsLoading] = useState(false);
   const [signalsFailed, setSignalsFailed] = useState(false);
+  const [detailZones, setDetailZones] = useState<TrainingSessionZonesResult>();
+  const [zonesLoading, setZonesLoading] = useState(false);
+  const [zonesFailed, setZonesFailed] = useState(false);
   const [exactSignalRef, setExactSignalRef] = useState<string>();
   const [exactSignalSamples, setExactSignalSamples] = useState<TrainingSignalSamplesResult>();
   const [exactSignalLoading, setExactSignalLoading] = useState(false);
@@ -462,6 +467,34 @@ export function TrainingSessionLibraryPanel({
       onError(commandErrorCode(reason));
     }).finally(() => {
       if (active) setDetailLoading(false);
+    });
+    return () => { active = false; };
+  }, [selected?.sessionRef, page?.snapshotRef, onError]);
+
+  useEffect(() => {
+    let active = true;
+    if (!selected || !page) {
+      setDetailZones(undefined);
+      setZonesLoading(false);
+      setZonesFailed(false);
+      return () => { active = false; };
+    }
+    setDetailZones(undefined);
+    setZonesLoading(true);
+    setZonesFailed(false);
+    void invoke<TrainingSessionZonesResult>("query_training_session_zones", {
+      query: {
+        sessionRef: selected.sessionRef,
+        snapshotRef: page.snapshotRef,
+      },
+    }).then((result) => {
+      if (active) setDetailZones(result);
+    }).catch((reason) => {
+      if (!active) return;
+      setZonesFailed(true);
+      onError(commandErrorCode(reason));
+    }).finally(() => {
+      if (active) setZonesLoading(false);
     });
     return () => { active = false; };
   }, [selected?.sessionRef, page?.snapshotRef, onError]);
@@ -1256,6 +1289,20 @@ export function TrainingSessionLibraryPanel({
     );
   }
 
+  function exerciseZoneEvidence(exerciseRef: string) {
+    const assessed = detailZones?.zones?.exercises?.find(
+      (exercise) => exercise.exerciseRef === exerciseRef,
+    );
+    if (!assessed) return null;
+    return (
+      <TrainingSessionZonesPanel
+        assessment={assessed}
+        locale={locale}
+        messages={messages}
+      />
+    );
+  }
+
   function coverageLabel(available: number, total: number): string {
     return `${number.format(available)} ${messages.training.of} ${number.format(total)}`;
   }
@@ -1840,6 +1887,8 @@ export function TrainingSessionLibraryPanel({
             {routesFailed && <p role="alert">{copy.routeFailed}</p>}
             {signalsLoading && <p role="status">{copy.signalLoading}</p>}
             {signalsFailed && <p role="alert">{copy.signalFailed}</p>}
+            {zonesLoading && <p role="status">{copy.zoneLoading}</p>}
+            {zonesFailed && <p role="alert">{copy.zoneFailed}</p>}
             {!detailLoading && detailStructure?.structure === null && (
               <p>{copy.structureNotEvaluated}</p>
             )}
@@ -1866,6 +1915,15 @@ export function TrainingSessionLibraryPanel({
             )}
             {detailSignals?.signals?.exercises?.length === 0 && (
               <p>{copy.signalExercisesProvidedEmpty}</p>
+            )}
+            {!zonesLoading && detailZones?.zones === null && (
+              <p>{copy.zoneNotEvaluated}</p>
+            )}
+            {detailZones?.zones?.exercises === null && (
+              <p>{copy.zoneExercisesNotProvided}</p>
+            )}
+            {detailZones?.zones?.exercises?.length === 0 && (
+              <p>{copy.zoneExercisesProvidedEmpty}</p>
             )}
             {detailStructure?.structure?.exercises?.map((exercise) => (
               <article className="training-exercise" key={exercise.exerciseRef}>
@@ -1911,6 +1969,7 @@ export function TrainingSessionLibraryPanel({
                 </section>
                 {exerciseRouteEvidence(exercise.exerciseRef, exercise.ordinal)}
                 {exerciseSignalEvidence(exercise.exerciseRef, exercise.ordinal)}
+                {exerciseZoneEvidence(exercise.exerciseRef)}
               </article>
             ))}
             {page && (

@@ -19,11 +19,13 @@ mod segment_criterion_tests;
 mod training_session;
 pub use training_session::{
     decide_training_session_record_reconciliation, TrainingExercise,
-    TrainingExerciseRouteAssessment, TrainingExerciseSignalAssessment, TrainingLap,
-    TrainingLapKind, TrainingPause, TrainingRoute, TrainingRouteKind, TrainingRoutePoint,
-    TrainingRoutes, TrainingSessionRecord, TrainingSessionRouteAssessment,
-    TrainingSessionSignalAssessment, TrainingSessionStructure, TrainingSignalKind,
-    TrainingSignalSample, TrainingSignalSeries, TrainingSignalUnit, TrainingSignals,
+    TrainingExerciseRouteAssessment, TrainingExerciseSignalAssessment,
+    TrainingExerciseZoneAssessment, TrainingLap, TrainingLapKind, TrainingPause, TrainingRoute,
+    TrainingRouteKind, TrainingRoutePoint, TrainingRoutes, TrainingSessionRecord,
+    TrainingSessionRouteAssessment, TrainingSessionSignalAssessment, TrainingSessionStructure,
+    TrainingSessionZoneAssessment, TrainingSignalKind, TrainingSignalSample, TrainingSignalSeries,
+    TrainingSignalUnit, TrainingSignals, TrainingZone, TrainingZoneGroup, TrainingZoneKind,
+    TrainingZoneUnit, TrainingZones,
 };
 
 #[cfg(test)]

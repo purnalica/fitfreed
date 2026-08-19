@@ -94,15 +94,18 @@ for (const contractValue of [
   "polar-flow-archive@7",
   "polar-flow-archive@8",
   "polar-flow-archive@9",
+  "polar-flow-archive@10",
   "polar-flow-mapping-set@1",
   "polar-flow-mapping-set@2",
   "polar-flow-mapping-set@3",
   "polar-flow-mapping-set@4",
+  "polar-flow-mapping-set@5",
   "polar-flow-daily-activity@1",
   "polar-flow-training-session@1",
   "polar-flow-training-session@2",
   "polar-flow-training-session@3",
   "polar-flow-training-session@4",
+  "polar-flow-training-session@5",
   "polar-flow-sleep@1",
   "polar-flow-nightly-recovery@1",
   "polar-nightly-recharge@1",
@@ -244,6 +247,40 @@ for (const contractValue of [
   requireMention(trainingSignalCanonical, contractValue, trainingSignalCanonicalPath);
 }
 
+const trainingZoneCanonicalPath =
+  "docs/data-formats/canonical/training-session-zone.md";
+const trainingZoneCanonical = read(trainingZoneCanonicalPath);
+for (const structure of [
+  "TrainingZone",
+  "TrainingZoneGroup",
+  "TrainingZones",
+  "TrainingExerciseZoneAssessment",
+  "TrainingSessionZoneAssessment",
+]) {
+  const structureMatch = trainingStructureDomain.match(
+    new RegExp(`pub struct ${structure} \\{([\\s\\S]*?)\\n\\}`),
+  );
+  if (!structureMatch) {
+    throw new Error(`${trainingStructureDomainPath} has no ${structure}`);
+  }
+  for (const fieldMatch of structureMatch[1].matchAll(/pub ([a-z_]+):/g)) {
+    const camelCase = fieldMatch[1].replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    requireMention(trainingZoneCanonical, camelCase, trainingZoneCanonicalPath);
+  }
+}
+for (const contractValue of [
+  "heart-rate",
+  "speed",
+  "power",
+  "beats-per-minute",
+  "kilometers-per-hour",
+  "watts",
+  "source-recorded",
+  "enrich",
+]) {
+  requireMention(trainingZoneCanonical, contractValue, trainingZoneCanonicalPath);
+}
+
 const segmentCriterionDomainPath =
   "src-tauri/crates/fitfreed-domain/src/segment_criterion.rs";
 const segmentCriterionDomain = read(segmentCriterionDomainPath);
@@ -371,7 +408,9 @@ const trainingMapping = read(trainingMappingPath);
 for (const contractValue of [
   sourceAdapterVersion,
   "polar-flow-mapping-set@4",
+  "polar-flow-mapping-set@5",
   "polar-flow-training-session@4",
+  "polar-flow-training-session@5",
 ]) {
   requireMention(trainingMapping, contractValue, trainingMappingPath);
 }
@@ -424,6 +463,15 @@ for (const sourceField of [
   "CADENCE",
   "TEMPERATURE",
   "LEFT_CRANK_CURRENT_POWER",
+  "exercises[].zones",
+  "ZONE_TYPE_HEART_RATE",
+  "ZONE_TYPE_SPEED",
+  "ZONE_TYPE_POWER",
+  "ZONE_TYPE_FIT_FAT",
+  "lowerLimit",
+  "higherLimit",
+  "inZone",
+  "muscleLoad",
   "splitTimeMillis",
   "endTime",
 ]) {
@@ -451,11 +499,17 @@ for (const targetField of [
   "splitTimeMilliseconds",
   "TrainingSessionRouteAssessment",
   "TrainingSessionSignalAssessment",
+  "TrainingSessionZoneAssessment",
   "signals",
   "intervalMilliseconds",
   "value",
   "unsupportedPrimarySeriesCount",
   "unsupportedTransitionSeriesCount",
+  "unsupportedGroupCount",
+  "lowerLimit",
+  "higherLimit",
+  "timeInZoneMilliseconds",
+  "muscleLoad",
   "latitudeDegrees",
   "longitudeDegrees",
   "altitudeMeters",
@@ -2171,6 +2225,137 @@ for (const invalidResponse of [
 ]) {
   if (validateTrainingSignalSamples(invalidResponse)) {
     throw new Error(`${trainingSignalSamplesSchemaPath} accepted an invalid response`);
+  }
+}
+
+const trainingSessionZonePath =
+  "docs/data-formats/insights/training-session-zone-v1.md";
+const trainingSessionZone = read(trainingSessionZonePath);
+for (const field of [
+  "query_training_session_zones",
+  "training-session-zones-query-v1.schema.json",
+  "training-session-zones-v1.schema.json",
+  "sessionRef",
+  "snapshotRef",
+  "zoneGroupRef",
+  "zoneRef",
+  "exerciseRef",
+  "unsupportedGroupCount",
+  "kind",
+  "unit",
+  "lowerLimit",
+  "higherLimit",
+  "timeInZoneMilliseconds",
+  "distanceMeters",
+  "muscleLoad",
+  "heart-rate",
+  "speed",
+  "power",
+  "beats-per-minute",
+  "kilometers-per-hour",
+  "watts",
+  "invalid-training-session-detail",
+  "training-session-detail-changed",
+  "training-session-detail-failed",
+]) {
+  requireMention(trainingSessionZone, field, trainingSessionZonePath);
+}
+
+const trainingSessionZonesQuerySchemaPath =
+  "schemas/training-session-zones-query-v1.schema.json";
+const validateTrainingSessionZonesQuery = ajv.compile(
+  JSON.parse(read(trainingSessionZonesQuerySchemaPath)),
+);
+const syntheticTrainingSessionZonesQuery = {
+  sessionRef: sessionRefDigest,
+  snapshotRef: snapshotRefDigest,
+};
+for (const query of [
+  syntheticTrainingSessionZonesQuery,
+  { ...syntheticTrainingSessionZonesQuery, snapshotRef: null },
+]) {
+  if (!validateTrainingSessionZonesQuery(query)) {
+    throw new Error(
+      `${trainingSessionZonesQuerySchemaPath} rejected a valid query: ${ajv.errorsText(validateTrainingSessionZonesQuery.errors)}`,
+    );
+  }
+}
+for (const invalidQuery of [
+  { ...syntheticTrainingSessionZonesQuery, sessionRef: "session-short" },
+  { ...syntheticTrainingSessionZonesQuery, sourceSessionId: "hidden" },
+]) {
+  if (validateTrainingSessionZonesQuery(invalidQuery)) {
+    throw new Error(`${trainingSessionZonesQuerySchemaPath} accepted an invalid query`);
+  }
+}
+
+const zoneGroupRefDigest = `zone-group-${"4".repeat(64)}`;
+const zoneRefDigest = `zone-${"5".repeat(64)}`;
+const trainingSessionZonesSchemaPath =
+  "schemas/training-session-zones-v1.schema.json";
+const validateTrainingSessionZones = ajv.compile(
+  JSON.parse(read(trainingSessionZonesSchemaPath)),
+);
+const syntheticTrainingSessionZones = {
+  snapshotRef: snapshotRefDigest,
+  sessionRef: sessionRefDigest,
+  zones: {
+    exercises: [{
+      exerciseRef: exerciseRefDigest,
+      ordinal: 0,
+      zones: {
+        groups: [{
+          zoneGroupRef: zoneGroupRefDigest,
+          ordinal: 0,
+          kind: "heart-rate",
+          unit: "beats-per-minute",
+          zones: [{
+            zoneRef: zoneRefDigest,
+            ordinal: 0,
+            lowerLimit: 120,
+            higherLimit: 139,
+            timeInZoneMilliseconds: "900000",
+            distanceMeters: null,
+            muscleLoad: null,
+          }],
+        }],
+        unsupportedGroupCount: 1,
+      },
+    }],
+  },
+};
+for (const response of [
+  syntheticTrainingSessionZones,
+  { ...syntheticTrainingSessionZones, zones: null },
+  { ...syntheticTrainingSessionZones, zones: { exercises: null } },
+  { ...syntheticTrainingSessionZones, zones: { exercises: [] } },
+]) {
+  if (!validateTrainingSessionZones(response)) {
+    throw new Error(
+      `${trainingSessionZonesSchemaPath} rejected a valid response: ${ajv.errorsText(validateTrainingSessionZones.errors)}`,
+    );
+  }
+}
+for (const invalidResponse of [
+  { ...syntheticTrainingSessionZones, providerZoneType: "HEART_RATE" },
+  (() => {
+    const value = structuredClone(syntheticTrainingSessionZones);
+    value.zones.exercises[0].zones.groups[0].unit = "watts";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticTrainingSessionZones);
+    value.zones.exercises[0].zones.groups[0].zones[0].distanceMeters = 100;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticTrainingSessionZones);
+    value.zones.exercises[0].zones.groups[0].zones[0].timeInZoneMilliseconds = "00";
+    return value;
+  })(),
+]) {
+  if (validateTrainingSessionZones(invalidResponse)) {
+    throw new Error(`${trainingSessionZonesSchemaPath} accepted an invalid response`);
   }
 }
 
@@ -4055,6 +4240,7 @@ for (const contractPath of [
   trainingStructureCanonicalPath,
   trainingRouteCanonicalPath,
   trainingSignalCanonicalPath,
+  trainingZoneCanonicalPath,
   sportClassificationCanonicalPath,
   sleepCanonicalPath,
   mappingPath,
@@ -4068,6 +4254,7 @@ for (const contractPath of [
   trainingSessionStructurePath,
   trainingSessionRoutePath,
   trainingSessionSignalPath,
+  trainingSessionZonePath,
   trainingDiscoveryWorkspacePath,
   trainingComparisonPath,
   sleepOverviewPath,
@@ -4130,6 +4317,10 @@ process.stdout.write(
       trainingSignalSamplesQuerySchemaPath,
       trainingSignalSamplesSchemaPath,
       trainingDiscoveryWorkspaceSchemaPath,
+    ],
+    trainingSessionZoneSchemas: [
+      trainingSessionZonesQuerySchemaPath,
+      trainingSessionZonesSchemaPath,
     ],
     trainingComparisonSchemas: [
       trainingComparisonQuerySchemaPath,

@@ -6,20 +6,23 @@ This is the normative anti-corruption-layer contract for mapping a compatible Po
 training-session artifact into [canonical training-session summary version 1](../canonical/training-session.md)
 and the independent [training-session structure](../canonical/training-session-structure.md) and
 [training-session route](../canonical/training-session-route.md) and
-[training-session signal](../canonical/training-session-signal.md) contracts.
+[training-session signal](../canonical/training-session-signal.md) and
+[training-session zone](../canonical/training-session-zone.md) contracts.
 
 - Source provider: `polar-flow`
 - Source adapter version introducing summary support: `polar-flow-archive@4`
 - Source adapter version introducing structural support: `polar-flow-archive@7`
 - Source adapter version introducing route support: `polar-flow-archive@8`
 - Source adapter version introducing signal support: `polar-flow-archive@9`
-- Current source adapter version: `polar-flow-archive@9`
+- Source adapter version introducing zone support: `polar-flow-archive@10`
+- Current source adapter version: `polar-flow-archive@10`
 - Historical summary mapping: `polar-flow-training-session@1`
 - Historical summary-and-structure mapping: `polar-flow-training-session@2`
 - Historical summary, structure, and route mapping: `polar-flow-training-session@3`
-- Current summary, structure, route, and signal mapping: `polar-flow-training-session@4`
-- Historical operation mapping sets: `polar-flow-mapping-set@1`, `polar-flow-mapping-set@2`, `polar-flow-mapping-set@3`
-- Current operation mapping set: `polar-flow-mapping-set@4`
+- Historical summary, structure, route, and signal mapping: `polar-flow-training-session@4`
+- Current summary, structure, route, signal, and zone mapping: `polar-flow-training-session@5`
+- Historical operation mapping sets: `polar-flow-mapping-set@1`, `polar-flow-mapping-set@2`, `polar-flow-mapping-set@3`, `polar-flow-mapping-set@4`
+- Current operation mapping set: `polar-flow-mapping-set@5`
 - Source evidence: [Polar Flow personal data export reference](../providers/polar-flow.md)
 
 ## Supported artifact boundary
@@ -54,7 +57,7 @@ sums, averages, selects, or otherwise derives summary values from children.
 
 ## Structural assessment and exercise mapping
 
-Mapping versions 2 through 4 always emit a present `TrainingSessionStructure`, proving that the artifact was evaluated
+Mapping versions 2 through 5 always emit a present `TrainingSessionStructure`, proving that the artifact was evaluated
 under the structural contract. An absent `exercises` field produces null `exercises`; a present empty array
 produces an empty collection. Entries retain source array order through `ordinal`.
 
@@ -92,7 +95,7 @@ precede the start. Source order becomes zero-based `ordinal`; duration is not in
 
 ## Route assessment and waypoint mapping
 
-Mapping versions 3 and 4 always emit a present `TrainingSessionRouteAssessment`. Its `exercises` state exactly
+Mapping versions 3 through 5 always emit a present `TrainingSessionRouteAssessment`. Its `exercises` state exactly
 matches the source `exercises` field. Every present exercise receives a route assessment tied to the same
 protected `exerciseId` and zero-based `ordinal` as structure.
 
@@ -114,7 +117,7 @@ one-point routes, repeated points, and primary and transition identity are prese
 
 ## Signal assessment and interval-series mapping
 
-Mapping version 4 always emits a present `TrainingSessionSignalAssessment`. Its `exercises` state exactly
+Mapping versions 4 and 5 always emit a present `TrainingSessionSignalAssessment`. Its `exercises` state exactly
 matches the source `exercises` field. Every present exercise receives a signal assessment tied to the same
 protected `exerciseId` and zero-based `ordinal` as structure.
 
@@ -148,13 +151,46 @@ An unknown series type is not assigned an invented meaning. It increments
 not enter canonical storage or presentation. `rrSamples`, `transitionRrSamples`, and other fields outside the
 two regular-series arrays remain deliberately unmapped and are not misreported as regular-series counts.
 
+## Zone assessment and aggregate-band mapping
+
+Mapping version 5 always emits a present `TrainingSessionZoneAssessment`. Its `exercises` state exactly
+matches the source `exercises` field. Every present exercise receives a zone assessment tied to the same
+protected `exerciseId` and zero-based `ordinal` as structure.
+
+| Source exercise path | Requirement and validation | Canonical outcome |
+|---|---|---|
+| `exercises[].zones` | absent or array of at most 64 groups | null exercise zones when absent; present zone container otherwise |
+| group `.type` | required string | mapped through the exact vocabulary below or counted in `unsupportedGroupCount` |
+| group `.zones` | absent or array of at most 256 bands for a supported group | null, present-empty, or exact ordered canonical bands |
+| band `.lowerLimit` | required finite non-negative number for a supported group | `lowerLimit` without conversion |
+| band `.higherLimit` | required finite number not below `lowerLimit` for a supported group | `higherLimit` without conversion |
+| band `inZone` | absent or non-negative signed 64-bit integer | optional `timeInZoneMilliseconds`; absence remains null |
+| band `.distanceMeters` | absent or finite non-negative number; accepted only for speed | optional `distanceMeters` without derivation |
+| band `.muscleLoad` | absent or finite non-negative number; accepted only for power | optional `muscleLoad` without derivation |
+
+| Source `.type` | Canonical `kind` | Canonical `unit` |
+|---|---|---|
+| `ZONE_TYPE_HEART_RATE` | `heart-rate` | `beats-per-minute` |
+| `ZONE_TYPE_SPEED` | `speed` | `kilometers-per-hour` |
+| `ZONE_TYPE_POWER` | `power` | `watts` |
+
+Mapped groups retain relative source order and receive a contiguous zero-based `ordinal` after unsupported
+groups are excluded. Bands retain their exact source order. The mapping does not merge groups, reorder bounds,
+infer missing aggregates from samples, or treat aggregate time as a temporal interval. Zero is distinct from
+an absent value.
+
+`ZONE_TYPE_FIT_FAT` and every other unlisted group type increment `unsupportedGroupCount`. Their provider
+tokens and values do not enter canonical storage or presentation. A supported group rejects missing bounds,
+reversed or non-finite bounds, negative aggregates, distance outside speed groups, and muscle load outside
+power groups. One invalid supported group rejects the complete package before visibility changes.
+
 ## Reimport, revision, and mapping upgrade
 
 Identity remains `(originId, identifier.id)`. Reconciliation compares the complete mapped session record:
 
-- absent identity creates summary, structure, route, and signal assessments atomically;
+- absent identity creates summary, structure, route, signal, and zone assessments atomically;
 - complete equality is equivalent;
-- equal evaluated fields plus previously unevaluated structure, routes, or signals is `enrich` when no
+- equal evaluated fields plus previously unevaluated structure, routes, signals, or zones is `enrich` when no
   evaluated field changes or regresses;
 - later `modified` evidence atomically replaces summary and every mapped child;
 - earlier evidence preserves the complete visible record;
@@ -163,9 +199,9 @@ Identity remains `(originId, identifier.id)`. Reconciliation compares the comple
 Two artifacts with the same mapped identity in one ZIP are invalid independently of order. Whole-package
 exact-repeat reuse requires equal archive fingerprint, adapter version, and operation mapping-set version.
 Consequently, a package completed under any earlier mapping set is reassessed under
-`polar-flow-mapping-set@4`; identical bytes enrich missing structure, route, or signal evidence without
-duplicating sessions, exercises, routes, points, series, or samples. Per-observation provenance records
-`polar-flow-training-session@4` for current mapping decisions.
+`polar-flow-mapping-set@5`; identical bytes enrich missing structure, route, signal, or zone evidence without
+duplicating sessions, exercises, routes, points, series, samples, groups, or bands. Per-observation provenance
+records `polar-flow-training-session@5` for current mapping decisions.
 
 ## Historical version 1 behavior
 
@@ -192,19 +228,26 @@ geometry under `polar-flow-mapping-set@3`. Signal containers and values remained
 version-3 rows therefore have null signal assessment and are eligible for strict enrichment under version 4
 without changing their equal summary, structure, or route evidence.
 
+## Historical version 4 behavior
+
+`polar-flow-training-session@4`, introduced by `polar-flow-archive@9`, added primary and transition regular
+signal series under `polar-flow-mapping-set@4`. Zone groups and bands remained unevaluated. Existing version-4
+rows therefore have null zone assessment and are eligible for strict enrichment under version 5 without
+changing their equal summary, structure, route, or signal evidence.
+
 ## Deliberately unmapped information
 
-Mapping version 4 still does not persist:
+Mapping version 5 still does not persist:
 
 - session- or exercise-level standalone `latitude` and `longitude` fields outside route waypoints;
 - values or provider tokens from unsupported regular series;
 - `rrSamples`, `transitionRrSamples`, irregular samples, or other non-regular signal structures;
-- zones, detailed statistics, hills, tests, and source analysis;
+- provider values from unsupported zone groups, detailed statistics, hills, tests, and source analysis;
 - names, notes, comments, feelings, targets, training benefit, training load, or recovery time;
 - energy-source percentages, physical information, devices, products, or application references.
 
 These fields are not represented as empty canonical collections. Their source bytes remain only in the user's
-original archive. The artifact is `supported` when all mapping-version-3 fields pass; coverage and UI disclose
+original archive. The artifact is `supported` when all mapping-version-5 fields pass; coverage and UI disclose
 the current boundary without exposing locators, identifiers, coordinates, notes, or personal values.
 
 ## Sport limitation

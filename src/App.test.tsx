@@ -2521,6 +2521,19 @@ describe("FitFreed import interface", () => {
           },
         });
       }
+      if (command === "query_training_session_zones") {
+        return Promise.resolve({
+          snapshotRef: "snapshot-current",
+          sessionRef: arguments_.query.sessionRef,
+          zones: {
+            exercises: [{
+              exerciseRef: "opaque-exercise",
+              ordinal: 0,
+              zones: null,
+            }],
+          },
+        });
+      }
       if (command === "query_training_session_segmentation") {
         return Promise.resolve({
           snapshotRef: "snapshot-current",
@@ -2572,6 +2585,8 @@ describe("FitFreed import interface", () => {
     expect(within(detail!).getByText(
       "No personal criterion is applied to this exercise yet.",
     )).toBeVisible();
+    expect(await within(detail!).findByRole("region", { name: "Recorded zones" }))
+      .toHaveTextContent("The source did not provide a zone container for this exercise.");
     await user.click(within(detail!).getByRole("button", { name: "Back to session results" }));
     expect(within(training).queryByRole("heading", { name: "Session summary" }))
       .not.toBeInTheDocument();
