@@ -1,9 +1,9 @@
-use std::{fs, io::Write, path::Path};
+use std::{collections::BTreeMap, fs, io::Write, path::Path};
 
 use fitfreed_application::{
     AuthorizedSessionReportExport, ReportExportCancellation, ReportExportPort,
-    ReportExportPortError, ReportExportReceipt, ReportLimitation, TrainingSessionSport,
-    TrainingSportState,
+    ReportExportPortError, ReportExportReceipt, ReportLimitation, ReportRouteEvidence,
+    TrainingRouteKindView, TrainingSessionSport, TrainingSportState,
 };
 use fitfreed_domain::{ReportBlockContent, ReportLocale};
 
@@ -15,6 +15,7 @@ body{max-width:64rem;margin:0 auto;padding:2rem;color:#17211c;background:#f5f7f3
 main{background:#fff;border:1px solid #cad3cc;border-radius:1rem;padding:clamp(1rem,4vw,3rem)}\
 h1,h2{line-height:1.15}section{margin-block:2rem}dl{display:grid;grid-template-columns:minmax(10rem,1fr) 2fr;gap:.5rem 1rem}\
 dt{font-weight:700}dd{margin:0}.narrative{white-space:pre-wrap}.attribution,.limitation{color:#425149}\
+.route-visual{background:#eef3ef;border:1px solid #cad3cc;border-radius:.75rem;max-width:100%;height:auto}.route-visual rect{fill:#eef3ef}.route-visual polyline{fill:none;stroke:#276749;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}.route-visual circle{fill:#17211c;stroke:#fff;stroke-width:2}\
 @media(max-width:40rem){body{padding:.5rem}main{border-radius:.5rem}dl{grid-template-columns:1fr}dd{margin-bottom:.75rem}}\
 @media(prefers-color-scheme:dark){body{color:#e7eee9;background:#121713}main{background:#1b231d;border-color:#445047}.attribution,.limitation{color:#b8c5bc}}\
 @media print{body{max-width:none;padding:0;background:#fff;color:#000}main{border:0;padding:0}}";
@@ -75,22 +76,27 @@ fn render_report(
     ensure_active(cancellation)?;
     validate_evidence(report)?;
     let labels = Labels::for_locale(report.definition.locale());
-    let narrative = match report.definition.blocks()[1].content() {
-        ReportBlockContent::Narrative { body } => body,
-        ReportBlockContent::SessionEvidence { .. } => {
-            return Err(ReportExportPortError::Failure(
-                "report narrative block is unavailable".to_owned(),
-            ));
-        }
-    };
-    let mut html = String::with_capacity(8_192 + narrative.len());
+    let narrative_length = report
+        .definition
+        .blocks()
+        .iter()
+        .find_map(|block| match block.content() {
+            ReportBlockContent::Narrative { body } => Some(body.len()),
+            ReportBlockContent::SessionEvidence { .. } | ReportBlockContent::Route { .. } => None,
+        })
+        .ok_or_else(|| {
+            ReportExportPortError::Failure("report narrative block is unavailable".to_owned())
+        })?;
+    let mut html = String::with_capacity(8_192 + narrative_length);
     html.push_str("<!doctype html><html lang=\"");
     html.push_str(report.definition.locale().code());
     html.push_str("\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>");
     push_escaped(&mut html, report.definition.title());
     html.push_str("</title><style>");
     html.push_str(EMBEDDED_STYLE);
-    html.push_str("</style></head><body><main data-fitfreed-report-version=\"1\"><header><p class=\"attribution\">");
+    html.push_str("</style></head><body><main data-fitfreed-report-version=\"");
+    html.push_str(&report.definition.definition_version().to_string());
+    html.push_str("\"><header><p class=\"attribution\">");
     html.push_str(labels.personal_report);
     html.push_str("</p><h1>");
     push_escaped(&mut html, report.definition.title());
@@ -118,96 +124,33 @@ fn render_report(
     html.push_str(labels.units);
     html.push_str("</dt><dd><code>metric-v1</code></dd></dl></header>");
 
-    ensure_active(cancellation)?;
-    html.push_str("<section aria-labelledby=\"session-heading\"><h2 id=\"session-heading\">");
-    html.push_str(labels.session_evidence);
-    html.push_str("</h2><p class=\"attribution\">");
-    html.push_str(labels.recorded_evidence);
-    html.push_str("</p><dl><dt>");
-    html.push_str(labels.started);
-    html.push_str("</dt><dd><time>");
-    push_escaped(&mut html, &report.session.started_at_local);
-    html.push_str("</time></dd><dt>");
-    html.push_str(labels.stopped);
-    html.push_str("</dt><dd><time>");
-    push_escaped(&mut html, &report.session.stopped_at_local);
-    html.push_str("</time></dd>");
-    if let Some(offset) = report.session.utc_offset_minutes {
-        push_term(&mut html, labels.utc_offset, &format_utc_offset(offset));
-    }
-    push_data_term(
-        &mut html,
-        labels.duration,
-        &report.session.duration_milliseconds.to_string(),
-        &format_duration(report.session.duration_milliseconds, labels),
-        Some("ms"),
-    );
-    if let Some(distance) = report.session.distance_meters {
-        push_data_term(
-            &mut html,
-            labels.distance,
-            &format_finite_number(distance),
-            &format!(
-                "{} {}",
-                format_decimal(distance / 1_000.0, report.definition.locale()),
-                labels.kilometres
-            ),
-            Some("m"),
-        );
-    }
-    if let Some(energy) = report.session.energy_kilocalories {
-        push_data_term(
-            &mut html,
-            labels.energy,
-            &energy.to_string(),
-            &format!("{energy} {}", labels.kilocalories),
-            Some("kcal"),
-        );
-    }
-    if report.include_physiological_context {
-        if let Some(average) = report.session.average_heart_rate_bpm {
-            push_data_term(
-                &mut html,
-                labels.average_heart_rate,
-                &average.to_string(),
-                &format!("{average} {}", labels.beats_per_minute),
-                Some("bpm"),
-            );
-        }
-        if let Some(maximum) = report.session.maximum_heart_rate_bpm {
-            push_data_term(
-                &mut html,
-                labels.maximum_heart_rate,
-                &maximum.to_string(),
-                &format!("{maximum} {}", labels.beats_per_minute),
-                Some("bpm"),
-            );
+    let routes = report
+        .routes
+        .iter()
+        .map(|route| (route.block_ref.as_str(), route))
+        .collect::<BTreeMap<_, _>>();
+    for block in report.definition.blocks() {
+        ensure_active(cancellation)?;
+        match block.content() {
+            ReportBlockContent::SessionEvidence { .. } => {
+                render_session_section(&mut html, report, labels)
+            }
+            ReportBlockContent::Route { .. } => {
+                let route = routes.get(block.block_ref()).ok_or_else(|| {
+                    ReportExportPortError::Failure(
+                        "authorized report route block is unavailable".to_owned(),
+                    )
+                })?;
+                render_route_section(&mut html, route, labels);
+            }
+            ReportBlockContent::Narrative { body } => {
+                render_narrative_section(&mut html, body, labels)
+            }
         }
     }
-    push_term(
-        &mut html,
-        labels.sport,
-        &sport_label(&report.session.sport, labels),
+    html.push_str(
+        "<section aria-labelledby=\"limitations-heading\"><h2 id=\"limitations-heading\">",
     );
-    if let Some(count) = report.session.exercise_count {
-        push_data_term(
-            &mut html,
-            labels.exercises,
-            &count.to_string(),
-            &count.to_string(),
-            None,
-        );
-    }
-    html.push_str("</dl></section>");
-
-    ensure_active(cancellation)?;
-    html.push_str("<section aria-labelledby=\"narrative-heading\"><h2 id=\"narrative-heading\">");
-    html.push_str(labels.interpretation);
-    html.push_str("</h2><p class=\"attribution\">");
-    html.push_str(labels.user_authored);
-    html.push_str("</p><p class=\"narrative\">");
-    push_escaped(&mut html, narrative);
-    html.push_str("</p></section><section aria-labelledby=\"limitations-heading\"><h2 id=\"limitations-heading\">");
     html.push_str(labels.limitations);
     html.push_str("</h2>");
     if report.limitations.is_empty() {
@@ -269,6 +212,233 @@ fn render_report(
     );
     html.push_str("</dl></section></main></body></html>\n");
     Ok(html)
+}
+
+fn render_session_section(
+    html: &mut String,
+    report: &AuthorizedSessionReportExport,
+    labels: &Labels,
+) {
+    html.push_str("<section aria-labelledby=\"session-heading\"><h2 id=\"session-heading\">");
+    html.push_str(labels.session_evidence);
+    html.push_str("</h2><p class=\"attribution\">");
+    html.push_str(labels.recorded_evidence);
+    html.push_str("</p><dl><dt>");
+    html.push_str(labels.started);
+    html.push_str("</dt><dd><time>");
+    push_escaped(html, &report.session.started_at_local);
+    html.push_str("</time></dd><dt>");
+    html.push_str(labels.stopped);
+    html.push_str("</dt><dd><time>");
+    push_escaped(html, &report.session.stopped_at_local);
+    html.push_str("</time></dd>");
+    if let Some(offset) = report.session.utc_offset_minutes {
+        push_term(html, labels.utc_offset, &format_utc_offset(offset));
+    }
+    push_data_term(
+        html,
+        labels.duration,
+        &report.session.duration_milliseconds.to_string(),
+        &format_duration(report.session.duration_milliseconds, labels),
+        Some("ms"),
+    );
+    if let Some(distance) = report.session.distance_meters {
+        push_data_term(
+            html,
+            labels.distance,
+            &format_finite_number(distance),
+            &format!(
+                "{} {}",
+                format_decimal(distance / 1_000.0, report.definition.locale()),
+                labels.kilometres
+            ),
+            Some("m"),
+        );
+    }
+    if let Some(energy) = report.session.energy_kilocalories {
+        push_data_term(
+            html,
+            labels.energy,
+            &energy.to_string(),
+            &format!("{energy} {}", labels.kilocalories),
+            Some("kcal"),
+        );
+    }
+    if report.include_physiological_context {
+        if let Some(average) = report.session.average_heart_rate_bpm {
+            push_data_term(
+                html,
+                labels.average_heart_rate,
+                &average.to_string(),
+                &format!("{average} {}", labels.beats_per_minute),
+                Some("bpm"),
+            );
+        }
+        if let Some(maximum) = report.session.maximum_heart_rate_bpm {
+            push_data_term(
+                html,
+                labels.maximum_heart_rate,
+                &maximum.to_string(),
+                &format!("{maximum} {}", labels.beats_per_minute),
+                Some("bpm"),
+            );
+        }
+    }
+    push_term(
+        html,
+        labels.sport,
+        &sport_label(&report.session.sport, labels),
+    );
+    if let Some(count) = report.session.exercise_count {
+        push_data_term(
+            html,
+            labels.exercises,
+            &count.to_string(),
+            &count.to_string(),
+            None,
+        );
+    }
+    html.push_str("</dl></section>");
+}
+
+fn render_narrative_section(html: &mut String, body: &str, labels: &Labels) {
+    html.push_str("<section aria-labelledby=\"narrative-heading\"><h2 id=\"narrative-heading\">");
+    html.push_str(labels.interpretation);
+    html.push_str("</h2><p class=\"attribution\">");
+    html.push_str(labels.user_authored);
+    html.push_str("</p><p class=\"narrative\">");
+    push_escaped(html, body);
+    html.push_str("</p></section>");
+}
+
+fn render_route_section(html: &mut String, route: &ReportRouteEvidence, labels: &Labels) {
+    html.push_str("<section aria-labelledby=\"");
+    push_escaped_attribute(html, route.block_ref.as_str());
+    html.push_str("-heading\"><h2 id=\"");
+    push_escaped_attribute(html, route.block_ref.as_str());
+    html.push_str("-heading\">");
+    html.push_str(labels.route);
+    html.push_str("</h2><p class=\"attribution\">");
+    html.push_str(labels.precise_location);
+    html.push_str("</p>");
+    if !route.included {
+        html.push_str("<p>");
+        html.push_str(labels.route_omitted);
+        html.push_str("</p></section>");
+        return;
+    }
+    let summary = format!(
+        "{}: {} {}",
+        route_kind_label(route.kind, labels),
+        route.source_point_count,
+        labels.recorded_points
+    );
+    let svg_points = route_svg_points(route);
+    if svg_points.is_empty() {
+        html.push_str("<p>");
+        html.push_str(labels.route_fully_redacted);
+        html.push_str("</p>");
+    } else {
+        html.push_str(
+            "<svg class=\"route-visual\" viewBox=\"0 0 640 320\" role=\"img\" aria-label=\"",
+        );
+        push_escaped_attribute(html, &summary);
+        html.push_str("\"><title>");
+        push_escaped(html, &summary);
+        html.push_str("</title><rect x=\"1\" y=\"1\" width=\"638\" height=\"318\" rx=\"18\"/>");
+        if svg_points.len() == 1 {
+            let (x, y) = svg_points[0];
+            html.push_str(&format!("<circle cx=\"{x:.2}\" cy=\"{y:.2}\" r=\"7\"/>"));
+        } else {
+            html.push_str("<polyline points=\"");
+            for (index, (x, y)) in svg_points.iter().enumerate() {
+                if index > 0 {
+                    html.push(' ');
+                }
+                html.push_str(&format!("{x:.2},{y:.2}"));
+            }
+            html.push_str("\"/>");
+        }
+        html.push_str("</svg>");
+    }
+    html.push_str("<dl>");
+    push_term(
+        html,
+        labels.route_kind,
+        route_kind_label(route.kind, labels),
+    );
+    push_data_term(
+        html,
+        labels.route_source_points,
+        &route.source_point_count.to_string(),
+        &route.source_point_count.to_string(),
+        None,
+    );
+    push_data_term(
+        html,
+        labels.endpoint_redaction,
+        &route.endpoint_redaction_meters.to_string(),
+        &format!("{} {}", route.endpoint_redaction_meters, labels.metres),
+        Some("m"),
+    );
+    html.push_str("</dl></section>");
+}
+
+fn route_svg_points(route: &ReportRouteEvidence) -> Vec<(f64, f64)> {
+    let mut unwrapped = Vec::with_capacity(route.visual_points.len());
+    for point in &route.visual_points {
+        let mut longitude = point.longitude_degrees;
+        if let Some((_, previous_longitude)) = unwrapped.last().copied() {
+            while longitude - previous_longitude > 180.0 {
+                longitude -= 360.0;
+            }
+            while longitude - previous_longitude < -180.0 {
+                longitude += 360.0;
+            }
+        }
+        unwrapped.push((point.latitude_degrees, longitude));
+    }
+    let Some((minimum_latitude, maximum_latitude, minimum_longitude, maximum_longitude)) =
+        unwrapped
+            .iter()
+            .copied()
+            .fold(None, |bounds, (latitude, longitude)| match bounds {
+                None => Some((latitude, latitude, longitude, longitude)),
+                Some((min_lat, max_lat, min_lon, max_lon)) => Some((
+                    min_lat.min(latitude),
+                    max_lat.max(latitude),
+                    min_lon.min(longitude),
+                    max_lon.max(longitude),
+                )),
+            })
+    else {
+        return Vec::new();
+    };
+    let latitude_span = maximum_latitude - minimum_latitude;
+    let longitude_span = maximum_longitude - minimum_longitude;
+    unwrapped
+        .into_iter()
+        .map(|(latitude, longitude)| {
+            let x = if longitude_span == 0.0 {
+                320.0
+            } else {
+                24.0 + (longitude - minimum_longitude) / longitude_span * 592.0
+            };
+            let y = if latitude_span == 0.0 {
+                160.0
+            } else {
+                24.0 + (maximum_latitude - latitude) / latitude_span * 272.0
+            };
+            (x, y)
+        })
+        .collect()
+}
+
+fn route_kind_label(kind: TrainingRouteKindView, labels: &Labels) -> &'static str {
+    match kind {
+        TrainingRouteKindView::Primary => labels.primary_route,
+        TrainingRouteKindView::Transition => labels.transition_route,
+    }
 }
 
 fn validate_evidence(report: &AuthorizedSessionReportExport) -> Result<(), ReportExportPortError> {
@@ -467,6 +637,17 @@ struct Labels {
     maximum_heart_rate: &'static str,
     sport: &'static str,
     exercises: &'static str,
+    route: &'static str,
+    precise_location: &'static str,
+    route_omitted: &'static str,
+    route_fully_redacted: &'static str,
+    route_kind: &'static str,
+    route_source_points: &'static str,
+    endpoint_redaction: &'static str,
+    primary_route: &'static str,
+    transition_route: &'static str,
+    recorded_points: &'static str,
+    metres: &'static str,
     interpretation: &'static str,
     user_authored: &'static str,
     limitations: &'static str,
@@ -522,6 +703,17 @@ static EN_US: Labels = Labels {
     maximum_heart_rate: "Maximum heart rate",
     sport: "Sport",
     exercises: "Exercises",
+    route: "Route",
+    precise_location: "Recorded location evidence with user-reviewed endpoint privacy",
+    route_omitted: "Route geometry was omitted during privacy review.",
+    route_fully_redacted: "No recorded route point remains after endpoint redaction.",
+    route_kind: "Route kind",
+    route_source_points: "Recorded points",
+    endpoint_redaction: "Endpoint redaction",
+    primary_route: "Primary route",
+    transition_route: "Transition route",
+    recorded_points: "recorded points",
+    metres: "m",
     interpretation: "My interpretation",
     user_authored: "User-authored text",
     limitations: "Coverage and limitations",
@@ -568,6 +760,19 @@ static ES_ES: Labels = Labels {
     maximum_heart_rate: "Frecuencia cardíaca máxima",
     sport: "Deporte",
     exercises: "Ejercicios",
+    route: "Ruta",
+    precise_location:
+        "Evidencias de ubicación registradas con privacidad de extremos revisada por el usuario",
+    route_omitted: "La geometría de la ruta se omitió durante la revisión de privacidad.",
+    route_fully_redacted:
+        "No queda ningún punto registrado de la ruta después de ocultar los extremos.",
+    route_kind: "Tipo de ruta",
+    route_source_points: "Puntos registrados",
+    endpoint_redaction: "Ocultación de extremos",
+    primary_route: "Ruta principal",
+    transition_route: "Ruta de transición",
+    recorded_points: "puntos registrados",
+    metres: "m",
     interpretation: "Mi interpretación",
     user_authored: "Texto escrito por el usuario",
     limitations: "Cobertura y limitaciones",
@@ -601,8 +806,8 @@ mod tests {
     use std::fs;
 
     use fitfreed_application::{
-        ReportSessionEvidence, TrainingProvenanceCurrentView, TrainingSessionSport,
-        TrainingSourceProviderView,
+        ReportSessionEvidence, TrainingProvenanceCurrentView, TrainingRoutePointView,
+        TrainingSessionSport, TrainingSourceProviderView,
     };
     use fitfreed_domain::{ReportBlock, ReportDefinition};
     use tempfile::tempdir;
@@ -656,6 +861,7 @@ mod tests {
                     classification: None,
                 },
             },
+            routes: vec![],
             provenance: TrainingProvenanceCurrentView {
                 provider: TrainingSourceProviderView::restore("polar-flow".to_owned())
                     .expect("provider"),
@@ -668,6 +874,58 @@ mod tests {
             limitations: vec![ReportLimitation::SportUnavailable],
             include_physiological_context,
         }
+    }
+
+    fn routed_report(included: bool) -> AuthorizedSessionReportExport {
+        let mut resolved = report(ReportLocale::EnUs, false);
+        let session_ref = resolved.session.session_ref.clone();
+        let route_ref = "route-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+        let route_block_ref =
+            "report-block-1111111111111111111111111111111111111111111111111111111111111111";
+        resolved.definition = ReportDefinition::compose_session_report(
+            resolved.definition.report_ref(),
+            resolved.definition.title(),
+            resolved.definition.locale(),
+            resolved.definition.source_snapshot_ref(),
+            &session_ref,
+            vec![
+                ReportBlock::route(route_block_ref, &session_ref, route_ref, 200)
+                    .expect("route block"),
+                resolved.definition.blocks()[1].clone(),
+                resolved.definition.blocks()[0].clone(),
+            ],
+        )
+        .expect("routed report definition");
+        resolved.routes = vec![ReportRouteEvidence {
+            block_ref: route_block_ref.to_owned(),
+            route_ref: route_ref.to_owned(),
+            kind: TrainingRouteKindView::Primary,
+            started_at_local: "2026-08-18T07:30:00.000".to_owned(),
+            source_point_count: 4,
+            visual_points: if included {
+                vec![
+                    TrainingRoutePointView {
+                        ordinal: 1,
+                        latitude_degrees: 40.123,
+                        longitude_degrees: -3.456,
+                        altitude_meters: None,
+                        elapsed_milliseconds: Some(60_000),
+                    },
+                    TrainingRoutePointView {
+                        ordinal: 2,
+                        latitude_degrees: 40.124,
+                        longitude_degrees: -3.455,
+                        altitude_meters: None,
+                        elapsed_milliseconds: Some(120_000),
+                    },
+                ]
+            } else {
+                Vec::new()
+            },
+            endpoint_redaction_meters: 200,
+            included,
+        }];
+        resolved
     }
 
     #[test]
@@ -715,6 +973,37 @@ mod tests {
         assert!(!html.contains("Maximum heart rate"));
         assert!(!html.contains("148 bpm"));
         assert!(!html.contains("172 bpm"));
+    }
+
+    #[test]
+    fn renders_ordered_local_route_svg_without_exporting_recorded_coordinates() {
+        let html = render_report(&routed_report(true), &ReportExportCancellation::new())
+            .expect("routed report");
+
+        assert!(html.contains("data-fitfreed-report-version=\"2\""));
+        assert!(html.contains("<svg class=\"route-visual\""));
+        assert!(
+            html.find(">Route</h2>").expect("route section")
+                < html
+                    .find(">My interpretation</h2>")
+                    .expect("narrative section")
+        );
+        assert!(
+            html.find(">My interpretation</h2>")
+                .expect("narrative section")
+                < html
+                    .find(">Session evidence</h2>")
+                    .expect("session section")
+        );
+        assert!(!html.contains("40.123"));
+        assert!(!html.contains("-3.456"));
+        assert!(!html.contains("http://"));
+        assert!(!html.contains("https://"));
+
+        let omitted = render_report(&routed_report(false), &ReportExportCancellation::new())
+            .expect("omitted route report");
+        assert!(omitted.contains("Route geometry was omitted during privacy review."));
+        assert!(!omitted.contains("<svg class=\"route-visual\""));
     }
 
     #[test]

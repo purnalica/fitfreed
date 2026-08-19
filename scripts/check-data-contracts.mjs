@@ -4368,12 +4368,21 @@ const reportDefinitionCanonicalPath = "docs/data-formats/canonical/report-defini
 const reportDefinitionPortablePath = "docs/data-formats/portable/report-definition-v1.md";
 const sessionReportPath = "docs/data-formats/insights/session-report-v1.md";
 const reportHtmlPath = "docs/data-formats/portable/report-html-v1.md";
+const reportDefinitionCanonicalV2Path = "docs/data-formats/canonical/report-definition-v2.md";
+const reportDefinitionPortableV2Path = "docs/data-formats/portable/report-definition-v2.md";
+const sessionReportV2Path = "docs/data-formats/insights/session-report-v2.md";
+const reportHtmlV2Path = "docs/data-formats/portable/report-html-v2.md";
 const reportDefinitionSchemaPath = "schemas/report-definition-v1.schema.json";
+const reportDefinitionV2SchemaPath = "schemas/report-definition-v2.schema.json";
 const sessionReportCreateSchemaPath = "schemas/session-report-create-v1.schema.json";
+const sessionReportCreateV2SchemaPath = "schemas/session-report-create-v2.schema.json";
 const sessionReportUpdateSchemaPath = "schemas/session-report-update-v1.schema.json";
+const sessionReportUpdateV2SchemaPath = "schemas/session-report-update-v2.schema.json";
 const reportListSchemaPath = "schemas/report-list-v1.schema.json";
 const sessionReportResolutionSchemaPath = "schemas/session-report-resolution-v1.schema.json";
+const sessionReportResolutionV2SchemaPath = "schemas/session-report-resolution-v2.schema.json";
 const sessionReportExportSchemaPath = "schemas/session-report-export-v1.schema.json";
+const sessionReportExportV2SchemaPath = "schemas/session-report-export-v2.schema.json";
 const reportExportReceiptSchemaPath = "schemas/report-export-receipt-v1.schema.json";
 
 for (const [documentPath, fields] of [
@@ -4390,6 +4399,19 @@ for (const [documentPath, fields] of [
     "report-definition-conflict", "report-export-cancelled", "report-export-failed",
   ]],
   [reportHtmlPath, ["metric-v1", "text/html", "data-fitfreed-report-version"]],
+  [reportDefinitionCanonicalV2Path, [
+    "definitionVersion", "session-evidence", "route", "narrative",
+    "endpointRedactionMeters", "routeRef", "blockRef",
+  ]],
+  [reportDefinitionPortableV2Path, [
+    "application/vnd.fitfreed.report-definition+json;version=2", "routeRef",
+    "endpointRedactionMeters", "revision",
+  ]],
+  [sessionReportV2Path, [
+    "routes", "sensitiveContents", "precise-location", "routeChoices",
+    "report-definition-conflict",
+  ]],
+  [reportHtmlV2Path, ["text/html", "data-fitfreed-report-version", "polyline"]],
 ]) {
   const document = read(documentPath);
   for (const field of fields) requireMention(document, field, documentPath);
@@ -4416,11 +4438,16 @@ for (const dependencyPath of [
 }
 
 const validateReportDefinition = compileReportSchema(reportDefinitionSchemaPath);
+const validateReportDefinitionV2 = compileReportSchema(reportDefinitionV2SchemaPath);
 const validateSessionReportCreate = compileReportSchema(sessionReportCreateSchemaPath);
+const validateSessionReportCreateV2 = compileReportSchema(sessionReportCreateV2SchemaPath);
 const validateSessionReportUpdate = compileReportSchema(sessionReportUpdateSchemaPath);
+const validateSessionReportUpdateV2 = compileReportSchema(sessionReportUpdateV2SchemaPath);
 const validateReportList = compileReportSchema(reportListSchemaPath);
 const validateSessionReportResolution = compileReportSchema(sessionReportResolutionSchemaPath);
+const validateSessionReportResolutionV2 = compileReportSchema(sessionReportResolutionV2SchemaPath);
 const validateSessionReportExport = compileReportSchema(sessionReportExportSchemaPath);
+const validateSessionReportExportV2 = compileReportSchema(sessionReportExportV2SchemaPath);
 const validateReportExportReceipt = compileReportSchema(reportExportReceiptSchemaPath);
 const reportRefDigest = `report-${"3".repeat(64)}`;
 const firstReportBlockRefDigest = `report-block-${"4".repeat(64)}`;
@@ -4554,6 +4581,153 @@ if (validateSessionReportExport({ ...syntheticSessionReportExport, destinationPa
   throw new Error(`${sessionReportExportSchemaPath} accepted an empty destination`);
 }
 
+const routeReportBlockRefDigest = `report-block-${"6".repeat(64)}`;
+const syntheticReportDefinitionV2 = {
+  ...structuredClone(syntheticReportDefinition),
+  definitionVersion: 2,
+  blocks: [
+    {
+      blockRef: routeReportBlockRefDigest,
+      kind: "route",
+      sessionRef: sessionRefDigest,
+      routeRef: routeRefDigest,
+      endpointRedactionMeters: 200,
+    },
+    structuredClone(syntheticReportDefinition.blocks[1]),
+    structuredClone(syntheticReportDefinition.blocks[0]),
+  ],
+};
+assertReportContract(
+  validateReportDefinitionV2,
+  reportDefinitionV2SchemaPath,
+  syntheticReportDefinitionV2,
+);
+for (const invalidDefinition of [
+  { ...structuredClone(syntheticReportDefinitionV2), definitionVersion: 1 },
+  (() => {
+    const value = structuredClone(syntheticReportDefinitionV2);
+    value.blocks.push(structuredClone(value.blocks[2]));
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticReportDefinitionV2);
+    value.blocks[0].endpointRedactionMeters = 5001;
+    return value;
+  })(),
+]) {
+  if (validateReportDefinitionV2(invalidDefinition)) {
+    throw new Error(`${reportDefinitionV2SchemaPath} accepted an invalid definition`);
+  }
+}
+
+const syntheticSessionReportCreateV2 = {
+  title: syntheticReportDefinitionV2.title,
+  locale: syntheticReportDefinitionV2.locale,
+  sessionRef: sessionRefDigest,
+  sourceSnapshotRef: snapshotRefDigest,
+  blocks: syntheticReportDefinitionV2.blocks.map(({ blockRef: _blockRef, sessionRef: _sessionRef, ...block }) => block),
+};
+assertReportContract(
+  validateSessionReportCreateV2,
+  sessionReportCreateV2SchemaPath,
+  syntheticSessionReportCreateV2,
+);
+if (validateSessionReportCreateV2({
+  ...structuredClone(syntheticSessionReportCreateV2),
+  blocks: syntheticSessionReportCreateV2.blocks.filter((block) => block.kind !== "narrative"),
+})) {
+  throw new Error(`${sessionReportCreateV2SchemaPath} accepted a composition without narrative`);
+}
+if (validateSessionReportCreateV2({
+  ...structuredClone(syntheticSessionReportCreateV2),
+  blocks: syntheticSessionReportCreateV2.blocks.map((block, index) => index === 0
+    ? { ...block, blockRef: routeReportBlockRefDigest }
+    : block),
+})) {
+  throw new Error(`${sessionReportCreateV2SchemaPath} accepted a caller-owned block identity`);
+}
+
+const syntheticSessionReportUpdateV2 = {
+  reportRef: reportRefDigest,
+  expectedRevision: "1",
+  title: "Morning route review",
+  locale: "es-ES",
+  blocks: syntheticReportDefinitionV2.blocks.map(({ sessionRef: _sessionRef, ...block }) => block),
+};
+assertReportContract(
+  validateSessionReportUpdateV2,
+  sessionReportUpdateV2SchemaPath,
+  syntheticSessionReportUpdateV2,
+);
+if (validateSessionReportUpdateV2({ ...syntheticSessionReportUpdateV2, expectedRevision: "01" })) {
+  throw new Error(`${sessionReportUpdateV2SchemaPath} accepted a non-canonical revision`);
+}
+
+const syntheticRouteEvidence = {
+  blockRef: routeReportBlockRefDigest,
+  routeRef: routeRefDigest,
+  kind: "primary",
+  startedAtLocal: "2026-08-18T08:30:00.000",
+  sourcePointCount: 3,
+  visualPoints: [syntheticRoutePoint],
+  endpointRedactionMeters: 200,
+  included: true,
+};
+const syntheticSessionReportResolutionV2 = {
+  ...structuredClone(syntheticSessionReportResolution),
+  definition: syntheticReportDefinitionV2,
+  routes: [syntheticRouteEvidence],
+  sensitiveContents: [
+    {
+      kind: "heart-rate",
+      blockRef: null,
+      included: true,
+      endpointRedactionMeters: null,
+    },
+    {
+      kind: "precise-location",
+      blockRef: routeReportBlockRefDigest,
+      included: true,
+      endpointRedactionMeters: 200,
+    },
+  ],
+};
+assertReportContract(
+  validateSessionReportResolutionV2,
+  sessionReportResolutionV2SchemaPath,
+  syntheticSessionReportResolutionV2,
+);
+if (validateSessionReportResolutionV2({
+  ...structuredClone(syntheticSessionReportResolutionV2),
+  routes: [{ ...syntheticRouteEvidence, endpointRedactionMeters: -1 }],
+})) {
+  throw new Error(`${sessionReportResolutionV2SchemaPath} accepted negative route redaction`);
+}
+
+const syntheticSessionReportExportV2 = {
+  ...syntheticSessionReportExport,
+  routeChoices: [{
+    blockRef: routeReportBlockRefDigest,
+    includeGeometry: true,
+    endpointRedactionMeters: 500,
+  }],
+};
+assertReportContract(
+  validateSessionReportExportV2,
+  sessionReportExportV2SchemaPath,
+  syntheticSessionReportExportV2,
+);
+if (validateSessionReportExportV2({
+  ...structuredClone(syntheticSessionReportExportV2),
+  routeChoices: [{
+    blockRef: routeReportBlockRefDigest,
+    includeGeometry: true,
+    endpointRedactionMeters: 5001,
+  }],
+})) {
+  throw new Error(`${sessionReportExportV2SchemaPath} accepted excessive route redaction`);
+}
+
 assertReportContract(
   validateReportExportReceipt,
   reportExportReceiptSchemaPath,
@@ -4602,6 +4776,10 @@ for (const contractPath of [
   reportDefinitionPortablePath,
   sessionReportPath,
   reportHtmlPath,
+  reportDefinitionCanonicalV2Path,
+  reportDefinitionPortableV2Path,
+  sessionReportV2Path,
+  reportHtmlV2Path,
   ...persistencePaths,
 ]) {
   const relativeContract = path.relative(path.dirname(indexPath), contractPath);
@@ -4713,11 +4891,16 @@ process.stdout.write(
     updateRecoveryOutcomeSchema: updateRecoveryOutcomeSchemaPath,
     reportSchemas: [
       reportDefinitionSchemaPath,
+      reportDefinitionV2SchemaPath,
       sessionReportCreateSchemaPath,
+      sessionReportCreateV2SchemaPath,
       sessionReportUpdateSchemaPath,
+      sessionReportUpdateV2SchemaPath,
       reportListSchemaPath,
       sessionReportResolutionSchemaPath,
+      sessionReportResolutionV2SchemaPath,
       sessionReportExportSchemaPath,
+      sessionReportExportV2SchemaPath,
       reportExportReceiptSchemaPath,
     ],
     canonicalFields: 64,

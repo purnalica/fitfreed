@@ -22,6 +22,7 @@ use fitfreed_application::{
     apply_training_segment_criterion as apply_segment_criterion_through_port,
     authorize_update_installation as authorize_update, check_for_updates as evaluate_updates,
     clear_exploration_workspace as clear_workspace,
+    create_composed_session_report as create_composed_session_report_through_port,
     create_session_report as create_session_report_through_port,
     create_training_segment_criterion as create_segment_criterion_through_port,
     dismiss_update as persist_update_dismissal,
@@ -49,6 +50,7 @@ use fitfreed_application::{
     save_application_preferences as save_preferences_through_port,
     save_exploration_workspace as save_workspace,
     save_training_sport_classification as persist_training_sport_classification,
+    update_composed_session_report as update_composed_session_report_through_port,
     update_session_report as update_session_report_through_port,
     update_training_segment_criterion as update_segment_criterion_through_port, ApplicationError,
     ApplicationPreferences, ImportCoordinator, ImportProgress, InvalidApplicationPreferences,
@@ -73,27 +75,28 @@ use infrastructure::{
 use presentation::{
     ActivityComparisonDto, ActivityDateRangeDto, ActivityOverviewDto, ApplicationPreferencesDto,
     ApplicationPreferencesInputDto, ApplicationPreferencesLoadDto, CommandErrorDto,
-    CreateSessionReportRequestDto, CreateTrainingSegmentCriterionRequestDto,
-    ExplorationWorkspaceDto, ExploreDestinationInputDto, ImportOutcomeDto, ImportProgressDto,
-    ImportReportDto, LibraryHomeDto, LibraryHomeRequestDto, LongitudinalComparisonDto,
-    LongitudinalDateRangeDto, LongitudinalOverviewDto, MoveTrainingSegmentCriterionRequestDto,
-    RecoveryComparisonDto, RecoveryDateRangeDto, RecoveryNightDetailDto, RecoveryOverviewDto,
-    ReportDefinitionDto, ReportExportReceiptDto, ReportListDto, ResolvedSessionReportDto,
-    SaveSportClassificationRequestDto, SavedTrainingSportClassificationDto,
-    SessionReportExportRequestDto, SleepComparisonDto, SleepDateRangeDto, SleepOverviewDto,
-    SleepPeriodDetailDto, SourceAcquisitionGuideDto, TrainingComparisonDto, TrainingDateRangeDto,
-    TrainingDiscoveryWorkspaceDto, TrainingOverviewDto, TrainingRoutePointsQueryDto,
-    TrainingRoutePointsResultDto, TrainingSegmentCriterionMutationRequestDto,
-    TrainingSessionCalendarDto, TrainingSessionCalendarRequestDto,
-    TrainingSessionProvenanceQueryDto, TrainingSessionProvenanceResultDto,
-    TrainingSessionRouteQueryDto, TrainingSessionRoutesResultDto, TrainingSessionSearchPageDto,
-    TrainingSessionSearchRequestDto, TrainingSessionSegmentationQueryDto,
-    TrainingSessionSegmentationResultDto, TrainingSessionSelectionDto,
-    TrainingSessionSelectionRequestDto, TrainingSessionSignalsQueryDto,
-    TrainingSessionSignalsResultDto, TrainingSessionStructureQueryDto,
-    TrainingSessionStructureResultDto, TrainingSessionZonesQueryDto, TrainingSessionZonesResultDto,
-    TrainingSignalSamplesQueryDto, TrainingSignalSamplesResultDto, TrainingSportsOverviewDto,
-    UpdateCheckOutcomeDto, UpdateRecoveryOutcomeDto, UpdateSessionReportRequestDto,
+    CreateComposedSessionReportRequestDto, CreateSessionReportRequestDto,
+    CreateTrainingSegmentCriterionRequestDto, ExplorationWorkspaceDto, ExploreDestinationInputDto,
+    ImportOutcomeDto, ImportProgressDto, ImportReportDto, LibraryHomeDto, LibraryHomeRequestDto,
+    LongitudinalComparisonDto, LongitudinalDateRangeDto, LongitudinalOverviewDto,
+    MoveTrainingSegmentCriterionRequestDto, RecoveryComparisonDto, RecoveryDateRangeDto,
+    RecoveryNightDetailDto, RecoveryOverviewDto, ReportDefinitionDto, ReportExportReceiptDto,
+    ReportListDto, ResolvedSessionReportDto, SaveSportClassificationRequestDto,
+    SavedTrainingSportClassificationDto, SessionReportExportRequestDto, SleepComparisonDto,
+    SleepDateRangeDto, SleepOverviewDto, SleepPeriodDetailDto, SourceAcquisitionGuideDto,
+    TrainingComparisonDto, TrainingDateRangeDto, TrainingDiscoveryWorkspaceDto,
+    TrainingOverviewDto, TrainingRoutePointsQueryDto, TrainingRoutePointsResultDto,
+    TrainingSegmentCriterionMutationRequestDto, TrainingSessionCalendarDto,
+    TrainingSessionCalendarRequestDto, TrainingSessionProvenanceQueryDto,
+    TrainingSessionProvenanceResultDto, TrainingSessionRouteQueryDto,
+    TrainingSessionRoutesResultDto, TrainingSessionSearchPageDto, TrainingSessionSearchRequestDto,
+    TrainingSessionSegmentationQueryDto, TrainingSessionSegmentationResultDto,
+    TrainingSessionSelectionDto, TrainingSessionSelectionRequestDto,
+    TrainingSessionSignalsQueryDto, TrainingSessionSignalsResultDto,
+    TrainingSessionStructureQueryDto, TrainingSessionStructureResultDto,
+    TrainingSessionZonesQueryDto, TrainingSessionZonesResultDto, TrainingSignalSamplesQueryDto,
+    TrainingSignalSamplesResultDto, TrainingSportsOverviewDto, UpdateCheckOutcomeDto,
+    UpdateComposedSessionReportRequestDto, UpdateRecoveryOutcomeDto, UpdateSessionReportRequestDto,
     UpdateTrainingSegmentCriterionRequestDto,
 };
 use serde::{Deserialize, Serialize};
@@ -679,6 +682,23 @@ fn create_session_report(
 }
 
 #[tauri::command]
+fn create_composed_session_report(
+    app: AppHandle,
+    request: CreateComposedSessionReportRequestDto,
+) -> Result<ReportDefinitionDto, CommandErrorDto> {
+    let request = request.try_into()?;
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    create_composed_session_report_through_port(
+        &SqliteReportLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path),
+        request,
+    )
+    .map(Into::into)
+    .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
 fn update_session_report(
     app: AppHandle,
     request: UpdateSessionReportRequestDto,
@@ -688,6 +708,23 @@ fn update_session_report(
     update_session_report_through_port(&SqliteReportLibrary::new(path), request)
         .map(Into::into)
         .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn update_composed_session_report(
+    app: AppHandle,
+    request: UpdateComposedSessionReportRequestDto,
+) -> Result<ReportDefinitionDto, CommandErrorDto> {
+    let request = request.try_into()?;
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    update_composed_session_report_through_port(
+        &SqliteReportLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path),
+        request,
+    )
+    .map(Into::into)
+    .map_err(CommandErrorDto::from)
 }
 
 #[tauri::command]
@@ -718,6 +755,7 @@ fn resolve_session_report(
     resolve_session_report_through_port(
         &SqliteReportLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path),
         &report_ref,
     )
@@ -740,6 +778,7 @@ async fn export_session_report(
         let cancellation = Arc::clone(&operation.cancellation);
         let result = export_session_report_through_port(
             &SqliteReportLibrary::new(path.clone()),
+            &SqliteTrainingLibrary::new(path.clone()),
             &SqliteTrainingLibrary::new(path.clone()),
             &SqliteTrainingLibrary::new(path),
             &SelfContainedHtmlReportExporter,
@@ -1743,7 +1782,9 @@ pub fn run() {
             query_training_sports,
             save_training_sport_classification,
             create_session_report,
+            create_composed_session_report,
             update_session_report,
+            update_composed_session_report,
             list_reports,
             load_report_definition,
             resolve_session_report,

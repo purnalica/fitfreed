@@ -23,6 +23,8 @@ const digest = (character: string) => character.repeat(64);
 const sessionRef = `session-${digest("1")}`;
 const snapshotRef = `training-snapshot-${digest("2")}`;
 const reportRef = `report-${digest("3")}`;
+const routeRef = `route-${digest("7")}`;
+const routeBlockRef = `report-block-${digest("8")}`;
 
 const origin: SessionReportOrigin = {
   snapshotRef,
@@ -60,7 +62,7 @@ function definition(revision = "1", title = "Ridge progression"): ReportDefiniti
     origin: { kind: "session", sessionRef },
     provenancePolicy: "current-attribution",
     authorship: "user",
-    definitionVersion: 1,
+    definitionVersion: 2,
     revision,
     blocks: [
       {
@@ -94,8 +96,98 @@ function resolution(value = definition()): ResolvedSessionReport {
       contributingEventCount: 1,
       nonContributingEventCount: 0,
     },
-    sensitiveContents: [{ kind: "heart-rate", included: true }],
+    routes: [],
+    sensitiveContents: [{
+      kind: "heart-rate",
+      blockRef: null,
+      included: true,
+      endpointRedactionMeters: null,
+    }],
     limitations: [],
+  };
+}
+
+const recordedRoute = {
+  routeRef,
+  kind: "primary" as const,
+  startedAtLocal: "2026-08-16T08:30:00.000",
+  pointCount: 4,
+  altitudePointCount: 4,
+  elapsedPointCount: 4,
+  projection: "source-ordinal-v1" as const,
+  visualPoints: [
+    {
+      ordinal: 0,
+      latitudeDegrees: 40.123456,
+      longitudeDegrees: -3.654321,
+      altitudeMeters: 650,
+      elapsedMilliseconds: "0",
+    },
+    {
+      ordinal: 3,
+      latitudeDegrees: 40.126456,
+      longitudeDegrees: -3.651321,
+      altitudeMeters: 670,
+      elapsedMilliseconds: "3600000",
+    },
+  ],
+};
+
+function routeQueryResult() {
+  return {
+    snapshotRef,
+    sessionRef,
+    routes: {
+      exercises: [{
+        exerciseRef: `exercise-${digest("9")}`,
+        ordinal: 0,
+        routes: { primary: recordedRoute, transition: null },
+      }],
+    },
+  };
+}
+
+function routedDefinition(endpointRedactionMeters = 0): ReportDefinition {
+  return {
+    ...definition(),
+    blocks: [
+      {
+        blockRef: routeBlockRef,
+        kind: "route",
+        sessionRef,
+        routeRef,
+        endpointRedactionMeters,
+      },
+      definition().blocks[1],
+      definition().blocks[0],
+    ],
+  };
+}
+
+function routedResolution(value = routedDefinition()): ResolvedSessionReport {
+  return {
+    ...resolution(value),
+    routes: [{
+      blockRef: routeBlockRef,
+      routeRef,
+      kind: "primary",
+      startedAtLocal: recordedRoute.startedAtLocal,
+      sourcePointCount: recordedRoute.pointCount,
+      visualPoints: recordedRoute.visualPoints,
+      endpointRedactionMeters: (value.blocks[0]?.kind === "route"
+        ? value.blocks[0].endpointRedactionMeters
+        : 0),
+      included: true,
+    }],
+    sensitiveContents: [
+      ...resolution(value).sensitiveContents,
+      {
+        kind: "precise-location",
+        blockRef: routeBlockRef,
+        included: true,
+        endpointRedactionMeters: 0,
+      },
+    ],
   };
 }
 
@@ -142,11 +234,14 @@ describe("ReportsPanel", () => {
             : [],
         });
       }
-      if (command === "create_session_report") {
+      if (command === "query_training_session_routes") {
+        return Promise.resolve({ snapshotRef, sessionRef, routes: { exercises: [] } });
+      }
+      if (command === "create_composed_session_report") {
         saved = definition();
         return Promise.resolve(saved);
       }
-      if (command === "update_session_report") {
+      if (command === "update_composed_session_report") {
         saved = definition("2", "Ridge progression review");
         return Promise.resolve(saved);
       }
@@ -166,7 +261,10 @@ describe("ReportsPanel", () => {
     await user.click(screen.getByRole("button", { name: "Save report" }));
     expect(screen.getByLabelText("Report title")).toBeInvalid();
     expect(screen.getByLabelText(/^Your interpretation/)).toBeInvalid();
-    expect(mocks.invoke).not.toHaveBeenCalledWith("create_session_report", expect.anything());
+    expect(mocks.invoke).not.toHaveBeenCalledWith(
+      "create_composed_session_report",
+      expect.anything(),
+    );
 
     await user.type(screen.getByLabelText("Report title"), "Ridge progression");
     await user.type(
@@ -176,15 +274,23 @@ describe("ReportsPanel", () => {
     await user.click(screen.getByRole("button", { name: "Save report" }));
 
     await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
-      "create_session_report",
+      "create_composed_session_report",
       {
         request: {
           title: "Ridge progression",
           locale: "en-US",
           sessionRef,
           sourceSnapshotRef: snapshotRef,
-          includePhysiologicalContext: true,
-          narrative: "Held the intended effort on every climb.",
+          blocks: [
+            {
+              kind: "session-evidence",
+              includePhysiologicalContext: true,
+            },
+            {
+              kind: "narrative",
+              body: "Held the intended effort on every climb.",
+            },
+          ],
         },
       },
     ));
@@ -202,15 +308,25 @@ describe("ReportsPanel", () => {
     );
     await user.click(screen.getByRole("button", { name: "Save changes" }));
     await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
-      "update_session_report",
+      "update_composed_session_report",
       {
         request: {
           reportRef,
           expectedRevision: "1",
           title: "Ridge progression review",
           locale: "en-US",
-          includePhysiologicalContext: true,
-          narrative: "Held the intended effort and finished with control.",
+          blocks: [
+            {
+              blockRef: `report-block-${digest("5")}`,
+              kind: "session-evidence",
+              includePhysiologicalContext: true,
+            },
+            {
+              blockRef: `report-block-${digest("6")}`,
+              kind: "narrative",
+              body: "Held the intended effort and finished with control.",
+            },
+          ],
         },
       },
     ));
@@ -244,6 +360,9 @@ describe("ReportsPanel", () => {
         }] });
       }
       if (command === "resolve_session_report") return Promise.resolve(resolution(saved));
+      if (command === "query_training_session_routes") {
+        return Promise.resolve({ snapshotRef, sessionRef, routes: { exercises: [] } });
+      }
       if (command === "export_session_report") return Promise.resolve({ byteCount: "4096" });
       throw new Error(`Unexpected command: ${command}`);
     });
@@ -253,7 +372,7 @@ describe("ReportsPanel", () => {
     await user.click(await screen.findByRole("button", { name: "Review and export" }));
 
     const review = screen.getByRole("region", { name: "Review the export" });
-    expect(within(review).getByText(/Routes, coordinates, and exact training samples are excluded/)).toBeVisible();
+    expect(within(review).getByText(/Exact training samples are excluded/)).toBeVisible();
     expect(within(review).getByText(/written only to the location you choose/)).toBeVisible();
     await user.click(within(review).getByRole("checkbox", {
       name: /Include heart-rate summary in this export/,
@@ -270,12 +389,138 @@ describe("ReportsPanel", () => {
           expectedRevision: "1",
           expectedSourceSnapshotRef: snapshotRef,
           includePhysiologicalContext: false,
+          routeChoices: [],
           destinationPath: "/private/output/ridge-progression.html",
         },
       },
     ));
     expect(await screen.findByText("Self-contained HTML exported (4,096 bytes).")).toBeVisible();
     expect(screen.queryByRole("region", { name: "Review the export" })).not.toBeInTheDocument();
+  });
+
+  it("adds, configures, reorders, previews, privacy-reviews, exports, and removes a route block", async () => {
+    const user = userEvent.setup();
+    let saved: ReportDefinition | undefined;
+    mocks.save.mockResolvedValue("/private/output/routed-report.html");
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "list_reports") return Promise.resolve({ reports: saved
+        ? [{
+            reportRef,
+            title: saved.title,
+            locale: saved.locale,
+            sourceSnapshotRef: snapshotRef,
+            revision: saved.revision,
+          }]
+        : [] });
+      if (command === "query_training_session_routes") return Promise.resolve(routeQueryResult());
+      if (command === "create_composed_session_report") {
+        saved = routedDefinition(0);
+        return Promise.resolve(saved);
+      }
+      if (command === "update_composed_session_report") {
+        saved = definition("2");
+        return Promise.resolve(saved);
+      }
+      if (command === "resolve_session_report") {
+        return Promise.resolve(saved?.blocks.some((block) => block.kind === "route")
+          ? routedResolution(saved)
+          : resolution(saved));
+      }
+      if (command === "export_session_report") return Promise.resolve({ byteCount: "8192" });
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    renderPanel();
+    await user.click(await screen.findByRole("button", { name: /Add Primary route/ }));
+    const redaction = screen.getByLabelText("Remove from each route endpoint (metres)");
+    expect(redaction).toHaveValue(200);
+    await user.clear(redaction);
+    await user.type(redaction, "5001");
+    expect(redaction).toBeInvalid();
+    await user.clear(redaction);
+    await user.type(redaction, "0");
+    expect(redaction).toBeValid();
+    expect(screen.getByText(/Zero removes no distance from the recorded start or finish/)).toBeVisible();
+
+    const moveRouteEarlier = screen.getByRole("button", {
+      name: /Move Primary route .* earlier/,
+    });
+    await user.click(moveRouteEarlier);
+    await user.click(screen.getByRole("button", { name: /Move Primary route .* earlier/ }));
+    await user.clear(screen.getByLabelText("Report title"));
+    await user.type(screen.getByLabelText("Report title"), "Ridge progression");
+    await user.type(
+      screen.getByLabelText(/^Your interpretation/),
+      "Held the intended effort on every climb.",
+    );
+    await user.click(screen.getByRole("button", { name: "Save report" }));
+
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
+      "create_composed_session_report",
+      {
+        request: {
+          title: "Ridge progression",
+          locale: "en-US",
+          sessionRef,
+          sourceSnapshotRef: snapshotRef,
+          blocks: [
+            { kind: "route", routeRef, endpointRedactionMeters: 0 },
+            { kind: "session-evidence", includePhysiologicalContext: true },
+            {
+              kind: "narrative",
+              body: "Held the intended effort on every climb.",
+            },
+          ],
+        },
+      },
+    ));
+    const visual = await screen.findByRole("img", { name: /Primary route, local shape/ });
+    expect(visual.querySelector("polyline")).not.toBeNull();
+    expect(document.body.innerHTML).not.toContain("40.123456");
+    expect(document.body.innerHTML).not.toContain("-3.654321");
+
+    await user.click(screen.getByRole("button", { name: "Review and export" }));
+    const review = screen.getByRole("region", { name: "Review the export" });
+    const routeChoice = within(review).getByRole("checkbox", { name: /Include Primary route/ });
+    expect(routeChoice).toBeChecked();
+    const exportRedaction = within(review).getByLabelText(
+      "Export endpoint redaction (metres)",
+    );
+    await user.clear(exportRedaction);
+    await user.type(exportRedaction, "500");
+    await user.click(routeChoice);
+    await user.click(within(review).getByRole("button", {
+      name: "Choose destination and export",
+    }));
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
+      "export_session_report",
+      {
+        request: {
+          reportRef,
+          expectedRevision: "1",
+          expectedSourceSnapshotRef: snapshotRef,
+          includePhysiologicalContext: true,
+          routeChoices: [{
+            blockRef: routeBlockRef,
+            includeGeometry: false,
+            endpointRedactionMeters: 500,
+          }],
+          destinationPath: "/private/output/routed-report.html",
+        },
+      },
+    ));
+
+    await user.click(screen.getByRole("button", { name: "Remove route" }));
+    expect(screen.queryByLabelText("Remove from each route endpoint (metres)")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
+      "update_composed_session_report",
+      expect.objectContaining({
+        request: expect.objectContaining({
+          blocks: expect.not.arrayContaining([expect.objectContaining({ kind: "route" })]),
+        }),
+      }),
+    ));
   });
 
   it("lists multiple reports and cancels an active export without reporting success", async () => {
@@ -300,6 +545,9 @@ describe("ReportsPanel", () => {
         },
       ] });
       if (command === "resolve_session_report") return Promise.resolve(resolution());
+      if (command === "query_training_session_routes") {
+        return Promise.resolve({ snapshotRef, sessionRef, routes: { exercises: [] } });
+      }
       if (command === "export_session_report") {
         return new Promise((_resolve, reject) => {
           rejectExport = reject;
@@ -333,7 +581,10 @@ describe("ReportsPanel", () => {
     mocks.invoke.mockImplementation((command) => {
       if (command === "list_reports") return Promise.resolve({ reports: [] });
       if (command === "resolve_session_report") return Promise.resolve(stale);
-      if (command === "create_session_report") {
+      if (command === "query_training_session_routes") {
+        return Promise.resolve({ snapshotRef, sessionRef, routes: { exercises: [] } });
+      }
+      if (command === "create_composed_session_report") {
         return Promise.reject({ code: "report-definition-update-failed" });
       }
       throw new Error(`Unexpected command: ${command}`);
@@ -366,6 +617,9 @@ describe("ReportsPanel", () => {
         ...stale,
         definition: { ...stale.definition, title: "Sesión sostenida", locale: "es-ES" },
       });
+      if (command === "query_training_session_routes") {
+        return Promise.resolve({ snapshotRef, sessionRef, routes: { exercises: [] } });
+      }
       throw new Error(`Unexpected command: ${command}`);
     });
     renderPanel({ locale: "es-ES", messages: catalogs["es-ES"], origin: undefined, originRequestId: 0 });

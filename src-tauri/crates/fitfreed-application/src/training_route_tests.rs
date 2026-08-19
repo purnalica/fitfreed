@@ -201,6 +201,49 @@ fn returns_exact_contiguous_pages_and_rejects_visual_or_pagination_corruption() 
 }
 
 #[test]
+fn keeps_large_processing_pages_out_of_the_interactive_query_contract() {
+    let point_count = 251;
+    let query = TrainingRoutePointsQuery {
+        session_ref: opaque("session-", 'a'),
+        route_ref: opaque("route-", 'd'),
+        snapshot_ref: Some(opaque("training-snapshot-", 'b')),
+        offset: 0,
+        limit: point_count,
+    };
+    let mut stub = port();
+    stub.points = Ok(PersistedTrainingRoutePoints {
+        snapshot_ref: opaque("training-snapshot-", 'b'),
+        session_ref: opaque("session-", 'a'),
+        route_ref: opaque("route-", 'd'),
+        point_count,
+        offset: 0,
+        points: (0..point_count).map(point).collect(),
+        next_offset: None,
+    });
+
+    assert!(matches!(
+        query_training_route_points(&stub, query.clone()),
+        Err(ApplicationError::InvalidTrainingSessionDetail(_))
+    ));
+    assert_eq!(
+        query_training_route_points_for_processing(&stub, query)
+            .unwrap()
+            .points
+            .len(),
+        point_count
+    );
+
+    let oversized = TrainingRoutePointsQuery {
+        limit: MAX_PROCESSING_EXACT_POINTS + 1,
+        ..points_query()
+    };
+    assert!(matches!(
+        query_training_route_points_for_processing(&stub, oversized),
+        Err(ApplicationError::InvalidTrainingSessionDetail(_))
+    ));
+}
+
+#[test]
 fn rejects_invalid_bounds_coordinates_elapsed_order_and_stale_snapshots() {
     assert!(matches!(
         query_training_session_routes(&port(), route_query(1)),

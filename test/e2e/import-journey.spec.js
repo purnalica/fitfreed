@@ -1184,6 +1184,19 @@ describe("packaged FitFreed import journey", () => {
     await $('.report-editor textarea').setValue(
       "Held the intended effort and finished the final climb with control.",
     );
+    const addRoute = await $(".report-route-picker button");
+    await addRoute.waitForDisplayed({ timeout: 10_000 });
+    await addRoute.click();
+    const routeEditor = await $(".report-block-editor .report-route-settings");
+    const endpointRedaction = await routeEditor.$('input[type="number"]');
+    await expect(endpointRedaction).toHaveValue("200");
+    await endpointRedaction.setValue("300");
+    const routeBlockEditor = await $(".report-block-editor:has(.report-route-settings)");
+    const routeMoveButtons = await routeBlockEditor.$$(".report-block-controls button");
+    await routeMoveButtons[0].click();
+    await routeMoveButtons[0].click();
+    await expect($(".report-block-list > li:first-child .report-route-settings"))
+      .toBeDisplayed();
     await $('.report-editor button[type="submit"]').click();
     await waitForNotice(english.reports.saved);
     await expect($(".report-preview h3")).toHaveText("Synthetic ridge progression");
@@ -1195,10 +1208,20 @@ describe("packaged FitFreed import journey", () => {
 
     await $(`aria/${english.reports.reviewExport}`).click();
     const privacyReview = await $(".report-privacy-review");
-    await expect(privacyReview).toHaveText(expect.stringContaining(english.reports.routeExcluded));
-    const exportHeartRate = await privacyReview.$('input[type="checkbox"]');
+    await expect(privacyReview).toHaveText(
+      expect.stringContaining(english.reports.exactSamplesExcluded),
+    );
+    const exportHeartRate = await privacyReview.$$('input[type="checkbox"]')[0];
     await expect(exportHeartRate).toBeChecked();
     await exportHeartRate.click();
+    const exportRoute = await privacyReview.$$(".report-route-choice")[0];
+    const exportRouteChoice = await exportRoute.$('input[type="checkbox"]');
+    await expect(exportRouteChoice).toBeChecked();
+    const exportEndpointRedaction = await exportRoute.$('input[type="number"]');
+    await expect(exportEndpointRedaction).toHaveValue("300");
+    await exportEndpointRedaction.clearValue();
+    await exportEndpointRedaction.setValue("500");
+    await expect(exportEndpointRedaction).toHaveValue("500");
     const saveDialogMock = await browser.tauri.mock("plugin:dialog|save");
     await saveDialogMock.mockReturnValue(reportOutput);
     await saveDialogMock.update();
@@ -1220,13 +1243,17 @@ describe("packaged FitFreed import journey", () => {
     });
     await waitForNotice("Self-contained HTML exported");
     const exportedReport = fs.readFileSync(reportOutput, "utf8");
-    expect(exportedReport).toContain('data-fitfreed-report-version="1"');
+    expect(exportedReport).toContain('data-fitfreed-report-version="2"');
     expect(exportedReport).toContain(
       "Held the intended effort and finished the final climb with control.",
     );
     expect(exportedReport).toContain("polar-flow-training-session@5");
     expect(exportedReport).not.toContain("Average heart rate");
     expect(exportedReport).not.toContain("Maximum heart rate");
+    expect(exportedReport).toContain("<polyline");
+    expect(exportedReport).toContain("500 m");
+    expect(exportedReport).not.toContain("40.01");
+    expect(exportedReport).not.toContain("-3.01");
     expect(exportedReport).not.toContain("latitude");
     expect(exportedReport).not.toContain("longitude");
     expect(exportedReport).not.toContain("<script");

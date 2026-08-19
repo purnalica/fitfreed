@@ -159,7 +159,7 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 20;
+const SCHEMA_VERSION: i64 = 21;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
@@ -180,6 +180,7 @@ const SCHEMA_V17: &str = include_str!("../migrations/0017_training_session_signa
 const SCHEMA_V18: &str = include_str!("../migrations/0018_training_segment_criteria.sql");
 const SCHEMA_V19: &str = include_str!("../migrations/0019_training_session_zones.sql");
 const SCHEMA_V20: &str = include_str!("../migrations/0020_report_definitions.sql");
+const SCHEMA_V21: &str = include_str!("../migrations/0021_composable_route_reports.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
 const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@10";
 const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@5";
@@ -6060,7 +6061,10 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         if version < 19 {
             connection.execute_batch(SCHEMA_V19)?;
         }
-        connection.execute_batch(SCHEMA_V20)?;
+        if version < 20 {
+            connection.execute_batch(SCHEMA_V20)?;
+        }
+        connection.execute_batch(SCHEMA_V21)?;
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
         }
@@ -11533,6 +11537,28 @@ fn insert_report_blocks(
                     )
                     .map_err(report_database_error)?;
             }
+            ReportBlockContent::Route {
+                session_ref,
+                route_ref,
+                endpoint_redaction_meters,
+            } => {
+                transaction
+                    .execute(
+                        "INSERT INTO report_block (
+                             report_ref, block_ref, ordinal, kind, session_ref,
+                             route_ref, endpoint_redaction_meters
+                         ) VALUES (?1, ?2, ?3, 'route', ?4, ?5, ?6)",
+                        params![
+                            definition.report_ref(),
+                            block.block_ref(),
+                            ordinal,
+                            session_ref,
+                            route_ref,
+                            i64::from(*endpoint_redaction_meters),
+                        ],
+                    )
+                    .map_err(report_database_error)?;
+            }
             ReportBlockContent::Narrative { body } => {
                 transaction
                     .execute(
@@ -11603,7 +11629,8 @@ fn load_report_definition_record(
         u64::try_from(revision).map_err(|_| invalid_report_record("report revision is invalid"))?;
     let mut statement = connection
         .prepare(
-            "SELECT block_ref, kind, session_ref, include_physiological_context, narrative_body
+            "SELECT block_ref, kind, session_ref, include_physiological_context,
+                    route_ref, endpoint_redaction_meters, narrative_body
              FROM report_block
              WHERE report_ref = ?1
              ORDER BY ordinal ASC",
@@ -11617,6 +11644,8 @@ fn load_report_definition_record(
                 row.get::<_, Option<String>>(2)?,
                 row.get::<_, Option<i64>>(3)?,
                 row.get::<_, Option<String>>(4)?,
+                row.get::<_, Option<i64>>(5)?,
+                row.get::<_, Option<String>>(6)?,
             ))
         })
         .map_err(report_database_error)?
@@ -11625,7 +11654,15 @@ fn load_report_definition_record(
     let blocks = persisted_blocks
         .into_iter()
         .map(
-            |(block_ref, kind, session_ref, include_physiological_context, narrative_body)| {
+            |(
+                block_ref,
+                kind,
+                session_ref,
+                include_physiological_context,
+                route_ref,
+                endpoint_redaction_meters,
+                narrative_body,
+            )| {
                 let content = match kind.as_str() {
                     "session-evidence" => ReportBlockContent::SessionEvidence {
                         session_ref: session_ref.ok_or_else(|| {
@@ -11640,6 +11677,21 @@ fn load_report_definition_record(
                                 ));
                             }
                         },
+                    },
+                    "route" => ReportBlockContent::Route {
+                        session_ref: session_ref.ok_or_else(|| {
+                            invalid_report_record("route report block has no session")
+                        })?,
+                        route_ref: route_ref.ok_or_else(|| {
+                            invalid_report_record("route report block has no route")
+                        })?,
+                        endpoint_redaction_meters: endpoint_redaction_meters
+                            .and_then(|value| u32::try_from(value).ok())
+                            .ok_or_else(|| {
+                                invalid_report_record(
+                                    "route report block has invalid endpoint redaction",
+                                )
+                            })?,
                     },
                     "narrative" => ReportBlockContent::Narrative {
                         body: narrative_body.ok_or_else(|| {
@@ -12305,7 +12357,7 @@ impl ApplicationPreferencesPort for SqliteApplicationPreferences {
 
 #[cfg(test)]
 mod tests {
-    use fitfreed_domain::author_session_report;
+    use fitfreed_domain::{author_session_report, revise_session_report};
     use std::io::Write;
     use tempfile::TempDir;
     use zip::{write::SimpleFileOptions, ZipWriter};
@@ -12370,6 +12422,38 @@ mod tests {
         .expect("report definition")
     }
 
+    fn persisted_route_report_definition() -> ReportDefinition {
+        let session_ref = format!("session-{}", "3".repeat(64));
+        ReportDefinition::compose_session_report(
+            format!("report-{}", "3".repeat(64)),
+            "Routed progression",
+            ReportLocale::EnUs,
+            format!("training-snapshot-{}", "3".repeat(64)),
+            &session_ref,
+            vec![
+                ReportBlock::narrative(
+                    format!("report-block-{}", "4".repeat(64)),
+                    "The middle section felt controlled.",
+                )
+                .expect("narrative block"),
+                ReportBlock::route(
+                    format!("report-block-{}", "5".repeat(64)),
+                    &session_ref,
+                    format!("route-{}", "6".repeat(64)),
+                    200,
+                )
+                .expect("route block"),
+                ReportBlock::session_evidence(
+                    format!("report-block-{}", "7".repeat(64)),
+                    &session_ref,
+                    false,
+                )
+                .expect("session block"),
+            ],
+        )
+        .expect("route report definition")
+    }
+
     #[test]
     fn persists_lists_edits_and_retains_report_definitions_across_restart_and_import() {
         let harness = Harness::new();
@@ -12426,6 +12510,49 @@ mod tests {
     }
 
     #[test]
+    fn persists_reorders_and_reopens_route_report_blocks_without_rewriting_version_one_rows() {
+        let harness = Harness::new();
+        let library = SqliteReportLibrary::new(harness.database());
+        let report = persisted_route_report_definition();
+        library
+            .create_report_definition(&report)
+            .expect("persist route report");
+
+        assert_eq!(
+            library
+                .load_report_definition(report.report_ref())
+                .expect("load route report"),
+            Some(report.clone())
+        );
+        let revised = revise_session_report(
+            &report,
+            report.title(),
+            report.locale(),
+            vec![
+                report.blocks()[2].clone(),
+                ReportBlock::route(
+                    report.blocks()[1].block_ref(),
+                    report_origin_session_ref(&report),
+                    format!("route-{}", "6".repeat(64)),
+                    500,
+                )
+                .expect("more private route"),
+                report.blocks()[0].clone(),
+            ],
+        )
+        .expect("reordered route report");
+        assert!(library
+            .compare_and_save_report_definition(1, &revised)
+            .expect("save reordered route report"));
+        assert_eq!(
+            SqliteReportLibrary::new(harness.database())
+                .load_report_definition(report.report_ref())
+                .expect("reopen route report"),
+            Some(revised)
+        );
+    }
+
+    #[test]
     fn lists_multiple_reports_by_effective_save_and_rejects_incompatible_rows_non_destructively() {
         let harness = Harness::new();
         let library = SqliteReportLibrary::new(harness.database());
@@ -12461,7 +12588,7 @@ mod tests {
             .expect("enable incompatible-row fixture");
         connection
             .execute(
-                "UPDATE report_definition SET definition_version = 2 WHERE report_ref = ?1",
+                "UPDATE report_definition SET definition_version = 3 WHERE report_ref = ?1",
                 [newer.report_ref()],
             )
             .expect("persist incompatible definition fixture");
@@ -12518,6 +12645,110 @@ mod tests {
                 .expect("report tables"),
             2
         );
+        assert_integrity(&connection);
+    }
+
+    #[test]
+    fn upgrades_version_twenty_reports_losslessly_and_rolls_back_as_one_unit() {
+        let harness = Harness::new();
+        let database_path = harness.database();
+        let connection = Connection::open(&database_path).expect("database");
+        create_schema_baseline(&connection, 20);
+        let report_ref = format!("report-{}", "1".repeat(64));
+        let session_ref = format!("session-{}", "2".repeat(64));
+        let snapshot_ref = format!("training-snapshot-{}", "3".repeat(64));
+        let session_block_ref = format!("report-block-{}", "4".repeat(64));
+        let narrative_block_ref = format!("report-block-{}", "5".repeat(64));
+        connection
+            .execute(
+                "INSERT INTO report_definition (
+                     report_ref, title, locale, source_snapshot_ref, origin_kind,
+                     origin_session_ref, provenance_policy, authorship, definition_version,
+                     revision, created_at_utc, updated_at_utc
+                 ) VALUES (?1, 'Version twenty report', 'en-US', ?2, 'session', ?3,
+                           'current-attribution', 'user', 1, 1,
+                           '2026-08-18T08:00:00.000Z', '2026-08-18T08:00:00.000Z')",
+                params![report_ref, snapshot_ref, session_ref],
+            )
+            .expect("version twenty report header");
+        connection
+            .execute(
+                "INSERT INTO report_block (
+                     report_ref, block_ref, ordinal, kind, session_ref,
+                     include_physiological_context, narrative_body
+                 ) VALUES (?1, ?2, 0, 'session-evidence', ?3, 1, NULL)",
+                params![report_ref, session_block_ref, session_ref],
+            )
+            .expect("version twenty session block");
+        connection
+            .execute(
+                "INSERT INTO report_block (
+                     report_ref, block_ref, ordinal, kind, session_ref,
+                     include_physiological_context, narrative_body
+                 ) VALUES (?1, ?2, 1, 'narrative', NULL, NULL, ?3)",
+                params![
+                    report_ref,
+                    narrative_block_ref,
+                    "The final section felt controlled."
+                ],
+            )
+            .expect("version twenty narrative block");
+
+        let error = migrate_schema(&connection, true).expect_err("interrupted version twenty-one");
+        assert!(matches!(error, ImportError::InjectedMigrationInterruption));
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("rolled-back schema marker"),
+            20
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info('report_block')
+                     WHERE name IN ('route_ref', 'endpoint_redaction_meters')",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("rolled-back route columns"),
+            0
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM report_block WHERE report_ref = ?1",
+                    [&report_ref],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("retained version twenty blocks"),
+            2
+        );
+
+        migrate_schema(&connection, false).expect("version twenty-one migration");
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("upgraded schema marker"),
+            SCHEMA_VERSION
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info('report_block')
+                     WHERE name IN ('route_ref', 'endpoint_redaction_meters')",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("route columns"),
+            2
+        );
+        let reopened = SqliteReportLibrary::new(database_path)
+            .load_report_definition(&report_ref)
+            .expect("reopen migrated report")
+            .expect("migrated report");
+        assert_eq!(reopened.definition_version(), 1);
+        assert_eq!(reopened.blocks().len(), 2);
+        assert_eq!(reopened.title(), "Version twenty report");
         assert_integrity(&connection);
     }
 
@@ -17088,7 +17319,7 @@ mod tests {
         let migrations = [
             SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8,
             SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15,
-            SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20,
+            SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21,
         ];
         for migration in migrations
             .iter()

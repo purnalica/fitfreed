@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/session-report-export-v2.schema.json",
+  "title": "FitFreed session report export authorization version 2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "reportRef",
+    "expectedRevision",
+    "expectedSourceSnapshotRef",
+    "includePhysiologicalContext",
+    "routeChoices",
+    "destinationPath"
+  ],
+  "properties": {
+    "reportRef": { "$ref": "report-definition-v2.schema.json#/$defs/reportRef" },
+    "expectedRevision": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+    "expectedSourceSnapshotRef": {
+      "$ref": "report-definition-v2.schema.json#/$defs/snapshotRef"
+    },
+    "includePhysiologicalContext": { "type": "boolean" },
+    "routeChoices": {
+      "type": "array",
+      "maxItems": 30,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["blockRef", "includeGeometry", "endpointRedactionMeters"],
+        "properties": {
+          "blockRef": { "$ref": "report-definition-v2.schema.json#/$defs/blockRef" },
+          "includeGeometry": { "type": "boolean" },
+          "endpointRedactionMeters": {
+            "$ref": "report-definition-v2.schema.json#/$defs/endpointRedactionMeters"
+          }
+        }
+      }
+    },
+    "destinationPath": { "type": "string", "minLength": 1, "maxLength": 32768 }
+  }
+}

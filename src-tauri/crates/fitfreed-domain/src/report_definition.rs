@@ -3,11 +3,15 @@ use std::{collections::BTreeSet, error::Error, fmt};
 const REPORT_ID_PREFIX: &str = "report-";
 const BLOCK_ID_PREFIX: &str = "report-block-";
 const SESSION_ID_PREFIX: &str = "session-";
+const ROUTE_ID_PREFIX: &str = "route-";
 const SNAPSHOT_ID_PREFIX: &str = "training-snapshot-";
 const ID_HEX_CHARACTERS: usize = 64;
 const MAX_TITLE_CHARACTERS: usize = 120;
 const MAX_NARRATIVE_CHARACTERS: usize = 10_000;
-pub const REPORT_DEFINITION_VERSION: u32 = 1;
+const MAX_REPORT_BLOCKS: usize = 32;
+pub const MAX_ROUTE_ENDPOINT_REDACTION_METERS: u32 = 5_000;
+pub const REPORT_DEFINITION_VERSION_V1: u32 = 1;
+pub const REPORT_DEFINITION_VERSION: u32 = 2;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReportLocale {
@@ -68,6 +72,11 @@ pub enum ReportBlockContent {
         session_ref: String,
         include_physiological_context: bool,
     },
+    Route {
+        session_ref: String,
+        route_ref: String,
+        endpoint_redaction_meters: u32,
+    },
     Narrative {
         body: String,
     },
@@ -106,6 +115,22 @@ impl ReportBlock {
         )
     }
 
+    pub fn route(
+        block_ref: impl Into<String>,
+        session_ref: impl Into<String>,
+        route_ref: impl Into<String>,
+        endpoint_redaction_meters: u32,
+    ) -> Result<Self, ReportDefinitionError> {
+        Self::restore(
+            block_ref,
+            ReportBlockContent::Route {
+                session_ref: session_ref.into(),
+                route_ref: route_ref.into(),
+                endpoint_redaction_meters,
+            },
+        )
+    }
+
     pub fn restore(
         block_ref: impl Into<String>,
         content: ReportBlockContent,
@@ -117,6 +142,19 @@ impl ReportBlock {
             ReportBlockContent::SessionEvidence { session_ref, .. } => {
                 validate_identifier(session_ref, SESSION_ID_PREFIX)
                     .map_err(|_| ReportDefinitionError::InvalidSessionIdentifier)?;
+            }
+            ReportBlockContent::Route {
+                session_ref,
+                route_ref,
+                endpoint_redaction_meters,
+            } => {
+                validate_identifier(session_ref, SESSION_ID_PREFIX)
+                    .map_err(|_| ReportDefinitionError::InvalidSessionIdentifier)?;
+                validate_identifier(route_ref, ROUTE_ID_PREFIX)
+                    .map_err(|_| ReportDefinitionError::InvalidRouteIdentifier)?;
+                if *endpoint_redaction_meters > MAX_ROUTE_ENDPOINT_REDACTION_METERS {
+                    return Err(ReportDefinitionError::InvalidRouteEndpointRedaction);
+                }
             }
             ReportBlockContent::Narrative { body } => {
                 validate_narrative(body)?;
@@ -164,7 +202,7 @@ impl ReportDefinition {
             ReportBlockContent::SessionEvidence { session_ref, .. } => ReportOrigin::Session {
                 session_ref: session_ref.clone(),
             },
-            ReportBlockContent::Narrative { .. } => {
+            ReportBlockContent::Route { .. } | ReportBlockContent::Narrative { .. } => {
                 return Err(ReportDefinitionError::InvalidVersionOneBlockOrder);
             }
         };
@@ -176,9 +214,33 @@ impl ReportDefinition {
             origin,
             ReportProvenancePolicy::CurrentAttribution,
             ReportAuthorship::User,
-            REPORT_DEFINITION_VERSION,
+            REPORT_DEFINITION_VERSION_V1,
             1,
             vec![session_block, narrative_block],
+        )
+    }
+
+    pub fn compose_session_report(
+        report_ref: impl Into<String>,
+        title: &str,
+        locale: ReportLocale,
+        source_snapshot_ref: impl Into<String>,
+        session_ref: impl Into<String>,
+        blocks: Vec<ReportBlock>,
+    ) -> Result<Self, ReportDefinitionError> {
+        Self::restore(
+            report_ref,
+            normalize_title(title)?,
+            locale,
+            source_snapshot_ref,
+            ReportOrigin::Session {
+                session_ref: session_ref.into(),
+            },
+            ReportProvenancePolicy::CurrentAttribution,
+            ReportAuthorship::User,
+            REPORT_DEFINITION_VERSION,
+            1,
+            blocks,
         )
     }
 
@@ -206,13 +268,14 @@ impl ReportDefinition {
         }
         validate_identifier(&source_snapshot_ref, SNAPSHOT_ID_PREFIX)
             .map_err(|_| ReportDefinitionError::InvalidSnapshotIdentifier)?;
-        if definition_version != REPORT_DEFINITION_VERSION {
-            return Err(ReportDefinitionError::UnsupportedDefinitionVersion);
-        }
         if revision == 0 {
             return Err(ReportDefinitionError::ZeroRevision);
         }
-        validate_version_one_blocks(&origin, &blocks)?;
+        match definition_version {
+            REPORT_DEFINITION_VERSION_V1 => validate_version_one_blocks(&origin, &blocks)?,
+            REPORT_DEFINITION_VERSION => validate_version_two_blocks(&origin, &blocks)?,
+            _ => return Err(ReportDefinitionError::UnsupportedDefinitionVersion),
+        }
         Ok(Self {
             report_ref,
             title,
@@ -275,6 +338,9 @@ pub fn author_session_report(
     include_physiological_context: bool,
     narrative: &str,
 ) -> Result<ReportDefinition, ReportDefinitionError> {
+    if existing.definition_version != REPORT_DEFINITION_VERSION_V1 {
+        return Err(ReportDefinitionError::InvalidVersionOneBlockOrder);
+    }
     let title = normalize_title(title)?;
     let narrative = normalize_narrative(narrative)?;
     let ReportBlockContent::SessionEvidence { session_ref, .. } = existing.blocks[0].content()
@@ -305,9 +371,41 @@ pub fn author_session_report(
         existing.origin.clone(),
         existing.provenance_policy,
         ReportAuthorship::User,
-        REPORT_DEFINITION_VERSION,
+        REPORT_DEFINITION_VERSION_V1,
         revision,
         vec![session_block, narrative_block],
+    )
+}
+
+pub fn revise_session_report(
+    existing: &ReportDefinition,
+    title: &str,
+    locale: ReportLocale,
+    blocks: Vec<ReportBlock>,
+) -> Result<ReportDefinition, ReportDefinitionError> {
+    let title = normalize_title(title)?;
+    if existing.title == title
+        && existing.locale == locale
+        && existing.definition_version == REPORT_DEFINITION_VERSION
+        && existing.blocks == blocks
+    {
+        return Ok(existing.clone());
+    }
+    let revision = existing
+        .revision
+        .checked_add(1)
+        .ok_or(ReportDefinitionError::RevisionOverflow)?;
+    ReportDefinition::restore(
+        existing.report_ref.clone(),
+        title,
+        locale,
+        existing.source_snapshot_ref.clone(),
+        existing.origin.clone(),
+        existing.provenance_policy,
+        ReportAuthorship::User,
+        REPORT_DEFINITION_VERSION,
+        revision,
+        blocks,
     )
 }
 
@@ -341,6 +439,54 @@ fn validate_version_one_blocks(
         .map_err(|_| ReportDefinitionError::InvalidSessionIdentifier)?;
     if origin != session_ref {
         return Err(ReportDefinitionError::SessionOriginMismatch);
+    }
+    Ok(())
+}
+
+fn validate_version_two_blocks(
+    origin: &ReportOrigin,
+    blocks: &[ReportBlock],
+) -> Result<(), ReportDefinitionError> {
+    if !(2..=MAX_REPORT_BLOCKS).contains(&blocks.len()) {
+        return Err(ReportDefinitionError::InvalidVersionTwoComposition);
+    }
+    let ReportOrigin::Session {
+        session_ref: origin,
+    } = origin;
+    validate_identifier(origin, SESSION_ID_PREFIX)
+        .map_err(|_| ReportDefinitionError::InvalidSessionIdentifier)?;
+    let mut block_refs = BTreeSet::new();
+    let mut route_refs = BTreeSet::new();
+    let mut session_count = 0;
+    let mut narrative_count = 0;
+    for block in blocks {
+        if !block_refs.insert(block.block_ref()) {
+            return Err(ReportDefinitionError::DuplicateBlockIdentifier);
+        }
+        match block.content() {
+            ReportBlockContent::SessionEvidence { session_ref, .. } => {
+                session_count += 1;
+                if session_ref != origin {
+                    return Err(ReportDefinitionError::SessionOriginMismatch);
+                }
+            }
+            ReportBlockContent::Route {
+                session_ref,
+                route_ref,
+                ..
+            } => {
+                if session_ref != origin {
+                    return Err(ReportDefinitionError::SessionOriginMismatch);
+                }
+                if !route_refs.insert(route_ref) {
+                    return Err(ReportDefinitionError::DuplicateRouteIdentifier);
+                }
+            }
+            ReportBlockContent::Narrative { .. } => narrative_count += 1,
+        }
+    }
+    if session_count != 1 || narrative_count != 1 {
+        return Err(ReportDefinitionError::InvalidVersionTwoComposition);
     }
     Ok(())
 }
@@ -404,6 +550,7 @@ pub enum ReportDefinitionError {
     InvalidReportIdentifier,
     InvalidBlockIdentifier,
     InvalidSessionIdentifier,
+    InvalidRouteIdentifier,
     InvalidSnapshotIdentifier,
     EmptyTitle,
     TitleTooLong,
@@ -414,7 +561,10 @@ pub enum ReportDefinitionError {
     ControlCharacterInNarrative,
     NonCanonicalNarrative,
     InvalidVersionOneBlockOrder,
+    InvalidVersionTwoComposition,
     DuplicateBlockIdentifier,
+    DuplicateRouteIdentifier,
+    InvalidRouteEndpointRedaction,
     SessionOriginMismatch,
     UnsupportedDefinitionVersion,
     ZeroRevision,
@@ -427,6 +577,7 @@ impl fmt::Display for ReportDefinitionError {
             Self::InvalidReportIdentifier => "report identifier is invalid",
             Self::InvalidBlockIdentifier => "report block identifier is invalid",
             Self::InvalidSessionIdentifier => "report session identifier is invalid",
+            Self::InvalidRouteIdentifier => "report route identifier is invalid",
             Self::InvalidSnapshotIdentifier => "report source snapshot is invalid",
             Self::EmptyTitle => "report title is empty",
             Self::TitleTooLong => "report title exceeds 120 characters",
@@ -441,7 +592,14 @@ impl fmt::Display for ReportDefinitionError {
             Self::InvalidVersionOneBlockOrder => {
                 "version-one report blocks are not session evidence followed by narrative"
             }
+            Self::InvalidVersionTwoComposition => {
+                "version-two report composition requires one session and one narrative block"
+            }
             Self::DuplicateBlockIdentifier => "report block identifiers are duplicated",
+            Self::DuplicateRouteIdentifier => "report route identifiers are duplicated",
+            Self::InvalidRouteEndpointRedaction => {
+                "report route endpoint redaction exceeds 5000 metres"
+            }
             Self::SessionOriginMismatch => "report session block does not match its origin",
             Self::UnsupportedDefinitionVersion => "report definition version is unsupported",
             Self::ZeroRevision => "report revision is zero",

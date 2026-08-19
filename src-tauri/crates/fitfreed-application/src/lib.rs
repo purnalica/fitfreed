@@ -20,13 +20,15 @@ use fitfreed_domain::{
 
 mod reporting;
 pub use reporting::{
-    create_session_report, export_session_report, list_reports, load_report_definition,
-    resolve_session_report, update_session_report, AuthorizedSessionReportExport,
+    create_composed_session_report, create_session_report, export_session_report, list_reports,
+    load_report_definition, resolve_session_report, update_composed_session_report,
+    update_session_report, AuthorizedSessionReportExport, CreateComposedSessionReportRequest,
     CreateSessionReportRequest, ReportDefinitionPort, ReportDefinitionPortError,
     ReportExportCancellation, ReportExportPort, ReportExportPortError, ReportExportReceipt,
-    ReportLimitation, ReportResolutionStatus, ReportSensitiveContent, ReportSensitiveContentKind,
-    ReportSessionEvidence, ReportSummary, ResolvedSessionReport, SessionReportExportRequest,
-    UpdateSessionReportRequest,
+    ReportLimitation, ReportResolutionStatus, ReportRouteEvidence, ReportRouteExportChoice,
+    ReportSensitiveContent, ReportSensitiveContentKind, ReportSessionEvidence, ReportSummary,
+    ResolvedSessionReport, SessionReportBlockDraft, SessionReportBlockDraftContent,
+    SessionReportExportRequest, UpdateComposedSessionReportRequest, UpdateSessionReportRequest,
 };
 
 #[cfg(test)]
@@ -69,6 +71,9 @@ pub use training_route::{
     TrainingRouteKindView, TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
     TrainingRoutePointsResult, TrainingSessionRoutePort, TrainingSessionRoutePortError,
     TrainingSessionRouteQuery, TrainingSessionRoutesResult, TrainingSessionRoutesView,
+};
+pub(crate) use training_route::{
+    query_training_route_points_for_processing, MAX_PROCESSING_EXACT_POINTS,
 };
 
 mod training_signal;

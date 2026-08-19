@@ -25,7 +25,7 @@
         "en-US and es-ES, packaging, update recovery, and release-shaped tests",
         "On-demand privacy-bounded session provenance and reconciliation history",
         "Selectable same-role signal alignment with exact sample paths",
-        "Durable session-origin reports with privacy-reviewed self-contained HTML export"
+        "Composable session and route reports with privacy-reviewed self-contained HTML export"
       ],
       "source": {
         "label": "MVP capability boundary",
@@ -38,7 +38,8 @@
       "title": "The experience being shaped",
       "items": [
         "Origin-aware navigation across discovery, session, and report workspaces",
-        "Additional evidence-report blocks, start paths, and deliberate refresh",
+        "Additional finding, comparison, chart, table, and coverage report blocks",
+        "Question, exploration, and blank report starts with deliberate refresh",
         "A coherent, evaluated, documented macOS product journey"
       ],
       "source": {

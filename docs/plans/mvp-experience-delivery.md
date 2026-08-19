@@ -2,7 +2,7 @@
 
 ## Status
 
-Active as of 2026-08-19. D0, P1, E1, and P2 have complete local and hosted acceptance evidence. E2 has reached its complete local checkpoint; hosted executable evidence remains pending. All three E3 slices and all seven E4 slices have reached their local checkpoints. The first E5 vertical has reached its local checkpoint with durable session-origin authorship, privacy review, and deterministic self-contained HTML export; the additional accepted blocks, start paths, and deliberate refresh remain active. The latest executable fingerprint still requires hosted evidence. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English and Spanish hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md) and [ADR 0024](../architecture/decisions/0024-generate-localized-product-pages.md).
+Active as of 2026-08-19. D0, P1, E1, and P2 have complete local and hosted acceptance evidence. E2 has reached its complete local checkpoint; hosted executable evidence remains pending. All three E3 slices and all seven E4 slices have reached their local checkpoints. The first two E5 verticals have reached their local checkpoints: durable session-origin authorship and ordered route composition now share privacy review and deterministic self-contained HTML export. The remaining accepted blocks, start paths, deliberate refresh, and complete report navigation remain active. The latest executable fingerprint still requires hosted evidence. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English and Spanish hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md) and [ADR 0024](../architecture/decisions/0024-generate-localized-product-pages.md).
 
 The existing import, reconciliation, persistence, Insights, localization, update-recovery, packaging, and continuous-integration capabilities remain the engineering baseline. This plan changes how those capabilities become a product people can understand and value; it does not discard their verified behavior.
 
@@ -575,7 +575,7 @@ executable fingerprint.
 resolved session evidence and user narrative, reopens it after restart, reviews its included sensitive
 content, and exports deterministic self-contained HTML. This proves the durable model, authoritative query,
 SQLite, transport, editor, and output-adapter boundaries through one immediately useful artifact. Later E5
-slices add the remaining accepted finding, comparison, chart, exact-table, coverage-and-limitation, and route
+slices add the remaining accepted finding, comparison, chart, exact-table, and coverage-and-limitation
 blocks; question, exploration, and blank starts; then deliberate refresh and complete origin-aware return.
 Each slice remains runnable and documented but E5 is accepted only after the complete FR-005 journey passes.
 
@@ -610,6 +610,18 @@ reopening, privacy review, destination cancellation, adapter failure, stale expo
 both locales. The packaged macOS journey creates and reopens the report, independently reads the exported
 HTML, reimports new evidence, verifies stale behavior after restart, and passes the complete packaged
 performance campaign. This is an evaluable checkpoint, not completion of the remaining E5 delivery sequence.
+
+**Route-composition local checkpoint:** version 2 adds ordered route blocks while preserving version-1
+definitions as immutable readable evidence. A route block is bound to the selected session and authoritative
+route identity, carries a saved endpoint-redaction distance, and can be added, configured, reordered, removed,
+saved, reopened, and previewed alongside the session and narrative blocks. SQLite schema 21 migrates version-20
+libraries atomically without rewriting existing definitions. Export review can omit each route or increase its
+redaction, but cannot disclose more than the saved definition; the generated HTML contains only a normalized
+local SVG shape and never recorded latitude or longitude values. Contract, domain, application, persistence,
+transport, component, HTML, migration, and packaged macOS tests protect these boundaries. The complete fast
+lane, strict Clippy, production build, packaged functional journey, and packaged performance campaign pass
+locally. This remains an incremental E5 checkpoint: the other accepted block types, start paths, deliberate
+refresh, and complete report-origin navigation are not yet claimed.
 
 **Evaluation checkpoint:** a reviewer can create a useful artifact without learning provider or database terminology and can explain which parts are recorded, calculated, or authored.
 

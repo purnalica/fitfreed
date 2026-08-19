@@ -10,24 +10,27 @@ use std::{ffi::CString, mem::MaybeUninit, os::unix::ffi::OsStrExt};
 
 use chrono::{Duration as ChronoDuration, NaiveDate};
 use fitfreed_application::{
-    query_activity_comparison, query_activity_overview, query_longitudinal_comparison,
-    query_longitudinal_overview, query_recovery_comparison, query_recovery_detail,
-    query_recovery_overview, query_sleep_comparison, query_sleep_detail, query_sleep_overview,
-    query_training_comparison, query_training_overview, query_training_route_points,
-    query_training_session_calendar, query_training_session_provenance,
-    query_training_session_routes, query_training_session_segmentation,
-    query_training_session_selection, query_training_session_signals,
-    query_training_session_structure, query_training_session_zones, query_training_sessions,
-    query_training_signal_samples, ActivityDateRange, LongitudinalDateRange, RecoveryDateRange,
-    SleepDateRange, TrainingDateRange, TrainingRoutePointsQuery, TrainingSessionCalendarRequest,
+    create_composed_session_report, query_activity_comparison, query_activity_overview,
+    query_longitudinal_comparison, query_longitudinal_overview, query_recovery_comparison,
+    query_recovery_detail, query_recovery_overview, query_sleep_comparison, query_sleep_detail,
+    query_sleep_overview, query_training_comparison, query_training_overview,
+    query_training_route_points, query_training_session_calendar,
+    query_training_session_provenance, query_training_session_routes,
+    query_training_session_segmentation, query_training_session_selection,
+    query_training_session_signals, query_training_session_structure, query_training_session_zones,
+    query_training_sessions, query_training_signal_samples, resolve_session_report,
+    ActivityDateRange, CreateComposedSessionReportRequest, LongitudinalDateRange,
+    RecoveryDateRange, SessionReportBlockDraft, SessionReportBlockDraftContent, SleepDateRange,
+    TrainingDateRange, TrainingRoutePointsQuery, TrainingSessionCalendarRequest,
     TrainingSessionProvenanceQuery, TrainingSessionRouteQuery, TrainingSessionSearchRequest,
     TrainingSessionSegmentationQuery, TrainingSessionSelectionRequest, TrainingSessionSignalsQuery,
     TrainingSessionSort, TrainingSessionStructureQuery, TrainingSessionZonesQuery,
     TrainingSignalSamplesQuery,
 };
+use fitfreed_domain::ReportLocale;
 use fitfreed_lib::infrastructure::{
     query_activity_between, SqliteActivityLibrary, SqliteLongitudinalLibrary,
-    SqliteRecoveryLibrary, SqliteSleepLibrary, SqliteTrainingLibrary,
+    SqliteRecoveryLibrary, SqliteReportLibrary, SqliteSleepLibrary, SqliteTrainingLibrary,
 };
 use rusqlite::{params, Connection};
 use serde_json::{json, Value};
@@ -79,6 +82,7 @@ fn main() {
     let generated_rows = generate_history(&database_path);
     let activity_library = SqliteActivityLibrary::new(database_path.clone());
     let recovery_library = SqliteRecoveryLibrary::new(database_path.clone());
+    let report_library = SqliteReportLibrary::new(database_path.clone());
     let training_library = SqliteTrainingLibrary::new(database_path.clone());
     let sleep_library = SqliteSleepLibrary::new(database_path.clone());
     let longitudinal_library = SqliteLongitudinalLibrary::new(database_path.clone());
@@ -294,6 +298,62 @@ fn main() {
         query_training_route_points(&training_library, training_route_points_request.clone())
             .expect("exact training route page")
             .points
+            .len()
+    });
+    let route_report = create_composed_session_report(
+        &report_library,
+        &training_library,
+        &training_library,
+        CreateComposedSessionReportRequest {
+            title: "Synthetic maximum route report".to_owned(),
+            locale: ReportLocale::EnUs,
+            session_ref: training_discovery_page.sessions[0].session_ref.clone(),
+            source_snapshot_ref: training_discovery_page.snapshot_ref.clone(),
+            blocks: vec![
+                SessionReportBlockDraft {
+                    block_ref: None,
+                    content: SessionReportBlockDraftContent::Route {
+                        route_ref: training_route_points_request.route_ref.clone(),
+                        endpoint_redaction_meters: 200,
+                    },
+                },
+                SessionReportBlockDraft {
+                    block_ref: None,
+                    content: SessionReportBlockDraftContent::SessionEvidence {
+                        include_physiological_context: true,
+                    },
+                },
+                SessionReportBlockDraft {
+                    block_ref: None,
+                    content: SessionReportBlockDraftContent::Narrative {
+                        body: "Synthetic route-scale performance evidence.".to_owned(),
+                    },
+                },
+            ],
+        },
+    )
+    .expect("create generated route report");
+    let route_report_setup = resolve_session_report(
+        &report_library,
+        &training_library,
+        &training_library,
+        &training_library,
+        route_report.report_ref(),
+    )
+    .expect("resolve generated route report");
+    let expected_report_route_points = route_report_setup.routes[0].visual_points.len();
+    assert!((1..=500).contains(&expected_report_route_points));
+    let training_route_report = measure(expected_report_route_points, || {
+        resolve_session_report(
+            &report_library,
+            &training_library,
+            &training_library,
+            &training_library,
+            route_report.report_ref(),
+        )
+        .expect("resolve maximum route report")
+        .routes[0]
+            .visual_points
             .len()
     });
     let training_signal_request = TrainingSessionSignalsQuery {
@@ -633,6 +693,11 @@ fn main() {
             COMMON_BUDGET_MILLISECONDS,
         ),
         (
+            "training.routeReportResolution",
+            &training_route_report,
+            COMPLEX_BUDGET_MILLISECONDS,
+        ),
+        (
             "training.signalOverview",
             &training_signal_overview,
             COMMON_BUDGET_MILLISECONDS,
@@ -844,6 +909,10 @@ fn main() {
                     "routeExactPage": measurement_json(
                         &training_route_exact_page,
                         COMMON_BUDGET_MILLISECONDS,
+                    ),
+                    "routeReportResolution": measurement_json(
+                        &training_route_report,
+                        COMPLEX_BUDGET_MILLISECONDS,
                     ),
                     "signalOverview": measurement_json(
                         &training_signal_overview,

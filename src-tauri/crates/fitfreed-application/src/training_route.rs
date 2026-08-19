@@ -12,6 +12,7 @@ const ROUTE_PREFIX: &str = "route-";
 const MIN_VISUAL_POINTS: usize = 2;
 const MAX_VISUAL_POINTS: usize = 500;
 const MAX_EXACT_POINTS: usize = 250;
+pub(crate) const MAX_PROCESSING_EXACT_POINTS: usize = 10_000;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TrainingSessionRouteQuery {
@@ -150,10 +151,23 @@ pub fn query_training_route_points(
     port: &dyn TrainingSessionRoutePort,
     query: TrainingRoutePointsQuery,
 ) -> Result<TrainingRoutePointsResult, ApplicationError> {
+    query_training_route_points_with_limit(port, query, MAX_EXACT_POINTS)
+}
+
+pub(crate) fn query_training_route_points_for_processing(
+    port: &dyn TrainingSessionRoutePort,
+    query: TrainingRoutePointsQuery,
+) -> Result<TrainingRoutePointsResult, ApplicationError> {
+    query_training_route_points_with_limit(port, query, MAX_PROCESSING_EXACT_POINTS)
+}
+
+fn query_training_route_points_with_limit(
+    port: &dyn TrainingSessionRoutePort,
+    query: TrainingRoutePointsQuery,
+    maximum_limit: usize,
+) -> Result<TrainingRoutePointsResult, ApplicationError> {
     validate_common_query(&query.session_ref, query.snapshot_ref.as_deref())?;
-    if !valid_ref(&query.route_ref, ROUTE_PREFIX)
-        || query.limit == 0
-        || query.limit > MAX_EXACT_POINTS
+    if !valid_ref(&query.route_ref, ROUTE_PREFIX) || query.limit == 0 || query.limit > maximum_limit
     {
         return invalid("exact route point query is invalid");
     }

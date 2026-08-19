@@ -5,8 +5,11 @@ const SESSION_BLOCK_REF: &str =
     "report-block-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 const NARRATIVE_BLOCK_REF: &str =
     "report-block-abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
+const ROUTE_BLOCK_REF: &str =
+    "report-block-1111111111111111111111111111111111111111111111111111111111111111";
 const SESSION_REF: &str =
     "session-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+const ROUTE_REF: &str = "route-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 const SNAPSHOT_REF: &str =
     "training-snapshot-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
@@ -21,6 +24,16 @@ fn session_block(include_physiological_context: bool) -> ReportBlock {
 
 fn narrative_block(body: &str) -> ReportBlock {
     ReportBlock::narrative(NARRATIVE_BLOCK_REF, body).expect("narrative block")
+}
+
+fn route_block(endpoint_redaction_meters: u32) -> ReportBlock {
+    ReportBlock::route(
+        ROUTE_BLOCK_REF,
+        SESSION_REF,
+        ROUTE_REF,
+        endpoint_redaction_meters,
+    )
+    .expect("route block")
 }
 
 #[test]
@@ -50,7 +63,7 @@ fn creates_a_canonical_user_authored_session_report() {
         ReportProvenancePolicy::CurrentAttribution
     );
     assert_eq!(report.authorship(), ReportAuthorship::User);
-    assert_eq!(report.definition_version(), REPORT_DEFINITION_VERSION);
+    assert_eq!(report.definition_version(), REPORT_DEFINITION_VERSION_V1);
     assert_eq!(report.revision(), 1);
     assert_eq!(report.blocks().len(), 2);
     assert_eq!(
@@ -58,6 +71,183 @@ fn creates_a_canonical_user_authored_session_report() {
         &ReportBlockContent::Narrative {
             body: "Felt controlled.\nStrong finish.".to_owned()
         }
+    );
+}
+
+#[test]
+fn composes_and_reorders_a_route_report_without_losing_authorship() {
+    let report = ReportDefinition::compose_session_report(
+        REPORT_REF,
+        "Routed progression",
+        ReportLocale::EnUs,
+        SNAPSHOT_REF,
+        SESSION_REF,
+        vec![
+            narrative_block("The exposed section felt controlled."),
+            route_block(200),
+            session_block(false),
+        ],
+    )
+    .expect("composable report");
+
+    assert_eq!(report.definition_version(), REPORT_DEFINITION_VERSION);
+    assert_eq!(report.blocks().len(), 3);
+    assert_eq!(
+        report.blocks()[1].content(),
+        &ReportBlockContent::Route {
+            session_ref: SESSION_REF.to_owned(),
+            route_ref: ROUTE_REF.to_owned(),
+            endpoint_redaction_meters: 200,
+        }
+    );
+
+    let revised = revise_session_report(
+        &report,
+        "Routed progression",
+        ReportLocale::EnUs,
+        vec![
+            route_block(500),
+            session_block(false),
+            narrative_block("The exposed section felt controlled."),
+        ],
+    )
+    .expect("reordered report");
+
+    assert_eq!(revised.revision(), 2);
+    assert!(matches!(
+        revised.blocks()[0].content(),
+        ReportBlockContent::Route {
+            endpoint_redaction_meters: 500,
+            ..
+        }
+    ));
+}
+
+#[test]
+fn restores_and_authors_the_immutable_version_one_shape_alongside_version_two() {
+    let restored = ReportDefinition::restore(
+        REPORT_REF,
+        "Version one",
+        ReportLocale::EnUs,
+        SNAPSHOT_REF,
+        ReportOrigin::Session {
+            session_ref: SESSION_REF.to_owned(),
+        },
+        ReportProvenancePolicy::CurrentAttribution,
+        ReportAuthorship::User,
+        REPORT_DEFINITION_VERSION_V1,
+        3,
+        vec![session_block(true), narrative_block("Preserved intent")],
+    )
+    .expect("version-one report");
+
+    assert_eq!(restored.definition_version(), REPORT_DEFINITION_VERSION_V1);
+    let authored = ReportDefinition::create_session_report(
+        REPORT_REF,
+        "Version one authored",
+        ReportLocale::EnUs,
+        SNAPSHOT_REF,
+        session_block(true),
+        narrative_block("Preserved contract"),
+    )
+    .expect("authored version-one report");
+    assert_eq!(authored.definition_version(), REPORT_DEFINITION_VERSION_V1);
+
+    let composed = ReportDefinition::compose_session_report(
+        REPORT_REF,
+        "Version two authored",
+        ReportLocale::EnUs,
+        SNAPSHOT_REF,
+        SESSION_REF,
+        vec![session_block(true), narrative_block("Current intent")],
+    )
+    .expect("authored version-two report");
+    assert_eq!(composed.definition_version(), REPORT_DEFINITION_VERSION);
+    assert_eq!(
+        author_session_report(
+            &composed,
+            "Legacy edit",
+            ReportLocale::EnUs,
+            true,
+            "Must use the version-two command.",
+        )
+        .expect_err("version-one edit of a version-two definition"),
+        ReportDefinitionError::InvalidVersionOneBlockOrder
+    );
+}
+
+#[test]
+fn rejects_invalid_route_authority_and_incomplete_compositions() {
+    assert_eq!(
+        ReportBlock::route(ROUTE_BLOCK_REF, SESSION_REF, ROUTE_REF, 5_001)
+            .expect_err("excessive endpoint redaction"),
+        ReportDefinitionError::InvalidRouteEndpointRedaction
+    );
+    assert_eq!(
+        ReportBlock::route(ROUTE_BLOCK_REF, SESSION_REF, "route-invalid", 200)
+            .expect_err("invalid route reference"),
+        ReportDefinitionError::InvalidRouteIdentifier
+    );
+
+    let other_route_ref = "route-abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
+    let duplicate_route = ReportBlock::route(
+        "report-block-2222222222222222222222222222222222222222222222222222222222222222",
+        SESSION_REF,
+        ROUTE_REF,
+        500,
+    )
+    .expect("duplicate route selection");
+    assert_eq!(
+        ReportDefinition::compose_session_report(
+            REPORT_REF,
+            "Duplicate route",
+            ReportLocale::EnUs,
+            SNAPSHOT_REF,
+            SESSION_REF,
+            vec![
+                session_block(false),
+                route_block(200),
+                duplicate_route,
+                narrative_block("Evidence"),
+            ],
+        )
+        .expect_err("duplicate route"),
+        ReportDefinitionError::DuplicateRouteIdentifier
+    );
+    let foreign_route = ReportBlock::route(
+        ROUTE_BLOCK_REF,
+        "session-abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+        other_route_ref,
+        200,
+    )
+    .expect("foreign route block");
+    assert_eq!(
+        ReportDefinition::compose_session_report(
+            REPORT_REF,
+            "Foreign route",
+            ReportLocale::EnUs,
+            SNAPSHOT_REF,
+            SESSION_REF,
+            vec![
+                session_block(false),
+                foreign_route,
+                narrative_block("Evidence")
+            ],
+        )
+        .expect_err("foreign route"),
+        ReportDefinitionError::SessionOriginMismatch
+    );
+    assert_eq!(
+        ReportDefinition::compose_session_report(
+            REPORT_REF,
+            "Missing narrative",
+            ReportLocale::EnUs,
+            SNAPSHOT_REF,
+            SESSION_REF,
+            vec![session_block(false), route_block(200)],
+        )
+        .expect_err("missing narrative"),
+        ReportDefinitionError::InvalidVersionTwoComposition
     );
 }
 
@@ -87,7 +277,7 @@ fn rejects_invalid_identity_order_and_noncanonical_restoration() {
             },
             ReportProvenancePolicy::CurrentAttribution,
             ReportAuthorship::User,
-            REPORT_DEFINITION_VERSION,
+            REPORT_DEFINITION_VERSION_V1,
             1,
             vec![session_block(false), narrative_block("Evidence")]
         )
@@ -106,7 +296,7 @@ fn rejects_invalid_identity_order_and_noncanonical_restoration() {
             },
             ReportProvenancePolicy::CurrentAttribution,
             ReportAuthorship::User,
-            REPORT_DEFINITION_VERSION,
+            REPORT_DEFINITION_VERSION_V1,
             1,
             vec![narrative_block("Evidence"), session_block(false)]
         )
@@ -140,7 +330,7 @@ fn rejects_duplicate_blocks_foreign_origin_and_invalid_content() {
             },
             ReportProvenancePolicy::CurrentAttribution,
             ReportAuthorship::User,
-            REPORT_DEFINITION_VERSION,
+            REPORT_DEFINITION_VERSION_V1,
             1,
             vec![session_block(false), narrative_block("Evidence")]
         )
@@ -241,8 +431,12 @@ fn rejects_unsupported_versions_zero_revisions_and_oversized_text() {
     );
 
     for (definition_version, revision, expected) in [
-        (2, 1, ReportDefinitionError::UnsupportedDefinitionVersion),
-        (1, 0, ReportDefinitionError::ZeroRevision),
+        (3, 1, ReportDefinitionError::UnsupportedDefinitionVersion),
+        (
+            REPORT_DEFINITION_VERSION_V1,
+            0,
+            ReportDefinitionError::ZeroRevision,
+        ),
     ] {
         assert_eq!(
             ReportDefinition::restore(

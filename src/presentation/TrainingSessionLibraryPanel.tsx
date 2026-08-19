@@ -29,10 +29,10 @@ import type {
 } from "./training-session-detail";
 import type {
   TrainingRouteOverview,
-  TrainingRoutePoint,
   TrainingRoutePointsResult,
   TrainingSessionRoutesResult,
 } from "./training-session-route";
+import { routeSvgPoints } from "./route-svg";
 import type {
   TrainingSignalKind,
   TrainingSignalSamplesResult,
@@ -52,39 +52,6 @@ const ROUTE_VISUAL_POINT_LIMIT = 400;
 const EXACT_ROUTE_PAGE_SIZE = 100;
 const SIGNAL_VISUAL_SAMPLE_LIMIT = 300;
 const EXACT_SIGNAL_PAGE_SIZE = 100;
-
-function routeSvgPoints(points: TrainingRoutePoint[]): string {
-  if (points.length === 0) return "";
-  const unwrapped: Array<{ latitude: number; longitude: number }> = [];
-  points.forEach((point) => {
-    let longitude = point.longitudeDegrees;
-    const previous = unwrapped.at(-1)?.longitude;
-    if (previous !== undefined) {
-      while (longitude - previous > 180) longitude -= 360;
-      while (longitude - previous < -180) longitude += 360;
-    }
-    unwrapped.push({ latitude: point.latitudeDegrees, longitude });
-  });
-  const longitudes = unwrapped.map((point) => point.longitude);
-  const latitudes = unwrapped.map((point) => point.latitude);
-  const minimumLongitude = Math.min(...longitudes);
-  const maximumLongitude = Math.max(...longitudes);
-  const minimumLatitude = Math.min(...latitudes);
-  const maximumLatitude = Math.max(...latitudes);
-  const longitudeSpan = maximumLongitude - minimumLongitude;
-  const latitudeSpan = maximumLatitude - minimumLatitude;
-  const width = 592;
-  const height = 272;
-  return unwrapped.map((point) => {
-    const x = longitudeSpan === 0
-      ? 320
-      : 24 + (point.longitude - minimumLongitude) / longitudeSpan * width;
-    const y = latitudeSpan === 0
-      ? 160
-      : 24 + (maximumLatitude - point.latitude) / latitudeSpan * height;
-    return `${x.toFixed(2)},${y.toFixed(2)}`;
-  }).join(" ");
-}
 
 function signalSvgSegments(samples: TrainingSignalVisualSample[]): string[] {
   const available = samples.filter(

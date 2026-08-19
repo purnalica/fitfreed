@@ -6,13 +6,13 @@ use fitfreed_application::{
     ActivityComparison, ActivityDateRange, ActivityDayAvailability, ActivityDayInsight,
     ActivityOverview, ActivitySeriesComparison, ActivitySeriesOverview, ActivitySeriesSummary,
     AppearancePreference, ApplicationError, ApplicationPreferences, ApplicationPreferencesLoad,
-    AppliedTrainingSegmentCriterion, CreateSessionReportRequest,
-    CreateTrainingSegmentCriterionRequest, ExpectedSourceArchive, ExplorationWorkspace,
-    ExploreDestination, ImportPhase, ImportProgress, InvalidApplicationPreferences, LibraryDomain,
-    LibraryDomainCoverage, LibraryHome, LibraryHomeDateRange, LibraryHomeRequest,
-    LibraryMeasurement, LibraryMeasurementCoverage, LibraryQuestion, LibraryQuestionKind,
-    LongitudinalActivityComparison, LongitudinalActivityDay, LongitudinalComparison,
-    LongitudinalDateRange, LongitudinalDayInsight, LongitudinalOverview,
+    AppliedTrainingSegmentCriterion, CreateComposedSessionReportRequest,
+    CreateSessionReportRequest, CreateTrainingSegmentCriterionRequest, ExpectedSourceArchive,
+    ExplorationWorkspace, ExploreDestination, ImportPhase, ImportProgress,
+    InvalidApplicationPreferences, LibraryDomain, LibraryDomainCoverage, LibraryHome,
+    LibraryHomeDateRange, LibraryHomeRequest, LibraryMeasurement, LibraryMeasurementCoverage,
+    LibraryQuestion, LibraryQuestionKind, LongitudinalActivityComparison, LongitudinalActivityDay,
+    LongitudinalComparison, LongitudinalDateRange, LongitudinalDayInsight, LongitudinalOverview,
     LongitudinalRecoveryComparison, LongitudinalRecoveryDay, LongitudinalSeriesComparison,
     LongitudinalSeriesOverview, LongitudinalSleepComparison, LongitudinalSleepDay,
     LongitudinalTrainingComparison, LongitudinalTrainingDay, ManualUpdateReason,
@@ -21,26 +21,27 @@ use fitfreed_application::{
     PreferencesLoadStatus, RecoveryComparison, RecoveryDateRange, RecoveryDayAvailability,
     RecoveryDayInsight, RecoveryNightDetail, RecoveryNightInsight, RecoveryOverview,
     RecoverySeriesComparison, RecoverySeriesOverview, RecoverySeriesSummary, ReportExportReceipt,
-    ReportLimitation, ReportResolutionStatus, ReportSensitiveContent, ReportSensitiveContentKind,
-    ReportSessionEvidence, ReportSummary, ResolvedSessionReport, SaveSportClassificationRequest,
-    SavedTrainingSportClassification, SegmentApplicabilityView, SegmentMeasurementView,
-    SessionReportExportRequest, SleepComparison, SleepDateRange, SleepDayAvailability,
-    SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight, SleepPhaseTotals,
-    SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary, SourceAcquisitionGuide,
-    SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange, TrainingDerivedSegment,
-    TrainingDiscoveryView, TrainingDiscoveryWorkspace, TrainingExerciseRoutesView,
-    TrainingExerciseSegmentation, TrainingExerciseSignalsView, TrainingExerciseStructure,
-    TrainingExerciseZonesView, TrainingLapStructure, TrainingMeasurementFilter, TrainingOverview,
-    TrainingPauseStructure, TrainingProvenanceCurrentView, TrainingProvenanceDecisionView,
-    TrainingProvenanceEventView, TrainingRouteCollectionView, TrainingRouteKindView,
-    TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
-    TrainingSegmentCriterionDirection, TrainingSegmentCriterionMutationRequest,
-    TrainingSeriesComparison, TrainingSeriesOverview, TrainingSeriesSummary,
-    TrainingSessionCalendar, TrainingSessionCalendarDay, TrainingSessionCalendarRequest,
-    TrainingSessionInsight, TrainingSessionProvenanceQuery, TrainingSessionProvenanceResult,
-    TrainingSessionRouteQuery, TrainingSessionRoutesResult, TrainingSessionRoutesView,
-    TrainingSessionSearchItem, TrainingSessionSearchPage, TrainingSessionSearchRequest,
-    TrainingSessionSearchSummary, TrainingSessionSegmentationQuery,
+    ReportLimitation, ReportResolutionStatus, ReportRouteEvidence, ReportRouteExportChoice,
+    ReportSensitiveContent, ReportSensitiveContentKind, ReportSessionEvidence, ReportSummary,
+    ResolvedSessionReport, SaveSportClassificationRequest, SavedTrainingSportClassification,
+    SegmentApplicabilityView, SegmentMeasurementView, SessionReportBlockDraft,
+    SessionReportBlockDraftContent, SessionReportExportRequest, SleepComparison, SleepDateRange,
+    SleepDayAvailability, SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight,
+    SleepPhaseTotals, SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary,
+    SourceAcquisitionGuide, SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange,
+    TrainingDerivedSegment, TrainingDiscoveryView, TrainingDiscoveryWorkspace,
+    TrainingExerciseRoutesView, TrainingExerciseSegmentation, TrainingExerciseSignalsView,
+    TrainingExerciseStructure, TrainingExerciseZonesView, TrainingLapStructure,
+    TrainingMeasurementFilter, TrainingOverview, TrainingPauseStructure,
+    TrainingProvenanceCurrentView, TrainingProvenanceDecisionView, TrainingProvenanceEventView,
+    TrainingRouteCollectionView, TrainingRouteKindView, TrainingRouteOverview,
+    TrainingRoutePointView, TrainingRoutePointsQuery, TrainingSegmentCriterionDirection,
+    TrainingSegmentCriterionMutationRequest, TrainingSeriesComparison, TrainingSeriesOverview,
+    TrainingSeriesSummary, TrainingSessionCalendar, TrainingSessionCalendarDay,
+    TrainingSessionCalendarRequest, TrainingSessionInsight, TrainingSessionProvenanceQuery,
+    TrainingSessionProvenanceResult, TrainingSessionRouteQuery, TrainingSessionRoutesResult,
+    TrainingSessionRoutesView, TrainingSessionSearchItem, TrainingSessionSearchPage,
+    TrainingSessionSearchRequest, TrainingSessionSearchSummary, TrainingSessionSegmentationQuery,
     TrainingSessionSegmentationResult, TrainingSessionSelection, TrainingSessionSelectionRequest,
     TrainingSessionSignalsQuery, TrainingSessionSignalsResult, TrainingSessionSignalsView,
     TrainingSessionSort, TrainingSessionSport, TrainingSessionStructureQuery,
@@ -51,10 +52,10 @@ use fitfreed_application::{
     TrainingSourceProviderView, TrainingSport, TrainingSportClassification, TrainingSportCoverage,
     TrainingSportState, TrainingSportsOverview, TrainingStructure, TrainingZoneCollectionView,
     TrainingZoneGroupView, TrainingZoneKindView, TrainingZoneUnitView, TrainingZoneView,
-    UpdateCheckOutcome, UpdateCheckStatus, UpdateError, UpdateRecoveryOutcome,
-    UpdateRecoveryOutcomeKind, UpdateReleaseSummary, UpdateSessionReportRequest,
-    UpdateTrainingSegmentCriterionRequest, UpdateTrustFailure, UpdateWithdrawalReason,
-    UpdateWithdrawalSummary,
+    UpdateCheckOutcome, UpdateCheckStatus, UpdateComposedSessionReportRequest, UpdateError,
+    UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind, UpdateReleaseSummary,
+    UpdateSessionReportRequest, UpdateTrainingSegmentCriterionRequest, UpdateTrustFailure,
+    UpdateWithdrawalReason, UpdateWithdrawalSummary,
 };
 
 #[derive(Debug, Deserialize)]
@@ -2350,6 +2351,12 @@ pub enum ReportBlockDto {
         session_ref: String,
         include_physiological_context: bool,
     },
+    Route {
+        block_ref: String,
+        session_ref: String,
+        route_ref: String,
+        endpoint_redaction_meters: u32,
+    },
     Narrative {
         block_ref: String,
         body: String,
@@ -2399,6 +2406,16 @@ impl From<ReportDefinition> for ReportDefinitionDto {
                     block_ref: block.block_ref().to_owned(),
                     session_ref: session_ref.clone(),
                     include_physiological_context: *include_physiological_context,
+                },
+                ReportBlockContent::Route {
+                    session_ref,
+                    route_ref,
+                    endpoint_redaction_meters,
+                } => ReportBlockDto::Route {
+                    block_ref: block.block_ref().to_owned(),
+                    session_ref: session_ref.clone(),
+                    route_ref: route_ref.clone(),
+                    endpoint_redaction_meters: *endpoint_redaction_meters,
                 },
                 ReportBlockContent::Narrative { body } => ReportBlockDto::Narrative {
                     block_ref: block.block_ref().to_owned(),
@@ -2482,6 +2499,111 @@ impl TryFrom<UpdateSessionReportRequestDto> for UpdateSessionReportRequest {
     }
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(
+    tag = "kind",
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase",
+    deny_unknown_fields
+)]
+pub enum SessionReportBlockDraftDto {
+    SessionEvidence {
+        block_ref: Option<String>,
+        include_physiological_context: bool,
+    },
+    Route {
+        block_ref: Option<String>,
+        route_ref: String,
+        endpoint_redaction_meters: u32,
+    },
+    Narrative {
+        block_ref: Option<String>,
+        body: String,
+    },
+}
+
+impl From<SessionReportBlockDraftDto> for SessionReportBlockDraft {
+    fn from(block: SessionReportBlockDraftDto) -> Self {
+        match block {
+            SessionReportBlockDraftDto::SessionEvidence {
+                block_ref,
+                include_physiological_context,
+            } => Self {
+                block_ref,
+                content: SessionReportBlockDraftContent::SessionEvidence {
+                    include_physiological_context,
+                },
+            },
+            SessionReportBlockDraftDto::Route {
+                block_ref,
+                route_ref,
+                endpoint_redaction_meters,
+            } => Self {
+                block_ref,
+                content: SessionReportBlockDraftContent::Route {
+                    route_ref,
+                    endpoint_redaction_meters,
+                },
+            },
+            SessionReportBlockDraftDto::Narrative { block_ref, body } => Self {
+                block_ref,
+                content: SessionReportBlockDraftContent::Narrative { body },
+            },
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CreateComposedSessionReportRequestDto {
+    title: String,
+    locale: String,
+    session_ref: String,
+    source_snapshot_ref: String,
+    blocks: Vec<SessionReportBlockDraftDto>,
+}
+
+impl TryFrom<CreateComposedSessionReportRequestDto> for CreateComposedSessionReportRequest {
+    type Error = CommandErrorDto;
+
+    fn try_from(request: CreateComposedSessionReportRequestDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            title: request.title,
+            locale: report_locale(&request.locale)?,
+            session_ref: request.session_ref,
+            source_snapshot_ref: request.source_snapshot_ref,
+            blocks: request.blocks.into_iter().map(Into::into).collect(),
+        })
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct UpdateComposedSessionReportRequestDto {
+    report_ref: String,
+    expected_revision: String,
+    title: String,
+    locale: String,
+    blocks: Vec<SessionReportBlockDraftDto>,
+}
+
+impl TryFrom<UpdateComposedSessionReportRequestDto> for UpdateComposedSessionReportRequest {
+    type Error = CommandErrorDto;
+
+    fn try_from(request: UpdateComposedSessionReportRequestDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            report_ref: request.report_ref,
+            expected_revision: parse_canonical_u64(
+                &request.expected_revision,
+                "invalid-report-definition",
+            )?,
+            title: request.title,
+            locale: report_locale(&request.locale)?,
+            blocks: request.blocks.into_iter().map(Into::into).collect(),
+        })
+    }
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReportSummaryDto {
@@ -2560,9 +2682,39 @@ impl From<ReportSessionEvidence> for ReportSessionEvidenceDto {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ReportRouteEvidenceDto {
+    block_ref: String,
+    route_ref: String,
+    kind: &'static str,
+    started_at_local: String,
+    source_point_count: usize,
+    visual_points: Vec<TrainingRoutePointDto>,
+    endpoint_redaction_meters: u32,
+    included: bool,
+}
+
+impl From<ReportRouteEvidence> for ReportRouteEvidenceDto {
+    fn from(route: ReportRouteEvidence) -> Self {
+        Self {
+            block_ref: route.block_ref,
+            route_ref: route.route_ref,
+            kind: training_route_kind(route.kind),
+            started_at_local: route.started_at_local,
+            source_point_count: route.source_point_count,
+            visual_points: route.visual_points.into_iter().map(Into::into).collect(),
+            endpoint_redaction_meters: route.endpoint_redaction_meters,
+            included: route.included,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ReportSensitiveContentDto {
     kind: &'static str,
+    block_ref: Option<String>,
     included: bool,
+    endpoint_redaction_meters: Option<u32>,
 }
 
 impl From<ReportSensitiveContent> for ReportSensitiveContentDto {
@@ -2570,8 +2722,11 @@ impl From<ReportSensitiveContent> for ReportSensitiveContentDto {
         Self {
             kind: match content.kind {
                 ReportSensitiveContentKind::HeartRate => "heart-rate",
+                ReportSensitiveContentKind::PreciseLocation => "precise-location",
             },
+            block_ref: content.block_ref,
             included: content.included,
+            endpoint_redaction_meters: content.endpoint_redaction_meters,
         }
     }
 }
@@ -2593,6 +2748,7 @@ pub struct ResolvedSessionReportDto {
     resolved_snapshot_ref: String,
     status: &'static str,
     session: ReportSessionEvidenceDto,
+    routes: Vec<ReportRouteEvidenceDto>,
     provenance: TrainingProvenanceCurrentDto,
     sensitive_contents: Vec<ReportSensitiveContentDto>,
     limitations: Vec<&'static str>,
@@ -2608,6 +2764,7 @@ impl From<ResolvedSessionReport> for ResolvedSessionReportDto {
                 ReportResolutionStatus::Stale => "stale",
             },
             session: report.session.into(),
+            routes: report.routes.into_iter().map(Into::into).collect(),
             provenance: report.provenance.into(),
             sensitive_contents: report
                 .sensitive_contents
@@ -2630,7 +2787,27 @@ pub struct SessionReportExportRequestDto {
     expected_revision: String,
     expected_source_snapshot_ref: String,
     include_physiological_context: bool,
+    #[serde(default)]
+    route_choices: Vec<ReportRouteExportChoiceDto>,
     destination_path: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ReportRouteExportChoiceDto {
+    block_ref: String,
+    include_geometry: bool,
+    endpoint_redaction_meters: u32,
+}
+
+impl From<ReportRouteExportChoiceDto> for ReportRouteExportChoice {
+    fn from(choice: ReportRouteExportChoiceDto) -> Self {
+        Self {
+            block_ref: choice.block_ref,
+            include_geometry: choice.include_geometry,
+            endpoint_redaction_meters: choice.endpoint_redaction_meters,
+        }
+    }
 }
 
 impl TryFrom<SessionReportExportRequestDto> for SessionReportExportRequest {
@@ -2652,6 +2829,7 @@ impl TryFrom<SessionReportExportRequestDto> for SessionReportExportRequest {
             )?,
             expected_source_snapshot_ref: request.expected_source_snapshot_ref,
             include_physiological_context: request.include_physiological_context,
+            route_choices: request.route_choices.into_iter().map(Into::into).collect(),
             destination,
         })
     }
