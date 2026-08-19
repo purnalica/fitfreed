@@ -3179,7 +3179,7 @@ fn query_training_signal_overviews_on(
                               AND gap.value IS NULL
                         ) END
                  FROM selected
-                 JOIN training_signal_sample AS sample
+                 CROSS JOIN training_signal_sample AS sample
                    ON sample.ordinal = selected.ordinal
                  WHERE sample.origin_id = ? AND sample.session_id = ? AND sample.exercise_id = ?
                    AND sample.role = ? AND sample.series_ordinal = ?

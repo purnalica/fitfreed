@@ -279,24 +279,39 @@ function trainingRoutePoints(
 }
 
 const heartRateSignalRef = `signal-${"6".repeat(64)}`;
+const speedSignalRef = `signal-${"7".repeat(64)}`;
 const heartRateSamples = Array.from({ length: 601 }, (_, ordinal) => ({
   ordinal,
   elapsedMilliseconds: String(ordinal * 1_000),
   value: ordinal === 51 ? null : 120 + ordinal / 2,
 }));
-const heartRateVisualSamples = Array.from({ length: 300 }, (_, index) => {
-  const ordinal = Math.floor(index * (heartRateSamples.length - 1) / 299);
-  const sample = heartRateSamples[ordinal]!;
-  const previousOrdinal = index === 0
-    ? undefined
-    : Math.floor((index - 1) * (heartRateSamples.length - 1) / 299);
-  return {
-    ...sample,
-    gapBefore: previousOrdinal !== undefined
-      && heartRateSamples.slice(previousOrdinal + 1, ordinal + 1)
-        .some(({ value }) => value === null),
-  };
-});
+const speedSamples = Array.from({ length: 301 }, (_, ordinal) => ({
+  ordinal,
+  elapsedMilliseconds: String(ordinal * 2_000),
+  value: 10 + ordinal / 100,
+}));
+
+function visualSamples(samples: typeof heartRateSamples) {
+  const selectedCount = Math.min(samples.length, 300);
+  return Array.from({ length: selectedCount }, (_, index) => {
+    const ordinal = selectedCount === 1
+      ? 0
+      : Math.floor(index * (samples.length - 1) / (selectedCount - 1));
+    const sample = samples[ordinal]!;
+    const previousOrdinal = index === 0
+      ? undefined
+      : Math.floor((index - 1) * (samples.length - 1) / (selectedCount - 1));
+    return {
+      ...sample,
+      gapBefore: previousOrdinal !== undefined
+        && samples.slice(previousOrdinal + 1, ordinal + 1)
+          .some(({ value }) => value === null),
+    };
+  });
+}
+
+const heartRateVisualSamples = visualSamples(heartRateSamples);
+const speedVisualSamples = visualSamples(speedSamples);
 
 function trainingSignals(sessionRef: string): TrainingSessionSignalsResult {
   return {
@@ -318,6 +333,17 @@ function trainingSignals(sessionRef: string): TrainingSessionSignalsResult {
             availableSampleCount: 600,
             projection: "source-ordinal-v1",
             visualSamples: heartRateVisualSamples,
+          }, {
+            signalRef: speedSignalRef,
+            ordinal: 1,
+            role: "primary",
+            kind: "speed",
+            unit: "kilometers-per-hour",
+            intervalMilliseconds: "2000",
+            sampleCount: speedSamples.length,
+            availableSampleCount: speedSamples.length,
+            projection: "source-ordinal-v1",
+            visualSamples: speedVisualSamples,
           }],
           transition: [],
           unsupportedPrimarySeriesCount: 1,
@@ -381,21 +407,23 @@ function trainingSignalSamples(
   offset: number,
   limit: number,
 ): TrainingSignalSamplesResult {
-  const samples = heartRateSamples.slice(offset, offset + limit);
+  const speed = signalRef === speedSignalRef;
+  const sourceSamples = speed ? speedSamples : heartRateSamples;
+  const samples = sourceSamples.slice(offset, offset + limit);
   return {
     snapshotRef,
     sessionRef,
     signalRef,
     exerciseRef: `exercise-${"1".repeat(64)}`,
-    ordinal: 0,
+    ordinal: speed ? 1 : 0,
     role: "primary",
-    kind: "heart-rate",
-    unit: "beats-per-minute",
-    intervalMilliseconds: "1000",
-    sampleCount: heartRateSamples.length,
+    kind: speed ? "speed" : "heart-rate",
+    unit: speed ? "kilometers-per-hour" : "beats-per-minute",
+    intervalMilliseconds: speed ? "2000" : "1000",
+    sampleCount: sourceSamples.length,
     offset,
     samples,
-    nextOffset: offset + samples.length < heartRateSamples.length
+    nextOffset: offset + samples.length < sourceSamples.length
       ? offset + samples.length
       : null,
   };
@@ -803,6 +831,31 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(within(firstExercise!).getByRole("img", {
       name: /Heart rate chart/,
     }).querySelectorAll("polyline")).toHaveLength(2);
+    const crossSignal = within(firstExercise!).getByRole("region", {
+      name: "Explore signals together",
+    });
+    expect(within(crossSignal).getAllByRole("checkbox", { checked: true })).toHaveLength(2);
+    expect(within(crossSignal).getAllByRole("img")).toHaveLength(2);
+    expect(crossSignal).toHaveTextContent("Elapsed time 0–10 min");
+    await user.click(within(crossSignal).getByRole("button", {
+      name: "Open exact samples for Speed · series 2",
+    }));
+    const exactSpeedRegion = await within(firstExercise!).findByRole("region", {
+      name: "Exact Speed samples",
+    });
+    expect(exactSpeedRegion).toHaveTextContent("10 km/h");
+    expect(mocks.invoke).toHaveBeenCalledWith("query_training_signal_samples", {
+      query: {
+        sessionRef: newest.sessionRef,
+        signalRef: speedSignalRef,
+        snapshotRef,
+        offset: 0,
+        limit: 100,
+      },
+    });
+    await user.click(within(firstExercise!).getByRole("button", {
+      name: "Hide exact Speed samples",
+    }));
     expect(firstExercise).toHaveTextContent("1 unsupported source series was preserved as an explicit count");
     await user.click(within(firstExercise!).getByRole("button", {
       name: "Inspect exact Heart rate samples",

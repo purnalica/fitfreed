@@ -71,3 +71,11 @@ The workspace names role, signal kind, unit, exact coverage, interval, and unsup
 Each chart has an accessible exact table path and starts a new trace after every null sample or
 `gapBefore: true` marker. Local rendering makes no network request and provides no diagnosis, training
 advice, or claim that one signal caused another.
+
+When at least two series in the same role contain visible recorded values, presentation may offer a
+progressive cross-signal view from this existing bounded response. A person selects two through four series.
+The view uses separate labelled vertical scales and a shared elapsed-time axis fixed by all eligible series
+in that role. It never combines primary and transition evidence, joins values into synthetic rows,
+interpolates missing timestamps, bridges gaps, or treats normalized chart height as a comparable unit. Every
+selected lane links to the existing exact paginated table for that source series. This view is visual
+co-occurrence evidence only and does not assert correlation or causation.

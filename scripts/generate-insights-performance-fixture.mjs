@@ -17,6 +17,18 @@ const performanceSignalValues = Array.from(
   { length: 20_001 },
   (_, ordinal) => ordinal % 997 === 0 ? "NaN" : 115 + ordinal % 80,
 );
+const performanceSpeedValues = Array.from(
+  { length: 20_001 },
+  (_, ordinal) => 8 + ordinal % 120 / 10,
+);
+const performanceAltitudeValues = Array.from(
+  { length: 20_001 },
+  (_, ordinal) => 400 + ordinal % 240,
+);
+const performanceCadenceValues = Array.from(
+  { length: 20_001 },
+  (_, ordinal) => 60 + ordinal % 70,
+);
 const zip = new ZipFile();
 let storedObservations = 0;
 let unavailableObservations = 0;
@@ -89,6 +101,18 @@ for (let index = 0; index < calendarDays; index += 1) {
               type: "HEART_RATE",
               intervalMillis: 1_000,
               values: performanceSignalValues,
+            }, {
+              type: "SPEED",
+              intervalMillis: 1_000,
+              values: performanceSpeedValues,
+            }, {
+              type: "ALTITUDE",
+              intervalMillis: 1_000,
+              values: performanceAltitudeValues,
+            }, {
+              type: "CADENCE",
+              intervalMillis: 1_000,
+              values: performanceCadenceValues,
             }],
             transitionSamples: [],
           },

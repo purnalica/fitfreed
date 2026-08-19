@@ -2,7 +2,7 @@
 
 ## Status
 
-Active as of 2026-08-19. D0, P1, E1, and P2 have complete local and hosted acceptance evidence. E2 has reached its complete local checkpoint; hosted executable evidence remains pending. All three E3 slices have reached their local checkpoints. The recorded-structure, route, temporal-signal, reusable-segmentation, recorded-zone, and session-provenance slices of E4 have reached their local checkpoints, and E4 remains active. The latest executable fingerprint still requires hosted evidence. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English and Spanish hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md) and [ADR 0024](../architecture/decisions/0024-generate-localized-product-pages.md).
+Active as of 2026-08-19. D0, P1, E1, and P2 have complete local and hosted acceptance evidence. E2 has reached its complete local checkpoint; hosted executable evidence remains pending. All three E3 slices and all seven E4 slices have reached their local checkpoints. E5 personal report authoring and export is active. The latest executable fingerprint still requires hosted evidence. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English and Spanish hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md) and [ADR 0024](../architecture/decisions/0024-generate-localized-product-pages.md).
 
 The existing import, reconciliation, persistence, Insights, localization, update-recovery, packaging, and continuous-integration capabilities remain the engineering baseline. This plan changes how those capabilities become a product people can understand and value; it does not discard their verified behavior.
 
@@ -540,7 +540,30 @@ The complete fast lane passed 135 repository-automation tests, 101 React tests, 
 application tests, 19 domain tests, and two private acceptance tests with strict Clippy and formatting. The
 local Apple Silicon read-model campaign stored one event for each of 14,612 independently generated sessions.
 Stable provenance retrieval measured 6.381 ms p95 against the 500 ms budget; the complete campaign used
-27.734 MiB peak process memory. E4 remains active only for progressive cross-signal inspection.
+27.734 MiB peak process memory.
+
+**Cross-signal slice local accepted evidence:** the established version-1 signal overview now also supports
+selection of two through four recorded series from one exercise and one role. Each series retains a labeled
+kind, source order, unit, range, coverage, and independent vertical scale while all lanes share one stable
+elapsed-time axis. Primary and transition evidence remain separate. Missing values split traces, no value is
+interpolated or normalized into an undisclosed common unit, and visual co-occurrence does not assert
+causation. Every selected lane opens the existing exact paginated sample evidence.
+
+No new persistence or application read model was introduced: the presentation composes the bounded,
+validated overview and exact-sample use case already owned by E4. Component and packaged bilingual journeys
+prove the default three-series selection, two-through-four selection limits, gap preservation, stable axis,
+localized controls and units, direct exact-sample access, 200% layout, keyboard operation, and automated
+accessibility. The performance archive contains four independently generated primary series of 20,001 slots
+each. Its packaged WebView campaign measured the complete four-chart and four-lane detail at 62 ms p95
+against the 1-second budget and the exact 100-row page at 157 ms p95 against the 500 ms budget. The gate
+exposed a scan-amplifying SQLite join order before acceptance; selected ordinals now drive indexed point
+lookups instead of weakening the scenario or budget.
+
+The complete fast lane passed 137 repository-automation tests, 105 React tests, 186 host tests, 116
+application tests, 19 domain tests, and two private acceptance tests with strict Clippy and formatting.
+Packaged update replacement and forced recovery also pass against the resulting executable. This completes
+the E4 local checkpoint; E5 is the active increment, while hosted evidence remains pending for the latest
+executable fingerprint.
 
 ### E5 — Personal report authoring and export
 

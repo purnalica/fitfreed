@@ -23,7 +23,8 @@
         "First-run Sources home with offline export guidance and allowlisted official links",
         "Durable language, appearance, and content zoom settings",
         "en-US and es-ES, packaging, update recovery, and release-shaped tests",
-        "On-demand privacy-bounded session provenance and reconciliation history"
+        "On-demand privacy-bounded session provenance and reconciliation history",
+        "Selectable same-role signal alignment with exact sample paths"
       ],
       "source": {
         "label": "MVP capability boundary",
@@ -35,7 +36,6 @@
       "label": "Active experience work",
       "title": "The experience being shaped",
       "items": [
-        "Progressive cross-signal inspection",
         "Origin-aware navigation across discovery, session, and report workspaces",
         "Saved evidence reports with self-contained HTML export",
         "A coherent, evaluated, documented macOS product journey"

@@ -99,7 +99,9 @@ function evidence(measurements) {
       calendarDays,
       origins: 1,
       trainingSessions: calendarDays,
+      trainingSignalSeries: 4,
       largestTrainingSignalSamples: 20_001,
+      crossSignalLanes: 4,
       sleepPeriods: calendarDays,
       recoveryNights: calendarDays,
     },
@@ -351,10 +353,28 @@ async function measureTrainingSignalOverview() {
       return;
     }
     const started = window.performance.now();
+    let expandedToMaximum = false;
     detailButton.click();
     function observeResult() {
-      const chart = document.querySelector(".training-signal svg");
-      if (chart?.getAttribute("aria-label")?.includes("20,001 samples")) {
+      const charts = Array.from(document.querySelectorAll(".training-signal svg"));
+      const choices = document.querySelectorAll(
+        ".training-cross-signal-selection input[type='checkbox']",
+      );
+      const crossSignalLanes = document.querySelectorAll(".training-cross-signal-lanes svg");
+      if (
+        charts.length === 4
+        && choices.length === 4
+        && crossSignalLanes.length === 3
+        && !expandedToMaximum
+      ) {
+        expandedToMaximum = true;
+        choices[3].click();
+      }
+      if (
+        charts.length === 4
+        && charts.every((chart) => chart.getAttribute("aria-label")?.includes("20,001 samples"))
+        && crossSignalLanes.length === 4
+      ) {
         document.documentElement.getBoundingClientRect();
         setTimeout(() => done({
           duration: window.performance.now() - started,
@@ -382,7 +402,7 @@ async function measureTrainingSignalOverview() {
 async function measureTrainingSignalExactPage() {
   await $('.training-session-results button[aria-label^="View session details"]').click();
   await browser.waitUntil(
-    async () => (await $$(".training-signal button[aria-expanded]")).length === 1,
+    async () => (await $$(".training-signal button[aria-expanded]")).length === 4,
     { timeout: 5_000, timeoutMsg: "training signal exact-sample action was not available" },
   );
   const result = await browser.executeAsync((done) => {

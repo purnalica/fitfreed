@@ -7,14 +7,14 @@ mkdirSync(runsDirectory, { recursive: true });
 const runDirectory = mkdtempSync(path.join(runsDirectory, "packaged-"));
 const wdio = path.resolve("node_modules/.bin/wdio");
 const scenarios = [
-  ["journey", "test/e2e/import-journey.spec.js"],
-  ["performance", "test/e2e/insights-performance.spec.js"],
+  ["journey", "wdio.conf.js", "test/e2e/import-journey.spec.js"],
+  ["performance", "wdio.performance.conf.js", "test/e2e/insights-performance.spec.js"],
 ];
 let complete = false;
 
 try {
-  for (const [name, spec] of scenarios) {
-    const result = spawnSync(wdio, ["run", "wdio.conf.js", "--spec", spec], {
+  for (const [name, configuration, spec] of scenarios) {
+    const result = spawnSync(wdio, ["run", configuration, "--spec", spec], {
       env: {
         ...process.env,
         FITFREED_E2E_DATABASE_PATH: path.join(runDirectory, `${name}.sqlite`),

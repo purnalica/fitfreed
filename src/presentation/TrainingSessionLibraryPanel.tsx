@@ -41,6 +41,7 @@ import type {
 } from "./training-session-signal";
 import type { TrainingSessionZonesResult } from "./training-session-zone";
 import type { TrainingSport, TrainingSportsOverview } from "./training-sports";
+import { TrainingCrossSignalPanel } from "./TrainingCrossSignalPanel";
 import { TrainingSegmentationPanel } from "./TrainingSegmentationPanel";
 import { TrainingSessionProvenancePanel } from "./TrainingSessionProvenancePanel";
 import { TrainingSessionZonesPanel } from "./TrainingSessionZonesPanel";
@@ -1086,6 +1087,15 @@ export function TrainingSessionLibraryPanel({
     void loadExactSignalSamples(signalRef, 0);
   }
 
+  function openExactSignalSamples(signalRef: string) {
+    if (exactSignalRef === signalRef && exactSignalLoading) return;
+    if (exactSignalRef === signalRef
+      && exactSignalSamples?.signalRef === signalRef
+      && !exactSignalFailed) return;
+    setExactSignalSamples(undefined);
+    void loadExactSignalSamples(signalRef, 0);
+  }
+
   function signalKindLabel(kind: TrainingSignalKind): string {
     return copy.signalKinds[kind];
   }
@@ -1251,7 +1261,17 @@ export function TrainingSessionLibraryPanel({
         {series === null ? <p>{copy.signalsNotProvided}</p>
           : series.length === 0 && unsupportedCount === 0
             ? <p>{copy.signalsProvidedEmpty}</p>
-            : series.map((signal) => signalSeriesCard(signal, exerciseOrdinal))}
+            : (
+              <>
+                <TrainingCrossSignalPanel
+                  series={series}
+                  locale={locale}
+                  messages={messages}
+                  onOpenExact={openExactSignalSamples}
+                />
+                {series.map((signal) => signalSeriesCard(signal, exerciseOrdinal))}
+              </>
+            )}
         {unsupportedSignalSeries(unsupportedCount)}
       </section>
     );

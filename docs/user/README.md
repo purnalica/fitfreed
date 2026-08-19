@@ -27,11 +27,14 @@ comparison, mapping-aware reimport, cumulative import, and restart. Training det
 unevaluated, absent, empty, and populated exercise/lap/pause, route, signal, and recorded-zone states. Primary and transition
 routes render as bounded local SVG traces with no external location request, while exact paginated tables retain
 every recorded coordinate. Supported exercise and transition signals render as gap-aware bounded charts with
-paginated access to every original sample. Supported recorded heart-rate, speed, and power zones preserve
+paginated access to every original sample. When one role has enough recorded evidence, two through four
+signals can also be selected as independently scaled lanes over one stable elapsed-time axis; every lane
+retains a direct path to its exact samples, and the view neither bridges gaps nor implies causation.
+Supported recorded heart-rate, speed, and power zones preserve
 their exact bounds and applicable aggregates without implying a timeline. Session provenance loads only on
 request and distinguishes source revision time, local import time, interpretation versions, and reconciliation
-effects without revealing package identifiers or local paths. Unsupported zone kinds, unsupported signal
-types, and cross-signal inspection remain excluded. Sleep views distinguish missing nights from zero sleep and disclose optional phase, score, goal,
+effects without revealing package identifiers or local paths. Unsupported zone kinds and unsupported signal
+types remain excluded. Sleep views distinguish missing nights from zero sleep and disclose optional phase, score, goal,
 timeline, and recording-status coverage. Recovery views disclose gaps and measurement coverage, keep
 provider assessments, baselines, and guidance source-specific, and exclude undated samples that cannot be
 joined safely.

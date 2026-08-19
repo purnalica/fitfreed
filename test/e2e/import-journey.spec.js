@@ -1011,6 +1011,37 @@ describe("packaged FitFreed import journey", () => {
       expect.stringContaining("100 recorded values out of 101 samples"),
     );
     expect(await recordedSignals[0].$$("polyline")).toHaveLength(2);
+    const crossSignal = await $(".training-cross-signal");
+    await expect(crossSignal.$("h6")).toHaveText(
+      english.training.sessionLibrary.crossSignalHeading,
+    );
+    await expect(crossSignal).toHaveText(
+      expect.stringContaining(english.training.sessionLibrary.crossSignalPrimaryIntro),
+    );
+    const crossSignalChoices = await crossSignal.$$('input[type="checkbox"]');
+    expect(crossSignalChoices).toHaveLength(2);
+    expect(await crossSignal.$$("svg")).toHaveLength(2);
+    expect(await crossSignal.$$("article:first-child polyline")).toHaveLength(2);
+    await expect(crossSignal).toHaveText(expect.stringContaining("Elapsed time 0–1 h"));
+    for (const choice of crossSignalChoices) {
+      await expect(choice).toBeChecked();
+      await expect(choice).toBeDisabled();
+    }
+    const speedSeries = english.training.sessionLibrary.crossSignalSeries
+      .replace("{kind}", english.training.sessionLibrary.signalKinds.speed)
+      .replace("{number}", "2");
+    const exactSpeed = english.training.sessionLibrary.crossSignalExact
+      .replace("{series}", speedSeries);
+    await crossSignal.$(`aria/${exactSpeed}`).click();
+    await browser.waitUntil(
+      async () => (await recordedSignals[1].$$(".training-signal-exact tbody tr")).length === 5,
+      { timeout: 10_000, timeoutMsg: "cross-signal exact evidence was not displayed" },
+    );
+    await expect(recordedSignals[1].$(".training-signal-exact")).toHaveText(
+      expect.stringContaining("8.5 km/h"),
+    );
+    await recordedSignals[1].$("button").click();
+    expect(await recordedSignals[1].$$(".training-signal-exact")).toHaveLength(0);
     await expect($(".training-signal-unsupported")).toHaveText(
       expect.stringContaining("1 unsupported source series"),
     );
@@ -2217,6 +2248,13 @@ describe("packaged FitFreed import journey", () => {
     );
     await expect($(".training-signal-primary .training-signal-heading h6")).toHaveText(
       spanish.training.sessionLibrary.signalKinds["heart-rate"],
+    );
+    const spanishCrossSignal = await $(".training-cross-signal");
+    await expect(spanishCrossSignal.$("h6")).toHaveText(
+      spanish.training.sessionLibrary.crossSignalHeading,
+    );
+    await expect(spanishCrossSignal).toHaveText(
+      expect.stringContaining(spanish.training.sessionLibrary.crossSignalMeaning),
     );
     const localizedSegmentation = await $(".training-segmentation");
     await expect(localizedSegmentation.$("h4")).toHaveText(

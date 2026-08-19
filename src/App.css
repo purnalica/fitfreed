@@ -449,6 +449,27 @@ th:last-child, td:last-child { text-align: right; }
 .training-signal-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .training-signal-heading h6 { margin: 0; font-size: .95rem; }
 .training-signal-heading span { color: var(--muted); font-size: .78rem; font-weight: 700; }
+.training-cross-signal { margin: 14px 0 20px; padding: 18px; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 14px; }
+.training-cross-signal > header h6 { margin: 0 0 5px; font-size: 1rem; }
+.training-cross-signal > header p { max-width: 70ch; margin: 0; color: var(--muted); }
+.training-cross-signal-selection { margin: 16px 0; padding: 0; border: 0; }
+.training-cross-signal-selection legend { margin-bottom: 8px; font-size: .8rem; font-weight: 800; }
+.training-cross-signal-selection > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.training-cross-signal-selection label { display: inline-flex; align-items: center; gap: 7px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; font-size: .78rem; font-weight: 700; }
+.training-cross-signal-selection label:has(input:checked) { color: var(--accent-deep); border-color: var(--accent); }
+.training-cross-signal-selection input { margin: 0; }
+.training-cross-signal-lanes { display: grid; gap: 12px; }
+.training-cross-signal-lanes article { min-width: 0; padding: 12px; background: var(--surface); border-radius: 10px; }
+.training-cross-signal-lane-heading { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 8px 16px; }
+.training-cross-signal-lane-heading div strong, .training-cross-signal-lane-heading div span { display: block; }
+.training-cross-signal-lane-heading div span, .training-cross-signal-lane-heading > span { color: var(--muted); font-size: .74rem; }
+.training-cross-signal-lanes svg { display: block; width: 100%; min-height: 84px; margin: 8px 0; }
+.training-cross-signal-lanes rect { fill: var(--surface-soft); stroke: var(--line); }
+.training-cross-signal-lanes polyline { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.training-cross-signal-lanes circle { fill: var(--accent); stroke: var(--surface); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.training-cross-signal-lanes button { padding: 6px 9px; font-size: .75rem; }
+.training-cross-signal-axis { margin: 10px 0 0; color: var(--ink-soft); font-size: .76rem; font-weight: 750; text-align: right; }
+.training-cross-signal-meaning { margin: 8px 0 0; color: var(--muted); font-size: .76rem; }
 .training-signal-visual { margin-top: 12px; }
 .training-signal-visual svg { display: block; width: 100%; min-height: 170px; max-height: 300px; }
 .training-signal-visual rect { fill: var(--surface-soft); stroke: var(--line); }

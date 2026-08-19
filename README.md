@@ -60,10 +60,10 @@ as already implemented production behavior.
 <!-- product-status:start -->
 | Available in source | Active experience work | Deliberately later |
 |---|---|---|
-| Polar Flow ZIP validation and import | Progressive cross-signal inspection | Additional providers and live APIs |
-| Explicit supported, ignored, and unrecognized coverage | Origin-aware navigation across discovery, session, and report workspaces | Linux and Windows distribution |
-| Safe exact and cumulative reimport | Saved evidence reports with self-contained HTML export | Local MCP access for authorized agents |
-| Provider-neutral SQLite history for activity, training summaries, structure, routes, signals, sleep, and recovery | A coherent, evaluated, documented macOS product journey | Advanced encryption and extension systems |
+| Polar Flow ZIP validation and import | Origin-aware navigation across discovery, session, and report workspaces | Additional providers and live APIs |
+| Explicit supported, ignored, and unrecognized coverage | Saved evidence reports with self-contained HTML export | Linux and Windows distribution |
+| Safe exact and cumulative reimport | A coherent, evaluated, documented macOS product journey | Local MCP access for authorized agents |
+| Provider-neutral SQLite history for activity, training summaries, structure, routes, signals, sleep, and recovery |  | Advanced encryption and extension systems |
 | Bounded visual comparison and longitudinal context |  | Collaborative or hosted analytics |
 | User-authored sport classification and complete-history session search |  | Features without validated user value |
 | Chronology, source-separated calendar discovery, session comparison, and restart restoration |  |  |
@@ -77,6 +77,7 @@ as already implemented production behavior.
 | Durable language, appearance, and content zoom settings |  |  |
 | en-US and es-ES, packaging, update recovery, and release-shaped tests |  |  |
 | On-demand privacy-bounded session provenance and reconciliation history |  |  |
+| Selectable same-role signal alignment with exact sample paths |  |  |
 
 Status sources: [MVP capability boundary](docs/roadmap.md#milestone-2--mvp) · [Active experience delivery plan](docs/plans/mvp-experience-delivery.md) · [Post-MVP evolution tracks](docs/roadmap.md#evolution-tracks-after-the-mvp).
 <!-- product-status:end -->

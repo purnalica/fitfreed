@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production persists provider-neutral session summaries, mapped exercise/lap/pause structure, primary and transition routes with exact points, supported exercise and transition signals with exact samples, supported recorded zones with exact aggregates, user-authored sport classifications and reusable segment criteria, and a disposable discovery workspace. Full-history search, chronology, calendar projection, comparison selection, restart restoration, structural detail, bounded local route traces, exact route pagination, gap-aware bounded signal charts, exact signal pagination, recorded-zone inspection, user-authored segmentation, and on-demand session provenance are implemented. Progressive cross-signal inspection continues through E4 of the [MVP experience delivery plan](../plans/mvp-experience-delivery.md).
+Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production persists provider-neutral session summaries, mapped exercise/lap/pause structure, primary and transition routes with exact points, supported exercise and transition signals with exact samples, supported recorded zones with exact aggregates, user-authored sport classifications and reusable segment criteria, and a disposable discovery workspace. Full-history search, chronology, calendar projection, comparison selection, restart restoration, structural detail, bounded local route traces, exact route pagination, gap-aware bounded and aligned signal charts, exact signal pagination, recorded-zone inspection, user-authored segmentation, and on-demand session provenance are implemented. E4 has reached its local implementation checkpoint in the [MVP experience delivery plan](../plans/mvp-experience-delivery.md); hosted evidence for the latest executable fingerprint remains pending.
 
 ## Ownership
 
@@ -81,6 +81,15 @@ part of the bounded projection.
 The exact query returns stable contiguous pages of at most 250 slots. Exercise and transition collections,
 kind, unit, interval, source ordinal, and sample ordinal remain explicit, and no signal query loads a complete
 series merely to draw a bounded chart.
+
+Cross-signal inspection is a presentation of that same validated overview, not a new calculated fact. It
+allows two through four series from one exercise and one role to be selected, then places them in separate
+vertically scaled lanes over one elapsed-time axis. Exercise and transition series never share a view. Each
+lane labels its own kind, source-series order, unit, range, and coverage; horizontal position uses the exact
+returned elapsed time. No value is interpolated, normalized into a hidden common unit, or connected across a
+source gap. The longest returned elapsed time across the eligible role fixes the shared axis so changing a
+selection does not move the remaining evidence. Each selected series retains a direct path to its exact
+paginated samples, and the interface describes co-occurrence without asserting causation.
 
 The independent [training-session zone read model](../data-formats/insights/training-session-zone-v1.md)
 preserves unevaluated, absent, present-empty, populated, unsupported-group, and unavailable-aggregate states.
