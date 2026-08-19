@@ -4372,15 +4372,23 @@ const reportDefinitionCanonicalV2Path = "docs/data-formats/canonical/report-defi
 const reportDefinitionPortableV2Path = "docs/data-formats/portable/report-definition-v2.md";
 const sessionReportV2Path = "docs/data-formats/insights/session-report-v2.md";
 const reportHtmlV2Path = "docs/data-formats/portable/report-html-v2.md";
+const reportDefinitionCanonicalV3Path = "docs/data-formats/canonical/report-definition-v3.md";
+const reportDefinitionPortableV3Path = "docs/data-formats/portable/report-definition-v3.md";
+const sessionReportV3Path = "docs/data-formats/insights/session-report-v3.md";
+const reportHtmlV3Path = "docs/data-formats/portable/report-html-v3.md";
 const reportDefinitionSchemaPath = "schemas/report-definition-v1.schema.json";
 const reportDefinitionV2SchemaPath = "schemas/report-definition-v2.schema.json";
+const reportDefinitionV3SchemaPath = "schemas/report-definition-v3.schema.json";
 const sessionReportCreateSchemaPath = "schemas/session-report-create-v1.schema.json";
 const sessionReportCreateV2SchemaPath = "schemas/session-report-create-v2.schema.json";
+const sessionReportCreateV3SchemaPath = "schemas/session-report-create-v3.schema.json";
 const sessionReportUpdateSchemaPath = "schemas/session-report-update-v1.schema.json";
 const sessionReportUpdateV2SchemaPath = "schemas/session-report-update-v2.schema.json";
+const sessionReportUpdateV3SchemaPath = "schemas/session-report-update-v3.schema.json";
 const reportListSchemaPath = "schemas/report-list-v1.schema.json";
 const sessionReportResolutionSchemaPath = "schemas/session-report-resolution-v1.schema.json";
 const sessionReportResolutionV2SchemaPath = "schemas/session-report-resolution-v2.schema.json";
+const sessionReportResolutionV3SchemaPath = "schemas/session-report-resolution-v3.schema.json";
 const sessionReportExportSchemaPath = "schemas/session-report-export-v1.schema.json";
 const sessionReportExportV2SchemaPath = "schemas/session-report-export-v2.schema.json";
 const reportExportReceiptSchemaPath = "schemas/report-export-receipt-v1.schema.json";
@@ -4412,6 +4420,20 @@ for (const [documentPath, fields] of [
     "report-definition-conflict",
   ]],
   [reportHtmlV2Path, ["text/html", "data-fitfreed-report-version", "polyline"]],
+  [reportDefinitionCanonicalV3Path, [
+    "training-period-comparison", "training-finding", "training-comparison",
+    "training-chart", "training-exact-table", "training-coverage", "questionVersion",
+  ]],
+  [reportDefinitionPortableV3Path, [
+    "application/vnd.fitfreed.report-definition+json;version=3", "baselineRange",
+    "comparisonRange", "duration",
+  ]],
+  [sessionReportV3Path, [
+    "trainingComparison", "report-source-changed", "training-comparison-v1", "routeChoices",
+  ]],
+  [reportHtmlV3Path, [
+    "data-fitfreed-report-version", "training-finding", "CSS-only", "<data>",
+  ]],
 ]) {
   const document = read(documentPath);
   for (const field of fields) requireMention(document, field, documentPath);
@@ -4439,13 +4461,17 @@ for (const dependencyPath of [
 
 const validateReportDefinition = compileReportSchema(reportDefinitionSchemaPath);
 const validateReportDefinitionV2 = compileReportSchema(reportDefinitionV2SchemaPath);
+const validateReportDefinitionV3 = compileReportSchema(reportDefinitionV3SchemaPath);
 const validateSessionReportCreate = compileReportSchema(sessionReportCreateSchemaPath);
 const validateSessionReportCreateV2 = compileReportSchema(sessionReportCreateV2SchemaPath);
+const validateSessionReportCreateV3 = compileReportSchema(sessionReportCreateV3SchemaPath);
 const validateSessionReportUpdate = compileReportSchema(sessionReportUpdateSchemaPath);
 const validateSessionReportUpdateV2 = compileReportSchema(sessionReportUpdateV2SchemaPath);
+const validateSessionReportUpdateV3 = compileReportSchema(sessionReportUpdateV3SchemaPath);
 const validateReportList = compileReportSchema(reportListSchemaPath);
 const validateSessionReportResolution = compileReportSchema(sessionReportResolutionSchemaPath);
 const validateSessionReportResolutionV2 = compileReportSchema(sessionReportResolutionV2SchemaPath);
+const validateSessionReportResolutionV3 = compileReportSchema(sessionReportResolutionV3SchemaPath);
 const validateSessionReportExport = compileReportSchema(sessionReportExportSchemaPath);
 const validateSessionReportExportV2 = compileReportSchema(sessionReportExportV2SchemaPath);
 const validateReportExportReceipt = compileReportSchema(reportExportReceiptSchemaPath);
@@ -4728,6 +4754,146 @@ if (validateSessionReportExportV2({
   throw new Error(`${sessionReportExportV2SchemaPath} accepted excessive route redaction`);
 }
 
+const analyticalQuestion = {
+  question: "training-period-comparison",
+  questionVersion: 1,
+  ...structuredClone(syntheticTrainingComparisonQuery),
+};
+const analyticalBlocks = [
+  {
+    blockRef: `report-block-${"a".repeat(64)}`,
+    kind: "training-finding",
+    query: structuredClone(analyticalQuestion),
+    metric: "session-count",
+  },
+  {
+    blockRef: `report-block-${"b".repeat(64)}`,
+    kind: "training-comparison",
+    query: structuredClone(analyticalQuestion),
+  },
+  {
+    blockRef: `report-block-${"c".repeat(64)}`,
+    kind: "training-chart",
+    query: structuredClone(analyticalQuestion),
+    metric: "duration",
+  },
+  {
+    blockRef: `report-block-${"d".repeat(64)}`,
+    kind: "training-exact-table",
+    query: structuredClone(analyticalQuestion),
+  },
+  {
+    blockRef: `report-block-${"e".repeat(64)}`,
+    kind: "training-coverage",
+    query: structuredClone(analyticalQuestion),
+  },
+];
+const syntheticReportDefinitionV3 = {
+  ...structuredClone(syntheticReportDefinitionV2),
+  definitionVersion: 3,
+  blocks: [
+    structuredClone(syntheticReportDefinitionV2.blocks[2]),
+    ...analyticalBlocks,
+    structuredClone(syntheticReportDefinitionV2.blocks[0]),
+    structuredClone(syntheticReportDefinitionV2.blocks[1]),
+  ],
+};
+assertReportContract(
+  validateReportDefinitionV3,
+  reportDefinitionV3SchemaPath,
+  syntheticReportDefinitionV3,
+);
+for (const invalidDefinition of [
+  { ...structuredClone(syntheticReportDefinitionV3), definitionVersion: 2 },
+  (() => {
+    const value = structuredClone(syntheticReportDefinitionV3);
+    value.blocks.push(structuredClone(analyticalBlocks[0]));
+    value.blocks.at(-1).blockRef = `report-block-${"f".repeat(64)}`;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticReportDefinitionV3);
+    value.blocks[1].metric = "pace";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticReportDefinitionV3);
+    value.blocks[1].query.baselineRange.from = "2026-02-30";
+    return value;
+  })(),
+]) {
+  if (validateReportDefinitionV3(invalidDefinition)) {
+    throw new Error(`${reportDefinitionV3SchemaPath} accepted an invalid definition`);
+  }
+}
+
+const syntheticSessionReportCreateV3 = {
+  title: syntheticReportDefinitionV3.title,
+  locale: syntheticReportDefinitionV3.locale,
+  sessionRef: sessionRefDigest,
+  sourceSnapshotRef: snapshotRefDigest,
+  blocks: syntheticReportDefinitionV3.blocks.map(({
+    blockRef: _blockRef,
+    sessionRef: _sessionRef,
+    ...block
+  }) => block),
+};
+assertReportContract(
+  validateSessionReportCreateV3,
+  sessionReportCreateV3SchemaPath,
+  syntheticSessionReportCreateV3,
+);
+if (validateSessionReportCreateV3({
+  ...structuredClone(syntheticSessionReportCreateV3),
+  blocks: syntheticSessionReportCreateV3.blocks.map((block, index) => index === 1
+    ? { ...block, blockRef: analyticalBlocks[0].blockRef }
+    : block),
+})) {
+  throw new Error(`${sessionReportCreateV3SchemaPath} accepted a caller-owned block identity`);
+}
+
+const syntheticSessionReportUpdateV3 = {
+  reportRef: reportRefDigest,
+  expectedRevision: "1",
+  title: syntheticReportDefinitionV3.title,
+  locale: "es-ES",
+  blocks: syntheticReportDefinitionV3.blocks.map(({
+    sessionRef: _sessionRef,
+    ...block
+  }) => block),
+};
+assertReportContract(
+  validateSessionReportUpdateV3,
+  sessionReportUpdateV3SchemaPath,
+  syntheticSessionReportUpdateV3,
+);
+if (validateSessionReportUpdateV3({
+  ...structuredClone(syntheticSessionReportUpdateV3),
+  expectedRevision: "+1",
+})) {
+  throw new Error(`${sessionReportUpdateV3SchemaPath} accepted a non-canonical revision`);
+}
+
+const syntheticSessionReportResolutionV3 = {
+  ...structuredClone(syntheticSessionReportResolutionV2),
+  definition: syntheticReportDefinitionV3,
+  trainingComparison: structuredClone(syntheticTrainingComparison),
+};
+assertReportContract(
+  validateSessionReportResolutionV3,
+  sessionReportResolutionV3SchemaPath,
+  syntheticSessionReportResolutionV3,
+);
+if (validateSessionReportResolutionV3({
+  ...structuredClone(syntheticSessionReportResolutionV3),
+  trainingComparison: {
+    ...structuredClone(syntheticTrainingComparison),
+    providerAccount: "must-not-cross-the-boundary",
+  },
+})) {
+  throw new Error(`${sessionReportResolutionV3SchemaPath} accepted provider identity`);
+}
+
 assertReportContract(
   validateReportExportReceipt,
   reportExportReceiptSchemaPath,
@@ -4780,6 +4946,10 @@ for (const contractPath of [
   reportDefinitionPortableV2Path,
   sessionReportV2Path,
   reportHtmlV2Path,
+  reportDefinitionCanonicalV3Path,
+  reportDefinitionPortableV3Path,
+  sessionReportV3Path,
+  reportHtmlV3Path,
   ...persistencePaths,
 ]) {
   const relativeContract = path.relative(path.dirname(indexPath), contractPath);
@@ -4892,13 +5062,17 @@ process.stdout.write(
     reportSchemas: [
       reportDefinitionSchemaPath,
       reportDefinitionV2SchemaPath,
+      reportDefinitionV3SchemaPath,
       sessionReportCreateSchemaPath,
       sessionReportCreateV2SchemaPath,
+      sessionReportCreateV3SchemaPath,
       sessionReportUpdateSchemaPath,
       sessionReportUpdateV2SchemaPath,
+      sessionReportUpdateV3SchemaPath,
       reportListSchemaPath,
       sessionReportResolutionSchemaPath,
       sessionReportResolutionV2SchemaPath,
+      sessionReportResolutionV3SchemaPath,
       sessionReportExportSchemaPath,
       sessionReportExportV2SchemaPath,
       reportExportReceiptSchemaPath,

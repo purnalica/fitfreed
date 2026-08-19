@@ -10,9 +10,10 @@ mod sport_classification_tests;
 mod report_definition;
 pub use report_definition::{
     author_session_report, revise_session_report, ReportAuthorship, ReportBlock,
-    ReportBlockContent, ReportDefinition, ReportDefinitionError, ReportLocale, ReportOrigin,
-    ReportProvenancePolicy, MAX_ROUTE_ENDPOINT_REDACTION_METERS, REPORT_DEFINITION_VERSION,
-    REPORT_DEFINITION_VERSION_V1,
+    ReportBlockContent, ReportDateRange, ReportDefinition, ReportDefinitionError, ReportLocale,
+    ReportOrigin, ReportProvenancePolicy, ReportQuestion, ReportTrainingComparisonQuery,
+    ReportTrainingMetric, MAX_ROUTE_ENDPOINT_REDACTION_METERS, REPORT_DEFINITION_VERSION,
+    REPORT_DEFINITION_VERSION_V1, REPORT_DEFINITION_VERSION_V2,
 };
 
 #[cfg(test)]

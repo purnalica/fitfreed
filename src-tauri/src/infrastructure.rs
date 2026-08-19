@@ -88,8 +88,9 @@ use fitfreed_domain::{
     decide_sleep_period_reconciliation, decide_training_session_record_reconciliation,
     ArtifactClassification, ArtifactCoverageSummary, ArtifactFamilyCoverage, DailyActivity,
     ExistingObservation, ImportOperationState, ImportOutcome, ImportReport, NightlyRecovery,
-    ReconciliationDecision, ReportAuthorship, ReportBlock, ReportBlockContent, ReportDefinition,
-    ReportLocale, ReportOrigin, ReportProvenancePolicy, RevisionOrder, SegmentCriterion,
+    ReconciliationDecision, ReportAuthorship, ReportBlock, ReportBlockContent, ReportDateRange,
+    ReportDefinition, ReportLocale, ReportOrigin, ReportProvenancePolicy,
+    ReportTrainingComparisonQuery, ReportTrainingMetric, RevisionOrder, SegmentCriterion,
     SegmentCriterionAuthorship, SegmentCriterionDefinition, SleepPeriod, SleepPhaseSummary,
     SleepScore, SleepStage, SleepStageTransition, SourceSpecificRecoveryAssessment,
     SourceSpecificRecoveryBaseline, SourceSpecificRecoveryGuidance, SportClassification,
@@ -159,7 +160,7 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 21;
+const SCHEMA_VERSION: i64 = 22;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
@@ -181,6 +182,7 @@ const SCHEMA_V18: &str = include_str!("../migrations/0018_training_segment_crite
 const SCHEMA_V19: &str = include_str!("../migrations/0019_training_session_zones.sql");
 const SCHEMA_V20: &str = include_str!("../migrations/0020_report_definitions.sql");
 const SCHEMA_V21: &str = include_str!("../migrations/0021_composable_route_reports.sql");
+const SCHEMA_V22: &str = include_str!("../migrations/0022_training_comparison_reports.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
 const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@10";
 const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@5";
@@ -6064,7 +6066,12 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         if version < 20 {
             connection.execute_batch(SCHEMA_V20)?;
         }
-        connection.execute_batch(SCHEMA_V21)?;
+        if version < 21 {
+            connection.execute_batch(SCHEMA_V21)?;
+        }
+        if version < 22 {
+            connection.execute_batch(SCHEMA_V22)?;
+        }
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
         }
@@ -11570,9 +11577,115 @@ fn insert_report_blocks(
                     )
                     .map_err(report_database_error)?;
             }
+            ReportBlockContent::TrainingFinding { query, metric } => {
+                insert_training_comparison_report_block(
+                    transaction,
+                    definition.report_ref(),
+                    block.block_ref(),
+                    ordinal,
+                    "training-finding",
+                    query,
+                    Some(*metric),
+                )?;
+            }
+            ReportBlockContent::TrainingComparison { query } => {
+                insert_training_comparison_report_block(
+                    transaction,
+                    definition.report_ref(),
+                    block.block_ref(),
+                    ordinal,
+                    "training-comparison",
+                    query,
+                    None,
+                )?;
+            }
+            ReportBlockContent::TrainingChart { query, metric } => {
+                insert_training_comparison_report_block(
+                    transaction,
+                    definition.report_ref(),
+                    block.block_ref(),
+                    ordinal,
+                    "training-chart",
+                    query,
+                    Some(*metric),
+                )?;
+            }
+            ReportBlockContent::TrainingExactTable { query } => {
+                insert_training_comparison_report_block(
+                    transaction,
+                    definition.report_ref(),
+                    block.block_ref(),
+                    ordinal,
+                    "training-exact-table",
+                    query,
+                    None,
+                )?;
+            }
+            ReportBlockContent::TrainingCoverage { query } => {
+                insert_training_comparison_report_block(
+                    transaction,
+                    definition.report_ref(),
+                    block.block_ref(),
+                    ordinal,
+                    "training-coverage",
+                    query,
+                    None,
+                )?;
+            }
         }
     }
     Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn insert_training_comparison_report_block(
+    transaction: &Transaction<'_>,
+    report_ref: &str,
+    block_ref: &str,
+    ordinal: i64,
+    kind: &str,
+    query: &ReportTrainingComparisonQuery,
+    metric: Option<ReportTrainingMetric>,
+) -> StandardResult<(), ReportDefinitionPortError> {
+    transaction
+        .execute(
+            "INSERT INTO report_block (
+                 report_ref, block_ref, ordinal, kind, question_kind, question_version,
+                 baseline_from, baseline_through, comparison_from, comparison_through, metric
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            params![
+                report_ref,
+                block_ref,
+                ordinal,
+                kind,
+                query.question().code(),
+                i64::from(query.question().version()),
+                query.baseline_range().from(),
+                query.baseline_range().through(),
+                query.comparison_range().from(),
+                query.comparison_range().through(),
+                metric.map(ReportTrainingMetric::code),
+            ],
+        )
+        .map_err(report_database_error)?;
+    Ok(())
+}
+
+struct PersistedReportBlock {
+    block_ref: String,
+    kind: String,
+    session_ref: Option<String>,
+    include_physiological_context: Option<i64>,
+    route_ref: Option<String>,
+    endpoint_redaction_meters: Option<i64>,
+    narrative_body: Option<String>,
+    question_kind: Option<String>,
+    question_version: Option<i64>,
+    baseline_from: Option<String>,
+    baseline_through: Option<String>,
+    comparison_from: Option<String>,
+    comparison_through: Option<String>,
+    metric: Option<String>,
 }
 
 fn load_report_definition_record(
@@ -11630,7 +11743,9 @@ fn load_report_definition_record(
     let mut statement = connection
         .prepare(
             "SELECT block_ref, kind, session_ref, include_physiological_context,
-                    route_ref, endpoint_redaction_meters, narrative_body
+                    route_ref, endpoint_redaction_meters, narrative_body,
+                    question_kind, question_version, baseline_from, baseline_through,
+                    comparison_from, comparison_through, metric
              FROM report_block
              WHERE report_ref = ?1
              ORDER BY ordinal ASC",
@@ -11638,72 +11753,87 @@ fn load_report_definition_record(
         .map_err(report_database_error)?;
     let persisted_blocks = statement
         .query_map([report_ref], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, Option<String>>(2)?,
-                row.get::<_, Option<i64>>(3)?,
-                row.get::<_, Option<String>>(4)?,
-                row.get::<_, Option<i64>>(5)?,
-                row.get::<_, Option<String>>(6)?,
-            ))
+            Ok(PersistedReportBlock {
+                block_ref: row.get(0)?,
+                kind: row.get(1)?,
+                session_ref: row.get(2)?,
+                include_physiological_context: row.get(3)?,
+                route_ref: row.get(4)?,
+                endpoint_redaction_meters: row.get(5)?,
+                narrative_body: row.get(6)?,
+                question_kind: row.get(7)?,
+                question_version: row.get(8)?,
+                baseline_from: row.get(9)?,
+                baseline_through: row.get(10)?,
+                comparison_from: row.get(11)?,
+                comparison_through: row.get(12)?,
+                metric: row.get(13)?,
+            })
         })
         .map_err(report_database_error)?
         .collect::<StandardResult<Vec<_>, _>>()
         .map_err(report_database_error)?;
     let blocks = persisted_blocks
         .into_iter()
-        .map(
-            |(
-                block_ref,
-                kind,
-                session_ref,
-                include_physiological_context,
-                route_ref,
-                endpoint_redaction_meters,
-                narrative_body,
-            )| {
-                let content = match kind.as_str() {
-                    "session-evidence" => ReportBlockContent::SessionEvidence {
-                        session_ref: session_ref.ok_or_else(|| {
-                            invalid_report_record("session report block has no session")
-                        })?,
-                        include_physiological_context: match include_physiological_context {
-                            Some(0) => false,
-                            Some(1) => true,
-                            _ => {
-                                return Err(invalid_report_record(
-                                    "session report block has invalid sensitivity",
-                                ));
-                            }
-                        },
+        .map(|block| {
+            let content = match block.kind.as_str() {
+                "session-evidence" => ReportBlockContent::SessionEvidence {
+                    session_ref: block.session_ref.ok_or_else(|| {
+                        invalid_report_record("session report block has no session")
+                    })?,
+                    include_physiological_context: match block.include_physiological_context {
+                        Some(0) => false,
+                        Some(1) => true,
+                        _ => {
+                            return Err(invalid_report_record(
+                                "session report block has invalid sensitivity",
+                            ));
+                        }
                     },
-                    "route" => ReportBlockContent::Route {
-                        session_ref: session_ref.ok_or_else(|| {
-                            invalid_report_record("route report block has no session")
+                },
+                "route" => ReportBlockContent::Route {
+                    session_ref: block.session_ref.ok_or_else(|| {
+                        invalid_report_record("route report block has no session")
+                    })?,
+                    route_ref: block
+                        .route_ref
+                        .ok_or_else(|| invalid_report_record("route report block has no route"))?,
+                    endpoint_redaction_meters: block
+                        .endpoint_redaction_meters
+                        .and_then(|value| u32::try_from(value).ok())
+                        .ok_or_else(|| {
+                            invalid_report_record(
+                                "route report block has invalid endpoint redaction",
+                            )
                         })?,
-                        route_ref: route_ref.ok_or_else(|| {
-                            invalid_report_record("route report block has no route")
-                        })?,
-                        endpoint_redaction_meters: endpoint_redaction_meters
-                            .and_then(|value| u32::try_from(value).ok())
-                            .ok_or_else(|| {
-                                invalid_report_record(
-                                    "route report block has invalid endpoint redaction",
-                                )
-                            })?,
-                    },
-                    "narrative" => ReportBlockContent::Narrative {
-                        body: narrative_body.ok_or_else(|| {
-                            invalid_report_record("narrative report block has no body")
-                        })?,
-                    },
-                    _ => return Err(invalid_report_record("report block kind is invalid")),
-                };
-                ReportBlock::restore(block_ref, content)
-                    .map_err(|error| invalid_report_record(&error.to_string()))
-            },
-        )
+                },
+                "narrative" => ReportBlockContent::Narrative {
+                    body: block.narrative_body.ok_or_else(|| {
+                        invalid_report_record("narrative report block has no body")
+                    })?,
+                },
+                "training-finding" => ReportBlockContent::TrainingFinding {
+                    query: restore_training_comparison_query(&block)?,
+                    metric: restore_training_report_metric(&block)?,
+                },
+                "training-comparison" => ReportBlockContent::TrainingComparison {
+                    query: restore_training_comparison_query(&block)?,
+                },
+                "training-chart" => ReportBlockContent::TrainingChart {
+                    query: restore_training_comparison_query(&block)?,
+                    metric: restore_training_report_metric(&block)?,
+                },
+                "training-exact-table" => ReportBlockContent::TrainingExactTable {
+                    query: restore_training_comparison_query(&block)?,
+                },
+                "training-coverage" => ReportBlockContent::TrainingCoverage {
+                    query: restore_training_comparison_query(&block)?,
+                },
+                _ => return Err(invalid_report_record("report block kind is invalid")),
+            };
+            ReportBlock::restore(block.block_ref, content)
+                .map_err(|error| invalid_report_record(&error.to_string()))
+        })
         .collect::<StandardResult<Vec<_>, _>>()?;
     ReportDefinition::restore(
         report_ref,
@@ -11723,6 +11853,46 @@ fn load_report_definition_record(
     .map_err(|error| invalid_report_record(&error.to_string()))
 }
 
+fn restore_training_comparison_query(
+    block: &PersistedReportBlock,
+) -> StandardResult<ReportTrainingComparisonQuery, ReportDefinitionPortError> {
+    let question_kind = block
+        .question_kind
+        .as_deref()
+        .ok_or_else(|| invalid_report_record("training report block has no question"))?;
+    let question_version = block
+        .question_version
+        .and_then(|value| u32::try_from(value).ok())
+        .ok_or_else(|| invalid_report_record("training report question version is invalid"))?;
+    let range = |from: &Option<String>, through: &Option<String>| {
+        ReportDateRange::new(
+            from.as_deref()
+                .ok_or_else(|| invalid_report_record("training report range has no start"))?,
+            through
+                .as_deref()
+                .ok_or_else(|| invalid_report_record("training report range has no end"))?,
+        )
+        .map_err(|error| invalid_report_record(&error.to_string()))
+    };
+    ReportTrainingComparisonQuery::restore(
+        question_kind,
+        question_version,
+        range(&block.baseline_from, &block.baseline_through)?,
+        range(&block.comparison_from, &block.comparison_through)?,
+    )
+    .map_err(|error| invalid_report_record(&error.to_string()))
+}
+
+fn restore_training_report_metric(
+    block: &PersistedReportBlock,
+) -> StandardResult<ReportTrainingMetric, ReportDefinitionPortError> {
+    block
+        .metric
+        .as_deref()
+        .and_then(ReportTrainingMetric::from_code)
+        .ok_or_else(|| invalid_report_record("training report metric is invalid"))
+}
+
 fn report_origin_session_ref(definition: &ReportDefinition) -> &str {
     match definition.origin() {
         ReportOrigin::Session { session_ref } => session_ref,
@@ -11738,6 +11908,23 @@ fn invalid_report_record(message: &str) -> ReportDefinitionPortError {
 }
 
 impl TrainingLibraryPort for SqliteTrainingLibrary {
+    fn training_snapshot_ref(&self) -> std::result::Result<Option<String>, String> {
+        let connection =
+            Connection::open(&self.database_path).map_err(|error| error.to_string())?;
+        ensure_schema(&connection).map_err(|error| error.to_string())?;
+        let revision = connection
+            .query_row(
+                "SELECT revision FROM training_discovery_revision WHERE id = 1",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .map_err(|error| error.to_string())?;
+        if revision < 1 {
+            return Err("training discovery revision is invalid".to_owned());
+        }
+        Ok(Some(training_snapshot_ref(revision)))
+    }
+
     fn training_bounds(&self) -> std::result::Result<Option<TrainingDateRange>, String> {
         query_training_bounds(&self.database_path).map_err(|error| error.to_string())
     }
@@ -12454,6 +12641,59 @@ mod tests {
         .expect("route report definition")
     }
 
+    fn persisted_training_comparison_report_definition() -> ReportDefinition {
+        let session_ref = format!("session-{}", "8".repeat(64));
+        let query = ReportTrainingComparisonQuery::new(
+            ReportDateRange::new("2026-01-01", "2026-01-31").expect("baseline range"),
+            ReportDateRange::new("2026-02-01", "2026-02-28").expect("comparison range"),
+        );
+        ReportDefinition::compose_session_report(
+            format!("report-{}", "8".repeat(64)),
+            "Winter training comparison",
+            ReportLocale::EnUs,
+            format!("training-snapshot-{}", "8".repeat(64)),
+            &session_ref,
+            vec![
+                ReportBlock::training_finding(
+                    format!("report-block-{}", "9".repeat(64)),
+                    query.clone(),
+                    ReportTrainingMetric::SessionCount,
+                )
+                .expect("finding block"),
+                ReportBlock::session_evidence(
+                    format!("report-block-{}", "a".repeat(64)),
+                    &session_ref,
+                    false,
+                )
+                .expect("session block"),
+                ReportBlock::training_comparison(
+                    format!("report-block-{}", "b".repeat(64)),
+                    query.clone(),
+                )
+                .expect("comparison block"),
+                ReportBlock::training_chart(
+                    format!("report-block-{}", "c".repeat(64)),
+                    query.clone(),
+                    ReportTrainingMetric::Duration,
+                )
+                .expect("chart block"),
+                ReportBlock::training_exact_table(
+                    format!("report-block-{}", "d".repeat(64)),
+                    query.clone(),
+                )
+                .expect("exact-table block"),
+                ReportBlock::training_coverage(format!("report-block-{}", "e".repeat(64)), query)
+                    .expect("coverage block"),
+                ReportBlock::narrative(
+                    format!("report-block-{}", "f".repeat(64)),
+                    "The comparison is descriptive, not causal.",
+                )
+                .expect("narrative block"),
+            ],
+        )
+        .expect("training comparison report definition")
+    }
+
     #[test]
     fn persists_lists_edits_and_retains_report_definitions_across_restart_and_import() {
         let harness = Harness::new();
@@ -12553,6 +12793,67 @@ mod tests {
     }
 
     #[test]
+    fn persists_and_reopens_every_training_comparison_block_without_copied_results() {
+        let harness = Harness::new();
+        let library = SqliteReportLibrary::new(harness.database());
+        let report = persisted_training_comparison_report_definition();
+
+        library
+            .create_report_definition(&report)
+            .expect("persist analytical report");
+        assert_eq!(
+            SqliteReportLibrary::new(harness.database())
+                .load_report_definition(report.report_ref())
+                .expect("reopen analytical report"),
+            Some(report)
+        );
+        let connection = Connection::open(harness.database()).expect("report database");
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM report_block
+                     WHERE question_kind = 'training-period-comparison' AND question_version = 1",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("stored question references"),
+            5
+        );
+        for forbidden_column in [
+            "baseline_value",
+            "comparison_value",
+            "chart_points",
+            "finding_text",
+        ] {
+            assert_eq!(
+                connection
+                    .query_row(
+                        "SELECT COUNT(*) FROM pragma_table_info('report_block') WHERE name = ?1",
+                        [forbidden_column],
+                        |row| row.get::<_, i64>(0),
+                    )
+                    .expect("absence of copied result column"),
+                0
+            );
+        }
+        assert!(connection
+            .execute(
+                "UPDATE report_block SET baseline_from = '2026-02-30'
+                 WHERE kind = 'training-finding'",
+                [],
+            )
+            .is_err());
+        assert!(connection
+            .execute(
+                "UPDATE report_block
+                 SET baseline_from = '2025-01-01', baseline_through = '2026-01-02'
+                 WHERE kind = 'training-finding'",
+                [],
+            )
+            .is_err());
+    }
+
+    #[test]
     fn lists_multiple_reports_by_effective_save_and_rejects_incompatible_rows_non_destructively() {
         let harness = Harness::new();
         let library = SqliteReportLibrary::new(harness.database());
@@ -12588,7 +12889,7 @@ mod tests {
             .expect("enable incompatible-row fixture");
         connection
             .execute(
-                "UPDATE report_definition SET definition_version = 3 WHERE report_ref = ?1",
+                "UPDATE report_definition SET definition_version = 4 WHERE report_ref = ?1",
                 [newer.report_ref()],
             )
             .expect("persist incompatible definition fixture");
@@ -17319,7 +17620,7 @@ mod tests {
         let migrations = [
             SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8,
             SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15,
-            SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21,
+            SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22,
         ];
         for migration in migrations
             .iter()
@@ -17377,6 +17678,125 @@ mod tests {
             );
             assert_integrity(&connection);
         }
+    }
+
+    #[test]
+    fn upgrades_version_twenty_one_reports_losslessly_and_atomically() {
+        let harness = Harness::new();
+        let connection = Connection::open(harness.database()).expect("database");
+        create_schema_baseline(&connection, 21);
+        let report_ref = format!("report-{}", "a".repeat(64));
+        let session_ref = format!("session-{}", "b".repeat(64));
+        let snapshot_ref = format!("training-snapshot-{}", "c".repeat(64));
+        let session_block_ref = format!("report-block-{}", "d".repeat(64));
+        let route_block_ref = format!("report-block-{}", "e".repeat(64));
+        let narrative_block_ref = format!("report-block-{}", "f".repeat(64));
+        let route_ref = format!("route-{}", "1".repeat(64));
+        connection
+            .execute(
+                "INSERT INTO report_definition (
+                    report_ref, title, locale, source_snapshot_ref, origin_kind,
+                    origin_session_ref, provenance_policy, authorship, definition_version,
+                    revision, created_at_utc, updated_at_utc
+                 ) VALUES (?1, 'Lossless route report', 'es-ES', ?2, 'session', ?3,
+                    'current-attribution', 'user', 2, 7,
+                    '2026-08-18T10:00:00.000Z', '2026-08-18T11:00:00.000Z')",
+                params![report_ref, snapshot_ref, session_ref],
+            )
+            .expect("version twenty-one report");
+        connection
+            .execute(
+                "INSERT INTO report_block (
+                    report_ref, block_ref, ordinal, kind, session_ref,
+                    include_physiological_context, route_ref, endpoint_redaction_meters,
+                    narrative_body
+                 ) VALUES
+                    (?1, ?2, 0, 'session-evidence', ?3, 1, NULL, NULL, NULL),
+                    (?1, ?4, 1, 'route', ?3, NULL, ?5, 250, NULL),
+                    (?1, ?6, 2, 'narrative', NULL, NULL, NULL, NULL,
+                     'The route remains user-authored evidence.')",
+                params![
+                    report_ref,
+                    session_block_ref,
+                    session_ref,
+                    route_block_ref,
+                    route_ref,
+                    narrative_block_ref
+                ],
+            )
+            .expect("version twenty-one report blocks");
+
+        let error = migrate_schema(&connection, true).expect_err("interrupted report migration");
+        assert!(matches!(error, ImportError::InjectedMigrationInterruption));
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("rolled-back version"),
+            21
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info('report_block')
+                     WHERE name = 'question_kind'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("rolled-back analytical column count"),
+            0
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM report_block WHERE report_ref = ?1",
+                    params![report_ref],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("rolled-back report block count"),
+            3
+        );
+
+        migrate_schema(&connection, false).expect("recovered report migration");
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("upgraded version"),
+            22
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT title || '|' || locale || '|' || definition_version || '|' || revision
+                     FROM report_definition WHERE report_ref = ?1",
+                    params![report_ref],
+                    |row| row.get::<_, String>(0),
+                )
+                .expect("preserved report definition"),
+            "Lossless route report|es-ES|2|7"
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT kind || '|' || route_ref || '|' || endpoint_redaction_meters
+                     FROM report_block WHERE report_ref = ?1 AND ordinal = 1",
+                    params![report_ref],
+                    |row| row.get::<_, String>(0),
+                )
+                .expect("preserved route block"),
+            format!("route|{route_ref}|250")
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM report_block
+                     WHERE report_ref = ?1 AND question_kind IS NULL",
+                    params![report_ref],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("preserved non-analytical shape"),
+            3
+        );
+        assert_integrity(&connection);
     }
 
     #[test]

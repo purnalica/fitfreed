@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/report-definition-v3.schema.json",
+  "title": "FitFreed report definition version 3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "reportRef", "title", "locale", "sourceSnapshotRef", "origin",
+    "provenancePolicy", "authorship", "definitionVersion", "revision", "blocks"
+  ],
+  "properties": {
+    "reportRef": { "$ref": "#/$defs/reportRef" },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120,
+      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+    },
+    "locale": { "enum": ["en-US", "es-ES"] },
+    "sourceSnapshotRef": { "$ref": "#/$defs/snapshotRef" },
+    "origin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "sessionRef"],
+      "properties": {
+        "kind": { "const": "session" },
+        "sessionRef": { "$ref": "#/$defs/sessionRef" }
+      }
+    },
+    "provenancePolicy": { "const": "current-attribution" },
+    "authorship": { "const": "user" },
+    "definitionVersion": { "const": 3 },
+    "revision": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+    "blocks": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 32,
+      "items": {
+        "oneOf": [
+          { "$ref": "#/$defs/sessionBlock" },
+          { "$ref": "#/$defs/routeBlock" },
+          { "$ref": "#/$defs/narrativeBlock" },
+          { "$ref": "#/$defs/trainingFindingBlock" },
+          { "$ref": "#/$defs/trainingComparisonBlock" },
+          { "$ref": "#/$defs/trainingChartBlock" },
+          { "$ref": "#/$defs/trainingExactTableBlock" },
+          { "$ref": "#/$defs/trainingCoverageBlock" }
+        ]
+      },
+      "allOf": [
+        { "contains": { "$ref": "#/$defs/sessionBlock" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/narrativeBlock" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/trainingFindingBlock" }, "minContains": 0, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/trainingComparisonBlock" }, "minContains": 0, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/trainingChartBlock" }, "minContains": 0, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/trainingExactTableBlock" }, "minContains": 0, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/trainingCoverageBlock" }, "minContains": 0, "maxContains": 1 }
+      ]
+    }
+  },
+  "$defs": {
+    "reportRef": { "type": "string", "pattern": "^report-[0-9a-f]{64}$" },
+    "blockRef": { "type": "string", "pattern": "^report-block-[0-9a-f]{64}$" },
+    "sessionRef": { "type": "string", "pattern": "^session-[0-9a-f]{64}$" },
+    "routeRef": { "type": "string", "pattern": "^route-[0-9a-f]{64}$" },
+    "snapshotRef": { "type": "string", "pattern": "^training-snapshot-[0-9a-f]{64}$" },
+    "endpointRedactionMeters": { "type": "integer", "minimum": 0, "maximum": 5000 },
+    "dateRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "through"],
+      "properties": {
+        "from": { "type": "string", "format": "date" },
+        "through": { "type": "string", "format": "date" }
+      }
+    },
+    "trainingComparisonQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["question", "questionVersion", "baselineRange", "comparisonRange"],
+      "properties": {
+        "question": { "const": "training-period-comparison" },
+        "questionVersion": { "const": 1 },
+        "baselineRange": { "$ref": "#/$defs/dateRange" },
+        "comparisonRange": { "$ref": "#/$defs/dateRange" }
+      }
+    },
+    "trainingMetric": {
+      "enum": ["session-count", "training-days", "duration", "distance", "energy"]
+    },
+    "sessionBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blockRef", "kind", "sessionRef", "includePhysiologicalContext"],
+      "properties": {
+        "blockRef": { "$ref": "#/$defs/blockRef" },
+        "kind": { "const": "session-evidence" },
+        "sessionRef": { "$ref": "#/$defs/sessionRef" },
+        "includePhysiologicalContext": { "type": "boolean" }
+      }
+    },
+    "routeBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blockRef", "kind", "sessionRef", "routeRef", "endpointRedactionMeters"],
+      "properties": {
+        "blockRef": { "$ref": "#/$defs/blockRef" },
+        "kind": { "const": "route" },
+        "sessionRef": { "$ref": "#/$defs/sessionRef" },
+        "routeRef": { "$ref": "#/$defs/routeRef" },
+        "endpointRedactionMeters": { "$ref": "#/$defs/endpointRedactionMeters" }
+      }
+    },
+    "narrativeBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blockRef", "kind", "body"],
+      "properties": {
+        "blockRef": { "$ref": "#/$defs/blockRef" },
+        "kind": { "const": "narrative" },
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10000,
+          "pattern": "^[^\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f\\u007f]+$"
+        }
+      }
+    },
+    "trainingFindingBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blockRef", "kind", "query", "metric"],
+      "properties": {
+        "blockRef": { "$ref": "#/$defs/blockRef" },
+        "kind": { "const": "training-finding" },
+        "query": { "$ref": "#/$defs/trainingComparisonQuery" },
+        "metric": { "$ref": "#/$defs/trainingMetric" }
+      }
+    },
+    "trainingComparisonBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blockRef", "kind", "query"],
+      "properties": {
+        "blockRef": { "$ref": "#/$defs/blockRef" },
+        "kind": { "const": "training-comparison" },
+        "query": { "$ref": "#/$defs/trainingComparisonQuery" }
+      }
+    },
+    "trainingChartBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blockRef", "kind", "query", "metric"],
+      "properties": {
+        "blockRef": { "$ref": "#/$defs/blockRef" },
+        "kind": { "const": "training-chart" },
+        "query": { "$ref": "#/$defs/trainingComparisonQuery" },
+        "metric": { "$ref": "#/$defs/trainingMetric" }
+      }
+    },
+    "trainingExactTableBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blockRef", "kind", "query"],
+      "properties": {
+        "blockRef": { "$ref": "#/$defs/blockRef" },
+        "kind": { "const": "training-exact-table" },
+        "query": { "$ref": "#/$defs/trainingComparisonQuery" }
+      }
+    },
+    "trainingCoverageBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blockRef", "kind", "query"],
+      "properties": {
+        "blockRef": { "$ref": "#/$defs/blockRef" },
+        "kind": { "const": "training-coverage" },
+        "query": { "$ref": "#/$defs/trainingComparisonQuery" }
+      }
+    }
+  }
+}

@@ -1,7 +1,8 @@
 use std::{path::Path, sync::Mutex};
 
 use fitfreed_domain::{
-    author_session_report, ReportBlockContent, ReportDefinition, ReportLocale,
+    author_session_report, ReportBlockContent, ReportDateRange, ReportDefinition, ReportLocale,
+    ReportTrainingComparisonQuery, ReportTrainingMetric, TrainingSession,
     REPORT_DEFINITION_VERSION, REPORT_DEFINITION_VERSION_V1,
 };
 
@@ -39,12 +40,14 @@ impl ReportDefinitionPort for MemoryReportPort {
         let mut next = self.next_block.lock().expect("block sequence");
         let block_ref = [SESSION_BLOCK_REF, ROUTE_BLOCK_REF, NARRATIVE_BLOCK_REF]
             .get(*next)
-            .copied()
-            .unwrap_or(
-                "report-block-2222222222222222222222222222222222222222222222222222222222222222",
-            );
+            .map(|value| (*value).to_owned())
+            .unwrap_or_else(|| {
+                let digit = char::from_digit(u32::try_from(*next - 1).expect("block digit"), 16)
+                    .expect("hexadecimal block digit");
+                format!("report-block-{}", digit.to_string().repeat(64))
+            });
         *next += 1;
-        Ok(block_ref.to_owned())
+        Ok(block_ref)
     }
 
     fn create_report_definition(
@@ -97,6 +100,83 @@ impl ReportDefinitionPort for MemoryReportPort {
 
 struct StubTrainingPort {
     snapshot_ref: String,
+}
+
+struct NoComparisonPort;
+
+impl TrainingLibraryPort for NoComparisonPort {
+    fn training_bounds(&self) -> Result<Option<TrainingDateRange>, String> {
+        unreachable!("reports without analytical blocks do not query comparison bounds")
+    }
+
+    fn training_origins(&self) -> Result<Vec<String>, String> {
+        unreachable!("reports without analytical blocks do not query comparison origins")
+    }
+
+    fn query_training(&self, _range: &TrainingDateRange) -> Result<Vec<TrainingSession>, String> {
+        unreachable!("reports without analytical blocks do not query comparison sessions")
+    }
+}
+
+struct AnalyticalTrainingPort {
+    snapshot_ref: String,
+    queries: Mutex<Vec<TrainingDateRange>>,
+}
+
+impl AnalyticalTrainingPort {
+    fn current() -> Self {
+        Self {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+            queries: Mutex::new(Vec::new()),
+        }
+    }
+}
+
+impl TrainingLibraryPort for AnalyticalTrainingPort {
+    fn training_snapshot_ref(&self) -> Result<Option<String>, String> {
+        Ok(Some(self.snapshot_ref.clone()))
+    }
+
+    fn training_bounds(&self) -> Result<Option<TrainingDateRange>, String> {
+        Ok(Some(TrainingDateRange {
+            from: "2026-01-01".to_owned(),
+            through: "2026-02-28".to_owned(),
+        }))
+    }
+
+    fn training_origins(&self) -> Result<Vec<String>, String> {
+        Ok(vec!["origin-one".to_owned()])
+    }
+
+    fn query_training(&self, range: &TrainingDateRange) -> Result<Vec<TrainingSession>, String> {
+        self.queries
+            .lock()
+            .expect("comparison queries")
+            .push(range.clone());
+        let starts = if range.from == "2026-01-01" {
+            vec!["2026-01-10T08:00:00.000"]
+        } else {
+            vec!["2026-02-10T08:00:00.000", "2026-02-11T08:00:00.000"]
+        };
+        Ok(starts
+            .into_iter()
+            .enumerate()
+            .map(|(index, started_at_local)| TrainingSession {
+                origin_id: "origin-one".to_owned(),
+                session_id: format!("comparison-session-{index}-{started_at_local}"),
+                started_at_local: started_at_local.to_owned(),
+                stopped_at_local: started_at_local.replace("08:00", "09:00"),
+                utc_offset_minutes: Some(60),
+                duration_milliseconds: 3_600_000,
+                distance_meters: Some(10_000.0),
+                energy_kilocalories: Some(500),
+                average_heart_rate_bpm: Some(140),
+                maximum_heart_rate_bpm: Some(170),
+                sport_ref: None,
+                exercise_count: Some(1),
+            })
+            .collect())
+    }
 }
 
 impl TrainingSessionDiscoveryPort for StubTrainingPort {
@@ -357,6 +437,132 @@ fn composition() -> CreateComposedSessionReportRequest {
     }
 }
 
+fn analytical_composition() -> CreateComposedSessionReportRequest {
+    let query = ReportTrainingComparisonQuery::new(
+        ReportDateRange::new("2026-01-01", "2026-01-31").expect("baseline range"),
+        ReportDateRange::new("2026-02-01", "2026-02-28").expect("comparison range"),
+    );
+    CreateComposedSessionReportRequest {
+        title: "Winter training comparison".to_owned(),
+        locale: ReportLocale::EnUs,
+        session_ref: SESSION_REF.to_owned(),
+        source_snapshot_ref: SNAPSHOT_REF.to_owned(),
+        blocks: vec![
+            SessionReportBlockDraft {
+                block_ref: None,
+                content: SessionReportBlockDraftContent::SessionEvidence {
+                    include_physiological_context: false,
+                },
+            },
+            SessionReportBlockDraft {
+                block_ref: None,
+                content: SessionReportBlockDraftContent::TrainingFinding {
+                    query: query.clone(),
+                    metric: ReportTrainingMetric::SessionCount,
+                },
+            },
+            SessionReportBlockDraft {
+                block_ref: None,
+                content: SessionReportBlockDraftContent::TrainingComparison {
+                    query: query.clone(),
+                },
+            },
+            SessionReportBlockDraft {
+                block_ref: None,
+                content: SessionReportBlockDraftContent::TrainingChart {
+                    query: query.clone(),
+                    metric: ReportTrainingMetric::Duration,
+                },
+            },
+            SessionReportBlockDraft {
+                block_ref: None,
+                content: SessionReportBlockDraftContent::TrainingExactTable {
+                    query: query.clone(),
+                },
+            },
+            SessionReportBlockDraft {
+                block_ref: None,
+                content: SessionReportBlockDraftContent::TrainingCoverage { query },
+            },
+            SessionReportBlockDraft {
+                block_ref: None,
+                content: SessionReportBlockDraftContent::Narrative {
+                    body: "The comparison is descriptive, not causal.".to_owned(),
+                },
+            },
+        ],
+    }
+}
+
+#[test]
+fn resolves_the_comparison_block_family_once_through_authoritative_queries() {
+    let port = MemoryReportPort::default();
+    let comparison_port = AnalyticalTrainingPort::current();
+    let created = create_composed_session_report(
+        &port,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &comparison_port,
+        analytical_composition(),
+    )
+    .expect("analytical report");
+
+    assert_eq!(created.definition_version(), REPORT_DEFINITION_VERSION);
+    assert_eq!(created.blocks().len(), 7);
+    let resolved = resolve_session_report(
+        &port,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &StubProvenancePort,
+        &comparison_port,
+        REPORT_REF,
+    )
+    .expect("resolved analytical report");
+    let comparison = resolved
+        .training_comparison
+        .expect("training comparison evidence");
+    assert_eq!(comparison.series.len(), 1);
+    assert_eq!(comparison.series[0].baseline.session_count, 1);
+    assert_eq!(comparison.series[0].comparison.session_count, 2);
+    assert_eq!(comparison.series[0].session_count_change, 1);
+    assert_eq!(
+        comparison_port
+            .queries
+            .lock()
+            .expect("comparison queries")
+            .len(),
+        4,
+        "creation and resolution each execute one two-period authoritative query"
+    );
+}
+
+#[test]
+fn refuses_to_persist_an_analytical_definition_against_another_snapshot() {
+    let port = MemoryReportPort::default();
+    let comparison_port = AnalyticalTrainingPort {
+        snapshot_ref: CHANGED_SNAPSHOT_REF.to_owned(),
+        queries: Mutex::new(Vec::new()),
+    };
+
+    assert!(matches!(
+        create_composed_session_report(
+            &port,
+            &StubTrainingPort {
+                snapshot_ref: SNAPSHOT_REF.to_owned(),
+            },
+            &StubRoutePort,
+            &comparison_port,
+            analytical_composition(),
+        ),
+        Err(ApplicationError::ReportSourceChanged)
+    ));
+    assert!(port.reports.lock().expect("reports").is_empty());
+}
+
 #[test]
 fn composes_reorders_and_resolves_a_redacted_route_from_authoritative_evidence() {
     let port = MemoryReportPort::default();
@@ -366,6 +572,7 @@ fn composes_reorders_and_resolves_a_redacted_route_from_authoritative_evidence()
             snapshot_ref: SNAPSHOT_REF.to_owned(),
         },
         &StubRoutePort,
+        &NoComparisonPort,
         composition(),
     )
     .expect("routed report");
@@ -385,6 +592,7 @@ fn composes_reorders_and_resolves_a_redacted_route_from_authoritative_evidence()
         },
         &StubRoutePort,
         &StubProvenancePort,
+        &NoComparisonPort,
         REPORT_REF,
     )
     .expect("resolved routed report");
@@ -422,6 +630,7 @@ fn composes_reorders_and_resolves_a_redacted_route_from_authoritative_evidence()
             snapshot_ref: SNAPSHOT_REF.to_owned(),
         },
         &StubRoutePort,
+        &NoComparisonPort,
         UpdateComposedSessionReportRequest {
             report_ref: REPORT_REF.to_owned(),
             expected_revision: 1,
@@ -461,6 +670,7 @@ fn export_review_can_omit_or_increase_route_redaction_but_never_expose_more() {
             snapshot_ref: SNAPSHOT_REF.to_owned(),
         },
         &StubRoutePort,
+        &NoComparisonPort,
         composition(),
     )
     .expect("routed report");
@@ -474,6 +684,7 @@ fn export_review_can_omit_or_increase_route_redaction_but_never_expose_more() {
             },
             &StubRoutePort,
             &StubProvenancePort,
+            &NoComparisonPort,
             &output,
             SessionReportExportRequest {
                 report_ref: REPORT_REF.to_owned(),
@@ -506,6 +717,7 @@ fn export_review_can_omit_or_increase_route_redaction_but_never_expose_more() {
             },
             &StubRoutePort,
             &StubProvenancePort,
+            &NoComparisonPort,
             &output,
             SessionReportExportRequest {
                 report_ref: REPORT_REF.to_owned(),
@@ -610,6 +822,7 @@ fn resolves_current_evidence_provenance_sensitivity_and_limitations() {
         },
         &StubRoutePort,
         &StubProvenancePort,
+        &NoComparisonPort,
         REPORT_REF,
     )
     .expect("resolved report");
@@ -647,6 +860,7 @@ fn reports_current_candidate_evidence_as_stale_after_a_library_change() {
         },
         &StubRoutePort,
         &StubProvenancePort,
+        &NoComparisonPort,
         REPORT_REF,
     )
     .expect("stale report candidate");
@@ -654,6 +868,59 @@ fn reports_current_candidate_evidence_as_stale_after_a_library_change() {
     assert_eq!(resolved.status, ReportResolutionStatus::Stale);
     assert_eq!(resolved.resolved_snapshot_ref, CHANGED_SNAPSHOT_REF);
     assert_eq!(resolved.definition.source_snapshot_ref(), SNAPSHOT_REF);
+}
+
+#[test]
+fn resolves_current_analytical_candidate_evidence_when_a_report_becomes_stale() {
+    let port = MemoryReportPort::default();
+    let original_comparison_port = AnalyticalTrainingPort::current();
+    create_composed_session_report(
+        &port,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &original_comparison_port,
+        analytical_composition(),
+    )
+    .expect("analytical report");
+    let current_comparison_port = AnalyticalTrainingPort {
+        snapshot_ref: CHANGED_SNAPSHOT_REF.to_owned(),
+        queries: Mutex::new(Vec::new()),
+    };
+
+    let resolved = resolve_session_report(
+        &port,
+        &StubTrainingPort {
+            snapshot_ref: CHANGED_SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &StubProvenancePort,
+        &current_comparison_port,
+        REPORT_REF,
+    )
+    .expect("stale analytical candidate");
+
+    assert_eq!(resolved.status, ReportResolutionStatus::Stale);
+    assert_eq!(resolved.resolved_snapshot_ref, CHANGED_SNAPSHOT_REF);
+    assert_eq!(resolved.definition.source_snapshot_ref(), SNAPSHOT_REF);
+    assert_eq!(
+        resolved
+            .training_comparison
+            .expect("current comparison candidate")
+            .series[0]
+            .comparison
+            .session_count,
+        2
+    );
+    assert_eq!(
+        current_comparison_port
+            .queries
+            .lock()
+            .expect("comparison queries")
+            .len(),
+        2
+    );
 }
 
 #[test]
@@ -670,6 +937,7 @@ fn exports_only_current_explicitly_reviewed_content() {
         },
         &StubRoutePort,
         &StubProvenancePort,
+        &NoComparisonPort,
         &output,
         SessionReportExportRequest {
             report_ref: REPORT_REF.to_owned(),
@@ -718,6 +986,7 @@ fn refuses_stale_revision_snapshot_and_sensitivity_escalation_before_writing() {
             },
             &StubRoutePort,
             &StubProvenancePort,
+            &NoComparisonPort,
             &output,
             SessionReportExportRequest {
                 report_ref: REPORT_REF.to_owned(),
@@ -758,6 +1027,7 @@ fn cancellation_prevents_output_creation() {
             },
             &StubRoutePort,
             &StubProvenancePort,
+            &NoComparisonPort,
             &output,
             SessionReportExportRequest {
                 report_ref: REPORT_REF.to_owned(),
@@ -783,6 +1053,7 @@ fn cancellation_stops_paginated_route_resolution_before_output_creation() {
             snapshot_ref: SNAPSHOT_REF.to_owned(),
         },
         &StubRoutePort,
+        &NoComparisonPort,
         composition(),
     )
     .expect("routed report");
@@ -799,6 +1070,7 @@ fn cancellation_stops_paginated_route_resolution_before_output_creation() {
                 cancellation: &cancellation,
             },
             &StubProvenancePort,
+            &NoComparisonPort,
             &output,
             SessionReportExportRequest {
                 report_ref: REPORT_REF.to_owned(),

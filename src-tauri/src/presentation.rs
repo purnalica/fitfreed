@@ -398,9 +398,10 @@ fn explore_destination(destination: ExploreDestination) -> &'static str {
 
 use fitfreed_domain::{
     ArtifactCoverageSummary, ArtifactFamilyCoverage, ImportOutcome, ImportReport, ReportAuthorship,
-    ReportBlockContent, ReportDefinition, ReportLocale, ReportOrigin, ReportProvenancePolicy,
-    SegmentCriterion, SegmentCriterionAuthorship, SegmentCriterionDefinition, SleepPhaseSummary,
-    SleepScore, SleepStage, SleepStageTransition, SourceSpecificRecoveryAssessment,
+    ReportBlockContent, ReportDateRange, ReportDefinition, ReportLocale, ReportOrigin,
+    ReportProvenancePolicy, ReportTrainingComparisonQuery, ReportTrainingMetric, SegmentCriterion,
+    SegmentCriterionAuthorship, SegmentCriterionDefinition, SleepPhaseSummary, SleepScore,
+    SleepStage, SleepStageTransition, SourceSpecificRecoveryAssessment,
     SourceSpecificRecoveryBaseline, SourceSpecificRecoveryGuidance,
 };
 
@@ -2361,6 +2362,87 @@ pub enum ReportBlockDto {
         block_ref: String,
         body: String,
     },
+    TrainingFinding {
+        block_ref: String,
+        query: ReportTrainingComparisonQueryDto,
+        metric: &'static str,
+    },
+    TrainingComparison {
+        block_ref: String,
+        query: ReportTrainingComparisonQueryDto,
+    },
+    TrainingChart {
+        block_ref: String,
+        query: ReportTrainingComparisonQueryDto,
+        metric: &'static str,
+    },
+    TrainingExactTable {
+        block_ref: String,
+        query: ReportTrainingComparisonQueryDto,
+    },
+    TrainingCoverage {
+        block_ref: String,
+        query: ReportTrainingComparisonQueryDto,
+    },
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ReportDateRangeDto {
+    from: String,
+    through: String,
+}
+
+impl TryFrom<ReportDateRangeDto> for ReportDateRange {
+    type Error = CommandErrorDto;
+
+    fn try_from(range: ReportDateRangeDto) -> Result<Self, Self::Error> {
+        ReportDateRange::new(&range.from, &range.through)
+            .map_err(|_| CommandErrorDto::new("invalid-report-definition"))
+    }
+}
+
+impl From<&ReportDateRange> for ReportDateRangeDto {
+    fn from(range: &ReportDateRange) -> Self {
+        Self {
+            from: range.from().to_owned(),
+            through: range.through().to_owned(),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ReportTrainingComparisonQueryDto {
+    question: String,
+    question_version: u32,
+    baseline_range: ReportDateRangeDto,
+    comparison_range: ReportDateRangeDto,
+}
+
+impl TryFrom<ReportTrainingComparisonQueryDto> for ReportTrainingComparisonQuery {
+    type Error = CommandErrorDto;
+
+    fn try_from(query: ReportTrainingComparisonQueryDto) -> Result<Self, Self::Error> {
+        ReportTrainingComparisonQuery::restore(
+            &query.question,
+            query.question_version,
+            query.baseline_range.try_into()?,
+            query.comparison_range.try_into()?,
+        )
+        .map_err(|_| CommandErrorDto::new("invalid-report-definition"))
+    }
+}
+
+impl From<&ReportTrainingComparisonQuery> for ReportTrainingComparisonQueryDto {
+    fn from(query: &ReportTrainingComparisonQuery) -> Self {
+        Self {
+            question: query.question().code().to_owned(),
+            question_version: query.question().version(),
+            baseline_range: query.baseline_range().into(),
+            comparison_range: query.comparison_range().into(),
+        }
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -2421,6 +2503,38 @@ impl From<ReportDefinition> for ReportDefinitionDto {
                     block_ref: block.block_ref().to_owned(),
                     body: body.clone(),
                 },
+                ReportBlockContent::TrainingFinding { query, metric } => {
+                    ReportBlockDto::TrainingFinding {
+                        block_ref: block.block_ref().to_owned(),
+                        query: query.into(),
+                        metric: metric.code(),
+                    }
+                }
+                ReportBlockContent::TrainingComparison { query } => {
+                    ReportBlockDto::TrainingComparison {
+                        block_ref: block.block_ref().to_owned(),
+                        query: query.into(),
+                    }
+                }
+                ReportBlockContent::TrainingChart { query, metric } => {
+                    ReportBlockDto::TrainingChart {
+                        block_ref: block.block_ref().to_owned(),
+                        query: query.into(),
+                        metric: metric.code(),
+                    }
+                }
+                ReportBlockContent::TrainingExactTable { query } => {
+                    ReportBlockDto::TrainingExactTable {
+                        block_ref: block.block_ref().to_owned(),
+                        query: query.into(),
+                    }
+                }
+                ReportBlockContent::TrainingCoverage { query } => {
+                    ReportBlockDto::TrainingCoverage {
+                        block_ref: block.block_ref().to_owned(),
+                        query: query.into(),
+                    }
+                }
             })
             .collect();
         let provenance_policy = match definition.provenance_policy() {
@@ -2520,11 +2634,35 @@ pub enum SessionReportBlockDraftDto {
         block_ref: Option<String>,
         body: String,
     },
+    TrainingFinding {
+        block_ref: Option<String>,
+        query: ReportTrainingComparisonQueryDto,
+        metric: String,
+    },
+    TrainingComparison {
+        block_ref: Option<String>,
+        query: ReportTrainingComparisonQueryDto,
+    },
+    TrainingChart {
+        block_ref: Option<String>,
+        query: ReportTrainingComparisonQueryDto,
+        metric: String,
+    },
+    TrainingExactTable {
+        block_ref: Option<String>,
+        query: ReportTrainingComparisonQueryDto,
+    },
+    TrainingCoverage {
+        block_ref: Option<String>,
+        query: ReportTrainingComparisonQueryDto,
+    },
 }
 
-impl From<SessionReportBlockDraftDto> for SessionReportBlockDraft {
-    fn from(block: SessionReportBlockDraftDto) -> Self {
-        match block {
+impl TryFrom<SessionReportBlockDraftDto> for SessionReportBlockDraft {
+    type Error = CommandErrorDto;
+
+    fn try_from(block: SessionReportBlockDraftDto) -> Result<Self, Self::Error> {
+        Ok(match block {
             SessionReportBlockDraftDto::SessionEvidence {
                 block_ref,
                 include_physiological_context,
@@ -2549,8 +2687,53 @@ impl From<SessionReportBlockDraftDto> for SessionReportBlockDraft {
                 block_ref,
                 content: SessionReportBlockDraftContent::Narrative { body },
             },
-        }
+            SessionReportBlockDraftDto::TrainingFinding {
+                block_ref,
+                query,
+                metric,
+            } => Self {
+                block_ref,
+                content: SessionReportBlockDraftContent::TrainingFinding {
+                    query: query.try_into()?,
+                    metric: report_training_metric(&metric)?,
+                },
+            },
+            SessionReportBlockDraftDto::TrainingComparison { block_ref, query } => Self {
+                block_ref,
+                content: SessionReportBlockDraftContent::TrainingComparison {
+                    query: query.try_into()?,
+                },
+            },
+            SessionReportBlockDraftDto::TrainingChart {
+                block_ref,
+                query,
+                metric,
+            } => Self {
+                block_ref,
+                content: SessionReportBlockDraftContent::TrainingChart {
+                    query: query.try_into()?,
+                    metric: report_training_metric(&metric)?,
+                },
+            },
+            SessionReportBlockDraftDto::TrainingExactTable { block_ref, query } => Self {
+                block_ref,
+                content: SessionReportBlockDraftContent::TrainingExactTable {
+                    query: query.try_into()?,
+                },
+            },
+            SessionReportBlockDraftDto::TrainingCoverage { block_ref, query } => Self {
+                block_ref,
+                content: SessionReportBlockDraftContent::TrainingCoverage {
+                    query: query.try_into()?,
+                },
+            },
+        })
     }
+}
+
+fn report_training_metric(value: &str) -> Result<ReportTrainingMetric, CommandErrorDto> {
+    ReportTrainingMetric::from_code(value)
+        .ok_or_else(|| CommandErrorDto::new("invalid-report-definition"))
 }
 
 #[derive(Debug, Deserialize)]
@@ -2572,7 +2755,11 @@ impl TryFrom<CreateComposedSessionReportRequestDto> for CreateComposedSessionRep
             locale: report_locale(&request.locale)?,
             session_ref: request.session_ref,
             source_snapshot_ref: request.source_snapshot_ref,
-            blocks: request.blocks.into_iter().map(Into::into).collect(),
+            blocks: request
+                .blocks
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<_, _>>()?,
         })
     }
 }
@@ -2599,7 +2786,11 @@ impl TryFrom<UpdateComposedSessionReportRequestDto> for UpdateComposedSessionRep
             )?,
             title: request.title,
             locale: report_locale(&request.locale)?,
-            blocks: request.blocks.into_iter().map(Into::into).collect(),
+            blocks: request
+                .blocks
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<_, _>>()?,
         })
     }
 }
@@ -2749,6 +2940,7 @@ pub struct ResolvedSessionReportDto {
     status: &'static str,
     session: ReportSessionEvidenceDto,
     routes: Vec<ReportRouteEvidenceDto>,
+    training_comparison: Option<TrainingComparisonDto>,
     provenance: TrainingProvenanceCurrentDto,
     sensitive_contents: Vec<ReportSensitiveContentDto>,
     limitations: Vec<&'static str>,
@@ -2765,6 +2957,7 @@ impl From<ResolvedSessionReport> for ResolvedSessionReportDto {
             },
             session: report.session.into(),
             routes: report.routes.into_iter().map(Into::into).collect(),
+            training_comparison: report.training_comparison.map(Into::into),
             provenance: report.provenance.into(),
             sensitive_contents: report
                 .sensitive_contents
@@ -4470,7 +4663,9 @@ mod tests {
         SourceAcquisitionGuide, UpdateArtifact, UpdateInstallationAuthorization,
         UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind,
     };
-    use fitfreed_domain::{ArtifactClassification, ArtifactFamilyCoverage, ImportOperationState};
+    use fitfreed_domain::{
+        ArtifactClassification, ArtifactFamilyCoverage, ImportOperationState, ReportBlock,
+    };
     use serde_json::{from_value, json};
 
     use super::*;
@@ -6694,5 +6889,196 @@ mod tests {
                 .expect("structurally valid export request");
             assert!(SessionReportExportRequest::try_from(invalid).is_err());
         }
+    }
+
+    #[test]
+    fn validates_and_serializes_training_comparison_report_blocks_without_losing_the_query() {
+        let query = json!({
+            "question": "training-period-comparison",
+            "questionVersion": 1,
+            "baselineRange": { "from": "2026-01-01", "through": "2026-01-31" },
+            "comparisonRange": { "from": "2026-02-01", "through": "2026-02-28" }
+        });
+        let request: CreateComposedSessionReportRequestDto = from_value(json!({
+            "title": "Winter training comparison",
+            "locale": "en-US",
+            "sessionRef":
+                "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "sourceSnapshotRef":
+                "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "blocks": [
+                {
+                    "kind": "session-evidence",
+                    "blockRef": null,
+                    "includePhysiologicalContext": false
+                },
+                {
+                    "kind": "narrative",
+                    "blockRef": null,
+                    "body": "A comparison grounded in the selected periods."
+                },
+                {
+                    "kind": "training-finding",
+                    "blockRef": null,
+                    "query": query,
+                    "metric": "session-count"
+                },
+                {
+                    "kind": "training-comparison",
+                    "blockRef": null,
+                    "query": query
+                },
+                {
+                    "kind": "training-chart",
+                    "blockRef": null,
+                    "query": query,
+                    "metric": "duration"
+                },
+                {
+                    "kind": "training-exact-table",
+                    "blockRef": null,
+                    "query": query
+                },
+                {
+                    "kind": "training-coverage",
+                    "blockRef": null,
+                    "query": query
+                }
+            ]
+        }))
+        .expect("training comparison report request");
+
+        let request = CreateComposedSessionReportRequest::try_from(request)
+            .expect("valid training comparison report request");
+        assert_eq!(request.blocks.len(), 7);
+        assert!(matches!(
+            &request.blocks[2].content,
+            SessionReportBlockDraftContent::TrainingFinding {
+                query,
+                metric: ReportTrainingMetric::SessionCount
+            } if query.baseline_range().from() == "2026-01-01"
+                && query.comparison_range().through() == "2026-02-28"
+        ));
+
+        let report_query = ReportTrainingComparisonQuery::restore(
+            "training-period-comparison",
+            1,
+            ReportDateRange::new("2026-01-01", "2026-01-31").expect("baseline range"),
+            ReportDateRange::new("2026-02-01", "2026-02-28").expect("comparison range"),
+        )
+        .expect("training comparison query");
+        let session_ref =
+            "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+        let definition = ReportDefinition::compose_session_report(
+            "report-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "Winter training comparison",
+            ReportLocale::EnUs,
+            "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            session_ref,
+            vec![
+                ReportBlock::session_evidence(
+                    "report-block-1111111111111111111111111111111111111111111111111111111111111111",
+                    session_ref,
+                    false,
+                )
+                .expect("session block"),
+                ReportBlock::narrative(
+                    "report-block-2222222222222222222222222222222222222222222222222222222222222222",
+                    "A comparison grounded in the selected periods.",
+                )
+                .expect("narrative block"),
+                ReportBlock::training_finding(
+                    "report-block-3333333333333333333333333333333333333333333333333333333333333333",
+                    report_query.clone(),
+                    ReportTrainingMetric::SessionCount,
+                )
+                .expect("finding block"),
+                ReportBlock::training_comparison(
+                    "report-block-4444444444444444444444444444444444444444444444444444444444444444",
+                    report_query.clone(),
+                )
+                .expect("comparison block"),
+                ReportBlock::training_chart(
+                    "report-block-5555555555555555555555555555555555555555555555555555555555555555",
+                    report_query.clone(),
+                    ReportTrainingMetric::Duration,
+                )
+                .expect("chart block"),
+                ReportBlock::training_exact_table(
+                    "report-block-6666666666666666666666666666666666666666666666666666666666666666",
+                    report_query.clone(),
+                )
+                .expect("table block"),
+                ReportBlock::training_coverage(
+                    "report-block-7777777777777777777777777777777777777777777777777777777777777777",
+                    report_query,
+                )
+                .expect("coverage block"),
+            ],
+        )
+        .expect("analytical report definition");
+        let definition_json =
+            serde_json::to_value(ReportDefinitionDto::from(definition)).expect("definition JSON");
+        assert_eq!(definition_json["definitionVersion"], 3);
+        assert_eq!(
+            definition_json["blocks"][2],
+            json!({
+                "kind": "training-finding",
+                "blockRef":
+                    "report-block-3333333333333333333333333333333333333333333333333333333333333333",
+                "query": query,
+                "metric": "session-count"
+            })
+        );
+        assert_eq!(
+            definition_json["blocks"][6]["query"]["question"],
+            "training-period-comparison"
+        );
+    }
+
+    #[test]
+    fn rejects_noncanonical_training_comparison_report_queries_at_the_transport_boundary() {
+        let valid_query = json!({
+            "question": "training-period-comparison",
+            "questionVersion": 1,
+            "baselineRange": { "from": "2026-01-01", "through": "2026-01-31" },
+            "comparisonRange": { "from": "2026-02-01", "through": "2026-02-28" }
+        });
+        let block = |query: serde_json::Value, metric: serde_json::Value| {
+            json!({
+                "kind": "training-finding",
+                "blockRef": null,
+                "query": query,
+                "metric": metric
+            })
+        };
+
+        let mut unsupported_question = valid_query.clone();
+        unsupported_question["question"] = json!("provider-workout-comparison");
+        let mut unsupported_version = valid_query.clone();
+        unsupported_version["questionVersion"] = json!(2);
+        let mut invalid_date = valid_query.clone();
+        invalid_date["baselineRange"]["from"] = json!("2026-02-30");
+        let mut reversed_range = valid_query.clone();
+        reversed_range["comparisonRange"]["from"] = json!("2026-03-01");
+        let mut unknown_query_field = valid_query.clone();
+        unknown_query_field["provider"] = json!("must-not-cross-the-boundary");
+
+        for invalid_block in [
+            block(unsupported_question, json!("session-count")),
+            block(unsupported_version, json!("session-count")),
+            block(invalid_date, json!("session-count")),
+            block(reversed_range, json!("session-count")),
+            block(valid_query.clone(), json!("pace")),
+        ] {
+            let dto: SessionReportBlockDraftDto =
+                from_value(invalid_block).expect("structurally valid report block");
+            assert!(SessionReportBlockDraft::try_from(dto).is_err());
+        }
+        assert!(from_value::<SessionReportBlockDraftDto>(block(
+            unknown_query_field,
+            json!("session-count")
+        ))
+        .is_err());
     }
 }

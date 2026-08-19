@@ -1155,6 +1155,68 @@
     "noRoutes": "This session has no route evidence available for a report.",
     "allRoutesAdded": "Every available route is already in this report.",
     "addRoute": "Add {route} · {count} points",
+    "analysis": {
+      "addHeading": "Add an answer from your training history",
+      "addIntro": "Choose the evidence views that answer your question. Every selected view uses one shared, versioned comparison so the finding, chart, table, and coverage cannot silently disagree.",
+      "periodsHeading": "Periods to compare",
+      "periodsHelp": "Both periods are inclusive and may contain up to 366 days. FitFreed reads them again from the current local library whenever the report is opened or exported.",
+      "baselineFrom": "Baseline starts",
+      "baselineThrough": "Baseline ends",
+      "comparisonFrom": "Comparison starts",
+      "comparisonThrough": "Comparison ends",
+      "addBlock": "Add {block}",
+      "removeBlock": "Remove block",
+      "allAdded": "All available comparison views are in this report.",
+      "metricLabel": "Measurement",
+      "metric": "Measurement",
+      "baseline": "Baseline",
+      "comparison": "Comparison",
+      "change": "Change",
+      "sourceLabel": "Imported source {number}",
+      "rangeAttribution": "Calculated by FitFreed from {baseline} and {comparison} in the current local library.",
+      "finding": "{source}: {metric} moved from {baseline} to {comparison} ({change}).",
+      "descriptiveOnly": "This is a descriptive comparison of recorded data. It does not establish a cause or provide health or training advice.",
+      "unavailable": "The comparison evidence is not available from the current local library.",
+      "chartSummary": "Baseline and comparison bars with exact values in the table below",
+      "trainingDaysCoverage": "Days with training",
+      "distanceCoverage": "Sessions with distance",
+      "energyCoverage": "Sessions with energy",
+      "heartRateCoverage": "Sessions with heart rate",
+      "coverageValue": "{baseline} baseline · {comparison} comparison",
+      "metricUnits": {
+        "sessions": "sessions",
+        "days": "days"
+      },
+      "metrics": {
+        "session-count": "Sessions",
+        "training-days": "Training days",
+        "duration": "Recorded duration",
+        "distance": "Recorded distance",
+        "energy": "Recorded energy"
+      },
+      "blocks": {
+        "training-finding": {
+          "heading": "Key finding",
+          "description": "Lead with one exact, plain-language change selected by you."
+        },
+        "training-comparison": {
+          "heading": "Period comparison",
+          "description": "Compare the core training volume measures side by side."
+        },
+        "training-chart": {
+          "heading": "Comparison chart",
+          "description": "Make one selected measure visual while retaining an exact table alternative."
+        },
+        "training-exact-table": {
+          "heading": "Exact values",
+          "description": "Include all supported measures without visual rounding."
+        },
+        "training-coverage": {
+          "heading": "Coverage and missing data",
+          "description": "Show how much evidence supports each period and where measurements are absent."
+        }
+      }
+    },
     "saving": "Saving…",
     "save": "Save changes",
     "create": "Save report",
@@ -1200,6 +1262,7 @@
     "privacyHeading": "Review the export",
     "privacyIntro": "This is the complete content boundary for the HTML file. Nothing else from your library will be exported.",
     "sessionSummaryIncluded": "Recorded session summary and explicit missing-data notices",
+    "analysisExportIncluded": "Selected period-comparison values, findings, chart shapes, exact tables, and coverage notices",
     "narrativeIncluded": "Your report title and interpretation",
     "provenanceIncluded": "Source attribution and report-definition metadata",
     "exactSamplesExcluded": "Exact training samples are excluded. Selected routes use only the reviewed local shape below.",
@@ -1218,6 +1281,7 @@
     "closeReview": "Back to report",
     "errors": {
       "invalid-report-definition": "Add a title and an interpretation before saving the report.",
+      "invalid-report-comparison-range": "Choose real, ordered dates of no more than 366 days for both comparison periods.",
       "report-not-found": "That report no longer exists in the local library. Reload the list.",
       "report-definition-conflict": "This report changed while it was open. Reload it before saving again.",
       "report-source-changed": "The source history changed after this report was resolved. Reopen the report before exporting.",

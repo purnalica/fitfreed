@@ -1155,6 +1155,68 @@
     "noRoutes": "Esta sesión no contiene evidencias de ruta disponibles para un informe.",
     "allRoutesAdded": "Todas las rutas disponibles ya están incluidas en este informe.",
     "addRoute": "Añadir {route} · {count} puntos",
+    "analysis": {
+      "addHeading": "Añade una respuesta obtenida de tu historial de entrenamientos",
+      "addIntro": "Elige las vistas de evidencias que respondan a tu pregunta. Todas las vistas seleccionadas utilizan una única comparación versionada y compartida para que el hallazgo, el gráfico, la tabla y la cobertura no se contradigan de forma inadvertida.",
+      "periodsHeading": "Periodos que se van a comparar",
+      "periodsHelp": "Ambos periodos son inclusivos y pueden contener hasta 366 días. FitFreed vuelve a consultarlos en la biblioteca local actual cada vez que se abre o exporta el informe.",
+      "baselineFrom": "Inicio del periodo de referencia",
+      "baselineThrough": "Fin del periodo de referencia",
+      "comparisonFrom": "Inicio del periodo comparado",
+      "comparisonThrough": "Fin del periodo comparado",
+      "addBlock": "Añadir {block}",
+      "removeBlock": "Eliminar bloque",
+      "allAdded": "Todas las vistas comparativas disponibles están incluidas en este informe.",
+      "metricLabel": "Medición",
+      "metric": "Medición",
+      "baseline": "Referencia",
+      "comparison": "Comparación",
+      "change": "Cambio",
+      "sourceLabel": "Origen importado {number}",
+      "rangeAttribution": "Calculado por FitFreed a partir de {baseline} y {comparison} en la biblioteca local actual.",
+      "finding": "{source}: {metric} pasó de {baseline} a {comparison} ({change}).",
+      "descriptiveOnly": "Esta es una comparación descriptiva de datos registrados. No establece una causa ni ofrece asesoramiento sanitario o deportivo.",
+      "unavailable": "Las evidencias comparativas no están disponibles en la biblioteca local actual.",
+      "chartSummary": "Barras del periodo de referencia y del comparado con los valores exactos en la tabla inferior",
+      "trainingDaysCoverage": "Días con entrenamiento",
+      "distanceCoverage": "Sesiones con distancia",
+      "energyCoverage": "Sesiones con energía",
+      "heartRateCoverage": "Sesiones con frecuencia cardíaca",
+      "coverageValue": "{baseline} referencia · {comparison} comparación",
+      "metricUnits": {
+        "sessions": "sesiones",
+        "days": "días"
+      },
+      "metrics": {
+        "session-count": "Sesiones",
+        "training-days": "Días de entrenamiento",
+        "duration": "Duración registrada",
+        "distance": "Distancia registrada",
+        "energy": "Energía registrada"
+      },
+      "blocks": {
+        "training-finding": {
+          "heading": "Hallazgo principal",
+          "description": "Destaca un cambio exacto y legible elegido por ti."
+        },
+        "training-comparison": {
+          "heading": "Comparación de periodos",
+          "description": "Compara lado a lado las mediciones principales del volumen de entrenamiento."
+        },
+        "training-chart": {
+          "heading": "Gráfico comparativo",
+          "description": "Representa visualmente una medición seleccionada y conserva una tabla alternativa con valores exactos."
+        },
+        "training-exact-table": {
+          "heading": "Valores exactos",
+          "description": "Incluye todas las mediciones compatibles sin redondeos visuales."
+        },
+        "training-coverage": {
+          "heading": "Cobertura y datos ausentes",
+          "description": "Muestra cuántas evidencias respaldan cada periodo y dónde faltan mediciones."
+        }
+      }
+    },
     "saving": "Guardando…",
     "save": "Guardar cambios",
     "create": "Guardar informe",
@@ -1200,6 +1262,7 @@
     "privacyHeading": "Revisa la exportación",
     "privacyIntro": "Este es el límite completo del contenido del archivo HTML. No se exportará ningún otro dato de tu biblioteca.",
     "sessionSummaryIncluded": "Resumen registrado de la sesión y avisos explícitos sobre datos ausentes",
+    "analysisExportIncluded": "Valores comparativos de periodos seleccionados, hallazgos, formas del gráfico, tablas exactas y avisos de cobertura",
     "narrativeIncluded": "El título del informe y tu interpretación",
     "provenanceIncluded": "Atribución del origen y metadatos de la definición del informe",
     "exactSamplesExcluded": "Se excluyen las muestras exactas del entrenamiento. Las rutas seleccionadas solo utilizan la forma local revisada que aparece abajo.",
@@ -1218,6 +1281,7 @@
     "closeReview": "Volver al informe",
     "errors": {
       "invalid-report-definition": "Añade un título y una interpretación antes de guardar el informe.",
+      "invalid-report-comparison-range": "Elige fechas reales y ordenadas, con un máximo de 366 días, para ambos periodos de comparación.",
       "report-not-found": "Ese informe ya no existe en la biblioteca local. Actualiza la lista.",
       "report-definition-conflict": "El informe cambió mientras estaba abierto. Vuelve a cargarlo antes de guardarlo de nuevo.",
       "report-source-changed": "El historial de origen cambió después de resolver este informe. Vuelve a abrirlo antes de exportarlo.",

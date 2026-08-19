@@ -11,7 +11,141 @@ const MAX_NARRATIVE_CHARACTERS: usize = 10_000;
 const MAX_REPORT_BLOCKS: usize = 32;
 pub const MAX_ROUTE_ENDPOINT_REDACTION_METERS: u32 = 5_000;
 pub const REPORT_DEFINITION_VERSION_V1: u32 = 1;
-pub const REPORT_DEFINITION_VERSION: u32 = 2;
+pub const REPORT_DEFINITION_VERSION_V2: u32 = 2;
+pub const REPORT_DEFINITION_VERSION: u32 = 3;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReportQuestion {
+    TrainingPeriodComparisonV1,
+}
+
+impl ReportQuestion {
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::TrainingPeriodComparisonV1 => "training-period-comparison",
+        }
+    }
+
+    pub const fn version(self) -> u32 {
+        match self {
+            Self::TrainingPeriodComparisonV1 => 1,
+        }
+    }
+
+    pub const fn from_code_and_version(code: &str, version: u32) -> Option<Self> {
+        match (code.as_bytes(), version) {
+            (b"training-period-comparison", 1) => Some(Self::TrainingPeriodComparisonV1),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReportDateRange {
+    from: String,
+    through: String,
+}
+
+impl ReportDateRange {
+    pub fn new(from: &str, through: &str) -> Result<Self, ReportDefinitionError> {
+        let parsed_from = parse_report_date(from)?;
+        let parsed_through = parse_report_date(through)?;
+        if parsed_from > parsed_through {
+            return Err(ReportDefinitionError::UnorderedReportDateRange);
+        }
+        if parsed_through.day_number() - parsed_from.day_number() >= 366 {
+            return Err(ReportDefinitionError::ReportDateRangeTooLong);
+        }
+        Ok(Self {
+            from: from.to_owned(),
+            through: through.to_owned(),
+        })
+    }
+
+    pub fn from(&self) -> &str {
+        &self.from
+    }
+
+    pub fn through(&self) -> &str {
+        &self.through
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReportTrainingComparisonQuery {
+    question: ReportQuestion,
+    baseline_range: ReportDateRange,
+    comparison_range: ReportDateRange,
+}
+
+impl ReportTrainingComparisonQuery {
+    pub const fn new(baseline_range: ReportDateRange, comparison_range: ReportDateRange) -> Self {
+        Self {
+            question: ReportQuestion::TrainingPeriodComparisonV1,
+            baseline_range,
+            comparison_range,
+        }
+    }
+
+    pub fn restore(
+        question_code: &str,
+        question_version: u32,
+        baseline_range: ReportDateRange,
+        comparison_range: ReportDateRange,
+    ) -> Result<Self, ReportDefinitionError> {
+        let question = ReportQuestion::from_code_and_version(question_code, question_version)
+            .ok_or(ReportDefinitionError::UnsupportedReportQuestion)?;
+        Ok(Self {
+            question,
+            baseline_range,
+            comparison_range,
+        })
+    }
+
+    pub const fn question(&self) -> ReportQuestion {
+        self.question
+    }
+
+    pub fn baseline_range(&self) -> &ReportDateRange {
+        &self.baseline_range
+    }
+
+    pub fn comparison_range(&self) -> &ReportDateRange {
+        &self.comparison_range
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReportTrainingMetric {
+    SessionCount,
+    TrainingDays,
+    Duration,
+    Distance,
+    Energy,
+}
+
+impl ReportTrainingMetric {
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::SessionCount => "session-count",
+            Self::TrainingDays => "training-days",
+            Self::Duration => "duration",
+            Self::Distance => "distance",
+            Self::Energy => "energy",
+        }
+    }
+
+    pub const fn from_code(code: &str) -> Option<Self> {
+        match code.as_bytes() {
+            b"session-count" => Some(Self::SessionCount),
+            b"training-days" => Some(Self::TrainingDays),
+            b"duration" => Some(Self::Duration),
+            b"distance" => Some(Self::Distance),
+            b"energy" => Some(Self::Energy),
+            _ => None,
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReportLocale {
@@ -80,6 +214,23 @@ pub enum ReportBlockContent {
     Narrative {
         body: String,
     },
+    TrainingFinding {
+        query: ReportTrainingComparisonQuery,
+        metric: ReportTrainingMetric,
+    },
+    TrainingComparison {
+        query: ReportTrainingComparisonQuery,
+    },
+    TrainingChart {
+        query: ReportTrainingComparisonQuery,
+        metric: ReportTrainingMetric,
+    },
+    TrainingExactTable {
+        query: ReportTrainingComparisonQuery,
+    },
+    TrainingCoverage {
+        query: ReportTrainingComparisonQuery,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -131,6 +282,49 @@ impl ReportBlock {
         )
     }
 
+    pub fn training_finding(
+        block_ref: impl Into<String>,
+        query: ReportTrainingComparisonQuery,
+        metric: ReportTrainingMetric,
+    ) -> Result<Self, ReportDefinitionError> {
+        Self::restore(
+            block_ref,
+            ReportBlockContent::TrainingFinding { query, metric },
+        )
+    }
+
+    pub fn training_comparison(
+        block_ref: impl Into<String>,
+        query: ReportTrainingComparisonQuery,
+    ) -> Result<Self, ReportDefinitionError> {
+        Self::restore(block_ref, ReportBlockContent::TrainingComparison { query })
+    }
+
+    pub fn training_chart(
+        block_ref: impl Into<String>,
+        query: ReportTrainingComparisonQuery,
+        metric: ReportTrainingMetric,
+    ) -> Result<Self, ReportDefinitionError> {
+        Self::restore(
+            block_ref,
+            ReportBlockContent::TrainingChart { query, metric },
+        )
+    }
+
+    pub fn training_exact_table(
+        block_ref: impl Into<String>,
+        query: ReportTrainingComparisonQuery,
+    ) -> Result<Self, ReportDefinitionError> {
+        Self::restore(block_ref, ReportBlockContent::TrainingExactTable { query })
+    }
+
+    pub fn training_coverage(
+        block_ref: impl Into<String>,
+        query: ReportTrainingComparisonQuery,
+    ) -> Result<Self, ReportDefinitionError> {
+        Self::restore(block_ref, ReportBlockContent::TrainingCoverage { query })
+    }
+
     pub fn restore(
         block_ref: impl Into<String>,
         content: ReportBlockContent,
@@ -162,6 +356,11 @@ impl ReportBlock {
                     return Err(ReportDefinitionError::NonCanonicalNarrative);
                 }
             }
+            ReportBlockContent::TrainingFinding { .. }
+            | ReportBlockContent::TrainingComparison { .. }
+            | ReportBlockContent::TrainingChart { .. }
+            | ReportBlockContent::TrainingExactTable { .. }
+            | ReportBlockContent::TrainingCoverage { .. } => {}
         }
         Ok(Self { block_ref, content })
     }
@@ -202,7 +401,13 @@ impl ReportDefinition {
             ReportBlockContent::SessionEvidence { session_ref, .. } => ReportOrigin::Session {
                 session_ref: session_ref.clone(),
             },
-            ReportBlockContent::Route { .. } | ReportBlockContent::Narrative { .. } => {
+            ReportBlockContent::Route { .. }
+            | ReportBlockContent::Narrative { .. }
+            | ReportBlockContent::TrainingFinding { .. }
+            | ReportBlockContent::TrainingComparison { .. }
+            | ReportBlockContent::TrainingChart { .. }
+            | ReportBlockContent::TrainingExactTable { .. }
+            | ReportBlockContent::TrainingCoverage { .. } => {
                 return Err(ReportDefinitionError::InvalidVersionOneBlockOrder);
             }
         };
@@ -273,7 +478,8 @@ impl ReportDefinition {
         }
         match definition_version {
             REPORT_DEFINITION_VERSION_V1 => validate_version_one_blocks(&origin, &blocks)?,
-            REPORT_DEFINITION_VERSION => validate_version_two_blocks(&origin, &blocks)?,
+            REPORT_DEFINITION_VERSION_V2 => validate_version_two_blocks(&origin, &blocks)?,
+            REPORT_DEFINITION_VERSION => validate_version_three_blocks(&origin, &blocks)?,
             _ => return Err(ReportDefinitionError::UnsupportedDefinitionVersion),
         }
         Ok(Self {
@@ -447,6 +653,21 @@ fn validate_version_two_blocks(
     origin: &ReportOrigin,
     blocks: &[ReportBlock],
 ) -> Result<(), ReportDefinitionError> {
+    validate_composable_blocks(origin, blocks, false)
+}
+
+fn validate_version_three_blocks(
+    origin: &ReportOrigin,
+    blocks: &[ReportBlock],
+) -> Result<(), ReportDefinitionError> {
+    validate_composable_blocks(origin, blocks, true)
+}
+
+fn validate_composable_blocks(
+    origin: &ReportOrigin,
+    blocks: &[ReportBlock],
+    allow_training_comparison: bool,
+) -> Result<(), ReportDefinitionError> {
     if !(2..=MAX_REPORT_BLOCKS).contains(&blocks.len()) {
         return Err(ReportDefinitionError::InvalidVersionTwoComposition);
     }
@@ -459,6 +680,8 @@ fn validate_version_two_blocks(
     let mut route_refs = BTreeSet::new();
     let mut session_count = 0;
     let mut narrative_count = 0;
+    let mut training_comparison_kinds = BTreeSet::new();
+    let mut training_comparison_query = None;
     for block in blocks {
         if !block_refs.insert(block.block_ref()) {
             return Err(ReportDefinitionError::DuplicateBlockIdentifier);
@@ -483,12 +706,134 @@ fn validate_version_two_blocks(
                 }
             }
             ReportBlockContent::Narrative { .. } => narrative_count += 1,
+            ReportBlockContent::TrainingFinding { query, .. } => {
+                validate_training_comparison_block(
+                    allow_training_comparison,
+                    "training-finding",
+                    query,
+                    &mut training_comparison_kinds,
+                    &mut training_comparison_query,
+                )?;
+            }
+            ReportBlockContent::TrainingComparison { query } => {
+                validate_training_comparison_block(
+                    allow_training_comparison,
+                    "training-comparison",
+                    query,
+                    &mut training_comparison_kinds,
+                    &mut training_comparison_query,
+                )?;
+            }
+            ReportBlockContent::TrainingChart { query, .. } => {
+                validate_training_comparison_block(
+                    allow_training_comparison,
+                    "training-chart",
+                    query,
+                    &mut training_comparison_kinds,
+                    &mut training_comparison_query,
+                )?;
+            }
+            ReportBlockContent::TrainingExactTable { query } => {
+                validate_training_comparison_block(
+                    allow_training_comparison,
+                    "training-exact-table",
+                    query,
+                    &mut training_comparison_kinds,
+                    &mut training_comparison_query,
+                )?;
+            }
+            ReportBlockContent::TrainingCoverage { query } => {
+                validate_training_comparison_block(
+                    allow_training_comparison,
+                    "training-coverage",
+                    query,
+                    &mut training_comparison_kinds,
+                    &mut training_comparison_query,
+                )?;
+            }
         }
     }
     if session_count != 1 || narrative_count != 1 {
         return Err(ReportDefinitionError::InvalidVersionTwoComposition);
     }
     Ok(())
+}
+
+fn validate_training_comparison_block<'a>(
+    allowed: bool,
+    kind: &'static str,
+    query: &'a ReportTrainingComparisonQuery,
+    kinds: &mut BTreeSet<&'static str>,
+    expected_query: &mut Option<&'a ReportTrainingComparisonQuery>,
+) -> Result<(), ReportDefinitionError> {
+    if !allowed {
+        return Err(ReportDefinitionError::InvalidVersionTwoComposition);
+    }
+    if !kinds.insert(kind) {
+        return Err(ReportDefinitionError::DuplicateTrainingComparisonBlockKind);
+    }
+    if expected_query.is_some_and(|expected| expected != query) {
+        return Err(ReportDefinitionError::MixedTrainingComparisonQueries);
+    }
+    expected_query.get_or_insert(query);
+    Ok(())
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+struct ReportDate {
+    year: u16,
+    month: u8,
+    day: u8,
+}
+
+impl ReportDate {
+    fn day_number(self) -> u32 {
+        let previous_year = u32::from(self.year) - 1;
+        let days_before_year =
+            previous_year * 365 + previous_year / 4 - previous_year / 100 + previous_year / 400;
+        let days_before_month = [0_u32, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
+            [usize::from(self.month - 1)];
+        let leap_day = u32::from(self.month > 2 && is_leap_year(self.year));
+        days_before_year + days_before_month + leap_day + u32::from(self.day - 1)
+    }
+}
+
+fn parse_report_date(value: &str) -> Result<ReportDate, ReportDefinitionError> {
+    let bytes = value.as_bytes();
+    if bytes.len() != 10 || bytes[4] != b'-' || bytes[7] != b'-' {
+        return Err(ReportDefinitionError::InvalidReportDate);
+    }
+    let year = parse_decimal(&bytes[0..4]).ok_or(ReportDefinitionError::InvalidReportDate)?;
+    let month = parse_decimal(&bytes[5..7]).ok_or(ReportDefinitionError::InvalidReportDate)?;
+    let day = parse_decimal(&bytes[8..10]).ok_or(ReportDefinitionError::InvalidReportDate)?;
+    let year = u16::try_from(year).map_err(|_| ReportDefinitionError::InvalidReportDate)?;
+    let month = u8::try_from(month).map_err(|_| ReportDefinitionError::InvalidReportDate)?;
+    let day = u8::try_from(day).map_err(|_| ReportDefinitionError::InvalidReportDate)?;
+    if year == 0 || !(1..=12).contains(&month) || !(1..=days_in_month(year, month)).contains(&day) {
+        return Err(ReportDefinitionError::InvalidReportDate);
+    }
+    Ok(ReportDate { year, month, day })
+}
+
+fn parse_decimal(bytes: &[u8]) -> Option<u32> {
+    bytes.iter().try_fold(0_u32, |value, byte| {
+        byte.is_ascii_digit()
+            .then(|| value * 10 + u32::from(byte - b'0'))
+    })
+}
+
+const fn days_in_month(year: u16, month: u8) -> u8 {
+    match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if is_leap_year(year) => 29,
+        2 => 28,
+        _ => 0,
+    }
+}
+
+const fn is_leap_year(year: u16) -> bool {
+    year.is_multiple_of(4) && (!year.is_multiple_of(100) || year.is_multiple_of(400))
 }
 
 fn validate_identifier(value: &str, prefix: &str) -> Result<(), ()> {
@@ -566,6 +911,12 @@ pub enum ReportDefinitionError {
     DuplicateRouteIdentifier,
     InvalidRouteEndpointRedaction,
     SessionOriginMismatch,
+    InvalidReportDate,
+    UnorderedReportDateRange,
+    ReportDateRangeTooLong,
+    UnsupportedReportQuestion,
+    DuplicateTrainingComparisonBlockKind,
+    MixedTrainingComparisonQueries,
     UnsupportedDefinitionVersion,
     ZeroRevision,
     RevisionOverflow,
@@ -601,6 +952,16 @@ impl fmt::Display for ReportDefinitionError {
                 "report route endpoint redaction exceeds 5000 metres"
             }
             Self::SessionOriginMismatch => "report session block does not match its origin",
+            Self::InvalidReportDate => "report date is invalid",
+            Self::UnorderedReportDateRange => "report date range is not ordered",
+            Self::ReportDateRangeTooLong => "report date range exceeds 366 inclusive days",
+            Self::UnsupportedReportQuestion => "report question is unsupported",
+            Self::DuplicateTrainingComparisonBlockKind => {
+                "report training comparison block kind is duplicated"
+            }
+            Self::MixedTrainingComparisonQueries => {
+                "report training comparison blocks use different questions"
+            }
             Self::UnsupportedDefinitionVersion => "report definition version is unsupported",
             Self::ZeroRevision => "report revision is zero",
             Self::RevisionOverflow => "report revision overflowed",

@@ -55,11 +55,12 @@ Version 0.1.0 provides:
 - complete-history training-session search with date, sport, authored-label, and measurement filters, stable pagination and sorting, exact session summary, exercise/lap/pause structure, bounded local primary and transition route traces, paginated exact route points, gap-aware supported signal charts, paginated exact signal samples, and period comparison;
 - primary-sleep overview, range, phases, timeline and score detail, and period comparison;
 - dated nightly-recovery overview, range, exact source-context detail, and period comparison; and
-- one provider-neutral longitudinal dashboard with a shared range, aligned exact day synopsis, navigation, and period comparison.
+- one provider-neutral longitudinal dashboard with a shared range, aligned exact day synopsis, navigation, and period comparison; and
+- durable session-origin reports that combine recorded evidence, user narrative, optional protected route shapes, and user-selected training-period findings, comparisons, accessible charts, exact tables, and coverage in a privacy-reviewed self-contained HTML export.
 
 Every visual has exact values or a table alternative. Missing and unavailable observations do not become zero. Histories from different opaque origins remain separate. The longitudinal view reports recorded co-occurrence only; it does not infer causation, readiness, diagnosis, or advice.
 
-External route maps, provider-defined zones, unsupported training-signal types, undated recovery samples, additional providers, portable normalized export, and user-controlled backup and restore are not included. Consult the [Polar Flow compatibility reference](../data-formats/providers/polar-flow.md) for the exact evaluated families and shapes.
+Report starts from a question, exploration, or blank canvas, deliberate report refresh, PDF and spreadsheet output, external route maps, provider-defined zones, unsupported training-signal types, undated recovery samples, additional providers, portable normalized export, and user-controlled backup and restore are not included. Consult the [report guide](reports.md) for the implemented authoring boundary and the [Polar Flow compatibility reference](../data-formats/providers/polar-flow.md) for the exact evaluated families and shapes.
 
 ## Local data and privacy
 

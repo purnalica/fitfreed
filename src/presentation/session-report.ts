@@ -1,6 +1,7 @@
 import type { TrainingSessionSearchItem } from "./training-session-search";
 import type { TrainingProvenanceCurrent } from "./training-session-provenance";
 import type { TrainingRouteKind, TrainingRoutePoint } from "./training-session-route";
+import type { TrainingComparison, TrainingDateRange } from "./training-insights";
 
 export interface SessionReportOrigin {
   snapshotRef: string;
@@ -28,10 +29,64 @@ export interface RouteReportBlock {
   endpointRedactionMeters: number;
 }
 
+export type ReportTrainingMetric =
+  | "session-count"
+  | "training-days"
+  | "duration"
+  | "distance"
+  | "energy";
+
+export interface ReportTrainingComparisonQuery {
+  question: "training-period-comparison";
+  questionVersion: 1;
+  baselineRange: TrainingDateRange;
+  comparisonRange: TrainingDateRange;
+}
+
+export interface TrainingFindingReportBlock {
+  kind: "training-finding";
+  blockRef: string;
+  query: ReportTrainingComparisonQuery;
+  metric: ReportTrainingMetric;
+}
+
+export interface TrainingComparisonReportBlock {
+  kind: "training-comparison";
+  blockRef: string;
+  query: ReportTrainingComparisonQuery;
+}
+
+export interface TrainingChartReportBlock {
+  kind: "training-chart";
+  blockRef: string;
+  query: ReportTrainingComparisonQuery;
+  metric: ReportTrainingMetric;
+}
+
+export interface TrainingExactTableReportBlock {
+  kind: "training-exact-table";
+  blockRef: string;
+  query: ReportTrainingComparisonQuery;
+}
+
+export interface TrainingCoverageReportBlock {
+  kind: "training-coverage";
+  blockRef: string;
+  query: ReportTrainingComparisonQuery;
+}
+
+export type AnalyticalReportBlock =
+  | TrainingFindingReportBlock
+  | TrainingComparisonReportBlock
+  | TrainingChartReportBlock
+  | TrainingExactTableReportBlock
+  | TrainingCoverageReportBlock;
+
 export type ReportBlock =
   | SessionEvidenceReportBlock
   | RouteReportBlock
-  | NarrativeReportBlock;
+  | NarrativeReportBlock
+  | AnalyticalReportBlock;
 
 export interface ReportDefinition {
   reportRef: string;
@@ -41,7 +96,7 @@ export interface ReportDefinition {
   origin: { kind: "session"; sessionRef: string };
   provenancePolicy: "current-attribution";
   authorship: "user";
-  definitionVersion: 1 | 2;
+  definitionVersion: 1 | 2 | 3;
   revision: string;
   blocks: ReportBlock[];
 }
@@ -71,6 +126,7 @@ export interface ResolvedSessionReport {
   status: "current" | "stale";
   session: TrainingSessionSearchItem;
   routes: ReportRouteEvidence[];
+  trainingComparison: TrainingComparison | null;
   provenance: TrainingProvenanceCurrent;
   sensitiveContents: ReportSensitiveContent[];
   limitations: ReportLimitation[];
@@ -117,6 +173,33 @@ export type SessionReportBlockDraft =
       kind: "narrative";
       blockRef?: string;
       body: string;
+    }
+  | {
+      kind: "training-finding";
+      blockRef?: string;
+      query: ReportTrainingComparisonQuery;
+      metric: ReportTrainingMetric;
+    }
+  | {
+      kind: "training-comparison";
+      blockRef?: string;
+      query: ReportTrainingComparisonQuery;
+    }
+  | {
+      kind: "training-chart";
+      blockRef?: string;
+      query: ReportTrainingComparisonQuery;
+      metric: ReportTrainingMetric;
+    }
+  | {
+      kind: "training-exact-table";
+      blockRef?: string;
+      query: ReportTrainingComparisonQuery;
+    }
+  | {
+      kind: "training-coverage";
+      blockRef?: string;
+      query: ReportTrainingComparisonQuery;
     };
 
 export interface ReportExportReceipt {

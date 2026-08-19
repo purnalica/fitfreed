@@ -691,6 +691,7 @@ fn create_composed_session_report(
     create_composed_session_report_through_port(
         &SqliteReportLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path),
         request,
     )
@@ -719,6 +720,7 @@ fn update_composed_session_report(
     let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     update_composed_session_report_through_port(
         &SqliteReportLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path),
         request,
@@ -756,6 +758,7 @@ fn resolve_session_report(
         &SqliteReportLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path),
         &report_ref,
     )
@@ -778,6 +781,7 @@ async fn export_session_report(
         let cancellation = Arc::clone(&operation.cancellation);
         let result = export_session_report_through_port(
             &SqliteReportLibrary::new(path.clone()),
+            &SqliteTrainingLibrary::new(path.clone()),
             &SqliteTrainingLibrary::new(path.clone()),
             &SqliteTrainingLibrary::new(path.clone()),
             &SqliteTrainingLibrary::new(path),

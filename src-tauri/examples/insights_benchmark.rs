@@ -27,7 +27,9 @@ use fitfreed_application::{
     TrainingSessionSort, TrainingSessionStructureQuery, TrainingSessionZonesQuery,
     TrainingSignalSamplesQuery,
 };
-use fitfreed_domain::ReportLocale;
+use fitfreed_domain::{
+    ReportDateRange, ReportLocale, ReportTrainingComparisonQuery, ReportTrainingMetric,
+};
 use fitfreed_lib::infrastructure::{
     query_activity_between, SqliteActivityLibrary, SqliteLongitudinalLibrary,
     SqliteRecoveryLibrary, SqliteReportLibrary, SqliteSleepLibrary, SqliteTrainingLibrary,
@@ -304,6 +306,7 @@ fn main() {
         &report_library,
         &training_library,
         &training_library,
+        &training_library,
         CreateComposedSessionReportRequest {
             title: "Synthetic maximum route report".to_owned(),
             locale: ReportLocale::EnUs,
@@ -338,6 +341,7 @@ fn main() {
         &training_library,
         &training_library,
         &training_library,
+        &training_library,
         route_report.report_ref(),
     )
     .expect("resolve generated route report");
@@ -349,12 +353,108 @@ fn main() {
             &training_library,
             &training_library,
             &training_library,
+            &training_library,
             route_report.report_ref(),
         )
         .expect("resolve maximum route report")
         .routes[0]
             .visual_points
             .len()
+    });
+    let comparison_query = ReportTrainingComparisonQuery::new(
+        ReportDateRange::new("2019-01-01", "2019-12-31").expect("maximum baseline report range"),
+        ReportDateRange::new("2025-01-01", "2025-12-31").expect("maximum comparison report range"),
+    );
+    let comparison_report = create_composed_session_report(
+        &report_library,
+        &training_library,
+        &training_library,
+        &training_library,
+        CreateComposedSessionReportRequest {
+            title: "Synthetic maximum comparison report".to_owned(),
+            locale: ReportLocale::EnUs,
+            session_ref: training_discovery_page.sessions[0].session_ref.clone(),
+            source_snapshot_ref: training_discovery_page.snapshot_ref.clone(),
+            blocks: vec![
+                SessionReportBlockDraft {
+                    block_ref: None,
+                    content: SessionReportBlockDraftContent::SessionEvidence {
+                        include_physiological_context: true,
+                    },
+                },
+                SessionReportBlockDraft {
+                    block_ref: None,
+                    content: SessionReportBlockDraftContent::TrainingFinding {
+                        query: comparison_query.clone(),
+                        metric: ReportTrainingMetric::SessionCount,
+                    },
+                },
+                SessionReportBlockDraft {
+                    block_ref: None,
+                    content: SessionReportBlockDraftContent::TrainingComparison {
+                        query: comparison_query.clone(),
+                    },
+                },
+                SessionReportBlockDraft {
+                    block_ref: None,
+                    content: SessionReportBlockDraftContent::TrainingChart {
+                        query: comparison_query.clone(),
+                        metric: ReportTrainingMetric::Duration,
+                    },
+                },
+                SessionReportBlockDraft {
+                    block_ref: None,
+                    content: SessionReportBlockDraftContent::TrainingExactTable {
+                        query: comparison_query.clone(),
+                    },
+                },
+                SessionReportBlockDraft {
+                    block_ref: None,
+                    content: SessionReportBlockDraftContent::TrainingCoverage {
+                        query: comparison_query,
+                    },
+                },
+                SessionReportBlockDraft {
+                    block_ref: None,
+                    content: SessionReportBlockDraftContent::Narrative {
+                        body: "Synthetic comparison-scale performance evidence.".to_owned(),
+                    },
+                },
+            ],
+        },
+    )
+    .expect("create generated comparison report");
+    let comparison_report_setup = resolve_session_report(
+        &report_library,
+        &training_library,
+        &training_library,
+        &training_library,
+        &training_library,
+        comparison_report.report_ref(),
+    )
+    .expect("resolve generated comparison report");
+    assert_eq!(
+        comparison_report_setup
+            .training_comparison
+            .expect("comparison report evidence")
+            .series
+            .len(),
+        ORIGIN_COUNT
+    );
+    let training_comparison_report = measure(ORIGIN_COUNT, || {
+        resolve_session_report(
+            &report_library,
+            &training_library,
+            &training_library,
+            &training_library,
+            &training_library,
+            comparison_report.report_ref(),
+        )
+        .expect("resolve maximum comparison report")
+        .training_comparison
+        .expect("comparison report evidence")
+        .series
+        .len()
     });
     let training_signal_request = TrainingSessionSignalsQuery {
         session_ref: training_discovery_page.sessions[0].session_ref.clone(),
@@ -698,6 +798,11 @@ fn main() {
             COMPLEX_BUDGET_MILLISECONDS,
         ),
         (
+            "training.comparisonReportResolution",
+            &training_comparison_report,
+            COMMON_BUDGET_MILLISECONDS,
+        ),
+        (
             "training.signalOverview",
             &training_signal_overview,
             COMMON_BUDGET_MILLISECONDS,
@@ -913,6 +1018,10 @@ fn main() {
                     "routeReportResolution": measurement_json(
                         &training_route_report,
                         COMPLEX_BUDGET_MILLISECONDS,
+                    ),
+                    "comparisonReportResolution": measurement_json(
+                        &training_comparison_report,
+                        COMMON_BUDGET_MILLISECONDS,
                     ),
                     "signalOverview": measurement_json(
                         &training_signal_overview,

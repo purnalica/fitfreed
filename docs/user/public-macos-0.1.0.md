@@ -83,11 +83,12 @@ Version 0.1.0 provides provider-neutral views for:
 - training overview, range, exact session summary, exercise/lap/pause structure, bounded local primary and transition route traces, paginated exact route points, gap-aware supported signal charts, paginated exact signal samples, and period comparison;
 - primary sleep overview, range, phases, timeline, score detail, and period comparison;
 - dated nightly recovery overview, range, exact source-context detail, and period comparison; and
-- one longitudinal dashboard with a shared range, aligned day synopsis, navigation, and period comparison.
+- one longitudinal dashboard with a shared range, aligned day synopsis, navigation, and period comparison; and
+- durable session-origin reports that combine recorded evidence, user narrative, optional protected route shapes, and user-selected training-period findings, comparisons, accessible charts, exact tables, and coverage in a privacy-reviewed self-contained HTML export.
 
 Every visual has exact values or a table alternative. Missing and unavailable observations do not become zero. Histories from different opaque origins stay separate. Aligned observations establish recorded co-occurrence only; FitFreed does not infer causation, readiness, diagnosis, or advice.
 
-External route maps, provider-defined zones, unsupported training-signal types, undated recovery samples, other providers, portable normalized export, and user-controlled backup and restore are outside 0.1.0.
+Report starts from a question, exploration, or blank canvas, deliberate report refresh, PDF and spreadsheet output, external route maps, provider-defined zones, unsupported training-signal types, undated recovery samples, other providers, portable normalized export, and user-controlled backup and restore are outside 0.1.0. The [report guide](reports.md) defines the implemented authoring and export boundary.
 
 ## Local data and privacy
 

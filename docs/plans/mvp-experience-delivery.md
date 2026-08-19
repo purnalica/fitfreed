@@ -2,7 +2,7 @@
 
 ## Status
 
-Active as of 2026-08-19. D0, P1, E1, and P2 have complete local and hosted acceptance evidence. E2 has reached its complete local checkpoint; hosted executable evidence remains pending. All three E3 slices and all seven E4 slices have reached their local checkpoints. The first two E5 verticals have reached their local checkpoints: durable session-origin authorship and ordered route composition now share privacy review and deterministic self-contained HTML export. The remaining accepted blocks, start paths, deliberate refresh, and complete report navigation remain active. The latest executable fingerprint still requires hosted evidence. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English and Spanish hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md) and [ADR 0024](../architecture/decisions/0024-generate-localized-product-pages.md).
+Active as of 2026-08-19. D0, P1, E1, and P2 have complete local and hosted acceptance evidence. E2 has reached its complete local checkpoint; hosted executable evidence remains pending. All three E3 slices and all seven E4 slices have reached their local checkpoints. Three E5 verticals have passed their complete local checkpoints: durable session-origin authorship, ordered route composition, and one coherent training-period comparison family now share preview, privacy review, persistence, and deterministic self-contained HTML export. Question, exploration, and blank starts, deliberate refresh, and complete report navigation remain active. The latest executable fingerprint still requires hosted evidence. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English and Spanish hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md) and [ADR 0024](../architecture/decisions/0024-generate-localized-product-pages.md).
 
 The existing import, reconciliation, persistence, Insights, localization, update-recovery, packaging, and continuous-integration capabilities remain the engineering baseline. This plan changes how those capabilities become a product people can understand and value; it does not discard their verified behavior.
 
@@ -571,12 +571,13 @@ executable fingerprint.
 
 **Precondition:** FR-005 and ADR 0022 define the accepted report scope and export format; implementation waits only for authoritative application queries required by each selected block.
 
-**Delivery sequence:** E5 starts with a session-origin vertical that persists a versioned report containing
+**Delivery sequence:** E5 started with a session-origin vertical that persists a versioned report containing
 resolved session evidence and user narrative, reopens it after restart, reviews its included sensitive
 content, and exports deterministic self-contained HTML. This proves the durable model, authoritative query,
-SQLite, transport, editor, and output-adapter boundaries through one immediately useful artifact. Later E5
-slices add the remaining accepted finding, comparison, chart, exact-table, and coverage-and-limitation
-blocks; question, exploration, and blank starts; then deliberate refresh and complete origin-aware return.
+SQLite, transport, editor, and output-adapter boundaries through one immediately useful artifact. The next
+two slices added route composition and the accepted finding, comparison, chart, exact-table, and
+coverage-and-limitation family. Remaining E5 slices add question, exploration, and blank starts, then
+deliberate refresh and complete origin-aware return.
 Each slice remains runnable and documented but E5 is accepted only after the complete FR-005 journey passes.
 
 **Application and architecture:**
@@ -622,6 +623,21 @@ transport, component, HTML, migration, and packaged macOS tests protect these bo
 lane, strict Clippy, production build, packaged functional journey, and packaged performance campaign pass
 locally. This remains an incremental E5 checkpoint: the other accepted block types, start paths, deliberate
 refresh, and complete report-origin navigation are not yet claimed.
+
+**Training-period comparison implementation checkpoint:** version 3 adds finding, comparison, chart,
+exact-table, and coverage blocks as five independently selectable and reorderable views of one versioned
+question. The user chooses both inclusive periods and the finding and chart measurements. Domain invariants
+prevent mixed queries or duplicate analytical kinds; creation, resolution, and export rerun one authoritative
+training comparison with snapshot checks around it. SQLite schema 22 stores only intent and migrates
+version-21 reports atomically. Strict transport and public JSON schemas, the bilingual editor and preview,
+visible exact alternatives for charts, privacy review, and deterministic bilingual HTML preserve exact
+values, missing measurements, coverage, source separation, attribution, and descriptive-only limitations.
+Domain, application, persistence, migration, transport, component, contract, and independent HTML tests,
+the complete fast lane, strict Clippy, production build, packaged functional journey, and packaged performance
+campaign pass locally. A dedicated production read-model benchmark resolves all five views over two 365-day
+periods and four source-separated histories at 26.888 milliseconds p95 against a 500-millisecond budget.
+Hosted evidence remains pending; question, exploration, and blank starts, deliberate refresh, and complete
+report-origin navigation remain active.
 
 **Evaluation checkpoint:** a reviewer can create a useful artifact without learning provider or database terminology and can explain which parts are recorded, calculated, or authored.
 

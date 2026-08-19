@@ -1360,6 +1360,9 @@ pub trait ActivityLibraryPort {
 }
 
 pub trait TrainingLibraryPort {
+    fn training_snapshot_ref(&self) -> Result<Option<String>, String> {
+        Ok(None)
+    }
     fn training_bounds(&self) -> Result<Option<TrainingDateRange>, String>;
     fn training_origins(&self) -> Result<Vec<String>, String>;
     fn query_training(&self, range: &TrainingDateRange) -> Result<Vec<TrainingSession>, String>;

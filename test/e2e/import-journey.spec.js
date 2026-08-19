@@ -144,6 +144,53 @@ async function setComparisonRanges(baselineFrom, baselineThrough, comparisonFrom
   }
 }
 
+async function setReportComparisonRanges(
+  baselineFrom,
+  baselineThrough,
+  comparisonFrom,
+  comparisonThrough,
+) {
+  const values = [baselineFrom, baselineThrough, comparisonFrom, comparisonThrough];
+  await browser.execute((nextValues) => {
+    const inputs = document.querySelectorAll(".report-analysis-ranges input[type='date']");
+    const setValue = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    ).set;
+    inputs.forEach((input, index) => {
+      setValue.call(input, nextValues[index]);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  }, values);
+  const inputs = await $$(".report-analysis-ranges input[type='date']");
+  expect(inputs).toHaveLength(4);
+  for (let index = 0; index < values.length; index += 1) {
+    await expect(inputs[index]).toHaveValue(values[index]);
+  }
+}
+
+async function setReportAnalysisMetrics(findingMetric, chartMetric) {
+  const values = [findingMetric, chartMetric];
+  await browser.execute((nextValues) => {
+    const selects = document.querySelectorAll(".report-analysis-metric select");
+    const setValue = Object.getOwnPropertyDescriptor(
+      window.HTMLSelectElement.prototype,
+      "value",
+    ).set;
+    selects.forEach((select, index) => {
+      setValue.call(select, nextValues[index]);
+      select.dispatchEvent(new Event("input", { bubbles: true }));
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  }, values);
+  const selects = await $$(".report-analysis-metric select");
+  expect(selects).toHaveLength(2);
+  for (let index = 0; index < values.length; index += 1) {
+    await expect(selects[index]).toHaveValue(values[index]);
+  }
+}
+
 function formatLocalDate(locale, value) {
   const [year, month, day] = value.split("-").map(Number);
   return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }).format(
@@ -1197,6 +1244,33 @@ describe("packaged FitFreed import journey", () => {
     await routeMoveButtons[0].click();
     await expect($(".report-block-list > li:first-child .report-route-settings"))
       .toBeDisplayed();
+    const analysisKinds = [
+      "training-finding",
+      "training-comparison",
+      "training-chart",
+      "training-exact-table",
+      "training-coverage",
+    ];
+    for (const kind of analysisKinds) {
+      const label = english.reports.analysis.addBlock.replace(
+        "{block}",
+        english.reports.analysis.blocks[kind].heading,
+      );
+      await $(`aria/${label}`).click();
+    }
+    await expect($(".report-analysis-picker")).toHaveText(
+      expect.stringContaining(english.reports.analysis.allAdded),
+    );
+    const analyticalEditors = await $$(
+      ".report-block-editor:has(.report-analysis-block-help)",
+    );
+    await analyticalEditors.at(-1).$(`aria/${english.reports.analysis.removeBlock}`).click();
+    await $(`aria/${english.reports.analysis.addBlock.replace(
+      "{block}",
+      english.reports.analysis.blocks["training-coverage"].heading,
+    )}`).click();
+    await setReportComparisonRanges("2026-01-04", "2026-01-04", "2026-01-05", "2026-01-05");
+    await setReportAnalysisMetrics("energy", "distance");
     await $('.report-editor button[type="submit"]').click();
     await waitForNotice(english.reports.saved);
     await expect($(".report-preview h3")).toHaveText("Synthetic ridge progression");
@@ -1204,12 +1278,26 @@ describe("packaged FitFreed import journey", () => {
       expect.stringContaining("Held the intended effort and finished the final climb with control."),
     );
     await expect($(".report-preview")).toHaveText(expect.stringContaining("Trail running"));
+    await expect($(".report-preview")).toHaveText(
+      expect.stringContaining(english.reports.analysis.blocks["training-finding"].heading),
+    );
+    await expect($(".report-preview")).toHaveText(
+      expect.stringContaining(english.reports.analysis.blocks["training-exact-table"].heading),
+    );
+    await expect($(".report-preview")).toHaveText(
+      expect.stringContaining(english.reports.analysis.blocks["training-coverage"].heading),
+    );
+    await expect($(".report-analysis-bars")).toBeDisplayed();
+    expect(await $$(".report-analysis-table")).toHaveLength(3);
     expect(await $$(".report-list > li")).toHaveLength(1);
 
     await $(`aria/${english.reports.reviewExport}`).click();
     const privacyReview = await $(".report-privacy-review");
     await expect(privacyReview).toHaveText(
       expect.stringContaining(english.reports.exactSamplesExcluded),
+    );
+    await expect(privacyReview).toHaveText(
+      expect.stringContaining(english.reports.analysisExportIncluded),
     );
     const exportHeartRate = await privacyReview.$$('input[type="checkbox"]')[0];
     await expect(exportHeartRate).toBeChecked();
@@ -1243,7 +1331,7 @@ describe("packaged FitFreed import journey", () => {
     });
     await waitForNotice("Self-contained HTML exported");
     const exportedReport = fs.readFileSync(reportOutput, "utf8");
-    expect(exportedReport).toContain('data-fitfreed-report-version="2"');
+    expect(exportedReport).toContain('data-fitfreed-report-version="3"');
     expect(exportedReport).toContain(
       "Held the intended effort and finished the final climb with control.",
     );
@@ -1252,6 +1340,16 @@ describe("packaged FitFreed import journey", () => {
     expect(exportedReport).not.toContain("Maximum heart rate");
     expect(exportedReport).toContain("<polyline");
     expect(exportedReport).toContain("500 m");
+    expect(exportedReport).toContain("Training finding");
+    expect(exportedReport).toContain("Exact training values");
+    expect(exportedReport).toContain("Coverage and limitations");
+    expect(exportedReport).toContain("Baseline</dt><dd>2026-01-04 – 2026-01-04");
+    expect(exportedReport).toContain("Comparison</dt><dd>2026-01-05 – 2026-01-05");
+    expect(exportedReport).toContain(
+      "Energy: The selected metric is unavailable for one or both periods.",
+    );
+    expect(exportedReport).toContain("Training history — Distance");
+    expect(exportedReport).not.toContain("series-");
     expect(exportedReport).not.toContain("40.01");
     expect(exportedReport).not.toContain("-3.01");
     expect(exportedReport).not.toContain("latitude");
@@ -2602,6 +2700,9 @@ describe("packaged FitFreed import journey", () => {
       expect.stringContaining(
         "Held the intended effort and finished the final climb with control.",
       ),
+    );
+    await expect($(".report-preview")).toHaveText(
+      expect.stringContaining(spanish.reports.analysis.blocks["training-finding"].heading),
     );
     await expect($(".report-status-stale")).toHaveText(spanish.reports.status.stale);
     await expect($(".report-stale")).toHaveText(expect.stringContaining(spanish.reports.stale));

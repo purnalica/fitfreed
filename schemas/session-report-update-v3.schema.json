@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/session-report-update-v3.schema.json",
+  "title": "FitFreed analytical session report update version 3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["reportRef", "expectedRevision", "title", "locale", "blocks"],
+  "properties": {
+    "reportRef": { "$ref": "report-definition-v3.schema.json#/$defs/reportRef" },
+    "expectedRevision": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+    "title": { "$ref": "report-definition-v3.schema.json#/properties/title" },
+    "locale": { "$ref": "report-definition-v3.schema.json#/properties/locale" },
+    "blocks": { "$ref": "#/$defs/updateBlocks" }
+  },
+  "$defs": {
+    "sessionDraft": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "includePhysiologicalContext"],
+      "properties": {
+        "blockRef": { "$ref": "report-definition-v3.schema.json#/$defs/blockRef" },
+        "kind": { "const": "session-evidence" },
+        "includePhysiologicalContext": { "type": "boolean" }
+      }
+    },
+    "routeDraft": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "routeRef", "endpointRedactionMeters"],
+      "properties": {
+        "blockRef": { "$ref": "report-definition-v3.schema.json#/$defs/blockRef" },
+        "kind": { "const": "route" },
+        "routeRef": { "$ref": "report-definition-v3.schema.json#/$defs/routeRef" },
+        "endpointRedactionMeters": { "$ref": "report-definition-v3.schema.json#/$defs/endpointRedactionMeters" }
+      }
+    },
+    "narrativeDraft": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "body"],
+      "properties": {
+        "blockRef": { "$ref": "report-definition-v3.schema.json#/$defs/blockRef" },
+        "kind": { "const": "narrative" },
+        "body": { "$ref": "report-definition-v3.schema.json#/$defs/narrativeBlock/properties/body" }
+      }
+    },
+    "findingDraft": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "query", "metric"],
+      "properties": {
+        "blockRef": { "$ref": "report-definition-v3.schema.json#/$defs/blockRef" },
+        "kind": { "const": "training-finding" },
+        "query": { "$ref": "report-definition-v3.schema.json#/$defs/trainingComparisonQuery" },
+        "metric": { "$ref": "report-definition-v3.schema.json#/$defs/trainingMetric" }
+      }
+    },
+    "comparisonDraft": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "query"],
+      "properties": {
+        "blockRef": { "$ref": "report-definition-v3.schema.json#/$defs/blockRef" },
+        "kind": { "const": "training-comparison" },
+        "query": { "$ref": "report-definition-v3.schema.json#/$defs/trainingComparisonQuery" }
+      }
+    },
+    "chartDraft": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "query", "metric"],
+      "properties": {
+        "blockRef": { "$ref": "report-definition-v3.schema.json#/$defs/blockRef" },
+        "kind": { "const": "training-chart" },
+        "query": { "$ref": "report-definition-v3.schema.json#/$defs/trainingComparisonQuery" },
+        "metric": { "$ref": "report-definition-v3.schema.json#/$defs/trainingMetric" }
+      }
+    },
+    "tableDraft": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "query"],
+      "properties": {
+        "blockRef": { "$ref": "report-definition-v3.schema.json#/$defs/blockRef" },
+        "kind": { "const": "training-exact-table" },
+        "query": { "$ref": "report-definition-v3.schema.json#/$defs/trainingComparisonQuery" }
+      }
+    },
+    "coverageDraft": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "query"],
+      "properties": {
+        "blockRef": { "$ref": "report-definition-v3.schema.json#/$defs/blockRef" },
+        "kind": { "const": "training-coverage" },
+        "query": { "$ref": "report-definition-v3.schema.json#/$defs/trainingComparisonQuery" }
+      }
+    },
+    "updateBlocks": {
+      "type": "array", "minItems": 2, "maxItems": 32,
+      "items": {
+        "oneOf": [
+          { "$ref": "#/$defs/sessionDraft" }, { "$ref": "#/$defs/routeDraft" },
+          { "$ref": "#/$defs/narrativeDraft" }, { "$ref": "#/$defs/findingDraft" },
+          { "$ref": "#/$defs/comparisonDraft" }, { "$ref": "#/$defs/chartDraft" },
+          { "$ref": "#/$defs/tableDraft" }, { "$ref": "#/$defs/coverageDraft" }
+        ]
+      },
+      "allOf": [
+        { "contains": { "$ref": "#/$defs/sessionDraft" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/narrativeDraft" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/findingDraft" }, "minContains": 0, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/comparisonDraft" }, "minContains": 0, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/chartDraft" }, "minContains": 0, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/tableDraft" }, "minContains": 0, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/coverageDraft" }, "minContains": 0, "maxContains": 1 }
+      ]
+    }
+  }
+}

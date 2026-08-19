@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented session and route composition under [ADR 0022](decisions/0022-persist-reproducible-evidence-reports.md) and E5 of the [MVP experience delivery plan](../plans/mvp-experience-delivery.md). The application persists, reopens, edits, resolves, privacy-reviews, and exports immutable version-1 definitions and composable version-2 definitions. Finding, comparison, chart, exact-table, and coverage blocks, additional start paths, and deliberate source refresh remain later E5 increments; a stale definition cannot be exported yet.
+Implemented session, route, and training-period comparison composition under [ADR 0022](decisions/0022-persist-reproducible-evidence-reports.md) and E5 of the [MVP experience delivery plan](../plans/mvp-experience-delivery.md). The application persists, reopens, edits, resolves, privacy-reviews, and exports immutable version-1 definitions, composable version-2 definitions, and analytical version-3 definitions. Additional start paths and deliberate source refresh remain later E5 increments; a stale definition cannot be exported yet.
 
 ## Ownership
 
@@ -15,11 +15,23 @@ Implemented session and route composition under [ADR 0022](decisions/0022-persis
 
 ## Definition and resolved output
 
-`ReportDefinition` is durable user-authored information. Version 1 remains readable as one fixed session block followed by one narrative. Version 2 contains 2–32 semantic positions, requires exactly one session block and one narrative, and can include each authoritative route from the origin session once. Session, narrative, and route blocks can be reordered; routes can be added or removed. Existing identities are preserved through edits, and a version-1 edit becomes version 2 without rewriting the historical row during migration.
+`ReportDefinition` is durable user-authored information. Version 1 remains readable as one fixed session block followed by one narrative. Version 2 contains 2–32 semantic positions, requires exactly one session block and one narrative, and can include each authoritative route from the origin session once. Version 3 adds the training-period block family. Every block can be reordered; optional blocks can be added or removed. Existing identities are preserved through edits, and editing an earlier definition produces a version-3 successor without rewriting the historical row during migration.
 
 A route block stores only the origin session capability, route capability, and an authored 0–5,000-metre endpoint-redaction choice. The application verifies membership through `TrainingSessionRoutePort`, obtains exact points through the same authoritative route port, and performs two memory-bounded passes: total cumulative haversine distance followed by deterministic selection of recorded points inside the retained interval. Internal report processing requests at most 10,000 points per page; the separate interactive exact-point contract remains capped at 250. It neither interpolates coordinates nor reads route tables. At most 500 retained recorded points cross into the resolved report.
 
 A resolved preview or export is a time-bound projection. It records the definition version, source revision, locale, units, provenance, coverage, limitations, authorship, and resolution status. New imports or calculation changes can make a definition stale; comparison and refresh are deliberate use cases rather than automatic mutations.
+
+## Training-period comparison family
+
+Finding, comparison, chart, exact-table, and coverage blocks are five implemented ordered views of one
+`training-period-comparison` question, not five independent calculations. Each block carries the same
+versioned baseline and comparison ranges; the domain rejects mixed parameters and duplicate analytical
+kinds. Finding and chart blocks select a supported metric, while the other blocks retain the complete
+authoritative result. The application resolves the family once through `TrainingLibraryPort` and the
+established training comparison use case. Persistence schema 22 stores only question intent, React receives
+the resolved provider-neutral projection, and version-3 HTML renders the authorized projection without
+reading SQLite. Snapshot checks surround the single comparison query so a concurrent import cannot combine
+revisions.
 
 ## Export boundary
 
@@ -27,4 +39,4 @@ The first normative output is a self-contained semantic HTML document with embed
 
 Sensitive-content review is an application decision before rendering. Review can remove physiological context allowed by the saved definition, omit each route, or increase its endpoint redaction. It cannot add excluded physiology, introduce another route, or reduce the saved location protection. Exact choices are bound to block identities before the adapter runs.
 
-Version-2 HTML renders selected route blocks as normalized local SVG shapes in definition order. Recorded latitude, longitude, altitude, and elapsed point values never enter the generated bytes; omission and complete redaction remain explicit. The adapter receives only the authorized bounded projection and cannot infer additional authority. Exact training samples remain outside this report version.
+Version-2 and version-3 HTML render selected route blocks as normalized local SVG shapes in definition order. Version-3 analytical blocks use exact visible tables and CSS-only bars from one authorized comparison. Recorded latitude, longitude, altitude, elapsed point values, exact training samples, and opaque source-series identities never enter the generated bytes; omission, complete redaction, unavailable measurements, and descriptive-only interpretation remain explicit. The adapter receives only the authorized bounded projection and cannot infer additional authority.

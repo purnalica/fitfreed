@@ -6,12 +6,15 @@ import { type catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
 import { routeSvgPoints } from "./route-svg";
 import type {
+  AnalyticalReportBlock,
   ReportBlock,
   ReportDefinition,
   ReportExportReceipt,
   ReportList,
   ReportRouteEvidence,
   ReportSummary,
+  ReportTrainingComparisonQuery,
+  ReportTrainingMetric,
   ResolvedSessionReport,
   RouteReportBlock,
   SessionReportBlockDraft,
@@ -25,6 +28,11 @@ import {
   formatTrainingDateTime,
 } from "./training-format";
 import type {
+  TrainingDateRange,
+  TrainingSeriesComparison,
+  TrainingSeriesSummary,
+} from "./training-insights";
+import type {
   TrainingRouteOverview,
   TrainingSessionRoutesResult,
 } from "./training-session-route";
@@ -33,6 +41,29 @@ import type { TrainingSessionSport } from "./training-session-search";
 const REPORT_ROUTE_VISUAL_POINT_LIMIT = 400;
 const DEFAULT_ROUTE_REDACTION_METERS = 200;
 const MAX_ROUTE_REDACTION_METERS = 5000;
+
+type AnalyticalBlockKind =
+  | "training-finding"
+  | "training-comparison"
+  | "training-chart"
+  | "training-exact-table"
+  | "training-coverage";
+
+const ANALYTICAL_BLOCK_KINDS: AnalyticalBlockKind[] = [
+  "training-finding",
+  "training-comparison",
+  "training-chart",
+  "training-exact-table",
+  "training-coverage",
+];
+
+const REPORT_TRAINING_METRICS: ReportTrainingMetric[] = [
+  "session-count",
+  "training-days",
+  "duration",
+  "distance",
+  "energy",
+];
 
 interface ReportsPanelProps {
   locale: Locale;
@@ -75,7 +106,64 @@ function draftFromBlock(block: ReportBlock): SessionReportBlockDraft {
       };
     case "narrative":
       return { blockRef: block.blockRef, kind: block.kind, body: block.body };
+    case "training-finding":
+    case "training-chart":
+      return {
+        blockRef: block.blockRef,
+        kind: block.kind,
+        query: block.query,
+        metric: block.metric,
+      };
+    case "training-comparison":
+    case "training-exact-table":
+    case "training-coverage":
+      return { blockRef: block.blockRef, kind: block.kind, query: block.query };
   }
+}
+
+function isAnalyticalBlock(
+  block: SessionReportBlockDraft,
+): block is Extract<SessionReportBlockDraft, { kind: AnalyticalBlockKind }> {
+  return ANALYTICAL_BLOCK_KINDS.includes(block.kind as AnalyticalBlockKind);
+}
+
+function isAnalyticalReportBlock(block: ReportBlock): block is AnalyticalReportBlock {
+  return ANALYTICAL_BLOCK_KINDS.includes(block.kind as AnalyticalBlockKind);
+}
+
+function defaultComparisonQuery(startedAtLocal: string): ReportTrainingComparisonQuery {
+  const sessionDate = startedAtLocal.slice(0, 10);
+  return {
+    question: "training-period-comparison",
+    questionVersion: 1,
+    baselineRange: { from: sessionDate, through: sessionDate },
+    comparisonRange: { from: sessionDate, through: sessionDate },
+  };
+}
+
+function comparisonQuery(blocks: SessionReportBlockDraft[]): ReportTrainingComparisonQuery | undefined {
+  return blocks.find(isAnalyticalBlock)?.query;
+}
+
+function formatReportRange(range: TrainingDateRange, locale: Locale): string {
+  const formatter = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" });
+  const format = (value: string) => formatter.format(new Date(`${value}T00:00:00Z`));
+  return `${format(range.from)} – ${format(range.through)}`;
+}
+
+function validReportRange(range: TrainingDateRange): boolean {
+  const parse = (value: string) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
+    const milliseconds = Date.parse(`${value}T00:00:00Z`);
+    if (!Number.isFinite(milliseconds)) return undefined;
+    return new Date(milliseconds).toISOString().slice(0, 10) === value
+      ? milliseconds
+      : undefined;
+  };
+  const from = parse(range.from);
+  const through = parse(range.through);
+  if (from === undefined || through === undefined || from > through) return false;
+  return (through - from) / 86_400_000 < 366;
 }
 
 function editorFromDefinition(definition: ReportDefinition): EditorState {
@@ -278,6 +366,51 @@ export function ReportsPanel({
       : current);
   }
 
+  function removeAnalyticalBlock(index: number) {
+    setEditor((current) => current
+      ? { ...current, blocks: current.blocks.filter((_block, blockIndex) => blockIndex !== index) }
+      : current);
+  }
+
+  function updateComparisonQuery(query: ReportTrainingComparisonQuery) {
+    setEditor((current) => current
+      ? {
+          ...current,
+          blocks: current.blocks.map((block) => isAnalyticalBlock(block)
+            ? { ...block, query }
+            : block),
+        }
+      : current);
+  }
+
+  function updateComparisonRange(
+    range: "baselineRange" | "comparisonRange",
+    boundary: "from" | "through",
+    value: string,
+  ) {
+    const query = editor ? comparisonQuery(editor.blocks) : undefined;
+    if (!query) return;
+    updateComparisonQuery({
+      ...query,
+      [range]: { ...query[range], [boundary]: value },
+    });
+  }
+
+  function addAnalyticalBlock(kind: AnalyticalBlockKind) {
+    setEditor((current) => {
+      if (!current || current.blocks.some((block) => block.kind === kind)) return current;
+      const startedAtLocal = resolved?.session.startedAtLocal ?? origin?.session.startedAtLocal;
+      if (!startedAtLocal) return current;
+      const query = comparisonQuery(current.blocks) ?? defaultComparisonQuery(startedAtLocal);
+      const block: SessionReportBlockDraft = kind === "training-finding"
+        ? { kind, query, metric: "session-count" }
+        : kind === "training-chart"
+          ? { kind, query, metric: "duration" }
+          : { kind, query };
+      return { ...current, blocks: [...current.blocks, block] };
+    });
+  }
+
   function addRoute(route: TrainingRouteOverview) {
     setEditor((current) => current
       ? {
@@ -303,6 +436,14 @@ export function ReportsPanel({
       : block);
     if (!title || !blocks.some((block) => block.kind === "narrative" && block.body)) {
       setLocalError("invalid-report-definition");
+      return;
+    }
+    const query = comparisonQuery(blocks);
+    if (query && (
+      !validReportRange(query.baselineRange)
+      || !validReportRange(query.comparisonRange)
+    )) {
+      setLocalError("invalid-report-comparison-range");
       return;
     }
     setSaving(true);
@@ -432,9 +573,280 @@ export function ReportsPanel({
     });
   }
 
+  function trainingMetricValue(
+    summary: TrainingSeriesSummary,
+    metric: ReportTrainingMetric,
+  ): string {
+    switch (metric) {
+      case "session-count":
+        return number.format(summary.sessionCount);
+      case "training-days":
+        return number.format(summary.trainingDays);
+      case "duration":
+        return formatDuration(
+          summary.totalDurationMilliseconds,
+          locale,
+          messages.training.durationUnits,
+        );
+      case "distance":
+        return formatDistance(
+          summary.totalDistanceMeters,
+          locale,
+          copy.unavailable,
+          messages.training.units.meters,
+        );
+      case "energy":
+        return formatExactMetric(
+          summary.totalEnergyKilocalories,
+          locale,
+          copy.unavailable,
+          messages.training.units.kilocalories,
+        );
+    }
+  }
+
+  function trainingMetricChange(
+    series: TrainingSeriesComparison,
+    metric: ReportTrainingMetric,
+  ): string {
+    switch (metric) {
+      case "session-count":
+        return formatExactMetric(
+          series.sessionCountChange,
+          locale,
+          copy.unavailable,
+          copy.analysis.metricUnits.sessions,
+          true,
+        );
+      case "training-days":
+        return formatExactMetric(
+          series.trainingDayChange,
+          locale,
+          copy.unavailable,
+          copy.analysis.metricUnits.days,
+          true,
+        );
+      case "duration":
+        return formatDuration(
+          series.durationMillisecondsChange,
+          locale,
+          messages.training.durationUnits,
+          true,
+        );
+      case "distance":
+        return formatDistance(
+          series.distanceMetersChange,
+          locale,
+          copy.unavailable,
+          messages.training.units.meters,
+          true,
+        );
+      case "energy":
+        return formatExactMetric(
+          series.energyKilocaloriesChange,
+          locale,
+          copy.unavailable,
+          messages.training.units.kilocalories,
+          true,
+        );
+    }
+  }
+
+  function trainingMetricMagnitude(
+    summary: TrainingSeriesSummary,
+    metric: ReportTrainingMetric,
+  ): number {
+    const value = metric === "session-count"
+      ? summary.sessionCount
+      : metric === "training-days"
+        ? summary.trainingDays
+        : metric === "duration"
+          ? Number(summary.totalDurationMilliseconds)
+          : metric === "distance"
+            ? summary.totalDistanceMeters ?? 0
+            : Number(summary.totalEnergyKilocalories ?? 0);
+    return Number.isFinite(value) && value > 0 ? value : 0;
+  }
+
+  function renderExactComparisonTable(
+    series: TrainingSeriesComparison,
+    metrics: ReportTrainingMetric[],
+    compact = false,
+  ) {
+    return (
+      <div className="table-scroll">
+        <table className={compact ? "report-analysis-table compact" : "report-analysis-table"}>
+          <thead>
+            <tr>
+              <th scope="col">{copy.analysis.metric}</th>
+              <th scope="col">{copy.analysis.baseline}</th>
+              <th scope="col">{copy.analysis.comparison}</th>
+              <th scope="col">{copy.analysis.change}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {metrics.map((metric) => (
+              <tr key={metric}>
+                <th scope="row">{copy.analysis.metrics[metric]}</th>
+                <td>{trainingMetricValue(series.baseline, metric)}</td>
+                <td>{trainingMetricValue(series.comparison, metric)}</td>
+                <td>{trainingMetricChange(series, metric)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  function renderComparisonTable(
+    series: TrainingSeriesComparison,
+    metrics: ReportTrainingMetric[],
+    sourceIndex: number,
+  ) {
+    return (
+      <div className="report-analysis-series" key={series.seriesRef}>
+        <h4>{interpolate(copy.analysis.sourceLabel, {
+          number: number.format(sourceIndex + 1),
+        })}</h4>
+        {renderExactComparisonTable(series, metrics)}
+      </div>
+    );
+  }
+
+  function renderAnalyticalPreview(block: AnalyticalReportBlock) {
+    const comparison = resolved?.trainingComparison;
+    const labels = copy.analysis.blocks[block.kind];
+    if (!comparison) {
+      return (
+        <article key={block.blockRef}>
+          <h3>{labels.heading}</h3>
+          <p>{copy.analysis.unavailable}</p>
+        </article>
+      );
+    }
+    const ranges = (
+      <p className="report-attribution">
+        {interpolate(copy.analysis.rangeAttribution, {
+          baseline: comparison.baselineRange
+            ? formatReportRange(comparison.baselineRange, locale)
+            : copy.unavailable,
+          comparison: comparison.comparisonRange
+            ? formatReportRange(comparison.comparisonRange, locale)
+            : copy.unavailable,
+        })}
+      </p>
+    );
+    if (block.kind === "training-finding") {
+      return (
+        <article key={block.blockRef}>
+          <h3>{labels.heading}</h3>
+          {ranges}
+          {comparison.series.map((series, index) => (
+            <p className="report-analysis-finding" key={series.seriesRef}>
+              {interpolate(copy.analysis.finding, {
+                source: interpolate(copy.analysis.sourceLabel, {
+                  number: number.format(index + 1),
+                }),
+                metric: copy.analysis.metrics[block.metric],
+                baseline: trainingMetricValue(series.baseline, block.metric),
+                comparison: trainingMetricValue(series.comparison, block.metric),
+                change: trainingMetricChange(series, block.metric),
+              })}
+            </p>
+          ))}
+          <p className="report-analysis-limitation">{copy.analysis.descriptiveOnly}</p>
+        </article>
+      );
+    }
+    if (block.kind === "training-chart") {
+      return (
+        <article key={block.blockRef}>
+          <h3>{labels.heading}</h3>
+          {ranges}
+          {comparison.series.map((series, index) => {
+            const baseline = trainingMetricMagnitude(series.baseline, block.metric);
+            const current = trainingMetricMagnitude(series.comparison, block.metric);
+            const maximum = Math.max(baseline, current, 1);
+            return (
+              <div className="report-analysis-series" key={series.seriesRef}>
+                <h4>{interpolate(copy.analysis.sourceLabel, {
+                  number: number.format(index + 1),
+                })}</h4>
+                <div
+                  className="report-analysis-bars"
+                  role="img"
+                  aria-label={copy.analysis.chartSummary}
+                >
+                  {([
+                    [copy.analysis.baseline, baseline, series.baseline],
+                    [copy.analysis.comparison, current, series.comparison],
+                  ] as const).map(([label, magnitude, summary]) => (
+                    <div key={label}>
+                      <span>{label}</span>
+                      <i style={{ width: `${(magnitude / maximum) * 100}%` }} />
+                      <strong>{trainingMetricValue(summary, block.metric)}</strong>
+                    </div>
+                  ))}
+                </div>
+                {renderExactComparisonTable(series, [block.metric], true)}
+              </div>
+            );
+          })}
+        </article>
+      );
+    }
+    if (block.kind === "training-coverage") {
+      return (
+        <article key={block.blockRef}>
+          <h3>{labels.heading}</h3>
+          {ranges}
+          {comparison.series.map((series, index) => (
+            <div className="report-analysis-series" key={series.seriesRef}>
+              <h4>{interpolate(copy.analysis.sourceLabel, {
+                number: number.format(index + 1),
+              })}</h4>
+              <dl className="report-evidence-summary">
+                {([
+                  [copy.analysis.trainingDaysCoverage, series.baseline.trainingDays, series.comparison.trainingDays, series.baseline.calendarDays, series.comparison.calendarDays],
+                  [copy.analysis.distanceCoverage, series.baseline.distanceSessionCount, series.comparison.distanceSessionCount, series.baseline.sessionCount, series.comparison.sessionCount],
+                  [copy.analysis.energyCoverage, series.baseline.energySessionCount, series.comparison.energySessionCount, series.baseline.sessionCount, series.comparison.sessionCount],
+                  [copy.analysis.heartRateCoverage, series.baseline.heartRateSessionCount, series.comparison.heartRateSessionCount, series.baseline.sessionCount, series.comparison.sessionCount],
+                ] as const).map(([label, baseline, current, baselineTotal, currentTotal]) => (
+                  <div key={label}>
+                    <dt>{label}</dt>
+                    <dd>{interpolate(copy.analysis.coverageValue, {
+                      baseline: `${number.format(baseline)} / ${number.format(baselineTotal)}`,
+                      comparison: `${number.format(current)} / ${number.format(currentTotal)}`,
+                    })}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          ))}
+        </article>
+      );
+    }
+    const metrics = block.kind === "training-comparison"
+      ? (["session-count", "training-days", "duration"] as ReportTrainingMetric[])
+      : REPORT_TRAINING_METRICS;
+    return (
+      <article key={block.blockRef}>
+        <h3>{labels.heading}</h3>
+        {ranges}
+        {comparison.series.map((series, index) => renderComparisonTable(
+          series,
+          metrics,
+          index,
+        ))}
+      </article>
+    );
+  }
+
   function editorBlockLabel(block: SessionReportBlockDraft): string {
     if (block.kind === "session-evidence") return copy.sessionBlockHeading;
     if (block.kind === "narrative") return copy.interpretationHeading;
+    if (isAnalyticalBlock(block)) return copy.analysis.blocks[block.kind].heading;
     const route = availableRoutes.find((candidate) => candidate.routeRef === block.routeRef)
       ?? resolved?.routes.find((candidate) => candidate.routeRef === block.routeRef);
     return route ? routeLabel(route) : copy.routeBlockHeading;
@@ -501,6 +913,7 @@ export function ReportsPanel({
 
   function renderPreviewBlock(block: ReportBlock) {
     if (!resolved) return null;
+    if (isAnalyticalReportBlock(block)) return renderAnalyticalPreview(block);
     if (block.kind === "session-evidence") {
       return (
         <article key={block.blockRef}>
@@ -554,6 +967,10 @@ export function ReportsPanel({
   ) ?? []);
   const unselectedRoutes = availableRoutes.filter(
     (route) => !selectedRouteRefs.has(route.routeRef),
+  );
+  const analyticalQuery = editor ? comparisonQuery(editor.blocks) : undefined;
+  const unselectedAnalyticalKinds = ANALYTICAL_BLOCK_KINDS.filter(
+    (kind) => !editor?.blocks.some((block) => block.kind === kind),
   );
 
   return (
@@ -688,6 +1105,16 @@ export function ReportsPanel({
                                 {copy.removeRoute}
                               </button>
                             )}
+                            {isAnalyticalBlock(block) && (
+                              <button
+                                type="button"
+                                className="secondary danger-action"
+                                onClick={() => removeAnalyticalBlock(index)}
+                                disabled={disabled || saving}
+                              >
+                                {copy.analysis.removeBlock}
+                              </button>
+                            )}
                           </div>
                         </div>
                         {block.kind === "session-evidence" && (
@@ -750,6 +1177,31 @@ export function ReportsPanel({
                               : copy.endpointRedactionHelp}</p>
                           </div>
                         )}
+                        {(block.kind === "training-finding"
+                          || block.kind === "training-chart") && (
+                          <label className="report-analysis-metric">
+                            <span>{copy.analysis.metricLabel}</span>
+                            <select
+                              value={block.metric}
+                              disabled={disabled || saving}
+                              onChange={(event) => updateBlock(index, {
+                                ...block,
+                                metric: event.target.value as ReportTrainingMetric,
+                              })}
+                            >
+                              {REPORT_TRAINING_METRICS.map((metric) => (
+                                <option key={metric} value={metric}>
+                                  {copy.analysis.metrics[metric]}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        )}
+                        {isAnalyticalBlock(block) && (
+                          <p className="report-analysis-block-help">
+                            {copy.analysis.blocks[block.kind].description}
+                          </p>
+                        )}
                       </li>
                     );
                   })}
@@ -787,6 +1239,99 @@ export function ReportsPanel({
                   && availableRoutes.length > 0
                   && unselectedRoutes.length === 0
                   && <p>{copy.allRoutesAdded}</p>}
+              </section>
+
+              <section className="report-analysis-picker" aria-labelledby="report-analysis-heading">
+                <div>
+                  <h3 id="report-analysis-heading">{copy.analysis.addHeading}</h3>
+                  <p>{copy.analysis.addIntro}</p>
+                </div>
+                {analyticalQuery && (
+                  <fieldset className="report-analysis-ranges">
+                    <legend>{copy.analysis.periodsHeading}</legend>
+                    <p>{copy.analysis.periodsHelp}</p>
+                    <div>
+                      <label>
+                        <span>{copy.analysis.baselineFrom}</span>
+                        <input
+                          type="date"
+                          value={analyticalQuery.baselineRange.from}
+                          required
+                          disabled={disabled || saving}
+                          onChange={(event) => updateComparisonRange(
+                            "baselineRange",
+                            "from",
+                            event.target.value,
+                          )}
+                        />
+                      </label>
+                      <label>
+                        <span>{copy.analysis.baselineThrough}</span>
+                        <input
+                          type="date"
+                          value={analyticalQuery.baselineRange.through}
+                          required
+                          disabled={disabled || saving}
+                          onChange={(event) => updateComparisonRange(
+                            "baselineRange",
+                            "through",
+                            event.target.value,
+                          )}
+                        />
+                      </label>
+                      <label>
+                        <span>{copy.analysis.comparisonFrom}</span>
+                        <input
+                          type="date"
+                          value={analyticalQuery.comparisonRange.from}
+                          required
+                          disabled={disabled || saving}
+                          onChange={(event) => updateComparisonRange(
+                            "comparisonRange",
+                            "from",
+                            event.target.value,
+                          )}
+                        />
+                      </label>
+                      <label>
+                        <span>{copy.analysis.comparisonThrough}</span>
+                        <input
+                          type="date"
+                          value={analyticalQuery.comparisonRange.through}
+                          required
+                          disabled={disabled || saving}
+                          onChange={(event) => updateComparisonRange(
+                            "comparisonRange",
+                            "through",
+                            event.target.value,
+                          )}
+                        />
+                      </label>
+                    </div>
+                  </fieldset>
+                )}
+                {unselectedAnalyticalKinds.length > 0
+                  ? (
+                    <ul>
+                      {unselectedAnalyticalKinds.map((kind) => (
+                        <li key={kind}>
+                          <strong>{copy.analysis.blocks[kind].heading}</strong>
+                          <span>{copy.analysis.blocks[kind].description}</span>
+                          <button
+                            type="button"
+                            className="secondary"
+                            disabled={disabled || saving}
+                            onClick={() => addAnalyticalBlock(kind)}
+                          >
+                            {interpolate(copy.analysis.addBlock, {
+                              block: copy.analysis.blocks[kind].heading,
+                            })}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )
+                  : <p>{copy.analysis.allAdded}</p>}
               </section>
 
               <div className="report-actions">
@@ -867,6 +1412,7 @@ export function ReportsPanel({
               <p>{copy.privacyIntro}</p>
               <ul>
                 <li>{copy.sessionSummaryIncluded}</li>
+                {resolved.trainingComparison && <li>{copy.analysisExportIncluded}</li>}
                 <li>{copy.narrativeIncluded}</li>
                 <li>{copy.provenanceIncluded}</li>
                 <li>{copy.exactSamplesExcluded}</li>
