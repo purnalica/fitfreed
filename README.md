@@ -60,7 +60,7 @@ as already implemented production behavior.
 <!-- product-status:start -->
 | Available in source | Active experience work | Deliberately later |
 |---|---|---|
-| Polar Flow ZIP validation and import | Provider-defined zones, provenance, reusable criteria, and user-authored session segmentation | Additional providers and live APIs |
+| Polar Flow ZIP validation and import | Provider-defined zones, provenance, and progressive cross-signal inspection | Additional providers and live APIs |
 | Explicit supported, ignored, and unrecognized coverage | Origin-aware navigation across discovery, session, and report workspaces | Linux and Windows distribution |
 | Safe exact and cumulative reimport | Saved evidence reports with self-contained HTML export | Local MCP access for authorized agents |
 | Provider-neutral SQLite history for activity, training summaries, structure, routes, signals, sleep, and recovery | A coherent, evaluated, documented macOS product journey | Advanced encryption and extension systems |
@@ -70,6 +70,7 @@ as already implemented production behavior.
 | Recorded exercise, mixed-sport, source-lap, automatic-lap, and pause inspection |  |  |
 | Private local primary and transition route traces with paginated exact points |  |  |
 | Gap-aware supported signal charts with paginated exact samples |  |  |
+| Reusable personal segment criteria with exact locally derived session views |  |  |
 | Question-led Library Home, post-import reveal, and resumable exploration |  |  |
 | First-run Sources home with offline export guidance and allowlisted official links |  |  |
 | Durable language, appearance, and content zoom settings |  |  |

@@ -40,6 +40,7 @@ import type {
   TrainingSignalVisualSample,
 } from "./training-session-signal";
 import type { TrainingSport, TrainingSportsOverview } from "./training-sports";
+import { TrainingSegmentationPanel } from "./TrainingSegmentationPanel";
 
 const PAGE_SIZE = 25;
 const ROUTE_VISUAL_POINT_LIMIT = 400;
@@ -1912,6 +1913,15 @@ export function TrainingSessionLibraryPanel({
                 {exerciseSignalEvidence(exercise.exerciseRef, exercise.ordinal)}
               </article>
             ))}
+            {page && (
+              <TrainingSegmentationPanel
+                sessionRef={selected.sessionRef}
+                snapshotRef={page.snapshotRef}
+                locale={locale}
+                messages={messages}
+                onError={onError}
+              />
+            )}
             <aside className="training-structure-limitation">
               <strong>{copy.structureLimitationsHeading}</strong>
               <p>{copy.structureLimitations}</p>

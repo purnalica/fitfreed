@@ -4,7 +4,8 @@ use fitfreed_application::{
     ActivityComparison, ActivityDateRange, ActivityDayAvailability, ActivityDayInsight,
     ActivityOverview, ActivitySeriesComparison, ActivitySeriesOverview, ActivitySeriesSummary,
     AppearancePreference, ApplicationError, ApplicationPreferences, ApplicationPreferencesLoad,
-    ExpectedSourceArchive, ExplorationWorkspace, ExploreDestination, ImportPhase, ImportProgress,
+    AppliedTrainingSegmentCriterion, CreateTrainingSegmentCriterionRequest, ExpectedSourceArchive,
+    ExplorationWorkspace, ExploreDestination, ImportPhase, ImportProgress,
     InvalidApplicationPreferences, LibraryDomain, LibraryDomainCoverage, LibraryHome,
     LibraryHomeDateRange, LibraryHomeRequest, LibraryMeasurement, LibraryMeasurementCoverage,
     LibraryQuestion, LibraryQuestionKind, LongitudinalActivityComparison, LongitudinalActivityDay,
@@ -12,24 +13,27 @@ use fitfreed_application::{
     LongitudinalRecoveryComparison, LongitudinalRecoveryDay, LongitudinalSeriesComparison,
     LongitudinalSeriesOverview, LongitudinalSleepComparison, LongitudinalSleepDay,
     LongitudinalTrainingComparison, LongitudinalTrainingDay, ManualUpdateReason,
-    OfficialSourceLink, OfficialSourceLinkPurpose, PersistedTrainingRoutePoints,
-    PersistedTrainingSignalSamples, PostImportReveal, PreferencesLoadStatus, RecoveryComparison,
-    RecoveryDateRange, RecoveryDayAvailability, RecoveryDayInsight, RecoveryNightDetail,
-    RecoveryNightInsight, RecoveryOverview, RecoverySeriesComparison, RecoverySeriesOverview,
-    RecoverySeriesSummary, SaveSportClassificationRequest, SavedTrainingSportClassification,
-    SleepComparison, SleepDateRange, SleepDayAvailability, SleepDayInsight, SleepOverview,
-    SleepPeriodDetail, SleepPeriodInsight, SleepPhaseTotals, SleepSeriesComparison,
+    MoveTrainingSegmentCriterionRequest, OfficialSourceLink, OfficialSourceLinkPurpose,
+    PersistedTrainingRoutePoints, PersistedTrainingSignalSamples, PostImportReveal,
+    PreferencesLoadStatus, RecoveryComparison, RecoveryDateRange, RecoveryDayAvailability,
+    RecoveryDayInsight, RecoveryNightDetail, RecoveryNightInsight, RecoveryOverview,
+    RecoverySeriesComparison, RecoverySeriesOverview, RecoverySeriesSummary,
+    SaveSportClassificationRequest, SavedTrainingSportClassification, SegmentApplicabilityView,
+    SegmentMeasurementView, SleepComparison, SleepDateRange, SleepDayAvailability, SleepDayInsight,
+    SleepOverview, SleepPeriodDetail, SleepPeriodInsight, SleepPhaseTotals, SleepSeriesComparison,
     SleepSeriesOverview, SleepSeriesSummary, SourceAcquisitionGuide,
-    SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange, TrainingDiscoveryView,
-    TrainingDiscoveryWorkspace, TrainingExerciseRoutesView, TrainingExerciseSignalsView,
-    TrainingExerciseStructure, TrainingLapStructure, TrainingMeasurementFilter, TrainingOverview,
-    TrainingPauseStructure, TrainingRouteCollectionView, TrainingRouteKindView,
-    TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
-    TrainingSeriesComparison, TrainingSeriesOverview, TrainingSeriesSummary,
-    TrainingSessionCalendar, TrainingSessionCalendarDay, TrainingSessionCalendarRequest,
-    TrainingSessionInsight, TrainingSessionRouteQuery, TrainingSessionRoutesResult,
-    TrainingSessionRoutesView, TrainingSessionSearchItem, TrainingSessionSearchPage,
-    TrainingSessionSearchRequest, TrainingSessionSearchSummary, TrainingSessionSelection,
+    SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange, TrainingDerivedSegment,
+    TrainingDiscoveryView, TrainingDiscoveryWorkspace, TrainingExerciseRoutesView,
+    TrainingExerciseSegmentation, TrainingExerciseSignalsView, TrainingExerciseStructure,
+    TrainingLapStructure, TrainingMeasurementFilter, TrainingOverview, TrainingPauseStructure,
+    TrainingRouteCollectionView, TrainingRouteKindView, TrainingRouteOverview,
+    TrainingRoutePointView, TrainingRoutePointsQuery, TrainingSegmentCriterionDirection,
+    TrainingSegmentCriterionMutationRequest, TrainingSeriesComparison, TrainingSeriesOverview,
+    TrainingSeriesSummary, TrainingSessionCalendar, TrainingSessionCalendarDay,
+    TrainingSessionCalendarRequest, TrainingSessionInsight, TrainingSessionRouteQuery,
+    TrainingSessionRoutesResult, TrainingSessionRoutesView, TrainingSessionSearchItem,
+    TrainingSessionSearchPage, TrainingSessionSearchRequest, TrainingSessionSearchSummary,
+    TrainingSessionSegmentationQuery, TrainingSessionSegmentationResult, TrainingSessionSelection,
     TrainingSessionSelectionRequest, TrainingSessionSignalsQuery, TrainingSessionSignalsResult,
     TrainingSessionSignalsView, TrainingSessionSort, TrainingSessionSport,
     TrainingSessionStructureQuery, TrainingSessionStructureResult, TrainingSignalCollectionView,
@@ -38,8 +42,8 @@ use fitfreed_application::{
     TrainingSignalVisualSampleView, TrainingSport, TrainingSportClassification,
     TrainingSportCoverage, TrainingSportState, TrainingSportsOverview, TrainingStructure,
     UpdateCheckOutcome, UpdateCheckStatus, UpdateError, UpdateRecoveryOutcome,
-    UpdateRecoveryOutcomeKind, UpdateReleaseSummary, UpdateTrustFailure, UpdateWithdrawalReason,
-    UpdateWithdrawalSummary,
+    UpdateRecoveryOutcomeKind, UpdateReleaseSummary, UpdateTrainingSegmentCriterionRequest,
+    UpdateTrustFailure, UpdateWithdrawalReason, UpdateWithdrawalSummary,
 };
 
 #[derive(Debug, Deserialize)]
@@ -381,10 +385,10 @@ fn explore_destination(destination: ExploreDestination) -> &'static str {
 }
 
 use fitfreed_domain::{
-    ArtifactCoverageSummary, ArtifactFamilyCoverage, ImportOutcome, ImportReport,
-    SleepPhaseSummary, SleepScore, SleepStage, SleepStageTransition,
-    SourceSpecificRecoveryAssessment, SourceSpecificRecoveryBaseline,
-    SourceSpecificRecoveryGuidance,
+    ArtifactCoverageSummary, ArtifactFamilyCoverage, ImportOutcome, ImportReport, SegmentCriterion,
+    SegmentCriterionAuthorship, SegmentCriterionDefinition, SleepPhaseSummary, SleepScore,
+    SleepStage, SleepStageTransition, SourceSpecificRecoveryAssessment,
+    SourceSpecificRecoveryBaseline, SourceSpecificRecoveryGuidance,
 };
 
 #[derive(Debug, Serialize)]
@@ -415,6 +419,15 @@ impl From<ApplicationError> for CommandErrorDto {
             ApplicationError::InvalidTrainingSessionDetail(_) => "invalid-training-session-detail",
             ApplicationError::TrainingSessionDetailChanged => "training-session-detail-changed",
             ApplicationError::TrainingSessionDetail(_) => "training-session-detail-failed",
+            ApplicationError::InvalidTrainingSegmentCriterion(_) => {
+                "invalid-training-segment-criterion"
+            }
+            ApplicationError::TrainingSegmentCriterionConflict => {
+                "training-segment-criterion-conflict"
+            }
+            ApplicationError::TrainingSegmentationChanged => "training-segmentation-changed",
+            ApplicationError::TrainingSegmentationQuery(_)
+            | ApplicationError::TrainingSegmentationUpdate(_) => "training-segmentation-failed",
             ApplicationError::InvalidTrainingDiscoveryWorkspace(_) => {
                 "invalid-training-discovery-workspace"
             }
@@ -872,6 +885,197 @@ impl From<TrainingSignalSamplesQueryDto> for TrainingSignalSamplesQuery {
             snapshot_ref: query.snapshot_ref,
             offset: query.offset,
             limit: query.limit,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TrainingSessionSegmentationQueryDto {
+    session_ref: String,
+    snapshot_ref: Option<String>,
+}
+
+impl From<TrainingSessionSegmentationQueryDto> for TrainingSessionSegmentationQuery {
+    fn from(query: TrainingSessionSegmentationQueryDto) -> Self {
+        Self {
+            session_ref: query.session_ref,
+            snapshot_ref: query.snapshot_ref,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(
+    tag = "kind",
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase",
+    deny_unknown_fields
+)]
+pub enum SegmentCriterionDefinitionInputDto {
+    EqualElapsedTime {
+        span_milliseconds: String,
+    },
+    EqualDistance {
+        span_meters: f64,
+    },
+    HeartRateZone {
+        minimum_beats_per_minute: u16,
+        maximum_beats_per_minute: u16,
+    },
+    ManualBoundaries {
+        elapsed_milliseconds: Vec<String>,
+    },
+}
+
+impl TryFrom<SegmentCriterionDefinitionInputDto> for SegmentCriterionDefinition {
+    type Error = CommandErrorDto;
+
+    fn try_from(input: SegmentCriterionDefinitionInputDto) -> Result<Self, Self::Error> {
+        match input {
+            SegmentCriterionDefinitionInputDto::EqualElapsedTime { span_milliseconds } => {
+                Ok(Self::EqualElapsedTime {
+                    span_milliseconds: parse_canonical_i64(&span_milliseconds)?,
+                })
+            }
+            SegmentCriterionDefinitionInputDto::EqualDistance { span_meters } => {
+                Ok(Self::EqualDistance { span_meters })
+            }
+            SegmentCriterionDefinitionInputDto::HeartRateZone {
+                minimum_beats_per_minute,
+                maximum_beats_per_minute,
+            } => Ok(Self::HeartRateZone {
+                minimum_beats_per_minute,
+                maximum_beats_per_minute,
+            }),
+            SegmentCriterionDefinitionInputDto::ManualBoundaries {
+                elapsed_milliseconds,
+            } => Ok(Self::ManualBoundaries {
+                elapsed_milliseconds: elapsed_milliseconds
+                    .iter()
+                    .map(|value| parse_canonical_i64(value))
+                    .collect::<Result<Vec<_>, _>>()?,
+            }),
+        }
+    }
+}
+
+fn parse_canonical_i64(value: &str) -> Result<i64, CommandErrorDto> {
+    let parsed = value
+        .parse::<i64>()
+        .map_err(|_| CommandErrorDto::new("invalid-training-segment-criterion"))?;
+    if parsed.to_string() != value {
+        return Err(CommandErrorDto::new("invalid-training-segment-criterion"));
+    }
+    Ok(parsed)
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CreateTrainingSegmentCriterionRequestDto {
+    session_ref: String,
+    snapshot_ref: String,
+    exercise_ref: String,
+    title: String,
+    definition: SegmentCriterionDefinitionInputDto,
+}
+
+impl TryFrom<CreateTrainingSegmentCriterionRequestDto> for CreateTrainingSegmentCriterionRequest {
+    type Error = CommandErrorDto;
+
+    fn try_from(request: CreateTrainingSegmentCriterionRequestDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            session_ref: request.session_ref,
+            snapshot_ref: request.snapshot_ref,
+            exercise_ref: request.exercise_ref,
+            title: request.title,
+            definition: request.definition.try_into()?,
+        })
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct UpdateTrainingSegmentCriterionRequestDto {
+    session_ref: String,
+    snapshot_ref: String,
+    criterion_ref: String,
+    expected_revision: u64,
+    title: String,
+    definition: SegmentCriterionDefinitionInputDto,
+}
+
+impl TryFrom<UpdateTrainingSegmentCriterionRequestDto> for UpdateTrainingSegmentCriterionRequest {
+    type Error = CommandErrorDto;
+
+    fn try_from(request: UpdateTrainingSegmentCriterionRequestDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            session_ref: request.session_ref,
+            snapshot_ref: request.snapshot_ref,
+            criterion_ref: request.criterion_ref,
+            expected_revision: request.expected_revision,
+            title: request.title,
+            definition: request.definition.try_into()?,
+        })
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TrainingSegmentCriterionMutationRequestDto {
+    session_ref: String,
+    snapshot_ref: String,
+    exercise_ref: String,
+    criterion_ref: String,
+}
+
+impl From<TrainingSegmentCriterionMutationRequestDto> for TrainingSegmentCriterionMutationRequest {
+    fn from(request: TrainingSegmentCriterionMutationRequestDto) -> Self {
+        Self {
+            session_ref: request.session_ref,
+            snapshot_ref: request.snapshot_ref,
+            exercise_ref: request.exercise_ref,
+            criterion_ref: request.criterion_ref,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum TrainingSegmentCriterionDirectionDto {
+    Earlier,
+    Later,
+}
+
+impl From<TrainingSegmentCriterionDirectionDto> for TrainingSegmentCriterionDirection {
+    fn from(direction: TrainingSegmentCriterionDirectionDto) -> Self {
+        match direction {
+            TrainingSegmentCriterionDirectionDto::Earlier => Self::Earlier,
+            TrainingSegmentCriterionDirectionDto::Later => Self::Later,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct MoveTrainingSegmentCriterionRequestDto {
+    session_ref: String,
+    snapshot_ref: String,
+    exercise_ref: String,
+    criterion_ref: String,
+    direction: TrainingSegmentCriterionDirectionDto,
+}
+
+impl From<MoveTrainingSegmentCriterionRequestDto> for MoveTrainingSegmentCriterionRequest {
+    fn from(request: MoveTrainingSegmentCriterionRequestDto) -> Self {
+        Self {
+            mutation: TrainingSegmentCriterionMutationRequest {
+                session_ref: request.session_ref,
+                snapshot_ref: request.snapshot_ref,
+                exercise_ref: request.exercise_ref,
+                criterion_ref: request.criterion_ref,
+            },
+            direction: request.direction.into(),
         }
     }
 }
@@ -1905,6 +2109,197 @@ impl From<PersistedTrainingSignalSamples> for TrainingSignalSamplesResultDto {
             offset: result.offset,
             samples: result.samples.into_iter().map(Into::into).collect(),
             next_offset: result.next_offset,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(
+    tag = "kind",
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase"
+)]
+pub enum SegmentCriterionDefinitionDto {
+    EqualElapsedTime {
+        span_milliseconds: String,
+    },
+    EqualDistance {
+        span_meters: f64,
+    },
+    HeartRateZone {
+        minimum_beats_per_minute: u16,
+        maximum_beats_per_minute: u16,
+    },
+    ManualBoundaries {
+        elapsed_milliseconds: Vec<String>,
+    },
+}
+
+impl From<&SegmentCriterionDefinition> for SegmentCriterionDefinitionDto {
+    fn from(definition: &SegmentCriterionDefinition) -> Self {
+        match definition {
+            SegmentCriterionDefinition::EqualElapsedTime { span_milliseconds } => {
+                Self::EqualElapsedTime {
+                    span_milliseconds: span_milliseconds.to_string(),
+                }
+            }
+            SegmentCriterionDefinition::EqualDistance { span_meters } => Self::EqualDistance {
+                span_meters: *span_meters,
+            },
+            SegmentCriterionDefinition::HeartRateZone {
+                minimum_beats_per_minute,
+                maximum_beats_per_minute,
+            } => Self::HeartRateZone {
+                minimum_beats_per_minute: *minimum_beats_per_minute,
+                maximum_beats_per_minute: *maximum_beats_per_minute,
+            },
+            SegmentCriterionDefinition::ManualBoundaries {
+                elapsed_milliseconds,
+            } => Self::ManualBoundaries {
+                elapsed_milliseconds: elapsed_milliseconds
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect(),
+            },
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SegmentCriterionDto {
+    criterion_ref: String,
+    title: String,
+    definition: SegmentCriterionDefinitionDto,
+    authorship: &'static str,
+    evaluation_version: u32,
+    revision: u64,
+}
+
+impl From<SegmentCriterion> for SegmentCriterionDto {
+    fn from(criterion: SegmentCriterion) -> Self {
+        let authorship = match criterion.authorship() {
+            SegmentCriterionAuthorship::User => "user",
+        };
+        Self {
+            criterion_ref: criterion.criterion_id().to_owned(),
+            title: criterion.title().to_owned(),
+            definition: criterion.definition().into(),
+            authorship,
+            evaluation_version: criterion.evaluation_version(),
+            revision: criterion.revision(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingDerivedSegmentDto {
+    ordinal: usize,
+    started_at_elapsed_milliseconds: String,
+    ended_at_elapsed_milliseconds: String,
+    attribution: &'static str,
+}
+
+impl From<TrainingDerivedSegment> for TrainingDerivedSegmentDto {
+    fn from(segment: TrainingDerivedSegment) -> Self {
+        Self {
+            ordinal: segment.ordinal,
+            started_at_elapsed_milliseconds: segment.started_at_elapsed_milliseconds.to_string(),
+            ended_at_elapsed_milliseconds: segment.ended_at_elapsed_milliseconds.to_string(),
+            attribution: "fitfreed-derived",
+        }
+    }
+}
+
+fn segment_applicability(value: SegmentApplicabilityView) -> &'static str {
+    match value {
+        SegmentApplicabilityView::Applicable => "applicable",
+        SegmentApplicabilityView::MissingPrerequisite => "missing-prerequisite",
+        SegmentApplicabilityView::AmbiguousPrerequisite => "ambiguous-prerequisite",
+        SegmentApplicabilityView::IncompleteEvidence => "incomplete-evidence",
+        SegmentApplicabilityView::OutsideSession => "outside-session",
+        SegmentApplicabilityView::TooManySegments => "too-many-segments",
+    }
+}
+
+fn segment_measurement(value: SegmentMeasurementView) -> &'static str {
+    match value {
+        SegmentMeasurementView::Distance => "distance",
+        SegmentMeasurementView::HeartRate => "heart-rate",
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppliedTrainingSegmentCriterionDto {
+    criterion: SegmentCriterionDto,
+    ordinal: usize,
+    applicability: &'static str,
+    required_measurement: Option<&'static str>,
+    has_evidence_gaps: bool,
+    segments: Vec<TrainingDerivedSegmentDto>,
+}
+
+impl From<AppliedTrainingSegmentCriterion> for AppliedTrainingSegmentCriterionDto {
+    fn from(applied: AppliedTrainingSegmentCriterion) -> Self {
+        Self {
+            criterion: applied.criterion.into(),
+            ordinal: applied.ordinal,
+            applicability: segment_applicability(applied.applicability),
+            required_measurement: applied.required_measurement.map(segment_measurement),
+            has_evidence_gaps: applied.has_evidence_gaps,
+            segments: applied.segments.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingExerciseSegmentationDto {
+    exercise_ref: String,
+    ordinal: usize,
+    duration_milliseconds: String,
+    applied_criteria: Vec<AppliedTrainingSegmentCriterionDto>,
+}
+
+impl From<TrainingExerciseSegmentation> for TrainingExerciseSegmentationDto {
+    fn from(exercise: TrainingExerciseSegmentation) -> Self {
+        Self {
+            exercise_ref: exercise.exercise_ref,
+            ordinal: exercise.ordinal,
+            duration_milliseconds: exercise.duration_milliseconds.to_string(),
+            applied_criteria: exercise
+                .applied_criteria
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSessionSegmentationResultDto {
+    snapshot_ref: String,
+    session_ref: String,
+    available_criteria: Vec<SegmentCriterionDto>,
+    exercises: Option<Vec<TrainingExerciseSegmentationDto>>,
+}
+
+impl From<TrainingSessionSegmentationResult> for TrainingSessionSegmentationResultDto {
+    fn from(result: TrainingSessionSegmentationResult) -> Self {
+        Self {
+            snapshot_ref: result.snapshot_ref,
+            session_ref: result.session_ref,
+            available_criteria: result
+                .available_criteria
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            exercises: result
+                .exercises
+                .map(|exercises| exercises.into_iter().map(Into::into).collect()),
         }
     }
 }
@@ -4731,6 +5126,143 @@ mod tests {
         assert_eq!(exact_json["kind"], "temperature");
         assert_eq!(exact_json["samples"][0]["value"], -5.5);
         assert_eq!(exact_json["samples"][0]["elapsedMilliseconds"], "0");
+    }
+
+    #[test]
+    fn validates_and_serializes_user_authored_segmentation_transport_contracts() {
+        let query_input: TrainingSessionSegmentationQueryDto =
+            serde_json::from_value(serde_json::json!({
+                "sessionRef":
+                    "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "snapshotRef":
+                    "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }))
+            .expect("segmentation query");
+        let query = TrainingSessionSegmentationQuery::from(query_input);
+        assert!(query.snapshot_ref.is_some());
+
+        let create_input: CreateTrainingSegmentCriterionRequestDto =
+            serde_json::from_value(serde_json::json!({
+                "sessionRef":
+                    "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "snapshotRef":
+                    "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "exerciseRef":
+                    "exercise-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                "title": "Manual plan",
+                "definition": {
+                    "kind": "manual-boundaries",
+                    "elapsedMilliseconds": ["60000", "120000"]
+                }
+            }))
+            .expect("create criterion transport");
+        let create = CreateTrainingSegmentCriterionRequest::try_from(create_input)
+            .expect("create criterion request");
+        assert_eq!(
+            create.definition,
+            SegmentCriterionDefinition::ManualBoundaries {
+                elapsed_milliseconds: vec![60_000, 120_000]
+            }
+        );
+        assert!(
+            serde_json::from_value::<CreateTrainingSegmentCriterionRequestDto>(
+                serde_json::json!({
+                    "sessionRef":
+                        "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                    "snapshotRef":
+                        "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "exerciseRef":
+                        "exercise-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                    "title": "Leaky provider value",
+                    "definition": { "kind": "equal-elapsed-time", "spanMilliseconds": "60000" },
+                    "sourceExerciseId": "must-not-cross-the-boundary"
+                })
+            )
+            .is_err()
+        );
+
+        let criterion = SegmentCriterion::create(
+            "criterion-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "Tempo range",
+            SegmentCriterionDefinition::HeartRateZone {
+                minimum_beats_per_minute: 140,
+                maximum_beats_per_minute: 159,
+            },
+        )
+        .expect("transport criterion");
+        let result = TrainingSessionSegmentationResult {
+            snapshot_ref:
+                "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    .to_owned(),
+            session_ref: "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                .to_owned(),
+            available_criteria: vec![criterion.clone()],
+            exercises: Some(vec![TrainingExerciseSegmentation {
+                exercise_ref:
+                    "exercise-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                        .to_owned(),
+                ordinal: 0,
+                duration_milliseconds: i64::MAX,
+                applied_criteria: vec![AppliedTrainingSegmentCriterion {
+                    criterion,
+                    ordinal: 0,
+                    applicability: SegmentApplicabilityView::Applicable,
+                    required_measurement: Some(SegmentMeasurementView::HeartRate),
+                    has_evidence_gaps: true,
+                    segments: vec![TrainingDerivedSegment {
+                        ordinal: 0,
+                        started_at_elapsed_milliseconds: i64::MAX - 2,
+                        ended_at_elapsed_milliseconds: i64::MAX,
+                    }],
+                }],
+            }]),
+        };
+        let json = serde_json::to_value(TrainingSessionSegmentationResultDto::from(result))
+            .expect("segmentation result JSON");
+        assert_eq!(
+            json["availableCriteria"][0]["definition"],
+            serde_json::json!({
+                "kind": "heart-rate-zone",
+                "minimumBeatsPerMinute": 140,
+                "maximumBeatsPerMinute": 159
+            })
+        );
+        let applied = &json["exercises"][0]["appliedCriteria"][0];
+        assert_eq!(applied["criterion"]["authorship"], "user");
+        assert_eq!(applied["applicability"], "applicable");
+        assert_eq!(applied["requiredMeasurement"], "heart-rate");
+        assert_eq!(applied["hasEvidenceGaps"], true);
+        assert_eq!(
+            applied["segments"][0]["startedAtElapsedMilliseconds"],
+            (i64::MAX - 2).to_string()
+        );
+        assert_eq!(applied["segments"][0]["attribution"], "fitfreed-derived");
+        assert!(json.to_string().find("sourceExerciseId").is_none());
+
+        for (error, code) in [
+            (
+                ApplicationError::InvalidTrainingSegmentCriterion("invalid"),
+                "invalid-training-segment-criterion",
+            ),
+            (
+                ApplicationError::TrainingSegmentCriterionConflict,
+                "training-segment-criterion-conflict",
+            ),
+            (
+                ApplicationError::TrainingSegmentationChanged,
+                "training-segmentation-changed",
+            ),
+            (
+                ApplicationError::TrainingSegmentationQuery("failed".to_owned()),
+                "training-segmentation-failed",
+            ),
+        ] {
+            assert_eq!(
+                serde_json::to_value(CommandErrorDto::from(error))
+                    .expect("segmentation error JSON"),
+                serde_json::json!({ "code": code })
+            );
+        }
     }
 
     #[test]

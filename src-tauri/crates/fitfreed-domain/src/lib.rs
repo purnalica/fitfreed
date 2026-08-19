@@ -7,6 +7,15 @@ pub use sport_classification::{
 #[cfg(test)]
 mod sport_classification_tests;
 
+mod segment_criterion;
+pub use segment_criterion::{
+    author_segment_criterion, SegmentCriterion, SegmentCriterionAuthorship,
+    SegmentCriterionDefinition, SegmentCriterionError,
+};
+
+#[cfg(test)]
+mod segment_criterion_tests;
+
 mod training_session;
 pub use training_session::{
     decide_training_session_record_reconciliation, TrainingExercise,

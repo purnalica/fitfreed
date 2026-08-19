@@ -68,6 +68,21 @@ pub use training_signal::{
     TrainingSignalVisualSampleView,
 };
 
+mod training_segmentation;
+pub use training_segmentation::{
+    apply_training_segment_criterion, create_training_segment_criterion,
+    move_training_segment_criterion, query_training_session_segmentation,
+    remove_training_segment_criterion, update_training_segment_criterion,
+    AppliedTrainingSegmentCriterion, CreateTrainingSegmentCriterionRequest,
+    MoveTrainingSegmentCriterionRequest, PersistedTrainingExerciseSegmentation,
+    PersistedTrainingSessionSegmentation, RemoveTrainingSegmentCriterionRequest,
+    SegmentApplicabilityView, SegmentMeasurementView, SegmentSignalEvidence, SegmentSignalKind,
+    SegmentSignalSample, TrainingDerivedSegment, TrainingExerciseSegmentation,
+    TrainingSegmentCriterionDirection, TrainingSegmentCriterionMutationRequest,
+    TrainingSegmentationPort, TrainingSegmentationPortError, TrainingSessionSegmentationQuery,
+    TrainingSessionSegmentationResult, UpdateTrainingSegmentCriterionRequest,
+};
+
 #[cfg(test)]
 mod training_discovery_tests;
 
@@ -79,6 +94,9 @@ mod training_route_tests;
 
 #[cfg(test)]
 mod training_signal_tests;
+
+#[cfg(test)]
+mod training_segmentation_tests;
 
 #[cfg(test)]
 mod sport_discovery_tests;
@@ -1368,6 +1386,16 @@ pub enum ApplicationError {
     TrainingSessionDetailChanged,
     #[error("training-session detail failed: {0}")]
     TrainingSessionDetail(String),
+    #[error("invalid training segment criterion: {0}")]
+    InvalidTrainingSegmentCriterion(&'static str),
+    #[error("training segment criterion changed while it was being edited")]
+    TrainingSegmentCriterionConflict,
+    #[error("training segmentation changed while it was being read")]
+    TrainingSegmentationChanged,
+    #[error("training segmentation query failed: {0}")]
+    TrainingSegmentationQuery(String),
+    #[error("training segmentation update failed: {0}")]
+    TrainingSegmentationUpdate(String),
     #[error("invalid training discovery workspace: {0}")]
     InvalidTrainingDiscoveryWorkspace(&'static str),
     #[error("training discovery workspace query failed: {0}")]

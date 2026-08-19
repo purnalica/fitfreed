@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-segmentation-v1.schema.json",
+  "title": "FitFreed training-session segmentation version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["snapshotRef", "sessionRef", "availableCriteria", "exercises"],
+  "properties": {
+    "snapshotRef": { "$ref": "#/$defs/snapshotRef" },
+    "sessionRef": { "$ref": "#/$defs/sessionRef" },
+    "availableCriteria": { "type": "array", "items": { "$ref": "#/$defs/criterion" } },
+    "exercises": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "array", "items": { "$ref": "#/$defs/exercise" } }
+      ]
+    }
+  },
+  "$defs": {
+    "snapshotRef": { "type": "string", "pattern": "^training-snapshot-[0-9a-f]{64}$" },
+    "sessionRef": { "type": "string", "pattern": "^session-[0-9a-f]{64}$" },
+    "exerciseRef": { "type": "string", "pattern": "^exercise-[0-9a-f]{64}$" },
+    "criterionRef": { "type": "string", "pattern": "^criterion-[0-9a-f]{64}$" },
+    "elapsedMilliseconds": { "type": "string", "pattern": "^(0|[1-9][0-9]*)$" },
+    "positiveMilliseconds": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+    "definition": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "spanMilliseconds"],
+          "properties": {
+            "kind": { "const": "equal-elapsed-time" },
+            "spanMilliseconds": { "$ref": "#/$defs/positiveMilliseconds" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "spanMeters"],
+          "properties": {
+            "kind": { "const": "equal-distance" },
+            "spanMeters": { "type": "number", "minimum": 0.001, "exclusiveMaximum": 9223372036854776 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "minimumBeatsPerMinute", "maximumBeatsPerMinute"],
+          "properties": {
+            "kind": { "const": "heart-rate-zone" },
+            "minimumBeatsPerMinute": { "type": "integer", "minimum": 20, "maximum": 300 },
+            "maximumBeatsPerMinute": { "type": "integer", "minimum": 20, "maximum": 300 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "elapsedMilliseconds"],
+          "properties": {
+            "kind": { "const": "manual-boundaries" },
+            "elapsedMilliseconds": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 99,
+              "uniqueItems": true,
+              "items": { "$ref": "#/$defs/positiveMilliseconds" }
+            }
+          }
+        }
+      ]
+    },
+    "criterion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["criterionRef", "title", "definition", "authorship", "evaluationVersion", "revision"],
+      "properties": {
+        "criterionRef": { "$ref": "#/$defs/criterionRef" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "definition": { "$ref": "#/$defs/definition" },
+        "authorship": { "const": "user" },
+        "evaluationVersion": { "const": 1 },
+        "revision": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "segment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ordinal", "startedAtElapsedMilliseconds", "endedAtElapsedMilliseconds", "attribution"],
+      "properties": {
+        "ordinal": { "type": "integer", "minimum": 0 },
+        "startedAtElapsedMilliseconds": { "$ref": "#/$defs/elapsedMilliseconds" },
+        "endedAtElapsedMilliseconds": { "$ref": "#/$defs/positiveMilliseconds" },
+        "attribution": { "const": "fitfreed-derived" }
+      }
+    },
+    "appliedCriterion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["criterion", "ordinal", "applicability", "requiredMeasurement", "hasEvidenceGaps", "segments"],
+      "properties": {
+        "criterion": { "$ref": "#/$defs/criterion" },
+        "ordinal": { "type": "integer", "minimum": 0 },
+        "applicability": {
+          "enum": ["applicable", "missing-prerequisite", "ambiguous-prerequisite", "incomplete-evidence", "outside-session", "too-many-segments"]
+        },
+        "requiredMeasurement": {
+          "oneOf": [{ "type": "null" }, { "enum": ["distance", "heart-rate"] }]
+        },
+        "hasEvidenceGaps": { "type": "boolean" },
+        "segments": { "type": "array", "maxItems": 250, "items": { "$ref": "#/$defs/segment" } }
+      }
+    },
+    "exercise": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exerciseRef", "ordinal", "durationMilliseconds", "appliedCriteria"],
+      "properties": {
+        "exerciseRef": { "$ref": "#/$defs/exerciseRef" },
+        "ordinal": { "type": "integer", "minimum": 0 },
+        "durationMilliseconds": { "$ref": "#/$defs/elapsedMilliseconds" },
+        "appliedCriteria": { "type": "array", "items": { "$ref": "#/$defs/appliedCriterion" } }
+      }
+    }
+  }
+}

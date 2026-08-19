@@ -2,7 +2,7 @@
 
 ## Status
 
-Active as of 2026-08-19. D0, P1, E1, and P2 have complete local and hosted acceptance evidence. E2 has reached its complete local checkpoint; hosted executable evidence remains pending. All three E3 slices have reached their local checkpoints. The recorded-structure and route slices of E4 have reached their local checkpoints, and E4 remains active. The latest executable fingerprint still requires hosted evidence. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English and Spanish hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md) and [ADR 0024](../architecture/decisions/0024-generate-localized-product-pages.md).
+Active as of 2026-08-19. D0, P1, E1, and P2 have complete local and hosted acceptance evidence. E2 has reached its complete local checkpoint; hosted executable evidence remains pending. All three E3 slices have reached their local checkpoints. The recorded-structure, route, temporal-signal, and reusable-segmentation slices of E4 have reached their local checkpoints, and E4 remains active. The latest executable fingerprint still requires hosted evidence. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English and Spanish hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md) and [ADR 0024](../architecture/decisions/0024-generate-localized-product-pages.md).
 
 The existing import, reconciliation, persistence, Insights, localization, update-recovery, packaging, and continuous-integration capabilities remain the engineering baseline. This plan changes how those capabilities become a product people can understand and value; it does not discard their verified behavior.
 
@@ -476,9 +476,27 @@ The local Apple Silicon read-model campaign stored 400,000 independently generat
 bounded 300-sample overview measured 7.873 ms p95 and the 250-sample exact page measured 9.021 ms p95 against
 the 500 ms budget, with 22.422 MiB peak process memory for the complete campaign. The packaged WebView
 campaign against a 20,001-slot source series measured 113 ms p95 for detail through laid-out chart and 35 ms
-p95 for the exact 100-row page. E4 remains active for provider-defined zones, provenance presentation,
-reusable user criteria, user-authored segmentation, progressive cross-signal inspection, and their privacy
-and performance evidence.
+p95 for the exact 100-row page.
+
+**Reusable-segmentation slice local accepted evidence:** schema 18 introduces reusable personal criteria and
+ordered exercise applications without persisting derived results as source facts. The version-1 domain and
+application contracts validate optimistic revisions, equal elapsed-time, equal recorded-distance, recorded
+heart-rate-range, and manual elapsed-boundary rules. Exact reimport retains personal definitions; mapping
+enrichment or a later source revision recalculates them against current evidence while retaining an
+application only for the same source exercise identity. Missing, ambiguous, incomplete, out-of-session,
+too-large, zero-match, and source-gap outcomes remain distinct.
+
+The session workspace identifies criterion authorship and FitFreed-derived attribution, keeps source laps
+independent, and provides a bounded timeline plus an exact semantic table. It accepts real values, rejects
+invalid drafts, and supports create, configure, reuse, reorder, and remove operations in both locales. The
+packaged journey proves multiple criteria, invalid input, exact boundaries, ordering, an enriching reimport,
+localization, evaluation-version disclosure, 200% layout, and restart restoration. The complete fast lane
+passed 135 repository-automation tests, 95 React tests, 184 host tests, 105 application tests, 18 domain
+tests, and two private acceptance tests with strict Clippy and formatting. The local read-model campaign
+recalculated a heart-rate criterion by streaming 100,000 exact source slots at 23.889 ms p95 against the
+500 ms budget; the complete campaign used 22.797 MiB peak process memory. E4 remains active for
+provider-defined zones, provenance presentation, progressive cross-signal inspection, and their privacy and
+performance evidence.
 
 ### E5 — Personal report authoring and export
 

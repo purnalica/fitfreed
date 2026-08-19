@@ -19,23 +19,30 @@ use std::fs;
 
 use chrono::{SecondsFormat, Utc};
 use fitfreed_application::{
+    apply_training_segment_criterion as apply_segment_criterion_through_port,
     authorize_update_installation as authorize_update, check_for_updates as evaluate_updates,
-    clear_exploration_workspace as clear_workspace, dismiss_update as persist_update_dismissal,
+    clear_exploration_workspace as clear_workspace,
+    create_training_segment_criterion as create_segment_criterion_through_port,
+    dismiss_update as persist_update_dismissal,
     load_application_preferences as load_preferences_from_port,
+    move_training_segment_criterion as move_segment_criterion_through_port,
     postpone_update as persist_update_postponement, query_library_home as build_library_home,
     query_longitudinal_comparison as build_longitudinal_comparison,
     query_longitudinal_overview as build_longitudinal_overview,
     query_source_acquisition_guides as build_source_acquisition_guides,
     query_training_route_points as build_training_route_points,
     query_training_session_routes as build_training_session_routes,
+    query_training_session_segmentation as build_training_session_segmentation,
     query_training_session_signals as build_training_session_signals,
     query_training_session_structure as build_training_session_structure,
     query_training_signal_samples as build_training_signal_samples,
     query_training_sports as build_training_sports,
+    remove_training_segment_criterion as remove_segment_criterion_through_port,
     reset_application_preferences as reset_preferences_through_port,
     save_application_preferences as save_preferences_through_port,
     save_exploration_workspace as save_workspace,
-    save_training_sport_classification as persist_training_sport_classification, ApplicationError,
+    save_training_sport_classification as persist_training_sport_classification,
+    update_training_segment_criterion as update_segment_criterion_through_port, ApplicationError,
     ApplicationPreferences, ImportCoordinator, ImportProgress, InvalidApplicationPreferences,
     LocalePreference, UpdateChannelPort, UpdateCheckContext, UpdateCheckTrigger,
     UpdateInstallationAuthorization, UpdateRecoveryOutcome,
@@ -57,21 +64,23 @@ use infrastructure::{
 use presentation::{
     ActivityComparisonDto, ActivityDateRangeDto, ActivityOverviewDto, ApplicationPreferencesDto,
     ApplicationPreferencesInputDto, ApplicationPreferencesLoadDto, CommandErrorDto,
-    ExplorationWorkspaceDto, ExploreDestinationInputDto, ImportOutcomeDto, ImportProgressDto,
-    ImportReportDto, LibraryHomeDto, LibraryHomeRequestDto, LongitudinalComparisonDto,
-    LongitudinalDateRangeDto, LongitudinalOverviewDto, RecoveryComparisonDto, RecoveryDateRangeDto,
+    CreateTrainingSegmentCriterionRequestDto, ExplorationWorkspaceDto, ExploreDestinationInputDto,
+    ImportOutcomeDto, ImportProgressDto, ImportReportDto, LibraryHomeDto, LibraryHomeRequestDto,
+    LongitudinalComparisonDto, LongitudinalDateRangeDto, LongitudinalOverviewDto,
+    MoveTrainingSegmentCriterionRequestDto, RecoveryComparisonDto, RecoveryDateRangeDto,
     RecoveryNightDetailDto, RecoveryOverviewDto, SaveSportClassificationRequestDto,
     SavedTrainingSportClassificationDto, SleepComparisonDto, SleepDateRangeDto, SleepOverviewDto,
     SleepPeriodDetailDto, SourceAcquisitionGuideDto, TrainingComparisonDto, TrainingDateRangeDto,
     TrainingDiscoveryWorkspaceDto, TrainingOverviewDto, TrainingRoutePointsQueryDto,
-    TrainingRoutePointsResultDto, TrainingSessionCalendarDto, TrainingSessionCalendarRequestDto,
-    TrainingSessionRouteQueryDto, TrainingSessionRoutesResultDto, TrainingSessionSearchPageDto,
-    TrainingSessionSearchRequestDto, TrainingSessionSelectionDto,
-    TrainingSessionSelectionRequestDto, TrainingSessionSignalsQueryDto,
-    TrainingSessionSignalsResultDto, TrainingSessionStructureQueryDto,
-    TrainingSessionStructureResultDto, TrainingSignalSamplesQueryDto,
-    TrainingSignalSamplesResultDto, TrainingSportsOverviewDto, UpdateCheckOutcomeDto,
-    UpdateRecoveryOutcomeDto,
+    TrainingRoutePointsResultDto, TrainingSegmentCriterionMutationRequestDto,
+    TrainingSessionCalendarDto, TrainingSessionCalendarRequestDto, TrainingSessionRouteQueryDto,
+    TrainingSessionRoutesResultDto, TrainingSessionSearchPageDto, TrainingSessionSearchRequestDto,
+    TrainingSessionSegmentationQueryDto, TrainingSessionSegmentationResultDto,
+    TrainingSessionSelectionDto, TrainingSessionSelectionRequestDto,
+    TrainingSessionSignalsQueryDto, TrainingSessionSignalsResultDto,
+    TrainingSessionStructureQueryDto, TrainingSessionStructureResultDto,
+    TrainingSignalSamplesQueryDto, TrainingSignalSamplesResultDto, TrainingSportsOverviewDto,
+    UpdateCheckOutcomeDto, UpdateRecoveryOutcomeDto, UpdateTrainingSegmentCriterionRequestDto,
 };
 use serde::{Deserialize, Serialize};
 use tauri::{ipc::Channel, AppHandle, Emitter, Manager, State};
@@ -449,6 +458,72 @@ fn query_training_signal_samples(
 ) -> Result<TrainingSignalSamplesResultDto, CommandErrorDto> {
     let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     build_training_signal_samples(&SqliteTrainingLibrary::new(path), query.into())
+        .map(Into::into)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn query_training_session_segmentation(
+    app: AppHandle,
+    query: TrainingSessionSegmentationQueryDto,
+) -> Result<TrainingSessionSegmentationResultDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    build_training_session_segmentation(&SqliteTrainingLibrary::new(path), query.into())
+        .map(Into::into)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn create_training_segment_criterion(
+    app: AppHandle,
+    request: CreateTrainingSegmentCriterionRequestDto,
+) -> Result<TrainingSessionSegmentationResultDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    create_segment_criterion_through_port(&SqliteTrainingLibrary::new(path), request.try_into()?)
+        .map(Into::into)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn update_training_segment_criterion(
+    app: AppHandle,
+    request: UpdateTrainingSegmentCriterionRequestDto,
+) -> Result<TrainingSessionSegmentationResultDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    update_segment_criterion_through_port(&SqliteTrainingLibrary::new(path), request.try_into()?)
+        .map(Into::into)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn apply_training_segment_criterion(
+    app: AppHandle,
+    request: TrainingSegmentCriterionMutationRequestDto,
+) -> Result<TrainingSessionSegmentationResultDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    apply_segment_criterion_through_port(&SqliteTrainingLibrary::new(path), request.into())
+        .map(Into::into)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn remove_training_segment_criterion(
+    app: AppHandle,
+    request: TrainingSegmentCriterionMutationRequestDto,
+) -> Result<TrainingSessionSegmentationResultDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    remove_segment_criterion_through_port(&SqliteTrainingLibrary::new(path), request.into())
+        .map(Into::into)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn move_training_segment_criterion(
+    app: AppHandle,
+    request: MoveTrainingSegmentCriterionRequestDto,
+) -> Result<TrainingSessionSegmentationResultDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    move_segment_criterion_through_port(&SqliteTrainingLibrary::new(path), request.into())
         .map(Into::into)
         .map_err(CommandErrorDto::from)
 }
@@ -1468,6 +1543,12 @@ pub fn run() {
             query_training_route_points,
             query_training_session_signals,
             query_training_signal_samples,
+            query_training_session_segmentation,
+            create_training_segment_criterion,
+            update_training_segment_criterion,
+            apply_training_segment_criterion,
+            remove_training_segment_criterion,
+            move_training_segment_criterion,
             load_training_discovery_workspace,
             save_training_discovery_workspace,
             clear_training_discovery_workspace,

@@ -2521,6 +2521,19 @@ describe("FitFreed import interface", () => {
           },
         });
       }
+      if (command === "query_training_session_segmentation") {
+        return Promise.resolve({
+          snapshotRef: "snapshot-current",
+          sessionRef: arguments_.query.sessionRef,
+          availableCriteria: [],
+          exercises: [{
+            exerciseRef: "opaque-exercise",
+            ordinal: 0,
+            durationMilliseconds: later.durationMilliseconds,
+            appliedCriteria: [],
+          }],
+        });
+      }
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
       throw new Error(`Unexpected command: ${command}`);
     });
@@ -2554,6 +2567,11 @@ describe("FitFreed import interface", () => {
       .toBeVisible();
     expect(within(detail!).getByRole("heading", { name: "Exercise 1" })).toBeVisible();
     expect(detail).toHaveTextContent("Not provided by the source.");
+    expect(await within(detail!).findByRole("heading", { name: "Your session segments" }))
+      .toBeVisible();
+    expect(within(detail!).getByText(
+      "No personal criterion is applied to this exercise yet.",
+    )).toBeVisible();
     await user.click(within(detail!).getByRole("button", { name: "Back to session results" }));
     expect(within(training).queryByRole("heading", { name: "Session summary" }))
       .not.toBeInTheDocument();

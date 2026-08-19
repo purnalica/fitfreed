@@ -4,7 +4,7 @@
 
 A Training Session is one provider-neutral observation of a recorded workout from one verified source subject. Its aggregate summary supports trustworthy longitudinal history, while evaluated detail can expose source exercises, manual and automatic laps, pauses, recorded routes, and supported temporal signals without changing aggregate meaning.
 
-The complete normative contracts live in [canonical training-session summary version 1](../data-formats/canonical/training-session.md), [canonical training-session structure version 1](../data-formats/canonical/training-session-structure.md), [canonical training-session route version 1](../data-formats/canonical/training-session-route.md), and [canonical training-session signal version 1](../data-formats/canonical/training-session-signal.md). This document explains the domain boundary rather than repeating those specifications.
+The complete normative contracts live in [canonical training-session summary version 1](../data-formats/canonical/training-session.md), [canonical training-session structure version 1](../data-formats/canonical/training-session-structure.md), [canonical training-session route version 1](../data-formats/canonical/training-session-route.md), [canonical training-session signal version 1](../data-formats/canonical/training-session-signal.md), and [canonical segment criterion version 1](../data-formats/canonical/segment-criterion.md). This document explains the domain boundary rather than repeating those specifications.
 
 ## Aggregate boundary
 
@@ -31,6 +31,12 @@ Supported interval signals remain sensitive local evidence. FitFreed stores exac
 source slots, queries bounded endpoint-preserving visual selections or exact pages, and renders gap-aware
 local SVG. Import does not grant authority to expose signals through MCP, telemetry, synchronization, or a
 report.
+
+Personal segment criteria remain local user-authored evidence. Their deterministic results are
+FitFreed-derived views over current canonical measurements, not imported facts, and are recalculated rather
+than stored as session children. Reimport retains a criterion and its application only while the same source
+exercise identity remains; FitFreed never silently retargets it. Import does not grant authority to export,
+synchronize, or expose either the criterion or the selected physiological evidence.
 
 Zones, notes, comments, device identifiers, physical snapshots, RR samples, and unsupported signal types
 remain excluded from the current mapping. Those fields may remain in the user's original archive. Source

@@ -30,48 +30,58 @@ use zip::ZipArchive;
 
 #[cfg(test)]
 use fitfreed_application::{
-    clear_exploration_workspace, query_default_recovery_overview, query_default_sleep_overview,
-    query_default_training_overview, query_library_home, query_longitudinal_overview,
-    query_recovery_detail, query_training_route_points, query_training_session_routes,
-    query_training_session_signals, query_training_session_structure,
-    query_training_signal_samples, query_training_sports, save_exploration_workspace,
-    save_training_sport_classification, AppearancePreference, ApplicationError, LibraryDomain,
-    LibraryHomeDateRange, LibraryHomeRequest, LibraryQuestion, LibraryQuestionKind,
-    LocalePreference, SaveSportClassificationRequest, SportClassificationSaveOutcome,
+    apply_training_segment_criterion, clear_exploration_workspace,
+    create_training_segment_criterion, move_training_segment_criterion,
+    query_default_recovery_overview, query_default_sleep_overview, query_default_training_overview,
+    query_library_home, query_longitudinal_overview, query_recovery_detail,
+    query_training_route_points, query_training_session_routes,
+    query_training_session_segmentation, query_training_session_signals,
+    query_training_session_structure, query_training_signal_samples, query_training_sports,
+    remove_training_segment_criterion, save_exploration_workspace,
+    save_training_sport_classification, update_training_segment_criterion, AppearancePreference,
+    ApplicationError, CreateTrainingSegmentCriterionRequest, LibraryDomain, LibraryHomeDateRange,
+    LibraryHomeRequest, LibraryQuestion, LibraryQuestionKind, LocalePreference,
+    MoveTrainingSegmentCriterionRequest, SaveSportClassificationRequest, SegmentApplicabilityView,
+    SportClassificationSaveOutcome, TrainingSegmentCriterionMutationRequest,
+    UpdateTrainingSegmentCriterionRequest,
 };
 use fitfreed_application::{
     ActivityDateRange, ActivityLibraryPort, ApplicationPreferences, ApplicationPreferencesPort,
     ArchiveImportPort, DetectedTrainingSport, ExplorationWorkspace, ExplorationWorkspacePort,
     ExploreDestination, ImportOutcomeLibraryPort, ImportPhase, ImportPhaseTimings, ImportProgress,
-    PersistedTrainingRoutePoints, PersistedTrainingSessionCalendar, PersistedTrainingSessionRoutes,
-    PersistedTrainingSessionSearchPage, PersistedTrainingSessionSelection,
-    PersistedTrainingSessionSignals, PersistedTrainingSessionStructure,
-    PersistedTrainingSignalSamples, ProfiledImport, RecoveryDateRange, RecoveryLibraryNight,
-    RecoveryLibraryPort, SleepDateRange, SleepLibraryPeriod, SleepLibraryPort,
+    PersistedTrainingExerciseSegmentation, PersistedTrainingRoutePoints,
+    PersistedTrainingSessionCalendar, PersistedTrainingSessionRoutes,
+    PersistedTrainingSessionSearchPage, PersistedTrainingSessionSegmentation,
+    PersistedTrainingSessionSelection, PersistedTrainingSessionSignals,
+    PersistedTrainingSessionStructure, PersistedTrainingSignalSamples, ProfiledImport,
+    RecoveryDateRange, RecoveryLibraryNight, RecoveryLibraryPort, SegmentSignalEvidence,
+    SegmentSignalKind, SegmentSignalSample, SleepDateRange, SleepLibraryPeriod, SleepLibraryPort,
     StoredApplicationPreferences, StoredExplorationWorkspace, TrainingDateRange,
     TrainingDiscoveryView, TrainingDiscoveryWorkspace, TrainingDiscoveryWorkspacePort,
     TrainingExerciseRoutesView, TrainingExerciseSignalsView, TrainingExerciseStructure,
     TrainingLapStructure, TrainingLibraryPort, TrainingMeasurementFilter, TrainingPauseStructure,
     TrainingRouteCollectionView, TrainingRouteKindView, TrainingRouteOverview,
-    TrainingRoutePointView, TrainingRoutePointsQuery, TrainingSessionCalendarDay,
+    TrainingRoutePointView, TrainingRoutePointsQuery, TrainingSegmentCriterionDirection,
+    TrainingSegmentationPort, TrainingSegmentationPortError, TrainingSessionCalendarDay,
     TrainingSessionCalendarRequest, TrainingSessionDiscoveryPort,
     TrainingSessionDiscoveryPortError, TrainingSessionRoutePort, TrainingSessionRoutePortError,
     TrainingSessionRouteQuery, TrainingSessionRoutesView, TrainingSessionSearchItem,
-    TrainingSessionSearchRequest, TrainingSessionSearchSummary, TrainingSessionSelectionRequest,
-    TrainingSessionSignalPort, TrainingSessionSignalPortError, TrainingSessionSignalsQuery,
-    TrainingSessionSignalsView, TrainingSessionSort, TrainingSessionSport,
-    TrainingSessionStructurePort, TrainingSessionStructurePortError, TrainingSessionStructureQuery,
-    TrainingSignalCollectionView, TrainingSignalKindView, TrainingSignalRoleView,
-    TrainingSignalSampleView, TrainingSignalSamplesQuery, TrainingSignalSeriesOverview,
-    TrainingSignalUnitView, TrainingSignalVisualSampleView, TrainingSportClassification,
-    TrainingSportState, TrainingSportsPort, TrainingStructure,
+    TrainingSessionSearchRequest, TrainingSessionSearchSummary, TrainingSessionSegmentationQuery,
+    TrainingSessionSelectionRequest, TrainingSessionSignalPort, TrainingSessionSignalPortError,
+    TrainingSessionSignalsQuery, TrainingSessionSignalsView, TrainingSessionSort,
+    TrainingSessionSport, TrainingSessionStructurePort, TrainingSessionStructurePortError,
+    TrainingSessionStructureQuery, TrainingSignalCollectionView, TrainingSignalKindView,
+    TrainingSignalRoleView, TrainingSignalSampleView, TrainingSignalSamplesQuery,
+    TrainingSignalSeriesOverview, TrainingSignalUnitView, TrainingSignalVisualSampleView,
+    TrainingSportClassification, TrainingSportState, TrainingSportsPort, TrainingStructure,
 };
 use fitfreed_domain::{
     decide_nightly_recovery_reconciliation, decide_reconciliation,
     decide_sleep_period_reconciliation, decide_training_session_record_reconciliation,
     ArtifactClassification, ArtifactCoverageSummary, ArtifactFamilyCoverage, DailyActivity,
     ExistingObservation, ImportOperationState, ImportOutcome, ImportReport, NightlyRecovery,
-    ReconciliationDecision, RevisionOrder, SleepPeriod, SleepPhaseSummary, SleepScore, SleepStage,
+    ReconciliationDecision, RevisionOrder, SegmentCriterion, SegmentCriterionAuthorship,
+    SegmentCriterionDefinition, SleepPeriod, SleepPhaseSummary, SleepScore, SleepStage,
     SleepStageTransition, SourceSpecificRecoveryAssessment, SourceSpecificRecoveryBaseline,
     SourceSpecificRecoveryGuidance, SportClassification, SportClassificationAuthorship,
     SportClassificationKey, SportClassificationState, SportFamily, TrainingExercise,
@@ -136,7 +146,7 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 17;
+const SCHEMA_VERSION: i64 = 18;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
@@ -154,6 +164,7 @@ const SCHEMA_V14: &str = include_str!("../migrations/0014_training_discovery_wor
 const SCHEMA_V15: &str = include_str!("../migrations/0015_training_session_structure.sql");
 const SCHEMA_V16: &str = include_str!("../migrations/0016_training_session_routes.sql");
 const SCHEMA_V17: &str = include_str!("../migrations/0017_training_session_signals.sql");
+const SCHEMA_V18: &str = include_str!("../migrations/0018_training_segment_criteria.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
 const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@9";
 const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@4";
@@ -2405,7 +2416,7 @@ fn query_training_session_selection_discovery(
         selected_by_ref.insert(
             session_ref.clone(),
             TrainingSessionSearchItem {
-                session_ref,
+                session_ref: session_ref.clone(),
                 source_index,
                 started_at_local,
                 stopped_at_local,
@@ -3483,6 +3494,823 @@ fn query_training_signal_samples_discovery(
         samples,
         next_offset,
     })
+}
+
+fn segmentation_failure(error: impl std::fmt::Display) -> TrainingSegmentationPortError {
+    TrainingSegmentationPortError::Failure(error.to_string())
+}
+
+fn segmentation_snapshot_and_identity(
+    transaction: &Transaction<'_>,
+    session_ref: &str,
+    expected_snapshot_ref: Option<&str>,
+) -> std::result::Result<(String, String, String), TrainingSegmentationPortError> {
+    signal_snapshot_and_identity(transaction, session_ref, expected_snapshot_ref).map_err(|error| {
+        match error {
+            TrainingSessionSignalPortError::SnapshotChanged => {
+                TrainingSegmentationPortError::SnapshotChanged
+            }
+            TrainingSessionSignalPortError::NotFound => TrainingSegmentationPortError::NotFound,
+            TrainingSessionSignalPortError::Failure(reason) => {
+                TrainingSegmentationPortError::Failure(reason)
+            }
+        }
+    })
+}
+
+fn segmentation_exercise_identity(
+    transaction: &Transaction<'_>,
+    origin_id: &str,
+    session_id: &str,
+    exercise_ref: &str,
+) -> std::result::Result<String, TrainingSegmentationPortError> {
+    let mut statement = transaction
+        .prepare(
+            "SELECT exercise_id FROM training_exercise
+             WHERE origin_id = ?1 AND session_id = ?2
+             ORDER BY ordinal",
+        )
+        .map_err(segmentation_failure)?;
+    let rows = statement
+        .query_map(params![origin_id, session_id], |row| {
+            row.get::<_, String>(0)
+        })
+        .map_err(segmentation_failure)?;
+    for row in rows {
+        let exercise_id = row.map_err(segmentation_failure)?;
+        if training_exercise_ref(origin_id, session_id, &exercise_id) == exercise_ref {
+            return Ok(exercise_id);
+        }
+    }
+    Err(TrainingSegmentationPortError::NotFound)
+}
+
+fn load_segment_criteria(
+    transaction: &Transaction<'_>,
+) -> std::result::Result<Vec<SegmentCriterion>, TrainingSegmentationPortError> {
+    let mut statement = transaction
+        .prepare(
+            "SELECT criterion_id, title, criterion_kind, span_milliseconds, span_meters,
+                    minimum_beats_per_minute, maximum_beats_per_minute, authorship,
+                    evaluation_version, revision
+             FROM segment_criterion
+             ORDER BY lower(title), criterion_id",
+        )
+        .map_err(segmentation_failure)?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, Option<i64>>(3)?,
+                row.get::<_, Option<f64>>(4)?,
+                row.get::<_, Option<i64>>(5)?,
+                row.get::<_, Option<i64>>(6)?,
+                row.get::<_, String>(7)?,
+                row.get::<_, i64>(8)?,
+                row.get::<_, i64>(9)?,
+            ))
+        })
+        .map_err(segmentation_failure)?;
+    let mut stored = Vec::new();
+    for row in rows {
+        stored.push(row.map_err(segmentation_failure)?);
+    }
+    drop(statement);
+
+    stored
+        .into_iter()
+        .map(
+            |(
+                criterion_id,
+                title,
+                kind,
+                span_milliseconds,
+                span_meters,
+                minimum_beats_per_minute,
+                maximum_beats_per_minute,
+                authorship,
+                evaluation_version,
+                revision,
+            )| {
+                let definition = match kind.as_str() {
+                    "equal-elapsed-time" => SegmentCriterionDefinition::EqualElapsedTime {
+                        span_milliseconds: span_milliseconds.ok_or_else(|| {
+                            segmentation_failure("equal-time criterion has no span")
+                        })?,
+                    },
+                    "equal-distance" => SegmentCriterionDefinition::EqualDistance {
+                        span_meters: span_meters.ok_or_else(|| {
+                            segmentation_failure("equal-distance criterion has no span")
+                        })?,
+                    },
+                    "heart-rate-zone" => SegmentCriterionDefinition::HeartRateZone {
+                        minimum_beats_per_minute: minimum_beats_per_minute
+                            .and_then(|value| u16::try_from(value).ok())
+                            .ok_or_else(|| {
+                                segmentation_failure("heart-rate criterion minimum is invalid")
+                            })?,
+                        maximum_beats_per_minute: maximum_beats_per_minute
+                            .and_then(|value| u16::try_from(value).ok())
+                            .ok_or_else(|| {
+                                segmentation_failure("heart-rate criterion maximum is invalid")
+                            })?,
+                    },
+                    "manual-boundaries" => {
+                        let mut boundary_statement = transaction
+                            .prepare(
+                                "SELECT elapsed_milliseconds
+                                 FROM segment_criterion_manual_boundary
+                                 WHERE criterion_id = ?1
+                                 ORDER BY ordinal",
+                            )
+                            .map_err(segmentation_failure)?;
+                        let boundaries = boundary_statement
+                            .query_map(params![criterion_id], |row| row.get::<_, i64>(0))
+                            .map_err(segmentation_failure)?
+                            .collect::<rusqlite::Result<Vec<_>>>()
+                            .map_err(segmentation_failure)?;
+                        SegmentCriterionDefinition::ManualBoundaries {
+                            elapsed_milliseconds: boundaries,
+                        }
+                    }
+                    _ => {
+                        return Err(segmentation_failure(
+                            "stored segment criterion kind is invalid",
+                        ))
+                    }
+                };
+                if authorship != "user" {
+                    return Err(segmentation_failure(
+                        "stored segment criterion authorship is invalid",
+                    ));
+                }
+                SegmentCriterion::restore(
+                    criterion_id,
+                    title,
+                    definition,
+                    SegmentCriterionAuthorship::User,
+                    u32::try_from(evaluation_version).map_err(segmentation_failure)?,
+                    u64::try_from(revision).map_err(segmentation_failure)?,
+                )
+                .map_err(segmentation_failure)
+            },
+        )
+        .collect()
+}
+
+fn query_training_session_segmentation_discovery(
+    database_path: &Path,
+    query: &TrainingSessionSegmentationQuery,
+) -> std::result::Result<PersistedTrainingSessionSegmentation, TrainingSegmentationPortError> {
+    let mut connection = Connection::open(database_path).map_err(segmentation_failure)?;
+    ensure_schema(&connection).map_err(segmentation_failure)?;
+    let transaction = connection.transaction().map_err(segmentation_failure)?;
+    let (snapshot_ref, origin_id, session_id) = segmentation_snapshot_and_identity(
+        &transaction,
+        &query.session_ref,
+        query.snapshot_ref.as_deref(),
+    )?;
+    let criteria = load_segment_criteria(&transaction)?;
+    let exercises_present = transaction
+        .query_row(
+            "SELECT exercises_present FROM training_session_structure
+             WHERE origin_id = ?1 AND session_id = ?2",
+            params![origin_id, session_id],
+            |row| row.get::<_, i64>(0),
+        )
+        .optional()
+        .map_err(segmentation_failure)?;
+    let exercises = match exercises_present {
+        None => None,
+        Some(0) => Some(Vec::new()),
+        Some(1) => {
+            let mut exercise_statement = transaction
+                .prepare(
+                    "SELECT exercise_id, ordinal, duration_milliseconds
+                     FROM training_exercise
+                     WHERE origin_id = ?1 AND session_id = ?2
+                     ORDER BY ordinal",
+                )
+                .map_err(segmentation_failure)?;
+            let rows = exercise_statement
+                .query_map(params![origin_id, session_id], |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, i64>(2)?,
+                    ))
+                })
+                .map_err(segmentation_failure)?;
+            let mut exercises = Vec::new();
+            for row in rows {
+                let (exercise_id, ordinal, duration_milliseconds) =
+                    row.map_err(segmentation_failure)?;
+                let mut signal_statement = transaction
+                    .prepare(
+                        "SELECT ordinal, kind, interval_milliseconds, sample_count
+                         FROM training_signal_series
+                         WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3
+                           AND role = 'primary' AND kind IN ('distance', 'heart-rate')
+                         ORDER BY ordinal",
+                    )
+                    .map_err(segmentation_failure)?;
+                let signals = signal_statement
+                    .query_map(params![origin_id, session_id, exercise_id], |row| {
+                        Ok((
+                            row.get::<_, i64>(0)?,
+                            row.get::<_, String>(1)?,
+                            row.get::<_, i64>(2)?,
+                            row.get::<_, i64>(3)?,
+                        ))
+                    })
+                    .map_err(segmentation_failure)?
+                    .map(|row| {
+                        let (series_ordinal, kind, interval_milliseconds, sample_count) =
+                            row.map_err(segmentation_failure)?;
+                        let series_ordinal =
+                            persisted_count(series_ordinal, "segment signal series ordinal")
+                                .map_err(segmentation_failure)?;
+                        let kind = match kind.as_str() {
+                            "distance" => SegmentSignalKind::Distance,
+                            "heart-rate" => SegmentSignalKind::HeartRate,
+                            _ => {
+                                return Err(segmentation_failure("segment signal kind is invalid"))
+                            }
+                        };
+                        Ok(SegmentSignalEvidence {
+                            signal_ref: training_signal_ref(
+                                &origin_id,
+                                &session_id,
+                                &exercise_id,
+                                TrainingSignalRoleView::Primary,
+                                series_ordinal,
+                            ),
+                            kind,
+                            interval_milliseconds,
+                            sample_count: persisted_count(
+                                sample_count,
+                                "segment signal sample count",
+                            )
+                            .map_err(segmentation_failure)?,
+                        })
+                    })
+                    .collect::<std::result::Result<Vec<_>, TrainingSegmentationPortError>>()?;
+                drop(signal_statement);
+                let mut application_statement = transaction
+                    .prepare(
+                        "SELECT criterion_id
+                         FROM training_exercise_segment_criterion
+                         WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3
+                         ORDER BY ordinal",
+                    )
+                    .map_err(segmentation_failure)?;
+                let applied_criterion_refs = application_statement
+                    .query_map(params![origin_id, session_id, exercise_id], |row| {
+                        row.get::<_, String>(0)
+                    })
+                    .map_err(segmentation_failure)?
+                    .collect::<rusqlite::Result<Vec<_>>>()
+                    .map_err(segmentation_failure)?;
+                exercises.push(PersistedTrainingExerciseSegmentation {
+                    exercise_ref: training_exercise_ref(&origin_id, &session_id, &exercise_id),
+                    ordinal: persisted_count(ordinal, "segment exercise ordinal")
+                        .map_err(segmentation_failure)?,
+                    duration_milliseconds,
+                    signals,
+                    applied_criterion_refs,
+                });
+            }
+            drop(exercise_statement);
+            Some(exercises)
+        }
+        Some(_) => {
+            return Err(segmentation_failure(
+                "stored segment exercise assessment is invalid",
+            ))
+        }
+    };
+    transaction.commit().map_err(segmentation_failure)?;
+    Ok(PersistedTrainingSessionSegmentation {
+        snapshot_ref,
+        session_ref: query.session_ref.clone(),
+        criteria,
+        exercises,
+    })
+}
+
+fn visit_training_segment_signal_samples(
+    database_path: &Path,
+    snapshot_ref: &str,
+    session_ref: &str,
+    signal_ref: &str,
+    visitor: &mut dyn FnMut(SegmentSignalSample) -> std::result::Result<(), String>,
+) -> std::result::Result<(), TrainingSegmentationPortError> {
+    let mut connection = Connection::open(database_path).map_err(segmentation_failure)?;
+    ensure_schema(&connection).map_err(segmentation_failure)?;
+    let transaction = connection.transaction().map_err(segmentation_failure)?;
+    let (_, origin_id, session_id) =
+        segmentation_snapshot_and_identity(&transaction, session_ref, Some(snapshot_ref))?;
+    let mut series_statement = transaction
+        .prepare(
+            "SELECT exercise_id, ordinal, kind
+             FROM training_signal_series
+             WHERE origin_id = ?1 AND session_id = ?2 AND role = 'primary'
+               AND kind IN ('distance', 'heart-rate')
+             ORDER BY exercise_id, ordinal",
+        )
+        .map_err(segmentation_failure)?;
+    let rows = series_statement
+        .query_map(params![origin_id, session_id], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, i64>(1)?,
+                row.get::<_, String>(2)?,
+            ))
+        })
+        .map_err(segmentation_failure)?;
+    let mut identity = None;
+    for row in rows {
+        let (exercise_id, ordinal, kind) = row.map_err(segmentation_failure)?;
+        let ordinal = persisted_count(ordinal, "segment signal series ordinal")
+            .map_err(segmentation_failure)?;
+        if training_signal_ref(
+            &origin_id,
+            &session_id,
+            &exercise_id,
+            TrainingSignalRoleView::Primary,
+            ordinal,
+        ) == signal_ref
+        {
+            identity = Some((exercise_id, ordinal, kind));
+            break;
+        }
+    }
+    drop(series_statement);
+    let (exercise_id, series_ordinal, kind) =
+        identity.ok_or(TrainingSegmentationPortError::NotFound)?;
+    let scale = match kind.as_str() {
+        "distance" | "heart-rate" => 1_000.0,
+        _ => return Err(segmentation_failure("segment signal kind is invalid")),
+    };
+    let mut sample_statement = transaction
+        .prepare(
+            "SELECT ordinal, value
+             FROM training_signal_sample
+             WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3
+               AND role = 'primary' AND series_ordinal = ?4
+             ORDER BY ordinal",
+        )
+        .map_err(segmentation_failure)?;
+    let samples = sample_statement
+        .query_map(
+            params![origin_id, session_id, exercise_id, series_ordinal],
+            |row| Ok((row.get::<_, i64>(0)?, row.get::<_, Option<f64>>(1)?)),
+        )
+        .map_err(segmentation_failure)?;
+    for sample in samples {
+        let (ordinal, value) = sample.map_err(segmentation_failure)?;
+        let value_milliunits = value
+            .map(|value| {
+                let scaled = value * scale;
+                if !scaled.is_finite() || scaled < i64::MIN as f64 || scaled > i64::MAX as f64 {
+                    return Err(segmentation_failure(
+                        "segment signal value cannot be represented exactly enough",
+                    ));
+                }
+                Ok(scaled.round() as i64)
+            })
+            .transpose()?;
+        visitor(SegmentSignalSample {
+            ordinal: persisted_count(ordinal, "segment signal sample ordinal")
+                .map_err(segmentation_failure)?,
+            value_milliunits,
+        })
+        .map_err(TrainingSegmentationPortError::Failure)?;
+    }
+    drop(sample_statement);
+    transaction.commit().map_err(segmentation_failure)?;
+    Ok(())
+}
+
+struct SegmentCriterionColumns<'a> {
+    kind: &'static str,
+    span_milliseconds: Option<i64>,
+    span_meters: Option<f64>,
+    minimum_beats_per_minute: Option<i64>,
+    maximum_beats_per_minute: Option<i64>,
+    manual_boundaries: &'a [i64],
+}
+
+fn segment_criterion_columns(criterion: &SegmentCriterion) -> SegmentCriterionColumns<'_> {
+    match criterion.definition() {
+        SegmentCriterionDefinition::EqualElapsedTime { span_milliseconds } => {
+            SegmentCriterionColumns {
+                kind: "equal-elapsed-time",
+                span_milliseconds: Some(*span_milliseconds),
+                span_meters: None,
+                minimum_beats_per_minute: None,
+                maximum_beats_per_minute: None,
+                manual_boundaries: &[],
+            }
+        }
+        SegmentCriterionDefinition::EqualDistance { span_meters } => SegmentCriterionColumns {
+            kind: "equal-distance",
+            span_milliseconds: None,
+            span_meters: Some(*span_meters),
+            minimum_beats_per_minute: None,
+            maximum_beats_per_minute: None,
+            manual_boundaries: &[],
+        },
+        SegmentCriterionDefinition::HeartRateZone {
+            minimum_beats_per_minute,
+            maximum_beats_per_minute,
+        } => SegmentCriterionColumns {
+            kind: "heart-rate-zone",
+            span_milliseconds: None,
+            span_meters: None,
+            minimum_beats_per_minute: Some(i64::from(*minimum_beats_per_minute)),
+            maximum_beats_per_minute: Some(i64::from(*maximum_beats_per_minute)),
+            manual_boundaries: &[],
+        },
+        SegmentCriterionDefinition::ManualBoundaries {
+            elapsed_milliseconds,
+        } => SegmentCriterionColumns {
+            kind: "manual-boundaries",
+            span_milliseconds: None,
+            span_meters: None,
+            minimum_beats_per_minute: None,
+            maximum_beats_per_minute: None,
+            manual_boundaries: elapsed_milliseconds,
+        },
+    }
+}
+
+fn persist_segment_criterion_boundaries(
+    transaction: &Transaction<'_>,
+    criterion_id: &str,
+    boundaries: &[i64],
+) -> std::result::Result<(), TrainingSegmentationPortError> {
+    for (ordinal, elapsed_milliseconds) in boundaries.iter().enumerate() {
+        transaction
+            .execute(
+                "INSERT INTO segment_criterion_manual_boundary (
+                     criterion_id, ordinal, elapsed_milliseconds
+                 ) VALUES (?1, ?2, ?3)",
+                params![criterion_id, ordinal, elapsed_milliseconds],
+            )
+            .map_err(segmentation_failure)?;
+    }
+    Ok(())
+}
+
+fn new_segment_criterion_id(
+    database_path: &Path,
+) -> std::result::Result<String, TrainingSegmentationPortError> {
+    let connection = Connection::open(database_path).map_err(segmentation_failure)?;
+    ensure_schema(&connection).map_err(segmentation_failure)?;
+    for _ in 0..4 {
+        let suffix = connection
+            .query_row("SELECT lower(hex(randomblob(32)))", [], |row| {
+                row.get::<_, String>(0)
+            })
+            .map_err(segmentation_failure)?;
+        let criterion_id = format!("criterion-{suffix}");
+        let exists = connection
+            .query_row(
+                "SELECT EXISTS (
+                     SELECT 1 FROM segment_criterion WHERE criterion_id = ?1
+                 )",
+                params![criterion_id],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(segmentation_failure)?;
+        if !exists {
+            return Ok(criterion_id);
+        }
+    }
+    Err(segmentation_failure(
+        "could not allocate a unique segment criterion identity",
+    ))
+}
+
+fn create_and_apply_segment_criterion(
+    database_path: &Path,
+    snapshot_ref: &str,
+    session_ref: &str,
+    exercise_ref: &str,
+    criterion: &SegmentCriterion,
+) -> std::result::Result<(), TrainingSegmentationPortError> {
+    let mut connection = Connection::open(database_path).map_err(segmentation_failure)?;
+    ensure_schema(&connection).map_err(segmentation_failure)?;
+    let transaction = connection.transaction().map_err(segmentation_failure)?;
+    let (_, origin_id, session_id) =
+        segmentation_snapshot_and_identity(&transaction, session_ref, Some(snapshot_ref))?;
+    let exercise_id =
+        segmentation_exercise_identity(&transaction, &origin_id, &session_id, exercise_ref)?;
+    let columns = segment_criterion_columns(criterion);
+    let revision = i64::try_from(criterion.revision()).map_err(segmentation_failure)?;
+    let evaluation_version = i64::from(criterion.evaluation_version());
+    transaction
+        .execute(
+            "INSERT INTO segment_criterion (
+                 criterion_id, title, criterion_kind, span_milliseconds, span_meters,
+                 minimum_beats_per_minute, maximum_beats_per_minute, authorship,
+                 evaluation_version, revision, created_at_utc, updated_at_utc
+             ) VALUES (
+                 ?1, ?2, ?3, ?4, ?5, ?6, ?7, 'user', ?8, ?9,
+                 strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                 strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+             )",
+            params![
+                criterion.criterion_id(),
+                criterion.title(),
+                columns.kind,
+                columns.span_milliseconds,
+                columns.span_meters,
+                columns.minimum_beats_per_minute,
+                columns.maximum_beats_per_minute,
+                evaluation_version,
+                revision,
+            ],
+        )
+        .map_err(segmentation_failure)?;
+    persist_segment_criterion_boundaries(
+        &transaction,
+        criterion.criterion_id(),
+        columns.manual_boundaries,
+    )?;
+    let ordinal = transaction
+        .query_row(
+            "SELECT COALESCE(MAX(ordinal) + 1, 0)
+             FROM training_exercise_segment_criterion
+             WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3",
+            params![origin_id, session_id, exercise_id],
+            |row| row.get::<_, i64>(0),
+        )
+        .map_err(segmentation_failure)?;
+    transaction
+        .execute(
+            "INSERT INTO training_exercise_segment_criterion (
+                 origin_id, session_id, exercise_id, criterion_id, ordinal, applied_at_utc
+             ) VALUES (
+                 ?1, ?2, ?3, ?4, ?5, strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+             )",
+            params![
+                origin_id,
+                session_id,
+                exercise_id,
+                criterion.criterion_id(),
+                ordinal
+            ],
+        )
+        .map_err(segmentation_failure)?;
+    transaction.commit().map_err(segmentation_failure)?;
+    Ok(())
+}
+
+fn compare_and_save_segment_criterion(
+    database_path: &Path,
+    expected_revision: u64,
+    criterion: &SegmentCriterion,
+) -> std::result::Result<bool, TrainingSegmentationPortError> {
+    let mut connection = Connection::open(database_path).map_err(segmentation_failure)?;
+    ensure_schema(&connection).map_err(segmentation_failure)?;
+    let transaction = connection.transaction().map_err(segmentation_failure)?;
+    let expected_revision = i64::try_from(expected_revision).map_err(segmentation_failure)?;
+    let revision = i64::try_from(criterion.revision()).map_err(segmentation_failure)?;
+    if revision != expected_revision.saturating_add(1) {
+        return Err(segmentation_failure(
+            "segment criterion revision does not advance exactly once",
+        ));
+    }
+    let columns = segment_criterion_columns(criterion);
+    let changed = transaction
+        .execute(
+            "UPDATE segment_criterion
+             SET title = ?2, criterion_kind = ?3, span_milliseconds = ?4,
+                 span_meters = ?5, minimum_beats_per_minute = ?6,
+                 maximum_beats_per_minute = ?7, authorship = 'user',
+                 evaluation_version = ?8, revision = ?9,
+                 updated_at_utc = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+             WHERE criterion_id = ?1 AND revision = ?10",
+            params![
+                criterion.criterion_id(),
+                criterion.title(),
+                columns.kind,
+                columns.span_milliseconds,
+                columns.span_meters,
+                columns.minimum_beats_per_minute,
+                columns.maximum_beats_per_minute,
+                i64::from(criterion.evaluation_version()),
+                revision,
+                expected_revision,
+            ],
+        )
+        .map_err(segmentation_failure)?;
+    if changed == 0 {
+        transaction.commit().map_err(segmentation_failure)?;
+        return Ok(false);
+    }
+    transaction
+        .execute(
+            "DELETE FROM segment_criterion_manual_boundary WHERE criterion_id = ?1",
+            params![criterion.criterion_id()],
+        )
+        .map_err(segmentation_failure)?;
+    persist_segment_criterion_boundaries(
+        &transaction,
+        criterion.criterion_id(),
+        columns.manual_boundaries,
+    )?;
+    transaction.commit().map_err(segmentation_failure)?;
+    Ok(true)
+}
+
+fn apply_segment_criterion(
+    database_path: &Path,
+    snapshot_ref: &str,
+    session_ref: &str,
+    exercise_ref: &str,
+    criterion_ref: &str,
+) -> std::result::Result<(), TrainingSegmentationPortError> {
+    let mut connection = Connection::open(database_path).map_err(segmentation_failure)?;
+    ensure_schema(&connection).map_err(segmentation_failure)?;
+    let transaction = connection.transaction().map_err(segmentation_failure)?;
+    let (_, origin_id, session_id) =
+        segmentation_snapshot_and_identity(&transaction, session_ref, Some(snapshot_ref))?;
+    let exercise_id =
+        segmentation_exercise_identity(&transaction, &origin_id, &session_id, exercise_ref)?;
+    let criterion_exists = transaction
+        .query_row(
+            "SELECT EXISTS (
+                 SELECT 1 FROM segment_criterion WHERE criterion_id = ?1
+             )",
+            params![criterion_ref],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(segmentation_failure)?;
+    if !criterion_exists {
+        return Err(TrainingSegmentationPortError::NotFound);
+    }
+    let already_applied = transaction
+        .query_row(
+            "SELECT EXISTS (
+                 SELECT 1 FROM training_exercise_segment_criterion
+                 WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3
+                   AND criterion_id = ?4
+             )",
+            params![origin_id, session_id, exercise_id, criterion_ref],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(segmentation_failure)?;
+    if already_applied {
+        return Err(TrainingSegmentationPortError::AlreadyApplied);
+    }
+    let ordinal = transaction
+        .query_row(
+            "SELECT COALESCE(MAX(ordinal) + 1, 0)
+             FROM training_exercise_segment_criterion
+             WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3",
+            params![origin_id, session_id, exercise_id],
+            |row| row.get::<_, i64>(0),
+        )
+        .map_err(segmentation_failure)?;
+    transaction
+        .execute(
+            "INSERT INTO training_exercise_segment_criterion (
+                 origin_id, session_id, exercise_id, criterion_id, ordinal, applied_at_utc
+             ) VALUES (
+                 ?1, ?2, ?3, ?4, ?5, strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+             )",
+            params![origin_id, session_id, exercise_id, criterion_ref, ordinal],
+        )
+        .map_err(segmentation_failure)?;
+    transaction.commit().map_err(segmentation_failure)?;
+    Ok(())
+}
+
+fn remove_segment_criterion(
+    database_path: &Path,
+    snapshot_ref: &str,
+    session_ref: &str,
+    exercise_ref: &str,
+    criterion_ref: &str,
+) -> std::result::Result<(), TrainingSegmentationPortError> {
+    let mut connection = Connection::open(database_path).map_err(segmentation_failure)?;
+    ensure_schema(&connection).map_err(segmentation_failure)?;
+    let transaction = connection.transaction().map_err(segmentation_failure)?;
+    let (_, origin_id, session_id) =
+        segmentation_snapshot_and_identity(&transaction, session_ref, Some(snapshot_ref))?;
+    let exercise_id =
+        segmentation_exercise_identity(&transaction, &origin_id, &session_id, exercise_ref)?;
+    let ordinal = transaction
+        .query_row(
+            "SELECT ordinal FROM training_exercise_segment_criterion
+             WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3
+               AND criterion_id = ?4",
+            params![origin_id, session_id, exercise_id, criterion_ref],
+            |row| row.get::<_, i64>(0),
+        )
+        .optional()
+        .map_err(segmentation_failure)?
+        .ok_or(TrainingSegmentationPortError::NotApplied)?;
+    transaction
+        .execute(
+            "DELETE FROM training_exercise_segment_criterion
+             WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3
+               AND criterion_id = ?4",
+            params![origin_id, session_id, exercise_id, criterion_ref],
+        )
+        .map_err(segmentation_failure)?;
+    transaction
+        .execute(
+            "UPDATE training_exercise_segment_criterion
+             SET ordinal = ordinal - 1
+             WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3
+               AND ordinal > ?4",
+            params![origin_id, session_id, exercise_id, ordinal],
+        )
+        .map_err(segmentation_failure)?;
+    transaction.commit().map_err(segmentation_failure)?;
+    Ok(())
+}
+
+fn move_segment_criterion(
+    database_path: &Path,
+    snapshot_ref: &str,
+    session_ref: &str,
+    exercise_ref: &str,
+    criterion_ref: &str,
+    direction: TrainingSegmentCriterionDirection,
+) -> std::result::Result<(), TrainingSegmentationPortError> {
+    let mut connection = Connection::open(database_path).map_err(segmentation_failure)?;
+    ensure_schema(&connection).map_err(segmentation_failure)?;
+    let transaction = connection.transaction().map_err(segmentation_failure)?;
+    let (_, origin_id, session_id) =
+        segmentation_snapshot_and_identity(&transaction, session_ref, Some(snapshot_ref))?;
+    let exercise_id =
+        segmentation_exercise_identity(&transaction, &origin_id, &session_id, exercise_ref)?;
+    let ordinal = transaction
+        .query_row(
+            "SELECT ordinal FROM training_exercise_segment_criterion
+             WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3
+               AND criterion_id = ?4",
+            params![origin_id, session_id, exercise_id, criterion_ref],
+            |row| row.get::<_, i64>(0),
+        )
+        .optional()
+        .map_err(segmentation_failure)?
+        .ok_or(TrainingSegmentationPortError::NotApplied)?;
+    let target = match direction {
+        TrainingSegmentCriterionDirection::Earlier => ordinal.checked_sub(1),
+        TrainingSegmentCriterionDirection::Later => ordinal.checked_add(1),
+    };
+    let Some(target) = target else {
+        transaction.commit().map_err(segmentation_failure)?;
+        return Ok(());
+    };
+    let target_criterion = transaction
+        .query_row(
+            "SELECT criterion_id FROM training_exercise_segment_criterion
+             WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3
+               AND ordinal = ?4",
+            params![origin_id, session_id, exercise_id, target],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()
+        .map_err(segmentation_failure)?;
+    let Some(target_criterion) = target_criterion else {
+        transaction.commit().map_err(segmentation_failure)?;
+        return Ok(());
+    };
+    let temporary = transaction
+        .query_row(
+            "SELECT COALESCE(MAX(ordinal) + 1, 0)
+             FROM training_exercise_segment_criterion
+             WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3",
+            params![origin_id, session_id, exercise_id],
+            |row| row.get::<_, i64>(0),
+        )
+        .map_err(segmentation_failure)?;
+    for (criterion, next_ordinal) in [
+        (criterion_ref, temporary),
+        (target_criterion.as_str(), ordinal),
+        (criterion_ref, target),
+    ] {
+        transaction
+            .execute(
+                "UPDATE training_exercise_segment_criterion
+                 SET ordinal = ?5
+                 WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3
+                   AND criterion_id = ?4",
+                params![origin_id, session_id, exercise_id, criterion, next_ordinal],
+            )
+            .map_err(segmentation_failure)?;
+    }
+    transaction.commit().map_err(segmentation_failure)?;
+    Ok(())
 }
 
 fn query_training_bounds_on(connection: &Connection) -> Result<Option<TrainingDateRange>> {
@@ -4748,7 +5576,10 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         if version < 16 {
             connection.execute_batch(SCHEMA_V16)?;
         }
-        connection.execute_batch(SCHEMA_V17)?;
+        if version < 17 {
+            connection.execute_batch(SCHEMA_V17)?;
+        }
+        connection.execute_batch(SCHEMA_V18)?;
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
         }
@@ -9539,6 +10370,112 @@ impl TrainingSessionSignalPort for SqliteTrainingLibrary {
     }
 }
 
+impl TrainingSegmentationPort for SqliteTrainingLibrary {
+    fn query_training_session_segmentation(
+        &self,
+        query: &TrainingSessionSegmentationQuery,
+    ) -> std::result::Result<PersistedTrainingSessionSegmentation, TrainingSegmentationPortError>
+    {
+        query_training_session_segmentation_discovery(&self.database_path, query)
+    }
+
+    fn visit_segment_signal_samples(
+        &self,
+        snapshot_ref: &str,
+        session_ref: &str,
+        signal_ref: &str,
+        visitor: &mut dyn FnMut(SegmentSignalSample) -> std::result::Result<(), String>,
+    ) -> std::result::Result<(), TrainingSegmentationPortError> {
+        visit_training_segment_signal_samples(
+            &self.database_path,
+            snapshot_ref,
+            session_ref,
+            signal_ref,
+            visitor,
+        )
+    }
+
+    fn new_segment_criterion_id(
+        &self,
+    ) -> std::result::Result<String, TrainingSegmentationPortError> {
+        new_segment_criterion_id(&self.database_path)
+    }
+
+    fn create_and_apply_segment_criterion(
+        &self,
+        snapshot_ref: &str,
+        session_ref: &str,
+        exercise_ref: &str,
+        criterion: &SegmentCriterion,
+    ) -> std::result::Result<(), TrainingSegmentationPortError> {
+        create_and_apply_segment_criterion(
+            &self.database_path,
+            snapshot_ref,
+            session_ref,
+            exercise_ref,
+            criterion,
+        )
+    }
+
+    fn compare_and_save_segment_criterion(
+        &self,
+        expected_revision: u64,
+        criterion: &SegmentCriterion,
+    ) -> std::result::Result<bool, TrainingSegmentationPortError> {
+        compare_and_save_segment_criterion(&self.database_path, expected_revision, criterion)
+    }
+
+    fn apply_segment_criterion(
+        &self,
+        snapshot_ref: &str,
+        session_ref: &str,
+        exercise_ref: &str,
+        criterion_ref: &str,
+    ) -> std::result::Result<(), TrainingSegmentationPortError> {
+        apply_segment_criterion(
+            &self.database_path,
+            snapshot_ref,
+            session_ref,
+            exercise_ref,
+            criterion_ref,
+        )
+    }
+
+    fn remove_segment_criterion(
+        &self,
+        snapshot_ref: &str,
+        session_ref: &str,
+        exercise_ref: &str,
+        criterion_ref: &str,
+    ) -> std::result::Result<(), TrainingSegmentationPortError> {
+        remove_segment_criterion(
+            &self.database_path,
+            snapshot_ref,
+            session_ref,
+            exercise_ref,
+            criterion_ref,
+        )
+    }
+
+    fn move_segment_criterion(
+        &self,
+        snapshot_ref: &str,
+        session_ref: &str,
+        exercise_ref: &str,
+        criterion_ref: &str,
+        direction: TrainingSegmentCriterionDirection,
+    ) -> std::result::Result<(), TrainingSegmentationPortError> {
+        move_segment_criterion(
+            &self.database_path,
+            snapshot_ref,
+            session_ref,
+            exercise_ref,
+            criterion_ref,
+            direction,
+        )
+    }
+}
+
 impl TrainingDiscoveryWorkspacePort for SqliteTrainingLibrary {
     fn load_training_discovery_workspace(
         &self,
@@ -10602,9 +11539,9 @@ mod tests {
         let exact_samples = query_training_signal_samples(
             &library,
             TrainingSignalSamplesQuery {
-                session_ref,
+                session_ref: session_ref.clone(),
                 signal_ref: heart_rate.signal_ref.clone(),
-                snapshot_ref: Some(snapshot_ref),
+                snapshot_ref: Some(snapshot_ref.clone()),
                 offset: 1,
                 limit: 2,
             },
@@ -10619,6 +11556,187 @@ mod tests {
             vec![(1, 1_000, None), (2, 2_000, Some(140.0))]
         );
         assert_eq!(exact_samples.next_offset, Some(3));
+
+        let equal_time = create_training_segment_criterion(
+            &library,
+            CreateTrainingSegmentCriterionRequest {
+                session_ref: session_ref.clone(),
+                snapshot_ref: snapshot_ref.clone(),
+                exercise_ref: exercise.exercise_ref.clone(),
+                title: "Thirty-minute halves".to_owned(),
+                definition: SegmentCriterionDefinition::EqualElapsedTime {
+                    span_milliseconds: 1_800_000,
+                },
+            },
+        )
+        .expect("persist equal-time criterion");
+        let equal_time_ref = equal_time.available_criteria[0].criterion_id().to_owned();
+        assert_eq!(
+            equal_time.exercises.as_ref().expect("segment exercises")[0].applied_criteria[0]
+                .segments
+                .len(),
+            2
+        );
+
+        let heart_rate = create_training_segment_criterion(
+            &library,
+            CreateTrainingSegmentCriterionRequest {
+                session_ref: session_ref.clone(),
+                snapshot_ref: snapshot_ref.clone(),
+                exercise_ref: exercise.exercise_ref.clone(),
+                title: "Recorded tempo range".to_owned(),
+                definition: SegmentCriterionDefinition::HeartRateZone {
+                    minimum_beats_per_minute: 140,
+                    maximum_beats_per_minute: 150,
+                },
+            },
+        )
+        .expect("persist heart-rate criterion");
+        let heart_rate_ref = heart_rate
+            .available_criteria
+            .iter()
+            .find(|criterion| criterion.title() == "Recorded tempo range")
+            .expect("heart-rate criterion")
+            .criterion_id()
+            .to_owned();
+        let applied =
+            &heart_rate.exercises.as_ref().expect("segment exercises")[0].applied_criteria;
+        assert_eq!(applied.len(), 2);
+        assert_eq!(
+            applied[1].applicability,
+            SegmentApplicabilityView::Applicable
+        );
+        assert!(applied[1].has_evidence_gaps);
+        assert_eq!(applied[1].segments.len(), 1);
+        assert_eq!(
+            applied[1].segments[0].started_at_elapsed_milliseconds,
+            2_000
+        );
+        assert_eq!(applied[1].segments[0].ended_at_elapsed_milliseconds, 5_000);
+
+        let moved = move_training_segment_criterion(
+            &library,
+            MoveTrainingSegmentCriterionRequest {
+                mutation: TrainingSegmentCriterionMutationRequest {
+                    session_ref: session_ref.clone(),
+                    snapshot_ref: snapshot_ref.clone(),
+                    exercise_ref: exercise.exercise_ref.clone(),
+                    criterion_ref: heart_rate_ref.clone(),
+                },
+                direction: TrainingSegmentCriterionDirection::Earlier,
+            },
+        )
+        .expect("reorder criteria");
+        assert_eq!(
+            moved.exercises.as_ref().expect("segment exercises")[0].applied_criteria[0]
+                .criterion
+                .criterion_id(),
+            heart_rate_ref
+        );
+
+        let removed = remove_training_segment_criterion(
+            &library,
+            TrainingSegmentCriterionMutationRequest {
+                session_ref: session_ref.clone(),
+                snapshot_ref: snapshot_ref.clone(),
+                exercise_ref: exercise.exercise_ref.clone(),
+                criterion_ref: equal_time_ref.clone(),
+            },
+        )
+        .expect("remove criterion application");
+        assert_eq!(
+            removed.exercises.as_ref().expect("segment exercises")[0]
+                .applied_criteria
+                .len(),
+            1
+        );
+        assert_eq!(removed.available_criteria.len(), 2);
+
+        let reapplied = apply_training_segment_criterion(
+            &library,
+            TrainingSegmentCriterionMutationRequest {
+                session_ref: session_ref.clone(),
+                snapshot_ref: snapshot_ref.clone(),
+                exercise_ref: exercise.exercise_ref.clone(),
+                criterion_ref: equal_time_ref.clone(),
+            },
+        )
+        .expect("reuse criterion");
+        assert_eq!(
+            reapplied.exercises.as_ref().expect("segment exercises")[0]
+                .applied_criteria
+                .len(),
+            2
+        );
+
+        let revised = update_training_segment_criterion(
+            &library,
+            UpdateTrainingSegmentCriterionRequest {
+                session_ref: session_ref.clone(),
+                snapshot_ref: snapshot_ref.clone(),
+                criterion_ref: equal_time_ref,
+                expected_revision: 1,
+                title: "Twenty-minute thirds".to_owned(),
+                definition: SegmentCriterionDefinition::EqualElapsedTime {
+                    span_milliseconds: 1_200_000,
+                },
+            },
+        )
+        .expect("revise reusable criterion");
+        let revised_criterion = revised
+            .available_criteria
+            .iter()
+            .find(|criterion| criterion.title() == "Twenty-minute thirds")
+            .expect("revised criterion");
+        assert_eq!(revised_criterion.revision(), 2);
+        assert_eq!(
+            revised.exercises.as_ref().expect("segment exercises")[0]
+                .applied_criteria
+                .iter()
+                .find(|applied| {
+                    applied.criterion.criterion_id() == revised_criterion.criterion_id()
+                })
+                .expect("revised application")
+                .segments
+                .len(),
+            3
+        );
+
+        let reopened = SqliteTrainingLibrary::new(harness.database());
+        let restarted = query_training_session_segmentation(
+            &reopened,
+            TrainingSessionSegmentationQuery {
+                session_ref: session_ref.clone(),
+                snapshot_ref: Some(snapshot_ref.clone()),
+            },
+        )
+        .expect("criteria after restart");
+        assert_eq!(restarted.available_criteria.len(), 2);
+        assert_eq!(
+            restarted.exercises.as_ref().expect("segment exercises")[0]
+                .applied_criteria
+                .len(),
+            2
+        );
+
+        let repeated = import_polar_archive(&harness.database(), &archive)
+            .expect("exact repeat after authored criteria");
+        assert!(repeated.exact_repeat);
+        let after_repeat = query_training_session_segmentation(
+            &reopened,
+            TrainingSessionSegmentationQuery {
+                session_ref: session_ref.clone(),
+                snapshot_ref: Some(snapshot_ref.clone()),
+            },
+        )
+        .expect("criteria survive exact repeat");
+        assert_eq!(after_repeat.available_criteria.len(), 2);
+        assert_eq!(
+            after_repeat.exercises.as_ref().expect("segment exercises")[0]
+                .applied_criteria
+                .len(),
+            2
+        );
 
         let connection = Connection::open(harness.database()).expect("database");
         let table_names = connection
@@ -10635,6 +11753,10 @@ mod tests {
         assert!(table_names
             .iter()
             .any(|name| name == "training_signal_sample"));
+        assert!(table_names.iter().any(|name| name == "segment_criterion"));
+        assert!(table_names
+            .iter()
+            .any(|name| name == "training_exercise_segment_criterion"));
         assert_eq!(
             connection
                 .query_row("SELECT COUNT(*) FROM training_signal_series", [], |row| {
@@ -12389,6 +13511,51 @@ mod tests {
 
         let created =
             import_polar_archive(&harness.database(), &archives[0]).expect("create session");
+        let library = SqliteTrainingLibrary::new(harness.database());
+        let initial_session = query_training_sessions(&harness.database())
+            .expect("initial training history")
+            .into_iter()
+            .next()
+            .expect("initial training session");
+        let session_ref =
+            training_session_ref(&initial_session.origin_id, &initial_session.session_id);
+        let initial_structure = query_training_session_structure(
+            &library,
+            TrainingSessionStructureQuery {
+                session_ref: session_ref.clone(),
+                snapshot_ref: None,
+            },
+        )
+        .expect("initial structure before authored segmentation");
+        let initial_exercise_ref = initial_structure
+            .structure
+            .expect("initial structure assessment")
+            .exercises
+            .expect("initial exercises")
+            .into_iter()
+            .next()
+            .expect("initial exercise")
+            .exercise_ref;
+        let authored = create_training_segment_criterion(
+            &library,
+            CreateTrainingSegmentCriterionRequest {
+                session_ref: session_ref.clone(),
+                snapshot_ref: initial_structure.snapshot_ref,
+                exercise_ref: initial_exercise_ref,
+                title: "Reusable revision witness".to_owned(),
+                definition: SegmentCriterionDefinition::EqualElapsedTime {
+                    span_milliseconds: 1_200_000,
+                },
+            },
+        )
+        .expect("author segmentation before reimport revisions");
+        let authored_ref = authored.available_criteria[0].criterion_id().to_owned();
+        assert_eq!(
+            authored.exercises.expect("initial segment exercises")[0].applied_criteria[0]
+                .segments
+                .len(),
+            3
+        );
         let equivalent =
             import_polar_archive(&harness.database(), &archives[1]).expect("equivalent session");
         let amended =
@@ -12406,6 +13573,25 @@ mod tests {
         let history = query_training_sessions(&harness.database()).expect("training history");
         assert_eq!(history.len(), 1);
         assert_eq!(history[0].duration_milliseconds, 3_700_000);
+        let after_revisions = query_training_session_segmentation(
+            &library,
+            TrainingSessionSegmentationQuery {
+                session_ref,
+                snapshot_ref: None,
+            },
+        )
+        .expect("authored segmentation after source revisions");
+        assert_eq!(after_revisions.available_criteria.len(), 1);
+        assert_eq!(
+            after_revisions.available_criteria[0].criterion_id(),
+            authored_ref
+        );
+        let applied_after_revisions = &after_revisions
+            .exercises
+            .expect("amended segment exercises")[0]
+            .applied_criteria;
+        assert_eq!(applied_after_revisions.len(), 1);
+        assert_eq!(applied_after_revisions[0].segments.len(), 4);
 
         let connection = Connection::open(harness.database()).expect("database");
         assert_eq!(

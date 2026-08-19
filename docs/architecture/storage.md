@@ -4,7 +4,7 @@
 
 Current architecture after [ADR 0002](decisions/0002-select-sqlite-storage.md). SQLite is the only storage engine in the application and the authoritative local-library format. It does not replace the documented portable FitFreed data contract.
 
-The current implemented schema and compatibility boundary are documented in the [SQLite version 17 persistence specification](../data-formats/persistence/sqlite-v17.md). It preserves the complete provider-neutral fitness library through version 8, authenticated-update state from version 9, application preferences from version 10, a resumable exploration destination from version 11, user-authored sport classifications from version 12, coherent full-history training discovery evidence from version 13, the disposable training-discovery workspace from version 14, mapped training exercises, laps, and pauses from version 15, primary and transition route assessments with exact points from version 16, and regular temporal training signals with exact unavailable slots from version 17. Earlier specifications remain immutable migration history.
+The current implemented schema and compatibility boundary are documented in the [SQLite version 18 persistence specification](../data-formats/persistence/sqlite-v18.md). It preserves the complete provider-neutral fitness library through version 8, authenticated-update state from version 9, application preferences from version 10, a resumable exploration destination from version 11, user-authored sport classifications from version 12, coherent full-history training discovery evidence from version 13, the disposable training-discovery workspace from version 14, mapped training exercises, laps, and pauses from version 15, primary and transition route assessments with exact points from version 16, regular temporal training signals with exact unavailable slots from version 17, and reusable personal segmentation criteria from version 18. Earlier specifications remain immutable migration history.
 
 ## Ownership
 
@@ -75,6 +75,11 @@ independent regular-signal assessments, exact series metadata, and every ordered
 and signal overviews select deterministic source ordinals in SQL, while exact pages remain available without
 loading a session's complete geometry or sample history. All three evidence groups reconcile with the session
 summary as one atomic record and advance the coherent training-discovery snapshot when changed.
+
+Schema version 18 stores reusable user-authored segment criteria and their ordered exercise associations.
+Derived segments remain application-owned calculations over the current duration or streamed exact signal
+evidence and are not persisted as provider facts. Criteria survive exact reimport, use optimistic revisions,
+and remain visibly independent from source laps and FitFreed-derived boundaries.
 
 New origin and evidence rows become durable only inside the same visibility transaction as canonical history and operation completion. Existing development origins migrate as unverified origins without invented evidence. Exact-repeat lookup may inherit an origin only from a completed operation whose correlation state is verified; an old package fingerprint alone cannot authorize subject resolution.
 

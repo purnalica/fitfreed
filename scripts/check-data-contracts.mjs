@@ -244,6 +244,45 @@ for (const contractValue of [
   requireMention(trainingSignalCanonical, contractValue, trainingSignalCanonicalPath);
 }
 
+const segmentCriterionDomainPath =
+  "src-tauri/crates/fitfreed-domain/src/segment_criterion.rs";
+const segmentCriterionDomain = read(segmentCriterionDomainPath);
+const segmentCriterionCanonicalPath =
+  "docs/data-formats/canonical/segment-criterion.md";
+const segmentCriterionCanonical = read(segmentCriterionCanonicalPath);
+for (const contractValue of [
+  "SegmentCriterion",
+  "criterionRef",
+  "title",
+  "definition",
+  "authorship",
+  "evaluationVersion",
+  "revision",
+  "equal-elapsed-time",
+  "equal-distance",
+  "heart-rate-zone",
+  "manual-boundaries",
+  "applicable",
+  "missing-prerequisite",
+  "ambiguous-prerequisite",
+  "incomplete-evidence",
+  "outside-session",
+  "too-many-segments",
+  "fitfreed-derived",
+]) {
+  requireMention(segmentCriterionCanonical, contractValue, segmentCriterionCanonicalPath);
+}
+for (const implementationValue of [
+  "SEGMENT_EVALUATION_VERSION",
+  "MAX_MANUAL_BOUNDARIES",
+  "MINIMUM_HEART_RATE_BPM",
+  "MAXIMUM_HEART_RATE_BPM",
+]) {
+  if (!segmentCriterionDomain.includes(implementationValue)) {
+    throw new Error(`${segmentCriterionDomainPath} has no ${implementationValue}`);
+  }
+}
+
 const sportClassificationDomainPath =
   "src-tauri/crates/fitfreed-domain/src/sport_classification.rs";
 const sportClassificationDomain = read(sportClassificationDomainPath);
@@ -563,6 +602,157 @@ const activityOverviewSchemaPath = "schemas/activity-overview-v1.schema.json";
 const activityOverviewSchema = JSON.parse(read(activityOverviewSchemaPath));
 const ajv = new Ajv2020({ allErrors: true, strict: true });
 addFormats(ajv);
+
+const segmentationSchemaPath = "schemas/training-session-segmentation-v1.schema.json";
+const validateSegmentation = ajv.compile(JSON.parse(read(segmentationSchemaPath)));
+const syntheticCriterion = {
+  criterionRef: `criterion-${"c".repeat(64)}`,
+  title: "Synthetic five-minute blocks",
+  definition: { kind: "equal-elapsed-time", spanMilliseconds: "300000" },
+  authorship: "user",
+  evaluationVersion: 1,
+  revision: 1,
+};
+const syntheticSegmentation = {
+  snapshotRef: `training-snapshot-${"a".repeat(64)}`,
+  sessionRef: `session-${"b".repeat(64)}`,
+  availableCriteria: [syntheticCriterion],
+  exercises: [{
+    exerciseRef: `exercise-${"d".repeat(64)}`,
+    ordinal: 0,
+    durationMilliseconds: "600000",
+    appliedCriteria: [{
+      criterion: syntheticCriterion,
+      ordinal: 0,
+      applicability: "applicable",
+      requiredMeasurement: null,
+      hasEvidenceGaps: false,
+      segments: [{
+        ordinal: 0,
+        startedAtElapsedMilliseconds: "0",
+        endedAtElapsedMilliseconds: "300000",
+        attribution: "fitfreed-derived",
+      }],
+    }],
+  }],
+};
+if (!validateSegmentation(syntheticSegmentation)) {
+  throw new Error(
+    `${segmentationSchemaPath} rejected its synthetic contract: ${ajv.errorsText(validateSegmentation.errors)}`,
+  );
+}
+for (const invalidSegmentation of [
+  { ...syntheticSegmentation, provider: "must-not-cross-the-boundary" },
+  { ...syntheticSegmentation, snapshotRef: "training-snapshot-private" },
+  {
+    ...syntheticSegmentation,
+    availableCriteria: [{ ...syntheticCriterion, authorship: "source" }],
+  },
+  {
+    ...syntheticSegmentation,
+    exercises: [{
+      ...syntheticSegmentation.exercises[0],
+      appliedCriteria: [{
+        ...syntheticSegmentation.exercises[0].appliedCriteria[0],
+        segments: Array.from({ length: 251 }, (_, ordinal) => ({
+          ordinal,
+          startedAtElapsedMilliseconds: String(ordinal),
+          endedAtElapsedMilliseconds: String(ordinal + 1),
+          attribution: "fitfreed-derived",
+        })),
+      }],
+    }],
+  },
+]) {
+  if (validateSegmentation(invalidSegmentation)) {
+    throw new Error(`${segmentationSchemaPath} accepted an invalid result`);
+  }
+}
+
+const segmentationCommandContracts = [
+  [
+    "schemas/training-session-segmentation-query-v1.schema.json",
+    { sessionRef: syntheticSegmentation.sessionRef, snapshotRef: syntheticSegmentation.snapshotRef },
+    { sessionRef: syntheticSegmentation.sessionRef, snapshotRef: syntheticSegmentation.snapshotRef, source: "private" },
+  ],
+  [
+    "schemas/training-segment-criterion-create-v1.schema.json",
+    {
+      sessionRef: syntheticSegmentation.sessionRef,
+      snapshotRef: syntheticSegmentation.snapshotRef,
+      exerciseRef: syntheticSegmentation.exercises[0].exerciseRef,
+      title: syntheticCriterion.title,
+      definition: syntheticCriterion.definition,
+    },
+    {
+      sessionRef: syntheticSegmentation.sessionRef,
+      snapshotRef: syntheticSegmentation.snapshotRef,
+      exerciseRef: syntheticSegmentation.exercises[0].exerciseRef,
+      title: syntheticCriterion.title,
+      definition: { kind: "equal-elapsed-time", spanMilliseconds: "0" },
+    },
+  ],
+  [
+    "schemas/training-segment-criterion-update-v1.schema.json",
+    {
+      sessionRef: syntheticSegmentation.sessionRef,
+      snapshotRef: syntheticSegmentation.snapshotRef,
+      criterionRef: syntheticCriterion.criterionRef,
+      expectedRevision: 1,
+      title: syntheticCriterion.title,
+      definition: syntheticCriterion.definition,
+    },
+    {
+      sessionRef: syntheticSegmentation.sessionRef,
+      snapshotRef: syntheticSegmentation.snapshotRef,
+      criterionRef: syntheticCriterion.criterionRef,
+      expectedRevision: 0,
+      title: syntheticCriterion.title,
+      definition: syntheticCriterion.definition,
+    },
+  ],
+  [
+    "schemas/training-segment-criterion-mutation-v1.schema.json",
+    {
+      sessionRef: syntheticSegmentation.sessionRef,
+      snapshotRef: syntheticSegmentation.snapshotRef,
+      exerciseRef: syntheticSegmentation.exercises[0].exerciseRef,
+      criterionRef: syntheticCriterion.criterionRef,
+    },
+    {
+      sessionRef: syntheticSegmentation.sessionRef,
+      snapshotRef: syntheticSegmentation.snapshotRef,
+      exerciseRef: syntheticSegmentation.exercises[0].exerciseRef,
+      criterionRef: "criterion-private",
+    },
+  ],
+  [
+    "schemas/training-segment-criterion-move-v1.schema.json",
+    {
+      sessionRef: syntheticSegmentation.sessionRef,
+      snapshotRef: syntheticSegmentation.snapshotRef,
+      exerciseRef: syntheticSegmentation.exercises[0].exerciseRef,
+      criterionRef: syntheticCriterion.criterionRef,
+      direction: "earlier",
+    },
+    {
+      sessionRef: syntheticSegmentation.sessionRef,
+      snapshotRef: syntheticSegmentation.snapshotRef,
+      exerciseRef: syntheticSegmentation.exercises[0].exerciseRef,
+      criterionRef: syntheticCriterion.criterionRef,
+      direction: "first",
+    },
+  ],
+];
+for (const [schemaPath, validValue, invalidValue] of segmentationCommandContracts) {
+  const validate = ajv.compile(JSON.parse(read(schemaPath)));
+  if (!validate(validValue)) {
+    throw new Error(`${schemaPath} rejected its synthetic contract: ${ajv.errorsText(validate.errors)}`);
+  }
+  if (validate(invalidValue)) {
+    throw new Error(`${schemaPath} accepted an invalid contract`);
+  }
+}
 
 const sourceAcquisitionGuidePath = "docs/data-formats/guidance/source-acquisition-guide-v1.md";
 const sourceAcquisitionGuide = read(sourceAcquisitionGuidePath);
@@ -3944,6 +4134,10 @@ process.stdout.write(
     trainingComparisonSchemas: [
       trainingComparisonQuerySchemaPath,
       trainingComparisonSchemaPath,
+    ],
+    trainingSegmentationSchemas: [
+      segmentationSchemaPath,
+      ...segmentationCommandContracts.map(([schemaPath]) => schemaPath),
     ],
     sleepOverviewSchemas: [
       sleepOverviewQuerySchemaPath,

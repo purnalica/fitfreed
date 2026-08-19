@@ -19,6 +19,7 @@ import type {
   TrainingSignalSamplesResult,
   TrainingSessionSignalsResult,
 } from "./training-session-signal";
+import type { TrainingSessionSegmentationResult } from "./training-session-segmentation";
 import { TrainingSessionLibraryPanel } from "./TrainingSessionLibraryPanel";
 import type { TrainingSportsOverview } from "./training-sports";
 
@@ -66,6 +67,10 @@ function emptyWorkspaceCommand(command: string, arguments_: unknown) {
       query.offset,
       query.limit,
     ));
+  }
+  if (command === "query_training_session_segmentation") {
+    const query = (arguments_ as { query: { sessionRef: string } }).query;
+    return Promise.resolve(trainingSegmentation(query.sessionRef));
   }
   return undefined;
 }
@@ -340,6 +345,25 @@ function trainingSignalSamples(
     nextOffset: offset + samples.length < heartRateSamples.length
       ? offset + samples.length
       : null,
+  };
+}
+
+function trainingSegmentation(sessionRef: string): TrainingSessionSegmentationResult {
+  return {
+    snapshotRef,
+    sessionRef,
+    availableCriteria: [],
+    exercises: [{
+      exerciseRef: `exercise-${"1".repeat(64)}`,
+      ordinal: 0,
+      durationMilliseconds: "3600000",
+      appliedCriteria: [],
+    }, {
+      exerciseRef: `exercise-${"4".repeat(64)}`,
+      ordinal: 1,
+      durationMilliseconds: "900000",
+      appliedCriteria: [],
+    }],
   };
 }
 
@@ -931,6 +955,9 @@ describe("TrainingSessionLibraryPanel", () => {
       }
       if (command === "query_training_session_signals") {
         return Promise.resolve(trainingSignals(arguments_.query.sessionRef));
+      }
+      if (command === "query_training_session_segmentation") {
+        return Promise.resolve(trainingSegmentation(arguments_.query.sessionRef));
       }
       throw new Error(`Unexpected command: ${command}`);
     });

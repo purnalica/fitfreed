@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production persists provider-neutral session summaries, mapped exercise/lap/pause structure, primary and transition routes with exact points, supported exercise and transition signals with exact samples, user-authored sport classifications, and a disposable discovery workspace. Full-history search, chronology, calendar projection, comparison selection, restart restoration, structural detail, bounded local route traces, exact route pagination, gap-aware bounded signal charts, and exact signal pagination are implemented. Provider-defined zones, provenance presentation, reusable criteria, and user-authored segmentation continue through E4 of the [MVP experience delivery plan](../plans/mvp-experience-delivery.md).
+Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production persists provider-neutral session summaries, mapped exercise/lap/pause structure, primary and transition routes with exact points, supported exercise and transition signals with exact samples, user-authored sport classifications and reusable segment criteria, and a disposable discovery workspace. Full-history search, chronology, calendar projection, comparison selection, restart restoration, structural detail, bounded local route traces, exact route pagination, gap-aware bounded signal charts, exact signal pagination, and user-authored segmentation are implemented. Provider-defined zones, provenance presentation, and progressive cross-signal inspection continue through E4 of the [MVP experience delivery plan](../plans/mvp-experience-delivery.md).
 
 ## Ownership
 
@@ -81,6 +81,21 @@ part of the bounded projection.
 The exact query returns stable contiguous pages of at most 250 slots. Exercise and transition collections,
 kind, unit, interval, source ordinal, and sample ordinal remain explicit, and no signal query loads a complete
 series merely to draw a bounded chart.
+
+## Personal segmentation boundary
+
+The [canonical segment criterion](../data-formats/canonical/segment-criterion.md) is reusable user-authored
+evidence with stable local identity, optimistic revision, and one versioned rule. Its ordered exercise
+application is independent from source laps, phases, routes, and signals. Editing a reused definition affects
+every application; removing an application retains the reusable definition. Reimport retains an application
+only while the same source exercise identity remains and never redirects it to a different exercise.
+
+The [training-session segmentation read model](../data-formats/insights/training-session-segmentation-v1.md)
+evaluates equal elapsed-time, equal recorded-distance, recorded heart-rate-range, and manual elapsed-boundary
+rules under the current discovery snapshot. Distance and heart-rate evaluation stream exact primary signal
+slots from persistence; they do not infer from chart pixels or load a complete series. Results are bounded to
+250 exact segments and expose missing, ambiguous, incomplete, outside-session, zero-match, and source-gap
+states separately. Derived segments are recalculated rather than persisted as canonical source evidence.
 
 Mapping changes reassess identical source bytes. Version 2 training mapping can strictly enrich a summary
 written by version 1, version 3 can strictly enrich equal version-2 summary and structure with evaluated

@@ -1033,6 +1033,67 @@ describe("packaged FitFreed import journey", () => {
     );
     await exactSignalToggle.click();
     expect(await recordedSignals[0].$$(".training-signal-exact")).toHaveLength(0);
+    const segmentation = await $(".training-segmentation");
+    await expect(segmentation.$("h4")).toHaveText(
+      english.training.sessionLibrary.segmentHeading,
+    );
+    await segmentation.$(`aria/${english.training.sessionLibrary.segmentCreate}`).click();
+    const segmentTitle = await segmentation.$('input[maxlength="80"]');
+    await segmentTitle.setValue("Quarter-hour blocks");
+    const segmentMinutes = await segmentation.$('input[type="number"]');
+    await segmentMinutes.setValue("15");
+    await segmentation.$(`aria/${english.training.sessionLibrary.segmentSave}`).click();
+    await browser.waitUntil(
+      async () => (await segmentation.$$(".training-segment-criterion")).length === 1,
+      { timeout: 10_000, timeoutMsg: "the elapsed-time criterion was not persisted" },
+    );
+    const elapsedCriterion = await segmentation.$(".training-segment-criterion");
+    await expect(elapsedCriterion.$("h6")).toHaveText("Quarter-hour blocks");
+    await expect(elapsedCriterion).toHaveText(
+      expect.stringContaining(english.training.sessionLibrary.segmentAuthoredByYou),
+    );
+    await expect(elapsedCriterion).toHaveText(
+      expect.stringContaining(english.training.sessionLibrary.segmentCalculatedByFitFreed),
+    );
+    await expect(elapsedCriterion).toHaveText(expect.stringContaining("Evaluation v1"));
+    expect(await elapsedCriterion.$$("tbody tr")).toHaveLength(4);
+
+    await segmentation.$(`aria/${english.training.sessionLibrary.segmentCreate}`).click();
+    await segmentation.$('input[maxlength="80"]').setValue("Race plan");
+    await browser.execute((value) => {
+      const select = document.querySelector(".training-segment-editor select");
+      const setValue = Object.getOwnPropertyDescriptor(
+        window.HTMLSelectElement.prototype,
+        "value",
+      ).set;
+      setValue.call(select, value);
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    }, "manual-boundaries");
+    await expect(segmentation.$(".training-segment-editor select"))
+      .toHaveValue("manual-boundaries");
+    const manualBoundaries = await segmentation.$('input[aria-describedby="training-segment-manual-help"]');
+    await manualBoundaries.waitForDisplayed({ timeout: 10_000 });
+    await manualBoundaries.setValue("30, 20");
+    await expect(segmentation.$(`aria/${english.training.sessionLibrary.segmentSave}`)).toBeDisabled();
+    await expect(segmentation.$('[role="alert"]')).toHaveText(
+      english.training.sessionLibrary.segmentInvalid,
+    );
+    await manualBoundaries.setValue("20, 40");
+    await segmentation.$(`aria/${english.training.sessionLibrary.segmentSave}`).click();
+    await browser.waitUntil(
+      async () => (await segmentation.$$(".training-segment-criterion")).length === 2,
+      { timeout: 10_000, timeoutMsg: "the manual criterion was not persisted" },
+    );
+    const authoredCriteria = await segmentation.$$(".training-segment-criterion");
+    expect(await authoredCriteria[1].$$("tbody tr")).toHaveLength(3);
+    await authoredCriteria[1]
+      .$(`aria/${english.training.sessionLibrary.segmentMoveEarlier}`)
+      .click();
+    await browser.waitUntil(
+      async () => await (await segmentation.$$(".training-segment-criterion h6"))[0].getText()
+        === "Race plan",
+      { timeout: 10_000, timeoutMsg: "the criterion order was not updated" },
+    );
     await $("aria/Back to calendar").click();
     await $("aria/Chronology").click();
     await expectTrainingRows([
@@ -2108,6 +2169,23 @@ describe("packaged FitFreed import journey", () => {
     await expect($(".training-signal-primary .training-signal-heading h6")).toHaveText(
       spanish.training.sessionLibrary.signalKinds["heart-rate"],
     );
+    const localizedSegmentation = await $(".training-segmentation");
+    await expect(localizedSegmentation.$("h4")).toHaveText(
+      spanish.training.sessionLibrary.segmentHeading,
+    );
+    const localizedCriteria = await localizedSegmentation.$$(".training-segment-criterion");
+    expect(localizedCriteria).toHaveLength(2);
+    await expect(localizedCriteria[0].$("h6")).toHaveText("Race plan");
+    await expect(localizedCriteria[0]).toHaveText(
+      expect.stringContaining(spanish.training.sessionLibrary.segmentAuthoredByYou),
+    );
+    await expect(localizedCriteria[0]).toHaveText(
+      expect.stringContaining(spanish.training.sessionLibrary.segmentCalculatedByFitFreed),
+    );
+    await expect(localizedCriteria[0]).toHaveText(expect.stringContaining("Evaluación v1"));
+    expect(await localizedCriteria[0].$$("tbody tr")).toHaveLength(3);
+    await expect(localizedCriteria[1].$("h6")).toHaveText("Quarter-hour blocks");
+    expect(await localizedCriteria[1].$$("tbody tr")).toHaveLength(4);
     const spanishTrainingDetailValues = await $$(`dl[aria-label="${spanish.training.sessionLibrary.summaryMeasurements}"] dd`);
     await expect(spanishTrainingDetailValues[5]).toHaveText("10.500 m");
     await expect(spanishTrainingDetailValues[7]).toHaveText("142 ppm");
@@ -2323,6 +2401,11 @@ describe("packaged FitFreed import journey", () => {
       spanish.training.sessionLibrary.structureHeading,
     );
     expect(await $$(".training-exercise")).toHaveLength(1);
+    const restartedSegmentation = await $(".training-segmentation");
+    const restartedCriteria = await restartedSegmentation.$$(".training-segment-criterion");
+    expect(restartedCriteria).toHaveLength(2);
+    await expect(restartedCriteria[0].$("h6")).toHaveText("Race plan");
+    await expect(restartedCriteria[1].$("h6")).toHaveText("Quarter-hour blocks");
     await expect($(`aria/${spanish.training.sessionLibrary.backToCalendar}`)).toBeDisplayed();
     await returnToLibraryHome(spanish);
     await browser.reloadSession();

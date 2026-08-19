@@ -15,12 +15,13 @@ use fitfreed_application::{
     query_recovery_overview, query_sleep_comparison, query_sleep_detail, query_sleep_overview,
     query_training_comparison, query_training_overview, query_training_route_points,
     query_training_session_calendar, query_training_session_routes,
-    query_training_session_selection, query_training_session_signals,
-    query_training_session_structure, query_training_sessions, query_training_signal_samples,
-    ActivityDateRange, LongitudinalDateRange, RecoveryDateRange, SleepDateRange, TrainingDateRange,
-    TrainingRoutePointsQuery, TrainingSessionCalendarRequest, TrainingSessionRouteQuery,
-    TrainingSessionSearchRequest, TrainingSessionSelectionRequest, TrainingSessionSignalsQuery,
-    TrainingSessionSort, TrainingSessionStructureQuery, TrainingSignalSamplesQuery,
+    query_training_session_segmentation, query_training_session_selection,
+    query_training_session_signals, query_training_session_structure, query_training_sessions,
+    query_training_signal_samples, ActivityDateRange, LongitudinalDateRange, RecoveryDateRange,
+    SleepDateRange, TrainingDateRange, TrainingRoutePointsQuery, TrainingSessionCalendarRequest,
+    TrainingSessionRouteQuery, TrainingSessionSearchRequest, TrainingSessionSegmentationQuery,
+    TrainingSessionSelectionRequest, TrainingSessionSignalsQuery, TrainingSessionSort,
+    TrainingSessionStructureQuery, TrainingSignalSamplesQuery,
 };
 use fitfreed_lib::infrastructure::{
     query_activity_between, SqliteActivityLibrary, SqliteLongitudinalLibrary,
@@ -56,6 +57,8 @@ struct GeneratedRows {
     training_route_points: usize,
     training_signals: usize,
     training_signal_samples: usize,
+    training_segment_criteria: usize,
+    training_segment_applications: usize,
     sleep: usize,
     sleep_transitions: usize,
 }
@@ -305,7 +308,7 @@ fn main() {
     let training_signal_samples_request = TrainingSignalSamplesQuery {
         session_ref: training_discovery_page.sessions[0].session_ref.clone(),
         signal_ref: training_signal_ref,
-        snapshot_ref: Some(training_discovery_page.snapshot_ref),
+        snapshot_ref: Some(training_discovery_page.snapshot_ref.clone()),
         offset: SIGNAL_SAMPLES_PER_ORIGIN / 2,
         limit: 250,
     };
@@ -313,6 +316,37 @@ fn main() {
         query_training_signal_samples(&training_library, training_signal_samples_request.clone())
             .expect("exact training signal page")
             .samples
+            .len()
+    });
+    let training_segmentation_request = TrainingSessionSegmentationQuery {
+        session_ref: training_discovery_page.sessions[0].session_ref.clone(),
+        snapshot_ref: Some(training_discovery_page.snapshot_ref.clone()),
+    };
+    let segmentation_setup = query_training_session_segmentation(
+        &training_library,
+        training_segmentation_request.clone(),
+    )
+    .expect("training segmentation setup");
+    let expected_segments = segmentation_setup
+        .exercises
+        .expect("generated segment exercises")[0]
+        .applied_criteria[0]
+        .segments
+        .len();
+    assert!(
+        expected_segments > 0,
+        "generated segmentation must be applicable"
+    );
+    let training_segmentation = measure(expected_segments, || {
+        query_training_session_segmentation(
+            &training_library,
+            training_segmentation_request.clone(),
+        )
+        .expect("training segmentation")
+        .exercises
+        .expect("generated segment exercises")[0]
+            .applied_criteria[0]
+            .segments
             .len()
     });
 
@@ -564,6 +598,11 @@ fn main() {
             COMMON_BUDGET_MILLISECONDS,
         ),
         (
+            "training.segmentation",
+            &training_segmentation,
+            COMMON_BUDGET_MILLISECONDS,
+        ),
+        (
             "sleep.defaultOverview",
             &sleep_default_overview,
             COMMON_BUDGET_MILLISECONDS,
@@ -681,6 +720,8 @@ fn main() {
                 "storedTrainingRoutePoints": generated_rows.training_route_points,
                 "storedTrainingSignals": generated_rows.training_signals,
                 "storedTrainingSignalSamples": generated_rows.training_signal_samples,
+                "storedTrainingSegmentCriteria": generated_rows.training_segment_criteria,
+                "storedTrainingSegmentApplications": generated_rows.training_segment_applications,
                 "storedSleepPeriods": generated_rows.sleep,
                 "storedSleepTransitions": generated_rows.sleep_transitions,
                 "storedRecoveryNights": generated_rows.recovery,
@@ -751,6 +792,10 @@ fn main() {
                     ),
                     "signalExactPage": measurement_json(
                         &training_signal_exact_page,
+                        COMMON_BUDGET_MILLISECONDS,
+                    ),
+                    "segmentation": measurement_json(
+                        &training_segmentation,
                         COMMON_BUDGET_MILLISECONDS,
                     ),
                 },
@@ -854,6 +899,8 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
     let mut training_route_point_rows = 0;
     let mut training_signal_rows = 0;
     let mut training_signal_sample_rows = 0;
+    let mut training_segment_criterion_rows = 0;
+    let mut training_segment_application_rows = 0;
     let mut sleep_rows = 0;
     let mut sleep_transition_rows = 0;
     {
@@ -1063,6 +1110,25 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
                  ) VALUES (?1, ?2, ?3, 'primary', 0, ?4, ?5)",
             )
             .expect("prepare generated training signal sample insertion");
+        let mut segment_criterion_statement = transaction
+            .prepare_cached(
+                "INSERT INTO segment_criterion (
+                    criterion_id, title, criterion_kind, span_milliseconds, span_meters,
+                    minimum_beats_per_minute, maximum_beats_per_minute, authorship,
+                    evaluation_version, revision, created_at_utc, updated_at_utc
+                 ) VALUES (
+                    ?1, ?2, 'heart-rate-zone', NULL, NULL, 115, 194, 'user',
+                    1, 1, '2025-12-31T00:00:00Z', '2025-12-31T00:00:00Z'
+                 )",
+            )
+            .expect("prepare generated segment criterion insertion");
+        let mut segment_application_statement = transaction
+            .prepare_cached(
+                "INSERT INTO training_exercise_segment_criterion (
+                    origin_id, session_id, exercise_id, criterion_id, ordinal, applied_at_utc
+                 ) VALUES (?1, ?2, ?3, ?4, 0, '2025-12-31T00:00:00Z')",
+            )
+            .expect("prepare generated segment criterion application insertion");
         let day_offset = calendar_days - 1;
         let date = last_date.format("%Y-%m-%d").to_string();
         for origin_index in 0..ORIGIN_COUNT {
@@ -1191,6 +1257,18 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
                     .expect("insert generated training signal sample");
                 training_signal_sample_rows += 1;
             }
+            let criterion_id = format!("criterion-{:064x}", origin_index + 1);
+            segment_criterion_statement
+                .execute(params![
+                    criterion_id,
+                    format!("Synthetic complete range {}", origin_index + 1),
+                ])
+                .expect("insert generated segment criterion");
+            training_segment_criterion_rows += 1;
+            segment_application_statement
+                .execute(params![origin, session_id, exercise_id, criterion_id])
+                .expect("apply generated segment criterion");
+            training_segment_application_rows += 1;
         }
     }
     {
@@ -1364,6 +1442,8 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
         training_route_points: training_route_point_rows,
         training_signals: training_signal_rows,
         training_signal_samples: training_signal_sample_rows,
+        training_segment_criteria: training_segment_criterion_rows,
+        training_segment_applications: training_segment_application_rows,
         sleep: sleep_rows,
         sleep_transitions: sleep_transition_rows,
     }

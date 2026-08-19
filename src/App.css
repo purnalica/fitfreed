@@ -463,6 +463,36 @@ th:last-child, td:last-child { text-align: right; }
 .training-signal-exact > h6 { margin: 0 0 10px; font-size: .9rem; }
 .training-signal-exact table { min-width: 520px; }
 .training-signal-pagination { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; }
+.training-segmentation { margin-top: 28px; padding-top: 24px; border-top: 2px solid var(--accent); }
+.training-segmentation > h4 { margin: 0 0 5px; font-size: 1.1rem; }
+.training-segmentation > h4 + p { margin: 0; color: var(--muted); }
+.training-segment-attribution { margin: 16px 0; padding: 14px 16px; background: var(--accent-soft); border-left: 4px solid var(--accent); border-radius: 10px; }
+.training-segment-attribution p { margin: 4px 0 0; color: var(--ink-soft); }
+.training-exercise-segmentation { margin-top: 20px; padding: 18px; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 12px; }
+.training-exercise-segmentation > h5 { margin: 0 0 10px; font-size: 1rem; }
+.training-segment-criterion { margin-top: 14px; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.training-segment-criterion > header { display: flex; align-items: start; justify-content: space-between; gap: 18px; }
+.training-segment-criterion > header p { margin: 0 0 3px; color: var(--muted); font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.training-segment-criterion > header h6 { margin: 0; font-size: .95rem; }
+.training-segment-criterion > header div > span { color: var(--muted); font-size: .8rem; }
+.training-segment-criterion > header > span { padding: 5px 8px; color: var(--accent-deep); background: var(--accent-soft); border-radius: 999px; font-size: .72rem; font-weight: 800; white-space: nowrap; }
+.training-segment-applicability { color: var(--ink-soft); }
+.training-segment-applicability:not(.applicable) { padding: 10px 12px; background: var(--warning-soft); border-radius: 8px; }
+.training-segment-timeline { position: relative; height: 58px; margin: 16px 0; overflow: hidden; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 9px; }
+.training-segment-timeline span { position: absolute; top: 8px; bottom: 8px; display: grid; min-width: 2px; place-items: center; overflow: hidden; color: var(--surface); background: var(--accent); border: 2px solid var(--surface); font-size: .7rem; font-weight: 800; }
+.training-segment-timeline span:nth-child(even) { background: var(--success); }
+.training-segment-criterion table { min-width: 680px; }
+.training-segment-actions, .training-segment-add-actions { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin-top: 14px; }
+.training-segment-add-actions { padding-top: 16px; border-top: 1px solid var(--line); }
+.training-segment-add-actions label { flex: 1 1 230px; }
+.training-segment-editor { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 16px; padding: 18px; background: var(--surface); border: 1px solid var(--accent); border-radius: 12px; }
+.training-segment-editor h6, .training-segment-editor > p, .training-segment-editor .training-segment-actions { grid-column: 1 / -1; }
+.training-segment-editor h6 { margin: 0; font-size: .95rem; }
+.training-segment-editor > p { margin: 0; color: var(--muted); }
+.training-segment-editor label { display: grid; gap: 6px; }
+.training-segment-editor label span { color: var(--muted); font-size: .78rem; font-weight: 800; }
+.training-segment-editor input, .training-segment-editor select, .training-segment-add-actions select { width: 100%; }
+.training-segment-editor-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .training-comparison { margin-top: 32px; padding-top: 28px; border-top: 1px solid var(--line); }
 .training-comparison > div:first-child h2 { margin: 0 0 5px; }
 .training-comparison > div:first-child p { margin: 0; color: var(--muted); }
@@ -782,6 +812,12 @@ th:last-child, td:last-child { text-align: right; }
   .activity-detail-heading { align-items: stretch; flex-direction: column; }
   .training-detail-heading { align-items: stretch; flex-direction: column; }
   .training-exercise > header { align-items: stretch; flex-direction: column; }
+  .training-segment-criterion > header { align-items: stretch; flex-direction: column; }
+  .training-segment-criterion > header > span { align-self: start; white-space: normal; }
+  .training-segment-editor { grid-template-columns: 1fr; }
+  .training-segment-editor h6, .training-segment-editor > p, .training-segment-editor .training-segment-actions { grid-column: 1; }
+  .training-segment-editor-pair { grid-template-columns: 1fr; }
+  .training-segment-actions button { flex: 1 1 100%; }
   .sleep-detail-heading { align-items: stretch; flex-direction: column; }
   .recovery-detail-heading { align-items: stretch; flex-direction: column; }
   .longitudinal-detail-heading { align-items: stretch; flex-direction: column; }
