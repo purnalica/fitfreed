@@ -878,6 +878,7 @@ async function measureAlternating(executions, scenarios, operation) {
 
 export async function runInsightsPerformanceJourney({
   archivePath,
+  chooseArchiveLabel,
   goToHome,
   openHomeQuestion,
   selectArchive,
@@ -886,7 +887,7 @@ export async function runInsightsPerformanceJourney({
   reportPhase("import");
   await selectLocale("en-US", "sources");
   const dialogMock = await browser.tauri.mock("plugin:dialog|open");
-  await selectArchive(dialogMock, archivePath);
+  await selectArchive(dialogMock, archivePath, chooseArchiveLabel);
   await $("aria/Import selected package").click();
   await goToHome("explore");
   await waitForDailyActivityCoverage();

@@ -2,7 +2,7 @@
 
 ## Status
 
-Active as of 2026-08-19. D0, P1, E1, P2, E2, all three E3 slices, all seven E4 slices, and the first three E5 verticals have complete local and hosted acceptance evidence; the fourth E5 vertical has complete local acceptance. The accepted E5 verticals provide durable session-origin authorship, ordered route composition, one coherent training-period comparison family, and question-led, exploration-led, session-led, and blank starts with shared preview, privacy review, persistence, and deterministic self-contained HTML export. Deliberate refresh and complete report navigation remain active. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English and Spanish hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md) and [ADR 0024](../architecture/decisions/0024-generate-localized-product-pages.md).
+Active as of 2026-08-19. D0, P1, E1, P2, E2, all three E3 slices, all seven E4 slices, and the first four E5 verticals have complete local and hosted acceptance evidence; the fifth E5 vertical has complete local acceptance. The accepted E5 verticals provide durable session-origin authorship, ordered route composition, one coherent training-period comparison family, question-led, exploration-led, session-led, and blank starts, and deliberate evidence refresh through a reviewed current candidate. Shared preview, privacy review, persistence, and deterministic self-contained HTML export remain available throughout. Complete report navigation remains active. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English and Spanish hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md) and [ADR 0024](../architecture/decisions/0024-generate-localized-product-pages.md).
 
 The existing import, reconciliation, persistence, Insights, localization, update-recovery, packaging, and continuous-integration capabilities remain the engineering baseline. This plan changes how those capabilities become a product people can understand and value; it does not discard their verified behavior.
 
@@ -576,8 +576,8 @@ resolved session evidence and user narrative, reopens it after restart, reviews 
 content, and exports deterministic self-contained HTML. This proves the durable model, authoritative query,
 SQLite, transport, editor, and output-adapter boundaries through one immediately useful artifact. The next
 two slices added route composition and the accepted finding, comparison, chart, exact-table, and
-coverage-and-limitation family. The fourth slice added question, exploration, and blank starts. Remaining E5
-slices add deliberate refresh and complete origin-aware return.
+coverage-and-limitation family. The fourth slice added question, exploration, and blank starts. The fifth
+slice added deliberate refresh. The remaining E5 slice completes origin-aware return.
 Each slice remains runnable and documented but E5 is accepted only after the complete FR-005 journey passes.
 
 **Application and architecture:**
@@ -657,8 +657,34 @@ and the production build. The packaged
 macOS journey created session and exploration reports, returned to the exact comparison, reopened both after
 restart, and independently verified the exported output. The packaged performance campaign passed every
 500-millisecond common and 2-second maximum p95 budget; its slowest measured interaction was 113
-milliseconds. Hosted acceptance remains pending for this exact executable-input fingerprint. Deliberate
-refresh and complete report-origin navigation remain active.
+milliseconds locally.
+
+The exact fourth-slice executable-input fingerprint subsequently passed the complete
+[hosted campaign](https://github.com/purnalica/fitfreed/actions/runs/32280636479), including portable quality
+checks, private release preparation, cold launch, full-scale import, Insights performance, update-recovery
+preparation, installation boundaries, the instrumented packaged journey, and packaged update replacement
+and forced recovery.
+
+**Deliberate-refresh local checkpoint:** a stale saved report exposes one current candidate for explicit
+review without fabricating historical canonical values that the library does not retain. The review names
+the saved and candidate revisions, distinguishes preserved authorship, origin, layout, and provenance policy
+from recalculated evidence, and permits cancellation without a write. Confirmation is bound to the exact
+saved revision and reviewed candidate snapshot; a concurrent edit or another library change fails without
+mutation. A successful refresh changes only the evidence snapshot and revision, then re-enables editing and
+privacy-reviewed export.
+
+Domain, application, persistence, transport, public-schema, component, localization, documentation, and
+contract tests protect idempotence, every report origin, exact candidate review, optimistic conflicts,
+restart, cancellation, and export. The complete fast lane passed 137 automation tests, 122 React tests, 207
+host tests, 139 application tests, 33 domain tests, and two private-acceptance tests. Strict Clippy, formatting,
+the production build, repository-content inspection, and diff checks passed. The packaged macOS journey
+imported amended evidence, identified the affected report as stale, reviewed and cancelled the candidate,
+confirmed the same exact candidate, preserved authored content, reopened revision 2, and independently read
+its provider-neutral version-4 HTML export. It also retained an unaffected stale report, preserved and then
+explicitly cleared resumable exploration across restart, and passed Axe without violations. The isolated
+two-year packaged performance campaign passed every budget; its slowest p95 interaction was 126 milliseconds
+against the 2-second maximum-interaction budget. Hosted acceptance remains pending for this fifth-slice
+executable-input fingerprint. Complete report-origin navigation is the remaining E5 slice.
 
 **Evaluation checkpoint:** a reviewer can create a useful artifact without learning provider or database terminology and can explain which parts are recorded, calculated, or authored.
 

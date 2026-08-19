@@ -1,8 +1,8 @@
-export async function openArchivePicker(dialogMock, selectedPath) {
+export async function openArchivePicker(dialogMock, selectedPath, chooseLabel) {
   await dialogMock.mockReturnValue(selectedPath);
   await dialogMock.update();
   const expectedCallCount = dialogMock.mock.calls.length + 1;
-  await $("aria/Choose ZIP package").click();
+  await $(`aria/${chooseLabel}`).click();
   await browser.waitUntil(
     async () => {
       await dialogMock.update();
@@ -19,8 +19,8 @@ export async function openArchivePicker(dialogMock, selectedPath) {
   });
 }
 
-export async function selectArchive(dialogMock, archivePath) {
-  await openArchivePicker(dialogMock, archivePath);
+export async function selectArchive(dialogMock, archivePath, chooseLabel) {
+  await openArchivePicker(dialogMock, archivePath, chooseLabel);
   await expect($(".path")).toHaveText(archivePath);
 }
 

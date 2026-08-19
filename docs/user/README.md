@@ -47,7 +47,8 @@ The [development preview guide](development-preview.md) is the primary end-to-en
 
 The [report guide](reports.md) explains the implemented question-, exploration-, session-, and blank-start
 journeys, user-selected training-period findings and exact views, durable editing, stale-source boundary,
-explicit sensitive-content review, deterministic local HTML export, and current format limitations.
+deliberate evidence refresh, explicit sensitive-content review, deterministic local HTML export, and current
+format limitations.
 
 The [private development package guide](private-development-packages.md) explains integrity verification and the unsigned evaluation boundary. It does not turn a development package into a supported release.
 

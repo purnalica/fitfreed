@@ -22,6 +22,8 @@ const SESSION_REF: &str =
 const ROUTE_REF: &str = "route-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 const SNAPSHOT_REF: &str =
     "training-snapshot-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+const CHANGED_SNAPSHOT_REF: &str =
+    "training-snapshot-abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
 
 fn session_block(include_physiological_context: bool) -> ReportBlock {
     ReportBlock::session_evidence(
@@ -278,6 +280,45 @@ fn composes_question_exploration_and_blank_origins_without_session_authority() {
     assert_eq!(expanded.origin(), &ReportOrigin::Blank);
     assert_eq!(expanded.revision(), 2);
     assert_eq!(expanded.blocks().len(), 6);
+}
+
+#[test]
+fn refreshes_only_the_evidence_snapshot_after_an_explicit_review() {
+    let query = comparison_query();
+    let mut blocks = analytical_blocks(&query);
+    blocks.push(narrative_block("The interpretation remains mine."));
+    let report = ReportDefinition::compose_report(
+        REPORT_REF,
+        "Reviewed comparison",
+        ReportLocale::EsEs,
+        SNAPSHOT_REF,
+        ReportOrigin::Exploration { query },
+        blocks,
+    )
+    .expect("original report");
+
+    let refreshed = refresh_report_definition(&report, CHANGED_SNAPSHOT_REF)
+        .expect("refreshed report definition");
+
+    assert_eq!(refreshed.report_ref(), report.report_ref());
+    assert_eq!(refreshed.title(), report.title());
+    assert_eq!(refreshed.locale(), report.locale());
+    assert_eq!(refreshed.origin(), report.origin());
+    assert_eq!(refreshed.provenance_policy(), report.provenance_policy());
+    assert_eq!(refreshed.authorship(), report.authorship());
+    assert_eq!(refreshed.definition_version(), report.definition_version());
+    assert_eq!(refreshed.blocks(), report.blocks());
+    assert_eq!(refreshed.source_snapshot_ref(), CHANGED_SNAPSHOT_REF);
+    assert_eq!(refreshed.revision(), report.revision() + 1);
+    assert_eq!(
+        refresh_report_definition(&refreshed, CHANGED_SNAPSHOT_REF).expect("idempotent refresh"),
+        refreshed
+    );
+    assert_eq!(
+        refresh_report_definition(&refreshed, "training-snapshot-invalid")
+            .expect_err("invalid candidate snapshot"),
+        ReportDefinitionError::InvalidSnapshotIdentifier
+    );
 }
 
 #[test]

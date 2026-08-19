@@ -21,28 +21,28 @@ use fitfreed_application::{
     PreferencesLoadStatus, PreparedReportStart, RecoveryComparison, RecoveryDateRange,
     RecoveryDayAvailability, RecoveryDayInsight, RecoveryNightDetail, RecoveryNightInsight,
     RecoveryOverview, RecoverySeriesComparison, RecoverySeriesOverview, RecoverySeriesSummary,
-    ReportEvidenceProvenance, ReportExportReceipt, ReportExportRequest, ReportLimitation,
-    ReportResolutionStatus, ReportRouteEvidence, ReportRouteExportChoice, ReportSensitiveContent,
-    ReportSensitiveContentKind, ReportSessionEvidence, ReportStart, ReportSummary, ResolvedReport,
-    ResolvedSessionReport, SaveSportClassificationRequest, SavedTrainingSportClassification,
-    SegmentApplicabilityView, SegmentMeasurementView, SessionReportBlockDraft,
-    SessionReportBlockDraftContent, SleepComparison, SleepDateRange, SleepDayAvailability,
-    SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight, SleepPhaseTotals,
-    SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary, SourceAcquisitionGuide,
-    SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange, TrainingDerivedSegment,
-    TrainingDiscoveryView, TrainingDiscoveryWorkspace, TrainingExerciseRoutesView,
-    TrainingExerciseSegmentation, TrainingExerciseSignalsView, TrainingExerciseStructure,
-    TrainingExerciseZonesView, TrainingLapStructure, TrainingMeasurementFilter, TrainingOverview,
-    TrainingPauseStructure, TrainingProvenanceCurrentView, TrainingProvenanceDecisionView,
-    TrainingProvenanceEventView, TrainingRouteCollectionView, TrainingRouteKindView,
-    TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
-    TrainingSegmentCriterionDirection, TrainingSegmentCriterionMutationRequest,
-    TrainingSeriesComparison, TrainingSeriesOverview, TrainingSeriesSummary,
-    TrainingSessionCalendar, TrainingSessionCalendarDay, TrainingSessionCalendarRequest,
-    TrainingSessionInsight, TrainingSessionProvenanceQuery, TrainingSessionProvenanceResult,
-    TrainingSessionRouteQuery, TrainingSessionRoutesResult, TrainingSessionRoutesView,
-    TrainingSessionSearchItem, TrainingSessionSearchPage, TrainingSessionSearchRequest,
-    TrainingSessionSearchSummary, TrainingSessionSegmentationQuery,
+    RefreshReportRequest, ReportEvidenceProvenance, ReportExportReceipt, ReportExportRequest,
+    ReportLimitation, ReportResolutionStatus, ReportRouteEvidence, ReportRouteExportChoice,
+    ReportSensitiveContent, ReportSensitiveContentKind, ReportSessionEvidence, ReportStart,
+    ReportSummary, ResolvedReport, ResolvedSessionReport, SaveSportClassificationRequest,
+    SavedTrainingSportClassification, SegmentApplicabilityView, SegmentMeasurementView,
+    SessionReportBlockDraft, SessionReportBlockDraftContent, SleepComparison, SleepDateRange,
+    SleepDayAvailability, SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight,
+    SleepPhaseTotals, SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary,
+    SourceAcquisitionGuide, SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange,
+    TrainingDerivedSegment, TrainingDiscoveryView, TrainingDiscoveryWorkspace,
+    TrainingExerciseRoutesView, TrainingExerciseSegmentation, TrainingExerciseSignalsView,
+    TrainingExerciseStructure, TrainingExerciseZonesView, TrainingLapStructure,
+    TrainingMeasurementFilter, TrainingOverview, TrainingPauseStructure,
+    TrainingProvenanceCurrentView, TrainingProvenanceDecisionView, TrainingProvenanceEventView,
+    TrainingRouteCollectionView, TrainingRouteKindView, TrainingRouteOverview,
+    TrainingRoutePointView, TrainingRoutePointsQuery, TrainingSegmentCriterionDirection,
+    TrainingSegmentCriterionMutationRequest, TrainingSeriesComparison, TrainingSeriesOverview,
+    TrainingSeriesSummary, TrainingSessionCalendar, TrainingSessionCalendarDay,
+    TrainingSessionCalendarRequest, TrainingSessionInsight, TrainingSessionProvenanceQuery,
+    TrainingSessionProvenanceResult, TrainingSessionRouteQuery, TrainingSessionRoutesResult,
+    TrainingSessionRoutesView, TrainingSessionSearchItem, TrainingSessionSearchPage,
+    TrainingSessionSearchRequest, TrainingSessionSearchSummary, TrainingSessionSegmentationQuery,
     TrainingSessionSegmentationResult, TrainingSessionSelection, TrainingSessionSelectionRequest,
     TrainingSessionSignalsQuery, TrainingSessionSignalsResult, TrainingSessionSignalsView,
     TrainingSessionSort, TrainingSessionSport, TrainingSessionStructureQuery,
@@ -2714,6 +2714,31 @@ impl TryFrom<UpdateReportRequestDto> for UpdateReportRequest {
                 .into_iter()
                 .map(TryInto::try_into)
                 .collect::<Result<_, _>>()?,
+        })
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RefreshReportRequestDto {
+    report_ref: String,
+    expected_revision: String,
+    expected_source_snapshot_ref: String,
+    expected_resolved_snapshot_ref: String,
+}
+
+impl TryFrom<RefreshReportRequestDto> for RefreshReportRequest {
+    type Error = CommandErrorDto;
+
+    fn try_from(request: RefreshReportRequestDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            report_ref: request.report_ref,
+            expected_revision: parse_canonical_u64(
+                &request.expected_revision,
+                "invalid-report-definition",
+            )?,
+            expected_source_snapshot_ref: request.expected_source_snapshot_ref,
+            expected_resolved_snapshot_ref: request.expected_resolved_snapshot_ref,
         })
     }
 }
@@ -7086,6 +7111,34 @@ mod tests {
             .expect("structurally valid update request");
             assert!(UpdateSessionReportRequest::try_from(invalid).is_err());
         }
+
+        let refresh: RefreshReportRequestDto = from_value(json!({
+            "reportRef":
+                "report-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "expectedRevision": "2",
+            "expectedSourceSnapshotRef":
+                "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "expectedResolvedSnapshotRef":
+                "training-snapshot-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        }))
+        .expect("report refresh request");
+        let refresh = RefreshReportRequest::try_from(refresh).expect("valid report refresh");
+        assert_eq!(refresh.expected_revision, 2);
+        assert_eq!(
+            refresh.expected_resolved_snapshot_ref,
+            "training-snapshot-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        );
+        assert!(from_value::<RefreshReportRequestDto>(json!({
+            "reportRef":
+                "report-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "expectedRevision": "2",
+            "expectedSourceSnapshotRef":
+                "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "expectedResolvedSnapshotRef":
+                "training-snapshot-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "provider": "must-not-cross-the-boundary"
+        }))
+        .is_err());
 
         let export: SessionReportExportRequestDto =
             from_value(json!({

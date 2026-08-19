@@ -7,9 +7,10 @@ use std::{
 
 use chrono::{Days, NaiveDate};
 use fitfreed_domain::{
-    author_session_report, revise_report, revise_session_report, ReportBlock, ReportBlockContent,
-    ReportDateRange, ReportDefinition, ReportLocale, ReportOrigin, ReportQuestion,
-    ReportTrainingComparisonQuery, ReportTrainingMetric, MAX_ROUTE_ENDPOINT_REDACTION_METERS,
+    author_session_report, refresh_report_definition, revise_report, revise_session_report,
+    ReportBlock, ReportBlockContent, ReportDateRange, ReportDefinition, ReportLocale, ReportOrigin,
+    ReportQuestion, ReportTrainingComparisonQuery, ReportTrainingMetric,
+    MAX_ROUTE_ENDPOINT_REDACTION_METERS,
 };
 
 use crate::{
@@ -150,6 +151,14 @@ pub struct UpdateReportRequest {
     pub title: String,
     pub locale: ReportLocale,
     pub blocks: Vec<ReportBlockDraft>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RefreshReportRequest {
+    pub report_ref: String,
+    pub expected_revision: u64,
+    pub expected_source_snapshot_ref: String,
+    pub expected_resolved_snapshot_ref: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -621,6 +630,64 @@ pub fn update_report(
         return Err(ApplicationError::ReportDefinitionConflict);
     }
     Ok(revised)
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn refresh_report(
+    report_port: &dyn ReportDefinitionPort,
+    training_port: &dyn TrainingSessionDiscoveryPort,
+    route_port: &dyn TrainingSessionRoutePort,
+    provenance_port: &dyn TrainingSessionProvenancePort,
+    comparison_port: &dyn TrainingLibraryPort,
+    request: RefreshReportRequest,
+) -> Result<ReportDefinition, ApplicationError> {
+    if request.expected_revision == 0 {
+        return Err(ApplicationError::InvalidReportDefinition(
+            "expected report revision is zero".to_owned(),
+        ));
+    }
+    let existing = load_report_definition(report_port, &request.report_ref)?;
+    if existing.revision() != request.expected_revision {
+        return Err(ApplicationError::ReportDefinitionConflict);
+    }
+    if existing.source_snapshot_ref() != request.expected_source_snapshot_ref {
+        return Err(ApplicationError::ReportSourceChanged);
+    }
+    let candidate = resolve_report_definition(
+        training_port,
+        route_port,
+        provenance_port,
+        comparison_port,
+        existing.clone(),
+        None,
+    )?;
+    if candidate.status != ReportResolutionStatus::Stale
+        || candidate.resolved_snapshot_ref != request.expected_resolved_snapshot_ref
+    {
+        return Err(ApplicationError::ReportSourceChanged);
+    }
+    let refreshed = refresh_report_definition(&existing, &candidate.resolved_snapshot_ref)
+        .map_err(invalid_definition)?;
+    let verified = resolve_report_definition(
+        training_port,
+        route_port,
+        provenance_port,
+        comparison_port,
+        refreshed.clone(),
+        None,
+    )?;
+    if verified.status != ReportResolutionStatus::Current
+        || verified.resolved_snapshot_ref != request.expected_resolved_snapshot_ref
+    {
+        return Err(ApplicationError::ReportSourceChanged);
+    }
+    let saved = report_port
+        .compare_and_save_report_definition(request.expected_revision, &refreshed)
+        .map_err(map_definition_update_error)?;
+    if !saved {
+        return Err(ApplicationError::ReportDefinitionConflict);
+    }
+    Ok(refreshed)
 }
 
 pub fn update_composed_session_report(

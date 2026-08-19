@@ -23,6 +23,7 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({ save: mocks.save }));
 const digest = (character: string) => character.repeat(64);
 const sessionRef = `session-${digest("1")}`;
 const snapshotRef = `training-snapshot-${digest("2")}`;
+const changedSnapshotRef = `training-snapshot-${digest("a")}`;
 const reportRef = `report-${digest("3")}`;
 const routeRef = `route-${digest("7")}`;
 const routeBlockRef = `report-block-${digest("8")}`;
@@ -1074,7 +1075,11 @@ describe("ReportsPanel", () => {
 
   it("blocks stale exports, reports failures, and presents the workflow in Spanish", async () => {
     const user = userEvent.setup();
-    const stale = { ...resolution(), status: "stale" as const };
+    const stale = {
+      ...resolution(),
+      resolvedSnapshotRef: changedSnapshotRef,
+      status: "stale" as const,
+    };
     mocks.invoke.mockImplementation((command) => {
       if (command === "list_reports") return Promise.resolve({ reports: [] });
       if (command === "resolve_report") return Promise.resolve(stale);
@@ -1106,20 +1111,42 @@ describe("ReportsPanel", () => {
     expect(callbacks.onError).toHaveBeenCalledWith("report-definition-update-failed");
 
     cleanup();
+    let refreshed = false;
+    const spanishDefinition = {
+      ...stale.definition,
+      title: "Sesión sostenida",
+      locale: "es-ES" as const,
+    };
+    const refreshedDefinition = {
+      ...spanishDefinition,
+      sourceSnapshotRef: changedSnapshotRef,
+      revision: "2",
+    };
     mocks.invoke.mockImplementation((command) => {
       if (command === "list_reports") return Promise.resolve({ reports: [{
         reportRef,
         title: "Sesión sostenida",
         locale: "es-ES",
-        sourceSnapshotRef: snapshotRef,
-        revision: "1",
+        sourceSnapshotRef: refreshed ? changedSnapshotRef : snapshotRef,
+        revision: refreshed ? "2" : "1",
       }] });
-      if (command === "resolve_report") return Promise.resolve({
-        ...stale,
-        definition: { ...stale.definition, title: "Sesión sostenida", locale: "es-ES" },
-      });
+      if (command === "resolve_report") return Promise.resolve(refreshed
+        ? {
+            ...stale,
+            definition: refreshedDefinition,
+            status: "current",
+          }
+        : { ...stale, definition: spanishDefinition });
       if (command === "query_training_session_routes") {
-        return Promise.resolve({ snapshotRef, sessionRef, routes: { exercises: [] } });
+        return Promise.resolve({
+          snapshotRef: refreshed ? changedSnapshotRef : snapshotRef,
+          sessionRef,
+          routes: { exercises: [] },
+        });
+      }
+      if (command === "refresh_report") {
+        refreshed = true;
+        return Promise.resolve(refreshedDefinition);
       }
       throw new Error(`Unexpected command: ${command}`);
     });
@@ -1127,6 +1154,97 @@ describe("ReportsPanel", () => {
     await user.click(await screen.findByRole("button", { name: /Sesión sostenida/ }));
     expect(await screen.findByText(/La biblioteca de entrenamientos cambió/)).toBeVisible();
     expect(screen.getByRole("button", { name: "Revisar y exportar" })).toBeDisabled();
+    expect(screen.getByLabelText("Título del informe")).toBeDisabled();
     expect(mocks.save).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", {
+      name: "Revisar actualización de evidencias",
+    }));
+    let refreshReview = screen.getByRole("region", {
+      name: "Revisa las evidencias actuales de la biblioteca",
+    });
+    expect(within(refreshReview).getByText(/no conserva copias históricas/)).toBeVisible();
+    expect(within(refreshReview).getByText(
+      "El título, la interpretación y el idioma del informe",
+    )).toBeVisible();
+    expect(within(refreshReview).getByText(
+      "Las evidencias registradas y calculadas de la vista previa",
+    )).toBeVisible();
+    await user.click(within(refreshReview).getByRole("button", {
+      name: "Conservar la versión guardada",
+    }));
+    expect(screen.queryByRole("region", {
+      name: "Revisa las evidencias actuales de la biblioteca",
+    })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Revisar y exportar" })).toBeDisabled();
+
+    await user.click(screen.getByRole("button", {
+      name: "Revisar actualización de evidencias",
+    }));
+    refreshReview = screen.getByRole("region", {
+      name: "Revisa las evidencias actuales de la biblioteca",
+    });
+    await user.click(within(refreshReview).getByRole("button", {
+      name: "Utilizar esta revisión de evidencias",
+    }));
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith("refresh_report", {
+      request: {
+        reportRef,
+        expectedRevision: "1",
+        expectedSourceSnapshotRef: snapshotRef,
+        expectedResolvedSnapshotRef: changedSnapshotRef,
+      },
+    }));
+    expect(await screen.findByText(/utiliza ahora la revisión de evidencias/)).toBeVisible();
+    expect(screen.getByText("Actual")).toBeVisible();
+    expect(screen.getByText("Revisión 2")).toBeVisible();
+    expect(screen.getByLabelText("Título del informe")).toHaveValue("Sesión sostenida");
+    expect(screen.getByLabelText(/^Tu interpretación/)).toHaveValue(
+      "Held the intended effort on every climb.",
+    );
+    expect(screen.getByRole("button", { name: "Revisar y exportar" })).toBeEnabled();
+  });
+
+  it("keeps the stale report recoverable when the reviewed candidate changes", async () => {
+    const user = userEvent.setup();
+    const stale = {
+      ...resolution(),
+      resolvedSnapshotRef: changedSnapshotRef,
+      status: "stale" as const,
+    };
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "list_reports") return Promise.resolve({ reports: [{
+        reportRef,
+        title: stale.definition.title,
+        locale: "en-US",
+        sourceSnapshotRef: snapshotRef,
+        revision: "1",
+      }] });
+      if (command === "resolve_report") return Promise.resolve(stale);
+      if (command === "query_training_session_routes") {
+        return Promise.resolve({ snapshotRef, sessionRef, routes: { exercises: [] } });
+      }
+      if (command === "refresh_report") {
+        return Promise.reject({ code: "report-source-changed" });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    const callbacks = renderPanel({ origin: undefined, originRequestId: 0 });
+    await user.click(await screen.findByRole("button", { name: /Ridge progression/ }));
+    await user.click(screen.getByRole("button", { name: "Review evidence refresh" }));
+    const review = screen.getByRole("region", { name: "Review the current library evidence" });
+    await user.click(within(review).getByRole("button", { name: "Use this evidence revision" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "The source history changed after this report was resolved",
+    );
+    expect(callbacks.onError).toHaveBeenCalledWith("report-source-changed");
+    expect(screen.getByRole("region", {
+      name: "Review the current library evidence",
+    })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Review and export" })).toBeDisabled();
+    expect(screen.getByLabelText("Report title")).toHaveValue("Ridge progression");
+    expect(screen.getByText("Source changed")).toBeVisible();
   });
 });

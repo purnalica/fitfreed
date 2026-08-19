@@ -27,6 +27,9 @@ coherence, route uniqueness, matching session references, and global block ident
   caller-owned block identities.
 - [`report-update-v4.schema.json`](../../../schemas/report-update-v4.schema.json) accepts an
   `expectedRevision` and preserves supplied owned block identities.
+- [`report-refresh-v1.schema.json`](../../../schemas/report-refresh-v1.schema.json) binds deliberate
+  confirmation to the exact saved definition revision, saved snapshot, and candidate snapshot reviewed by
+  the person.
 - [`report-resolution-v4.schema.json`](../../../schemas/report-resolution-v4.schema.json) represents
   nullable session evidence and discriminated `provenance`.
 - [`report-export-v4.schema.json`](../../../schemas/report-export-v4.schema.json) retains the explicit
@@ -78,3 +81,8 @@ The definition contains intent and opaque relationships, not resolved totals, fi
 coordinates, route coordinates, provider identity, or HTML. Consumers preserve unsupported versions
 byte-for-byte and never downgrade them. Resolution and export require an authorized compatible local
 snapshot.
+
+Refresh is a mutation boundary, not a portable historical-diff format. A successful refresh preserves the
+portable definition's title, locale, origin, provenance policy, authorship, block identities, semantic order,
+queries, metrics, and privacy choices; only `sourceSnapshotRef` and `revision` advance. The request contains
+opaque capabilities and is not retained as report content.

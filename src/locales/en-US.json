@@ -1236,7 +1236,35 @@
       "current": "Current",
       "stale": "Source changed"
     },
-    "stale": "The training library changed after this definition was saved. Export is blocked until a future refresh flow can reconcile the source deliberately.",
+    "stale": "The training library changed after this definition was saved. The preview shows the current candidate, while editing and export remain locked until you review the change.",
+    "refresh": {
+      "review": "Review evidence refresh",
+      "eyebrow": "Explicit evidence decision",
+      "heading": "Review the current library evidence",
+      "intro": "The complete report preview above has been recalculated from the current local library. Nothing changes unless you confirm this exact candidate.",
+      "savedHeading": "Saved evidence revision",
+      "savedBody": "The report still points to the library revision you previously reviewed.",
+      "candidateHeading": "Current candidate revision",
+      "candidateBody": "The preview above uses the latest compatible evidence available in this local library.",
+      "historicalBoundary": "FitFreed does not retain historical copies of canonical data, so it cannot reconstruct or invent old numeric values for a before-and-after comparison.",
+      "preservedHeading": "Stays exactly as authored",
+      "preserved": {
+        "authorship": "Report title, interpretation, and language",
+        "origin": "Report origin and selected comparison periods",
+        "composition": "Block identity, order, measurements, and privacy choices"
+      },
+      "updatedHeading": "Recalculated from the candidate",
+      "updated": {
+        "evidence": "Recorded and calculated evidence in the preview",
+        "context": "Evidence attribution, coverage, and missing-data notices",
+        "revision": "The reviewed library reference and report revision"
+      },
+      "confirmation": "Confirm only if the candidate preview represents the evidence you want this report to use. Importing data never performs this action automatically.",
+      "confirm": "Use this evidence revision",
+      "refreshing": "Refreshing evidence…",
+      "keepSaved": "Keep saved version",
+      "completed": "The report now uses the evidence revision you reviewed. Authored content and composition were preserved."
+    },
     "recordedAttribution": "Recorded evidence from the local fitness library",
     "locationAttribution": "Recorded location evidence with endpoint privacy applied by FitFreed",
     "routeOmitted": "Route geometry is omitted by the current privacy choice.",

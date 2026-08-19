@@ -12717,7 +12717,8 @@ impl ApplicationPreferencesPort for SqliteApplicationPreferences {
 #[cfg(test)]
 mod tests {
     use fitfreed_domain::{
-        author_session_report, revise_report, revise_session_report, ReportQuestion,
+        author_session_report, refresh_report_definition, revise_report, revise_session_report,
+        ReportQuestion,
     };
     use std::io::Write;
     use tempfile::TempDir;
@@ -12988,6 +12989,31 @@ mod tests {
                 .load_report_definition(report.report_ref())
                 .expect("reopen report definition"),
             Some(edited)
+        );
+    }
+
+    #[test]
+    fn persists_an_explicit_report_refresh_across_restart() {
+        let harness = Harness::new();
+        let library = SqliteReportLibrary::new(harness.database());
+        let report = persisted_report_definition();
+        library
+            .create_report_definition(&report)
+            .expect("persist report definition");
+        let refreshed =
+            refresh_report_definition(&report, format!("training-snapshot-{}", "a".repeat(64)))
+                .expect("refresh report definition");
+
+        assert!(library
+            .compare_and_save_report_definition(report.revision(), &refreshed)
+            .expect("persist refreshed definition"));
+        drop(library);
+
+        assert_eq!(
+            SqliteReportLibrary::new(harness.database())
+                .load_report_definition(report.report_ref())
+                .expect("reopen refreshed report"),
+            Some(refreshed)
         );
     }
 

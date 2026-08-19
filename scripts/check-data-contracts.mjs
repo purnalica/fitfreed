@@ -4388,6 +4388,7 @@ const reportStartSchemaPath = "schemas/report-start-v1.schema.json";
 const preparedReportStartSchemaPath = "schemas/prepared-report-start-v1.schema.json";
 const reportCreateV4SchemaPath = "schemas/report-create-v4.schema.json";
 const reportUpdateV4SchemaPath = "schemas/report-update-v4.schema.json";
+const reportRefreshSchemaPath = "schemas/report-refresh-v1.schema.json";
 const reportResolutionV4SchemaPath = "schemas/report-resolution-v4.schema.json";
 const reportExportV4SchemaPath = "schemas/report-export-v4.schema.json";
 const sessionReportCreateSchemaPath = "schemas/session-report-create-v1.schema.json";
@@ -4455,7 +4456,7 @@ for (const [documentPath, fields] of [
   ]],
   [reportV4Path, [
     "prepared-report-start-v1", "expectedRevision", "trainingComparison",
-    "library-snapshot", "authored-only", "report-source-changed",
+    "library-snapshot", "authored-only", "report-source-changed", "report-refresh-v1",
   ]],
   [reportHtmlV4Path, [
     "text/html", "data-fitfreed-report-version", "library-snapshot", "authored-only", "<data>",
@@ -4499,6 +4500,7 @@ const validateSessionReportUpdate = compileReportSchema(sessionReportUpdateSchem
 const validateSessionReportUpdateV2 = compileReportSchema(sessionReportUpdateV2SchemaPath);
 const validateSessionReportUpdateV3 = compileReportSchema(sessionReportUpdateV3SchemaPath);
 const validateReportUpdateV4 = compileReportSchema(reportUpdateV4SchemaPath);
+const validateReportRefresh = compileReportSchema(reportRefreshSchemaPath);
 const validateReportList = compileReportSchema(reportListSchemaPath);
 const validateSessionReportResolution = compileReportSchema(sessionReportResolutionSchemaPath);
 const validateSessionReportResolutionV2 = compileReportSchema(sessionReportResolutionV2SchemaPath);
@@ -5039,6 +5041,23 @@ if (validateReportUpdateV4({ ...syntheticReportUpdateV4, expectedRevision: "01" 
   throw new Error(`${reportUpdateV4SchemaPath} accepted a non-canonical revision`);
 }
 
+const syntheticReportRefresh = {
+  reportRef: reportRefDigest,
+  expectedRevision: "1",
+  expectedSourceSnapshotRef: snapshotRefDigest,
+  expectedResolvedSnapshotRef: `training-snapshot-${"f".repeat(64)}`,
+};
+assertReportContract(validateReportRefresh, reportRefreshSchemaPath, syntheticReportRefresh);
+for (const invalidRefresh of [
+  { ...syntheticReportRefresh, expectedRevision: "01" },
+  { ...syntheticReportRefresh, expectedResolvedSnapshotRef: "training-snapshot-invalid" },
+  { ...syntheticReportRefresh, provider: "must-not-cross-the-boundary" },
+]) {
+  if (validateReportRefresh(invalidRefresh)) {
+    throw new Error(`${reportRefreshSchemaPath} accepted an invalid refresh request`);
+  }
+}
+
 const syntheticQuestionResolutionV4 = {
   definition: syntheticQuestionDefinitionV4,
   resolvedSnapshotRef: snapshotRefDigest,
@@ -5266,6 +5285,7 @@ process.stdout.write(
       preparedReportStartSchemaPath,
       reportCreateV4SchemaPath,
       reportUpdateV4SchemaPath,
+      reportRefreshSchemaPath,
       sessionReportCreateSchemaPath,
       sessionReportCreateV2SchemaPath,
       sessionReportCreateV3SchemaPath,

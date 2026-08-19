@@ -17,6 +17,7 @@ describe("packaged FitFreed insight performance", () => {
   it("meets domain and longitudinal insight budgets in an isolated library", async () => {
     await runInsightsPerformanceJourney({
       archivePath: insightsPerformanceArchive,
+      chooseArchiveLabel: english.choose,
       goToHome,
       openHomeQuestion: (kind, expectedSelector) => (
         openHomeQuestion(english, kind, expectedSelector)

@@ -12,6 +12,7 @@ import type {
   ReportExportReceipt,
   ReportList,
   ReportOrigin,
+  RefreshReportRequest,
   ReportRouteEvidence,
   ReportStart,
   ReportStartOrigin,
@@ -252,6 +253,9 @@ export function ReportsPanel({
   const [resolving, setResolving] = useState(false);
   const [localError, setLocalError] = useState<string>();
   const [savedNotice, setSavedNotice] = useState(false);
+  const [refreshedNotice, setRefreshedNotice] = useState(false);
+  const [refreshReviewOpen, setRefreshReviewOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [privacyReviewOpen, setPrivacyReviewOpen] = useState(false);
   const [exportPhysiology, setExportPhysiology] = useState(false);
   const [exportRoutes, setExportRoutes] = useState<Record<string, RouteExportChoice>>({});
@@ -282,6 +286,8 @@ export function ReportsPanel({
     setResolved(undefined);
     setLocalError(undefined);
     setSavedNotice(false);
+    setRefreshedNotice(false);
+    setRefreshReviewOpen(false);
     setPrivacyReviewOpen(false);
     setExportedBytes(undefined);
   }
@@ -414,6 +420,7 @@ export function ReportsPanel({
       setExportPhysiology(result.definition.blocks.some(
         (block) => block.kind === "session-evidence" && block.includePhysiologicalContext,
       ));
+      setRefreshReviewOpen(false);
       setPrivacyReviewOpen(false);
       setExportedBytes(undefined);
       return result;
@@ -429,7 +436,42 @@ export function ReportsPanel({
 
   async function openReport(reportRef: string) {
     setSavedNotice(false);
+    setRefreshedNotice(false);
     await resolveReport(reportRef);
+  }
+
+  function beginRefreshReview() {
+    if (!resolved || resolved.status !== "stale") return;
+    setLocalError(undefined);
+    setRefreshReviewOpen(true);
+  }
+
+  async function confirmRefresh() {
+    if (!resolved || resolved.status !== "stale") return;
+    const request: RefreshReportRequest = {
+      reportRef: resolved.definition.reportRef,
+      expectedRevision: resolved.definition.revision,
+      expectedSourceSnapshotRef: resolved.definition.sourceSnapshotRef,
+      expectedResolvedSnapshotRef: resolved.resolvedSnapshotRef,
+    };
+    setRefreshing(true);
+    setLocalError(undefined);
+    setRefreshedNotice(false);
+    try {
+      const definition = await invoke<ReportDefinition>("refresh_report", { request });
+      setEditor(editorFromDefinition(definition));
+      setResolved(undefined);
+      setRefreshReviewOpen(false);
+      await refreshList();
+      const current = await resolveReport(definition.reportRef);
+      if (current) setRefreshedNotice(true);
+    } catch (reason) {
+      const code = commandErrorCode(reason);
+      setLocalError(code);
+      onError(code);
+    } finally {
+      setRefreshing(false);
+    }
   }
 
   function updateBlock(index: number, block: SessionReportBlockDraft) {
@@ -1068,6 +1110,7 @@ export function ReportsPanel({
   const unselectedAnalyticalKinds = ANALYTICAL_BLOCK_KINDS.filter(
     (kind) => !editor?.blocks.some((block) => block.kind === kind),
   );
+  const editingLocked = disabled || saving || refreshing || resolved?.status === "stale";
 
   return (
     <section className="reports-panel" aria-labelledby="reports-heading">
@@ -1180,7 +1223,7 @@ export function ReportsPanel({
                   value={editor.title}
                   maxLength={120}
                   required
-                  disabled={disabled || saving}
+                  disabled={editingLocked}
                   onChange={(event) => setEditor({ ...editor, title: event.target.value })}
                 />
               </label>
@@ -1205,7 +1248,7 @@ export function ReportsPanel({
                               type="button"
                               className="secondary"
                               aria-label={interpolate(copy.moveEarlier, { block: label })}
-                              disabled={disabled || saving || index === 0}
+                              disabled={editingLocked || index === 0}
                               onClick={() => moveBlock(index, -1)}
                             >
                               <span aria-hidden="true">↑</span>
@@ -1214,7 +1257,7 @@ export function ReportsPanel({
                               type="button"
                               className="secondary"
                               aria-label={interpolate(copy.moveLater, { block: label })}
-                              disabled={disabled || saving || index === editor.blocks.length - 1}
+                              disabled={editingLocked || index === editor.blocks.length - 1}
                               onClick={() => moveBlock(index, 1)}
                             >
                               <span aria-hidden="true">↓</span>
@@ -1224,7 +1267,7 @@ export function ReportsPanel({
                                 type="button"
                                 className="secondary danger-action"
                                 onClick={() => removeRoute(index)}
-                                disabled={disabled || saving}
+                                disabled={editingLocked}
                               >
                                 {copy.removeRoute}
                               </button>
@@ -1234,7 +1277,7 @@ export function ReportsPanel({
                                 type="button"
                                 className="secondary danger-action"
                                 onClick={() => removeAnalyticalBlock(index)}
-                                disabled={disabled || saving}
+                                disabled={editingLocked}
                               >
                                 {copy.analysis.removeBlock}
                               </button>
@@ -1246,7 +1289,7 @@ export function ReportsPanel({
                             <input
                               type="checkbox"
                               checked={block.includePhysiologicalContext}
-                              disabled={disabled || saving || !physiologyAvailable}
+                              disabled={editingLocked || !physiologyAvailable}
                               onChange={(event) => updateBlock(index, {
                                 ...block,
                                 includePhysiologicalContext: event.target.checked,
@@ -1270,7 +1313,7 @@ export function ReportsPanel({
                               maxLength={10_000}
                               rows={8}
                               required
-                              disabled={disabled || saving}
+                              disabled={editingLocked}
                               onChange={(event) => updateBlock(index, {
                                 ...block,
                                 body: event.target.value,
@@ -1289,7 +1332,7 @@ export function ReportsPanel({
                                 max={MAX_ROUTE_REDACTION_METERS}
                                 step={50}
                                 value={block.endpointRedactionMeters}
-                                disabled={disabled || saving}
+                                disabled={editingLocked}
                                 onChange={(event) => updateBlock(index, {
                                   ...block,
                                   endpointRedactionMeters: Number(event.target.value),
@@ -1307,7 +1350,7 @@ export function ReportsPanel({
                             <span>{copy.analysis.metricLabel}</span>
                             <select
                               value={block.metric}
-                              disabled={disabled || saving}
+                              disabled={editingLocked}
                               onChange={(event) => updateBlock(index, {
                                 ...block,
                                 metric: event.target.value as ReportTrainingMetric,
@@ -1348,7 +1391,7 @@ export function ReportsPanel({
                         <button
                           type="button"
                           className="secondary"
-                          disabled={disabled || saving}
+                          disabled={editingLocked}
                           onClick={() => addRoute(route)}
                         >
                           {interpolate(copy.addRoute, {
@@ -1383,7 +1426,7 @@ export function ReportsPanel({
                           type="date"
                           value={analyticalQuery.baselineRange.from}
                           required
-                          disabled={disabled || saving}
+                          disabled={editingLocked}
                           onChange={(event) => updateComparisonRange(
                             "baselineRange",
                             "from",
@@ -1397,7 +1440,7 @@ export function ReportsPanel({
                           type="date"
                           value={analyticalQuery.baselineRange.through}
                           required
-                          disabled={disabled || saving}
+                          disabled={editingLocked}
                           onChange={(event) => updateComparisonRange(
                             "baselineRange",
                             "through",
@@ -1411,7 +1454,7 @@ export function ReportsPanel({
                           type="date"
                           value={analyticalQuery.comparisonRange.from}
                           required
-                          disabled={disabled || saving}
+                          disabled={editingLocked}
                           onChange={(event) => updateComparisonRange(
                             "comparisonRange",
                             "from",
@@ -1425,7 +1468,7 @@ export function ReportsPanel({
                           type="date"
                           value={analyticalQuery.comparisonRange.through}
                           required
-                          disabled={disabled || saving}
+                          disabled={editingLocked}
                           onChange={(event) => updateComparisonRange(
                             "comparisonRange",
                             "through",
@@ -1446,7 +1489,7 @@ export function ReportsPanel({
                           <button
                             type="button"
                             className="secondary"
-                            disabled={disabled || saving}
+                            disabled={editingLocked}
                             onClick={() => addAnalyticalBlock(kind)}
                           >
                             {interpolate(copy.analysis.addBlock, {
@@ -1461,14 +1504,14 @@ export function ReportsPanel({
               </section>
 
               <div className="report-actions">
-                <button type="submit" disabled={disabled || saving}>
+                <button type="submit" disabled={editingLocked}>
                   {saving ? copy.saving : editor.reportRef ? copy.save : copy.create}
                 </button>
                 {resolved && (
                   <button
                     type="button"
                     className="secondary"
-                    disabled={disabled || saving || resolved.status !== "current"}
+                    disabled={editingLocked || resolved.status !== "current"}
                     onClick={beginPrivacyReview}
                   >
                     {copy.reviewExport}
@@ -1479,6 +1522,7 @@ export function ReportsPanel({
           )}
 
           {savedNotice && <p className="notice" role="status">{copy.saved}</p>}
+          {refreshedNotice && <p className="notice" role="status">{copy.refresh.completed}</p>}
           {localError && (
             <p className="error" role="alert">
               {copy.errors[localError as keyof typeof copy.errors] ?? copy.errors.unexpected}
@@ -1502,7 +1546,16 @@ export function ReportsPanel({
                 </span>
               </div>
               {resolved.status === "stale" && (
-                <p className="report-stale" role="status">{copy.stale}</p>
+                <div className="report-stale">
+                  <p role="status">{copy.stale}</p>
+                  <button
+                    type="button"
+                    onClick={beginRefreshReview}
+                    disabled={disabled || refreshing}
+                  >
+                    {copy.refresh.review}
+                  </button>
+                </div>
               )}
               <h3 className="report-preview-title">{resolved.definition.title}</h3>
               {resolved.definition.blocks.map(renderPreviewBlock)}
@@ -1537,6 +1590,61 @@ export function ReportsPanel({
                   <div><dt>{copy.definitionRevision}</dt><dd>{resolved.definition.revision}</dd></div>
                 </dl>
               </details>
+            </section>
+          )}
+
+          {refreshReviewOpen && resolved?.status === "stale" && (
+            <section
+              className="report-refresh-review"
+              role="region"
+              aria-labelledby="report-refresh-heading"
+            >
+              <p className="eyebrow">{copy.refresh.eyebrow}</p>
+              <h2 id="report-refresh-heading">{copy.refresh.heading}</h2>
+              <p>{copy.refresh.intro}</p>
+              <div className="report-refresh-revisions">
+                <article>
+                  <h3>{copy.refresh.savedHeading}</h3>
+                  <p>{copy.refresh.savedBody}</p>
+                </article>
+                <article>
+                  <h3>{copy.refresh.candidateHeading}</h3>
+                  <p>{copy.refresh.candidateBody}</p>
+                </article>
+              </div>
+              <p className="report-refresh-boundary">{copy.refresh.historicalBoundary}</p>
+              <div className="report-refresh-effects">
+                <section aria-labelledby="report-refresh-preserved-heading">
+                  <h3 id="report-refresh-preserved-heading">{copy.refresh.preservedHeading}</h3>
+                  <ul>{Object.values(copy.refresh.preserved).map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}</ul>
+                </section>
+                <section aria-labelledby="report-refresh-updated-heading">
+                  <h3 id="report-refresh-updated-heading">{copy.refresh.updatedHeading}</h3>
+                  <ul>{Object.values(copy.refresh.updated).map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}</ul>
+                </section>
+              </div>
+              <p>{copy.refresh.confirmation}</p>
+              <div className="report-actions">
+                <button
+                  type="button"
+                  onClick={() => void confirmRefresh()}
+                  disabled={refreshing}
+                >
+                  {refreshing ? copy.refresh.refreshing : copy.refresh.confirm}
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => setRefreshReviewOpen(false)}
+                  disabled={refreshing}
+                >
+                  {copy.refresh.keepSaved}
+                </button>
+              </div>
             </section>
           )}
 

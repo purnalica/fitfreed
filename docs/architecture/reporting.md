@@ -7,17 +7,18 @@ Implemented session, route, training-period comparison, question, exploration, a
 [MVP experience delivery plan](../plans/mvp-experience-delivery.md). The application persists, reopens,
 edits, resolves, privacy-reviews, and exports immutable version-1 definitions, composable version-2
 definitions, analytical version-3 definitions, and provider-neutral multi-origin version-4 definitions.
-Deliberate source refresh remains the next E5 increment; a stale definition cannot be exported yet.
+It also detects stale evidence and deliberately refreshes an exact reviewed candidate without rewriting
+authored content. A stale definition cannot be edited or exported until that decision completes.
 
 ## Ownership
 
 - The domain owns report identity, ordered typed blocks, authorship, compatibility, sensitivity choices, and definition invariants that are independent of a specific calculation or output technology.
-- The application owns preparation, creation, editing, resolution, stale detection, preview composition,
-  and export orchestration through explicit query and output ports. A later increment must add deliberate
-  refresh as a use case rather than mutating a stale definition implicitly.
+- The application owns preparation, creation, editing, resolution, stale detection, deliberate refresh,
+  preview composition, and export orchestration through explicit query and output ports.
 - Insights queries remain the authoritative calculation paths. Report resolution references them; it does not copy their rules or read database rows.
 - Persistence stores and migrates versioned definitions transactionally with the local library.
-- Presentation owns the editor interaction, preview, privacy review, and explicit file-destination request.
+- Presentation owns the editor interaction, current-candidate refresh review, privacy review, and explicit
+  file-destination request.
 - A replaceable outer adapter renders one resolved report into deterministic self-contained HTML and atomically promotes the completed file.
 
 ## Definition and resolved output
@@ -46,6 +47,21 @@ path stores a provider object, copied calculation, or presentation-only workspac
 A route block stores only the origin session capability, route capability, and an authored 0–5,000-metre endpoint-redaction choice. The application verifies membership through `TrainingSessionRoutePort`, obtains exact points through the same authoritative route port, and performs two memory-bounded passes: total cumulative haversine distance followed by deterministic selection of recorded points inside the retained interval. Internal report processing requests at most 10,000 points per page; the separate interactive exact-point contract remains capped at 250. It neither interpolates coordinates nor reads route tables. At most 500 retained recorded points cross into the resolved report.
 
 A resolved preview or export is a time-bound projection. It records the definition version, source revision, locale, units, provenance, coverage, limitations, authorship, and resolution status. New imports or calculation changes can make a definition stale; comparison and refresh are deliberate use cases rather than automatic mutations.
+
+## Deliberate refresh
+
+Stale resolution returns the complete current candidate while retaining the saved definition and locking
+editing and export. FitFreed does not store previous canonical snapshots, so the review never fabricates old
+numeric values. It discloses that boundary and identifies what remains authored versus what will be resolved
+again.
+
+`refresh_report` accepts the exact definition revision, saved snapshot, and candidate snapshot that were
+reviewed. The application reloads the definition, resolves the candidate again through the same
+authoritative ports, rejects current, unavailable, incompatible, mismatched, or concurrently changed
+evidence, creates a successor that changes only `sourceSnapshotRef` and `revision`, verifies that successor
+as current, and performs optimistic compare-and-save. Cancellation writes nothing. A failed verification or
+write retains the prior definition. Persistence needs no new storage shape because these two values already
+belong to the versioned definition; restart tests prove the successor is durable.
 
 ## Training-period comparison family
 

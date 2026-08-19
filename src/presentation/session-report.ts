@@ -144,6 +144,13 @@ export interface ReportList {
   reports: ReportSummary[];
 }
 
+export interface RefreshReportRequest {
+  reportRef: string;
+  expectedRevision: string;
+  expectedSourceSnapshotRef: string;
+  expectedResolvedSnapshotRef: string;
+}
+
 export type ReportLimitation =
   | "distance-unavailable"
   | "energy-unavailable"

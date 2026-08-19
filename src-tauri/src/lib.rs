@@ -46,7 +46,7 @@ use fitfreed_application::{
     query_training_session_structure as build_training_session_structure,
     query_training_session_zones as build_training_session_zones,
     query_training_signal_samples as build_training_signal_samples,
-    query_training_sports as build_training_sports,
+    query_training_sports as build_training_sports, refresh_report as refresh_report_through_port,
     remove_training_segment_criterion as remove_segment_criterion_through_port,
     reset_application_preferences as reset_preferences_through_port,
     resolve_report as resolve_report_through_port,
@@ -85,9 +85,9 @@ use presentation::{
     ImportOutcomeDto, ImportProgressDto, ImportReportDto, LibraryHomeDto, LibraryHomeRequestDto,
     LongitudinalComparisonDto, LongitudinalDateRangeDto, LongitudinalOverviewDto,
     MoveTrainingSegmentCriterionRequestDto, PreparedReportStartDto, RecoveryComparisonDto,
-    RecoveryDateRangeDto, RecoveryNightDetailDto, RecoveryOverviewDto, ReportDefinitionDto,
-    ReportExportReceiptDto, ReportExportRequestDto, ReportListDto, ReportStartDto,
-    ResolvedReportDto, ResolvedSessionReportDto, SaveSportClassificationRequestDto,
+    RecoveryDateRangeDto, RecoveryNightDetailDto, RecoveryOverviewDto, RefreshReportRequestDto,
+    ReportDefinitionDto, ReportExportReceiptDto, ReportExportRequestDto, ReportListDto,
+    ReportStartDto, ResolvedReportDto, ResolvedSessionReportDto, SaveSportClassificationRequestDto,
     SavedTrainingSportClassificationDto, SessionReportExportRequestDto, SleepComparisonDto,
     SleepDateRangeDto, SleepOverviewDto, SleepPeriodDetailDto, SourceAcquisitionGuideDto,
     TrainingComparisonDto, TrainingDateRangeDto, TrainingDiscoveryWorkspaceDto,
@@ -710,6 +710,25 @@ fn update_report(
     let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     update_report_through_port(
         &SqliteReportLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path),
+        request,
+    )
+    .map(Into::into)
+    .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn refresh_report(
+    app: AppHandle,
+    request: RefreshReportRequestDto,
+) -> Result<ReportDefinitionDto, CommandErrorDto> {
+    let request = request.try_into()?;
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    refresh_report_through_port(
+        &SqliteReportLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path.clone()),
         &SqliteTrainingLibrary::new(path),
@@ -1892,6 +1911,7 @@ pub fn run() {
             prepare_report_start,
             create_report,
             update_report,
+            refresh_report,
             create_session_report,
             create_composed_session_report,
             update_session_report,

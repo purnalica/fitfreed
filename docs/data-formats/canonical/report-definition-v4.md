@@ -54,6 +54,14 @@ provider attribution for their selected session. Question, exploration, and evid
 use local-library snapshot attribution. Narrative-only blank reports use `authored-only` attribution and do
 not invent a provider relationship.
 
-A source change makes the definition stale; export remains blocked until an explicit future reconciliation
-workflow exists. Missing evidence is reported, never replaced by stored results or silently recalculated
-against a different snapshot.
+A source change makes the definition stale. Resolution returns a complete candidate from the current
+compatible library revision without mutating the saved definition, and export and editing remain blocked.
+The person may retain the saved definition or explicitly refresh it after reviewing that candidate. Refresh
+requires the exact saved definition revision, saved `sourceSnapshotRef`, and candidate snapshot; it resolves
+the candidate again, rejects concurrent changes, advances `sourceSnapshotRef` and `revision`, and preserves
+all authored and compositional fields.
+
+The canonical library does not retain historical snapshots. FitFreed therefore does not reconstruct or
+invent old numeric results for a before-and-after display. The current candidate, the preservation boundary,
+and this limitation are disclosed before confirmation. Missing evidence is reported, never replaced by stored
+results or silently accepted against a different snapshot. Import and reimport never trigger report refresh.

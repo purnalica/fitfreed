@@ -653,6 +653,32 @@ pub fn revise_report(
     )
 }
 
+pub fn refresh_report_definition(
+    existing: &ReportDefinition,
+    source_snapshot_ref: impl Into<String>,
+) -> Result<ReportDefinition, ReportDefinitionError> {
+    let source_snapshot_ref = source_snapshot_ref.into();
+    if existing.source_snapshot_ref == source_snapshot_ref {
+        return Ok(existing.clone());
+    }
+    let revision = existing
+        .revision
+        .checked_add(1)
+        .ok_or(ReportDefinitionError::RevisionOverflow)?;
+    ReportDefinition::restore(
+        existing.report_ref.clone(),
+        existing.title.clone(),
+        existing.locale,
+        source_snapshot_ref,
+        existing.origin.clone(),
+        existing.provenance_policy,
+        existing.authorship,
+        existing.definition_version,
+        revision,
+        existing.blocks.clone(),
+    )
+}
+
 fn validate_version_one_blocks(
     origin: &ReportOrigin,
     blocks: &[ReportBlock],

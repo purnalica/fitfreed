@@ -22,6 +22,9 @@ const spanish = JSON.parse(
 const fixtureDirectory = process.env.FITFREED_E2E_FIXTURE_DIRECTORY;
 const largeArchive = process.env.FITFREED_E2E_LARGE_ARCHIVE;
 const reportOutput = path.resolve(".artifacts/e2e/evidence/session-report.html");
+const refreshedReportOutput = path.resolve(
+  ".artifacts/e2e/evidence/refreshed-comparison-report.html",
+);
 
 async function waitForNotice(fragment, timeout = 10_000) {
   await browser.waitUntil(
@@ -677,6 +680,7 @@ async function expectSourceGuide(catalog) {
 describe("packaged FitFreed import journey", () => {
   it("covers validation, outcomes, coverage, cancellation, reimport, accessibility, performance, and restart", async () => {
     fs.rmSync(reportOutput, { force: true });
+    fs.rmSync(refreshedReportOutput, { force: true });
     await expect($(".sources-home h1")).toHaveText("Bring your fitness history home");
     await expect($("aria/Import selected package")).toBeDisabled();
     const openerMock = await browser.tauri.mock("plugin:opener|open_url");
@@ -746,11 +750,11 @@ describe("packaged FitFreed import journey", () => {
 
     await goToHome("sources");
     const dialogMock = await browser.tauri.mock("plugin:dialog|open");
-    await openArchivePicker(dialogMock, null);
+    await openArchivePicker(dialogMock, null, english.choose);
     await expect($(".path")).toHaveText("No package selected");
     await expect($("aria/Import selected package")).toBeDisabled();
 
-    await selectArchive(dialogMock, largeArchive);
+    await selectArchive(dialogMock, largeArchive, english.choose);
     const progressStartedAt = Date.now();
     await $("aria/Import selected package").click();
     await $("#progress-heading").waitForDisplayed({ timeout: 1_000 });
@@ -776,7 +780,7 @@ describe("packaged FitFreed import journey", () => {
     expect(await $$(".history-grid table tbody tr")).toHaveLength(0);
 
     await selectLocale("en-US", "sources");
-    await selectArchive(dialogMock, path.join(fixtureDirectory, "invalid.zip"));
+    await selectArchive(dialogMock, path.join(fixtureDirectory, "invalid.zip"), english.choose);
     await $("aria/Import selected package").click();
     const alert = await $("[role='alert']");
     await alert.waitForDisplayed();
@@ -809,7 +813,7 @@ describe("packaged FitFreed import journey", () => {
     ]);
     expect(await $$(".history-grid table tbody tr")).toHaveLength(0);
 
-    await selectArchive(dialogMock, path.join(fixtureDirectory, "valid.zip"));
+    await selectArchive(dialogMock, path.join(fixtureDirectory, "valid.zip"), english.choose);
     await $("aria/Import selected package").click();
     await waitForNotice("Import completed: 9 recognized, 7 new");
     await expectLibraryHome(english);
@@ -1846,7 +1850,7 @@ describe("packaged FitFreed import journey", () => {
     ]);
 
     await goToHome("sources");
-    await selectArchive(dialogMock, path.join(fixtureDirectory, "overlap.zip"));
+    await selectArchive(dialogMock, path.join(fixtureDirectory, "overlap.zip"), english.choose);
     await $("aria/Import selected package").click();
     await waitForNotice(
       "Import completed: 5 recognized, 2 new, 0 enriched, 1 amended, 1 equivalent",
@@ -2742,6 +2746,85 @@ describe("packaged FitFreed import journey", () => {
         "The recorded duration decreased; the reason remains my interpretation.",
       ),
     );
+
+    await goToHome("sources");
+    await selectArchive(
+      dialogMock,
+      path.join(fixtureDirectory, "report-refresh.zip"),
+      spanish.choose,
+    );
+    await $(`aria/${spanish.import}`).click();
+    await waitForNotice(`${spanish.completed}:`);
+    await expectLibraryHome(spanish);
+    expect(await $$(".library-home-resume")).toHaveLength(1);
+    await goToHome("reports");
+    const reportsAfterRefreshImport = await $$(".report-list button");
+    expect(reportsAfterRefreshImport).toHaveLength(2);
+    await reportsAfterRefreshImport[0].click();
+    await expect($(".report-preview h3")).toHaveText("Synthetic comparison answer");
+    await expect($(".report-status-stale")).toHaveText(spanish.reports.status.stale);
+    await expect($(`aria/${spanish.reports.reviewExport}`)).toBeDisabled();
+    await expect($('.report-editor input[maxlength="120"]')).toBeDisabled();
+    await $(`aria/${spanish.reports.refresh.review}`).click();
+    const refreshReview = await $(".report-refresh-review");
+    await expect(refreshReview).toHaveText(
+      expect.stringContaining(spanish.reports.refresh.historicalBoundary),
+    );
+    await expect(refreshReview).toHaveText(
+      expect.stringContaining(spanish.reports.refresh.preserved.authorship),
+    );
+    await expect(refreshReview).toHaveText(
+      expect.stringContaining(spanish.reports.refresh.updated.evidence),
+    );
+    const refreshAccessibility = await new AxeBuilder({ client: browser })
+      .setLegacyMode()
+      .analyze();
+    expect(refreshAccessibility.violations).toEqual([]);
+    await refreshReview.$(`aria/${spanish.reports.refresh.keepSaved}`).click();
+    expect(await $$(".report-refresh-review")).toHaveLength(0);
+    await expect($(".report-status-stale")).toHaveText(spanish.reports.status.stale);
+    await expect($(`aria/${spanish.reports.reviewExport}`)).toBeDisabled();
+
+    await $(`aria/${spanish.reports.refresh.review}`).click();
+    await $(".report-refresh-review").$(`aria/${spanish.reports.refresh.confirm}`).click();
+    await waitForNotice(spanish.reports.refresh.completed);
+    await expect($(".report-status-current")).toHaveText(spanish.reports.status.current);
+    await expect($(".report-revision")).toHaveText(
+      spanish.reports.revision.replace("{revision}", "2"),
+    );
+    await expect($('.report-editor input[maxlength="120"]')).toHaveValue(
+      "Synthetic comparison answer",
+    );
+    await expect($(".report-editor textarea")).toHaveValue(
+      "The recorded duration decreased; the reason remains my interpretation.",
+    );
+    await expect($(`aria/${spanish.reports.reviewExport}`)).toBeEnabled();
+
+    await $(`aria/${spanish.reports.reviewExport}`).click();
+    const refreshedPrivacyReview = await $(".report-privacy-review");
+    await expect(refreshedPrivacyReview).toHaveText(
+      expect.stringContaining(spanish.reports.analysisExportIncluded),
+    );
+    await saveDialogMock.mockReturnValue(refreshedReportOutput);
+    await saveDialogMock.update();
+    const refreshedSaveCallCount = saveDialogMock.mock.calls.length;
+    await refreshedPrivacyReview.$(`aria/${spanish.reports.chooseDestination}`).click();
+    await browser.waitUntil(async () => {
+      await saveDialogMock.update();
+      return saveDialogMock.mock.calls.length === refreshedSaveCallCount + 1;
+    }, { timeout: 10_000, timeoutMsg: "refreshed report destination was not requested" });
+    await browser.waitUntil(() => fs.existsSync(refreshedReportOutput), {
+      timeout: 10_000,
+      timeoutMsg: "the refreshed self-contained report was not written",
+    });
+    const refreshedExport = fs.readFileSync(refreshedReportOutput, "utf8");
+    expect(refreshedExport).toContain('data-fitfreed-report-version="4"');
+    expect(refreshedExport).toContain("Synthetic comparison answer");
+    expect(refreshedExport).toContain(
+      "The recorded duration decreased; the reason remains my interpretation.",
+    );
+    expect(refreshedExport).not.toContain("Polar Flow");
+
     await (await $$(".report-list button"))[1].click();
     await expect($(".report-preview h3")).toHaveText("Synthetic ridge progression");
     await expect($(".report-preview")).toHaveText(
@@ -2756,6 +2839,12 @@ describe("packaged FitFreed import journey", () => {
     await expect($(".report-stale")).toHaveText(expect.stringContaining(spanish.reports.stale));
     await expect($(`aria/${spanish.reports.reviewExport}`)).toBeDisabled();
     await returnToLibraryHome(spanish);
+    const resumableTraining = await $$(".library-home-resume button");
+    expect(resumableTraining).toHaveLength(1);
+    await resumableTraining[0].click();
+    await $(".training-insights").waitForDisplayed({ timeout: 10_000 });
+    await returnToLibraryHome(spanish);
+    expect(await $$(".library-home-resume")).toHaveLength(0);
     await browser.reloadSession();
     await expectLibraryHome(spanish);
     expect(await $$(".library-home-resume")).toHaveLength(0);

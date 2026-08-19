@@ -27,7 +27,8 @@
         "Selectable same-role signal alignment with exact sample paths",
         "Composable session and route reports with privacy-reviewed self-contained HTML export",
         "Versioned training-period findings, comparisons, charts, exact tables, and coverage views",
-        "Question-led, exploration-led, session-led, and blank report starts with durable authored results"
+        "Question-led, exploration-led, session-led, and blank report starts with durable authored results",
+        "Deliberate stale-report refresh through an exact current-evidence review"
       ],
       "source": {
         "label": "MVP capability boundary",
@@ -40,7 +41,6 @@
       "title": "The experience being shaped",
       "items": [
         "Origin-aware navigation across discovery, session, and report workspaces",
-        "Deliberate report refresh with an explicit before-and-after review",
         "A coherent, evaluated, documented macOS product journey"
       ],
       "source": {

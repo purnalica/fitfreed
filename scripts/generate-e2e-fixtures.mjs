@@ -451,4 +451,27 @@ await createArchive("overlap.zip", [
   ],
 ]);
 
-process.stdout.write(`${JSON.stringify({ outputDirectory, fixtureCount: 3 })}\n`);
+await createArchive("report-refresh.zip", [
+  [
+    `account-data-88-${uuidC}.json`,
+    JSON.stringify({ exportVersion: "synthetic-refresh", username: syntheticUsername }),
+  ],
+  [
+    `training-session_2026-01-05T18-00-00_88-${uuidC}.json`,
+    trainingSession({
+      id: "fixture-training-session-b",
+      created: "2026-01-05T19:00:00.000",
+      modified: "2026-01-05T20:00:00.000",
+      startTime: "2026-01-05T18:00:00",
+      stopTime: "2026-01-05T18:30:00",
+      durationMillis: 1_800_000,
+      distanceMeters: 4_000,
+      calories: 250,
+      hrAvg: 136,
+      hrMax: 158,
+      exercises: [],
+    }),
+  ],
+]);
+
+process.stdout.write(`${JSON.stringify({ outputDirectory, fixtureCount: 4 })}\n`);

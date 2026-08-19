@@ -33,7 +33,7 @@ New reports use definition version 4. Every report has exactly one plain-text na
 most one of each analytical view. Session-origin reports additionally require one session-evidence block and
 may contain distinct routes. Question and exploration origins require analytical evidence. Blank reports may
 remain narrative-only or gain analytical evidence later without changing how they began. Versions 1–3 remain
-readable and become version 4 only when edited. Deliberate source refresh, lap or exact-sample blocks, native
+readable and become version 4 only when edited. Lap or exact-sample blocks, native
 PDF, spreadsheet output, and free-form layout are not yet available.
 
 ## Reopen and edit
@@ -47,7 +47,24 @@ views, periods, measurements, or block order and select **Save changes**. FitFre
 comparison before saving. Concurrent edits are rejected instead of overwriting a newer revision. Import and
 reimport never rewrite authored report rows.
 
-If the training snapshot changed after the report was saved, the report is marked **Source changed**. Its authorship remains available, but export is blocked. The current version has no deliberate refresh action; do not recreate or silently retarget the report as a workaround.
+If the training snapshot changed after the report was saved, the report is marked **Source changed**. The
+complete preview shows the current compatible candidate, while editing and export remain locked. Import and
+reimport never retarget the report automatically.
+
+To decide whether the report should use that candidate:
+
+1. Select **Review evidence refresh**.
+2. Inspect the complete candidate preview and the disclosed boundary. FitFreed does not retain historical
+   canonical snapshots, so it cannot reconstruct or invent old numeric values for a before-and-after view.
+3. Verify what remains unchanged: title, interpretation, language, origin, periods, block identities and
+   order, selected measurements, and privacy choices.
+4. Select **Keep saved version** to make no change, or **Use this evidence revision** to confirm the exact
+   candidate you reviewed.
+
+Confirmation recalculates the candidate immediately before an optimistic write. If the library or report
+changed in the meantime, FitFreed rejects the operation and leaves the saved definition untouched so the
+newest candidate can be reviewed. A successful refresh advances the report revision and evidence reference,
+survives restart, unlocks editing and export, and never rewrites authored text or composition.
 
 ## Review and export
 

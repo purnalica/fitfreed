@@ -1,9 +1,9 @@
 use std::{path::Path, sync::Mutex};
 
 use fitfreed_domain::{
-    author_session_report, ReportBlockContent, ReportDateRange, ReportDefinition, ReportLocale,
-    ReportOrigin, ReportQuestion, ReportTrainingComparisonQuery, ReportTrainingMetric,
-    TrainingSession, REPORT_DEFINITION_VERSION, REPORT_DEFINITION_VERSION_V1,
+    author_session_report, ReportBlock, ReportBlockContent, ReportDateRange, ReportDefinition,
+    ReportLocale, ReportOrigin, ReportQuestion, ReportTrainingComparisonQuery,
+    ReportTrainingMetric, TrainingSession, REPORT_DEFINITION_VERSION, REPORT_DEFINITION_VERSION_V1,
 };
 
 use super::*;
@@ -21,6 +21,8 @@ const SNAPSHOT_REF: &str =
     "training-snapshot-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 const CHANGED_SNAPSHOT_REF: &str =
     "training-snapshot-abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
+const LATER_SNAPSHOT_REF: &str =
+    "training-snapshot-2222222222222222222222222222222222222222222222222222222222222222";
 const ROUTE_REF: &str = "route-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 const EXERCISE_REF: &str =
     "exercise-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
@@ -29,6 +31,7 @@ const EXERCISE_REF: &str =
 struct MemoryReportPort {
     reports: Mutex<Vec<ReportDefinition>>,
     next_block: Mutex<usize>,
+    reject_saves: bool,
 }
 
 impl ReportDefinitionPort for MemoryReportPort {
@@ -83,6 +86,9 @@ impl ReportDefinitionPort for MemoryReportPort {
         expected_revision: u64,
         definition: &ReportDefinition,
     ) -> Result<bool, ReportDefinitionPortError> {
+        if self.reject_saves {
+            return Ok(false);
+        }
         let mut reports = self.reports.lock().expect("reports");
         let Some(existing) = reports
             .iter_mut()
@@ -121,6 +127,32 @@ impl TrainingLibraryPort for NoComparisonPort {
 struct AnalyticalTrainingPort {
     snapshot_ref: String,
     queries: Mutex<Vec<TrainingDateRange>>,
+}
+
+struct SequencedSnapshotPort {
+    snapshots: Mutex<Vec<String>>,
+}
+
+impl TrainingLibraryPort for SequencedSnapshotPort {
+    fn training_snapshot_ref(&self) -> Result<Option<String>, String> {
+        let mut snapshots = self.snapshots.lock().expect("snapshot sequence");
+        if snapshots.is_empty() {
+            return Ok(None);
+        }
+        Ok(Some(snapshots.remove(0)))
+    }
+
+    fn training_bounds(&self) -> Result<Option<TrainingDateRange>, String> {
+        unreachable!("authored-only reports do not query training bounds")
+    }
+
+    fn training_origins(&self) -> Result<Vec<String>, String> {
+        unreachable!("authored-only reports do not query training origins")
+    }
+
+    fn query_training(&self, _range: &TrainingDateRange) -> Result<Vec<TrainingSession>, String> {
+        unreachable!("authored-only reports do not query training sessions")
+    }
 }
 
 impl AnalyticalTrainingPort {
@@ -1184,6 +1216,272 @@ fn reports_current_candidate_evidence_as_stale_after_a_library_change() {
     assert_eq!(resolved.status, ReportResolutionStatus::Stale);
     assert_eq!(resolved.resolved_snapshot_ref, CHANGED_SNAPSHOT_REF);
     assert_eq!(resolved.definition.source_snapshot_ref(), SNAPSHOT_REF);
+}
+
+#[test]
+fn deliberately_refreshes_only_the_reviewed_stale_evidence_revision() {
+    let port = MemoryReportPort::default();
+    let original = created_report(&port);
+
+    let refreshed = refresh_report(
+        &port,
+        &StubTrainingPort {
+            snapshot_ref: CHANGED_SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &StubProvenancePort,
+        &NoComparisonPort,
+        RefreshReportRequest {
+            report_ref: REPORT_REF.to_owned(),
+            expected_revision: original.revision(),
+            expected_source_snapshot_ref: SNAPSHOT_REF.to_owned(),
+            expected_resolved_snapshot_ref: CHANGED_SNAPSHOT_REF.to_owned(),
+        },
+    )
+    .expect("deliberately refreshed report");
+
+    assert_eq!(refreshed.source_snapshot_ref(), CHANGED_SNAPSHOT_REF);
+    assert_eq!(refreshed.revision(), original.revision() + 1);
+    assert_eq!(refreshed.title(), original.title());
+    assert_eq!(refreshed.locale(), original.locale());
+    assert_eq!(refreshed.origin(), original.origin());
+    assert_eq!(refreshed.blocks(), original.blocks());
+    assert_eq!(
+        port.load_report_definition(REPORT_REF)
+            .expect("load refreshed report"),
+        Some(refreshed.clone())
+    );
+
+    let resolved = resolve_report(
+        &port,
+        &StubTrainingPort {
+            snapshot_ref: CHANGED_SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &StubProvenancePort,
+        &NoComparisonPort,
+        REPORT_REF,
+    )
+    .expect("current refreshed report");
+    assert_eq!(resolved.status, ReportResolutionStatus::Current);
+    assert_eq!(resolved.definition, refreshed);
+}
+
+#[test]
+fn rejects_unreviewed_or_concurrent_refreshes_without_mutating_the_saved_report() {
+    let stale_revision = MemoryReportPort::default();
+    let original = created_report(&stale_revision);
+    let request = RefreshReportRequest {
+        report_ref: REPORT_REF.to_owned(),
+        expected_revision: original.revision() + 1,
+        expected_source_snapshot_ref: SNAPSHOT_REF.to_owned(),
+        expected_resolved_snapshot_ref: CHANGED_SNAPSHOT_REF.to_owned(),
+    };
+    assert!(matches!(
+        refresh_report(
+            &stale_revision,
+            &StubTrainingPort {
+                snapshot_ref: CHANGED_SNAPSHOT_REF.to_owned(),
+            },
+            &StubRoutePort,
+            &StubProvenancePort,
+            &NoComparisonPort,
+            request,
+        ),
+        Err(ApplicationError::ReportDefinitionConflict)
+    ));
+    assert_eq!(
+        stale_revision
+            .load_report_definition(REPORT_REF)
+            .expect("load prior report"),
+        Some(original)
+    );
+
+    for (saved_snapshot, reviewed_snapshot, current_snapshot) in [
+        (
+            CHANGED_SNAPSHOT_REF,
+            CHANGED_SNAPSHOT_REF,
+            CHANGED_SNAPSHOT_REF,
+        ),
+        (SNAPSHOT_REF, LATER_SNAPSHOT_REF, CHANGED_SNAPSHOT_REF),
+        (SNAPSHOT_REF, CHANGED_SNAPSHOT_REF, SNAPSHOT_REF),
+    ] {
+        let reports = MemoryReportPort::default();
+        let original = created_report(&reports);
+        let result = refresh_report(
+            &reports,
+            &StubTrainingPort {
+                snapshot_ref: current_snapshot.to_owned(),
+            },
+            &StubRoutePort,
+            &StubProvenancePort,
+            &NoComparisonPort,
+            RefreshReportRequest {
+                report_ref: REPORT_REF.to_owned(),
+                expected_revision: original.revision(),
+                expected_source_snapshot_ref: saved_snapshot.to_owned(),
+                expected_resolved_snapshot_ref: reviewed_snapshot.to_owned(),
+            },
+        );
+        assert!(matches!(result, Err(ApplicationError::ReportSourceChanged)));
+        assert_eq!(
+            reports
+                .load_report_definition(REPORT_REF)
+                .expect("load unchanged report"),
+            Some(original)
+        );
+    }
+
+    let concurrent = MemoryReportPort {
+        reject_saves: true,
+        ..MemoryReportPort::default()
+    };
+    let original = created_report(&concurrent);
+    assert!(matches!(
+        refresh_report(
+            &concurrent,
+            &StubTrainingPort {
+                snapshot_ref: CHANGED_SNAPSHOT_REF.to_owned(),
+            },
+            &StubRoutePort,
+            &StubProvenancePort,
+            &NoComparisonPort,
+            RefreshReportRequest {
+                report_ref: REPORT_REF.to_owned(),
+                expected_revision: original.revision(),
+                expected_source_snapshot_ref: SNAPSHOT_REF.to_owned(),
+                expected_resolved_snapshot_ref: CHANGED_SNAPSHOT_REF.to_owned(),
+            },
+        ),
+        Err(ApplicationError::ReportDefinitionConflict)
+    ));
+    assert_eq!(
+        concurrent
+            .load_report_definition(REPORT_REF)
+            .expect("load concurrently preserved report"),
+        Some(original)
+    );
+}
+
+#[test]
+fn rejects_a_refresh_when_the_candidate_changes_during_confirmation() {
+    let reports = MemoryReportPort::default();
+    let original = ReportDefinition::compose_report(
+        REPORT_REF,
+        "Reusable notes",
+        ReportLocale::EnUs,
+        SNAPSHOT_REF,
+        ReportOrigin::Blank,
+        vec![
+            ReportBlock::narrative(NARRATIVE_BLOCK_REF, "Keep the authored interpretation.")
+                .expect("narrative block"),
+        ],
+    )
+    .expect("blank report");
+    reports
+        .create_report_definition(&original)
+        .expect("save blank report");
+    let changing_library = SequencedSnapshotPort {
+        snapshots: Mutex::new(vec![
+            CHANGED_SNAPSHOT_REF.to_owned(),
+            LATER_SNAPSHOT_REF.to_owned(),
+        ]),
+    };
+
+    assert!(matches!(
+        refresh_report(
+            &reports,
+            &StubTrainingPort {
+                snapshot_ref: CHANGED_SNAPSHOT_REF.to_owned(),
+            },
+            &StubRoutePort,
+            &StubProvenancePort,
+            &changing_library,
+            RefreshReportRequest {
+                report_ref: REPORT_REF.to_owned(),
+                expected_revision: original.revision(),
+                expected_source_snapshot_ref: SNAPSHOT_REF.to_owned(),
+                expected_resolved_snapshot_ref: CHANGED_SNAPSHOT_REF.to_owned(),
+            },
+        ),
+        Err(ApplicationError::ReportSourceChanged)
+    ));
+    assert_eq!(
+        reports
+            .load_report_definition(REPORT_REF)
+            .expect("load preserved report"),
+        Some(original)
+    );
+}
+
+#[test]
+fn refreshes_question_exploration_and_blank_origins_without_reauthoring_them() {
+    let query = ReportTrainingComparisonQuery::new(
+        ReportDateRange::new("2026-01-01", "2026-01-31").expect("baseline range"),
+        ReportDateRange::new("2026-02-01", "2026-02-28").expect("comparison range"),
+    );
+    for origin in [
+        ReportOrigin::Question {
+            question: ReportQuestion::TrainingPeriodComparisonV1,
+        },
+        ReportOrigin::Exploration {
+            query: query.clone(),
+        },
+        ReportOrigin::Blank,
+    ] {
+        let reports = MemoryReportPort::default();
+        let blocks = if matches!(origin, ReportOrigin::Blank) {
+            vec![
+                ReportBlock::narrative(NARRATIVE_BLOCK_REF, "Keep the authored interpretation.")
+                    .expect("narrative block"),
+            ]
+        } else {
+            vec![
+                ReportBlock::training_comparison(SESSION_BLOCK_REF, query.clone())
+                    .expect("comparison block"),
+                ReportBlock::narrative(NARRATIVE_BLOCK_REF, "Keep the authored interpretation.")
+                    .expect("narrative block"),
+            ]
+        };
+        let original = ReportDefinition::compose_report(
+            REPORT_REF,
+            "Origin-aware report",
+            ReportLocale::EsEs,
+            SNAPSHOT_REF,
+            origin,
+            blocks,
+        )
+        .expect("origin-aware report");
+        reports
+            .create_report_definition(&original)
+            .expect("save origin-aware report");
+        let current_library = AnalyticalTrainingPort {
+            snapshot_ref: CHANGED_SNAPSHOT_REF.to_owned(),
+            queries: Mutex::new(Vec::new()),
+        };
+
+        let refreshed = refresh_report(
+            &reports,
+            &StubTrainingPort {
+                snapshot_ref: CHANGED_SNAPSHOT_REF.to_owned(),
+            },
+            &StubRoutePort,
+            &StubProvenancePort,
+            &current_library,
+            RefreshReportRequest {
+                report_ref: REPORT_REF.to_owned(),
+                expected_revision: original.revision(),
+                expected_source_snapshot_ref: SNAPSHOT_REF.to_owned(),
+                expected_resolved_snapshot_ref: CHANGED_SNAPSHOT_REF.to_owned(),
+            },
+        )
+        .expect("refresh origin-aware report");
+
+        assert_eq!(refreshed.origin(), original.origin());
+        assert_eq!(refreshed.blocks(), original.blocks());
+        assert_eq!(refreshed.title(), original.title());
+        assert_eq!(refreshed.locale(), original.locale());
+    }
 }
 
 #[test]

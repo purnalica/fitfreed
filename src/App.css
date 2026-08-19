@@ -760,7 +760,7 @@ th:last-child, td:last-child { text-align: right; }
 .reports-hero > p:last-child { max-width: 68ch; color: var(--ink-soft); font-size: 1.05rem; }
 .reports-panel > button.secondary { justify-self: start; }
 .reports-layout { display: grid; grid-template-columns: minmax(230px, .7fr) minmax(0, 1.8fr); gap: 22px; align-items: start; }
-.report-library, .report-editor, .report-preview, .report-privacy-review, .report-empty-editor { min-width: 0; padding: 22px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; }
+.report-library, .report-editor, .report-preview, .report-refresh-review, .report-privacy-review, .report-empty-editor { min-width: 0; padding: 22px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; }
 .report-library { position: sticky; top: 86px; }
 .report-section-heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
 .report-section-heading h2 { margin-bottom: 4px; }
@@ -820,7 +820,9 @@ th:last-child, td:last-child { text-align: right; }
 .report-preview { display: grid; gap: 18px; }
 .report-status-current { color: var(--success); background: var(--success-soft); }
 .report-status-stale { color: var(--danger-ink); background: var(--danger-soft); }
-.report-stale { margin: 0; padding: 13px 15px; color: var(--danger-ink); background: var(--danger-soft); border-left: 4px solid var(--danger); border-radius: 9px; }
+.report-stale { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0; padding: 13px 15px; color: var(--danger-ink); background: var(--danger-soft); border-left: 4px solid var(--danger); border-radius: 9px; }
+.report-stale p { margin: 0; }
+.report-stale button { flex: 0 0 auto; }
 .report-preview article { padding-top: 17px; border-top: 1px solid var(--line); }
 .report-preview article h3 { margin: 0 0 4px; }
 .report-preview-title { margin-bottom: 0; font-size: clamp(1.45rem, 3vw, 2.1rem); }
@@ -852,6 +854,16 @@ th:last-child, td:last-child { text-align: right; }
 .report-preview details { padding: 14px; background: var(--surface-soft); border-radius: 10px; }
 .report-preview summary { cursor: pointer; font-weight: 750; }
 .report-preview details dl { margin: 14px 0 0; }
+.report-refresh-review { display: grid; gap: 18px; border-color: var(--accent); box-shadow: 0 18px 50px rgb(21 29 44 / 10%); }
+.report-refresh-review > .eyebrow, .report-refresh-review > h2, .report-refresh-review > p { margin: 0; }
+.report-refresh-review > p:not(.eyebrow) { color: var(--ink-soft); }
+.report-refresh-revisions, .report-refresh-effects { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.report-refresh-revisions article, .report-refresh-effects > section { padding: 16px; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 12px; }
+.report-refresh-revisions article:last-child { background: var(--accent-soft); border-color: var(--accent); }
+.report-refresh-revisions h3, .report-refresh-effects h3 { margin: 0 0 7px; font-size: .95rem; }
+.report-refresh-revisions p { margin: 0; color: var(--ink-soft); font-size: .86rem; }
+.report-refresh-boundary { padding: 14px 16px; border-left: 4px solid var(--warning); background: var(--warning-soft); border-radius: 10px; }
+.report-refresh-effects ul { display: grid; gap: 7px; margin: 0; padding-left: 20px; color: var(--ink-soft); font-size: .86rem; }
 .report-privacy-review { border-color: var(--accent); box-shadow: 0 18px 50px rgb(21 29 44 / 10%); }
 .report-privacy-review > p, .report-privacy-review > ul { color: var(--ink-soft); }
 .report-privacy-review > ul { display: grid; gap: 7px; padding-left: 22px; }
@@ -978,6 +990,9 @@ th:last-child, td:last-child { text-align: right; }
   .report-block-heading { align-items: flex-start; flex-direction: column; }
   .report-block-controls { width: 100%; justify-content: flex-start; }
   .report-route-settings label, .report-route-choice > label:last-child { grid-template-columns: 1fr; }
+  .report-stale { align-items: stretch; flex-direction: column; }
+  .report-stale button { width: 100%; }
+  .report-refresh-revisions, .report-refresh-effects { grid-template-columns: 1fr; }
   .report-evidence-summary { grid-template-columns: 1fr; }
   .report-actions { justify-content: stretch; }
   .report-actions button { flex: 1 1 100%; }
