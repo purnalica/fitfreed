@@ -1152,6 +1152,99 @@ describe("FitFreed import interface", () => {
     ).toHaveLength(2));
   });
 
+  it("opens a saved report source and returns to the exact report with focus", async () => {
+    const reportRef = `report-${"4".repeat(64)}`;
+    const snapshotRef = `training-snapshot-${"5".repeat(64)}`;
+    const query = {
+      question: "training-period-comparison" as const,
+      questionVersion: 1 as const,
+      baselineRange: { from: "2026-01-01", through: "2026-01-07" },
+      comparisonRange: { from: "2026-02-01", through: "2026-02-07" },
+    };
+    const comparison: TestTrainingComparison = {
+      availableRange: { from: "2026-01-01", through: "2026-02-28" },
+      baselineRange: query.baselineRange,
+      comparisonRange: query.comparisonRange,
+      series: [],
+    };
+    mocks.homeInvoke.mockImplementation((command) => {
+      if (command === "query_library_home") return Promise.resolve(emptyLibraryHome());
+      throw new Error(`Unexpected Home command: ${command}`);
+    });
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      if (command === "list_reports") return Promise.resolve({ reports: [{
+        reportRef,
+        title: "Winter review",
+        locale: "en-US",
+        sourceSnapshotRef: snapshotRef,
+        revision: "1",
+      }] });
+      if (command === "resolve_report") return Promise.resolve({
+        definition: {
+          reportRef,
+          title: "Winter review",
+          locale: "en-US",
+          sourceSnapshotRef: snapshotRef,
+          origin: { kind: "exploration", query },
+          provenancePolicy: "current-attribution",
+          authorship: "user",
+          definitionVersion: 4,
+          revision: "1",
+          blocks: [{
+            blockRef: `report-block-${"6".repeat(64)}`,
+            kind: "training-comparison",
+            query,
+          }],
+        },
+        resolvedSnapshotRef: snapshotRef,
+        status: "current",
+        session: null,
+        routes: [],
+        trainingComparison: comparison,
+        provenance: { kind: "library-snapshot" },
+        sensitiveContents: [],
+        limitations: [],
+      });
+      if (command === "query_training_sessions") {
+        return Promise.resolve(trainingSessionSearchPage(
+          [],
+          { from: "2026-01-01", through: "2026-02-28" },
+        ));
+      }
+      if (command === "query_training_comparison") return Promise.resolve(comparison);
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(await screen.findByRole("button", { name: "Reports" }));
+    await user.click(await screen.findByRole("button", { name: /Winter review/ }));
+    await user.click(await screen.findByRole("button", { name: "View source comparison" }));
+
+    const comparisonHeading = await screen.findByRole("heading", {
+      name: "Training period comparison",
+    });
+    await waitFor(() => expect(comparisonHeading).toHaveFocus());
+    expect(mocks.invoke).toHaveBeenCalledWith("query_training_comparison", {
+      baselineRange: query.baselineRange,
+      comparisonRange: query.comparisonRange,
+    });
+
+    await user.click(screen.getByRole("button", { name: /Back to report/ }));
+    const reportHeading = await screen.findByRole("heading", { name: "Edit report" });
+    await waitFor(() => expect(reportHeading).toHaveFocus());
+    expect(screen.getByLabelText("Report title")).toHaveValue("Winter review");
+    expect(mocks.homeInvoke.mock.calls.filter(
+      ([command]) => command === "save_exploration_workspace",
+    )).toHaveLength(0);
+
+    await user.click(screen.getByRole("button", { name: "Explore" }));
+    expect(await screen.findByRole("heading", { name: "Start with your own history" }))
+      .toBeVisible();
+  });
+
   it("discards an unsaved appearance preview when leaving Settings", async () => {
     emptyLibrary();
     const user = userEvent.setup();
@@ -2677,9 +2770,10 @@ describe("FitFreed import interface", () => {
     });
     expect(within(comparisonRegion).getByText("+250 kcal")).toBeVisible();
     expect(within(comparisonRegion).getAllByText("Not available").length).toBeGreaterThan(0);
-    await user.click(within(comparisonRegion).getByRole("button", {
+    const createReportButton = within(comparisonRegion).getByRole("button", {
       name: "Turn this comparison into a report",
-    }));
+    });
+    await user.click(createReportButton);
     const reportQuery = {
       question: "training-period-comparison",
       questionVersion: 1,
@@ -2699,6 +2793,7 @@ describe("FitFreed import interface", () => {
       name: "Training period comparison",
     });
     expect(within(restoredComparison).getByText("+250 kcal")).toBeVisible();
+    await waitFor(() => expect(createReportButton).toHaveFocus());
     await user.click(within(restoredComparison).getByRole("button", { name: "Clear comparison" }));
     expect(within(training).queryByRole("region", { name: "Training period comparison" }))
       .not.toBeInTheDocument();

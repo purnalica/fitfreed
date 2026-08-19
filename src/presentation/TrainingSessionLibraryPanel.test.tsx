@@ -1,5 +1,6 @@
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { catalogs } from "../locales/catalogs";
@@ -531,7 +532,10 @@ function page(
   };
 }
 
-function renderPanel(onError = vi.fn()) {
+function renderPanel(
+  onError = vi.fn(),
+  properties: Partial<ComponentProps<typeof TrainingSessionLibraryPanel>> = {},
+) {
   const onAvailableRange = vi.fn();
   const onCreateReport = vi.fn();
   render(
@@ -542,6 +546,7 @@ function renderPanel(onError = vi.fn()) {
       onAvailableRange={onAvailableRange}
       onCreateReport={onCreateReport}
       onError={onError}
+      {...properties}
     />,
   );
   return { onAvailableRange, onCreateReport, onError };
@@ -554,6 +559,52 @@ beforeEach(() => {
 });
 
 describe("TrainingSessionLibraryPanel", () => {
+  it("opens and focuses an exact session reached from a report", async () => {
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+      if (workspaceResult) return workspaceResult;
+      if (command === "query_training_sports") return Promise.resolve(sports);
+      if (command === "query_training_sessions") {
+        expect(arguments_.request).toEqual({
+          from: "2026-08-18",
+          through: "2026-08-18",
+          sportRefs: [],
+          requiredMeasurements: [],
+          text: null,
+          sort: "started-desc",
+          offset: 0,
+          limit: 25,
+          snapshotRef: null,
+        });
+        return Promise.resolve(page([newest], 0, 1, null));
+      }
+      if (command === "query_training_session_selection") {
+        expect(arguments_.request).toEqual({
+          sessionRefs: [newest.sessionRef],
+          snapshotRef,
+        });
+        return Promise.resolve({ snapshotRef, sessions: [newest] });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    renderPanel(vi.fn(), {
+      initialDate: "2026-08-18",
+      initialSessionRef: newest.sessionRef,
+      navigationRequestId: 7,
+    });
+
+    const detailHeading = await screen.findByRole("heading", { name: "Session summary" });
+    await waitFor(() => expect(detailHeading).toHaveFocus());
+    const detail = screen.getByRole("region", { name: "Session summary" });
+    expect(within(detail).getAllByText("Aug 18, 2026, 7:30:00 AM")[0]).toBeVisible();
+    expect(mocks.invoke).not.toHaveBeenCalledWith("load_training_discovery_workspace");
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
+      "save_training_discovery_workspace",
+      { workspace: expect.objectContaining({ openSessionRef: newest.sessionRef }) },
+    ));
+  });
+
   it("switches chronology and calendar, selects comparisons, and returns to the exact calendar origin", async () => {
     mocks.invoke.mockImplementation((command, arguments_) => {
       const workspaceResult = emptyWorkspaceCommand(command, arguments_);
@@ -625,9 +676,10 @@ describe("TrainingSessionLibraryPanel", () => {
     });
     await user.click(within(region).getByRole("button", { name: /View session details for/ }));
     expect(within(region).getByRole("heading", { name: "Session summary" })).toBeVisible();
-    await user.click(within(region).getByRole("button", {
+    const createReport = within(region).getByRole("button", {
       name: "Build a report from this session",
-    }));
+    });
+    await user.click(createReport);
     expect(onCreateReport).toHaveBeenCalledWith({
       kind: "session",
       snapshotRef,

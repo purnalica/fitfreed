@@ -60,8 +60,8 @@ as already implemented production behavior.
 <!-- product-status:start -->
 | Available in source | Active experience work | Deliberately later |
 |---|---|---|
-| Polar Flow ZIP validation and import | Origin-aware navigation across discovery, session, and report workspaces | Additional providers and live APIs |
-| Explicit supported, ignored, and unrecognized coverage | A coherent, evaluated, documented macOS product journey | Linux and Windows distribution |
+| Polar Flow ZIP validation and import | A coherent, evaluated, documented macOS product journey | Additional providers and live APIs |
+| Explicit supported, ignored, and unrecognized coverage |  | Linux and Windows distribution |
 | Safe exact and cumulative reimport |  | Local MCP access for authorized agents |
 | Provider-neutral SQLite history for activity, training summaries, structure, routes, signals, sleep, and recovery |  | Advanced encryption and extension systems |
 | Bounded visual comparison and longitudinal context |  | Collaborative or hosted analytics |
@@ -82,6 +82,7 @@ as already implemented production behavior.
 | Versioned training-period findings, comparisons, charts, exact tables, and coverage views |  |  |
 | Question-led, exploration-led, session-led, and blank report starts with durable authored results |  |  |
 | Deliberate stale-report refresh through an exact current-evidence review |  |  |
+| Origin-aware navigation between saved reports and their exact session or comparison source |  |  |
 
 Status sources: [MVP capability boundary](docs/roadmap.md#milestone-2--mvp) · [Active experience delivery plan](docs/plans/mvp-experience-delivery.md) · [Post-MVP evolution tracks](docs/roadmap.md#evolution-tracks-after-the-mvp).
 <!-- product-status:end -->

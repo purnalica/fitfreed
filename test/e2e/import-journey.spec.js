@@ -2094,7 +2094,10 @@ describe("packaged FitFreed import journey", () => {
       ["Sessions with energy", "1", "0", "-1"],
       ["Sessions with heart rate", "1", "0", "-1"],
     ]);
-    await $(`aria/${english.training.comparison.createReport}`).click();
+    const createComparisonReport = await $(
+      `aria/${english.training.comparison.createReport}`,
+    );
+    await createComparisonReport.click();
     await expect($(".reports-hero h1")).toHaveText(english.reports.heading);
     await setReportComparisonRanges("2026-01-04", "2026-01-04", "2026-01-05", "2026-01-05");
     expect(await $$(".report-block-editor:has(.report-analysis-block-help)"))
@@ -2127,6 +2130,16 @@ describe("packaged FitFreed import journey", () => {
       ["Sessions with energy", "1", "0", "-1"],
       ["Sessions with heart rate", "1", "0", "-1"],
     ]);
+    await browser.waitUntil(
+      () => browser.execute(
+        () => document.activeElement === document.querySelector(
+          ".training-comparison-result-heading button:not(.secondary)",
+        ),
+      ), {
+        timeout: 10_000,
+        timeoutMsg: "returning from report authoring did not restore comparison focus",
+      },
+    );
 
     await openHomeQuestion(
       english,
@@ -2825,6 +2838,34 @@ describe("packaged FitFreed import journey", () => {
     );
     expect(refreshedExport).not.toContain("Polar Flow");
 
+    await $(`aria/${spanish.reports.viewSourceComparison}`).click();
+    await expectComparisonHeading(
+      "#training-comparison-heading",
+      spanish.training.comparison.resultHeading,
+    );
+    const reopenedComparisonInputs = await $$(
+      ".training-comparison input[type='date']",
+    );
+    const reopenedComparisonRanges = [
+      "2026-01-04",
+      "2026-01-04",
+      "2026-01-05",
+      "2026-01-05",
+    ];
+    for (let index = 0; index < reopenedComparisonRanges.length; index += 1) {
+      await expect(reopenedComparisonInputs[index]).toHaveValue(reopenedComparisonRanges[index]);
+    }
+    await $(`aria/${spanish.reports.backToReport}`).click();
+    await expect($(`.report-editor input[maxlength="120"]`)).toHaveValue(
+      "Synthetic comparison answer",
+    );
+    await browser.waitUntil(
+      () => browser.execute(
+        () => document.activeElement === document.querySelector(".report-editor h2"),
+      ),
+      { timeout: 10_000, timeoutMsg: "returning from comparison did not focus the report" },
+    );
+
     await (await $$(".report-list button"))[1].click();
     await expect($(".report-preview h3")).toHaveText("Synthetic ridge progression");
     await expect($(".report-preview")).toHaveText(
@@ -2838,6 +2879,18 @@ describe("packaged FitFreed import journey", () => {
     await expect($(".report-status-stale")).toHaveText(spanish.reports.status.stale);
     await expect($(".report-stale")).toHaveText(expect.stringContaining(spanish.reports.stale));
     await expect($(`aria/${spanish.reports.reviewExport}`)).toBeDisabled();
+    await $(`aria/${spanish.reports.viewSourceSession}`).click();
+    await expect($("#training-session-detail-heading")).toHaveText(
+      spanish.training.sessionLibrary.detailHeading,
+    );
+    await browser.waitUntil(
+      () => browser.execute(
+        () => document.activeElement === document.querySelector("#training-session-detail-heading"),
+      ),
+      { timeout: 10_000, timeoutMsg: "opening a report session did not focus its exact detail" },
+    );
+    await $(`aria/${spanish.reports.backToReport}`).click();
+    await expect($(".report-preview h3")).toHaveText("Synthetic ridge progression");
     await returnToLibraryHome(spanish);
     const resumableTraining = await $$(".library-home-resume button");
     expect(resumableTraining).toHaveLength(1);

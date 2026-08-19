@@ -28,7 +28,8 @@
         "Composable session and route reports with privacy-reviewed self-contained HTML export",
         "Versioned training-period findings, comparisons, charts, exact tables, and coverage views",
         "Question-led, exploration-led, session-led, and blank report starts with durable authored results",
-        "Deliberate stale-report refresh through an exact current-evidence review"
+        "Deliberate stale-report refresh through an exact current-evidence review",
+        "Origin-aware navigation between saved reports and their exact session or comparison source"
       ],
       "source": {
         "label": "MVP capability boundary",
@@ -40,7 +41,6 @@
       "label": "Active experience work",
       "title": "The experience being shaped",
       "items": [
-        "Origin-aware navigation across discovery, session, and report workspaces",
         "A coherent, evaluated, documented macOS product journey"
       ],
       "source": {

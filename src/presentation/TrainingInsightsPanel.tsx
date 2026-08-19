@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { type catalogs, type Locale } from "../locales/catalogs";
-import type { ExplorerNavigationRequest } from "./explorer-navigation";
+import type { TrainingNavigationRequest } from "./explorer-navigation";
 import type { ReportStartOrigin } from "./session-report";
 import { TrainingComparisonPanel } from "./TrainingComparisonPanel";
 import type { TrainingDateRange } from "./training-insights";
@@ -12,7 +12,8 @@ interface TrainingInsightsPanelProps {
   locale: Locale;
   messages: (typeof catalogs)["en-US"];
   refreshToken: number;
-  navigationRequest?: ExplorerNavigationRequest;
+  navigationRequest?: TrainingNavigationRequest;
+  reportReturnFocusRequest?: { kind: "session" | "comparison"; requestId: number };
   onCreateReport: (origin: ReportStartOrigin) => void;
   onError: (code: string | undefined) => void;
 }
@@ -32,11 +33,24 @@ export function TrainingInsightsPanel({
   messages,
   refreshToken,
   navigationRequest,
+  reportReturnFocusRequest,
   onCreateReport,
   onError,
 }: TrainingInsightsPanelProps) {
   const [availableRange, setAvailableRange] = useState<TrainingDateRange | null>(null);
   const [classificationRevision, setClassificationRevision] = useState(0);
+  const sessionNavigation = navigationRequest && "kind" in navigationRequest
+    && navigationRequest.kind === "session"
+    ? navigationRequest
+    : undefined;
+  const comparisonNavigation = navigationRequest && "kind" in navigationRequest
+    && navigationRequest.kind === "comparison"
+    ? navigationRequest
+    : undefined;
+  const initialDate = sessionNavigation?.localDate
+    ?? (navigationRequest && !("kind" in navigationRequest)
+      ? navigationRequest.localDate
+      : undefined);
 
   return (
     <section className="training-insights" aria-labelledby="training-heading">
@@ -45,7 +59,12 @@ export function TrainingInsightsPanel({
         locale={locale}
         messages={messages}
         refreshToken={refreshToken + classificationRevision}
-        initialDate={navigationRequest?.localDate}
+        initialDate={initialDate}
+        initialSessionRef={sessionNavigation?.sessionRef}
+        navigationRequestId={sessionNavigation?.requestId}
+        createReportFocusRequestId={reportReturnFocusRequest?.kind === "session"
+          ? reportReturnFocusRequest.requestId
+          : undefined}
         onAvailableRange={setAvailableRange}
         onCreateReport={onCreateReport}
         onError={onError}
@@ -59,9 +78,14 @@ export function TrainingInsightsPanel({
       />
       {availableRange && (
         <TrainingComparisonPanel
-          key={`${availableRange.from}:${availableRange.through}`}
+          key={`${availableRange.from}:${availableRange.through}:${comparisonNavigation?.requestId ?? "default"}`}
           availableRange={availableRange}
           initialRange={latestComparisonRange(availableRange)}
+          initialQuery={comparisonNavigation?.query}
+          navigationRequestId={comparisonNavigation?.requestId}
+          createReportFocusRequestId={reportReturnFocusRequest?.kind === "comparison"
+            ? reportReturnFocusRequest.requestId
+            : undefined}
           locale={locale}
           messages={messages}
           onCreateReport={(query) => onCreateReport({ kind: "exploration", query })}

@@ -1,8 +1,9 @@
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
 import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
+import { restoreFocusAfterReveal } from "./focus-restoration";
 import { formatDistance, formatDuration, formatExactMetric } from "./training-format";
 import type {
   TrainingComparison,
@@ -16,6 +17,9 @@ interface TrainingComparisonPanelProps {
   initialRange: TrainingDateRange;
   locale: Locale;
   messages: (typeof catalogs)["en-US"];
+  initialQuery?: ReportTrainingComparisonQuery;
+  navigationRequestId?: number;
+  createReportFocusRequestId?: number;
   onCreateReport: (query: ReportTrainingComparisonQuery) => void;
   onError: (code: string | undefined) => void;
 }
@@ -39,6 +43,9 @@ export function TrainingComparisonPanel({
   initialRange,
   locale,
   messages,
+  initialQuery,
+  navigationRequestId,
+  createReportFocusRequestId,
   onCreateReport,
   onError,
 }: TrainingComparisonPanelProps) {
@@ -46,6 +53,10 @@ export function TrainingComparisonPanel({
   const [comparisonRange, setComparisonRange] = useState(initialRange);
   const [comparison, setComparison] = useState<TrainingComparison>();
   const [loading, setLoading] = useState(false);
+  const resultHeadingRef = useRef<HTMLHeadingElement>(null);
+  const createReportButtonRef = useRef<HTMLButtonElement>(null);
+  const handledCreateReportFocusRequest = useRef<number | undefined>(undefined);
+  const [focusResultRequestId, setFocusResultRequestId] = useState<number>();
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const signedNumber = useMemo(
     () => new Intl.NumberFormat(locale, { signDisplay: "exceptZero" }),
@@ -56,6 +67,62 @@ export function TrainingComparisonPanel({
     [locale],
   );
   const copy = messages.training.comparison;
+
+  useEffect(() => {
+    if (!initialQuery || navigationRequestId === undefined) return;
+    const baseline = initialQuery.baselineRange;
+    const compared = initialQuery.comparisonRange;
+    setBaselineRange(baseline);
+    setComparisonRange(compared);
+    if (!rangeIsValid(baseline, availableRange) || !rangeIsValid(compared, availableRange)) {
+      setComparison(undefined);
+      onError("invalid-training-comparison");
+      return;
+    }
+    let active = true;
+    setLoading(true);
+    onError(undefined);
+    void invoke<TrainingComparison>("query_training_comparison", {
+      baselineRange: baseline,
+      comparisonRange: compared,
+    }).then((result) => {
+      if (!active) return;
+      setComparison(result);
+      setFocusResultRequestId(navigationRequestId);
+    }).catch((reason) => {
+      if (!active) return;
+      const code = commandErrorCode(reason);
+      onError(code === "invalid-training-range" ? "invalid-training-comparison" : code);
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, [
+    availableRange,
+    initialQuery?.baselineRange.from,
+    initialQuery?.baselineRange.through,
+    initialQuery?.comparisonRange.from,
+    initialQuery?.comparisonRange.through,
+    navigationRequestId,
+    onError,
+  ]);
+
+  useEffect(() => {
+    if (focusResultRequestId !== navigationRequestId || !comparison) return;
+    return restoreFocusAfterReveal(resultHeadingRef.current);
+  }, [comparison, focusResultRequestId, navigationRequestId]);
+
+  useEffect(() => {
+    if (
+      createReportFocusRequestId === undefined
+      || handledCreateReportFocusRequest.current === createReportFocusRequestId
+      || !comparison
+    ) return;
+    handledCreateReportFocusRequest.current = createReportFocusRequestId;
+    return restoreFocusAfterReveal(createReportButtonRef.current);
+  }, [comparison, createReportFocusRequestId]);
 
   async function runComparison(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -263,7 +330,13 @@ export function TrainingComparisonPanel({
         >
           <div className="training-comparison-result-heading">
             <div>
-              <h3 id="training-comparison-heading">{copy.resultHeading}</h3>
+              <h3
+                id="training-comparison-heading"
+                ref={resultHeadingRef}
+                tabIndex={initialQuery ? -1 : undefined}
+              >
+                {copy.resultHeading}
+              </h3>
               <p>{copy.coverageCaution}</p>
             </div>
             <button type="button" className="secondary" onClick={() => setComparison(undefined)}>
@@ -272,6 +345,7 @@ export function TrainingComparisonPanel({
             {comparison.baselineRange && comparison.comparisonRange && (
               <button
                 type="button"
+                ref={createReportButtonRef}
                 onClick={() => onCreateReport({
                   question: "training-period-comparison",
                   questionVersion: 1,

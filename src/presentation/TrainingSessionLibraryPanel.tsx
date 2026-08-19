@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { type catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
+import { restoreFocusAfterReveal } from "./focus-restoration";
 import type { SessionReportOrigin } from "./session-report";
 import {
   formatDistance,
@@ -93,6 +94,9 @@ interface TrainingSessionLibraryPanelProps {
   messages: (typeof catalogs)["en-US"];
   refreshToken: number;
   initialDate?: string;
+  initialSessionRef?: string;
+  navigationRequestId?: number;
+  createReportFocusRequestId?: number;
   onAvailableRange: (range: { from: string; through: string } | null) => void;
   onCreateReport: (origin: SessionReportOrigin) => void;
   onError: (code: string | undefined) => void;
@@ -200,6 +204,9 @@ export function TrainingSessionLibraryPanel({
   messages,
   refreshToken,
   initialDate,
+  initialSessionRef,
+  navigationRequestId,
+  createReportFocusRequestId,
   onAvailableRange,
   onCreateReport,
   onError,
@@ -243,6 +250,9 @@ export function TrainingSessionLibraryPanel({
   const exactSignalRequestSequence = useRef(0);
   const [detailOrigin, setDetailOrigin] = useState<SessionView>("chronology");
   const [comparison, setComparison] = useState<TrainingSessionSearchItem[]>([]);
+  const detailHeadingRef = useRef<HTMLHeadingElement>(null);
+  const createReportButtonRef = useRef<HTMLButtonElement>(null);
+  const handledCreateReportFocusRequest = useRef<number | undefined>(undefined);
   const copy = messages.training.sessionLibrary;
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const calendarDate = useMemo(() => new Intl.DateTimeFormat(locale, {
@@ -353,7 +363,43 @@ export function TrainingSessionLibraryPanel({
 
       let nextComparison: TrainingSessionSearchItem[] = [];
       let nextSelected: TrainingSessionSearchItem | undefined;
-      if (restored && !snapshotChanged) {
+      if (initialSessionRef) {
+        try {
+          let selection = await invoke<TrainingSessionSelection>(
+            "query_training_session_selection",
+            {
+              request: {
+                sessionRefs: [initialSessionRef],
+                snapshotRef: nextPage.snapshotRef,
+              },
+            },
+          );
+          if (selection.sessions.length === 0) {
+            snapshotChanged = true;
+          } else {
+            nextSelected = selection.sessions.find(
+              (session) => session.sessionRef === initialSessionRef,
+            );
+          }
+        } catch (reason) {
+          if (commandErrorCode(reason) !== "training-session-search-changed") throw reason;
+          snapshotChanged = true;
+          offset = 0;
+          nextPage = await query(nextPageCriteria, 0, null);
+          const selection = await invoke<TrainingSessionSelection>(
+            "query_training_session_selection",
+            {
+              request: {
+                sessionRefs: [initialSessionRef],
+                snapshotRef: nextPage.snapshotRef,
+              },
+            },
+          );
+          nextSelected = selection.sessions.find(
+            (session) => session.sessionRef === initialSessionRef,
+          );
+        }
+      } else if (restored && !snapshotChanged) {
         const sessionRefs = [...restored.selectedSessionRefs];
         if (restored.openSessionRef && !sessionRefs.includes(restored.openSessionRef)) {
           sessionRefs.push(restored.openSessionRef);
@@ -413,7 +459,29 @@ export function TrainingSessionLibraryPanel({
     return () => {
       active = false;
     };
-  }, [refreshToken, initialDate, onAvailableRange, onError]);
+  }, [
+    refreshToken,
+    initialDate,
+    initialSessionRef,
+    navigationRequestId,
+    onAvailableRange,
+    onError,
+  ]);
+
+  useEffect(() => {
+    if (!initialSessionRef || selected?.sessionRef !== initialSessionRef) return;
+    return restoreFocusAfterReveal(detailHeadingRef.current);
+  }, [initialSessionRef, navigationRequestId, selected?.sessionRef]);
+
+  useEffect(() => {
+    if (
+      createReportFocusRequestId === undefined
+      || handledCreateReportFocusRequest.current === createReportFocusRequestId
+      || !selected
+    ) return;
+    handledCreateReportFocusRequest.current = createReportFocusRequestId;
+    return restoreFocusAfterReveal(createReportButtonRef.current);
+  }, [createReportFocusRequestId, selected]);
 
   useEffect(() => {
     let active = true;
@@ -1848,7 +1916,13 @@ export function TrainingSessionLibraryPanel({
         >
           <div className="training-detail-heading">
             <div>
-              <h3 id="training-session-detail-heading">{copy.detailHeading}</h3>
+              <h3
+                id="training-session-detail-heading"
+                ref={detailHeadingRef}
+                tabIndex={initialSessionRef ? -1 : undefined}
+              >
+                {copy.detailHeading}
+              </h3>
               <time dateTime={selected.startedAtLocal}>
                 {formatTrainingDateTime(selected.startedAtLocal, locale)}
               </time>
@@ -1856,6 +1930,7 @@ export function TrainingSessionLibraryPanel({
             <div className="training-detail-actions">
               <button
                 type="button"
+                ref={createReportButtonRef}
                 onClick={() => onCreateReport({
                   kind: "session",
                   snapshotRef: page?.snapshotRef ?? "",

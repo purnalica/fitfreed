@@ -18,7 +18,10 @@ import type {
   ActivityOverview,
 } from "./presentation/activity-insights";
 import { commandErrorCode } from "./presentation/command-error";
-import type { ExplorerNavigationRequest } from "./presentation/explorer-navigation";
+import type {
+  ExplorerNavigationRequest,
+  TrainingNavigationRequest,
+} from "./presentation/explorer-navigation";
 import {
   applyApplicationPreferences,
   type ApplicationPreferences,
@@ -32,6 +35,7 @@ import type {
 import { LibraryHomePanel } from "./presentation/LibraryHomePanel";
 import type { SourceAcquisitionGuide } from "./presentation/source-acquisition";
 import { SourcesPanel } from "./presentation/SourcesPanel";
+import type { ReportSourceTarget } from "./presentation/report-navigation";
 import type { ReportStartOrigin } from "./presentation/session-report";
 
 const rendererStartedAt = performance.now();
@@ -199,11 +203,23 @@ function App() {
   const [trainingRefreshToken, setTrainingRefreshToken] = useState(0);
   const [reportOrigin, setReportOrigin] = useState<ReportStartOrigin>();
   const [reportOriginRequestId, setReportOriginRequestId] = useState(0);
+  const [reportReturnFocusRequest, setReportReturnFocusRequest] = useState<{
+    kind: "session" | "comparison";
+    requestId: number;
+  }>();
+  const reportReturnFocusSequence = useRef(0);
+  const [reportReturnRef, setReportReturnRef] = useState<string>();
+  const reportSourceReturnDestination = useRef<ExploreDestination | undefined>(undefined);
+  const [reportOpenRequest, setReportOpenRequest] = useState<{
+    reportRef: string;
+    requestId: number;
+  }>();
   const [sleepRefreshToken, setSleepRefreshToken] = useState(0);
   const [recoveryRefreshToken, setRecoveryRefreshToken] = useState(0);
   const [longitudinalRefreshToken, setLongitudinalRefreshToken] = useState(0);
   const [explorerNavigation, setExplorerNavigation] = useState<
-    ExplorerNavigationRequest & { domain: "training" | "sleep" | "recovery" }
+    | (ExplorerNavigationRequest & { domain: "training" | "sleep" | "recovery" })
+    | (TrainingNavigationRequest & { domain: "training"; reportRef: string })
   >();
   const navigationSequence = useRef(0);
   const [outcome, setOutcome] = useState<ImportOutcome>();
@@ -407,6 +423,8 @@ function App() {
       await invoke("clear_exploration_workspace");
       setExploreDestination(undefined);
       setExplorerNavigation(undefined);
+      setReportReturnRef(undefined);
+      setReportReturnFocusRequest(undefined);
       setLibraryHome((current) => current
         ? { ...current, resumableExploration: null }
         : current);
@@ -438,11 +456,15 @@ function App() {
     setPreferencesSavedNotice(false);
     setPreferencesEditorRevision((current) => current + 1);
     setReportOrigin(undefined);
+    setReportReturnRef(undefined);
+    setReportOpenRequest(undefined);
+    setReportReturnFocusRequest(undefined);
     setActiveHome("reports");
   }
 
   function createReport(origin: ReportStartOrigin) {
     setErrorCode(undefined);
+    setReportReturnFocusRequest(undefined);
     setReportOrigin(origin);
     setReportOriginRequestId((current) => current + 1);
     setActiveHome("reports");
@@ -471,7 +493,48 @@ function App() {
 
   async function openHomeExploration(destination: ExploreDestination) {
     setExplorerNavigation(undefined);
+    setReportReturnRef(undefined);
+    setReportReturnFocusRequest(undefined);
     await openExploration(destination);
+  }
+
+  function navigateFromReport(target: ReportSourceTarget | null) {
+    setReportOrigin(undefined);
+    if (!target) {
+      reportReturnFocusSequence.current += 1;
+      setReportReturnFocusRequest({
+        kind: reportOrigin?.kind === "session" ? "session" : "comparison",
+        requestId: reportReturnFocusSequence.current,
+      });
+      setActiveHome("explore");
+      return;
+    }
+    navigationSequence.current += 1;
+    reportSourceReturnDestination.current = exploreDestination;
+    setExplorerNavigation({
+      ...target,
+      domain: "training",
+      requestId: navigationSequence.current,
+    });
+    setExploreDestination("training");
+    setReportReturnFocusRequest(undefined);
+    setReportReturnRef(target.reportRef);
+    setActiveHome("explore");
+  }
+
+  function returnToReport() {
+    if (!reportReturnRef) return;
+    setReportOpenRequest({
+      reportRef: reportReturnRef,
+      requestId: reportOriginRequestId + navigationSequence.current + 1,
+    });
+    setExploreDestination(reportSourceReturnDestination.current);
+    reportSourceReturnDestination.current = undefined;
+    setExplorerNavigation(undefined);
+    setReportReturnRef(undefined);
+    setReportOrigin(undefined);
+    setReportReturnFocusRequest(undefined);
+    setActiveHome("reports");
   }
 
   async function savePreferences(preferences: ApplicationPreferences) {
@@ -702,6 +765,8 @@ function App() {
     localDateValue: string,
     seriesRef: string,
   ) {
+    setReportReturnRef(undefined);
+    setReportReturnFocusRequest(undefined);
     if (domain === "activity") {
       invoke("save_exploration_workspace", { destination: "activity" })
         .then(() => refresh({ from: localDateValue, through: localDateValue }))
@@ -987,8 +1052,10 @@ function App() {
                 messages={messages}
                 origin={reportOrigin}
                 originRequestId={reportOriginRequestId}
+                openReportRef={reportOpenRequest?.reportRef}
+                openReportRequestId={reportOpenRequest?.requestId}
                 disabled={!libraryReady || busy || updateInstalling}
-                onReturnToOrigin={() => setActiveHome("explore")}
+                onReturnToOrigin={navigateFromReport}
                 onError={setErrorCode}
               />
             </Suspense>
@@ -1007,6 +1074,15 @@ function App() {
 
       {exploreDestination && (
         <nav className="explorer-return" aria-label={messages.home.backHome}>
+          {reportReturnRef && (
+            <button
+              type="button"
+              className="secondary"
+              onClick={returnToReport}
+            >
+              <span aria-hidden="true">← </span>{messages.reports.backToReport}
+            </button>
+          )}
           <button
             type="button"
             className="secondary"
@@ -1260,6 +1336,7 @@ function App() {
             messages={messages}
             refreshToken={trainingRefreshToken}
             navigationRequest={explorerNavigation?.domain === "training" ? explorerNavigation : undefined}
+            reportReturnFocusRequest={reportReturnFocusRequest}
             onCreateReport={createReport}
             onError={setErrorCode}
           />

@@ -45,11 +45,23 @@ export async function goToHome(home) {
 
 export async function returnToLibraryHome(catalog) {
   await goToHome("explore");
-  const returnButtons = await $$(".explorer-return button");
-  if (returnButtons.length > 0 && await returnButtons[0].isDisplayed()) {
-    await returnButtons[0].click();
+  const returnHome = await $(
+    `.explorer-return button[aria-label="${catalog.home.backHome}"]`,
+  );
+  await browser.waitUntil(async () => (
+    await $(".library-home h1").isExisting()
+    || await returnHome.isExisting()
+  ), {
+    timeout: 10_000,
+    timeoutMsg: "neither Library Home nor its exact return action became available",
+  });
+  if (!(await $(".library-home h1").isExisting())) {
+    await returnHome.waitForDisplayed({ timeout: 10_000 });
+    await returnHome.click();
   }
-  await expect($(".library-home h1")).toHaveText(catalog.home.title);
+  const heading = await $(".library-home h1");
+  await heading.waitForDisplayed({ timeout: 10_000 });
+  await expect(heading).toHaveText(catalog.home.title);
 }
 
 export async function openHomeQuestion(catalog, kind, expectedSelector) {

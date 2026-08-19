@@ -2,7 +2,7 @@
 
 ## Status
 
-Active as of 2026-08-19. D0, P1, E1, P2, E2, all three E3 slices, all seven E4 slices, and the first four E5 verticals have complete local and hosted acceptance evidence; the fifth E5 vertical has complete local acceptance. The accepted E5 verticals provide durable session-origin authorship, ordered route composition, one coherent training-period comparison family, question-led, exploration-led, session-led, and blank starts, and deliberate evidence refresh through a reviewed current candidate. Shared preview, privacy review, persistence, and deterministic self-contained HTML export remain available throughout. Complete report navigation remains active. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English and Spanish hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md) and [ADR 0024](../architecture/decisions/0024-generate-localized-product-pages.md).
+Active as of 2026-08-19. D0, P1, E1, P2, E2, all three E3 slices, all seven E4 slices, and the first four E5 verticals have complete local and hosted acceptance evidence; the final two E5 verticals have complete local acceptance. E5 now provides durable session-origin authorship, ordered route composition, one coherent training-period comparison family, question-led, exploration-led, session-led, and blank starts, deliberate evidence refresh through a reviewed current candidate, and exact bidirectional navigation between saved reports and their source session or comparison. Shared preview, privacy review, persistence, deterministic self-contained HTML export, keyboard-focus restoration, and the independent resumable exploration contract remain available throughout. Hosted acceptance for the final E5 executable-input fingerprints remains pending before E6 integration begins. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English and Spanish hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md) and [ADR 0024](../architecture/decisions/0024-generate-localized-product-pages.md).
 
 The existing import, reconciliation, persistence, Insights, localization, update-recovery, packaging, and continuous-integration capabilities remain the engineering baseline. This plan changes how those capabilities become a product people can understand and value; it does not discard their verified behavior.
 
@@ -685,6 +685,25 @@ explicitly cleared resumable exploration across restart, and passed Axe without 
 two-year packaged performance campaign passed every budget; its slowest p95 interaction was 126 milliseconds
 against the 2-second maximum-interaction budget. Hosted acceptance remains pending for this fifth-slice
 executable-input fingerprint. Complete report-origin navigation is the remaining E5 slice.
+
+**Origin-aware navigation local checkpoint:** a transient report start returns to its still-mounted session
+or comparison and restores the initiating control. A reopened saved report derives only an exact typed source
+from its resolved definition: a current session capability or the complete versioned comparison query. The
+source action opens that exact evidence, restores keyboard focus to its heading, and offers **Back to report**
+for the same saved definition. Blank reports invent no source. These visits neither overwrite nor clear the
+independent resumable exploration destination, and no report, provider identity, result, or navigation
+snapshot is added to SQLite.
+
+Mapping, component, application-shell, localization, documentation, and packaged acceptance tests protect
+session, exploration, question, and blank origins; exact queries and session identities; missing-source
+behavior; both directions of navigation; focus restoration; explicit user focus changes; reimport; restart;
+and resumable exploration. The complete fast lane passed 137 automation tests, 133 React tests, 207 host
+tests, 139 application tests, 33 domain tests, two private-acceptance tests, and the bounded updater tests.
+Strict Clippy, formatting, production build, repository-content inspection, and diff checks passed. The
+rebuilt macOS package completed the full functional journey in both locales and the isolated two-year
+performance campaign. Every interaction met its budget; the slowest p95 was 507 milliseconds against the
+2-second maximum-interaction budget. Hosted acceptance remains pending for the final E5 executable-input
+fingerprint.
 
 **Evaluation checkpoint:** a reviewer can create a useful artifact without learning provider or database terminology and can explain which parts are recorded, calculated, or authored.
 

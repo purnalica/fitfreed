@@ -66,6 +66,21 @@ changed in the meantime, FitFreed rejects the operation and leaves the saved def
 newest candidate can be reviewed. A successful refresh advances the report revision and evidence reference,
 survives restart, unlocks editing and export, and never rewrites authored text or composition.
 
+## Move between a report and its source
+
+A saved session report offers **View source session** when its exact current session is available. A saved
+question or exploration report offers **View source comparison** when its exact comparison query remains
+coherent. FitFreed opens that specific session or reruns those specific periods; it does not send you to a
+generic training page. Use **Back to report** to reopen the same saved report. Keyboard focus moves to the
+opened session, comparison result, or report heading so the location change is explicit without requiring a
+pointer.
+
+A narrative-only blank report has no source action because it began from authored content. If referenced
+evidence is unavailable, FitFreed also omits the action instead of substituting a different session or query.
+When a report is being created directly from a session or comparison, **Back to the session** or **Back to
+the comparison** returns to the already-mounted workspace and its initiating control; that temporary return
+path is not persisted in the report.
+
 ## Review and export
 
 1. Open a current saved report and select **Review and export**.

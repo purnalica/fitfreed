@@ -1,9 +1,11 @@
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
 import { chooseReportDestination } from "../infrastructure/report-destination";
 import { type catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
+import { restoreFocusAfterReveal } from "./focus-restoration";
+import { reportSourceTarget, type ReportSourceTarget } from "./report-navigation";
 import { routeSvgPoints } from "./route-svg";
 import type {
   AnalyticalReportBlock,
@@ -73,8 +75,10 @@ interface ReportsPanelProps {
   messages: (typeof catalogs)["en-US"];
   origin?: ReportStartOrigin;
   originRequestId: number;
+  openReportRef?: string;
+  openReportRequestId?: number;
   disabled: boolean;
-  onReturnToOrigin: () => void;
+  onReturnToOrigin: (target: ReportSourceTarget | null) => void;
   onError: (code: string | undefined) => void;
 }
 
@@ -236,6 +240,8 @@ export function ReportsPanel({
   messages,
   origin,
   originRequestId,
+  openReportRef,
+  openReportRequestId,
   disabled,
   onReturnToOrigin,
   onError,
@@ -256,6 +262,7 @@ export function ReportsPanel({
   const [refreshedNotice, setRefreshedNotice] = useState(false);
   const [refreshReviewOpen, setRefreshReviewOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const requestedReportHeadingRef = useRef<HTMLHeadingElement>(null);
   const [privacyReviewOpen, setPrivacyReviewOpen] = useState(false);
   const [exportPhysiology, setExportPhysiology] = useState(false);
   const [exportRoutes, setExportRoutes] = useState<Record<string, RouteExportChoice>>({});
@@ -367,6 +374,16 @@ export function ReportsPanel({
   }, [originRequestId]);
 
   useEffect(() => {
+    if (!openReportRef || openReportRequestId === undefined) return;
+    void openReport(openReportRef);
+  }, [openReportRef, openReportRequestId]);
+
+  useEffect(() => {
+    if (resolved?.definition.reportRef !== openReportRef) return;
+    return restoreFocusAfterReveal(requestedReportHeadingRef.current);
+  }, [openReportRef, openReportRequestId, resolved?.definition.reportRef]);
+
+  useEffect(() => {
     let active = true;
     if (!editor?.sessionRef) {
       setAvailableRoutes([]);
@@ -437,7 +454,7 @@ export function ReportsPanel({
   async function openReport(reportRef: string) {
     setSavedNotice(false);
     setRefreshedNotice(false);
-    await resolveReport(reportRef);
+    return resolveReport(reportRef);
   }
 
   function beginRefreshReview() {
@@ -1111,6 +1128,12 @@ export function ReportsPanel({
     (kind) => !editor?.blocks.some((block) => block.kind === kind),
   );
   const editingLocked = disabled || saving || refreshing || resolved?.status === "stale";
+  const canonicalSourceTarget = resolved ? reportSourceTarget(resolved) : null;
+  const returnLabel = origin
+    ? origin.kind === "session" ? copy.backToSession : copy.backToComparison
+    : canonicalSourceTarget?.kind === "session"
+      ? copy.viewSourceSession
+      : canonicalSourceTarget?.kind === "comparison" ? copy.viewSourceComparison : undefined;
 
   return (
     <section className="reports-panel" aria-labelledby="reports-heading">
@@ -1120,10 +1143,14 @@ export function ReportsPanel({
         <p>{copy.intro}</p>
       </header>
 
-      {origin && (
-        <button type="button" className="secondary" onClick={onReturnToOrigin}>
+      {returnLabel && (
+        <button
+          type="button"
+          className="secondary"
+          onClick={() => onReturnToOrigin(origin ? null : canonicalSourceTarget)}
+        >
           <span aria-hidden="true">← </span>
-          {origin.kind === "session" ? copy.backToSession : copy.backToComparison}
+          {returnLabel}
         </button>
       )}
 
@@ -1209,7 +1236,12 @@ export function ReportsPanel({
                   <p className="eyebrow">
                     {editor.reportRef ? copy.editingEyebrow : copy.creatingEyebrow}
                   </p>
-                  <h2>{editor.reportRef ? copy.editHeading : copy.createHeading}</h2>
+                  <h2
+                    ref={requestedReportHeadingRef}
+                    tabIndex={openReportRef ? -1 : undefined}
+                  >
+                    {editor.reportRef ? copy.editHeading : copy.createHeading}
+                  </h2>
                 </div>
                 {editor.revision && (
                   <span className="report-revision">

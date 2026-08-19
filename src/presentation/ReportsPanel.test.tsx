@@ -590,6 +590,94 @@ describe("ReportsPanel", () => {
     });
     await user.click(screen.getByRole("button", { name: "Back to the comparison" }));
     expect(callbacks.onReturnToOrigin).toHaveBeenCalledOnce();
+    expect(callbacks.onReturnToOrigin).toHaveBeenCalledWith(null);
+  });
+
+  it("opens canonical sources for saved reports without inventing one for a blank report", async () => {
+    const user = userEvent.setup();
+    const sessionReportRef = `report-${digest("b")}`;
+    const explorationReportRef = `report-${digest("c")}`;
+    const blankReportRef = `report-${digest("d")}`;
+    const sessionResolution = {
+      ...resolution(),
+      definition: { ...resolution().definition, reportRef: sessionReportRef },
+    };
+    const explorationResolution = {
+      ...analyticalResolution(),
+      definition: {
+        ...analyticalResolution().definition,
+        reportRef: explorationReportRef,
+        origin: { kind: "exploration" as const, query: comparisonQuery },
+      },
+    };
+    const authoredResolution = {
+      ...blankResolution(),
+      definition: { ...blankResolution().definition, reportRef: blankReportRef },
+    };
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "list_reports") return Promise.resolve({ reports: [
+        {
+          reportRef: sessionReportRef,
+          title: "Session report",
+          locale: "en-US",
+          sourceSnapshotRef: snapshotRef,
+          revision: "1",
+        },
+        {
+          reportRef: explorationReportRef,
+          title: "Comparison report",
+          locale: "en-US",
+          sourceSnapshotRef: snapshotRef,
+          revision: "1",
+        },
+        {
+          reportRef: blankReportRef,
+          title: "Blank report",
+          locale: "en-US",
+          sourceSnapshotRef: snapshotRef,
+          revision: "1",
+        },
+      ] });
+      if (command === "resolve_report") {
+        const selected = arguments_.reportRef;
+        if (selected === sessionReportRef) return Promise.resolve(sessionResolution);
+        if (selected === explorationReportRef) return Promise.resolve(explorationResolution);
+        if (selected === blankReportRef) return Promise.resolve(authoredResolution);
+      }
+      if (command === "query_training_session_routes") {
+        return Promise.resolve({ snapshotRef, sessionRef, routes: { exercises: [] } });
+      }
+      if (command === "prepare_report_start") return Promise.resolve({
+        sourceSnapshotRef: snapshotRef,
+        origin: { kind: "blank" },
+        suggestedQuery: comparisonQuery,
+      });
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    const callbacks = renderPanel({ origin: undefined, originRequestId: 0 });
+    await user.click(await screen.findByRole("button", { name: /Session report/ }));
+    await user.click(screen.getByRole("button", { name: "View source session" }));
+    expect(callbacks.onReturnToOrigin).toHaveBeenLastCalledWith({
+      kind: "session",
+      reportRef: sessionReportRef,
+      sessionRef,
+      localDate: "2026-08-16",
+    });
+
+    await user.click(screen.getByRole("button", { name: /Comparison report/ }));
+    await user.click(screen.getByRole("button", { name: "View source comparison" }));
+    expect(callbacks.onReturnToOrigin).toHaveBeenLastCalledWith({
+      kind: "comparison",
+      reportRef: explorationReportRef,
+      query: comparisonQuery,
+    });
+
+    await user.click(screen.getByRole("button", { name: /Blank report/ }));
+    await waitFor(() => expect(screen.getByLabelText("Report title")).toHaveValue(
+      "My training notes",
+    ));
+    expect(screen.queryByRole("button", { name: /source/ })).not.toBeInTheDocument();
   });
 
   it("validates, saves, resolves, edits, and reopens a durable session report", async () => {

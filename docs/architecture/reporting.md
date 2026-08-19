@@ -9,6 +9,8 @@ edits, resolves, privacy-reviews, and exports immutable version-1 definitions, c
 definitions, analytical version-3 definitions, and provider-neutral multi-origin version-4 definitions.
 It also detects stale evidence and deliberately refreshes an exact reviewed candidate without rewriting
 authored content. A stale definition cannot be edited or exported until that decision completes.
+Resolved reports expose an origin-aware path to their exact current session or training-period comparison
+when that source is still available.
 
 ## Ownership
 
@@ -43,6 +45,28 @@ Question and exploration origins require coherent analytical evidence and prohib
 Blank origins may remain narrative-only or gain analytical blocks later. Reopening a narrative-only blank
 definition prepares a suggestion only when the current snapshot still equals its saved snapshot. No start
 path stores a provider object, copied calculation, or presentation-only workspace state.
+
+## Origin-aware navigation
+
+Report navigation has two deliberately different lifetimes. Starting a report from a mounted session or
+comparison captures only a transient presentation return target and initiating control. **Back to the
+session** or **Back to the comparison** reveals that still-mounted workspace and restores keyboard focus;
+this state is not added to the report definition or SQLite.
+
+Opening a saved report derives its canonical source from the resolved definition. A session origin maps to
+the exact current opaque session capability and its recorded local date. An exploration origin retains its
+exact versioned comparison query; a question origin derives the same query from its coherent analytical
+block family. A narrative-only blank report has no invented source. Presentation sends the typed target to
+the established session-selection or training-comparison command, focuses the resulting heading, and keeps
+only the report identity required by **Back to report**. Returning reopens that exact saved report. If
+resolution cannot provide the referenced session or coherent analytical query, the source action is absent
+rather than falling back to an unrelated explorer.
+
+These navigation descriptors contain no provider identity, raw database key, copied result, or durable
+browser-history surrogate. Opening a saved report source neither saves nor clears the resumable exploration
+destination; returning to the report restores the previously mounted Explore destination. Application use
+cases remain responsible for snapshot validation and exact selection; presentation owns mounting, transient
+return state, and focus restoration.
 
 A route block stores only the origin session capability, route capability, and an authored 0–5,000-metre endpoint-redaction choice. The application verifies membership through `TrainingSessionRoutePort`, obtains exact points through the same authoritative route port, and performs two memory-bounded passes: total cumulative haversine distance followed by deterministic selection of recorded points inside the retained interval. Internal report processing requests at most 10,000 points per page; the separate interactive exact-point contract remains capped at 250. It neither interpolates coordinates nor reads route tables. At most 500 retained recorded points cross into the resolved report.
 
