@@ -1705,7 +1705,7 @@ describe("FitFreed import interface", () => {
       name: /Sleep scores Supported 1 Reason: Sleep score components are mapped; scoring baselines stay only in the original ZIP\. Next action: Keep the original ZIP if you need the excluded scoring context/,
     })).toBeVisible();
     expect(within(coverage).getByRole("row", {
-      name: /Training sessions Supported 1 Reason: Session summaries, exercise structure, laps, pauses, and recorded routes are mapped; time-series signals and zones stay only in the original ZIP\. Next action: Keep the original ZIP if you need the excluded training signals/,
+      name: /Training sessions Supported 1 Reason: Session summaries, exercise structure, laps, pauses, recorded routes, and supported time-series signals are mapped; provider zones and unsupported signal types stay only in the original ZIP\. Next action: Keep the original ZIP if you need provider zones or unsupported signal types/,
     })).toBeVisible();
     expect(screen.queryByText(/activity-2026-01-01/)).not.toBeInTheDocument();
 
@@ -1724,7 +1724,7 @@ describe("FitFreed import interface", () => {
       name: /Puntuaciones del sueño Compatible 1 Motivo: Se incorporan los componentes de la puntuación del sueño; las referencias de puntuación permanecen únicamente en el ZIP original\. Siguiente acción: Conserva el ZIP original si necesitas el contexto de puntuación excluido/,
     })).toBeVisible();
     expect(within(spanishCoverage).getByRole("row", {
-      name: /Sesiones de entrenamiento Compatible 1 Motivo: Se incorporan los resúmenes de sesión, la estructura de ejercicios, las vueltas, las pausas y las rutas registradas; las señales temporales y las zonas permanecen únicamente en el ZIP original\. Siguiente acción: Conserva el ZIP original si necesitas las señales de entrenamiento excluidas/,
+      name: /Sesiones de entrenamiento Compatible 1 Motivo: Se incorporan los resúmenes de sesión, la estructura de ejercicios, las vueltas, las pausas, las rutas registradas y las señales temporales compatibles; las zonas del proveedor y los tipos de señal no compatibles permanecen únicamente en el ZIP original\. Siguiente acción: Conserva el ZIP original si necesitas las zonas del proveedor o los tipos de señal no compatibles/,
     })).toBeVisible();
   });
 
@@ -2504,6 +2504,19 @@ describe("FitFreed import interface", () => {
               exerciseRef: "opaque-exercise",
               ordinal: 0,
               routes: null,
+            }],
+          },
+        });
+      }
+      if (command === "query_training_session_signals") {
+        return Promise.resolve({
+          snapshotRef: "snapshot-current",
+          sessionRef: arguments_.query.sessionRef,
+          signals: {
+            exercises: [{
+              exerciseRef: "opaque-exercise",
+              ordinal: 0,
+              signals: null,
             }],
           },
         });

@@ -13,6 +13,10 @@ const firstDate = Date.UTC(2024, 0, 1);
 const throughDate = Date.UTC(2025, 11, 31);
 const calendarDays = Math.floor((throughDate - firstDate) / 86_400_000) + 1;
 const syntheticUsername = "fixture-primary-claim";
+const performanceSignalValues = Array.from(
+  { length: 20_001 },
+  (_, ordinal) => ordinal % 997 === 0 ? "NaN" : 115 + ordinal % 80,
+);
 const zip = new ZipFile();
 let storedObservations = 0;
 let unavailableObservations = 0;
@@ -79,6 +83,16 @@ for (let index = 0; index < calendarDays; index += 1) {
         timezoneOffsetMinutes: 60,
         durationMillis,
         sport: { id: `synthetic-performance-sport-${optionalIndex % 4}` },
+        ...(optionalIndex === calendarDays - 1 && exerciseIndex === 0 ? {
+          samples: {
+            samples: [{
+              type: "HEART_RATE",
+              intervalMillis: 1_000,
+              values: performanceSignalValues,
+            }],
+            transitionSamples: [],
+          },
+        } : {}),
       }),
     ),
   };

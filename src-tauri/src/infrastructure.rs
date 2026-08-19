@@ -33,7 +33,8 @@ use fitfreed_application::{
     clear_exploration_workspace, query_default_recovery_overview, query_default_sleep_overview,
     query_default_training_overview, query_library_home, query_longitudinal_overview,
     query_recovery_detail, query_training_route_points, query_training_session_routes,
-    query_training_session_structure, query_training_sports, save_exploration_workspace,
+    query_training_session_signals, query_training_session_structure,
+    query_training_signal_samples, query_training_sports, save_exploration_workspace,
     save_training_sport_classification, AppearancePreference, ApplicationError, LibraryDomain,
     LibraryHomeDateRange, LibraryHomeRequest, LibraryQuestion, LibraryQuestionKind,
     LocalePreference, SaveSportClassificationRequest, SportClassificationSaveOutcome,
@@ -44,20 +45,25 @@ use fitfreed_application::{
     ExploreDestination, ImportOutcomeLibraryPort, ImportPhase, ImportPhaseTimings, ImportProgress,
     PersistedTrainingRoutePoints, PersistedTrainingSessionCalendar, PersistedTrainingSessionRoutes,
     PersistedTrainingSessionSearchPage, PersistedTrainingSessionSelection,
-    PersistedTrainingSessionStructure, ProfiledImport, RecoveryDateRange, RecoveryLibraryNight,
+    PersistedTrainingSessionSignals, PersistedTrainingSessionStructure,
+    PersistedTrainingSignalSamples, ProfiledImport, RecoveryDateRange, RecoveryLibraryNight,
     RecoveryLibraryPort, SleepDateRange, SleepLibraryPeriod, SleepLibraryPort,
     StoredApplicationPreferences, StoredExplorationWorkspace, TrainingDateRange,
     TrainingDiscoveryView, TrainingDiscoveryWorkspace, TrainingDiscoveryWorkspacePort,
-    TrainingExerciseRoutesView, TrainingExerciseStructure, TrainingLapStructure,
-    TrainingLibraryPort, TrainingMeasurementFilter, TrainingPauseStructure,
+    TrainingExerciseRoutesView, TrainingExerciseSignalsView, TrainingExerciseStructure,
+    TrainingLapStructure, TrainingLibraryPort, TrainingMeasurementFilter, TrainingPauseStructure,
     TrainingRouteCollectionView, TrainingRouteKindView, TrainingRouteOverview,
     TrainingRoutePointView, TrainingRoutePointsQuery, TrainingSessionCalendarDay,
     TrainingSessionCalendarRequest, TrainingSessionDiscoveryPort,
     TrainingSessionDiscoveryPortError, TrainingSessionRoutePort, TrainingSessionRoutePortError,
     TrainingSessionRouteQuery, TrainingSessionRoutesView, TrainingSessionSearchItem,
     TrainingSessionSearchRequest, TrainingSessionSearchSummary, TrainingSessionSelectionRequest,
-    TrainingSessionSort, TrainingSessionSport, TrainingSessionStructurePort,
-    TrainingSessionStructurePortError, TrainingSessionStructureQuery, TrainingSportClassification,
+    TrainingSessionSignalPort, TrainingSessionSignalPortError, TrainingSessionSignalsQuery,
+    TrainingSessionSignalsView, TrainingSessionSort, TrainingSessionSport,
+    TrainingSessionStructurePort, TrainingSessionStructurePortError, TrainingSessionStructureQuery,
+    TrainingSignalCollectionView, TrainingSignalKindView, TrainingSignalRoleView,
+    TrainingSignalSampleView, TrainingSignalSamplesQuery, TrainingSignalSeriesOverview,
+    TrainingSignalUnitView, TrainingSignalVisualSampleView, TrainingSportClassification,
     TrainingSportState, TrainingSportsPort, TrainingStructure,
 };
 use fitfreed_domain::{
@@ -69,9 +75,11 @@ use fitfreed_domain::{
     SleepStageTransition, SourceSpecificRecoveryAssessment, SourceSpecificRecoveryBaseline,
     SourceSpecificRecoveryGuidance, SportClassification, SportClassificationAuthorship,
     SportClassificationKey, SportClassificationState, SportFamily, TrainingExercise,
-    TrainingExerciseRouteAssessment, TrainingLap, TrainingLapKind, TrainingPause, TrainingRoute,
-    TrainingRouteKind, TrainingRoutePoint, TrainingRoutes, TrainingSession, TrainingSessionRecord,
-    TrainingSessionRouteAssessment, TrainingSessionStructure,
+    TrainingExerciseRouteAssessment, TrainingExerciseSignalAssessment, TrainingLap,
+    TrainingLapKind, TrainingPause, TrainingRoute, TrainingRouteKind, TrainingRoutePoint,
+    TrainingRoutes, TrainingSession, TrainingSessionRecord, TrainingSessionRouteAssessment,
+    TrainingSessionSignalAssessment, TrainingSessionStructure, TrainingSignalKind,
+    TrainingSignalSample, TrainingSignalSeries, TrainingSignalUnit, TrainingSignals,
 };
 
 mod local_file;
@@ -128,7 +136,7 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 16;
+const SCHEMA_VERSION: i64 = 17;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
@@ -145,11 +153,12 @@ const SCHEMA_V13: &str = include_str!("../migrations/0013_training_session_disco
 const SCHEMA_V14: &str = include_str!("../migrations/0014_training_discovery_workspace.sql");
 const SCHEMA_V15: &str = include_str!("../migrations/0015_training_session_structure.sql");
 const SCHEMA_V16: &str = include_str!("../migrations/0016_training_session_routes.sql");
+const SCHEMA_V17: &str = include_str!("../migrations/0017_training_session_signals.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
-const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@8";
-const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@3";
+const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@9";
+const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@4";
 const DAILY_ACTIVITY_MAPPING_VERSION: &str = "polar-flow-daily-activity@1";
-const TRAINING_SESSION_MAPPING_VERSION: &str = "polar-flow-training-session@3";
+const TRAINING_SESSION_MAPPING_VERSION: &str = "polar-flow-training-session@4";
 const SLEEP_MAPPING_VERSION: &str = "polar-flow-sleep@1";
 const NIGHTLY_RECOVERY_MAPPING_VERSION: &str = "polar-flow-nightly-recovery@1";
 const NIGHTLY_RECOVERY_SCHEME: &str = "polar-nightly-recharge@1";
@@ -356,6 +365,32 @@ struct PolarTrainingExercise {
     pause_times: SourceOptional<Vec<PolarTrainingPause>>,
     #[serde(default)]
     routes: SourceOptional<PolarTrainingRoutes>,
+    #[serde(default)]
+    samples: SourceOptional<PolarTrainingSamples>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PolarTrainingSamples {
+    #[serde(default)]
+    samples: SourceOptional<Vec<PolarTrainingSignalSeries>>,
+    #[serde(default)]
+    transition_samples: SourceOptional<Vec<PolarTrainingSignalSeries>>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PolarTrainingSignalSeries {
+    r#type: String,
+    interval_millis: i64,
+    values: Vec<PolarTrainingSignalValue>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum PolarTrainingSignalValue {
+    Number(f64),
+    Text(String),
 }
 
 #[derive(Debug, Deserialize)]
@@ -2940,6 +2975,516 @@ fn query_training_route_points_discovery(
     })
 }
 
+fn signal_snapshot_and_identity(
+    transaction: &Transaction<'_>,
+    session_ref: &str,
+    expected_snapshot_ref: Option<&str>,
+) -> std::result::Result<(String, String, String), TrainingSessionSignalPortError> {
+    let revision = transaction
+        .query_row(
+            "SELECT revision FROM training_discovery_revision WHERE id = 1",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .map_err(training_signal_failure)?;
+    if revision < 1 {
+        return Err(TrainingSessionSignalPortError::Failure(
+            "training discovery revision is invalid".to_owned(),
+        ));
+    }
+    let snapshot_ref = training_snapshot_ref(revision);
+    if expected_snapshot_ref.is_some_and(|expected| expected != snapshot_ref) {
+        return Err(TrainingSessionSignalPortError::SnapshotChanged);
+    }
+    let mut statement = transaction
+        .prepare(
+            "SELECT origin_id, session_id FROM training_session ORDER BY origin_id, session_id",
+        )
+        .map_err(training_signal_failure)?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })
+        .map_err(training_signal_failure)?;
+    for row in rows {
+        let (origin_id, session_id) = row.map_err(training_signal_failure)?;
+        if training_session_ref(&origin_id, &session_id) == session_ref {
+            return Ok((snapshot_ref, origin_id, session_id));
+        }
+    }
+    Err(TrainingSessionSignalPortError::NotFound)
+}
+
+fn training_signal_kind_view(kind: TrainingSignalKind) -> TrainingSignalKindView {
+    match kind {
+        TrainingSignalKind::HeartRate => TrainingSignalKindView::HeartRate,
+        TrainingSignalKind::Speed => TrainingSignalKindView::Speed,
+        TrainingSignalKind::Distance => TrainingSignalKindView::Distance,
+        TrainingSignalKind::Altitude => TrainingSignalKindView::Altitude,
+        TrainingSignalKind::Cadence => TrainingSignalKindView::Cadence,
+        TrainingSignalKind::Temperature => TrainingSignalKindView::Temperature,
+        TrainingSignalKind::LeftCrankPower => TrainingSignalKindView::LeftCrankPower,
+    }
+}
+
+fn training_signal_unit_view(unit: TrainingSignalUnit) -> TrainingSignalUnitView {
+    match unit {
+        TrainingSignalUnit::BeatsPerMinute => TrainingSignalUnitView::BeatsPerMinute,
+        TrainingSignalUnit::KilometersPerHour => TrainingSignalUnitView::KilometersPerHour,
+        TrainingSignalUnit::Meters => TrainingSignalUnitView::Meters,
+        TrainingSignalUnit::RotationsPerMinute => TrainingSignalUnitView::RotationsPerMinute,
+        TrainingSignalUnit::DegreesCelsius => TrainingSignalUnitView::DegreesCelsius,
+        TrainingSignalUnit::Watts => TrainingSignalUnitView::Watts,
+    }
+}
+
+fn query_training_signal_overviews_on(
+    transaction: &Transaction<'_>,
+    origin_id: &str,
+    session_id: &str,
+    exercise_id: &str,
+    role: TrainingSignalRoleView,
+    max_visual_samples: usize,
+) -> std::result::Result<Vec<TrainingSignalSeriesOverview>, TrainingSessionSignalPortError> {
+    let role_code = training_signal_role_code(role);
+    let mut statement = transaction
+        .prepare(
+            "SELECT ordinal, kind, unit, interval_milliseconds, sample_count,
+                    available_sample_count
+             FROM training_signal_series
+             WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3 AND role = ?4
+             ORDER BY ordinal",
+        )
+        .map_err(training_signal_failure)?;
+    let rows = statement
+        .query_map(
+            params![origin_id, session_id, exercise_id, role_code],
+            |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, i64>(3)?,
+                    row.get::<_, i64>(4)?,
+                    row.get::<_, i64>(5)?,
+                ))
+            },
+        )
+        .map_err(training_signal_failure)?;
+    let mut overviews = Vec::new();
+    for row in rows {
+        let (ordinal, kind, unit, interval_milliseconds, sample_count, available_sample_count) =
+            row.map_err(training_signal_failure)?;
+        let ordinal = persisted_count(ordinal, "training_signal_series.ordinal")
+            .map_err(training_signal_failure)?;
+        let sample_count = persisted_count(sample_count, "training_signal_series.sample_count")
+            .map_err(training_signal_failure)?;
+        let available_sample_count = persisted_count(
+            available_sample_count,
+            "training_signal_series.available_sample_count",
+        )
+        .map_err(training_signal_failure)?;
+        if ordinal != overviews.len()
+            || interval_milliseconds <= 0
+            || available_sample_count > sample_count
+        {
+            return Err(TrainingSessionSignalPortError::Failure(
+                "stored signal metadata is inconsistent".to_owned(),
+            ));
+        }
+        let (kind, unit) =
+            training_signal_kind_and_unit(&kind, &unit).map_err(training_signal_failure)?;
+        let selected_count = sample_count.min(max_visual_samples);
+        let selected_ordinals = (0..selected_count)
+            .map(|index| {
+                if selected_count <= 1 {
+                    0
+                } else {
+                    ((index as u128 * (sample_count - 1) as u128) / (selected_count - 1) as u128)
+                        as usize
+                }
+            })
+            .collect::<Vec<_>>();
+        let visual_samples = if selected_ordinals.is_empty() {
+            Vec::new()
+        } else {
+            let selected_rows = selected_ordinals
+                .iter()
+                .enumerate()
+                .map(|(index, _)| {
+                    index.checked_sub(1).map_or_else(
+                        || "(?, NULL)".to_owned(),
+                        |previous| format!("(?, {})", selected_ordinals[previous]),
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+            let sql = format!(
+                "WITH selected(ordinal, previous_ordinal) AS (VALUES {selected_rows})
+                 SELECT sample.ordinal, sample.value,
+                        CASE WHEN selected.previous_ordinal IS NULL THEN 0 ELSE EXISTS (
+                            SELECT 1 FROM training_signal_sample AS gap
+                            WHERE gap.origin_id = sample.origin_id
+                              AND gap.session_id = sample.session_id
+                              AND gap.exercise_id = sample.exercise_id
+                              AND gap.role = sample.role
+                              AND gap.series_ordinal = sample.series_ordinal
+                              AND gap.ordinal > selected.previous_ordinal
+                              AND gap.ordinal <= selected.ordinal
+                              AND gap.value IS NULL
+                        ) END
+                 FROM selected
+                 JOIN training_signal_sample AS sample
+                   ON sample.ordinal = selected.ordinal
+                 WHERE sample.origin_id = ? AND sample.session_id = ? AND sample.exercise_id = ?
+                   AND sample.role = ? AND sample.series_ordinal = ?
+                 ORDER BY sample.ordinal"
+            );
+            let mut values = Vec::with_capacity(selected_ordinals.len() + 5);
+            for selected_ordinal in selected_ordinals {
+                values.push(Value::Integer(i64::try_from(selected_ordinal).map_err(
+                    |_| {
+                        TrainingSessionSignalPortError::Failure(
+                            "signal sample ordinal is too large".to_owned(),
+                        )
+                    },
+                )?));
+            }
+            values.extend([
+                Value::Text(origin_id.to_owned()),
+                Value::Text(session_id.to_owned()),
+                Value::Text(exercise_id.to_owned()),
+                Value::Text(role_code.to_owned()),
+                Value::Integer(i64::try_from(ordinal).map_err(|_| {
+                    TrainingSessionSignalPortError::Failure(
+                        "signal series ordinal is too large".to_owned(),
+                    )
+                })?),
+            ]);
+            let mut sample_statement =
+                transaction.prepare(&sql).map_err(training_signal_failure)?;
+            let sample_rows = sample_statement
+                .query_map(params_from_iter(values), |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, Option<f64>>(1)?,
+                        row.get::<_, bool>(2)?,
+                    ))
+                })
+                .map_err(training_signal_failure)?;
+            sample_rows
+                .map(|row| {
+                    let (sample_ordinal, value, gap_before) =
+                        row.map_err(training_signal_failure)?;
+                    let sample_ordinal =
+                        persisted_count(sample_ordinal, "training_signal_sample.ordinal")
+                            .map_err(training_signal_failure)?;
+                    let elapsed_milliseconds = i64::try_from(sample_ordinal)
+                        .ok()
+                        .and_then(|value| value.checked_mul(interval_milliseconds))
+                        .ok_or_else(|| {
+                            TrainingSessionSignalPortError::Failure(
+                                "signal elapsed time is too large".to_owned(),
+                            )
+                        })?;
+                    Ok(TrainingSignalVisualSampleView {
+                        ordinal: sample_ordinal,
+                        elapsed_milliseconds,
+                        value,
+                        gap_before,
+                    })
+                })
+                .collect::<std::result::Result<Vec<_>, TrainingSessionSignalPortError>>()?
+        };
+        overviews.push(TrainingSignalSeriesOverview {
+            signal_ref: training_signal_ref(origin_id, session_id, exercise_id, role, ordinal),
+            ordinal,
+            role,
+            kind: training_signal_kind_view(kind),
+            unit: training_signal_unit_view(unit),
+            interval_milliseconds,
+            sample_count,
+            available_sample_count,
+            visual_samples,
+        });
+    }
+    Ok(overviews)
+}
+
+fn query_training_session_signals_discovery(
+    database_path: &Path,
+    query: &TrainingSessionSignalsQuery,
+) -> std::result::Result<PersistedTrainingSessionSignals, TrainingSessionSignalPortError> {
+    let mut connection = Connection::open(database_path).map_err(training_signal_failure)?;
+    ensure_schema(&connection).map_err(training_signal_failure)?;
+    let transaction = connection.transaction().map_err(training_signal_failure)?;
+    let (snapshot_ref, origin_id, session_id) = signal_snapshot_and_identity(
+        &transaction,
+        &query.session_ref,
+        query.snapshot_ref.as_deref(),
+    )?;
+    let exercises_present = transaction
+        .query_row(
+            "SELECT exercises_present FROM training_session_signal_assessment
+             WHERE origin_id = ?1 AND session_id = ?2",
+            params![origin_id, session_id],
+            |row| row.get::<_, i64>(0),
+        )
+        .optional()
+        .map_err(training_signal_failure)?;
+    let signals = match exercises_present {
+        None => None,
+        Some(value)
+            if !persisted_training_flag(value, "signal exercises_present")
+                .map_err(training_signal_failure)? =>
+        {
+            Some(TrainingSessionSignalsView { exercises: None })
+        }
+        Some(_) => {
+            let mut statement = transaction
+                .prepare(
+                    "SELECT exercise_id, ordinal, signals_present, primary_present,
+                            transition_present, unsupported_primary_series_count,
+                            unsupported_transition_series_count
+                     FROM training_exercise_signal_assessment
+                     WHERE origin_id = ?1 AND session_id = ?2
+                     ORDER BY ordinal",
+                )
+                .map_err(training_signal_failure)?;
+            let rows = statement
+                .query_map(params![origin_id, session_id], |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, i64>(2)?,
+                        row.get::<_, i64>(3)?,
+                        row.get::<_, i64>(4)?,
+                        row.get::<_, i64>(5)?,
+                        row.get::<_, i64>(6)?,
+                    ))
+                })
+                .map_err(training_signal_failure)?;
+            let mut exercises = Vec::new();
+            for row in rows {
+                let (
+                    exercise_id,
+                    ordinal,
+                    signals_present,
+                    primary_present,
+                    transition_present,
+                    unsupported_primary_series_count,
+                    unsupported_transition_series_count,
+                ) = row.map_err(training_signal_failure)?;
+                let signals = if persisted_training_flag(signals_present, "signals_present")
+                    .map_err(training_signal_failure)?
+                {
+                    Some(TrainingSignalCollectionView {
+                        primary: persisted_training_flag(primary_present, "primary_present")
+                            .map_err(training_signal_failure)?
+                            .then(|| {
+                                query_training_signal_overviews_on(
+                                    &transaction,
+                                    &origin_id,
+                                    &session_id,
+                                    &exercise_id,
+                                    TrainingSignalRoleView::Primary,
+                                    query.max_visual_samples,
+                                )
+                            })
+                            .transpose()?,
+                        transition: persisted_training_flag(
+                            transition_present,
+                            "transition_present",
+                        )
+                        .map_err(training_signal_failure)?
+                        .then(|| {
+                            query_training_signal_overviews_on(
+                                &transaction,
+                                &origin_id,
+                                &session_id,
+                                &exercise_id,
+                                TrainingSignalRoleView::Transition,
+                                query.max_visual_samples,
+                            )
+                        })
+                        .transpose()?,
+                        unsupported_primary_series_count: persisted_count(
+                            unsupported_primary_series_count,
+                            "unsupported_primary_series_count",
+                        )
+                        .map_err(training_signal_failure)?,
+                        unsupported_transition_series_count: persisted_count(
+                            unsupported_transition_series_count,
+                            "unsupported_transition_series_count",
+                        )
+                        .map_err(training_signal_failure)?,
+                    })
+                } else {
+                    None
+                };
+                exercises.push(TrainingExerciseSignalsView {
+                    exercise_ref: training_exercise_ref(&origin_id, &session_id, &exercise_id),
+                    ordinal: persisted_count(ordinal, "training exercise signal ordinal")
+                        .map_err(training_signal_failure)?,
+                    signals,
+                });
+            }
+            drop(statement);
+            Some(TrainingSessionSignalsView {
+                exercises: Some(exercises),
+            })
+        }
+    };
+    transaction.commit().map_err(training_signal_failure)?;
+    Ok(PersistedTrainingSessionSignals {
+        snapshot_ref,
+        session_ref: query.session_ref.clone(),
+        signals,
+    })
+}
+
+fn query_training_signal_samples_discovery(
+    database_path: &Path,
+    query: &TrainingSignalSamplesQuery,
+) -> std::result::Result<PersistedTrainingSignalSamples, TrainingSessionSignalPortError> {
+    let mut connection = Connection::open(database_path).map_err(training_signal_failure)?;
+    ensure_schema(&connection).map_err(training_signal_failure)?;
+    let transaction = connection.transaction().map_err(training_signal_failure)?;
+    let (snapshot_ref, origin_id, session_id) = signal_snapshot_and_identity(
+        &transaction,
+        &query.session_ref,
+        query.snapshot_ref.as_deref(),
+    )?;
+    let mut series_statement = transaction
+        .prepare(
+            "SELECT exercise_id, role, ordinal, kind, unit, interval_milliseconds, sample_count
+             FROM training_signal_series
+             WHERE origin_id = ?1 AND session_id = ?2
+             ORDER BY exercise_id, role, ordinal",
+        )
+        .map_err(training_signal_failure)?;
+    let rows = series_statement
+        .query_map(params![origin_id, session_id], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, i64>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, i64>(5)?,
+                row.get::<_, i64>(6)?,
+            ))
+        })
+        .map_err(training_signal_failure)?;
+    let mut identity = None;
+    for row in rows {
+        let (exercise_id, role, ordinal, kind, unit, interval_milliseconds, sample_count) =
+            row.map_err(training_signal_failure)?;
+        let role = match role.as_str() {
+            "primary" => TrainingSignalRoleView::Primary,
+            "transition" => TrainingSignalRoleView::Transition,
+            _ => {
+                return Err(TrainingSessionSignalPortError::Failure(
+                    "stored signal role is invalid".to_owned(),
+                ))
+            }
+        };
+        let ordinal = persisted_count(ordinal, "training_signal_series.ordinal")
+            .map_err(training_signal_failure)?;
+        if training_signal_ref(&origin_id, &session_id, &exercise_id, role, ordinal)
+            == query.signal_ref
+        {
+            let (kind, unit) =
+                training_signal_kind_and_unit(&kind, &unit).map_err(training_signal_failure)?;
+            identity = Some((
+                exercise_id,
+                role,
+                ordinal,
+                kind,
+                unit,
+                interval_milliseconds,
+                persisted_count(sample_count, "training_signal_series.sample_count")
+                    .map_err(training_signal_failure)?,
+            ));
+            break;
+        }
+    }
+    drop(series_statement);
+    let (exercise_id, role, ordinal, kind, unit, interval_milliseconds, sample_count) =
+        identity.ok_or(TrainingSessionSignalPortError::NotFound)?;
+    let offset = i64::try_from(query.offset).map_err(|_| {
+        TrainingSessionSignalPortError::Failure("signal sample offset is too large".to_owned())
+    })?;
+    let limit = i64::try_from(query.limit).map_err(|_| {
+        TrainingSessionSignalPortError::Failure("signal sample limit is too large".to_owned())
+    })?;
+    let mut statement = transaction
+        .prepare(
+            "SELECT ordinal, value FROM training_signal_sample
+             WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3
+               AND role = ?4 AND series_ordinal = ?5
+             ORDER BY ordinal LIMIT ?6 OFFSET ?7",
+        )
+        .map_err(training_signal_failure)?;
+    let sample_rows = statement
+        .query_map(
+            params![
+                origin_id,
+                session_id,
+                exercise_id,
+                training_signal_role_code(role),
+                ordinal,
+                limit,
+                offset,
+            ],
+            |row| Ok((row.get::<_, i64>(0)?, row.get::<_, Option<f64>>(1)?)),
+        )
+        .map_err(training_signal_failure)?;
+    let samples = sample_rows
+        .map(|row| {
+            let (sample_ordinal, value) = row.map_err(training_signal_failure)?;
+            let sample_ordinal = persisted_count(sample_ordinal, "training_signal_sample.ordinal")
+                .map_err(training_signal_failure)?;
+            let elapsed_milliseconds = i64::try_from(sample_ordinal)
+                .ok()
+                .and_then(|value| value.checked_mul(interval_milliseconds))
+                .ok_or_else(|| {
+                    TrainingSessionSignalPortError::Failure(
+                        "signal elapsed time is too large".to_owned(),
+                    )
+                })?;
+            Ok(TrainingSignalSampleView {
+                ordinal: sample_ordinal,
+                elapsed_milliseconds,
+                value,
+            })
+        })
+        .collect::<std::result::Result<Vec<_>, TrainingSessionSignalPortError>>()?;
+    drop(statement);
+    let end = query.offset.checked_add(samples.len()).ok_or_else(|| {
+        TrainingSessionSignalPortError::Failure(
+            "signal sample continuation is too large".to_owned(),
+        )
+    })?;
+    let next_offset = (end < sample_count).then_some(end);
+    transaction.commit().map_err(training_signal_failure)?;
+    Ok(PersistedTrainingSignalSamples {
+        snapshot_ref,
+        session_ref: query.session_ref.clone(),
+        signal_ref: query.signal_ref.clone(),
+        exercise_ref: training_exercise_ref(&origin_id, &session_id, &exercise_id),
+        ordinal,
+        role,
+        kind: training_signal_kind_view(kind),
+        unit: training_signal_unit_view(unit),
+        interval_milliseconds,
+        sample_count,
+        offset: query.offset,
+        samples,
+        next_offset,
+    })
+}
+
 fn query_training_bounds_on(connection: &Connection) -> Result<Option<TrainingDateRange>> {
     let (from, through) = connection.query_row(
         "SELECT substr(MIN(started_at_local), 1, 10),
@@ -3237,6 +3782,27 @@ fn training_route_ref(
     format!("route-{:x}", digest.finalize())
 }
 
+fn training_signal_ref(
+    origin_id: &str,
+    session_id: &str,
+    exercise_id: &str,
+    role: TrainingSignalRoleView,
+    ordinal: usize,
+) -> String {
+    let mut digest = Sha256::new();
+    digest.update(b"fitfreed:training-signal:v1\0");
+    digest.update(origin_id.as_bytes());
+    digest.update(b"\0");
+    digest.update(session_id.as_bytes());
+    digest.update(b"\0");
+    digest.update(exercise_id.as_bytes());
+    digest.update(b"\0");
+    digest.update(training_signal_role_code(role).as_bytes());
+    digest.update(b"\0");
+    digest.update(ordinal.to_be_bytes());
+    format!("signal-{:x}", digest.finalize())
+}
+
 fn discovery_failure(error: impl std::fmt::Display) -> TrainingSessionDiscoveryPortError {
     TrainingSessionDiscoveryPortError::Failure(error.to_string())
 }
@@ -3247,6 +3813,10 @@ fn training_detail_failure(error: impl std::fmt::Display) -> TrainingSessionStru
 
 fn training_route_failure(error: impl std::fmt::Display) -> TrainingSessionRoutePortError {
     TrainingSessionRoutePortError::Failure(error.to_string())
+}
+
+fn training_signal_failure(error: impl std::fmt::Display) -> TrainingSessionSignalPortError {
+    TrainingSessionSignalPortError::Failure(error.to_string())
 }
 
 pub fn query_detected_training_sports(database_path: &Path) -> Result<Vec<DetectedTrainingSport>> {
@@ -4175,7 +4745,10 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         if version < 15 {
             connection.execute_batch(SCHEMA_V15)?;
         }
-        connection.execute_batch(SCHEMA_V16)?;
+        if version < 16 {
+            connection.execute_batch(SCHEMA_V16)?;
+        }
+        connection.execute_batch(SCHEMA_V17)?;
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
         }
@@ -5108,6 +5681,7 @@ fn map_training_laps(
 struct MappedTrainingExercises {
     structure: Option<Vec<TrainingExercise>>,
     routes: Option<Vec<TrainingExerciseRouteAssessment>>,
+    signals: Option<Vec<TrainingExerciseSignalAssessment>>,
 }
 
 fn map_training_exercises(
@@ -5118,6 +5692,7 @@ fn map_training_exercises(
         None => Ok(MappedTrainingExercises {
             structure: None,
             routes: None,
+            signals: None,
         }),
         Some(exercises) => {
             let mut exercise_ids = BTreeSet::new();
@@ -5139,6 +5714,7 @@ fn map_training_exercises(
                         laps,
                         pause_times,
                         routes,
+                        samples,
                     } = exercise;
                     if identifier.id.trim().is_empty()
                         || !exercise_ids.insert(identifier.id.clone())
@@ -5247,6 +5823,11 @@ fn map_training_exercises(
                         ordinal,
                         routes: map_training_routes(routes, artifact)?,
                     };
+                    let signal_assessment = TrainingExerciseSignalAssessment {
+                        exercise_id: identifier.id.clone(),
+                        ordinal,
+                        signals: map_training_signals(samples, artifact)?,
+                    };
                     Ok((
                         TrainingExercise {
                             exercise_id: identifier.id,
@@ -5263,15 +5844,143 @@ fn map_training_exercises(
                             pauses,
                         },
                         route_assessment,
+                        signal_assessment,
                     ))
                 })
                 .collect::<Result<Vec<_>>>()?;
-            let (exercises, routes) = mapped.into_iter().unzip();
+            let mut exercises = Vec::with_capacity(mapped.len());
+            let mut routes = Vec::with_capacity(mapped.len());
+            let mut signals = Vec::with_capacity(mapped.len());
+            for (exercise, route, signal) in mapped {
+                exercises.push(exercise);
+                routes.push(route);
+                signals.push(signal);
+            }
             Ok(MappedTrainingExercises {
                 structure: Some(exercises),
                 routes: Some(routes),
+                signals: Some(signals),
             })
         }
+    }
+}
+
+fn map_training_signals(
+    source: SourceOptional<PolarTrainingSamples>,
+    artifact: &str,
+) -> Result<Option<TrainingSignals>> {
+    source
+        .into_option()
+        .map(|signals| {
+            let (primary, unsupported_primary_series_count) =
+                map_training_signal_collection(signals.samples, artifact)?;
+            let (transition, unsupported_transition_series_count) =
+                map_training_signal_collection(signals.transition_samples, artifact)?;
+            Ok(TrainingSignals {
+                primary,
+                transition,
+                unsupported_primary_series_count,
+                unsupported_transition_series_count,
+            })
+        })
+        .transpose()
+}
+
+fn map_training_signal_collection(
+    source: SourceOptional<Vec<PolarTrainingSignalSeries>>,
+    artifact: &str,
+) -> Result<(Option<Vec<TrainingSignalSeries>>, usize)> {
+    let Some(series) = source.into_option() else {
+        return Ok((None, 0));
+    };
+    let mut mapped = Vec::new();
+    let mut unsupported = 0usize;
+    for source_series in series {
+        let Some((kind, unit)) = training_signal_meaning(&source_series.r#type) else {
+            unsupported = unsupported.checked_add(1).ok_or_else(|| {
+                invalid_training_artifact(artifact, "unsupported signal count is too large")
+            })?;
+            continue;
+        };
+        if !(1..=359_999_999).contains(&source_series.interval_millis) {
+            return Err(invalid_training_artifact(
+                artifact,
+                "signal intervalMillis is outside the documented range",
+            ));
+        }
+        let ordinal = mapped.len();
+        let mut samples = Vec::with_capacity(source_series.values.len());
+        for (sample_ordinal, value) in source_series.values.into_iter().enumerate() {
+            let value = match value {
+                PolarTrainingSignalValue::Number(value) if value.is_finite() => Some(value),
+                PolarTrainingSignalValue::Text(value) if value == "NaN" => None,
+                PolarTrainingSignalValue::Number(_) | PolarTrainingSignalValue::Text(_) => {
+                    return Err(invalid_training_artifact(
+                        artifact,
+                        "signal value is neither finite nor the documented NaN marker",
+                    ));
+                }
+            };
+            if value.is_some_and(|value| {
+                !matches!(
+                    kind,
+                    TrainingSignalKind::Altitude | TrainingSignalKind::Temperature
+                ) && value < 0.0
+            }) {
+                return Err(invalid_training_artifact(
+                    artifact,
+                    "signal value is negative for its canonical meaning",
+                ));
+            }
+            let sample_ordinal_i64 = i64::try_from(sample_ordinal).map_err(|_| {
+                invalid_training_artifact(artifact, "signal sample ordinal is too large")
+            })?;
+            sample_ordinal_i64
+                .checked_mul(source_series.interval_millis)
+                .ok_or_else(|| {
+                    invalid_training_artifact(artifact, "signal elapsed time is too large")
+                })?;
+            samples.push(TrainingSignalSample {
+                ordinal: sample_ordinal,
+                value,
+            });
+        }
+        mapped.push(TrainingSignalSeries {
+            ordinal,
+            kind,
+            unit,
+            interval_milliseconds: source_series.interval_millis,
+            samples,
+        });
+    }
+    Ok((Some(mapped), unsupported))
+}
+
+fn training_signal_meaning(source_type: &str) -> Option<(TrainingSignalKind, TrainingSignalUnit)> {
+    match source_type {
+        "HEART_RATE" => Some((
+            TrainingSignalKind::HeartRate,
+            TrainingSignalUnit::BeatsPerMinute,
+        )),
+        "SPEED" => Some((
+            TrainingSignalKind::Speed,
+            TrainingSignalUnit::KilometersPerHour,
+        )),
+        "DISTANCE" => Some((TrainingSignalKind::Distance, TrainingSignalUnit::Meters)),
+        "ALTITUDE" => Some((TrainingSignalKind::Altitude, TrainingSignalUnit::Meters)),
+        "CADENCE" => Some((
+            TrainingSignalKind::Cadence,
+            TrainingSignalUnit::RotationsPerMinute,
+        )),
+        "TEMPERATURE" => Some((
+            TrainingSignalKind::Temperature,
+            TrainingSignalUnit::DegreesCelsius,
+        )),
+        "LEFT_CRANK_CURRENT_POWER" => Some((
+            TrainingSignalKind::LeftCrankPower,
+            TrainingSignalUnit::Watts,
+        )),
+        _ => None,
     }
 }
 
@@ -5452,6 +6161,7 @@ fn map_training_session(
     let MappedTrainingExercises {
         structure: exercises,
         routes: route_exercises,
+        signals: signal_exercises,
     } = map_training_exercises(exercises, artifact)?;
     let exercise_count = exercises.as_ref().map(Vec::len);
     Ok((
@@ -5473,6 +6183,9 @@ fn map_training_session(
             structure: Some(TrainingSessionStructure { exercises }),
             routes: Some(TrainingSessionRouteAssessment {
                 exercises: route_exercises,
+            }),
+            signals: Some(TrainingSessionSignalAssessment {
+                exercises: signal_exercises,
             }),
         },
         source_modified_at_utc,
@@ -6687,6 +7400,289 @@ fn query_training_session_routes_on(
     }))
 }
 
+fn training_signal_role_code(role: TrainingSignalRoleView) -> &'static str {
+    match role {
+        TrainingSignalRoleView::Primary => "primary",
+        TrainingSignalRoleView::Transition => "transition",
+    }
+}
+
+fn training_signal_kind_code(kind: TrainingSignalKind) -> &'static str {
+    match kind {
+        TrainingSignalKind::HeartRate => "heart-rate",
+        TrainingSignalKind::Speed => "speed",
+        TrainingSignalKind::Distance => "distance",
+        TrainingSignalKind::Altitude => "altitude",
+        TrainingSignalKind::Cadence => "cadence",
+        TrainingSignalKind::Temperature => "temperature",
+        TrainingSignalKind::LeftCrankPower => "left-crank-power",
+    }
+}
+
+fn training_signal_unit_code(unit: TrainingSignalUnit) -> &'static str {
+    match unit {
+        TrainingSignalUnit::BeatsPerMinute => "beats-per-minute",
+        TrainingSignalUnit::KilometersPerHour => "kilometers-per-hour",
+        TrainingSignalUnit::Meters => "meters",
+        TrainingSignalUnit::RotationsPerMinute => "rotations-per-minute",
+        TrainingSignalUnit::DegreesCelsius => "degrees-celsius",
+        TrainingSignalUnit::Watts => "watts",
+    }
+}
+
+fn training_signal_kind_and_unit(
+    kind: &str,
+    unit: &str,
+) -> Result<(TrainingSignalKind, TrainingSignalUnit)> {
+    match (kind, unit) {
+        ("heart-rate", "beats-per-minute") => Ok((
+            TrainingSignalKind::HeartRate,
+            TrainingSignalUnit::BeatsPerMinute,
+        )),
+        ("speed", "kilometers-per-hour") => Ok((
+            TrainingSignalKind::Speed,
+            TrainingSignalUnit::KilometersPerHour,
+        )),
+        ("distance", "meters") => Ok((TrainingSignalKind::Distance, TrainingSignalUnit::Meters)),
+        ("altitude", "meters") => Ok((TrainingSignalKind::Altitude, TrainingSignalUnit::Meters)),
+        ("cadence", "rotations-per-minute") => Ok((
+            TrainingSignalKind::Cadence,
+            TrainingSignalUnit::RotationsPerMinute,
+        )),
+        ("temperature", "degrees-celsius") => Ok((
+            TrainingSignalKind::Temperature,
+            TrainingSignalUnit::DegreesCelsius,
+        )),
+        ("left-crank-power", "watts") => Ok((
+            TrainingSignalKind::LeftCrankPower,
+            TrainingSignalUnit::Watts,
+        )),
+        _ => Err(ImportError::InvalidTrainingLibrary(
+            "training signal kind and unit are inconsistent".to_owned(),
+        )),
+    }
+}
+
+fn query_training_signal_collection_on(
+    connection: &Connection,
+    origin_id: &str,
+    session_id: &str,
+    exercise_id: &str,
+    role: TrainingSignalRoleView,
+) -> Result<Vec<TrainingSignalSeries>> {
+    let role_code = training_signal_role_code(role);
+    let mut statement = connection.prepare(
+        "SELECT ordinal, kind, unit, interval_milliseconds, sample_count,
+                available_sample_count
+         FROM training_signal_series
+         WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3 AND role = ?4
+         ORDER BY ordinal",
+    )?;
+    let rows = statement.query_map(
+        params![origin_id, session_id, exercise_id, role_code],
+        |row| {
+            Ok((
+                row.get::<_, i64>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, i64>(3)?,
+                row.get::<_, i64>(4)?,
+                row.get::<_, i64>(5)?,
+            ))
+        },
+    )?;
+    let mut series = Vec::new();
+    for row in rows {
+        let (ordinal, kind, unit, interval_milliseconds, sample_count, available_sample_count) =
+            row?;
+        let ordinal = persisted_count(ordinal, "training_signal_series.ordinal")?;
+        let sample_count = persisted_count(sample_count, "training_signal_series.sample_count")?;
+        let available_sample_count = persisted_count(
+            available_sample_count,
+            "training_signal_series.available_sample_count",
+        )?;
+        if ordinal != series.len()
+            || interval_milliseconds <= 0
+            || available_sample_count > sample_count
+        {
+            return Err(ImportError::InvalidTrainingLibrary(
+                "training signal series metadata is inconsistent".to_owned(),
+            ));
+        }
+        let (kind, unit) = training_signal_kind_and_unit(&kind, &unit)?;
+        let mut sample_statement = connection.prepare(
+            "SELECT ordinal, value
+             FROM training_signal_sample
+             WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3
+               AND role = ?4 AND series_ordinal = ?5
+             ORDER BY ordinal",
+        )?;
+        let sample_rows = sample_statement.query_map(
+            params![origin_id, session_id, exercise_id, role_code, ordinal],
+            |row| Ok((row.get::<_, i64>(0)?, row.get::<_, Option<f64>>(1)?)),
+        )?;
+        let mut samples = Vec::new();
+        for sample_row in sample_rows {
+            let (sample_ordinal, value) = sample_row?;
+            let sample_ordinal = persisted_count(sample_ordinal, "training_signal_sample.ordinal")?;
+            if sample_ordinal != samples.len()
+                || value.is_some_and(|value| {
+                    !value.is_finite()
+                        || (!matches!(
+                            kind,
+                            TrainingSignalKind::Altitude | TrainingSignalKind::Temperature
+                        ) && value < 0.0)
+                })
+                || i64::try_from(sample_ordinal)
+                    .ok()
+                    .and_then(|value| value.checked_mul(interval_milliseconds))
+                    .is_none()
+            {
+                return Err(ImportError::InvalidTrainingLibrary(
+                    "training signal samples are invalid".to_owned(),
+                ));
+            }
+            samples.push(TrainingSignalSample {
+                ordinal: sample_ordinal,
+                value,
+            });
+        }
+        if samples.len() != sample_count
+            || samples
+                .iter()
+                .filter(|sample| sample.value.is_some())
+                .count()
+                != available_sample_count
+        {
+            return Err(ImportError::InvalidTrainingLibrary(
+                "training signal sample counts are inconsistent".to_owned(),
+            ));
+        }
+        series.push(TrainingSignalSeries {
+            ordinal,
+            kind,
+            unit,
+            interval_milliseconds,
+            samples,
+        });
+    }
+    Ok(series)
+}
+
+fn query_training_session_signals_on(
+    connection: &Connection,
+    origin_id: &str,
+    session_id: &str,
+) -> Result<Option<TrainingSessionSignalAssessment>> {
+    let exercises_present = connection
+        .query_row(
+            "SELECT exercises_present FROM training_session_signal_assessment
+             WHERE origin_id = ?1 AND session_id = ?2",
+            params![origin_id, session_id],
+            |row| row.get::<_, i64>(0),
+        )
+        .optional()?;
+    let Some(exercises_present) = exercises_present else {
+        return Ok(None);
+    };
+    if !persisted_training_flag(exercises_present, "signal exercises_present")? {
+        return Ok(Some(TrainingSessionSignalAssessment { exercises: None }));
+    }
+    let mut statement = connection.prepare(
+        "SELECT exercise_id, ordinal, signals_present, primary_present,
+                transition_present, unsupported_primary_series_count,
+                unsupported_transition_series_count
+         FROM training_exercise_signal_assessment
+         WHERE origin_id = ?1 AND session_id = ?2
+         ORDER BY ordinal",
+    )?;
+    let rows = statement.query_map(params![origin_id, session_id], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, i64>(1)?,
+            row.get::<_, i64>(2)?,
+            row.get::<_, i64>(3)?,
+            row.get::<_, i64>(4)?,
+            row.get::<_, i64>(5)?,
+            row.get::<_, i64>(6)?,
+        ))
+    })?;
+    let mut exercises = Vec::new();
+    for row in rows {
+        let (
+            exercise_id,
+            ordinal,
+            signals_present,
+            primary_present,
+            transition_present,
+            unsupported_primary_series_count,
+            unsupported_transition_series_count,
+        ) = row?;
+        let ordinal = persisted_count(ordinal, "training exercise signal ordinal")?;
+        if ordinal != exercises.len() {
+            return Err(ImportError::InvalidTrainingLibrary(
+                "training exercise signal ordinals are not contiguous".to_owned(),
+            ));
+        }
+        let signals = if persisted_training_flag(signals_present, "signals_present")? {
+            let primary_present = persisted_training_flag(primary_present, "primary_present")?;
+            let transition_present =
+                persisted_training_flag(transition_present, "transition_present")?;
+            Some(TrainingSignals {
+                primary: primary_present
+                    .then(|| {
+                        query_training_signal_collection_on(
+                            connection,
+                            origin_id,
+                            session_id,
+                            &exercise_id,
+                            TrainingSignalRoleView::Primary,
+                        )
+                    })
+                    .transpose()?,
+                transition: transition_present
+                    .then(|| {
+                        query_training_signal_collection_on(
+                            connection,
+                            origin_id,
+                            session_id,
+                            &exercise_id,
+                            TrainingSignalRoleView::Transition,
+                        )
+                    })
+                    .transpose()?,
+                unsupported_primary_series_count: persisted_count(
+                    unsupported_primary_series_count,
+                    "unsupported_primary_series_count",
+                )?,
+                unsupported_transition_series_count: persisted_count(
+                    unsupported_transition_series_count,
+                    "unsupported_transition_series_count",
+                )?,
+            })
+        } else {
+            if persisted_training_flag(primary_present, "primary_present")?
+                || persisted_training_flag(transition_present, "transition_present")?
+                || unsupported_primary_series_count != 0
+                || unsupported_transition_series_count != 0
+            {
+                return Err(ImportError::InvalidTrainingLibrary(
+                    "absent signal container has child evidence".to_owned(),
+                ));
+            }
+            None
+        };
+        exercises.push(TrainingExerciseSignalAssessment {
+            exercise_id,
+            ordinal,
+            signals,
+        });
+    }
+    Ok(Some(TrainingSessionSignalAssessment {
+        exercises: Some(exercises),
+    }))
+}
+
 fn replace_training_session_structure(
     transaction: &Transaction<'_>,
     record: &TrainingSessionRecord,
@@ -6928,13 +7924,249 @@ fn insert_training_session_routes(
     Ok(())
 }
 
+fn delete_training_session_signals(
+    transaction: &Transaction<'_>,
+    summary: &TrainingSession,
+) -> Result<()> {
+    transaction.execute(
+        "DELETE FROM training_signal_sample WHERE origin_id = ?1 AND session_id = ?2",
+        params![summary.origin_id, summary.session_id],
+    )?;
+    transaction.execute(
+        "DELETE FROM training_signal_series WHERE origin_id = ?1 AND session_id = ?2",
+        params![summary.origin_id, summary.session_id],
+    )?;
+    transaction.execute(
+        "DELETE FROM training_exercise_signal_assessment
+         WHERE origin_id = ?1 AND session_id = ?2",
+        params![summary.origin_id, summary.session_id],
+    )?;
+    transaction.execute(
+        "DELETE FROM training_session_signal_assessment
+         WHERE origin_id = ?1 AND session_id = ?2",
+        params![summary.origin_id, summary.session_id],
+    )?;
+    Ok(())
+}
+
+fn training_signal_unit_matches(kind: TrainingSignalKind, unit: TrainingSignalUnit) -> bool {
+    matches!(
+        (kind, unit),
+        (
+            TrainingSignalKind::HeartRate,
+            TrainingSignalUnit::BeatsPerMinute
+        ) | (
+            TrainingSignalKind::Speed,
+            TrainingSignalUnit::KilometersPerHour
+        ) | (
+            TrainingSignalKind::Distance | TrainingSignalKind::Altitude,
+            TrainingSignalUnit::Meters
+        ) | (
+            TrainingSignalKind::Cadence,
+            TrainingSignalUnit::RotationsPerMinute
+        ) | (
+            TrainingSignalKind::Temperature,
+            TrainingSignalUnit::DegreesCelsius
+        ) | (
+            TrainingSignalKind::LeftCrankPower,
+            TrainingSignalUnit::Watts
+        )
+    )
+}
+
+fn insert_training_signal_collection(
+    transaction: &Transaction<'_>,
+    summary: &TrainingSession,
+    exercise_id: &str,
+    role: &'static str,
+    series: &[TrainingSignalSeries],
+) -> Result<()> {
+    for (ordinal, signal) in series.iter().enumerate() {
+        if signal.ordinal != ordinal
+            || !training_signal_unit_matches(signal.kind, signal.unit)
+            || signal.interval_milliseconds <= 0
+        {
+            return Err(ImportError::InvalidTrainingLibrary(
+                "canonical training signal metadata is invalid".to_owned(),
+            ));
+        }
+        let sample_count = i64::try_from(signal.samples.len()).map_err(|_| {
+            invalid_training_artifact("canonical signal", "signal sample count is too large")
+        })?;
+        let available_sample_count = i64::try_from(
+            signal
+                .samples
+                .iter()
+                .filter(|sample| sample.value.is_some())
+                .count(),
+        )
+        .map_err(|_| {
+            invalid_training_artifact("canonical signal", "available signal count is too large")
+        })?;
+        transaction.execute(
+            "INSERT INTO training_signal_series (
+                 origin_id, session_id, exercise_id, role, ordinal, kind, unit,
+                 interval_milliseconds, sample_count, available_sample_count
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            params![
+                summary.origin_id,
+                summary.session_id,
+                exercise_id,
+                role,
+                signal.ordinal,
+                training_signal_kind_code(signal.kind),
+                training_signal_unit_code(signal.unit),
+                signal.interval_milliseconds,
+                sample_count,
+                available_sample_count,
+            ],
+        )?;
+        for (sample_ordinal, sample) in signal.samples.iter().enumerate() {
+            if sample.ordinal != sample_ordinal
+                || sample.value.is_some_and(|value| {
+                    !value.is_finite()
+                        || (!matches!(
+                            signal.kind,
+                            TrainingSignalKind::Altitude | TrainingSignalKind::Temperature
+                        ) && value < 0.0)
+                })
+                || i64::try_from(sample_ordinal)
+                    .ok()
+                    .and_then(|value| value.checked_mul(signal.interval_milliseconds))
+                    .is_none()
+            {
+                return Err(ImportError::InvalidTrainingLibrary(
+                    "canonical training signal sample is invalid".to_owned(),
+                ));
+            }
+            transaction.execute(
+                "INSERT INTO training_signal_sample (
+                     origin_id, session_id, exercise_id, role, series_ordinal,
+                     ordinal, value
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                params![
+                    summary.origin_id,
+                    summary.session_id,
+                    exercise_id,
+                    role,
+                    signal.ordinal,
+                    sample.ordinal,
+                    sample.value,
+                ],
+            )?;
+        }
+    }
+    Ok(())
+}
+
+fn insert_training_session_signals(
+    transaction: &Transaction<'_>,
+    record: &TrainingSessionRecord,
+) -> Result<()> {
+    let summary = &record.summary;
+    let Some(assessment) = &record.signals else {
+        return Ok(());
+    };
+    transaction.execute(
+        "INSERT INTO training_session_signal_assessment (
+             origin_id, session_id, exercises_present, mapping_version
+         ) VALUES (?1, ?2, ?3, ?4)",
+        params![
+            summary.origin_id,
+            summary.session_id,
+            assessment.exercises.is_some(),
+            TRAINING_SESSION_MAPPING_VERSION,
+        ],
+    )?;
+    let Some(exercises) = &assessment.exercises else {
+        return Ok(());
+    };
+    if record
+        .structure
+        .as_ref()
+        .and_then(|value| value.exercises.as_ref())
+        .is_none_or(|structure| {
+            structure.len() != exercises.len()
+                || structure.iter().zip(exercises).any(|(left, right)| {
+                    left.exercise_id != right.exercise_id || left.ordinal != right.ordinal
+                })
+        })
+    {
+        return Err(ImportError::InvalidTrainingLibrary(
+            "signal and structural exercise identities differ".to_owned(),
+        ));
+    }
+    for exercise in exercises {
+        let (primary_present, transition_present, unsupported_primary, unsupported_transition) =
+            exercise
+                .signals
+                .as_ref()
+                .map_or((false, false, 0, 0), |signals| {
+                    (
+                        signals.primary.is_some(),
+                        signals.transition.is_some(),
+                        signals.unsupported_primary_series_count,
+                        signals.unsupported_transition_series_count,
+                    )
+                });
+        transaction.execute(
+            "INSERT INTO training_exercise_signal_assessment (
+                 origin_id, session_id, exercise_id, ordinal, signals_present,
+                 primary_present, transition_present,
+                 unsupported_primary_series_count, unsupported_transition_series_count
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            params![
+                summary.origin_id,
+                summary.session_id,
+                exercise.exercise_id,
+                exercise.ordinal,
+                exercise.signals.is_some(),
+                primary_present,
+                transition_present,
+                i64::try_from(unsupported_primary).map_err(|_| invalid_training_artifact(
+                    "canonical signal",
+                    "unsupported primary signal count is too large",
+                ))?,
+                i64::try_from(unsupported_transition).map_err(|_| invalid_training_artifact(
+                    "canonical signal",
+                    "unsupported transition signal count is too large",
+                ))?,
+            ],
+        )?;
+        let Some(signals) = &exercise.signals else {
+            continue;
+        };
+        if let Some(primary) = &signals.primary {
+            insert_training_signal_collection(
+                transaction,
+                summary,
+                &exercise.exercise_id,
+                "primary",
+                primary,
+            )?;
+        }
+        if let Some(transition) = &signals.transition {
+            insert_training_signal_collection(
+                transaction,
+                summary,
+                &exercise.exercise_id,
+                "transition",
+                transition,
+            )?;
+        }
+    }
+    Ok(())
+}
+
 fn replace_training_session_evidence(
     transaction: &Transaction<'_>,
     record: &TrainingSessionRecord,
 ) -> Result<()> {
+    delete_training_session_signals(transaction, &record.summary)?;
     delete_training_session_routes(transaction, &record.summary)?;
     replace_training_session_structure(transaction, record)?;
-    insert_training_session_routes(transaction, record)
+    insert_training_session_routes(transaction, record)?;
+    insert_training_session_signals(transaction, record)
 }
 
 fn reconcile_training_session(
@@ -6997,6 +8229,11 @@ fn reconcile_training_session(
                         &summary.session_id,
                     )?,
                     routes: query_training_session_routes_on(
+                        transaction,
+                        &summary.origin_id,
+                        &summary.session_id,
+                    )?,
+                    signals: query_training_session_signals_on(
                         transaction,
                         &summary.origin_id,
                         &summary.session_id,
@@ -8286,6 +9523,22 @@ impl TrainingSessionRoutePort for SqliteTrainingLibrary {
     }
 }
 
+impl TrainingSessionSignalPort for SqliteTrainingLibrary {
+    fn query_training_session_signals(
+        &self,
+        query: &TrainingSessionSignalsQuery,
+    ) -> std::result::Result<PersistedTrainingSessionSignals, TrainingSessionSignalPortError> {
+        query_training_session_signals_discovery(&self.database_path, query)
+    }
+
+    fn query_training_signal_samples(
+        &self,
+        query: &TrainingSignalSamplesQuery,
+    ) -> std::result::Result<PersistedTrainingSignalSamples, TrainingSessionSignalPortError> {
+        query_training_signal_samples_discovery(&self.database_path, query)
+    }
+}
+
 impl TrainingDiscoveryWorkspacePort for SqliteTrainingLibrary {
     fn load_training_discovery_workspace(
         &self,
@@ -9082,7 +10335,7 @@ mod tests {
     }
 
     #[test]
-    fn imports_structure_and_routes_without_persisting_unmapped_samples() {
+    fn imports_structure_routes_and_supported_signals_without_persisting_unknown_series() {
         let harness = Harness::new();
         let archive = harness.archive(
             "training-summary.zip",
@@ -9148,7 +10401,16 @@ mod tests {
                                 ]
                             }
                         },
-                        "samples":{"samples":[{"type":"HEART_RATE","values":[120,121]}]}
+                        "samples":{
+                            "samples":[
+                                {"type":"HEART_RATE","intervalMillis":1000,"values":[120,"NaN",140,145,150]},
+                                {"type":"PEDALING_MECHANICS","intervalMillis":1000,"values":[1,2]}
+                            ],
+                            "transitionSamples":[
+                                {"type":"TEMPERATURE","intervalMillis":500,"values":[18.5,18.6]}
+                            ],
+                            "rrSamples":[800,810]
+                        }
                     }]
                     }"#,
                 ),
@@ -9277,9 +10539,9 @@ mod tests {
         let exact = query_training_route_points(
             &library,
             TrainingRoutePointsQuery {
-                session_ref,
+                session_ref: session_ref.clone(),
                 route_ref: primary.route_ref.clone(),
-                snapshot_ref: Some(snapshot_ref),
+                snapshot_ref: Some(snapshot_ref.clone()),
                 offset: 1,
                 limit: 2,
             },
@@ -9296,6 +10558,68 @@ mod tests {
         assert_eq!(exact.next_offset, Some(3));
         assert_eq!(exact.points[0].latitude_degrees, 40.01);
 
+        let signals = query_training_session_signals(
+            &library,
+            TrainingSessionSignalsQuery {
+                session_ref: session_ref.clone(),
+                snapshot_ref: Some(snapshot_ref.clone()),
+                max_visual_samples: 3,
+            },
+        )
+        .expect("training signal overview")
+        .signals
+        .expect("evaluated signals")
+        .exercises
+        .expect("signal exercise collection");
+        assert_eq!(signals.len(), 1);
+        assert_eq!(signals[0].exercise_ref, exercise.exercise_ref);
+        let signal_collection = signals[0].signals.as_ref().expect("signal container");
+        assert_eq!(signal_collection.unsupported_primary_series_count, 1);
+        assert_eq!(signal_collection.unsupported_transition_series_count, 0);
+        let heart_rate = &signal_collection.primary.as_ref().expect("primary signals")[0];
+        assert_eq!(heart_rate.sample_count, 5);
+        assert_eq!(heart_rate.available_sample_count, 4);
+        assert_eq!(
+            heart_rate
+                .visual_samples
+                .iter()
+                .map(|sample| (sample.ordinal, sample.value, sample.gap_before))
+                .collect::<Vec<_>>(),
+            vec![
+                (0, Some(120.0), false),
+                (2, Some(140.0), true),
+                (4, Some(150.0), false)
+            ]
+        );
+        assert_eq!(
+            signal_collection
+                .transition
+                .as_ref()
+                .expect("transition signals")[0]
+                .sample_count,
+            2
+        );
+        let exact_samples = query_training_signal_samples(
+            &library,
+            TrainingSignalSamplesQuery {
+                session_ref,
+                signal_ref: heart_rate.signal_ref.clone(),
+                snapshot_ref: Some(snapshot_ref),
+                offset: 1,
+                limit: 2,
+            },
+        )
+        .expect("exact signal page");
+        assert_eq!(
+            exact_samples
+                .samples
+                .iter()
+                .map(|sample| (sample.ordinal, sample.elapsed_milliseconds, sample.value))
+                .collect::<Vec<_>>(),
+            vec![(1, 1_000, None), (2, 2_000, Some(140.0))]
+        );
+        assert_eq!(exact_samples.next_offset, Some(3));
+
         let connection = Connection::open(harness.database()).expect("database");
         let table_names = connection
             .prepare("SELECT name FROM sqlite_schema WHERE type = 'table' ORDER BY name")
@@ -9308,7 +10632,25 @@ mod tests {
         assert!(table_names
             .iter()
             .any(|name| name == "training_route_point"));
-        assert!(!table_names.iter().any(|name| name.contains("sample")));
+        assert!(table_names
+            .iter()
+            .any(|name| name == "training_signal_sample"));
+        assert_eq!(
+            connection
+                .query_row("SELECT COUNT(*) FROM training_signal_series", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .expect("mapped signal series count"),
+            2
+        );
+        assert_eq!(
+            connection
+                .query_row("SELECT COUNT(*) FROM training_signal_sample", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .expect("mapped signal sample count"),
+            7
+        );
 
         connection
             .execute(
@@ -9369,7 +10711,12 @@ mod tests {
                                     {"latitude":35.0,"longitude":-5.0,"elapsedMillis":0},
                                     {"latitude":35.1,"longitude":-5.1,"elapsedMillis":1000}
                                 ]
-                            }}
+                            }},
+                            "samples":{"samples":[{
+                                "type":"HEART_RATE",
+                                "intervalMillis":1000,
+                                "values":[130,"NaN",140]
+                            }]}
                         }]
                     }"#,
                 ),
@@ -9381,18 +10728,22 @@ mod tests {
         connection
             .execute_batch(
                 "PRAGMA foreign_keys = ON;
+                 DELETE FROM training_signal_sample;
+                 DELETE FROM training_signal_series;
+                 DELETE FROM training_exercise_signal_assessment;
+                 DELETE FROM training_session_signal_assessment;
                  DELETE FROM training_route_point;
                  DELETE FROM training_route;
                  DELETE FROM training_exercise_route_assessment;
                  DELETE FROM training_session_route_assessment;
                  UPDATE import_operation
-                 SET source_adapter_version = 'polar-flow-archive@7',
-                     mapping_version = 'polar-flow-mapping-set@2';
+                 SET source_adapter_version = 'polar-flow-archive@8',
+                     mapping_version = 'polar-flow-mapping-set@3';
                  UPDATE training_session_provenance
-                 SET source_adapter_version = 'polar-flow-archive@7',
-                     mapping_version = 'polar-flow-training-session@2';",
+                 SET source_adapter_version = 'polar-flow-archive@8',
+                     mapping_version = 'polar-flow-training-session@3';",
             )
-            .expect("simulate version-two persisted library");
+            .expect("simulate version-three persisted library");
         drop(connection);
 
         let enriched =
@@ -9435,6 +10786,25 @@ mod tests {
                 .len(),
             2
         );
+        let signals = query_training_session_signals_on(
+            &Connection::open(harness.database()).unwrap(),
+            &query_training_sessions(&harness.database()).unwrap()[0].origin_id,
+            "synthetic-upgrade-session",
+        )
+        .unwrap()
+        .unwrap()
+        .exercises
+        .unwrap();
+        assert_eq!(signals.len(), 1);
+        let heart_rate = &signals[0]
+            .signals
+            .as_ref()
+            .unwrap()
+            .primary
+            .as_ref()
+            .unwrap()[0];
+        assert_eq!(heart_rate.samples.len(), 3);
+        assert_eq!(heart_rate.samples[1].value, None);
     }
 
     #[test]
@@ -11150,6 +12520,10 @@ mod tests {
             minimal.observation.routes,
             Some(TrainingSessionRouteAssessment { exercises: None })
         );
+        assert_eq!(
+            minimal.observation.signals,
+            Some(TrainingSessionSignalAssessment { exercises: None })
+        );
 
         let multiple = decode_training_session(
             "synthetic-origin",
@@ -11257,6 +12631,21 @@ mod tests {
             (
                 locator,
                 r#"{"identifier":{"id":"synthetic"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"exercises":[{"identifier":{"id":"exercise"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"routes":{"route":{"startTime":"2026-01-02T10:30:00","wayPoints":[{"latitude":40,"longitude":-3,"elapsedMillis":2000},{"latitude":40.1,"longitude":-3.1,"elapsedMillis":1000}]}}}]}"#,
+                "invalid-supported-artifact",
+            ),
+            (
+                locator,
+                r#"{"identifier":{"id":"synthetic"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"exercises":[{"identifier":{"id":"exercise"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"samples":{"samples":[{"type":"HEART_RATE","intervalMillis":0,"values":[120]}]}}]}"#,
+                "invalid-supported-artifact",
+            ),
+            (
+                locator,
+                r#"{"identifier":{"id":"synthetic"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"exercises":[{"identifier":{"id":"exercise"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"samples":{"samples":[{"type":"HEART_RATE","intervalMillis":1000,"values":["Infinity"]}]}}]}"#,
+                "invalid-supported-artifact",
+            ),
+            (
+                locator,
+                r#"{"identifier":{"id":"synthetic"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"exercises":[{"identifier":{"id":"exercise"},"created":"2026-01-02T12:00:00.000","modified":"2026-01-02T12:05:00.000","startTime":"2026-01-02T10:30:00","stopTime":"2026-01-02T11:30:00","durationMillis":3600000,"samples":{"samples":[{"type":"SPEED","intervalMillis":1000,"values":[-1]}]}}]}"#,
                 "invalid-supported-artifact",
             ),
             (

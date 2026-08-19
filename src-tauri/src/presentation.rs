@@ -12,26 +12,30 @@ use fitfreed_application::{
     LongitudinalRecoveryComparison, LongitudinalRecoveryDay, LongitudinalSeriesComparison,
     LongitudinalSeriesOverview, LongitudinalSleepComparison, LongitudinalSleepDay,
     LongitudinalTrainingComparison, LongitudinalTrainingDay, ManualUpdateReason,
-    OfficialSourceLink, OfficialSourceLinkPurpose, PersistedTrainingRoutePoints, PostImportReveal,
-    PreferencesLoadStatus, RecoveryComparison, RecoveryDateRange, RecoveryDayAvailability,
-    RecoveryDayInsight, RecoveryNightDetail, RecoveryNightInsight, RecoveryOverview,
-    RecoverySeriesComparison, RecoverySeriesOverview, RecoverySeriesSummary,
-    SaveSportClassificationRequest, SavedTrainingSportClassification, SleepComparison,
-    SleepDateRange, SleepDayAvailability, SleepDayInsight, SleepOverview, SleepPeriodDetail,
-    SleepPeriodInsight, SleepPhaseTotals, SleepSeriesComparison, SleepSeriesOverview,
-    SleepSeriesSummary, SourceAcquisitionGuide, SportClassificationSaveOutcome, TrainingComparison,
-    TrainingDateRange, TrainingDiscoveryView, TrainingDiscoveryWorkspace,
-    TrainingExerciseRoutesView, TrainingExerciseStructure, TrainingLapStructure,
-    TrainingMeasurementFilter, TrainingOverview, TrainingPauseStructure,
-    TrainingRouteCollectionView, TrainingRouteKindView, TrainingRouteOverview,
-    TrainingRoutePointView, TrainingRoutePointsQuery, TrainingSeriesComparison,
-    TrainingSeriesOverview, TrainingSeriesSummary, TrainingSessionCalendar,
-    TrainingSessionCalendarDay, TrainingSessionCalendarRequest, TrainingSessionInsight,
-    TrainingSessionRouteQuery, TrainingSessionRoutesResult, TrainingSessionRoutesView,
-    TrainingSessionSearchItem, TrainingSessionSearchPage, TrainingSessionSearchRequest,
-    TrainingSessionSearchSummary, TrainingSessionSelection, TrainingSessionSelectionRequest,
-    TrainingSessionSort, TrainingSessionSport, TrainingSessionStructureQuery,
-    TrainingSessionStructureResult, TrainingSport, TrainingSportClassification,
+    OfficialSourceLink, OfficialSourceLinkPurpose, PersistedTrainingRoutePoints,
+    PersistedTrainingSignalSamples, PostImportReveal, PreferencesLoadStatus, RecoveryComparison,
+    RecoveryDateRange, RecoveryDayAvailability, RecoveryDayInsight, RecoveryNightDetail,
+    RecoveryNightInsight, RecoveryOverview, RecoverySeriesComparison, RecoverySeriesOverview,
+    RecoverySeriesSummary, SaveSportClassificationRequest, SavedTrainingSportClassification,
+    SleepComparison, SleepDateRange, SleepDayAvailability, SleepDayInsight, SleepOverview,
+    SleepPeriodDetail, SleepPeriodInsight, SleepPhaseTotals, SleepSeriesComparison,
+    SleepSeriesOverview, SleepSeriesSummary, SourceAcquisitionGuide,
+    SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange, TrainingDiscoveryView,
+    TrainingDiscoveryWorkspace, TrainingExerciseRoutesView, TrainingExerciseSignalsView,
+    TrainingExerciseStructure, TrainingLapStructure, TrainingMeasurementFilter, TrainingOverview,
+    TrainingPauseStructure, TrainingRouteCollectionView, TrainingRouteKindView,
+    TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
+    TrainingSeriesComparison, TrainingSeriesOverview, TrainingSeriesSummary,
+    TrainingSessionCalendar, TrainingSessionCalendarDay, TrainingSessionCalendarRequest,
+    TrainingSessionInsight, TrainingSessionRouteQuery, TrainingSessionRoutesResult,
+    TrainingSessionRoutesView, TrainingSessionSearchItem, TrainingSessionSearchPage,
+    TrainingSessionSearchRequest, TrainingSessionSearchSummary, TrainingSessionSelection,
+    TrainingSessionSelectionRequest, TrainingSessionSignalsQuery, TrainingSessionSignalsResult,
+    TrainingSessionSignalsView, TrainingSessionSort, TrainingSessionSport,
+    TrainingSessionStructureQuery, TrainingSessionStructureResult, TrainingSignalCollectionView,
+    TrainingSignalKindView, TrainingSignalRoleView, TrainingSignalSampleView,
+    TrainingSignalSamplesQuery, TrainingSignalSeriesOverview, TrainingSignalUnitView,
+    TrainingSignalVisualSampleView, TrainingSport, TrainingSportClassification,
     TrainingSportCoverage, TrainingSportState, TrainingSportsOverview, TrainingStructure,
     UpdateCheckOutcome, UpdateCheckStatus, UpdateError, UpdateRecoveryOutcome,
     UpdateRecoveryOutcomeKind, UpdateReleaseSummary, UpdateTrustFailure, UpdateWithdrawalReason,
@@ -825,6 +829,46 @@ impl From<TrainingRoutePointsQueryDto> for TrainingRoutePointsQuery {
         Self {
             session_ref: query.session_ref,
             route_ref: query.route_ref,
+            snapshot_ref: query.snapshot_ref,
+            offset: query.offset,
+            limit: query.limit,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TrainingSessionSignalsQueryDto {
+    session_ref: String,
+    snapshot_ref: Option<String>,
+    max_visual_samples: usize,
+}
+
+impl From<TrainingSessionSignalsQueryDto> for TrainingSessionSignalsQuery {
+    fn from(query: TrainingSessionSignalsQueryDto) -> Self {
+        Self {
+            session_ref: query.session_ref,
+            snapshot_ref: query.snapshot_ref,
+            max_visual_samples: query.max_visual_samples,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TrainingSignalSamplesQueryDto {
+    session_ref: String,
+    signal_ref: String,
+    snapshot_ref: Option<String>,
+    offset: usize,
+    limit: usize,
+}
+
+impl From<TrainingSignalSamplesQueryDto> for TrainingSignalSamplesQuery {
+    fn from(query: TrainingSignalSamplesQueryDto) -> Self {
+        Self {
+            session_ref: query.session_ref,
+            signal_ref: query.signal_ref,
             snapshot_ref: query.snapshot_ref,
             offset: query.offset,
             limit: query.limit,
@@ -1646,6 +1690,220 @@ impl From<PersistedTrainingRoutePoints> for TrainingRoutePointsResultDto {
             point_count: result.point_count,
             offset: result.offset,
             points: result.points.into_iter().map(Into::into).collect(),
+            next_offset: result.next_offset,
+        }
+    }
+}
+
+fn training_signal_role(role: TrainingSignalRoleView) -> &'static str {
+    match role {
+        TrainingSignalRoleView::Primary => "primary",
+        TrainingSignalRoleView::Transition => "transition",
+    }
+}
+
+fn training_signal_kind(kind: TrainingSignalKindView) -> &'static str {
+    match kind {
+        TrainingSignalKindView::HeartRate => "heart-rate",
+        TrainingSignalKindView::Speed => "speed",
+        TrainingSignalKindView::Distance => "distance",
+        TrainingSignalKindView::Altitude => "altitude",
+        TrainingSignalKindView::Cadence => "cadence",
+        TrainingSignalKindView::Temperature => "temperature",
+        TrainingSignalKindView::LeftCrankPower => "left-crank-power",
+    }
+}
+
+fn training_signal_unit(unit: TrainingSignalUnitView) -> &'static str {
+    match unit {
+        TrainingSignalUnitView::BeatsPerMinute => "beats-per-minute",
+        TrainingSignalUnitView::KilometersPerHour => "kilometers-per-hour",
+        TrainingSignalUnitView::Meters => "meters",
+        TrainingSignalUnitView::RotationsPerMinute => "rotations-per-minute",
+        TrainingSignalUnitView::DegreesCelsius => "degrees-celsius",
+        TrainingSignalUnitView::Watts => "watts",
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSignalSampleDto {
+    ordinal: usize,
+    elapsed_milliseconds: String,
+    value: Option<f64>,
+}
+
+impl From<TrainingSignalSampleView> for TrainingSignalSampleDto {
+    fn from(sample: TrainingSignalSampleView) -> Self {
+        Self {
+            ordinal: sample.ordinal,
+            elapsed_milliseconds: sample.elapsed_milliseconds.to_string(),
+            value: sample.value,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSignalVisualSampleDto {
+    ordinal: usize,
+    elapsed_milliseconds: String,
+    value: Option<f64>,
+    gap_before: bool,
+}
+
+impl From<TrainingSignalVisualSampleView> for TrainingSignalVisualSampleDto {
+    fn from(sample: TrainingSignalVisualSampleView) -> Self {
+        Self {
+            ordinal: sample.ordinal,
+            elapsed_milliseconds: sample.elapsed_milliseconds.to_string(),
+            value: sample.value,
+            gap_before: sample.gap_before,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSignalSeriesOverviewDto {
+    signal_ref: String,
+    ordinal: usize,
+    role: &'static str,
+    kind: &'static str,
+    unit: &'static str,
+    interval_milliseconds: String,
+    sample_count: usize,
+    available_sample_count: usize,
+    projection: &'static str,
+    visual_samples: Vec<TrainingSignalVisualSampleDto>,
+}
+
+impl From<TrainingSignalSeriesOverview> for TrainingSignalSeriesOverviewDto {
+    fn from(signal: TrainingSignalSeriesOverview) -> Self {
+        Self {
+            signal_ref: signal.signal_ref,
+            ordinal: signal.ordinal,
+            role: training_signal_role(signal.role),
+            kind: training_signal_kind(signal.kind),
+            unit: training_signal_unit(signal.unit),
+            interval_milliseconds: signal.interval_milliseconds.to_string(),
+            sample_count: signal.sample_count,
+            available_sample_count: signal.available_sample_count,
+            projection: "source-ordinal-v1",
+            visual_samples: signal.visual_samples.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSignalCollectionDto {
+    primary: Option<Vec<TrainingSignalSeriesOverviewDto>>,
+    transition: Option<Vec<TrainingSignalSeriesOverviewDto>>,
+    unsupported_primary_series_count: usize,
+    unsupported_transition_series_count: usize,
+}
+
+impl From<TrainingSignalCollectionView> for TrainingSignalCollectionDto {
+    fn from(signals: TrainingSignalCollectionView) -> Self {
+        Self {
+            primary: signals
+                .primary
+                .map(|series| series.into_iter().map(Into::into).collect()),
+            transition: signals
+                .transition
+                .map(|series| series.into_iter().map(Into::into).collect()),
+            unsupported_primary_series_count: signals.unsupported_primary_series_count,
+            unsupported_transition_series_count: signals.unsupported_transition_series_count,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingExerciseSignalsDto {
+    exercise_ref: String,
+    ordinal: usize,
+    signals: Option<TrainingSignalCollectionDto>,
+}
+
+impl From<TrainingExerciseSignalsView> for TrainingExerciseSignalsDto {
+    fn from(exercise: TrainingExerciseSignalsView) -> Self {
+        Self {
+            exercise_ref: exercise.exercise_ref,
+            ordinal: exercise.ordinal,
+            signals: exercise.signals.map(Into::into),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSessionSignalsDto {
+    exercises: Option<Vec<TrainingExerciseSignalsDto>>,
+}
+
+impl From<TrainingSessionSignalsView> for TrainingSessionSignalsDto {
+    fn from(signals: TrainingSessionSignalsView) -> Self {
+        Self {
+            exercises: signals
+                .exercises
+                .map(|exercises| exercises.into_iter().map(Into::into).collect()),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSessionSignalsResultDto {
+    snapshot_ref: String,
+    session_ref: String,
+    signals: Option<TrainingSessionSignalsDto>,
+}
+
+impl From<TrainingSessionSignalsResult> for TrainingSessionSignalsResultDto {
+    fn from(result: TrainingSessionSignalsResult) -> Self {
+        Self {
+            snapshot_ref: result.snapshot_ref,
+            session_ref: result.session_ref,
+            signals: result.signals.map(Into::into),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSignalSamplesResultDto {
+    snapshot_ref: String,
+    session_ref: String,
+    signal_ref: String,
+    exercise_ref: String,
+    ordinal: usize,
+    role: &'static str,
+    kind: &'static str,
+    unit: &'static str,
+    interval_milliseconds: String,
+    sample_count: usize,
+    offset: usize,
+    samples: Vec<TrainingSignalSampleDto>,
+    next_offset: Option<usize>,
+}
+
+impl From<PersistedTrainingSignalSamples> for TrainingSignalSamplesResultDto {
+    fn from(result: PersistedTrainingSignalSamples) -> Self {
+        Self {
+            snapshot_ref: result.snapshot_ref,
+            session_ref: result.session_ref,
+            signal_ref: result.signal_ref,
+            exercise_ref: result.exercise_ref,
+            ordinal: result.ordinal,
+            role: training_signal_role(result.role),
+            kind: training_signal_kind(result.kind),
+            unit: training_signal_unit(result.unit),
+            interval_milliseconds: result.interval_milliseconds.to_string(),
+            sample_count: result.sample_count,
+            offset: result.offset,
+            samples: result.samples.into_iter().map(Into::into).collect(),
             next_offset: result.next_offset,
         }
     }
@@ -4354,6 +4612,125 @@ mod tests {
             exact_json["points"][0]["elapsedMilliseconds"],
             i64::MAX.to_string()
         );
+    }
+
+    #[test]
+    fn validates_and_serializes_bounded_and_exact_signal_transport_contracts() {
+        let input: TrainingSessionSignalsQueryDto =
+            serde_json::from_value(serde_json::json!({
+                "sessionRef":
+                    "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "snapshotRef":
+                    "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "maxVisualSamples": 200
+            }))
+            .expect("training-session signal request");
+        let query = TrainingSessionSignalsQuery::from(input);
+        assert_eq!(query.max_visual_samples, 200);
+        assert!(
+            serde_json::from_value::<TrainingSessionSignalsQueryDto>(serde_json::json!({
+                "sessionRef":
+                    "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "snapshotRef": null,
+                "maxVisualSamples": 200,
+                "sourceSignalType": "HEART_RATE"
+            }))
+            .is_err()
+        );
+
+        let result = TrainingSessionSignalsResult {
+            snapshot_ref:
+                "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    .to_owned(),
+            session_ref: "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                .to_owned(),
+            signals: Some(TrainingSessionSignalsView {
+                exercises: Some(vec![TrainingExerciseSignalsView {
+                    exercise_ref:
+                        "exercise-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                            .to_owned(),
+                    ordinal: 0,
+                    signals: Some(TrainingSignalCollectionView {
+                        primary: Some(vec![TrainingSignalSeriesOverview {
+                            signal_ref:
+                                "signal-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                                    .to_owned(),
+                            ordinal: 0,
+                            role: TrainingSignalRoleView::Primary,
+                            kind: TrainingSignalKindView::HeartRate,
+                            unit: TrainingSignalUnitView::BeatsPerMinute,
+                            interval_milliseconds: i64::MAX,
+                            sample_count: 1,
+                            available_sample_count: 0,
+                            visual_samples: vec![TrainingSignalVisualSampleView {
+                                ordinal: 0,
+                                elapsed_milliseconds: 0,
+                                value: None,
+                                gap_before: false,
+                            }],
+                        }]),
+                        transition: None,
+                        unsupported_primary_series_count: 2,
+                        unsupported_transition_series_count: 0,
+                    }),
+                }]),
+            }),
+        };
+        let json = serde_json::to_value(TrainingSessionSignalsResultDto::from(result))
+            .expect("training-session signals JSON");
+        let primary = &json["signals"]["exercises"][0]["signals"]["primary"][0];
+        assert_eq!(primary["projection"], "source-ordinal-v1");
+        assert_eq!(primary["kind"], "heart-rate");
+        assert_eq!(primary["unit"], "beats-per-minute");
+        assert_eq!(primary["intervalMilliseconds"], i64::MAX.to_string());
+        assert!(primary["visualSamples"][0]["value"].is_null());
+        assert_eq!(primary["visualSamples"][0]["gapBefore"], false);
+        assert!(json.to_string().find("sourceSignalType").is_none());
+
+        let exact_input: TrainingSignalSamplesQueryDto =
+            serde_json::from_value(serde_json::json!({
+                "sessionRef":
+                    "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "signalRef":
+                    "signal-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                "snapshotRef": null,
+                "offset": 0,
+                "limit": 250
+            }))
+            .expect("exact signal samples request");
+        let exact_query = TrainingSignalSamplesQuery::from(exact_input);
+        assert_eq!(exact_query.limit, 250);
+
+        let exact = PersistedTrainingSignalSamples {
+            snapshot_ref:
+                "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    .to_owned(),
+            session_ref: "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                .to_owned(),
+            signal_ref: "signal-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                .to_owned(),
+            exercise_ref:
+                "exercise-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                    .to_owned(),
+            ordinal: 0,
+            role: TrainingSignalRoleView::Primary,
+            kind: TrainingSignalKindView::Temperature,
+            unit: TrainingSignalUnitView::DegreesCelsius,
+            interval_milliseconds: 1_000,
+            sample_count: 1,
+            offset: 0,
+            samples: vec![TrainingSignalSampleView {
+                ordinal: 0,
+                elapsed_milliseconds: 0,
+                value: Some(-5.5),
+            }],
+            next_offset: None,
+        };
+        let exact_json = serde_json::to_value(TrainingSignalSamplesResultDto::from(exact))
+            .expect("exact signal samples JSON");
+        assert_eq!(exact_json["kind"], "temperature");
+        assert_eq!(exact_json["samples"][0]["value"], -5.5);
+        assert_eq!(exact_json["samples"][0]["elapsedMilliseconds"], "0");
     }
 
     #[test]

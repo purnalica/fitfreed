@@ -439,6 +439,30 @@ th:last-child, td:last-child { text-align: right; }
 .training-route-exact { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
 .training-route-exact table { min-width: 720px; }
 .training-route-pagination { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; }
+.training-exercise-signals { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+.training-exercise-signals > h5 { margin: 0 0 5px; font-size: .95rem; }
+.training-exercise-signals > p { margin: 0; color: var(--muted); }
+.training-signal-collection { margin-top: 18px; }
+.training-signal-collection > h6 { margin: 0 0 8px; color: var(--muted); font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; }
+.training-signal-collection > p { color: var(--muted); }
+.training-signal { margin-top: 12px; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.training-signal-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.training-signal-heading h6 { margin: 0; font-size: .95rem; }
+.training-signal-heading span { color: var(--muted); font-size: .78rem; font-weight: 700; }
+.training-signal-visual { margin-top: 12px; }
+.training-signal-visual svg { display: block; width: 100%; min-height: 170px; max-height: 300px; }
+.training-signal-visual rect { fill: var(--surface-soft); stroke: var(--line); }
+.training-signal-visual polyline { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.training-signal-transition .training-signal-visual polyline { stroke-dasharray: 8 7; }
+.training-signal-visual circle { fill: var(--accent); stroke: var(--surface); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.training-signal-visual > p { color: var(--muted); }
+.training-signal dl { margin: 12px 0; }
+.training-signal-projection { margin: 12px 0; color: var(--muted); font-size: .78rem; }
+.training-signal-unsupported { margin: 10px 0 0; padding: 10px 12px; color: var(--ink-soft); background: var(--warning-soft); border-radius: 8px; font-size: .8rem; }
+.training-signal-exact { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+.training-signal-exact > h6 { margin: 0 0 10px; font-size: .9rem; }
+.training-signal-exact table { min-width: 520px; }
+.training-signal-pagination { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; }
 .training-comparison { margin-top: 32px; padding-top: 28px; border-top: 1px solid var(--line); }
 .training-comparison > div:first-child h2 { margin: 0 0 5px; }
 .training-comparison > div:first-child p { margin: 0; color: var(--muted); }

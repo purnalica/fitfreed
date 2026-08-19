@@ -15,11 +15,12 @@ use fitfreed_application::{
     query_recovery_overview, query_sleep_comparison, query_sleep_detail, query_sleep_overview,
     query_training_comparison, query_training_overview, query_training_route_points,
     query_training_session_calendar, query_training_session_routes,
-    query_training_session_selection, query_training_session_structure, query_training_sessions,
+    query_training_session_selection, query_training_session_signals,
+    query_training_session_structure, query_training_sessions, query_training_signal_samples,
     ActivityDateRange, LongitudinalDateRange, RecoveryDateRange, SleepDateRange, TrainingDateRange,
     TrainingRoutePointsQuery, TrainingSessionCalendarRequest, TrainingSessionRouteQuery,
-    TrainingSessionSearchRequest, TrainingSessionSelectionRequest, TrainingSessionSort,
-    TrainingSessionStructureQuery,
+    TrainingSessionSearchRequest, TrainingSessionSelectionRequest, TrainingSessionSignalsQuery,
+    TrainingSessionSort, TrainingSessionStructureQuery, TrainingSignalSamplesQuery,
 };
 use fitfreed_lib::infrastructure::{
     query_activity_between, SqliteActivityLibrary, SqliteLongitudinalLibrary,
@@ -31,6 +32,7 @@ use tempfile::tempdir;
 
 const ORIGIN_COUNT: usize = 4;
 const ROUTE_POINTS_PER_ORIGIN: usize = 250_000;
+const SIGNAL_SAMPLES_PER_ORIGIN: usize = 100_000;
 const WARM_UP_RUNS: usize = 10;
 const MEASURED_RUNS: usize = 100;
 const COMMON_BUDGET_MILLISECONDS: f64 = 500.0;
@@ -52,6 +54,8 @@ struct GeneratedRows {
     training_pauses: usize,
     training_routes: usize,
     training_route_points: usize,
+    training_signals: usize,
+    training_signal_samples: usize,
     sleep: usize,
     sleep_transitions: usize,
 }
@@ -258,7 +262,7 @@ fn main() {
     let training_route_points_request = TrainingRoutePointsQuery {
         session_ref: training_discovery_page.sessions[0].session_ref.clone(),
         route_ref: training_route_ref,
-        snapshot_ref: Some(training_discovery_page.snapshot_ref),
+        snapshot_ref: Some(training_discovery_page.snapshot_ref.clone()),
         offset: ROUTE_POINTS_PER_ORIGIN / 2,
         limit: 250,
     };
@@ -266,6 +270,49 @@ fn main() {
         query_training_route_points(&training_library, training_route_points_request.clone())
             .expect("exact training route page")
             .points
+            .len()
+    });
+    let training_signal_request = TrainingSessionSignalsQuery {
+        session_ref: training_discovery_page.sessions[0].session_ref.clone(),
+        snapshot_ref: Some(training_discovery_page.snapshot_ref.clone()),
+        max_visual_samples: 300,
+    };
+    let training_signal_setup =
+        query_training_session_signals(&training_library, training_signal_request.clone())
+            .expect("training signal setup");
+    let training_signal_ref = training_signal_setup
+        .signals
+        .and_then(|signals| signals.exercises)
+        .expect("generated signal exercises")[0]
+        .signals
+        .as_ref()
+        .and_then(|signals| signals.primary.as_ref())
+        .expect("generated primary signals")[0]
+        .signal_ref
+        .clone();
+    let training_signal_overview = measure(300, || {
+        query_training_session_signals(&training_library, training_signal_request.clone())
+            .expect("training signal overview")
+            .signals
+            .and_then(|signals| signals.exercises)
+            .expect("generated signal exercises")
+            .into_iter()
+            .filter_map(|exercise| exercise.signals)
+            .flat_map(|signals| signals.primary.unwrap_or_default())
+            .map(|signal| signal.visual_samples.len())
+            .sum()
+    });
+    let training_signal_samples_request = TrainingSignalSamplesQuery {
+        session_ref: training_discovery_page.sessions[0].session_ref.clone(),
+        signal_ref: training_signal_ref,
+        snapshot_ref: Some(training_discovery_page.snapshot_ref),
+        offset: SIGNAL_SAMPLES_PER_ORIGIN / 2,
+        limit: 250,
+    };
+    let training_signal_exact_page = measure(250, || {
+        query_training_signal_samples(&training_library, training_signal_samples_request.clone())
+            .expect("exact training signal page")
+            .samples
             .len()
     });
 
@@ -507,6 +554,16 @@ fn main() {
             COMMON_BUDGET_MILLISECONDS,
         ),
         (
+            "training.signalOverview",
+            &training_signal_overview,
+            COMMON_BUDGET_MILLISECONDS,
+        ),
+        (
+            "training.signalExactPage",
+            &training_signal_exact_page,
+            COMMON_BUDGET_MILLISECONDS,
+        ),
+        (
             "sleep.defaultOverview",
             &sleep_default_overview,
             COMMON_BUDGET_MILLISECONDS,
@@ -622,6 +679,8 @@ fn main() {
                 "storedTrainingPauses": generated_rows.training_pauses,
                 "storedTrainingRoutes": generated_rows.training_routes,
                 "storedTrainingRoutePoints": generated_rows.training_route_points,
+                "storedTrainingSignals": generated_rows.training_signals,
+                "storedTrainingSignalSamples": generated_rows.training_signal_samples,
                 "storedSleepPeriods": generated_rows.sleep,
                 "storedSleepTransitions": generated_rows.sleep_transitions,
                 "storedRecoveryNights": generated_rows.recovery,
@@ -684,6 +743,14 @@ fn main() {
                     ),
                     "routeExactPage": measurement_json(
                         &training_route_exact_page,
+                        COMMON_BUDGET_MILLISECONDS,
+                    ),
+                    "signalOverview": measurement_json(
+                        &training_signal_overview,
+                        COMMON_BUDGET_MILLISECONDS,
+                    ),
+                    "signalExactPage": measurement_json(
+                        &training_signal_exact_page,
                         COMMON_BUDGET_MILLISECONDS,
                     ),
                 },
@@ -785,6 +852,8 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
     let mut training_pause_rows = 0;
     let mut training_route_rows = 0;
     let mut training_route_point_rows = 0;
+    let mut training_signal_rows = 0;
+    let mut training_signal_sample_rows = 0;
     let mut sleep_rows = 0;
     let mut sleep_transition_rows = 0;
     {
@@ -958,6 +1027,42 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
                  ) VALUES (?1, ?2, ?3, 'primary', ?4, ?5, ?6, ?7, ?8)",
             )
             .expect("prepare generated training route point insertion");
+        let mut signal_assessment_statement = transaction
+            .prepare_cached(
+                "INSERT INTO training_session_signal_assessment (
+                    origin_id, session_id, exercises_present, mapping_version
+                 ) VALUES (?1, ?2, 1, 'synthetic-training-signal@1')",
+            )
+            .expect("prepare generated training signal assessment insertion");
+        let mut exercise_signal_assessment_statement = transaction
+            .prepare_cached(
+                "INSERT INTO training_exercise_signal_assessment (
+                    origin_id, session_id, exercise_id, ordinal, signals_present,
+                    primary_present, transition_present,
+                    unsupported_primary_series_count,
+                    unsupported_transition_series_count
+                 ) VALUES (?1, ?2, ?3, 0, 1, 1, 1, 0, 0)",
+            )
+            .expect("prepare generated exercise signal assessment insertion");
+        let mut signal_statement = transaction
+            .prepare_cached(
+                "INSERT INTO training_signal_series (
+                    origin_id, session_id, exercise_id, role, ordinal, kind, unit,
+                    interval_milliseconds, sample_count, available_sample_count
+                 ) VALUES (
+                    ?1, ?2, ?3, 'primary', 0, 'heart-rate', 'beats-per-minute',
+                    1000, ?4, ?5
+                 )",
+            )
+            .expect("prepare generated training signal insertion");
+        let mut signal_sample_statement = transaction
+            .prepare_cached(
+                "INSERT INTO training_signal_sample (
+                    origin_id, session_id, exercise_id, role, series_ordinal,
+                    ordinal, value
+                 ) VALUES (?1, ?2, ?3, 'primary', 0, ?4, ?5)",
+            )
+            .expect("prepare generated training signal sample insertion");
         let day_offset = calendar_days - 1;
         let date = last_date.format("%Y-%m-%d").to_string();
         for origin_index in 0..ORIGIN_COUNT {
@@ -1054,6 +1159,37 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
                     ])
                     .expect("insert generated training route point");
                 training_route_point_rows += 1;
+            }
+            signal_assessment_statement
+                .execute(params![origin, session_id])
+                .expect("insert generated training signal assessment");
+            exercise_signal_assessment_statement
+                .execute(params![origin, session_id, exercise_id])
+                .expect("insert generated exercise signal assessment");
+            let unavailable_signal_samples = (SIGNAL_SAMPLES_PER_ORIGIN - 1) / 997 + 1;
+            signal_statement
+                .execute(params![
+                    origin,
+                    session_id,
+                    exercise_id,
+                    i64::try_from(SIGNAL_SAMPLES_PER_ORIGIN).expect("signal sample count"),
+                    i64::try_from(SIGNAL_SAMPLES_PER_ORIGIN - unavailable_signal_samples)
+                        .expect("available signal sample count"),
+                ])
+                .expect("insert generated training signal");
+            training_signal_rows += 1;
+            for sample_index in 0..SIGNAL_SAMPLES_PER_ORIGIN {
+                let value = (sample_index % 997 != 0).then_some(115.0 + (sample_index % 80) as f64);
+                signal_sample_statement
+                    .execute(params![
+                        origin,
+                        session_id,
+                        exercise_id,
+                        i64::try_from(sample_index).expect("signal sample index"),
+                        value,
+                    ])
+                    .expect("insert generated training signal sample");
+                training_signal_sample_rows += 1;
             }
         }
     }
@@ -1226,6 +1362,8 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
         training_pauses: training_pause_rows,
         training_routes: training_route_rows,
         training_route_points: training_route_point_rows,
+        training_signals: training_signal_rows,
+        training_signal_samples: training_signal_sample_rows,
         sleep: sleep_rows,
         sleep_transitions: sleep_transition_rows,
     }

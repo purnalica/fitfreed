@@ -93,13 +93,16 @@ for (const contractValue of [
   "polar-flow-archive@6",
   "polar-flow-archive@7",
   "polar-flow-archive@8",
+  "polar-flow-archive@9",
   "polar-flow-mapping-set@1",
   "polar-flow-mapping-set@2",
   "polar-flow-mapping-set@3",
+  "polar-flow-mapping-set@4",
   "polar-flow-daily-activity@1",
   "polar-flow-training-session@1",
   "polar-flow-training-session@2",
   "polar-flow-training-session@3",
+  "polar-flow-training-session@4",
   "polar-flow-sleep@1",
   "polar-flow-nightly-recovery@1",
   "polar-nightly-recharge@1",
@@ -199,6 +202,48 @@ for (const contractValue of ["primary", "transition", "enrich"]) {
   requireMention(trainingRouteCanonical, contractValue, trainingRouteCanonicalPath);
 }
 
+const trainingSignalCanonicalPath =
+  "docs/data-formats/canonical/training-session-signal.md";
+const trainingSignalCanonical = read(trainingSignalCanonicalPath);
+for (const structure of [
+  "TrainingSignalSample",
+  "TrainingSignalSeries",
+  "TrainingSignals",
+  "TrainingExerciseSignalAssessment",
+  "TrainingSessionSignalAssessment",
+]) {
+  const structureMatch = trainingStructureDomain.match(
+    new RegExp(`pub struct ${structure} \\{([\\s\\S]*?)\\n\\}`),
+  );
+  if (!structureMatch) {
+    throw new Error(`${trainingStructureDomainPath} has no ${structure}`);
+  }
+  for (const fieldMatch of structureMatch[1].matchAll(/pub ([a-z_]+):/g)) {
+    const camelCase = fieldMatch[1].replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    requireMention(trainingSignalCanonical, camelCase, trainingSignalCanonicalPath);
+  }
+}
+for (const contractValue of [
+  "heart-rate",
+  "speed",
+  "distance",
+  "altitude",
+  "cadence",
+  "temperature",
+  "left-crank-power",
+  "beats-per-minute",
+  "kilometers-per-hour",
+  "meters",
+  "rotations-per-minute",
+  "degrees-celsius",
+  "watts",
+  "primary",
+  "transition",
+  "enrich",
+]) {
+  requireMention(trainingSignalCanonical, contractValue, trainingSignalCanonicalPath);
+}
+
 const sportClassificationDomainPath =
   "src-tauri/crates/fitfreed-domain/src/sport_classification.rs";
 const sportClassificationDomain = read(sportClassificationDomainPath);
@@ -286,8 +331,8 @@ const trainingMappingPath = "docs/data-formats/mappings/polar-flow-training-sess
 const trainingMapping = read(trainingMappingPath);
 for (const contractValue of [
   sourceAdapterVersion,
-  "polar-flow-mapping-set@3",
-  "polar-flow-training-session@3",
+  "polar-flow-mapping-set@4",
+  "polar-flow-training-session@4",
 ]) {
   requireMention(trainingMapping, contractValue, trainingMappingPath);
 }
@@ -326,6 +371,20 @@ for (const sourceField of [
   ".wayPoints[].longitude",
   ".wayPoints[].altitude",
   ".wayPoints[].elapsedMillis",
+  "exercises[].samples",
+  "exercises[].samples.samples",
+  "exercises[].samples.transitionSamples",
+  ".type",
+  ".intervalMillis",
+  ".values[]",
+  "NaN",
+  "HEART_RATE",
+  "SPEED",
+  "DISTANCE",
+  "ALTITUDE",
+  "CADENCE",
+  "TEMPERATURE",
+  "LEFT_CRANK_CURRENT_POWER",
   "splitTimeMillis",
   "endTime",
 ]) {
@@ -352,6 +411,12 @@ for (const targetField of [
   "pauses",
   "splitTimeMilliseconds",
   "TrainingSessionRouteAssessment",
+  "TrainingSessionSignalAssessment",
+  "signals",
+  "intervalMilliseconds",
+  "value",
+  "unsupportedPrimarySeriesCount",
+  "unsupportedTransitionSeriesCount",
   "latitudeDegrees",
   "longitudeDegrees",
   "altitudeMeters",
@@ -1709,6 +1774,213 @@ for (const invalidResponse of [
 ]) {
   if (validateTrainingRoutePoints(invalidResponse)) {
     throw new Error(`${trainingRoutePointsSchemaPath} accepted an invalid response`);
+  }
+}
+
+const trainingSessionSignalPath =
+  "docs/data-formats/insights/training-session-signal-v1.md";
+const trainingSessionSignal = read(trainingSessionSignalPath);
+for (const field of [
+  "query_training_session_signals",
+  "query_training_signal_samples",
+  "sessionRef",
+  "snapshotRef",
+  "signalRef",
+  "exerciseRef",
+  "maxVisualSamples",
+  "signals",
+  "exercises",
+  "primary",
+  "transition",
+  "unsupportedPrimarySeriesCount",
+  "unsupportedTransitionSeriesCount",
+  "role",
+  "kind",
+  "unit",
+  "intervalMilliseconds",
+  "sampleCount",
+  "availableSampleCount",
+  "source-ordinal-v1",
+  "visualSamples",
+  "ordinal",
+  "elapsedMilliseconds",
+  "value",
+  "gapBefore",
+  "offset",
+  "limit",
+  "samples",
+  "nextOffset",
+  "invalid-training-session-detail",
+  "training-session-detail-changed",
+  "training-session-detail-failed",
+]) {
+  requireMention(trainingSessionSignal, field, trainingSessionSignalPath);
+}
+
+const trainingSessionSignalsQuerySchemaPath =
+  "schemas/training-session-signals-query-v1.schema.json";
+const validateTrainingSessionSignalsQuery = ajv.compile(
+  JSON.parse(read(trainingSessionSignalsQuerySchemaPath)),
+);
+const syntheticTrainingSessionSignalsQuery = {
+  sessionRef: sessionRefDigest,
+  snapshotRef: snapshotRefDigest,
+  maxVisualSamples: 200,
+};
+if (!validateTrainingSessionSignalsQuery(syntheticTrainingSessionSignalsQuery)) {
+  throw new Error(
+    `${trainingSessionSignalsQuerySchemaPath} rejected its synthetic query: ${ajv.errorsText(validateTrainingSessionSignalsQuery.errors)}`,
+  );
+}
+for (const invalidQuery of [
+  { ...syntheticTrainingSessionSignalsQuery, maxVisualSamples: 1 },
+  { ...syntheticTrainingSessionSignalsQuery, maxVisualSamples: 501 },
+  { ...syntheticTrainingSessionSignalsQuery, providerSessionId: "hidden" },
+]) {
+  if (validateTrainingSessionSignalsQuery(invalidQuery)) {
+    throw new Error(`${trainingSessionSignalsQuerySchemaPath} accepted an invalid query`);
+  }
+}
+
+const signalRefDigest = `signal-${"3".repeat(64)}`;
+const exerciseRefDigest = `exercise-${"e".repeat(64)}`;
+const trainingSessionSignalsSchemaPath =
+  "schemas/training-session-signals-v1.schema.json";
+const validateTrainingSessionSignals = ajv.compile(
+  JSON.parse(read(trainingSessionSignalsSchemaPath)),
+);
+const syntheticSignalSample = {
+  ordinal: 0,
+  elapsedMilliseconds: "0",
+  value: 120.5,
+};
+const syntheticTrainingSessionSignals = {
+  snapshotRef: snapshotRefDigest,
+  sessionRef: sessionRefDigest,
+  signals: {
+    exercises: [{
+      exerciseRef: exerciseRefDigest,
+      ordinal: 0,
+      signals: {
+        primary: [{
+          signalRef: signalRefDigest,
+          ordinal: 0,
+          role: "primary",
+          kind: "heart-rate",
+          unit: "beats-per-minute",
+          intervalMilliseconds: "1000",
+          sampleCount: 2,
+          availableSampleCount: 1,
+          projection: "source-ordinal-v1",
+          visualSamples: [
+            { ...syntheticSignalSample, gapBefore: false },
+            { ordinal: 1, elapsedMilliseconds: "1000", value: null, gapBefore: true },
+          ],
+        }],
+        transition: null,
+        unsupportedPrimarySeriesCount: 1,
+        unsupportedTransitionSeriesCount: 0,
+      },
+    }],
+  },
+};
+for (const response of [
+  syntheticTrainingSessionSignals,
+  { ...syntheticTrainingSessionSignals, signals: null },
+  { ...syntheticTrainingSessionSignals, signals: { exercises: null } },
+  { ...syntheticTrainingSessionSignals, signals: { exercises: [] } },
+]) {
+  if (!validateTrainingSessionSignals(response)) {
+    throw new Error(
+      `${trainingSessionSignalsSchemaPath} rejected a valid response: ${ajv.errorsText(validateTrainingSessionSignals.errors)}`,
+    );
+  }
+}
+for (const invalidResponse of [
+  { ...syntheticTrainingSessionSignals, sourceSessionId: "hidden" },
+  (() => {
+    const value = structuredClone(syntheticTrainingSessionSignals);
+    value.signals.exercises[0].signals.primary[0].unit = "watts";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticTrainingSessionSignals);
+    value.signals.exercises[0].signals.primary[0].projection = "smoothed";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticTrainingSessionSignals);
+    delete value.signals.exercises[0].signals.primary[0].visualSamples[1].gapBefore;
+    return value;
+  })(),
+]) {
+  if (validateTrainingSessionSignals(invalidResponse)) {
+    throw new Error(`${trainingSessionSignalsSchemaPath} accepted an invalid response`);
+  }
+}
+
+const trainingSignalSamplesQuerySchemaPath =
+  "schemas/training-signal-samples-query-v1.schema.json";
+const validateTrainingSignalSamplesQuery = ajv.compile(
+  JSON.parse(read(trainingSignalSamplesQuerySchemaPath)),
+);
+const syntheticTrainingSignalSamplesQuery = {
+  sessionRef: sessionRefDigest,
+  signalRef: signalRefDigest,
+  snapshotRef: snapshotRefDigest,
+  offset: 0,
+  limit: 250,
+};
+if (!validateTrainingSignalSamplesQuery(syntheticTrainingSignalSamplesQuery)) {
+  throw new Error(
+    `${trainingSignalSamplesQuerySchemaPath} rejected its synthetic query: ${ajv.errorsText(validateTrainingSignalSamplesQuery.errors)}`,
+  );
+}
+for (const invalidQuery of [
+  { ...syntheticTrainingSignalSamplesQuery, limit: 0 },
+  { ...syntheticTrainingSignalSamplesQuery, limit: 251 },
+  { ...syntheticTrainingSignalSamplesQuery, sourceSignalType: "HEART_RATE" },
+]) {
+  if (validateTrainingSignalSamplesQuery(invalidQuery)) {
+    throw new Error(`${trainingSignalSamplesQuerySchemaPath} accepted an invalid query`);
+  }
+}
+
+const trainingSignalSamplesSchemaPath =
+  "schemas/training-signal-samples-v1.schema.json";
+const validateTrainingSignalSamples = ajv.compile(
+  JSON.parse(read(trainingSignalSamplesSchemaPath)),
+);
+const syntheticTrainingSignalSamples = {
+  snapshotRef: snapshotRefDigest,
+  sessionRef: sessionRefDigest,
+  signalRef: signalRefDigest,
+  exerciseRef: exerciseRefDigest,
+  ordinal: 0,
+  role: "primary",
+  kind: "heart-rate",
+  unit: "beats-per-minute",
+  intervalMilliseconds: "1000",
+  sampleCount: 2,
+  offset: 0,
+  samples: [syntheticSignalSample],
+  nextOffset: 1,
+};
+if (!validateTrainingSignalSamples(syntheticTrainingSignalSamples)) {
+  throw new Error(
+    `${trainingSignalSamplesSchemaPath} rejected its synthetic response: ${ajv.errorsText(validateTrainingSignalSamples.errors)}`,
+  );
+}
+for (const invalidResponse of [
+  { ...syntheticTrainingSignalSamples, providerSignalType: "HEART_RATE" },
+  { ...syntheticTrainingSignalSamples, unit: "watts" },
+  {
+    ...syntheticTrainingSignalSamples,
+    samples: [{ ...syntheticSignalSample, elapsedMilliseconds: "00" }],
+  },
+]) {
+  if (validateTrainingSignalSamples(invalidResponse)) {
+    throw new Error(`${trainingSignalSamplesSchemaPath} accepted an invalid response`);
   }
 }
 
@@ -3592,6 +3864,7 @@ for (const contractPath of [
   canonicalPath,
   trainingStructureCanonicalPath,
   trainingRouteCanonicalPath,
+  trainingSignalCanonicalPath,
   sportClassificationCanonicalPath,
   sleepCanonicalPath,
   mappingPath,
@@ -3604,6 +3877,7 @@ for (const contractPath of [
   trainingSessionSearchPath,
   trainingSessionStructurePath,
   trainingSessionRoutePath,
+  trainingSessionSignalPath,
   trainingDiscoveryWorkspacePath,
   trainingComparisonPath,
   sleepOverviewPath,
@@ -3661,6 +3935,10 @@ process.stdout.write(
       trainingSessionRouteSchemaPath,
       trainingRoutePointsQuerySchemaPath,
       trainingRoutePointsSchemaPath,
+      trainingSessionSignalsQuerySchemaPath,
+      trainingSessionSignalsSchemaPath,
+      trainingSignalSamplesQuerySchemaPath,
+      trainingSignalSamplesSchemaPath,
       trainingDiscoveryWorkspaceSchemaPath,
     ],
     trainingComparisonSchemas: [

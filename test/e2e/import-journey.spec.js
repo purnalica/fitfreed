@@ -839,8 +839,8 @@ describe("packaged FitFreed import journey", () => {
         family: "Training sessions",
         classification: "Supported",
         count: "2",
-        reason: "Session summaries, exercise structure, laps, pauses, and recorded routes are mapped; time-series signals and zones stay only in the original ZIP.",
-        action: "Keep the original ZIP if you need the excluded training signals.",
+        reason: "Session summaries, exercise structure, laps, pauses, recorded routes, and supported time-series signals are mapped; provider zones and unsupported signal types stay only in the original ZIP.",
+        action: "Keep the original ZIP if you need provider zones or unsupported signal types.",
       },
     ]);
     await openHomeQuestion(
@@ -997,6 +997,42 @@ describe("packaged FitFreed import journey", () => {
     await expect(exactRouteRows[4]).toHaveText(expect.stringContaining("40.04"));
     await exactRouteToggle.click();
     expect(await recordedRoutes[0].$$(".training-route-exact")).toHaveLength(0);
+    await browser.waitUntil(async () => (await $$(".training-signal")).length === 3, {
+      timeout: 10_000,
+      timeoutMsg: "recorded exercise and transition signals were not displayed",
+    });
+    await expect($(".training-exercise-signals > h5")).toHaveText(
+      english.training.sessionLibrary.signalHeading,
+    );
+    const recordedSignals = await $$(".training-signal");
+    await expect(recordedSignals[0].$(".training-signal-heading h6")).toHaveText("Heart rate");
+    await expect(recordedSignals[0].$("svg")).toHaveAttribute(
+      "aria-label",
+      expect.stringContaining("100 recorded values out of 101 samples"),
+    );
+    expect(await recordedSignals[0].$$("polyline")).toHaveLength(2);
+    await expect($(".training-signal-unsupported")).toHaveText(
+      expect.stringContaining("1 unsupported source series"),
+    );
+    const exactSignalToggle = await recordedSignals[0].$("button");
+    await exactSignalToggle.click();
+    await browser.waitUntil(
+      async () => (await recordedSignals[0].$$(".training-signal-exact tbody tr")).length === 100,
+      { timeout: 10_000, timeoutMsg: "exact recorded signal samples were not displayed" },
+    );
+    await expect(recordedSignals[0].$(".training-signal-exact")).toHaveText(
+      expect.stringContaining(english.training.sessionLibrary.metricUnavailable),
+    );
+    await recordedSignals[0].$(`aria/${english.training.sessionLibrary.nextSignalSamples}`).click();
+    await expect(recordedSignals[0].$(".training-signal-exact")).toHaveText(
+      expect.stringContaining("Sample 101 of 101"),
+    );
+    await recordedSignals[0].$(`aria/${english.training.sessionLibrary.previousSignalSamples}`).click();
+    await expect(recordedSignals[0].$(".training-signal-exact")).toHaveText(
+      expect.stringContaining("Samples 1–100 of 101"),
+    );
+    await exactSignalToggle.click();
+    expect(await recordedSignals[0].$$(".training-signal-exact")).toHaveLength(0);
     await $("aria/Back to calendar").click();
     await $("aria/Chronology").click();
     await expectTrainingRows([
@@ -2061,6 +2097,16 @@ describe("packaged FitFreed import journey", () => {
     );
     await expect($(".training-route-primary .training-route-privacy")).toHaveText(
       expect.stringContaining(spanish.training.sessionLibrary.routePrivacy),
+    );
+    await browser.waitUntil(async () => (await $$(".training-signal")).length === 3, {
+      timeout: 10_000,
+      timeoutMsg: "localized recorded signals were not displayed",
+    });
+    await expect($(".training-exercise-signals > h5")).toHaveText(
+      spanish.training.sessionLibrary.signalHeading,
+    );
+    await expect($(".training-signal-primary .training-signal-heading h6")).toHaveText(
+      spanish.training.sessionLibrary.signalKinds["heart-rate"],
     );
     const spanishTrainingDetailValues = await $$(`dl[aria-label="${spanish.training.sessionLibrary.summaryMeasurements}"] dd`);
     await expect(spanishTrainingDetailValues[5]).toHaveText("10.500 m");

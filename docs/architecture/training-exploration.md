@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production persists provider-neutral session summaries, mapped exercise/lap/pause structure, primary and transition routes with exact points, user-authored sport classifications, and a disposable discovery workspace. Full-history search, chronology, calendar projection, comparison selection, restart restoration, structural detail, bounded local route traces, and exact route pagination are implemented. Temporal signals, zones, exact signal samples, provenance presentation, and user-authored segmentation continue through E4 of the [MVP experience delivery plan](../plans/mvp-experience-delivery.md).
+Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production persists provider-neutral session summaries, mapped exercise/lap/pause structure, primary and transition routes with exact points, supported exercise and transition signals with exact samples, user-authored sport classifications, and a disposable discovery workspace. Full-history search, chronology, calendar projection, comparison selection, restart restoration, structural detail, bounded local route traces, exact route pagination, gap-aware bounded signal charts, and exact signal pagination are implemented. Provider-defined zones, provenance presentation, reusable criteria, and user-authored segmentation continue through E4 of the [MVP experience delivery plan](../plans/mvp-experience-delivery.md).
 
 ## Ownership
 
@@ -72,9 +72,19 @@ exact query returns stable contiguous pages of at most 250 points. Primary and t
 separate, point ordinals prove visual provenance, and no route query loads the complete geometry merely to
 draw its bounded trace.
 
+The independent [training-session signal read models](../data-formats/insights/training-session-signal-v1.md)
+preserve unevaluated, absent, present-empty, populated, unsupported-series-count, and unavailable-sample
+states. The overview selects at most 500 exact source slots per series with the same documented
+endpoint-preserving `source-ordinal-v1` projection. Persistence derives interval gap evidence while selecting
+those slots, so null values split rather than bridge the visible trace even when the null slot itself is not
+part of the bounded projection.
+The exact query returns stable contiguous pages of at most 250 slots. Exercise and transition collections,
+kind, unit, interval, source ordinal, and sample ordinal remain explicit, and no signal query loads a complete
+series merely to draw a bounded chart.
+
 Mapping changes reassess identical source bytes. Version 2 training mapping can strictly enrich a summary
-written by version 1, and version 3 can strictly enrich equal version-2 summary and structure with evaluated
-route evidence. A later source revision atomically replaces summary and all mapped children. Older or
+written by version 1, version 3 can strictly enrich equal version-2 summary and structure with evaluated
+route evidence, and version 4 can strictly enrich version-3 evidence with supported temporal signals. A later source revision atomically replaces summary and all mapped children. Older or
 conflicting evidence changes neither. The visibility transaction publishes one complete result or leaves the
 previous session intact; duplicate sessions, exercises, routes, or points are never an enrichment strategy.
 Child identity, order, provenance, and conflict semantics are fixed by the canonical, mapping, read-model,
@@ -82,4 +92,7 @@ and persistence specifications.
 
 ## Privacy boundary
 
-Route geometry is local sensitive data. The first renderer uses local SVG and no external map or tile request. Route export, MCP access, and future remote cartography each require their own explicit permission or privacy boundary; the existence of a route in the library grants none of them.
+Route geometry and physiological or performance signals are local sensitive data. The first renderers use
+local SVG and no external visualization service. Route or signal export, MCP access, and future remote
+cartography each require their own explicit permission or privacy boundary; the existence of evidence in the
+library grants none of them.

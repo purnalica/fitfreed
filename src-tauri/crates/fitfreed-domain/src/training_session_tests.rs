@@ -69,12 +69,43 @@ fn routes() -> TrainingSessionRouteAssessment {
     }
 }
 
+fn signals() -> TrainingSessionSignalAssessment {
+    TrainingSessionSignalAssessment {
+        exercises: Some(vec![TrainingExerciseSignalAssessment {
+            exercise_id: "synthetic-exercise".to_owned(),
+            ordinal: 0,
+            signals: Some(TrainingSignals {
+                primary: Some(vec![TrainingSignalSeries {
+                    ordinal: 0,
+                    kind: TrainingSignalKind::HeartRate,
+                    unit: TrainingSignalUnit::BeatsPerMinute,
+                    interval_milliseconds: 1_000,
+                    samples: vec![
+                        TrainingSignalSample {
+                            ordinal: 0,
+                            value: Some(120.0),
+                        },
+                        TrainingSignalSample {
+                            ordinal: 1,
+                            value: None,
+                        },
+                    ],
+                }]),
+                transition: None,
+                unsupported_primary_series_count: 0,
+                unsupported_transition_series_count: 0,
+            }),
+        }]),
+    }
+}
+
 #[test]
 fn creates_and_recognizes_equivalent_complete_session_records() {
     let incoming = TrainingSessionRecord {
         summary: summary(3_600_000),
         structure: Some(structure()),
         routes: Some(routes()),
+        signals: Some(signals()),
     };
 
     assert_eq!(
@@ -97,11 +128,13 @@ fn enriches_a_summary_imported_before_structure_mapping() {
         summary: summary(3_600_000),
         structure: None,
         routes: None,
+        signals: None,
     };
     let incoming = TrainingSessionRecord {
         summary: existing.summary.clone(),
         structure: Some(structure()),
         routes: Some(routes()),
+        signals: Some(signals()),
     };
 
     assert_eq!(
@@ -120,16 +153,19 @@ fn enriches_structure_and_routes_without_regressing_evaluated_evidence() {
         summary: summary(3_600_000),
         structure: None,
         routes: None,
+        signals: None,
     };
     let structure_only = TrainingSessionRecord {
         summary: summary_only.summary.clone(),
         structure: Some(structure()),
         routes: None,
+        signals: None,
     };
     let complete = TrainingSessionRecord {
         summary: summary_only.summary.clone(),
         structure: Some(structure()),
         routes: Some(routes()),
+        signals: Some(signals()),
     };
 
     assert_eq!(
@@ -153,6 +189,7 @@ fn enriches_structure_and_routes_without_regressing_evaluated_evidence() {
         summary: complete.summary.clone(),
         structure: None,
         routes: complete.routes.clone(),
+        signals: complete.signals.clone(),
     };
     assert_eq!(
         decide_training_session_record_reconciliation(
@@ -170,6 +207,7 @@ fn applies_revision_order_to_changed_summary_or_structure() {
         summary: summary(3_600_000),
         structure: Some(structure()),
         routes: Some(routes()),
+        signals: Some(signals()),
     };
     let mut changed_structure = structure();
     changed_structure.exercises.as_mut().unwrap()[0].manual_laps = Some(Vec::new());
@@ -177,6 +215,7 @@ fn applies_revision_order_to_changed_summary_or_structure() {
         summary: summary(3_700_000),
         structure: Some(changed_structure),
         routes: Some(routes()),
+        signals: Some(signals()),
     };
 
     for (order, expected) in [
@@ -190,4 +229,35 @@ fn applies_revision_order_to_changed_summary_or_structure() {
             expected
         );
     }
+}
+
+#[test]
+fn enriches_signals_without_permitting_an_evaluated_regression() {
+    let existing = TrainingSessionRecord {
+        summary: summary(3_600_000),
+        structure: Some(structure()),
+        routes: Some(routes()),
+        signals: None,
+    };
+    let complete = TrainingSessionRecord {
+        signals: Some(signals()),
+        ..existing.clone()
+    };
+
+    assert_eq!(
+        decide_training_session_record_reconciliation(
+            Some(&existing),
+            &complete,
+            RevisionOrder::Equal
+        ),
+        ReconciliationDecision::Enrich
+    );
+    assert_eq!(
+        decide_training_session_record_reconciliation(
+            Some(&complete),
+            &existing,
+            RevisionOrder::Equal
+        ),
+        ReconciliationDecision::Conflict
+    );
 }

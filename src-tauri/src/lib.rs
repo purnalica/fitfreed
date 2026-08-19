@@ -28,7 +28,9 @@ use fitfreed_application::{
     query_source_acquisition_guides as build_source_acquisition_guides,
     query_training_route_points as build_training_route_points,
     query_training_session_routes as build_training_session_routes,
+    query_training_session_signals as build_training_session_signals,
     query_training_session_structure as build_training_session_structure,
+    query_training_signal_samples as build_training_signal_samples,
     query_training_sports as build_training_sports,
     reset_application_preferences as reset_preferences_through_port,
     save_application_preferences as save_preferences_through_port,
@@ -65,8 +67,10 @@ use presentation::{
     TrainingRoutePointsResultDto, TrainingSessionCalendarDto, TrainingSessionCalendarRequestDto,
     TrainingSessionRouteQueryDto, TrainingSessionRoutesResultDto, TrainingSessionSearchPageDto,
     TrainingSessionSearchRequestDto, TrainingSessionSelectionDto,
-    TrainingSessionSelectionRequestDto, TrainingSessionStructureQueryDto,
-    TrainingSessionStructureResultDto, TrainingSportsOverviewDto, UpdateCheckOutcomeDto,
+    TrainingSessionSelectionRequestDto, TrainingSessionSignalsQueryDto,
+    TrainingSessionSignalsResultDto, TrainingSessionStructureQueryDto,
+    TrainingSessionStructureResultDto, TrainingSignalSamplesQueryDto,
+    TrainingSignalSamplesResultDto, TrainingSportsOverviewDto, UpdateCheckOutcomeDto,
     UpdateRecoveryOutcomeDto,
 };
 use serde::{Deserialize, Serialize};
@@ -423,6 +427,28 @@ fn query_training_route_points(
 ) -> Result<TrainingRoutePointsResultDto, CommandErrorDto> {
     let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     build_training_route_points(&SqliteTrainingLibrary::new(path), query.into())
+        .map(Into::into)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn query_training_session_signals(
+    app: AppHandle,
+    query: TrainingSessionSignalsQueryDto,
+) -> Result<TrainingSessionSignalsResultDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    build_training_session_signals(&SqliteTrainingLibrary::new(path), query.into())
+        .map(Into::into)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn query_training_signal_samples(
+    app: AppHandle,
+    query: TrainingSignalSamplesQueryDto,
+) -> Result<TrainingSignalSamplesResultDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    build_training_signal_samples(&SqliteTrainingLibrary::new(path), query.into())
         .map(Into::into)
         .map_err(CommandErrorDto::from)
 }
@@ -1440,6 +1466,8 @@ pub fn run() {
             query_training_session_structure,
             query_training_session_routes,
             query_training_route_points,
+            query_training_session_signals,
+            query_training_signal_samples,
             load_training_discovery_workspace,
             save_training_discovery_workspace,
             clear_training_discovery_workspace,

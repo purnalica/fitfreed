@@ -338,8 +338,60 @@
       "routePointPage": "Point {from} of {total}",
       "previousRoutePoints": "Previous route points",
       "nextRoutePoints": "Next route points",
+      "signalHeading": "Recorded signals",
+      "signalIntro": "Explore how recorded measurements changed during this exercise. Gaps remain visible and are never replaced with invented values.",
+      "signalLoading": "Loading recorded signals…",
+      "signalFailed": "Recorded signals could not be loaded from your local library.",
+      "signalNotEvaluated": "This session was imported before signals were evaluated. Reimport its source archive to enrich it without creating a duplicate.",
+      "signalExercisesNotProvided": "The source did not provide exercises from which signals could be assessed.",
+      "signalExercisesProvidedEmpty": "The source provided no exercises from which signals could be assessed.",
+      "signalContainerNotProvided": "The source did not provide a signal container for this exercise.",
+      "primarySignals": "Exercise signals",
+      "transitionSignals": "Transition signals",
+      "signalsNotProvided": "The source did not provide this signal collection.",
+      "signalsProvidedEmpty": "The source provided this signal collection with no entries.",
+      "signalKinds": {
+        "heart-rate": "Heart rate",
+        "speed": "Speed",
+        "distance": "Distance",
+        "altitude": "Altitude",
+        "cadence": "Cadence",
+        "temperature": "Temperature",
+        "left-crank-power": "Left crank power"
+      },
+      "signalUnits": {
+        "beats-per-minute": "bpm",
+        "kilometers-per-hour": "km/h",
+        "meters": "m",
+        "rotations-per-minute": "rpm",
+        "degrees-celsius": "°C",
+        "watts": "W"
+      },
+      "signalChartSummary": "{kind} chart with {available} recorded values out of {total} samples, measured in {unit}. Gaps show missing source values.",
+      "signalCoverage": "Recorded values",
+      "signalInterval": "Sampling interval",
+      "signalProjection": "This bounded chart preserves source order and endpoints. Inspect exact samples for the complete recorded series.",
+      "signalEmpty": "The signal series contains no samples.",
+      "signalNoRecordedValues": "The signal series contains samples, but none has a recorded value.",
+      "unsupportedSignalSeries": {
+        "one": "{count} unsupported source series was preserved as an explicit count.",
+        "other": "{count} unsupported source series were preserved as an explicit count."
+      },
+      "viewExactSignalSamples": "Inspect exact {kind} samples",
+      "hideExactSignalSamples": "Hide exact {kind} samples",
+      "exactSignalHeading": "Exact {kind} samples",
+      "exactSignalLoading": "Loading exact signal samples…",
+      "exactSignalFailed": "Exact signal samples could not be loaded from your local library.",
+      "retryExactSignal": "Retry exact samples",
+      "signalSampleNumber": "Sample",
+      "signalElapsed": "Elapsed time",
+      "signalValue": "Recorded value",
+      "signalSamplesPage": "Samples {from}–{through} of {total}",
+      "signalSamplePage": "Sample {from} of {total}",
+      "previousSignalSamples": "Previous signal samples",
+      "nextSignalSamples": "Next signal samples",
       "structureLimitationsHeading": "Current evidence boundary",
-      "structureLimitations": "Time-series signals, zones, and exact signal samples remain in the source archive but are not yet inspectable in this build. FitFreed does not infer or fabricate them."
+      "structureLimitations": "Provider-defined zones and unsupported signal types remain outside this view. Their absence is explicit; FitFreed does not infer or fabricate them."
     },
     "sports": {
       "heading": "Your sports",
@@ -771,8 +823,8 @@
         "action": "No action is needed."
       },
       "mapped-training-evidence": {
-        "reason": "Session summaries, exercise structure, laps, pauses, and recorded routes are mapped; time-series signals and zones stay only in the original ZIP.",
-        "action": "Keep the original ZIP if you need the excluded training signals."
+        "reason": "Session summaries, exercise structure, laps, pauses, recorded routes, and supported time-series signals are mapped; provider zones and unsupported signal types stay only in the original ZIP.",
+        "action": "Keep the original ZIP if you need provider zones or unsupported signal types."
       },
       "mapped-sleep-periods": {
         "reason": "Sleep periods, phases, and interruptions are mapped; alarm behavior and source-only metadata stay only in the original ZIP.",

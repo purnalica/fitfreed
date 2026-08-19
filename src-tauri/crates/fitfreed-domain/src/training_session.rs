@@ -83,11 +83,68 @@ pub struct TrainingSessionRouteAssessment {
     pub exercises: Option<Vec<TrainingExerciseRouteAssessment>>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TrainingSignalKind {
+    HeartRate,
+    Speed,
+    Distance,
+    Altitude,
+    Cadence,
+    Temperature,
+    LeftCrankPower,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TrainingSignalUnit {
+    BeatsPerMinute,
+    KilometersPerHour,
+    Meters,
+    RotationsPerMinute,
+    DegreesCelsius,
+    Watts,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TrainingSignalSample {
+    pub ordinal: usize,
+    pub value: Option<f64>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TrainingSignalSeries {
+    pub ordinal: usize,
+    pub kind: TrainingSignalKind,
+    pub unit: TrainingSignalUnit,
+    pub interval_milliseconds: i64,
+    pub samples: Vec<TrainingSignalSample>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TrainingSignals {
+    pub primary: Option<Vec<TrainingSignalSeries>>,
+    pub transition: Option<Vec<TrainingSignalSeries>>,
+    pub unsupported_primary_series_count: usize,
+    pub unsupported_transition_series_count: usize,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TrainingExerciseSignalAssessment {
+    pub exercise_id: String,
+    pub ordinal: usize,
+    pub signals: Option<TrainingSignals>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TrainingSessionSignalAssessment {
+    pub exercises: Option<Vec<TrainingExerciseSignalAssessment>>,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct TrainingSessionRecord {
     pub summary: TrainingSession,
     pub structure: Option<TrainingSessionStructure>,
     pub routes: Option<TrainingSessionRouteAssessment>,
+    pub signals: Option<TrainingSessionSignalAssessment>,
 }
 
 pub fn decide_training_session_record_reconciliation(
@@ -105,10 +162,15 @@ pub fn decide_training_session_record_reconciliation(
         || (existing.structure.is_none() && incoming.structure.is_some());
     let routes_compatible = existing.routes == incoming.routes
         || (existing.routes.is_none() && incoming.routes.is_some());
+    let signals_compatible = existing.signals == incoming.signals
+        || (existing.signals.is_none() && incoming.signals.is_some());
     if existing.summary == incoming.summary
         && structure_compatible
         && routes_compatible
-        && (existing.structure != incoming.structure || existing.routes != incoming.routes)
+        && signals_compatible
+        && (existing.structure != incoming.structure
+            || existing.routes != incoming.routes
+            || existing.signals != incoming.signals)
     {
         return ReconciliationDecision::Enrich;
     }

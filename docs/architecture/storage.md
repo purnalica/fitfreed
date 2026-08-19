@@ -4,7 +4,7 @@
 
 Current architecture after [ADR 0002](decisions/0002-select-sqlite-storage.md). SQLite is the only storage engine in the application and the authoritative local-library format. It does not replace the documented portable FitFreed data contract.
 
-The current implemented schema and compatibility boundary are documented in the [SQLite version 16 persistence specification](../data-formats/persistence/sqlite-v16.md). It preserves the complete provider-neutral fitness library through version 8, authenticated-update state from version 9, application preferences from version 10, a resumable exploration destination from version 11, user-authored sport classifications from version 12, coherent full-history training discovery evidence from version 13, the disposable training-discovery workspace from version 14, mapped training exercises, laps, and pauses from version 15, and primary and transition route assessments with exact points from version 16. Earlier specifications remain immutable migration history.
+The current implemented schema and compatibility boundary are documented in the [SQLite version 17 persistence specification](../data-formats/persistence/sqlite-v17.md). It preserves the complete provider-neutral fitness library through version 8, authenticated-update state from version 9, application preferences from version 10, a resumable exploration destination from version 11, user-authored sport classifications from version 12, coherent full-history training discovery evidence from version 13, the disposable training-discovery workspace from version 14, mapped training exercises, laps, and pauses from version 15, primary and transition route assessments with exact points from version 16, and regular temporal training signals with exact unavailable slots from version 17. Earlier specifications remain immutable migration history.
 
 ## Ownership
 
@@ -68,6 +68,13 @@ opaque presentation capabilities and no provider or canonical identity. Applicat
 cross-field invariants. Import never rewrites the row; snapshot validation either restores coherent evidence
 or restarts the query while discarding stale session selections. Returning explicitly to Home deletes this
 workspace together with the top-level exploration destination.
+
+Schema version 15 stores provider-neutral exercise, lap, and pause structure below a session. Schema version
+16 adds independent primary and transition routes with exact ordered points. Schema version 17 adds
+independent regular-signal assessments, exact series metadata, and every ordered sample slot. Bounded route
+and signal overviews select deterministic source ordinals in SQL, while exact pages remain available without
+loading a session's complete geometry or sample history. All three evidence groups reconcile with the session
+summary as one atomic record and advance the coherent training-discovery snapshot when changed.
 
 New origin and evidence rows become durable only inside the same visibility transaction as canonical history and operation completion. Existing development origins migrate as unverified origins without invented evidence. Exact-repeat lookup may inherit an origin only from a completed operation whose correlation state is verified; an old package fingerprint alone cannot authorize subject resolution.
 

@@ -27,6 +27,10 @@ The record's independent optional `routes` field follows the assessment states s
 [canonical training-session route version 1](training-session-route.md). It does not make route geometry part
 of this lightweight structure contract.
 
+The independent optional `signals` field follows the assessment states specified by
+[canonical training-session signal version 1](training-session-signal.md). It does not make temporal samples
+part of this lightweight structure contract.
+
 ## `TrainingExercise`
 
 `TrainingSessionStructure.exercises` is an optional ordered collection. Each `TrainingExercise` contains:

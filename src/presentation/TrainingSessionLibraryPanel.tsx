@@ -32,11 +32,20 @@ import type {
   TrainingRoutePointsResult,
   TrainingSessionRoutesResult,
 } from "./training-session-route";
+import type {
+  TrainingSignalKind,
+  TrainingSignalSamplesResult,
+  TrainingSignalSeriesOverview,
+  TrainingSessionSignalsResult,
+  TrainingSignalVisualSample,
+} from "./training-session-signal";
 import type { TrainingSport, TrainingSportsOverview } from "./training-sports";
 
 const PAGE_SIZE = 25;
 const ROUTE_VISUAL_POINT_LIMIT = 400;
 const EXACT_ROUTE_PAGE_SIZE = 100;
+const SIGNAL_VISUAL_SAMPLE_LIMIT = 300;
+const EXACT_SIGNAL_PAGE_SIZE = 100;
 
 function routeSvgPoints(points: TrainingRoutePoint[]): string {
   if (points.length === 0) return "";
@@ -69,6 +78,41 @@ function routeSvgPoints(points: TrainingRoutePoint[]): string {
       : 24 + (maximumLatitude - point.latitude) / latitudeSpan * height;
     return `${x.toFixed(2)},${y.toFixed(2)}`;
   }).join(" ");
+}
+
+function signalSvgSegments(samples: TrainingSignalVisualSample[]): string[] {
+  const available = samples.filter(
+    (sample): sample is TrainingSignalVisualSample & { value: number } => sample.value !== null,
+  );
+  if (available.length === 0) return [];
+  const ordinals = samples.map((sample) => sample.ordinal);
+  const values = available.map((sample) => sample.value);
+  const minimumOrdinal = Math.min(...ordinals);
+  const maximumOrdinal = Math.max(...ordinals);
+  const minimumValue = Math.min(...values);
+  const maximumValue = Math.max(...values);
+  const ordinalSpan = maximumOrdinal - minimumOrdinal;
+  const valueSpan = maximumValue - minimumValue;
+  const segments: string[] = [];
+  let current: string[] = [];
+  samples.forEach((sample) => {
+    if (sample.value === null || sample.gapBefore) {
+      if (current.length > 0) segments.push(current.join(" "));
+      current = [];
+    }
+    if (sample.value === null) {
+      return;
+    }
+    const x = ordinalSpan === 0
+      ? 320
+      : 36 + (sample.ordinal - minimumOrdinal) / ordinalSpan * 568;
+    const y = valueSpan === 0
+      ? 140
+      : 20 + (maximumValue - sample.value) / valueSpan * 240;
+    current.push(`${x.toFixed(2)},${y.toFixed(2)}`);
+  });
+  if (current.length > 0) segments.push(current.join(" "));
+  return segments;
 }
 
 interface TrainingSessionLibraryPanelProps {
@@ -211,6 +255,14 @@ export function TrainingSessionLibraryPanel({
   const [exactRouteLoading, setExactRouteLoading] = useState(false);
   const [exactRouteFailed, setExactRouteFailed] = useState(false);
   const exactRequestSequence = useRef(0);
+  const [detailSignals, setDetailSignals] = useState<TrainingSessionSignalsResult>();
+  const [signalsLoading, setSignalsLoading] = useState(false);
+  const [signalsFailed, setSignalsFailed] = useState(false);
+  const [exactSignalRef, setExactSignalRef] = useState<string>();
+  const [exactSignalSamples, setExactSignalSamples] = useState<TrainingSignalSamplesResult>();
+  const [exactSignalLoading, setExactSignalLoading] = useState(false);
+  const [exactSignalFailed, setExactSignalFailed] = useState(false);
+  const exactSignalRequestSequence = useRef(0);
   const [detailOrigin, setDetailOrigin] = useState<SessionView>("chronology");
   const [comparison, setComparison] = useState<TrainingSessionSearchItem[]>([]);
   const copy = messages.training.sessionLibrary;
@@ -409,6 +461,40 @@ export function TrainingSessionLibraryPanel({
       onError(commandErrorCode(reason));
     }).finally(() => {
       if (active) setDetailLoading(false);
+    });
+    return () => { active = false; };
+  }, [selected?.sessionRef, page?.snapshotRef, onError]);
+
+  useEffect(() => {
+    let active = true;
+    exactSignalRequestSequence.current += 1;
+    setExactSignalRef(undefined);
+    setExactSignalSamples(undefined);
+    setExactSignalLoading(false);
+    setExactSignalFailed(false);
+    if (!selected || !page) {
+      setDetailSignals(undefined);
+      setSignalsLoading(false);
+      setSignalsFailed(false);
+      return () => { active = false; };
+    }
+    setDetailSignals(undefined);
+    setSignalsLoading(true);
+    setSignalsFailed(false);
+    void invoke<TrainingSessionSignalsResult>("query_training_session_signals", {
+      query: {
+        sessionRef: selected.sessionRef,
+        snapshotRef: page.snapshotRef,
+        maxVisualSamples: SIGNAL_VISUAL_SAMPLE_LIMIT,
+      },
+    }).then((result) => {
+      if (active) setDetailSignals(result);
+    }).catch((reason) => {
+      if (!active) return;
+      setSignalsFailed(true);
+      onError(commandErrorCode(reason));
+    }).finally(() => {
+      if (active) setSignalsLoading(false);
     });
     return () => { active = false; };
   }, [selected?.sessionRef, page?.snapshotRef, onError]);
@@ -918,6 +1004,253 @@ export function TrainingSessionLibraryPanel({
         {routes.length === 0
           ? <p>{copy.routesProvidedEmpty}</p>
           : routes.map((route) => routeCard(route, exerciseOrdinal))}
+      </section>
+    );
+  }
+
+  async function loadExactSignalSamples(signalRef: string, offset: number) {
+    if (!selected || !page) return;
+    const sequence = exactSignalRequestSequence.current + 1;
+    exactSignalRequestSequence.current = sequence;
+    setExactSignalRef(signalRef);
+    setExactSignalLoading(true);
+    setExactSignalFailed(false);
+    try {
+      const result = await invoke<TrainingSignalSamplesResult>(
+        "query_training_signal_samples",
+        {
+          query: {
+            sessionRef: selected.sessionRef,
+            signalRef,
+            snapshotRef: page.snapshotRef,
+            offset,
+            limit: EXACT_SIGNAL_PAGE_SIZE,
+          },
+        },
+      );
+      if (exactSignalRequestSequence.current === sequence) setExactSignalSamples(result);
+    } catch (reason) {
+      if (exactSignalRequestSequence.current !== sequence) return;
+      setExactSignalFailed(true);
+      onError(commandErrorCode(reason));
+    } finally {
+      if (exactSignalRequestSequence.current === sequence) setExactSignalLoading(false);
+    }
+  }
+
+  function toggleExactSignalSamples(signalRef: string) {
+    if (exactSignalRef === signalRef) {
+      exactSignalRequestSequence.current += 1;
+      setExactSignalRef(undefined);
+      setExactSignalSamples(undefined);
+      setExactSignalLoading(false);
+      setExactSignalFailed(false);
+      return;
+    }
+    setExactSignalSamples(undefined);
+    void loadExactSignalSamples(signalRef, 0);
+  }
+
+  function signalKindLabel(kind: TrainingSignalKind): string {
+    return copy.signalKinds[kind];
+  }
+
+  function signalSeriesCard(signal: TrainingSignalSeriesOverview, exerciseOrdinal: number) {
+    const kind = signalKindLabel(signal.kind);
+    const unit = copy.signalUnits[signal.unit];
+    const exactOpen = exactSignalRef === signal.signalRef;
+    const segments = signalSvgSegments(signal.visualSamples);
+    const chartSummary = interpolate(copy.signalChartSummary, {
+      kind,
+      available: number.format(signal.availableSampleCount),
+      total: number.format(signal.sampleCount),
+      unit,
+    });
+    const pageFrom = exactSignalSamples && exactSignalSamples.samples.length > 0
+      ? exactSignalSamples.offset + 1
+      : 0;
+    const pageThrough = exactSignalSamples
+      ? exactSignalSamples.offset + exactSignalSamples.samples.length
+      : 0;
+    const pageStatus = exactSignalSamples && exactSignalSamples.samples.length === 1
+      ? interpolate(copy.signalSamplePage, {
+        from: number.format(pageFrom),
+        total: number.format(exactSignalSamples.sampleCount),
+      })
+      : exactSignalSamples ? interpolate(copy.signalSamplesPage, {
+        from: number.format(pageFrom),
+        through: number.format(pageThrough),
+        total: number.format(exactSignalSamples.sampleCount),
+      }) : undefined;
+    const headingId = `training-signal-${exerciseOrdinal}-${signal.role}-${signal.ordinal}`;
+    const exactHeading = interpolate(copy.exactSignalHeading, { kind });
+    return (
+      <article className={`training-signal training-signal-${signal.role}`} key={signal.signalRef}>
+        <div className="training-signal-heading">
+          <h6 id={headingId}>{kind}</h6>
+          <span>{unit}</span>
+        </div>
+        <div className="training-signal-visual">
+          {signal.visualSamples.length === 0 || segments.length === 0 ? (
+            <p>{signal.sampleCount === 0 ? copy.signalEmpty : copy.signalNoRecordedValues}</p>
+          ) : (
+            <svg viewBox="0 0 640 280" role="img" aria-label={chartSummary}>
+              <title>{chartSummary}</title>
+              <rect x="1" y="1" width="638" height="278" rx="18" />
+              {segments.map((points, index) => points.includes(" ")
+                ? <polyline key={`${signal.signalRef}-${index}`} points={points} />
+                : (() => {
+                  const [cx, cy] = points.split(",");
+                  return <circle key={`${signal.signalRef}-${index}`} cx={cx} cy={cy} r="4" />;
+                })())}
+            </svg>
+          )}
+        </div>
+        <dl role="group" aria-label={kind}>
+          <div><dt>{copy.signalCoverage}</dt><dd>{coverageLabel(signal.availableSampleCount, signal.sampleCount)}</dd></div>
+          <div><dt>{copy.signalInterval}</dt><dd>{formatDuration(signal.intervalMilliseconds, locale, messages.training.durationUnits)}</dd></div>
+        </dl>
+        <p className="training-signal-projection">{copy.signalProjection}</p>
+        <button
+          type="button"
+          className="secondary"
+          aria-expanded={exactOpen}
+          aria-controls={`${headingId}-exact`}
+          onClick={() => toggleExactSignalSamples(signal.signalRef)}
+        >
+          {interpolate(
+            exactOpen ? copy.hideExactSignalSamples : copy.viewExactSignalSamples,
+            { kind },
+          )}
+        </button>
+        {exactOpen && (
+          <section
+            id={`${headingId}-exact`}
+            className="training-signal-exact"
+            role="region"
+            aria-label={exactHeading}
+            aria-busy={exactSignalLoading}
+          >
+            <h6>{exactHeading}</h6>
+            {exactSignalLoading && <p role="status">{copy.exactSignalLoading}</p>}
+            {exactSignalFailed && (
+              <div role="alert">
+                <p>{copy.exactSignalFailed}</p>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => void loadExactSignalSamples(signal.signalRef, 0)}
+                >{copy.retryExactSignal}</button>
+              </div>
+            )}
+            {exactSignalSamples?.signalRef === signal.signalRef && (
+              <>
+                <p aria-live="polite">{pageStatus}</p>
+                <div className="training-table-scroll" tabIndex={0}>
+                  <table>
+                    <thead><tr>
+                      <th scope="col">{copy.signalSampleNumber}</th>
+                      <th scope="col">{copy.signalElapsed}</th>
+                      <th scope="col">{copy.signalValue}</th>
+                    </tr></thead>
+                    <tbody>{exactSignalSamples.samples.map((sample) => (
+                      <tr key={sample.ordinal}>
+                        <th scope="row">{number.format(sample.ordinal + 1)}</th>
+                        <td>{formatDuration(sample.elapsedMilliseconds, locale, messages.training.durationUnits)}</td>
+                        <td>{sample.value === null
+                          ? copy.metricUnavailable
+                          : `${coordinate.format(sample.value)} ${unit}`}</td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+                <div className="training-signal-pagination">
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={exactSignalLoading || exactSignalSamples.offset === 0}
+                    onClick={() => void loadExactSignalSamples(
+                      signal.signalRef,
+                      Math.max(0, exactSignalSamples.offset - EXACT_SIGNAL_PAGE_SIZE),
+                    )}
+                  >{copy.previousSignalSamples}</button>
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={exactSignalLoading || exactSignalSamples.nextOffset === null}
+                    onClick={() => void loadExactSignalSamples(
+                      signal.signalRef,
+                      exactSignalSamples.nextOffset ?? exactSignalSamples.offset,
+                    )}
+                  >{copy.nextSignalSamples}</button>
+                </div>
+              </>
+            )}
+          </section>
+        )}
+      </article>
+    );
+  }
+
+  function unsupportedSignalSeries(count: number) {
+    if (count === 0) return null;
+    return (
+      <p className="training-signal-unsupported">
+        {interpolate(
+          count === 1 ? copy.unsupportedSignalSeries.one : copy.unsupportedSignalSeries.other,
+          { count: number.format(count) },
+        )}
+      </p>
+    );
+  }
+
+  function signalCollection(
+    heading: string,
+    series: TrainingSignalSeriesOverview[] | null,
+    unsupportedCount: number,
+    exerciseOrdinal: number,
+  ) {
+    return (
+      <section className="training-signal-collection">
+        <h6>{heading}</h6>
+        {series === null ? <p>{copy.signalsNotProvided}</p>
+          : series.length === 0 && unsupportedCount === 0
+            ? <p>{copy.signalsProvidedEmpty}</p>
+            : series.map((signal) => signalSeriesCard(signal, exerciseOrdinal))}
+        {unsupportedSignalSeries(unsupportedCount)}
+      </section>
+    );
+  }
+
+  function exerciseSignalEvidence(exerciseRef: string, exerciseOrdinal: number) {
+    const assessed = detailSignals?.signals?.exercises?.find(
+      (exercise) => exercise.exerciseRef === exerciseRef,
+    );
+    if (!assessed) return null;
+    if (assessed.signals === null) {
+      return (
+        <section className="training-exercise-signals">
+          <h5>{copy.signalHeading}</h5>
+          <p>{copy.signalContainerNotProvided}</p>
+        </section>
+      );
+    }
+    return (
+      <section className="training-exercise-signals">
+        <h5>{copy.signalHeading}</h5>
+        <p>{copy.signalIntro}</p>
+        {signalCollection(
+          copy.primarySignals,
+          assessed.signals.primary,
+          assessed.signals.unsupportedPrimarySeriesCount,
+          exerciseOrdinal,
+        )}
+        {signalCollection(
+          copy.transitionSignals,
+          assessed.signals.transition,
+          assessed.signals.unsupportedTransitionSeriesCount,
+          exerciseOrdinal,
+        )}
       </section>
     );
   }
@@ -1504,6 +1837,8 @@ export function TrainingSessionLibraryPanel({
             {detailFailed && <p role="alert">{copy.structureFailed}</p>}
             {routesLoading && <p role="status">{copy.routeLoading}</p>}
             {routesFailed && <p role="alert">{copy.routeFailed}</p>}
+            {signalsLoading && <p role="status">{copy.signalLoading}</p>}
+            {signalsFailed && <p role="alert">{copy.signalFailed}</p>}
             {!detailLoading && detailStructure?.structure === null && (
               <p>{copy.structureNotEvaluated}</p>
             )}
@@ -1521,6 +1856,15 @@ export function TrainingSessionLibraryPanel({
             )}
             {detailRoutes?.routes?.exercises?.length === 0 && (
               <p>{copy.routeExercisesProvidedEmpty}</p>
+            )}
+            {!signalsLoading && detailSignals?.signals === null && (
+              <p>{copy.signalNotEvaluated}</p>
+            )}
+            {detailSignals?.signals?.exercises === null && (
+              <p>{copy.signalExercisesNotProvided}</p>
+            )}
+            {detailSignals?.signals?.exercises?.length === 0 && (
+              <p>{copy.signalExercisesProvidedEmpty}</p>
             )}
             {detailStructure?.structure?.exercises?.map((exercise) => (
               <article className="training-exercise" key={exercise.exerciseRef}>
@@ -1565,6 +1909,7 @@ export function TrainingSessionLibraryPanel({
                     )}
                 </section>
                 {exerciseRouteEvidence(exercise.exerciseRef, exercise.ordinal)}
+                {exerciseSignalEvidence(exercise.exerciseRef, exercise.ordinal)}
               </article>
             ))}
             <aside className="training-structure-limitation">

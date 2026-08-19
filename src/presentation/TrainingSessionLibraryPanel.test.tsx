@@ -15,6 +15,10 @@ import type {
   TrainingRoutePointsResult,
   TrainingSessionRoutesResult,
 } from "./training-session-route";
+import type {
+  TrainingSignalSamplesResult,
+  TrainingSessionSignalsResult,
+} from "./training-session-signal";
 import { TrainingSessionLibraryPanel } from "./TrainingSessionLibraryPanel";
 import type { TrainingSportsOverview } from "./training-sports";
 
@@ -44,6 +48,21 @@ function emptyWorkspaceCommand(command: string, arguments_: unknown) {
     return Promise.resolve(trainingRoutePoints(
       query.sessionRef,
       query.routeRef,
+      query.offset,
+      query.limit,
+    ));
+  }
+  if (command === "query_training_session_signals") {
+    const query = (arguments_ as { query: { sessionRef: string } }).query;
+    return Promise.resolve(trainingSignals(query.sessionRef));
+  }
+  if (command === "query_training_signal_samples") {
+    const query = (arguments_ as {
+      query: { sessionRef: string; signalRef: string; offset: number; limit: number };
+    }).query;
+    return Promise.resolve(trainingSignalSamples(
+      query.sessionRef,
+      query.signalRef,
       query.offset,
       query.limit,
     ));
@@ -240,6 +259,86 @@ function trainingRoutePoints(
     points,
     nextOffset: offset + points.length < primaryRoutePoints.length
       ? offset + points.length
+      : null,
+  };
+}
+
+const heartRateSignalRef = `signal-${"6".repeat(64)}`;
+const heartRateSamples = Array.from({ length: 601 }, (_, ordinal) => ({
+  ordinal,
+  elapsedMilliseconds: String(ordinal * 1_000),
+  value: ordinal === 51 ? null : 120 + ordinal / 2,
+}));
+const heartRateVisualSamples = Array.from({ length: 300 }, (_, index) => {
+  const ordinal = Math.floor(index * (heartRateSamples.length - 1) / 299);
+  const sample = heartRateSamples[ordinal]!;
+  const previousOrdinal = index === 0
+    ? undefined
+    : Math.floor((index - 1) * (heartRateSamples.length - 1) / 299);
+  return {
+    ...sample,
+    gapBefore: previousOrdinal !== undefined
+      && heartRateSamples.slice(previousOrdinal + 1, ordinal + 1)
+        .some(({ value }) => value === null),
+  };
+});
+
+function trainingSignals(sessionRef: string): TrainingSessionSignalsResult {
+  return {
+    snapshotRef,
+    sessionRef,
+    signals: {
+      exercises: [{
+        exerciseRef: `exercise-${"1".repeat(64)}`,
+        ordinal: 0,
+        signals: {
+          primary: [{
+            signalRef: heartRateSignalRef,
+            ordinal: 0,
+            role: "primary",
+            kind: "heart-rate",
+            unit: "beats-per-minute",
+            intervalMilliseconds: "1000",
+            sampleCount: heartRateSamples.length,
+            availableSampleCount: 600,
+            projection: "source-ordinal-v1",
+            visualSamples: heartRateVisualSamples,
+          }],
+          transition: [],
+          unsupportedPrimarySeriesCount: 1,
+          unsupportedTransitionSeriesCount: 0,
+        },
+      }, {
+        exerciseRef: `exercise-${"4".repeat(64)}`,
+        ordinal: 1,
+        signals: null,
+      }],
+    },
+  };
+}
+
+function trainingSignalSamples(
+  sessionRef: string,
+  signalRef: string,
+  offset: number,
+  limit: number,
+): TrainingSignalSamplesResult {
+  const samples = heartRateSamples.slice(offset, offset + limit);
+  return {
+    snapshotRef,
+    sessionRef,
+    signalRef,
+    exerciseRef: `exercise-${"1".repeat(64)}`,
+    ordinal: 0,
+    role: "primary",
+    kind: "heart-rate",
+    unit: "beats-per-minute",
+    intervalMilliseconds: "1000",
+    sampleCount: heartRateSamples.length,
+    offset,
+    samples,
+    nextOffset: offset + samples.length < heartRateSamples.length
+      ? offset + samples.length
       : null,
   };
 }
@@ -589,6 +688,43 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(within(firstExercise!).queryByRole("region", {
       name: "Exact recorded route points",
     })).not.toBeInTheDocument();
+    expect(await within(firstExercise!).findByRole("heading", { name: "Recorded signals" }))
+      .toBeVisible();
+    expect(within(firstExercise!).getByRole("heading", { name: "Heart rate" })).toBeVisible();
+    expect(within(firstExercise!).getByRole("img", {
+      name: /Heart rate chart with 600 recorded values out of 601 samples/,
+    })).toBeVisible();
+    expect(within(firstExercise!).getByRole("img", {
+      name: /Heart rate chart/,
+    }).querySelectorAll("polyline")).toHaveLength(2);
+    expect(firstExercise).toHaveTextContent("1 unsupported source series was preserved as an explicit count");
+    await user.click(within(firstExercise!).getByRole("button", {
+      name: "Inspect exact Heart rate samples",
+    }));
+    const exactSignalRegion = await within(firstExercise!).findByRole("region", {
+      name: "Exact Heart rate samples",
+    });
+    expect(within(exactSignalRegion).getAllByRole("row")).toHaveLength(101);
+    expect(exactSignalRegion).toHaveTextContent("Not recorded");
+    await user.click(within(exactSignalRegion).getByRole("button", {
+      name: "Next signal samples",
+    }));
+    expect(await within(exactSignalRegion).findByText("Samples 101–200 of 601")).toBeVisible();
+    await user.click(within(exactSignalRegion).getByRole("button", {
+      name: "Previous signal samples",
+    }));
+    expect(await within(exactSignalRegion).findByText("Samples 1–100 of 601")).toBeVisible();
+    await user.click(within(firstExercise!).getByRole("button", {
+      name: "Hide exact Heart rate samples",
+    }));
+    expect(within(firstExercise!).queryByRole("region", {
+      name: "Exact Heart rate samples",
+    })).not.toBeInTheDocument();
+    const secondExercise = within(detail!).getByRole("heading", { name: "Exercise 2" })
+      .closest("article");
+    expect(secondExercise).toHaveTextContent(
+      "The source did not provide a signal container for this exercise.",
+    );
     expect(detail).toHaveTextContent("5,000.25 m");
     expect(detail).toHaveTextContent("Provided by the source with no entries.");
     expect(detail).not.toHaveTextContent("exercise-");
@@ -792,6 +928,9 @@ describe("TrainingSessionLibraryPanel", () => {
       }
       if (command === "query_training_session_routes") {
         return Promise.resolve(trainingRoutes(arguments_.query.sessionRef));
+      }
+      if (command === "query_training_session_signals") {
+        return Promise.resolve(trainingSignals(arguments_.query.sessionRef));
       }
       throw new Error(`Unexpected command: ${command}`);
     });

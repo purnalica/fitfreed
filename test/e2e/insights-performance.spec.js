@@ -12,9 +12,11 @@ const english = JSON.parse(
   fs.readFileSync(new URL("../../src/locales/en-US.json", import.meta.url), "utf8"),
 );
 const insightsPerformanceArchive = process.env.FITFREED_E2E_INSIGHTS_PERFORMANCE_ARCHIVE;
+const campaignTimeoutMilliseconds = 420_000;
 
 describe("packaged FitFreed insight performance", () => {
-  it("meets domain and longitudinal insight budgets in an isolated library", async () => {
+  it("meets domain and longitudinal insight budgets in an isolated library", async function () {
+    this.timeout(campaignTimeoutMilliseconds);
     await runInsightsPerformanceJourney({
       archivePath: insightsPerformanceArchive,
       goToHome,

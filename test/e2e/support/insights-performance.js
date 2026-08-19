@@ -64,6 +64,10 @@ function measurementEvidence(timings, budget) {
   };
 }
 
+function reportPhase(phase) {
+  process.stdout.write(`${JSON.stringify({ performancePhase: phase })}\n`);
+}
+
 function safeCommand(program, arguments_) {
   try {
     return execFileSync(program, arguments_, { encoding: "utf8" }).trim();
@@ -95,6 +99,7 @@ function evidence(measurements) {
       calendarDays,
       origins: 1,
       trainingSessions: calendarDays,
+      largestTrainingSignalSamples: 20_001,
       sleepPeriods: calendarDays,
       recoveryNights: calendarDays,
     },
@@ -333,6 +338,87 @@ async function navigateTrainingCalendar(scenario) {
     setTimeout(observeResult, 16);
   }, scenario);
   if (result.error) throw new Error(`${result.error}: ${scenario.heading}`);
+  return result.duration;
+}
+
+async function measureTrainingSignalOverview() {
+  const result = await browser.executeAsync((done) => {
+    const detailButton = document.querySelector(
+      '.training-session-results button[aria-label^="View session details"]',
+    );
+    if (!detailButton) {
+      done({ duration: null, error: "training detail navigation was not available" });
+      return;
+    }
+    const started = window.performance.now();
+    detailButton.click();
+    function observeResult() {
+      const chart = document.querySelector(".training-signal svg");
+      if (chart?.getAttribute("aria-label")?.includes("20,001 samples")) {
+        document.documentElement.getBoundingClientRect();
+        setTimeout(() => done({
+          duration: window.performance.now() - started,
+          error: null,
+        }));
+        return;
+      }
+      if (window.performance.now() - started > 5_000) {
+        done({ duration: null, error: "bounded training signal overview was not rendered" });
+        return;
+      }
+      setTimeout(observeResult, 16);
+    }
+    setTimeout(observeResult, 16);
+  });
+  if (result.error) throw new Error(result.error);
+  await $(".training-detail-heading button").click();
+  await browser.waitUntil(
+    async () => (await $$(".training-detail")).length === 0,
+    { timeout: 5_000, timeoutMsg: "training signal detail did not close" },
+  );
+  return result.duration;
+}
+
+async function measureTrainingSignalExactPage() {
+  await $('.training-session-results button[aria-label^="View session details"]').click();
+  await browser.waitUntil(
+    async () => (await $$(".training-signal button[aria-expanded]")).length === 1,
+    { timeout: 5_000, timeoutMsg: "training signal exact-sample action was not available" },
+  );
+  const result = await browser.executeAsync((done) => {
+    const exactButton = document.querySelector(".training-signal button[aria-expanded]");
+    if (!exactButton) {
+      done({ duration: null, error: "training signal exact-sample action was not available" });
+      return;
+    }
+    const started = window.performance.now();
+    exactButton.click();
+    function observeResult() {
+      const rows = document.querySelectorAll(".training-signal-exact tbody tr");
+      const status = document.querySelector(".training-signal-exact [aria-live='polite']")
+        ?.textContent;
+      if (rows.length === 100 && status === "Samples 1–100 of 20,001") {
+        document.documentElement.getBoundingClientRect();
+        setTimeout(() => done({
+          duration: window.performance.now() - started,
+          error: null,
+        }));
+        return;
+      }
+      if (window.performance.now() - started > 5_000) {
+        done({ duration: null, error: "exact training signal sample page was not rendered" });
+        return;
+      }
+      setTimeout(observeResult, 16);
+    }
+    setTimeout(observeResult, 16);
+  });
+  if (result.error) throw new Error(result.error);
+  await $(".training-detail-heading button").click();
+  await browser.waitUntil(
+    async () => (await $$(".training-detail")).length === 0,
+    { timeout: 5_000, timeoutMsg: "exact training signal detail did not close" },
+  );
   return result.duration;
 }
 
@@ -774,6 +860,7 @@ export async function runInsightsPerformanceJourney({
   selectArchive,
   selectLocale,
 }) {
+  reportPhase("import");
   await selectLocale("en-US", "sources");
   const dialogMock = await browser.tauri.mock("plugin:dialog|open");
   await selectArchive(dialogMock, archivePath);
@@ -783,6 +870,7 @@ export async function runInsightsPerformanceJourney({
   await waitForTrainingCoverage();
   await waitForSleepCoverage();
   await waitForRecoveryCoverage();
+  reportPhase("activity");
   await openHomeQuestion("review-activity-steps", "#activity-heading");
 
   const commonRanges = [
@@ -849,6 +937,7 @@ export async function runInsightsPerformanceJourney({
     compareActivityRanges,
   );
 
+  reportPhase("training");
   await openHomeQuestion("explore-training-sessions", ".training-insights");
   await browser.waitUntil(
     async () => (await $$(".training-session-results > li")).length === 25,
@@ -923,7 +1012,21 @@ export async function runInsightsPerformanceJourney({
   );
   expect(await $$(".training-session-comparison thead th")).toHaveLength(5);
   await $(".training-session-comparison button.secondary").click();
+  reportPhase("training-signals");
+  await measureAlternating(warmUpRuns, [null], measureTrainingSignalOverview);
+  const trainingSignalOverviewTimings = await measureAlternating(
+    7,
+    [null],
+    measureTrainingSignalOverview,
+  );
+  await measureAlternating(warmUpRuns, [null], measureTrainingSignalExactPage);
+  const trainingSignalExactPageTimings = await measureAlternating(
+    7,
+    [null],
+    measureTrainingSignalExactPage,
+  );
 
+  reportPhase("sleep");
   await openHomeQuestion("review-sleep-patterns", ".sleep-insights");
   const sleepFilterRange = ([from, through]) => applySleepRange(from, through);
   await measureAlternating(warmUpRuns, commonRanges, sleepFilterRange);
@@ -953,6 +1056,7 @@ export async function runInsightsPerformanceJourney({
   await measureAlternating(warmUpRuns, sleepDetailDates, openSleepDetail);
   const sleepDetailTimings = await measureAlternating(20, sleepDetailDates, openSleepDetail);
 
+  reportPhase("recovery");
   await openHomeQuestion("review-recovery-patterns", ".recovery-insights");
   const recoveryFilterRange = ([from, through]) => applyRecoveryRange(from, through);
   await measureAlternating(warmUpRuns, commonRanges, recoveryFilterRange);
@@ -994,6 +1098,7 @@ export async function runInsightsPerformanceJourney({
     openRecoveryDetail,
   );
 
+  reportPhase("longitudinal");
   await openHomeQuestion("align-history", ".longitudinal-insights");
   const longitudinalFilterRange = ([from, through]) => applyLongitudinalRange(from, through);
   await measureAlternating(warmUpRuns, commonRanges, longitudinalFilterRange);
@@ -1038,6 +1143,8 @@ export async function runInsightsPerformanceJourney({
       maximumFilter: measurementEvidence(trainingMaximumFilterTimings, 2_000),
       commonComparison: measurementEvidence(trainingCommonComparisonTimings, 500),
       calendarNavigation: measurementEvidence(trainingCalendarTimings, 500),
+      signalOverview: measurementEvidence(trainingSignalOverviewTimings, 1_000),
+      signalExactPage: measurementEvidence(trainingSignalExactPageTimings, 500),
     },
     sleep: {
       commonFilter: measurementEvidence(sleepCommonFilterTimings, 500),

@@ -57,6 +57,17 @@ pub use training_route::{
     TrainingSessionRouteQuery, TrainingSessionRoutesResult, TrainingSessionRoutesView,
 };
 
+mod training_signal;
+pub use training_signal::{
+    query_training_session_signals, query_training_signal_samples, PersistedTrainingSessionSignals,
+    PersistedTrainingSignalSamples, TrainingExerciseSignalsView, TrainingSessionSignalPort,
+    TrainingSessionSignalPortError, TrainingSessionSignalsQuery, TrainingSessionSignalsResult,
+    TrainingSessionSignalsView, TrainingSignalCollectionView, TrainingSignalKindView,
+    TrainingSignalRoleView, TrainingSignalSampleView, TrainingSignalSamplesQuery,
+    TrainingSignalSamplesResult, TrainingSignalSeriesOverview, TrainingSignalUnitView,
+    TrainingSignalVisualSampleView,
+};
+
 #[cfg(test)]
 mod training_discovery_tests;
 
@@ -65,6 +76,9 @@ mod training_detail_tests;
 
 #[cfg(test)]
 mod training_route_tests;
+
+#[cfg(test)]
+mod training_signal_tests;
 
 #[cfg(test)]
 mod sport_discovery_tests;

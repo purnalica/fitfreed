@@ -454,9 +454,31 @@ automated accessibility. The complete fast lane passed 135 automation tests, 90 
 
 The local Apple Silicon read-model campaign stored one million independently generated route points. The
 bounded 400-point overview measured 7.303 ms p95 and the 250-point exact page measured 12.167 ms p95 against
-the 500 ms budget, with 21.391 MiB peak process memory for the complete campaign. E4 remains active for
-temporal signals, zones, exact signal samples, provenance presentation, reusable user criteria, progressive
-signal access, and their privacy and performance evidence.
+the 500 ms budget, with 21.391 MiB peak process memory for the complete campaign.
+
+**Temporal-signal slice local accepted evidence:** schema 17, adapter version 9, mapping-set version 4, and
+training mapping version 4 preserve independent exercise and transition collections, seven exact kind/unit
+pairs, source order, interval, unsupported-series counts, and every value or unavailable slot. Unevaluated,
+absent, present-empty, populated, unsupported, and gapped states remain distinct. Reimport of identical bytes
+from mapping version 3 enriches the existing session without duplicate series or samples; invalid intervals,
+units, values, ordinals, or elapsed-time overflow fail before visibility.
+
+The session workspace draws an endpoint-preserving selection of at most 300 exact source slots per series,
+splits local SVG traces at source gaps, distinguishes exercise and transition signals without relying on
+color, discloses unsupported series, and exposes every original value or null slot through stable 100-row UI
+pages backed by a 250-row application maximum. The packaged bilingual journey proves supported and
+unsupported series presentation, gap visibility, visual-to-table parity, exact-sample pagination,
+localization, 200% layout coverage, restart behavior, keyboard semantics, and automated accessibility. The
+complete fast lane passed 135 repository-automation tests, 90 React tests, 183 host tests, 97 application
+tests, and 14 domain tests.
+
+The local Apple Silicon read-model campaign stored 400,000 independently generated signal samples. The
+bounded 300-sample overview measured 7.873 ms p95 and the 250-sample exact page measured 9.021 ms p95 against
+the 500 ms budget, with 22.422 MiB peak process memory for the complete campaign. The packaged WebView
+campaign against a 20,001-slot source series measured 113 ms p95 for detail through laid-out chart and 35 ms
+p95 for the exact 100-row page. E4 remains active for provider-defined zones, provenance presentation,
+reusable user criteria, user-authored segmentation, progressive cross-signal inspection, and their privacy
+and performance evidence.
 
 ### E5 — Personal report authoring and export
 

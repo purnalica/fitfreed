@@ -5,18 +5,21 @@
 This is the normative anti-corruption-layer contract for mapping a compatible Polar Flow personal-data-export
 training-session artifact into [canonical training-session summary version 1](../canonical/training-session.md)
 and the independent [training-session structure](../canonical/training-session-structure.md) and
-[training-session route](../canonical/training-session-route.md) contracts.
+[training-session route](../canonical/training-session-route.md) and
+[training-session signal](../canonical/training-session-signal.md) contracts.
 
 - Source provider: `polar-flow`
 - Source adapter version introducing summary support: `polar-flow-archive@4`
 - Source adapter version introducing structural support: `polar-flow-archive@7`
 - Source adapter version introducing route support: `polar-flow-archive@8`
-- Current source adapter version: `polar-flow-archive@8`
+- Source adapter version introducing signal support: `polar-flow-archive@9`
+- Current source adapter version: `polar-flow-archive@9`
 - Historical summary mapping: `polar-flow-training-session@1`
 - Historical summary-and-structure mapping: `polar-flow-training-session@2`
-- Current summary, structure, and route mapping: `polar-flow-training-session@3`
-- Historical operation mapping sets: `polar-flow-mapping-set@1`, `polar-flow-mapping-set@2`
-- Current operation mapping set: `polar-flow-mapping-set@3`
+- Historical summary, structure, and route mapping: `polar-flow-training-session@3`
+- Current summary, structure, route, and signal mapping: `polar-flow-training-session@4`
+- Historical operation mapping sets: `polar-flow-mapping-set@1`, `polar-flow-mapping-set@2`, `polar-flow-mapping-set@3`
+- Current operation mapping set: `polar-flow-mapping-set@4`
 - Source evidence: [Polar Flow personal data export reference](../providers/polar-flow.md)
 
 ## Supported artifact boundary
@@ -51,7 +54,7 @@ sums, averages, selects, or otherwise derives summary values from children.
 
 ## Structural assessment and exercise mapping
 
-Mapping versions 2 and 3 always emit a present `TrainingSessionStructure`, proving that the artifact was evaluated
+Mapping versions 2 through 4 always emit a present `TrainingSessionStructure`, proving that the artifact was evaluated
 under the structural contract. An absent `exercises` field produces null `exercises`; a present empty array
 produces an empty collection. Entries retain source array order through `ordinal`.
 
@@ -89,7 +92,7 @@ precede the start. Source order becomes zero-based `ordinal`; duration is not in
 
 ## Route assessment and waypoint mapping
 
-Mapping version 3 always emits a present `TrainingSessionRouteAssessment`. Its `exercises` state exactly
+Mapping versions 3 and 4 always emit a present `TrainingSessionRouteAssessment`. Its `exercises` state exactly
 matches the source `exercises` field. Every present exercise receives a route assessment tied to the same
 protected `exerciseId` and zero-based `ordinal` as structure.
 
@@ -109,24 +112,60 @@ Waypoint source order becomes contiguous zero-based `ordinal`. Present elapsed v
 non-decreasing even when other points omit the field. Missing values are not interpolated. Empty routes,
 one-point routes, repeated points, and primary and transition identity are preserved rather than repaired.
 
+## Signal assessment and interval-series mapping
+
+Mapping version 4 always emits a present `TrainingSessionSignalAssessment`. Its `exercises` state exactly
+matches the source `exercises` field. Every present exercise receives a signal assessment tied to the same
+protected `exerciseId` and zero-based `ordinal` as structure.
+
+| Source exercise path | Requirement and validation | Canonical outcome |
+|---|---|---|
+| `exercises[].samples` | absent or object | null exercise `signals` when absent; present signal container otherwise |
+| `exercises[].samples.samples` | absent or array | optional `primary` mapped series collection |
+| `exercises[].samples.transitionSamples` | absent or array | optional `transition` mapped series collection, never merged with primary |
+| series `.type` | required string | mapped through the exact vocabulary below or counted as unsupported |
+| series `.intervalMillis` | required integer from 1 through `359999999` for a mapped series | `intervalMilliseconds` |
+| series `.values[]` | finite number or exact string `NaN` for a mapped series | ordered canonical samples; `NaN` becomes a null `value` slot |
+
+| Source `.type` | Canonical `kind` | Canonical `unit` |
+|---|---|---|
+| `HEART_RATE` | `heart-rate` | `beats-per-minute` |
+| `SPEED` | `speed` | `kilometers-per-hour` |
+| `DISTANCE` | `distance` | `meters` |
+| `ALTITUDE` | `altitude` | `meters` |
+| `CADENCE` | `cadence` | `rotations-per-minute` |
+| `TEMPERATURE` | `temperature` | `degrees-celsius` |
+| `LEFT_CRANK_CURRENT_POWER` | `left-crank-power` | `watts` |
+
+Mapped series retain relative source order and receive a contiguous zero-based `ordinal` after unsupported
+series are excluded. Each source value retains its zero-based slot ordinal. The exact `NaN` marker preserves
+an unavailable slot; no other string, non-finite number, interpolation, conversion, or imputation is accepted.
+Heart rate, speed, distance, cadence, and left-crank power values must be non-negative. Altitude and
+temperature may be negative. The last ordinal multiplied by `intervalMillis` must fit a signed 64-bit integer.
+
+An unknown series type is not assigned an invented meaning. It increments
+`unsupportedPrimarySeriesCount` or `unsupportedTransitionSeriesCount`, while its provider token and values do
+not enter canonical storage or presentation. `rrSamples`, `transitionRrSamples`, and other fields outside the
+two regular-series arrays remain deliberately unmapped and are not misreported as regular-series counts.
+
 ## Reimport, revision, and mapping upgrade
 
 Identity remains `(originId, identifier.id)`. Reconciliation compares the complete mapped session record:
 
-- absent identity creates summary, structure, and route assessment atomically;
+- absent identity creates summary, structure, route, and signal assessments atomically;
 - complete equality is equivalent;
-- equal evaluated fields plus previously unevaluated structure or routes is `enrich` when no evaluated field
-  changes or regresses;
+- equal evaluated fields plus previously unevaluated structure, routes, or signals is `enrich` when no
+  evaluated field changes or regresses;
 - later `modified` evidence atomically replaces summary and every mapped child;
 - earlier evidence preserves the complete visible record;
 - equal or unorderable revision with different content is a conflict and changes no visible record.
 
 Two artifacts with the same mapped identity in one ZIP are invalid independently of order. Whole-package
 exact-repeat reuse requires equal archive fingerprint, adapter version, and operation mapping-set version.
-Consequently, a package completed under `polar-flow-mapping-set@1` or `polar-flow-mapping-set@2` is
-reassessed under `polar-flow-mapping-set@3`; identical bytes enrich missing structure or route evidence
-without duplicating sessions, exercises, routes, or points. Per-observation provenance records
-`polar-flow-training-session@3` for current mapping decisions.
+Consequently, a package completed under any earlier mapping set is reassessed under
+`polar-flow-mapping-set@4`; identical bytes enrich missing structure, route, or signal evidence without
+duplicating sessions, exercises, routes, points, series, or samples. Per-observation provenance records
+`polar-flow-training-session@4` for current mapping decisions.
 
 ## Historical version 1 behavior
 
@@ -146,12 +185,20 @@ structure under `polar-flow-mapping-set@2`. Route containers and waypoints remai
 version-2 rows therefore have null route assessment and are eligible for strict enrichment under version 3
 without changing their equal structure or summary.
 
+## Historical version 3 behavior
+
+`polar-flow-training-session@3`, introduced by `polar-flow-archive@8`, added primary and transition route
+geometry under `polar-flow-mapping-set@3`. Signal containers and values remained unevaluated. Existing
+version-3 rows therefore have null signal assessment and are eligible for strict enrichment under version 4
+without changing their equal summary, structure, or route evidence.
+
 ## Deliberately unmapped information
 
-Mapping version 3 still does not persist:
+Mapping version 4 still does not persist:
 
 - session- or exercise-level standalone `latitude` and `longitude` fields outside route waypoints;
-- `samples`, `transitionSamples`, `rrSamples`, `transitionRrSamples`, or other signal series;
+- values or provider tokens from unsupported regular series;
+- `rrSamples`, `transitionRrSamples`, irregular samples, or other non-regular signal structures;
 - zones, detailed statistics, hills, tests, and source analysis;
 - names, notes, comments, feelings, targets, training benefit, training load, or recovery time;
 - energy-source percentages, physical information, devices, products, or application references.

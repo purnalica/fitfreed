@@ -33,6 +33,36 @@ function recordedOutdoorRoutes() {
   };
 }
 
+function recordedTrainingSignals() {
+  return {
+    samples: [
+      {
+        type: "HEART_RATE",
+        intervalMillis: 1_000,
+        values: Array.from(
+          { length: 101 },
+          (_, ordinal) => ordinal === 50 ? "NaN" : 120 + ordinal / 2,
+        ),
+      },
+      {
+        type: "SPEED",
+        intervalMillis: 900_000,
+        values: [8.5, 9.2, 10.1, 9.8, 8.7],
+      },
+      {
+        type: "SYNTHETIC_UNSUPPORTED_SIGNAL",
+        intervalMillis: 1_000,
+        values: [1, 2, 3],
+      },
+    ],
+    transitionSamples: [{
+      type: "TEMPERATURE",
+      intervalMillis: 60_000,
+      values: [7.5, 7.25],
+    }],
+  };
+}
+
 function trainingSession({
   id,
   created,
@@ -263,6 +293,7 @@ await createArchive("valid.zip", [
           endTime: "2026-01-04T06:46:00",
         }],
         routes: recordedOutdoorRoutes(),
+        samples: recordedTrainingSignals(),
       }],
     }),
   ],
@@ -342,6 +373,7 @@ await createArchive("overlap.zip", [
           endTime: "2026-01-04T06:46:00",
         }],
         routes: recordedOutdoorRoutes(),
+        samples: recordedTrainingSignals(),
       }],
     }),
   ],

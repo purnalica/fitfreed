@@ -338,8 +338,60 @@
       "routePointPage": "Punto {from} de {total}",
       "previousRoutePoints": "Puntos de ruta anteriores",
       "nextRoutePoints": "Puntos de ruta siguientes",
+      "signalHeading": "Señales registradas",
+      "signalIntro": "Explora cómo cambiaron las mediciones registradas durante este ejercicio. Los huecos permanecen visibles y nunca se sustituyen por valores inventados.",
+      "signalLoading": "Cargando las señales registradas…",
+      "signalFailed": "No se han podido cargar las señales registradas desde tu biblioteca local.",
+      "signalNotEvaluated": "Esta sesión se importó antes de evaluar las señales. Vuelve a importar su archivo de origen para enriquecerla sin crear un duplicado.",
+      "signalExercisesNotProvided": "El origen no proporcionó ejercicios a partir de los cuales se pudieran evaluar señales.",
+      "signalExercisesProvidedEmpty": "El origen no proporcionó ningún ejercicio a partir del cual se pudieran evaluar señales.",
+      "signalContainerNotProvided": "El origen no proporcionó un contenedor de señales para este ejercicio.",
+      "primarySignals": "Señales del ejercicio",
+      "transitionSignals": "Señales de transición",
+      "signalsNotProvided": "El origen no proporcionó esta colección de señales.",
+      "signalsProvidedEmpty": "El origen proporcionó esta colección de señales sin elementos.",
+      "signalKinds": {
+        "heart-rate": "Frecuencia cardíaca",
+        "speed": "Velocidad",
+        "distance": "Distancia",
+        "altitude": "Altitud",
+        "cadence": "Cadencia",
+        "temperature": "Temperatura",
+        "left-crank-power": "Potencia de la biela izquierda"
+      },
+      "signalUnits": {
+        "beats-per-minute": "ppm",
+        "kilometers-per-hour": "km/h",
+        "meters": "m",
+        "rotations-per-minute": "rpm",
+        "degrees-celsius": "°C",
+        "watts": "W"
+      },
+      "signalChartSummary": "Gráfico de {kind} con {available} valores registrados de {total} muestras, medidos en {unit}. Los huecos muestran valores ausentes en el origen.",
+      "signalCoverage": "Valores registrados",
+      "signalInterval": "Intervalo de muestreo",
+      "signalProjection": "Este gráfico acotado conserva el orden y los extremos del origen. Consulta las muestras exactas para ver la serie registrada completa.",
+      "signalEmpty": "La serie de señales no contiene muestras.",
+      "signalNoRecordedValues": "La serie contiene muestras, pero ninguna tiene un valor registrado.",
+      "unsupportedSignalSeries": {
+        "one": "Se ha conservado {count} serie de origen no compatible como recuento explícito.",
+        "other": "Se han conservado {count} series de origen no compatibles como recuento explícito."
+      },
+      "viewExactSignalSamples": "Consultar las muestras exactas de {kind}",
+      "hideExactSignalSamples": "Ocultar las muestras exactas de {kind}",
+      "exactSignalHeading": "Muestras exactas de {kind}",
+      "exactSignalLoading": "Cargando las muestras exactas de la señal…",
+      "exactSignalFailed": "No se han podido cargar las muestras exactas de la señal desde tu biblioteca local.",
+      "retryExactSignal": "Reintentar las muestras exactas",
+      "signalSampleNumber": "Muestra",
+      "signalElapsed": "Tiempo transcurrido",
+      "signalValue": "Valor registrado",
+      "signalSamplesPage": "Muestras {from}–{through} de {total}",
+      "signalSamplePage": "Muestra {from} de {total}",
+      "previousSignalSamples": "Muestras anteriores de la señal",
+      "nextSignalSamples": "Muestras siguientes de la señal",
       "structureLimitationsHeading": "Límite actual de la evidencia",
-      "structureLimitations": "Las señales temporales, las zonas y las muestras exactas de señales permanecen en el archivo de origen, pero todavía no se pueden consultar en esta versión. FitFreed no las infiere ni las inventa."
+      "structureLimitations": "Las zonas definidas por el proveedor y los tipos de señal no compatibles quedan fuera de esta vista. Su ausencia es explícita; FitFreed no los infiere ni los inventa."
     },
     "sports": {
       "heading": "Tus deportes",
@@ -771,8 +823,8 @@
         "action": "No es necesaria ninguna acción."
       },
       "mapped-training-evidence": {
-        "reason": "Se incorporan los resúmenes de sesión, la estructura de ejercicios, las vueltas, las pausas y las rutas registradas; las señales temporales y las zonas permanecen únicamente en el ZIP original.",
-        "action": "Conserva el ZIP original si necesitas las señales de entrenamiento excluidas."
+        "reason": "Se incorporan los resúmenes de sesión, la estructura de ejercicios, las vueltas, las pausas, las rutas registradas y las señales temporales compatibles; las zonas del proveedor y los tipos de señal no compatibles permanecen únicamente en el ZIP original.",
+        "action": "Conserva el ZIP original si necesitas las zonas del proveedor o los tipos de señal no compatibles."
       },
       "mapped-sleep-periods": {
         "reason": "Se incorporan los periodos, las fases y las interrupciones del sueño; el comportamiento de las alarmas y los metadatos exclusivos del origen permanecen únicamente en el ZIP original.",

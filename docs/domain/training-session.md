@@ -2,9 +2,9 @@
 
 ## Purpose
 
-A Training Session is one provider-neutral observation of a recorded workout from one verified source subject. Its aggregate summary supports trustworthy longitudinal history, while evaluated detail can expose source exercises, manual and automatic laps, pauses, and recorded routes without changing aggregate meaning.
+A Training Session is one provider-neutral observation of a recorded workout from one verified source subject. Its aggregate summary supports trustworthy longitudinal history, while evaluated detail can expose source exercises, manual and automatic laps, pauses, recorded routes, and supported temporal signals without changing aggregate meaning.
 
-The complete normative contracts live in [canonical training-session summary version 1](../data-formats/canonical/training-session.md), [canonical training-session structure version 1](../data-formats/canonical/training-session-structure.md), and [canonical training-session route version 1](../data-formats/canonical/training-session-route.md). This document explains the domain boundary rather than repeating those specifications.
+The complete normative contracts live in [canonical training-session summary version 1](../data-formats/canonical/training-session.md), [canonical training-session structure version 1](../data-formats/canonical/training-session-structure.md), [canonical training-session route version 1](../data-formats/canonical/training-session-route.md), and [canonical training-session signal version 1](../data-formats/canonical/training-session-signal.md). This document explains the domain boundary rather than repeating those specifications.
 
 ## Aggregate boundary
 
@@ -27,7 +27,12 @@ the canonical library, queries bounded visual selections or exact pages, and ren
 the route path contacts no tile service, geocoder, or other external location service. Import does not grant
 authority to export or expose a route through MCP, telemetry, synchronization, or remote cartography.
 
-Zones, notes, comments, device identifiers, physical snapshots, and full-resolution physiological signal
-series remain excluded from the current mapping. Those fields may remain in the user's original archive.
-Source exercise identifiers remain protected persistence evidence; presentation receives only
-domain-separated opaque session, exercise, and route capabilities.
+Supported interval signals remain sensitive local evidence. FitFreed stores exact ordered values and null
+source slots, queries bounded endpoint-preserving visual selections or exact pages, and renders gap-aware
+local SVG. Import does not grant authority to expose signals through MCP, telemetry, synchronization, or a
+report.
+
+Zones, notes, comments, device identifiers, physical snapshots, RR samples, and unsupported signal types
+remain excluded from the current mapping. Those fields may remain in the user's original archive. Source
+exercise identifiers remain protected persistence evidence; presentation receives only domain-separated
+opaque session, exercise, route, and signal capabilities.

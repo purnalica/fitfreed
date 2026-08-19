@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-signals-v1.schema.json",
+  "title": "FitFreed training-session signal overview version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["snapshotRef", "sessionRef", "signals"],
+  "properties": {
+    "snapshotRef": { "$ref": "#/$defs/snapshotRef" },
+    "sessionRef": { "$ref": "#/$defs/sessionRef" },
+    "signals": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/assessment" }] }
+  },
+  "$defs": {
+    "snapshotRef": { "type": "string", "pattern": "^training-snapshot-[0-9a-f]{64}$" },
+    "sessionRef": { "type": "string", "pattern": "^session-[0-9a-f]{64}$" },
+    "exerciseRef": { "type": "string", "pattern": "^exercise-[0-9a-f]{64}$" },
+    "signalRef": { "type": "string", "pattern": "^signal-[0-9a-f]{64}$" },
+    "decimalMilliseconds": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+    "elapsedMilliseconds": { "type": "string", "pattern": "^(0|[1-9][0-9]*)$" },
+    "kind": {
+      "enum": ["heart-rate", "speed", "distance", "altitude", "cadence", "temperature", "left-crank-power"]
+    },
+    "unit": {
+      "enum": ["beats-per-minute", "kilometers-per-hour", "meters", "rotations-per-minute", "degrees-celsius", "watts"]
+    },
+    "kindUnitPair": {
+      "oneOf": [
+        { "type": "object", "properties": { "kind": { "const": "heart-rate" }, "unit": { "const": "beats-per-minute" } } },
+        { "type": "object", "properties": { "kind": { "const": "speed" }, "unit": { "const": "kilometers-per-hour" } } },
+        { "type": "object", "properties": { "kind": { "const": "distance" }, "unit": { "const": "meters" } } },
+        { "type": "object", "properties": { "kind": { "const": "altitude" }, "unit": { "const": "meters" } } },
+        { "type": "object", "properties": { "kind": { "const": "cadence" }, "unit": { "const": "rotations-per-minute" } } },
+        { "type": "object", "properties": { "kind": { "const": "temperature" }, "unit": { "const": "degrees-celsius" } } },
+        { "type": "object", "properties": { "kind": { "const": "left-crank-power" }, "unit": { "const": "watts" } } }
+      ]
+    },
+    "sample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ordinal", "elapsedMilliseconds", "value"],
+      "properties": {
+        "ordinal": { "type": "integer", "minimum": 0 },
+        "elapsedMilliseconds": { "$ref": "#/$defs/elapsedMilliseconds" },
+        "value": { "oneOf": [{ "type": "null" }, { "type": "number" }] }
+      }
+    },
+    "visualSample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ordinal", "elapsedMilliseconds", "value", "gapBefore"],
+      "properties": {
+        "ordinal": { "type": "integer", "minimum": 0 },
+        "elapsedMilliseconds": { "$ref": "#/$defs/elapsedMilliseconds" },
+        "value": { "oneOf": [{ "type": "null" }, { "type": "number" }] },
+        "gapBefore": { "type": "boolean" }
+      }
+    },
+    "series": {
+      "type": "object",
+      "allOf": [{ "$ref": "#/$defs/kindUnitPair" }],
+      "additionalProperties": false,
+      "required": ["signalRef", "ordinal", "role", "kind", "unit", "intervalMilliseconds", "sampleCount", "availableSampleCount", "projection", "visualSamples"],
+      "properties": {
+        "signalRef": { "$ref": "#/$defs/signalRef" },
+        "ordinal": { "type": "integer", "minimum": 0 },
+        "role": { "enum": ["primary", "transition"] },
+        "kind": { "$ref": "#/$defs/kind" },
+        "unit": { "$ref": "#/$defs/unit" },
+        "intervalMilliseconds": { "$ref": "#/$defs/decimalMilliseconds" },
+        "sampleCount": { "type": "integer", "minimum": 0 },
+        "availableSampleCount": { "type": "integer", "minimum": 0 },
+        "projection": { "const": "source-ordinal-v1" },
+        "visualSamples": { "type": "array", "maxItems": 500, "items": { "$ref": "#/$defs/visualSample" } }
+      }
+    },
+    "seriesCollection": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "array", "items": { "$ref": "#/$defs/series" } }
+      ]
+    },
+    "signals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primary", "transition", "unsupportedPrimarySeriesCount", "unsupportedTransitionSeriesCount"],
+      "properties": {
+        "primary": { "$ref": "#/$defs/seriesCollection" },
+        "transition": { "$ref": "#/$defs/seriesCollection" },
+        "unsupportedPrimarySeriesCount": { "type": "integer", "minimum": 0 },
+        "unsupportedTransitionSeriesCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "exercise": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exerciseRef", "ordinal", "signals"],
+      "properties": {
+        "exerciseRef": { "$ref": "#/$defs/exerciseRef" },
+        "ordinal": { "type": "integer", "minimum": 0 },
+        "signals": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/signals" }] }
+      }
+    },
+    "assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exercises"],
+      "properties": {
+        "exercises": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "array", "items": { "$ref": "#/$defs/exercise" } }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-signal-samples-v1.schema.json",
+  "title": "FitFreed exact training-signal samples page version 1",
+  "type": "object",
+  "allOf": [{ "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-signals-v1.schema.json#/$defs/kindUnitPair" }],
+  "additionalProperties": false,
+  "required": ["snapshotRef", "sessionRef", "signalRef", "exerciseRef", "ordinal", "role", "kind", "unit", "intervalMilliseconds", "sampleCount", "offset", "samples", "nextOffset"],
+  "properties": {
+    "snapshotRef": { "type": "string", "pattern": "^training-snapshot-[0-9a-f]{64}$" },
+    "sessionRef": { "type": "string", "pattern": "^session-[0-9a-f]{64}$" },
+    "signalRef": { "type": "string", "pattern": "^signal-[0-9a-f]{64}$" },
+    "exerciseRef": { "type": "string", "pattern": "^exercise-[0-9a-f]{64}$" },
+    "ordinal": { "type": "integer", "minimum": 0 },
+    "role": { "enum": ["primary", "transition"] },
+    "kind": { "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-signals-v1.schema.json#/$defs/kind" },
+    "unit": { "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-signals-v1.schema.json#/$defs/unit" },
+    "intervalMilliseconds": { "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-signals-v1.schema.json#/$defs/decimalMilliseconds" },
+    "sampleCount": { "type": "integer", "minimum": 0 },
+    "offset": { "type": "integer", "minimum": 0 },
+    "samples": {
+      "type": "array",
+      "maxItems": 250,
+      "items": { "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-signals-v1.schema.json#/$defs/sample" }
+    },
+    "nextOffset": {
+      "oneOf": [{ "type": "null" }, { "type": "integer", "minimum": 0 }]
+    }
+  }
+}
