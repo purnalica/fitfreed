@@ -2,7 +2,7 @@
 
 ## Status
 
-Active as of 2026-08-19. D0, P1, E1, and P2 have complete local and hosted acceptance evidence. E2 has reached its complete local checkpoint; hosted executable evidence remains pending. All three E3 slices and all seven E4 slices have reached their local checkpoints. Three E5 verticals have passed their complete local checkpoints: durable session-origin authorship, ordered route composition, and one coherent training-period comparison family now share preview, privacy review, persistence, and deterministic self-contained HTML export. Question, exploration, and blank starts, deliberate refresh, and complete report navigation remain active. The latest executable fingerprint still requires hosted evidence. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English and Spanish hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md) and [ADR 0024](../architecture/decisions/0024-generate-localized-product-pages.md).
+Active as of 2026-08-19. D0, P1, E1, P2, E2, all three E3 slices, all seven E4 slices, and the first three E5 verticals have complete local and hosted acceptance evidence. The accepted E5 verticals provide durable session-origin authorship, ordered route composition, and one coherent training-period comparison family with shared preview, privacy review, persistence, and deterministic self-contained HTML export. Question, exploration, and blank starts, deliberate refresh, and complete report navigation remain active. The canonical <https://fitfreed.org/> origin has valid apex and `www` DNS, verified `purnalica` ownership, a valid certificate, enforced HTTPS, the intended redirect behavior, and exact English and Spanish hosted-byte acceptance under [ADR 0023](../architecture/decisions/0023-use-fitfreed-org-as-the-public-origin.md) and [ADR 0024](../architecture/decisions/0024-generate-localized-product-pages.md).
 
 The existing import, reconciliation, persistence, Insights, localization, update-recovery, packaging, and continuous-integration capabilities remain the engineering baseline. This plan changes how those capabilities become a product people can understand and value; it does not discard their verified behavior.
 
@@ -562,8 +562,8 @@ lookups instead of weakening the scenario or budget.
 The complete fast lane passed 137 repository-automation tests, 105 React tests, 186 host tests, 116
 application tests, 19 domain tests, and two private acceptance tests with strict Clippy and formatting.
 Packaged update replacement and forced recovery also pass against the resulting executable. This completes
-the E4 local checkpoint; E5 is the active increment, while hosted evidence remains pending for the latest
-executable fingerprint.
+the E4 checkpoint; its executable is included in the exact hosted fingerprint accepted with the third E5
+vertical.
 
 ### E5 — Personal report authoring and export
 
@@ -636,8 +636,12 @@ Domain, application, persistence, migration, transport, component, contract, and
 the complete fast lane, strict Clippy, production build, packaged functional journey, and packaged performance
 campaign pass locally. A dedicated production read-model benchmark resolves all five views over two 365-day
 periods and four source-separated histories at 26.888 milliseconds p95 against a 500-millisecond budget.
-Hosted evidence remains pending; question, exploration, and blank starts, deliberate refresh, and complete
-report-origin navigation remain active.
+The same executable-input fingerprint passed the complete
+[hosted campaign](https://github.com/purnalica/fitfreed/actions/runs/32257914407): portable quality checks,
+private release preparation, cold launch, full-scale import, Insights performance, update-recovery
+preparation, installation boundaries, the instrumented packaged journey, and packaged update replacement
+and forced recovery. Question, exploration, and blank starts, deliberate refresh, and complete report-origin
+navigation remain active.
 
 **Evaluation checkpoint:** a reviewer can create a useful artifact without learning provider or database terminology and can explain which parts are recorded, calculated, or authored.
 
