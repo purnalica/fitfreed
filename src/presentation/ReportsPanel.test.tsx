@@ -356,7 +356,6 @@ function blankResolution(revision = "1", analytical = false): ResolvedReport {
 }
 
 function renderPanel(properties: Partial<ComponentProps<typeof ReportsPanel>> = {}) {
-  const onError = vi.fn();
   const onReturnToOrigin = vi.fn();
   render(
     <ReportsPanel
@@ -366,11 +365,10 @@ function renderPanel(properties: Partial<ComponentProps<typeof ReportsPanel>> = 
       originRequestId={1}
       disabled={false}
       onReturnToOrigin={onReturnToOrigin}
-      onError={onError}
       {...properties}
     />,
   );
-  return { onError, onReturnToOrigin };
+  return { onReturnToOrigin };
 }
 
 beforeEach(() => {
@@ -1177,7 +1175,7 @@ describe("ReportsPanel", () => {
       throw new Error(`Unexpected command: ${command}`);
     });
 
-    const callbacks = renderPanel({ origin: undefined, originRequestId: 0 });
+    renderPanel({ origin: undefined, originRequestId: 0 });
     expect(await screen.findByRole("button", { name: /Ridge progression/ })).toBeVisible();
     expect(screen.getByRole("button", { name: /Recovery run/ })).toBeVisible();
     await user.click(screen.getByRole("button", { name: /Ridge progression/ }));
@@ -1188,7 +1186,7 @@ describe("ReportsPanel", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "The export was cancelled. No partial file was left behind.",
     );
-    expect(callbacks.onError).toHaveBeenCalledWith("report-export-cancelled");
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
     expect(screen.queryByText(/Self-contained HTML exported/)).not.toBeInTheDocument();
   });
 
@@ -1211,7 +1209,7 @@ describe("ReportsPanel", () => {
       throw new Error(`Unexpected command: ${command}`);
     });
 
-    const callbacks = renderPanel({
+    renderPanel({
       locale: "es-ES",
       messages: catalogs["es-ES"],
     });
@@ -1227,7 +1225,7 @@ describe("ReportsPanel", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "FitFreed no ha podido guardar el informe",
     );
-    expect(callbacks.onError).toHaveBeenCalledWith("report-definition-update-failed");
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
 
     cleanup();
     let refreshed = false;
@@ -1349,7 +1347,7 @@ describe("ReportsPanel", () => {
       throw new Error(`Unexpected command: ${command}`);
     });
 
-    const callbacks = renderPanel({ origin: undefined, originRequestId: 0 });
+    renderPanel({ origin: undefined, originRequestId: 0 });
     await user.click(await screen.findByRole("button", { name: /Ridge progression/ }));
     await user.click(screen.getByRole("button", { name: "Review evidence refresh" }));
     const review = screen.getByRole("region", { name: "Review the current library evidence" });
@@ -1358,7 +1356,7 @@ describe("ReportsPanel", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "The source history changed after this report was resolved",
     );
-    expect(callbacks.onError).toHaveBeenCalledWith("report-source-changed");
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
     expect(screen.getByRole("region", {
       name: "Review the current library evidence",
     })).toBeVisible();

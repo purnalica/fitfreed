@@ -503,15 +503,14 @@ export function TrainingSessionLibraryPanel({
       },
     }).then((result) => {
       if (active) setDetailStructure(result);
-    }).catch((reason) => {
+    }).catch(() => {
       if (!active) return;
       setDetailFailed(true);
-      onError(commandErrorCode(reason));
     }).finally(() => {
       if (active) setDetailLoading(false);
     });
     return () => { active = false; };
-  }, [selected?.sessionRef, page?.snapshotRef, onError]);
+  }, [selected?.sessionRef, page?.snapshotRef]);
 
   useEffect(() => {
     let active = true;
@@ -531,15 +530,14 @@ export function TrainingSessionLibraryPanel({
       },
     }).then((result) => {
       if (active) setDetailZones(result);
-    }).catch((reason) => {
+    }).catch(() => {
       if (!active) return;
       setZonesFailed(true);
-      onError(commandErrorCode(reason));
     }).finally(() => {
       if (active) setZonesLoading(false);
     });
     return () => { active = false; };
-  }, [selected?.sessionRef, page?.snapshotRef, onError]);
+  }, [selected?.sessionRef, page?.snapshotRef]);
 
   useEffect(() => {
     let active = true;
@@ -565,15 +563,14 @@ export function TrainingSessionLibraryPanel({
       },
     }).then((result) => {
       if (active) setDetailSignals(result);
-    }).catch((reason) => {
+    }).catch(() => {
       if (!active) return;
       setSignalsFailed(true);
-      onError(commandErrorCode(reason));
     }).finally(() => {
       if (active) setSignalsLoading(false);
     });
     return () => { active = false; };
-  }, [selected?.sessionRef, page?.snapshotRef, onError]);
+  }, [selected?.sessionRef, page?.snapshotRef]);
 
   useEffect(() => {
     let active = true;
@@ -599,15 +596,14 @@ export function TrainingSessionLibraryPanel({
       },
     }).then((result) => {
       if (active) setDetailRoutes(result);
-    }).catch((reason) => {
+    }).catch(() => {
       if (!active) return;
       setRoutesFailed(true);
-      onError(commandErrorCode(reason));
     }).finally(() => {
       if (active) setRoutesLoading(false);
     });
     return () => { active = false; };
-  }, [selected?.sessionRef, page?.snapshotRef, onError]);
+  }, [selected?.sessionRef, page?.snapshotRef]);
 
   useEffect(() => {
     if (!workspaceReady || !page || failed || loading || calendarLoading) return;
@@ -906,10 +902,9 @@ export function TrainingSessionLibraryPanel({
         },
       });
       if (exactRequestSequence.current === sequence) setExactRoutePoints(result);
-    } catch (reason) {
+    } catch {
       if (exactRequestSequence.current !== sequence) return;
       setExactRouteFailed(true);
-      onError(commandErrorCode(reason));
     } finally {
       if (exactRequestSequence.current === sequence) setExactRouteLoading(false);
     }
@@ -1003,7 +998,7 @@ export function TrainingSessionLibraryPanel({
           >
             <h6>{copy.exactRouteHeading}</h6>
             {exactRouteLoading && <p role="status">{copy.exactRouteLoading}</p>}
-            {exactRouteFailed && <p role="alert">{copy.exactRouteFailed}</p>}
+            {exactRouteFailed && <p className="error" role="alert">{copy.exactRouteFailed}</p>}
             {exactRoutePoints && exactRoutePoints.routeRef === route.routeRef && (
               <>
                 <p aria-live="polite">{pageStatus}</p>
@@ -1107,10 +1102,9 @@ export function TrainingSessionLibraryPanel({
         },
       );
       if (exactSignalRequestSequence.current === sequence) setExactSignalSamples(result);
-    } catch (reason) {
+    } catch {
       if (exactSignalRequestSequence.current !== sequence) return;
       setExactSignalFailed(true);
-      onError(commandErrorCode(reason));
     } finally {
       if (exactSignalRequestSequence.current === sequence) setExactSignalLoading(false);
     }
@@ -1221,7 +1215,7 @@ export function TrainingSessionLibraryPanel({
             <h6>{exactHeading}</h6>
             {exactSignalLoading && <p role="status">{copy.exactSignalLoading}</p>}
             {exactSignalFailed && (
-              <div role="alert">
+              <div className="error" role="alert">
                 <p>{copy.exactSignalFailed}</p>
                 <button
                   type="button"
@@ -1975,13 +1969,13 @@ export function TrainingSessionLibraryPanel({
             <h4 id="training-structure-heading">{copy.structureHeading}</h4>
             <p>{copy.structureIntro}</p>
             {detailLoading && <p role="status">{copy.structureLoading}</p>}
-            {detailFailed && <p role="alert">{copy.structureFailed}</p>}
+            {detailFailed && <p className="error" role="alert">{copy.structureFailed}</p>}
             {routesLoading && <p role="status">{copy.routeLoading}</p>}
-            {routesFailed && <p role="alert">{copy.routeFailed}</p>}
+            {routesFailed && <p className="error" role="alert">{copy.routeFailed}</p>}
             {signalsLoading && <p role="status">{copy.signalLoading}</p>}
-            {signalsFailed && <p role="alert">{copy.signalFailed}</p>}
+            {signalsFailed && <p className="error" role="alert">{copy.signalFailed}</p>}
             {zonesLoading && <p role="status">{copy.zoneLoading}</p>}
-            {zonesFailed && <p role="alert">{copy.zoneFailed}</p>}
+            {zonesFailed && <p className="error" role="alert">{copy.zoneFailed}</p>}
             {!detailLoading && detailStructure?.structure === null && (
               <p>{copy.structureNotEvaluated}</p>
             )}
@@ -2080,7 +2074,6 @@ export function TrainingSessionLibraryPanel({
                 snapshotRef={page.snapshotRef}
                 locale={locale}
                 messages={messages}
-                onError={onError}
               />
             )}
             <aside className="training-structure-limitation">

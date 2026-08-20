@@ -200,15 +200,14 @@ export function TrainingSegmentationPanel({
       query: { sessionRef, snapshotRef },
     }).then((value) => {
       if (active) setResult(value);
-    }).catch((reason) => {
+    }).catch(() => {
       if (!active) return;
       setFailed(true);
-      onError(commandErrorCode(reason));
     }).finally(() => {
       if (active) setLoading(false);
     });
     return () => { active = false; };
-  }, [sessionRef, snapshotRef, onError]);
+  }, [sessionRef, snapshotRef]);
 
   async function mutate(
     command: string,
@@ -503,7 +502,7 @@ export function TrainingSegmentationPanel({
         <p>{copy.segmentAttributionIntro}</p>
       </aside>
       {loading && <p role="status">{copy.segmentLoading}</p>}
-      {failed && <p role="alert">{copy.segmentFailed}</p>}
+      {failed && <p className="error" role="alert">{copy.segmentFailed}</p>}
       {status && <p className="notice" role="status">{status}</p>}
       {!loading && result?.exercises === null && <p>{copy.segmentNotEvaluated}</p>}
       {!loading && result?.exercises?.length === 0 && <p>{copy.segmentNoExercises}</p>}

@@ -1090,7 +1090,6 @@ function App() {
                 openReportRequestId={reportOpenRequest?.requestId}
                 disabled={!libraryReady || busy || updateInstalling}
                 onReturnToOrigin={navigateFromReport}
-                onError={setErrorCode}
               />
             </Suspense>
           )}

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
 import { type catalogs, type Locale } from "../locales/catalogs";
-import { commandErrorCode } from "./command-error";
 import type {
   TrainingProvenanceEvent,
   TrainingSessionProvenanceResult,
@@ -15,7 +14,6 @@ interface TrainingSessionProvenancePanelProps {
   snapshotRef: string;
   locale: Locale;
   messages: (typeof catalogs)["en-US"];
-  onError: (code: string | undefined) => void;
 }
 
 function interpolate(template: string, values: Record<string, string>): string {
@@ -30,7 +28,6 @@ export function TrainingSessionProvenancePanel({
   snapshotRef,
   locale,
   messages,
-  onError,
 }: TrainingSessionProvenancePanelProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -76,10 +73,9 @@ export function TrainingSessionProvenancePanel({
         },
       );
       if (requestSequence.current === sequence) setResult(loaded);
-    } catch (reason) {
+    } catch {
       if (requestSequence.current !== sequence) return;
       setFailed(true);
-      onError(commandErrorCode(reason));
     } finally {
       if (requestSequence.current === sequence) setLoading(false);
     }
@@ -131,7 +127,7 @@ export function TrainingSessionProvenancePanel({
           <h4>{copy.provenanceHeading}</h4>
           {loading && <p role="status">{copy.provenanceLoading}</p>}
           {failed && (
-            <div className="training-provenance-failure">
+            <div className="training-provenance-failure error">
               <p role="alert">{copy.provenanceFailed}</p>
               <button type="button" className="secondary" onClick={() => void load(0)}>
                 {copy.provenanceRetry}

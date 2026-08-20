@@ -1165,6 +1165,28 @@ describe("FitFreed import interface", () => {
     ).toHaveLength(2));
   });
 
+  it("announces a contextual report failure exactly once", async () => {
+    emptyLibrary();
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_activity_overview") {
+        return Promise.resolve(emptyActivityOverview());
+      }
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      if (command === "list_reports") {
+        return Promise.reject({ code: "report-definition-query-failed" });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole("button", { name: "Reports" }));
+
+    const message = "FitFreed could not read saved reports. Your library is unchanged; try reloading.";
+    expect(await screen.findAllByText(message)).toHaveLength(1);
+    expect(screen.getByText(message)).toHaveAttribute("role", "alert");
+  });
+
   it("opens a saved report source and returns to the exact report with focus", async () => {
     const reportRef = `report-${"4".repeat(64)}`;
     const snapshotRef = `training-snapshot-${"5".repeat(64)}`;

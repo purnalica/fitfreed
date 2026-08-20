@@ -437,7 +437,7 @@ describe("TrainingSegmentationPanel", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Your segmentation criteria could not be loaded from the local library.",
     );
-    expect(onError).toHaveBeenCalledWith("training-segmentation-failed");
+    expect(onError).not.toHaveBeenCalledWith("training-segmentation-failed");
 
     failedView.unmount();
     mocks.invoke.mockResolvedValueOnce({ ...emptyResult(), exercises: null });

@@ -1015,6 +1015,80 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(onError).toHaveBeenCalledWith(undefined);
   });
 
+  it("keeps deep session failures contextual instead of requesting duplicate shell alerts", async () => {
+    const detailCommands = new Set([
+      "query_training_session_structure",
+      "query_training_session_routes",
+      "query_training_session_signals",
+      "query_training_session_zones",
+    ]);
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (detailCommands.has(command)) {
+        return Promise.reject({ code: "training-session-detail-failed" });
+      }
+      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+      if (workspaceResult) return workspaceResult;
+      if (command === "query_training_sports") return Promise.resolve(sports);
+      if (command === "query_training_sessions") {
+        return Promise.resolve(page([newest], 0, 1, null));
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    const { onError } = renderPanel();
+
+    const region = await screen.findByRole("region", { name: "Find a training session" });
+    await user.click(within(region).getByRole("button", { name: /View session details for/ }));
+
+    const alerts = await within(region).findAllByRole("alert");
+    expect(alerts).toHaveLength(4);
+    alerts.forEach((alert) => expect(alert).toHaveClass("error"));
+    expect(onError).not.toHaveBeenCalledWith("training-session-detail-failed");
+  });
+
+  it("keeps exact-evidence failures beside their retryable disclosures", async () => {
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "query_training_route_points" || command === "query_training_signal_samples") {
+        return Promise.reject({ code: "training-session-detail-failed" });
+      }
+      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+      if (workspaceResult) return workspaceResult;
+      if (command === "query_training_sports") return Promise.resolve(sports);
+      if (command === "query_training_sessions") {
+        return Promise.resolve(page([newest], 0, 1, null));
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    const { onError } = renderPanel();
+
+    const region = await screen.findByRole("region", { name: "Find a training session" });
+    await user.click(within(region).getByRole("button", { name: /View session details for/ }));
+    const detail = within(region).getByRole("heading", { name: "Session summary" })
+      .closest("section");
+    expect(detail).not.toBeNull();
+    const exercise = await within(detail!).findByRole("heading", { name: "Exercise 1" });
+    const exercisePanel = exercise.closest("article");
+    expect(exercisePanel).not.toBeNull();
+
+    await user.click(within(exercisePanel!).getByRole("button", {
+      name: "Inspect exact recorded points",
+    }));
+    const routeAlert = await within(exercisePanel!).findByText(
+      "Exact route points could not be loaded from your local library.",
+    );
+    expect(routeAlert).toHaveClass("error");
+
+    await user.click(within(exercisePanel!).getByRole("button", {
+      name: "Inspect exact Heart rate samples",
+    }));
+    const signalAlert = await within(exercisePanel!).findByText(
+      "Exact signal samples could not be loaded from your local library.",
+    );
+    expect(signalAlert.closest("[role='alert']")).toHaveClass("error");
+    expect(onError).not.toHaveBeenCalledWith("training-session-detail-failed");
+  });
+
   it("rejects invalid draft values without querying and exercises empty and failed states", async () => {
     mocks.invoke.mockImplementation((command, arguments_) => {
       const workspaceResult = emptyWorkspaceCommand(command, arguments_);

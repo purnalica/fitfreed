@@ -79,7 +79,6 @@ interface ReportsPanelProps {
   openReportRequestId?: number;
   disabled: boolean;
   onReturnToOrigin: (target: ReportSourceTarget | null) => void;
-  onError: (code: string | undefined) => void;
 }
 
 interface EditorState {
@@ -244,7 +243,6 @@ export function ReportsPanel({
   openReportRequestId,
   disabled,
   onReturnToOrigin,
-  onError,
 }: ReportsPanelProps) {
   const copy = messages.reports;
   const [reports, setReports] = useState<ReportSummary[]>([]);
@@ -276,10 +274,8 @@ export function ReportsPanel({
     try {
       const result = await invoke<ReportList>("list_reports");
       setReports(result.reports);
-    } catch (reason) {
-      const code = commandErrorCode(reason);
+    } catch {
       setListFailed(true);
-      onError(code);
     } finally {
       setListLoading(false);
     }
@@ -326,7 +322,6 @@ export function ReportsPanel({
     } catch (reason) {
       const code = commandErrorCode(reason);
       setLocalError(code);
-      onError(code);
     } finally {
       setResolving(false);
     }
@@ -402,15 +397,14 @@ export function ReportsPanel({
       },
     }).then((result) => {
       if (active) setAvailableRoutes(flattenRoutes(result));
-    }).catch((reason) => {
+    }).catch(() => {
       if (!active) return;
       setRoutesFailed(true);
-      onError(commandErrorCode(reason));
     }).finally(() => {
       if (active) setRoutesLoading(false);
     });
     return () => { active = false; };
-  }, [editor?.sessionRef, editor?.sourceSnapshotRef, onError]);
+  }, [editor?.sessionRef, editor?.sourceSnapshotRef]);
 
   async function resolveReport(reportRef: string) {
     setResolving(true);
@@ -444,7 +438,6 @@ export function ReportsPanel({
     } catch (reason) {
       const code = commandErrorCode(reason);
       setLocalError(code);
-      onError(code);
       return undefined;
     } finally {
       setResolving(false);
@@ -485,7 +478,6 @@ export function ReportsPanel({
     } catch (reason) {
       const code = commandErrorCode(reason);
       setLocalError(code);
-      onError(code);
     } finally {
       setRefreshing(false);
     }
@@ -631,7 +623,6 @@ export function ReportsPanel({
     } catch (reason) {
       const code = commandErrorCode(reason);
       setLocalError(code);
-      onError(code);
     } finally {
       setSaving(false);
     }
@@ -699,7 +690,6 @@ export function ReportsPanel({
     } catch (reason) {
       const code = commandErrorCode(reason);
       setLocalError(code);
-      onError(code);
     } finally {
       setExporting(false);
     }
@@ -1171,7 +1161,11 @@ export function ReportsPanel({
             </button>
           </div>
           {listLoading && <p role="status">{copy.loading}</p>}
-          {listFailed && <p role="alert">{copy.errors["report-definition-query-failed"]}</p>}
+          {listFailed && (
+            <p className="error" role="alert">
+              {copy.errors["report-definition-query-failed"]}
+            </p>
+          )}
           {!listLoading && !listFailed && reports.length === 0 && <p>{copy.empty}</p>}
           {reports.length > 0 && (
             <ul className="report-list">
@@ -1428,7 +1422,7 @@ export function ReportsPanel({
                 <h3 id="report-add-route-heading">{copy.addRouteHeading}</h3>
                 <p>{copy.addRouteIntro}</p>
                 {routesLoading && <p role="status">{copy.routesLoading}</p>}
-                {routesFailed && <p role="alert">{copy.routesFailed}</p>}
+                {routesFailed && <p className="error" role="alert">{copy.routesFailed}</p>}
                 {!routesLoading && !routesFailed && availableRoutes.length === 0 && (
                   <p>{copy.noRoutes}</p>
                 )}

@@ -53,22 +53,15 @@ function page(offset: number): TrainingSessionProvenanceResult {
   };
 }
 
-function renderPanel(
-  locale: "en-US" | "es-ES" = "en-US",
-  onError = vi.fn(),
-) {
-  return {
-    onError,
-    ...render(
-      <TrainingSessionProvenancePanel
-        sessionRef={sessionRef}
-        snapshotRef={snapshotRef}
-        locale={locale}
-        messages={catalogs[locale]}
-        onError={onError}
-      />,
-    ),
-  };
+function renderPanel(locale: "en-US" | "es-ES" = "en-US") {
+  return render(
+    <TrainingSessionProvenancePanel
+      sessionRef={sessionRef}
+      snapshotRef={snapshotRef}
+      locale={locale}
+      messages={catalogs[locale]}
+    />,
+  );
 }
 
 beforeEach(() => {
@@ -126,13 +119,13 @@ describe("TrainingSessionProvenancePanel", () => {
       .mockRejectedValueOnce({ code: "training-session-detail-failed" })
       .mockResolvedValueOnce(page(0));
     const user = userEvent.setup();
-    const { onError } = renderPanel();
+    renderPanel();
 
     await user.click(screen.getByRole("button", { name: "How did this session get here?" }));
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("Provenance could not be loaded");
     expect(screen.queryByText("Polar Flow")).not.toBeInTheDocument();
-    expect(onError).toHaveBeenCalledWith("training-session-detail-failed");
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
 
     await user.click(screen.getByRole("button", { name: "Retry provenance" }));
     expect(await screen.findByText("Polar Flow")).toBeVisible();
@@ -158,7 +151,6 @@ describe("TrainingSessionProvenancePanel", () => {
         snapshotRef={snapshotRef}
         locale="es-ES"
         messages={catalogs["es-ES"]}
-        onError={rendered.onError}
       />,
     );
     expect(screen.queryByRole("region", { name: "Procedencia de la sesión" }))
