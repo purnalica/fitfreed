@@ -535,7 +535,7 @@ function App() {
     await openOfficialSourceLink(url);
   }
 
-  async function openExploration(destination: ExploreDestination) {
+  async function openExploration(destination: ExploreDestination): Promise<boolean> {
     const navigationRevision = beginHomeNavigation();
     setErrorCode(undefined);
     try {
@@ -550,8 +550,10 @@ function App() {
       if (homeNavigationRevision.current === navigationRevision) {
         setActiveHome("explore");
       }
+      return true;
     } catch (reason) {
       setErrorCode(commandErrorCode(reason));
+      return false;
     }
   }
 
@@ -850,31 +852,38 @@ function App() {
     restoreFocusAfterReveal(target, initiatingElement);
   }
 
-  function navigateFromLongitudinal(
+  async function navigateFromLongitudinal(
     domain: "activity" | "training" | "sleep" | "recovery",
     localDateValue: string,
     seriesRef: string,
   ) {
+    setErrorCode(undefined);
     setReportReturnRef(undefined);
     setReportReturnFocusRequest(undefined);
     if (domain === "activity") {
-      invoke("save_exploration_workspace", { destination: "activity" })
-        .then(() => refresh({ from: localDateValue, through: localDateValue }))
-        .then(() => {
-          setExploreDestination("activity");
-          openActivityDetail(localDateValue, null);
-        })
-        .catch((reason) => setErrorCode(commandErrorCode(reason)));
+      try {
+        await invoke("save_exploration_workspace", { destination: "activity" });
+        await refresh({ from: localDateValue, through: localDateValue });
+        setExploreDestination("activity");
+        openActivityDetail(localDateValue, null);
+      } catch (reason) {
+        setErrorCode(commandErrorCode(reason));
+      }
       return;
     }
     navigationSequence.current += 1;
-    setExplorerNavigation({
+    const navigation = {
       domain,
       seriesRef,
       localDate: localDateValue,
       requestId: navigationSequence.current,
-    });
-    void openExploration(domain);
+    };
+    setExplorerNavigation(navigation);
+    if (!(await openExploration(domain))) {
+      setExplorerNavigation((current) => current?.requestId === navigation.requestId
+        ? undefined
+        : current);
+    }
   }
 
   if (!localeReady) {

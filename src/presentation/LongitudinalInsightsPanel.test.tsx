@@ -326,6 +326,42 @@ describe("LongitudinalInsightsPanel", () => {
     expect(within(region).queryByRole("region", { name: "Aligned day detail" })).not.toBeInTheDocument();
   });
 
+  it("announces the exact explorer while preserving the aligned day and stable links", async () => {
+    mocks.invoke.mockResolvedValue(overview());
+    let completeNavigation: () => void = () => undefined;
+    const onNavigate = vi.fn(() => new Promise<void>((resolve) => {
+      completeNavigation = resolve;
+    }));
+    const user = userEvent.setup();
+    renderPanel({ onNavigate });
+    const region = screen.getByRole("region", { name: "Longitudinal dashboard" });
+    await user.click(await within(region).findByRole("button", {
+      name: "View aligned details for Mar 28, 2026",
+    }));
+    const detail = within(region).getByRole("region", { name: "Aligned day detail" });
+    const links = within(detail).getByRole("navigation", { name: "Aligned day detail" });
+    const training = within(links).getByRole("link", {
+      name: "Open training explorer for this date",
+    });
+
+    await user.click(training);
+
+    await waitFor(() => expect(links).toHaveAttribute("aria-busy", "true"));
+    expect(training).toHaveAttribute("aria-disabled", "true");
+    expect(within(detail).getByRole("button", { name: "Close aligned day detail" }))
+      .toBeDisabled();
+    expect(within(links).getByRole("status")).toHaveTextContent(
+      "Opening training exploration…",
+    );
+    expect(within(detail).getByText("7 h 30 min")).toBeVisible();
+    await user.click(training);
+    expect(onNavigate).toHaveBeenCalledTimes(1);
+
+    act(() => completeNavigation());
+    await waitFor(() => expect(links).toHaveAttribute("aria-busy", "false"));
+    expect(within(links).queryByRole("status")).not.toBeInTheDocument();
+  });
+
   it("validates, applies, and resets the shared date range without losing the current view", async () => {
     const filtered = overview({ from: "2026-03-30", through: "2026-03-30" });
     filtered.series[0].days = [filtered.series[0].days[2]];

@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, type MouseEvent, useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
 import { catalogs, type Locale } from "../locales/catalogs";
@@ -28,7 +28,11 @@ interface LongitudinalInsightsPanelProps {
   messages: (typeof catalogs)["en-US"];
   refreshToken: number;
   onError: (code: string | undefined) => void;
-  onNavigate: (domain: LongitudinalDomain, localDate: string, seriesRef: string) => void;
+  onNavigate: (
+    domain: LongitudinalDomain,
+    localDate: string,
+    seriesRef: string,
+  ) => void | Promise<void>;
 }
 
 interface SelectedDay {
@@ -49,6 +53,7 @@ export function LongitudinalInsightsPanel({
   const [loadingOverview, setLoadingOverview] = useState(true);
   const [rangeOperation, setRangeOperation] = useState<RangeOperation>();
   const [selectedDay, setSelectedDay] = useState<SelectedDay>();
+  const [navigationDomain, setNavigationDomain] = useState<LongitudinalDomain>();
   const rangeValidation = useInvalidForm(onError);
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const date = useMemo(
@@ -140,6 +145,24 @@ export function LongitudinalInsightsPanel({
 
   function activityStatus(day: LongitudinalDayInsight): string {
     return messages.activity[day.activity.availability];
+  }
+
+  async function openDomain(
+    event: MouseEvent<HTMLAnchorElement>,
+    domain: LongitudinalDomain,
+    localDate: string,
+    seriesRef: string,
+  ) {
+    event.preventDefault();
+    if (navigationDomain) return;
+    setNavigationDomain(domain);
+    try {
+      await onNavigate(domain, localDate, seriesRef);
+    } catch (reason) {
+      onError(commandErrorCode(reason));
+    } finally {
+      setNavigationDomain(undefined);
+    }
   }
 
   function selected(): { series: LongitudinalSeriesOverview; day: LongitudinalDayInsight; index: number } | undefined {
@@ -253,7 +276,11 @@ export function LongitudinalInsightsPanel({
             />
           ))}
           {selectedInsight && (
-            <section className="longitudinal-detail" aria-labelledby="longitudinal-detail-heading">
+            <section
+              className="longitudinal-detail"
+              aria-labelledby="longitudinal-detail-heading"
+              aria-busy={navigationDomain !== undefined}
+            >
               <div className="longitudinal-detail-heading">
                 <div>
                   <h2 id="longitudinal-detail-heading">{copy.detailHeading}</h2>
@@ -264,7 +291,12 @@ export function LongitudinalInsightsPanel({
                     <span> · {copy.series} {number.format(selectedInsight.index + 1)}</span>
                   )}
                 </div>
-                <button type="button" className="secondary" onClick={() => setSelectedDay(undefined)}>
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={navigationDomain !== undefined}
+                  onClick={() => setSelectedDay(undefined)}
+                >
                   {copy.closeDetail}
                 </button>
               </div>
@@ -280,18 +312,27 @@ export function LongitudinalInsightsPanel({
                 <div><dt>{copy.rmssd}</dt><dd>{formatRecoveryMilliseconds(selectedInsight.day.recovery.heartRateVariabilityRmssdMilliseconds, locale, messages.unavailable)}</dd></div>
                 <div><dt>{copy.breathingInterval}</dt><dd>{formatRecoveryMilliseconds(selectedInsight.day.recovery.breathingIntervalMilliseconds, locale, messages.unavailable)}</dd></div>
               </dl>
-              <nav className="longitudinal-detail-links" aria-label={copy.detailHeading}>
+              <nav
+                className="longitudinal-detail-links"
+                aria-label={copy.detailHeading}
+                aria-busy={navigationDomain !== undefined}
+              >
                 {selectedInsight.day.activity.availability !== "missing" && (
-                  <a href="#activity-heading" onClick={() => onNavigate("activity", selectedInsight.day.localDate, selectedInsight.series.seriesRef)}>{copy.openActivity}</a>
+                  <a href="#activity-heading" aria-disabled={navigationDomain !== undefined} onClick={(event) => void openDomain(event, "activity", selectedInsight.day.localDate, selectedInsight.series.seriesRef)}>{copy.openActivity}</a>
                 )}
                 {selectedInsight.day.training.sessionCount > 0 && (
-                  <a href="#training-heading" onClick={() => onNavigate("training", selectedInsight.day.localDate, selectedInsight.series.seriesRef)}>{copy.openTraining}</a>
+                  <a href="#training-heading" aria-disabled={navigationDomain !== undefined} onClick={(event) => void openDomain(event, "training", selectedInsight.day.localDate, selectedInsight.series.seriesRef)}>{copy.openTraining}</a>
                 )}
                 {selectedInsight.day.sleep.availability === "available" && (
-                  <a href="#sleep-heading" onClick={() => onNavigate("sleep", selectedInsight.day.localDate, selectedInsight.series.seriesRef)}>{copy.openSleep}</a>
+                  <a href="#sleep-heading" aria-disabled={navigationDomain !== undefined} onClick={(event) => void openDomain(event, "sleep", selectedInsight.day.localDate, selectedInsight.series.seriesRef)}>{copy.openSleep}</a>
                 )}
                 {selectedInsight.day.recovery.availability === "available" && (
-                  <a href="#recovery-heading" onClick={() => onNavigate("recovery", selectedInsight.day.localDate, selectedInsight.series.seriesRef)}>{copy.openRecovery}</a>
+                  <a href="#recovery-heading" aria-disabled={navigationDomain !== undefined} onClick={(event) => void openDomain(event, "recovery", selectedInsight.day.localDate, selectedInsight.series.seriesRef)}>{copy.openRecovery}</a>
+                )}
+                {navigationDomain && (
+                  <span className="progress-submit-status" role="status" aria-live="polite">
+                    {messages.home.opening[navigationDomain]}
+                  </span>
                 )}
               </nav>
               <p className="notice">{copy.associationNotice}</p>

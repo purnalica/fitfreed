@@ -1011,9 +1011,19 @@ describe("FitFreed import interface", () => {
         { kind: "explore-training-sessions", destination: "training" },
       ],
     });
+    let resolveTrainingWorkspace: () => void = () => undefined;
+    let trainingWorkspaceSaveCount = 0;
     mocks.homeInvoke.mockImplementation((command, arguments_) => {
       if (command === "query_library_home") return Promise.resolve(home);
       if (command === "save_exploration_workspace") {
+        if (arguments_.destination === "training") {
+          trainingWorkspaceSaveCount += 1;
+          if (trainingWorkspaceSaveCount === 1) {
+            return new Promise((resolve) => {
+              resolveTrainingWorkspace = () => resolve({ version: 1, destination: "training" });
+            });
+          }
+        }
         return Promise.resolve({ version: 1, destination: arguments_.destination });
       }
       if (command === "clear_exploration_workspace") return Promise.resolve(undefined);
@@ -1048,6 +1058,9 @@ describe("FitFreed import interface", () => {
     await user.click(screen.getByRole("link", {
       name: "Open training explorer for this date",
     }));
+    expect(screen.getByRole("status")).toHaveTextContent("Opening training exploration…");
+    expect(screen.getByRole("region", { name: "Aligned day detail" })).toBeVisible();
+    resolveTrainingWorkspace();
     await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith("query_training_sessions", {
       request: {
         from: "2026-01-04",
