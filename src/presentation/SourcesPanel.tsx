@@ -10,6 +10,7 @@ type SourcesMessages = (typeof catalogs)["en-US"]["sources"];
 
 interface ImportMessages {
   choose: string;
+  choosing: string;
   import: string;
   noPackage: string;
   importing: string;
@@ -30,6 +31,7 @@ interface SourcesPanelProps {
   updateInstalling: boolean;
   cancelRequested: boolean;
   onChooseArchive: () => Promise<void>;
+  onArchiveError: () => void;
   onImport: () => Promise<void>;
   onCancel: () => Promise<void>;
   onOpenOfficialLink: (url: string) => Promise<void>;
@@ -50,6 +52,7 @@ export function SourcesPanel({
   updateInstalling,
   cancelRequested,
   onChooseArchive,
+  onArchiveError,
   onImport,
   onCancel,
   onOpenOfficialLink,
@@ -57,6 +60,7 @@ export function SourcesPanel({
   children,
 }: SourcesPanelProps) {
   const [guideVisible, setGuideVisible] = useState(false);
+  const [archiveChoosing, setArchiveChoosing] = useState(false);
   const [linkOperation, setLinkOperation] = useState<"account" | "instructions">();
   const guideHeading = useRef<HTMLHeadingElement>(null);
 
@@ -86,6 +90,18 @@ export function SourcesPanel({
     }
   }
 
+  async function chooseArchive() {
+    if (archiveChoosing) return;
+    setArchiveChoosing(true);
+    try {
+      await onChooseArchive();
+    } catch {
+      onArchiveError();
+    } finally {
+      setArchiveChoosing(false);
+    }
+  }
+
   return (
     <section className="sources-panel" aria-labelledby="sources-heading">
       <header className="sources-heading">
@@ -96,7 +112,7 @@ export function SourcesPanel({
       </header>
 
       <div className="source-paths">
-        <article className="source-path source-path-import" aria-busy={busy}>
+        <article className="source-path source-path-import" aria-busy={busy || archiveChoosing}>
           <span aria-hidden="true">01</span>
           <h2>{messages.haveArchiveTitle}</h2>
           <p>{messages.haveArchiveBody}</p>
@@ -105,15 +121,15 @@ export function SourcesPanel({
             <button
               type="button"
               className="secondary"
-              onClick={() => void onChooseArchive()}
-              disabled={busy || updateInstalling}
+              onClick={() => void chooseArchive()}
+              disabled={archiveChoosing || busy || updateInstalling}
             >
               {importMessages.choose}
             </button>
             <button
               type="button"
               onClick={() => void onImport()}
-              disabled={!importReady || !archivePath || busy || updateInstalling}
+              disabled={!importReady || !archivePath || archiveChoosing || busy || updateInstalling}
             >
               {importMessages.import}
             </button>
@@ -127,9 +143,13 @@ export function SourcesPanel({
                 {importMessages.cancel}
               </button>
             )}
-            {busy && (
+            {(archiveChoosing || busy) && (
               <span className="source-import-progress" role="status" aria-live="polite">
-                {cancelRequested ? importMessages.cancelling : importMessages.importing}
+                {archiveChoosing
+                  ? importMessages.choosing
+                  : cancelRequested
+                    ? importMessages.cancelling
+                    : importMessages.importing}
               </span>
             )}
           </div>

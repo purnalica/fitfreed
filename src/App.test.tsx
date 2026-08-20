@@ -2509,6 +2509,13 @@ describe("FitFreed import interface", () => {
     await waitFor(() => expect(mocks.open).toHaveBeenCalledOnce());
     expect(screen.getByRole("button", { name: "Import selected package" })).toBeDisabled();
 
+    mocks.open.mockRejectedValueOnce(new Error("dialog unavailable"));
+    await user.click(choose);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "FitFreed could not open the ZIP chooser. Try again; no history was changed.",
+    );
+    expect(choose).toBeEnabled();
+
     await chooseArchive(user, "/synthetic/valid.zip");
     expect(screen.getByRole("button", { name: "Import selected package" })).toBeEnabled();
   });

@@ -1021,6 +1021,7 @@ function App() {
             messages={messages.sources}
             importMessages={{
               choose: messages.choose,
+              choosing: messages.choosing,
               import: messages.import,
               noPackage: messages.noPackage,
               importing: messages.importing,
@@ -1036,6 +1037,7 @@ function App() {
             updateInstalling={updateInstalling}
             cancelRequested={cancelRequested}
             onChooseArchive={chooseArchive}
+            onArchiveError={() => setErrorCode("archive-picker-failed")}
             onImport={runImport}
             onCancel={cancelImport}
             onOpenOfficialLink={openSourceLink}

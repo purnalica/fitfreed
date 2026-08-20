@@ -42,6 +42,7 @@ const guide: SourceAcquisitionGuide = {
 
 const importMessages = {
   choose: catalogs["en-US"].choose,
+  choosing: catalogs["en-US"].choosing,
   import: catalogs["en-US"].import,
   noPackage: catalogs["en-US"].noPackage,
   importing: catalogs["en-US"].importing,
@@ -72,6 +73,7 @@ describe("SourcesPanel", () => {
         updateInstalling={false}
         cancelRequested={false}
         onChooseArchive={onChooseArchive}
+        onArchiveError={vi.fn()}
         onImport={onImport}
         onCancel={vi.fn()}
         onOpenOfficialLink={onOpenOfficialLink}
@@ -116,6 +118,7 @@ describe("SourcesPanel", () => {
         messages={catalogs["es-ES"].sources}
         importMessages={{
           choose: catalogs["es-ES"].choose,
+          choosing: catalogs["es-ES"].choosing,
           import: catalogs["es-ES"].import,
           noPackage: catalogs["es-ES"].noPackage,
           importing: catalogs["es-ES"].importing,
@@ -131,6 +134,7 @@ describe("SourcesPanel", () => {
         updateInstalling={false}
         cancelRequested={false}
         onChooseArchive={vi.fn()}
+        onArchiveError={vi.fn()}
         onImport={vi.fn()}
         onCancel={vi.fn()}
         onOpenOfficialLink={vi.fn()}
@@ -170,6 +174,7 @@ describe("SourcesPanel", () => {
         updateInstalling={false}
         cancelRequested={false}
         onChooseArchive={vi.fn()}
+        onArchiveError={vi.fn()}
         onImport={vi.fn()}
         onCancel={vi.fn()}
         onOpenOfficialLink={onOpenOfficialLink}
@@ -208,6 +213,62 @@ describe("SourcesPanel", () => {
     expect(instructions).toBeEnabled();
   });
 
+  it("announces one archive chooser operation and recovers after failure", async () => {
+    const user = userEvent.setup();
+    let completeChoosing: () => void = () => undefined;
+    const onChooseArchive = vi.fn()
+      .mockImplementationOnce(() => new Promise<void>((resolve) => {
+        completeChoosing = resolve;
+      }))
+      .mockRejectedValueOnce(new Error("dialog unavailable"));
+    const onArchiveError = vi.fn();
+
+    render(
+      <SourcesPanel
+        locale="en-US"
+        messages={catalogs["en-US"].sources}
+        importMessages={importMessages}
+        guide={guide}
+        guideLoading={false}
+        archivePath={undefined}
+        importReady
+        busy={false}
+        cancellable={false}
+        updateInstalling={false}
+        cancelRequested={false}
+        onChooseArchive={onChooseArchive}
+        onArchiveError={onArchiveError}
+        onImport={vi.fn()}
+        onCancel={vi.fn()}
+        onOpenOfficialLink={vi.fn()}
+        onLinkError={vi.fn()}
+      />,
+    );
+
+    const importPath = screen.getByRole("heading", { name: "I have the ZIP" })
+      .closest("article");
+    const choose = screen.getByRole("button", { name: "Choose ZIP package" });
+
+    await user.click(choose);
+
+    expect(importPath).toHaveAttribute("aria-busy", "true");
+    expect(choose).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Import selected package" })).toBeDisabled();
+    expect(within(importPath!).getByRole("status")).toHaveTextContent(
+      "Opening ZIP chooser…",
+    );
+    await user.click(choose);
+    expect(onChooseArchive).toHaveBeenCalledOnce();
+
+    act(() => completeChoosing());
+    await waitFor(() => expect(choose).toBeEnabled());
+    expect(within(importPath!).queryByRole("status")).not.toBeInTheDocument();
+
+    await user.click(choose);
+    await waitFor(() => expect(onArchiveError).toHaveBeenCalledOnce());
+    expect(choose).toBeEnabled();
+  });
+
   it("does not report missing guidance while the local guide is still loading", () => {
     render(
       <SourcesPanel
@@ -223,6 +284,7 @@ describe("SourcesPanel", () => {
         updateInstalling={false}
         cancelRequested={false}
         onChooseArchive={vi.fn()}
+        onArchiveError={vi.fn()}
         onImport={vi.fn()}
         onCancel={vi.fn()}
         onOpenOfficialLink={vi.fn()}
@@ -256,6 +318,7 @@ describe("SourcesPanel", () => {
         updateInstalling={false}
         cancelRequested={false}
         onChooseArchive={vi.fn()}
+        onArchiveError={vi.fn()}
         onImport={vi.fn()}
         onCancel={onCancel}
         onOpenOfficialLink={vi.fn()}
@@ -288,6 +351,7 @@ describe("SourcesPanel", () => {
         updateInstalling={false}
         cancelRequested
         onChooseArchive={vi.fn()}
+        onArchiveError={vi.fn()}
         onImport={vi.fn()}
         onCancel={onCancel}
         onOpenOfficialLink={vi.fn()}
@@ -311,6 +375,7 @@ describe("SourcesPanel", () => {
         updateInstalling
         cancelRequested={false}
         onChooseArchive={vi.fn()}
+        onArchiveError={vi.fn()}
         onImport={vi.fn()}
         onCancel={onCancel}
         onOpenOfficialLink={vi.fn()}
