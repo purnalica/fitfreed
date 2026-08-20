@@ -74,3 +74,30 @@ test("rejects guidance that no longer declares the inactive release boundary", (
     /userGuide does not document inactive public-release status/,
   );
 });
+
+test("rejects public guidance or evaluation that drops implemented MVP journeys", () => {
+  const candidate = bundle();
+  const guidePath = "docs/user/public-macos-0.1.0.md";
+  const evaluationPath = "docs/testing/macos-candidate-manual-evaluation.md";
+  candidate.documents[guidePath] = candidate.documents[guidePath]
+    .replace("**Show me how**", "**Continue**")
+    .replace("user-authored segmentation", "personal views")
+    .replace("privacy-reviewed self-contained HTML export", "local output");
+  candidate.documents[evaluationPath] = candidate.documents[evaluationPath]
+    .replace("Start a report from a session", "Start a note from a session")
+    .replace("Create and reopen a report", "Create and reopen a note")
+    .replace("From a training session, create a report", "From a training session, create a note");
+
+  assert.throws(
+    () => validatePublicDocumentationBundle(candidate),
+    (error) => {
+      assert.match(error.message, /userGuide does not document bundled source acquisition/);
+      assert.match(error.message, /userGuide does not document implemented training exploration/);
+      assert.match(error.message, /userGuide does not document implemented report export/);
+      assert.match(error.message, /manualEvaluation does not document keyboard report evaluation/);
+      assert.match(error.message, /manualEvaluation does not document VoiceOver report evaluation/);
+      assert.match(error.message, /manualEvaluation does not document realistic report evaluation/);
+      return true;
+    },
+  );
+});

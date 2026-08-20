@@ -62,6 +62,8 @@ The application contains the complete localized import, coverage, exploration, u
 
 ## Import and reimport
 
+If the export is not available yet, open **Sources** and choose **Show me how**. The bundled localized guide identifies the provider-controlled request and delivery steps, its verification date, expected archive, known constraints, and troubleshooting. Official account and instruction pages open explicitly in the default browser; FitFreed never receives provider credentials, requests the export, monitors its preparation, or downloads it.
+
 Choose the original ZIP itself. Do not unpack it, repack it, rename its members, or edit its JSON files.
 
 1. Choose the ZIP package and start the import.
@@ -80,7 +82,7 @@ The [Polar Flow compatibility reference](../data-formats/providers/polar-flow.md
 Version 0.1.0 provides provider-neutral views for:
 
 - daily activity overview, range, exact day detail, and period comparison;
-- training overview, range, exact session summary, exercise/lap/pause structure, bounded local primary and transition route traces, paginated exact route points, gap-aware supported signal charts, paginated exact signal samples, and period comparison;
+- complete-history training sport discovery and user classification, combined filters, chronology, source-separated calendar navigation, multi-session comparison, exact session summary, exercise/lap/pause structure, bounded local primary and transition route traces, paginated exact route points, gap-aware supported signal charts, paginated exact signal samples, recorded zones, reusable user-authored segmentation, and source provenance;
 - primary sleep overview, range, phases, timeline, score detail, and period comparison;
 - dated nightly recovery overview, range, exact source-context detail, and period comparison; and
 - one longitudinal dashboard with a shared range, aligned day synopsis, navigation, and period comparison; and
