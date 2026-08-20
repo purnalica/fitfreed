@@ -39,13 +39,16 @@
     {
       "key": "active",
       "label": "Active experience work",
-      "title": "The experience being shaped",
+      "title": "The experience gaps under review",
       "items": [
-        "Independent product-experience audit of the release-shaped macOS MVP journey"
+        "A trustworthy foreground experience for realistic first imports",
+        "Representative performance and storage qualification for dense training histories",
+        "An immediate evidence-backed personal answer after import",
+        "Recognizable training discovery, coherent session stories, and progressively disclosed report authorship"
       ],
       "source": {
-        "label": "Active experience delivery plan",
-        "path": "docs/plans/mvp-experience-delivery.md"
+        "label": "Independent product-experience audit",
+        "path": "docs/research/mvp-product-experience-audit.md"
       }
     },
     {

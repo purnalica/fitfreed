@@ -44,6 +44,7 @@ FitFreed does not have a supported public release yet. The implemented applicati
 - [Reporting architecture](architecture/reporting.md) defines reproducible report definitions and deterministic self-contained HTML export.
 - [Product thesis](product-thesis.md) explains the GDPR-enabled portability and open-source freedom argument without presenting FitFreed as legal advice or a compliance product.
 - [MVP experience boundary assessment](research/mvp-experience-boundary-assessment.md) records the accepted report, deep-session, sport-classification, dependency, navigation, and public-communication evidence.
+- [MVP product-experience audit](research/mvp-product-experience-audit.md) records the current release-blocking and material experience findings, preserved strengths, and reopened acceptance outcomes.
 
 ## Documentation ownership
 
