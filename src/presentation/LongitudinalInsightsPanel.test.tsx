@@ -227,6 +227,43 @@ function renderPanel(overrides: {
 }
 
 describe("LongitudinalInsightsPanel", () => {
+  it("announces the exact latest-window operation without replacing the current history", async () => {
+    let requestCount = 0;
+    let completeReset: (value: LongitudinalOverview) => void = () => undefined;
+    const pendingReset = new Promise<LongitudinalOverview>((resolve) => {
+      completeReset = resolve;
+    });
+    mocks.invoke.mockImplementation((command) => {
+      if (command !== "query_longitudinal_overview") {
+        throw new Error(`Unexpected command: ${command}`);
+      }
+      requestCount += 1;
+      return requestCount === 1 ? Promise.resolve(overview()) : pendingReset;
+    });
+    const user = userEvent.setup();
+    renderPanel();
+    const region = screen.getByRole("region", { name: "Longitudinal dashboard" });
+    const form = await within(region).findByRole("form", {
+      name: "Explore one shared period",
+    });
+
+    await user.click(within(form).getByRole("button", { name: "Latest 30-day window" }));
+
+    expect(form).toHaveAttribute("aria-busy", "true");
+    expect(within(form).getByRole("button", { name: "Apply shared period" })).toBeDisabled();
+    expect(within(form).getByRole("button", { name: "Latest 30-day window" }))
+      .toBeDisabled();
+    expect(within(form).getByRole("status")).toHaveTextContent(
+      "Loading latest shared 30-day window…",
+    );
+    expect(within(region).getByRole("button", {
+      name: "View aligned details for Mar 28, 2026",
+    })).toBeVisible();
+
+    act(() => completeReset(overview()));
+    await waitFor(() => expect(form).toHaveAttribute("aria-busy", "false"));
+  });
+
   it("distinguishes loading, empty, and unavailable history", async () => {
     let resolveOverview: (value: LongitudinalOverview) => void = () => undefined;
     mocks.invoke.mockImplementation(() => new Promise<LongitudinalOverview>((resolve) => {

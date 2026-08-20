@@ -4,7 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
 import { LongitudinalComparisonPanel } from "./LongitudinalComparisonPanel";
-import { ProgressSubmitButton } from "./ProgressSubmitButton";
+import { RangeFilterActions, type RangeOperation } from "./RangeFilterActions";
 import type {
   LongitudinalDateRange,
   LongitudinalDayInsight,
@@ -47,7 +47,7 @@ export function LongitudinalInsightsPanel({
   const [rangeFrom, setRangeFrom] = useState("");
   const [rangeThrough, setRangeThrough] = useState("");
   const [loadingOverview, setLoadingOverview] = useState(true);
-  const [loadingRange, setLoadingRange] = useState(false);
+  const [rangeOperation, setRangeOperation] = useState<RangeOperation>();
   const [selectedDay, setSelectedDay] = useState<SelectedDay>();
   const rangeValidation = useInvalidForm(onError);
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
@@ -102,27 +102,27 @@ export function LongitudinalInsightsPanel({
       return;
     }
     rangeValidation.accept();
-    setLoadingRange(true);
+    setRangeOperation("apply");
     onError(undefined);
     try {
       await refresh({ from: rangeFrom, through: rangeThrough });
     } catch (reason) {
       onError(commandErrorCode(reason));
     } finally {
-      setLoadingRange(false);
+      setRangeOperation((current) => current === "apply" ? undefined : current);
     }
   }
 
   async function resetRange() {
     rangeValidation.accept();
-    setLoadingRange(true);
+    setRangeOperation("reset");
     onError(undefined);
     try {
       await refresh();
     } catch (reason) {
       onError(commandErrorCode(reason));
     } finally {
-      setLoadingRange(false);
+      setRangeOperation((current) => current === "reset" ? undefined : current);
     }
   }
 
@@ -151,6 +151,7 @@ export function LongitudinalInsightsPanel({
   }
 
   const selectedInsight = selected();
+  const loadingRange = rangeOperation !== undefined;
 
   return (
     <section
@@ -213,21 +214,15 @@ export function LongitudinalInsightsPanel({
                   required
                 />
               </label>
-              <div className="longitudinal-filter-actions">
-                <ProgressSubmitButton
-                  loading={loadingRange}
-                  actionLabel={copy.applyRange}
-                  progressLabel={copy.applyingRange}
-                />
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={() => void resetRange()}
-                  disabled={loadingRange}
-                >
-                  {copy.latestWindow}
-                </button>
-              </div>
+              <RangeFilterActions
+                className="longitudinal-filter-actions"
+                operation={rangeOperation}
+                applyLabel={copy.applyRange}
+                applyingLabel={copy.applyingRange}
+                resetLabel={copy.latestWindow}
+                resettingLabel={copy.loadingLatestWindow}
+                onReset={() => void resetRange()}
+              />
             </form>
           )}
           {overview.selectedRange && (

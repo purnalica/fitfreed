@@ -38,7 +38,10 @@ import { SourcesPanel } from "./presentation/SourcesPanel";
 import type { ReportSourceTarget } from "./presentation/report-navigation";
 import type { ReportStartOrigin } from "./presentation/session-report";
 import { LoadingSurface } from "./presentation/LoadingSurface";
-import { ProgressSubmitButton } from "./presentation/ProgressSubmitButton";
+import {
+  RangeFilterActions,
+  type RangeOperation,
+} from "./presentation/RangeFilterActions";
 import { restoreFocusAfterReveal } from "./presentation/focus-restoration";
 import { APPLICATION_ERROR_ID, useInvalidForm } from "./presentation/useInvalidForm";
 
@@ -206,7 +209,7 @@ function App() {
   const [activityFailed, setActivityFailed] = useState(false);
   const [rangeFrom, setRangeFrom] = useState("");
   const [rangeThrough, setRangeThrough] = useState("");
-  const [rangeLoading, setRangeLoading] = useState(false);
+  const [rangeOperation, setRangeOperation] = useState<RangeOperation>();
   const [selectedActivityDate, setSelectedActivityDate] = useState<string>();
   const activityHeadingRef = useRef<HTMLHeadingElement>(null);
   const activityDetailHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -716,27 +719,27 @@ function App() {
       return;
     }
     activityRangeValidation.accept();
-    setRangeLoading(true);
+    setRangeOperation("apply");
     setErrorCode(undefined);
     try {
       await refresh({ from: rangeFrom, through: rangeThrough });
     } catch (reason) {
       setErrorCode(commandErrorCode(reason));
     } finally {
-      setRangeLoading(false);
+      setRangeOperation((current) => current === "apply" ? undefined : current);
     }
   }
 
   async function resetActivityRange() {
     activityRangeValidation.accept();
-    setRangeLoading(true);
+    setRangeOperation("reset");
     setErrorCode(undefined);
     try {
       await refresh();
     } catch (reason) {
       setErrorCode(commandErrorCode(reason));
     } finally {
-      setRangeLoading(false);
+      setRangeOperation((current) => current === "reset" ? undefined : current);
     }
   }
 
@@ -747,6 +750,7 @@ function App() {
     ? (progress.completedBytes / progress.totalBytes) * 100
     : undefined;
   const progressValue = artifactProgress ?? byteProgress;
+  const rangeLoading = rangeOperation !== undefined;
   const classifiedArtifacts = outcome
     ? outcome.coverage.supported +
       outcome.coverage.unsupported +
@@ -1248,21 +1252,15 @@ function App() {
                     required
                   />
                 </label>
-                <div className="activity-filter-actions">
-                  <ProgressSubmitButton
-                    loading={rangeLoading}
-                    actionLabel={messages.activity.applyRange}
-                    progressLabel={messages.activity.applyingRange}
-                  />
-                  <button
-                    type="button"
-                    className="secondary"
-                    onClick={() => void resetActivityRange()}
-                    disabled={rangeLoading}
-                  >
-                    {messages.activity.latestWindow}
-                  </button>
-                </div>
+                <RangeFilterActions
+                  className="activity-filter-actions"
+                  operation={rangeOperation}
+                  applyLabel={messages.activity.applyRange}
+                  applyingLabel={messages.activity.applyingRange}
+                  resetLabel={messages.activity.latestWindow}
+                  resettingLabel={messages.activity.loadingLatestWindow}
+                  onReset={() => void resetActivityRange()}
+                />
               </form>
             )}
             {activityOverview.selectedRange && (

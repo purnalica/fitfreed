@@ -2176,6 +2176,45 @@ describe("FitFreed import interface", () => {
     );
   });
 
+  it("announces the exact latest activity window without replacing the current history", async () => {
+    offerExploration("activity");
+    const current = activityOverview([
+      { localDate: "2026-01-01", stepCount: "1000", availability: "available" },
+      { localDate: "2026-01-02", stepCount: "2000", availability: "available" },
+    ]);
+    let requestCount = 0;
+    let completeReset: (value: TestActivityOverview) => void = () => undefined;
+    const pendingReset = new Promise<TestActivityOverview>((resolve) => {
+      completeReset = resolve;
+    });
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_activity_overview") {
+        requestCount += 1;
+        return requestCount === 1 ? Promise.resolve(current) : pendingReset;
+      }
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      if (command === "list_reports") return Promise.resolve({ reports: [] });
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    await enterExploration(user, "activity");
+    const region = screen.getByRole("region", { name: "Daily activity overview" });
+    const form = within(region).getByRole("form", { name: "Explore a date range" });
+
+    await user.click(within(form).getByRole("button", { name: "Latest 30 days" }));
+
+    expect(form).toHaveAttribute("aria-busy", "true");
+    expect(within(form).getByRole("button", { name: "Apply range" })).toBeDisabled();
+    expect(within(form).getByRole("button", { name: "Latest 30 days" })).toBeDisabled();
+    expect(within(form).getByRole("status")).toHaveTextContent("Loading latest 30 days…");
+    expect(within(region).getByRole("table", { name: "Daily activity overview" }))
+      .toBeVisible();
+
+    act(() => completeReset(current));
+    await waitFor(() => expect(form).toHaveAttribute("aria-busy", "false"));
+  });
+
   it("filters an inclusive range, rejects invalid input, resets it, and opens daily detail", async () => {
     offerExploration("activity");
     const complete = activityOverview([

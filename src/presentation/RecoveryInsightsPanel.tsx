@@ -5,7 +5,7 @@ import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
 import type { ExplorerNavigationRequest } from "./explorer-navigation";
 import { restoreFocusAfterReveal } from "./focus-restoration";
-import { ProgressSubmitButton } from "./ProgressSubmitButton";
+import { RangeFilterActions, type RangeOperation } from "./RangeFilterActions";
 import { RecoveryComparisonPanel } from "./RecoveryComparisonPanel";
 import {
   formatRecoveryMilliseconds,
@@ -46,7 +46,7 @@ export function RecoveryInsightsPanel({
   const [rangeFrom, setRangeFrom] = useState("");
   const [rangeThrough, setRangeThrough] = useState("");
   const [loadingOverview, setLoadingOverview] = useState(true);
-  const [loadingRange, setLoadingRange] = useState(false);
+  const [rangeOperation, setRangeOperation] = useState<RangeOperation>();
   const [selectedNight, setSelectedNight] = useState<SelectedNight>();
   const [detail, setDetail] = useState<RecoveryNightDetail>();
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -115,18 +115,23 @@ export function RecoveryInsightsPanel({
 
   useEffect(() => {
     if (!navigationRequest) return;
-    setLoadingRange(true);
+    setRangeOperation("navigation");
     onError(undefined);
     void refresh({
       from: navigationRequest.localDate,
       through: navigationRequest.localDate,
     })
-      .then(() => openDetail({
-        seriesRef: navigationRequest.seriesRef,
-        recoveryDate: navigationRequest.localDate,
-      }))
+      .then(() => {
+        setRangeOperation((current) => current === "navigation" ? undefined : current);
+        return openDetail({
+          seriesRef: navigationRequest.seriesRef,
+          recoveryDate: navigationRequest.localDate,
+        });
+      })
       .catch((reason) => onError(commandErrorCode(reason)))
-      .finally(() => setLoadingRange(false));
+      .finally(() => setRangeOperation(
+        (current) => current === "navigation" ? undefined : current,
+      ));
   }, [navigationRequest, onError]);
 
   async function applyRange(event: FormEvent<HTMLFormElement>) {
@@ -142,27 +147,27 @@ export function RecoveryInsightsPanel({
       return;
     }
     rangeValidation.accept();
-    setLoadingRange(true);
+    setRangeOperation("apply");
     onError(undefined);
     try {
       await refresh({ from: rangeFrom, through: rangeThrough });
     } catch (reason) {
       onError(commandErrorCode(reason));
     } finally {
-      setLoadingRange(false);
+      setRangeOperation((current) => current === "apply" ? undefined : current);
     }
   }
 
   async function resetRange() {
     rangeValidation.accept();
-    setLoadingRange(true);
+    setRangeOperation("reset");
     onError(undefined);
     try {
       await refresh();
     } catch (reason) {
       onError(commandErrorCode(reason));
     } finally {
-      setLoadingRange(false);
+      setRangeOperation((current) => current === "reset" ? undefined : current);
     }
   }
 
@@ -222,6 +227,7 @@ export function RecoveryInsightsPanel({
         : BigInt(day.recovery.beatToBeatIntervalMilliseconds);
       return value > maximum ? value : maximum;
     }, 1n) ?? 1n;
+  const loadingRange = rangeOperation !== undefined;
 
   return (
     <section
@@ -284,21 +290,16 @@ export function RecoveryInsightsPanel({
                   required
                 />
               </label>
-              <div className="recovery-filter-actions">
-                <ProgressSubmitButton
-                  loading={loadingRange}
-                  actionLabel={copy.applyRange}
-                  progressLabel={copy.applyingRange}
-                />
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={() => void resetRange()}
-                  disabled={loadingRange}
-                >
-                  {copy.latestWindow}
-                </button>
-              </div>
+              <RangeFilterActions
+                className="recovery-filter-actions"
+                operation={rangeOperation}
+                applyLabel={copy.applyRange}
+                applyingLabel={copy.applyingRange}
+                resetLabel={copy.latestWindow}
+                resettingLabel={copy.loadingLatestWindow}
+                navigationLabel={copy.loadingDetail}
+                onReset={() => void resetRange()}
+              />
             </form>
           )}
           {overview.selectedRange && (

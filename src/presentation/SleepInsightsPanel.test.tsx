@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -231,6 +231,39 @@ function renderPanel(overrides: {
 }
 
 describe("SleepInsightsPanel", () => {
+  it("announces the exact latest-window operation without replacing the current history", async () => {
+    let requestCount = 0;
+    let completeReset: (value: SleepOverview) => void = () => undefined;
+    const pendingReset = new Promise<SleepOverview>((resolve) => {
+      completeReset = resolve;
+    });
+    mocks.invoke.mockImplementation((command) => {
+      if (command !== "query_sleep_overview") {
+        throw new Error(`Unexpected command: ${command}`);
+      }
+      requestCount += 1;
+      return requestCount === 1 ? Promise.resolve(overview()) : pendingReset;
+    });
+    const user = userEvent.setup();
+    renderPanel();
+    const region = screen.getByRole("region", { name: "Sleep history" });
+    const form = await within(region).findByRole("form", { name: "Explore a sleep period" });
+
+    await user.click(within(form).getByRole("button", { name: "Latest 30-day window" }));
+
+    expect(form).toHaveAttribute("aria-busy", "true");
+    expect(within(form).getByRole("button", { name: "Apply sleep period" })).toBeDisabled();
+    expect(within(form).getByRole("button", { name: "Latest 30-day window" })).toBeDisabled();
+    expect(within(form).getByRole("status")).toHaveTextContent(
+      "Loading latest 30-day window…",
+    );
+    expect(within(region).getAllByRole("button", { name: /View sleep details for/ }))
+      .toHaveLength(3);
+
+    act(() => completeReset(overview()));
+    await waitFor(() => expect(form).toHaveAttribute("aria-busy", "false"));
+  });
+
   it("distinguishes loading, empty, and unavailable history", async () => {
     let resolveOverview: (value: SleepOverview) => void = () => undefined;
     mocks.invoke.mockImplementation(() => new Promise<SleepOverview>((resolve) => {
