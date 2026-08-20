@@ -37,10 +37,25 @@ export async function persistSettings() {
   }, { timeout: 10_000, timeoutMsg: "the application settings were not saved" });
 }
 
-export async function goToHome(home) {
-  const destination = await $(`.shell-header nav button[data-home='${home}']`);
+export async function goToHome(home, session = browser) {
+  const destination = await session.$(`.shell-header nav button[data-home='${home}']`);
   await destination.waitForEnabled({ timeout: 10_000 });
-  await destination.click();
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    await destination.click();
+    try {
+      await session.waitUntil(
+        async () => (await destination.getAttribute("aria-current")) === "page",
+        {
+          timeout: 1_000,
+          interval: 50,
+          timeoutMsg: `${home} did not become the current application section`,
+        },
+      );
+      return;
+    } catch (error) {
+      if (attempt === 1) throw error;
+    }
+  }
 }
 
 export async function returnToLibraryHome(catalog) {
@@ -82,9 +97,7 @@ export async function openHomeQuestion(catalog, kind, expectedSelector) {
 }
 
 export async function selectLocale(locale, destination = "explore") {
-  const settings = await $(".shell-header nav button[data-home='settings']");
-  await settings.waitForEnabled({ timeout: 10_000 });
-  await settings.click();
+  await goToHome("settings");
   const select = await $("#application-language");
   await select.waitForEnabled({ timeout: 10_000 });
   if (await select.getValue() !== locale) {

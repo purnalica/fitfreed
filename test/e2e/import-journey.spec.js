@@ -78,9 +78,7 @@ async function expectComparisonHeading(selector, expectedText) {
 }
 
 async function setAppearanceAndZoom(appearance, zoom, save) {
-  const settings = await $(".shell-header nav button[data-home='settings']");
-  await settings.waitForEnabled({ timeout: 10_000 });
-  await settings.click();
+  await goToHome("settings");
   const appearanceInput = await $(`input[name='appearance'][value='${appearance}']`);
   await appearanceInput.waitForEnabled({ timeout: 10_000 });
   await appearanceInput.click();
