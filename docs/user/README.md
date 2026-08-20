@@ -4,8 +4,10 @@
 
 FitFreed has an executable development preview and a complete public-release engineering path, but no
 supported public release. It is not ready for general use with real personal exports. An empty library opens
-Sources, where a versioned offline guide explains how to obtain a Polar Flow ZIP through explicit allowlisted
-official links and keeps acquisition, import progress, outcomes, and compatibility evidence together.
+a value-first Home that demonstrates the supported outcome and offers both choosing an existing archive and
+learning how to obtain one. The latter path opens Sources, where a versioned offline guide explains how to
+obtain a Polar Flow ZIP through explicit allowlisted official links and keeps acquisition, import progress,
+outcomes, and compatibility evidence together.
 FitFreed never handles provider credentials or requests and downloads an export on the person's behalf. A
 populated library opens the question-led Home, which shows the usable period, honest domain coverage, and
 only the explorations supported by canonical local evidence. A successful import returns there with its exact
@@ -23,7 +25,9 @@ key and therefore performs no update request or installation.
 
 The independently generated synthetic journey covers both first-run acquisition paths, question-led
 exploration, range filtering, exact aligned day detail, navigation to authoritative explorers, two-period
-comparison, mapping-aware reimport, cumulative import, and restart. Training detail distinguishes
+comparison, mapping-aware reimport, cumulative import, and restart. Training separates Sessions, Sports,
+and Compare periods without losing a temporary view when moving among them. Session detail progressively
+opens Overview, Structure and segments, Signals and zones, Routes, and Source history. It distinguishes
 unevaluated, absent, empty, and populated exercise/lap/pause, route, signal, and recorded-zone states. Primary and transition
 routes render as bounded local SVG traces with no external location request, while exact paginated tables retain
 every recorded coordinate. Supported exercise and transition signals render as gap-aware bounded charts with

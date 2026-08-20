@@ -26,6 +26,7 @@ import type {
   TrainingSessionSort,
 } from "./training-session-search";
 import type {
+  TrainingExerciseStructure,
   TrainingLapStructure,
   TrainingSessionStructureResult,
 } from "./training-session-detail";
@@ -114,6 +115,7 @@ interface SearchDraft {
 }
 
 type SessionView = "chronology" | "calendar";
+type DetailSection = "overview" | "structure" | "signals" | "routes" | "provenance";
 
 function emptyDraft(initialDate?: string): SearchDraft {
   return {
@@ -228,6 +230,7 @@ export function TrainingSessionLibraryPanel({
   const [failed, setFailed] = useState(false);
   const [status, setStatus] = useState<string>();
   const [selected, setSelected] = useState<TrainingSessionSearchItem>();
+  const [detailSection, setDetailSection] = useState<DetailSection>("overview");
   const [detailStructure, setDetailStructure] = useState<TrainingSessionStructureResult>();
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailFailed, setDetailFailed] = useState(false);
@@ -828,6 +831,7 @@ export function TrainingSessionLibraryPanel({
 
   function openDetail(session: TrainingSessionSearchItem, origin: HTMLButtonElement) {
     setDetailOrigin(view);
+    setDetailSection("overview");
     detailOriginButtonRef.current = origin;
     setSelected(session);
   }
@@ -1423,14 +1427,44 @@ export function TrainingSessionLibraryPanel({
     },
     [],
   ) ?? [];
+  const detailSections = [
+    "overview",
+    "structure",
+    "signals",
+    "routes",
+    "provenance",
+  ] as const;
+
+  function exerciseSummary(exercise: TrainingExerciseStructure) {
+    return (
+      <>
+        <header>
+          <h5>{interpolate(copy.exerciseHeading, {
+            number: number.format(exercise.ordinal + 1),
+          })}</h5>
+          <span>{trainingSportTitle(exercise.sport, detailUnknownSportRefs)}</span>
+        </header>
+        <dl role="group" aria-label={interpolate(copy.exerciseMeasurements, {
+          number: number.format(exercise.ordinal + 1),
+        })}>
+          <div><dt>{messages.training.startedAt}</dt><dd>{formatTrainingDateTime(exercise.startedAtLocal, locale)}</dd></div>
+          <div><dt>{messages.training.stoppedAt}</dt><dd>{formatTrainingDateTime(exercise.stoppedAtLocal, locale)}</dd></div>
+          <div><dt>{messages.training.duration}</dt><dd>{formatDuration(exercise.durationMilliseconds, locale, messages.training.durationUnits)}</dd></div>
+          <div><dt>{messages.training.distance}</dt><dd>{formatDistance(exercise.distanceMeters, locale, copy.metricUnavailable, messages.training.units.meters)}</dd></div>
+          <div><dt>{messages.training.energy}</dt><dd>{formatExactMetric(exercise.energyKilocalories, locale, copy.metricUnavailable, messages.training.units.kilocalories)}</dd></div>
+        </dl>
+      </>
+    );
+  }
 
   return (
     <section
       className="training-session-library"
       role="region"
-      aria-labelledby="training-session-library-heading"
+      aria-label={copy.heading}
       aria-busy={loading}
     >
+      <div className="training-session-discovery" hidden={selected !== undefined}>
       <header>
         <h2 id="training-session-library-heading" ref={libraryHeadingRef} tabIndex={-1}>
           {copy.heading}
@@ -1943,15 +1977,17 @@ export function TrainingSessionLibraryPanel({
           )}
         </>
       )}
+      </div>
 
       {selected && (
         <section
           className="training-detail"
           aria-labelledby="training-session-detail-heading"
-          aria-busy={detailLoading}
+          aria-busy={detailLoading || routesLoading || signalsLoading || zonesLoading}
         >
           <div className="training-detail-heading">
             <div>
+              <p className="eyebrow">{sessionSportTitle(selected)}</p>
               <h3
                 id="training-session-detail-heading"
                 ref={detailHeadingRef}
@@ -1981,21 +2017,20 @@ export function TrainingSessionLibraryPanel({
               </button>
             </div>
           </div>
-          <dl role="group" aria-label={copy.summaryMeasurements}>
-            <div><dt>{messages.training.trainingType}</dt><dd>{sessionSportTitle(selected)}</dd></div>
-            <div><dt>{messages.training.startedAt}</dt><dd>{formatTrainingDateTime(selected.startedAtLocal, locale)}</dd></div>
-            <div><dt>{messages.training.stoppedAt}</dt><dd>{formatTrainingDateTime(selected.stoppedAtLocal, locale)}</dd></div>
-            <div><dt>{messages.training.utcOffset}</dt><dd>{formatUtcOffset(selected.utcOffsetMinutes, copy.metricUnavailable)}</dd></div>
-            <div><dt>{messages.training.duration}</dt><dd>{formatDuration(selected.durationMilliseconds, locale, messages.training.durationUnits)}</dd></div>
-            <div><dt>{messages.training.distance}</dt><dd>{formatDistance(selected.distanceMeters, locale, copy.metricUnavailable, messages.training.units.meters)}</dd></div>
-            <div><dt>{messages.training.energy}</dt><dd>{formatExactMetric(selected.energyKilocalories, locale, copy.metricUnavailable, messages.training.units.kilocalories)}</dd></div>
-            <div><dt>{messages.training.averageHeartRate}</dt><dd>{formatExactMetric(selected.averageHeartRateBpm, locale, copy.metricUnavailable, messages.training.units.beatsPerMinute)}</dd></div>
-            <div><dt>{messages.training.maximumHeartRate}</dt><dd>{formatExactMetric(selected.maximumHeartRateBpm, locale, copy.metricUnavailable, messages.training.units.beatsPerMinute)}</dd></div>
-            <div><dt>{messages.training.exerciseCount}</dt><dd>{selected.exerciseCount === null ? copy.metricUnavailable : number.format(selected.exerciseCount)}</dd></div>
-          </dl>
-          <section className="training-structure" aria-labelledby="training-structure-heading">
-            <h4 id="training-structure-heading">{copy.structureHeading}</h4>
-            <p>{copy.structureIntro}</p>
+          <nav className="training-detail-navigation" aria-label={copy.detailNavigation}>
+            {detailSections.map((section) => (
+              <button
+                key={section}
+                type="button"
+                aria-current={detailSection === section ? "page" : undefined}
+                aria-controls={`training-detail-${section}`}
+                onClick={() => setDetailSection(section)}
+              >
+                {copy.detailSections[section]}
+              </button>
+            ))}
+          </nav>
+          <div className="training-detail-query-status" aria-live="polite">
             {detailLoading && <p role="status">{copy.structureLoading}</p>}
             {detailFailed && <p className="error" role="alert">{copy.structureFailed}</p>}
             {routesLoading && <p role="status">{copy.routeLoading}</p>}
@@ -2004,6 +2039,35 @@ export function TrainingSessionLibraryPanel({
             {signalsFailed && <p className="error" role="alert">{copy.signalFailed}</p>}
             {zonesLoading && <p role="status">{copy.zoneLoading}</p>}
             {zonesFailed && <p className="error" role="alert">{copy.zoneFailed}</p>}
+          </div>
+          <section
+            id="training-detail-overview"
+            className="training-detail-section training-detail-overview"
+            aria-label={copy.detailSections.overview}
+            hidden={detailSection !== "overview"}
+          >
+            <p>{copy.detailOverviewIntro}</p>
+            <dl role="group" aria-label={copy.summaryMeasurements}>
+              <div><dt>{messages.training.trainingType}</dt><dd>{sessionSportTitle(selected)}</dd></div>
+              <div><dt>{messages.training.startedAt}</dt><dd>{formatTrainingDateTime(selected.startedAtLocal, locale)}</dd></div>
+              <div><dt>{messages.training.stoppedAt}</dt><dd>{formatTrainingDateTime(selected.stoppedAtLocal, locale)}</dd></div>
+              <div><dt>{messages.training.utcOffset}</dt><dd>{formatUtcOffset(selected.utcOffsetMinutes, copy.metricUnavailable)}</dd></div>
+              <div><dt>{messages.training.duration}</dt><dd>{formatDuration(selected.durationMilliseconds, locale, messages.training.durationUnits)}</dd></div>
+              <div><dt>{messages.training.distance}</dt><dd>{formatDistance(selected.distanceMeters, locale, copy.metricUnavailable, messages.training.units.meters)}</dd></div>
+              <div><dt>{messages.training.energy}</dt><dd>{formatExactMetric(selected.energyKilocalories, locale, copy.metricUnavailable, messages.training.units.kilocalories)}</dd></div>
+              <div><dt>{messages.training.averageHeartRate}</dt><dd>{formatExactMetric(selected.averageHeartRateBpm, locale, copy.metricUnavailable, messages.training.units.beatsPerMinute)}</dd></div>
+              <div><dt>{messages.training.maximumHeartRate}</dt><dd>{formatExactMetric(selected.maximumHeartRateBpm, locale, copy.metricUnavailable, messages.training.units.beatsPerMinute)}</dd></div>
+              <div><dt>{messages.training.exerciseCount}</dt><dd>{selected.exerciseCount === null ? copy.metricUnavailable : number.format(selected.exerciseCount)}</dd></div>
+            </dl>
+          </section>
+          <section
+            id="training-detail-structure"
+            className="training-detail-section training-structure"
+            aria-labelledby="training-structure-heading"
+            hidden={detailSection !== "structure"}
+          >
+            <h4 id="training-structure-heading">{copy.structureHeading}</h4>
+            <p>{copy.structureIntro}</p>
             {!detailLoading && detailStructure?.structure === null && (
               <p>{copy.structureNotEvaluated}</p>
             )}
@@ -2013,50 +2077,9 @@ export function TrainingSessionLibraryPanel({
             {detailStructure?.structure?.exercises?.length === 0 && (
               <p>{copy.exercisesProvidedEmpty}</p>
             )}
-            {!routesLoading && detailRoutes?.routes === null && (
-              <p>{copy.routeNotEvaluated}</p>
-            )}
-            {detailRoutes?.routes?.exercises === null && (
-              <p>{copy.routeExercisesNotProvided}</p>
-            )}
-            {detailRoutes?.routes?.exercises?.length === 0 && (
-              <p>{copy.routeExercisesProvidedEmpty}</p>
-            )}
-            {!signalsLoading && detailSignals?.signals === null && (
-              <p>{copy.signalNotEvaluated}</p>
-            )}
-            {detailSignals?.signals?.exercises === null && (
-              <p>{copy.signalExercisesNotProvided}</p>
-            )}
-            {detailSignals?.signals?.exercises?.length === 0 && (
-              <p>{copy.signalExercisesProvidedEmpty}</p>
-            )}
-            {!zonesLoading && detailZones?.zones === null && (
-              <p>{copy.zoneNotEvaluated}</p>
-            )}
-            {detailZones?.zones?.exercises === null && (
-              <p>{copy.zoneExercisesNotProvided}</p>
-            )}
-            {detailZones?.zones?.exercises?.length === 0 && (
-              <p>{copy.zoneExercisesProvidedEmpty}</p>
-            )}
             {detailStructure?.structure?.exercises?.map((exercise) => (
               <article className="training-exercise" key={exercise.exerciseRef}>
-                <header>
-                  <h5>{interpolate(copy.exerciseHeading, {
-                    number: number.format(exercise.ordinal + 1),
-                  })}</h5>
-                  <span>{trainingSportTitle(exercise.sport, detailUnknownSportRefs)}</span>
-                </header>
-                <dl role="group" aria-label={interpolate(copy.exerciseMeasurements, {
-                  number: number.format(exercise.ordinal + 1),
-                })}>
-                  <div><dt>{messages.training.startedAt}</dt><dd>{formatTrainingDateTime(exercise.startedAtLocal, locale)}</dd></div>
-                  <div><dt>{messages.training.stoppedAt}</dt><dd>{formatTrainingDateTime(exercise.stoppedAtLocal, locale)}</dd></div>
-                  <div><dt>{messages.training.duration}</dt><dd>{formatDuration(exercise.durationMilliseconds, locale, messages.training.durationUnits)}</dd></div>
-                  <div><dt>{messages.training.distance}</dt><dd>{formatDistance(exercise.distanceMeters, locale, copy.metricUnavailable, messages.training.units.meters)}</dd></div>
-                  <div><dt>{messages.training.energy}</dt><dd>{formatExactMetric(exercise.energyKilocalories, locale, copy.metricUnavailable, messages.training.units.kilocalories)}</dd></div>
-                </dl>
+                {exerciseSummary(exercise)}
                 {lapRows(exercise.manualLaps, copy.manualLaps)}
                 {lapRows(exercise.automaticLaps, copy.automaticLaps)}
                 <section className="training-structure-collection">
@@ -2082,9 +2105,6 @@ export function TrainingSessionLibraryPanel({
                       </div>
                     )}
                 </section>
-                {exerciseRouteEvidence(exercise.exerciseRef, exercise.ordinal)}
-                {exerciseSignalEvidence(exercise.exerciseRef, exercise.ordinal)}
-                {exerciseZoneEvidence(exercise.exerciseRef)}
               </article>
             ))}
             {page && (
@@ -2096,6 +2116,56 @@ export function TrainingSessionLibraryPanel({
                 onError={onError}
               />
             )}
+            <aside className="training-structure-limitation">
+              <strong>{copy.structureLimitationsHeading}</strong>
+              <p>{copy.structureLimitations}</p>
+            </aside>
+          </section>
+          <section
+            id="training-detail-signals"
+            className="training-detail-section"
+            aria-label={copy.detailSections.signals}
+            hidden={detailSection !== "signals"}
+          >
+            <p className="training-detail-section-intro">{copy.detailSignalsIntro}</p>
+            {!signalsLoading && detailSignals?.signals === null && <p>{copy.signalNotEvaluated}</p>}
+            {detailSignals?.signals?.exercises === null && <p>{copy.signalExercisesNotProvided}</p>}
+            {detailSignals?.signals?.exercises?.length === 0 && <p>{copy.signalExercisesProvidedEmpty}</p>}
+            {!zonesLoading && detailZones?.zones === null && <p>{copy.zoneNotEvaluated}</p>}
+            {detailZones?.zones?.exercises === null && <p>{copy.zoneExercisesNotProvided}</p>}
+            {detailZones?.zones?.exercises?.length === 0 && <p>{copy.zoneExercisesProvidedEmpty}</p>}
+            {detailStructure?.structure?.exercises?.map((exercise) => (
+              <article className="training-exercise" key={exercise.exerciseRef}>
+                {exerciseSummary(exercise)}
+                {exerciseSignalEvidence(exercise.exerciseRef, exercise.ordinal)}
+                {exerciseZoneEvidence(exercise.exerciseRef)}
+              </article>
+            ))}
+          </section>
+          <section
+            id="training-detail-routes"
+            className="training-detail-section"
+            aria-label={copy.detailSections.routes}
+            hidden={detailSection !== "routes"}
+          >
+            <p className="training-detail-section-intro">{copy.detailRoutesIntro}</p>
+            {!routesLoading && detailRoutes?.routes === null && <p>{copy.routeNotEvaluated}</p>}
+            {detailRoutes?.routes?.exercises === null && <p>{copy.routeExercisesNotProvided}</p>}
+            {detailRoutes?.routes?.exercises?.length === 0 && <p>{copy.routeExercisesProvidedEmpty}</p>}
+            {detailStructure?.structure?.exercises?.map((exercise) => (
+              <article className="training-exercise" key={exercise.exerciseRef}>
+                {exerciseSummary(exercise)}
+                {exerciseRouteEvidence(exercise.exerciseRef, exercise.ordinal)}
+              </article>
+            ))}
+          </section>
+          <section
+            id="training-detail-provenance"
+            className="training-detail-section"
+            aria-label={copy.detailSections.provenance}
+            hidden={detailSection !== "provenance"}
+          >
+            <p className="training-detail-section-intro">{copy.detailProvenanceIntro}</p>
             {page && (
               <TrainingSessionProvenancePanel
                 sessionRef={selected.sessionRef}
@@ -2104,10 +2174,6 @@ export function TrainingSessionLibraryPanel({
                 messages={messages}
               />
             )}
-            <aside className="training-structure-limitation">
-              <strong>{copy.structureLimitationsHeading}</strong>
-              <p>{copy.structureLimitations}</p>
-            </aside>
           </section>
         </section>
       )}

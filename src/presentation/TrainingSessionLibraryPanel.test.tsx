@@ -853,6 +853,19 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(detail).toHaveTextContent("145 bpm");
     expect(detail).toHaveTextContent("175 bpm");
     expect(detail).toHaveTextContent("UTC+02:00");
+    const detailNavigation = within(detail!).getByRole("navigation", {
+      name: "Session detail",
+    });
+    expect(within(detailNavigation).getByRole("button", { name: "Overview" }))
+      .toHaveAttribute("aria-current", "page");
+    expect(within(region).queryByRole("form", { name: "Filter sessions" }))
+      .not.toBeInTheDocument();
+    expect(within(detail!).queryByRole("heading", { name: "Recorded structure" }))
+      .not.toBeInTheDocument();
+
+    await user.click(within(detailNavigation).getByRole("button", {
+      name: "Structure and segments",
+    }));
     expect(await within(detail!).findByRole("heading", { name: "Recorded structure" }))
       .toBeVisible();
     const firstExercise = within(detail!).getByRole("heading", { name: "Exercise 1" })
@@ -865,16 +878,21 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(within(firstExercise!).getByRole("heading", { name: "Source laps" })).toBeVisible();
     expect(within(firstExercise!).getByRole("heading", { name: "Automatic laps" })).toBeVisible();
     expect(within(firstExercise!).getByRole("heading", { name: "Pauses" })).toBeVisible();
-    expect(await within(firstExercise!).findByRole("heading", { name: "Primary route" }))
+
+    await user.click(within(detailNavigation).getByRole("button", { name: "Routes" }));
+    const routeExercise = within(detail!).getByRole("heading", { name: "Exercise 1" })
+      .closest("article");
+    expect(routeExercise).not.toBeNull();
+    expect(await within(routeExercise!).findByRole("heading", { name: "Primary route" }))
       .toBeVisible();
-    expect(within(firstExercise!).getByRole("img", {
+    expect(within(routeExercise!).getByRole("img", {
       name: /Primary route with 101 recorded points/,
     })).toBeVisible();
-    expect(firstExercise).toHaveTextContent("Route geometry stays on this device");
-    await user.click(within(firstExercise!).getByRole("button", {
+    expect(routeExercise).toHaveTextContent("Route geometry stays on this device");
+    await user.click(within(routeExercise!).getByRole("button", {
       name: "Inspect exact recorded points",
     }));
-    const exactRegion = await within(firstExercise!).findByRole("region", {
+    const exactRegion = await within(routeExercise!).findByRole("region", {
       name: "Exact recorded route points",
     });
     expect(within(exactRegion).getAllByRole("row")).toHaveLength(101);
@@ -884,22 +902,29 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(await within(exactRegion).findByText("Point 101 of 101")).toBeVisible();
     await user.click(within(exactRegion).getByRole("button", { name: "Previous route points" }));
     expect(await within(exactRegion).findByText("Points 1–100 of 101")).toBeVisible();
-    await user.click(within(firstExercise!).getByRole("button", {
+    await user.click(within(routeExercise!).getByRole("button", {
       name: "Hide exact recorded points",
     }));
-    expect(within(firstExercise!).queryByRole("region", {
+    expect(within(routeExercise!).queryByRole("region", {
       name: "Exact recorded route points",
     })).not.toBeInTheDocument();
-    expect(await within(firstExercise!).findByRole("heading", { name: "Recorded signals" }))
+
+    await user.click(within(detailNavigation).getByRole("button", {
+      name: "Signals and zones",
+    }));
+    const signalExercise = within(detail!).getByRole("heading", { name: "Exercise 1" })
+      .closest("article");
+    expect(signalExercise).not.toBeNull();
+    expect(await within(signalExercise!).findByRole("heading", { name: "Recorded signals" }))
       .toBeVisible();
-    expect(within(firstExercise!).getByRole("heading", { name: "Heart rate" })).toBeVisible();
-    expect(within(firstExercise!).getByRole("img", {
+    expect(within(signalExercise!).getByRole("heading", { name: "Heart rate" })).toBeVisible();
+    expect(within(signalExercise!).getByRole("img", {
       name: /Heart rate chart with 600 recorded values out of 601 samples/,
     })).toBeVisible();
-    expect(within(firstExercise!).getByRole("img", {
+    expect(within(signalExercise!).getByRole("img", {
       name: /Heart rate chart/,
     }).querySelectorAll("polyline")).toHaveLength(2);
-    const crossSignal = within(firstExercise!).getByRole("region", {
+    const crossSignal = within(signalExercise!).getByRole("region", {
       name: "Explore signals together",
     });
     expect(within(crossSignal).getAllByRole("checkbox", { checked: true })).toHaveLength(2);
@@ -908,7 +933,7 @@ describe("TrainingSessionLibraryPanel", () => {
     await user.click(within(crossSignal).getByRole("button", {
       name: "Open exact samples for Speed · series 2",
     }));
-    const exactSpeedRegion = await within(firstExercise!).findByRole("region", {
+    const exactSpeedRegion = await within(signalExercise!).findByRole("region", {
       name: "Exact Speed samples",
     });
     expect(exactSpeedRegion).toHaveTextContent("10 km/h");
@@ -921,14 +946,14 @@ describe("TrainingSessionLibraryPanel", () => {
         limit: 100,
       },
     });
-    await user.click(within(firstExercise!).getByRole("button", {
+    await user.click(within(signalExercise!).getByRole("button", {
       name: "Hide exact Speed samples",
     }));
-    expect(firstExercise).toHaveTextContent("1 unsupported source series was preserved as an explicit count");
-    await user.click(within(firstExercise!).getByRole("button", {
+    expect(signalExercise).toHaveTextContent("1 unsupported source series was preserved as an explicit count");
+    await user.click(within(signalExercise!).getByRole("button", {
       name: "Inspect exact Heart rate samples",
     }));
-    const exactSignalRegion = await within(firstExercise!).findByRole("region", {
+    const exactSignalRegion = await within(signalExercise!).findByRole("region", {
       name: "Exact Heart rate samples",
     });
     expect(within(exactSignalRegion).getAllByRole("row")).toHaveLength(101);
@@ -941,13 +966,13 @@ describe("TrainingSessionLibraryPanel", () => {
       name: "Previous signal samples",
     }));
     expect(await within(exactSignalRegion).findByText("Samples 1–100 of 601")).toBeVisible();
-    await user.click(within(firstExercise!).getByRole("button", {
+    await user.click(within(signalExercise!).getByRole("button", {
       name: "Hide exact Heart rate samples",
     }));
-    expect(within(firstExercise!).queryByRole("region", {
+    expect(within(signalExercise!).queryByRole("region", {
       name: "Exact Heart rate samples",
     })).not.toBeInTheDocument();
-    const zones = await within(firstExercise!).findByRole("region", {
+    const zones = await within(signalExercise!).findByRole("region", {
       name: "Recorded zones",
     });
     expect(within(zones).getByRole("region", { name: "Heart rate · group 1" }))
@@ -960,6 +985,9 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(mocks.invoke.mock.calls.filter(
       ([command]) => command === "query_training_session_provenance",
     )).toHaveLength(0);
+    await user.click(within(detailNavigation).getByRole("button", {
+      name: "Source history",
+    }));
     await user.click(within(detail!).getByRole("button", {
       name: "How did this session get here?",
     }));
@@ -981,6 +1009,9 @@ describe("TrainingSessionLibraryPanel", () => {
     }));
     expect(within(detail!).queryByRole("region", { name: "Session provenance" }))
       .not.toBeInTheDocument();
+    await user.click(within(detailNavigation).getByRole("button", {
+      name: "Signals and zones",
+    }));
     const secondExercise = within(detail!).getByRole("heading", { name: "Exercise 2" })
       .closest("article");
     expect(secondExercise).toHaveTextContent(
@@ -1112,6 +1143,11 @@ describe("TrainingSessionLibraryPanel", () => {
     const detail = within(region).getByRole("heading", { name: "Session summary" })
       .closest("section");
     expect(detail).not.toBeNull();
+    const detailNavigation = within(detail!).getByRole("navigation", {
+      name: "Session detail",
+    });
+
+    await user.click(within(detailNavigation).getByRole("button", { name: "Routes" }));
     const exercise = await within(detail!).findByRole("heading", { name: "Exercise 1" });
     const exercisePanel = exercise.closest("article");
     expect(exercisePanel).not.toBeNull();
@@ -1124,10 +1160,16 @@ describe("TrainingSessionLibraryPanel", () => {
     );
     expect(routeAlert).toHaveClass("error");
 
-    await user.click(within(exercisePanel!).getByRole("button", {
+    await user.click(within(detailNavigation).getByRole("button", {
+      name: "Signals and zones",
+    }));
+    const signalExercise = within(detail!).getByRole("heading", { name: "Exercise 1" })
+      .closest("article");
+    expect(signalExercise).not.toBeNull();
+    await user.click(within(signalExercise!).getByRole("button", {
       name: "Inspect exact Heart rate samples",
     }));
-    const signalAlert = await within(exercisePanel!).findByText(
+    const signalAlert = await within(signalExercise!).findByText(
       "Exact signal samples could not be loaded from your local library.",
     );
     expect(signalAlert.closest("[role='alert']")).toHaveClass("error");
@@ -1327,8 +1369,18 @@ describe("TrainingSessionLibraryPanel", () => {
       throw new Error(`Unexpected command: ${command}`);
     });
 
+    const user = userEvent.setup();
     renderPanel();
     const region = await screen.findByRole("region", { name: "Find a training session" });
+    expect(within(region).getByRole("heading", { name: "Session summary" })).toBeVisible();
+    const backToCalendar = within(region).getByRole("button", { name: "Back to calendar" });
+    expect(backToCalendar).toBeVisible();
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
+      "save_training_discovery_workspace",
+      { workspace: restoredWorkspace },
+    ));
+    await user.click(backToCalendar);
+
     expect(within(region).getByLabelText("From date")).toHaveValue("2026-01-01");
     expect(within(region).getByLabelText("Through date")).toHaveValue("2026-08-18");
     expect(within(region).getByRole("textbox", { name: /^Your sport name contains/ }))
@@ -1339,12 +1391,6 @@ describe("TrainingSessionLibraryPanel", () => {
     })).toHaveAttribute("aria-pressed", "true");
     expect(within(region).getByRole("region", { name: "Session comparison" }))
       .toHaveTextContent("2 sessions selected");
-    expect(within(region).getByRole("heading", { name: "Session summary" })).toBeVisible();
-    expect(within(region).getByRole("button", { name: "Back to calendar" })).toBeVisible();
 
-    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
-      "save_training_discovery_workspace",
-      { workspace: restoredWorkspace },
-    ));
   });
 });

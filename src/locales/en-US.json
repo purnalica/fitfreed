@@ -227,6 +227,14 @@
   },
   "training": {
     "heading": "Training history",
+    "workspaceEyebrow": "Your sports history",
+    "workspaceIntro": "Find an exact session, name the sports in your library, or compare two periods without flattening distinct evidence into one generic score.",
+    "workspaceNavigation": "Training workspace",
+    "workspaces": {
+      "sessions": "Sessions",
+      "sports": "Sports",
+      "comparison": "Compare periods"
+    },
     "loading": "Loading training history…",
     "unavailable": "Training history could not be loaded.",
     "empty": "No imported training sessions yet.",
@@ -338,6 +346,18 @@
       "detailHeading": "Session summary",
       "closeDetail": "Back to session results",
       "createReport": "Build a report from this session",
+      "detailNavigation": "Session detail",
+      "detailSections": {
+        "overview": "Overview",
+        "structure": "Structure and segments",
+        "signals": "Signals and zones",
+        "routes": "Routes",
+        "provenance": "Source history"
+      },
+      "detailOverviewIntro": "Begin with the exact recorded summary, then inspect only the evidence layer you need.",
+      "detailSignalsIntro": "Recorded temporal series and aggregate zones remain separate, exact, and explicit about missing evidence.",
+      "detailRoutesIntro": "Route geometry is rendered locally and exact coordinates appear only when you deliberately reveal them.",
+      "detailProvenanceIntro": "Open the source history on demand to inspect attribution, interpretation versions, and reconciliation decisions.",
       "summaryMeasurements": "Session summary measurements",
       "structureHeading": "Recorded structure",
       "structureIntro": "Inspect the exercises, source laps, automatic laps, and pauses preserved from this session.",

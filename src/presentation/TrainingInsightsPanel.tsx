@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { type catalogs, type Locale } from "../locales/catalogs";
 import type { TrainingNavigationRequest } from "./explorer-navigation";
@@ -17,6 +17,8 @@ interface TrainingInsightsPanelProps {
   onCreateReport: (origin: ReportStartOrigin) => void;
   onError: (code: string | undefined) => void;
 }
+
+type TrainingWorkspace = "sessions" | "sports" | "comparison";
 
 function latestComparisonRange(available: TrainingDateRange): TrainingDateRange {
   const latest = new Date(`${available.through}T00:00:00Z`);
@@ -47,51 +49,95 @@ export function TrainingInsightsPanel({
     && navigationRequest.kind === "comparison"
     ? navigationRequest
     : undefined;
+  const [workspace, setWorkspace] = useState<TrainingWorkspace>(
+    comparisonNavigation ? "comparison" : "sessions",
+  );
   const initialDate = sessionNavigation?.localDate
     ?? (navigationRequest && !("kind" in navigationRequest)
       ? navigationRequest.localDate
       : undefined);
 
+  useEffect(() => {
+    if (comparisonNavigation || reportReturnFocusRequest?.kind === "comparison") {
+      setWorkspace("comparison");
+    } else if (sessionNavigation || reportReturnFocusRequest?.kind === "session") {
+      setWorkspace("sessions");
+    }
+  }, [
+    comparisonNavigation?.requestId,
+    reportReturnFocusRequest?.kind,
+    reportReturnFocusRequest?.requestId,
+    sessionNavigation?.requestId,
+  ]);
+
+  const workspaces = ["sessions", "sports", "comparison"] as const;
+
   return (
     <section className="training-insights" aria-labelledby="training-heading">
-      <h1 id="training-heading">{messages.training.heading}</h1>
-      <TrainingSessionLibraryPanel
-        locale={locale}
-        messages={messages}
-        refreshToken={refreshToken + classificationRevision}
-        initialDate={initialDate}
-        initialSessionRef={sessionNavigation?.sessionRef}
-        navigationRequestId={sessionNavigation?.requestId}
-        createReportFocusRequestId={reportReturnFocusRequest?.kind === "session"
-          ? reportReturnFocusRequest.requestId
-          : undefined}
-        onAvailableRange={setAvailableRange}
-        onCreateReport={onCreateReport}
-        onError={onError}
-      />
-      <TrainingSportsPanel
-        locale={locale}
-        messages={messages}
-        refreshToken={refreshToken}
-        onError={onError}
-        onChange={() => setClassificationRevision((revision) => revision + 1)}
-      />
-      {availableRange && (
-        <TrainingComparisonPanel
-          key={`${availableRange.from}:${availableRange.through}:${comparisonNavigation?.requestId ?? "default"}`}
-          availableRange={availableRange}
-          initialRange={latestComparisonRange(availableRange)}
-          initialQuery={comparisonNavigation?.query}
-          navigationRequestId={comparisonNavigation?.requestId}
-          createReportFocusRequestId={reportReturnFocusRequest?.kind === "comparison"
-            ? reportReturnFocusRequest.requestId
-            : undefined}
+      <header className="training-workspace-heading">
+        <p className="eyebrow">{messages.training.workspaceEyebrow}</p>
+        <h1 id="training-heading">{messages.training.heading}</h1>
+        <p>{messages.training.workspaceIntro}</p>
+      </header>
+      <nav
+        className="training-workspace-navigation"
+        aria-label={messages.training.workspaceNavigation}
+      >
+        {workspaces.map((destination) => (
+          <button
+            key={destination}
+            type="button"
+            aria-current={workspace === destination ? "page" : undefined}
+            disabled={destination === "comparison" && availableRange === null}
+            onClick={() => setWorkspace(destination)}
+          >
+            {messages.training.workspaces[destination]}
+          </button>
+        ))}
+      </nav>
+      <div className="training-workspace-panel" hidden={workspace !== "sessions"}>
+        <TrainingSessionLibraryPanel
           locale={locale}
           messages={messages}
-          onCreateReport={(query) => onCreateReport({ kind: "exploration", query })}
+          refreshToken={refreshToken + classificationRevision}
+          initialDate={initialDate}
+          initialSessionRef={sessionNavigation?.sessionRef}
+          navigationRequestId={sessionNavigation?.requestId}
+          createReportFocusRequestId={reportReturnFocusRequest?.kind === "session"
+            ? reportReturnFocusRequest.requestId
+            : undefined}
+          onAvailableRange={setAvailableRange}
+          onCreateReport={onCreateReport}
           onError={onError}
         />
-      )}
+      </div>
+      <div className="training-workspace-panel" hidden={workspace !== "sports"}>
+        <TrainingSportsPanel
+          locale={locale}
+          messages={messages}
+          refreshToken={refreshToken}
+          onError={onError}
+          onChange={() => setClassificationRevision((revision) => revision + 1)}
+        />
+      </div>
+      <div className="training-workspace-panel" hidden={workspace !== "comparison"}>
+        {availableRange && (
+          <TrainingComparisonPanel
+            key={`${availableRange.from}:${availableRange.through}:${comparisonNavigation?.requestId ?? "default"}`}
+            availableRange={availableRange}
+            initialRange={latestComparisonRange(availableRange)}
+            initialQuery={comparisonNavigation?.query}
+            navigationRequestId={comparisonNavigation?.requestId}
+            createReportFocusRequestId={reportReturnFocusRequest?.kind === "comparison"
+              ? reportReturnFocusRequest.requestId
+              : undefined}
+            locale={locale}
+            messages={messages}
+            onCreateReport={(query) => onCreateReport({ kind: "exploration", query })}
+            onError={onError}
+          />
+        )}
+      </div>
     </section>
   );
 }

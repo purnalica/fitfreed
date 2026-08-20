@@ -43,6 +43,7 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Localization catalogs, placeholders, plural rules, and fallback.
 - Versioned source-acquisition guide validation, adapter ownership, exact locale selection, and least-privilege official-link capabilities.
 - Application-shell structure, semantic sidebar ownership, broad desktop workspace, compact navigation rail, and initial-window presentation contracts.
+- Training workspace and session-detail navigation, semantic current-location state, and enforced progressive-disclosure boundaries.
 - Presentation motion declarations and the reduced-motion boundary.
 - Update metadata, signature validation, artifact selection, and migration coordination.
 - Protected release-workflow syntax, exact permissions, action pins, authority isolation, immutable publication, provenance, and direct Pages-byte convergence.
@@ -62,6 +63,7 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Home, Explore, Reports, Sources, and Settings navigation with preserved workspace state, focus behavior, exploration, filtering, visualizations, all included controls, and accessible alternatives.
 - Rendered shell geometry at broad desktop and compact widths, localized current-location semantics, and absence of page-level horizontal overflow at 100% and 200% content zoom.
 - Full-history training discovery with combined filters, deterministic sorting, coherent forward and backward pagination, source-separated calendar traversal, two-through-four-session comparison, exact chronology or calendar return, complete restart restoration, library-change recovery, exact results, and lightweight detail.
+- Explicit traversal among Sessions, Sports, and Compare periods and among every session evidence section, proving that hidden views are inaccessible while their disposable state survives temporary navigation.
 - `en-US` and `es-ES` behavior, including text expansion and locale-aware formatting.
 - Update availability, postponement, download, verification, installation, migration, and recovery.
 - Removal behavior and explicit treatment of the user's data library.

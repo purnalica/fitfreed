@@ -14,6 +14,18 @@ const applicationShellPath = path.join(
   "ApplicationShell.tsx",
 );
 const applicationShell = readFileSync(applicationShellPath, "utf8");
+const trainingInsights = readFileSync(path.join(
+  repositoryRoot,
+  "src",
+  "presentation",
+  "TrainingInsightsPanel.tsx",
+), "utf8");
+const trainingSessionLibrary = readFileSync(path.join(
+  repositoryRoot,
+  "src",
+  "presentation",
+  "TrainingSessionLibraryPanel.tsx",
+), "utf8");
 const tauriConfiguration = JSON.parse(readFileSync(
   path.join(repositoryRoot, "src-tauri", "tauri.conf.json"),
   "utf8",
@@ -75,6 +87,29 @@ requireRule(
   [/width:\s*min\(1440px,\s*calc\(100%\s*-\s*64px\)\)/],
   "the broad desktop workspace",
 );
+requireRule(
+  stylesheet,
+  "[hidden]",
+  [/display:\s*none\s*!important/],
+  "semantic progressive disclosure",
+);
+
+if (!trainingInsights.includes("aria-label={messages.training.workspaceNavigation}")) {
+  throw new Error("Training must expose its workspace navigation to assistive technology");
+}
+for (const workspace of ["sessions", "sports", "comparison"]) {
+  if (!trainingInsights.includes(`hidden={workspace !== "${workspace}"}`)) {
+    throw new Error(`Training must progressively disclose the ${workspace} workspace`);
+  }
+}
+if (!trainingSessionLibrary.includes("aria-label={copy.detailNavigation}")) {
+  throw new Error("Training session detail must expose its section navigation");
+}
+for (const section of ["overview", "structure", "signals", "routes", "provenance"]) {
+  if (!trainingSessionLibrary.includes(`hidden={detailSection !== "${section}"}`)) {
+    throw new Error(`Training session detail must progressively disclose ${section}`);
+  }
+}
 
 const compactNavigation = balancedBlock(
   stylesheet,
@@ -175,5 +210,5 @@ for (const [selector, token] of contrastContracts) {
 }
 
 process.stdout.write(
-  `${JSON.stringify({ motionDeclarations: motionDeclarations.length, reducedMotionBoundary: true, darkContrastOverrides: contrastContracts.size, responsiveSidebar: true, broadWorkspace: true, initialWindow: `${mainWindow.width}x${mainWindow.height}` })}\n`,
+  `${JSON.stringify({ motionDeclarations: motionDeclarations.length, reducedMotionBoundary: true, darkContrastOverrides: contrastContracts.size, responsiveSidebar: true, broadWorkspace: true, progressiveTrainingWorkspace: true, initialWindow: `${mainWindow.width}x${mainWindow.height}` })}\n`,
 );

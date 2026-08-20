@@ -3038,6 +3038,11 @@ describe("FitFreed import interface", () => {
     const view = render(<App />);
     await enterExploration(user, "training");
     const training = await screen.findByRole("region", { name: "Training history" });
+    const workspaceNavigation = within(training).getByRole("navigation", {
+      name: "Training workspace",
+    });
+    expect(within(workspaceNavigation).getByRole("button", { name: "Sessions" }))
+      .toHaveAttribute("aria-current", "page");
 
     expect(await within(training).findByText("1–2 of 2 matching sessions")).toBeVisible();
     expect(within(training).getAllByRole("button", { name: /View session details/ }))
@@ -3060,6 +3065,12 @@ describe("FitFreed import interface", () => {
     const summaryType = within(summaryMeasurements).getByText("Training type").closest("div");
     expect(summaryType).not.toBeNull();
     expect(within(summaryType!).getByText("Unknown sport")).toBeVisible();
+    const detailNavigation = within(detail!).getByRole("navigation", {
+      name: "Session detail",
+    });
+    await user.click(within(detailNavigation).getByRole("button", {
+      name: "Structure and segments",
+    }));
     expect(await within(detail!).findByRole("heading", { name: "Recorded structure" }))
       .toBeVisible();
     expect(within(detail!).getByRole("heading", { name: "Exercise 1" })).toBeVisible();
@@ -3069,6 +3080,9 @@ describe("FitFreed import interface", () => {
     expect(within(detail!).getByText(
       "No personal criterion is applied to this exercise yet.",
     )).toBeVisible();
+    await user.click(within(detailNavigation).getByRole("button", {
+      name: "Signals and zones",
+    }));
     expect(await within(detail!).findByRole("region", { name: "Recorded zones" }))
       .toHaveTextContent("The source did not provide a zone container for this exercise.");
     await user.click(within(detail!).getByRole("button", { name: "Back to session results" }));
@@ -3096,6 +3110,9 @@ describe("FitFreed import interface", () => {
     await waitFor(() => expect(within(training)
       .getAllByRole("button", { name: /View session details/ })).toHaveLength(2));
 
+    await user.click(within(workspaceNavigation).getByRole("button", {
+      name: "Compare periods",
+    }));
     const comparisonForm = within(training).getByRole("form", {
       name: "Compare training periods",
     });
@@ -3153,6 +3170,7 @@ describe("FitFreed import interface", () => {
     expect(within(training).queryByRole("region", { name: "Training period comparison" }))
       .not.toBeInTheDocument();
 
+    await user.click(within(workspaceNavigation).getByRole("button", { name: "Sessions" }));
     await user.clear(within(filter).getByLabelText("From date"));
     await user.type(within(filter).getByLabelText("From date"), "2026-01-21");
     await user.clear(within(filter).getByLabelText("Through date"));

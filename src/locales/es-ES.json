@@ -227,6 +227,14 @@
   },
   "training": {
     "heading": "Historial de entrenamientos",
+    "workspaceEyebrow": "Tu historial deportivo",
+    "workspaceIntro": "Encuentra una sesión exacta, pon nombre a los deportes de tu biblioteca o compara dos periodos sin reducir indicios distintos a una puntuación genérica.",
+    "workspaceNavigation": "Espacio de trabajo de entrenamiento",
+    "workspaces": {
+      "sessions": "Sesiones",
+      "sports": "Deportes",
+      "comparison": "Comparar periodos"
+    },
     "loading": "Cargando el historial de entrenamientos…",
     "unavailable": "No se ha podido cargar el historial de entrenamientos.",
     "empty": "Todavía no hay sesiones de entrenamiento importadas.",
@@ -338,6 +346,18 @@
       "detailHeading": "Resumen de la sesión",
       "closeDetail": "Volver a los resultados de sesiones",
       "createReport": "Crear un informe a partir de esta sesión",
+      "detailNavigation": "Detalle de la sesión",
+      "detailSections": {
+        "overview": "Resumen",
+        "structure": "Estructura y segmentos",
+        "signals": "Señales y zonas",
+        "routes": "Rutas",
+        "provenance": "Historial del origen"
+      },
+      "detailOverviewIntro": "Empieza por el resumen registrado exacto y consulta después solo la capa de indicios que necesites.",
+      "detailSignalsIntro": "Las series temporales registradas y las zonas agregadas permanecen separadas, exactas y explícitas sobre los indicios ausentes.",
+      "detailRoutesIntro": "La geometría de las rutas se representa localmente y las coordenadas exactas solo aparecen cuando decides mostrarlas.",
+      "detailProvenanceIntro": "Abre el historial del origen cuando lo necesites para consultar la atribución, las versiones de interpretación y las decisiones de conciliación.",
       "summaryMeasurements": "Mediciones del resumen de la sesión",
       "structureHeading": "Estructura registrada",
       "structureIntro": "Consulta los ejercicios, las vueltas de origen, las vueltas automáticas y las pausas conservadas de esta sesión.",

@@ -58,6 +58,21 @@ detailed workspace. The normative contracts are the
 [training-session search](../data-formats/insights/training-session-search-v1.md) and
 [training-discovery workspace](../data-formats/insights/training-discovery-workspace-v1.md) specifications.
 
+## Presentation hierarchy and state
+
+Training is one product workspace with three explicit views: Sessions, Sports, and Compare periods. Sessions
+is the stable default. A deep session destination opens Sessions; a deep comparison destination opens Compare
+periods. Switching views hides rather than unmounts their presentation boundaries so a temporary visit does
+not discard filters, calendar position, classification editor state, comparison input, or a selected session.
+This presentation state is disposable; only the versioned discovery workspace described above is durable.
+
+An open session replaces discovery content inside Sessions and provides five explicit evidence sections:
+Overview, Structure and segments, Signals and zones, Routes, and Source history. Only one section is visible
+and exposed to assistive technology at a time. Every lower-layer query retains its existing independent error
+boundary, exact-evidence path, and snapshot binding. The hierarchy changes disclosure, not evidence loading,
+identity, attribution, or availability semantics. The return action restores the exact chronology or calendar
+origin and its focus target; report return restores the originating session or period comparison.
+
 The [training-session structure read model](../data-formats/insights/training-session-structure-v1.md)
 loads separately for one opaque session capability under the same discovery snapshot. It preserves
 not-yet-evaluated, absent, present-empty, and populated structure as different states. Application validation
