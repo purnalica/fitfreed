@@ -1382,7 +1382,9 @@
     "installing": "Instalando…",
     "installingVersion": "Instalando la versión {version}…",
     "dismiss": "Ignorar esta versión",
+    "dismissing": "Ignorando esta versión…",
     "postpone": "Recordármelo mañana",
+    "postponing": "Aplazando el recordatorio…",
     "recovery": {
       "updatedHeading": "Actualización completada",
       "recoveredHeading": "Recuperación de actualización completada",

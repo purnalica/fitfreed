@@ -290,6 +290,13 @@ export function UpdatePanel({
     && outcome.updateActionAvailable
     && outcome.release !== null;
   const busy = busyAction !== undefined;
+  const operationProgress = busyAction === "check"
+    ? messages.checking
+    : busyAction === "dismiss"
+      ? messages.dismissing
+      : busyAction === "postpone"
+        ? messages.postponing
+        : undefined;
 
   return (
     <section
@@ -307,9 +314,9 @@ export function UpdatePanel({
         </button>
       </div>
 
-      {busyAction === "check" && (
+      {operationProgress && (
         <p className="update-progress" role="status" aria-live="polite">
-          {messages.checking}
+          {operationProgress}
         </p>
       )}
 

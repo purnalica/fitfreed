@@ -136,10 +136,13 @@ describe("UpdatePanel", () => {
   });
 
   it("announces an authenticated launch update and persists a 24-hour postponement", async () => {
+    let completePostponement: (until: string) => void = () => undefined;
     invoke.mockImplementation((command) => {
       if (command === "check_for_updates_on_launch") return Promise.resolve(outcome());
       if (command === "postpone_available_update") {
-        return Promise.resolve("2026-08-17T12:00:00Z");
+        return new Promise((resolve) => {
+          completePostponement = resolve;
+        });
       }
       throw new Error(`Unexpected command: ${command}`);
     });
@@ -165,6 +168,12 @@ describe("UpdatePanel", () => {
     expect(invoke).toHaveBeenCalledWith("postpone_available_update", {
       candidateVersion: "0.2.0",
     });
+    expect(panel).toHaveAttribute("aria-busy", "true");
+    expect(within(panel).getByRole("button", { name: "Remind me tomorrow" })).toBeDisabled();
+    expect(within(panel).getByRole("button", { name: "Ignore this version" })).toBeDisabled();
+    expect(within(panel).getByText("Postponing reminder…")).toHaveAttribute("role", "status");
+
+    act(() => completePostponement("2026-08-17T12:00:00Z"));
     expect(await within(panel).findByText(/reminder is postponed until/)).toBeVisible();
     expect(within(panel).queryByRole("button", { name: "Remind me tomorrow" }))
       .not.toBeInTheDocument();
@@ -262,9 +271,14 @@ describe("UpdatePanel", () => {
   });
 
   it("persists dismissal for the exact candidate and keeps manual checking available", async () => {
+    let completeDismissal: () => void = () => undefined;
     invoke.mockImplementation((command) => {
       if (command === "check_for_updates_on_launch") return Promise.resolve(outcome());
-      if (command === "dismiss_available_update") return Promise.resolve();
+      if (command === "dismiss_available_update") {
+        return new Promise<void>((resolve) => {
+          completeDismissal = resolve;
+        });
+      }
       throw new Error(`Unexpected command: ${command}`);
     });
     const user = userEvent.setup();
@@ -285,6 +299,12 @@ describe("UpdatePanel", () => {
     expect(invoke).toHaveBeenCalledWith("dismiss_available_update", {
       candidateVersion: "0.2.0",
     });
+    expect(panel).toHaveAttribute("aria-busy", "true");
+    expect(within(panel).getByRole("button", { name: "Ignore this version" })).toBeDisabled();
+    expect(within(panel).getByRole("button", { name: "Remind me tomorrow" })).toBeDisabled();
+    expect(within(panel).getByText("Ignoring this version…")).toHaveAttribute("role", "status");
+
+    act(() => completeDismissal());
     expect(await within(panel).findByText("This version will no longer be announced automatically."))
       .toBeVisible();
     expect(within(panel).getByRole("button", { name: "Check now" })).toBeEnabled();
