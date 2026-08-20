@@ -107,6 +107,7 @@
     "needArchiveTitle": "I need the ZIP",
     "needArchiveBody": "Follow a concise copy of the last verified official process. The instructions remain available without a network connection.",
     "showGuide": "Show me how",
+    "guideLoading": "Loading acquisition guide…",
     "guideTitle": "How to obtain your Polar Flow export",
     "guideIntro": "FitFreed documents the official acquisition path so the first step in owning your data does not depend on guesswork.",
     "sourceName": "Polar Flow",

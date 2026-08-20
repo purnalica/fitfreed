@@ -171,6 +171,9 @@ describe("SourcesPanel", () => {
     const showGuide = screen.getByRole("button", { name: "Show me how" });
     expect(showGuide).toBeDisabled();
     expect(showGuide).toHaveAttribute("aria-busy", "true");
+    const loadingStatus = screen.getByRole("status");
+    expect(showGuide).toHaveAttribute("aria-describedby", loadingStatus.id);
+    expect(loadingStatus).toHaveTextContent("Loading acquisition guide…");
     expect(screen.queryByText(/guide for this source is unavailable/i)).not.toBeInTheDocument();
   });
 

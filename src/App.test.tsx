@@ -2066,7 +2066,10 @@ describe("FitFreed import interface", () => {
 
     render(<App />);
 
-    expect(await screen.findByRole("status")).toHaveTextContent(
+    const outcomeRegion = await screen.findByRole("region", {
+      name: spanish.outcome.heading,
+    });
+    expect(within(outcomeRegion).getByRole("status")).toHaveTextContent(
       `${spanish.completed}: 1 ${spanish.counts.recognized.one}, 1 ${spanish.counts.created.one}, 1 ${spanish.counts.enriched.one}, 1 ${spanish.counts.amended.one}, 1 ${spanish.counts.equivalent.one}, 1 ${spanish.counts.preserved.one}, 1 ${spanish.counts.conflicts.one}.`,
     );
     expect(screen.getByText(`${spanish.outcome.artifactsClassified.one}.`)).toBeVisible();

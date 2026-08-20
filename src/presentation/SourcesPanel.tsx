@@ -131,11 +131,22 @@ export function SourcesPanel({
             aria-expanded={guideVisible}
             aria-controls="source-acquisition-guide"
             aria-busy={guideLoading}
+            aria-describedby={guideLoading ? "source-acquisition-guide-loading" : undefined}
             disabled={guideLoading}
             onClick={() => setGuideVisible(true)}
           >
             {messages.showGuide}
           </button>
+          {guideLoading && (
+            <span
+              id="source-acquisition-guide-loading"
+              className="source-guide-loading"
+              role="status"
+              aria-live="polite"
+            >
+              {messages.guideLoading}
+            </span>
+          )}
         </article>
       </div>
 
