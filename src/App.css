@@ -282,6 +282,7 @@ th:last-child, td:last-child { text-align: right; }
 .activity-comparison > div:first-child p { margin: 0; color: var(--muted); }
 .activity-comparison > form { display: grid; grid-template-columns: repeat(4, minmax(140px, 1fr)) auto; gap: 14px; align-items: end; margin-top: 16px; padding: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 15px; }
 .activity-comparison > form label, .activity-comparison > form input { min-width: 0; width: 100%; }
+.progress-submit-status { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: .85rem; }
 .activity-comparison-result { margin-top: 20px; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 15px; }
 .activity-comparison-result-heading { display: flex; align-items: start; justify-content: space-between; gap: 18px; }
 .activity-comparison-result-heading h3 { margin: 0 0 5px; font-size: 1.1rem; }

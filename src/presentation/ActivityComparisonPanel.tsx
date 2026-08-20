@@ -8,6 +8,7 @@ import type {
   ActivitySeriesSummary,
 } from "./activity-insights";
 import { commandErrorCode } from "./command-error";
+import { ProgressSubmitButton } from "./ProgressSubmitButton";
 import { useInvalidForm } from "./useInvalidForm";
 import { useResultFocus } from "./useResultFocus";
 
@@ -219,9 +220,11 @@ export function ActivityComparisonPanel({
             />
           </label>
         ))}
-        <button type="submit" disabled={loading}>
-          {loading ? copy.comparing : copy.compare}
-        </button>
+        <ProgressSubmitButton
+          loading={loading}
+          actionLabel={copy.compare}
+          progressLabel={copy.comparing}
+        />
       </form>
 
       {comparison && (

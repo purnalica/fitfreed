@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
+import { ProgressSubmitButton } from "./ProgressSubmitButton";
 import { useInvalidForm } from "./useInvalidForm";
 import { useResultFocus } from "./useResultFocus";
 import type {
@@ -166,9 +167,11 @@ export function LongitudinalComparisonPanel({
             />
           </label>
         ))}
-        <button type="submit" disabled={loading}>
-          {loading ? copy.comparing : copy.compare}
-        </button>
+        <ProgressSubmitButton
+          loading={loading}
+          actionLabel={copy.compare}
+          progressLabel={copy.comparing}
+        />
       </form>
 
       {comparison && (

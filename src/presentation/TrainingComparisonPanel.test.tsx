@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -24,6 +24,43 @@ beforeEach(() => {
 });
 
 describe("TrainingComparisonPanel", () => {
+  it("announces pending work without renaming the action or hiding the previous result", async () => {
+    let resolveComparison!: (value: TrainingComparison) => void;
+    mocks.invoke
+      .mockResolvedValueOnce(result)
+      .mockImplementationOnce(() => new Promise<TrainingComparison>((resolve) => {
+        resolveComparison = resolve;
+      }));
+    const user = userEvent.setup();
+    render(
+      <TrainingComparisonPanel
+        availableRange={{ from: "2025-01-01", through: "2026-08-18" }}
+        initialRange={{ from: "2026-07-20", through: "2026-08-18" }}
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        onCreateReport={vi.fn()}
+        onError={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Compare periods" }));
+    const resultHeading = await screen.findByRole("heading", {
+      name: "Training period comparison",
+    });
+
+    await user.click(screen.getByRole("button", { name: "Compare periods" }));
+
+    const form = screen.getByRole("form", { name: "Compare training periods" });
+    expect(form).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("button", { name: "Compare periods" })).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent("Comparing periods…");
+    expect(resultHeading).toBeVisible();
+
+    act(() => resolveComparison(result));
+    await waitFor(() => expect(form).toHaveAttribute("aria-busy", "false"));
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
   it("associates an invalid comparison with every period input", async () => {
     const onError = vi.fn();
     const user = userEvent.setup();
