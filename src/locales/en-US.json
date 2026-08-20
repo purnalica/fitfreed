@@ -140,6 +140,8 @@
   },
   "activity": {
     "heading": "Daily activity overview",
+    "loading": "Loading daily activity…",
+    "unavailableHistory": "Daily activity could not be loaded from the local library.",
     "empty": "No imported daily activity yet.",
     "selectedRange": "Selected range",
     "availableRange": "Available history",

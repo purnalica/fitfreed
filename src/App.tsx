@@ -201,6 +201,8 @@ function App() {
   const [archivePath, setArchivePath] = useState<string>();
   const [sourceGuides, setSourceGuides] = useState<SourceAcquisitionGuide[]>();
   const [activityOverview, setActivityOverview] = useState<ActivityOverview>();
+  const [activityLoading, setActivityLoading] = useState(false);
+  const [activityFailed, setActivityFailed] = useState(false);
   const [rangeFrom, setRangeFrom] = useState("");
   const [rangeThrough, setRangeThrough] = useState("");
   const [rangeLoading, setRangeLoading] = useState(false);
@@ -266,6 +268,7 @@ function App() {
       requestedRange,
     });
     setActivityOverview(overview);
+    setActivityFailed(false);
     setRangeFrom(overview.selectedRange?.from ?? "");
     setRangeThrough(overview.selectedRange?.through ?? "");
     setSelectedActivityDate(undefined);
@@ -398,7 +401,14 @@ function App() {
 
   useEffect(() => {
     if (!applicationReady || exploreDestination !== "activity" || activityOverview) return;
-    refresh().catch((reason) => setErrorCode(commandErrorCode(reason)));
+    setActivityLoading(true);
+    setActivityFailed(false);
+    refresh()
+      .catch((reason) => {
+        setActivityFailed(true);
+        setErrorCode(commandErrorCode(reason));
+      })
+      .finally(() => setActivityLoading(false));
   }, [applicationReady, exploreDestination]);
 
   useEffect(() => {
@@ -1173,11 +1183,15 @@ function App() {
       )}
 
       {exploreDestination === "activity" && (
-      <section aria-labelledby="activity-heading">
+      <section aria-labelledby="activity-heading" aria-busy={activityLoading}>
         <h1 id="activity-heading" ref={activityHeadingRef} tabIndex={-1}>
           {messages.activity.heading}
         </h1>
-        {!activityOverview || activityOverview.series.length === 0 ? (
+        {activityLoading && !activityOverview ? (
+          <p role="status">{messages.activity.loading}</p>
+        ) : activityFailed && !activityOverview ? (
+          <p>{messages.activity.unavailableHistory}</p>
+        ) : !activityOverview || activityOverview.series.length === 0 ? (
           <p>{messages.activity.empty}</p>
         ) : (
           <>

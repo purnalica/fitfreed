@@ -140,6 +140,8 @@
   },
   "activity": {
     "heading": "Resumen de actividad diaria",
+    "loading": "Cargando la actividad diaria…",
+    "unavailableHistory": "No se ha podido cargar la actividad diaria desde la biblioteca local.",
     "empty": "Todavía no hay actividad diaria importada.",
     "selectedRange": "Periodo seleccionado",
     "availableRange": "Historial disponible",

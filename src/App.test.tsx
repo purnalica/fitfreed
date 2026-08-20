@@ -2116,6 +2116,50 @@ describe("FitFreed import interface", () => {
     expect(within(spanishRows[3]).getByText(spanish.activity.unavailable)).toBeVisible();
   });
 
+  it("distinguishes loading, empty, and unavailable activity history", async () => {
+    offerExploration("activity");
+    let resolveActivity: (overview: TestActivityOverview) => void = () => undefined;
+    const pendingActivity = new Promise<TestActivityOverview>((resolve) => {
+      resolveActivity = resolve;
+    });
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_activity_overview") return pendingActivity;
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    const view = render(<App />);
+    await enterExploration(user, "activity");
+    const activity = await screen.findByRole("region", { name: "Daily activity overview" });
+    expect(within(activity).getByRole("status")).toHaveTextContent(
+      "Loading daily activity…",
+    );
+    expect(within(activity).queryByText("No imported daily activity yet."))
+      .not.toBeInTheDocument();
+
+    resolveActivity(emptyActivityOverview());
+    expect(await within(activity).findByText("No imported daily activity yet.")).toBeVisible();
+
+    view.unmount();
+    offerExploration("activity");
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_activity_overview") {
+        return Promise.reject({ code: "library-query-failed" });
+      }
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    render(<App />);
+    await enterExploration(user, "activity");
+    const unavailable = await screen.findByRole("region", { name: "Daily activity overview" });
+    expect(await within(unavailable).findByText(
+      "Daily activity could not be loaded from the local library.",
+    )).toBeVisible();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "FitFreed could not read fitness history.",
+    );
+  });
+
   it("filters an inclusive range, rejects invalid input, resets it, and opens daily detail", async () => {
     offerExploration("activity");
     const complete = activityOverview([
