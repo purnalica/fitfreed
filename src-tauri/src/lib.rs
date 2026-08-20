@@ -91,7 +91,7 @@ use presentation::{
     SavedTrainingSportClassificationDto, SessionReportExportRequestDto, SleepComparisonDto,
     SleepDateRangeDto, SleepOverviewDto, SleepPeriodDetailDto, SourceAcquisitionGuideDto,
     TrainingComparisonDto, TrainingDateRangeDto, TrainingDiscoveryWorkspaceDto,
-    TrainingOverviewDto, TrainingRoutePointsQueryDto, TrainingRoutePointsResultDto,
+    TrainingRoutePointsQueryDto, TrainingRoutePointsResultDto,
     TrainingSegmentCriterionMutationRequestDto, TrainingSessionCalendarDto,
     TrainingSessionCalendarRequestDto, TrainingSessionProvenanceQueryDto,
     TrainingSessionProvenanceResultDto, TrainingSessionRouteQueryDto,
@@ -408,18 +408,6 @@ fn query_activity_comparison(
     )
     .map(ActivityComparisonDto::from)
     .map_err(CommandErrorDto::from)
-}
-
-#[tauri::command]
-fn query_training_overview(
-    app: AppHandle,
-    requested_range: Option<TrainingDateRangeDto>,
-) -> Result<TrainingOverviewDto, CommandErrorDto> {
-    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
-    let library = SqliteTrainingLibrary::new(path);
-    fitfreed_application::query_training_overview(&library, requested_range.map(Into::into))
-        .map(TrainingOverviewDto::from)
-        .map_err(CommandErrorDto::from)
 }
 
 #[tauri::command]
@@ -1885,7 +1873,6 @@ pub fn run() {
             cancel_import,
             query_activity_overview,
             query_activity_comparison,
-            query_training_overview,
             query_training_comparison,
             query_training_sessions,
             query_training_session_calendar,

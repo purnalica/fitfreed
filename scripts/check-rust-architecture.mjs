@@ -99,6 +99,12 @@ if (!hostUpdateEvent || hostUpdateEvent !== presentationUpdateEvent) {
   );
 }
 
+if (/\bfn query_training_overview\b|\bquery_training_overview,/.test(hostSource)) {
+  throw new Error(
+    "the obsolete training-overview desktop command must not remain after session discovery replaced its presentation path",
+  );
+}
+
 process.stdout.write(
   `${JSON.stringify({ domainDependencies: [], applicationDependencies: ["chrono", "fitfreed-domain", "semver", "thiserror", "url"], updateEvent: hostUpdateEvent })}\n`,
 );

@@ -4,11 +4,11 @@
 
 Normative provider-neutral Insights contract for training-session overview, range filtering, and detail. The application derives this disposable read model from [canonical training-session summary version 1](../canonical/training-session.md). It is not canonical history, portable export, or a persistence schema.
 
-The Tauri `query_training_overview` command accepts JSON conforming to [`training-overview-query-v1.schema.json`](../../../schemas/training-overview-query-v1.schema.json) and returns JSON conforming to [`training-overview-v1.schema.json`](../../../schemas/training-overview-v1.schema.json). Presentation reads detail from the selected overview; it does not query a provider record or a persistence table.
+The application `query_training_overview` use case accepts data conforming to [`training-overview-query-v1.schema.json`](../../../schemas/training-overview-query-v1.schema.json) and returns data conforming to [`training-overview-v1.schema.json`](../../../schemas/training-overview-v1.schema.json). Library Home and longitudinal analysis consume that internal model. The desktop host does not expose a direct overview command: full-history session discovery uses [training-session search version 1](training-session-search-v1.md), while period comparison uses [training comparison version 1](training-comparison-v1.md).
 
 ## Query and ranges
 
-The command accepts `requestedRange`, either null or an object with `from` and `through`.
+The query accepts `requestedRange`, either null or an object with `from` and `through`.
 
 - Null selects at most the latest 30 inclusive local calendar dates ending at the latest training-session start date.
 - An object selects the stated inclusive range.
@@ -46,4 +46,4 @@ Required and optional integer measurements are encoded as decimal text so JavaSc
 
 The application rejects empty or duplicate origins, unknown origins, duplicate session identities, sessions outside the requested range, invalid local date-times, negative or non-finite measurements, inconsistent heart rates, and empty opaque references. A range with no sessions still returns a zero-valued series for every known training origin; it does not masquerade as an empty library.
 
-Changing fields, ordering, aggregation, range limits, numeric encoding, null meaning, origin separation, or opaque-reference behavior requires a new read-model version. Application, SQLite, transport, component, packaged E2E, accessibility, and performance tests protect this contract.
+Changing fields, ordering, aggregation, range limits, numeric encoding, null meaning, origin separation, or opaque-reference behavior requires a new read-model version. Application, SQLite, data-contract, Library Home, longitudinal-analysis, session-discovery, comparison, packaged E2E, accessibility, and performance tests protect the relevant boundaries.

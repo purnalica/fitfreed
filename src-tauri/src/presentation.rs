@@ -33,13 +33,12 @@ use fitfreed_application::{
     TrainingDerivedSegment, TrainingDiscoveryView, TrainingDiscoveryWorkspace,
     TrainingExerciseRoutesView, TrainingExerciseSegmentation, TrainingExerciseSignalsView,
     TrainingExerciseStructure, TrainingExerciseZonesView, TrainingLapStructure,
-    TrainingMeasurementFilter, TrainingOverview, TrainingPauseStructure,
-    TrainingProvenanceCurrentView, TrainingProvenanceDecisionView, TrainingProvenanceEventView,
-    TrainingRouteCollectionView, TrainingRouteKindView, TrainingRouteOverview,
-    TrainingRoutePointView, TrainingRoutePointsQuery, TrainingSegmentCriterionDirection,
-    TrainingSegmentCriterionMutationRequest, TrainingSeriesComparison, TrainingSeriesOverview,
-    TrainingSeriesSummary, TrainingSessionCalendar, TrainingSessionCalendarDay,
-    TrainingSessionCalendarRequest, TrainingSessionInsight, TrainingSessionProvenanceQuery,
+    TrainingMeasurementFilter, TrainingPauseStructure, TrainingProvenanceCurrentView,
+    TrainingProvenanceDecisionView, TrainingProvenanceEventView, TrainingRouteCollectionView,
+    TrainingRouteKindView, TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
+    TrainingSegmentCriterionDirection, TrainingSegmentCriterionMutationRequest,
+    TrainingSeriesComparison, TrainingSeriesSummary, TrainingSessionCalendar,
+    TrainingSessionCalendarDay, TrainingSessionCalendarRequest, TrainingSessionProvenanceQuery,
     TrainingSessionProvenanceResult, TrainingSessionRouteQuery, TrainingSessionRoutesResult,
     TrainingSessionRoutesView, TrainingSessionSearchItem, TrainingSessionSearchPage,
     TrainingSessionSearchRequest, TrainingSessionSearchSummary, TrainingSessionSegmentationQuery,
@@ -1486,44 +1485,6 @@ impl From<TrainingDateRange> for TrainingDateRangeDto {
         Self {
             from: range.from,
             through: range.through,
-        }
-    }
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TrainingSessionInsightDto {
-    session_ref: String,
-    started_at_local: String,
-    stopped_at_local: String,
-    utc_offset_minutes: Option<i32>,
-    duration_milliseconds: String,
-    distance_meters: Option<f64>,
-    energy_kilocalories: Option<String>,
-    average_heart_rate_bpm: Option<String>,
-    maximum_heart_rate_bpm: Option<String>,
-    sport_ref: Option<String>,
-    exercise_count: Option<usize>,
-}
-
-impl From<TrainingSessionInsight> for TrainingSessionInsightDto {
-    fn from(session: TrainingSessionInsight) -> Self {
-        Self {
-            session_ref: session.session_ref,
-            started_at_local: session.started_at_local,
-            stopped_at_local: session.stopped_at_local,
-            utc_offset_minutes: session.utc_offset_minutes,
-            duration_milliseconds: session.duration_milliseconds.to_string(),
-            distance_meters: session.distance_meters,
-            energy_kilocalories: session.energy_kilocalories.map(|value| value.to_string()),
-            average_heart_rate_bpm: session
-                .average_heart_rate_bpm
-                .map(|value| value.to_string()),
-            maximum_heart_rate_bpm: session
-                .maximum_heart_rate_bpm
-                .map(|value| value.to_string()),
-            sport_ref: session.sport_ref,
-            exercise_count: session.exercise_count,
         }
     }
 }
@@ -3598,42 +3559,6 @@ impl From<TrainingSeriesSummary> for TrainingSeriesSummaryDto {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct TrainingSeriesOverviewDto {
-    series_ref: String,
-    summary: TrainingSeriesSummaryDto,
-    sessions: Vec<TrainingSessionInsightDto>,
-}
-
-impl From<TrainingSeriesOverview> for TrainingSeriesOverviewDto {
-    fn from(series: TrainingSeriesOverview) -> Self {
-        Self {
-            series_ref: series.series_ref,
-            summary: series.summary.into(),
-            sessions: series.sessions.into_iter().map(Into::into).collect(),
-        }
-    }
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TrainingOverviewDto {
-    available_range: Option<TrainingDateRangeDto>,
-    selected_range: Option<TrainingDateRangeDto>,
-    series: Vec<TrainingSeriesOverviewDto>,
-}
-
-impl From<TrainingOverview> for TrainingOverviewDto {
-    fn from(overview: TrainingOverview) -> Self {
-        Self {
-            available_range: overview.available_range.map(Into::into),
-            selected_range: overview.selected_range.map(Into::into),
-            series: overview.series.into_iter().map(Into::into).collect(),
-        }
-    }
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct TrainingSeriesComparisonDto {
     series_ref: String,
     baseline: TrainingSeriesSummaryDto,
@@ -5526,7 +5451,7 @@ mod tests {
     }
 
     #[test]
-    fn serializes_training_insights_without_losing_exact_integer_measurements() {
+    fn serializes_training_comparison_without_losing_exact_integer_measurements() {
         let summary = TrainingSeriesSummary {
             calendar_days: 2,
             training_days: 1,
@@ -5538,37 +5463,14 @@ mod tests {
             total_energy_kilocalories: Some(9_223_372_036_854_775_808),
             heart_rate_session_count: 1,
         };
-        let overview = TrainingOverview {
-            available_range: Some(TrainingDateRange {
-                from: "2026-01-01".to_owned(),
-                through: "2026-01-02".to_owned(),
-            }),
-            selected_range: Some(TrainingDateRange {
-                from: "2026-01-01".to_owned(),
-                through: "2026-01-02".to_owned(),
-            }),
-            series: vec![TrainingSeriesOverview {
-                series_ref: "synthetic-origin".to_owned(),
-                summary: summary.clone(),
-                sessions: vec![TrainingSessionInsight {
-                    session_ref: "synthetic-session".to_owned(),
-                    started_at_local: "2026-01-01T10:00:00".to_owned(),
-                    stopped_at_local: "2026-01-01T11:00:00".to_owned(),
-                    utc_offset_minutes: Some(60),
-                    duration_milliseconds: i64::MAX,
-                    distance_meters: Some(10_000.5),
-                    energy_kilocalories: Some(i64::MAX),
-                    average_heart_rate_bpm: Some(145),
-                    maximum_heart_rate_bpm: Some(178),
-                    sport_ref: Some("synthetic-sport".to_owned()),
-                    exercise_count: Some(1),
-                }],
-            }],
+        let range = TrainingDateRange {
+            from: "2026-01-01".to_owned(),
+            through: "2026-01-02".to_owned(),
         };
         let comparison = TrainingComparison {
-            available_range: overview.available_range.clone(),
-            baseline_range: overview.selected_range.clone(),
-            comparison_range: overview.selected_range.clone(),
+            available_range: Some(range.clone()),
+            baseline_range: Some(range.clone()),
+            comparison_range: Some(range),
             series: vec![TrainingSeriesComparison {
                 series_ref: "synthetic-origin".to_owned(),
                 baseline: summary.clone(),
@@ -5581,22 +5483,12 @@ mod tests {
             }],
         };
 
-        let overview_json =
-            serde_json::to_value(TrainingOverviewDto::from(overview)).expect("training JSON");
         let comparison_json = serde_json::to_value(TrainingComparisonDto::from(comparison))
             .expect("training comparison JSON");
 
         assert_eq!(
-            overview_json["series"][0]["summary"]["totalDurationMilliseconds"],
+            comparison_json["series"][0]["baseline"]["totalDurationMilliseconds"],
             "18446744073709551614"
-        );
-        assert_eq!(
-            overview_json["series"][0]["sessions"][0]["durationMilliseconds"],
-            "9223372036854775807"
-        );
-        assert_eq!(
-            overview_json["series"][0]["sessions"][0]["energyKilocalories"],
-            "9223372036854775807"
         );
         assert_eq!(
             comparison_json["series"][0]["durationMillisecondsChange"],
