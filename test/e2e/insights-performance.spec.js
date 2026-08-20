@@ -3,6 +3,7 @@ import fs from "node:fs";
 import {
   goToHome,
   openHomeQuestion,
+  resizeApplication,
   selectArchive,
   selectLocale,
 } from "./support/application-actions.js";
@@ -22,6 +23,7 @@ describe("packaged FitFreed insight performance", () => {
       openHomeQuestion: (kind, expectedSelector) => (
         openHomeQuestion(english, kind, expectedSelector)
       ),
+      resizeApplication,
       selectArchive,
       selectLocale,
     });

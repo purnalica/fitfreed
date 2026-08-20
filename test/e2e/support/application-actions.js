@@ -58,6 +58,23 @@ export async function goToHome(home, session = browser) {
   }
 }
 
+export async function resizeApplication(width, height, session = browser) {
+  const resizeError = await session.executeAsync((nextWidth, nextHeight, done) => {
+    window.__TAURI_INTERNALS__.invoke("plugin:window|set_size", {
+      label: "main",
+      value: { Logical: { width: nextWidth, height: nextHeight } },
+    }).then(() => done(null), (error) => done(String(error)));
+  }, width, height);
+  if (resizeError !== null) throw new Error(`native window resize failed: ${resizeError}`);
+  await session.waitUntil(
+    () => session.execute(
+      (expectedWidth) => Math.abs(document.documentElement.clientWidth - expectedWidth) <= 24,
+      width,
+    ),
+    { timeout: 10_000, timeoutMsg: `the application did not resize to ${width}px` },
+  );
+}
+
 export async function openSettingsCategory(category, session = browser) {
   await goToHome("settings", session);
   const target = await session.$(

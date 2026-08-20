@@ -1249,6 +1249,31 @@ describe("FitFreed import interface", () => {
     });
   });
 
+  it("preserves the first explicit shell destination when deferred startup completes", async () => {
+    emptyLibrary();
+    let paintShell: FrameRequestCallback = () => undefined;
+    vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => {
+      paintShell = callback;
+      return 1;
+    }));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole("button", { name: "Settings" }));
+    expect(screen.getByLabelText("Interface language")).toBeVisible();
+
+    await act(async () => paintShell(performance.now()));
+    await waitFor(() => expect(mocks.homeInvoke).toHaveBeenCalledWith(
+      "query_library_home",
+      { request: { afterImportOperationRef: null } },
+    ));
+
+    expect(screen.getByRole("button", { name: "Settings" }))
+      .toHaveAttribute("aria-current", "page");
+    expect(screen.getByLabelText("Interface language")).toBeVisible();
+  });
+
   it("previews, saves, restores, and resets every setting from the Settings home", async () => {
     emptyLibrary();
     const user = userEvent.setup();
@@ -2433,7 +2458,7 @@ describe("FitFreed import interface", () => {
     render(<App />);
     await enterExploration(user, "activity");
     const region = screen.getByRole("region", { name: "Daily activity overview" });
-    const form = within(region).getByRole("form", { name: "Explore a date range" });
+    const form = await within(region).findByRole("form", { name: "Explore a date range" });
 
     await user.click(within(form).getByRole("button", { name: "Latest 30 days" }));
 

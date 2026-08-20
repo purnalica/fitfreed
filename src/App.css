@@ -420,7 +420,7 @@ th:last-child, td:last-child { text-align: right; }
 .training-summary strong { margin-bottom: 5px; font-size: 1.18rem; font-variant-numeric: tabular-nums; }
 .training-summary span { color: var(--ink-soft); font-size: .76rem; }
 .training-session-result-count { margin: 22px 0 12px; color: var(--muted); font-size: .84rem; font-weight: 700; }
-.training-session-results { display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
+.training-session-results { container: training-session-results / inline-size; display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
 .training-session-results > li { min-width: 0; }
 .training-session-results article { display: grid; grid-template-columns: minmax(180px, .8fr) minmax(360px, 1.55fr) minmax(160px, auto); gap: 20px; align-items: center; height: 100%; padding: 16px 18px; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; }
 .training-session-results article > header { display: flex; justify-content: space-between; gap: 14px; align-items: start; }
@@ -436,6 +436,15 @@ th:last-child, td:last-child { text-align: right; }
 .training-session-result-actions label span { margin: 0 0 0 7px; }
 .training-session-result-actions input { width: auto; min-height: auto; padding: 0; }
 .training-session-result-actions button { width: 100%; }
+@container training-session-results (max-width: 820px) {
+  .training-session-results article { grid-template-columns: 1fr; align-items: stretch; }
+  .training-session-results dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .training-session-result-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container training-session-results (max-width: 520px) {
+  .training-session-result-actions { grid-template-columns: 1fr; }
+  .training-session-result-actions label { justify-content: center; }
+}
 .training-session-pagination { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; margin-top: 18px; }
 .training-session-pagination span { color: var(--muted); font-size: .8rem; text-align: center; }
 .training-session-comparison { margin-top: 24px; padding: 20px; background: var(--paper); border: 1px solid var(--line); border-radius: 15px; }
@@ -987,10 +996,6 @@ th:last-child, td:last-child { text-align: right; }
   .training-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .training-sport-list { grid-template-columns: 1fr; }
   .training-session-search-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .training-session-results { grid-template-columns: 1fr; }
-  .training-session-results article { grid-template-columns: 1fr; align-items: stretch; }
-  .training-session-results dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .training-session-result-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .report-analysis-picker > ul, .report-analysis-ranges > div { grid-template-columns: 1fr; }
   .sleep-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .recovery-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1074,9 +1079,6 @@ th:last-child, td:last-child { text-align: right; }
   .training-calendar-grid { gap: 2px; }
   .training-calendar-grid li, .training-calendar-grid li > span, .training-calendar-grid li > button { min-height: 50px; }
   .training-calendar-grid li > span, .training-calendar-grid li > button { padding: 5px; }
-  .training-session-result-actions { align-items: stretch; flex-direction: column; }
-  .training-session-result-actions { grid-template-columns: 1fr; }
-  .training-session-result-actions label { justify-content: center; }
   .training-session-pagination { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .training-session-pagination span { grid-column: 1 / 3; grid-row: 1; }
   .training-session-pagination button { grid-row: 2; }

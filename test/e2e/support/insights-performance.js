@@ -881,9 +881,11 @@ export async function runInsightsPerformanceJourney({
   chooseArchiveLabel,
   goToHome,
   openHomeQuestion,
+  resizeApplication,
   selectArchive,
   selectLocale,
 }) {
+  await resizeApplication(1024, 720);
   reportPhase("import");
   await selectLocale("en-US", "sources");
   const dialogMock = await browser.tauri.mock("plugin:dialog|open");
@@ -998,7 +1000,23 @@ export async function runInsightsPerformanceJourney({
     () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
   );
   if (!maximumTrainingRangeHasNoHorizontalOverflow) {
-    throw new Error("maximum training range overflowed the application viewport");
+    const overflowEvidence = await browser.execute(() => ({
+      viewportWidth: document.documentElement.clientWidth,
+      documentWidth: document.documentElement.scrollWidth,
+      elements: Array.from(document.querySelectorAll("body *"))
+        .map((element) => ({
+          selector: `${element.tagName.toLowerCase()}${element.id ? `#${element.id}` : ""}${
+            element.classList.length > 0 ? `.${Array.from(element.classList).join(".")}` : ""
+          }`,
+          left: Math.round(element.getBoundingClientRect().left),
+          right: Math.round(element.getBoundingClientRect().right),
+          scrollWidth: element.scrollWidth,
+          clientWidth: element.clientWidth,
+        }))
+        .filter((element) => element.right > document.documentElement.clientWidth + 1)
+        .slice(0, 12),
+    }));
+    throw new Error(`maximum training range overflowed: ${JSON.stringify(overflowEvidence)}`);
   }
   await browser.execute(() => {
     document.documentElement.style.fontSize = "";

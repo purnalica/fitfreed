@@ -210,6 +210,7 @@ function App() {
   const [settingsWorkspace, setSettingsWorkspace] = useState<SettingsWorkspace>("appearance");
   const [activeHome, setActiveHome] = useState<ApplicationHome>("home");
   const homeNavigationRevision = useRef(0);
+  const startupHomeNavigationRevision = useRef(homeNavigationRevision.current);
   const [libraryHome, setLibraryHome] = useState<LibraryHome>();
   const [libraryHomeFocusRequestId, setLibraryHomeFocusRequestId] = useState(0);
   const [homeNavigationOperation, setHomeNavigationOperation]
@@ -303,8 +304,8 @@ function App() {
   async function refreshLibraryHome(
     afterImportOperationRef: string | null,
     restoreWorkspace: boolean,
+    navigationRevision = homeNavigationRevision.current,
   ) {
-    const navigationRevision = homeNavigationRevision.current;
     const home = await invoke<LibraryHome>("query_library_home", {
       request: { afterImportOperationRef },
     });
@@ -409,7 +410,8 @@ function App() {
 
   useEffect(() => {
     if (!applicationReady) return;
-    refreshLibraryHome(null, true).catch((reason) => setErrorCode(commandErrorCode(reason)));
+    refreshLibraryHome(null, true, startupHomeNavigationRevision.current)
+      .catch((reason) => setErrorCode(commandErrorCode(reason)));
     refreshOutcome().catch((reason) => setErrorCode(commandErrorCode(reason)));
     invoke<SourceAcquisitionGuide[]>("query_source_acquisition_guides")
       .then(setSourceGuides)
@@ -1260,7 +1262,10 @@ function App() {
       )}
 
       {exploreDestination === "activity" && (
-      <section aria-labelledby="activity-heading" aria-busy={activityLoading}>
+      <section
+        aria-labelledby="activity-heading"
+        aria-busy={activityLoading || (!activityOverview && !activityFailed)}
+      >
         <header className="explorer-workspace-heading">
           <p className="eyebrow">{messages.activity.workspaceEyebrow}</p>
           <h1 id="activity-heading" ref={activityHeadingRef} tabIndex={-1}>
@@ -1281,7 +1286,7 @@ function App() {
           ]}
           onSelect={setActivityWorkspace}
         />
-        {activityLoading && !activityOverview ? (
+        {!activityOverview && !activityFailed ? (
           <p role="status">{messages.activity.loading}</p>
         ) : activityFailed && !activityOverview ? (
           <p>{messages.activity.unavailableHistory}</p>

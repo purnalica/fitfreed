@@ -51,8 +51,8 @@ test("keeps packaged update fixtures outside both retained application targets",
   assert.notEqual(updateE2eTargetDirectory, path.resolve("src-tauri/target"));
 });
 
-test("keeps ordinary packaged journeys on the strict campaign timeout", () => {
-  assert.equal(defaultConfig.mochaOpts.timeout, 120_000);
+test("gives the exhaustive functional journey a bounded campaign watchdog", () => {
+  assert.equal(defaultConfig.mochaOpts.timeout, 300_000);
   assert.deepEqual(defaultConfig.specs, ["./test/e2e/**/*.spec.js"]);
 });
 

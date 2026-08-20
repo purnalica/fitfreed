@@ -9,6 +9,7 @@ import {
   openArchivePicker,
   openHomeQuestion,
   persistSettings,
+  resizeApplication,
   returnToLibraryHome,
   selectArchive,
   selectLocale,
@@ -57,23 +58,6 @@ async function expectFocusedStatus(fragment, timeoutMsg) {
       && document.activeElement.textContent?.includes(expected)
     ), fragment),
     { timeout: 10_000, timeoutMsg },
-  );
-}
-
-async function resizeApplication(width, height) {
-  const resizeError = await browser.executeAsync((nextWidth, nextHeight, done) => {
-    window.__TAURI_INTERNALS__.invoke("plugin:window|set_size", {
-      label: "main",
-      value: { Logical: { width: nextWidth, height: nextHeight } },
-    }).then(() => done(null), (error) => done(String(error)));
-  }, width, height);
-  if (resizeError !== null) throw new Error(`native window resize failed: ${resizeError}`);
-  await browser.waitUntil(
-    () => browser.execute(
-      (expectedWidth) => Math.abs(document.documentElement.clientWidth - expectedWidth) <= 24,
-      width,
-    ),
-    { timeout: 10_000, timeoutMsg: `the application did not resize to ${width}px` },
   );
 }
 
@@ -822,6 +806,12 @@ async function expectSourceGuide(catalog) {
 
 describe("packaged FitFreed import journey", () => {
   it("covers validation, outcomes, coverage, cancellation, reimport, accessibility, performance, and restart", async () => {
+    const journeyStartedAt = Date.now();
+    const recordJourneyPhase = (journeyPhase) => process.stdout.write(`${JSON.stringify({
+      journeyPhase,
+      elapsedMilliseconds: Date.now() - journeyStartedAt,
+    })}\n`);
+    recordJourneyPhase("shell-and-first-run");
     fs.rmSync(reportOutput, { force: true });
     fs.rmSync(refreshedReportOutput, { force: true });
     await resizeApplication(1440, 900);
@@ -838,6 +828,7 @@ describe("packaged FitFreed import journey", () => {
     );
     await expect($(".app-sidebar nav button[data-home='home']"))
       .toHaveAttribute("aria-current", "page");
+    recordJourneyPhase("source-acquisition-and-import");
     await goToHome("sources");
     await expect($(".sources-home h1")).toHaveText("Bring your fitness history home");
     await expect($("aria/Import selected package")).toBeDisabled();
@@ -1064,6 +1055,7 @@ describe("packaged FitFreed import journey", () => {
         action: "Keep the original ZIP if you need unsupported zone groups or signal types.",
       },
     ]);
+    recordJourneyPhase("english-exploration-and-reports");
     await openHomeQuestion(
       english,
       "review-activity-steps",
@@ -1834,6 +1826,7 @@ describe("packaged FitFreed import journey", () => {
     expect(await $$(".recovery-detail")).toHaveLength(0);
     await expect($("body")).not.toHaveText(expect.stringContaining("fixture-training-session"));
 
+    recordJourneyPhase("localized-maximum-zoom");
     await selectLocale("es-ES");
     await setAppearanceAndZoom("dark", 200, true);
     await goToHome("sources");
@@ -2073,6 +2066,7 @@ describe("packaged FitFreed import journey", () => {
       ["Jan 2, 2026", "4,200", "Step total available"],
       ["Jan 3, 2026", "Not available", "Observation available; step total unavailable"],
     ]);
+    recordJourneyPhase("range-validation-and-comparisons");
     await openHomeQuestion(
       english,
       "explore-training-sessions",
@@ -2637,6 +2631,7 @@ describe("packaged FitFreed import journey", () => {
       ["900 kcal", `${spanish.training.totalEnergy} · 2 de 3`],
       ["2 de 3", spanish.training.heartRateCoverage],
     ]);
+    recordJourneyPhase("localized-workspaces-and-details");
     await openTrainingWorkspace(spanish, "comparison");
     await setTrainingComparisonRanges(
       "2026-01-04",
@@ -2871,6 +2866,7 @@ describe("packaged FitFreed import journey", () => {
     await $(".recovery-comparison-result button.secondary").click();
     expect(await $$(".recovery-comparison-result")).toHaveLength(0);
 
+    recordJourneyPhase("restart-and-durable-state");
     await browser.reloadSession();
     await $(".recovery-insights").waitForDisplayed({ timeout: 10_000 });
     await expect($("html")).toHaveAttribute("data-appearance", "dark");
@@ -2878,6 +2874,7 @@ describe("packaged FitFreed import journey", () => {
       () => document.documentElement.style.getPropertyValue("--content-zoom"),
     )).toBe("2");
     expect(await $$("#activity-heading, .training-insights, .sleep-insights, .longitudinal-insights")).toHaveLength(0);
+    recordJourneyPhase("reimport-report-refresh-and-return");
     await goToHome("sources");
     await expect($("#outcome-heading")).toHaveText(spanish.outcome.heading);
     await expectFamilyCoverage([
@@ -3200,6 +3197,7 @@ describe("packaged FitFreed import journey", () => {
     await browser.reloadSession();
     await expectLibraryHome(spanish);
     expect(await $$(".library-home-resume")).toHaveLength(0);
+    recordJourneyPhase("complete");
 
   });
 });
