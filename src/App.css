@@ -405,6 +405,8 @@ th:last-child, td:last-child { text-align: right; }
 .training-sport-editor-field input, .training-sport-editor-field select { min-width: 0; width: 100%; }
 .training-sport-editor-field small { color: var(--muted); line-height: 1.35; }
 .training-sport-editor-actions { grid-column: 1 / 3; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.training-sport-editor-actions .progress-submit-status,
+.settings-actions .progress-submit-status { order: 1; flex-basis: 100%; text-align: right; }
 .training-sports-status { margin: 16px 0 0; padding: 10px 12px; color: var(--success); background: var(--success-soft); border-radius: 9px; font-weight: 700; }
 .training-table-scroll { min-width: 0; max-width: 100%; overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 15px; }
 .training-table-scroll:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }

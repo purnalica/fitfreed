@@ -92,4 +92,25 @@ describe("SettingsPanel", () => {
     await user.click(screen.getByRole("button", { name: "Restore defaults" }));
     expect(onReset).toHaveBeenCalledOnce();
   });
+
+  it("keeps settings actions stable and announces progress while preferences are saved", () => {
+    render(
+      <SettingsPanel
+        savedPreferences={savedPreferences}
+        messages={catalogs["en-US"].settings}
+        disabled={false}
+        saving
+        savedNotice={false}
+        onPreview={vi.fn()}
+        onSave={vi.fn()}
+        onReset={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("form", { name: "Appearance and language" }))
+      .toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("button", { name: "Restore defaults" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent("Saving…");
+  });
 });

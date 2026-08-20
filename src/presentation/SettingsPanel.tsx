@@ -6,6 +6,7 @@ import {
   type AppearancePreference,
   type ApplicationPreferences,
 } from "./application-preferences";
+import { ProgressSubmitButton } from "./ProgressSubmitButton";
 
 type SettingsMessages = (typeof catalogs)["en-US"]["settings"];
 
@@ -62,6 +63,7 @@ export function SettingsPanel({
         <form
           className="settings-form"
           aria-labelledby="appearance-settings-heading"
+          aria-busy={saving}
           onSubmit={(event) => {
             event.preventDefault();
             void onSave(draft);
@@ -130,7 +132,7 @@ export function SettingsPanel({
 
           <p className="settings-local-note">{messages.localOnly}</p>
 
-          {(dirty || savedNotice) && (
+          {!saving && (dirty || savedNotice) && (
             <p className="settings-status" role="status" aria-live="polite">
               {dirty ? messages.unsaved : messages.saved}
             </p>
@@ -145,9 +147,12 @@ export function SettingsPanel({
             >
               {messages.restore}
             </button>
-            <button type="submit" disabled={disabled || saving || !dirty}>
-              {saving ? messages.saving : messages.save}
-            </button>
+            <ProgressSubmitButton
+              loading={saving}
+              disabled={disabled || !dirty}
+              actionLabel={messages.save}
+              progressLabel={messages.saving}
+            />
           </div>
         </form>
 

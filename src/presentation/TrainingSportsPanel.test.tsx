@@ -256,6 +256,55 @@ describe("TrainingSportsPanel", () => {
     expect(mocks.invoke).toHaveBeenCalledTimes(3);
   });
 
+  it("keeps the classification action stable and the current sport visible while saving", async () => {
+    let resolveSave: (value: SavedTrainingSportClassification) => void = () => undefined;
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_training_sports") return Promise.resolve(overview([unknownSport]));
+      if (command === "save_training_sport_classification") {
+        return new Promise((resolve) => {
+          resolveSave = resolve;
+        });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(
+      <TrainingSportsPanel
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        refreshToken={0}
+        onError={vi.fn()}
+      />,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Name this sport" }));
+    await user.type(screen.getByLabelText("Your sport name"), "Gravel cycling");
+    await user.click(screen.getByRole("button", { name: "Save sport classification" }));
+
+    const editor = screen.getByRole("form", { name: "Classify Unknown sport 1" });
+    await waitFor(() => expect(editor).toHaveAttribute("aria-busy", "true"));
+    expect(screen.getByRole("button", { name: "Save sport classification" })).toBeDisabled();
+    expect(within(editor).getByRole("status")).toHaveTextContent(
+      "Saving sport classification…",
+    );
+    expect(screen.getByRole("heading", { name: "Unknown sport 1" })).toBeVisible();
+
+    const classified = {
+      ...unknownSport,
+      state: "classified" as const,
+      classification: {
+        canonicalFamily: null,
+        displayLabel: "Gravel cycling",
+        authorship: "user" as const,
+        revision: 1,
+      },
+    };
+    resolveSave({ outcome: "changed", overview: overview([classified]) });
+
+    expect(await screen.findByRole("heading", { name: "Gravel cycling" })).toBeVisible();
+    expect(screen.getByRole("status")).toHaveTextContent("Sport classification saved.");
+  });
+
   it("distinguishes loading, empty, and failed discovery without inventing sports", async () => {
     let resolveOverview: (value: TrainingSportsOverview) => void = () => undefined;
     mocks.invoke.mockReturnValue(new Promise((resolve) => {

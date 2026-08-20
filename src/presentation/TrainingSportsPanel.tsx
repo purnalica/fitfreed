@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { type catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
+import { ProgressSubmitButton } from "./ProgressSubmitButton";
 import { formatDuration } from "./training-format";
 import {
   sportFamilies,
@@ -276,6 +277,7 @@ export function TrainingSportsPanel({
                   <form
                     className="training-sport-editor"
                     aria-label={interpolate(copy.editorHeading, { sport: title })}
+                    aria-busy={saving}
                     onSubmit={(event) => saveClassification(event, sport)}
                   >
                     <div className="training-sport-editor-field">
@@ -337,16 +339,15 @@ export function TrainingSportsPanel({
                           {copy.reset}
                         </button>
                       )}
-                      <button
-                        type="submit"
+                      <ProgressSubmitButton
+                        loading={saving}
                         disabled={
-                          saving
-                          || draftLabelTooLong
+                          draftLabelTooLong
                           || (!draft.family && !draft.label.trim())
                         }
-                      >
-                        {saving ? copy.saving : copy.save}
-                      </button>
+                        actionLabel={copy.save}
+                        progressLabel={copy.saving}
+                      />
                     </div>
                   </form>
                 )}
