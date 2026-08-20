@@ -18,6 +18,7 @@ import type {
   RecoveryOverview,
   SourceSpecificRecoveryAssessment,
 } from "./recovery-insights";
+import { useInvalidForm } from "./useInvalidForm";
 
 interface RecoveryInsightsPanelProps {
   locale: Locale;
@@ -47,6 +48,7 @@ export function RecoveryInsightsPanel({
   const [selectedNight, setSelectedNight] = useState<SelectedNight>();
   const [detail, setDetail] = useState<RecoveryNightDetail>();
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const rangeValidation = useInvalidForm(onError);
   const detailRequest = useRef(0);
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const decimal = useMemo(
@@ -122,9 +124,10 @@ export function RecoveryInsightsPanel({
         overview.availableRange,
       )
     ) {
-      onError("invalid-recovery-range");
+      rangeValidation.reject("invalid-recovery-range");
       return;
     }
+    rangeValidation.accept();
     setLoadingRange(true);
     onError(undefined);
     try {
@@ -137,6 +140,7 @@ export function RecoveryInsightsPanel({
   }
 
   async function resetRange() {
+    rangeValidation.accept();
     setLoadingRange(true);
     onError(undefined);
     try {
@@ -230,7 +234,12 @@ export function RecoveryInsightsPanel({
                   min={overview.availableRange.from}
                   max={overview.availableRange.through}
                   value={rangeFrom}
-                  onChange={(event) => setRangeFrom(event.target.value)}
+                  aria-invalid={rangeValidation.invalid || undefined}
+                  aria-describedby={rangeValidation.errorElementId}
+                  onChange={(event) => {
+                    rangeValidation.edit();
+                    setRangeFrom(event.target.value);
+                  }}
                   disabled={loadingRange}
                   required
                 />
@@ -242,7 +251,12 @@ export function RecoveryInsightsPanel({
                   min={overview.availableRange.from}
                   max={overview.availableRange.through}
                   value={rangeThrough}
-                  onChange={(event) => setRangeThrough(event.target.value)}
+                  aria-invalid={rangeValidation.invalid || undefined}
+                  aria-describedby={rangeValidation.errorElementId}
+                  onChange={(event) => {
+                    rangeValidation.edit();
+                    setRangeThrough(event.target.value);
+                  }}
                   disabled={loadingRange}
                   required
                 />

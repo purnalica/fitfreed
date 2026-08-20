@@ -252,8 +252,9 @@ describe("RecoveryInsightsPanel", () => {
       if (command === "query_recovery_comparison") return Promise.resolve(comparison());
       throw new Error(`Unexpected command: ${command}`);
     });
+    const onError = vi.fn();
     const user = userEvent.setup();
-    renderPanel();
+    renderPanel({ onError });
 
     const region = screen.getByRole("region", { name: "Nightly recovery" });
     expect((await within(region).findAllByText("905 ms"))[0]).toBeVisible();
@@ -282,6 +283,14 @@ describe("RecoveryInsightsPanel", () => {
     const through = within(region).getByLabelText("Through");
     await user.clear(from);
     await user.type(from, "2026-03-30");
+    await user.clear(through);
+    await user.type(through, "2026-03-28");
+    await user.click(within(region).getByRole("button", { name: "Apply recovery period" }));
+    expect(onError).toHaveBeenLastCalledWith("invalid-recovery-range");
+    expect(from).toHaveAttribute("aria-invalid", "true");
+    expect(from).toHaveAttribute("aria-describedby", "application-error");
+    expect(through).toHaveAttribute("aria-invalid", "true");
+
     await user.clear(through);
     await user.type(through, "2026-03-30");
     await user.click(within(region).getByRole("button", { name: "Apply recovery period" }));
@@ -356,6 +365,9 @@ describe("RecoveryInsightsPanel", () => {
     await user.type(baselineThrough, "2026-03-01");
     await user.click(within(region).getByRole("button", { name: "Compare recovery periods" }));
     expect(onError).toHaveBeenLastCalledWith("invalid-recovery-comparison");
+    expect(baselineFrom).toHaveAttribute("aria-invalid", "true");
+    expect(baselineFrom).toHaveAttribute("aria-describedby", "application-error");
+    expect(baselineThrough).toHaveAttribute("aria-invalid", "true");
     expect(mocks.invoke).not.toHaveBeenCalledWith(
       "query_recovery_comparison",
       expect.anything(),

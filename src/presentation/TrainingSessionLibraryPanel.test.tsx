@@ -1043,6 +1043,12 @@ describe("TrainingSessionLibraryPanel", () => {
     await user.type(screen.getByLabelText("Through date"), "2025-01-01");
     await user.click(screen.getByRole("button", { name: "Apply filters" }));
     expect(onError).toHaveBeenCalledWith("invalid-training-session-search");
+    expect(screen.getByLabelText("From date")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText("From date")).toHaveAttribute(
+      "aria-describedby",
+      "application-error",
+    );
+    expect(screen.getByLabelText("Through date")).toHaveAttribute("aria-invalid", "true");
     expect(mocks.invoke.mock.calls.filter(
       ([command]) => command === "query_training_sessions",
     )).toHaveLength(searchCallsAfterLoad);

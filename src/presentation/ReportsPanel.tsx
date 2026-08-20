@@ -541,6 +541,7 @@ export function ReportsPanel({
   ) {
     const query = editor ? comparisonQuery(editor.blocks) : undefined;
     if (!query) return;
+    if (localError === "invalid-report-comparison-range") setLocalError(undefined);
     updateComparisonQuery({
       ...query,
       [range]: { ...query[range], [boundary]: value },
@@ -1127,6 +1128,8 @@ export function ReportsPanel({
   const unselectedAnalyticalKinds = ANALYTICAL_BLOCK_KINDS.filter(
     (kind) => !editor?.blocks.some((block) => block.kind === kind),
   );
+  const definitionInvalid = localError === "invalid-report-definition";
+  const comparisonRangeInvalid = localError === "invalid-report-comparison-range";
   const editingLocked = disabled || saving || refreshing || resolved?.status === "stale";
   const canonicalSourceTarget = resolved ? reportSourceTarget(resolved) : null;
   const returnLabel = origin
@@ -1256,7 +1259,14 @@ export function ReportsPanel({
                   maxLength={120}
                   required
                   disabled={editingLocked}
-                  onChange={(event) => setEditor({ ...editor, title: event.target.value })}
+                  aria-invalid={(definitionInvalid && !editor.title.trim()) || undefined}
+                  aria-describedby={definitionInvalid && !editor.title.trim()
+                    ? "report-editor-error"
+                    : undefined}
+                  onChange={(event) => {
+                    if (definitionInvalid) setLocalError(undefined);
+                    setEditor({ ...editor, title: event.target.value });
+                  }}
                 />
               </label>
 
@@ -1340,16 +1350,22 @@ export function ReportsPanel({
                             <label htmlFor={`report-narrative-${index}`}>{copy.narrativeLabel}</label>
                             <textarea
                               id={`report-narrative-${index}`}
-                              aria-describedby={`report-narrative-help-${index}`}
+                              aria-invalid={(definitionInvalid && !block.body.trim()) || undefined}
+                              aria-describedby={definitionInvalid && !block.body.trim()
+                                ? `report-narrative-help-${index} report-editor-error`
+                                : `report-narrative-help-${index}`}
                               value={block.body}
                               maxLength={10_000}
                               rows={8}
                               required
                               disabled={editingLocked}
-                              onChange={(event) => updateBlock(index, {
-                                ...block,
-                                body: event.target.value,
-                              })}
+                              onChange={(event) => {
+                                if (definitionInvalid) setLocalError(undefined);
+                                updateBlock(index, {
+                                  ...block,
+                                  body: event.target.value,
+                                });
+                              }}
                             />
                             <small id={`report-narrative-help-${index}`}>{copy.narrativeHelp}</small>
                           </div>
@@ -1457,6 +1473,8 @@ export function ReportsPanel({
                         <input
                           type="date"
                           value={analyticalQuery.baselineRange.from}
+                          aria-invalid={comparisonRangeInvalid || undefined}
+                          aria-describedby={comparisonRangeInvalid ? "report-editor-error" : undefined}
                           required
                           disabled={editingLocked}
                           onChange={(event) => updateComparisonRange(
@@ -1471,6 +1489,8 @@ export function ReportsPanel({
                         <input
                           type="date"
                           value={analyticalQuery.baselineRange.through}
+                          aria-invalid={comparisonRangeInvalid || undefined}
+                          aria-describedby={comparisonRangeInvalid ? "report-editor-error" : undefined}
                           required
                           disabled={editingLocked}
                           onChange={(event) => updateComparisonRange(
@@ -1485,6 +1505,8 @@ export function ReportsPanel({
                         <input
                           type="date"
                           value={analyticalQuery.comparisonRange.from}
+                          aria-invalid={comparisonRangeInvalid || undefined}
+                          aria-describedby={comparisonRangeInvalid ? "report-editor-error" : undefined}
                           required
                           disabled={editingLocked}
                           onChange={(event) => updateComparisonRange(
@@ -1499,6 +1521,8 @@ export function ReportsPanel({
                         <input
                           type="date"
                           value={analyticalQuery.comparisonRange.through}
+                          aria-invalid={comparisonRangeInvalid || undefined}
+                          aria-describedby={comparisonRangeInvalid ? "report-editor-error" : undefined}
                           required
                           disabled={editingLocked}
                           onChange={(event) => updateComparisonRange(
@@ -1556,7 +1580,7 @@ export function ReportsPanel({
           {savedNotice && <p className="notice" role="status">{copy.saved}</p>}
           {refreshedNotice && <p className="notice" role="status">{copy.refresh.completed}</p>}
           {localError && (
-            <p className="error" role="alert">
+            <p id="report-editor-error" className="error" role="alert">
               {copy.errors[localError as keyof typeof copy.errors] ?? copy.errors.unexpected}
             </p>
           )}

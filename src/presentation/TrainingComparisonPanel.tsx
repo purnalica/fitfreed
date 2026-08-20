@@ -11,6 +11,7 @@ import type {
   TrainingSeriesSummary,
 } from "./training-insights";
 import type { ReportTrainingComparisonQuery } from "./session-report";
+import { useInvalidForm } from "./useInvalidForm";
 
 interface TrainingComparisonPanelProps {
   availableRange: TrainingDateRange;
@@ -53,6 +54,7 @@ export function TrainingComparisonPanel({
   const [comparisonRange, setComparisonRange] = useState(initialRange);
   const [comparison, setComparison] = useState<TrainingComparison>();
   const [loading, setLoading] = useState(false);
+  const validation = useInvalidForm(onError);
   const resultHeadingRef = useRef<HTMLHeadingElement>(null);
   const createReportButtonRef = useRef<HTMLButtonElement>(null);
   const handledCreateReportFocusRequest = useRef<number | undefined>(undefined);
@@ -76,10 +78,11 @@ export function TrainingComparisonPanel({
     setComparisonRange(compared);
     if (!rangeIsValid(baseline, availableRange) || !rangeIsValid(compared, availableRange)) {
       setComparison(undefined);
-      onError("invalid-training-comparison");
+      validation.reject("invalid-training-comparison");
       return;
     }
     let active = true;
+    validation.accept();
     setLoading(true);
     onError(undefined);
     void invoke<TrainingComparison>("query_training_comparison", {
@@ -92,7 +95,11 @@ export function TrainingComparisonPanel({
     }).catch((reason) => {
       if (!active) return;
       const code = commandErrorCode(reason);
-      onError(code === "invalid-training-range" ? "invalid-training-comparison" : code);
+      if (code === "invalid-training-range") {
+        validation.reject("invalid-training-comparison");
+      } else {
+        onError(code);
+      }
     }).finally(() => {
       if (active) setLoading(false);
     });
@@ -107,6 +114,8 @@ export function TrainingComparisonPanel({
     initialQuery?.comparisonRange.through,
     navigationRequestId,
     onError,
+    validation.accept,
+    validation.reject,
   ]);
 
   useEffect(() => {
@@ -130,9 +139,10 @@ export function TrainingComparisonPanel({
       !rangeIsValid(baselineRange, availableRange)
       || !rangeIsValid(comparisonRange, availableRange)
     ) {
-      onError("invalid-training-comparison");
+      validation.reject("invalid-training-comparison");
       return;
     }
+    validation.accept();
     setLoading(true);
     onError(undefined);
     try {
@@ -142,17 +152,23 @@ export function TrainingComparisonPanel({
       }));
     } catch (reason) {
       const code = commandErrorCode(reason);
-      onError(code === "invalid-training-range" ? "invalid-training-comparison" : code);
+      if (code === "invalid-training-range") {
+        validation.reject("invalid-training-comparison");
+      } else {
+        onError(code);
+      }
     } finally {
       setLoading(false);
     }
   }
 
   function updateBaseline(field: keyof TrainingDateRange, value: string) {
+    validation.edit();
     setBaselineRange((current) => ({ ...current, [field]: value }));
   }
 
   function updateComparison(field: keyof TrainingDateRange, value: string) {
+    validation.edit();
     setComparisonRange((current) => ({ ...current, [field]: value }));
   }
 
@@ -312,6 +328,8 @@ export function TrainingComparisonPanel({
               min={availableRange.from}
               max={availableRange.through}
               value={value}
+              aria-invalid={validation.invalid || undefined}
+              aria-describedby={validation.errorElementId}
               onChange={(event) => update(event.target.value)}
               disabled={loading}
               required

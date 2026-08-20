@@ -731,6 +731,25 @@ describe("ReportsPanel", () => {
       expect.anything(),
     );
 
+    await user.type(screen.getByLabelText("Report title"), " ");
+    await user.type(screen.getByLabelText(/^Your interpretation/), " ");
+    await user.click(screen.getByRole("button", { name: "Save report" }));
+    const definitionError = await screen.findByRole("alert");
+    expect(definitionError).toHaveTextContent(
+      "Add a title and an interpretation before saving the report.",
+    );
+    expect(definitionError).toHaveAttribute("id", "report-editor-error");
+    expect(screen.getByLabelText("Report title")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText("Report title")).toHaveAttribute(
+      "aria-describedby",
+      "report-editor-error",
+    );
+    expect(screen.getByLabelText(/^Your interpretation/)).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText(/^Your interpretation/)).toHaveAttribute(
+      "aria-describedby",
+      expect.stringContaining("report-editor-error"),
+    );
+
     await user.type(screen.getByLabelText("Report title"), "Ridge progression");
     await user.type(
       screen.getByLabelText(/^Your interpretation/),
@@ -1051,9 +1070,21 @@ describe("ReportsPanel", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Save report" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent(
+    const comparisonError = await screen.findByRole("alert");
+    expect(comparisonError).toHaveTextContent(
       "Choose real, ordered dates of no more than 366 days",
     );
+    expect(comparisonError).toHaveAttribute("id", "report-editor-error");
+    for (const label of [
+      "Baseline starts",
+      "Baseline ends",
+      "Comparison starts",
+      "Comparison ends",
+    ]) {
+      const input = screen.getByLabelText(label);
+      expect(input).toHaveAttribute("aria-invalid", "true");
+      expect(input).toHaveAttribute("aria-describedby", "report-editor-error");
+    }
     expect(mocks.invoke).not.toHaveBeenCalledWith(
       "create_report",
       expect.anything(),

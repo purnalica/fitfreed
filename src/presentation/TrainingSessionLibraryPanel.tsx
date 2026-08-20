@@ -47,6 +47,7 @@ import { TrainingCrossSignalPanel } from "./TrainingCrossSignalPanel";
 import { TrainingSegmentationPanel } from "./TrainingSegmentationPanel";
 import { TrainingSessionProvenancePanel } from "./TrainingSessionProvenancePanel";
 import { TrainingSessionZonesPanel } from "./TrainingSessionZonesPanel";
+import { useInvalidForm } from "./useInvalidForm";
 
 const PAGE_SIZE = 25;
 const ROUTE_VISUAL_POINT_LIMIT = 400;
@@ -250,6 +251,7 @@ export function TrainingSessionLibraryPanel({
   const exactSignalRequestSequence = useRef(0);
   const [detailOrigin, setDetailOrigin] = useState<SessionView>("chronology");
   const [comparison, setComparison] = useState<TrainingSessionSearchItem[]>([]);
+  const dateRangeValidation = useInvalidForm(onError);
   const detailHeadingRef = useRef<HTMLHeadingElement>(null);
   const createReportButtonRef = useRef<HTMLButtonElement>(null);
   const handledCreateReportFocusRequest = useRef<number | undefined>(undefined);
@@ -740,9 +742,10 @@ export function TrainingSessionLibraryPanel({
   function applyFilters(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if ((draft.from && draft.through && draft.from > draft.through) || textTooLong) {
-      onError("invalid-training-session-search");
+      dateRangeValidation.reject("invalid-training-session-search");
       return;
     }
+    dateRangeValidation.accept();
     const canonical = { ...draft, text: draft.text.trim() };
     setDraft(canonical);
     setApplied(canonical);
@@ -751,6 +754,7 @@ export function TrainingSessionLibraryPanel({
   }
 
   function clearFilters() {
+    dateRangeValidation.accept();
     const cleared = emptyDraft();
     setDraft(cleared);
     setApplied(cleared);
@@ -1430,7 +1434,12 @@ export function TrainingSessionLibraryPanel({
               max={page?.availableRange?.through}
               value={draft.from}
               disabled={loading}
-              onChange={(event) => setDraft({ ...draft, from: event.target.value })}
+              aria-invalid={dateRangeValidation.invalid || undefined}
+              aria-describedby={dateRangeValidation.errorElementId}
+              onChange={(event) => {
+                dateRangeValidation.edit();
+                setDraft({ ...draft, from: event.target.value });
+              }}
             />
           </label>
           <label>
@@ -1441,7 +1450,12 @@ export function TrainingSessionLibraryPanel({
               max={page?.availableRange?.through}
               value={draft.through}
               disabled={loading}
-              onChange={(event) => setDraft({ ...draft, through: event.target.value })}
+              aria-invalid={dateRangeValidation.invalid || undefined}
+              aria-describedby={dateRangeValidation.errorElementId}
+              onChange={(event) => {
+                dateRangeValidation.edit();
+                setDraft({ ...draft, through: event.target.value });
+              }}
             />
           </label>
           <label className="training-session-text-filter">

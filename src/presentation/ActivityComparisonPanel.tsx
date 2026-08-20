@@ -8,6 +8,7 @@ import type {
   ActivitySeriesSummary,
 } from "./activity-insights";
 import { commandErrorCode } from "./command-error";
+import { useInvalidForm } from "./useInvalidForm";
 
 interface ActivityComparisonPanelProps {
   availableRange: ActivityDateRange;
@@ -42,6 +43,7 @@ export function ActivityComparisonPanel({
   const [comparisonRange, setComparisonRange] = useState(initialRange);
   const [comparison, setComparison] = useState<ActivityComparison>();
   const [loading, setLoading] = useState(false);
+  const validation = useInvalidForm(onError);
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const signedNumber = useMemo(
     () => new Intl.NumberFormat(locale, { signDisplay: "always" }),
@@ -58,9 +60,10 @@ export function ActivityComparisonPanel({
       !rangeIsValid(baselineRange, availableRange) ||
       !rangeIsValid(comparisonRange, availableRange)
     ) {
-      onError("invalid-activity-comparison");
+      validation.reject("invalid-activity-comparison");
       return;
     }
+    validation.accept();
     setLoading(true);
     onError(undefined);
     try {
@@ -70,17 +73,23 @@ export function ActivityComparisonPanel({
       }));
     } catch (reason) {
       const code = commandErrorCode(reason);
-      onError(code === "invalid-activity-range" ? "invalid-activity-comparison" : code);
+      if (code === "invalid-activity-range") {
+        validation.reject("invalid-activity-comparison");
+      } else {
+        onError(code);
+      }
     } finally {
       setLoading(false);
     }
   }
 
   function updateBaseline(field: keyof ActivityDateRange, value: string) {
+    validation.edit();
     setBaselineRange((current) => ({ ...current, [field]: value }));
   }
 
   function updateComparison(field: keyof ActivityDateRange, value: string) {
+    validation.edit();
     setComparisonRange((current) => ({ ...current, [field]: value }));
   }
 
@@ -193,6 +202,8 @@ export function ActivityComparisonPanel({
               min={availableRange.from}
               max={availableRange.through}
               value={value}
+              aria-invalid={validation.invalid || undefined}
+              aria-describedby={validation.errorElementId}
               onChange={(event) => update(event.target.value)}
               disabled={loading}
               required

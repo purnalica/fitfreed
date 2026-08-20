@@ -18,6 +18,7 @@ import {
 } from "./recovery-format";
 import { formatSleepDuration } from "./sleep-format";
 import { formatDuration } from "./training-format";
+import { useInvalidForm } from "./useInvalidForm";
 
 type LongitudinalDomain = "activity" | "training" | "sleep" | "recovery";
 
@@ -47,6 +48,7 @@ export function LongitudinalInsightsPanel({
   const [loadingOverview, setLoadingOverview] = useState(true);
   const [loadingRange, setLoadingRange] = useState(false);
   const [selectedDay, setSelectedDay] = useState<SelectedDay>();
+  const rangeValidation = useInvalidForm(onError);
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const date = useMemo(
     () => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }),
@@ -95,9 +97,10 @@ export function LongitudinalInsightsPanel({
         overview.availableRange,
       )
     ) {
-      onError("invalid-longitudinal-range");
+      rangeValidation.reject("invalid-longitudinal-range");
       return;
     }
+    rangeValidation.accept();
     setLoadingRange(true);
     onError(undefined);
     try {
@@ -110,6 +113,7 @@ export function LongitudinalInsightsPanel({
   }
 
   async function resetRange() {
+    rangeValidation.accept();
     setLoadingRange(true);
     onError(undefined);
     try {
@@ -181,7 +185,12 @@ export function LongitudinalInsightsPanel({
                   min={overview.availableRange.from}
                   max={overview.availableRange.through}
                   value={rangeFrom}
-                  onChange={(event) => setRangeFrom(event.target.value)}
+                  aria-invalid={rangeValidation.invalid || undefined}
+                  aria-describedby={rangeValidation.errorElementId}
+                  onChange={(event) => {
+                    rangeValidation.edit();
+                    setRangeFrom(event.target.value);
+                  }}
                   disabled={loadingRange}
                   required
                 />
@@ -193,7 +202,12 @@ export function LongitudinalInsightsPanel({
                   min={overview.availableRange.from}
                   max={overview.availableRange.through}
                   value={rangeThrough}
-                  onChange={(event) => setRangeThrough(event.target.value)}
+                  aria-invalid={rangeValidation.invalid || undefined}
+                  aria-describedby={rangeValidation.errorElementId}
+                  onChange={(event) => {
+                    rangeValidation.edit();
+                    setRangeThrough(event.target.value);
+                  }}
                   disabled={loadingRange}
                   required
                 />

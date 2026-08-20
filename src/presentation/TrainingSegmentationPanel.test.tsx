@@ -230,11 +230,19 @@ describe("TrainingSegmentationPanel", () => {
 
     await user.click(screen.getByRole("button", { name: "Create a criterion" }));
     expect(screen.getByRole("alert")).toHaveTextContent("Enter a name and valid, ordered values");
+    expect(screen.getByRole("alert")).toHaveAttribute("id", "training-segment-editor-error");
+    expect(screen.getByLabelText("Criterion name")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText("Criterion name")).toHaveAttribute(
+      "aria-describedby",
+      "training-segment-editor-error",
+    );
     expect(screen.getByRole("button", { name: "Save criterion" })).toBeDisabled();
     await user.type(screen.getByLabelText("Criterion name"), "Tempo blocks");
     const minuteInput = screen.getByLabelText("Minutes per segment");
     await user.clear(minuteInput);
     await user.type(minuteInput, "0");
+    expect(minuteInput).toHaveAttribute("aria-invalid", "true");
+    expect(minuteInput).toHaveAttribute("aria-describedby", "training-segment-editor-error");
     expect(screen.getByRole("button", { name: "Save criterion" })).toBeDisabled();
     expect(mocks.invoke).not.toHaveBeenCalledWith(
       "create_training_segment_criterion",

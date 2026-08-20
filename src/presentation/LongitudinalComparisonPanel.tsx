@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
+import { useInvalidForm } from "./useInvalidForm";
 import type {
   LongitudinalComparison,
   LongitudinalDateRange,
@@ -32,6 +33,7 @@ export function LongitudinalComparisonPanel({
   const [comparisonRange, setComparisonRange] = useState(initialRange);
   const [comparison, setComparison] = useState<LongitudinalComparison>();
   const [loading, setLoading] = useState(false);
+  const validation = useInvalidForm(onError);
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const signedNumber = useMemo(
     () => new Intl.NumberFormat(locale, { signDisplay: "exceptZero" }),
@@ -44,10 +46,12 @@ export function LongitudinalComparisonPanel({
   const copy = messages.longitudinal.comparison;
 
   function updateBaseline(field: keyof LongitudinalDateRange, value: string) {
+    validation.edit();
     setBaselineRange((current) => ({ ...current, [field]: value }));
   }
 
   function updateComparison(field: keyof LongitudinalDateRange, value: string) {
+    validation.edit();
     setComparisonRange((current) => ({ ...current, [field]: value }));
   }
 
@@ -57,9 +61,10 @@ export function LongitudinalComparisonPanel({
       !recoveryRangeIsValid(baselineRange, availableRange)
       || !recoveryRangeIsValid(comparisonRange, availableRange)
     ) {
-      onError("invalid-longitudinal-comparison");
+      validation.reject("invalid-longitudinal-comparison");
       return;
     }
+    validation.accept();
     setLoading(true);
     onError(undefined);
     try {
@@ -70,7 +75,11 @@ export function LongitudinalComparisonPanel({
       setComparison(result);
     } catch (reason) {
       const code = commandErrorCode(reason);
-      onError(code === "invalid-longitudinal-range" ? "invalid-longitudinal-comparison" : code);
+      if (code === "invalid-longitudinal-range") {
+        validation.reject("invalid-longitudinal-comparison");
+      } else {
+        onError(code);
+      }
     } finally {
       setLoading(false);
     }
@@ -141,6 +150,8 @@ export function LongitudinalComparisonPanel({
               min={availableRange.from}
               max={availableRange.through}
               value={value}
+              aria-invalid={validation.invalid || undefined}
+              aria-describedby={validation.errorElementId}
               onChange={(event) => update(event.target.value)}
               disabled={loading}
               required

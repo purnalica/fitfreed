@@ -310,6 +310,9 @@ describe("LongitudinalInsightsPanel", () => {
     await user.type(through, "2026-03-28");
     await user.click(within(region).getByRole("button", { name: "Apply shared period" }));
     expect(onError).toHaveBeenLastCalledWith("invalid-longitudinal-range");
+    expect(from).toHaveAttribute("aria-invalid", "true");
+    expect(from).toHaveAttribute("aria-describedby", "application-error");
+    expect(through).toHaveAttribute("aria-invalid", "true");
     expect(within(region).getByRole("button", {
       name: "View aligned details for Mar 28, 2026",
     })).toBeVisible();
@@ -366,6 +369,9 @@ describe("LongitudinalInsightsPanel", () => {
     await user.type(baselineFrom, "2026-03-30");
     await user.click(within(region).getByRole("button", { name: "Compare shared periods" }));
     expect(onError).toHaveBeenLastCalledWith("invalid-longitudinal-comparison");
+    expect(baselineFrom).toHaveAttribute("aria-invalid", "true");
+    expect(baselineFrom).toHaveAttribute("aria-describedby", "application-error");
+    expect(baselineThrough).toHaveAttribute("aria-invalid", "true");
     expect(within(region).getByRole("region", {
       name: "Longitudinal period comparison",
     })).toBeVisible();

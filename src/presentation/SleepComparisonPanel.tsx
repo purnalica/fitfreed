@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
+import { useInvalidForm } from "./useInvalidForm";
 import {
   formatDecimal,
   formatSleepDuration,
@@ -40,6 +41,7 @@ export function SleepComparisonPanel({
   const [comparisonRange, setComparisonRange] = useState(initialRange);
   const [comparison, setComparison] = useState<SleepComparison>();
   const [loading, setLoading] = useState(false);
+  const validation = useInvalidForm(onError);
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const signedNumber = useMemo(
     () => new Intl.NumberFormat(locale, { signDisplay: "exceptZero", maximumFractionDigits: 1 }),
@@ -52,10 +54,12 @@ export function SleepComparisonPanel({
   const copy = messages.sleep.comparison;
 
   function updateBaseline(field: keyof SleepDateRange, value: string) {
+    validation.edit();
     setBaselineRange((current) => ({ ...current, [field]: value }));
   }
 
   function updateComparison(field: keyof SleepDateRange, value: string) {
+    validation.edit();
     setComparisonRange((current) => ({ ...current, [field]: value }));
   }
 
@@ -65,9 +69,10 @@ export function SleepComparisonPanel({
       !sleepRangeIsValid(baselineRange, availableRange)
       || !sleepRangeIsValid(comparisonRange, availableRange)
     ) {
-      onError("invalid-sleep-comparison");
+      validation.reject("invalid-sleep-comparison");
       return;
     }
+    validation.accept();
     setLoading(true);
     onError(undefined);
     try {
@@ -78,7 +83,11 @@ export function SleepComparisonPanel({
       setComparison(result);
     } catch (reason) {
       const code = commandErrorCode(reason);
-      onError(code === "invalid-sleep-range" ? "invalid-sleep-comparison" : code);
+      if (code === "invalid-sleep-range") {
+        validation.reject("invalid-sleep-comparison");
+      } else {
+        onError(code);
+      }
     } finally {
       setLoading(false);
     }
@@ -166,6 +175,8 @@ export function SleepComparisonPanel({
               min={availableRange.from}
               max={availableRange.through}
               value={value}
+              aria-invalid={validation.invalid || undefined}
+              aria-describedby={validation.errorElementId}
               onChange={(event) => update(event.target.value)}
               disabled={loading}
               required

@@ -38,6 +38,7 @@ import { SourcesPanel } from "./presentation/SourcesPanel";
 import type { ReportSourceTarget } from "./presentation/report-navigation";
 import type { ReportStartOrigin } from "./presentation/session-report";
 import { LoadingSurface } from "./presentation/LoadingSurface";
+import { APPLICATION_ERROR_ID, useInvalidForm } from "./presentation/useInvalidForm";
 
 const rendererStartedAt = performance.now();
 const INTERACTIVE_SHELL_FRAME_TIMEOUT_MILLISECONDS = 1_000;
@@ -232,6 +233,7 @@ function App() {
   const [updateRecoveryAcknowledging, setUpdateRecoveryAcknowledging] = useState(false);
   const [cancelRequested, setCancelRequested] = useState(false);
   const [errorCode, setErrorCode] = useState<string>();
+  const activityRangeValidation = useInvalidForm(setErrorCode);
   const messages = catalogs[locale];
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const plural = useMemo(() => new Intl.PluralRules(locale), [locale]);
@@ -684,9 +686,10 @@ function App() {
   async function applyActivityRange(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!rangeIsValid()) {
-      setErrorCode("invalid-activity-range");
+      activityRangeValidation.reject("invalid-activity-range");
       return;
     }
+    activityRangeValidation.accept();
     setRangeLoading(true);
     setErrorCode(undefined);
     try {
@@ -699,6 +702,7 @@ function App() {
   }
 
   async function resetActivityRange() {
+    activityRangeValidation.accept();
     setRangeLoading(true);
     setErrorCode(undefined);
     try {
@@ -860,7 +864,7 @@ function App() {
           </p>
         )}
         {visibleErrorCode && (
-          <p className="error" role="alert">
+          <p id={APPLICATION_ERROR_ID} className="error" role="alert">
             {errorMessages[visibleErrorCode] ?? messages.errors.unexpected}
           </p>
         )}
@@ -1154,7 +1158,12 @@ function App() {
                     min={activityOverview.availableRange.from}
                     max={activityOverview.availableRange.through}
                     value={rangeFrom}
-                    onChange={(event) => setRangeFrom(event.target.value)}
+                    aria-invalid={activityRangeValidation.invalid || undefined}
+                    aria-describedby={activityRangeValidation.errorElementId}
+                    onChange={(event) => {
+                      activityRangeValidation.edit();
+                      setRangeFrom(event.target.value);
+                    }}
                     disabled={rangeLoading}
                     required
                   />
@@ -1166,7 +1175,12 @@ function App() {
                     min={activityOverview.availableRange.from}
                     max={activityOverview.availableRange.through}
                     value={rangeThrough}
-                    onChange={(event) => setRangeThrough(event.target.value)}
+                    aria-invalid={activityRangeValidation.invalid || undefined}
+                    aria-describedby={activityRangeValidation.errorElementId}
+                    onChange={(event) => {
+                      activityRangeValidation.edit();
+                      setRangeThrough(event.target.value);
+                    }}
                     disabled={rangeLoading}
                     required
                   />

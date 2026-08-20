@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
+import { useInvalidForm } from "./useInvalidForm";
 import {
   formatRecoveryMilliseconds,
   recoveryBarWidth,
@@ -34,6 +35,7 @@ export function RecoveryComparisonPanel({
   const [comparisonRange, setComparisonRange] = useState(initialRange);
   const [comparison, setComparison] = useState<RecoveryComparison>();
   const [loading, setLoading] = useState(false);
+  const validation = useInvalidForm(onError);
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const signedNumber = useMemo(
     () => new Intl.NumberFormat(locale, { signDisplay: "exceptZero" }),
@@ -46,10 +48,12 @@ export function RecoveryComparisonPanel({
   const copy = messages.recovery.comparison;
 
   function updateBaseline(field: keyof RecoveryDateRange, value: string) {
+    validation.edit();
     setBaselineRange((current) => ({ ...current, [field]: value }));
   }
 
   function updateComparison(field: keyof RecoveryDateRange, value: string) {
+    validation.edit();
     setComparisonRange((current) => ({ ...current, [field]: value }));
   }
 
@@ -59,9 +63,10 @@ export function RecoveryComparisonPanel({
       !recoveryRangeIsValid(baselineRange, availableRange)
       || !recoveryRangeIsValid(comparisonRange, availableRange)
     ) {
-      onError("invalid-recovery-comparison");
+      validation.reject("invalid-recovery-comparison");
       return;
     }
+    validation.accept();
     setLoading(true);
     onError(undefined);
     try {
@@ -72,7 +77,11 @@ export function RecoveryComparisonPanel({
       setComparison(result);
     } catch (reason) {
       const code = commandErrorCode(reason);
-      onError(code === "invalid-recovery-range" ? "invalid-recovery-comparison" : code);
+      if (code === "invalid-recovery-range") {
+        validation.reject("invalid-recovery-comparison");
+      } else {
+        onError(code);
+      }
     } finally {
       setLoading(false);
     }
@@ -166,6 +175,8 @@ export function RecoveryComparisonPanel({
               min={availableRange.from}
               max={availableRange.through}
               value={value}
+              aria-invalid={validation.invalid || undefined}
+              aria-describedby={validation.errorElementId}
               onChange={(event) => update(event.target.value)}
               disabled={loading}
               required

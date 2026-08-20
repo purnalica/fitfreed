@@ -386,6 +386,7 @@ export function TrainingSegmentationPanel({
     if (!editor) return null;
     const definition = definitionFor(editor);
     const titleInvalid = editor.title.trim().length === 0 || [...editor.title.trim()].length > 80;
+    const definitionInvalid = !definition;
     return (
       <form className="training-segment-editor" onSubmit={submitEditor}>
         <h6>{editor.criterionRef ? copy.segmentEditHeading : copy.segmentCreateHeading}</h6>
@@ -396,6 +397,7 @@ export function TrainingSegmentationPanel({
             value={editor.title}
             maxLength={80}
             aria-invalid={titleInvalid}
+            aria-describedby={titleInvalid ? "training-segment-editor-error" : undefined}
             disabled={busy}
             onChange={(event) => setEditor({ ...editor, title: event.target.value })}
           />
@@ -413,21 +415,21 @@ export function TrainingSegmentationPanel({
           </select>
         </label>
         {editor.kind === "equal-elapsed-time" && (
-          <label><span>{copy.segmentMinutes}</span><input type="number" min={MINIMUM_SEGMENT_MINUTES} step="0.001" value={editor.timeMinutes} disabled={busy} onChange={(event) => setEditor({ ...editor, timeMinutes: event.target.value })} /></label>
+          <label><span>{copy.segmentMinutes}</span><input type="number" min={MINIMUM_SEGMENT_MINUTES} step="0.001" value={editor.timeMinutes} aria-invalid={definitionInvalid} aria-describedby={definitionInvalid ? "training-segment-editor-error" : undefined} disabled={busy} onChange={(event) => setEditor({ ...editor, timeMinutes: event.target.value })} /></label>
         )}
         {editor.kind === "equal-distance" && (
-          <label><span>{copy.segmentKilometers}</span><input type="number" min={MINIMUM_SEGMENT_KILOMETERS} step="0.001" value={editor.distanceKilometers} disabled={busy} onChange={(event) => setEditor({ ...editor, distanceKilometers: event.target.value })} /></label>
+          <label><span>{copy.segmentKilometers}</span><input type="number" min={MINIMUM_SEGMENT_KILOMETERS} step="0.001" value={editor.distanceKilometers} aria-invalid={definitionInvalid} aria-describedby={definitionInvalid ? "training-segment-editor-error" : undefined} disabled={busy} onChange={(event) => setEditor({ ...editor, distanceKilometers: event.target.value })} /></label>
         )}
         {editor.kind === "heart-rate-zone" && (
           <div className="training-segment-editor-pair">
-            <label><span>{copy.segmentMinimumHeartRate}</span><input type="number" min="20" max="300" step="1" value={editor.minimumHeartRate} disabled={busy} onChange={(event) => setEditor({ ...editor, minimumHeartRate: event.target.value })} /></label>
-            <label><span>{copy.segmentMaximumHeartRate}</span><input type="number" min="20" max="300" step="1" value={editor.maximumHeartRate} disabled={busy} onChange={(event) => setEditor({ ...editor, maximumHeartRate: event.target.value })} /></label>
+            <label><span>{copy.segmentMinimumHeartRate}</span><input type="number" min="20" max="300" step="1" value={editor.minimumHeartRate} aria-invalid={definitionInvalid} aria-describedby={definitionInvalid ? "training-segment-editor-error" : undefined} disabled={busy} onChange={(event) => setEditor({ ...editor, minimumHeartRate: event.target.value })} /></label>
+            <label><span>{copy.segmentMaximumHeartRate}</span><input type="number" min="20" max="300" step="1" value={editor.maximumHeartRate} aria-invalid={definitionInvalid} aria-describedby={definitionInvalid ? "training-segment-editor-error" : undefined} disabled={busy} onChange={(event) => setEditor({ ...editor, maximumHeartRate: event.target.value })} /></label>
           </div>
         )}
         {editor.kind === "manual-boundaries" && (
-          <label><span>{copy.segmentManualMinutes}</span><input value={editor.manualMinutes} disabled={busy} aria-describedby="training-segment-manual-help" onChange={(event) => setEditor({ ...editor, manualMinutes: event.target.value })} /><small id="training-segment-manual-help">{copy.segmentManualHelp}</small></label>
+          <label><span>{copy.segmentManualMinutes}</span><input value={editor.manualMinutes} disabled={busy} aria-invalid={definitionInvalid} aria-describedby={definitionInvalid ? "training-segment-manual-help training-segment-editor-error" : "training-segment-manual-help"} onChange={(event) => setEditor({ ...editor, manualMinutes: event.target.value })} /><small id="training-segment-manual-help">{copy.segmentManualHelp}</small></label>
         )}
-        {(!definition || titleInvalid) && <p role="alert">{copy.segmentInvalid}</p>}
+        {(definitionInvalid || titleInvalid) && <p id="training-segment-editor-error" role="alert">{copy.segmentInvalid}</p>}
         <div className="training-segment-actions">
           <button type="button" className="secondary" disabled={busy} onClick={() => setEditor(undefined)}>{copy.segmentCancel}</button>
           <button type="submit" disabled={busy || !definition || titleInvalid}>{busy ? copy.segmentSaving : copy.segmentSave}</button>

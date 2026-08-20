@@ -1,4 +1,5 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { catalogs } from "../locales/catalogs";
@@ -23,6 +24,42 @@ beforeEach(() => {
 });
 
 describe("TrainingComparisonPanel", () => {
+  it("associates an invalid comparison with every period input", async () => {
+    const onError = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <TrainingComparisonPanel
+        availableRange={{ from: "2025-01-01", through: "2026-08-18" }}
+        initialRange={{ from: "2026-07-20", through: "2026-08-18" }}
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        onCreateReport={vi.fn()}
+        onError={onError}
+      />,
+    );
+
+    const baselineFrom = screen.getByLabelText("Baseline period start");
+    await user.clear(baselineFrom);
+    await user.type(baselineFrom, "2026-08-18");
+    const baselineThrough = screen.getByLabelText("Baseline period end");
+    await user.clear(baselineThrough);
+    await user.type(baselineThrough, "2026-07-20");
+    await user.click(screen.getByRole("button", { name: "Compare periods" }));
+
+    expect(onError).toHaveBeenLastCalledWith("invalid-training-comparison");
+    expect(mocks.invoke).not.toHaveBeenCalled();
+    for (const label of [
+      "Baseline period start",
+      "Baseline period end",
+      "Comparison period start",
+      "Comparison period end",
+    ]) {
+      const input = screen.getByLabelText(label);
+      expect(input).toHaveAttribute("aria-invalid", "true");
+      expect(input).toHaveAttribute("aria-describedby", "application-error");
+    }
+  });
+
   it("runs and focuses the exact comparison reached from a report", async () => {
     mocks.invoke.mockResolvedValue(result);
 

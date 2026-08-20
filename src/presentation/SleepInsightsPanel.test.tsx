@@ -399,6 +399,12 @@ describe("SleepInsightsPanel", () => {
     await user.type(within(filter).getByLabelText("Through"), "2026-03-01");
     await user.click(within(filter).getByRole("button", { name: "Apply sleep period" }));
     expect(onError).toHaveBeenCalledWith("invalid-sleep-range");
+    expect(within(filter).getByLabelText("From")).toHaveAttribute("aria-invalid", "true");
+    expect(within(filter).getByLabelText("From")).toHaveAttribute(
+      "aria-describedby",
+      "application-error",
+    );
+    expect(within(filter).getByLabelText("Through")).toHaveAttribute("aria-invalid", "true");
     expect(within(sleep).getAllByRole("button", { name: /View sleep details for/ })).toHaveLength(3);
 
     const comparisonForm = within(sleep).getByRole("form", { name: "Compare sleep periods" });
@@ -410,6 +416,16 @@ describe("SleepInsightsPanel", () => {
     await user.type(within(comparisonForm).getByLabelText("Baseline period end"), "2026-03-01");
     await user.click(within(comparisonForm).getByRole("button", { name: "Compare sleep periods" }));
     expect(onError).toHaveBeenCalledWith("invalid-sleep-comparison");
+    for (const label of [
+      "Baseline period start",
+      "Baseline period end",
+      "Comparison period start",
+      "Comparison period end",
+    ]) {
+      const input = within(comparisonForm).getByLabelText(label);
+      expect(input).toHaveAttribute("aria-invalid", "true");
+      expect(input).toHaveAttribute("aria-describedby", "application-error");
+    }
     expect(comparisonRegion).toBeVisible();
   });
 

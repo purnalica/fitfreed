@@ -2163,9 +2163,15 @@ describe("FitFreed import interface", () => {
     await user.clear(from);
     await user.type(from, "2026-01-05");
     await user.click(screen.getByRole("button", { name: "Apply range" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent(
+    const rangeError = await screen.findByRole("alert");
+    expect(rangeError).toHaveTextContent(
       "Choose an ordered range inside the available history, up to 366 days.",
     );
+    expect(rangeError).toHaveAttribute("id", "application-error");
+    expect(from).toHaveAttribute("aria-invalid", "true");
+    expect(from).toHaveAttribute("aria-describedby", "application-error");
+    expect(through).toHaveAttribute("aria-invalid", "true");
+    expect(through).toHaveAttribute("aria-describedby", "application-error");
     expect(mocks.invoke.mock.calls.filter(
       ([command]) => command === "query_activity_overview",
     )).toHaveLength(rangeQueryCount);
@@ -2245,6 +2251,10 @@ describe("FitFreed import interface", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Choose ordered comparison periods inside the available history, up to 366 days each.",
     );
+    for (const input of [baselineFrom, baselineThrough, comparisonFrom, comparisonThrough]) {
+      expect(input).toHaveAttribute("aria-invalid", "true");
+      expect(input).toHaveAttribute("aria-describedby", "application-error");
+    }
     expect(mocks.invoke.mock.calls.filter(
       ([command]) => command === "query_activity_comparison",
     )).toHaveLength(comparisonQueryCount);

@@ -22,6 +22,7 @@ import type {
   SleepPeriodDetail,
   SleepPhaseSummary,
 } from "./sleep-insights";
+import { useInvalidForm } from "./useInvalidForm";
 
 interface SleepInsightsPanelProps {
   locale: Locale;
@@ -51,6 +52,7 @@ export function SleepInsightsPanel({
   const [selectedNight, setSelectedNight] = useState<SelectedNight>();
   const [detail, setDetail] = useState<SleepPeriodDetail>();
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const rangeValidation = useInvalidForm(onError);
   const detailRequest = useRef(0);
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const date = useMemo(
@@ -112,9 +114,10 @@ export function SleepInsightsPanel({
       !overview?.availableRange
       || !sleepRangeIsValid({ from: rangeFrom, through: rangeThrough }, overview.availableRange)
     ) {
-      onError("invalid-sleep-range");
+      rangeValidation.reject("invalid-sleep-range");
       return;
     }
+    rangeValidation.accept();
     setLoadingRange(true);
     onError(undefined);
     try {
@@ -127,6 +130,7 @@ export function SleepInsightsPanel({
   }
 
   async function resetRange() {
+    rangeValidation.accept();
     setLoadingRange(true);
     onError(undefined);
     try {
@@ -220,7 +224,12 @@ export function SleepInsightsPanel({
                   min={overview.availableRange.from}
                   max={overview.availableRange.through}
                   value={rangeFrom}
-                  onChange={(event) => setRangeFrom(event.target.value)}
+                  aria-invalid={rangeValidation.invalid || undefined}
+                  aria-describedby={rangeValidation.errorElementId}
+                  onChange={(event) => {
+                    rangeValidation.edit();
+                    setRangeFrom(event.target.value);
+                  }}
                   disabled={loadingRange}
                   required
                 />
@@ -232,7 +241,12 @@ export function SleepInsightsPanel({
                   min={overview.availableRange.from}
                   max={overview.availableRange.through}
                   value={rangeThrough}
-                  onChange={(event) => setRangeThrough(event.target.value)}
+                  aria-invalid={rangeValidation.invalid || undefined}
+                  aria-describedby={rangeValidation.errorElementId}
+                  onChange={(event) => {
+                    rangeValidation.edit();
+                    setRangeThrough(event.target.value);
+                  }}
                   disabled={loadingRange}
                   required
                 />
