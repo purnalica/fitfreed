@@ -32,9 +32,12 @@ PX-03 has an implementation candidate under [ADR 0025](../architecture/decisions
 SQLite schema 24 gives samples a compact private series identity, preserves exact logical evidence through a
 recoverable migration, and adds the required ten-year dense-history gate to local and hosted complete
 verification. A working-tree diagnostic passed every new budget and exact-count assertion, but it is not
-candidate evidence because the source was not clean. PX-03 therefore remains open until the same command
-passes for the exact clean revision in both maintained performance environments. The other findings remain
-unchanged pending product-owner disposition.
+candidate evidence because the source was not clean. The same campaign subsequently passed for exact clean
+source `7e847a149bfb768c9b32133d17665d0b9edd3ee4`, including 7,490,080 exact persisted samples,
+a 134,008,832-byte current-schema library, and every accepted import, repeat, memory, discovery, overview,
+and pagination budget. PX-03 therefore has accepted local evidence and remains open only until the same
+source passes in the maintained hosted performance environment. The other findings remain unchanged pending
+product-owner disposition.
 
 ## Audit question
 

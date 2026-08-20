@@ -1274,6 +1274,36 @@ describe("FitFreed import interface", () => {
     expect(screen.getByLabelText("Interface language")).toBeVisible();
   });
 
+  it("keeps Explore unavailable until deferred library recovery determines its destination", async () => {
+    const home = populatedLibraryHome({
+      resumableExploration: { version: 1, destination: "training" },
+    });
+    let resolveLibraryHome: (value: typeof home) => void = () => undefined;
+    mocks.homeInvoke.mockImplementation((command) => {
+      if (command === "query_library_home") {
+        return new Promise((resolve) => {
+          resolveLibraryHome = resolve;
+        });
+      }
+      if (command === "clear_exploration_workspace") return Promise.resolve(undefined);
+      if (command === "clear_training_discovery_workspace") return Promise.resolve(undefined);
+      throw new Error(`Unexpected Home command: ${command}`);
+    });
+    render(<App />);
+
+    const explore = await screen.findByRole("button", { name: "Explore" });
+    expect(explore).toBeDisabled();
+    await waitFor(() => expect(mocks.homeInvoke).toHaveBeenCalledWith("query_library_home", {
+      request: { afterImportOperationRef: null },
+    }));
+
+    await act(async () => resolveLibraryHome(home));
+
+    await waitFor(() => expect(explore).toBeEnabled());
+    expect(await screen.findByRole("heading", { name: "Training history" })).toBeVisible();
+    expect(explore).toHaveAttribute("aria-current", "page");
+  });
+
   it("previews, saves, restores, and resets every setting from the Settings home", async () => {
     emptyLibrary();
     const user = userEvent.setup();
@@ -3268,7 +3298,9 @@ describe("FitFreed import interface", () => {
 
     view.unmount();
     render(<App />);
-    await user.click(await screen.findByRole("button", { name: "Explorar" }));
+    const restoredExplore = await screen.findByRole("button", { name: "Explorar" });
+    await waitFor(() => expect(restoredExplore).toBeEnabled());
+    await user.click(restoredExplore);
     const restored = await screen.findByRole("region", { name: "Historial de entrenamientos" });
     expect(await within(restored).findAllByRole("button", { name: /Ver detalles de la sesión/ }))
       .toHaveLength(2);

@@ -952,7 +952,7 @@ function App() {
     <ApplicationShell
       activeHome={activeHome}
       messages={messages.shell}
-      exploreDisabled={libraryHome?.availableRange === null}
+      exploreDisabled={!libraryHome || libraryHome.availableRange === null}
       onNavigate={navigateApplication}
     >
         {preferencesRecovered && (
