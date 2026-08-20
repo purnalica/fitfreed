@@ -1,7 +1,10 @@
 const MAXIMUM_FOCUS_ATTEMPTS = 10;
 const FOCUS_SETTLING_MILLISECONDS = 50;
 
-export function restoreFocusAfterReveal(element: HTMLElement | null): () => void {
+export function restoreFocusAfterReveal(
+  element: HTMLElement | null,
+  initiatingElement: HTMLElement | null = null,
+): () => void {
   if (!element) return () => undefined;
   let cancelled = false;
   let attemptCount = 0;
@@ -12,6 +15,7 @@ export function restoreFocusAfterReveal(element: HTMLElement | null): () => void
     const activeElement = document.activeElement;
     if (
       activeElement !== element
+      && activeElement !== initiatingElement
       && activeElement !== document.body
       && activeElement !== document.documentElement
       && activeElement !== null

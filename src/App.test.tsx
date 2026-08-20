@@ -2231,6 +2231,9 @@ describe("FitFreed import interface", () => {
       },
     ));
     const result = screen.getByRole("region", { name: "Period comparison" });
+    await waitFor(() => expect(within(result).getByRole("heading", {
+      name: "Period comparison",
+    })).toHaveFocus());
     expect(within(result).getByText(
       "Changes use only days with step totals. Review both periods’ coverage.",
     )).toBeVisible();
@@ -2796,6 +2799,9 @@ describe("FitFreed import interface", () => {
     const comparisonRegion = within(training).getByRole("region", {
       name: "Training period comparison",
     });
+    await waitFor(() => expect(within(comparisonRegion).getByRole("heading", {
+      name: "Training period comparison",
+    })).toHaveFocus());
     expect(within(comparisonRegion).getByText("+250 kcal")).toBeVisible();
     expect(within(comparisonRegion).getAllByText("Not available").length).toBeGreaterThan(0);
     const createReportButton = within(comparisonRegion).getByRole("button", {

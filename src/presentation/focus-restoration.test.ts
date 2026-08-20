@@ -37,6 +37,20 @@ describe("restoreFocusAfterReveal", () => {
     expect(alternative).toHaveFocus();
   });
 
+  it("moves focus from the initiating control to the revealed result", () => {
+    vi.useFakeTimers();
+    const initiatingControl = document.createElement("button");
+    const target = document.createElement("h2");
+    target.tabIndex = -1;
+    document.body.append(initiatingControl, target);
+    initiatingControl.focus();
+
+    restoreFocusAfterReveal(target, initiatingControl);
+    vi.advanceTimersByTime(0);
+
+    expect(target).toHaveFocus();
+  });
+
   it("cancels pending restoration when its owner is removed", () => {
     vi.useFakeTimers();
     const target = document.createElement("button");

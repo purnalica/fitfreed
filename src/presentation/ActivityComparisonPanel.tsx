@@ -9,6 +9,7 @@ import type {
 } from "./activity-insights";
 import { commandErrorCode } from "./command-error";
 import { useInvalidForm } from "./useInvalidForm";
+import { useResultFocus } from "./useResultFocus";
 
 interface ActivityComparisonPanelProps {
   availableRange: ActivityDateRange;
@@ -44,6 +45,9 @@ export function ActivityComparisonPanel({
   const [comparison, setComparison] = useState<ActivityComparison>();
   const [loading, setLoading] = useState(false);
   const validation = useInvalidForm(onError);
+  const { resultHeadingRef, requestResultFocus } = useResultFocus<HTMLHeadingElement>(
+    comparison !== undefined,
+  );
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const signedNumber = useMemo(
     () => new Intl.NumberFormat(locale, { signDisplay: "always" }),
@@ -66,11 +70,16 @@ export function ActivityComparisonPanel({
     validation.accept();
     setLoading(true);
     onError(undefined);
+    const initiatingElement = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
     try {
-      setComparison(await invoke<ActivityComparison>("query_activity_comparison", {
+      const result = await invoke<ActivityComparison>("query_activity_comparison", {
         baselineRange,
         comparisonRange,
-      }));
+      });
+      setComparison(result);
+      requestResultFocus(initiatingElement);
     } catch (reason) {
       const code = commandErrorCode(reason);
       if (code === "invalid-activity-range") {
@@ -219,7 +228,9 @@ export function ActivityComparisonPanel({
         <section className="activity-comparison-result" aria-labelledby="activity-comparison-heading">
           <div className="activity-comparison-result-heading">
             <div>
-              <h3 id="activity-comparison-heading">{copy.resultHeading}</h3>
+              <h3 ref={resultHeadingRef} id="activity-comparison-heading" tabIndex={-1}>
+                {copy.resultHeading}
+              </h3>
               <p>{copy.coverageCaution}</p>
             </div>
             <button type="button" className="secondary" onClick={() => setComparison(undefined)}>

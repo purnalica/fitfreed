@@ -381,6 +381,9 @@ describe("RecoveryInsightsPanel", () => {
     const result = await within(region).findByRole("region", {
       name: "Recovery period comparison",
     });
+    await waitFor(() => expect(within(result).getByRole("heading", {
+      name: "Recovery period comparison",
+    })).toHaveFocus());
     expect(within(result).getByText("+25 ms")).toBeVisible();
     expect(within(result).getByText("-50 ms")).toBeVisible();
     expect(within(result).getAllByText("Not available").length).toBeGreaterThan(0);

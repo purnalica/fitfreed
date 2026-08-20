@@ -359,6 +359,9 @@ describe("LongitudinalInsightsPanel", () => {
     const result = await within(region).findByRole("region", {
       name: "Longitudinal period comparison",
     });
+    await waitFor(() => expect(within(result).getByRole("heading", {
+      name: "Longitudinal period comparison",
+    })).toHaveFocus());
     expect(within(result).getByText("+2,000")).toBeVisible();
     expect(within(result).getByText("+30 min")).toBeVisible();
     expect(within(result).getByText("+15 min")).toBeVisible();

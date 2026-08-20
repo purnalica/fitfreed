@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
 import { useInvalidForm } from "./useInvalidForm";
+import { useResultFocus } from "./useResultFocus";
 import {
   formatDecimal,
   formatSleepDuration,
@@ -42,6 +43,9 @@ export function SleepComparisonPanel({
   const [comparison, setComparison] = useState<SleepComparison>();
   const [loading, setLoading] = useState(false);
   const validation = useInvalidForm(onError);
+  const { resultHeadingRef, requestResultFocus } = useResultFocus<HTMLHeadingElement>(
+    comparison !== undefined,
+  );
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const signedNumber = useMemo(
     () => new Intl.NumberFormat(locale, { signDisplay: "exceptZero", maximumFractionDigits: 1 }),
@@ -75,12 +79,16 @@ export function SleepComparisonPanel({
     validation.accept();
     setLoading(true);
     onError(undefined);
+    const initiatingElement = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
     try {
       const result = await invoke<SleepComparison>("query_sleep_comparison", {
         baselineRange,
         comparisonRange,
       });
       setComparison(result);
+      requestResultFocus(initiatingElement);
     } catch (reason) {
       const code = commandErrorCode(reason);
       if (code === "invalid-sleep-range") {
@@ -192,7 +200,9 @@ export function SleepComparisonPanel({
         <section className="sleep-comparison-result" aria-labelledby="sleep-comparison-heading">
           <div className="sleep-comparison-result-heading">
             <div>
-              <h3 id="sleep-comparison-heading">{copy.resultHeading}</h3>
+              <h3 ref={resultHeadingRef} id="sleep-comparison-heading" tabIndex={-1}>
+                {copy.resultHeading}
+              </h3>
               <p>{copy.coverageCaution}</p>
             </div>
             <button type="button" className="secondary" onClick={() => setComparison(undefined)}>

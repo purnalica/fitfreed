@@ -325,6 +325,9 @@ describe("SleepInsightsPanel", () => {
       comparisonRange: { from: "2026-03-28", through: "2026-03-30" },
     });
     const result = await within(sleep).findByRole("region", { name: "Sleep period comparison" });
+    await waitFor(() => expect(within(result).getByRole("heading", {
+      name: "Sleep period comparison",
+    })).toHaveFocus());
     expect(within(result).getByText("+15 min")).toBeVisible();
     expect(within(result).getByText("−5 min")).toBeVisible();
     expect(within(result).getByText("-50 pp")).toBeVisible();

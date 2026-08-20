@@ -12,6 +12,7 @@ import type {
 } from "./training-insights";
 import type { ReportTrainingComparisonQuery } from "./session-report";
 import { useInvalidForm } from "./useInvalidForm";
+import { useResultFocus } from "./useResultFocus";
 
 interface TrainingComparisonPanelProps {
   availableRange: TrainingDateRange;
@@ -55,10 +56,11 @@ export function TrainingComparisonPanel({
   const [comparison, setComparison] = useState<TrainingComparison>();
   const [loading, setLoading] = useState(false);
   const validation = useInvalidForm(onError);
-  const resultHeadingRef = useRef<HTMLHeadingElement>(null);
+  const { resultHeadingRef, requestResultFocus } = useResultFocus<HTMLHeadingElement>(
+    comparison !== undefined,
+  );
   const createReportButtonRef = useRef<HTMLButtonElement>(null);
   const handledCreateReportFocusRequest = useRef<number | undefined>(undefined);
-  const [focusResultRequestId, setFocusResultRequestId] = useState<number>();
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const signedNumber = useMemo(
     () => new Intl.NumberFormat(locale, { signDisplay: "exceptZero" }),
@@ -91,7 +93,7 @@ export function TrainingComparisonPanel({
     }).then((result) => {
       if (!active) return;
       setComparison(result);
-      setFocusResultRequestId(navigationRequestId);
+      requestResultFocus();
     }).catch((reason) => {
       if (!active) return;
       const code = commandErrorCode(reason);
@@ -114,14 +116,10 @@ export function TrainingComparisonPanel({
     initialQuery?.comparisonRange.through,
     navigationRequestId,
     onError,
+    requestResultFocus,
     validation.accept,
     validation.reject,
   ]);
-
-  useEffect(() => {
-    if (focusResultRequestId !== navigationRequestId || !comparison) return;
-    return restoreFocusAfterReveal(resultHeadingRef.current);
-  }, [comparison, focusResultRequestId, navigationRequestId]);
 
   useEffect(() => {
     if (
@@ -145,11 +143,16 @@ export function TrainingComparisonPanel({
     validation.accept();
     setLoading(true);
     onError(undefined);
+    const initiatingElement = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
     try {
-      setComparison(await invoke<TrainingComparison>("query_training_comparison", {
+      const result = await invoke<TrainingComparison>("query_training_comparison", {
         baselineRange,
         comparisonRange,
-      }));
+      });
+      setComparison(result);
+      requestResultFocus(initiatingElement);
     } catch (reason) {
       const code = commandErrorCode(reason);
       if (code === "invalid-training-range") {
@@ -351,7 +354,7 @@ export function TrainingComparisonPanel({
               <h3
                 id="training-comparison-heading"
                 ref={resultHeadingRef}
-                tabIndex={initialQuery ? -1 : undefined}
+                tabIndex={-1}
               >
                 {copy.resultHeading}
               </h3>

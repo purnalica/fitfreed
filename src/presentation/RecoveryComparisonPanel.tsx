@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
 import { useInvalidForm } from "./useInvalidForm";
+import { useResultFocus } from "./useResultFocus";
 import {
   formatRecoveryMilliseconds,
   recoveryBarWidth,
@@ -36,6 +37,9 @@ export function RecoveryComparisonPanel({
   const [comparison, setComparison] = useState<RecoveryComparison>();
   const [loading, setLoading] = useState(false);
   const validation = useInvalidForm(onError);
+  const { resultHeadingRef, requestResultFocus } = useResultFocus<HTMLHeadingElement>(
+    comparison !== undefined,
+  );
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const signedNumber = useMemo(
     () => new Intl.NumberFormat(locale, { signDisplay: "exceptZero" }),
@@ -69,12 +73,16 @@ export function RecoveryComparisonPanel({
     validation.accept();
     setLoading(true);
     onError(undefined);
+    const initiatingElement = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
     try {
       const result = await invoke<RecoveryComparison>("query_recovery_comparison", {
         baselineRange,
         comparisonRange,
       });
       setComparison(result);
+      requestResultFocus(initiatingElement);
     } catch (reason) {
       const code = commandErrorCode(reason);
       if (code === "invalid-recovery-range") {
@@ -195,7 +203,9 @@ export function RecoveryComparisonPanel({
         >
           <div className="recovery-comparison-result-heading">
             <div>
-              <h3 id="recovery-comparison-heading">{copy.resultHeading}</h3>
+              <h3 ref={resultHeadingRef} id="recovery-comparison-heading" tabIndex={-1}>
+                {copy.resultHeading}
+              </h3>
               <p>{copy.coverageCaution}</p>
             </div>
             <button type="button" className="secondary" onClick={() => setComparison(undefined)}>
