@@ -1573,7 +1573,7 @@ export function TrainingSessionLibraryPanel({
 
       {status && <p className="notice" role="status">{status}</p>}
       {loading && !page ? (
-        <p>{copy.loading}</p>
+        <p role="status">{copy.loading}</p>
       ) : failed && !page ? (
         <p className="training-sessions-unavailable">{copy.unavailable}</p>
       ) : !page?.availableRange ? (

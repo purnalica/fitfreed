@@ -234,7 +234,9 @@ describe("LongitudinalInsightsPanel", () => {
     }));
     const view = renderPanel();
     const region = screen.getByRole("region", { name: "Longitudinal dashboard" });
-    expect(within(region).getByText("Loading the longitudinal dashboard…")).toBeVisible();
+    expect(within(region).getByRole("status")).toHaveTextContent(
+      "Loading the longitudinal dashboard…",
+    );
     resolveOverview({ availableRange: null, selectedRange: null, series: [] });
     expect(await within(region).findByText(
       "No imported activity, training, sleep, or recovery history yet.",

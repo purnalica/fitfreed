@@ -221,7 +221,7 @@ export function SleepInsightsPanel({
     <section className="sleep-insights" aria-labelledby="sleep-heading" aria-busy={loadingOverview}>
       <h1 id="sleep-heading" ref={overviewHeadingRef} tabIndex={-1}>{copy.heading}</h1>
       {!overview && loadingOverview ? (
-        <p>{copy.loading}</p>
+        <p role="status">{copy.loading}</p>
       ) : !overview ? (
         <p>{copy.unavailable}</p>
       ) : overview.series.length === 0 ? (
@@ -363,7 +363,7 @@ export function SleepInsightsPanel({
                 <div><h2 id="sleep-detail-heading" ref={detailHeadingRef} tabIndex={-1}>{copy.detailHeading}</h2><time dateTime={selectedNight.sleepDate}>{date.format(sleepLocalDate(selectedNight.sleepDate))}</time></div>
                 <button type="button" className="secondary" onClick={(event) => closeDetail(event.currentTarget)}>{copy.closeDetail}</button>
               </div>
-              {loadingDetail ? <p>{copy.loadingDetail}</p> : detail ? (
+              {loadingDetail ? <p role="status">{copy.loadingDetail}</p> : detail ? (
                 <>
                   <dl className="sleep-detail-metrics">
                     {[

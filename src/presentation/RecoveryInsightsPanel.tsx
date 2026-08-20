@@ -231,7 +231,7 @@ export function RecoveryInsightsPanel({
       <h1 id="recovery-heading" ref={overviewHeadingRef} tabIndex={-1}>{copy.heading}</h1>
       <p className="recovery-intro">{copy.intro}</p>
       {!overview && loadingOverview ? (
-        <p>{copy.loading}</p>
+        <p role="status">{copy.loading}</p>
       ) : !overview ? (
         <p>{copy.unavailable}</p>
       ) : overview.series.length === 0 ? (
@@ -455,7 +455,7 @@ export function RecoveryInsightsPanel({
                   {copy.closeDetail}
                 </button>
               </div>
-              {loadingDetail ? <p>{copy.loadingDetail}</p> : detail ? (
+              {loadingDetail ? <p role="status">{copy.loadingDetail}</p> : detail ? (
                 <>
                   <dl className="recovery-detail-metrics">
                     <div>

@@ -238,7 +238,7 @@ describe("SleepInsightsPanel", () => {
     }));
     const view = renderPanel();
     const region = screen.getByRole("region", { name: "Sleep history" });
-    expect(within(region).getByText("Loading sleep history…")).toBeVisible();
+    expect(within(region).getByRole("status")).toHaveTextContent("Loading sleep history…");
     resolveOverview({ availableRange: null, selectedRange: null, series: [] });
     expect(await within(region).findByText("No imported sleep periods yet.")).toBeVisible();
 
@@ -246,6 +246,33 @@ describe("SleepInsightsPanel", () => {
     mocks.invoke.mockRejectedValue({ code: "library-query-failed" });
     renderPanel();
     expect(await screen.findByText("Sleep history could not be loaded.")).toBeVisible();
+  });
+
+  it("announces a pending exact sleep detail", async () => {
+    let resolveDetail: (value: ReturnType<typeof detail>) => void = () => undefined;
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_sleep_overview") return Promise.resolve(overview());
+      if (command === "query_sleep_detail") {
+        return new Promise<ReturnType<typeof detail>>((resolve) => {
+          resolveDetail = resolve;
+        });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    renderPanel();
+    const sleep = await screen.findByRole("region", { name: "Sleep history" });
+
+    await user.click((await within(sleep).findAllByRole("button", {
+      name: /View sleep details for/,
+    }))[0]);
+
+    const detailRegion = within(sleep).getByRole("region", { name: "Sleep detail" });
+    expect(within(detailRegion).getByRole("status")).toHaveTextContent(
+      "Loading the exact sleep detail…",
+    );
+    resolveDetail(detail("2026-03-28"));
+    expect(await within(detailRegion).findByText("7 h 30 min")).toBeVisible();
   });
 
   it("explores every visible measurement without exposing origin references", async () => {

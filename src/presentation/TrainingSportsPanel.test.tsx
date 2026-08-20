@@ -270,7 +270,9 @@ describe("TrainingSportsPanel", () => {
         onError={onError}
       />,
     );
-    expect(screen.getByText("Buscando deportes en todo tu historial…")).toBeVisible();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Buscando deportes en todo tu historial…",
+    );
     resolveOverview(overview([]));
     expect(await screen.findByText(
       "Todavía no hay sesiones de entrenamiento disponibles para descubrir deportes.",

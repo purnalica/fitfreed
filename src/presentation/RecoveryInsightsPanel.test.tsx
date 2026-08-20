@@ -200,7 +200,7 @@ describe("RecoveryInsightsPanel", () => {
     }));
     const view = renderPanel();
     const region = screen.getByRole("region", { name: "Nightly recovery" });
-    expect(within(region).getByText("Loading nightly recovery…")).toBeVisible();
+    expect(within(region).getByRole("status")).toHaveTextContent("Loading nightly recovery…");
     resolveOverview({ availableRange: null, selectedRange: null, series: [] });
     expect(await within(region).findByText("No imported nightly recovery summaries yet.")).toBeVisible();
 
@@ -208,6 +208,33 @@ describe("RecoveryInsightsPanel", () => {
     mocks.invoke.mockRejectedValue({ code: "library-query-failed" });
     renderPanel();
     expect(await screen.findByText("Nightly recovery could not be loaded.")).toBeVisible();
+  });
+
+  it("announces a pending exact recovery detail", async () => {
+    let resolveDetail: (value: ReturnType<typeof detail>) => void = () => undefined;
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_recovery_overview") return Promise.resolve(overview());
+      if (command === "query_recovery_detail") {
+        return new Promise<ReturnType<typeof detail>>((resolve) => {
+          resolveDetail = resolve;
+        });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    renderPanel();
+    const recovery = await screen.findByRole("region", { name: "Nightly recovery" });
+
+    await user.click((await within(recovery).findAllByRole("button", {
+      name: /View recovery details for/,
+    }))[0]);
+
+    const detailRegion = within(recovery).getByRole("region", { name: "Recovery detail" });
+    expect(within(detailRegion).getByRole("status")).toHaveTextContent(
+      "Loading the exact recovery detail…",
+    );
+    resolveDetail(detail("2026-03-28"));
+    expect(await within(detailRegion).findByText("synthetic-assessment@1")).toBeVisible();
   });
 
   it("explores every measurement and source group without exposing origin references", async () => {

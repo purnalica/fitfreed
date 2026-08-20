@@ -2549,7 +2549,9 @@ describe("FitFreed import interface", () => {
     const view = render(<App />);
     await enterExploration(user, "training");
     const training = await screen.findByRole("region", { name: "Training history" });
-    expect(within(training).getByText("Searching your complete training history…")).toBeVisible();
+    expect(within(training).getByRole("status")).toHaveTextContent(
+      "Searching your complete training history…",
+    );
     expect(within(training).queryByText("No imported training sessions yet."))
       .not.toBeInTheDocument();
 

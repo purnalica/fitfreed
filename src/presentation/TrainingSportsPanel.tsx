@@ -194,7 +194,7 @@ export function TrainingSportsPanel({
       </header>
 
       {loading ? (
-        <p>{copy.loading}</p>
+        <p role="status">{copy.loading}</p>
       ) : failed || !overview ? (
         <p className="training-sports-unavailable">{copy.unavailable}</p>
       ) : overview.sports.length === 0 ? (

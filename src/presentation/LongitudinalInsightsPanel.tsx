@@ -160,7 +160,7 @@ export function LongitudinalInsightsPanel({
       <h1 id="longitudinal-heading">{copy.heading}</h1>
       <p className="longitudinal-intro">{copy.intro}</p>
       {!overview && loadingOverview ? (
-        <p>{copy.loading}</p>
+        <p role="status">{copy.loading}</p>
       ) : !overview ? (
         <p>{copy.unavailable}</p>
       ) : overview.series.length === 0 ? (
