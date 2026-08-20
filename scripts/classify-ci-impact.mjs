@@ -7,13 +7,15 @@ import { fileURLToPath } from "node:url";
 const commitSha = /^[0-9a-f]{40}$/;
 
 function productSurfacePath(candidatePath) {
-  return [
-    "README.md",
-    "docs/product-status.json",
-    "site/README.md",
-    "site/index.html",
-    "site/styles.css",
-  ].includes(candidatePath);
+  return (
+    [
+      "README.md",
+      "docs/product-status.json",
+      "site/README.md",
+      "site/index.html",
+      "site/styles.css",
+    ].includes(candidatePath) || /^site\/locales\/[^/]+\.json$/.test(candidatePath)
+  );
 }
 
 function documentationOnlyPath(candidatePath) {

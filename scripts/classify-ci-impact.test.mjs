@@ -100,13 +100,20 @@ test("verifies product surfaces without rebuilding unchanged executable inputs",
     classifyCiImpact({
       eventName: "push",
       comparisonAvailable: true,
-      changedPaths: ["README.md", "docs/product-status.json", "site/index.html", "site/styles.css"],
+      changedPaths: [
+        "README.md",
+        "docs/product-status.json",
+        "site/index.html",
+        "site/styles.css",
+        "site/locales/config.json",
+        "site/locales/es-ES.json",
+      ],
     }),
     {
       fullVerification: false,
       productSurfaceVerification: true,
       reason: "documentation-only",
-      changedPathCount: 4,
+      changedPathCount: 6,
     },
   );
 });
