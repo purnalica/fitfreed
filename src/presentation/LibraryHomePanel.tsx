@@ -53,18 +53,53 @@ export function LibraryHomePanel({
   if (home.availableRange === null) {
     return (
       <section className="library-home library-home-empty" aria-labelledby="library-home-empty-heading">
-        <p className="eyebrow">{messages.eyebrow}</p>
-        <h1 id="library-home-empty-heading" ref={headingRef} tabIndex={-1}>
-          {messages.emptyHeading}
-        </h1>
-        <p>{messages.emptyIntro}</p>
-        <button type="button" onClick={onOpenSources}>{messages.emptyAction}</button>
+        <div className="library-home-empty-copy">
+          <p className="eyebrow">{messages.eyebrow}</p>
+          <h1 id="library-home-empty-heading" ref={headingRef} tabIndex={-1}>
+            {messages.emptyHeading}
+          </h1>
+          <p>{messages.emptyIntro}</p>
+          <div className="library-home-empty-actions">
+            <button type="button" onClick={onOpenSources}>{messages.emptyAction}</button>
+            <button type="button" className="secondary" onClick={onOpenSources}>
+              {messages.emptyGuideAction}
+            </button>
+          </div>
+          <p className="library-home-empty-boundary">{messages.emptyLocalBoundary}</p>
+        </div>
+        <section
+          className="library-home-empty-possibilities"
+          aria-labelledby="library-home-empty-possibilities-heading"
+        >
+          <h2 id="library-home-empty-possibilities-heading">
+            {messages.emptyPossibilitiesHeading}
+          </h2>
+          <ol>
+            {Object.values(messages.emptyPossibilities).map((possibility, index) => (
+              <li key={possibility}>
+                <span aria-hidden="true">{number.format(index + 1).padStart(2, "0")}</span>
+                <p>{possibility}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
       </section>
     );
   }
 
   const range = `${date.format(localDate(home.availableRange.from))} ${messages.rangeSeparator} ${date.format(localDate(home.availableRange.through))}`;
   const resumableExploration = home.resumableExploration;
+  const leadingQuestion = home.questions[0];
+  const recentTraining = home.domains.find((domain) => domain.domain === "training");
+  const hasTrainingAnswer = leadingQuestion?.destination === "training"
+    && recentTraining !== undefined
+    && recentTraining.availableRange !== null;
+  const answerHeading = hasTrainingAnswer && recentTraining
+    ? formatCount(recentTraining.observedRecordCount, messages.answerTrainingHeading)
+    : messages.answerHistoryHeading.replace("{range}", range);
+  const answerIntro = hasTrainingAnswer
+    ? messages.answerTrainingIntro.replace("{range}", range)
+    : formatCount(home.questions.length, messages.answerQuestionCount);
 
   return (
     <div className="library-home" aria-busy={pendingDestination !== undefined}>
@@ -77,6 +112,26 @@ export function LibraryHomePanel({
           <span>{range}</span>
         </p>
       </header>
+
+      {leadingQuestion && (
+        <section
+          className="library-home-answer"
+          aria-labelledby="library-home-answer-heading"
+        >
+          <div>
+            <p className="eyebrow">{messages.answerEyebrow}</p>
+            <h2 id="library-home-answer-heading">{answerHeading}</h2>
+            <p>{answerIntro}</p>
+          </div>
+          <button
+            type="button"
+            disabled={pendingDestination !== undefined}
+            onClick={() => onExplore(leadingQuestion.destination)}
+          >
+            {messages.answerAction}
+          </button>
+        </section>
+      )}
 
       {home.postImport && (
         <section

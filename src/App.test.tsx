@@ -747,6 +747,10 @@ function emptyLibrary(initialLocale: "en-US" | "es-ES" | null = "en-US") {
 }
 
 async function chooseArchive(user: ReturnType<typeof userEvent.setup>, path: string) {
+  if (!screen.queryByRole("button", { name: "Choose ZIP package" })) {
+    await user.click(await screen.findByRole("button", { name: "Sources" }));
+    await screen.findByRole("heading", { name: "Bring your fitness history home" });
+  }
   mocks.open.mockResolvedValue(path);
   await user.click(await screen.findByRole("button", { name: "Choose ZIP package" }));
   expect(screen.getByText(path)).toBeVisible();
@@ -754,17 +758,48 @@ async function chooseArchive(user: ReturnType<typeof userEvent.setup>, path: str
 
 async function changeLanguageToSpanish(
   user: ReturnType<typeof userEvent.setup>,
-  destination: "explore" | "sources" = "explore",
+  destination: "explore" | "home" | "sources" = "explore",
 ) {
   await user.click(screen.getByRole("button", { name: "Settings" }));
   await user.selectOptions(screen.getByLabelText("Interface language"), "es-ES");
   await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
-  const destinationName = destination === "explore" ? "Explorar" : "Orígenes";
+  const destinationName = destination === "explore"
+    ? "Explorar"
+    : destination === "home"
+      ? "Inicio"
+      : "Orígenes";
   await waitFor(() => expect(screen.getByRole("button", { name: destinationName })).toBeVisible());
   await user.click(screen.getByRole("button", { name: destinationName }));
 }
 
 describe("FitFreed import interface", () => {
+  it("owns first-run Home in the application sidebar before presenting source mechanics", async () => {
+    emptyLibrary();
+    const user = userEvent.setup();
+    render(<App />);
+
+    const sidebar = await screen.findByRole("complementary", {
+      name: "Primary application navigation",
+    });
+    const navigation = within(sidebar).getByRole("navigation", { name: "Application" });
+    const home = within(navigation).getByRole("button", { name: "Home" });
+
+    expect(home).toHaveAttribute("aria-current", "page");
+    expect(await screen.findByRole("heading", { name: "Start with your own history" }))
+      .toBeVisible();
+    expect(screen.getByText("Your data stays on this device. No account is required."))
+      .toBeVisible();
+
+    await user.click(within(navigation).getByRole("button", { name: "Sources" }));
+    expect(await screen.findByRole("heading", { name: "Bring your fitness history home" }))
+      .toBeVisible();
+    expect(home).not.toHaveAttribute("aria-current");
+
+    await user.click(home);
+    expect(screen.getByRole("heading", { name: "Start with your own history" })).toBeVisible();
+    expect(home).toHaveAttribute("aria-current", "page");
+  });
+
   it("opens a populated library at question-led Home and persists an explicit exploration", async () => {
     const home = populatedLibraryHome();
     mocks.homeInvoke.mockImplementation((command, arguments_) => {
@@ -819,6 +854,43 @@ describe("FitFreed import interface", () => {
     ]).toBeLessThan(mocks.homeInvoke.mock.invocationCallOrder[
       mocks.homeInvoke.mock.calls.findIndex(([command]) => command === "clear_exploration_workspace")
     ]);
+  });
+
+  it("uses sidebar Home as a reversible visit and contextual return as an explicit reset", async () => {
+    const home = populatedLibraryHome();
+    mocks.homeInvoke.mockImplementation((command, arguments_) => {
+      if (command === "query_library_home") return Promise.resolve(home);
+      if (command === "save_exploration_workspace") {
+        return Promise.resolve({ version: 1, destination: arguments_.destination });
+      }
+      if (command === "clear_training_discovery_workspace") return Promise.resolve(undefined);
+      if (command === "clear_exploration_workspace") return Promise.resolve(undefined);
+      throw new Error(`Unexpected Home command: ${command}`);
+    });
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole("button", {
+      name: "Explore my training sessions",
+    }));
+    expect(await screen.findByRole("heading", { name: "Training history" })).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Home" }));
+    expect(await screen.findByRole("button", { name: "Resume training exploration" }))
+      .toBeVisible();
+    expect(mocks.homeInvoke).not.toHaveBeenCalledWith("clear_exploration_workspace");
+
+    await user.click(screen.getByRole("button", { name: "Explore" }));
+    expect(screen.getByRole("heading", { name: "Training history" })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Back to Home" }));
+    await waitFor(() => expect(
+      screen.queryByRole("button", { name: "Resume training exploration" }),
+    ).not.toBeInTheDocument());
+    expect(mocks.homeInvoke).toHaveBeenCalledWith("clear_exploration_workspace", undefined);
   });
 
   it("announces one exact Home destination while its workspace is persisted", async () => {
@@ -1093,6 +1165,11 @@ describe("FitFreed import interface", () => {
     const user = userEvent.setup();
     render(<App />);
 
+    expect(await screen.findByRole("heading", { name: "Start with your own history" }))
+      .toBeVisible();
+    expect(screen.getByRole("heading", { name: "Turn an export into something useful" }))
+      .toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Learn how to get an export" }));
     expect(await screen.findByRole("heading", {
       name: "Bring your fitness history home",
     })).toBeVisible();
@@ -1115,7 +1192,7 @@ describe("FitFreed import interface", () => {
       "https://support.polar.com/en/how-to-download-all-your-data-from-polar-flow",
     );
 
-    await user.click(screen.getByRole("button", { name: "Explore" }));
+    await user.click(screen.getByRole("button", { name: "Home" }));
     expect(screen.getByRole("heading", { name: "Start with your own history" }))
       .toBeVisible();
     await changeLanguageToSpanish(user, "sources");
@@ -1163,7 +1240,7 @@ describe("FitFreed import interface", () => {
       status: "current",
     }));
 
-    expect(await screen.findByRole("heading", { name: spanish.sources.title })).toBeVisible();
+    expect(await screen.findByRole("heading", { name: spanish.home.emptyHeading })).toBeVisible();
     expect(document.documentElement).toHaveAttribute("lang", "es-ES");
     expect(document.documentElement).toHaveAttribute("data-appearance", "dark");
     expect(document.documentElement.style.getPropertyValue("--content-zoom")).toBe("1.75");
@@ -1253,8 +1330,10 @@ describe("FitFreed import interface", () => {
     const user = userEvent.setup();
     render(<App />);
 
-    expect(await screen.findByRole("heading", { name: "Bring your fitness history home" }))
-      .toBeVisible();
+    expect(await screen.findByRole("button", { name: "Home" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
     await waitFor(() => expect(mocks.homeInvoke).toHaveBeenCalledWith("query_library_home", {
       request: { afterImportOperationRef: null },
     }));
@@ -1391,7 +1470,7 @@ describe("FitFreed import interface", () => {
       ([command]) => command === "save_exploration_workspace",
     )).toHaveLength(0);
 
-    await user.click(screen.getByRole("button", { name: "Explore" }));
+    await user.click(screen.getByRole("button", { name: "Home" }));
     expect(await screen.findByRole("heading", { name: "Start with your own history" }))
       .toBeVisible();
   });
@@ -1406,7 +1485,7 @@ describe("FitFreed import interface", () => {
     await user.selectOptions(screen.getByLabelText("Default content zoom"), "175");
     expect(document.documentElement).toHaveAttribute("data-appearance", "dark");
 
-    await user.click(screen.getByRole("button", { name: "Explore" }));
+    await user.click(screen.getByRole("button", { name: "Home" }));
 
     expect(document.documentElement).toHaveAttribute("data-appearance", "system");
     expect(document.documentElement.style.getPropertyValue("--content-zoom")).toBe("1");
@@ -1970,6 +2049,7 @@ describe("FitFreed import interface", () => {
     const user = userEvent.setup();
     render(<App />);
 
+    await user.click(await screen.findByRole("button", { name: "Sources" }));
     const coverage = await screen.findByRole("table", { name: "Coverage by data family" });
     expect(within(coverage).getAllByRole("row")).toHaveLength(11);
     expect(within(coverage).getByRole("row", {
@@ -2071,8 +2151,8 @@ describe("FitFreed import interface", () => {
     const user = userEvent.setup();
     const view = render(<App />);
 
-    expect(await screen.findByRole("heading", { name: "Bring your fitness history home" })).toBeVisible();
-    await changeLanguageToSpanish(user);
+    expect(await screen.findByRole("heading", { name: "Start with your own history" })).toBeVisible();
+    await changeLanguageToSpanish(user, "home");
 
     expect(screen.getByRole("heading", { name: spanish.home.emptyHeading })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Ajustes" }));
@@ -2088,7 +2168,7 @@ describe("FitFreed import interface", () => {
 
     view.unmount();
     render(<App />);
-    expect(await screen.findByRole("heading", { name: spanish.sources.title })).toBeVisible();
+    expect(await screen.findByRole("heading", { name: spanish.home.emptyHeading })).toBeVisible();
   });
 
   it("initializes the first supported operating-system language on first run", async () => {
@@ -2097,7 +2177,7 @@ describe("FitFreed import interface", () => {
 
     render(<App />);
 
-    expect(await screen.findByRole("heading", { name: spanish.sources.title })).toBeVisible();
+    expect(await screen.findByRole("heading", { name: spanish.home.emptyHeading })).toBeVisible();
     await waitFor(() => expect(preferences.locale()).toBe("es-ES"));
   });
 
@@ -2108,7 +2188,7 @@ describe("FitFreed import interface", () => {
     render(<App />);
 
     expect(
-      await screen.findByRole("heading", { name: "Bring your fitness history home" }),
+      await screen.findByRole("heading", { name: "Start with your own history" }),
     ).toBeVisible();
     await waitFor(() => expect(preferences.locale()).toBe("en-US"));
   });
@@ -2129,7 +2209,7 @@ describe("FitFreed import interface", () => {
 
     render(<App />);
 
-    expect(await screen.findByRole("heading", { name: spanish.sources.title })).toBeVisible();
+    expect(await screen.findByRole("heading", { name: spanish.home.emptyHeading })).toBeVisible();
     expect(await screen.findByRole("alert")).toHaveTextContent(
       spanish.errors["preference-initialization-failed"],
     );
@@ -2190,8 +2270,10 @@ describe("FitFreed import interface", () => {
     });
     mocks.preferencesInvoke.mockResolvedValue(preferencesLoad("es-ES"));
 
+    const user = userEvent.setup();
     render(<App />);
 
+    await user.click(await screen.findByRole("button", { name: "Orígenes" }));
     const outcomeRegion = await screen.findByRole("region", {
       name: spanish.outcome.heading,
     });
@@ -2500,6 +2582,7 @@ describe("FitFreed import interface", () => {
     emptyLibrary();
     const user = userEvent.setup();
     render(<App />);
+    await user.click(await screen.findByRole("button", { name: "Sources" }));
     await screen.findByRole("heading", { name: "Bring your fitness history home" });
 
     mocks.open.mockResolvedValue(null);
@@ -2563,6 +2646,7 @@ describe("FitFreed import interface", () => {
     });
     const user = userEvent.setup();
     render(<App />);
+    await user.click(await screen.findByRole("button", { name: "Sources" }));
     await screen.findByRole("heading", { name: "Bring your fitness history home" });
     await chooseArchive(user, "/synthetic/large.zip");
 
@@ -2705,6 +2789,7 @@ describe("FitFreed import interface", () => {
     });
     const user = userEvent.setup();
     const view = render(<App />);
+    await user.click(await screen.findByRole("button", { name: "Sources" }));
     await screen.findByRole("heading", { name: "Bring your fitness history home" });
 
     await chooseArchive(user, "/synthetic/invalid.zip");
@@ -2730,7 +2815,7 @@ describe("FitFreed import interface", () => {
     await user.click(screen.getByRole("button", { name: "Sources" }));
     expect(screen.getByText("Every package artifact was classified.")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Explore" }));
-    await enterExploration(user, "activity");
+    expect(await screen.findByRole("heading", { name: "Daily activity overview" })).toBeVisible();
     const rows = await screen.findAllByRole("row");
     expect(rows).toHaveLength(4);
     expect(within(rows[1]).getByText("Jan 1, 2026")).toBeVisible();
@@ -2743,7 +2828,8 @@ describe("FitFreed import interface", () => {
       "This package was an exact repeat; your library remains unchanged and duplicate-free.",
     )).toBeVisible();
     expect(mocks.sleepInvoke).not.toHaveBeenCalled();
-    await enterExploration(user, "activity");
+    await user.click(screen.getByRole("button", { name: "Explore" }));
+    expect(await screen.findByRole("heading", { name: "Daily activity overview" })).toBeVisible();
     expect(await screen.findAllByRole("row")).toHaveLength(4);
 
     view.unmount();

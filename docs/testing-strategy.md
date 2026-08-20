@@ -42,6 +42,7 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Import fingerprints, provenance, overlap reconciliation, and retry behavior.
 - Localization catalogs, placeholders, plural rules, and fallback.
 - Versioned source-acquisition guide validation, adapter ownership, exact locale selection, and least-privilege official-link capabilities.
+- Application-shell structure, semantic sidebar ownership, broad desktop workspace, compact navigation rail, and initial-window presentation contracts.
 - Presentation motion declarations and the reduced-motion boundary.
 - Update metadata, signature validation, artifact selection, and migration coordination.
 - Protected release-workflow syntax, exact permissions, action pins, authority isolation, immutable publication, provenance, and direct Pages-byte convergence.
@@ -55,10 +56,11 @@ Automated testing is the primary source of evidence that the product behaves cor
 
 **Primary scope:**
 
-- Install, first run, both export-acquisition paths, language selection, and empty-state guidance.
+- Install, value-first Home, both export-acquisition paths, language selection, and empty-state guidance.
 - Import through the file picker with realistic synthetic ZIP archives.
 - Reimport, cumulative import, interruption, failure recovery, and persisted restart.
-- Sources, Explore, and Settings navigation with preserved workspace state, focus behavior, exploration, filtering, reports, visualizations, all included controls, and accessible alternatives.
+- Home, Explore, Reports, Sources, and Settings navigation with preserved workspace state, focus behavior, exploration, filtering, visualizations, all included controls, and accessible alternatives.
+- Rendered shell geometry at broad desktop and compact widths, localized current-location semantics, and absence of page-level horizontal overflow at 100% and 200% content zoom.
 - Full-history training discovery with combined filters, deterministic sorting, coherent forward and backward pagination, source-separated calendar traversal, two-through-four-session comparison, exact chronology or calendar return, complete restart restoration, library-change recovery, exact results, and lightweight detail.
 - `en-US` and `es-ES` behavior, including text expansion and locale-aware formatting.
 - Update availability, postponement, download, verification, installation, migration, and recovery.
@@ -94,7 +96,7 @@ Local and continuous-integration workflows will invoke the same underlying comma
 ### Continuous-integration distribution
 
 - GitHub Actions runs impact classification, documentation links, public documentation contracts, and repository safety for every pull request and `main` revision. README, canonical product-status, and static product-page changes run their SSOT, resource, release-state, and accessibility checks without invalidating unchanged executable evidence. A closed documentation-only allowlist may reuse evidence only when an immutable marker proves that the exact executable-input Git-tree fingerprint already passed both complete lanes; missing evidence and any other or unknown path run the complete portable checks.
-- A mandatory macOS job prepares the source-bound production package, enforces its process-to-painted-shell cold-launch budget, then builds the instrumented Tauri package and executes the focused packaged E2E journey with independently generated synthetic fixtures whenever executable or release inputs change and for every explicit manual or release-candidate verification request.
+- A mandatory macOS job prepares the source-bound production package, enforces its process-to-painted-shell cold-launch budget, then builds the instrumented Tauri package and executes the focused packaged E2E journey with independently generated synthetic fixtures whenever executable or release inputs change and for every explicit manual or release-candidate verification request. The packaged journey resizes the real WebView across the accepted desktop and compact boundaries and measures sidebar, workspace, current-location, localization, zoom, and overflow behavior rather than inferring layout from component presence.
 - The same macOS job generates an ephemeral HTTPS authority and Minisign key, builds synthetic 0.1.0 and 0.2.0 applications, and proves both native replacement with candidate confirmation and rejected-candidate recovery to the exact previous application/library pair.
 - Test-only WebDriver plugins and capabilities are feature-gated. A separate packaging assertion proves that they are absent from the production application.
 - The instrumented presentation replaces only operating-system interaction boundaries that cannot be driven

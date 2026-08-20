@@ -2,7 +2,7 @@
 
 ## Status
 
-Direction and MVP boundaries accepted. The report-authoring, deep-session, sport-classification, navigation, and public-product-surface evaluation is recorded in the [accepted MVP boundary assessment](../research/mvp-experience-boundary-assessment.md). Current scope is canonical in `requirements.md`, and the ordered production sequence is defined in the [MVP experience delivery plan](mvp-experience-delivery.md). Exploratory concepts may exceed the current MVP contracts when that is necessary to evaluate later product direction, provided the capability gap remains explicit and no unsupported production behavior is implied.
+Direction and MVP boundaries accepted; production presentation conformance is reopened. The E6 audit found that the implemented destination behavior did not carry the accepted persistent left-sidebar and desktop-workspace hierarchy into production. The report-authoring, deep-session, sport-classification, navigation, and public-product-surface evaluation is recorded in the [accepted MVP boundary assessment](../research/mvp-experience-boundary-assessment.md). Current scope is canonical in `requirements.md`, and the ordered production sequence and current conformance status are defined in the [MVP experience delivery plan](mvp-experience-delivery.md). Exploratory concepts may exceed the current MVP contracts when that is necessary to evaluate later product direction, provided the capability gap remains explicit and no unsupported production behavior is implied.
 
 ## Objective
 

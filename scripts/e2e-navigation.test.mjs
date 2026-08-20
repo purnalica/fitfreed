@@ -18,7 +18,7 @@ function navigationSession(currentAfterClick) {
   return {
     session: {
       async $(selector) {
-        assert.equal(selector, ".shell-header nav button[data-home='settings']");
+        assert.equal(selector, ".app-sidebar nav button[data-home='settings']");
         return destination;
       },
       async waitUntil(condition, options) {

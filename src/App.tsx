@@ -28,6 +28,10 @@ import {
   type ApplicationPreferencesLoad,
 } from "./presentation/application-preferences";
 import { SettingsPanel } from "./presentation/SettingsPanel";
+import {
+  ApplicationShell,
+  type ApplicationHome,
+} from "./presentation/ApplicationShell";
 import type {
   ExploreDestination,
   LibraryHome,
@@ -198,9 +202,7 @@ function App() {
   const [preferencesSavedNotice, setPreferencesSavedNotice] = useState(false);
   const [preferencesRecovered, setPreferencesRecovered] = useState(false);
   const [preferencesEditorRevision, setPreferencesEditorRevision] = useState(0);
-  const [activeHome, setActiveHome] = useState<
-    "explore" | "reports" | "sources" | "settings"
-  >("sources");
+  const [activeHome, setActiveHome] = useState<ApplicationHome>("home");
   const homeNavigationRevision = useRef(0);
   const [libraryHome, setLibraryHome] = useState<LibraryHome>();
   const [libraryHomeFocusRequestId, setLibraryHomeFocusRequestId] = useState(0);
@@ -303,14 +305,15 @@ function App() {
     if (home.availableRange === null) {
       setExploreDestination(undefined);
       if (homeNavigationRevision.current === navigationRevision) {
-        setActiveHome("sources");
+        setActiveHome("home");
       }
     } else {
-      setExploreDestination(
-        restoreWorkspace ? home.resumableExploration?.destination : undefined,
-      );
+      const restoredDestination = restoreWorkspace
+        ? home.resumableExploration?.destination
+        : undefined;
+      setExploreDestination(restoredDestination);
       if (homeNavigationRevision.current === navigationRevision) {
-        setActiveHome("explore");
+        setActiveHome(restoredDestination ? "explore" : "home");
       }
     }
     return home;
@@ -464,7 +467,7 @@ function App() {
     return homeNavigationRevision.current;
   }
 
-  function navigateHome(destination: "explore" | "reports" | "sources" | "settings") {
+  function navigateHome(destination: ApplicationHome) {
     beginHomeNavigation();
     setActiveHome(destination);
   }
@@ -485,7 +488,7 @@ function App() {
         ? { ...current, resumableExploration: null }
         : current);
       if (homeNavigationRevision.current === navigationRevision) {
-        setActiveHome("explore");
+        setActiveHome("home");
         setLibraryHomeFocusRequestId((current) => current + 1);
       }
     } catch (reason) {
@@ -500,7 +503,45 @@ function App() {
     setLocale(savedPreferences.locale);
     setPreferencesSavedNotice(false);
     setPreferencesEditorRevision((current) => current + 1);
-    navigateHome("explore");
+    if (exploreDestination) {
+      navigateHome("explore");
+      return;
+    }
+    const destination = libraryHome?.resumableExploration?.destination
+      ?? libraryHome?.questions[0]?.destination;
+    if (destination) {
+      void openHomeExploration(destination);
+      return;
+    }
+    navigateHome("home");
+  }
+
+  function openLibraryHome() {
+    applyApplicationPreferences(savedPreferences);
+    setLocale(savedPreferences.locale);
+    setPreferencesSavedNotice(false);
+    setPreferencesEditorRevision((current) => current + 1);
+    navigateHome("home");
+  }
+
+  function navigateApplication(destination: ApplicationHome) {
+    if (destination === "home") {
+      openLibraryHome();
+      return;
+    }
+    if (destination === "explore") {
+      openExplore();
+      return;
+    }
+    if (destination === "sources") {
+      openSources();
+      return;
+    }
+    if (destination === "reports") {
+      openReports();
+      return;
+    }
+    navigateHome("settings");
   }
 
   function openSources() {
@@ -898,45 +939,12 @@ function App() {
   }
 
   return (
-    <div className="app-shell">
-      <header className="shell-header">
-        <strong className="shell-brand">FitFreed</strong>
-        <nav aria-label={messages.shell.navigation}>
-          <button
-            type="button"
-            data-home="explore"
-            aria-current={activeHome === "explore" ? "page" : undefined}
-            onClick={openExplore}
-          >
-            {messages.shell.explore}
-          </button>
-          <button
-            type="button"
-            data-home="sources"
-            aria-current={activeHome === "sources" ? "page" : undefined}
-            onClick={openSources}
-          >
-            {messages.shell.sources}
-          </button>
-          <button
-            type="button"
-            data-home="reports"
-            aria-current={activeHome === "reports" ? "page" : undefined}
-            onClick={openReports}
-          >
-            {messages.shell.reports}
-          </button>
-          <button
-            type="button"
-            data-home="settings"
-            aria-current={activeHome === "settings" ? "page" : undefined}
-            onClick={() => navigateHome("settings")}
-          >
-            {messages.shell.settings}
-          </button>
-        </nav>
-      </header>
-      <main className="app-content">
+    <ApplicationShell
+      activeHome={activeHome}
+      messages={messages.shell}
+      exploreDisabled={libraryHome?.availableRange === null}
+      onNavigate={navigateApplication}
+    >
         {preferencesRecovered && (
           <p className="notice" role="status" aria-live="polite">
             {messages.settings.recovered}
@@ -1175,8 +1183,8 @@ function App() {
             </Suspense>
           )}
         </div>
-        <div className="explore-home" hidden={activeHome !== "explore"}>
-      {!exploreDestination && libraryHome && (
+        <div className="library-home-root" hidden={activeHome !== "home"}>
+      {libraryHome && (
         <LibraryHomePanel
           home={libraryHome}
           locale={locale}
@@ -1189,6 +1197,9 @@ function App() {
           onOpenSources={openSources}
         />
       )}
+        </div>
+
+        <div className="explore-home" hidden={activeHome !== "explore"}>
 
       {exploreDestination && (
         <nav
@@ -1515,8 +1526,7 @@ function App() {
         </Suspense>
       )}
         </div>
-      </main>
-    </div>
+    </ApplicationShell>
   );
 }
 

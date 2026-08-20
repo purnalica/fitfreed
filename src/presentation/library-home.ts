@@ -77,7 +77,21 @@ export interface LibraryHomeMessages {
   sources: string;
   emptyHeading: string;
   emptyIntro: string;
+  emptyLocalBoundary: string;
   emptyAction: string;
+  emptyGuideAction: string;
+  emptyPossibilitiesHeading: string;
+  emptyPossibilities: {
+    sessionDiscovery: string;
+    honestComparison: string;
+    durableReports: string;
+  };
+  answerEyebrow: string;
+  answerTrainingHeading: { one: string; other: string };
+  answerTrainingIntro: string;
+  answerHistoryHeading: string;
+  answerQuestionCount: { one: string; other: string };
+  answerAction: string;
   postImportHeading: string;
   postImportChanged: string;
   postImportUnchanged: string;

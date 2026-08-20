@@ -29,10 +29,17 @@
   "visual": "Visual step comparison",
   "shell": {
     "navigation": "Application",
+    "sidebar": "Primary application navigation",
+    "home": "Home",
     "explore": "Explore",
     "sources": "Sources",
     "reports": "Reports",
     "settings": "Settings",
+    "exploreGroup": "Your history",
+    "libraryGroup": "Library and application",
+    "questionLauncher": "Choose a question to explore",
+    "localTitle": "Local library",
+    "localDetail": "Your history stays on this device",
     "loading": "Loading this view…"
   },
   "home": {
@@ -85,7 +92,27 @@
     "sources": "Review source coverage",
     "emptyHeading": "Start with your own history",
     "emptyIntro": "Import an original fitness export to build a private library and discover which questions its evidence can answer.",
+    "emptyLocalBoundary": "Your data stays on this device. No account is required.",
     "emptyAction": "Add a fitness export",
+    "emptyGuideAction": "Learn how to get an export",
+    "emptyPossibilitiesHeading": "Turn an export into something useful",
+    "emptyPossibilities": {
+      "sessionDiscovery": "Find remembered sessions, sports, routes, intervals, and exact measurements.",
+      "honestComparison": "Compare periods and see where missing evidence limits the answer.",
+      "durableReports": "Build, save, and export reports that remain connected to their evidence."
+    },
+    "answerEyebrow": "A useful place to begin",
+    "answerTrainingHeading": {
+      "one": "{count} recent training session is ready to inspect",
+      "other": "{count} recent training sessions are ready to inspect"
+    },
+    "answerTrainingIntro": "Your independent library spans {range}. Open the sessions behind this answer or choose another supported question.",
+    "answerHistoryHeading": "Your independent history spans {range}",
+    "answerQuestionCount": {
+      "one": "FitFreed found {count} evidence-backed question it can answer without inventing missing data.",
+      "other": "FitFreed found {count} evidence-backed questions it can answer without inventing missing data."
+    },
+    "answerAction": "Explore this answer",
     "postImportHeading": "Your library grew",
     "postImportChanged": "The committed import added or improved usable history.",
     "postImportUnchanged": "The committed import preserved your current usable history.",

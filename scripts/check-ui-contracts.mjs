@@ -7,10 +7,97 @@ const stylesheetPath = path.join(repositoryRoot, "src", "App.css");
 const stylesheet = readFileSync(stylesheetPath, "utf8");
 const applicationPath = path.join(repositoryRoot, "src", "App.tsx");
 const application = readFileSync(applicationPath, "utf8");
+const applicationShellPath = path.join(
+  repositoryRoot,
+  "src",
+  "presentation",
+  "ApplicationShell.tsx",
+);
+const applicationShell = readFileSync(applicationShellPath, "utf8");
+const tauriConfiguration = JSON.parse(readFileSync(
+  path.join(repositoryRoot, "src-tauri", "tauri.conf.json"),
+  "utf8",
+));
+
+function balancedBlock(source, marker, contract) {
+  const markerStart = source.indexOf(marker);
+  if (markerStart < 0) throw new Error(contract);
+  const openingBrace = source.indexOf("{", markerStart);
+  let depth = 0;
+  for (let index = openingBrace; index < source.length; index += 1) {
+    if (source[index] === "{") depth += 1;
+    if (source[index] === "}") {
+      depth -= 1;
+      if (depth === 0) return source.slice(openingBrace + 1, index);
+    }
+  }
+  throw new Error(`${marker} block is not balanced`);
+}
+
+function requireRule(source, selector, declarations, contract) {
+  const block = balancedBlock(source, selector, `${selector} must exist for ${contract}`);
+  for (const declaration of declarations) {
+    if (!declaration.test(block)) {
+      throw new Error(`${selector} must preserve ${contract}`);
+    }
+  }
+}
 
 if (/\bfallback=\{null\}/.test(application)) {
   throw new Error("lazy presentation boundaries must expose a visible loading status");
 }
+
+if (!application.includes("<ApplicationShell")) {
+  throw new Error("App must render the shared application shell");
+}
+if (!/<aside\s+className="app-sidebar"\s+aria-label=/.test(applicationShell)) {
+  throw new Error("the application shell must expose semantic sidebar navigation");
+}
+if (!applicationShell.includes('{ destination: "home", icon: "home" }')) {
+  throw new Error("the application shell must expose Home as an explicit destination");
+}
+
+requireRule(
+  stylesheet,
+  ".app-shell",
+  [/display:\s*grid/, /grid-template-columns:\s*240px\s+minmax\(0,\s*1fr\)/],
+  "the full-height desktop sidebar layout",
+);
+requireRule(
+  stylesheet,
+  ".app-sidebar",
+  [/position:\s*sticky/, /height:\s*100vh/, /width:\s*240px/],
+  "persistent desktop navigation",
+);
+requireRule(
+  stylesheet,
+  ".app-content",
+  [/width:\s*min\(1440px,\s*calc\(100%\s*-\s*64px\)\)/],
+  "the broad desktop workspace",
+);
+
+const compactNavigation = balancedBlock(
+  stylesheet,
+  "@media (max-width: 980px)",
+  "App.css must define the compact navigation boundary",
+);
+requireRule(
+  compactNavigation,
+  ".app-shell",
+  [/grid-template-columns:\s*76px\s+minmax\(0,\s*1fr\)/],
+  "the compact navigation rail",
+);
+
+const mainWindow = tauriConfiguration.app?.windows?.[0];
+if (mainWindow?.width < 1280 || mainWindow?.height < 800) {
+  throw new Error("the initial desktop window must expose the broad workspace");
+}
+requireRule(
+  compactNavigation,
+  ".app-sidebar",
+  [/width:\s*76px/],
+  "the compact navigation rail",
+);
 
 for (const selector of ["a:focus-visible", "summary:focus-visible"]) {
   if (!stylesheet.includes(selector)) {
@@ -88,5 +175,5 @@ for (const [selector, token] of contrastContracts) {
 }
 
 process.stdout.write(
-  `${JSON.stringify({ motionDeclarations: motionDeclarations.length, reducedMotionBoundary: true, darkContrastOverrides: contrastContracts.size })}\n`,
+  `${JSON.stringify({ motionDeclarations: motionDeclarations.length, reducedMotionBoundary: true, darkContrastOverrides: contrastContracts.size, responsiveSidebar: true, broadWorkspace: true, initialWindow: `${mainWindow.width}x${mainWindow.height}` })}\n`,
 );

@@ -59,6 +59,60 @@ async function expectFocusedStatus(fragment, timeoutMsg) {
   );
 }
 
+async function resizeApplication(width, height) {
+  const resizeError = await browser.executeAsync((nextWidth, nextHeight, done) => {
+    window.__TAURI_INTERNALS__.invoke("plugin:window|set_size", {
+      label: "main",
+      value: { Logical: { width: nextWidth, height: nextHeight } },
+    }).then(() => done(null), (error) => done(String(error)));
+  }, width, height);
+  if (resizeError !== null) throw new Error(`native window resize failed: ${resizeError}`);
+  await browser.waitUntil(
+    () => browser.execute(
+      (expectedWidth) => Math.abs(document.documentElement.clientWidth - expectedWidth) <= 24,
+      width,
+    ),
+    { timeout: 10_000, timeoutMsg: `the application did not resize to ${width}px` },
+  );
+}
+
+async function expectApplicationShellLayout(catalog, mode, broadWorkspace = false) {
+  const expectedWidth = mode === "desktop" ? 240 : 76;
+  const state = await browser.execute(() => {
+    const sidebar = document.querySelector(".app-sidebar");
+    const workspace = document.querySelector(".shell-workspace");
+    const content = document.querySelector(".app-content");
+    const sidebarBounds = sidebar.getBoundingClientRect();
+    const workspaceBounds = workspace.getBoundingClientRect();
+    const contentBounds = content.getBoundingClientRect();
+    return {
+      sidebarTag: sidebar.tagName,
+      sidebarWidth: sidebarBounds.width,
+      sidebarLeft: sidebarBounds.left,
+      sidebarHeight: sidebarBounds.height,
+      sidebarPosition: getComputedStyle(sidebar).position,
+      workspaceLeft: workspaceBounds.left,
+      contentWidth: contentBounds.width,
+      viewportHeight: document.documentElement.clientHeight,
+      hasHorizontalOverflow:
+        document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    };
+  });
+  expect(state.sidebarTag).toBe("ASIDE");
+  expect(Math.abs(state.sidebarWidth - expectedWidth)).toBeLessThanOrEqual(1);
+  expect(Math.abs(state.sidebarLeft)).toBeLessThanOrEqual(1);
+  expect(Math.abs(state.workspaceLeft - expectedWidth)).toBeLessThanOrEqual(1);
+  expect(Math.abs(state.sidebarHeight - state.viewportHeight)).toBeLessThanOrEqual(1);
+  expect(state.sidebarPosition).toBe("sticky");
+  expect(state.hasHorizontalOverflow).toBe(false);
+  if (broadWorkspace) expect(state.contentWidth).toBeGreaterThan(1080);
+  await expect($(".app-sidebar")).toHaveAttribute("aria-label", catalog.shell.sidebar);
+  for (const destination of ["home", "explore", "reports", "sources", "settings"]) {
+    await expect($(`.app-sidebar nav button[data-home='${destination}']`))
+      .toHaveAttribute("aria-label", catalog.shell[destination]);
+  }
+}
+
 async function expectLibraryHome(catalog) {
   await expect($(".library-home h1")).toHaveText(catalog.home.title);
   const questionButtons = await $$(".library-home-questions button");
@@ -77,7 +131,7 @@ async function expectComparisonHeading(selector, expectedText) {
   await expect(heading).toHaveText(expectedText);
 }
 
-async function setAppearanceAndZoom(appearance, zoom, save) {
+async function setAppearanceAndZoom(appearance, zoom, save, destination = "explore") {
   await goToHome("settings");
   const appearanceInput = await $(`input[name='appearance'][value='${appearance}']`);
   await appearanceInput.waitForEnabled({ timeout: 10_000 });
@@ -107,10 +161,10 @@ async function setAppearanceAndZoom(appearance, zoom, save) {
   if (save) {
     await persistSettings();
   }
-  await goToHome("explore");
+  await goToHome(destination);
 }
 
-async function resetSettings() {
+async function resetSettings(destination = "explore") {
   await goToHome("settings");
   const reset = await $(".settings-actions button.secondary");
   await reset.waitForEnabled({ timeout: 10_000 });
@@ -122,7 +176,7 @@ async function resetSettings() {
     )),
     { timeout: 10_000, timeoutMsg: "the application settings were not reset" },
   );
-  await goToHome("explore");
+  await goToHome(destination);
 }
 
 async function setActivityRange(from, through) {
@@ -699,6 +753,21 @@ describe("packaged FitFreed import journey", () => {
   it("covers validation, outcomes, coverage, cancellation, reimport, accessibility, performance, and restart", async () => {
     fs.rmSync(reportOutput, { force: true });
     fs.rmSync(refreshedReportOutput, { force: true });
+    await resizeApplication(1440, 900);
+    await expectApplicationShellLayout(english, "desktop", true);
+    await resizeApplication(900, 760);
+    await expectApplicationShellLayout(english, "compact");
+    await resizeApplication(1280, 820);
+    await expect($(".library-home-empty h1")).toHaveText(english.home.emptyHeading);
+    await expect($(".library-home-empty-copy")).toHaveText(
+      expect.stringContaining(english.home.emptyIntro),
+    );
+    await expect($(".library-home-empty-possibilities")).toHaveText(
+      expect.stringContaining(english.home.emptyPossibilities.sessionDiscovery),
+    );
+    await expect($(".app-sidebar nav button[data-home='home']"))
+      .toHaveAttribute("aria-current", "page");
+    await goToHome("sources");
     await expect($(".sources-home h1")).toHaveText("Bring your fitness history home");
     await expect($("aria/Import selected package")).toBeDisabled();
     const openerMock = await browser.tauri.mock("plugin:opener|open_url");
@@ -730,27 +799,31 @@ describe("packaged FitFreed import journey", () => {
       .analyze();
     expect(sourcesAccessibility.violations).toEqual([]);
 
-    await goToHome("explore");
+    await goToHome("home");
     await expect($(".library-home-empty h1")).toHaveText(english.home.emptyHeading);
     expect(await $$(".library-home-questions")).toHaveLength(0);
     expect(await $$("#activity-heading, .training-insights, .sleep-insights, .recovery-insights, .longitudinal-insights")).toHaveLength(0);
 
-    await setAppearanceAndZoom("dark", 175, false);
+    await setAppearanceAndZoom("dark", 175, false, "home");
     await expect($("html")).toHaveAttribute("data-appearance", "system");
     expect(await browser.execute(
       () => document.documentElement.style.getPropertyValue("--content-zoom"),
     )).toBe("1");
-    await setAppearanceAndZoom("light", 200, true);
+    await setAppearanceAndZoom("light", 200, true, "home");
     await expect($("html")).toHaveAttribute("data-appearance", "light");
+    await resizeApplication(900, 760);
+    await expectApplicationShellLayout(english, "compact");
+    await resizeApplication(1280, 820);
     await browser.reloadSession();
     await expect($("html")).toHaveAttribute("data-appearance", "light");
     expect(await browser.execute(
       () => document.documentElement.style.getPropertyValue("--content-zoom"),
     )).toBe("2");
-    await resetSettings();
+    await resetSettings("home");
     await expect($("html")).toHaveAttribute("data-appearance", "system");
 
     await selectLocale("es-ES", "sources");
+    await expectApplicationShellLayout(spanish, "desktop");
     await expect($(".sources-home h1")).toHaveText(spanish.sources.title);
     await expect($("#source-guide-heading")).toHaveText(spanish.sources.guideTitle);
     await expectSourceGuide(spanish);
@@ -763,7 +836,7 @@ describe("packaged FitFreed import journey", () => {
     expect(spanishOpenerMock.mock.calls[0][0].url).toBe(
       "https://support.polar.com/es/how-to-download-all-your-data-from-polar-flow",
     );
-    await selectLocale("en-US");
+    await selectLocale("en-US", "home");
     await expect($(".library-home-empty h1")).toHaveText(english.home.emptyHeading);
 
     await goToHome("sources");
@@ -2993,7 +3066,8 @@ describe("packaged FitFreed import journey", () => {
     );
     await $(`aria/${spanish.reports.backToReport}`).click();
     await expect($(".report-preview h3")).toHaveText("Synthetic ridge progression");
-    await returnToLibraryHome(spanish);
+    await goToHome("home");
+    await expectLibraryHome(spanish);
     const resumableTraining = await $$(".library-home-resume button");
     expect(resumableTraining).toHaveLength(1);
     await resumableTraining[0].click();

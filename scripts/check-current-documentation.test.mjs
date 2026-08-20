@@ -41,7 +41,7 @@ test("rejects stale storage, report, and release-readiness claims together", () 
   );
   candidate.sources["docs/testing/public-release-readiness.md"] = replaceRequired(
     candidate.sources["docs/testing/public-release-readiness.md"],
-    "The E1 through E5 experience and the current E6 automated hardening boundary are implemented",
+    "E1 through E5 implement the Home, discovery, deep-session, sport-classification, report, refresh, and source-navigation behavior",
     "The accepted E1–E6 experience scope is not implemented",
   );
 

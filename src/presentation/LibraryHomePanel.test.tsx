@@ -89,10 +89,14 @@ describe("LibraryHomePanel", () => {
 
     expect(screen.getByRole("heading", { name: "What do you want to understand?" }))
       .toBeVisible();
+    const firstAnswer = screen.getByRole("region", { name: "42 recent training sessions are ready to inspect" });
+    expect(firstAnswer).toHaveTextContent("Jan 2, 2024 – Aug 17, 2026");
+    await user.click(within(firstAnswer).getByRole("button", { name: "Explore this answer" }));
     for (const question of populatedHome().questions) {
       await user.click(screen.getByRole("button", { name: messages.questions[question.kind] }));
     }
     expect(onExplore.mock.calls.map(([destination]) => destination)).toEqual([
+      "training",
       "training",
       "longitudinal",
       "activity",
@@ -214,7 +218,7 @@ describe("LibraryHomePanel", () => {
     expect(onOpenSources).toHaveBeenCalledOnce();
   });
 
-  it("sends an empty library to Sources instead of displaying invented questions", async () => {
+  it("presents truthful first-run value and sends both acquisition paths to Sources", async () => {
     const user = userEvent.setup();
     const onOpenSources = vi.fn();
     render(
@@ -243,7 +247,11 @@ describe("LibraryHomePanel", () => {
     expect(screen.queryByRole("heading", { name: "What do you want to understand?" }))
       .not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Start with your own history" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Turn an export into something useful" }))
+      .toBeVisible();
+    expect(screen.getByText(/Find remembered sessions, sports, routes, intervals/)).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Add a fitness export" }));
-    expect(onOpenSources).toHaveBeenCalledOnce();
+    await user.click(screen.getByRole("button", { name: "Learn how to get an export" }));
+    expect(onOpenSources).toHaveBeenCalledTimes(2);
   });
 });

@@ -38,7 +38,7 @@ export async function persistSettings() {
 }
 
 export async function goToHome(home, session = browser) {
-  const destination = await session.$(`.shell-header nav button[data-home='${home}']`);
+  const destination = await session.$(`.app-sidebar nav button[data-home='${home}']`);
   await destination.waitForEnabled({ timeout: 10_000 });
   for (let attempt = 0; attempt < 2; attempt += 1) {
     await destination.click();
@@ -64,13 +64,13 @@ export async function returnToLibraryHome(catalog) {
     `.explorer-return button[aria-label="${catalog.home.backHome}"]`,
   );
   await browser.waitUntil(async () => (
-    await $(".library-home h1").isExisting()
+    await $(".library-home h1").isDisplayed()
     || await returnHome.isExisting()
   ), {
     timeout: 10_000,
     timeoutMsg: "neither Library Home nor its exact return action became available",
   });
-  if (!(await $(".library-home h1").isExisting())) {
+  if (!(await $(".library-home h1").isDisplayed())) {
     await returnHome.waitForDisplayed({ timeout: 10_000 });
     await returnHome.click();
   }

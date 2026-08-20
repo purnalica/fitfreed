@@ -9,6 +9,7 @@
           "description": "Test-only capability for the instrumented FitFreed WebdriverIO build",
           "windows": ["main"],
           "permissions": [
+            "core:window:allow-set-size",
             "wdio:default",
             "wdio-webdriver:default"
           ]
