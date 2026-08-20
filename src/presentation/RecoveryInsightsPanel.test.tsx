@@ -264,10 +264,14 @@ describe("RecoveryInsightsPanel", () => {
     expect(within(region).getAllByText("Overall status 5 / 6").length).toBeGreaterThan(0);
     expect(within(region).getAllByText("Missing").length).toBeGreaterThan(0);
 
-    await user.click(within(region).getAllByRole("button", {
+    const detailOrigin = within(region).getAllByRole("button", {
       name: "View recovery details for Mar 28, 2026",
-    })[0]);
+    })[0];
+    await user.click(detailOrigin);
     const detailRegion = await within(region).findByRole("region", { name: "Recovery detail" });
+    await waitFor(() => expect(within(detailRegion).getByRole("heading", {
+      name: "Recovery detail",
+    })).toHaveFocus());
     expect(within(detailRegion).getByText("synthetic-assessment@1")).toBeVisible();
     expect(within(detailRegion).getByText("synthetic-baseline@1")).toBeVisible();
     expect(within(detailRegion).getByText("synthetic-guidance@1")).toBeVisible();
@@ -278,6 +282,7 @@ describe("RecoveryInsightsPanel", () => {
     expect(within(detailRegion).getByText(/not medical advice authored or endorsed/)).toBeVisible();
     await user.click(within(detailRegion).getByRole("button", { name: "Close recovery detail" }));
     expect(within(region).queryByRole("region", { name: "Recovery detail" })).not.toBeInTheDocument();
+    await waitFor(() => expect(detailOrigin).toHaveFocus());
 
     const from = within(region).getByLabelText("From");
     const through = within(region).getByLabelText("Through");
@@ -409,11 +414,13 @@ describe("RecoveryInsightsPanel", () => {
     expect(missingRow).not.toBeNull();
     expect(within(missingRow!).queryByRole("button")).not.toBeInTheDocument();
 
-    await user.click(within(region).getAllByRole("button", {
+    const detailOrigin = within(region).getAllByRole("button", {
       name: "View recovery details for Mar 28, 2026",
-    })[0]);
+    })[0];
+    await user.click(detailOrigin);
     await waitFor(() => expect(onError).toHaveBeenLastCalledWith("invalid-recovery-reference"));
     expect(within(region).queryByRole("region", { name: "Recovery detail" })).not.toBeInTheDocument();
+    await waitFor(() => expect(detailOrigin).toHaveFocus());
   });
 
   it("localizes the complete experience and refreshes after a new import token", async () => {

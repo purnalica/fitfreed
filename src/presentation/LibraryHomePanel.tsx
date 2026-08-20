@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import type {
   ExploreDestination,
@@ -6,11 +6,13 @@ import type {
   LibraryHome,
   LibraryHomeMessages,
 } from "./library-home";
+import { restoreFocusAfterReveal } from "./focus-restoration";
 
 interface LibraryHomePanelProps {
   home: LibraryHome;
   locale: string;
   messages: LibraryHomeMessages;
+  focusRequestId?: number;
   onExplore: (destination: ExploreDestination) => void;
   onOpenSources: () => void;
 }
@@ -24,9 +26,11 @@ export function LibraryHomePanel({
   home,
   locale,
   messages,
+  focusRequestId = 0,
   onExplore,
   onOpenSources,
 }: LibraryHomePanelProps) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const plural = useMemo(() => new Intl.PluralRules(locale), [locale]);
   const date = useMemo(
@@ -39,11 +43,18 @@ export function LibraryHomePanel({
   ) => templates[plural.select(value) === "one" ? "one" : "other"]
     .replace("{count}", number.format(value));
 
+  useEffect(() => {
+    if (focusRequestId === 0) return;
+    return restoreFocusAfterReveal(headingRef.current);
+  }, [focusRequestId]);
+
   if (home.availableRange === null) {
     return (
       <section className="library-home library-home-empty" aria-labelledby="library-home-empty-heading">
         <p className="eyebrow">{messages.eyebrow}</p>
-        <h1 id="library-home-empty-heading">{messages.emptyHeading}</h1>
+        <h1 id="library-home-empty-heading" ref={headingRef} tabIndex={-1}>
+          {messages.emptyHeading}
+        </h1>
         <p>{messages.emptyIntro}</p>
         <button type="button" onClick={onOpenSources}>{messages.emptyAction}</button>
       </section>
@@ -57,7 +68,7 @@ export function LibraryHomePanel({
     <div className="library-home">
       <header className="library-home-heading">
         <p className="eyebrow">{messages.eyebrow}</p>
-        <h1>{messages.title}</h1>
+        <h1 ref={headingRef} tabIndex={-1}>{messages.title}</h1>
         <p>{messages.intro}</p>
         <p className="library-home-range">
           <strong>{messages.availablePeriod}</strong>

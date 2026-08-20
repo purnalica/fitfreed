@@ -38,6 +38,7 @@ import { SourcesPanel } from "./presentation/SourcesPanel";
 import type { ReportSourceTarget } from "./presentation/report-navigation";
 import type { ReportStartOrigin } from "./presentation/session-report";
 import { LoadingSurface } from "./presentation/LoadingSurface";
+import { restoreFocusAfterReveal } from "./presentation/focus-restoration";
 import { APPLICATION_ERROR_ID, useInvalidForm } from "./presentation/useInvalidForm";
 
 const rendererStartedAt = performance.now();
@@ -194,6 +195,7 @@ function App() {
   >("sources");
   const homeNavigationRevision = useRef(0);
   const [libraryHome, setLibraryHome] = useState<LibraryHome>();
+  const [libraryHomeFocusRequestId, setLibraryHomeFocusRequestId] = useState(0);
   const [exploreDestination, setExploreDestination] = useState<ExploreDestination>();
   const [updateLocaleRefreshToken, setUpdateLocaleRefreshToken] = useState(0);
   const [archivePath, setArchivePath] = useState<string>();
@@ -203,6 +205,9 @@ function App() {
   const [rangeThrough, setRangeThrough] = useState("");
   const [rangeLoading, setRangeLoading] = useState(false);
   const [selectedActivityDate, setSelectedActivityDate] = useState<string>();
+  const activityHeadingRef = useRef<HTMLHeadingElement>(null);
+  const activityDetailHeadingRef = useRef<HTMLHeadingElement>(null);
+  const activityDetailOriginRef = useRef<HTMLButtonElement | null>(null);
   const [trainingRefreshToken, setTrainingRefreshToken] = useState(0);
   const [reportOrigin, setReportOrigin] = useState<ReportStartOrigin>();
   const [reportOriginRequestId, setReportOriginRequestId] = useState(0);
@@ -248,6 +253,14 @@ function App() {
       return value > maximum ? value : maximum;
     }, 1n) ?? 1n;
 
+  useEffect(() => {
+    if (!selectedActivityDate) return;
+    return restoreFocusAfterReveal(
+      activityDetailHeadingRef.current,
+      activityDetailOriginRef.current,
+    );
+  }, [selectedActivityDate]);
+
   async function refresh(requestedRange: ActivityDateRange | null = null) {
     const overview = await invoke<ActivityOverview>("query_activity_overview", {
       requestedRange,
@@ -256,6 +269,7 @@ function App() {
     setRangeFrom(overview.selectedRange?.from ?? "");
     setRangeThrough(overview.selectedRange?.through ?? "");
     setSelectedActivityDate(undefined);
+    activityDetailOriginRef.current = null;
   }
 
   async function refreshOutcome() {
@@ -450,6 +464,7 @@ function App() {
         : current);
       if (homeNavigationRevision.current === navigationRevision) {
         setActiveHome("explore");
+        setLibraryHomeFocusRequestId((current) => current + 1);
       }
     } catch (reason) {
       setErrorCode(commandErrorCode(reason));
@@ -787,6 +802,23 @@ function App() {
     return `${messages.activity.viewDetails} ${date.format(localDate(localDateValue))}`;
   }
 
+  function openActivityDetail(
+    localDateValue: string,
+    origin: HTMLButtonElement | null,
+  ) {
+    activityDetailOriginRef.current = origin;
+    setSelectedActivityDate(localDateValue);
+  }
+
+  function closeActivityDetail(initiatingElement: HTMLButtonElement) {
+    const target = activityDetailOriginRef.current?.isConnected
+      ? activityDetailOriginRef.current
+      : activityHeadingRef.current;
+    setSelectedActivityDate(undefined);
+    activityDetailOriginRef.current = null;
+    restoreFocusAfterReveal(target, initiatingElement);
+  }
+
   function navigateFromLongitudinal(
     domain: "activity" | "training" | "sleep" | "recovery",
     localDateValue: string,
@@ -799,7 +831,7 @@ function App() {
         .then(() => refresh({ from: localDateValue, through: localDateValue }))
         .then(() => {
           setExploreDestination("activity");
-          setSelectedActivityDate(localDateValue);
+          openActivityDetail(localDateValue, null);
         })
         .catch((reason) => setErrorCode(commandErrorCode(reason)));
       return;
@@ -1100,6 +1132,7 @@ function App() {
           home={libraryHome}
           locale={locale}
           messages={messages.home}
+          focusRequestId={libraryHomeFocusRequestId}
           onExplore={(destination) => void openHomeExploration(destination)}
           onOpenSources={openSources}
         />
@@ -1141,7 +1174,9 @@ function App() {
 
       {exploreDestination === "activity" && (
       <section aria-labelledby="activity-heading">
-        <h1 id="activity-heading">{messages.activity.heading}</h1>
+        <h1 id="activity-heading" ref={activityHeadingRef} tabIndex={-1}>
+          {messages.activity.heading}
+        </h1>
         {!activityOverview || activityOverview.series.length === 0 ? (
           <p>{messages.activity.empty}</p>
         ) : (
@@ -1267,7 +1302,10 @@ function App() {
                             type="button"
                             className="detail-button"
                             aria-label={detailButtonLabel(day.localDate)}
-                            onClick={() => setSelectedActivityDate(day.localDate)}
+                            onClick={(event) => openActivityDetail(
+                              day.localDate,
+                              event.currentTarget,
+                            )}
                           >
                             <time dateTime={day.localDate}>{date.format(localDate(day.localDate))}</time>
                           </button>
@@ -1299,7 +1337,10 @@ function App() {
                               type="button"
                               className="detail-button"
                               aria-label={detailButtonLabel(day.localDate)}
-                              onClick={() => setSelectedActivityDate(day.localDate)}
+                              onClick={(event) => openActivityDetail(
+                                day.localDate,
+                                event.currentTarget,
+                              )}
                             >
                               <time dateTime={day.localDate}>{date.format(localDate(day.localDate))}</time>
                             </button>
@@ -1317,7 +1358,13 @@ function App() {
               <section className="activity-detail" aria-labelledby="activity-detail-heading">
                 <div className="activity-detail-heading">
                   <div>
-                    <h2 id="activity-detail-heading">{messages.activity.detailHeading}</h2>
+                    <h2
+                      id="activity-detail-heading"
+                      ref={activityDetailHeadingRef}
+                      tabIndex={-1}
+                    >
+                      {messages.activity.detailHeading}
+                    </h2>
                     <time dateTime={selectedActivityDate}>
                       {date.format(localDate(selectedActivityDate))}
                     </time>
@@ -1325,7 +1372,7 @@ function App() {
                   <button
                     type="button"
                     className="secondary"
-                    onClick={() => setSelectedActivityDate(undefined)}
+                    onClick={(event) => closeActivityDetail(event.currentTarget)}
                   >
                     {messages.activity.closeDetail}
                   </button>

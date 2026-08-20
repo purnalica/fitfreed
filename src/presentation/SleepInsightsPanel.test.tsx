@@ -279,12 +279,16 @@ describe("SleepInsightsPanel", () => {
     expect(within(sleep).queryByText("opaque-origin-beta")).not.toBeInTheDocument();
 
     const detailButtons = within(sleep).getAllByRole("button", { name: /View sleep details for/ });
-    await user.click(detailButtons[0]);
+    const detailOrigin = detailButtons[0];
+    await user.click(detailOrigin);
     expect(mocks.invoke).toHaveBeenCalledWith("query_sleep_detail", {
       seriesRef: "opaque-origin-alpha",
       sleepDate: "2026-03-28",
     });
     const detailRegion = await within(sleep).findByRole("region", { name: "Sleep detail" });
+    await waitFor(() => expect(within(detailRegion).getByRole("heading", {
+      name: "Sleep detail",
+    })).toHaveFocus());
     expect(within(detailRegion).getByText(/Mar 27, 2026.*UTC\+01:00/)).toBeVisible();
     expect(within(detailRegion).getByText("7 h 30 min")).toBeVisible();
     expect(within(detailRegion).getAllByText("No")).toHaveLength(2);
@@ -296,6 +300,7 @@ describe("SleepInsightsPanel", () => {
     expect(within(detailRegion).getByText("Regeneration")).toBeVisible();
     await user.click(within(detailRegion).getByRole("button", { name: "Close sleep detail" }));
     expect(within(sleep).queryByRole("region", { name: "Sleep detail" })).not.toBeInTheDocument();
+    await waitFor(() => expect(detailOrigin).toHaveFocus());
 
     const filter = within(sleep).getByRole("form", { name: "Explore a sleep period" });
     await user.clear(within(filter).getByLabelText("From"));
@@ -430,6 +435,28 @@ describe("SleepInsightsPanel", () => {
       expect(input).toHaveAttribute("aria-describedby", "application-error");
     }
     expect(comparisonRegion).toBeVisible();
+  });
+
+  it("returns focus when an exact sleep detail has disappeared", async () => {
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_sleep_overview") return Promise.resolve(overview());
+      if (command === "query_sleep_detail") return Promise.resolve(null);
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const onError = vi.fn();
+    const user = userEvent.setup();
+    renderPanel({ onError });
+    const sleep = await screen.findByRole("region", { name: "Sleep history" });
+    const detailOrigin = within(sleep).getAllByRole("button", {
+      name: "View sleep details for Mar 28, 2026",
+    })[0];
+
+    await user.click(detailOrigin);
+
+    await waitFor(() => expect(onError).toHaveBeenLastCalledWith("invalid-sleep-reference"));
+    expect(within(sleep).queryByRole("region", { name: "Sleep detail" }))
+      .not.toBeInTheDocument();
+    await waitFor(() => expect(detailOrigin).toHaveFocus());
   });
 
   it("localizes existing state and reloads after the refresh token changes", async () => {

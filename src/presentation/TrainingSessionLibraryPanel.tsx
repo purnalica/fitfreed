@@ -253,6 +253,8 @@ export function TrainingSessionLibraryPanel({
   const [comparison, setComparison] = useState<TrainingSessionSearchItem[]>([]);
   const dateRangeValidation = useInvalidForm(onError);
   const detailHeadingRef = useRef<HTMLHeadingElement>(null);
+  const libraryHeadingRef = useRef<HTMLHeadingElement>(null);
+  const detailOriginButtonRef = useRef<HTMLButtonElement | null>(null);
   const createReportButtonRef = useRef<HTMLButtonElement>(null);
   const handledCreateReportFocusRequest = useRef<number | undefined>(undefined);
   const copy = messages.training.sessionLibrary;
@@ -439,6 +441,7 @@ export function TrainingSessionLibraryPanel({
       setCalendarMonth(nextMonth);
       setCalendar(nextCalendar);
       setSelectedCalendarDay(nextCalendarDay ?? undefined);
+      detailOriginButtonRef.current = null;
       setSelected(nextSelected);
       setDetailOrigin(nextView);
       setComparison(nextComparison);
@@ -449,6 +452,7 @@ export function TrainingSessionLibraryPanel({
       if (!active) return;
       setPage(undefined);
       setCalendar(undefined);
+      detailOriginButtonRef.current = null;
       setSelected(undefined);
       setComparison([]);
       setFailed(true);
@@ -474,6 +478,11 @@ export function TrainingSessionLibraryPanel({
     if (!initialSessionRef || selected?.sessionRef !== initialSessionRef) return;
     return restoreFocusAfterReveal(detailHeadingRef.current);
   }, [initialSessionRef, navigationRequestId, selected?.sessionRef]);
+
+  useEffect(() => {
+    if (!selected || !detailOriginButtonRef.current) return;
+    return restoreFocusAfterReveal(detailHeadingRef.current, detailOriginButtonRef.current);
+  }, [selected]);
 
   useEffect(() => {
     if (
@@ -651,6 +660,7 @@ export function TrainingSessionLibraryPanel({
   ): Promise<TrainingSessionSearchPage | undefined> {
     setLoading(true);
     setStatus(undefined);
+    detailOriginButtonRef.current = null;
     setSelected(undefined);
     onError(undefined);
     try {
@@ -778,6 +788,7 @@ export function TrainingSessionLibraryPanel({
 
   function selectView(next: SessionView) {
     setView(next);
+    detailOriginButtonRef.current = null;
     setSelected(undefined);
     const previousDay = selectedCalendarDay;
     setSelectedCalendarDay(undefined);
@@ -814,9 +825,19 @@ export function TrainingSessionLibraryPanel({
       : current.length < 4 ? [...current, session] : current);
   }
 
-  function openDetail(session: TrainingSessionSearchItem) {
+  function openDetail(session: TrainingSessionSearchItem, origin: HTMLButtonElement) {
     setDetailOrigin(view);
+    detailOriginButtonRef.current = origin;
     setSelected(session);
+  }
+
+  function closeDetail(initiatingElement: HTMLButtonElement) {
+    const target = detailOriginButtonRef.current?.isConnected
+      ? detailOriginButtonRef.current
+      : libraryHeadingRef.current;
+    setSelected(undefined);
+    detailOriginButtonRef.current = null;
+    restoreFocusAfterReveal(target, initiatingElement);
   }
 
   function sportTitle(sport: TrainingSport): string {
@@ -1410,7 +1431,9 @@ export function TrainingSessionLibraryPanel({
       aria-busy={loading}
     >
       <header>
-        <h2 id="training-session-library-heading">{copy.heading}</h2>
+        <h2 id="training-session-library-heading" ref={libraryHeadingRef} tabIndex={-1}>
+          {copy.heading}
+        </h2>
         <p>{copy.intro}</p>
       </header>
       <form
@@ -1795,7 +1818,7 @@ export function TrainingSessionLibraryPanel({
                       aria-label={interpolate(copy.viewDetails, {
                         date: formatTrainingDateTime(session.startedAtLocal, locale),
                       })}
-                      onClick={() => openDetail(session)}
+                      onClick={(event) => openDetail(session, event.currentTarget)}
                     >
                       {copy.details}
                     </button>
@@ -1927,7 +1950,7 @@ export function TrainingSessionLibraryPanel({
               <h3
                 id="training-session-detail-heading"
                 ref={detailHeadingRef}
-                tabIndex={initialSessionRef ? -1 : undefined}
+                tabIndex={-1}
               >
                 {copy.detailHeading}
               </h3>
@@ -1948,7 +1971,7 @@ export function TrainingSessionLibraryPanel({
               >
                 {copy.createReport}
               </button>
-              <button type="button" className="secondary" onClick={() => setSelected(undefined)}>
+              <button type="button" className="secondary" onClick={(event) => closeDetail(event.currentTarget)}>
                 {detailOrigin === "calendar" ? copy.backToCalendar : copy.closeDetail}
               </button>
             </div>

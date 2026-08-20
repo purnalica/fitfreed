@@ -802,8 +802,11 @@ describe("FitFreed import interface", () => {
     });
 
     await user.click(screen.getByRole("button", { name: "Back to Home" }));
-    expect(await screen.findByRole("heading", { name: "Your history, ready for your questions" }))
-      .toBeVisible();
+    const homeHeading = await screen.findByRole("heading", {
+      name: "Your history, ready for your questions",
+    });
+    expect(homeHeading).toBeVisible();
+    await waitFor(() => expect(homeHeading).toHaveFocus());
     expect(mocks.homeInvoke).toHaveBeenCalledWith("clear_exploration_workspace", undefined);
     expect(mocks.homeInvoke).toHaveBeenCalledWith(
       "clear_training_discovery_workspace",
@@ -2159,13 +2162,18 @@ describe("FitFreed import interface", () => {
     const detailButtons = screen.getAllByRole("button", {
       name: "View details for Jan 3, 2026",
     });
-    await user.click(detailButtons.at(-1)!);
+    const detailOrigin = detailButtons.at(-1)!;
+    await user.click(detailOrigin);
     const detail = screen.getByRole("region", { name: "Daily detail" });
+    await waitFor(() => expect(within(detail).getByRole("heading", {
+      name: "Daily detail",
+    })).toHaveFocus());
     expect(within(detail).getByText("Jan 3, 2026")).toBeVisible();
     expect(within(detail).getByText("Observation available; step total unavailable")).toBeVisible();
     expect(within(detail).getByText("Not available")).toBeVisible();
     await user.click(within(detail).getByRole("button", { name: "Close detail" }));
     expect(screen.queryByRole("region", { name: "Daily detail" })).not.toBeInTheDocument();
+    await waitFor(() => expect(detailOrigin).toHaveFocus());
 
     const rangeQueryCount = mocks.invoke.mock.calls.filter(
       ([command]) => command === "query_activity_overview",

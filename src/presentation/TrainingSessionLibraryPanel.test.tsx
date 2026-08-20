@@ -838,10 +838,16 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(filteredSummary).toHaveTextContent("1 training day");
     expect(filteredSummary).toHaveTextContent("1 h");
 
-    await user.click(within(region).getByRole("button", { name: /View session details for/ }));
+    const detailOrigin = within(region).getByRole("button", {
+      name: /View session details for/,
+    });
+    await user.click(detailOrigin);
     const detail = within(region).getByRole("heading", { name: "Session summary" })
       .closest("section");
     expect(detail).not.toBeNull();
+    await waitFor(() => expect(within(detail!).getByRole("heading", {
+      name: "Session summary",
+    })).toHaveFocus());
     expect(detail).toHaveTextContent("10,000.5 m");
     expect(detail).toHaveTextContent("650 kcal");
     expect(detail).toHaveTextContent("145 bpm");
@@ -992,6 +998,7 @@ describe("TrainingSessionLibraryPanel", () => {
     await user.click(within(detail!).getByRole("button", { name: "Back to session results" }));
     expect(within(region).queryByRole("heading", { name: "Session summary" }))
       .not.toBeInTheDocument();
+    await waitFor(() => expect(detailOrigin).toHaveFocus());
 
     await user.click(within(region).getByRole("button", { name: "Clear filters" }));
     expect(await within(region).findByText("1–2 of 26 matching sessions")).toBeVisible();

@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
 import type { ExplorerNavigationRequest } from "./explorer-navigation";
+import { restoreFocusAfterReveal } from "./focus-restoration";
 import { RecoveryComparisonPanel } from "./RecoveryComparisonPanel";
 import {
   formatRecoveryMilliseconds,
@@ -50,6 +51,9 @@ export function RecoveryInsightsPanel({
   const [loadingDetail, setLoadingDetail] = useState(false);
   const rangeValidation = useInvalidForm(onError);
   const detailRequest = useRef(0);
+  const overviewHeadingRef = useRef<HTMLHeadingElement>(null);
+  const detailHeadingRef = useRef<HTMLHeadingElement>(null);
+  const detailOriginRef = useRef<HTMLButtonElement | null>(null);
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const decimal = useMemo(
     () => new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }),
@@ -61,18 +65,27 @@ export function RecoveryInsightsPanel({
   );
   const copy = messages.recovery;
 
-  function closeDetail() {
+  function clearDetail() {
     detailRequest.current += 1;
     setSelectedNight(undefined);
     setDetail(undefined);
     setLoadingDetail(false);
+    detailOriginRef.current = null;
+  }
+
+  function closeDetail(initiatingElement: HTMLElement | null) {
+    const target = detailOriginRef.current?.isConnected
+      ? detailOriginRef.current
+      : overviewHeadingRef.current;
+    clearDetail();
+    restoreFocusAfterReveal(target, initiatingElement);
   }
 
   function acceptOverview(result: RecoveryOverview) {
     setOverview(result);
     setRangeFrom(result.selectedRange?.from ?? "");
     setRangeThrough(result.selectedRange?.through ?? "");
-    closeDetail();
+    clearDetail();
   }
 
   async function refresh(requestedRange: RecoveryDateRange | null = null) {
@@ -152,9 +165,13 @@ export function RecoveryInsightsPanel({
     }
   }
 
-  async function openDetail(selection: SelectedNight) {
+  async function openDetail(
+    selection: SelectedNight,
+    origin: HTMLButtonElement | null = null,
+  ) {
     const request = detailRequest.current + 1;
     detailRequest.current = request;
+    detailOriginRef.current = origin;
     setSelectedNight(selection);
     setDetail(undefined);
     setLoadingDetail(true);
@@ -166,7 +183,7 @@ export function RecoveryInsightsPanel({
       });
       if (request !== detailRequest.current) return;
       if (result === null) {
-        setSelectedNight(undefined);
+        closeDetail(detailHeadingRef.current);
         onError("invalid-recovery-reference");
         return;
       }
@@ -177,6 +194,11 @@ export function RecoveryInsightsPanel({
       if (request === detailRequest.current) setLoadingDetail(false);
     }
   }
+
+  useEffect(() => {
+    if (!selectedNight) return;
+    return restoreFocusAfterReveal(detailHeadingRef.current, detailOriginRef.current);
+  }, [selectedNight]);
 
   function rangeLabel(range: RecoveryDateRange): string {
     return `${date.format(recoveryLocalDate(range.from))} ${copy.rangeSeparator} ${date.format(recoveryLocalDate(range.through))}`;
@@ -206,7 +228,7 @@ export function RecoveryInsightsPanel({
       aria-labelledby="recovery-heading"
       aria-busy={loadingOverview}
     >
-      <h1 id="recovery-heading">{copy.heading}</h1>
+      <h1 id="recovery-heading" ref={overviewHeadingRef} tabIndex={-1}>{copy.heading}</h1>
       <p className="recovery-intro">{copy.intro}</p>
       {!overview && loadingOverview ? (
         <p>{copy.loading}</p>
@@ -401,10 +423,10 @@ export function RecoveryInsightsPanel({
                             messages={messages}
                             dateLabel={date.format(recoveryLocalDate(day.recoveryDate))}
                             statusLabel={sourceStatus(day.recovery?.sourceAssessment ?? null)}
-                            onOpen={() => void openDetail({
+                            onOpen={(origin) => void openDetail({
                               seriesRef: series.seriesRef,
                               recoveryDate: day.recoveryDate,
-                            })}
+                            }, origin)}
                           />
                         ))}
                       </tbody>
@@ -422,12 +444,14 @@ export function RecoveryInsightsPanel({
             >
               <div className="recovery-detail-heading">
                 <div>
-                  <h2 id="recovery-detail-heading">{copy.detailHeading}</h2>
+                  <h2 id="recovery-detail-heading" ref={detailHeadingRef} tabIndex={-1}>
+                    {copy.detailHeading}
+                  </h2>
                   <time dateTime={selectedNight.recoveryDate}>
                     {date.format(recoveryLocalDate(selectedNight.recoveryDate))}
                   </time>
                 </div>
-                <button type="button" className="secondary" onClick={closeDetail}>
+                <button type="button" className="secondary" onClick={(event) => closeDetail(event.currentTarget)}>
                   {copy.closeDetail}
                 </button>
               </div>
@@ -522,7 +546,7 @@ function RecoveryDayRow({
   messages: (typeof catalogs)["en-US"];
   dateLabel: string;
   statusLabel: string;
-  onOpen: () => void;
+  onOpen: (origin: HTMLButtonElement) => void;
 }) {
   const copy = messages.recovery;
   return (
@@ -545,7 +569,7 @@ function RecoveryDayRow({
               type="button"
               className="detail-button"
               aria-label={`${copy.viewDetails} ${dateLabel}`}
-              onClick={onOpen}
+              onClick={(event) => onOpen(event.currentTarget)}
             >
               {copy.details}
             </button>

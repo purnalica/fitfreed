@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
 import type { ExplorerNavigationRequest } from "./explorer-navigation";
+import { restoreFocusAfterReveal } from "./focus-restoration";
 import { SleepComparisonPanel } from "./SleepComparisonPanel";
 import {
   formatDecimal,
@@ -54,6 +55,9 @@ export function SleepInsightsPanel({
   const [loadingDetail, setLoadingDetail] = useState(false);
   const rangeValidation = useInvalidForm(onError);
   const detailRequest = useRef(0);
+  const overviewHeadingRef = useRef<HTMLHeadingElement>(null);
+  const detailHeadingRef = useRef<HTMLHeadingElement>(null);
+  const detailOriginRef = useRef<HTMLButtonElement | null>(null);
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const date = useMemo(
     () => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }),
@@ -65,7 +69,7 @@ export function SleepInsightsPanel({
     setOverview(result);
     setRangeFrom(result.selectedRange?.from ?? "");
     setRangeThrough(result.selectedRange?.through ?? "");
-    closeDetail();
+    clearDetail();
   }
 
   async function refresh(requestedRange: SleepDateRange | null = null) {
@@ -142,9 +146,13 @@ export function SleepInsightsPanel({
     }
   }
 
-  async function openDetail(selection: SelectedNight) {
+  async function openDetail(
+    selection: SelectedNight,
+    origin: HTMLButtonElement | null = null,
+  ) {
     const request = detailRequest.current + 1;
     detailRequest.current = request;
+    detailOriginRef.current = origin;
     setSelectedNight(selection);
     setDetail(undefined);
     setLoadingDetail(true);
@@ -156,7 +164,7 @@ export function SleepInsightsPanel({
       });
       if (request !== detailRequest.current) return;
       if (result === null) {
-        setSelectedNight(undefined);
+        closeDetail(detailHeadingRef.current);
         onError("invalid-sleep-reference");
         return;
       }
@@ -168,12 +176,26 @@ export function SleepInsightsPanel({
     }
   }
 
-  function closeDetail() {
+  function clearDetail() {
     detailRequest.current += 1;
     setSelectedNight(undefined);
     setDetail(undefined);
     setLoadingDetail(false);
+    detailOriginRef.current = null;
   }
+
+  function closeDetail(initiatingElement: HTMLElement | null) {
+    const target = detailOriginRef.current?.isConnected
+      ? detailOriginRef.current
+      : overviewHeadingRef.current;
+    clearDetail();
+    restoreFocusAfterReveal(target, initiatingElement);
+  }
+
+  useEffect(() => {
+    if (!selectedNight) return;
+    return restoreFocusAfterReveal(detailHeadingRef.current, detailOriginRef.current);
+  }, [selectedNight]);
 
   function rangeLabel(range: SleepDateRange): string {
     return `${date.format(sleepLocalDate(range.from))} ${copy.rangeSeparator} ${date.format(sleepLocalDate(range.through))}`;
@@ -197,7 +219,7 @@ export function SleepInsightsPanel({
 
   return (
     <section className="sleep-insights" aria-labelledby="sleep-heading" aria-busy={loadingOverview}>
-      <h1 id="sleep-heading">{copy.heading}</h1>
+      <h1 id="sleep-heading" ref={overviewHeadingRef} tabIndex={-1}>{copy.heading}</h1>
       {!overview && loadingOverview ? (
         <p>{copy.loading}</p>
       ) : !overview ? (
@@ -323,7 +345,10 @@ export function SleepInsightsPanel({
                           locale={locale}
                           messages={messages}
                           dateLabel={date.format(sleepLocalDate(day.sleepDate))}
-                          onOpen={() => void openDetail({ seriesRef: series.seriesRef, sleepDate: day.sleepDate })}
+                          onOpen={(origin) => void openDetail(
+                            { seriesRef: series.seriesRef, sleepDate: day.sleepDate },
+                            origin,
+                          )}
                         />)}
                       </tbody>
                     </table>
@@ -335,8 +360,8 @@ export function SleepInsightsPanel({
           {selectedNight && (
             <section className="sleep-detail" aria-labelledby="sleep-detail-heading" aria-busy={loadingDetail}>
               <div className="sleep-detail-heading">
-                <div><h2 id="sleep-detail-heading">{copy.detailHeading}</h2><time dateTime={selectedNight.sleepDate}>{date.format(sleepLocalDate(selectedNight.sleepDate))}</time></div>
-                <button type="button" className="secondary" onClick={closeDetail}>{copy.closeDetail}</button>
+                <div><h2 id="sleep-detail-heading" ref={detailHeadingRef} tabIndex={-1}>{copy.detailHeading}</h2><time dateTime={selectedNight.sleepDate}>{date.format(sleepLocalDate(selectedNight.sleepDate))}</time></div>
+                <button type="button" className="secondary" onClick={(event) => closeDetail(event.currentTarget)}>{copy.closeDetail}</button>
               </div>
               {loadingDetail ? <p>{copy.loadingDetail}</p> : detail ? (
                 <>
@@ -393,7 +418,7 @@ function SleepDayRow({
   locale: Locale;
   messages: (typeof catalogs)["en-US"];
   dateLabel: string;
-  onOpen: () => void;
+  onOpen: (origin: HTMLButtonElement) => void;
 }) {
   const copy = messages.sleep;
   return (
@@ -406,7 +431,7 @@ function SleepDayRow({
           <td>{formatSleepDuration(day.period.asleepMilliseconds, locale, copy.durationUnits, messages.unavailable)}</td>
           <td>{formatDecimal(day.period.efficiencyPercent, locale, messages.unavailable, "%")}</td>
           <td>{formatDecimal(day.period.scoreOverall, locale, messages.unavailable)}</td>
-          <td><button type="button" className="detail-button" aria-label={`${copy.viewDetails} ${dateLabel}`} onClick={onOpen}>{copy.details}</button></td>
+          <td><button type="button" className="detail-button" aria-label={`${copy.viewDetails} ${dateLabel}`} onClick={(event) => onOpen(event.currentTarget)}>{copy.details}</button></td>
         </>
       )}
     </tr>
