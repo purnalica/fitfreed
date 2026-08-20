@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { type catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
 import { restoreFocusAfterReveal } from "./focus-restoration";
+import { ProgressSubmitButton } from "./ProgressSubmitButton";
 import type { SessionReportOrigin } from "./session-report";
 import {
   formatDistance,
@@ -1439,6 +1440,7 @@ export function TrainingSessionLibraryPanel({
       <form
         className="training-session-search"
         aria-labelledby="training-session-filter-heading"
+        aria-busy={loading}
         onSubmit={applyFilters}
       >
         <h3 id="training-session-filter-heading">{copy.filterHeading}</h3>
@@ -1541,9 +1543,12 @@ export function TrainingSessionLibraryPanel({
           <button type="button" className="secondary" disabled={loading} onClick={clearFilters}>
             {copy.clear}
           </button>
-          <button type="submit" disabled={loading || textTooLong}>
-            {loading ? copy.applying : copy.apply}
-          </button>
+          <ProgressSubmitButton
+            loading={loading}
+            disabled={textTooLong}
+            actionLabel={copy.apply}
+            progressLabel={copy.applying}
+          />
         </div>
       </form>
 

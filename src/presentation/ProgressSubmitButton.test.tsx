@@ -32,5 +32,17 @@ describe("ProgressSubmitButton", () => {
     expect(screen.getAllByRole("status")).toHaveLength(1);
     expect(screen.getByRole("status")).toHaveTextContent("Comparing periods…");
     expect(screen.getByRole("status")).toBeVisible();
+
+    rerender(
+      <ProgressSubmitButton
+        loading={false}
+        disabled
+        actionLabel="Compare periods"
+        progressLabel="Comparing periods…"
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Compare periods" })).toBeDisabled();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 });

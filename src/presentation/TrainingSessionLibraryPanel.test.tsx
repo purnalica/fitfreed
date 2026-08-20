@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -1020,6 +1020,44 @@ describe("TrainingSessionLibraryPanel", () => {
     await user.click(within(region).getByRole("button", { name: "Previous page" }));
     expect(await within(region).findByText("1–2 of 26 matching sessions")).toBeVisible();
     expect(onError).toHaveBeenCalledWith(undefined);
+  });
+
+  it("announces a search without renaming its action or hiding the current results", async () => {
+    let resolveSearch!: (value: TrainingSessionSearchPage) => void;
+    const pendingSearch = new Promise<TrainingSessionSearchPage>((resolve) => {
+      resolveSearch = resolve;
+    });
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+      if (workspaceResult) return workspaceResult;
+      if (command === "query_training_sports") return Promise.resolve(sports);
+      if (command === "query_training_sessions") {
+        return arguments_.request.text === "Trail"
+          ? pendingSearch
+          : Promise.resolve(page([newest, second], 0, 26, 25));
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    renderPanel();
+    const region = await screen.findByRole("region", { name: "Find a training session" });
+    expect(await within(region).findByText("1–2 of 26 matching sessions")).toBeVisible();
+    const form = within(region).getByRole("form", { name: "Filter sessions" });
+    await user.type(within(form).getByRole("textbox", {
+      name: /^Your sport name contains/,
+    }), "Trail");
+
+    await user.click(within(form).getByRole("button", { name: "Apply filters" }));
+
+    expect(form).toHaveAttribute("aria-busy", "true");
+    expect(within(form).getByRole("button", { name: "Apply filters" })).toBeDisabled();
+    expect(within(form).getByRole("status")).toHaveTextContent("Applying filters…");
+    expect(within(region).getByText("1–2 of 26 matching sessions")).toBeVisible();
+
+    act(() => resolveSearch(page([newest], 0, 1, null)));
+    await waitFor(() => expect(form).toHaveAttribute("aria-busy", "false"));
+    expect(within(form).queryByRole("status")).not.toBeInTheDocument();
+    expect(within(region).getByText("1–1 of 1 matching sessions")).toBeVisible();
   });
 
   it("keeps deep session failures contextual instead of requesting duplicate shell alerts", async () => {

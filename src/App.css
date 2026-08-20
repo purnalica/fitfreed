@@ -287,7 +287,8 @@ th:last-child, td:last-child { text-align: right; }
 .activity-filter-actions .progress-submit-status,
 .sleep-filter-actions .progress-submit-status,
 .recovery-filter-actions .progress-submit-status,
-.longitudinal-filter-actions .progress-submit-status { order: 1; flex-basis: 100%; text-align: right; }
+.longitudinal-filter-actions .progress-submit-status,
+.training-session-search-actions .progress-submit-status { order: 1; flex-basis: 100%; text-align: right; }
 .activity-comparison-result { margin-top: 20px; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 15px; }
 .activity-comparison-result-heading { display: flex; align-items: start; justify-content: space-between; gap: 18px; }
 .activity-comparison-result-heading h3 { margin: 0 0 5px; font-size: 1.1rem; }
