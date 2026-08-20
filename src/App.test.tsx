@@ -166,10 +166,6 @@ function activityComparison(
   };
 }
 
-function emptyTrainingOverview(): TestTrainingOverview {
-  return { availableRange: null, selectedRange: null, series: [] };
-}
-
 function trainingSessionSearchPage(
   sessions: TestTrainingSession[],
   availableRange: { from: string; through: string } | null = {
@@ -667,9 +663,6 @@ beforeEach(() => {
     if (command === "query_activity_overview") {
       return Promise.resolve(emptyActivityOverview());
     }
-    if (command === "query_training_overview") {
-      return Promise.resolve(emptyTrainingOverview());
-    }
     if (command === "query_training_sessions") {
       return Promise.resolve(emptyTrainingSessionSearchPage());
     }
@@ -744,7 +737,6 @@ function emptyLibrary(initialLocale: "en-US" | "es-ES" | null = "en-US") {
   });
   mocks.invoke.mockImplementation((command) => {
     if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
-    if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
     if (command === "query_latest_import_outcome") return Promise.resolve(null);
     if (command === "list_reports") return Promise.resolve({ reports: [] });
     throw new Error(`Unexpected command: ${command}`);
@@ -786,7 +778,6 @@ describe("FitFreed import interface", () => {
       throw new Error(`Unexpected Home command: ${command}`);
     });
     mocks.invoke.mockImplementation((command) => {
-      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
       throw new Error(`Unexpected command: ${command}`);
     });
@@ -798,9 +789,11 @@ describe("FitFreed import interface", () => {
     expect(mocks.homeInvoke).toHaveBeenCalledWith("query_library_home", {
       request: { afterImportOperationRef: null },
     });
-    expect(mocks.invoke).not.toHaveBeenCalledWith("query_training_overview", {
-      requestedRange: null,
-    });
+    expect(mocks.invoke).not.toHaveBeenCalledWith(
+      "query_training_sessions",
+      expect.anything(),
+    );
+    expect(mocks.sportsInvoke).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole("button", { name: "Explore my training sessions" }));
     expect(await screen.findByRole("heading", { name: "Training history" })).toBeVisible();
@@ -835,7 +828,6 @@ describe("FitFreed import interface", () => {
       throw new Error(`Unexpected Home command: ${command}`);
     });
     mocks.invoke.mockImplementation((command) => {
-      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
       throw new Error(`Unexpected command: ${command}`);
     });
@@ -863,7 +855,6 @@ describe("FitFreed import interface", () => {
       throw new Error(`Unexpected Home command: ${command}`);
     });
     mocks.invoke.mockImplementation((command) => {
-      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
       throw new Error(`Unexpected command: ${command}`);
     });
@@ -906,7 +897,6 @@ describe("FitFreed import interface", () => {
     });
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
-      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
       throw new Error(`Unexpected command: ${command}`);
     });
@@ -1374,7 +1364,6 @@ describe("FitFreed import interface", () => {
     });
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
-      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
       throw new Error(`Unexpected command: ${command}`);
     });
@@ -1410,9 +1399,11 @@ describe("FitFreed import interface", () => {
       expect(mocks.invoke).not.toHaveBeenCalledWith("query_activity_overview", {
         requestedRange: null,
       });
-      expect(mocks.invoke).not.toHaveBeenCalledWith("query_training_overview", {
-        requestedRange: null,
-      });
+      expect(mocks.invoke).not.toHaveBeenCalledWith(
+        "query_training_sessions",
+        expect.anything(),
+      );
+      expect(mocks.sportsInvoke).not.toHaveBeenCalled();
       expect(mocks.longitudinalInvoke).not.toHaveBeenCalled();
       expect(mocks.sleepInvoke).not.toHaveBeenCalled();
       expect(mocks.recoveryInvoke).not.toHaveBeenCalled();
@@ -1557,7 +1548,6 @@ describe("FitFreed import interface", () => {
     });
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
-      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
       throw new Error(`Unexpected command: ${command}`);
     });
@@ -1818,7 +1808,6 @@ describe("FitFreed import interface", () => {
     });
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
-      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(latestOutcome);
       throw new Error(`Unexpected command: ${command}`);
     });
@@ -1873,7 +1862,6 @@ describe("FitFreed import interface", () => {
     let latestOutcome: ReturnType<typeof importOutcome> | null = null;
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
-      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(latestOutcome);
       if (command === "import_archive") {
         latestOutcome = importOutcome({
@@ -1979,7 +1967,6 @@ describe("FitFreed import interface", () => {
     });
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
-      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
       throw new Error(`Unexpected command: ${command}`);
     });
@@ -2004,7 +1991,6 @@ describe("FitFreed import interface", () => {
     });
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
-      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
       throw new Error(`Unexpected command: ${command}`);
     });
@@ -2043,7 +2029,6 @@ describe("FitFreed import interface", () => {
     });
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
-      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(singularOutcome);
       throw new Error(`Unexpected command: ${command}`);
     });
@@ -2070,7 +2055,6 @@ describe("FitFreed import interface", () => {
     ]);
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_activity_overview") return Promise.resolve(overview);
-      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
       throw new Error(`Unexpected command: ${command}`);
     });
@@ -2121,7 +2105,6 @@ describe("FitFreed import interface", () => {
       if (command === "query_activity_overview") {
         return Promise.resolve(arguments_?.requestedRange ? filtered : complete);
       }
-      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
       throw new Error(`Unexpected command: ${command}`);
     });
@@ -2199,7 +2182,6 @@ describe("FitFreed import interface", () => {
     comparison.availableRange = overview.availableRange;
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_activity_overview") return Promise.resolve(overview);
-      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_activity_comparison") return Promise.resolve(comparison);
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
       throw new Error(`Unexpected command: ${command}`);
@@ -2290,7 +2272,6 @@ describe("FitFreed import interface", () => {
     let latestOutcome: ReturnType<typeof importOutcome> | null = null;
     mocks.invoke.mockImplementation((command, arguments_) => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
-      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(latestOutcome);
       if (command === "import_archive") {
         onProgress = arguments_.onProgress;
@@ -2390,7 +2371,6 @@ describe("FitFreed import interface", () => {
     });
     mocks.invoke.mockImplementation((command, arguments_) => {
       if (command === "query_activity_overview") return Promise.resolve(storedHistory);
-      if (command === "query_training_overview") return Promise.resolve(emptyTrainingOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(latestOutcome);
       if (command === "import_archive") {
         importAttempt += 1;

@@ -43,6 +43,15 @@ function rustSources(relativeDirectory) {
   });
 }
 
+function frontendSources(relativeDirectory) {
+  const absoluteDirectory = path.join(repositoryRoot, relativeDirectory);
+  return readdirSync(absoluteDirectory, { withFileTypes: true }).flatMap((entry) => {
+    const relativePath = path.join(relativeDirectory, entry.name);
+    if (entry.isDirectory()) return frontendSources(relativePath);
+    return entry.isFile() && /\.tsx?$/.test(entry.name) ? [relativePath] : [];
+  });
+}
+
 function rejectBoundaryTerms(relativeDirectory, forbiddenTerms) {
   for (const relativePath of rustSources(relativeDirectory)) {
     const source = readFileSync(path.join(repositoryRoot, relativePath), "utf8");
@@ -102,6 +111,17 @@ if (!hostUpdateEvent || hostUpdateEvent !== presentationUpdateEvent) {
 if (/\bfn query_training_overview\b|\bquery_training_overview,/.test(hostSource)) {
   throw new Error(
     "the obsolete training-overview desktop command must not remain after session discovery replaced its presentation path",
+  );
+}
+
+const obsoleteTrainingOverviewConsumers = frontendSources("src").filter((relativePath) => (
+  readFileSync(path.join(repositoryRoot, relativePath), "utf8").includes(
+    '"query_training_overview"',
+  )
+));
+if (obsoleteTrainingOverviewConsumers.length > 0) {
+  throw new Error(
+    `the obsolete training-overview desktop command still has frontend references: ${obsoleteTrainingOverviewConsumers.join(", ")}`,
   );
 }
 
