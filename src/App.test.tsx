@@ -1632,6 +1632,7 @@ describe("FitFreed import interface", () => {
 
   it("reports and explicitly acknowledges a verified update outcome without exposing its identifier", async () => {
     emptyLibrary();
+    let completeAcknowledgement: (acknowledged: boolean) => void = () => undefined;
     mocks.updateInvoke.mockImplementation((command) => {
       if (command === "confirm_update_recovery_startup") {
         return Promise.resolve({
@@ -1641,7 +1642,11 @@ describe("FitFreed import interface", () => {
           recoveryId: "private-recovery-identifier",
         });
       }
-      if (command === "acknowledge_update_recovery_notice") return Promise.resolve(true);
+      if (command === "acknowledge_update_recovery_notice") {
+        return new Promise((resolve) => {
+          completeAcknowledgement = resolve;
+        });
+      }
       if (command === "check_for_updates_on_launch") {
         return Promise.resolve({
           installedVersion: "0.2.0",
@@ -1669,6 +1674,14 @@ describe("FitFreed import interface", () => {
       "acknowledge_update_recovery_notice",
       undefined,
     );
+    const notice = screen.getByRole("region", { name: "Update completed" });
+    expect(notice).toHaveAttribute("aria-busy", "true");
+    expect(
+      within(notice).getByRole("button", { name: "Dismiss update result" }),
+    ).toBeDisabled();
+    expect(within(notice).getByText("Dismissing…")).toHaveAttribute("role", "status");
+
+    await act(async () => completeAcknowledgement(true));
     await waitFor(() => expect(
       screen.queryByRole("status", { name: "Update completed" }),
     ).not.toBeInTheDocument());

@@ -919,7 +919,11 @@ function App() {
           </p>
         )}
         {updateRecoveryOutcome && (
-          <section className="update-panel update-recovery-notice">
+          <section
+            className="update-panel update-recovery-notice"
+            aria-labelledby="update-recovery-heading"
+            aria-busy={updateRecoveryAcknowledging}
+          >
             <div
               className={`update-result update-result-${updateRecoveryOutcome.outcome}`}
               role="status"
@@ -944,11 +948,14 @@ function App() {
                 onClick={() => void acknowledgeUpdateRecoveryOutcome()}
                 disabled={updateRecoveryAcknowledging}
               >
-                {updateRecoveryAcknowledging
-                  ? messages.updates.recovery.acknowledging
-                  : messages.updates.recovery.acknowledge}
+                {messages.updates.recovery.acknowledge}
               </button>
             </div>
+            {updateRecoveryAcknowledging && (
+              <p className="update-progress" role="status" aria-live="polite">
+                {messages.updates.recovery.acknowledging}
+              </p>
+            )}
           </section>
         )}
         {activeHome === "settings" && (
