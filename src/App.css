@@ -88,7 +88,10 @@ button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visibl
 
 .app-content { width: min(1080px, calc(100% - 48px)); margin: 0 auto; padding: 48px 0 72px; }
 .loading-surface { min-height: 120px; margin: 0; padding: 32px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 15px; }
-.startup-surface { width: 100%; min-height: 100vh; padding: 0; background: var(--paper); }
+.startup-surface { display: grid; width: 100%; min-height: 100vh; padding: 24px; place-items: center; background: var(--paper); }
+.startup-mark { display: grid; width: min(220px, 100%); gap: 18px; color: var(--ink); text-align: center; }
+.startup-mark strong { font-size: clamp(1.6rem, 8vw, 2.4rem); letter-spacing: -.045em; }
+.startup-mark progress { height: 6px; }
 .shell-header { position: sticky; z-index: 20; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 64px; padding: 10px 24px; background: color-mix(in srgb, var(--paper) 88%, transparent); border-bottom: 1px solid var(--line); backdrop-filter: blur(18px); }
 .shell-brand { color: var(--ink); font-size: 1.08rem; letter-spacing: -.03em; }
 .shell-header nav { display: flex; gap: 4px; }

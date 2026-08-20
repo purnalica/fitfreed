@@ -1050,6 +1050,11 @@ describe("FitFreed import interface", () => {
     render(<App />);
 
     await waitFor(() => expect(completePreferences).toBeTypeOf("function"));
+    const startupSurface = screen.getByRole("main", { name: "FitFreed" });
+    expect(startupSurface).toHaveAttribute("aria-busy", "true");
+    expect(within(startupSurface).getByText("FitFreed")).toBeVisible();
+    expect(within(startupSurface).getByRole("progressbar", { name: "FitFreed" }))
+      .toBeVisible();
     expect(screen.queryByRole("heading", { name: /fitness history belongs/i }))
       .not.toBeInTheDocument();
 

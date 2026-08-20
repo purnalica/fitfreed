@@ -815,7 +815,14 @@ function App() {
   }
 
   if (!localeReady) {
-    return <main className="startup-surface" aria-busy="true" aria-label="FitFreed" />;
+    return (
+      <main className="startup-surface" aria-busy="true" aria-label="FitFreed">
+        <div className="startup-mark">
+          <strong>FitFreed</strong>
+          <progress aria-label="FitFreed" />
+        </div>
+      </main>
+    );
   }
 
   return (
