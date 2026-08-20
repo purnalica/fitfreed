@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
 import { LongitudinalComparisonPanel } from "./LongitudinalComparisonPanel";
+import { ProgressSubmitButton } from "./ProgressSubmitButton";
 import type {
   LongitudinalDateRange,
   LongitudinalDayInsight,
@@ -213,9 +214,11 @@ export function LongitudinalInsightsPanel({
                 />
               </label>
               <div className="longitudinal-filter-actions">
-                <button type="submit" disabled={loadingRange}>
-                  {loadingRange ? copy.applyingRange : copy.applyRange}
-                </button>
+                <ProgressSubmitButton
+                  loading={loadingRange}
+                  actionLabel={copy.applyRange}
+                  progressLabel={copy.applyingRange}
+                />
                 <button
                   type="button"
                   className="secondary"

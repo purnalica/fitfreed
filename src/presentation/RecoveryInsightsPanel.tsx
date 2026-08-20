@@ -5,6 +5,7 @@ import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
 import type { ExplorerNavigationRequest } from "./explorer-navigation";
 import { restoreFocusAfterReveal } from "./focus-restoration";
+import { ProgressSubmitButton } from "./ProgressSubmitButton";
 import { RecoveryComparisonPanel } from "./RecoveryComparisonPanel";
 import {
   formatRecoveryMilliseconds,
@@ -284,9 +285,11 @@ export function RecoveryInsightsPanel({
                 />
               </label>
               <div className="recovery-filter-actions">
-                <button type="submit" disabled={loadingRange}>
-                  {loadingRange ? copy.applyingRange : copy.applyRange}
-                </button>
+                <ProgressSubmitButton
+                  loading={loadingRange}
+                  actionLabel={copy.applyRange}
+                  progressLabel={copy.applyingRange}
+                />
                 <button
                   type="button"
                   className="secondary"

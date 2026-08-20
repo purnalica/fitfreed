@@ -38,6 +38,7 @@ import { SourcesPanel } from "./presentation/SourcesPanel";
 import type { ReportSourceTarget } from "./presentation/report-navigation";
 import type { ReportStartOrigin } from "./presentation/session-report";
 import { LoadingSurface } from "./presentation/LoadingSurface";
+import { ProgressSubmitButton } from "./presentation/ProgressSubmitButton";
 import { restoreFocusAfterReveal } from "./presentation/focus-restoration";
 import { APPLICATION_ERROR_ID, useInvalidForm } from "./presentation/useInvalidForm";
 
@@ -1241,9 +1242,11 @@ function App() {
                   />
                 </label>
                 <div className="activity-filter-actions">
-                  <button type="submit" disabled={rangeLoading}>
-                    {rangeLoading ? messages.activity.applyingRange : messages.activity.applyRange}
-                  </button>
+                  <ProgressSubmitButton
+                    loading={rangeLoading}
+                    actionLabel={messages.activity.applyRange}
+                    progressLabel={messages.activity.applyingRange}
+                  />
                   <button
                     type="button"
                     className="secondary"

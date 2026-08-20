@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -336,6 +336,46 @@ describe("LongitudinalInsightsPanel", () => {
       "query_longitudinal_overview",
       { requestedRange: null },
     ));
+  });
+
+  it("announces a shared-range query without renaming its action or hiding the current view", async () => {
+    const filtered = overview({ from: "2026-03-30", through: "2026-03-30" });
+    filtered.series[0].days = [filtered.series[0].days[2]];
+    let resolveRange!: (value: LongitudinalOverview) => void;
+    const pendingRange = new Promise<LongitudinalOverview>((resolve) => {
+      resolveRange = resolve;
+    });
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command !== "query_longitudinal_overview") {
+        throw new Error(`Unexpected command: ${command}`);
+      }
+      return arguments_.requestedRange ? pendingRange : Promise.resolve(overview());
+    });
+    const user = userEvent.setup();
+    renderPanel({ onError: vi.fn() });
+    const region = screen.getByRole("region", { name: "Longitudinal dashboard" });
+    const form = await within(region).findByRole("form", {
+      name: "Explore one shared period",
+    });
+    const from = within(form).getByLabelText("From");
+    const through = within(form).getByLabelText("Through");
+    await user.clear(from);
+    await user.type(from, "2026-03-30");
+    await user.clear(through);
+    await user.type(through, "2026-03-30");
+
+    await user.click(within(form).getByRole("button", { name: "Apply shared period" }));
+
+    expect(form).toHaveAttribute("aria-busy", "true");
+    expect(within(form).getByRole("button", { name: "Apply shared period" })).toBeDisabled();
+    expect(within(form).getByRole("status")).toHaveTextContent("Applying shared period…");
+    expect(within(region).getByRole("button", {
+      name: "View aligned details for Mar 28, 2026",
+    })).toBeVisible();
+
+    act(() => resolveRange(filtered));
+    await waitFor(() => expect(form).toHaveAttribute("aria-busy", "false"));
+    expect(within(form).queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("runs all four comparisons, preserves a valid result after invalid input, and clears it", async () => {
