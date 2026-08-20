@@ -10,6 +10,11 @@ import {
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
+function replaceRequired(source, currentText, replacement) {
+  assert.match(source, new RegExp(currentText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  return source.replace(currentText, replacement);
+}
+
 test("accepts current documentation derived from the release compatibility source", () => {
   assert.deepEqual(
     validateCurrentDocumentation(loadCurrentDocumentation(repositoryRoot)),
@@ -24,19 +29,19 @@ test("accepts current documentation derived from the release compatibility sourc
 
 test("rejects stale storage, report, and release-readiness claims together", () => {
   const candidate = structuredClone(loadCurrentDocumentation(repositoryRoot));
-  candidate.sources["docs/architecture/storage.md"] = candidate.sources[
-    "docs/architecture/storage.md"
-  ].replace("SQLite version 23", "SQLite version 22");
-  candidate.sources["docs/user/public-macos-0.1.0.md"] = candidate.sources[
-    "docs/user/public-macos-0.1.0.md"
-  ].replace(
+  candidate.sources["docs/architecture/storage.md"] = replaceRequired(
+    candidate.sources["docs/architecture/storage.md"],
+    "SQLite version 23",
+    "SQLite version 22",
+  );
+  candidate.sources["docs/user/public-macos-0.1.0.md"] = replaceRequired(
+    candidate.sources["docs/user/public-macos-0.1.0.md"],
     "question-, exploration-, session-, and blank-start reports",
     "session-start reports",
   );
-  candidate.sources["docs/testing/public-release-readiness.md"] = candidate.sources[
-    "docs/testing/public-release-readiness.md"
-  ].replace(
-    "The E1 through E5 experience is implemented",
+  candidate.sources["docs/testing/public-release-readiness.md"] = replaceRequired(
+    candidate.sources["docs/testing/public-release-readiness.md"],
+    "The E1 through E5 experience and the current E6 automated hardening boundary are implemented",
     "The accepted E1–E6 experience scope is not implemented",
   );
 
