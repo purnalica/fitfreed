@@ -854,6 +854,9 @@ describe("ReportsPanel", () => {
     await user.click(await screen.findByRole("button", { name: "Review and export" }));
 
     const review = screen.getByRole("region", { name: "Review the export" });
+    await waitFor(() => expect(within(review).getByRole("heading", {
+      name: "Review the export",
+    })).toHaveFocus());
     expect(within(review).getByText(/Exact training samples are excluded/)).toBeVisible();
     expect(within(review).getByText(/written only to the location you choose/)).toBeVisible();
     await user.click(within(review).getByRole("checkbox", {
@@ -876,7 +879,11 @@ describe("ReportsPanel", () => {
         },
       },
     ));
-    expect(await screen.findByText("Self-contained HTML exported (4,096 bytes).")).toBeVisible();
+    const exportedNotice = await screen.findByText(
+      "Self-contained HTML exported (4,096 bytes).",
+    );
+    expect(exportedNotice).toBeVisible();
+    await waitFor(() => expect(exportedNotice).toHaveFocus());
     expect(screen.queryByRole("region", { name: "Review the export" })).not.toBeInTheDocument();
   });
 
@@ -1123,10 +1130,15 @@ describe("ReportsPanel", () => {
     })).toBeVisible();
     expect(screen.getAllByText("68,500.75 m").length).toBeGreaterThan(0);
     expect(document.body.innerHTML).not.toContain("opaque-origin-that-must-not-be-rendered");
-    await user.click(screen.getByRole("button", { name: "Review and export" }));
+    const reviewOrigin = screen.getByRole("button", { name: "Review and export" });
+    await user.click(reviewOrigin);
     const privacyReview = screen.getByRole("region", { name: "Review the export" });
+    await waitFor(() => expect(within(privacyReview).getByRole("heading", {
+      name: "Review the export",
+    })).toHaveFocus());
     expect(within(privacyReview).getByText(/Selected period-comparison values/)).toBeVisible();
     await user.click(within(privacyReview).getByRole("button", { name: "Back to report" }));
+    await waitFor(() => expect(reviewOrigin).toHaveFocus());
 
     const savedReports = screen.getByRole("heading", { name: "Saved reports" }).closest("aside");
     await user.click(within(savedReports!).getByRole("button", {
@@ -1180,7 +1192,10 @@ describe("ReportsPanel", () => {
     expect(screen.getByRole("button", { name: /Recovery run/ })).toBeVisible();
     await user.click(screen.getByRole("button", { name: /Ridge progression/ }));
     await user.click(await screen.findByRole("button", { name: "Review and export" }));
-    await user.click(screen.getByRole("button", { name: "Choose destination and export" }));
+    const exportAction = screen.getByRole("button", {
+      name: "Choose destination and export",
+    });
+    await user.click(exportAction);
     await user.click(await screen.findByRole("button", { name: "Cancel export" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
@@ -1188,6 +1203,7 @@ describe("ReportsPanel", () => {
     );
     expect(screen.getAllByRole("alert")).toHaveLength(1);
     expect(screen.queryByText(/Self-contained HTML exported/)).not.toBeInTheDocument();
+    await waitFor(() => expect(exportAction).toHaveFocus());
   });
 
   it("blocks stale exports, reports failures, and presents the workflow in Spanish", async () => {
@@ -1274,12 +1290,16 @@ describe("ReportsPanel", () => {
     expect(screen.getByLabelText("Título del informe")).toBeDisabled();
     expect(mocks.save).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole("button", {
+    const refreshOrigin = screen.getByRole("button", {
       name: "Revisar actualización de evidencias",
-    }));
+    });
+    await user.click(refreshOrigin);
     let refreshReview = screen.getByRole("region", {
       name: "Revisa las evidencias actuales de la biblioteca",
     });
+    await waitFor(() => expect(within(refreshReview).getByRole("heading", {
+      name: "Revisa las evidencias actuales de la biblioteca",
+    })).toHaveFocus());
     expect(within(refreshReview).getByText(/no conserva copias históricas/)).toBeVisible();
     expect(within(refreshReview).getByText(
       "El título, la interpretación y el idioma del informe",
@@ -1293,14 +1313,16 @@ describe("ReportsPanel", () => {
     expect(screen.queryByRole("region", {
       name: "Revisa las evidencias actuales de la biblioteca",
     })).not.toBeInTheDocument();
+    await waitFor(() => expect(refreshOrigin).toHaveFocus());
     expect(screen.getByRole("button", { name: "Revisar y exportar" })).toBeDisabled();
 
-    await user.click(screen.getByRole("button", {
-      name: "Revisar actualización de evidencias",
-    }));
+    await user.click(refreshOrigin);
     refreshReview = screen.getByRole("region", {
       name: "Revisa las evidencias actuales de la biblioteca",
     });
+    await waitFor(() => expect(within(refreshReview).getByRole("heading", {
+      name: "Revisa las evidencias actuales de la biblioteca",
+    })).toHaveFocus());
     await user.click(within(refreshReview).getByRole("button", {
       name: "Utilizar esta revisión de evidencias",
     }));
@@ -1312,7 +1334,9 @@ describe("ReportsPanel", () => {
         expectedResolvedSnapshotRef: changedSnapshotRef,
       },
     }));
-    expect(await screen.findByText(/utiliza ahora la revisión de evidencias/)).toBeVisible();
+    const refreshedNotice = await screen.findByText(/utiliza ahora la revisión de evidencias/);
+    expect(refreshedNotice).toBeVisible();
+    await waitFor(() => expect(refreshedNotice).toHaveFocus());
     expect(screen.getByText("Actual")).toBeVisible();
     expect(screen.getByText("Revisión 2")).toBeVisible();
     expect(screen.getByLabelText("Título del informe")).toHaveValue("Sesión sostenida");

@@ -261,11 +261,21 @@ export function ReportsPanel({
   const [refreshReviewOpen, setRefreshReviewOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const requestedReportHeadingRef = useRef<HTMLHeadingElement>(null);
+  const refreshReviewHeadingRef = useRef<HTMLHeadingElement>(null);
+  const refreshReviewOriginRef = useRef<HTMLElement>(null);
+  const refreshOutcomeOriginRef = useRef<HTMLElement>(null);
+  const refreshedNoticeRef = useRef<HTMLParagraphElement>(null);
   const [privacyReviewOpen, setPrivacyReviewOpen] = useState(false);
+  const privacyReviewHeadingRef = useRef<HTMLHeadingElement>(null);
+  const privacyReviewOriginRef = useRef<HTMLElement>(null);
   const [exportPhysiology, setExportPhysiology] = useState(false);
   const [exportRoutes, setExportRoutes] = useState<Record<string, RouteExportChoice>>({});
   const [exporting, setExporting] = useState(false);
   const [exportedBytes, setExportedBytes] = useState<string>();
+  const exportActionRef = useRef<HTMLButtonElement>(null);
+  const exportOutcomeOriginRef = useRef<HTMLElement>(null);
+  const interruptedExportControlRef = useRef<HTMLElement>(null);
+  const exportedNoticeRef = useRef<HTMLParagraphElement>(null);
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
 
   async function refreshList() {
@@ -379,6 +389,38 @@ export function ReportsPanel({
   }, [openReportRef, openReportRequestId, resolved?.definition.reportRef]);
 
   useEffect(() => {
+    if (!refreshReviewOpen) return;
+    return restoreFocusAfterReveal(
+      refreshReviewHeadingRef.current,
+      refreshReviewOriginRef.current,
+    );
+  }, [refreshReviewOpen]);
+
+  useEffect(() => {
+    if (!privacyReviewOpen) return;
+    return restoreFocusAfterReveal(
+      privacyReviewHeadingRef.current,
+      privacyReviewOriginRef.current,
+    );
+  }, [privacyReviewOpen]);
+
+  useEffect(() => {
+    if (!refreshedNotice) return;
+    return restoreFocusAfterReveal(
+      refreshedNoticeRef.current,
+      refreshOutcomeOriginRef.current,
+    );
+  }, [refreshedNotice]);
+
+  useEffect(() => {
+    if (!exportedBytes) return;
+    return restoreFocusAfterReveal(
+      exportedNoticeRef.current,
+      exportOutcomeOriginRef.current,
+    );
+  }, [exportedBytes]);
+
+  useEffect(() => {
     let active = true;
     if (!editor?.sessionRef) {
       setAvailableRoutes([]);
@@ -450,14 +492,21 @@ export function ReportsPanel({
     return resolveReport(reportRef);
   }
 
-  function beginRefreshReview() {
+  function beginRefreshReview(origin: HTMLElement) {
     if (!resolved || resolved.status !== "stale") return;
+    refreshReviewOriginRef.current = origin;
     setLocalError(undefined);
     setRefreshReviewOpen(true);
   }
 
-  async function confirmRefresh() {
+  function closeRefreshReview(initiatingElement: HTMLElement) {
+    setRefreshReviewOpen(false);
+    restoreFocusAfterReveal(refreshReviewOriginRef.current, initiatingElement);
+  }
+
+  async function confirmRefresh(initiatingElement: HTMLElement) {
     if (!resolved || resolved.status !== "stale") return;
+    refreshOutcomeOriginRef.current = initiatingElement;
     const request: RefreshReportRequest = {
       reportRef: resolved.definition.reportRef,
       expectedRevision: resolved.definition.revision,
@@ -628,8 +677,9 @@ export function ReportsPanel({
     }
   }
 
-  function beginPrivacyReview() {
+  function beginPrivacyReview(origin: HTMLElement) {
     if (!resolved || resolved.status !== "current") return;
+    privacyReviewOriginRef.current = origin;
     setExportPhysiology(resolved.definition.blocks.some(
       (block) => block.kind === "session-evidence" && block.includePhysiologicalContext,
     ));
@@ -644,8 +694,14 @@ export function ReportsPanel({
     setExportedBytes(undefined);
   }
 
-  async function exportReport() {
+  function closePrivacyReview(initiatingElement: HTMLElement) {
+    setPrivacyReviewOpen(false);
+    restoreFocusAfterReveal(privacyReviewOriginRef.current, initiatingElement);
+  }
+
+  async function exportReport(initiatingElement: HTMLElement) {
     if (!resolved || resolved.status !== "current") return;
+    exportOutcomeOriginRef.current = initiatingElement;
     const routeChoices = resolved.routes.map((route) => {
       const choice = exportRoutes[route.blockRef] ?? {
         includeGeometry: false,
@@ -674,6 +730,8 @@ export function ReportsPanel({
     setExporting(true);
     setLocalError(undefined);
     setExportedBytes(undefined);
+    interruptedExportControlRef.current = null;
+    let completed = false;
     try {
       const receipt = await invoke<ReportExportReceipt>("export_report", {
         request: {
@@ -685,6 +743,7 @@ export function ReportsPanel({
           destinationPath: destination,
         },
       });
+      completed = true;
       setExportedBytes(receipt.byteCount);
       setPrivacyReviewOpen(false);
     } catch (reason) {
@@ -692,10 +751,17 @@ export function ReportsPanel({
       setLocalError(code);
     } finally {
       setExporting(false);
+      if (!completed) {
+        restoreFocusAfterReveal(
+          exportActionRef.current,
+          interruptedExportControlRef.current,
+        );
+      }
     }
   }
 
-  async function cancelExport() {
+  async function cancelExport(initiatingElement: HTMLElement) {
+    interruptedExportControlRef.current = initiatingElement;
     await invoke<boolean>("cancel_report_export");
   }
 
@@ -1562,7 +1628,7 @@ export function ReportsPanel({
                     type="button"
                     className="secondary"
                     disabled={editingLocked || resolved.status !== "current"}
-                    onClick={beginPrivacyReview}
+                    onClick={(event) => beginPrivacyReview(event.currentTarget)}
                   >
                     {copy.reviewExport}
                   </button>
@@ -1572,14 +1638,18 @@ export function ReportsPanel({
           )}
 
           {savedNotice && <p className="notice" role="status">{copy.saved}</p>}
-          {refreshedNotice && <p className="notice" role="status">{copy.refresh.completed}</p>}
+          {refreshedNotice && (
+            <p ref={refreshedNoticeRef} className="notice" role="status" tabIndex={-1}>
+              {copy.refresh.completed}
+            </p>
+          )}
           {localError && (
             <p id="report-editor-error" className="error" role="alert">
               {copy.errors[localError as keyof typeof copy.errors] ?? copy.errors.unexpected}
             </p>
           )}
           {exportedBytes && (
-            <p className="notice" role="status">
+            <p ref={exportedNoticeRef} className="notice" role="status" tabIndex={-1}>
               {interpolate(copy.exported, { bytes: number.format(BigInt(exportedBytes)) })}
             </p>
           )}
@@ -1600,7 +1670,7 @@ export function ReportsPanel({
                   <p role="status">{copy.stale}</p>
                   <button
                     type="button"
-                    onClick={beginRefreshReview}
+                    onClick={(event) => beginRefreshReview(event.currentTarget)}
                     disabled={disabled || refreshing}
                   >
                     {copy.refresh.review}
@@ -1650,7 +1720,9 @@ export function ReportsPanel({
               aria-labelledby="report-refresh-heading"
             >
               <p className="eyebrow">{copy.refresh.eyebrow}</p>
-              <h2 id="report-refresh-heading">{copy.refresh.heading}</h2>
+              <h2 ref={refreshReviewHeadingRef} id="report-refresh-heading" tabIndex={-1}>
+                {copy.refresh.heading}
+              </h2>
               <p>{copy.refresh.intro}</p>
               <div className="report-refresh-revisions">
                 <article>
@@ -1681,7 +1753,7 @@ export function ReportsPanel({
               <div className="report-actions">
                 <button
                   type="button"
-                  onClick={() => void confirmRefresh()}
+                  onClick={(event) => void confirmRefresh(event.currentTarget)}
                   disabled={refreshing}
                 >
                   {refreshing ? copy.refresh.refreshing : copy.refresh.confirm}
@@ -1689,7 +1761,7 @@ export function ReportsPanel({
                 <button
                   type="button"
                   className="secondary"
-                  onClick={() => setRefreshReviewOpen(false)}
+                  onClick={(event) => closeRefreshReview(event.currentTarget)}
                   disabled={refreshing}
                 >
                   {copy.refresh.keepSaved}
@@ -1704,7 +1776,9 @@ export function ReportsPanel({
               role="region"
               aria-labelledby="report-privacy-heading"
             >
-              <h2 id="report-privacy-heading">{copy.privacyHeading}</h2>
+              <h2 ref={privacyReviewHeadingRef} id="report-privacy-heading" tabIndex={-1}>
+                {copy.privacyHeading}
+              </h2>
               <p>{copy.privacyIntro}</p>
               <ul>
                 {resolved.session && <li>{copy.sessionSummaryIncluded}</li>}
@@ -1788,21 +1862,26 @@ export function ReportsPanel({
               <p className="report-local-output">{copy.localOutput}</p>
               <div className="report-actions">
                 <button
+                  ref={exportActionRef}
                   type="button"
-                  onClick={() => void exportReport()}
+                  onClick={(event) => void exportReport(event.currentTarget)}
                   disabled={exporting}
                 >
                   {exporting ? copy.exporting : copy.chooseDestination}
                 </button>
                 {exporting ? (
-                  <button type="button" className="secondary" onClick={() => void cancelExport()}>
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={(event) => void cancelExport(event.currentTarget)}
+                  >
                     {copy.cancelExport}
                   </button>
                 ) : (
                   <button
                     type="button"
                     className="secondary"
-                    onClick={() => setPrivacyReviewOpen(false)}
+                    onClick={(event) => closePrivacyReview(event.currentTarget)}
                   >
                     {copy.closeReview}
                   </button>
