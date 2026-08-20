@@ -60,7 +60,7 @@
     "check:release-immutability": "node scripts/public-release-publication.mjs check-immutability",
     "preflight:public-release": "node scripts/public-release-preflight.mjs",
     "prebuild:e2e": "npm run icons && npm run fixture:e2e && npm run fixture:large && npm run fixture:insights-performance",
-    "build:e2e": "VITE_FITFREED_E2E=true tauri build --features e2e --config src-tauri/tauri.e2e.conf.json",
+    "build:e2e": "node scripts/build-e2e.mjs",
     "fixture:e2e": "node scripts/generate-e2e-fixtures.mjs .artifacts/e2e/fixtures",
     "fixture:large": "node scripts/generate-large-fixture.mjs .artifacts/e2e/large.zip",
     "fixture:insights-performance": "node scripts/generate-insights-performance-fixture.mjs .artifacts/e2e/insights-performance.zip",

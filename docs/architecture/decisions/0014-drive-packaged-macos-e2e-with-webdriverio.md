@@ -38,7 +38,7 @@ The Tauri service can start the compiled application with a repository-locked dr
 
 Packaged macOS behavioral E2E uses WebdriverIO with `@wdio/tauri-service` and its embedded driver provider.
 
-- E2E builds use an explicit Rust feature and Tauri configuration. Production builds do not include that feature or its capabilities.
+- E2E builds use an explicit Rust feature and Tauri configuration. The behavioral package uses the isolated `src-tauri/target/e2e` target and packaged-update variants use `.artifacts/update-e2e/target`. Production builds use `src-tauri/target/release`; no instrumented build may overwrite or masquerade as the retained production application.
 - The instrumented presentation replaces only the operating-system archive-picker adapter. Normal development and production builds call the native dialog.
 - Tests wait for the recorded picker invocation before observing cancellation or selection; unchanged initial UI state is not completion evidence.
 - Synthetic libraries, packages, logs, screenshots, and fixtures remain under ignored `.artifacts` paths. Failure capture must remain privacy-safe.
@@ -53,6 +53,7 @@ Packaged macOS behavioral E2E uses WebdriverIO with `@wdio/tauri-service` and it
 - A clean clone does not require a global `tauri-driver` installation.
 - The release-shaped journey covers the actual desktop boundary and persists through restart.
 - Test authority has an explicit compile-time and packaging boundary.
+- A retained production bundle remains safe to launch after an E2E campaign, while WebdriverIO can only select the isolated instrumented executable.
 
 ### Negative
 
@@ -63,6 +64,7 @@ Packaged macOS behavioral E2E uses WebdriverIO with `@wdio/tauri-service` and it
 ### Risks and mitigations
 
 - Instrumentation could leak into production. Feature gates, capabilities, and binary-content inspection fail packaging when markers remain.
+- An instrumented bundle could be opened manually and make mocked operating-system controls appear broken. Separate target directories and a tested WebdriverIO executable path prevent an E2E build from occupying the production bundle location.
 - Driver behavior could report success before native work occurs. Tests synchronize on the boundary call and assert the resulting persisted behavior.
 - Development dependencies can introduce advisories. Locked overrides, dependency audit, provenance checks, and periodic upstream review protect the selected versions.
 

@@ -72,7 +72,7 @@ npm run benchmark:insights
 npm run verify:e2e
 ```
 
-Run the cold-launch command immediately after its production build and before the instrumented E2E build can replace target-directory executables. The [performance benchmark guide](../development/performance-benchmarks.md) owns the exact measurement boundaries and evidence interpretation. A source change invalidates both environments' prior result; a documentation-only change may reuse the immutable executable-input fingerprint.
+Run the cold-launch command against the production build. The instrumented packaged journey uses the isolated `src-tauri/target/e2e` target and cannot replace that executable. The [performance benchmark guide](../development/performance-benchmarks.md) owns the exact measurement boundaries and evidence interpretation. A source change invalidates both environments' prior result; a documentation-only change may reuse the immutable executable-input fingerprint.
 
 ## Acceptance rule
 

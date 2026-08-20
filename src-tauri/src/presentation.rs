@@ -6399,8 +6399,8 @@ mod tests {
                 provider: TrainingSourceProviderView::restore("polar-flow".to_owned())
                     .expect("supported provider code"),
                 source_modified_at_utc: "2026-08-17T18:30:00Z".to_owned(),
-                source_adapter_version: "polar-flow-archive@10".to_owned(),
-                mapping_version: "polar-flow-training-session@5".to_owned(),
+                source_adapter_version: "polar-flow-archive@11".to_owned(),
+                mapping_version: "polar-flow-training-session@6".to_owned(),
                 contributing_event_count: 1,
                 non_contributing_event_count: 1,
             },
@@ -6411,8 +6411,8 @@ mod tests {
                     source_modified_at_utc: "2026-08-17T18:30:00Z".to_owned(),
                     provider: TrainingSourceProviderView::restore("polar-flow".to_owned())
                         .expect("supported provider code"),
-                    source_adapter_version: "polar-flow-archive@10".to_owned(),
-                    mapping_version: "polar-flow-training-session@5".to_owned(),
+                    source_adapter_version: "polar-flow-archive@11".to_owned(),
+                    mapping_version: "polar-flow-training-session@6".to_owned(),
                     decision: TrainingProvenanceDecisionView::Create,
                     contributes_to_visible_state: true,
                 },
@@ -6422,8 +6422,8 @@ mod tests {
                     source_modified_at_utc: "2026-08-16T10:00:00Z".to_owned(),
                     provider: TrainingSourceProviderView::restore("polar-flow".to_owned())
                         .expect("supported provider code"),
-                    source_adapter_version: "polar-flow-archive@10".to_owned(),
-                    mapping_version: "polar-flow-training-session@5".to_owned(),
+                    source_adapter_version: "polar-flow-archive@11".to_owned(),
+                    mapping_version: "polar-flow-training-session@6".to_owned(),
                     decision: TrainingProvenanceDecisionView::Preserve,
                     contributes_to_visible_state: false,
                 },

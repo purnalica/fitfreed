@@ -26,6 +26,7 @@ import {
   createUpdatePayload,
   updateTarget,
 } from "./update-e2e-contract.mjs";
+import { updateE2eTargetDirectory } from "./e2e-paths.mjs";
 import { inspectUpgradeMatrix } from "./upgrade-matrix.mjs";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -39,8 +40,8 @@ const certificatePath = path.join(tlsDirectory, "ca.crt");
 const serverCertificatePath = path.join(tlsDirectory, "server.crt");
 const serverKeyPath = path.join(tlsDirectory, "server.key");
 const targetBundleDirectory = path.join(
-  repositoryRoot,
-  "src-tauri/target/release/bundle/macos",
+  updateE2eTargetDirectory,
+  "release/bundle/macos",
 );
 const generatedApplication = path.join(targetBundleDirectory, "FitFreed.app");
 const generatedUpdaterPackage = `${generatedApplication}.tar.gz`;
@@ -213,6 +214,7 @@ function buildApplication(version, createUpdaterArtifacts, publicKey) {
   ], {
     env: {
       CI: "true",
+      CARGO_TARGET_DIR: updateE2eTargetDirectory,
       VITE_FITFREED_E2E: "true",
       TAURI_SIGNING_PRIVATE_KEY: readFileSync(privateKeyPath, "utf8").trim(),
       TAURI_SIGNING_PRIVATE_KEY_PASSWORD: "",

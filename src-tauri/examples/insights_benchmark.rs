@@ -1164,7 +1164,7 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
                     terminal_code, recovery_note
                  ) VALUES (
                     1, 'synthetic-insights-provenance', NULL, 'completed', 'polar-flow',
-                    'polar-flow-archive@10', 'polar-flow-mapping-set@5',
+                    'polar-flow-archive@11', 'polar-flow-mapping-set@6',
                     '2025-12-31T23:00:00Z', '2025-12-31T23:00:00Z',
                     '2025-12-31T23:00:00Z', 0, NULL, 1,
                     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, NULL, NULL
@@ -1240,8 +1240,8 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
                  ) VALUES (
                     ?1, ?2, 1, 'synthetic-training-session.json', 'json-root',
                     '0000000000000000000000000000000000000000000000000000000000000000',
-                    'polar-flow', 'polar-flow-archive@10',
-                    'polar-flow-training-session@5', ?3, 'create', 1
+                    'polar-flow', 'polar-flow-archive@11',
+                    'polar-flow-training-session@6', ?3, 'create', 1
                  )",
             )
             .expect("prepare generated training provenance insertion");

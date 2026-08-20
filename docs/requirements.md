@@ -448,6 +448,8 @@ All canonical engineering artifacts and source text will use English. Localized 
 
 ### NFR-008 — User experience quality
 
+- User experience means the complete path from obtaining and importing personal data to understanding something valuable from it; visual styling and interface composition are necessary but insufficient evidence.
+- The first successful import will produce an immediate, evidence-backed personal revelation from the available history and lead into further answerable questions. The user must not have to combine disconnected domain tools mentally to discover why the history is useful.
 - The first-run experience will guide users from an empty library to a successfully imported and explorable history without requiring prior knowledge of the takeout structure.
 - Information architecture will use progressive disclosure: summaries will remain approachable while detailed physiological and time-series data remain accessible.
 - Long-running operations will keep the interface responsive and provide meaningful progress, safe cancellation when technically possible, and actionable recovery guidance.

@@ -1,7 +1,9 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 
-const application = path.resolve("src-tauri/target/release/fitfreed");
+import { e2eApplicationBinary } from "./scripts/e2e-paths.mjs";
+
+const application = e2eApplicationBinary;
 const evidenceDirectory = path.resolve(".artifacts/e2e/evidence");
 mkdirSync(evidenceDirectory, { recursive: true });
 process.env.FITFREED_E2E_DATABASE_PATH ??= path.resolve(

@@ -1604,8 +1604,8 @@ mod tests {
                 provider: TrainingSourceProviderView::restore("polar-flow".to_owned())
                     .expect("provider"),
                 source_modified_at_utc: "2026-08-18T08:00:00Z".to_owned(),
-                source_adapter_version: "polar-flow-archive@10".to_owned(),
-                mapping_version: "polar-flow-training-session@5".to_owned(),
+                source_adapter_version: "polar-flow-archive@11".to_owned(),
+                mapping_version: "polar-flow-training-session@6".to_owned(),
                 contributing_event_count: 2,
                 non_contributing_event_count: 1,
             }),
@@ -1841,7 +1841,7 @@ mod tests {
             assert!(!html.contains("onclick"));
             assert!(html.contains("data-unit=\"m\""));
             assert!(html.contains("data-unit=\"bpm\""));
-            assert!(html.contains("polar-flow-training-session@5"));
+            assert!(html.contains("polar-flow-training-session@6"));
         }
     }
 

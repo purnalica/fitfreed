@@ -1333,9 +1333,9 @@ describe("packaged FitFreed import journey", () => {
     await expect(provenance).toHaveText(
       expect.stringContaining(english.training.sessionLibrary.provenanceDecisions.create),
     );
-    await expect(provenance).toHaveText(expect.stringContaining("polar-flow-archive@10"));
+    await expect(provenance).toHaveText(expect.stringContaining("polar-flow-archive@11"));
     await expect(provenance).toHaveText(
-      expect.stringContaining("polar-flow-training-session@5"),
+      expect.stringContaining("polar-flow-training-session@6"),
     );
     await expect(provenance).not.toHaveText(expect.stringContaining("training-session_"));
     await $('button[aria-controls="training-session-provenance"]').click();
@@ -1536,7 +1536,7 @@ describe("packaged FitFreed import journey", () => {
     expect(exportedReport).toContain(
       "Held the intended effort and finished the final climb with control.",
     );
-    expect(exportedReport).toContain("polar-flow-training-session@5");
+    expect(exportedReport).toContain("polar-flow-training-session@6");
     expect(exportedReport).not.toContain("Average heart rate");
     expect(exportedReport).not.toContain("Maximum heart rate");
     expect(exportedReport).toContain("<polyline");

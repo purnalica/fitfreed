@@ -9,7 +9,7 @@ import {
   startWdioSession,
 } from "@wdio/tauri-service";
 
-import { goToHome } from "../e2e/support/application-actions.js";
+import { openSettingsCategory } from "../e2e/support/application-actions.js";
 
 const spanish = JSON.parse(
   fs.readFileSync(new URL("../../src/locales/es-ES.json", import.meta.url), "utf8"),
@@ -206,7 +206,7 @@ async function verifyRecoveryNotice(browser, recoveryId) {
 }
 
 async function verifyJourney(browser) {
-  await goToHome("settings", browser);
+  await openSettingsCategory("updates", browser);
   const heading = await browser.$("#update-heading");
   await heading.waitForDisplayed({ timeout: 15_000 });
   const checkNow = await browser.$(".update-panel-heading button");

@@ -19,8 +19,8 @@ function page(offset: number): TrainingSessionProvenanceResult {
     observedAtUtc: "2026-08-17T18:31:00Z",
     sourceModifiedAtUtc: "2026-08-17T18:30:00Z",
     provider: "polar-flow" as const,
-    sourceAdapterVersion: "polar-flow-archive@10",
-    mappingVersion: "polar-flow-training-session@5",
+    sourceAdapterVersion: "polar-flow-archive@11",
+    mappingVersion: "polar-flow-training-session@6",
     decision: "create" as const,
     contributesToVisibleState: true,
   };
@@ -42,8 +42,8 @@ function page(offset: number): TrainingSessionProvenanceResult {
     current: {
       provider: "polar-flow",
       sourceModifiedAtUtc: "2026-08-17T18:30:00Z",
-      sourceAdapterVersion: "polar-flow-archive@10",
-      mappingVersion: "polar-flow-training-session@5",
+      sourceAdapterVersion: "polar-flow-archive@11",
+      mappingVersion: "polar-flow-training-session@6",
       contributingEventCount: 10,
       nonContributingEventCount: 1,
     },
@@ -93,8 +93,8 @@ describe("TrainingSessionProvenancePanel", () => {
     expect(panel).toHaveTextContent("Added the session");
     expect(panel).toHaveTextContent("Supports the current session");
     await user.click(within(panel).getByText("Technical interpretation details"));
-    expect(panel).toHaveTextContent("polar-flow-archive@10");
-    expect(panel).toHaveTextContent("polar-flow-training-session@5");
+    expect(panel).toHaveTextContent("polar-flow-archive@11");
+    expect(panel).toHaveTextContent("polar-flow-training-session@6");
     expect(panel).not.toHaveTextContent("session-");
     expect(panel).not.toHaveTextContent("training-snapshot-");
     expect(panel).not.toHaveTextContent("private.zip");

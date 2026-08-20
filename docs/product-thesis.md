@@ -18,6 +18,8 @@ The GDPR provides a legal foundation for access and portability in defined circu
 
 - **Access:** people can obtain data about themselves through applicable legal rights and provider export mechanisms.
 - **Use:** the exported information can be explored and interpreted without returning to the source platform.
+- **Insight:** the product turns a large personal history into excellent, evidence-backed answers and discoveries rather than leaving interpretation work to the person.
+- **Control:** the person can inspect evidence, change criteria, compose reports, and export results instead of accepting one opaque prescribed view.
 - **Transparency:** the transformation, reconciliation, and calculation rules are inspectable.
 - **Continuity:** the personal history remains usable if a provider changes, removes features, or ceases operating.
 - **Exit:** the application provides open, documented ways to back up and export the resulting library.
@@ -41,6 +43,8 @@ This strengthens the broader case for tools that let people use connected-device
 ## Messaging principles
 
 - Lead with personal agency and the difference between possessing files and being able to use the information within them.
+- State the product promise plainly: **excellent results with real user control**. Freedom is incomplete when software exposes raw data without insight or offers polished conclusions without inspectable evidence and choice.
+- Present one progressively disclosed experience for different levels of engagement: guided answers by default, accessible supporting evidence for people who want to understand, and configurable criteria and report composition for advanced use. Do not split trust or meaning across incompatible novice and expert modes.
 - Credit the GDPR as an enabling legal foundation without implying endorsement by, affiliation with, or authority from a regulator.
 - Present open source as the mechanism for transparency, continuity, extensibility, and freedom from a new product dependency.
 - Do not market the application as a GDPR compliance tool, legal service, medical device, or diagnostic product.

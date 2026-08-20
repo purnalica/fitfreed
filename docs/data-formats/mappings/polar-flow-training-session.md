@@ -15,14 +15,16 @@ and the independent [training-session structure](../canonical/training-session-s
 - Source adapter version introducing route support: `polar-flow-archive@8`
 - Source adapter version introducing signal support: `polar-flow-archive@9`
 - Source adapter version introducing zone support: `polar-flow-archive@10`
-- Current source adapter version: `polar-flow-archive@10`
+- Source adapter version introducing observed minute-precision pause compatibility: `polar-flow-archive@11`
+- Current source adapter version: `polar-flow-archive@11`
 - Historical summary mapping: `polar-flow-training-session@1`
 - Historical summary-and-structure mapping: `polar-flow-training-session@2`
 - Historical summary, structure, and route mapping: `polar-flow-training-session@3`
 - Historical summary, structure, route, and signal mapping: `polar-flow-training-session@4`
-- Current summary, structure, route, signal, and zone mapping: `polar-flow-training-session@5`
-- Historical operation mapping sets: `polar-flow-mapping-set@1`, `polar-flow-mapping-set@2`, `polar-flow-mapping-set@3`, `polar-flow-mapping-set@4`
-- Current operation mapping set: `polar-flow-mapping-set@5`
+- Historical summary, structure, route, signal, and zone mapping: `polar-flow-training-session@5`
+- Current summary, structure, route, signal, and zone mapping: `polar-flow-training-session@6`
+- Historical operation mapping sets: `polar-flow-mapping-set@1`, `polar-flow-mapping-set@2`, `polar-flow-mapping-set@3`, `polar-flow-mapping-set@4`, `polar-flow-mapping-set@5`
+- Current operation mapping set: `polar-flow-mapping-set@6`
 - Source evidence: [Polar Flow personal data export reference](../providers/polar-flow.md)
 
 ## Supported artifact boundary
@@ -57,7 +59,7 @@ sums, averages, selects, or otherwise derives summary values from children.
 
 ## Structural assessment and exercise mapping
 
-Mapping versions 2 through 5 always emit a present `TrainingSessionStructure`, proving that the artifact was evaluated
+Mapping versions 2 through 6 always emit a present `TrainingSessionStructure`, proving that the artifact was evaluated
 under the structural contract. An absent `exercises` field produces null `exercises`; a present empty array
 produces an empty collection. Entries retain source array order through `ordinal`.
 
@@ -90,8 +92,10 @@ and between zero and `9999000`. Source order becomes zero-based `ordinal`; the e
 `durationMillis` becomes canonical `durationMilliseconds`, both without derivation. No provider lap identifier
 is required or invented.
 
-Each `exercises[].pauseTimes[]` entry requires valid local-form `startTime` and `endTime`. The end must not
-precede the start. Source order becomes zero-based `ordinal`; duration is not independently derived or stored.
+Each `exercises[].pauseTimes[]` entry requires valid local-form `startTime` and `endTime`. Observed exports use
+both minute (`YYYY-MM-DDTHH:mm`) and second or fractional-second precision within the same pause collection;
+minute precision maps to exact second zero. The end must not precede the start. Source order becomes zero-based
+`ordinal`; duration is not independently derived or stored.
 
 ## Route assessment and waypoint mapping
 
@@ -199,9 +203,11 @@ Identity remains `(originId, identifier.id)`. Reconciliation compares the comple
 Two artifacts with the same mapped identity in one ZIP are invalid independently of order. Whole-package
 exact-repeat reuse requires equal archive fingerprint, adapter version, and operation mapping-set version.
 Consequently, a package completed under any earlier mapping set is reassessed under
-`polar-flow-mapping-set@5`; identical bytes enrich missing structure, route, signal, or zone evidence without
+`polar-flow-mapping-set@6`; identical bytes enrich missing structure, route, signal, or zone evidence without
 duplicating sessions, exercises, routes, points, series, samples, groups, or bands. Per-observation provenance
-records `polar-flow-training-session@5` for current mapping decisions.
+records `polar-flow-training-session@6` for current mapping decisions. Mapping set 6 reassesses packages
+previously completed or rejected under mapping set 5 so observed minute-precision pause times can be mapped
+without weakening validation of other date-time fields.
 
 ## Historical version 1 behavior
 

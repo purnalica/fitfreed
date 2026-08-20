@@ -185,10 +185,10 @@ const SCHEMA_V21: &str = include_str!("../migrations/0021_composable_route_repor
 const SCHEMA_V22: &str = include_str!("../migrations/0022_training_comparison_reports.sql");
 const SCHEMA_V23: &str = include_str!("../migrations/0023_report_start_origins.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
-const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@10";
-const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@5";
+const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@11";
+const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@6";
 const DAILY_ACTIVITY_MAPPING_VERSION: &str = "polar-flow-daily-activity@1";
-const TRAINING_SESSION_MAPPING_VERSION: &str = "polar-flow-training-session@5";
+const TRAINING_SESSION_MAPPING_VERSION: &str = "polar-flow-training-session@6";
 const SLEEP_MAPPING_VERSION: &str = "polar-flow-sleep@1";
 const NIGHTLY_RECOVERY_MAPPING_VERSION: &str = "polar-flow-nightly-recovery@1";
 const NIGHTLY_RECOVERY_SCHEME: &str = "polar-nightly-recharge@1";
@@ -6948,12 +6948,31 @@ fn parse_source_datetime(
             reason_code: "invalid-supported-artifact",
         }
     })?;
-    let normalized = if parsed.nanosecond() == 0 {
+    let normalized = normalize_source_datetime(parsed);
+    Ok((parsed, normalized))
+}
+
+fn parse_source_pause_datetime(
+    value: &str,
+    field: &'static str,
+    artifact: &str,
+) -> Result<(NaiveDateTime, String)> {
+    let parsed = NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%S%.f")
+        .or_else(|_| NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M"))
+        .map_err(|error| ImportError::InvalidArtifact {
+            artifact: artifact.to_owned(),
+            reason: format!("invalid {field}: {error}"),
+            reason_code: "invalid-supported-artifact",
+        })?;
+    Ok((parsed, normalize_source_datetime(parsed)))
+}
+
+fn normalize_source_datetime(parsed: NaiveDateTime) -> String {
+    if parsed.nanosecond() == 0 {
         parsed.format("%Y-%m-%dT%H:%M:%S").to_string()
     } else {
         parsed.format("%Y-%m-%dT%H:%M:%S%.f").to_string()
-    };
-    Ok((parsed, normalized))
+    }
 }
 
 fn invalid_training_artifact(artifact: &str, reason: impl Into<String>) -> ImportError {
@@ -7123,12 +7142,12 @@ fn map_training_exercises(
                                 .into_iter()
                                 .enumerate()
                                 .map(|(ordinal, pause)| {
-                                    let (started, started_at_local) = parse_source_datetime(
+                                    let (started, started_at_local) = parse_source_pause_datetime(
                                         &pause.start_time,
                                         "pauseTimes[].startTime",
                                         artifact,
                                     )?;
-                                    let (ended, ended_at_local) = parse_source_datetime(
+                                    let (ended, ended_at_local) = parse_source_pause_datetime(
                                         &pause.end_time,
                                         "pauseTimes[].endTime",
                                         artifact,
@@ -16288,6 +16307,60 @@ mod tests {
                 ("2026-01-03T09:00:00", "conflict", false),
             ]
         );
+    }
+
+    #[test]
+    fn accepts_observed_minute_precision_for_training_pauses() {
+        let locator =
+            "training-session_2026-01-02T10-30-00_42-11111111-2222-4333-8444-555555555555.json";
+        let mapped = decode_training_session(
+            "synthetic-origin",
+            locator,
+            &"0".repeat(64),
+            br#"{
+                "identifier":{"id":"synthetic-minute-pauses"},
+                "created":"2026-01-02T12:00:00.000",
+                "modified":"2026-01-02T12:05:00.000",
+                "startTime":"2026-01-02T10:30:00",
+                "stopTime":"2026-01-02T11:30:00",
+                "durationMillis":3600000,
+                "exercises":[{
+                    "identifier":{"id":"synthetic-exercise"},
+                    "created":"2026-01-02T12:00:00.000",
+                    "modified":"2026-01-02T12:05:00.000",
+                    "startTime":"2026-01-02T10:30:00",
+                    "stopTime":"2026-01-02T11:30:00",
+                    "durationMillis":3600000,
+                    "pauseTimes":[
+                        {
+                            "startTime":"2026-01-02T10:40",
+                            "endTime":"2026-01-02T10:41:00.000"
+                        },
+                        {
+                            "startTime":"2026-01-02T10:50:00",
+                            "endTime":"2026-01-02T10:51"
+                        }
+                    ]
+                }]
+            }"#
+            .to_vec(),
+        )
+        .expect("observed minute-precision pauses");
+
+        let pauses = mapped
+            .observation
+            .structure
+            .expect("evaluated structure")
+            .exercises
+            .expect("source exercise collection")
+            .remove(0)
+            .pauses
+            .expect("source pause collection");
+        assert_eq!(pauses.len(), 2);
+        assert_eq!(pauses[0].started_at_local, "2026-01-02T10:40:00");
+        assert_eq!(pauses[0].ended_at_local, "2026-01-02T10:41:00");
+        assert_eq!(pauses[1].started_at_local, "2026-01-02T10:50:00");
+        assert_eq!(pauses[1].ended_at_local, "2026-01-02T10:51:00");
     }
 
     #[test]

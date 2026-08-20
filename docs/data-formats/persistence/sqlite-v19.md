@@ -11,9 +11,10 @@ The migration creates no zone assessment from an older row. Null assessment ther
 by a compatible mapping rather than an absent or empty source collection. Versions 1 through 18 remain
 supported direct migration baselines; interruption leaves version 18 intact and retryable.
 
-Current Polar writes use source adapter `polar-flow-archive@10`, operation mapping set
-`polar-flow-mapping-set@5`, and training mapping `polar-flow-training-session@5`. Earlier provenance retains
-its historical version and becomes eligible for strict mapping enrichment.
+Current Polar writes use source adapter `polar-flow-archive@11`, operation mapping set
+`polar-flow-mapping-set@6`, and training mapping `polar-flow-training-session@6`. Earlier provenance retains
+its historical version, including `polar-flow-archive@10`, `polar-flow-mapping-set@5`, and
+`polar-flow-training-session@5`, and becomes eligible for strict mapping enrichment.
 
 ## `training_session_zone_assessment`
 

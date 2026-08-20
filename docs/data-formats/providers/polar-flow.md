@@ -192,7 +192,7 @@ Evaluated exercise objects also correspond to the official nested `TrainingSessi
 | `exercises[].laps` | Official and observed | optional object | Container for separately ordered source/manual and automatic laps. |
 | `exercises[].laps.laps[]` | Official and observed | optional object array | Source/manual laps with `splitTimeMillis`, `durationMillis`, and optional `distanceMeters`. |
 | `exercises[].laps.autoLaps[]` | Official and observed | optional object array | Automatic laps with the same supported measurement shape. |
-| `exercises[].pauseTimes[]` | Official and observed | optional object array | Ordered pauses with local `startTime` and `endTime`. |
+| `exercises[].pauseTimes[]` | Official and observed | optional object array | Ordered pauses with local `startTime` and `endTime`; evaluated exports mix minute, second, and fractional-second precision. |
 | `exercises[].routes` | Observed with official route correspondence | optional object | Container whose absence differs from a present object without route kinds. |
 | `exercises[].routes.route` | Observed with official route correspondence | optional object | Primary exercise route with a local `startTime` and ordered `wayPoints`. |
 | `exercises[].routes.transitionRoute` | Observed with official route correspondence | optional object | Separately attributed transition route in multisport-compatible source structure. |
