@@ -418,7 +418,7 @@ async function openTrainingDetailSection(catalog, section) {
 
 async function openDomainWorkspace(catalog, domain, workspace) {
   const expected = catalog[domain].workspaces[workspace];
-  const navigation = await $(".explorer-workspace-navigation");
+  const navigation = await $(".workspace-navigation");
   const buttons = await navigation.$$("button");
   let target;
   for (const button of buttons) {
@@ -433,6 +433,19 @@ async function openDomainWorkspace(catalog, domain, workspace) {
   const selector = workspace === "comparison"
     ? `.${domain === "longitudinal" ? "longitudinal" : domain}-comparison`
     : ".explorer-history-workspace";
+  await $(selector).waitForDisplayed({ timeout: 10_000 });
+}
+
+async function openReportWorkspace(catalog, workspace) {
+  const navigation = await $('.workspace-navigation[aria-label="'
+    + catalog.reports.workspaceNavigation
+    + '"]');
+  const target = await navigation.$(`aria/${catalog.reports.workspaces[workspace]}`);
+  await target.click();
+  await expect(target).toHaveAttribute("aria-current", "page");
+  const selector = workspace === "library"
+    ? ".report-library"
+    : workspace === "compose" ? ".report-editor" : ".report-preview";
   await $(selector).waitForDisplayed({ timeout: 10_000 });
 }
 
@@ -1448,7 +1461,9 @@ describe("packaged FitFreed import journey", () => {
     );
     await expect($(".report-analysis-bars")).toBeDisplayed();
     expect(await $$(".report-analysis-table")).toHaveLength(3);
+    await openReportWorkspace(english, "library");
     expect(await $$(".report-list > li")).toHaveLength(1);
+    await openReportWorkspace(english, "preview");
 
     const reviewExport = await $(`aria/${english.reports.reviewExport}`);
     await reviewExport.click();
@@ -1459,7 +1474,7 @@ describe("packaged FitFreed import journey", () => {
     );
     await privacyReview.$(`aria/${english.reports.closeReview}`).click();
     await expectDocumentFocus(
-      ".report-editor > .report-actions button.secondary",
+      ".report-preview-actions button:last-child",
       "closing the export review did not restore its initiating action",
     );
     await reviewExport.click();
@@ -1570,7 +1585,7 @@ describe("packaged FitFreed import journey", () => {
     ), "Self-contained HTML exported")).toBe(true);
     await cancellationReview.$(`aria/${english.reports.closeReview}`).click();
     await expectDocumentFocus(
-      ".report-editor > .report-actions button.secondary",
+      ".report-preview-actions button:last-child",
       "leaving the cancelled export review did not restore its initiating action",
     );
     await $(`aria/${english.reports.backToSession}`).click();
@@ -3068,6 +3083,8 @@ describe("packaged FitFreed import journey", () => {
       "a completed evidence refresh did not focus its visible outcome",
     );
     await expect($(".report-status-current")).toHaveText(spanish.reports.status.current);
+    await expect($(`aria/${spanish.reports.reviewExport}`)).toBeEnabled();
+    await openReportWorkspace(spanish, "compose");
     await expect($(".report-revision")).toHaveText(
       spanish.reports.revision.replace("{revision}", "2"),
     );
@@ -3077,7 +3094,7 @@ describe("packaged FitFreed import journey", () => {
     await expect($(".report-editor textarea")).toHaveValue(
       "The recorded duration decreased; the reason remains my interpretation.",
     );
-    await expect($(`aria/${spanish.reports.reviewExport}`)).toBeEnabled();
+    await openReportWorkspace(spanish, "preview");
 
     await $(`aria/${spanish.reports.reviewExport}`).click();
     const refreshedPrivacyReview = await $(".report-privacy-review");
@@ -3131,16 +3148,15 @@ describe("packaged FitFreed import journey", () => {
       await expect(reopenedComparisonInputs[index]).toHaveValue(reopenedComparisonRanges[index]);
     }
     await $(`aria/${spanish.reports.backToReport}`).click();
-    await expect($(`.report-editor input[maxlength="120"]`)).toHaveValue(
-      "Synthetic comparison answer",
-    );
+    await expect($(".report-preview h3")).toHaveText("Synthetic comparison answer");
     await browser.waitUntil(
       () => browser.execute(
-        () => document.activeElement === document.querySelector(".report-editor h2"),
+        () => document.activeElement === document.querySelector("#report-preview-heading"),
       ),
       { timeout: 10_000, timeoutMsg: "returning from comparison did not focus the report" },
     );
 
+    await openReportWorkspace(spanish, "library");
     await (await $$(".report-list button"))[1].click();
     await expect($(".report-preview h3")).toHaveText("Synthetic ridge progression");
     await expect($(".report-preview")).toHaveText(

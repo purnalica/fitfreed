@@ -1210,6 +1210,12 @@
     "eyebrow": "Tus informes",
     "heading": "Convierte los datos registrados en algo que puedas utilizar",
     "intro": "Empieza con una pregunta, una comparación, una sesión de entrenamiento o una página en blanco. Combina evidencias locales con tu propia interpretación, revisa el límite y exporta un informe HTML autocontenido.",
+    "workspaceNavigation": "Espacio de trabajo de informes",
+    "workspaces": {
+      "library": "Biblioteca",
+      "compose": "Componer",
+      "preview": "Vista previa"
+    },
     "backToSession": "Volver a la sesión",
     "backToComparison": "Volver a la comparación",
     "viewSourceSession": "Ver la sesión de origen",
@@ -1328,6 +1334,7 @@
     "save": "Guardar cambios",
     "create": "Guardar informe",
     "reviewExport": "Revisar y exportar",
+    "editComposition": "Editar composición",
     "saved": "El informe se ha guardado en tu biblioteca local.",
     "exported": "HTML autocontenido exportado ({bytes} bytes).",
     "previewEyebrow": "Vista previa del informe guardado",

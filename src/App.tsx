@@ -22,7 +22,7 @@ import type {
   ExplorerNavigationRequest,
   TrainingNavigationRequest,
 } from "./presentation/explorer-navigation";
-import { ExplorerWorkspaceNavigation } from "./presentation/ExplorerWorkspaceNavigation";
+import { WorkspaceNavigation } from "./presentation/WorkspaceNavigation";
 import {
   applyApplicationPreferences,
   type ApplicationPreferences,
@@ -1259,7 +1259,7 @@ function App() {
           </h1>
           <p>{messages.activity.workspaceIntro}</p>
         </header>
-        <ExplorerWorkspaceNavigation
+        <WorkspaceNavigation
           label={messages.activity.workspaceNavigation}
           current={activityWorkspace}
           options={[

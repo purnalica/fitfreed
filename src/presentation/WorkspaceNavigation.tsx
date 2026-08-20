@@ -1,24 +1,24 @@
-interface ExplorerWorkspaceOption<Workspace extends string> {
+interface WorkspaceOption<Workspace extends string> {
   workspace: Workspace;
   label: string;
   disabled?: boolean;
 }
 
-interface ExplorerWorkspaceNavigationProps<Workspace extends string> {
+interface WorkspaceNavigationProps<Workspace extends string> {
   label: string;
   current: Workspace;
-  options: ExplorerWorkspaceOption<Workspace>[];
+  options: WorkspaceOption<Workspace>[];
   onSelect: (workspace: Workspace) => void;
 }
 
-export function ExplorerWorkspaceNavigation<Workspace extends string>({
+export function WorkspaceNavigation<Workspace extends string>({
   label,
   current,
   options,
   onSelect,
-}: ExplorerWorkspaceNavigationProps<Workspace>) {
+}: WorkspaceNavigationProps<Workspace>) {
   return (
-    <nav className="explorer-workspace-navigation" aria-label={label}>
+    <nav className="workspace-navigation" aria-label={label}>
       {options.map((option) => (
         <button
           key={option.workspace}

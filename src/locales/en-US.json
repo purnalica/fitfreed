@@ -1210,6 +1210,12 @@
     "eyebrow": "Your reports",
     "heading": "Turn recorded evidence into something you can use",
     "intro": "Start with a question, a comparison, a training session, or a blank page. Combine local evidence with your own interpretation, review the boundary, and export a self-contained HTML report.",
+    "workspaceNavigation": "Report workspace",
+    "workspaces": {
+      "library": "Library",
+      "compose": "Compose",
+      "preview": "Preview"
+    },
     "backToSession": "Back to the session",
     "backToComparison": "Back to the comparison",
     "viewSourceSession": "View source session",
@@ -1328,6 +1334,7 @@
     "save": "Save changes",
     "create": "Save report",
     "reviewExport": "Review and export",
+    "editComposition": "Edit composition",
     "saved": "Report saved in your local library.",
     "exported": "Self-contained HTML exported ({bytes} bytes).",
     "previewEyebrow": "Saved report preview",

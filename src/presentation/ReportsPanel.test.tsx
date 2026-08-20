@@ -379,6 +379,76 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("ReportsPanel", () => {
+  it("separates the report library, composition, and preview without discarding a draft", async () => {
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "list_reports") return Promise.resolve({ reports: [] });
+      if (command === "prepare_report_start") return Promise.resolve({
+        sourceSnapshotRef: snapshotRef,
+        origin: { kind: "blank" },
+        suggestedQuery: comparisonQuery,
+      });
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    renderPanel({ origin: undefined, originRequestId: 0 });
+    const navigation = screen.getByRole("navigation", { name: "Report workspace" });
+    expect(within(navigation).getByRole("button", { name: "Library" }))
+      .toHaveAttribute("aria-current", "page");
+    expect(within(navigation).getByRole("button", { name: "Compose" })).toBeDisabled();
+    expect(within(navigation).getByRole("button", { name: "Preview" })).toBeDisabled();
+
+    await user.click(await screen.findByRole("button", { name: "Start a blank report" }));
+    expect(within(navigation).getByRole("button", { name: "Compose" }))
+      .toHaveAttribute("aria-current", "page");
+    await user.clear(screen.getByLabelText("Report title"));
+    await user.type(screen.getByLabelText("Report title"), "A preserved draft");
+    await user.type(
+      screen.getByLabelText(/^Your interpretation/),
+      "This remains local while the workspace changes.",
+    );
+
+    await user.click(within(navigation).getByRole("button", { name: "Library" }));
+    expect(screen.getByRole("heading", { name: "Saved reports" })).toBeVisible();
+    expect(document.querySelector("form.report-editor")).not.toBeVisible();
+
+    await user.click(within(navigation).getByRole("button", { name: "Compose" }));
+    expect(screen.getByLabelText("Report title")).toHaveValue("A preserved draft");
+    expect(screen.getByLabelText(/^Your interpretation/)).toHaveValue(
+      "This remains local while the workspace changes.",
+    );
+  });
+
+  it("returns to the library without exposing a prior report when selection fails", async () => {
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "list_reports") return Promise.resolve({ reports: [{
+        reportRef,
+        title: "Unavailable report",
+        locale: "en-US",
+        sourceSnapshotRef: snapshotRef,
+        revision: "1",
+      }] });
+      if (command === "resolve_report") {
+        return Promise.reject({ code: "report-definition-query-failed" });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    renderPanel({ origin: undefined, originRequestId: 0 });
+    await user.click(await screen.findByRole("button", { name: /Unavailable report/ }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "FitFreed could not read saved reports",
+    );
+    const navigation = screen.getByRole("navigation", { name: "Report workspace" });
+    expect(within(navigation).getByRole("button", { name: "Library" }))
+      .toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: /Unavailable report/ })).toBeVisible();
+    expect(within(navigation).getByRole("button", { name: "Compose" })).toBeDisabled();
+    expect(within(navigation).getByRole("button", { name: "Preview" })).toBeDisabled();
+  });
+
   it("keeps the create action and draft visible while the saved report is resolved", async () => {
     let resolveSavedReport: (value: ResolvedReport) => void = () => undefined;
     mocks.invoke.mockImplementation((command) => {
@@ -502,9 +572,14 @@ describe("ReportsPanel", () => {
       "Calculated from the identified revision of the local training library",
     )).toBeInTheDocument();
     expect(screen.queryByText("Polar Flow")).not.toBeInTheDocument();
+    const navigation = screen.getByRole("navigation", { name: "Report workspace" });
+    expect(within(navigation).getByRole("button", { name: "Preview" }))
+      .toHaveAttribute("aria-current", "page");
+    expect(document.querySelector("form.report-editor")).not.toBeVisible();
 
     await user.click(screen.getByRole("button", { name: "Review and export" }));
     const review = screen.getByRole("region", { name: "Review the export" });
+    expect(document.querySelector("section.report-preview")).not.toBeVisible();
     expect(within(review).getByText(/Selected period-comparison values/)).toBeVisible();
     expect(within(review).queryByRole("checkbox")).not.toBeInTheDocument();
     await user.click(within(review).getByRole("button", {
@@ -581,6 +656,7 @@ describe("ReportsPanel", () => {
     expect(await screen.findByText(
       "User-authored content; no imported evidence selected",
     )).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Compose" }));
     await user.click(screen.getByRole("button", { name: "Add Key finding" }));
     expect(screen.getByLabelText("Baseline starts")).toHaveValue("2026-01-01");
     await user.click(screen.getByRole("button", { name: "Save changes" }));
@@ -702,6 +778,7 @@ describe("ReportsPanel", () => {
       localDate: "2026-08-16",
     });
 
+    await user.click(screen.getByRole("button", { name: "Library" }));
     await user.click(screen.getByRole("button", { name: /Comparison report/ }));
     await user.click(screen.getByRole("button", { name: "View source comparison" }));
     expect(callbacks.onReturnToOrigin).toHaveBeenLastCalledWith({
@@ -710,6 +787,7 @@ describe("ReportsPanel", () => {
       query: comparisonQuery,
     });
 
+    await user.click(screen.getByRole("button", { name: "Library" }));
     await user.click(screen.getByRole("button", { name: /Blank report/ }));
     await waitFor(() => expect(screen.getByLabelText("Report title")).toHaveValue(
       "My training notes",
@@ -752,12 +830,14 @@ describe("ReportsPanel", () => {
     });
 
     const callbacks = renderPanel();
-    expect(await screen.findByText(
-      "No reports have been saved yet. Start with a question or a blank page below.",
-    )).toBeVisible();
-    expect(screen.getByLabelText("Report title")).toHaveValue(
+    expect(await screen.findByLabelText("Report title")).toHaveValue(
       "Training session · Aug 16, 2026, 8:30:00.000 AM",
     );
+    await user.click(screen.getByRole("button", { name: "Library" }));
+    expect(screen.getByText(
+      "No reports have been saved yet. Start with a question or a blank page below.",
+    )).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Compose" }));
 
     await user.clear(screen.getByLabelText("Report title"));
     await user.click(screen.getByRole("button", { name: "Save report" }));
@@ -820,6 +900,7 @@ describe("ReportsPanel", () => {
     expect(screen.getByText("Trail running")).toBeVisible();
     expect(screen.getByText("148 bpm")).toBeVisible();
 
+    await user.click(screen.getByRole("button", { name: "Compose" }));
     await user.clear(screen.getByLabelText("Report title"));
     await user.type(screen.getByLabelText("Report title"), "Ridge progression review");
     await user.clear(screen.getByLabelText(/^Your interpretation/));
@@ -851,17 +932,24 @@ describe("ReportsPanel", () => {
         },
       },
     ));
+    await user.click(screen.getByRole("button", { name: "Compose" }));
     expect(await screen.findByText("Revision 2")).toBeVisible();
 
+    await user.click(screen.getByRole("button", { name: "Library" }));
     const savedReports = screen.getByRole("heading", { name: "Saved reports" }).closest("aside");
     expect(savedReports).not.toBeNull();
+    const priorResolutions = mocks.invoke.mock.calls.filter(
+      ([command]) => command === "resolve_report",
+    ).length;
     await user.click(within(savedReports!).getByRole("button", {
       name: /Ridge progression review/,
     }));
-    await waitFor(() => expect(mocks.invoke).toHaveBeenLastCalledWith(
-      "resolve_report",
-      { reportRef },
-    ));
+    await waitFor(() => expect(mocks.invoke.mock.calls.filter(
+      ([command]) => command === "resolve_report",
+    )).toHaveLength(priorResolutions + 1));
+    expect(mocks.invoke.mock.calls.filter(
+      ([command]) => command === "resolve_report",
+    ).at(-1)).toEqual(["resolve_report", { reportRef }]);
     await user.click(screen.getByRole("button", { name: "Back to the session" }));
     expect(callbacks.onReturnToOrigin).toHaveBeenCalledOnce();
   });
@@ -1038,6 +1126,7 @@ describe("ReportsPanel", () => {
       },
     ));
 
+    await user.click(screen.getByRole("button", { name: "Compose" }));
     await user.click(screen.getByRole("button", { name: "Remove route" }));
     expect(screen.queryByLabelText("Remove from each route endpoint (metres)")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Save changes" }));
@@ -1179,6 +1268,7 @@ describe("ReportsPanel", () => {
     await user.click(within(privacyReview).getByRole("button", { name: "Back to report" }));
     await waitFor(() => expect(reviewOrigin).toHaveFocus());
 
+    await user.click(screen.getByRole("button", { name: "Library" }));
     const savedReports = screen.getByRole("heading", { name: "Saved reports" }).closest("aside");
     await user.click(within(savedReports!).getByRole("button", {
       name: /Winter training comparison/,
@@ -1382,12 +1472,13 @@ describe("ReportsPanel", () => {
     expect(refreshedNotice).toBeVisible();
     await waitFor(() => expect(refreshedNotice).toHaveFocus());
     expect(screen.getByText("Actual")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Revisar y exportar" })).toBeEnabled();
+    await user.click(screen.getByRole("button", { name: "Componer" }));
     expect(screen.getByText("Revisión 2")).toBeVisible();
     expect(screen.getByLabelText("Título del informe")).toHaveValue("Sesión sostenida");
     expect(screen.getByLabelText(/^Tu interpretación/)).toHaveValue(
       "Held the intended effort on every climb.",
     );
-    expect(screen.getByRole("button", { name: "Revisar y exportar" })).toBeEnabled();
   });
 
   it("keeps the stale report recoverable when the reviewed candidate changes", async () => {
@@ -1438,8 +1529,11 @@ describe("ReportsPanel", () => {
     expect(screen.getByRole("region", {
       name: "Review the current library evidence",
     })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Review and export" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Choose destination and export" }))
+      .not.toBeInTheDocument();
     expect(screen.getByLabelText("Report title")).toHaveValue("Ridge progression");
+    await user.click(within(review).getByRole("button", { name: "Keep saved version" }));
     expect(screen.getByText("Source changed")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Review and export" })).toBeDisabled();
   });
 });

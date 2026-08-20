@@ -45,6 +45,7 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Application-shell structure, semantic sidebar ownership, broad desktop workspace, compact navigation rail, and initial-window presentation contracts.
 - Training workspace and session-detail navigation, semantic current-location state, and enforced progressive-disclosure boundaries.
 - Shared activity, sleep, recovery, and aligned-history workspace navigation, current-location state, exact-detail replacement, and progressive-disclosure boundaries.
+- Report Library, Compose, Preview, stale-evidence review, and export-review boundaries, including preserved mounted drafts and inaccessible inactive stages.
 - Presentation motion declarations and the reduced-motion boundary.
 - Update metadata, signature validation, artifact selection, and migration coordination.
 - Protected release-workflow syntax, exact permissions, action pins, authority isolation, immutable publication, provenance, and direct Pages-byte convergence.
@@ -66,6 +67,7 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Full-history training discovery with combined filters, deterministic sorting, coherent forward and backward pagination, source-separated calendar traversal, two-through-four-session comparison, exact chronology or calendar return, complete restart restoration, library-change recovery, exact results, and lightweight detail.
 - Explicit traversal among Sessions, Sports, and Compare periods and among every session evidence section, proving that hidden views are inaccessible while their disposable state survives temporary navigation.
 - Explicit traversal between history and comparison in every other explorer, including preserved comparison input and results, exact-detail return, cross-explorer entry, and inaccessible hidden views.
+- Explicit traversal among report Library, Compose, and Preview, including preserved drafts, saved-report selection, independent review replacement, complete block manipulation, source return, and export.
 - `en-US` and `es-ES` behavior, including text expansion and locale-aware formatting.
 - Update availability, postponement, download, verification, installation, migration, and recovery.
 - Removal behavior and explicit treatment of the user's data library.

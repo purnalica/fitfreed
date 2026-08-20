@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
-import { ExplorerWorkspaceNavigation } from "./ExplorerWorkspaceNavigation";
+import { WorkspaceNavigation } from "./WorkspaceNavigation";
 import { LongitudinalComparisonPanel } from "./LongitudinalComparisonPanel";
 import { RangeFilterActions, type RangeOperation } from "./RangeFilterActions";
 import type {
@@ -195,7 +195,7 @@ export function LongitudinalInsightsPanel({
         <h1 id="longitudinal-heading">{copy.heading}</h1>
         <p>{copy.intro}</p>
       </header>
-      <ExplorerWorkspaceNavigation
+      <WorkspaceNavigation
         label={copy.workspaceNavigation}
         current={workspace}
         options={[

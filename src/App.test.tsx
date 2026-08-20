@@ -1463,9 +1463,10 @@ describe("FitFreed import interface", () => {
     });
 
     await user.click(screen.getByRole("button", { name: /Back to report/ }));
-    const reportHeading = await screen.findByRole("heading", { name: "Edit report" });
+    const reportHeading = await screen.findByRole("heading", { name: "Report preview" });
     await waitFor(() => expect(reportHeading).toHaveFocus());
     expect(screen.getByLabelText("Report title")).toHaveValue("Winter review");
+    expect(screen.getByRole("heading", { name: "Winter review" })).toBeVisible();
     expect(mocks.homeInvoke.mock.calls.filter(
       ([command]) => command === "save_exploration_workspace",
     )).toHaveLength(0);

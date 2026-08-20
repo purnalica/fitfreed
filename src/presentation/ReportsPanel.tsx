@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { chooseReportDestination } from "../infrastructure/report-destination";
 import { type catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
+import { WorkspaceNavigation } from "./WorkspaceNavigation";
 import { restoreFocusAfterReveal } from "./focus-restoration";
 import { ProgressSubmitButton } from "./ProgressSubmitButton";
 import { reportSourceTarget, type ReportSourceTarget } from "./report-navigation";
@@ -54,6 +55,8 @@ type AnalyticalBlockKind =
   | "training-chart"
   | "training-exact-table"
   | "training-coverage";
+
+type ReportWorkspace = "library" | "compose" | "preview";
 
 const ANALYTICAL_BLOCK_KINDS: AnalyticalBlockKind[] = [
   "training-finding",
@@ -247,6 +250,7 @@ export function ReportsPanel({
 }: ReportsPanelProps) {
   const copy = messages.reports;
   const [reports, setReports] = useState<ReportSummary[]>([]);
+  const [workspace, setWorkspace] = useState<ReportWorkspace>("library");
   const [listLoading, setListLoading] = useState(true);
   const [listFailed, setListFailed] = useState(false);
   const [editor, setEditor] = useState<EditorState>();
@@ -308,6 +312,7 @@ export function ReportsPanel({
   }
 
   async function beginPreparedReport(start: ReportStart, title: string) {
+    setWorkspace("compose");
     setResolving(true);
     setLocalError(undefined);
     try {
@@ -334,6 +339,7 @@ export function ReportsPanel({
     } catch (reason) {
       const code = commandErrorCode(reason);
       setLocalError(code);
+      setWorkspace("library");
     } finally {
       setResolving(false);
     }
@@ -342,6 +348,7 @@ export function ReportsPanel({
   useEffect(() => {
     if (!origin || originRequestId === 0) return;
     if (origin.kind === "session") {
+      setWorkspace("compose");
       setEditor({
         sourceSnapshotRef: origin.snapshotRef,
         origin: { kind: "session", sessionRef: origin.session.sessionRef },
@@ -489,9 +496,14 @@ export function ReportsPanel({
   }
 
   async function openReport(reportRef: string) {
+    setWorkspace("preview");
     setSavedNotice(false);
     setRefreshedNotice(false);
-    return resolveReport(reportRef);
+    setEditor(undefined);
+    setResolved(undefined);
+    const report = await resolveReport(reportRef);
+    if (!report) setWorkspace("library");
+    return report;
   }
 
   function beginRefreshReview(origin: HTMLElement) {
@@ -671,6 +683,7 @@ export function ReportsPanel({
       await refreshList();
       await resolveReport(definition.reportRef);
       setSavedNotice(true);
+      setWorkspace("preview");
     } catch (reason) {
       const code = commandErrorCode(reason);
       setLocalError(code);
@@ -1218,8 +1231,31 @@ export function ReportsPanel({
         </button>
       )}
 
-      <div className="reports-layout">
-        <aside className="report-library" aria-labelledby="saved-reports-heading">
+      <WorkspaceNavigation
+        label={copy.workspaceNavigation}
+        current={workspace}
+        options={[
+          { workspace: "library", label: copy.workspaces.library },
+          {
+            workspace: "compose",
+            label: copy.workspaces.compose,
+            disabled: !editor,
+          },
+          {
+            workspace: "preview",
+            label: copy.workspaces.preview,
+            disabled: !resolved,
+          },
+        ]}
+        onSelect={setWorkspace}
+      />
+
+      <div className={`reports-layout reports-layout-${workspace}`}>
+        <aside
+          className="report-library"
+          aria-labelledby="saved-reports-heading"
+          hidden={workspace !== "library"}
+        >
           <div className="report-section-heading">
             <h2 id="saved-reports-heading">{copy.savedHeading}</h2>
             <button
@@ -1263,11 +1299,10 @@ export function ReportsPanel({
         </aside>
 
         <div className="report-workspace">
-          {!editor && !resolving && (
-            <section className="report-empty-editor">
-              <h2>{copy.chooseHeading}</h2>
-              <p>{copy.chooseBody}</p>
-              <div className="report-start-actions">
+          <section className="report-empty-editor" hidden={workspace !== "library"}>
+            <h2>{copy.chooseHeading}</h2>
+            <p>{copy.chooseBody}</p>
+            <div className="report-start-actions">
                 <button
                   type="button"
                   disabled={disabled}
@@ -1293,15 +1328,15 @@ export function ReportsPanel({
                 >
                   {copy.startBlank}
                 </button>
-              </div>
-            </section>
-          )}
+            </div>
+          </section>
           {resolving && !saving && <p role="status">{copy.resolving}</p>}
           {editor && (
             <form
               className="report-editor"
               aria-labelledby="report-editor-heading"
               aria-busy={saving}
+              hidden={workspace !== "compose"}
               onSubmit={(event) => void saveReport(event)}
             >
               <div className="report-section-heading">
@@ -1311,8 +1346,6 @@ export function ReportsPanel({
                   </p>
                   <h2
                     id="report-editor-heading"
-                    ref={requestedReportHeadingRef}
-                    tabIndex={openReportRef ? -1 : undefined}
                   >
                     {editor.reportRef ? copy.editHeading : copy.createHeading}
                   </h2>
@@ -1494,11 +1527,12 @@ export function ReportsPanel({
                 </ol>
               </section>
 
-              {editor.sessionRef && (
-              <section className="report-route-picker" aria-labelledby="report-add-route-heading">
-                <h3 id="report-add-route-heading">{copy.addRouteHeading}</h3>
-                <p>{copy.addRouteIntro}</p>
-                {routesLoading && <p role="status">{copy.routesLoading}</p>}
+              <div className="report-composer-tools">
+                {editor.sessionRef && (
+                  <section className="report-route-picker" aria-labelledby="report-add-route-heading">
+                    <h3 id="report-add-route-heading">{copy.addRouteHeading}</h3>
+                    <p>{copy.addRouteIntro}</p>
+                    {routesLoading && <p role="status">{copy.routesLoading}</p>}
                 {routesFailed && <p className="error" role="alert">{copy.routesFailed}</p>}
                 {!routesLoading && !routesFailed && availableRoutes.length === 0 && (
                   <p>{copy.noRoutes}</p>
@@ -1526,14 +1560,14 @@ export function ReportsPanel({
                   && availableRoutes.length > 0
                   && unselectedRoutes.length === 0
                   && <p>{copy.allRoutesAdded}</p>}
-              </section>
-              )}
+                  </section>
+                )}
 
-              <section className="report-analysis-picker" aria-labelledby="report-analysis-heading">
-                <div>
-                  <h3 id="report-analysis-heading">{copy.analysis.addHeading}</h3>
-                  <p>{copy.analysis.addIntro}</p>
-                </div>
+                <section className="report-analysis-picker" aria-labelledby="report-analysis-heading">
+                  <div>
+                    <h3 id="report-analysis-heading">{copy.analysis.addHeading}</h3>
+                    <p>{copy.analysis.addIntro}</p>
+                  </div>
                 {analyticalQuery && (
                   <fieldset className="report-analysis-ranges">
                     <legend>{copy.analysis.periodsHeading}</legend>
@@ -1628,7 +1662,8 @@ export function ReportsPanel({
                     </ul>
                   )
                   : <p>{copy.analysis.allAdded}</p>}
-              </section>
+                </section>
+              </div>
 
               <div className="report-actions">
                 <ProgressSubmitButton
@@ -1637,16 +1672,6 @@ export function ReportsPanel({
                   actionLabel={saveActionLabel}
                   progressLabel={copy.saving}
                 />
-                {resolved && (
-                  <button
-                    type="button"
-                    className="secondary"
-                    disabled={editingLocked || resolved.status !== "current"}
-                    onClick={(event) => beginPrivacyReview(event.currentTarget)}
-                  >
-                    {copy.reviewExport}
-                  </button>
-                )}
               </div>
             </form>
           )}
@@ -1669,11 +1694,21 @@ export function ReportsPanel({
           )}
 
           {resolved && (
-            <section className="report-preview" aria-labelledby="report-preview-heading">
+            <section
+              className="report-preview"
+              aria-labelledby="report-preview-heading"
+              hidden={workspace !== "preview" || refreshReviewOpen || privacyReviewOpen}
+            >
               <div className="report-section-heading">
                 <div>
                   <p className="eyebrow">{copy.previewEyebrow}</p>
-                  <h2 id="report-preview-heading">{copy.previewHeading}</h2>
+                  <h2
+                    id="report-preview-heading"
+                    ref={requestedReportHeadingRef}
+                    tabIndex={openReportRef ? -1 : undefined}
+                  >
+                    {copy.previewHeading}
+                  </h2>
                 </div>
                 <span className={`report-status report-status-${resolved.status}`}>
                   {copy.status[resolved.status]}
@@ -1691,6 +1726,22 @@ export function ReportsPanel({
                   </button>
                 </div>
               )}
+              <div className="report-preview-actions">
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => setWorkspace("compose")}
+                >
+                  {copy.editComposition}
+                </button>
+                <button
+                  type="button"
+                  disabled={disabled || resolved.status !== "current"}
+                  onClick={(event) => beginPrivacyReview(event.currentTarget)}
+                >
+                  {copy.reviewExport}
+                </button>
+              </div>
               <h3 className="report-preview-title">{resolved.definition.title}</h3>
               {resolved.definition.blocks.map(renderPreviewBlock)}
               <article>
@@ -1727,7 +1778,7 @@ export function ReportsPanel({
             </section>
           )}
 
-          {refreshReviewOpen && resolved?.status === "stale" && (
+          {workspace === "preview" && refreshReviewOpen && resolved?.status === "stale" && (
             <section
               className="report-refresh-review"
               role="region"
@@ -1790,7 +1841,7 @@ export function ReportsPanel({
             </section>
           )}
 
-          {privacyReviewOpen && resolved && (
+          {workspace === "preview" && privacyReviewOpen && resolved && (
             <section
               className="report-privacy-review"
               role="region"

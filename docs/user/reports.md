@@ -13,6 +13,11 @@ Open **Reports** to see saved reports and two direct starts:
 - **Start a blank report** begins with only a title and your interpretation. You can add comparison evidence
   before saving or after reopening it.
 
+The report workspace has three explicit locations. **Library** contains saved reports and new starts,
+**Compose** contains the ordered editor, and **Preview** shows the resolved saved output. Temporarily moving
+between available locations preserves the current draft. A successful save opens Preview; use **Edit
+composition** or **Compose** to continue editing, and return to Library to choose another saved report.
+
 A completed **Training period comparison** also offers **Turn this comparison into a report**. The report
 retains the exact periods that produced the visible result. **Back to the comparison** restores that mounted
 exploration and its result.
@@ -27,7 +32,7 @@ The fourth start is a specific training session:
 6. Under **Add an answer from your training history**, add any combination of **Key finding**, **Period comparison**, **Comparison chart**, **Exact values**, and **Coverage and missing data**. Each view can occur once.
 7. Set the baseline and comparison dates. Both periods are inclusive, may overlap, and may contain at most 366 days. Every selected analytical view uses these same periods. Choose the measurement for the finding and chart independently.
 8. Move any block up or down to define the report order. The session summary and narrative are required; route and analytical blocks can be added and removed.
-9. Select **Save report**. The action keeps that name and the editor remains visible but busy while localized progress is announced. FitFreed validates the session, routes, and analytical periods against the exact current training snapshot before storing the definition under **Saved reports**. It survives restart and reimport independently from the provider ZIP.
+9. Select **Save report**. The action keeps that name and the editor remains visible but busy while localized progress is announced. FitFreed validates the session, routes, and analytical periods against the exact current training snapshot before storing the definition under **Saved reports**, then opens the independent Preview. It survives restart and reimport independently from the provider ZIP.
 
 New reports use definition version 4. Every report has exactly one plain-text narrative and may contain at
 most one of each analytical view. Session-origin reports additionally require one session-evidence block and
@@ -38,9 +43,10 @@ PDF, spreadsheet output, and free-form layout are not yet available.
 
 ## Reopen and edit
 
-Open **Reports** from the application navigation and select a saved report. FitFreed resolves only the
-evidence selected by its definition through the current authoritative library and shows the saved revision,
-your narrative, applicable recorded or calculated evidence, coverage limitations, and provenance.
+Open **Reports** from the application navigation and select a saved report in **Library**. FitFreed resolves
+only the evidence selected by its definition through the current authoritative library and opens **Preview**
+with your narrative, applicable recorded or calculated evidence, coverage limitations, and provenance. Use
+**Edit composition** to inspect the saved revision and change the definition.
 
 Edit the title, narrative, applicable heart-rate choice, route selection, endpoint protection, analytical
 views, periods, measurements, or block order and select **Save changes**. FitFreed reruns the shared
@@ -85,7 +91,8 @@ path is not persisted in the report.
 
 ## Review and export
 
-1. Open a current saved report and select **Review and export**.
+1. Open a current saved report in **Preview** and select **Review and export**. The review temporarily
+   replaces the preview rather than appearing beneath the editor.
 2. Read the complete content boundary. It includes only the applicable recorded session summary, selected
 comparison totals, findings, chart shapes, exact tables, coverage notices, your title and narrative, source
 attribution, definition metadata, and reviewed route shapes. Exact training samples remain excluded.

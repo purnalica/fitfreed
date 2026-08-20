@@ -19,8 +19,9 @@ when that source is still available.
   preview composition, and export orchestration through explicit query and output ports.
 - Insights queries remain the authoritative calculation paths. Report resolution references them; it does not copy their rules or read database rows.
 - Persistence stores and migrates versioned definitions transactionally with the local library.
-- Presentation owns the editor interaction, current-candidate refresh review, privacy review, and explicit
-  file-destination request.
+- Presentation owns the staged Library, Compose, and Preview workspace, current-candidate refresh review,
+  privacy review, and explicit file-destination request. Switching stages preserves the mounted draft and
+  resolved candidate but removes every inactive stage from visual and assistive-technology exposure.
 - A replaceable outer adapter renders one resolved report into deterministic self-contained HTML and atomically promotes the completed file.
 
 ## Definition and resolved output
@@ -45,6 +46,14 @@ Question and exploration origins require coherent analytical evidence and prohib
 Blank origins may remain narrative-only or gain analytical blocks later. Reopening a narrative-only blank
 definition prepares a suggestion only when the current snapshot still equals its saved snapshot. No start
 path stores a provider object, copied calculation, or presentation-only workspace state.
+
+Reports opens on **Library**, where saved definitions and question or blank starts have one conceptual home.
+A start enters **Compose**; a successful save or a saved-report selection enters **Preview**. The full ordered
+editor remains mounted while Library or Preview is active, so moving between stages does not discard title,
+narrative, periods, measurements, privacy choices, or block order. Preview is independently inspectable and
+replaces itself with either stale-evidence review or export privacy review; it never stacks both reviews below
+the editor. This hierarchy is disposable presentation state and does not enter a definition, application DTO,
+or persistence row.
 
 ## Origin-aware navigation
 

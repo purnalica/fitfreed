@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
-import { ExplorerWorkspaceNavigation } from "./ExplorerWorkspaceNavigation";
+import { WorkspaceNavigation } from "./WorkspaceNavigation";
 import type { ExplorerNavigationRequest } from "./explorer-navigation";
 import { restoreFocusAfterReveal } from "./focus-restoration";
 import { RangeFilterActions, type RangeOperation } from "./RangeFilterActions";
@@ -237,7 +237,7 @@ export function SleepInsightsPanel({
         <h1 id="sleep-heading" ref={overviewHeadingRef} tabIndex={-1}>{copy.heading}</h1>
         <p>{copy.workspaceIntro}</p>
       </header>
-      <ExplorerWorkspaceNavigation
+      <WorkspaceNavigation
         label={copy.workspaceNavigation}
         current={workspace}
         options={[
