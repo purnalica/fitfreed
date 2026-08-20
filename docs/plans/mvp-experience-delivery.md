@@ -383,8 +383,9 @@ comparison, origin-specific return, durable restart restoration, explicit cleari
 application tests prove stale-snapshot selection clearing. Its separate 731-session process measures calendar
 navigation at 39 ms p95 against the 500 ms budget and selects four exact sessions. The release read-model
 campaign over 14,612 sessions measures a page at 7.369 ms p95,
-a calendar month at 2.951 ms p95, and ordered four-session resolution at 11.006 ms p95. This accepts the E3
-local checkpoint; hosted executable evidence remains pending. Evidence-complete routed and non-routed
+a calendar month at 2.951 ms p95, and ordered four-session resolution at 11.006 ms p95. This accepted the E3
+local checkpoint; its executable boundary was later included in the hosted acceptance recorded by the
+[public-release readiness ledger](../testing/public-release-readiness.md). Evidence-complete routed and non-routed
 session destinations and their cross-workspace navigation continue in E4, while report-origin navigation
 continues in E5.
 
