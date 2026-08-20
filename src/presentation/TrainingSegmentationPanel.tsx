@@ -13,6 +13,12 @@ import type {
 } from "./training-session-segmentation";
 
 type CriterionKind = SegmentCriterionDefinition["kind"];
+type SegmentMutationCommand =
+  | "apply_training_segment_criterion"
+  | "create_training_segment_criterion"
+  | "move_training_segment_criterion"
+  | "remove_training_segment_criterion"
+  | "update_training_segment_criterion";
 
 const MINIMUM_SEGMENT_MINUTES = 0.001;
 const MINIMUM_SEGMENT_KILOMETERS = 0.001;
@@ -183,12 +189,28 @@ export function TrainingSegmentationPanel({
   const [result, setResult] = useState<TrainingSessionSegmentationResult>();
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [mutationCommand, setMutationCommand] = useState<SegmentMutationCommand>();
   const [editor, setEditor] = useState<EditorState>();
   const [reuseSelections, setReuseSelections] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<string>();
   const copy = messages.training.sessionLibrary;
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const busy = mutationCommand !== undefined;
+
+  function mutationProgress(command: SegmentMutationCommand): string {
+    switch (command) {
+      case "apply_training_segment_criterion":
+        return copy.segmentApplying;
+      case "create_training_segment_criterion":
+        return copy.segmentCreating;
+      case "move_training_segment_criterion":
+        return copy.segmentMoving;
+      case "remove_training_segment_criterion":
+        return copy.segmentRemoving;
+      case "update_training_segment_criterion":
+        return copy.segmentUpdating;
+    }
+  }
 
   useEffect(() => {
     let active = true;
@@ -210,11 +232,11 @@ export function TrainingSegmentationPanel({
   }, [sessionRef, snapshotRef]);
 
   async function mutate(
-    command: string,
+    command: SegmentMutationCommand,
     request: Record<string, unknown>,
     success: string,
   ) {
-    setBusy(true);
+    setMutationCommand(command);
     setStatus(undefined);
     try {
       const updated = await invoke<TrainingSessionSegmentationResult>(command, { request });
@@ -225,7 +247,7 @@ export function TrainingSegmentationPanel({
     } catch (reason) {
       onError(commandErrorCode(reason));
     } finally {
-      setBusy(false);
+      setMutationCommand(undefined);
     }
   }
 
@@ -509,9 +531,9 @@ export function TrainingSegmentationPanel({
         <p>{copy.segmentAttributionIntro}</p>
       </aside>
       {loading && <p role="status">{copy.segmentLoading}</p>}
-      {busy && (
+      {mutationCommand && (
         <p className="training-segment-progress" role="status" aria-live="polite">
-          {copy.segmentSaving}
+          {mutationProgress(mutationCommand)}
         </p>
       )}
       {failed && <p className="error" role="alert">{copy.segmentFailed}</p>}

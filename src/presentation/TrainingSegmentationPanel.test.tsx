@@ -360,12 +360,87 @@ describe("TrainingSegmentationPanel", () => {
     });
     await waitFor(() => expect(editor).toHaveAttribute("aria-busy", "true"));
     expect(within(editor).getByRole("button", { name: "Save criterion" })).toBeDisabled();
-    expect(screen.getByRole("status")).toHaveTextContent("Saving…");
+    expect(screen.getByRole("status")).toHaveTextContent("Creating and applying criterion…");
     expect(within(editor).getByLabelText("Criterion name")).toHaveValue("Tempo blocks");
 
     resolveSave(result);
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(
       "The criterion was created and applied.",
+    ));
+  });
+
+  it("announces the exact pending operation without hiding its action or context", async () => {
+    const result = populatedResult();
+    let resolveMutation: (value: TrainingSessionSegmentationResult) => void = () => undefined;
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_training_session_segmentation") return Promise.resolve(result);
+      return new Promise((resolve) => {
+        resolveMutation = resolve;
+      });
+    });
+    const user = userEvent.setup();
+
+    renderPanel();
+    await screen.findByRole("heading", { name: "Five-minute blocks" });
+
+    const firstCard = screen.getByRole("heading", { name: "Five-minute blocks" })
+      .closest("article")!;
+    const moveLater = within(firstCard).getByRole("button", { name: "Move later" });
+    await user.click(moveLater);
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(
+      "Updating criterion order…",
+    ));
+    expect(moveLater).toBeDisabled();
+    expect(screen.getByRole("heading", { name: "Five-minute blocks" })).toBeVisible();
+    resolveMutation(result);
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(
+      "The criterion order was updated.",
+    ));
+
+    await user.click(within(firstCard).getByRole("button", { name: "Configure definition" }));
+    const title = screen.getByLabelText("Criterion name");
+    await user.clear(title);
+    await user.type(title, "Six-minute blocks");
+    const save = screen.getByRole("button", { name: "Save criterion" });
+    await user.click(save);
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(
+      "Saving criterion changes…",
+    ));
+    expect(save).toBeDisabled();
+    expect(title).toHaveValue("Six-minute blocks");
+    resolveMutation(result);
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(
+      "The reusable criterion was updated.",
+    ));
+
+    await user.selectOptions(
+      screen.getAllByLabelText("Saved criterion")[0]!,
+      manualCriterion.criterionRef,
+    );
+    const apply = screen.getAllByRole("button", { name: "Apply saved criterion" })[0]!;
+    await user.click(apply);
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(
+      "Applying saved criterion…",
+    ));
+    expect(apply).toBeDisabled();
+    expect(screen.getByRole("heading", { name: "Five-minute blocks" })).toBeVisible();
+    resolveMutation(result);
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(
+      "The saved criterion was applied to this exercise.",
+    ));
+
+    const secondCard = screen.getByRole("heading", { name: "Tempo range" })
+      .closest("article")!;
+    const remove = within(secondCard).getByRole("button", { name: "Remove from exercise" });
+    await user.click(remove);
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(
+      "Removing criterion from exercise…",
+    ));
+    expect(remove).toBeDisabled();
+    expect(screen.getByRole("heading", { name: "Tempo range" })).toBeVisible();
+    resolveMutation(result);
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(
+      "The criterion was removed from this exercise; its reusable definition remains saved.",
     ));
   });
 
