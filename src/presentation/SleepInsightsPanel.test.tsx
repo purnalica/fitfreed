@@ -375,6 +375,14 @@ describe("SleepInsightsPanel", () => {
     await user.click(within(filter).getByRole("button", { name: "Latest 30-day window" }));
     await waitFor(() => expect(within(sleep).getAllByRole("button", { name: /View sleep details for/ })).toHaveLength(3));
 
+    const workspaceNavigation = within(sleep).getByRole("navigation", {
+      name: "Sleep workspace",
+    });
+    const comparisonWorkspace = within(workspaceNavigation).getByRole("button", {
+      name: "Compare periods",
+    });
+    await user.click(comparisonWorkspace);
+    expect(comparisonWorkspace).toHaveAttribute("aria-current", "page");
     const comparisonForm = within(sleep).getByRole("form", { name: "Compare sleep periods" });
     const ranges = [
       ["Baseline period start", "2026-03-01"], ["Baseline period end", "2026-03-03"],
@@ -396,6 +404,12 @@ describe("SleepInsightsPanel", () => {
     expect(within(result).getByText("+15 min")).toBeVisible();
     expect(within(result).getByText("−5 min")).toBeVisible();
     expect(within(result).getByText("-50 pp")).toBeVisible();
+    await user.click(within(workspaceNavigation).getByRole("button", { name: "Nights" }));
+    expect(within(sleep).queryByRole("region", {
+      name: "Sleep period comparison",
+    })).not.toBeInTheDocument();
+    await user.click(comparisonWorkspace);
+    expect(within(sleep).getByRole("region", { name: "Sleep period comparison" })).toBeVisible();
     await user.click(within(result).getByRole("button", { name: "Clear sleep comparison" }));
     expect(within(sleep).queryByRole("region", { name: "Sleep period comparison" })).not.toBeInTheDocument();
   });
@@ -450,16 +464,29 @@ describe("SleepInsightsPanel", () => {
     });
     const onError = vi.fn();
     const user = userEvent.setup();
-    renderPanel({ onError });
+    const view = renderPanel({ onError });
     const sleep = await screen.findByRole("region", { name: "Sleep history" });
     const buttons = within(sleep).getAllByRole("button", { name: /View sleep details for/ });
     await user.click(buttons[0]);
-    await user.click(buttons[1]);
+    view.rerender(
+      <SleepInsightsPanel
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        refreshToken={0}
+        navigationRequest={{
+          seriesRef: "opaque-origin-alpha",
+          localDate: "2026-03-30",
+          requestId: 1,
+        }}
+        onError={onError}
+      />,
+    );
     const detailRegion = await within(sleep).findByRole("region", { name: "Sleep detail" });
     expect(within(detailRegion).getByText("Mar 30, 2026")).toBeVisible();
     resolveFirst(detail("2026-03-28"));
     await waitFor(() => expect(within(detailRegion).getByText("Mar 30, 2026")).toBeVisible());
 
+    await user.click(within(detailRegion).getByRole("button", { name: "Close sleep detail" }));
     const filter = within(sleep).getByRole("form", { name: "Explore a sleep period" });
     await user.clear(within(filter).getByLabelText("From"));
     await user.type(within(filter).getByLabelText("From"), "2026-03-30");
@@ -475,6 +502,12 @@ describe("SleepInsightsPanel", () => {
     expect(within(filter).getByLabelText("Through")).toHaveAttribute("aria-invalid", "true");
     expect(within(sleep).getAllByRole("button", { name: /View sleep details for/ })).toHaveLength(3);
 
+    const workspaceNavigation = within(sleep).getByRole("navigation", {
+      name: "Sleep workspace",
+    });
+    await user.click(within(workspaceNavigation).getByRole("button", {
+      name: "Compare periods",
+    }));
     const comparisonForm = within(sleep).getByRole("form", { name: "Compare sleep periods" });
     await user.click(within(comparisonForm).getByRole("button", { name: "Compare sleep periods" }));
     const comparisonRegion = await within(sleep).findByRole("region", { name: "Sleep period comparison" });

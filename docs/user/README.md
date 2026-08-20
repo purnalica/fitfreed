@@ -14,7 +14,9 @@ only the explorations supported by canonical local evidence. A successful import
 canonical effect; a later launch safely restores the last supported exploration destination or returns to
 Home. Activity, training, sleep, recovery, and longitudinal views load only when selected, and **Back to
 Home** clears the durable destination without persisting disposable filters, details, or comparisons. The
-longitudinal dashboard aligns domains without merging sources or implying causation.
+longitudinal dashboard aligns domains without merging sources or implying causation. Activity, sleep,
+recovery, and aligned history each separate their history from **Compare periods**; an exact day or night
+temporarily replaces the history list, and returning restores the point from which it was opened.
 
 Current builds also demonstrate import safety, source-subject correlation, reconciliation, and localized
 family coverage. They expose trusted update checking at ready startup, in Settings on explicit request, and

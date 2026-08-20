@@ -179,6 +179,13 @@
   },
   "activity": {
     "heading": "Resumen de actividad diaria",
+    "workspaceEyebrow": "Tu movimiento cotidiano",
+    "workspaceIntro": "Descubre el ritmo de tus días, inspecciona una fecha exacta o compara dos periodos sin ocultar las observaciones ausentes.",
+    "workspaceNavigation": "Espacio de trabajo de actividad",
+    "workspaces": {
+      "history": "Historial diario",
+      "comparison": "Comparar periodos"
+    },
     "loading": "Cargando la actividad diaria…",
     "unavailableHistory": "No se ha podido cargar la actividad diaria desde la biblioteca local.",
     "empty": "Todavía no hay actividad diaria importada.",
@@ -707,6 +714,13 @@
   },
   "sleep": {
     "heading": "Historial del sueño",
+    "workspaceEyebrow": "Tus noches a lo largo del tiempo",
+    "workspaceIntro": "Explora las noches registradas, abre sus indicios exactos de sueño o compara dos periodos sin considerar las noches ausentes como sueño cero.",
+    "workspaceNavigation": "Espacio de trabajo de sueño",
+    "workspaces": {
+      "history": "Noches",
+      "comparison": "Comparar periodos"
+    },
     "loading": "Cargando el historial del sueño…",
     "unavailable": "No se ha podido cargar el historial del sueño.",
     "empty": "Todavía no hay periodos de sueño importados.",
@@ -823,6 +837,12 @@
   },
   "recovery": {
     "heading": "Recuperación nocturna",
+    "workspaceEyebrow": "Contexto de recuperación registrado",
+    "workspaceNavigation": "Espacio de trabajo de recuperación",
+    "workspaces": {
+      "history": "Noches",
+      "comparison": "Comparar periodos"
+    },
     "intro": "Explora los intervalos de recuperación registrados y el contexto específico del origen sin convertirlos en conclusiones médicas.",
     "loading": "Cargando recuperación nocturna…",
     "unavailable": "No se ha podido cargar la recuperación nocturna.",
@@ -907,6 +927,12 @@
   },
   "longitudinal": {
     "heading": "Panel longitudinal",
+    "workspaceEyebrow": "Tu historial, alineado",
+    "workspaceNavigation": "Espacio de trabajo del historial alineado",
+    "workspaces": {
+      "history": "Historial alineado",
+      "comparison": "Comparar periodos"
+    },
     "intro": "Alinea actividad, entrenamiento, sueño y recuperación en las mismas fechas sin combinar orígenes ni insinuar causalidad.",
     "loading": "Cargando el panel longitudinal…",
     "unavailable": "No se ha podido cargar el panel longitudinal.",

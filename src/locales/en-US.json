@@ -179,6 +179,13 @@
   },
   "activity": {
     "heading": "Daily activity overview",
+    "workspaceEyebrow": "Your everyday movement",
+    "workspaceIntro": "Read the rhythm of your days, inspect an exact date, or compare two periods while missing observations remain visible.",
+    "workspaceNavigation": "Activity workspace",
+    "workspaces": {
+      "history": "Daily history",
+      "comparison": "Compare periods"
+    },
     "loading": "Loading daily activity…",
     "unavailableHistory": "Daily activity could not be loaded from the local library.",
     "empty": "No imported daily activity yet.",
@@ -707,6 +714,13 @@
   },
   "sleep": {
     "heading": "Sleep history",
+    "workspaceEyebrow": "Your nights over time",
+    "workspaceIntro": "Explore recorded nights, open their exact sleep evidence, or compare two periods without treating missing nights as zero sleep.",
+    "workspaceNavigation": "Sleep workspace",
+    "workspaces": {
+      "history": "Nights",
+      "comparison": "Compare periods"
+    },
     "loading": "Loading sleep history…",
     "unavailable": "Sleep history could not be loaded.",
     "empty": "No imported sleep periods yet.",
@@ -823,6 +837,12 @@
   },
   "recovery": {
     "heading": "Nightly recovery",
+    "workspaceEyebrow": "Recorded recovery context",
+    "workspaceNavigation": "Recovery workspace",
+    "workspaces": {
+      "history": "Nights",
+      "comparison": "Compare periods"
+    },
     "intro": "Explore recorded recovery intervals and source-specific context without turning them into medical conclusions.",
     "loading": "Loading nightly recovery…",
     "unavailable": "Nightly recovery could not be loaded.",
@@ -907,6 +927,12 @@
   },
   "longitudinal": {
     "heading": "Longitudinal dashboard",
+    "workspaceEyebrow": "Your history, aligned",
+    "workspaceNavigation": "Aligned-history workspace",
+    "workspaces": {
+      "history": "Aligned history",
+      "comparison": "Compare periods"
+    },
     "intro": "Align activity, training, sleep, and recovery on the same dates without merging sources or implying causation.",
     "loading": "Loading the longitudinal dashboard…",
     "unavailable": "The longitudinal dashboard could not be loaded.",

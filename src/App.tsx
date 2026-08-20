@@ -22,6 +22,7 @@ import type {
   ExplorerNavigationRequest,
   TrainingNavigationRequest,
 } from "./presentation/explorer-navigation";
+import { ExplorerWorkspaceNavigation } from "./presentation/ExplorerWorkspaceNavigation";
 import {
   applyApplicationPreferences,
   type ApplicationPreferences,
@@ -89,6 +90,7 @@ const UpdatePanel = lazy(() =>
 );
 
 type CountMessageKey = keyof (typeof catalogs)["en-US"]["counts"];
+type ActivityWorkspace = "history" | "comparison";
 
 interface ImportReport {
   exactRepeat: boolean;
@@ -219,6 +221,7 @@ function App() {
   const [rangeThrough, setRangeThrough] = useState("");
   const [rangeOperation, setRangeOperation] = useState<RangeOperation>();
   const [selectedActivityDate, setSelectedActivityDate] = useState<string>();
+  const [activityWorkspace, setActivityWorkspace] = useState<ActivityWorkspace>("history");
   const activityHeadingRef = useRef<HTMLHeadingElement>(null);
   const activityDetailHeadingRef = useRef<HTMLHeadingElement>(null);
   const activityDetailOriginRef = useRef<HTMLButtonElement | null>(null);
@@ -881,6 +884,7 @@ function App() {
     origin: HTMLButtonElement | null,
   ) {
     activityDetailOriginRef.current = origin;
+    setActivityWorkspace("history");
     setSelectedActivityDate(localDateValue);
   }
 
@@ -1248,9 +1252,26 @@ function App() {
 
       {exploreDestination === "activity" && (
       <section aria-labelledby="activity-heading" aria-busy={activityLoading}>
-        <h1 id="activity-heading" ref={activityHeadingRef} tabIndex={-1}>
-          {messages.activity.heading}
-        </h1>
+        <header className="explorer-workspace-heading">
+          <p className="eyebrow">{messages.activity.workspaceEyebrow}</p>
+          <h1 id="activity-heading" ref={activityHeadingRef} tabIndex={-1}>
+            {messages.activity.heading}
+          </h1>
+          <p>{messages.activity.workspaceIntro}</p>
+        </header>
+        <ExplorerWorkspaceNavigation
+          label={messages.activity.workspaceNavigation}
+          current={activityWorkspace}
+          options={[
+            { workspace: "history", label: messages.activity.workspaces.history },
+            {
+              workspace: "comparison",
+              label: messages.activity.workspaces.comparison,
+              disabled: !activityOverview?.availableRange,
+            },
+          ]}
+          onSelect={setActivityWorkspace}
+        />
         {activityLoading && !activityOverview ? (
           <p role="status">{messages.activity.loading}</p>
         ) : activityFailed && !activityOverview ? (
@@ -1259,6 +1280,10 @@ function App() {
           <p>{messages.activity.empty}</p>
         ) : (
           <>
+            <div
+              className="explorer-history-workspace"
+              hidden={activityWorkspace !== "history" || selectedActivityDate !== undefined}
+            >
             {activityOverview.availableRange && activityOverview.selectedRange && (
               <form
                 className="activity-filter"
@@ -1428,6 +1453,11 @@ function App() {
                 </div>
               </section>
             ))}
+            </div>
+            <div
+              className="explorer-detail-workspace"
+              hidden={activityWorkspace !== "history"}
+            >
             {selectedActivityDate && (
               <section className="activity-detail" aria-labelledby="activity-detail-heading">
                 <div className="activity-detail-heading">
@@ -1476,6 +1506,11 @@ function App() {
                 </ul>
               </section>
             )}
+            </div>
+            <div
+              className="explorer-comparison-workspace"
+              hidden={activityWorkspace !== "comparison"}
+            >
             {activityOverview.availableRange && activityOverview.selectedRange && (
               <Suspense fallback={<LoadingSurface message={messages.shell.loading} />}>
                 <ActivityComparisonPanel
@@ -1488,6 +1523,7 @@ function App() {
                 />
               </Suspense>
             )}
+            </div>
           </>
         )}
       </section>

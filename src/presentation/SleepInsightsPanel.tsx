@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
+import { ExplorerWorkspaceNavigation } from "./ExplorerWorkspaceNavigation";
 import type { ExplorerNavigationRequest } from "./explorer-navigation";
 import { restoreFocusAfterReveal } from "./focus-restoration";
 import { RangeFilterActions, type RangeOperation } from "./RangeFilterActions";
@@ -39,6 +40,8 @@ interface SelectedNight {
   sleepDate: string;
 }
 
+type SleepWorkspace = "history" | "comparison";
+
 export function SleepInsightsPanel({
   locale,
   messages,
@@ -54,6 +57,7 @@ export function SleepInsightsPanel({
   const [selectedNight, setSelectedNight] = useState<SelectedNight>();
   const [detail, setDetail] = useState<SleepPeriodDetail>();
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [workspace, setWorkspace] = useState<SleepWorkspace>("history");
   const rangeValidation = useInvalidForm(onError);
   const detailRequest = useRef(0);
   const overviewHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -99,6 +103,7 @@ export function SleepInsightsPanel({
 
   useEffect(() => {
     if (!navigationRequest) return;
+    setWorkspace("history");
     setRangeOperation("navigation");
     onError(undefined);
     void refresh({
@@ -159,6 +164,7 @@ export function SleepInsightsPanel({
     const request = detailRequest.current + 1;
     detailRequest.current = request;
     detailOriginRef.current = origin;
+    setWorkspace("history");
     setSelectedNight(selection);
     setDetail(undefined);
     setLoadingDetail(true);
@@ -226,7 +232,24 @@ export function SleepInsightsPanel({
 
   return (
     <section className="sleep-insights" aria-labelledby="sleep-heading" aria-busy={loadingOverview}>
-      <h1 id="sleep-heading" ref={overviewHeadingRef} tabIndex={-1}>{copy.heading}</h1>
+      <header className="explorer-workspace-heading">
+        <p className="eyebrow">{copy.workspaceEyebrow}</p>
+        <h1 id="sleep-heading" ref={overviewHeadingRef} tabIndex={-1}>{copy.heading}</h1>
+        <p>{copy.workspaceIntro}</p>
+      </header>
+      <ExplorerWorkspaceNavigation
+        label={copy.workspaceNavigation}
+        current={workspace}
+        options={[
+          { workspace: "history", label: copy.workspaces.history },
+          {
+            workspace: "comparison",
+            label: copy.workspaces.comparison,
+            disabled: !overview?.availableRange,
+          },
+        ]}
+        onSelect={setWorkspace}
+      />
       {!overview && loadingOverview ? (
         <p role="status">{copy.loading}</p>
       ) : !overview ? (
@@ -235,6 +258,10 @@ export function SleepInsightsPanel({
         <p>{copy.empty}</p>
       ) : (
         <>
+          <div
+            className="explorer-history-workspace"
+            hidden={workspace !== "history" || selectedNight !== undefined}
+          >
           {overview.availableRange && overview.selectedRange && (
             <form
               className="sleep-filter"
@@ -366,6 +393,8 @@ export function SleepInsightsPanel({
               )}
             </section>
           ))}
+          </div>
+          <div className="explorer-detail-workspace" hidden={workspace !== "history"}>
           {selectedNight && (
             <section className="sleep-detail" aria-labelledby="sleep-detail-heading" aria-busy={loadingDetail}>
               <div className="sleep-detail-heading">
@@ -400,6 +429,8 @@ export function SleepInsightsPanel({
               ) : <p>{copy.detailUnavailable}</p>}
             </section>
           )}
+          </div>
+          <div className="explorer-comparison-workspace" hidden={workspace !== "comparison"}>
           {overview.availableRange && overview.selectedRange && (
             <SleepComparisonPanel
               key={`${overview.selectedRange.from}:${overview.selectedRange.through}`}
@@ -410,6 +441,7 @@ export function SleepInsightsPanel({
               onError={onError}
             />
           )}
+          </div>
         </>
       )}
     </section>

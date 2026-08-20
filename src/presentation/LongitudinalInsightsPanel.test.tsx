@@ -461,6 +461,14 @@ describe("LongitudinalInsightsPanel", () => {
     const user = userEvent.setup();
     renderPanel({ onError });
     const region = screen.getByRole("region", { name: "Longitudinal dashboard" });
+    const workspaceNavigation = within(region).getByRole("navigation", {
+      name: "Aligned-history workspace",
+    });
+    const comparisonWorkspace = within(workspaceNavigation).getByRole("button", {
+      name: "Compare periods",
+    });
+    await user.click(comparisonWorkspace);
+    expect(comparisonWorkspace).toHaveAttribute("aria-current", "page");
     await within(region).findByRole("heading", { name: "Compare shared periods" });
 
     const baselineFrom = within(region).getByLabelText("Baseline period start");
@@ -482,6 +490,17 @@ describe("LongitudinalInsightsPanel", () => {
     expect(within(result).getByText("+15 min")).toBeVisible();
     expect(within(result).getByText("+25 ms")).toBeVisible();
     expect(within(result).getByText(/missing measurements remain explicit/)).toBeVisible();
+
+    await user.click(within(workspaceNavigation).getByRole("button", {
+      name: "Aligned history",
+    }));
+    expect(within(region).queryByRole("region", {
+      name: "Longitudinal period comparison",
+    })).not.toBeInTheDocument();
+    await user.click(comparisonWorkspace);
+    expect(within(region).getByRole("region", {
+      name: "Longitudinal period comparison",
+    })).toBeVisible();
 
     await user.clear(baselineFrom);
     await user.type(baselineFrom, "2026-03-30");

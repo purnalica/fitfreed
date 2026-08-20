@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
+import { ExplorerWorkspaceNavigation } from "./ExplorerWorkspaceNavigation";
 import { LongitudinalComparisonPanel } from "./LongitudinalComparisonPanel";
 import { RangeFilterActions, type RangeOperation } from "./RangeFilterActions";
 import type {
@@ -22,6 +23,7 @@ import { formatDuration } from "./training-format";
 import { useInvalidForm } from "./useInvalidForm";
 
 type LongitudinalDomain = "activity" | "training" | "sleep" | "recovery";
+type LongitudinalWorkspace = "history" | "comparison";
 
 interface LongitudinalInsightsPanelProps {
   locale: Locale;
@@ -54,6 +56,7 @@ export function LongitudinalInsightsPanel({
   const [rangeOperation, setRangeOperation] = useState<RangeOperation>();
   const [selectedDay, setSelectedDay] = useState<SelectedDay>();
   const [navigationDomain, setNavigationDomain] = useState<LongitudinalDomain>();
+  const [workspace, setWorkspace] = useState<LongitudinalWorkspace>("history");
   const rangeValidation = useInvalidForm(onError);
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const date = useMemo(
@@ -176,14 +179,35 @@ export function LongitudinalInsightsPanel({
   const selectedInsight = selected();
   const loadingRange = rangeOperation !== undefined;
 
+  function selectDay(seriesRef: string, localDate: string) {
+    setWorkspace("history");
+    setSelectedDay({ seriesRef, localDate });
+  }
+
   return (
     <section
       className="longitudinal-insights"
       aria-labelledby="longitudinal-heading"
       aria-busy={loadingOverview}
     >
-      <h1 id="longitudinal-heading">{copy.heading}</h1>
-      <p className="longitudinal-intro">{copy.intro}</p>
+      <header className="explorer-workspace-heading">
+        <p className="eyebrow">{copy.workspaceEyebrow}</p>
+        <h1 id="longitudinal-heading">{copy.heading}</h1>
+        <p>{copy.intro}</p>
+      </header>
+      <ExplorerWorkspaceNavigation
+        label={copy.workspaceNavigation}
+        current={workspace}
+        options={[
+          { workspace: "history", label: copy.workspaces.history },
+          {
+            workspace: "comparison",
+            label: copy.workspaces.comparison,
+            disabled: !overview?.availableRange,
+          },
+        ]}
+        onSelect={setWorkspace}
+      />
       {!overview && loadingOverview ? (
         <p role="status">{copy.loading}</p>
       ) : !overview ? (
@@ -192,6 +216,10 @@ export function LongitudinalInsightsPanel({
         <p>{copy.empty}</p>
       ) : (
         <>
+          <div
+            className="explorer-history-workspace"
+            hidden={workspace !== "history" || selectedInsight !== undefined}
+          >
           {overview.availableRange && overview.selectedRange && (
             <form
               className="longitudinal-filter"
@@ -272,9 +300,11 @@ export function LongitudinalInsightsPanel({
               coverage={coverage}
               formatSteps={formatSteps}
               activityStatus={activityStatus}
-              onSelect={(localDate) => setSelectedDay({ seriesRef: series.seriesRef, localDate })}
+              onSelect={(localDate) => selectDay(series.seriesRef, localDate)}
             />
           ))}
+          </div>
+          <div className="explorer-detail-workspace" hidden={workspace !== "history"}>
           {selectedInsight && (
             <section
               className="longitudinal-detail"
@@ -338,6 +368,8 @@ export function LongitudinalInsightsPanel({
               <p className="notice">{copy.associationNotice}</p>
             </section>
           )}
+          </div>
+          <div className="explorer-comparison-workspace" hidden={workspace !== "comparison"}>
           {overview.availableRange && overview.selectedRange && (
             <LongitudinalComparisonPanel
               key={`${overview.selectedRange.from}:${overview.selectedRange.through}`}
@@ -348,6 +380,7 @@ export function LongitudinalInsightsPanel({
               onError={onError}
             />
           )}
+          </div>
         </>
       )}
     </section>

@@ -2519,10 +2519,19 @@ describe("FitFreed import interface", () => {
     render(<App />);
 
     await enterExploration(user, "activity");
-    const baselineFrom = await screen.findByLabelText("Baseline from");
-    const baselineThrough = screen.getByLabelText("Baseline through");
-    const comparisonFrom = screen.getByLabelText("Comparison from");
-    const comparisonThrough = screen.getByLabelText("Comparison through");
+    const workspaceNavigation = await screen.findByRole("navigation", {
+      name: "Activity workspace",
+    });
+    const comparisonWorkspace = within(workspaceNavigation).getByRole("button", {
+      name: "Compare periods",
+    });
+    await user.click(comparisonWorkspace);
+    expect(comparisonWorkspace).toHaveAttribute("aria-current", "page");
+    const comparisonForm = await screen.findByRole("form", { name: "Compare two periods" });
+    const baselineFrom = within(comparisonForm).getByLabelText("Baseline from");
+    const baselineThrough = within(comparisonForm).getByLabelText("Baseline through");
+    const comparisonFrom = within(comparisonForm).getByLabelText("Comparison from");
+    const comparisonThrough = within(comparisonForm).getByLabelText("Comparison through");
     for (const [input, value] of [
       [baselineFrom, "2026-01-01"],
       [baselineThrough, "2026-01-02"],
@@ -2532,7 +2541,7 @@ describe("FitFreed import interface", () => {
       await user.clear(input);
       await user.type(input, value);
     }
-    await user.click(screen.getByRole("button", { name: "Compare periods" }));
+    await user.click(within(comparisonForm).getByRole("button", { name: "Compare periods" }));
 
     await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
       "query_activity_comparison",
@@ -2556,12 +2565,21 @@ describe("FitFreed import interface", () => {
     expect(within(rows[2]).getByText("+1,000")).toBeVisible();
     expect(within(rows[3]).getAllByText("2")).toHaveLength(2);
 
+    const historyWorkspace = within(workspaceNavigation).getByRole("button", {
+      name: "Daily history",
+    });
+    await user.click(historyWorkspace);
+    expect(historyWorkspace).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByRole("region", { name: "Period comparison" })).not.toBeInTheDocument();
+    await user.click(comparisonWorkspace);
+    expect(screen.getByRole("region", { name: "Period comparison" })).toBeVisible();
+
     const comparisonQueryCount = mocks.invoke.mock.calls.filter(
       ([command]) => command === "query_activity_comparison",
     ).length;
     await user.clear(baselineFrom);
     await user.type(baselineFrom, "2026-01-03");
-    await user.click(screen.getByRole("button", { name: "Compare periods" }));
+    await user.click(within(comparisonForm).getByRole("button", { name: "Compare periods" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Choose ordered comparison periods inside the available history, up to 366 days each.",
     );

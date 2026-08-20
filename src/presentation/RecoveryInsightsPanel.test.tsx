@@ -424,6 +424,14 @@ describe("RecoveryInsightsPanel", () => {
     const user = userEvent.setup();
     renderPanel({ onError });
     const region = screen.getByRole("region", { name: "Nightly recovery" });
+    const workspaceNavigation = within(region).getByRole("navigation", {
+      name: "Recovery workspace",
+    });
+    const comparisonWorkspace = within(workspaceNavigation).getByRole("button", {
+      name: "Compare periods",
+    });
+    await user.click(comparisonWorkspace);
+    expect(comparisonWorkspace).toHaveAttribute("aria-current", "page");
     await within(region).findByRole("heading", { name: "Compare recovery periods" });
 
     const baselineFrom = within(region).getByLabelText("Baseline period start");
@@ -457,6 +465,14 @@ describe("RecoveryInsightsPanel", () => {
     expect(within(result).getByText("-50 ms")).toBeVisible();
     expect(within(result).getAllByText("Not available").length).toBeGreaterThan(0);
     expect(within(result).getByText(/no medical meaning is inferred/)).toBeVisible();
+    await user.click(within(workspaceNavigation).getByRole("button", { name: "Nights" }));
+    expect(within(region).queryByRole("region", {
+      name: "Recovery period comparison",
+    })).not.toBeInTheDocument();
+    await user.click(comparisonWorkspace);
+    expect(within(region).getByRole("region", {
+      name: "Recovery period comparison",
+    })).toBeVisible();
     await user.click(within(result).getByRole("button", { name: "Clear recovery comparison" }));
     expect(within(region).queryByRole("region", {
       name: "Recovery period comparison",

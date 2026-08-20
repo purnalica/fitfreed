@@ -416,6 +416,26 @@ async function openTrainingDetailSection(catalog, section) {
   await $(`#training-detail-${section}`).waitForDisplayed({ timeout: 10_000 });
 }
 
+async function openDomainWorkspace(catalog, domain, workspace) {
+  const expected = catalog[domain].workspaces[workspace];
+  const navigation = await $(".explorer-workspace-navigation");
+  const buttons = await navigation.$$("button");
+  let target;
+  for (const button of buttons) {
+    if (await button.getText() === expected) {
+      target = button;
+      break;
+    }
+  }
+  if (!target) throw new Error(`${domain} workspace was not available: ${expected}`);
+  await target.click();
+  await expect(target).toHaveAttribute("aria-current", "page");
+  const selector = workspace === "comparison"
+    ? `.${domain === "longitudinal" ? "longitudinal" : domain}-comparison`
+    : ".explorer-history-workspace";
+  await $(selector).waitForDisplayed({ timeout: 10_000 });
+}
+
 async function expectTrainingRows(expectedRows) {
   const selector = ".training-session-results > li";
   try {
@@ -2181,8 +2201,9 @@ describe("packaged FitFreed import journey", () => {
       ["Jan 5, 2026", "5,300", "Step total available"],
     ]);
 
+    await openDomainWorkspace(english, "activity", "comparison");
     await setComparisonRanges("2026-01-01", "2026-01-02", "2026-01-04", "2026-01-05");
-    await $("aria/Compare periods").click();
+    await $(".activity-comparison button[type='submit']").click();
     await expectComparisonHeading("#activity-comparison-heading", "Period comparison");
     const comparisonRows = await $$(".activity-comparison-result table tbody tr");
     expect(comparisonRows).toHaveLength(5);
@@ -2366,6 +2387,7 @@ describe("packaged FitFreed import journey", () => {
     ]);
     await $(".sleep-filter button.secondary").click();
 
+    await openDomainWorkspace(english, "sleep", "comparison");
     await setSleepComparisonRanges(
       "2026-01-06",
       "2026-01-06",
@@ -2423,6 +2445,7 @@ describe("packaged FitFreed import journey", () => {
     ]);
     await $(".recovery-filter button.secondary").click();
 
+    await openDomainWorkspace(english, "recovery", "comparison");
     await setRecoveryComparisonRanges(
       "2026-01-06",
       "2026-01-06",
@@ -2499,6 +2522,7 @@ describe("packaged FitFreed import journey", () => {
       ["Jan 6, 2026", "No observation", "45 min", "7 h 30 min", "900 ms"],
     ]);
 
+    await openDomainWorkspace(english, "longitudinal", "comparison");
     await setLongitudinalComparisonRanges(
       "2026-01-06",
       "2026-01-06",
@@ -2559,13 +2583,14 @@ describe("packaged FitFreed import journey", () => {
     await expect($("#activity-detail-heading")).toHaveText(spanish.activity.detailHeading);
     const spanishDetailValues = await $$(".activity-detail dd");
     await expect(spanishDetailValues[1]).toHaveText(spanish.activity.missing);
+    await $(`aria/${spanish.activity.closeDetail}`).click();
+    await openDomainWorkspace(spanish, "activity", "comparison");
     await setComparisonRanges("2026-01-01", "2026-01-02", "2026-01-04", "2026-01-05");
-    await $(`aria/${spanish.activity.comparison.compare}`).click();
+    await $(".activity-comparison button[type='submit']").click();
     await expectComparisonHeading(
       "#activity-comparison-heading",
       spanish.activity.comparison.resultHeading,
     );
-    await $(`aria/${spanish.activity.closeDetail}`).click();
     await $(".activity-comparison-result button.secondary").click();
     await openHomeQuestion(
       spanish,
@@ -2608,6 +2633,7 @@ describe("packaged FitFreed import journey", () => {
       "align-history",
       ".longitudinal-insights",
     );
+    await openDomainWorkspace(spanish, "longitudinal", "comparison");
     await setLongitudinalComparisonRanges(
       "2026-01-06",
       "2026-01-06",
@@ -2619,6 +2645,7 @@ describe("packaged FitFreed import journey", () => {
       "#longitudinal-comparison-heading",
       spanish.longitudinal.comparison.resultHeading,
     );
+    await openDomainWorkspace(spanish, "longitudinal", "history");
     await expectLongitudinalSummary([
       ["12.600", `${spanish.longitudinal.totalSteps} · 4 ${spanish.longitudinal.of} 6 ${spanish.longitudinal.days}`],
       ["3", `${spanish.longitudinal.sessions} · 3 · ${spanish.longitudinal.trainingDays}`],
@@ -2633,6 +2660,7 @@ describe("packaged FitFreed import journey", () => {
       [formatLocalDate("es-ES", "2026-01-05"), "5300", "30 min", spanish.longitudinal.missing, spanish.longitudinal.missing],
       [formatLocalDate("es-ES", "2026-01-06"), spanish.activity.missing, "45 min", "7 h 30 min", "900 ms"],
     ]);
+    await openDomainWorkspace(spanish, "longitudinal", "comparison");
     await $(".longitudinal-comparison-result button.secondary").click();
     await openHomeQuestion(
       spanish,
@@ -2745,6 +2773,7 @@ describe("packaged FitFreed import journey", () => {
     await expectSleepRows([
       [spanishSleepDate, "7 h 30 min", "93,8%", "82", spanish.sleep.details],
     ]);
+    await openDomainWorkspace(spanish, "sleep", "comparison");
     await setSleepComparisonRanges(
       "2026-01-06",
       "2026-01-06",
@@ -2756,6 +2785,7 @@ describe("packaged FitFreed import journey", () => {
       "#sleep-comparison-heading",
       spanish.sleep.comparison.resultHeading,
     );
+    await openDomainWorkspace(spanish, "sleep", "history");
     await $(`button[aria-label="${spanish.sleep.viewDetails} ${spanishSleepDate}"]`).click();
     await expect($("#sleep-detail-heading")).toHaveText(spanish.sleep.detailHeading);
     const esSleepStart = await formatBrowserSleepLocalDateTime(
@@ -2770,6 +2800,7 @@ describe("packaged FitFreed import journey", () => {
     await expect($("#sleep-timeline-heading")).toHaveText(spanish.sleep.timelineHeading);
     await expect($("#sleep-score-heading")).toHaveText(spanish.sleep.scoreHeading);
     await $(`aria/${spanish.sleep.closeDetail}`).click();
+    await openDomainWorkspace(spanish, "sleep", "comparison");
     await $(".sleep-comparison-result button.secondary").click();
     await openHomeQuestion(
       spanish,
@@ -2786,6 +2817,7 @@ describe("packaged FitFreed import journey", () => {
         spanish.recovery.details,
       ],
     ]);
+    await openDomainWorkspace(spanish, "recovery", "comparison");
     await setRecoveryComparisonRanges(
       "2026-01-06",
       "2026-01-06",
@@ -2797,6 +2829,7 @@ describe("packaged FitFreed import journey", () => {
       "#recovery-comparison-heading",
       spanish.recovery.comparison.resultHeading,
     );
+    await openDomainWorkspace(spanish, "recovery", "history");
     await $(`button[aria-label="${spanish.recovery.viewDetails} ${spanishRecoveryDate}"]`).click();
     await expect($("#recovery-detail-heading")).toHaveText(spanish.recovery.detailHeading);
     const spanishRecoveryDetailValues = await $$(".recovery-detail-metrics dd");
@@ -2812,6 +2845,7 @@ describe("packaged FitFreed import journey", () => {
     const detailAccessibility = await new AxeBuilder({ client: browser }).setLegacyMode().analyze();
     expect(detailAccessibility.violations).toEqual([]);
     await $(`aria/${spanish.recovery.closeDetail}`).click();
+    await openDomainWorkspace(spanish, "recovery", "comparison");
     await $(".recovery-comparison-result button.secondary").click();
     expect(await $$(".recovery-comparison-result")).toHaveLength(0);
 

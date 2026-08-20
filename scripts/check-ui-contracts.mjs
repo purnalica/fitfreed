@@ -26,6 +26,18 @@ const trainingSessionLibrary = readFileSync(path.join(
   "presentation",
   "TrainingSessionLibraryPanel.tsx",
 ), "utf8");
+const explorerWorkspaceNavigation = readFileSync(path.join(
+  repositoryRoot,
+  "src",
+  "presentation",
+  "ExplorerWorkspaceNavigation.tsx",
+), "utf8");
+const progressiveExplorerSources = new Map([
+  ["Activity", { source: application, state: "activityWorkspace" }],
+  ["Sleep", { source: readFileSync(path.join(repositoryRoot, "src", "presentation", "SleepInsightsPanel.tsx"), "utf8"), state: "workspace" }],
+  ["Recovery", { source: readFileSync(path.join(repositoryRoot, "src", "presentation", "RecoveryInsightsPanel.tsx"), "utf8"), state: "workspace" }],
+  ["Aligned history", { source: readFileSync(path.join(repositoryRoot, "src", "presentation", "LongitudinalInsightsPanel.tsx"), "utf8"), state: "workspace" }],
+]);
 const tauriConfiguration = JSON.parse(readFileSync(
   path.join(repositoryRoot, "src-tauri", "tauri.conf.json"),
   "utf8",
@@ -108,6 +120,20 @@ if (!trainingSessionLibrary.includes("aria-label={copy.detailNavigation}")) {
 for (const section of ["overview", "structure", "signals", "routes", "provenance"]) {
   if (!trainingSessionLibrary.includes(`hidden={detailSection !== "${section}"}`)) {
     throw new Error(`Training session detail must progressively disclose ${section}`);
+  }
+}
+if (!explorerWorkspaceNavigation.includes('aria-label={label}')) {
+  throw new Error("shared explorer workspace navigation must expose its label");
+}
+for (const [explorer, { source, state }] of progressiveExplorerSources) {
+  if (!source.includes("<ExplorerWorkspaceNavigation")) {
+    throw new Error(`${explorer} must use the shared workspace navigation`);
+  }
+  if (!source.includes(`hidden={${state} !== "comparison"}`)) {
+    throw new Error(`${explorer} must progressively disclose period comparison`);
+  }
+  if (!source.includes(`hidden={${state} !== "history"`)) {
+    throw new Error(`${explorer} must progressively disclose history and exact detail`);
   }
 }
 
@@ -210,5 +236,5 @@ for (const [selector, token] of contrastContracts) {
 }
 
 process.stdout.write(
-  `${JSON.stringify({ motionDeclarations: motionDeclarations.length, reducedMotionBoundary: true, darkContrastOverrides: contrastContracts.size, responsiveSidebar: true, broadWorkspace: true, progressiveTrainingWorkspace: true, initialWindow: `${mainWindow.width}x${mainWindow.height}` })}\n`,
+  `${JSON.stringify({ motionDeclarations: motionDeclarations.length, reducedMotionBoundary: true, darkContrastOverrides: contrastContracts.size, responsiveSidebar: true, broadWorkspace: true, progressiveTrainingWorkspace: true, progressiveDomainWorkspaces: true, initialWindow: `${mainWindow.width}x${mainWindow.height}` })}\n`,
 );
