@@ -166,6 +166,7 @@ describe("TrainingSportsPanel", () => {
     await user.type(labelInput, "x");
     expect(labelInput).toHaveAttribute("aria-invalid", "true");
     expect(within(editor).getByRole("alert")).toHaveTextContent("Use 80 characters or fewer.");
+    expect(within(editor).getByRole("alert")).toHaveClass("field-error");
     expect(within(editor).getByRole("button", { name: "Save sport classification" }))
       .toBeDisabled();
     await user.clear(labelInput);

@@ -18,6 +18,10 @@ for (const selector of ["a:focus-visible", "summary:focus-visible"]) {
   }
 }
 
+if (!stylesheet.includes(':is(input, select, textarea)[aria-invalid="true"]')) {
+  throw new Error("invalid form controls must share the visible field-error treatment");
+}
+
 const reducedMotionQuery = "@media (prefers-reduced-motion: no-preference)";
 const queryStart = stylesheet.indexOf(reducedMotionQuery);
 if (queryStart < 0) {
@@ -63,6 +67,7 @@ const contrastContracts = new Map([
   [".source-path > span", "--muted"],
   [".notice", "--ink"],
   [".error", "--danger-ink"],
+  [".field-error", "--danger-ink"],
   [".recovery-summary span", "--ink-soft"],
 ]);
 const explicitDarkStart = stylesheet.indexOf(':root[data-appearance="dark"]');

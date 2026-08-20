@@ -428,7 +428,7 @@ export function TrainingSegmentationPanel({
         {editor.kind === "manual-boundaries" && (
           <label><span>{copy.segmentManualMinutes}</span><input value={editor.manualMinutes} disabled={busy} aria-invalid={definitionInvalid} aria-describedby={definitionInvalid ? "training-segment-manual-help training-segment-editor-error" : "training-segment-manual-help"} onChange={(event) => setEditor({ ...editor, manualMinutes: event.target.value })} /><small id="training-segment-manual-help">{copy.segmentManualHelp}</small></label>
         )}
-        {(definitionInvalid || titleInvalid) && <p id="training-segment-editor-error" role="alert">{copy.segmentInvalid}</p>}
+        {(definitionInvalid || titleInvalid) && <p id="training-segment-editor-error" className="field-error" role="alert">{copy.segmentInvalid}</p>}
         <div className="training-segment-actions">
           <button type="button" className="secondary" disabled={busy} onClick={() => setEditor(undefined)}>{copy.segmentCancel}</button>
           <button type="submit" disabled={busy || !definition || titleInvalid}>{busy ? copy.segmentSaving : copy.segmentSave}</button>

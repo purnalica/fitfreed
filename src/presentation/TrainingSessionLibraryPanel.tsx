@@ -1485,7 +1485,7 @@ export function TrainingSessionLibraryPanel({
               onChange={(event) => setDraft({ ...draft, text: event.target.value })}
             />
             <small id="training-search-text-help">{copy.textHelp}</small>
-            {textTooLong && <small id="training-search-text-error" role="alert">{copy.textTooLong}</small>}
+            {textTooLong && <small id="training-search-text-error" className="field-error" role="alert">{copy.textTooLong}</small>}
           </label>
           <label>
             <span>{copy.sort}</span>

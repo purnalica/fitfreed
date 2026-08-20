@@ -1138,6 +1138,7 @@ describe("TrainingSessionLibraryPanel", () => {
       "🏃".repeat(81),
     );
     expect(screen.getByRole("alert")).toHaveTextContent("Use 80 characters or fewer.");
+    expect(screen.getByRole("alert")).toHaveClass("field-error");
     expect(screen.getByRole("button", { name: "Apply filters" })).toBeDisabled();
 
     unmount();

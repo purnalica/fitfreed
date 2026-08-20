@@ -37,7 +37,7 @@ Use the shell navigation to move among Explore, Sources, Reports, and Settings. 
 
 FitFreed shows a language-neutral startup mark while it loads the complete saved preference set. The localized shell appears only after the saved interface language, appearance, and content zoom are ready, so startup remains perceptible without flashing content in the wrong language or theme.
 
-An operation failure is announced once. When the affected panel can explain the failed operation or offer a retry, the alert remains beside that context; the application-level alert is reserved for failures without a contextual recovery surface.
+An operation failure is announced once. When the affected panel can explain the failed operation or offer a retry, the alert remains beside that context; the application-level alert is reserved for failures without a contextual recovery surface. Invalid fields share a visible error treatment in every appearance and remain programmatically associated with their specific guidance.
 
 After a successful activity, training, sleep, recovery, or longitudinal comparison, keyboard focus moves from the initiating control to the result heading. Opening an activity day, training session, sleep night, or recovery night likewise moves focus to the detail heading; closing it returns focus to the exact initiating control, or to the stable explorer heading if that control no longer exists. A detail that disappears during retrieval also returns focus instead of leaving it on the document. If focus moves elsewhere while an asynchronous reveal is pending, FitFreed preserves that explicit choice instead. Validation and query failures do not move focus to a nonexistent result or discard the previous valid comparison.
 

@@ -311,7 +311,7 @@ export function TrainingSportsPanel({
                       {draftLabelTooLong && (
                         <small
                           id={`sport-label-error-${index}`}
-                          className="training-sport-editor-error"
+                          className="field-error"
                           role="alert"
                         >
                           {copy.displayLabelTooLong}

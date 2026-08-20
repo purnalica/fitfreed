@@ -231,6 +231,7 @@ describe("TrainingSegmentationPanel", () => {
     await user.click(screen.getByRole("button", { name: "Create a criterion" }));
     expect(screen.getByRole("alert")).toHaveTextContent("Enter a name and valid, ordered values");
     expect(screen.getByRole("alert")).toHaveAttribute("id", "training-segment-editor-error");
+    expect(screen.getByRole("alert")).toHaveClass("field-error");
     expect(screen.getByLabelText("Criterion name")).toHaveAttribute("aria-invalid", "true");
     expect(screen.getByLabelText("Criterion name")).toHaveAttribute(
       "aria-describedby",
