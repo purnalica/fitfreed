@@ -26,18 +26,24 @@ acceptance is reopened.
 
 This audit remains the evidence baseline for subsequent product-owner review. Findings and required outcomes
 are not rewritten when corrective work starts; independently verifiable remediation evidence is appended
-here until the complete journey is audited again.
+here until the complete journey is audited again. No parallel demonstration executable or replacement
+prototype will be created for that review: corrections and their evidence remain in the ordinary application,
+while this document preserves the stable comparison point.
 
-PX-03 has an implementation candidate under [ADR 0025](../architecture/decisions/0025-normalize-dense-signal-storage.md):
+PX-03 is implemented under [ADR 0025](../architecture/decisions/0025-normalize-dense-signal-storage.md):
 SQLite schema 24 gives samples a compact private series identity, preserves exact logical evidence through a
 recoverable migration, and adds the required ten-year dense-history gate to local and hosted complete
 verification. A working-tree diagnostic passed every new budget and exact-count assertion, but it is not
 candidate evidence because the source was not clean. The same campaign subsequently passed for exact clean
 source `7e847a149bfb768c9b32133d17665d0b9edd3ee4`, including 7,490,080 exact persisted samples,
 a 134,008,832-byte current-schema library, and every accepted import, repeat, memory, discovery, overview,
-and pagination budget. PX-03 therefore has accepted local evidence and remains open only until the same
-source passes in the maintained hosted performance environment. The other findings remain unchanged pending
-product-owner disposition.
+and pagination budget. The unchanged PX-03 implementation then passed the maintained hosted environment as
+part of exact clean source `45850d01dbac4519066af324bca38c69c0378425` and its complete
+[continuous-integration campaign](https://github.com/purnalica/fitfreed/actions/runs/32425237418). The hosted
+gate independently persisted all 7,490,080 samples in a 134,008,832-byte library and passed first import,
+exact repeat, memory, discovery, overview, and exact-pagination budgets before the complete packaged journey
+and update-recovery gates also passed. PX-03 is therefore resolved. The original finding remains above as
+the audit baseline; all other findings remain unchanged pending product-owner disposition.
 
 ## Audit question
 
