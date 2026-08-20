@@ -129,6 +129,9 @@ rules under the current discovery snapshot. Distance and heart-rate evaluation s
 slots from persistence; they do not infer from chart pixels or load a complete series. Results are bounded to
 250 exact segments and expose missing, ambiguous, incomplete, outside-session, zero-match, and source-gap
 states separately. Derived segments are recalculated rather than persisted as canonical source evidence.
+The presentation exposes one busy boundary for every criterion mutation, keeps each initiating action name
+stable, announces localized progress, and retains the current derived result or editor draft until the
+application returns a complete replacement.
 
 Mapping changes reassess identical source bytes. Version 2 training mapping can strictly enrich a summary
 written by version 1, version 3 can strictly enrich equal version-2 summary and structure with evaluated

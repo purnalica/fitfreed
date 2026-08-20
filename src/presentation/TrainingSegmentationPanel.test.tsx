@@ -336,6 +336,39 @@ describe("TrainingSegmentationPanel", () => {
     ));
   });
 
+  it("keeps the criterion action and draft visible while the mutation is saved", async () => {
+    const result = emptyResult();
+    let resolveSave: (value: TrainingSessionSegmentationResult) => void = () => undefined;
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_training_session_segmentation") return Promise.resolve(result);
+      if (command === "create_training_segment_criterion") {
+        return new Promise((resolve) => {
+          resolveSave = resolve;
+        });
+      }
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+    const user = userEvent.setup();
+
+    renderPanel();
+    await user.click(await screen.findByRole("button", { name: "Create a criterion" }));
+    await user.type(screen.getByLabelText("Criterion name"), "Tempo blocks");
+    await user.click(screen.getByRole("button", { name: "Save criterion" }));
+
+    const editor = screen.getByRole("form", {
+      name: "Create and apply a reusable criterion",
+    });
+    await waitFor(() => expect(editor).toHaveAttribute("aria-busy", "true"));
+    expect(within(editor).getByRole("button", { name: "Save criterion" })).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent("Saving…");
+    expect(within(editor).getByLabelText("Criterion name")).toHaveValue("Tempo blocks");
+
+    resolveSave(result);
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(
+      "The criterion was created and applied.",
+    ));
+  });
+
   it("reuses, reorders, edits, removes, and restores multiple saved criteria", async () => {
     const result = populatedResult();
     mocks.invoke.mockImplementation((command) => {

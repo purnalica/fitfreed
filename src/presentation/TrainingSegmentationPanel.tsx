@@ -387,8 +387,15 @@ export function TrainingSegmentationPanel({
     const titleInvalid = editor.title.trim().length === 0 || [...editor.title.trim()].length > 80;
     const definitionInvalid = !definition;
     return (
-      <form className="training-segment-editor" onSubmit={submitEditor}>
-        <h6>{editor.criterionRef ? copy.segmentEditHeading : copy.segmentCreateHeading}</h6>
+      <form
+        className="training-segment-editor"
+        aria-labelledby="training-segment-editor-heading"
+        aria-busy={busy}
+        onSubmit={submitEditor}
+      >
+        <h6 id="training-segment-editor-heading">
+          {editor.criterionRef ? copy.segmentEditHeading : copy.segmentCreateHeading}
+        </h6>
         {editor.criterionRef && <p>{copy.segmentEditReuseWarning}</p>}
         <label>
           <span>{copy.segmentTitle}</span>
@@ -431,7 +438,7 @@ export function TrainingSegmentationPanel({
         {(definitionInvalid || titleInvalid) && <p id="training-segment-editor-error" className="field-error" role="alert">{copy.segmentInvalid}</p>}
         <div className="training-segment-actions">
           <button type="button" className="secondary" disabled={busy} onClick={() => setEditor(undefined)}>{copy.segmentCancel}</button>
-          <button type="submit" disabled={busy || !definition || titleInvalid}>{busy ? copy.segmentSaving : copy.segmentSave}</button>
+          <button type="submit" disabled={busy || !definition || titleInvalid}>{copy.segmentSave}</button>
         </div>
       </form>
     );
@@ -502,6 +509,11 @@ export function TrainingSegmentationPanel({
         <p>{copy.segmentAttributionIntro}</p>
       </aside>
       {loading && <p role="status">{copy.segmentLoading}</p>}
+      {busy && (
+        <p className="training-segment-progress" role="status" aria-live="polite">
+          {copy.segmentSaving}
+        </p>
+      )}
       {failed && <p className="error" role="alert">{copy.segmentFailed}</p>}
       {status && <p className="notice" role="status">{status}</p>}
       {!loading && result?.exercises === null && <p>{copy.segmentNotEvaluated}</p>}
