@@ -5,6 +5,19 @@ import { fileURLToPath } from "node:url";
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const stylesheetPath = path.join(repositoryRoot, "src", "App.css");
 const stylesheet = readFileSync(stylesheetPath, "utf8");
+const applicationPath = path.join(repositoryRoot, "src", "App.tsx");
+const application = readFileSync(applicationPath, "utf8");
+
+if (/\bfallback=\{null\}/.test(application)) {
+  throw new Error("lazy presentation boundaries must expose a visible loading status");
+}
+
+for (const selector of ["a:focus-visible", "summary:focus-visible"]) {
+  if (!stylesheet.includes(selector)) {
+    throw new Error(`${selector} must use the global visible-focus treatment`);
+  }
+}
+
 const reducedMotionQuery = "@media (prefers-reduced-motion: no-preference)";
 const queryStart = stylesheet.indexOf(reducedMotionQuery);
 if (queryStart < 0) {

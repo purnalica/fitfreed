@@ -31,7 +31,8 @@
     "explore": "Explore",
     "sources": "Sources",
     "reports": "Reports",
-    "settings": "Settings"
+    "settings": "Settings",
+    "loading": "Loading this view…"
   },
   "home": {
     "eyebrow": "Your independent library",

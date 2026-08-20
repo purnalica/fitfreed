@@ -37,6 +37,7 @@ import type { SourceAcquisitionGuide } from "./presentation/source-acquisition";
 import { SourcesPanel } from "./presentation/SourcesPanel";
 import type { ReportSourceTarget } from "./presentation/report-navigation";
 import type { ReportStartOrigin } from "./presentation/session-report";
+import { LoadingSurface } from "./presentation/LoadingSurface";
 
 const rendererStartedAt = performance.now();
 const INTERACTIVE_SHELL_FRAME_TIMEOUT_MILLISECONDS = 1_000;
@@ -911,7 +912,7 @@ function App() {
         )}
         <div hidden={activeHome !== "settings"}>
           {applicationReady && (
-            <Suspense fallback={null}>
+            <Suspense fallback={<LoadingSurface message={messages.shell.loading} />}>
               <UpdatePanel
                 locale={locale}
                 messages={messages.updates}
@@ -1068,7 +1069,7 @@ function App() {
         </div>
         <div className="reports-home" hidden={activeHome !== "reports"}>
           {applicationReady && activeHome === "reports" && (
-            <Suspense fallback={null}>
+            <Suspense fallback={<LoadingSurface message={messages.shell.loading} />}>
               <ReportsPanel
                 locale={locale}
                 messages={messages}
@@ -1117,7 +1118,7 @@ function App() {
       )}
 
       {applicationReady && exploreDestination === "longitudinal" && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<LoadingSurface message={messages.shell.loading} />}>
           <LongitudinalInsightsPanel
             locale={locale}
             messages={messages}
@@ -1335,7 +1336,7 @@ function App() {
               </section>
             )}
             {activityOverview.availableRange && activityOverview.selectedRange && (
-              <Suspense fallback={null}>
+              <Suspense fallback={<LoadingSurface message={messages.shell.loading} />}>
                 <ActivityComparisonPanel
                   key={`${activityOverview.selectedRange.from}:${activityOverview.selectedRange.through}`}
                   availableRange={activityOverview.availableRange}
@@ -1351,7 +1352,7 @@ function App() {
       </section>
       )}
       {applicationReady && exploreDestination && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<LoadingSurface message={messages.shell.loading} />}>
           {exploreDestination === "training" && (
           <TrainingInsightsPanel
             locale={locale}
