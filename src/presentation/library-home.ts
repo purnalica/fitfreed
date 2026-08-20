@@ -65,6 +65,7 @@ export interface LibraryHomeMessages {
   questionsHeading: string;
   questionsIntro: string;
   questions: Record<LibraryQuestionKind, string>;
+  opening: Record<ExploreDestination, string>;
   resumeHeading: string;
   resume: Record<ExploreDestination, string>;
   coverageHeading: string;
@@ -86,4 +87,5 @@ export interface LibraryHomeMessages {
   postImportAmended: { one: string; other: string };
   postImportReview: string;
   backHome: string;
+  returning: string;
 }

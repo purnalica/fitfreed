@@ -821,6 +821,85 @@ describe("FitFreed import interface", () => {
     ]);
   });
 
+  it("announces one exact Home destination while its workspace is persisted", async () => {
+    const home = populatedLibraryHome();
+    let resolveSave: () => void = () => undefined;
+    mocks.homeInvoke.mockImplementation((command, arguments_) => {
+      if (command === "query_library_home") return Promise.resolve(home);
+      if (command === "save_exploration_workspace") {
+        expect(arguments_).toEqual({ destination: "training" });
+        return new Promise((resolve) => {
+          resolveSave = () => resolve({ version: 1, destination: "training" });
+        });
+      }
+      throw new Error(`Unexpected Home command: ${command}`);
+    });
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+
+    const question = await screen.findByRole("button", {
+      name: "Explore my training sessions",
+    });
+    await user.click(question);
+
+    await waitFor(() => expect(question).toBeDisabled());
+    expect(screen.getByRole("status")).toHaveTextContent("Opening training exploration…");
+    expect(screen.getByRole("heading", { name: "What do you want to understand?" }))
+      .toBeVisible();
+    expect(mocks.homeInvoke.mock.calls.filter(
+      ([command]) => command === "save_exploration_workspace",
+    )).toHaveLength(1);
+
+    resolveSave();
+    expect(await screen.findByRole("heading", { name: "Training history" })).toBeVisible();
+  });
+
+  it("keeps the current exploration visible while durable Home state is cleared", async () => {
+    const home = populatedLibraryHome();
+    let resolveTrainingClear: () => void = () => undefined;
+    mocks.homeInvoke.mockImplementation((command, arguments_) => {
+      if (command === "query_library_home") return Promise.resolve(home);
+      if (command === "save_exploration_workspace") {
+        return Promise.resolve({ version: 1, destination: arguments_.destination });
+      }
+      if (command === "clear_training_discovery_workspace") {
+        return new Promise((resolve) => {
+          resolveTrainingClear = () => resolve(undefined);
+        });
+      }
+      if (command === "clear_exploration_workspace") return Promise.resolve(undefined);
+      throw new Error(`Unexpected Home command: ${command}`);
+    });
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole("button", {
+      name: "Explore my training sessions",
+    }));
+    expect(await screen.findByRole("heading", { name: "Training history" })).toBeVisible();
+
+    const back = screen.getByRole("button", { name: "Back to Home" });
+    await user.click(back);
+
+    await waitFor(() => expect(back).toBeDisabled());
+    expect(screen.getByRole("status")).toHaveTextContent("Returning to Home…");
+    expect(screen.getByRole("heading", { name: "Training history" })).toBeVisible();
+    expect(mocks.homeInvoke).not.toHaveBeenCalledWith("clear_exploration_workspace");
+
+    resolveTrainingClear();
+    expect(await screen.findByRole("heading", {
+      name: "Your history, ready for your questions",
+    })).toBeVisible();
+  });
+
   it("restores a valid durable exploration without loading unrelated domains", async () => {
     mocks.homeInvoke.mockImplementation((command) => {
       if (command === "query_library_home") {

@@ -49,6 +49,13 @@
       "review-sleep-patterns": "¿Qué patrones aparecen en mi sueño?",
       "review-recovery-patterns": "¿Qué patrones aparecen en mi recuperación?"
     },
+    "opening": {
+      "activity": "Abriendo la exploración de actividad…",
+      "training": "Abriendo la exploración de entrenamientos…",
+      "sleep": "Abriendo la exploración del sueño…",
+      "recovery": "Abriendo la exploración de la recuperación…",
+      "longitudinal": "Abriendo la exploración del historial relacionado…"
+    },
     "resumeHeading": "Continúa donde lo dejaste",
     "resume": {
       "activity": "Retomar la exploración de actividad",
@@ -95,7 +102,8 @@
       "other": "{count} observaciones rectificadas"
     },
     "postImportReview": "Parte de la cobertura del origen requiere tu atención.",
-    "backHome": "Volver a Inicio"
+    "backHome": "Volver a Inicio",
+    "returning": "Volviendo a Inicio…"
   },
   "sources": {
     "eyebrow": "Tus orígenes",

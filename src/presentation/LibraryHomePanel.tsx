@@ -13,6 +13,7 @@ interface LibraryHomePanelProps {
   locale: string;
   messages: LibraryHomeMessages;
   focusRequestId?: number;
+  pendingDestination?: ExploreDestination;
   onExplore: (destination: ExploreDestination) => void;
   onOpenSources: () => void;
 }
@@ -27,6 +28,7 @@ export function LibraryHomePanel({
   locale,
   messages,
   focusRequestId = 0,
+  pendingDestination,
   onExplore,
   onOpenSources,
 }: LibraryHomePanelProps) {
@@ -65,7 +67,7 @@ export function LibraryHomePanel({
   const resumableExploration = home.resumableExploration;
 
   return (
-    <div className="library-home">
+    <div className="library-home" aria-busy={pendingDestination !== undefined}>
       <header className="library-home-heading">
         <p className="eyebrow">{messages.eyebrow}</p>
         <h1 ref={headingRef} tabIndex={-1}>{messages.title}</h1>
@@ -110,6 +112,7 @@ export function LibraryHomePanel({
           </div>
           <button
             type="button"
+            disabled={pendingDestination !== undefined}
             onClick={() => onExplore(resumableExploration.destination)}
           >
             {messages.resume[resumableExploration.destination]}
@@ -117,7 +120,17 @@ export function LibraryHomePanel({
         </section>
       )}
 
-      <section className="library-home-questions" aria-labelledby="library-home-questions-heading">
+      {pendingDestination && (
+        <p className="library-home-navigation-status" role="status" aria-live="polite">
+          {messages.opening[pendingDestination]}
+        </p>
+      )}
+
+      <section
+        className="library-home-questions"
+        aria-labelledby="library-home-questions-heading"
+        aria-busy={pendingDestination !== undefined}
+      >
         <div>
           <h2 id="library-home-questions-heading">{messages.questionsHeading}</h2>
           <p>{messages.questionsIntro}</p>
@@ -125,7 +138,11 @@ export function LibraryHomePanel({
         <ol>
           {home.questions.map((question, index) => (
             <li key={question.kind}>
-              <button type="button" onClick={() => onExplore(question.destination)}>
+              <button
+                type="button"
+                disabled={pendingDestination !== undefined}
+                onClick={() => onExplore(question.destination)}
+              >
                 <span aria-hidden="true">{number.format(index + 1).padStart(2, "0")}</span>
                 <strong>{messages.questions[question.kind]}</strong>
               </button>

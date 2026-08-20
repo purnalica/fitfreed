@@ -160,6 +160,29 @@ describe("LibraryHomePanel", () => {
     expect(onExplore).toHaveBeenCalledWith("training");
   });
 
+  it("keeps Home and stable actions visible while the exact destination opens", () => {
+    render(
+      <LibraryHomePanel
+        home={populatedHome({
+          resumableExploration: { version: 1, destination: "training" },
+        })}
+        locale="en-US"
+        messages={messages}
+        pendingDestination="training"
+        onExplore={vi.fn()}
+        onOpenSources={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "What do you want to understand?" }))
+      .toBeVisible();
+    expect(screen.getByRole("button", { name: "Explore my training sessions" }))
+      .toBeDisabled();
+    expect(screen.getByRole("button", { name: "Resume training exploration" }))
+      .toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent("Opening training exploration…");
+  });
+
   it("reveals canonical import value and keeps limitations reachable", async () => {
     const user = userEvent.setup();
     const onOpenSources = vi.fn();

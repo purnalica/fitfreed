@@ -49,6 +49,13 @@
       "review-sleep-patterns": "What patterns are visible in my sleep?",
       "review-recovery-patterns": "What patterns are visible in my recovery?"
     },
+    "opening": {
+      "activity": "Opening activity exploration…",
+      "training": "Opening training exploration…",
+      "sleep": "Opening sleep exploration…",
+      "recovery": "Opening recovery exploration…",
+      "longitudinal": "Opening aligned-history exploration…"
+    },
     "resumeHeading": "Continue where you left off",
     "resume": {
       "activity": "Resume activity exploration",
@@ -95,7 +102,8 @@
       "other": "{count} amended observations"
     },
     "postImportReview": "Some source coverage needs your attention.",
-    "backHome": "Back to Home"
+    "backHome": "Back to Home",
+    "returning": "Returning to Home…"
   },
   "sources": {
     "eyebrow": "Your sources",

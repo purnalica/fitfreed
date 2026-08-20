@@ -178,6 +178,10 @@ function localDate(localDateValue: string): Date {
   return new Date(Date.UTC(year, month - 1, day));
 }
 
+type HomeNavigationOperation =
+  | { kind: "open"; destination: ExploreDestination }
+  | { kind: "return" };
+
 function App() {
   const [locale, setLocale] = useState<Locale>(systemLocale);
   const [localeReady, setLocaleReady] = useState(false);
@@ -200,6 +204,8 @@ function App() {
   const homeNavigationRevision = useRef(0);
   const [libraryHome, setLibraryHome] = useState<LibraryHome>();
   const [libraryHomeFocusRequestId, setLibraryHomeFocusRequestId] = useState(0);
+  const [homeNavigationOperation, setHomeNavigationOperation]
+    = useState<HomeNavigationOperation>();
   const [exploreDestination, setExploreDestination] = useState<ExploreDestination>();
   const [updateLocaleRefreshToken, setUpdateLocaleRefreshToken] = useState(0);
   const [archivePath, setArchivePath] = useState<string>();
@@ -464,6 +470,8 @@ function App() {
   }
 
   async function returnToLibraryHome() {
+    if (homeNavigationOperation) return;
+    setHomeNavigationOperation({ kind: "return" });
     const navigationRevision = beginHomeNavigation();
     setErrorCode(undefined);
     try {
@@ -482,6 +490,8 @@ function App() {
       }
     } catch (reason) {
       setErrorCode(commandErrorCode(reason));
+    } finally {
+      setHomeNavigationOperation(undefined);
     }
   }
 
@@ -546,10 +556,16 @@ function App() {
   }
 
   async function openHomeExploration(destination: ExploreDestination) {
+    if (homeNavigationOperation) return;
+    setHomeNavigationOperation({ kind: "open", destination });
     setExplorerNavigation(undefined);
     setReportReturnRef(undefined);
     setReportReturnFocusRequest(undefined);
-    await openExploration(destination);
+    try {
+      await openExploration(destination);
+    } finally {
+      setHomeNavigationOperation(undefined);
+    }
   }
 
   function navigateFromReport(target: ReportSourceTarget | null) {
@@ -1155,17 +1171,25 @@ function App() {
           locale={locale}
           messages={messages.home}
           focusRequestId={libraryHomeFocusRequestId}
+          pendingDestination={homeNavigationOperation?.kind === "open"
+            ? homeNavigationOperation.destination
+            : undefined}
           onExplore={(destination) => void openHomeExploration(destination)}
           onOpenSources={openSources}
         />
       )}
 
       {exploreDestination && (
-        <nav className="explorer-return" aria-label={messages.home.backHome}>
+        <nav
+          className="explorer-return"
+          aria-label={messages.home.backHome}
+          aria-busy={homeNavigationOperation?.kind === "return"}
+        >
           {reportReturnRef && (
             <button
               type="button"
               className="secondary"
+              disabled={homeNavigationOperation?.kind === "return"}
               onClick={returnToReport}
             >
               <span aria-hidden="true">← </span>{messages.reports.backToReport}
@@ -1175,10 +1199,16 @@ function App() {
             type="button"
             className="secondary"
             aria-label={messages.home.backHome}
+            disabled={homeNavigationOperation?.kind === "return"}
             onClick={() => void returnToLibraryHome()}
           >
             <span aria-hidden="true">← </span>{messages.home.backHome}
           </button>
+          {homeNavigationOperation?.kind === "return" && (
+            <span className="progress-submit-status" role="status" aria-live="polite">
+              {messages.home.returning}
+            </span>
+          )}
         </nav>
       )}
 
