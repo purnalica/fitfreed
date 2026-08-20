@@ -1315,6 +1315,38 @@ describe("FitFreed import interface", () => {
     expect(document.documentElement.style.getPropertyValue("--content-zoom")).toBe("1");
   });
 
+  it("keeps preferences and update maintenance in distinct Settings categories", async () => {
+    emptyLibrary();
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole("button", { name: "Settings" }));
+    const navigation = screen.getByRole("navigation", { name: "Settings categories" });
+    expect(within(navigation).getByRole("button", { name: "Appearance & language" }))
+      .toHaveAttribute("aria-current", "page");
+    expect(screen.queryByRole("heading", { name: "Application updates" }))
+      .not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("radio", { name: "Dark" }));
+    await user.selectOptions(screen.getByLabelText("Default content zoom"), "175");
+    await user.click(within(navigation).getByRole("button", { name: "Updates" }));
+
+    expect(await screen.findByRole("heading", { name: "Application updates" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Check now" })).toBeEnabled();
+    expect(screen.getByRole("form", {
+      name: "Appearance and language",
+      hidden: true,
+    })).not.toBeVisible();
+
+    await user.click(within(navigation).getByRole("button", {
+      name: "Appearance & language",
+    }));
+    expect(screen.getByRole("radio", { name: "Dark" })).toBeChecked();
+    expect(screen.getByLabelText("Default content zoom")).toHaveValue("175");
+    expect(screen.queryByRole("heading", { name: "Application updates" }))
+      .not.toBeInTheDocument();
+  });
+
   it("loads Reports only when opened and remounts it after leaving", async () => {
     emptyLibrary();
     let resolveLibraryHome: (home: ReturnType<typeof emptyLibraryHome>) => void = () => undefined;
@@ -1712,6 +1744,7 @@ describe("FitFreed import interface", () => {
     render(<App />);
     await chooseArchive(user, "/synthetic/valid.zip");
     await user.click(screen.getByRole("button", { name: "Settings" }));
+    await user.click(screen.getByRole("button", { name: "Updates" }));
     await screen.findByRole("button", { name: "Install and restart" });
 
     await user.click(screen.getByRole("button", { name: "Install and restart" }));
@@ -1720,6 +1753,7 @@ describe("FitFreed import interface", () => {
     expect(screen.getByRole("button", { name: "Choose ZIP package" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Import selected package" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Settings" }));
+    await user.click(screen.getByRole("button", { name: "Appearance & language" }));
     expect(screen.getByLabelText("Interface language")).toBeDisabled();
     expect(screen.getByLabelText("Default content zoom")).toBeDisabled();
 
@@ -2157,6 +2191,9 @@ describe("FitFreed import interface", () => {
 
     expect(screen.getByRole("heading", { name: spanish.home.emptyHeading })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Ajustes" }));
+    await user.click(screen.getByRole("button", {
+      name: spanish.settings.workspaces.updates,
+    }));
     expect(screen.getByRole("heading", { name: spanish.updates.heading })).toBeVisible();
     expect(screen.getByRole("button", { name: spanish.updates.checkNow })).toBeEnabled();
     await user.click(screen.getByRole("button", { name: "Orígenes" }));

@@ -58,6 +58,19 @@ export async function goToHome(home, session = browser) {
   }
 }
 
+export async function openSettingsCategory(category, session = browser) {
+  await goToHome("settings", session);
+  const target = await session.$(
+    `.settings-panel .workspace-navigation button[data-workspace='${category}']`,
+  );
+  await target.waitForDisplayed({ timeout: 10_000 });
+  if (await target.getAttribute("aria-current") !== "page") await target.click();
+  await session.waitUntil(
+    async () => (await target.getAttribute("aria-current")) === "page",
+    { timeout: 10_000, timeoutMsg: `${category} did not become the current Settings category` },
+  );
+}
+
 export async function returnToLibraryHome(catalog) {
   await goToHome("explore");
   const returnHome = await $(
@@ -97,7 +110,7 @@ export async function openHomeQuestion(catalog, kind, expectedSelector) {
 }
 
 export async function selectLocale(locale, destination = "explore") {
-  await goToHome("settings");
+  await openSettingsCategory("appearance");
   const select = await $("#application-language");
   await select.waitForEnabled({ timeout: 10_000 });
   if (await select.getValue() !== locale) {

@@ -23,6 +23,7 @@ export function WorkspaceNavigation<Workspace extends string>({
         <button
           key={option.workspace}
           type="button"
+          data-workspace={option.workspace}
           aria-current={current === option.workspace ? "page" : undefined}
           disabled={option.disabled}
           onClick={() => onSelect(option.workspace)}

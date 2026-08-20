@@ -5,6 +5,7 @@ import AxeBuilder from "@axe-core/webdriverio";
 
 import {
   goToHome,
+  openSettingsCategory,
   openArchivePicker,
   openHomeQuestion,
   persistSettings,
@@ -132,7 +133,7 @@ async function expectComparisonHeading(selector, expectedText) {
 }
 
 async function setAppearanceAndZoom(appearance, zoom, save, destination = "explore") {
-  await goToHome("settings");
+  await openSettingsCategory("appearance");
   const appearanceInput = await $(`input[name='appearance'][value='${appearance}']`);
   await appearanceInput.waitForEnabled({ timeout: 10_000 });
   await appearanceInput.click();
@@ -165,7 +166,7 @@ async function setAppearanceAndZoom(appearance, zoom, save, destination = "explo
 }
 
 async function resetSettings(destination = "explore") {
-  await goToHome("settings");
+  await openSettingsCategory("appearance");
   const reset = await $(".settings-actions button.secondary");
   await reset.waitForEnabled({ timeout: 10_000 });
   await reset.click();
@@ -891,6 +892,12 @@ describe("packaged FitFreed import journey", () => {
     )).toBe("2");
     await resetSettings("home");
     await expect($("html")).toHaveAttribute("data-appearance", "system");
+    await openSettingsCategory("updates");
+    await expect($("#update-heading")).toHaveText(english.updates.heading);
+    await expect($("aria/Check now")).toBeEnabled();
+    await expect($(".settings-layout")).not.toBeDisplayed();
+    await openSettingsCategory("appearance");
+    await expect($(".settings-layout")).toBeDisplayed();
 
     await selectLocale("es-ES", "sources");
     await expectApplicationShellLayout(spanish, "desktop");

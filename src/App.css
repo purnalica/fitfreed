@@ -1160,9 +1160,12 @@ th:last-child, td:last-child { text-align: right; }
   .bar { transition: width 220ms ease; }
 }
 
-.settings-heading { max-width: 760px; margin-bottom: 32px; }
+.settings-panel { display: grid; gap: 24px; }
+.settings-heading { max-width: 760px; margin-bottom: 8px; }
 .settings-heading > p:last-child { color: var(--muted); }
 .settings-layout { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(260px, .8fr); gap: 24px; align-items: start; }
+.settings-updates-workspace { max-width: 980px; }
+.settings-updates-workspace .update-panel { margin: 24px 0 0; }
 .settings-form, .settings-preview { border: 1px solid var(--line); border-radius: 20px; background: var(--surface); box-shadow: 0 16px 45px rgb(21 29 44 / 8%); }
 .settings-form { display: grid; gap: 22px; padding: 26px; }
 .settings-section-heading h2 { margin-bottom: 5px; }

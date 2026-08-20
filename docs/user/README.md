@@ -19,7 +19,9 @@ recovery, and aligned history each separate their history from **Compare periods
 temporarily replaces the history list, and returning restores the point from which it was opened.
 
 Current builds also demonstrate import safety, source-subject correlation, reconciliation, and localized
-family coverage. They expose trusted update checking at ready startup, in Settings on explicit request, and
+family coverage. Settings separates **Appearance & language** from **Updates**, so maintenance does not
+compete with the preference preview. Builds expose trusted update checking at ready startup, in the Updates
+category on explicit request, and
 every 24 hours while the application remains open; exact-candidate installation; persisted dismissal;
 24-hour postponement; and automatic application-and-library recovery coordination. Ordinary scheduled
 outcomes stay quiet unless they require attention. The ordinary build has no endpoint or production trust

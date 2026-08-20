@@ -7,28 +7,35 @@ import {
   type ApplicationPreferences,
 } from "./application-preferences";
 import { ProgressSubmitButton } from "./ProgressSubmitButton";
+import { WorkspaceNavigation } from "./WorkspaceNavigation";
 
 type SettingsMessages = (typeof catalogs)["en-US"]["settings"];
 
 interface SettingsPanelProps {
   savedPreferences: ApplicationPreferences;
   messages: SettingsMessages;
+  workspace: SettingsWorkspace;
   disabled: boolean;
   operation?: "save" | "reset";
   savedNotice: boolean;
+  onWorkspaceChange: (workspace: SettingsWorkspace) => void;
   onPreview: (preferences: ApplicationPreferences) => void;
   onSave: (preferences: ApplicationPreferences) => Promise<void>;
   onReset: () => Promise<void>;
 }
+
+export type SettingsWorkspace = "appearance" | "updates";
 
 const zoomOptions = [100, 125, 150, 175, 200];
 
 export function SettingsPanel({
   savedPreferences,
   messages,
+  workspace,
   disabled,
   operation,
   savedNotice,
+  onWorkspaceChange,
   onPreview,
   onSave,
   onReset,
@@ -60,7 +67,17 @@ export function SettingsPanel({
         <p>{messages.intro}</p>
       </header>
 
-      <div className="settings-layout">
+      <WorkspaceNavigation
+        label={messages.workspaceNavigation}
+        current={workspace}
+        options={[
+          { workspace: "appearance", label: messages.workspaces.appearance },
+          { workspace: "updates", label: messages.workspaces.updates },
+        ]}
+        onSelect={onWorkspaceChange}
+      />
+
+      <div className="settings-layout" hidden={workspace !== "appearance"}>
         <form
           className="settings-form"
           aria-labelledby="appearance-settings-heading"

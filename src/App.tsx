@@ -28,7 +28,10 @@ import {
   type ApplicationPreferences,
   type ApplicationPreferencesLoad,
 } from "./presentation/application-preferences";
-import { SettingsPanel } from "./presentation/SettingsPanel";
+import {
+  SettingsPanel,
+  type SettingsWorkspace,
+} from "./presentation/SettingsPanel";
 import {
   ApplicationShell,
   type ApplicationHome,
@@ -204,6 +207,7 @@ function App() {
   const [preferencesSavedNotice, setPreferencesSavedNotice] = useState(false);
   const [preferencesRecovered, setPreferencesRecovered] = useState(false);
   const [preferencesEditorRevision, setPreferencesEditorRevision] = useState(0);
+  const [settingsWorkspace, setSettingsWorkspace] = useState<SettingsWorkspace>("appearance");
   const [activeHome, setActiveHome] = useState<ApplicationHome>("home");
   const homeNavigationRevision = useRef(0);
   const [libraryHome, setLibraryHome] = useState<LibraryHome>();
@@ -1004,15 +1008,20 @@ function App() {
             key={preferencesEditorRevision}
             savedPreferences={savedPreferences}
             messages={messages.settings}
+            workspace={settingsWorkspace}
             disabled={!libraryReady || updateInstalling}
             operation={preferencesOperation}
             savedNotice={preferencesSavedNotice}
+            onWorkspaceChange={setSettingsWorkspace}
             onPreview={previewPreferences}
             onSave={savePreferences}
             onReset={resetPreferences}
           />
         )}
-        <div hidden={activeHome !== "settings"}>
+        <div
+          className="settings-updates-workspace"
+          hidden={activeHome !== "settings" || settingsWorkspace !== "updates"}
+        >
           {applicationReady && (
             <Suspense fallback={<LoadingSurface message={messages.shell.loading} />}>
               <UpdatePanel

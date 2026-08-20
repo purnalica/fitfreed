@@ -1441,6 +1441,11 @@
     "eyebrow": "Ajustes",
     "title": "Adapta FitFreed a este dispositivo",
     "intro": "Las preferencias permanentes de la aplicación viven aquí, separadas del historial importado y de los controles temporales de exploración.",
+    "workspaceNavigation": "Categorías de ajustes",
+    "workspaces": {
+      "appearance": "Apariencia e idioma",
+      "updates": "Actualizaciones"
+    },
     "appearanceTitle": "Apariencia e idioma",
     "appearanceIntro": "Elige cómo se presenta la interfaz cada vez que se abre FitFreed.",
     "language": "Idioma de la interfaz",

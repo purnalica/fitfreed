@@ -44,6 +44,18 @@ const reportsPanel = readFileSync(path.join(
   "presentation",
   "ReportsPanel.tsx",
 ), "utf8");
+const settingsPanel = readFileSync(path.join(
+  repositoryRoot,
+  "src",
+  "presentation",
+  "SettingsPanel.tsx",
+), "utf8");
+const libraryHomePanel = readFileSync(path.join(
+  repositoryRoot,
+  "src",
+  "presentation",
+  "LibraryHomePanel.tsx",
+), "utf8");
 const tauriConfiguration = JSON.parse(readFileSync(
   path.join(repositoryRoot, "src-tauri", "tauri.conf.json"),
   "utf8",
@@ -154,6 +166,25 @@ for (const boundary of [
     throw new Error(`Reports must preserve the staged workspace boundary: ${boundary}`);
   }
 }
+for (const boundary of [
+  "<WorkspaceNavigation",
+  'hidden={workspace !== "appearance"}',
+  '{ workspace: "appearance", label: messages.workspaces.appearance }',
+  '{ workspace: "updates", label: messages.workspaces.updates }',
+]) {
+  if (!settingsPanel.includes(boundary)) {
+    throw new Error(`Settings must preserve category orientation: ${boundary}`);
+  }
+}
+if (!application.includes(
+  'hidden={activeHome !== "settings" || settingsWorkspace !== "updates"}',
+)) {
+  throw new Error("update maintenance must be isolated in its Settings category");
+}
+if (!application.includes('useState<ApplicationHome>("home")')
+  || !libraryHomePanel.includes("onClick={onOpenSources}")) {
+  throw new Error("empty startup must lead from value-first Home into secondary Sources");
+}
 
 const compactNavigation = balancedBlock(
   stylesheet,
@@ -254,5 +285,5 @@ for (const [selector, token] of contrastContracts) {
 }
 
 process.stdout.write(
-  `${JSON.stringify({ motionDeclarations: motionDeclarations.length, reducedMotionBoundary: true, darkContrastOverrides: contrastContracts.size, responsiveSidebar: true, broadWorkspace: true, progressiveTrainingWorkspace: true, progressiveDomainWorkspaces: true, stagedReportWorkspace: true, initialWindow: `${mainWindow.width}x${mainWindow.height}` })}\n`,
+  `${JSON.stringify({ motionDeclarations: motionDeclarations.length, reducedMotionBoundary: true, darkContrastOverrides: contrastContracts.size, responsiveSidebar: true, broadWorkspace: true, progressiveTrainingWorkspace: true, progressiveDomainWorkspaces: true, stagedReportWorkspace: true, secondarySources: true, categorizedSettings: true, initialWindow: `${mainWindow.width}x${mainWindow.height}` })}\n`,
 );

@@ -1441,6 +1441,11 @@
     "eyebrow": "Settings",
     "title": "Make FitFreed feel right on this device",
     "intro": "Persistent application preferences live here, separate from imported history and one-off exploration controls.",
+    "workspaceNavigation": "Settings categories",
+    "workspaces": {
+      "appearance": "Appearance & language",
+      "updates": "Updates"
+    },
     "appearanceTitle": "Appearance and language",
     "appearanceIntro": "Choose how the interface is presented whenever FitFreed opens.",
     "language": "Interface language",

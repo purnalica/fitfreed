@@ -106,7 +106,7 @@ Never attach a real export, library, route, screenshot, log, crash report, or di
 
 ## Updates and automatic recovery
 
-The Application updates panel always permits an explicit check. FitFreed also checks after ready startup and every 24 hours while it remains open. Ordinary current, offline, dismissed, or postponed scheduled outcomes stay quiet.
+Open **Settings → Updates** for the Application updates panel and an explicit check. FitFreed also checks after ready startup and every 24 hours while it remains open. Ordinary current, offline, dismissed, or postponed scheduled outcomes stay quiet.
 
 Only a newer compatible release authenticated by the embedded stable-channel trust can offer installation. Review its localized notes before acting. A release can be dismissed or postponed for 24 hours. A withdrawn installed version produces persistent guidance and cannot be treated as an ordinary optional candidate.
 

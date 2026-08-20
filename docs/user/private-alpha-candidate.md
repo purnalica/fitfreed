@@ -78,7 +78,7 @@ Never attach a real ZIP, FitFreed library, route, screenshot, log, or diagnostic
 
 ## Updates and recovery
 
-The Application updates panel shows the installed version and always permits an explicit check. A configured private-alpha build checks after ready startup and every 24 hours while it remains open. Offline or unconfigured checks do not block import or exploration and do not generate repeated intrusive notices.
+Open **Settings → Updates** to see the installed version and perform an explicit check. A configured private-alpha build checks after ready startup and every 24 hours while it remains open. Offline or unconfigured checks do not block import or exploration and do not generate repeated intrusive notices.
 
 Only a newer compatible release from the authenticated channel can offer installation. Its localized release notes may be dismissed or postponed for 24 hours. Before native replacement, FitFreed verifies the exact package and preserves the installed application and SQLite library as one recovery pair. Import, language changes, and another update cannot overlap installation.
 

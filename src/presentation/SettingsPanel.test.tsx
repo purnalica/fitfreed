@@ -1,6 +1,7 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { useState } from "react";
 
 import { catalogs } from "../locales/catalogs";
 import type { ApplicationPreferences } from "./application-preferences";
@@ -16,6 +17,48 @@ const savedPreferences: ApplicationPreferences = {
 afterEach(cleanup);
 
 describe("SettingsPanel", () => {
+  it("separates preference editing from updates without discarding a draft", async () => {
+    const user = userEvent.setup();
+
+    function SettingsHarness() {
+      const [workspace, setWorkspace] = useState<"appearance" | "updates">("appearance");
+      return (
+        <SettingsPanel
+          savedPreferences={savedPreferences}
+          messages={catalogs["en-US"].settings}
+          workspace={workspace}
+          disabled={false}
+          savedNotice={false}
+          onWorkspaceChange={setWorkspace}
+          onPreview={vi.fn()}
+          onSave={vi.fn()}
+          onReset={vi.fn()}
+        />
+      );
+    }
+
+    render(<SettingsHarness />);
+
+    const navigation = screen.getByRole("navigation", { name: "Settings categories" });
+    expect(within(navigation).getByRole("button", { name: "Appearance & language" }))
+      .toHaveAttribute("aria-current", "page");
+    await user.click(screen.getByRole("radio", { name: "Dark" }));
+    await user.selectOptions(screen.getByLabelText("Default content zoom"), "175");
+
+    await user.click(within(navigation).getByRole("button", { name: "Updates" }));
+    expect(within(navigation).getByRole("button", { name: "Updates" }))
+      .toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("form", {
+      name: "Appearance and language",
+      hidden: true,
+    })).not.toBeVisible();
+    expect(screen.getByLabelText("Preview")).not.toBeVisible();
+
+    await user.click(within(navigation).getByRole("button", { name: "Appearance & language" }));
+    expect(screen.getByRole("radio", { name: "Dark" })).toBeChecked();
+    expect(screen.getByLabelText("Default content zoom")).toHaveValue("175");
+  });
+
   it("previews and saves every application preference as one set", async () => {
     const user = userEvent.setup();
     const onPreview = vi.fn();
@@ -25,8 +68,10 @@ describe("SettingsPanel", () => {
       <SettingsPanel
         savedPreferences={savedPreferences}
         messages={catalogs["en-US"].settings}
+        workspace="appearance"
         disabled={false}
         savedNotice={false}
+        onWorkspaceChange={vi.fn()}
         onPreview={onPreview}
         onSave={onSave}
         onReset={vi.fn()}
@@ -61,8 +106,10 @@ describe("SettingsPanel", () => {
       <SettingsPanel
         savedPreferences={{ ...savedPreferences, appearance: "light", contentZoomPercent: 150 }}
         messages={catalogs["en-US"].settings}
+        workspace="appearance"
         disabled
         savedNotice={false}
+        onWorkspaceChange={vi.fn()}
         onPreview={vi.fn()}
         onSave={vi.fn()}
         onReset={onReset}
@@ -79,8 +126,10 @@ describe("SettingsPanel", () => {
       <SettingsPanel
         savedPreferences={{ ...savedPreferences, appearance: "light", contentZoomPercent: 150 }}
         messages={catalogs["en-US"].settings}
+        workspace="appearance"
         disabled={false}
         savedNotice={false}
+        onWorkspaceChange={vi.fn()}
         onPreview={vi.fn()}
         onSave={vi.fn()}
         onReset={onReset}
@@ -95,9 +144,11 @@ describe("SettingsPanel", () => {
       <SettingsPanel
         savedPreferences={savedPreferences}
         messages={catalogs["en-US"].settings}
+        workspace="appearance"
         disabled={false}
         operation="save"
         savedNotice={false}
+        onWorkspaceChange={vi.fn()}
         onPreview={vi.fn()}
         onSave={vi.fn()}
         onReset={vi.fn()}
@@ -116,9 +167,11 @@ describe("SettingsPanel", () => {
       <SettingsPanel
         savedPreferences={{ ...savedPreferences, appearance: "dark" }}
         messages={catalogs["en-US"].settings}
+        workspace="appearance"
         disabled={false}
         operation="reset"
         savedNotice={false}
+        onWorkspaceChange={vi.fn()}
         onPreview={vi.fn()}
         onSave={vi.fn()}
         onReset={vi.fn()}
