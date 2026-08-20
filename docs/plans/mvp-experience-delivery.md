@@ -577,8 +577,8 @@ content, and exports deterministic self-contained HTML. This proves the durable 
 SQLite, transport, editor, and output-adapter boundaries through one immediately useful artifact. The next
 two slices added route composition and the accepted finding, comparison, chart, exact-table, and
 coverage-and-limitation family. The fourth slice added question, exploration, and blank starts. The fifth
-slice added deliberate refresh. The remaining E5 slice completes origin-aware return.
-Each slice remains runnable and documented but E5 is accepted only after the complete FR-005 journey passes.
+slice added deliberate refresh. The final slice completed origin-aware return.
+Each slice remains runnable and documented. E5 acceptance required the complete FR-005 journey to pass.
 
 **Application and architecture:**
 
@@ -610,7 +610,7 @@ and incompatible-row retention. Presentation tests exercise real field input, va
 reopening, privacy review, destination cancellation, adapter failure, stale export blocking, exact return, and
 both locales. The packaged macOS journey creates and reopens the report, independently reads the exported
 HTML, reimports new evidence, verifies stale behavior after restart, and passes the complete packaged
-performance campaign. This is an evaluable checkpoint, not completion of the remaining E5 delivery sequence.
+performance campaign. This was an evaluable checkpoint rather than E5 completion.
 
 **Route-composition local checkpoint:** version 2 adds ordered route blocks while preserving version-1
 definitions as immutable readable evidence. A route block is bound to the selected session and authoritative
@@ -621,8 +621,8 @@ redaction, but cannot disclose more than the saved definition; the generated HTM
 local SVG shape and never recorded latitude or longitude values. Contract, domain, application, persistence,
 transport, component, HTML, migration, and packaged macOS tests protect these boundaries. The complete fast
 lane, strict Clippy, production build, packaged functional journey, and packaged performance campaign pass
-locally. This remains an incremental E5 checkpoint: the other accepted block types, start paths, deliberate
-refresh, and complete report-origin navigation are not yet claimed.
+locally. At this incremental checkpoint, the other accepted block types, start paths, deliberate refresh,
+and complete report-origin navigation were not yet claimed.
 
 **Training-period comparison implementation checkpoint:** version 3 adds finding, comparison, chart,
 exact-table, and coverage blocks as five independently selectable and reorderable views of one versioned
@@ -683,8 +683,8 @@ confirmed the same exact candidate, preserved authored content, reopened revisio
 its provider-neutral version-4 HTML export. It also retained an unaffected stale report, preserved and then
 explicitly cleared resumable exploration across restart, and passed Axe without violations. The isolated
 two-year packaged performance campaign passed every budget; its slowest p95 interaction was 126 milliseconds
-against the 2-second maximum-interaction budget. Hosted acceptance remains pending for this fifth-slice
-executable-input fingerprint. Complete report-origin navigation is the remaining E5 slice.
+against the 2-second maximum-interaction budget. This checkpoint preceded the final report-origin navigation
+slice and was accepted with it by the final E5 campaign.
 
 **Origin-aware navigation local checkpoint:** a transient report start returns to its still-mounted session
 or comparison and restores the initiating control. A reopened saved report derives only an exact typed source
@@ -702,8 +702,8 @@ tests, 139 application tests, 33 domain tests, two private-acceptance tests, and
 Strict Clippy, formatting, production build, repository-content inspection, and diff checks passed. The
 rebuilt macOS package completed the full functional journey in both locales and the isolated two-year
 performance campaign. Every interaction met its budget; the slowest p95 was 507 milliseconds against the
-2-second maximum-interaction budget. Hosted acceptance remains pending for the final E5 executable-input
-fingerprint.
+2-second maximum-interaction budget. The final E5 executable-input fingerprint subsequently passed the
+complete hosted acceptance recorded in the [public-release readiness ledger](../testing/public-release-readiness.md).
 
 **Evaluation checkpoint:** a reviewer can create a useful artifact without learning provider or database terminology and can explain which parts are recorded, calculated, or authored.
 
