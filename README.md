@@ -60,7 +60,7 @@ remains governed independently by the [current ledger](docs/testing/public-relea
 <!-- product-status:start -->
 | Available in source | Active experience work | Deliberately later |
 |---|---|---|
-| Polar Flow ZIP validation and import | Cross-feature hardening and release-shaped evidence for the implemented macOS MVP journey | Additional providers and live APIs |
+| Polar Flow ZIP validation and import | Independent product-experience audit of the release-shaped macOS MVP journey | Additional providers and live APIs |
 | Explicit supported, ignored, and unrecognized coverage |  | Linux and Windows distribution |
 | Safe exact and cumulative reimport |  | Local MCP access for authorized agents |
 | Provider-neutral SQLite history for activity, training summaries, structure, routes, signals, sleep, and recovery |  | Advanced encryption and extension systems |
