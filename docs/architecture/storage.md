@@ -4,7 +4,7 @@
 
 Current architecture after [ADR 0002](decisions/0002-select-sqlite-storage.md). SQLite is the only storage engine in the application and the authoritative local-library format. It does not replace the documented portable FitFreed data contract.
 
-The current implemented schema and compatibility boundary are documented in the [SQLite version 23 persistence specification](../data-formats/persistence/sqlite-v23.md). It preserves the complete provider-neutral fitness library through version 8, authenticated-update state from version 9, application preferences from version 10, a resumable exploration destination from version 11, user-authored sport classifications from version 12, coherent full-history training discovery evidence from version 13, the disposable training-discovery workspace from version 14, mapped training exercises, laps, and pauses from version 15, primary and transition route assessments with exact points from version 16, regular temporal training signals with exact unavailable slots from version 17, reusable personal segmentation criteria from version 18, provider-recorded training-zone assessments from version 19, durable versioned report definitions from version 20, composable route-report intent from version 21, user-selected training-period report queries from version 22, and question-, exploration-, session-, and blank-origin reports from version 23. Earlier specifications remain immutable migration history.
+The current implemented schema and compatibility boundary are documented in the [SQLite version 24 persistence specification](../data-formats/persistence/sqlite-v24.md). It preserves the complete provider-neutral fitness library through version 8, authenticated-update state from version 9, application preferences from version 10, a resumable exploration destination from version 11, user-authored sport classifications from version 12, coherent full-history training discovery evidence from version 13, the disposable training-discovery workspace from version 14, mapped training exercises, laps, and pauses from version 15, primary and transition route assessments with exact points from version 16, regular temporal training signals with exact unavailable slots from version 17, reusable personal segmentation criteria from version 18, provider-recorded training-zone assessments from version 19, durable versioned report definitions from version 20, composable route-report intent from version 21, user-selected training-period report queries from version 22, question-, exploration-, session-, and blank-origin reports from version 23, and compact exact-signal storage from version 24. Earlier specifications remain immutable migration history.
 
 ## Ownership
 
@@ -100,6 +100,13 @@ generalizes report origins to session, question, exploration, and blank. Its rel
 exact fields for each origin and continue to prohibit provider accounts, rendered output, resolved totals,
 and destination paths. All three migrations copy prior definitions and blocks atomically; imports and
 reimports remain unable to rewrite authored rows.
+
+Schema version 24 replaces repeated text identity in every exact regular-signal sample with one internal
+integer series identity. The complete logical identity remains unique on `training_signal_series`, while the
+`WITHOUT ROWID` sample table stores only series identity, exact ordinal, and nullable value. The primary key
+serves stable pages and selected visual points; a partial null-value index preserves efficient gap evidence.
+The committed migration records a retryable maintenance task and physically compacts the library before
+ordinary use resumes. [ADR 0025](decisions/0025-normalize-dense-signal-storage.md) owns the decision.
 
 New origin and evidence rows become durable only inside the same visibility transaction as canonical history and operation completion. Existing development origins migrate as unverified origins without invented evidence. Exact-repeat lookup may inherit an origin only from a completed operation whose correlation state is verified; an old package fingerprint alone cannot authorize subject resolution.
 

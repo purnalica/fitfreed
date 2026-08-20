@@ -25,6 +25,7 @@
     "build": "tsc && vite build",
     "audit:dependencies": "npm audit --audit-level=high",
     "benchmark:cold-launch": "node scripts/run-cold-launch-benchmark.mjs",
+    "benchmark:dense-history": "node scripts/run-dense-history-benchmark.mjs",
     "benchmark:import": "node scripts/run-import-benchmark.mjs",
     "benchmark:insights": "cargo run --quiet --release --manifest-path src-tauri/Cargo.toml --example insights_benchmark",
     "build:pages": "node scripts/pages-artifact.mjs .artifacts/pages",
@@ -62,6 +63,7 @@
     "prebuild:e2e": "npm run icons && npm run fixture:e2e && npm run fixture:large && npm run fixture:insights-performance",
     "build:e2e": "node scripts/build-e2e.mjs",
     "fixture:e2e": "node scripts/generate-e2e-fixtures.mjs .artifacts/e2e/fixtures",
+    "fixture:dense-history": "node scripts/generate-dense-history-fixture.mjs .artifacts/e2e/dense-history.zip",
     "fixture:large": "node scripts/generate-large-fixture.mjs .artifacts/e2e/large.zip",
     "fixture:insights-performance": "node scripts/generate-insights-performance-fixture.mjs .artifacts/e2e/insights-performance.zip",
     "preview": "vite preview",
@@ -83,7 +85,7 @@
     "verify:pages:preflight": "node scripts/pages-publication.mjs preflight .artifacts/pages",
     "verify:pages:remote": "node scripts/pages-publication.mjs verify .artifacts/pages",
     "verify:remote-public-release": "node scripts/public-release-remote.mjs",
-    "verify:full": "npm run doctor && npm run audit:dependencies && npm run test:fast && npm run lint:rust && npm run format:check && npm run benchmark:import && npm run benchmark:insights && npm run verify:e2e && npm run verify:update-e2e && npm run package && npm run benchmark:cold-launch && npm run check:production-bundle && npm run verify:update-recovery-preparation",
+    "verify:full": "npm run doctor && npm run audit:dependencies && npm run test:fast && npm run lint:rust && npm run format:check && npm run benchmark:import && npm run benchmark:dense-history && npm run benchmark:insights && npm run verify:e2e && npm run verify:update-e2e && npm run package && npm run benchmark:cold-launch && npm run check:production-bundle && npm run verify:update-recovery-preparation",
     "tauri": "tauri"
   },
   "dependencies": {

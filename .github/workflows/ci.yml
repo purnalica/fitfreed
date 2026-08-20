@@ -208,6 +208,9 @@ jobs:
       - name: Verify full-scale import budgets
         run: npm run benchmark:import
 
+      - name: Verify dense training-history budgets
+        run: npm run benchmark:dense-history
+
       - name: Verify Insights read-model performance budgets
         run: npm run benchmark:insights
 

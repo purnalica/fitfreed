@@ -135,6 +135,7 @@ Directories are created with their first real contract; empty specifications are
 - [SQLite schema version 21](persistence/sqlite-v21.md)
 - [SQLite schema version 22](persistence/sqlite-v22.md)
 - [SQLite schema version 23](persistence/sqlite-v23.md)
+- [SQLite schema version 24](persistence/sqlite-v24.md)
 - [Release manifest version 1](release/release-manifest-v1.md)
 - [Release manifest version 2](release/release-manifest-v2.md)
 - [Public release manifest version 3](release/release-manifest-v3.md)

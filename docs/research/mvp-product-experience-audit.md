@@ -22,6 +22,20 @@ gaps against the existing [requirements](../requirements.md), not a request to e
 Exact-source engineering evidence remains valid for its tested boundaries; product-experience
 acceptance is reopened.
 
+## Remediation tracking
+
+This audit remains the evidence baseline for subsequent product-owner review. Findings and required outcomes
+are not rewritten when corrective work starts; independently verifiable remediation evidence is appended
+here until the complete journey is audited again.
+
+PX-03 has an implementation candidate under [ADR 0025](../architecture/decisions/0025-normalize-dense-signal-storage.md):
+SQLite schema 24 gives samples a compact private series identity, preserves exact logical evidence through a
+recoverable migration, and adds the required ten-year dense-history gate to local and hosted complete
+verification. A working-tree diagnostic passed every new budget and exact-count assertion, but it is not
+candidate evidence because the source was not clean. PX-03 therefore remains open until the same command
+passes for the exact clean revision in both maintained performance environments. The other findings remain
+unchanged pending product-owner disposition.
+
 ## Audit question
 
 The audit asks whether a person can move from curiosity to personal value through the current

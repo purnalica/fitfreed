@@ -1396,9 +1396,8 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
         let mut signal_sample_statement = transaction
             .prepare_cached(
                 "INSERT INTO training_signal_sample (
-                    origin_id, session_id, exercise_id, role, series_ordinal,
-                    ordinal, value
-                 ) VALUES (?1, ?2, ?3, 'primary', 0, ?4, ?5)",
+                    series_id, ordinal, value
+                 ) VALUES (?1, ?2, ?3)",
             )
             .expect("prepare generated training signal sample insertion");
         let mut zone_assessment_statement = transaction
@@ -1566,14 +1565,13 @@ fn generate_history(database_path: &Path) -> GeneratedRows {
                         .expect("available signal sample count"),
                 ])
                 .expect("insert generated training signal");
+            let signal_series_id = transaction.last_insert_rowid();
             training_signal_rows += 1;
             for sample_index in 0..SIGNAL_SAMPLES_PER_ORIGIN {
                 let value = (sample_index % 997 != 0).then_some(115.0 + (sample_index % 80) as f64);
                 signal_sample_statement
                     .execute(params![
-                        origin,
-                        session_id,
-                        exercise_id,
+                        signal_series_id,
                         i64::try_from(sample_index).expect("signal sample index"),
                         value,
                     ])

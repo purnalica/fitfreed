@@ -160,7 +160,7 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 23;
+const SCHEMA_VERSION: i64 = 24;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
@@ -184,6 +184,7 @@ const SCHEMA_V20: &str = include_str!("../migrations/0020_report_definitions.sql
 const SCHEMA_V21: &str = include_str!("../migrations/0021_composable_route_reports.sql");
 const SCHEMA_V22: &str = include_str!("../migrations/0022_training_comparison_reports.sql");
 const SCHEMA_V23: &str = include_str!("../migrations/0023_report_start_origins.sql");
+const SCHEMA_V24: &str = include_str!("../migrations/0024_compact_training_signal_samples.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
 const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@11";
 const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@6";
@@ -3103,7 +3104,7 @@ fn query_training_signal_overviews_on(
     let role_code = training_signal_role_code(role);
     let mut statement = transaction
         .prepare(
-            "SELECT ordinal, kind, unit, interval_milliseconds, sample_count,
+            "SELECT series_id, ordinal, kind, unit, interval_milliseconds, sample_count,
                     available_sample_count
              FROM training_signal_series
              WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3 AND role = ?4
@@ -3116,19 +3117,27 @@ fn query_training_signal_overviews_on(
             |row| {
                 Ok((
                     row.get::<_, i64>(0)?,
-                    row.get::<_, String>(1)?,
+                    row.get::<_, i64>(1)?,
                     row.get::<_, String>(2)?,
-                    row.get::<_, i64>(3)?,
+                    row.get::<_, String>(3)?,
                     row.get::<_, i64>(4)?,
                     row.get::<_, i64>(5)?,
+                    row.get::<_, i64>(6)?,
                 ))
             },
         )
         .map_err(training_signal_failure)?;
     let mut overviews = Vec::new();
     for row in rows {
-        let (ordinal, kind, unit, interval_milliseconds, sample_count, available_sample_count) =
-            row.map_err(training_signal_failure)?;
+        let (
+            series_id,
+            ordinal,
+            kind,
+            unit,
+            interval_milliseconds,
+            sample_count,
+            available_sample_count,
+        ) = row.map_err(training_signal_failure)?;
         let ordinal = persisted_count(ordinal, "training_signal_series.ordinal")
             .map_err(training_signal_failure)?;
         let sample_count = persisted_count(sample_count, "training_signal_series.sample_count")
@@ -3178,23 +3187,17 @@ fn query_training_signal_overviews_on(
                  SELECT sample.ordinal, sample.value,
                         CASE WHEN selected.previous_ordinal IS NULL THEN 0 ELSE EXISTS (
                             SELECT 1 FROM training_signal_sample AS gap
-                            WHERE gap.origin_id = sample.origin_id
-                              AND gap.session_id = sample.session_id
-                              AND gap.exercise_id = sample.exercise_id
-                              AND gap.role = sample.role
-                              AND gap.series_ordinal = sample.series_ordinal
+                            WHERE gap.series_id = sample.series_id
                               AND gap.ordinal > selected.previous_ordinal
                               AND gap.ordinal <= selected.ordinal
                               AND gap.value IS NULL
                         ) END
                  FROM selected
                  CROSS JOIN training_signal_sample AS sample
-                   ON sample.ordinal = selected.ordinal
-                 WHERE sample.origin_id = ? AND sample.session_id = ? AND sample.exercise_id = ?
-                   AND sample.role = ? AND sample.series_ordinal = ?
+                   ON sample.series_id = ? AND sample.ordinal = selected.ordinal
                  ORDER BY sample.ordinal"
             );
-            let mut values = Vec::with_capacity(selected_ordinals.len() + 5);
+            let mut values = Vec::with_capacity(selected_ordinals.len() + 1);
             for selected_ordinal in selected_ordinals {
                 values.push(Value::Integer(i64::try_from(selected_ordinal).map_err(
                     |_| {
@@ -3204,17 +3207,7 @@ fn query_training_signal_overviews_on(
                     },
                 )?));
             }
-            values.extend([
-                Value::Text(origin_id.to_owned()),
-                Value::Text(session_id.to_owned()),
-                Value::Text(exercise_id.to_owned()),
-                Value::Text(role_code.to_owned()),
-                Value::Integer(i64::try_from(ordinal).map_err(|_| {
-                    TrainingSessionSignalPortError::Failure(
-                        "signal series ordinal is too large".to_owned(),
-                    )
-                })?),
-            ]);
+            values.push(Value::Integer(series_id));
             let mut sample_statement =
                 transaction.prepare(&sql).map_err(training_signal_failure)?;
             let sample_rows = sample_statement
@@ -3411,7 +3404,8 @@ fn query_training_signal_samples_discovery(
     )?;
     let mut series_statement = transaction
         .prepare(
-            "SELECT exercise_id, role, ordinal, kind, unit, interval_milliseconds, sample_count
+            "SELECT series_id, exercise_id, role, ordinal, kind, unit,
+                    interval_milliseconds, sample_count
              FROM training_signal_series
              WHERE origin_id = ?1 AND session_id = ?2
              ORDER BY exercise_id, role, ordinal",
@@ -3420,20 +3414,29 @@ fn query_training_signal_samples_discovery(
     let rows = series_statement
         .query_map(params![origin_id, session_id], |row| {
             Ok((
-                row.get::<_, String>(0)?,
+                row.get::<_, i64>(0)?,
                 row.get::<_, String>(1)?,
-                row.get::<_, i64>(2)?,
-                row.get::<_, String>(3)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, i64>(3)?,
                 row.get::<_, String>(4)?,
-                row.get::<_, i64>(5)?,
+                row.get::<_, String>(5)?,
                 row.get::<_, i64>(6)?,
+                row.get::<_, i64>(7)?,
             ))
         })
         .map_err(training_signal_failure)?;
     let mut identity = None;
     for row in rows {
-        let (exercise_id, role, ordinal, kind, unit, interval_milliseconds, sample_count) =
-            row.map_err(training_signal_failure)?;
+        let (
+            series_id,
+            exercise_id,
+            role,
+            ordinal,
+            kind,
+            unit,
+            interval_milliseconds,
+            sample_count,
+        ) = row.map_err(training_signal_failure)?;
         let role = match role.as_str() {
             "primary" => TrainingSignalRoleView::Primary,
             "transition" => TrainingSignalRoleView::Transition,
@@ -3451,6 +3454,7 @@ fn query_training_signal_samples_discovery(
             let (kind, unit) =
                 training_signal_kind_and_unit(&kind, &unit).map_err(training_signal_failure)?;
             identity = Some((
+                series_id,
                 exercise_id,
                 role,
                 ordinal,
@@ -3464,7 +3468,7 @@ fn query_training_signal_samples_discovery(
         }
     }
     drop(series_statement);
-    let (exercise_id, role, ordinal, kind, unit, interval_milliseconds, sample_count) =
+    let (series_id, exercise_id, role, ordinal, kind, unit, interval_milliseconds, sample_count) =
         identity.ok_or(TrainingSessionSignalPortError::NotFound)?;
     let offset = i64::try_from(query.offset).map_err(|_| {
         TrainingSessionSignalPortError::Failure("signal sample offset is too large".to_owned())
@@ -3475,24 +3479,14 @@ fn query_training_signal_samples_discovery(
     let mut statement = transaction
         .prepare(
             "SELECT ordinal, value FROM training_signal_sample
-             WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3
-               AND role = ?4 AND series_ordinal = ?5
-             ORDER BY ordinal LIMIT ?6 OFFSET ?7",
+             WHERE series_id = ?1
+             ORDER BY ordinal LIMIT ?2 OFFSET ?3",
         )
         .map_err(training_signal_failure)?;
     let sample_rows = statement
-        .query_map(
-            params![
-                origin_id,
-                session_id,
-                exercise_id,
-                training_signal_role_code(role),
-                ordinal,
-                limit,
-                offset,
-            ],
-            |row| Ok((row.get::<_, i64>(0)?, row.get::<_, Option<f64>>(1)?)),
-        )
+        .query_map(params![series_id, limit, offset], |row| {
+            Ok((row.get::<_, i64>(0)?, row.get::<_, Option<f64>>(1)?))
+        })
         .map_err(training_signal_failure)?;
     let samples = sample_rows
         .map(|row| {
@@ -4244,7 +4238,7 @@ fn visit_training_segment_signal_samples(
         segmentation_snapshot_and_identity(&transaction, session_ref, Some(snapshot_ref))?;
     let mut series_statement = transaction
         .prepare(
-            "SELECT exercise_id, ordinal, kind
+            "SELECT series_id, exercise_id, ordinal, kind
              FROM training_signal_series
              WHERE origin_id = ?1 AND session_id = ?2 AND role = 'primary'
                AND kind IN ('distance', 'heart-rate')
@@ -4254,15 +4248,16 @@ fn visit_training_segment_signal_samples(
     let rows = series_statement
         .query_map(params![origin_id, session_id], |row| {
             Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, i64>(1)?,
-                row.get::<_, String>(2)?,
+                row.get::<_, i64>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, i64>(2)?,
+                row.get::<_, String>(3)?,
             ))
         })
         .map_err(segmentation_failure)?;
     let mut identity = None;
     for row in rows {
-        let (exercise_id, ordinal, kind) = row.map_err(segmentation_failure)?;
+        let (series_id, exercise_id, ordinal, kind) = row.map_err(segmentation_failure)?;
         let ordinal = persisted_count(ordinal, "segment signal series ordinal")
             .map_err(segmentation_failure)?;
         if training_signal_ref(
@@ -4273,13 +4268,12 @@ fn visit_training_segment_signal_samples(
             ordinal,
         ) == signal_ref
         {
-            identity = Some((exercise_id, ordinal, kind));
+            identity = Some((series_id, kind));
             break;
         }
     }
     drop(series_statement);
-    let (exercise_id, series_ordinal, kind) =
-        identity.ok_or(TrainingSegmentationPortError::NotFound)?;
+    let (series_id, kind) = identity.ok_or(TrainingSegmentationPortError::NotFound)?;
     let scale = match kind.as_str() {
         "distance" | "heart-rate" => 1_000.0,
         _ => return Err(segmentation_failure("segment signal kind is invalid")),
@@ -4288,16 +4282,14 @@ fn visit_training_segment_signal_samples(
         .prepare(
             "SELECT ordinal, value
              FROM training_signal_sample
-             WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3
-               AND role = 'primary' AND series_ordinal = ?4
+             WHERE series_id = ?1
              ORDER BY ordinal",
         )
         .map_err(segmentation_failure)?;
     let samples = sample_statement
-        .query_map(
-            params![origin_id, session_id, exercise_id, series_ordinal],
-            |row| Ok((row.get::<_, i64>(0)?, row.get::<_, Option<f64>>(1)?)),
-        )
+        .query_map(params![series_id], |row| {
+            Ok((row.get::<_, i64>(0)?, row.get::<_, Option<f64>>(1)?))
+        })
         .map_err(segmentation_failure)?;
     for sample in samples {
         let (ordinal, value) = sample.map_err(segmentation_failure)?;
@@ -5999,7 +5991,7 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
     connection.execute_batch("PRAGMA foreign_keys = ON;")?;
     let version = connection.query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))?;
     if version == SCHEMA_VERSION {
-        return Ok(());
+        return complete_schema_maintenance(connection);
     }
     if !(0..SCHEMA_VERSION).contains(&version) {
         return Err(ImportError::UnsupportedSchemaVersion(version));
@@ -6076,17 +6068,38 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         if version < 23 {
             connection.execute_batch(SCHEMA_V23)?;
         }
+        if version < 24 {
+            connection.execute_batch(SCHEMA_V24)?;
+        }
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
         }
         connection.pragma_update(None, "user_version", SCHEMA_VERSION)?;
         connection.execute_batch("COMMIT;")?;
-        Ok(())
+        complete_schema_maintenance(connection)
     })();
     if migration.is_err() {
         let _ = connection.execute_batch("ROLLBACK;");
     }
     migration
+}
+
+fn complete_schema_maintenance(connection: &Connection) -> Result<()> {
+    let pending = connection.query_row(
+        "SELECT EXISTS (
+             SELECT 1 FROM library_maintenance WHERE task = 'compact-signal-storage'
+         )",
+        [],
+        |row| row.get::<_, bool>(0),
+    )?;
+    if pending {
+        connection.execute_batch("VACUUM;")?;
+        connection.execute(
+            "DELETE FROM library_maintenance WHERE task = 'compact-signal-storage'",
+            [],
+        )?;
+    }
+    Ok(())
 }
 
 fn begin_operation(connection: &Connection) -> Result<i64> {
@@ -8956,7 +8969,7 @@ fn query_training_signal_collection_on(
 ) -> Result<Vec<TrainingSignalSeries>> {
     let role_code = training_signal_role_code(role);
     let mut statement = connection.prepare(
-        "SELECT ordinal, kind, unit, interval_milliseconds, sample_count,
+        "SELECT series_id, ordinal, kind, unit, interval_milliseconds, sample_count,
                 available_sample_count
          FROM training_signal_series
          WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3 AND role = ?4
@@ -8967,18 +8980,26 @@ fn query_training_signal_collection_on(
         |row| {
             Ok((
                 row.get::<_, i64>(0)?,
-                row.get::<_, String>(1)?,
+                row.get::<_, i64>(1)?,
                 row.get::<_, String>(2)?,
-                row.get::<_, i64>(3)?,
+                row.get::<_, String>(3)?,
                 row.get::<_, i64>(4)?,
                 row.get::<_, i64>(5)?,
+                row.get::<_, i64>(6)?,
             ))
         },
     )?;
     let mut series = Vec::new();
     for row in rows {
-        let (ordinal, kind, unit, interval_milliseconds, sample_count, available_sample_count) =
-            row?;
+        let (
+            series_id,
+            ordinal,
+            kind,
+            unit,
+            interval_milliseconds,
+            sample_count,
+            available_sample_count,
+        ) = row?;
         let ordinal = persisted_count(ordinal, "training_signal_series.ordinal")?;
         let sample_count = persisted_count(sample_count, "training_signal_series.sample_count")?;
         let available_sample_count = persisted_count(
@@ -8997,14 +9018,12 @@ fn query_training_signal_collection_on(
         let mut sample_statement = connection.prepare(
             "SELECT ordinal, value
              FROM training_signal_sample
-             WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3
-               AND role = ?4 AND series_ordinal = ?5
+             WHERE series_id = ?1
              ORDER BY ordinal",
         )?;
-        let sample_rows = sample_statement.query_map(
-            params![origin_id, session_id, exercise_id, role_code, ordinal],
-            |row| Ok((row.get::<_, i64>(0)?, row.get::<_, Option<f64>>(1)?)),
-        )?;
+        let sample_rows = sample_statement.query_map(params![series_id], |row| {
+            Ok((row.get::<_, i64>(0)?, row.get::<_, Option<f64>>(1)?))
+        })?;
         let mut samples = Vec::new();
         for sample_row in sample_rows {
             let (sample_ordinal, value) = sample_row?;
@@ -9666,10 +9685,6 @@ fn delete_training_session_signals(
     summary: &TrainingSession,
 ) -> Result<()> {
     transaction.execute(
-        "DELETE FROM training_signal_sample WHERE origin_id = ?1 AND session_id = ?2",
-        params![summary.origin_id, summary.session_id],
-    )?;
-    transaction.execute(
         "DELETE FROM training_signal_series WHERE origin_id = ?1 AND session_id = ?2",
         params![summary.origin_id, summary.session_id],
     )?;
@@ -9758,6 +9773,7 @@ fn insert_training_signal_collection(
                 available_sample_count,
             ],
         )?;
+        let series_id = transaction.last_insert_rowid();
         for (sample_ordinal, sample) in signal.samples.iter().enumerate() {
             if sample.ordinal != sample_ordinal
                 || sample.value.is_some_and(|value| {
@@ -9778,18 +9794,9 @@ fn insert_training_signal_collection(
             }
             transaction.execute(
                 "INSERT INTO training_signal_sample (
-                     origin_id, session_id, exercise_id, role, series_ordinal,
-                     ordinal, value
-                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-                params![
-                    summary.origin_id,
-                    summary.session_id,
-                    exercise_id,
-                    role,
-                    signal.ordinal,
-                    sample.ordinal,
-                    sample.value,
-                ],
+                     series_id, ordinal, value
+                 ) VALUES (?1, ?2, ?3)",
+                params![series_id, sample.ordinal, sample.value],
             )?;
         }
     }
@@ -18018,7 +18025,7 @@ mod tests {
             SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8,
             SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15,
             SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22,
-            SCHEMA_V23,
+            SCHEMA_V23, SCHEMA_V24,
         ];
         for migration in migrations
             .iter()
@@ -18031,6 +18038,227 @@ mod tests {
         connection
             .pragma_update(None, "user_version", version)
             .expect("declared baseline marker");
+    }
+
+    #[test]
+    fn migrates_signal_samples_to_compact_series_identity_without_changing_evidence() {
+        let harness = Harness::new();
+        let connection = Connection::open(harness.database()).expect("database");
+        create_schema_baseline(&connection, 23);
+        connection
+            .execute(
+                "INSERT INTO observation_origin (
+                     id, source_provider, correlation_state, created_at_utc
+                 ) VALUES ('synthetic-origin', 'polar-flow', 'verified',
+                     '2026-01-01T00:00:00Z')",
+                [],
+            )
+            .expect("signal migration origin");
+        connection
+            .execute(
+                "INSERT INTO training_session (
+                     origin_id, session_id, source_modified_at_utc,
+                     started_at_local, stopped_at_local, duration_milliseconds,
+                     exercise_count
+                 ) VALUES (
+                     'synthetic-origin', 'synthetic-session', '2026-01-01T23:00:00Z',
+                     '2026-01-01T06:00:00', '2026-01-01T07:00:00', 3600000, 1
+                 )",
+                [],
+            )
+            .expect("signal migration session");
+        connection
+            .execute(
+                "INSERT INTO training_session_structure (
+                     origin_id, session_id, exercises_present, mapping_version
+                 ) VALUES (
+                     'synthetic-origin', 'synthetic-session', 1, 'synthetic-structure@1'
+                 )",
+                [],
+            )
+            .expect("signal migration structure");
+        connection
+            .execute(
+                "INSERT INTO training_exercise (
+                     origin_id, session_id, exercise_id, ordinal,
+                     started_at_local, stopped_at_local, duration_milliseconds,
+                     manual_laps_present, automatic_laps_present, pauses_present
+                 ) VALUES (
+                     'synthetic-origin', 'synthetic-session', 'synthetic-exercise', 0,
+                     '2026-01-01T06:00:00', '2026-01-01T07:00:00', 3600000,
+                     0, 0, 0
+                 )",
+                [],
+            )
+            .expect("signal migration exercise");
+        connection
+            .execute(
+                "INSERT INTO training_session_signal_assessment (
+                     origin_id, session_id, exercises_present, mapping_version
+                 ) VALUES (
+                     'synthetic-origin', 'synthetic-session', 1, 'synthetic-signals@1'
+                 )",
+                [],
+            )
+            .expect("signal migration session assessment");
+        connection
+            .execute(
+                "INSERT INTO training_exercise_signal_assessment (
+                     origin_id, session_id, exercise_id, ordinal, signals_present,
+                     primary_present, transition_present,
+                     unsupported_primary_series_count,
+                     unsupported_transition_series_count
+                 ) VALUES (
+                     'synthetic-origin', 'synthetic-session', 'synthetic-exercise', 0,
+                     1, 1, 1, 0, 0
+                 )",
+                [],
+            )
+            .expect("signal migration exercise assessment");
+        connection
+            .execute(
+                "INSERT INTO training_signal_series (
+                     origin_id, session_id, exercise_id, role, ordinal, kind, unit,
+                     interval_milliseconds, sample_count, available_sample_count
+                 ) VALUES (
+                     'synthetic-origin', 'synthetic-session', 'synthetic-exercise',
+                     'primary', 0, 'heart-rate', 'beats-per-minute', 1000, 3, 2
+                 )",
+                [],
+            )
+            .expect("signal migration series");
+        connection
+            .execute_batch(
+                "INSERT INTO training_signal_sample (
+                     origin_id, session_id, exercise_id, role, series_ordinal,
+                     ordinal, value
+                 ) VALUES
+                     ('synthetic-origin', 'synthetic-session', 'synthetic-exercise',
+                      'primary', 0, 0, 120),
+                     ('synthetic-origin', 'synthetic-session', 'synthetic-exercise',
+                      'primary', 0, 1, NULL),
+                     ('synthetic-origin', 'synthetic-session', 'synthetic-exercise',
+                      'primary', 0, 2, 140);",
+            )
+            .expect("signal migration samples");
+
+        migrate_schema(&connection, false).expect("compact signal migration");
+
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("compact schema marker"),
+            24
+        );
+        let logical_samples = connection
+            .prepare(
+                "SELECT series.origin_id, series.session_id, series.exercise_id,
+                        series.role, series.ordinal, sample.ordinal, sample.value
+                 FROM training_signal_series AS series
+                 JOIN training_signal_sample AS sample
+                   ON sample.series_id = series.series_id
+                 ORDER BY sample.ordinal",
+            )
+            .expect("compact signal evidence query")
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, String>(3)?,
+                    row.get::<_, i64>(4)?,
+                    row.get::<_, i64>(5)?,
+                    row.get::<_, Option<f64>>(6)?,
+                ))
+            })
+            .expect("compact signal evidence rows")
+            .collect::<rusqlite::Result<Vec<_>>>()
+            .expect("compact signal evidence");
+        assert_eq!(
+            logical_samples,
+            vec![
+                (
+                    "synthetic-origin".to_owned(),
+                    "synthetic-session".to_owned(),
+                    "synthetic-exercise".to_owned(),
+                    "primary".to_owned(),
+                    0,
+                    0,
+                    Some(120.0),
+                ),
+                (
+                    "synthetic-origin".to_owned(),
+                    "synthetic-session".to_owned(),
+                    "synthetic-exercise".to_owned(),
+                    "primary".to_owned(),
+                    0,
+                    1,
+                    None,
+                ),
+                (
+                    "synthetic-origin".to_owned(),
+                    "synthetic-session".to_owned(),
+                    "synthetic-exercise".to_owned(),
+                    "primary".to_owned(),
+                    0,
+                    2,
+                    Some(140.0),
+                ),
+            ]
+        );
+        assert_eq!(
+            connection
+                .prepare("PRAGMA foreign_key_check")
+                .expect("foreign-key check")
+                .query_map([], |_| Ok(()))
+                .expect("foreign-key rows")
+                .count(),
+            0
+        );
+        assert_eq!(
+            connection
+                .query_row("SELECT COUNT(*) FROM library_maintenance", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .expect("completed signal-storage maintenance"),
+            0
+        );
+    }
+
+    #[test]
+    fn retains_and_retries_signal_storage_maintenance_after_vacuum_failure() {
+        let harness = Harness::new();
+        let connection = Connection::open(harness.database()).expect("database");
+        create_schema_baseline(&connection, 24);
+        connection
+            .execute_batch("BEGIN;")
+            .expect("maintenance failure transaction");
+
+        migrate_schema(&connection, false).expect_err("VACUUM inside a transaction must fail");
+
+        assert_eq!(
+            connection
+                .query_row("SELECT COUNT(*) FROM library_maintenance", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .expect("retained signal-storage maintenance"),
+            1
+        );
+        connection
+            .execute_batch("ROLLBACK;")
+            .expect("finish maintenance failure transaction");
+
+        migrate_schema(&connection, false).expect("retry signal-storage maintenance");
+
+        assert_eq!(
+            connection
+                .query_row("SELECT COUNT(*) FROM library_maintenance", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .expect("completed signal-storage maintenance retry"),
+            0
+        );
+        assert_integrity(&connection);
     }
 
     fn assert_integrity(connection: &Connection) {
@@ -18073,6 +18301,14 @@ mod tests {
                     .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
                     .expect("target schema marker"),
                 SCHEMA_VERSION
+            );
+            assert_eq!(
+                connection
+                    .query_row("SELECT COUNT(*) FROM library_maintenance", [], |row| {
+                        row.get::<_, i64>(0)
+                    })
+                    .expect("completed schema maintenance"),
+                0
             );
             assert_integrity(&connection);
         }

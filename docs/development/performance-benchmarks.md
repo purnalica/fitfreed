@@ -42,6 +42,44 @@ The enforced p95 budgets are:
 
 The local output records the application version, source revision and clean-tree state, host profile, free storage, exact generated scale, compressed archive size, run policy, aggregate timings, phase p95 values, memory, and budget result. Exact host details and raw output remain local; versioned evidence retains the synthetic scale, aggregate measurements, result, and only the hosted macOS or local Apple Silicon classification. Temporary ZIP and SQLite files are removed even after failure. The complete hosted campaign and clean local candidate campaign must both pass their unchanged budgets.
 
+## Dense training-history benchmark
+
+Run on macOS:
+
+```sh
+npm run benchmark:dense-history
+```
+
+The command independently generates a provider ZIP with one fictional account artifact and 520 weekly
+one-hour sessions beginning on 2016-01-01. Every session contains one exercise and four supported regular
+signals: heart rate, speed, altitude, and cadence. Each series contains 3,601 one-second slots with explicit
+deterministic gaps. The accepted scale is exactly 521 archive entries, 520 sessions, 2,080 series, and
+7,490,080 persisted samples. This is a provider-independent resource envelope rather than a description or
+derivative of a private history.
+
+The release-mode Rust benchmark process uses the production archive adapter, anti-corruption mapping,
+reconciliation, SQLite persistence, and application query use cases. Three fresh processes each receive a
+new library, perform the first import, repeat the exact same archive, checkpoint SQLite, and verify every
+persisted count. Each process then executes five warm-ups and 20 measurements for the first 25 sessions,
+the four-series 300-sample-per-series bounded overview, and one 250-sample exact page. Query p95 uses sorted
+zero-based index `ceil((n - 1) * 0.95)`. Campaign aggregation applies the same formula to the three
+process-level results, intentionally selecting the slowest process.
+
+The gate enforces:
+
+- first import at or below 10 minutes;
+- exact repeat at or below 30 seconds;
+- peak resident memory strictly below 1,536 MiB;
+- checkpointed SQLite size at or below 512 MiB;
+- session discovery, signal overview, and exact sample page p95 at or below 500 milliseconds; and
+- exact session, series, sample, visual-sample, and page counts.
+
+Database size is `page_count * page_size` after the WAL checkpoint. The limit qualifies this exact workload,
+not every possible library. Output records source identity, clean-tree state, host and free-storage context,
+scenario, run policy, import phase timings, aggregate measurements, budgets, and result. Exact local host
+details and raw output remain local. Every generated ZIP and database is removed after success or failure.
+Both maintained performance environments must pass the same command before PX-03 can close.
+
 ## Application read-model benchmark
 
 Run:
@@ -97,7 +135,7 @@ the last active boundary.
 
 ## Automation and evidence handling
 
-`npm run verify:full` includes the cold-launch, full-scale import, read-model, and packaged-UI gates. The macOS GitHub Actions job runs the same commands explicitly, so local and hosted paths share the same versioned entry points. After fast checks and production-package preparation, hosted automation evaluates cold launch before the longer import and Insights campaigns. This fail-fast order reduces wasted runner time after a startup regression without removing any successful-path gate. A budget failure is not retried or converted into a pass.
+`npm run verify:full` includes the cold-launch, full-scale import, dense training-history, read-model, and packaged-UI gates. The macOS GitHub Actions job runs the same commands explicitly, so local and hosted paths share the same versioned entry points. After fast checks and production-package preparation, hosted automation evaluates cold launch before the longer import, dense-history, and Insights campaigns. This fail-fast order reduces wasted runner time after a startup regression without removing any successful-path gate. A budget failure is not retried or converted into a pass.
 
 Generated archives, databases, raw benchmark output, exact local host profiles, screenshots, and logs remain ignored local or short-lived CI evidence. Only the synthetic generators, executable assertions, budgets, methodology, privacy-safe aggregate measurements, and broad execution-environment classification are versioned. Do not replace them with a provider export, values derived from one, or a maintainer's or participant's workstation details.
 

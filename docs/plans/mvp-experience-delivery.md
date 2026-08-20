@@ -743,7 +743,7 @@ complete hosted acceptance recorded in the [public-release readiness ledger](../
 
 **Acceptance evidence:** all scoped requirements link to passing unit, integration, presentation, layout-conformance, packaged E2E, accessibility, localization, performance, installation, update-recovery, documentation, repository-safety, and privacy evidence for the same executable-input fingerprint. The independent product-experience audit is a separate closing gate and may invalidate that internal acceptance.
 
-**Independent audit result:** the 2026-08-20 [audit](../research/mvp-product-experience-audit.md) did invalidate product-experience acceptance. PX-01 through PX-03 are release-blocking; PX-04 through PX-09 are material; PX-10 is advisory. Their required outcomes and exit rule are canonical in the audit until product-owner review accepts a remediation disposition. Existing executable evidence is retained for its tested boundaries and is rerun only after an affected implementation enters the source.
+**Independent audit result:** the 2026-08-20 [audit](../research/mvp-product-experience-audit.md) did invalidate product-experience acceptance. PX-01 through PX-03 are release-blocking; PX-04 through PX-09 are material; PX-10 is advisory. Their required outcomes and exit rule are canonical in the audit until product-owner review accepts a remediation disposition. The PX-03 implementation candidate adds a long supported-signal gate and compact recoverable SQLite schema 24; its working-tree diagnostic passes, but exact clean local and hosted evidence remain required. Existing executable evidence is retained for its tested boundaries and is rerun only after an affected implementation enters the source.
 
 ## Architecture rules for every increment
 

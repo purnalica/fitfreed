@@ -47,6 +47,29 @@ The representative large scenario is an independently generated synthetic test e
 
 Synthetic scale fixtures will be generated during benchmarking and will not be stored as large repository artifacts. Import reports must separate reading, validation, mapping, reconciliation, persistence, and indexing time so regressions can be diagnosed.
 
+### Dense supported-signal envelope
+
+The provider-independent dense-history scenario contains 520 weekly one-hour sessions over ten years. Every
+session carries four supported one-second series with 3,601 exact slots, for 2,080 series and 7,490,080
+persisted samples. It is an independently authored resource envelope, not a typical-history claim or a
+derivative of a private export.
+
+Three fresh release-mode processes each import the archive into a new current-schema library, repeat the
+exact archive, and query the production application boundary. The slowest process-level p95 must satisfy:
+
+| Scenario | Target |
+|---|---:|
+| First dense-history import | ≤ 10 min |
+| Exact dense-history reimport | ≤ 30 s |
+| Peak process memory | < 1,536 MiB |
+| Resulting SQLite library | ≤ 512 MiB |
+| First 25 complete-history sessions, p95 | ≤ 500 ms |
+| Four-series bounded signal overview, p95 | ≤ 500 ms |
+| 250-sample exact signal page, p95 | ≤ 500 ms |
+
+Every run must also preserve the exact session, series, sample, visual-bound, and page counts. The storage
+limit applies to this exact workload after a WAL checkpoint; it is not a universal maximum library size.
+
 ## Query and visualization budgets
 
 - Opening an already indexed default dashboard follows the common-navigation budget.
@@ -92,7 +115,7 @@ The MVP additionally requires:
 - Results are compared to a versioned baseline and identify the responsible phase or query.
 - Measurements never publish personal data, raw routes, identifiers, or sensitive diagnostic values.
 
-The implemented cold-launch, full-scale import, daily-activity, training-session, route-report, sleep,
-recovery, and integrated longitudinal gates, synthetic scales, percentile policy, timed boundaries, machine
-profile output, and interpretation limits are documented in the
+The implemented cold-launch, full-scale import, dense training-history, daily-activity, training-session,
+route-report, sleep, recovery, and integrated longitudinal gates, synthetic scales, percentile policy,
+timed boundaries, machine profile output, and interpretation limits are documented in the
 [performance benchmark guide](development/performance-benchmarks.md).
