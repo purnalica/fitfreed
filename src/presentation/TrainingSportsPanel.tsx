@@ -65,7 +65,7 @@ export function TrainingSportsPanel({
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [draft, setDraft] = useState<ClassificationDraft>();
-  const [saving, setSaving] = useState(false);
+  const [operation, setOperation] = useState<"save" | "reset">();
   const [status, setStatus] = useState<string>();
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const plural = useMemo(() => new Intl.PluralRules(locale), [locale]);
@@ -74,6 +74,7 @@ export function TrainingSportsPanel({
     [locale],
   );
   const copy = messages.training.sports;
+  const busy = operation !== undefined;
   const draftLabelTooLong = draft !== undefined && [...draft.label.trim()].length > 80;
 
   async function loadOverview(): Promise<TrainingSportsOverview> {
@@ -127,9 +128,10 @@ export function TrainingSportsPanel({
     sport: TrainingSport,
     canonicalFamily: SportFamily | null,
     displayLabel: string | null,
+    nextOperation: "save" | "reset",
   ) {
     if (!sport.sportRef || !sport.classification) return;
-    setSaving(true);
+    setOperation(nextOperation);
     onError(undefined);
     try {
       const result = await invoke<SavedTrainingSportClassification>(
@@ -160,7 +162,7 @@ export function TrainingSportsPanel({
         }
       }
     } finally {
-      setSaving(false);
+      setOperation(undefined);
     }
   }
 
@@ -168,7 +170,7 @@ export function TrainingSportsPanel({
     event.preventDefault();
     if (!draft || draft.sportRef !== sport.sportRef) return;
     const label = draft.label.trim();
-    void persist(sport, draft.family || null, label || null);
+    void persist(sport, draft.family || null, label || null, "save");
   }
 
   const summary = overview && interpolate(
@@ -184,7 +186,7 @@ export function TrainingSportsPanel({
       className="training-sports"
       role="region"
       aria-labelledby="training-sports-heading"
-      aria-busy={loading || saving}
+      aria-busy={loading || busy}
     >
       <header className="training-sports-heading">
         <div>
@@ -229,7 +231,7 @@ export function TrainingSportsPanel({
                     <button
                       type="button"
                       className="secondary"
-                      disabled={saving}
+                      disabled={busy}
                       onClick={() => beginEditing(sport)}
                     >
                       {sport.state === "classified" ? copy.editNamed : copy.edit}
@@ -277,7 +279,7 @@ export function TrainingSportsPanel({
                   <form
                     className="training-sport-editor"
                     aria-label={interpolate(copy.editorHeading, { sport: title })}
-                    aria-busy={saving}
+                    aria-busy={busy}
                     onSubmit={(event) => saveClassification(event, sport)}
                   >
                     <div className="training-sport-editor-field">
@@ -285,7 +287,7 @@ export function TrainingSportsPanel({
                       <select
                         id={`sport-family-${index}`}
                         value={draft.family}
-                        disabled={saving}
+                        disabled={busy}
                         onChange={(event) => setDraft({
                           ...draft,
                           family: event.target.value as SportFamily | "",
@@ -306,7 +308,7 @@ export function TrainingSportsPanel({
                         aria-describedby={draftLabelTooLong
                           ? `sport-label-help-${index} sport-label-error-${index}`
                           : `sport-label-help-${index}`}
-                        disabled={saving}
+                        disabled={busy}
                         onChange={(event) => setDraft({ ...draft, label: event.target.value })}
                       />
                       <small id={`sport-label-help-${index}`}>{copy.displayLabelHelp}</small>
@@ -324,7 +326,7 @@ export function TrainingSportsPanel({
                       <button
                         type="button"
                         className="secondary"
-                        disabled={saving}
+                        disabled={busy}
                         onClick={() => setDraft(undefined)}
                       >
                         {copy.cancel}
@@ -333,21 +335,26 @@ export function TrainingSportsPanel({
                         <button
                           type="button"
                           className="secondary"
-                          disabled={saving}
-                          onClick={() => void persist(sport, null, null)}
+                          disabled={busy}
+                          onClick={() => void persist(sport, null, null, "reset")}
                         >
                           {copy.reset}
                         </button>
                       )}
                       <ProgressSubmitButton
-                        loading={saving}
+                        loading={operation === "save"}
                         disabled={
-                          draftLabelTooLong
+                          busy || draftLabelTooLong
                           || (!draft.family && !draft.label.trim())
                         }
                         actionLabel={copy.save}
                         progressLabel={copy.saving}
                       />
+                      {operation === "reset" && (
+                        <span className="progress-submit-status" role="status" aria-live="polite">
+                          {copy.resetting}
+                        </span>
+                      )}
                     </div>
                   </form>
                 )}

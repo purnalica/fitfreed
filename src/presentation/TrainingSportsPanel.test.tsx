@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -303,6 +303,59 @@ describe("TrainingSportsPanel", () => {
 
     expect(await screen.findByRole("heading", { name: "Gravel cycling" })).toBeVisible();
     expect(screen.getByRole("status")).toHaveTextContent("Sport classification saved.");
+  });
+
+  it("keeps classification actions stable and announces returning a sport to unknown", async () => {
+    let completeReset: (value: SavedTrainingSportClassification) => void = () => undefined;
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_training_sports") {
+        return Promise.resolve(overview([classifiedSport]));
+      }
+      if (command === "save_training_sport_classification") {
+        return new Promise((resolve) => {
+          completeReset = resolve;
+        });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(
+      <TrainingSportsPanel
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        refreshToken={0}
+        onError={vi.fn()}
+      />,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Edit sport name" }));
+    await user.click(screen.getByRole("button", { name: "Return to unknown" }));
+
+    const editor = screen.getByRole("form", { name: "Classify Trail running" });
+    expect(editor).toHaveAttribute("aria-busy", "true");
+    expect(within(editor).getByRole("button", { name: "Return to unknown" })).toBeDisabled();
+    expect(within(editor).getByRole("button", { name: "Save sport classification" }))
+      .toBeDisabled();
+    expect(within(editor).getByRole("status")).toHaveTextContent(
+      "Returning sport to unknown…",
+    );
+    expect(within(editor).queryByText("Saving sport classification…"))
+      .not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Trail running" })).toBeVisible();
+
+    const resetSport: TrainingSport = {
+      ...classifiedSport,
+      state: "unknown",
+      classification: {
+        canonicalFamily: null,
+        displayLabel: null,
+        authorship: "user",
+        revision: 4,
+      },
+    };
+    act(() => completeReset({ outcome: "changed", overview: overview([resetSport]) }));
+
+    expect(await screen.findByRole("heading", { name: "Unknown sport 1" })).toBeVisible();
   });
 
   it("distinguishes loading, empty, and failed discovery without inventing sports", async () => {

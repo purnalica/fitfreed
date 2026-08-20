@@ -1116,12 +1116,33 @@ describe("FitFreed import interface", () => {
     expect(screen.getByRole("radio", { name: "Oscuro" })).toBeChecked();
     expect(screen.getByLabelText("Ampliación predeterminada del contenido")).toHaveValue("200");
 
+    let completeReset: (load: ApplicationPreferencesLoad) => void = () => undefined;
+    mocks.preferencesInvoke.mockImplementation((command) => {
+      if (command === "reset_preferences") {
+        return new Promise((resolve) => {
+          completeReset = resolve;
+        });
+      }
+      throw new Error(`Unexpected preference command: ${command}`);
+    });
     await user.click(screen.getByRole("button", { name: "Restaurar valores predeterminados" }));
-    await waitFor(() => expect(mocks.preferencesInvoke).toHaveBeenCalledWith(
+    expect(mocks.preferencesInvoke).toHaveBeenCalledWith(
       "reset_preferences",
       { defaultLocale: "en-US" },
-    ));
-    expect(document.documentElement).toHaveAttribute("data-appearance", "system");
+    );
+    const settingsForm = screen.getByRole("form", { name: "Apariencia e idioma" });
+    expect(settingsForm).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("button", { name: "Restaurar valores predeterminados" }))
+      .toBeDisabled();
+    expect(screen.getByRole("button", { name: "Guardar cambios" })).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Restaurando valores predeterminados…",
+    );
+    expect(screen.queryByText("Guardando…")).not.toBeInTheDocument();
+
+    act(() => completeReset(preferencesLoad()));
+    await waitFor(() => expect(document.documentElement)
+      .toHaveAttribute("data-appearance", "system"));
     expect(document.documentElement.style.getPropertyValue("--content-zoom")).toBe("1");
   });
 

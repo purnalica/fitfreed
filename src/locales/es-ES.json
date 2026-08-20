@@ -595,6 +595,7 @@
       "saving": "Guardando clasificación del deporte…",
       "cancel": "Cancelar edición",
       "reset": "Volver a desconocido",
+      "resetting": "Devolviendo el deporte a desconocido…",
       "saved": "Clasificación del deporte guardada.",
       "unchanged": "La clasificación del deporte ya estaba actualizada.",
       "families": {
@@ -1364,6 +1365,7 @@
     "previewBody": "Las tablas, los gráficos, las pruebas y los avisos sobre datos ausentes utilizan la misma ampliación y apariencia.",
     "localOnly": "Estas preferencias permanecen en este dispositivo. No modifican tu historial deportivo ni salen con él.",
     "restore": "Restaurar valores predeterminados",
+    "restoring": "Restaurando valores predeterminados…",
     "save": "Guardar cambios",
     "saving": "Guardando…",
     "saved": "Ajustes guardados en este dispositivo.",

@@ -14,7 +14,7 @@ interface SettingsPanelProps {
   savedPreferences: ApplicationPreferences;
   messages: SettingsMessages;
   disabled: boolean;
-  saving: boolean;
+  operation?: "save" | "reset";
   savedNotice: boolean;
   onPreview: (preferences: ApplicationPreferences) => void;
   onSave: (preferences: ApplicationPreferences) => Promise<void>;
@@ -27,7 +27,7 @@ export function SettingsPanel({
   savedPreferences,
   messages,
   disabled,
-  saving,
+  operation,
   savedNotice,
   onPreview,
   onSave,
@@ -45,6 +45,7 @@ export function SettingsPanel({
   ]);
 
   const dirty = !sameApplicationPreferences(draft, savedPreferences);
+  const busy = operation !== undefined;
 
   function preview(next: ApplicationPreferences) {
     setDraft(next);
@@ -63,7 +64,7 @@ export function SettingsPanel({
         <form
           className="settings-form"
           aria-labelledby="appearance-settings-heading"
-          aria-busy={saving}
+          aria-busy={busy}
           onSubmit={(event) => {
             event.preventDefault();
             void onSave(draft);
@@ -81,7 +82,7 @@ export function SettingsPanel({
               id="application-language"
               aria-describedby="application-language-help"
               value={draft.locale}
-              disabled={disabled || saving}
+              disabled={disabled || busy}
               onChange={(event) => preview({
                 ...draft,
                 locale: event.target.value as ApplicationPreferences["locale"],
@@ -92,7 +93,7 @@ export function SettingsPanel({
             </select>
           </div>
 
-          <fieldset className="settings-field appearance-options" disabled={disabled || saving}>
+          <fieldset className="settings-field appearance-options" disabled={disabled || busy}>
             <legend>{messages.appearance}</legend>
             <small>{messages.appearanceBody}</small>
             <div>
@@ -118,7 +119,7 @@ export function SettingsPanel({
               id="application-content-zoom"
               aria-describedby="application-content-zoom-help"
               value={draft.contentZoomPercent}
-              disabled={disabled || saving}
+              disabled={disabled || busy}
               onChange={(event) => preview({
                 ...draft,
                 contentZoomPercent: Number(event.target.value),
@@ -132,7 +133,7 @@ export function SettingsPanel({
 
           <p className="settings-local-note">{messages.localOnly}</p>
 
-          {!saving && (dirty || savedNotice) && (
+          {!busy && (dirty || savedNotice) && (
             <p className="settings-status" role="status" aria-live="polite">
               {dirty ? messages.unsaved : messages.saved}
             </p>
@@ -142,17 +143,22 @@ export function SettingsPanel({
             <button
               type="button"
               className="secondary"
-              disabled={disabled || saving}
+              disabled={disabled || busy}
               onClick={() => void onReset()}
             >
               {messages.restore}
             </button>
             <ProgressSubmitButton
-              loading={saving}
-              disabled={disabled || !dirty}
+              loading={operation === "save"}
+              disabled={disabled || busy || !dirty}
               actionLabel={messages.save}
               progressLabel={messages.saving}
             />
+            {operation === "reset" && (
+              <span className="progress-submit-status" role="status" aria-live="polite">
+                {messages.restoring}
+              </span>
+            )}
           </div>
         </form>
 

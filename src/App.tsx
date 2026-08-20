@@ -190,7 +190,7 @@ function App() {
     appearance: "system",
     contentZoomPercent: 100,
   }));
-  const [preferencesSaving, setPreferencesSaving] = useState(false);
+  const [preferencesOperation, setPreferencesOperation] = useState<"save" | "reset">();
   const [preferencesSavedNotice, setPreferencesSavedNotice] = useState(false);
   const [preferencesRecovered, setPreferencesRecovered] = useState(false);
   const [preferencesEditorRevision, setPreferencesEditorRevision] = useState(0);
@@ -593,7 +593,7 @@ function App() {
 
   async function savePreferences(preferences: ApplicationPreferences) {
     const previous = savedPreferences;
-    setPreferencesSaving(true);
+    setPreferencesOperation("save");
     setErrorCode(undefined);
     try {
       const saved = await invoke<ApplicationPreferences>("save_preferences", {
@@ -616,13 +616,13 @@ function App() {
       setPreferencesEditorRevision((current) => current + 1);
       setErrorCode(commandErrorCode(reason));
     } finally {
-      setPreferencesSaving(false);
+      setPreferencesOperation(undefined);
     }
   }
 
   async function resetPreferences() {
     const previous = savedPreferences;
-    setPreferencesSaving(true);
+    setPreferencesOperation("reset");
     setErrorCode(undefined);
     try {
       const reset = await invoke<ApplicationPreferencesLoad>("reset_preferences", {
@@ -641,7 +641,7 @@ function App() {
       setPreferencesEditorRevision((current) => current + 1);
       setErrorCode(commandErrorCode(reason));
     } finally {
-      setPreferencesSaving(false);
+      setPreferencesOperation(undefined);
     }
   }
 
@@ -968,7 +968,7 @@ function App() {
             savedPreferences={savedPreferences}
             messages={messages.settings}
             disabled={!libraryReady || updateInstalling}
-            saving={preferencesSaving}
+            operation={preferencesOperation}
             savedNotice={preferencesSavedNotice}
             onPreview={previewPreferences}
             onSave={savePreferences}

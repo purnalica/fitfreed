@@ -595,6 +595,7 @@
       "saving": "Saving sport classification…",
       "cancel": "Cancel editing",
       "reset": "Return to unknown",
+      "resetting": "Returning sport to unknown…",
       "saved": "Sport classification saved.",
       "unchanged": "Sport classification was already current.",
       "families": {
@@ -1364,6 +1365,7 @@
     "previewBody": "Tables, charts, evidence, and missing-data notices use the same zoom and appearance.",
     "localOnly": "These preferences stay on this device. They do not modify or leave with your fitness history.",
     "restore": "Restore defaults",
+    "restoring": "Restoring defaults…",
     "save": "Save changes",
     "saving": "Saving…",
     "saved": "Settings saved on this device.",

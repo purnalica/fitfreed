@@ -26,7 +26,6 @@ describe("SettingsPanel", () => {
         savedPreferences={savedPreferences}
         messages={catalogs["en-US"].settings}
         disabled={false}
-        saving={false}
         savedNotice={false}
         onPreview={onPreview}
         onSave={onSave}
@@ -63,7 +62,6 @@ describe("SettingsPanel", () => {
         savedPreferences={{ ...savedPreferences, appearance: "light", contentZoomPercent: 150 }}
         messages={catalogs["en-US"].settings}
         disabled
-        saving={false}
         savedNotice={false}
         onPreview={vi.fn()}
         onSave={vi.fn()}
@@ -82,7 +80,6 @@ describe("SettingsPanel", () => {
         savedPreferences={{ ...savedPreferences, appearance: "light", contentZoomPercent: 150 }}
         messages={catalogs["en-US"].settings}
         disabled={false}
-        saving={false}
         savedNotice={false}
         onPreview={vi.fn()}
         onSave={vi.fn()}
@@ -99,7 +96,7 @@ describe("SettingsPanel", () => {
         savedPreferences={savedPreferences}
         messages={catalogs["en-US"].settings}
         disabled={false}
-        saving
+        operation="save"
         savedNotice={false}
         onPreview={vi.fn()}
         onSave={vi.fn()}
@@ -112,5 +109,27 @@ describe("SettingsPanel", () => {
     expect(screen.getByRole("button", { name: "Restore defaults" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
     expect(screen.getByRole("status")).toHaveTextContent("Saving…");
+  });
+
+  it("keeps both settings actions stable and announces default restoration distinctly", () => {
+    render(
+      <SettingsPanel
+        savedPreferences={{ ...savedPreferences, appearance: "dark" }}
+        messages={catalogs["en-US"].settings}
+        disabled={false}
+        operation="reset"
+        savedNotice={false}
+        onPreview={vi.fn()}
+        onSave={vi.fn()}
+        onReset={vi.fn()}
+      />,
+    );
+
+    const form = screen.getByRole("form", { name: "Appearance and language" });
+    expect(form).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("button", { name: "Restore defaults" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent("Restoring defaults…");
+    expect(screen.queryByText("Saving…")).not.toBeInTheDocument();
   });
 });
