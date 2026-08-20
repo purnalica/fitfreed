@@ -143,6 +143,8 @@
     },
     "openAccount": "Open official account page",
     "openInstructions": "Open official instructions",
+    "openingAccount": "Opening official account page…",
+    "openingInstructions": "Opening official instructions…",
     "externalNotice": "Official pages open in your default browser. Their content and availability are controlled by the provider.",
     "providerBoundary": "FitFreed never receives your credentials, signs in, requests the export, or downloads it for you.",
     "guideUnavailable": "The guide for this source is unavailable. FitFreed will not guess provider instructions."

@@ -57,6 +57,7 @@ export function SourcesPanel({
   children,
 }: SourcesPanelProps) {
   const [guideVisible, setGuideVisible] = useState(false);
+  const [linkOperation, setLinkOperation] = useState<"account" | "instructions">();
   const guideHeading = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
@@ -73,8 +74,16 @@ export function SourcesPanel({
   const constraints = messages.constraints as Record<string, string>;
   const troubleshooting = messages.troubleshooting as Record<string, string>;
 
-  function openLink(url: string) {
-    void onOpenOfficialLink(url).catch(onLinkError);
+  async function openLink(purpose: "account" | "instructions", url: string) {
+    if (linkOperation) return;
+    setLinkOperation(purpose);
+    try {
+      await onOpenOfficialLink(url);
+    } catch {
+      onLinkError();
+    } finally {
+      setLinkOperation(undefined);
+    }
   }
 
   return (
@@ -206,23 +215,34 @@ export function SourcesPanel({
               </ul>
             </section>
 
-            <div className="source-official-actions">
+            <div
+              className="source-official-actions"
+              aria-busy={linkOperation !== undefined}
+            >
               <button
                 type="button"
                 className="secondary"
-                disabled={!accountLink}
-                onClick={() => accountLink && openLink(accountLink.url)}
+                disabled={!accountLink || linkOperation !== undefined}
+                onClick={() => accountLink && void openLink("account", accountLink.url)}
               >
                 {messages.openAccount}
               </button>
               <button
                 type="button"
                 className="secondary"
-                disabled={!instructionsLink}
-                onClick={() => instructionsLink && openLink(instructionsLink.url)}
+                disabled={!instructionsLink || linkOperation !== undefined}
+                onClick={() => instructionsLink
+                  && void openLink("instructions", instructionsLink.url)}
               >
                 {messages.openInstructions}
               </button>
+              {linkOperation && (
+                <span className="progress-submit-status" role="status" aria-live="polite">
+                  {linkOperation === "account"
+                    ? messages.openingAccount
+                    : messages.openingInstructions}
+                </span>
+              )}
             </div>
             <p className="source-external-note">{messages.externalNotice}</p>
             <p className="source-boundary">{messages.providerBoundary}</p>

@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -144,6 +144,68 @@ describe("SourcesPanel", () => {
     );
     expect(screen.getByRole("button", { name: "Importar el paquete seleccionado" }))
       .toBeDisabled();
+  });
+
+  it("announces one official destination operation and recovers after failure", async () => {
+    const user = userEvent.setup();
+    let completeOpening: () => void = () => undefined;
+    const onOpenOfficialLink = vi.fn()
+      .mockImplementationOnce(() => new Promise<void>((resolve) => {
+        completeOpening = resolve;
+      }))
+      .mockRejectedValueOnce(new Error("browser unavailable"));
+    const onLinkError = vi.fn();
+
+    render(
+      <SourcesPanel
+        locale="en-US"
+        messages={catalogs["en-US"].sources}
+        importMessages={importMessages}
+        guide={guide}
+        guideLoading={false}
+        archivePath={undefined}
+        importReady={false}
+        busy={false}
+        cancellable={false}
+        updateInstalling={false}
+        cancelRequested={false}
+        onChooseArchive={vi.fn()}
+        onImport={vi.fn()}
+        onCancel={vi.fn()}
+        onOpenOfficialLink={onOpenOfficialLink}
+        onLinkError={onLinkError}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Show me how" }));
+    const guideRegion = screen.getByRole("region", {
+      name: "How to obtain your Polar Flow export",
+    });
+    const account = within(guideRegion).getByRole("button", {
+      name: "Open official account page",
+    });
+    const instructions = within(guideRegion).getByRole("button", {
+      name: "Open official instructions",
+    });
+
+    await user.click(account);
+
+    expect(account).toBeDisabled();
+    expect(instructions).toBeDisabled();
+    expect(within(guideRegion).getByRole("status")).toHaveTextContent(
+      "Opening official account page…",
+    );
+    await user.click(instructions);
+    expect(onOpenOfficialLink).toHaveBeenCalledOnce();
+
+    act(() => completeOpening());
+    await waitFor(() => expect(account).toBeEnabled());
+    expect(within(guideRegion).queryByRole("status")).not.toBeInTheDocument();
+
+    await user.click(instructions);
+    await waitFor(() => expect(onLinkError).toHaveBeenCalledOnce());
+    expect(account).toBeEnabled();
+    expect(instructions).toBeEnabled();
   });
 
   it("does not report missing guidance while the local guide is still loading", () => {
