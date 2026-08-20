@@ -379,6 +379,45 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("ReportsPanel", () => {
+  it("keeps the create action and draft visible while the saved report is resolved", async () => {
+    let resolveSavedReport: (value: ResolvedReport) => void = () => undefined;
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "list_reports") return Promise.resolve({ reports: [] });
+      if (command === "query_training_session_routes") return Promise.resolve(routeQueryResult());
+      if (command === "create_report") return Promise.resolve(definition());
+      if (command === "resolve_report") {
+        return new Promise((resolve) => {
+          resolveSavedReport = resolve;
+        });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    renderPanel();
+    await user.type(
+      await screen.findByLabelText(/^Your interpretation/),
+      "Held the intended effort on every climb.",
+    );
+    await user.click(screen.getByRole("button", { name: "Save report" }));
+
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
+      "resolve_report",
+      { reportRef },
+    ));
+    const editor = screen.getByRole("form", { name: "Edit report" });
+    expect(editor).toHaveAttribute("aria-busy", "true");
+    expect(within(editor).getByRole("button", { name: "Save report" })).toBeDisabled();
+    expect(within(editor).getByRole("status")).toHaveTextContent("Saving…");
+    expect(within(editor).getByLabelText(/^Your interpretation/)).toHaveValue(
+      "Held the intended effort on every climb.",
+    );
+
+    resolveSavedReport(resolution());
+    expect(await screen.findByRole("heading", { name: "Ridge progression", level: 3 }))
+      .toBeVisible();
+  });
+
   it("starts with a question, saves all analytical views, and exports only reviewed evidence", async () => {
     const user = userEvent.setup();
     let saved = false;
@@ -1196,6 +1235,11 @@ describe("ReportsPanel", () => {
       name: "Choose destination and export",
     });
     await user.click(exportAction);
+    const review = screen.getByRole("region", { name: "Review the export" });
+    await waitFor(() => expect(review).toHaveAttribute("aria-busy", "true"));
+    expect(exportAction).toBeDisabled();
+    expect(exportAction).toHaveAccessibleName("Choose destination and export");
+    expect(within(review).getByRole("status")).toHaveTextContent("Exporting…");
     await user.click(await screen.findByRole("button", { name: "Cancel export" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
@@ -1348,6 +1392,7 @@ describe("ReportsPanel", () => {
 
   it("keeps the stale report recoverable when the reviewed candidate changes", async () => {
     const user = userEvent.setup();
+    let rejectRefresh: (reason: unknown) => void = () => undefined;
     const stale = {
       ...resolution(),
       resolvedSnapshotRef: changedSnapshotRef,
@@ -1366,7 +1411,9 @@ describe("ReportsPanel", () => {
         return Promise.resolve({ snapshotRef, sessionRef, routes: { exercises: [] } });
       }
       if (command === "refresh_report") {
-        return Promise.reject({ code: "report-source-changed" });
+        return new Promise((_resolve, reject) => {
+          rejectRefresh = reject;
+        });
       }
       throw new Error(`Unexpected command: ${command}`);
     });
@@ -1376,6 +1423,13 @@ describe("ReportsPanel", () => {
     await user.click(screen.getByRole("button", { name: "Review evidence refresh" }));
     const review = screen.getByRole("region", { name: "Review the current library evidence" });
     await user.click(within(review).getByRole("button", { name: "Use this evidence revision" }));
+
+    await waitFor(() => expect(review).toHaveAttribute("aria-busy", "true"));
+    expect(within(review).getByRole("button", { name: "Use this evidence revision" }))
+      .toBeDisabled();
+    expect(within(review).getByRole("status")).toHaveTextContent("Refreshing evidence…");
+
+    rejectRefresh({ code: "report-source-changed" });
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "The source history changed after this report was resolved",

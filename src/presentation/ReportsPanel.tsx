@@ -5,6 +5,7 @@ import { chooseReportDestination } from "../infrastructure/report-destination";
 import { type catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
 import { restoreFocusAfterReveal } from "./focus-restoration";
+import { ProgressSubmitButton } from "./ProgressSubmitButton";
 import { reportSourceTarget, type ReportSourceTarget } from "./report-navigation";
 import { routeSvgPoints } from "./route-svg";
 import type {
@@ -253,7 +254,8 @@ export function ReportsPanel({
   const [availableRoutes, setAvailableRoutes] = useState<TrainingRouteOverview[]>([]);
   const [routesLoading, setRoutesLoading] = useState(false);
   const [routesFailed, setRoutesFailed] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [saveOperation, setSaveOperation] = useState<"create" | "update">();
+  const saving = saveOperation !== undefined;
   const [resolving, setResolving] = useState(false);
   const [localError, setLocalError] = useState<string>();
   const [savedNotice, setSavedNotice] = useState(false);
@@ -638,12 +640,13 @@ export function ReportsPanel({
       setLocalError("invalid-report-comparison-range");
       return;
     }
-    setSaving(true);
+    const operation = editor.reportRef && editor.revision ? "update" : "create";
+    setSaveOperation(operation);
     setLocalError(undefined);
     setSavedNotice(false);
     try {
       let definition: ReportDefinition;
-      if (editor.reportRef && editor.revision) {
+      if (operation === "update" && editor.reportRef && editor.revision) {
         definition = await invoke<ReportDefinition>("update_report", {
           request: {
             reportRef: editor.reportRef,
@@ -665,7 +668,6 @@ export function ReportsPanel({
         });
       }
       setEditor(editorFromDefinition(definition));
-      setSavedNotice(true);
       await refreshList();
       await resolveReport(definition.reportRef);
       setSavedNotice(true);
@@ -673,7 +675,7 @@ export function ReportsPanel({
       const code = commandErrorCode(reason);
       setLocalError(code);
     } finally {
-      setSaving(false);
+      setSaveOperation(undefined);
     }
   }
 
@@ -1187,6 +1189,9 @@ export function ReportsPanel({
   const definitionInvalid = localError === "invalid-report-definition";
   const comparisonRangeInvalid = localError === "invalid-report-comparison-range";
   const editingLocked = disabled || saving || refreshing || resolved?.status === "stale";
+  const creating = saveOperation === "create"
+    || (saveOperation === undefined && !editor?.reportRef);
+  const saveActionLabel = creating ? copy.create : copy.save;
   const canonicalSourceTarget = resolved ? reportSourceTarget(resolved) : null;
   const returnLabel = origin
     ? origin.kind === "session" ? copy.backToSession : copy.backToComparison
@@ -1291,15 +1296,21 @@ export function ReportsPanel({
               </div>
             </section>
           )}
-          {resolving && <p role="status">{copy.resolving}</p>}
+          {resolving && !saving && <p role="status">{copy.resolving}</p>}
           {editor && (
-            <form className="report-editor" onSubmit={(event) => void saveReport(event)}>
+            <form
+              className="report-editor"
+              aria-labelledby="report-editor-heading"
+              aria-busy={saving}
+              onSubmit={(event) => void saveReport(event)}
+            >
               <div className="report-section-heading">
                 <div>
                   <p className="eyebrow">
                     {editor.reportRef ? copy.editingEyebrow : copy.creatingEyebrow}
                   </p>
                   <h2
+                    id="report-editor-heading"
                     ref={requestedReportHeadingRef}
                     tabIndex={openReportRef ? -1 : undefined}
                   >
@@ -1620,9 +1631,12 @@ export function ReportsPanel({
               </section>
 
               <div className="report-actions">
-                <button type="submit" disabled={editingLocked}>
-                  {saving ? copy.saving : editor.reportRef ? copy.save : copy.create}
-                </button>
+                <ProgressSubmitButton
+                  loading={saving}
+                  disabled={editingLocked}
+                  actionLabel={saveActionLabel}
+                  progressLabel={copy.saving}
+                />
                 {resolved && (
                   <button
                     type="button"
@@ -1718,6 +1732,7 @@ export function ReportsPanel({
               className="report-refresh-review"
               role="region"
               aria-labelledby="report-refresh-heading"
+              aria-busy={refreshing}
             >
               <p className="eyebrow">{copy.refresh.eyebrow}</p>
               <h2 ref={refreshReviewHeadingRef} id="report-refresh-heading" tabIndex={-1}>
@@ -1756,7 +1771,7 @@ export function ReportsPanel({
                   onClick={(event) => void confirmRefresh(event.currentTarget)}
                   disabled={refreshing}
                 >
-                  {refreshing ? copy.refresh.refreshing : copy.refresh.confirm}
+                  {copy.refresh.confirm}
                 </button>
                 <button
                   type="button"
@@ -1766,6 +1781,11 @@ export function ReportsPanel({
                 >
                   {copy.refresh.keepSaved}
                 </button>
+                {refreshing && (
+                  <span className="progress-submit-status" role="status" aria-live="polite">
+                    {copy.refresh.refreshing}
+                  </span>
+                )}
               </div>
             </section>
           )}
@@ -1775,6 +1795,7 @@ export function ReportsPanel({
               className="report-privacy-review"
               role="region"
               aria-labelledby="report-privacy-heading"
+              aria-busy={exporting}
             >
               <h2 ref={privacyReviewHeadingRef} id="report-privacy-heading" tabIndex={-1}>
                 {copy.privacyHeading}
@@ -1867,7 +1888,7 @@ export function ReportsPanel({
                   onClick={(event) => void exportReport(event.currentTarget)}
                   disabled={exporting}
                 >
-                  {exporting ? copy.exporting : copy.chooseDestination}
+                  {copy.chooseDestination}
                 </button>
                 {exporting ? (
                   <button
@@ -1885,6 +1906,11 @@ export function ReportsPanel({
                   >
                     {copy.closeReview}
                   </button>
+                )}
+                {exporting && (
+                  <span className="progress-submit-status" role="status" aria-live="polite">
+                    {copy.exporting}
+                  </span>
                 )}
               </div>
             </section>

@@ -27,7 +27,7 @@ The fourth start is a specific training session:
 6. Under **Add an answer from your training history**, add any combination of **Key finding**, **Period comparison**, **Comparison chart**, **Exact values**, and **Coverage and missing data**. Each view can occur once.
 7. Set the baseline and comparison dates. Both periods are inclusive, may overlap, and may contain at most 366 days. Every selected analytical view uses these same periods. Choose the measurement for the finding and chart independently.
 8. Move any block up or down to define the report order. The session summary and narrative are required; route and analytical blocks can be added and removed.
-9. Select **Save report**. FitFreed validates the session, routes, and analytical periods against the exact current training snapshot before storing the definition under **Saved reports**. It survives restart and reimport independently from the provider ZIP.
+9. Select **Save report**. The action keeps that name and the editor remains visible but busy while localized progress is announced. FitFreed validates the session, routes, and analytical periods against the exact current training snapshot before storing the definition under **Saved reports**. It survives restart and reimport independently from the provider ZIP.
 
 New reports use definition version 4. Every report has exactly one plain-text narrative and may contain at
 most one of each analytical view. Session-origin reports additionally require one session-evidence block and
@@ -65,6 +65,8 @@ Confirmation recalculates the candidate immediately before an optimistic write. 
 changed in the meantime, FitFreed rejects the operation and leaves the saved definition untouched so the
 newest candidate can be reviewed. A successful refresh advances the report revision and evidence reference,
 survives restart, unlocks editing and export, and never rewrites authored text or composition.
+The confirmation action keeps its name while the review is busy and announces refresh progress beside the
+controls, so a screen reader and a sighted user receive the same operation state.
 
 ## Move between a report and its source
 
@@ -91,7 +93,7 @@ attribution, definition metadata, and reviewed route shapes. Exact training samp
 should retain it. Review may remove sensitive content but cannot add content excluded by the definition.
 4. Review every available route independently. You may omit its geometry or increase endpoint protection for
 this export; you cannot reduce the protection saved in the definition.
-5. Select **Choose destination and export**, then choose a local HTML file through the operating-system dialog.
+5. Select **Choose destination and export**, then choose a local HTML file through the operating-system dialog. After a destination is accepted, that action keeps its name and the review announces export progress while **Cancel export** remains available.
 
 The result is one deterministic, self-contained HTML file with embedded styling and no script, external
 image, font, stylesheet, telemetry, or network request. Analytical charts use CSS-only shapes with a visible
