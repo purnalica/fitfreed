@@ -11,8 +11,8 @@ results outside the platform that recorded them.
 [Visit the product site](https://fitfreed.org/) · [Review the roadmap](docs/roadmap.md) ·
 [Evaluate the current source](docs/user/development-preview.md) · [Contribute](CONTRIBUTING.md)
 
-> **No supported release is available yet.** The current source contains a tested macOS engineering
-> baseline, while the training-first experience shown in the product direction is active work. Real
+> **No supported release is available yet.** The current source contains the tested macOS engineering
+> baseline and implemented MVP experience, while cross-feature hardening and exact-candidate acceptance remain active work. Real
 > personal exports remain outside the public-evaluation boundary until an exact release candidate
 > passes its privacy, installation, update, and usability gates.
 
@@ -50,17 +50,17 @@ Compose evidence and your own words into a saved, reproducible report. Review ho
 change it, inspect sensitive location or physiological content, and export an independently useful
 artifact under your control.
 
-The complete sports, deep-session, navigation, and report experience is the active product
-direction. Its recommended MVP boundaries are explicit in the
-[experience assessment](docs/research/mvp-experience-boundary-assessment.md); they are not presented
-as already implemented production behavior.
+The sports, deep-session, navigation, and report MVP experience is implemented in the current source.
+Its evidence boundary is explicit in the
+[experience assessment](docs/research/mvp-experience-boundary-assessment.md), while release readiness
+remains governed independently by the [current ledger](docs/testing/public-release-readiness.md).
 
 ## Where the project stands
 
 <!-- product-status:start -->
 | Available in source | Active experience work | Deliberately later |
 |---|---|---|
-| Polar Flow ZIP validation and import | A coherent, evaluated, documented macOS product journey | Additional providers and live APIs |
+| Polar Flow ZIP validation and import | Cross-feature hardening and release-shaped evidence for the implemented macOS MVP journey | Additional providers and live APIs |
 | Explicit supported, ignored, and unrecognized coverage |  | Linux and Windows distribution |
 | Safe exact and cumulative reimport |  | Local MCP access for authorized agents |
 | Provider-neutral SQLite history for activity, training summaries, structure, routes, signals, sleep, and recovery |  | Advanced encryption and extension systems |

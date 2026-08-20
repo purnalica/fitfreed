@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-08-19",
+  "updated": "2026-08-20",
   "statuses": [
     {
       "key": "available",
@@ -41,7 +41,7 @@
       "label": "Active experience work",
       "title": "The experience being shaped",
       "items": [
-        "A coherent, evaluated, documented macOS product journey"
+        "Cross-feature hardening and release-shaped evidence for the implemented macOS MVP journey"
       ],
       "source": {
         "label": "Active experience delivery plan",
