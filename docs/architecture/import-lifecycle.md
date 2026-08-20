@@ -112,6 +112,9 @@ Version 2 can prove the recovery result without guessing: canonical changes and 
 ## Progress and outcomes
 
 Progress is phase-aware. When total work is knowable, the application may report bounded artifact or byte progress; when it is not, it reports the active phase and completed work without displaying a false percentage.
+The Sources presentation keeps import and cancellation action names stable, marks the archive path busy, and
+announces immediate localized importing or cancellation-requested feedback while the detailed phase stream
+continues to report authoritative application progress.
 
 Every terminal outcome includes:
 

@@ -94,6 +94,47 @@ describe("UpdatePanel", () => {
     }
   });
 
+  it("keeps the manual check action stable while announcing its progress", async () => {
+    let completeCheck: (result: UpdateCheckOutcome) => void = () => undefined;
+    invoke.mockImplementation((command) => {
+      if (command === "check_for_updates_on_launch") {
+        return Promise.resolve(outcome({
+          status: "unconfigured",
+          release: null,
+          updateActionAvailable: false,
+        }));
+      }
+      if (command === "check_for_updates") {
+        return new Promise((resolve) => {
+          completeCheck = resolve;
+        });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    render(
+      <UpdatePanel
+        locale="en-US"
+        messages={catalogs["en-US"].updates}
+        errors={catalogs["en-US"].errors}
+        ready
+        refreshToken={0}
+      />,
+    );
+
+    const panel = screen.getByRole("region", { name: "Application updates" });
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("check_for_updates_on_launch"));
+    await user.click(within(panel).getByRole("button", { name: "Check now" }));
+
+    expect(panel).toHaveAttribute("aria-busy", "true");
+    expect(within(panel).getByRole("button", { name: "Check now" })).toBeDisabled();
+    expect(within(panel).getByRole("status")).toHaveTextContent("Checking…");
+
+    completeCheck(outcome({ status: "up-to-date", updateActionAvailable: false }));
+    expect(await within(panel).findByText("FitFreed 0.1.0 is up to date.")).toBeVisible();
+  });
+
   it("announces an authenticated launch update and persists a 24-hour postponement", async () => {
     invoke.mockImplementation((command) => {
       if (command === "check_for_updates_on_launch") return Promise.resolve(outcome());
@@ -161,13 +202,14 @@ describe("UpdatePanel", () => {
       candidateVersion: "0.2.0",
     });
     expect(within(panel).getByText("Installing version 0.2.0…")).toBeVisible();
-    expect(within(panel).getByRole("button", { name: "Installing…" })).toBeDisabled();
+    expect(panel).toHaveAttribute("aria-busy", "true");
+    expect(within(panel).getByRole("button", { name: "Install and restart" })).toBeDisabled();
     expect(within(panel).getByRole("button", { name: "Check now" })).toBeDisabled();
     expect(within(panel).getByRole("button", { name: "Remind me tomorrow" })).toBeDisabled();
     expect(within(panel).getByRole("button", { name: "Ignore this version" })).toBeDisabled();
 
     await act(async () => completeInstallation());
-    expect(within(panel).getByRole("button", { name: "Installing…" })).toBeDisabled();
+    expect(within(panel).getByRole("button", { name: "Install and restart" })).toBeDisabled();
   });
 
   it("reports an installation failure without losing the trusted release", async () => {

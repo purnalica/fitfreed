@@ -292,16 +292,26 @@ export function UpdatePanel({
   const busy = busyAction !== undefined;
 
   return (
-    <section className="update-panel" aria-labelledby="update-heading">
+    <section
+      className="update-panel"
+      aria-labelledby="update-heading"
+      aria-busy={busy}
+    >
       <div className="update-panel-heading">
         <div>
           <h2 id="update-heading">{messages.heading}</h2>
           <p>{messages.intro}</p>
         </div>
         <button type="button" className="secondary" onClick={checkNow} disabled={!ready || busy}>
-          {busyAction === "check" ? messages.checking : messages.checkNow}
+          {messages.checkNow}
         </button>
       </div>
+
+      {busyAction === "check" && (
+        <p className="update-progress" role="status" aria-live="polite">
+          {messages.checking}
+        </p>
+      )}
 
       {showOutcome && (
         <div
@@ -335,7 +345,7 @@ export function UpdatePanel({
           {canDefer && (
             <div className="update-actions">
               <button type="button" onClick={install} disabled={busy || installationBlocked}>
-                {busyAction === "install" ? messages.installing : messages.install}
+                {messages.install}
               </button>
               <button type="button" className="secondary" onClick={postpone} disabled={busy}>
                 {messages.postpone}

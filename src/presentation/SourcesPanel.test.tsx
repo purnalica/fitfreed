@@ -201,8 +201,39 @@ describe("SourcesPanel", () => {
       />,
     );
 
+    const importPath = screen.getByRole("heading", { name: "I have the ZIP" })
+      .closest("article");
+    expect(importPath).not.toBeNull();
+    expect(importPath).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("button", { name: "Import selected package" })).toBeDisabled();
+    expect(within(importPath!).getByRole("status")).toHaveTextContent(
+      "Importing and reconciling…",
+    );
     await user.click(screen.getByRole("button", { name: "Cancel import" }));
     expect(onCancel).toHaveBeenCalledOnce();
+
+    view.rerender(
+      <SourcesPanel
+        locale="en-US"
+        messages={catalogs["en-US"].sources}
+        importMessages={importMessages}
+        guide={guide}
+        guideLoading={false}
+        archivePath="/synthetic/export.zip"
+        importReady
+        busy
+        cancellable
+        updateInstalling={false}
+        cancelRequested
+        onChooseArchive={vi.fn()}
+        onImport={vi.fn()}
+        onCancel={onCancel}
+        onOpenOfficialLink={vi.fn()}
+        onLinkError={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Cancel import" })).toBeDisabled();
+    expect(within(importPath!).getByRole("status")).toHaveTextContent("Cancelling…");
 
     view.rerender(
       <SourcesPanel

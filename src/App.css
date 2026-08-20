@@ -154,6 +154,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visibl
 .source-path .path { margin: 0 0 16px; padding: 10px 12px; background: var(--paper); border-radius: 9px; }
 .source-path-actions, .source-official-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .source-path-actions .cancel { color: var(--danger-ink); background: var(--danger-soft); border-color: var(--danger); }
+.source-import-progress { flex-basis: 100%; color: var(--muted); font-size: .85rem; }
 .source-guide-loading { display: block; margin-top: 12px; color: var(--muted); font-size: .85rem; }
 .source-guide { margin-top: 24px; padding: 26px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 12px 34px rgb(28 53 40 / 7%); }
 .source-guide-heading { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, auto); gap: 28px; align-items: start; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
@@ -190,6 +191,7 @@ p { line-height: 1.55; }
 .update-panel-heading h2 { margin-bottom: 5px; font-size: 1rem; }
 .update-panel-heading p { margin: 0; color: var(--muted); font-size: .85rem; }
 .update-panel-heading button { flex: 0 0 auto; }
+.update-progress { margin: 12px 0 0; color: var(--muted); font-size: .85rem; text-align: right; }
 .update-result { margin-top: 16px; padding: 14px 16px; background: var(--paper); border-left: 5px solid #587363; border-radius: 10px; }
 .update-result-available { background: var(--success-soft); border-left-color: var(--success); }
 .update-result-withdrawn-installed, .update-result-manual-recovery-required, .update-result-untrusted { background: var(--warning-soft); border-left-color: var(--warning); }

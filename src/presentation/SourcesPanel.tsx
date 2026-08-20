@@ -87,7 +87,7 @@ export function SourcesPanel({
       </header>
 
       <div className="source-paths">
-        <article className="source-path source-path-import">
+        <article className="source-path source-path-import" aria-busy={busy}>
           <span aria-hidden="true">01</span>
           <h2>{messages.haveArchiveTitle}</h2>
           <p>{messages.haveArchiveBody}</p>
@@ -106,7 +106,7 @@ export function SourcesPanel({
               onClick={() => void onImport()}
               disabled={!importReady || !archivePath || busy || updateInstalling}
             >
-              {busy ? importMessages.importing : importMessages.import}
+              {importMessages.import}
             </button>
             {busy && cancellable && (
               <button
@@ -115,8 +115,13 @@ export function SourcesPanel({
                 onClick={() => void onCancel()}
                 disabled={cancelRequested}
               >
-                {cancelRequested ? importMessages.cancelling : importMessages.cancel}
+                {importMessages.cancel}
               </button>
+            )}
+            {busy && (
+              <span className="source-import-progress" role="status" aria-live="polite">
+                {cancelRequested ? importMessages.cancelling : importMessages.importing}
+              </span>
             )}
           </div>
         </article>
