@@ -102,6 +102,10 @@ Local and continuous-integration workflows will invoke the same underlying comma
   destination selection. Each adapter uses the WebdriverIO mock registry while preserving its complete options
   and result contract. Tests synchronize on the recorded invocation before asserting cancellation, selection,
   or output; unchanged UI state is not accepted as evidence that an operating-system action completed.
+- The feature-gated host holds each instrumented report export for a bounded test-only interval, or until cancellation,
+  before entering the unchanged application use case. This makes the packaged cancellation action deterministic
+  while retaining the real coordinator, cancellation token, report resolution, output adapter, and cleanup path.
+  Production builds contain neither the hold nor the WebDriver capability.
 - The functional journey and the full-scale Insights campaign run as separate packaged application processes with distinct generated SQLite libraries. Changing an environment variable inside an active WebDriver session is not isolation evidence; no scenario may inherit canonical history, preferences, or workspace state from another scenario.
 - Axe runs in its single-context legacy mode because the embedded macOS driver does not support the auxiliary browser window used by Axe's multi-context algorithm. The rule engine and violation assertions remain enabled.
 - Privacy-safe failure reports, logs, and screenshots are retained as short-lived workflow artifacts. Application libraries, private paths, real exports, and derived personal values are never uploaded.

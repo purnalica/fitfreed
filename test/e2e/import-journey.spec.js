@@ -39,6 +39,26 @@ async function waitForNotice(fragment, timeout = 10_000) {
   );
 }
 
+async function expectDocumentFocus(selector, timeoutMsg) {
+  await browser.waitUntil(
+    () => browser.execute(
+      (target) => document.activeElement === document.querySelector(target),
+      selector,
+    ),
+    { timeout: 10_000, timeoutMsg },
+  );
+}
+
+async function expectFocusedStatus(fragment, timeoutMsg) {
+  await browser.waitUntil(
+    () => browser.execute((expected) => (
+      document.activeElement?.getAttribute("role") === "status"
+      && document.activeElement.textContent?.includes(expected)
+    ), fragment),
+    { timeout: 10_000, timeoutMsg },
+  );
+}
+
 async function expectLibraryHome(catalog) {
   await expect($(".library-home h1")).toHaveText(catalog.home.title);
   const questionButtons = await $$(".library-home-questions button");
@@ -1295,8 +1315,24 @@ describe("packaged FitFreed import journey", () => {
     expect(await $$(".report-analysis-table")).toHaveLength(3);
     expect(await $$(".report-list > li")).toHaveLength(1);
 
-    await $(`aria/${english.reports.reviewExport}`).click();
-    const privacyReview = await $(".report-privacy-review");
+    const reviewExport = await $(`aria/${english.reports.reviewExport}`);
+    await reviewExport.click();
+    let privacyReview = await $(".report-privacy-review");
+    await expectDocumentFocus(
+      "#report-privacy-heading",
+      "opening the export review did not focus its heading",
+    );
+    await privacyReview.$(`aria/${english.reports.closeReview}`).click();
+    await expectDocumentFocus(
+      ".report-editor > .report-actions button.secondary",
+      "closing the export review did not restore its initiating action",
+    );
+    await reviewExport.click();
+    privacyReview = await $(".report-privacy-review");
+    await expectDocumentFocus(
+      "#report-privacy-heading",
+      "reopening the export review did not focus its heading",
+    );
     await expect(privacyReview).toHaveText(
       expect.stringContaining(english.reports.exactSamplesExcluded),
     );
@@ -1334,6 +1370,10 @@ describe("packaged FitFreed import journey", () => {
       timeoutMsg: "the self-contained report was not written",
     });
     await waitForNotice("Self-contained HTML exported");
+    await expectFocusedStatus(
+      "Self-contained HTML exported",
+      "a completed export did not focus its visible outcome",
+    );
     const exportedReport = fs.readFileSync(reportOutput, "utf8");
     expect(exportedReport).toContain('data-fitfreed-report-version="4"');
     expect(exportedReport).toContain(
@@ -1360,6 +1400,44 @@ describe("packaged FitFreed import journey", () => {
     expect(exportedReport).not.toContain("longitude");
     expect(exportedReport).not.toContain("<script");
     expect(exportedReport).not.toContain("https://");
+
+    await reviewExport.click();
+    const cancellationReview = await $(".report-privacy-review");
+    await expectDocumentFocus(
+      "#report-privacy-heading",
+      "opening the cancellation review did not focus its heading",
+    );
+    await saveDialogMock.mockReturnValue(reportOutput);
+    await saveDialogMock.update();
+    const cancellationSaveCallCount = saveDialogMock.mock.calls.length;
+    const cancellationExport = await cancellationReview.$(
+      `aria/${english.reports.chooseDestination}`,
+    );
+    await cancellationExport.click();
+    await browser.waitUntil(async () => {
+      await saveDialogMock.update();
+      return saveDialogMock.mock.calls.length === cancellationSaveCallCount + 1;
+    }, { timeout: 10_000, timeoutMsg: "cancelled report destination was not requested" });
+    const cancelExport = await cancellationReview.$(`aria/${english.reports.cancelExport}`);
+    await cancelExport.waitForDisplayed({ timeout: 10_000 });
+    await cancelExport.click();
+    await expect($(".report-workspace [role='alert']")).toHaveText(
+      english.reports.errors["report-export-cancelled"],
+    );
+    await expectDocumentFocus(
+      ".report-privacy-review .report-actions > button:first-child",
+      "a cancelled export did not restore its stable export action",
+    );
+    expect(fs.readFileSync(reportOutput, "utf8")).toBe(exportedReport);
+    expect(await browser.execute((exportedFragment) => (
+      Array.from(document.querySelectorAll(".report-workspace [role='status']"))
+        .every((status) => !status.textContent?.includes(exportedFragment))
+    ), "Self-contained HTML exported")).toBe(true);
+    await cancellationReview.$(`aria/${english.reports.closeReview}`).click();
+    await expectDocumentFocus(
+      ".report-editor > .report-actions button.secondary",
+      "leaving the cancelled export review did not restore its initiating action",
+    );
     await $(`aria/${english.reports.backToSession}`).click();
     await expect($("#training-session-detail-heading")).toHaveText("Session summary");
     await $("aria/Back to calendar").click();
@@ -2778,8 +2856,13 @@ describe("packaged FitFreed import journey", () => {
     await expect($(".report-status-stale")).toHaveText(spanish.reports.status.stale);
     await expect($(`aria/${spanish.reports.reviewExport}`)).toBeDisabled();
     await expect($('.report-editor input[maxlength="120"]')).toBeDisabled();
-    await $(`aria/${spanish.reports.refresh.review}`).click();
+    const refreshAction = await $(`aria/${spanish.reports.refresh.review}`);
+    await refreshAction.click();
     const refreshReview = await $(".report-refresh-review");
+    await expectDocumentFocus(
+      "#report-refresh-heading",
+      "opening the evidence review did not focus its heading",
+    );
     await expect(refreshReview).toHaveText(
       expect.stringContaining(spanish.reports.refresh.historicalBoundary),
     );
@@ -2795,12 +2878,24 @@ describe("packaged FitFreed import journey", () => {
     expect(refreshAccessibility.violations).toEqual([]);
     await refreshReview.$(`aria/${spanish.reports.refresh.keepSaved}`).click();
     expect(await $$(".report-refresh-review")).toHaveLength(0);
+    await expectDocumentFocus(
+      ".report-stale button",
+      "leaving the evidence review did not restore its initiating action",
+    );
     await expect($(".report-status-stale")).toHaveText(spanish.reports.status.stale);
     await expect($(`aria/${spanish.reports.reviewExport}`)).toBeDisabled();
 
-    await $(`aria/${spanish.reports.refresh.review}`).click();
+    await refreshAction.click();
+    await expectDocumentFocus(
+      "#report-refresh-heading",
+      "reopening the evidence review did not focus its heading",
+    );
     await $(".report-refresh-review").$(`aria/${spanish.reports.refresh.confirm}`).click();
     await waitForNotice(spanish.reports.refresh.completed);
+    await expectFocusedStatus(
+      spanish.reports.refresh.completed,
+      "a completed evidence refresh did not focus its visible outcome",
+    );
     await expect($(".report-status-current")).toHaveText(spanish.reports.status.current);
     await expect($(".report-revision")).toHaveText(
       spanish.reports.revision.replace("{revision}", "2"),
@@ -2815,6 +2910,10 @@ describe("packaged FitFreed import journey", () => {
 
     await $(`aria/${spanish.reports.reviewExport}`).click();
     const refreshedPrivacyReview = await $(".report-privacy-review");
+    await expectDocumentFocus(
+      "#report-privacy-heading",
+      "opening the refreshed export review did not focus its heading",
+    );
     await expect(refreshedPrivacyReview).toHaveText(
       expect.stringContaining(spanish.reports.analysisExportIncluded),
     );
@@ -2830,6 +2929,11 @@ describe("packaged FitFreed import journey", () => {
       timeout: 10_000,
       timeoutMsg: "the refreshed self-contained report was not written",
     });
+    await waitForNotice(spanish.reports.exported.split("{")[0].trim());
+    await expectFocusedStatus(
+      spanish.reports.exported.split("{")[0].trim(),
+      "the refreshed export did not focus its visible outcome",
+    );
     const refreshedExport = fs.readFileSync(refreshedReportOutput, "utf8");
     expect(refreshedExport).toContain('data-fitfreed-report-version="4"');
     expect(refreshedExport).toContain("Synthetic comparison answer");

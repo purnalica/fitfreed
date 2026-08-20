@@ -330,6 +330,17 @@ struct ReportExportOperation {
     cancellation: Arc<ReportExportCancellation>,
 }
 
+#[cfg(feature = "e2e")]
+fn hold_instrumented_report_export(cancellation: &ReportExportCancellation) {
+    const HOLD_DURATION: Duration = Duration::from_secs(1);
+    const POLL_INTERVAL: Duration = Duration::from_millis(10);
+
+    let deadline = Instant::now() + HOLD_DURATION;
+    while !cancellation.is_cancelled() && Instant::now() < deadline {
+        thread::sleep(POLL_INTERVAL);
+    }
+}
+
 impl Drop for ReportExportOperation {
     fn drop(&mut self) {
         if let Ok(mut active) = self.active.lock() {
@@ -858,6 +869,8 @@ async fn export_report(
         .map_err(|_| CommandErrorDto::new("report-export-active"))?;
     tauri::async_runtime::spawn_blocking(move || {
         let cancellation = Arc::clone(&operation.cancellation);
+        #[cfg(feature = "e2e")]
+        hold_instrumented_report_export(&cancellation);
         let result = export_report_through_port(
             &SqliteReportLibrary::new(path.clone()),
             &SqliteTrainingLibrary::new(path.clone()),
@@ -890,6 +903,8 @@ async fn export_session_report(
         .map_err(|_| CommandErrorDto::new("report-export-active"))?;
     tauri::async_runtime::spawn_blocking(move || {
         let cancellation = Arc::clone(&operation.cancellation);
+        #[cfg(feature = "e2e")]
+        hold_instrumented_report_export(&cancellation);
         let result = export_session_report_through_port(
             &SqliteReportLibrary::new(path.clone()),
             &SqliteTrainingLibrary::new(path.clone()),
@@ -2436,6 +2451,18 @@ mod tests {
         drop(operation);
         let next = coordinator.begin().expect("next report export");
         assert!(!next.cancellation.is_cancelled());
+    }
+
+    #[cfg(feature = "e2e")]
+    #[test]
+    fn instrumented_report_hold_releases_an_already_cancelled_operation() {
+        let cancellation = ReportExportCancellation::new();
+        cancellation.cancel();
+        let started_at = Instant::now();
+
+        hold_instrumented_report_export(&cancellation);
+
+        assert!(started_at.elapsed() < Duration::from_millis(100));
     }
 
     fn authenticated_update_snapshot() -> AuthenticatedUpdateSnapshot {
