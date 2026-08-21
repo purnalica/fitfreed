@@ -10,7 +10,7 @@ Current product behavior remains canonical in [requirements](../requirements.md)
 
 ## Objective
 
-Make FitFreed immediately useful as a personal history explorer. A person should understand within seconds that the application turns an owned fitness export into questions, comparisons, and trustworthy discoveries that remain under their control.
+Make FitFreed immediately useful as a personal history explorer. A person should understand within seconds that the application turns an owned fitness export into questions, comparisons, and evidence-backed findings that remain under their control.
 
 The durable cross-feature decisions extracted from this work are normative in the [product experience contract](../requirements.md#product-experience-contract). This plan evaluates concrete ways to satisfy that contract; its current screen composition is not itself a permanent product requirement.
 
@@ -33,6 +33,7 @@ It is not a restyling exercise. New typography, color, spacing, cards, or charts
 - **Data remains free after import.** Export and portability are visible ownership outcomes, and user-authored classifications, criteria, and reports do not become an application-only dead end.
 - **Human scale is the default.** Locale, units, dates, durations, quantity, and precision serve comprehension; exact stored evidence is available on demand.
 - **Context survives depth.** Detail is a distinct navigable state with an explicit route back to the exact origin, never an appendix placed after a large list.
+- **Trust is earned through restraint.** In-application copy states the current fact, consequence, evidence, or action without promotional theatre. Visual distinction and warmth remain, but the working application does not keep selling itself after the person has entered the task.
 
 ## Product questions
 
@@ -105,6 +106,7 @@ Advancing a level never removes the prior explanation. Exact detail supports mea
 | Concentrating source coverage improves trust more than repeating warnings | Product-owner review and PX-04 | Successful-partial and rejected-import consequence comprehension before opening diagnostics |
 | Recognizable labels and visual identifiers are ownership behavior | Product-owner review and PX-06 | Scan mixed-sport history, classify an unknown reference in context, and find the updated sessions |
 | Visible data exit increases perceived control | Product thesis, ownership contract, and product-owner review | Locate the available report export, explain its scope and privacy choices, and distinguish it from future full-library exit |
+| Restrained factual copy creates more trust than promotional enthusiasm | Product-owner review of the current application and the serious local-data context | Compare comprehension, perceived credibility, and expected capability using the same task hierarchy with restrained and promotional variants |
 
 No hypothesis becomes accepted merely because a mockup looks plausible. Results update this register and the applicable requirement before implementation direction changes.
 
@@ -278,6 +280,7 @@ A task transition must state whether draft or selection is preserved, discarded,
 - Time-aligned session visuals share an elapsed axis and selection when evidence can be related. Each lane retains its own unit and scale; no hidden normalization or causal claim is introduced.
 - Gaps interrupt marks rather than becoming zeros or interpolated continuity. A concise explanation accompanies the affected answer, with exact coverage available on request.
 - Dense tables are exact-evidence views with stable headings, units, pagination, and export paths; they are not default dashboards.
+- Headings name the current object, question, result, or state. Supporting copy adds information that is not already visible; it does not praise FitFreed, dramatize a routine operation, or restate the product proposition on every workspace.
 
 ### Coverage ownership
 
@@ -302,7 +305,7 @@ The initial experience has very little time to establish relevance and trust. It
 - make the first action unambiguous;
 - explain local processing and the absence of an account without a legal or technical wall of text;
 - set honest expectations about supported information and processing time; and
-- turn successful import into a personal reveal rather than an ingestion report.
+- turn successful import into a useful personal result rather than an ingestion report.
 
 Evaluation will use three bounded comprehension targets:
 
@@ -330,7 +333,7 @@ Define conceptual homes, object hierarchy, default results, progressive-disclosu
 
 Create at least two materially different low-fidelity interaction directions for the critical journeys, then develop only the strongest candidates to sufficient fidelity for realistic evaluation. Alternatives must differ in task hierarchy or navigation—not merely color, card shape, or typography. Comparable-product research may inform patterns but cannot replace FitFreed's evidence and privacy constraints.
 
-The comparison covers first run, active import, import result, populated Home, training history, sport recognition, session story, report result and editing, export, return navigation, partial data, and recovery. It uses independently constructed multi-sport data at realistic density.
+The comparison covers first run, active import, import result, populated Home, training history, sport recognition, session story, report result and editing, export, return navigation, partial data, and recovery. It uses independently constructed multi-sport data at realistic density and evaluates restrained factual copy as part of credibility rather than treating content as decoration added after layout selection.
 
 **Gate:** one coherent direction demonstrates a materially faster route to meaning, makes the product's functional depth discoverable, and satisfies the non-negotiable mandate. The product owner reviews the direction before production presentation code changes.
 

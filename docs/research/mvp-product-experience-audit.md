@@ -63,6 +63,8 @@ The review established these consequences:
   units, durations, and precision must match human scale and locale;
 - visual explanation, recognizable sport labels and identifiers, result-first reports, contextual detail,
   and complete data exit are core ownership behavior rather than optional polish; and
+- application copy must earn trust through factual restraint. The current promotional scale and tone can
+  make a serious local tool resemble a marketing page and imply outcomes before demonstrating them; and
 - implementation cannot resume from the finding list alone. It first requires explicit user models,
   journeys, task and state models, information architecture, competing interaction directions, and a
   reviewable design contract.

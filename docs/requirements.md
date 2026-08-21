@@ -193,10 +193,18 @@ The following decisions define FitFreed across features and releases. They are f
 - Persistent preferences, source-library operations, exploration controls, report authoring, and external connections have distinct conceptual homes. New controls will join the home that owns their outcome instead of accumulating in a miscellaneous panel.
 - Sport-specific meaning will be preserved through extensions to a common session identity; new sports will not be flattened into a lowest-common-denominator collection of generic metrics.
 
+### Respect is expressed through restraint
+
+- Application language will be calm, specific, and proportionate to the evidence and consequence. It will not use promotional superlatives, theatrical reveals, routine-operation celebration, or claims of intelligence, freedom, insight, or success that the current result does not demonstrate.
+- The public product entrance and the working application have different communication jobs. The public entrance may explain FitFreed's proposition and direction honestly; first run may establish relevance briefly; ordinary workspaces will prioritize the current object, result, state, and action rather than repeat campaign slogans or product-selling introductions.
+- A calculated statement will identify its period, comparison, evidence, and limitation in plain language. A successful import will state what changed; a failure will state consequence and recovery. Neither becomes an opportunity for vague reassurance or alarmist technical language.
+- Warmth will come from clarity, humane terminology, visual care, and non-judgmental behavior rather than hype, gamification, anthropomorphic language, or exaggerated typography. Serious does not mean cold, and engaging does not mean promotional.
+- Interface text must earn the attention and space it consumes. Repeated hero headings, explanatory preambles, and trust claims will be removed once context or prior action already establishes them.
+
 ### Every visit should offer a useful next step
 
 - First run will establish the value of owned history before asking for an archive and will help a person who has not yet requested one.
-- A successful import will reveal the usable period, meaningful coverage, and a conservative first question or comparison instead of celebrating file counts alone.
+- A successful import will show the usable period, meaningful coverage, and a conservative first question or comparison instead of celebrating file counts alone.
 - Returning workspaces will lead with the person's recognizable result or history. Search, filters, editors, diagnostics, and exhaustive evidence refine that result instead of displacing it from the initial viewport.
 
 ### The public promise is concrete and honest
@@ -457,7 +465,7 @@ All canonical engineering artifacts and source text will use English. Localized 
 ### NFR-008 — User experience quality
 
 - User experience means the complete path from obtaining and importing personal data to understanding something valuable from it; visual styling and interface composition are necessary but insufficient evidence.
-- The first successful import will produce an immediate, evidence-backed personal revelation from the available history and lead into further answerable questions. The user must not have to combine disconnected domain tools mentally to discover why the history is useful.
+- The first successful import will produce an immediate, evidence-backed personal result from the available history and lead into further answerable questions. The user must not have to combine disconnected domain tools mentally to determine why the history is useful.
 - The first-run experience will guide users from an empty library to a successfully imported and explorable history without requiring prior knowledge of the takeout structure.
 - Information architecture will use progressive disclosure: summaries will remain approachable while detailed physiological and time-series data remain accessible.
 - Product surfaces will lead with meaning and recognizable records rather than setup controls, editor mechanics, diagnostics, or exhaustive numeric inventory. Detail will open as a deliberate state with a clear return path, not appear after an unbounded list or unrelated control surface.

@@ -43,8 +43,9 @@ This strengthens the broader case for tools that let people use connected-device
 ## Messaging principles
 
 - Lead with personal agency and the difference between possessing files and being able to use the information within them.
-- State the product promise plainly: **excellent results with real user control**. Freedom is incomplete when software exposes raw data without insight or offers polished conclusions without inspectable evidence and choice.
+- Treat **excellent results with real user control** as an internal quality bar, not a slogan that the interface can assert about itself. Freedom is incomplete when software exposes raw data without insight or offers polished conclusions without inspectable evidence and choice.
 - Present one progressively disclosed experience for different levels of engagement: guided answers by default, accessible supporting evidence for people who want to understand, and configurable criteria and report composition for advanced use. Do not split trust or meaning across incompatible novice and expert modes.
+- Use restrained, specific, verifiable language. The public entrance may explain the product proposition, but the application must behave and read like a serious tool rather than repeat promotional claims, celebrate routine operations, or imply intelligence and value it has not demonstrated.
 - Credit the GDPR as an enabling legal foundation without implying endorsement by, affiliation with, or authority from a regulator.
 - Present open source as the mechanism for transparency, continuity, extensibility, and freedom from a new product dependency.
 - Do not market the application as a GDPR compliance tool, legal service, medical device, or diagnostic product.
