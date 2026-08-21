@@ -45,6 +45,33 @@ exact repeat, memory, discovery, overview, and exact-pagination budgets before t
 and update-recovery gates also passed. PX-03 is therefore resolved. The original finding remains above as
 the audit baseline; all other findings remain unchanged pending product-owner disposition.
 
+## Product-owner disposition
+
+Reviewed on 2026-08-21. The product owner confirmed that the audit findings are accurate but rejected
+the audit as a sufficient specification for corrective implementation. The findings can be satisfied
+locally while leaving the overall experience dense, control-led, weakly visual, and difficult to
+understand. The current experience was assessed as a systemic product-design failure rather than a
+collection of presentation defects.
+
+The review established these consequences:
+
+- functional growth is frozen until a coherent redesign of the existing MVP journeys demonstrates the
+  required change in comprehension, usefulness, and visual explanation;
+- source coverage belongs in the explicit import result and source history, while ordinary exploration
+  mentions a limitation only when it changes the answer or action at hand;
+- meaning precedes exhaustive numbers, exact values remain available on request, and displayed dates,
+  units, durations, and precision must match human scale and locale;
+- visual explanation, recognizable sport labels and identifiers, result-first reports, contextual detail,
+  and complete data exit are core ownership behavior rather than optional polish; and
+- implementation cannot resume from the finding list alone. It first requires explicit user models,
+  journeys, task and state models, information architecture, competing interaction directions, and a
+  reviewable design contract.
+
+These decisions are normative in the [product experience contract](../requirements.md#product-experience-contract).
+The methods, artifacts, sequencing, and acceptance gates belong to the
+[UI and UX redesign plan](../plans/ui-redesign.md); this audit remains an immutable diagnosis and evidence
+baseline rather than becoming a second implementation plan.
+
 ## Audit question
 
 The audit asks whether a person can move from curiosity to personal value through the current

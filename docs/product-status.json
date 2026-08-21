@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-08-20",
+  "updated": "2026-08-21",
   "statuses": [
     {
       "key": "available",
@@ -19,8 +19,8 @@
         "Gap-aware supported signal charts with paginated exact samples",
         "Exact recorded heart-rate, speed, and power zones with applicable aggregates",
         "Reusable personal segment criteria with exact locally derived session views",
-        "Question-led Library Home, post-import reveal, and resumable exploration",
-        "Value-first Home with persistent navigation, offline export guidance, and allowlisted official links",
+        "Library Home, post-import summary, and resumable exploration",
+        "Persistent navigation, offline export guidance, and allowlisted official links",
         "Durable language, appearance, and content zoom settings",
         "en-US and es-ES, packaging, update recovery, and release-shaped tests",
         "On-demand privacy-bounded session provenance and reconciliation history",
@@ -39,16 +39,16 @@
     {
       "key": "active",
       "label": "Active experience work",
-      "title": "The experience gaps under review",
+      "title": "A systemic experience redesign",
       "items": [
-        "A trustworthy foreground experience for realistic first imports",
-        "Representative performance and storage qualification for dense training histories",
-        "An immediate evidence-backed personal answer after import",
-        "Recognizable training discovery, coherent session stories, and progressively disclosed report authorship"
+        "Behavioral user models, jobs, critical journeys, and task architecture",
+        "Competing interaction directions before production presentation changes",
+        "Meaning-first and strongly visual history, training, and session exploration",
+        "Result-first reports, contextual detail, human-scale formatting, and visible data exit"
       ],
       "source": {
-        "label": "Independent product-experience audit",
-        "path": "docs/research/mvp-product-experience-audit.md"
+        "label": "Active UI and UX redesign plan",
+        "path": "docs/plans/ui-redesign.md"
       }
     },
     {

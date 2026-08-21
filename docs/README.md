@@ -35,6 +35,7 @@ FitFreed does not have a supported public release yet. The implemented applicati
 
 - [Requirements](requirements.md) define confirmed scope and acceptance.
 - [Roadmap](roadmap.md) defines outcome order and milestone boundaries.
+- [UI and UX redesign plan](plans/ui-redesign.md) defines the active experience model, design method, functional-growth freeze, review artifacts, and implementation gates.
 - [Public product status](product-status.json) is the canonical available, active, and later capability snapshot rendered into the README and product page.
 - [Implemented Milestone 2 plan](plans/milestone-2.md) defines the MVP capability sequence and evidence.
 - [Active Milestone 3 plan](plans/milestone-3.md) defines the public macOS distribution sequence and evidence.
@@ -44,7 +45,7 @@ FitFreed does not have a supported public release yet. The implemented applicati
 - [Reporting architecture](architecture/reporting.md) defines reproducible report definitions and deterministic self-contained HTML export.
 - [Product thesis](product-thesis.md) explains the GDPR-enabled portability and open-source freedom argument without presenting FitFreed as legal advice or a compliance product.
 - [MVP experience boundary assessment](research/mvp-experience-boundary-assessment.md) records the accepted report, deep-session, sport-classification, dependency, navigation, and public-communication evidence.
-- [MVP product-experience audit](research/mvp-product-experience-audit.md) records the current release-blocking and material experience findings, preserved strengths, and reopened acceptance outcomes.
+- [MVP product-experience audit](research/mvp-product-experience-audit.md) records the release-blocking and material experience findings, preserved strengths, and product-owner disposition that triggered the active systemic redesign.
 
 ## Documentation ownership
 

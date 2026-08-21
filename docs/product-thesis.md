@@ -22,7 +22,7 @@ The GDPR provides a legal foundation for access and portability in defined circu
 - **Control:** the person can inspect evidence, change criteria, compose reports, and export results instead of accepting one opaque prescribed view.
 - **Transparency:** the transformation, reconciliation, and calculation rules are inspectable.
 - **Continuity:** the personal history remains usable if a provider changes, removes features, or ceases operating.
-- **Exit:** the application provides open, documented ways to back up and export the resulting library.
+- **Exit:** the application provides open, documented ways to back up and export the resulting library, including normalized information and the person's own classifications, criteria, and reports. Data freed from a provider must not become trapped in FitFreed.
 - **Collective improvement:** contributors can audit, extend, translate, and maintain the software for the public benefit.
 
 ## Legal precision
@@ -59,6 +59,7 @@ This strengthens the broader case for tools that let people use connected-device
 - External format references must separate official guarantees, clean-room observations, and FitFreed interpretations. FitFreed-owned formats are held to a stronger standard: their complete, normative, versioned contracts must evolve with the implementation.
 - Core use must remain local-first, offline-capable, and free of mandatory accounts or hosted services.
 - Open normalized-data export, portable backups, documented canonical and persistence schemas, source-to-canonical mappings, and recoverable migrations are architectural obligations so the application does not become another silo.
+- Export is part of the visible product promise—free data for independent reuse—not merely a recovery mechanism hidden in maintenance documentation.
 - User and contributor documentation must explain both how the product works and why durable control over personal data matters.
 
 ## Authoritative sources

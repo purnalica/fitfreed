@@ -104,11 +104,13 @@ The application will let users compose, save, revisit, refresh, and export their
 
 Saved reports will retain a documented, versioned, reproducible definition rather than only copied presentation values. The authoring experience will preview output, expose sensitive content, distinguish source facts, FitFreed calculations, user-authored text, and unavailable conclusions, and make refresh after new imports or calculation changes deliberate.
 
+The ordinary report journey is result-first. Opening a saved report, or starting one from a question, exploration, or session, will show a useful rendered result before exposing composition mechanics. Editing is a deliberate secondary mode, and returning from it restores the report result without placing that result below the editor or a long report list. Blank composition and advanced block controls remain available without becoming the default path for people who only need to review, refresh, or export a result.
+
 The first report will be an ordered evidence document with finding, comparison, session, chart, exact-table, coverage-and-limitation, and narrative blocks, plus a route block when route evidence is available. Its normative export will be deterministic self-contained HTML with embedded styles and graphics, semantic headings and tables, no scripts or external requests, declared locale and units, and explicit provenance, coverage, limitations, authorship, definition version, and source revision. Native PDF, formulas, arbitrary queries, free-form layout, shared templates, scheduled generation, and plug-in blocks are outside the MVP.
 
 ### FR-006 — Visualization
 
-The application will provide visualizations that help users interpret evolution, distribution, relationships, and patterns in the data. Specific visualizations will be defined after assessing the available data and its quality.
+The application will use visual explanation as a primary way to interpret evolution, distribution, relationships, structure, and patterns in the data. Visuals will answer a recognizable question or explain a record before asking the person to interpret isolated plots or dense numeric summaries. Related time, route, structure, and measurement evidence will be aligned where that relationship is supported; source gaps and uncertainty will remain visible without becoming ambient warning noise. Exact values and accessible non-visual alternatives remain available through progressive disclosure.
 
 ### FR-007 — Import history management
 
@@ -146,6 +148,8 @@ The following decisions define FitFreed across features and releases. They are f
 
 - Primary journeys will begin from recognisable user questions, records, or prior explorations. They will not require knowledge of source filenames, schemas, database concepts, or provider terminology.
 - Answers will lead to their supporting dates, sessions, samples, calculations, provenance, coverage, and limitations. Summary cards and charts are views over evidence, not substitutes for it.
+- Default views will present the smallest set of evidence needed to understand an answer. Dense tables, raw precision, and exhaustive metadata belong to deliberate detail views rather than the first reading path.
+- Dates, times, durations, quantities, units, and numeric precision will be localized and chosen for the scale and decision being communicated. Exact stored precision remains available when it is meaningful; it will not dominate summaries where it creates false significance or visual noise.
 - FitFreed will expose only questions it can actually answer. It will not imitate unrestricted natural-language or artificial-intelligence understanding when the available application contracts support only a defined catalogue.
 
 ### Navigation preserves exploration context
@@ -165,6 +169,7 @@ The following decisions define FitFreed across features and releases. They are f
 ### Uncertainty remains part of the answer
 
 - Missing measurements, partial coverage, unsupported source content, incompatible criteria, and comparison limitations will be presented where they affect an answer rather than hidden in a remote diagnostic screen or collapsed into one overall score.
+- Import coverage is explained explicitly in the import result and source history. Ordinary exploration will surface a coverage limitation only when it changes the current answer, comparison, action, or interpretation; it will not repeatedly advertise a general importer limitation across unrelated screens.
 - Absence will not be treated as zero, correlation will not be presented as causation, and provider or FitFreed scores will not become unexplained judgments about readiness, health, effort, or personal worth.
 - Visual emphasis will never remove access to exact values, units, provenance, or an accessible non-visual alternative.
 
@@ -173,6 +178,7 @@ The following decisions define FitFreed across features and releases. They are f
 - FitFreed will help a person obtain an initial provider export, establish a historical local library, incorporate later archives safely, and—when supported—keep it current through explicitly authorized provider APIs.
 - The person will be able to reinterpret the library through reusable criteria, create reproducible reports, export documented representations, and grant revocable, scoped local MCP access to supported questions.
 - No stage will replace one provider lock-in with a FitFreed-only dead end. Normalized data, report definitions, personal criteria, provenance, and compatibility semantics will be documented and portable when their capability enters scope.
+- Data exit is a flagship ownership outcome rather than a maintenance escape hatch. Export journeys will make the available scope, format, provenance, privacy implications, and known information loss understandable, and FitFreed-owned outputs will use open documented representations suitable for independent reuse.
 
 ### Local-first trust is shown through control
 
@@ -191,6 +197,7 @@ The following decisions define FitFreed across features and releases. They are f
 
 - First run will establish the value of owned history before asking for an archive and will help a person who has not yet requested one.
 - A successful import will reveal the usable period, meaningful coverage, and a conservative first question or comparison instead of celebrating file counts alone.
+- Returning workspaces will lead with the person's recognizable result or history. Search, filters, editors, diagnostics, and exhaustive evidence refine that result instead of displacing it from the initial viewport.
 
 ### The public promise is concrete and honest
 
@@ -259,7 +266,7 @@ The format is not homogeneous: it combines JSON objects and collections, singlet
 
 ### FR-008 — Explicit format coverage
 
-Every archive artifact will be classified as supported, unsupported, deliberately ignored, unrecognized, or invalid. The import result will report aggregate coverage and a family-level breakdown with a localized reason and next action; no file will be silently discarded and no source locator or personal value will be exposed by that view.
+Every archive artifact will be classified as supported, unsupported, deliberately ignored, unrecognized, or invalid. The import result will report what became usable, what did not enter the library, the consequence for the person's history, and a family-level breakdown with a localized reason and next action. No file will be silently discarded and no source locator or personal value will be exposed by that view. This explicit result is the canonical user-facing account of source coverage; other workspaces refer to a limitation only when it materially affects their current answer or action.
 
 ### FR-009 — Evolutionary compatibility
 
@@ -378,6 +385,7 @@ All user-facing features included in the first release will be available in Engl
 - A provider-neutral classification will be scoped by observation origin and exact source sport reference and may contain a canonical sport family and user display label with authorship and revision.
 - Classification will survive restart, reimport, migration, and portable backup without overwriting source evidence.
 - A future provider catalogue or connected API may offer a provenance-bearing suggestion but will not silently replace a user choice.
+- Training history will use a recognizable provider-neutral sport label and visual identifier wherever trustworthy classification exists. Unresolved references remain honest but are classifiable from the affected history itself; assigning or revising a display label and sport family updates every relevant view without requiring reimport.
 
 ## Confirmed MVP scope
 
@@ -452,6 +460,7 @@ All canonical engineering artifacts and source text will use English. Localized 
 - The first successful import will produce an immediate, evidence-backed personal revelation from the available history and lead into further answerable questions. The user must not have to combine disconnected domain tools mentally to discover why the history is useful.
 - The first-run experience will guide users from an empty library to a successfully imported and explorable history without requiring prior knowledge of the takeout structure.
 - Information architecture will use progressive disclosure: summaries will remain approachable while detailed physiological and time-series data remain accessible.
+- Product surfaces will lead with meaning and recognizable records rather than setup controls, editor mechanics, diagnostics, or exhaustive numeric inventory. Detail will open as a deliberate state with a clear return path, not appear after an unbounded list or unrelated control surface.
 - Long-running operations will keep the interface responsive and provide meaningful progress, safe cancellation when technically possible, and actionable recovery guidance.
 - Empty, loading, success, partial-success, error, and unsupported-data states will be deliberately designed and tested.
 - Destructive or privacy-sensitive actions will make their scope and consequences clear before execution.
@@ -459,6 +468,7 @@ All canonical engineering artifacts and source text will use English. Localized 
 - Visualizations will remain interpretable without relying on color alone and will expose exact values and units through accessible alternatives.
 - Locale-aware units, dates, times, durations, numbers, and terminology will be consistent throughout the product.
 - UX acceptance will include realistic end-to-end usability sessions, not only component-level or screenshot review.
+- Experience design will use explicit behavioral segments, jobs and questions, end-to-end journeys, task models, information architecture, interaction-state models, and competing reviewable alternatives. Attractive styling or implementation completeness alone will not satisfy acceptance.
 
 ### NFR-009 — Developer experience quality
 
@@ -723,9 +733,12 @@ The final criteria will be refined during analysis. At minimum, they must cover:
 - Cumulative import of a later export.
 - Correct persistence and recovery after restarting the application.
 - Exploration of all information types included in scope.
+- A first populated viewport that communicates one understandable personal result or recognizable record before inventory, controls, or diagnostics.
 - Creation, persistence, deliberate refresh, preview, and deterministic self-contained HTML export of an agreed evidence report.
+- Result-first reopening of a saved or guided report, with editing and advanced composition entered deliberately and without losing the result context.
 - Bounded visual and exact inspection of the accepted routed and non-routed session verticals, including honest missing structures and reusable criteria.
 - User-authored sport classification that preserves unknown and source-evidence states across restart and reimport.
+- Recognizable localized sport labels and visual identifiers for classified history, with in-context resolution of unknown references.
 - Functional verification of all filters, controls, and interactions in every visualization.
 - Understandable handling of invalid, partial, or unsupported data.
 - Verified installation and execution on every declared platform.
@@ -733,6 +746,7 @@ The final criteria will be refined during analysis. At minimum, they must cover:
 - Verified developer onboarding from a clean clone using the technical documentation.
 - A complete walkthrough of included features using only the user documentation.
 - Complete English and Spanish user-interface coverage with correct fallback, pluralization, interpolation, and locale-aware formatting.
+- Human-readable locale-aware summaries whose date, duration, quantity, unit, and precision choices match the scale being communicated, with exact evidence still reachable.
 - Successful round-trip of translation resources through at least one supported collaborative translation workflow.
 - Successful completion of first-run, import, exploration, and recovery usability scenarios by participants who did not implement the feature.
 - Successful build, test, and application launch by a new contributor from a clean clone using only repository documentation.

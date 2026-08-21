@@ -12,7 +12,7 @@ results outside the platform that recorded them.
 [Evaluate the current source](docs/user/development-preview.md) · [Contribute](CONTRIBUTING.md)
 
 > **No supported release is available yet.** The current source contains the tested macOS engineering
-> baseline and implemented MVP experience, while cross-feature hardening and exact-candidate acceptance remain active work. Real
+> baseline and implemented MVP capability, while a systemic experience redesign and exact-candidate acceptance remain active work. Real
 > personal exports remain outside the public-evaluation boundary until an exact release candidate
 > passes its privacy, installation, update, and usability gates.
 
@@ -60,10 +60,10 @@ remains governed independently by the [current ledger](docs/testing/public-relea
 <!-- product-status:start -->
 | Available in source | Active experience work | Deliberately later |
 |---|---|---|
-| Polar Flow ZIP validation and import | A trustworthy foreground experience for realistic first imports | Additional providers and live APIs |
-| Explicit supported, ignored, and unrecognized coverage | Representative performance and storage qualification for dense training histories | Linux and Windows distribution |
-| Safe exact and cumulative reimport | An immediate evidence-backed personal answer after import | Local MCP access for authorized agents |
-| Provider-neutral SQLite history for activity, training summaries, structure, routes, signals, sleep, and recovery | Recognizable training discovery, coherent session stories, and progressively disclosed report authorship | Advanced encryption and extension systems |
+| Polar Flow ZIP validation and import | Behavioral user models, jobs, critical journeys, and task architecture | Additional providers and live APIs |
+| Explicit supported, ignored, and unrecognized coverage | Competing interaction directions before production presentation changes | Linux and Windows distribution |
+| Safe exact and cumulative reimport | Meaning-first and strongly visual history, training, and session exploration | Local MCP access for authorized agents |
+| Provider-neutral SQLite history for activity, training summaries, structure, routes, signals, sleep, and recovery | Result-first reports, contextual detail, human-scale formatting, and visible data exit | Advanced encryption and extension systems |
 | Bounded visual comparison and longitudinal context |  | Collaborative or hosted analytics |
 | User-authored sport classification and complete-history session search |  | Features without validated user value |
 | Chronology, source-separated calendar discovery, session comparison, and restart restoration |  |  |
@@ -72,8 +72,8 @@ remains governed independently by the [current ledger](docs/testing/public-relea
 | Gap-aware supported signal charts with paginated exact samples |  |  |
 | Exact recorded heart-rate, speed, and power zones with applicable aggregates |  |  |
 | Reusable personal segment criteria with exact locally derived session views |  |  |
-| Question-led Library Home, post-import reveal, and resumable exploration |  |  |
-| Value-first Home with persistent navigation, offline export guidance, and allowlisted official links |  |  |
+| Library Home, post-import summary, and resumable exploration |  |  |
+| Persistent navigation, offline export guidance, and allowlisted official links |  |  |
 | Durable language, appearance, and content zoom settings |  |  |
 | en-US and es-ES, packaging, update recovery, and release-shaped tests |  |  |
 | On-demand privacy-bounded session provenance and reconciliation history |  |  |
@@ -84,7 +84,7 @@ remains governed independently by the [current ledger](docs/testing/public-relea
 | Deliberate stale-report refresh through an exact current-evidence review |  |  |
 | Origin-aware navigation between saved reports and their exact session or comparison source |  |  |
 
-Status sources: [MVP capability boundary](docs/roadmap.md#milestone-2--mvp) · [Independent product-experience audit](docs/research/mvp-product-experience-audit.md) · [Post-MVP evolution tracks](docs/roadmap.md#evolution-tracks-after-the-mvp).
+Status sources: [MVP capability boundary](docs/roadmap.md#milestone-2--mvp) · [Active UI and UX redesign plan](docs/plans/ui-redesign.md) · [Post-MVP evolution tracks](docs/roadmap.md#evolution-tracks-after-the-mvp).
 <!-- product-status:end -->
 
 Polar Flow is the first importer, not the product identity. Provider-specific formats stay at the

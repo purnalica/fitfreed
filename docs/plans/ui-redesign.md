@@ -2,7 +2,11 @@
 
 ## Status
 
-Direction and MVP boundaries accepted; product-experience acceptance is reopened. The persistent left-sidebar and desktop-workspace hierarchy are now implemented and retain exact packaged evidence. The subsequent [independent product-experience audit](../research/mvp-product-experience-audit.md) found that the first populated Home, realistic import wait, training recognition, session interpretation, visual explanation, and report disclosure still do not meet the accepted experience contract. The report-authoring, deep-session, sport-classification, navigation, and public-product-surface boundary remains recorded in the [accepted MVP boundary assessment](../research/mvp-experience-boundary-assessment.md). Current scope is canonical in `requirements.md`, and the ordered production sequence and current conformance status are defined in the [MVP experience delivery plan](mvp-experience-delivery.md). Exploratory concepts may exceed the current MVP contracts when that is necessary to evaluate later product direction, provided the capability gap remains explicit and no unsupported production behavior is implied.
+Active redesign phase as of 2026-08-21. Product capability, architecture, data safety, and the persistent desktop shell retain their verified evidence, but the current product experience is not accepted. The [independent product-experience audit](../research/mvp-product-experience-audit.md) identified concrete failures, and the subsequent product-owner review concluded that correcting those findings one by one would not guarantee the radical improvement required. The experience is dense, too control-led, insufficiently visual, and too often exposes implementation capability before user meaning.
+
+Functional growth is frozen while this phase is active. Work may change lower-layer contracts only when necessary to make an already accepted MVP journey understandable and complete; it may not add providers, connected APIs, MCP access, new analytical domains, or other roadmap capability. Production presentation implementation resumes only after a coherent interaction direction passes the design gate defined here.
+
+Current product behavior remains canonical in [requirements](../requirements.md). The previous production sequence and its evidence remain in the [MVP experience delivery plan](mvp-experience-delivery.md); they are an engineering baseline, not the design specification for this intervention. No parallel executable will be created. Exploratory alternatives remain non-production design material until one direction is accepted.
 
 ## Objective
 
@@ -11,6 +15,24 @@ Make FitFreed immediately useful as a personal history explorer. A person should
 The durable cross-feature decisions extracted from this work are normative in the [product experience contract](../requirements.md#product-experience-contract). This plan evaluates concrete ways to satisfy that contract; its current screen composition is not itself a permanent product requirement.
 
 Import, coverage, storage, updates, and provider compatibility remain necessary capabilities, but they must not dominate the ordinary experience. The primary interface begins with the person's history and the questions it can answer.
+
+The redesign is successful only if it changes the order in which a person experiences the product:
+
+> recognizable meaning → visual explanation → supporting evidence → optional exact detail and control
+
+It is not a restyling exercise. New typography, color, spacing, cards, or charts cannot compensate for the wrong task hierarchy, disclosure model, navigation state, or default result.
+
+## Non-negotiable redesign mandate
+
+- **Meaning before machinery.** Results and recognizable records lead; forms, filters, editors, diagnostics, and raw evidence refine them.
+- **Visual explanation before numeric inventory.** A visual must answer or clarify a question, not merely prove that a series exists. Related structure and signals align when evidence supports the relationship.
+- **Progressive control for different levels of engagement.** A person can obtain value without becoming an analyst, while advanced users retain reproducible criteria, exact evidence, provenance, and composition controls.
+- **Coverage has a precise home.** The import result explains what entered the library and what did not. Elsewhere, a limitation appears only when it changes the current answer or action.
+- **The history must be recognizable.** Sports have trustworthy names and visual identity, sessions read as workouts rather than rows, and unknown source evidence can be resolved in context.
+- **Reports open as results.** Guided and saved reports are read, refreshed, and exported before they are edited. Advanced composition is a deliberate mode.
+- **Data remains free after import.** Export and portability are visible ownership outcomes, and user-authored classifications, criteria, and reports do not become an application-only dead end.
+- **Human scale is the default.** Locale, units, dates, durations, quantity, and precision serve comprehension; exact stored evidence is available on demand.
+- **Context survives depth.** Detail is a distinct navigable state with an explicit route back to the exact origin, never an appendix placed after a large list.
 
 ## Product questions
 
@@ -53,15 +75,49 @@ Evaluation will use three bounded comprehension targets:
 - within thirty seconds, a first-time user can identify the first action, the local-data boundary, and examples of questions the application will answer; and
 - after import, the first viewport exposes the history period, its useful coverage, at least one supported comparison or observation, and direct paths into exploration.
 
-## Design work
+## Design method and delivery gates
 
-1. Audit the current packaged experience and trace every visible capability to its application read model and persistence support.
-2. Study comparable fitness, personal-analytics, and data-exploration products, including both praised patterns and recurring user frustration.
-3. Define the information architecture, question model, visual language, disclosure hierarchy, and first-run narrative.
-4. Produce multiple high-fidelity interactive directions covering first run, import, populated home, question-led exploration, detail, comparison, gaps, and failure.
-5. Review each direction at realistic macOS sizes, 200% text, reduced motion, light and dark appearance, and both initial locales using independently constructed synthetic data.
-6. Select and document one direction before changing production presentation code.
-7. Derive the implementation sequence from verified lower-layer support, adding or changing application contracts before any dependent production UI.
+This phase uses explicit experience-design evidence rather than moving directly from an audit finding to a screen. Provisional models will be labelled as hypotheses; repository history, verified product behavior, product-owner observations, and privacy-safe evaluation are evidence, while invented interview quotations or unsupported demographic claims are not.
+
+### X0 — Establish the experience model
+
+Define behavioral user segments, their jobs and questions, engagement levels, critical journeys, failure and recovery journeys, and the tasks that determine whether FitFreed becomes useful. Map the current product against those journeys and trace every required action to existing application, domain, and persistence support.
+
+**Gate:** the model explains novice consultation, returning exploration, advanced inspection, report use, import recovery, and data exit without creating separate products for each level. Every assumption is visible and has a validation route.
+
+### X1 — Rebuild the information and state architecture
+
+Define conceptual homes, object hierarchy, default results, progressive-disclosure levels, origin-aware navigation, selection and comparison state, empty/loading/partial/error states, and the relationship between overview, detail, editor, diagnostics, and export. Specify what owns each piece of information and remove duplicate or ambient coverage messaging.
+
+**Gate:** a task can be walked end to end without relying on screen styling; result and detail never compete in one unbounded document; no visible field or control lacks lower-layer support.
+
+### X2 — Compare interaction directions
+
+Create at least two materially different low-fidelity interaction directions for the critical journeys, then develop only the strongest candidates to sufficient fidelity for realistic evaluation. Alternatives must differ in task hierarchy or navigation—not merely color, card shape, or typography. Comparable-product research may inform patterns but cannot replace FitFreed's evidence and privacy constraints.
+
+The comparison covers first run, active import, import result, populated Home, training history, sport recognition, session story, report result and editing, export, return navigation, partial data, and recovery. It uses independently constructed multi-sport data at realistic density.
+
+**Gate:** one coherent direction demonstrates a materially faster route to meaning, makes the product's functional depth discoverable, and satisfies the non-negotiable mandate. The product owner reviews the direction before production presentation code changes.
+
+### X3 — Specify the accepted experience
+
+Record the selected information architecture, task flows, interaction and state contracts, visual-explanation grammar, content hierarchy, responsive behavior, localization behavior, accessibility alternatives, and component responsibilities. Produce reviewable high-fidelity views for every critical state rather than only an ideal populated dashboard.
+
+Review at realistic macOS desktop and compact sizes, 100% and 200% content zoom, reduced motion, light and dark appearance, and both initial locales. Evaluate five-second promise comprehension, thirty-second first-action comprehension, time to first useful result, session findability, report-result recognition, and recovery from realistic failure.
+
+**Gate:** the direction is coherent, lower-layer feasibility is traced, all critical states are represented, and acceptance observations are recorded. A visually attractive screen set without task evidence does not pass.
+
+### X4 — Plan the production migration
+
+Derive vertical increments from the accepted journeys. Each increment begins with required application and persistence contracts, proceeds through TDD, replaces the ordinary product surface without creating a second executable, and preserves existing safety, exact evidence, provenance, localization, accessibility, navigation, and report reproducibility.
+
+**Gate:** every increment delivers an evaluable user outcome, has explicit regression and usability evidence, and leaves the application coherent if later increments have not yet landed.
+
+### X5 — Implement and validate
+
+Implement in order of time to personal value: import confidence and result, first populated answer, recognizable training history, coherent session story, result-first reporting and export, then cross-journey density and consistency. Run exhaustive interface behavior tests, the complete packaged journey, performance gates, and privacy-safe usability evaluation against the accepted design contract.
+
+**Gate:** the independent product-experience audit is repeated against the ordinary release-shaped application. Functional implementation, attractive presentation, or green automation alone cannot close this phase.
 
 ## Design thesis under evaluation
 
@@ -138,9 +194,9 @@ The import experience therefore has two equally visible starting points: choose 
 
 The capability is provider-specific behind a shared acquisition journey. Each future importer owns its acquisition guide, supported archive description, official links, verification date, and troubleshooting notes. The common interface remains stable as providers are added or their procedures change. Guidance is documentation and navigation support, not automated credential entry, account access, or archive downloading on the person's behalf.
 
-## Next milestone: personal report authoring
+## Result-first personal reporting
 
-After the current interaction direction is evaluated, the next design milestone will define how a person builds, saves, revisits, and exports their own reports. This is a product-design milestone before implementation selection; it must not be reduced to choosing a charting or document-generation library.
+The existing report engine proves composition, persistence, deliberate refresh, privacy review, and deterministic export, but its interaction begins with authoring mechanics. The redesign must define how a person first reads, trusts, refreshes, and exports a useful result, and only then chooses to alter its definition. This remains a product-design problem rather than a charting or document-generation library choice.
 
 The report-authoring experience must let the person:
 
@@ -152,7 +208,7 @@ The report-authoring experience must let the person:
 - refresh a report deliberately when newly imported data or calculation definitions can change its results; and
 - export through explicit formats and privacy choices while keeping the saved report usable inside FitFreed.
 
-The milestone begins with a focused evaluation of maintained open-source libraries for composable layouts, accessible visualisation, paginated document rendering, and export. Reuse is preferred when it preserves local-first operation, licence compatibility, portability, accessibility, deterministic output, and the Clean Architecture boundary. No library choice is mandatory if it compromises those outcomes.
+Implementation selection includes a focused evaluation of maintained open-source libraries for composable layouts, accessible visualisation, paginated document rendering, and export. Reuse is preferred when it preserves local-first operation, licence compatibility, portability, accessibility, deterministic output, and the Clean Architecture boundary. No library choice is mandatory if it compromises those outcomes.
 
 The design must also define empty, partial-coverage, stale-definition, missing-measurement, incompatible-segmentation, export-failure, and reimport-change states. Exported reports must distinguish source facts, FitFreed calculations, user-authored text, and unavailable conclusions just as clearly as the application does.
 
