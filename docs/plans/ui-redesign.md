@@ -102,6 +102,7 @@ Advancing a level never removes the prior explanation. Exact detail supports mea
 | One person moves between simple consultation and advanced control | Product-owner requirement for different engagement levels; current journeys expose both behaviors | Scenario sessions that begin with recognition and later require exact evidence or authorship without switching product mode |
 | Training and sports are the primary recognition hierarchy | Confirmed product contract, multi-sport reference evidence, and owner review | Find-a-remembered-session tasks using sport, approximate time, and one distinctive attribute |
 | A composed visual story reduces session interpretation burden | PX-07, PX-08, and owner request for a radical increase in visual information | Explain-back testing: identify structure, meaningful change, missing evidence, and exact-value path from one session |
+| Route-bearing sessions require a map-dominant workbench | Product-owner rejection of the X3 card composition; the map occupied less space than a generic signal chart and made route inspection secondary | Five-second hierarchy check, route-shape explain-back, start/finish and selected-position location, synchronized map/signal task, wide/compact/200% review |
 | Most visits to a saved report begin with reading, not editing | Product-owner report observation and PX-09 | Reopen, identify the finding, refresh, export, then deliberately edit without instruction |
 | Concentrating source coverage improves trust more than repeating warnings | Product-owner review and PX-04 | Successful-partial and rejected-import consequence comprehension before opening diagnostics |
 | Recognizable labels and visual identifiers are ownership behavior | Product-owner review and PX-06 | Scan mixed-sport history, classify an unknown reference in context, and find the updated sessions |
@@ -132,9 +133,9 @@ No hypothesis becomes accepted merely because a mockup looks plausible. Results 
 
 **Trigger:** a session is interesting because of performance, memory, route, structure, or comparison.
 
-**Task:** grasp the session at a glance → follow one aligned visual story → inspect relevant structure, route, zones, or signals → select or author segmentation when useful → reach exact evidence or provenance deliberately.
+**Task:** grasp the session at a glance → for a routed session, enter a map-dominant workbench and understand the complete route before inspecting a point or section → correlate the selected geography with elapsed or distance-aligned signals → inspect relevant structure, zones, or signals → select or author segmentation when useful → reach exact evidence or provenance deliberately.
 
-**Success:** the person does not assemble a story from unrelated long sections; missing laps, routes, or samples alter the composition honestly; structure and signals share an understandable time context; exact values remain accessible.
+**Success:** the person does not assemble a story from unrelated long sections; the map is unmistakably the primary evidence for a routed session and its shape, direction, endpoints, current selection, and geographic context are legible without opening a secondary view; missing laps, routes, or samples alter the composition honestly; structure and signals share an understandable time context; exact values remain accessible.
 
 ### J4 — Make an anonymous sport recognizable
 
@@ -177,6 +178,7 @@ No hypothesis becomes accepted merely because a mockup looks plausible. Results 
 | Complete-history recognition and finding | Indexed session search, summaries, calendar, sports, classifications, selection snapshots, durable discovery workspace | Sufficient foundation; default ordering, recognition, refinement disclosure, and in-context classification require redesign |
 | Human-readable sport identity | Canonical family, optional user label, authorship, revision, affected-session coverage | Data support exists; provider-neutral icon semantics and presentation mapping remain to be specified |
 | Coherent workout story | Independent validated structure, route, signal, aligned-signal, zone, segmentation, exact pagination, and provenance queries | Insufficient composition: define an application-level session-story contract rather than joining independent commands in presentation |
+| Source and user-authored route ranges | Manual and automatic source laps expose ordered split time, duration, distance, provenance, and opaque identity; reusable user segmentation persists elapsed boundaries and attribution | Insufficient as one concept: source lap names and other provider phases are not retained uniformly, and no session-scoped named-range aggregate, persistence, mutation port, or composed route-and-signal summary exists |
 | Period questions and exact evidence | Activity, training, sleep, recovery, and longitudinal overview/comparison use cases | Supported calculations exist, but question selection and explanation need a bounded result contract rather than a dashboard assembled from unrelated summaries |
 | Result-first saved reports | List, resolve, stale detection, refresh, source navigation, privacy authorization, deterministic HTML export | Lower layers are sufficient for reading and export; presentation hierarchy currently exposes composition too early |
 | Report composition and authorship | Versioned definitions, typed ordered blocks, optimistic revision, multi-origin starts, persistence | Preserve behind deliberate editing; do not simplify by weakening reproducibility or block behavior |
@@ -411,6 +413,141 @@ Session structure must not assume that a provider supplies meaningful phases, in
 A criterion is valid only when the underlying measurements support it. The interface explains unavailable criteria, preserves missing samples, keeps derived segments reproducible, and always provides a path back to the unmodified source timeline. User-defined interpretation belongs to the person's portable library and must not become an undocumented application-only silo.
 
 No private sport selection, route, coordinate, value, date sequence, session structure, or other personal-data fingerprint may influence versioned or exploratory examples. All prototype histories and routes remain independently invented and synthetic.
+
+## X3 tracking-workbench amendment
+
+This amendment is an open design investigation, not a request to preserve the
+current composition with incremental improvements. Candidate experiences are
+evaluated against the outdoor athlete's real investigation tasks and the best
+experience FitFreed can credibly provide; implementation convenience, existing
+component boundaries, and short-term MVP effort do not constrain the design
+direction. The implementation plan is derived only after the experience has
+earned acceptance.
+
+The first X3 route-bearing session candidate is rejected. Although it linked a selected instant across
+map, signal chart, structured values, and exact rows, it placed the map in a narrow card beside a
+larger generic chart. The route therefore read as supporting decoration rather than as the primary
+object a runner, paddler, cyclist, or hiker wants to investigate. Increasing that card by a small
+fraction would preserve the same failed hierarchy and is not an acceptable correction.
+
+This amendment is destination-led rather than implementation-led. It will not constrain exploration
+to the current component library, the first provider's easiest fields, or the cheapest MVP layout.
+The study may develop route playback, track overlays, attributed and user-authored range libraries,
+range comparison, repeated-route context, direction and pause evidence, annotations, focused-map
+workspaces, privacy transformations, and portable results far enough to understand one coherent
+outdoor experience. X4 will then select the smallest vertical sequence that preserves that direction;
+it may defer capability, but it may not replace the accepted destination with an unrelated shortcut.
+
+### Comparable-product evidence
+
+Comparable products supply useful interaction evidence, not a layout to copy:
+
+- [Garmin Connect GPS track overlays](https://support.garmin.com/en-US/?faq=TldUa5u9Mj67FFw4usMcX7&productID=73207&tab=topics)
+  place pace or speed, heart rate, elevation, and power directly in geographic context and choose a
+  sport-appropriate default overlay.
+- [Strava activity analysis](https://support.strava.com/en-us/articles/15401886-ride-activity-pages)
+  links cursor and range selections across performance charts, instantaneous values, route
+  highlighting, segments, and laps; its activity map can also become full screen.
+- [COROS activity summaries](https://support.coros.com/hc/en-us/articles/15284799576980-Activities-Page-Activity-Summary)
+  lead outdoor activity detail with the route, then let graphs expand and expose several aligned
+  values through direct manipulation.
+- [TrainingPeaks expanded analysis](https://help.trainingpeaks.com/hc/en-us/articles/115004910668-When-I-click-Analyze-I-can-no-longer-see-the-map-graph-other-charts)
+  allows advanced users to arrange maps and graphs. That flexibility is relevant to later expert
+  control, but an empty or configuration-led canvas would make the MVP's first interpretation harder.
+
+The recurring useful patterns are a large or full-screen-capable map, direct metric overlays on the
+track, linked brushing between geography and time or distance, range selection, sport-specific
+measurements, and deeper charts after the route is recognizable. FitFreed must provide those outcomes
+locally and accessibly without inheriting social, subscription, third-party tile, or configuration
+assumptions.
+
+### Structural alternatives
+
+| Direction | Structure | Strength | Material risk |
+|---|---|---|---|
+| Map-led canvas | Compact session identity, full-width dominant map, attached selection strip, then synchronized signal lanes and structure | Best route recognition, strongest geographic hierarchy, natural full-screen path, and clean progressive depth | Requires disciplined compact summary and a persistent selection contract so signals do not feel detached below the map |
+| Dominant split workbench | Map receives roughly two thirds of a wide workspace; a persistent signal inspector receives the remainder | Keeps geography and several signals simultaneously visible for advanced inspection | Still sacrifices route area, becomes fragile at content zoom, and can turn the first view into an analysis console |
+| Signal-led analysis | Large stacked plots lead; the map follows or appears as a synchronized secondary region | Strong temporal and range analysis when performance is the only question | Repeats the rejected hierarchy for route-motivated users and makes place, shape, direction, and repeated geography harder to understand |
+
+The selected X3 direction is the **map-led canvas**. It is the only candidate that satisfies the
+route-recognition task before adding analytical density. This is a structural decision, not a request
+to enlarge the existing map card.
+
+### Candidate anatomy and evaluation
+
+On a wide route-bearing session, a compact identity and summary band gives way immediately to one
+full-width map workbench. The map is the largest region on the screen and occupies the majority of the
+primary exploration viewport. Its route, endpoints, direction, selected point, geographic labels,
+scale, and gaps remain legible. A full-screen or focused-map action is part of the ordinary route task,
+not an expert setting.
+
+The workbench provides a recorded-track view and supported metric overlays such as pace or speed,
+heart rate, elevation, cadence, stroke rate, temperature, or power. Overlay color always has a legend
+and a non-color encoding or structured alternative. A compact strip attached to the map reports the
+selected elapsed time or distance and the available sport-specific values without covering important
+geometry. Signals and structure follow as full-width aligned lanes with the same cursor and range;
+they deepen the map rather than competing with it. Exact points and provenance remain deliberate
+disclosures.
+
+Range creation and editing keeps the route visible. On a wide screen, an inspector occupies roughly
+one quarter of the workbench while the map retains the remaining area and updates both boundaries in
+place. The inspector is a temporary task mode, not a permanent dashboard column; closing it restores
+the full-width map without losing the saved selection.
+
+At compact width or high content zoom, supporting lanes stack after the map and controls reflow before
+the map loses useful area. A routed session never falls back to a narrow map beside a plot. A
+non-routed session changes composition and does not reserve an empty map canvas.
+
+The next X3 review fails unless a person can, without instruction:
+
+1. identify the route as the page's primary evidence within five seconds;
+2. describe its overall shape, direction, endpoints, and selected position;
+3. select a point and a range from map, lane, section, and exact evidence while every representation
+   remains synchronized;
+4. switch to at least one meaningful sport-specific track overlay and understand its legend;
+5. focus the map, restore the complete track, and return without losing the selected context; and
+6. complete the same tasks with keyboard controls, in both locales and themes, at compact width and
+   200% content zoom.
+
+### Range concept model
+
+A **session range** is one contiguous chronological interval inside one exercise. Its canonical
+boundaries are ordered elapsed offsets, not a rectangular geographic selection and not transient
+screen coordinates. Route points, distance offsets, pauses, source structure, and signals are
+resolved against those boundaries for one coherent evidence revision. This remains deterministic on
+loops, self-crossings, retraced paths, pauses, and different sampling intervals.
+
+Range identity and authorship are explicit:
+
+- a source range references the imported manual lap, automatic lap, phase, or other supported source
+  structure, retains its provider provenance and original title when present, and is immutable;
+- a user range has its own stable identity, non-blank authored title, exact start and end offsets,
+  revision, and session/exercise ownership; it can overlap or nest another range because it expresses
+  an observation rather than a partition; and
+- a temporary range selection has no durable identity and is discarded unless deliberately saved.
+
+If a source structure has no title, presentation supplies a localized descriptive label such as
+“Manual lap 2” without claiming that the provider supplied that name. A later authored alias can be a
+separate user fact; it must never rewrite provenance. Source and user ranges can be displayed,
+filtered, and compared together while retaining authorship independent of color.
+
+A range summary is an application result, not a presentation calculation. It includes elapsed,
+moving, and paused time when supported; distance and direction; available sport-specific aggregate
+and boundary values; route and signal coverage; missing-sample intervals; source or user authorship;
+and exact-evidence references. A range may span missing geometry or signals, but the resulting gaps
+remain visible and its summary never fills them silently.
+
+Map selection follows route order. On a loop or retraced line, spatially coincident candidate points
+must expose elapsed or distance context so the person can choose the intended occurrence. The second
+boundary must be later than the first; dragging either handle updates the map, all signal lanes,
+structure, summary, and exact evidence together. Selecting a source lap or saved user range fits and
+highlights that route extent while leaving the complete route visible as context. Whole-route reset
+restores the prior point or range selection rather than erasing it.
+
+This model is deliberately distinct from a segment criterion. A criterion is a reusable rule and may
+derive a partition or several disjoint sections from compatible evidence. A session range is one
+named contiguous observation in one exercise. Criteria can offer their derived sections as starting
+points for user ranges, but the two aggregates, commands, persistence, and authorship remain separate.
 
 ## Navigation continuity
 

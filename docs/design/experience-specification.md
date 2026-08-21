@@ -117,12 +117,43 @@ selection names elapsed time and recorded values, never inferred replacements. M
 samples break the applicable link visibly. A keyboard-operable elapsed-position control and the exact
 table provide equivalent non-map exploration.
 
-Tracking exploration is not reduced to a thumbnail beside generic metrics. It receives enough
-workspace to inspect geography and time together and retains sport-specific meaning: pace for
-running, speed and stroke-related evidence for paddling when recorded, speed and cadence or power for
-cycling when recorded, and the applicable elevation, heart-rate, temperature, or other supported
-signals. The interaction grammar remains stable across sports while labels, units, lanes, sections,
-and useful defaults change with the canonical sport family and available evidence.
+The accepted structural candidate is a map-led workbench, not a map card beside a chart. After a
+compact session identity and summary band, a route-bearing session gives the complete full-width map
+the majority of the primary exploration viewport. It is the largest page region and keeps route
+shape, direction, endpoints, selected position, gaps, scale, and geographic context legible. The map
+can enter a focused or full-screen state and return without losing its selection, overlay, range, or
+origin context.
+
+The workbench can project supported sport-specific evidence directly onto the recorded track, with a
+legend and an accessible non-color alternative. Pace is primary for running; speed and
+stroke-related evidence are primary for paddling when recorded; speed, cadence, or power apply to
+cycling when recorded; and elevation, heart rate, temperature, or other supported signals remain
+available according to the session. An attached selection strip reports the current elapsed time or
+distance and recorded values without covering important geometry. Full-width aligned signal lanes,
+sections, and exact evidence follow the map and share its cursor and selected range; they deepen the
+geographic story rather than competing with it. Labels, units, lanes, sections, and useful defaults
+change with the canonical sport family and available evidence while the interaction grammar remains
+stable.
+
+The map also owns contiguous range investigation. Attributed source ranges appear as selectable route
+and timeline extents with their original names and boundaries. A person can create a range by choosing
+its start and end on the route, an aligned signal lane, a structure row, or exact evidence; both
+handles remain adjustable from every synchronized representation. Before save, the workbench shows a
+clearly temporary selection and its supported summary. Save requires a non-blank name and creates a
+user-authored session range without changing source structure. Saved ranges can be reopened, renamed,
+adjusted, or removed; source and user ranges use visible authorship independent of color. Each range
+reports its direction, elapsed or moving time, distance, sport-specific measurements, coverage, and
+gaps, and provides a direct route to its exact boundary evidence.
+
+On a wide screen, range creation and editing uses an in-workbench inspector while the map retains
+approximately three quarters of the available width. The selected route extent and both boundaries
+therefore remain visible throughout naming and adjustment. At compact width or high content zoom the
+inspector stacks without placing a chart beside the map or shrinking the map into a card.
+
+A saved session range is not a reusable segmentation criterion. It belongs to one contiguous portion
+of one session and retains exact boundary references. A criterion remains a reusable rule capable of
+deriving several sections from compatible recorded evidence. The workbench may present them together
+when useful, but never merges their identity, authorship, persistence, or source effect.
 
 The composition is evidence-dependent:
 
@@ -270,7 +301,11 @@ Production migration therefore requires these lower-layer changes before their d
    sensitivity summary;
 4. report deletion through domain, application, and persistence boundaries; and
 5. a report invariant that permits an empty narrative when a title and sufficient supported evidence
-   form a factual document.
+   form a factual document;
+6. a session-owned user-range aggregate with stable identity, ordered elapsed boundaries, title,
+   revision, commands, persistence, and overlap support; and
+7. an application-owned range-summary query that aligns route, signals, gaps, source attribution, and
+   exact boundary evidence under one evidence revision.
 
 Existing sport classification, user segmentation, source evidence, report resolution, deliberate
 refresh, privacy authorization, and deterministic HTML export contracts remain authoritative. The
@@ -298,9 +333,10 @@ that the candidate:
 
 1. makes the product purpose and first useful action understandable without explanation;
 2. makes sports and sessions recognizable and a remembered session findable;
-3. makes a route-bearing session genuinely investigable through a navigable map, synchronized
-   sport-specific signals, sections, exact points, and an equivalent keyboard path, while explaining
-   a partial session without hiding depth or inventing evidence;
+3. makes the map unmistakably dominant in a route-bearing session and genuinely investigable through
+   full-track and focused states, sport-specific overlays, synchronized signals, attributed source
+   ranges, saved user-named ranges, sections, exact points, and an equivalent keyboard path, while
+   explaining a partial session without hiding depth or inventing evidence;
 4. gives reports a predictable identity and lifecycle distinct from exploration and data exit;
 5. handles invalid, repeated, extended, and failed imports without alarm or ambiguity;
 6. remains coherent in both locales, appearances, window widths, and at 200% content zoom; and
