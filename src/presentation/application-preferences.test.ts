@@ -15,6 +15,7 @@ const darkSpanishPreferences: ApplicationPreferences = {
 
 afterEach(() => {
   document.documentElement.removeAttribute("data-appearance");
+  document.documentElement.removeAttribute("data-content-zoom");
   document.documentElement.removeAttribute("style");
   document.documentElement.lang = "en";
 });
@@ -25,6 +26,7 @@ describe("application preferences", () => {
 
     expect(document.documentElement).toHaveAttribute("lang", "es-ES");
     expect(document.documentElement).toHaveAttribute("data-appearance", "dark");
+    expect(document.documentElement).toHaveAttribute("data-content-zoom", "175");
     expect(document.documentElement.style.getPropertyValue("--content-zoom")).toBe("1.75");
   });
 

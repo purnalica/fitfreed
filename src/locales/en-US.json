@@ -31,13 +31,12 @@
     "navigation": "Application",
     "sidebar": "Primary application navigation",
     "home": "Home",
-    "explore": "Explore",
+    "explore": "History",
     "sources": "Sources",
     "reports": "Reports",
     "settings": "Settings",
     "exploreGroup": "Your history",
     "libraryGroup": "Library and application",
-    "questionLauncher": "Choose a question to explore",
     "localTitle": "Local library",
     "localDetail": "Your history stays on this device",
     "loading": "Loading this view…"
@@ -90,16 +89,31 @@
     },
     "unavailable": "Not available",
     "sources": "Review source coverage",
-    "emptyHeading": "Start with your own history",
-    "emptyIntro": "Import an original fitness export to build a private library and discover which questions its evidence can answer.",
-    "emptyLocalBoundary": "Your data stays on this device. No account is required.",
-    "emptyAction": "Add a fitness export",
-    "emptyGuideAction": "Learn how to get an export",
-    "emptyPossibilitiesHeading": "Turn an export into something useful",
-    "emptyPossibilities": {
-      "sessionDiscovery": "Find remembered sessions, sports, routes, intervals, and exact measurements.",
-      "honestComparison": "Compare periods and see where missing evidence limits the answer.",
-      "durableReports": "Build, save, and export reports that remain connected to their evidence."
+    "emptyHeading": "Explore your fitness export on this device",
+    "emptyIntro": "Choose an original export ZIP to build a local history of sessions, routes, signals, comparisons, and reports.",
+    "emptyLocalBoundary": "No account. No upload. The archive and library stay on this device.",
+    "emptyAction": "Choose an export ZIP",
+    "emptyGuideAction": "How to obtain one",
+    "emptyPreviewEyebrow": "Illustrative preview — your history appears after import",
+    "emptyPreviewHeading": "One local history, across your sports",
+    "emptyPreviewNote": "The available views adapt to the evidence recorded in your export.",
+    "emptyPreviewSports": {
+      "running": {
+        "label": "Running",
+        "detail": "Routes, pace, and recorded signals"
+      },
+      "cycling": {
+        "label": "Cycling",
+        "detail": "Distance, elevation, and training structure"
+      },
+      "water-sport": {
+        "label": "Water sport",
+        "detail": "Recorded tracks and point-by-point evidence"
+      },
+      "strength": {
+        "label": "Strength",
+        "detail": "Sessions, timing, and source structure"
+      }
     },
     "answerEyebrow": "A useful place to begin",
     "answerTrainingHeading": {

@@ -31,13 +31,12 @@
     "navigation": "Aplicación",
     "sidebar": "Navegación principal de la aplicación",
     "home": "Inicio",
-    "explore": "Explorar",
+    "explore": "Historial",
     "sources": "Orígenes",
     "reports": "Informes",
     "settings": "Ajustes",
     "exploreGroup": "Tu historial",
     "libraryGroup": "Biblioteca y aplicación",
-    "questionLauncher": "Elige una pregunta para explorar",
     "localTitle": "Biblioteca local",
     "localDetail": "Tu historial permanece en este dispositivo",
     "loading": "Cargando esta vista…"
@@ -90,16 +89,31 @@
     },
     "unavailable": "No disponible",
     "sources": "Revisar la cobertura del origen",
-    "emptyHeading": "Empieza con tu propio historial",
-    "emptyIntro": "Importa una exportación deportiva original para construir una biblioteca privada y descubrir qué preguntas pueden responder sus indicios.",
-    "emptyLocalBoundary": "Tus datos permanecen en este dispositivo. No necesitas una cuenta.",
-    "emptyAction": "Añadir una exportación deportiva",
-    "emptyGuideAction": "Aprender a obtener una exportación",
-    "emptyPossibilitiesHeading": "Convierte una exportación en algo útil",
-    "emptyPossibilities": {
-      "sessionDiscovery": "Encuentra sesiones, deportes, rutas, intervalos y mediciones exactas que recuerdas.",
-      "honestComparison": "Compara periodos y comprueba dónde la falta de indicios limita la respuesta.",
-      "durableReports": "Crea, guarda y exporta informes que permanecen conectados con sus indicios."
+    "emptyHeading": "Explora tu exportación deportiva en este dispositivo",
+    "emptyIntro": "Elige un ZIP de exportación original para crear un historial local de sesiones, rutas, señales, comparaciones e informes.",
+    "emptyLocalBoundary": "Sin cuenta. Sin subir datos. El archivo y la biblioteca permanecen en este dispositivo.",
+    "emptyAction": "Elegir un ZIP de exportación",
+    "emptyGuideAction": "Cómo obtener uno",
+    "emptyPreviewEyebrow": "Vista ilustrativa: tu historial aparecerá tras la importación",
+    "emptyPreviewHeading": "Un historial local para todos tus deportes",
+    "emptyPreviewNote": "Las vistas disponibles se adaptan a los indicios registrados en tu exportación.",
+    "emptyPreviewSports": {
+      "running": {
+        "label": "Carrera",
+        "detail": "Rutas, ritmos y señales registradas"
+      },
+      "cycling": {
+        "label": "Ciclismo",
+        "detail": "Distancia, desnivel y estructura del entrenamiento"
+      },
+      "water-sport": {
+        "label": "Deporte acuático",
+        "detail": "Recorridos registrados e indicios punto por punto"
+      },
+      "strength": {
+        "label": "Fuerza",
+        "detail": "Sesiones, tiempos y estructura del origen"
+      }
     },
     "answerEyebrow": "Un punto de partida útil",
     "answerTrainingHeading": {

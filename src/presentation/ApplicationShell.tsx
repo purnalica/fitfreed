@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import fitfreedIcon from "../../assets/brand/fitfreed-icon.svg";
+
 export type ApplicationHome = "home" | "explore" | "reports" | "sources" | "settings";
 
 export interface ApplicationShellMessages {
@@ -12,7 +14,6 @@ export interface ApplicationShellMessages {
   settings: string;
   exploreGroup: string;
   libraryGroup: string;
-  questionLauncher: string;
   localTitle: string;
   localDetail: string;
 }
@@ -69,8 +70,8 @@ export function ApplicationShell({
   return (
     <div className="app-shell">
       <aside className="app-sidebar" aria-label={messages.sidebar}>
-        <div className="shell-brand" aria-label="FitFreed">
-          <span className="shell-brand-mark" aria-hidden="true">F</span>
+        <div className="shell-brand">
+          <img src={fitfreedIcon} alt="" aria-hidden="true" />
           <span className="shell-brand-name">FitFreed</span>
         </div>
         <nav aria-label={messages.navigation}>
@@ -113,13 +114,6 @@ export function ApplicationShell({
         </div>
       </aside>
       <div className="shell-workspace">
-        <header className="shell-toolbar">
-          <strong>{labels[activeHome]}</strong>
-          <button type="button" className="shell-question-launcher" onClick={() => onNavigate("home")}>
-            <NavigationIcon kind="explore" />
-            <span>{messages.questionLauncher}</span>
-          </button>
-        </header>
         <main className="app-content">{children}</main>
       </div>
     </div>

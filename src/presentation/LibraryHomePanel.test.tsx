@@ -220,7 +220,8 @@ describe("LibraryHomePanel", () => {
 
   it("presents truthful first-run value and sends both acquisition paths to Sources", async () => {
     const user = userEvent.setup();
-    const onOpenSources = vi.fn();
+    const onChooseArchive = vi.fn();
+    const onOpenSourceGuide = vi.fn();
     render(
       <LibraryHomePanel
         home={{
@@ -240,18 +241,30 @@ describe("LibraryHomePanel", () => {
         locale="en-US"
         messages={messages}
         onExplore={vi.fn()}
-        onOpenSources={onOpenSources}
+        onOpenSources={vi.fn()}
+        onChooseArchive={onChooseArchive}
+        onOpenSourceGuide={onOpenSourceGuide}
       />,
     );
 
     expect(screen.queryByRole("heading", { name: "What do you want to understand?" }))
       .not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Start with your own history" })).toBeVisible();
-    expect(screen.getByRole("heading", { name: "Turn an export into something useful" }))
+    expect(screen.getByRole("heading", { name: "Explore your fitness export on this device" }))
       .toBeVisible();
-    expect(screen.getByText(/Find remembered sessions, sports, routes, intervals/)).toBeVisible();
-    await user.click(screen.getByRole("button", { name: "Add a fitness export" }));
-    await user.click(screen.getByRole("button", { name: "Learn how to get an export" }));
-    expect(onOpenSources).toHaveBeenCalledTimes(2);
+    const preview = screen.getByRole("region", {
+      name: "One local history, across your sports",
+    });
+    expect(preview).toHaveTextContent("Illustrative preview — your history appears after import");
+    expect(within(preview).getAllByRole("listitem")).toHaveLength(4);
+    expect(within(preview).getByRole("listitem", { name: /Running/ }))
+      .toHaveAttribute("data-sport-family", "running");
+    expect(within(preview).getByRole("listitem", { name: /Water sport/ }))
+      .toHaveAttribute("data-sport-family", "water-sport");
+    expect(within(preview).getAllByTestId("sport-family-icon")).toHaveLength(4);
+
+    await user.click(screen.getByRole("button", { name: "Choose an export ZIP" }));
+    await user.click(screen.getByRole("button", { name: "How to obtain one" }));
+    expect(onChooseArchive).toHaveBeenCalledOnce();
+    expect(onOpenSourceGuide).toHaveBeenCalledOnce();
   });
 });

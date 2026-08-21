@@ -2,6 +2,8 @@ export type LibraryDomain = "training" | "activity" | "sleep" | "recovery";
 
 export type ExploreDestination = LibraryDomain | "longitudinal";
 
+export type IllustratedSportFamily = "running" | "cycling" | "water-sport" | "strength";
+
 export type LibraryQuestionKind =
   | "explore-training-sessions"
   | "align-history"
@@ -80,12 +82,10 @@ export interface LibraryHomeMessages {
   emptyLocalBoundary: string;
   emptyAction: string;
   emptyGuideAction: string;
-  emptyPossibilitiesHeading: string;
-  emptyPossibilities: {
-    sessionDiscovery: string;
-    honestComparison: string;
-    durableReports: string;
-  };
+  emptyPreviewEyebrow: string;
+  emptyPreviewHeading: string;
+  emptyPreviewNote: string;
+  emptyPreviewSports: Record<IllustratedSportFamily, { label: string; detail: string }>;
   answerEyebrow: string;
   answerTrainingHeading: { one: string; other: string };
   answerTrainingIntro: string;

@@ -2,8 +2,10 @@
 
 ## Status and authority
 
-Authorized for autonomous execution as of 2026-08-21. X4-P0 is complete and X5-R1 is in progress.
-The product owner accepted the X3 direction and its amendments on 2026-08-21. This
+Authorized for autonomous execution as of 2026-08-21. X4-P0 is complete and X5-R2 is in progress.
+The X5-R1 product entrance is live; exact hosted verification of its CI resource optimizer remains
+pending synchronization of the workflow-changing commit. The product owner accepted the X3
+direction and its amendments on 2026-08-21. This
 document is the single implementation-facing plan for X4 and X5 of the systemic MVP redesign.
 
 The [MVP experience specification](../design/experience-specification.md) owns screen, interaction,
@@ -198,8 +200,8 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | Increment | Status | Functional checkpoint |
 |---|---|---|
 | X4-P0 | Complete — 2026-08-21 | Accepted X3 contract, exhaustive production plan, traceable roadmap |
-| X5-R1 | In progress | A truthful visitor can understand and follow the product |
-| X5-R2 | Pending | A new person can orient, obtain data, choose a ZIP, and configure the app |
+| X5-R1 | Local implementation complete; optimizer hosted verification pending | A truthful visitor can understand and follow the product |
+| X5-R2 | In progress — shell and first-run slice passed locally 2026-08-22 | A new person can orient, obtain data, choose a ZIP, and configure the app |
 | X5-R3 | Pending | Import ends in recognizable personal value |
 | X5-R4 | Pending | Existing health and aligned-history questions read as answers |
 | X5-R5 | Pending | A remembered session is findable and sports are recognizable |

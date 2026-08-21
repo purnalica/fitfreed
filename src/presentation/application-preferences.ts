@@ -22,6 +22,7 @@ export function applyApplicationPreferences(
 ) {
   root.lang = preferences.locale;
   root.dataset.appearance = preferences.appearance;
+  root.dataset.contentZoom = preferences.contentZoomPercent.toString();
   root.style.setProperty(
     "--content-zoom",
     (preferences.contentZoomPercent / 100).toString(),

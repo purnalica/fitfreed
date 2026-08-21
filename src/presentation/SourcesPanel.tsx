@@ -24,6 +24,7 @@ interface SourcesPanelProps {
   importMessages: ImportMessages;
   guide: SourceAcquisitionGuide | undefined;
   guideLoading: boolean;
+  guideRequestId?: number;
   archivePath: string | undefined;
   importReady: boolean;
   busy: boolean;
@@ -45,6 +46,7 @@ export function SourcesPanel({
   importMessages,
   guide,
   guideLoading,
+  guideRequestId = 0,
   archivePath,
   importReady,
   busy,
@@ -65,8 +67,12 @@ export function SourcesPanel({
   const guideHeading = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
-    if (guideVisible) guideHeading.current?.focus();
-  }, [guideVisible]);
+    if (guideVisible && guide) guideHeading.current?.focus();
+  }, [guide, guideRequestId, guideVisible]);
+
+  useEffect(() => {
+    if (guideRequestId > 0) setGuideVisible(true);
+  }, [guideRequestId]);
 
   const accountLink = guide
     ? selectOfficialSourceLink(guide, "account", locale)
@@ -184,7 +190,7 @@ export function SourcesPanel({
         </article>
       </div>
 
-      {guideVisible && (
+      {guideVisible && !guideLoading && (
         guide ? (
           <section
             id="source-acquisition-guide"

@@ -301,6 +301,90 @@ describe("SourcesPanel", () => {
     expect(screen.queryByText(/guide for this source is unavailable/i)).not.toBeInTheDocument();
   });
 
+  it("opens and focuses acquisition guidance requested from first-run Home", async () => {
+    const view = render(
+      <SourcesPanel
+        locale="en-US"
+        messages={catalogs["en-US"].sources}
+        importMessages={importMessages}
+        guide={guide}
+        guideLoading={false}
+        guideRequestId={0}
+        archivePath={undefined}
+        importReady
+        busy={false}
+        cancellable={false}
+        updateInstalling={false}
+        cancelRequested={false}
+        onChooseArchive={vi.fn()}
+        onArchiveError={vi.fn()}
+        onImport={vi.fn()}
+        onCancel={vi.fn()}
+        onOpenOfficialLink={vi.fn()}
+        onLinkError={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole("region", {
+      name: "How to obtain your Polar Flow export",
+    })).not.toBeInTheDocument();
+
+    view.rerender(
+      <SourcesPanel
+        locale="en-US"
+        messages={catalogs["en-US"].sources}
+        importMessages={importMessages}
+        guide={guide}
+        guideLoading={false}
+        guideRequestId={1}
+        archivePath={undefined}
+        importReady
+        busy={false}
+        cancellable={false}
+        updateInstalling={false}
+        cancelRequested={false}
+        onChooseArchive={vi.fn()}
+        onArchiveError={vi.fn()}
+        onImport={vi.fn()}
+        onCancel={vi.fn()}
+        onOpenOfficialLink={vi.fn()}
+        onLinkError={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByRole("heading", {
+      name: "How to obtain your Polar Flow export",
+    })).toHaveFocus();
+
+    screen.getByRole("button", { name: "Show me how" }).focus();
+    expect(screen.getByRole("button", { name: "Show me how" })).toHaveFocus();
+    view.rerender(
+      <SourcesPanel
+        locale="en-US"
+        messages={catalogs["en-US"].sources}
+        importMessages={importMessages}
+        guide={guide}
+        guideLoading={false}
+        guideRequestId={2}
+        archivePath={undefined}
+        importReady
+        busy={false}
+        cancellable={false}
+        updateInstalling={false}
+        cancelRequested={false}
+        onChooseArchive={vi.fn()}
+        onArchiveError={vi.fn()}
+        onImport={vi.fn()}
+        onCancel={vi.fn()}
+        onOpenOfficialLink={vi.fn()}
+        onLinkError={vi.fn()}
+      />,
+    );
+    await waitFor(() => expect(screen.getByRole("heading", {
+      name: "How to obtain your Polar Flow export",
+    })).toHaveFocus());
+  });
+
   it("supports cancellation and blocks mutable source controls during an update", async () => {
     const user = userEvent.setup();
     const onCancel = vi.fn().mockResolvedValue(undefined);

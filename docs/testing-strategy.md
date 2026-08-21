@@ -64,7 +64,7 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Install, value-first Home, both export-acquisition paths, language selection, and empty-state guidance.
 - Import through the file picker with realistic synthetic ZIP archives.
 - Reimport, cumulative import, interruption, failure recovery, and persisted restart.
-- Home, Explore, Reports, Sources, and Settings navigation with preserved workspace state, focus behavior, exploration, filtering, visualizations, all included controls, and accessible alternatives.
+- Home, History, Reports, Sources, and Settings navigation with independent scroll restoration, preserved workspace state, visible labels at compact widths and high zoom, focus behavior, exploration, filtering, visualizations, all included controls, and accessible alternatives.
 - Rendered shell geometry at broad desktop and compact widths, localized current-location semantics, and absence of page-level horizontal overflow at 100% and 200% content zoom. The packaged performance journey fixes a 1024-by-720 logical window before its maximum-range 200% checks so layout evidence is independent of the host display size.
 - Full-history training discovery with combined filters, deterministic sorting, coherent forward and backward pagination, source-separated calendar traversal, two-through-four-session comparison, exact chronology or calendar return, complete restart restoration, library-change recovery, exact results, and lightweight detail.
 - Explicit traversal among Sessions, Sports, and Compare periods and among every session evidence section, proving that hidden views are inaccessible while their disposable state survives temporary navigation.

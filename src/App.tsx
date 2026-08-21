@@ -191,6 +191,12 @@ type HomeNavigationOperation =
   | { kind: "open"; destination: ExploreDestination }
   | { kind: "return" };
 
+type ApplicationHomeScrollMode = "restore" | "start";
+
+function applicationScroller() {
+  return document.scrollingElement ?? document.documentElement;
+}
+
 function App() {
   const [locale, setLocale] = useState<Locale>(systemLocale);
   const [localeReady, setLocaleReady] = useState(false);
@@ -209,6 +215,14 @@ function App() {
   const [preferencesEditorRevision, setPreferencesEditorRevision] = useState(0);
   const [settingsWorkspace, setSettingsWorkspace] = useState<SettingsWorkspace>("appearance");
   const [activeHome, setActiveHome] = useState<ApplicationHome>("home");
+  const activeHomeRef = useRef<ApplicationHome>(activeHome);
+  const applicationHomeScrollPositions = useRef<Record<ApplicationHome, number>>({
+    home: 0,
+    explore: 0,
+    reports: 0,
+    sources: 0,
+    settings: 0,
+  });
   const homeNavigationRevision = useRef(0);
   const startupHomeNavigationRevision = useRef(homeNavigationRevision.current);
   const [libraryHome, setLibraryHome] = useState<LibraryHome>();
@@ -219,6 +233,7 @@ function App() {
   const [updateLocaleRefreshToken, setUpdateLocaleRefreshToken] = useState(0);
   const [archivePath, setArchivePath] = useState<string>();
   const [sourceGuides, setSourceGuides] = useState<SourceAcquisitionGuide[]>();
+  const [sourceGuideRequestId, setSourceGuideRequestId] = useState(0);
   const [activityOverview, setActivityOverview] = useState<ActivityOverview>();
   const [activityLoading, setActivityLoading] = useState(false);
   const [activityFailed, setActivityFailed] = useState(false);
@@ -283,6 +298,29 @@ function App() {
     );
   }, [selectedActivityDate]);
 
+  useEffect(() => {
+    activeHomeRef.current = activeHome;
+    applicationScroller().scrollTop = applicationHomeScrollPositions.current[activeHome];
+  }, [activeHome]);
+
+  function activateApplicationHome(
+    destination: ApplicationHome,
+    scrollMode: ApplicationHomeScrollMode = "restore",
+  ) {
+    const currentHome = activeHomeRef.current;
+    const scroller = applicationScroller();
+    applicationHomeScrollPositions.current[currentHome] = scroller.scrollTop;
+    if (scrollMode === "start") {
+      applicationHomeScrollPositions.current[destination] = 0;
+    }
+    if (currentHome === destination) {
+      scroller.scrollTop = applicationHomeScrollPositions.current[destination];
+      return;
+    }
+    activeHomeRef.current = destination;
+    setActiveHome(destination);
+  }
+
   async function refresh(requestedRange: ActivityDateRange | null = null) {
     const overview = await invoke<ActivityOverview>("query_activity_overview", {
       requestedRange,
@@ -313,7 +351,7 @@ function App() {
     if (home.availableRange === null) {
       setExploreDestination(undefined);
       if (homeNavigationRevision.current === navigationRevision) {
-        setActiveHome("home");
+        activateApplicationHome("home", "start");
       }
     } else {
       const restoredDestination = restoreWorkspace
@@ -321,7 +359,7 @@ function App() {
         : undefined;
       setExploreDestination(restoredDestination);
       if (homeNavigationRevision.current === navigationRevision) {
-        setActiveHome(restoredDestination ? "explore" : "home");
+        activateApplicationHome(restoredDestination ? "explore" : "home", "start");
       }
     }
     return home;
@@ -476,9 +514,12 @@ function App() {
     return homeNavigationRevision.current;
   }
 
-  function navigateHome(destination: ApplicationHome) {
+  function navigateHome(
+    destination: ApplicationHome,
+    scrollMode: ApplicationHomeScrollMode = "restore",
+  ) {
     beginHomeNavigation();
-    setActiveHome(destination);
+    activateApplicationHome(destination, scrollMode);
   }
 
   async function returnToLibraryHome() {
@@ -497,7 +538,7 @@ function App() {
         ? { ...current, resumableExploration: null }
         : current);
       if (homeNavigationRevision.current === navigationRevision) {
-        setActiveHome("home");
+        activateApplicationHome("home");
         setLibraryHomeFocusRequestId((current) => current + 1);
       }
     } catch (reason) {
@@ -553,12 +594,17 @@ function App() {
     navigateHome("settings");
   }
 
-  function openSources() {
+  function openSources(scrollMode: ApplicationHomeScrollMode = "restore") {
     applyApplicationPreferences(savedPreferences);
     setLocale(savedPreferences.locale);
     setPreferencesSavedNotice(false);
     setPreferencesEditorRevision((current) => current + 1);
-    navigateHome("sources");
+    navigateHome("sources", scrollMode);
+  }
+
+  function openSourceGuideFromHome() {
+    openSources();
+    setSourceGuideRequestId((current) => current + 1);
   }
 
   function openReports() {
@@ -598,7 +644,7 @@ function App() {
           }
         : current);
       if (homeNavigationRevision.current === navigationRevision) {
-        setActiveHome("explore");
+        activateApplicationHome("explore", "start");
       }
       return true;
     } catch (reason) {
@@ -718,6 +764,15 @@ function App() {
     if (typeof selected === "string") {
       setArchivePath(selected);
       setErrorCode(undefined);
+    }
+  }
+
+  async function chooseArchiveFromHome() {
+    openSources("start");
+    try {
+      await chooseArchive();
+    } catch {
+      setErrorCode("archive-picker-failed");
     }
   }
 
@@ -1053,6 +1108,7 @@ function App() {
             }}
             guide={sourceGuides?.find((guide) => guide.sourceId === "polar-flow")}
             guideLoading={sourceGuides === undefined}
+            guideRequestId={sourceGuideRequestId}
             archivePath={archivePath}
             importReady={libraryReady}
             busy={busy}
@@ -1210,6 +1266,8 @@ function App() {
             : undefined}
           onExplore={(destination) => void openHomeExploration(destination)}
           onOpenSources={openSources}
+          onChooseArchive={() => void chooseArchiveFromHome()}
+          onOpenSourceGuide={openSourceGuideFromHome}
         />
       )}
         </div>

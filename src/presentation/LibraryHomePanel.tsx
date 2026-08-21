@@ -2,11 +2,13 @@ import { useEffect, useMemo, useRef } from "react";
 
 import type {
   ExploreDestination,
+  IllustratedSportFamily,
   LibraryDomainCoverage,
   LibraryHome,
   LibraryHomeMessages,
 } from "./library-home";
 import { restoreFocusAfterReveal } from "./focus-restoration";
+import { SportFamilyIcon } from "./SportFamilyIcon";
 
 interface LibraryHomePanelProps {
   home: LibraryHome;
@@ -16,7 +18,16 @@ interface LibraryHomePanelProps {
   pendingDestination?: ExploreDestination;
   onExplore: (destination: ExploreDestination) => void;
   onOpenSources: () => void;
+  onChooseArchive?: () => void;
+  onOpenSourceGuide?: () => void;
 }
+
+const illustratedSportFamilies: IllustratedSportFamily[] = [
+  "running",
+  "cycling",
+  "water-sport",
+  "strength",
+];
 
 function localDate(value: string): Date {
   const [year, month, day] = value.split("-").map(Number);
@@ -31,6 +42,8 @@ export function LibraryHomePanel({
   pendingDestination,
   onExplore,
   onOpenSources,
+  onChooseArchive = onOpenSources,
+  onOpenSourceGuide = onOpenSources,
 }: LibraryHomePanelProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
@@ -60,8 +73,8 @@ export function LibraryHomePanel({
           </h1>
           <p>{messages.emptyIntro}</p>
           <div className="library-home-empty-actions">
-            <button type="button" onClick={onOpenSources}>{messages.emptyAction}</button>
-            <button type="button" className="secondary" onClick={onOpenSources}>
+            <button type="button" onClick={onChooseArchive}>{messages.emptyAction}</button>
+            <button type="button" className="secondary" onClick={onOpenSourceGuide}>
               {messages.emptyGuideAction}
             </button>
           </div>
@@ -69,19 +82,28 @@ export function LibraryHomePanel({
         </div>
         <section
           className="library-home-empty-possibilities"
-          aria-labelledby="library-home-empty-possibilities-heading"
+          aria-labelledby="library-home-empty-preview-heading"
         >
-          <h2 id="library-home-empty-possibilities-heading">
-            {messages.emptyPossibilitiesHeading}
+          <p className="eyebrow">{messages.emptyPreviewEyebrow}</p>
+          <h2 id="library-home-empty-preview-heading">
+            {messages.emptyPreviewHeading}
           </h2>
-          <ol>
-            {Object.values(messages.emptyPossibilities).map((possibility, index) => (
-              <li key={possibility}>
-                <span aria-hidden="true">{number.format(index + 1).padStart(2, "0")}</span>
-                <p>{possibility}</p>
+          <p className="library-home-empty-preview-note">{messages.emptyPreviewNote}</p>
+          <ul>
+            {illustratedSportFamilies.map((family) => (
+              <li
+                key={family}
+                data-sport-family={family}
+                aria-label={messages.emptyPreviewSports[family].label}
+              >
+                <SportFamilyIcon family={family} />
+                <div>
+                  <h3>{messages.emptyPreviewSports[family].label}</h3>
+                  <p>{messages.emptyPreviewSports[family].detail}</p>
+                </div>
               </li>
             ))}
-          </ol>
+          </ul>
         </section>
       </section>
     );

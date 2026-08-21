@@ -62,11 +62,11 @@ async function expectFocusedStatus(fragment, timeoutMsg) {
 }
 
 async function expectApplicationShellLayout(catalog, mode, broadWorkspace = false) {
-  const expectedWidth = mode === "desktop" ? 240 : 76;
   const state = await browser.execute(() => {
     const sidebar = document.querySelector(".app-sidebar");
     const workspace = document.querySelector(".shell-workspace");
     const content = document.querySelector(".app-content");
+    const navigation = sidebar.querySelector("nav");
     const sidebarBounds = sidebar.getBoundingClientRect();
     const workspaceBounds = workspace.getBoundingClientRect();
     const contentBounds = content.getBoundingClientRect();
@@ -77,25 +77,50 @@ async function expectApplicationShellLayout(catalog, mode, broadWorkspace = fals
       sidebarHeight: sidebarBounds.height,
       sidebarPosition: getComputedStyle(sidebar).position,
       workspaceLeft: workspaceBounds.left,
+      workspaceTop: workspaceBounds.top,
       contentWidth: contentBounds.width,
       viewportHeight: document.documentElement.clientHeight,
+      viewportWidth: document.documentElement.clientWidth,
+      navigationColumns: getComputedStyle(navigation).gridTemplateColumns.split(" ").length,
       hasHorizontalOverflow:
         document.documentElement.scrollWidth > document.documentElement.clientWidth,
     };
   });
   expect(state.sidebarTag).toBe("ASIDE");
-  expect(Math.abs(state.sidebarWidth - expectedWidth)).toBeLessThanOrEqual(1);
   expect(Math.abs(state.sidebarLeft)).toBeLessThanOrEqual(1);
-  expect(Math.abs(state.workspaceLeft - expectedWidth)).toBeLessThanOrEqual(1);
-  expect(Math.abs(state.sidebarHeight - state.viewportHeight)).toBeLessThanOrEqual(1);
   expect(state.sidebarPosition).toBe("sticky");
   expect(state.hasHorizontalOverflow).toBe(false);
+  if (mode === "desktop") {
+    expect(Math.abs(state.sidebarWidth - 240)).toBeLessThanOrEqual(1);
+    expect(Math.abs(state.workspaceLeft - 240)).toBeLessThanOrEqual(1);
+    expect(Math.abs(state.sidebarHeight - state.viewportHeight)).toBeLessThanOrEqual(1);
+  } else {
+    expect(Math.abs(state.sidebarWidth - state.viewportWidth)).toBeLessThanOrEqual(1);
+    expect(Math.abs(state.workspaceLeft)).toBeLessThanOrEqual(1);
+    expect(state.workspaceTop).toBeGreaterThan(0);
+    expect(state.sidebarHeight).toBeLessThan(state.viewportHeight);
+    expect(state.navigationColumns).toBe(5);
+  }
   if (broadWorkspace) expect(state.contentWidth).toBeGreaterThan(1080);
   await expect($(".app-sidebar")).toHaveAttribute("aria-label", catalog.shell.sidebar);
   for (const destination of ["home", "explore", "reports", "sources", "settings"]) {
-    await expect($(`.app-sidebar nav button[data-home='${destination}']`))
+    const item = $(`.app-sidebar nav button[data-home='${destination}']`);
+    await expect(item)
       .toHaveAttribute("aria-label", catalog.shell[destination]);
+    await expect(item).toHaveText(catalog.shell[destination]);
   }
+}
+
+async function expectFirstRunActionsBeforePreview() {
+  const positions = await browser.execute(() => {
+    const actions = document.querySelector(".library-home-empty-actions");
+    const preview = document.querySelector(".library-home-empty-possibilities");
+    return {
+      actionsBottom: actions.getBoundingClientRect().bottom,
+      previewTop: preview.getBoundingClientRect().top,
+    };
+  });
+  expect(positions.previewTop).toBeGreaterThan(positions.actionsBottom);
 }
 
 async function expectLibraryHome(catalog) {
@@ -824,21 +849,17 @@ describe("packaged FitFreed import journey", () => {
       expect.stringContaining(english.home.emptyIntro),
     );
     await expect($(".library-home-empty-possibilities")).toHaveText(
-      expect.stringContaining(english.home.emptyPossibilities.sessionDiscovery),
+      expect.stringContaining(english.home.emptyPreviewSports.running.detail),
     );
+    expect(await $$(".library-home-empty-possibilities .sport-family-icon"))
+      .toHaveLength(Object.keys(english.home.emptyPreviewSports).length);
     await expect($(".app-sidebar nav button[data-home='home']"))
       .toHaveAttribute("aria-current", "page");
     recordJourneyPhase("source-acquisition-and-import");
-    await goToHome("sources");
+    await $(`aria/${english.home.emptyGuideAction}`).click();
     await expect($(".sources-home h1")).toHaveText("Bring your fitness history home");
     await expect($("aria/Import selected package")).toBeDisabled();
     const openerMock = await browser.tauri.mock("plugin:opener|open_url");
-    const showSourceGuide = await $("aria/Show me how");
-    await showSourceGuide.waitForEnabled({
-      timeout: 10_000,
-      timeoutMsg: "the offline source guide did not finish loading",
-    });
-    await showSourceGuide.click();
     await expect($("#source-guide-heading")).toHaveText(
       "How to obtain your Polar Flow export",
     );
@@ -873,6 +894,8 @@ describe("packaged FitFreed import journey", () => {
     )).toBe("1");
     await setAppearanceAndZoom("light", 200, true, "home");
     await expect($("html")).toHaveAttribute("data-appearance", "light");
+    await expectApplicationShellLayout(english, "compact");
+    await expectFirstRunActionsBeforePreview();
     await resizeApplication(900, 760);
     await expectApplicationShellLayout(english, "compact");
     await resizeApplication(1280, 820);
@@ -907,9 +930,8 @@ describe("packaged FitFreed import journey", () => {
     await selectLocale("en-US", "home");
     await expect($(".library-home-empty h1")).toHaveText(english.home.emptyHeading);
 
-    await goToHome("sources");
     const dialogMock = await browser.tauri.mock("plugin:dialog|open");
-    await openArchivePicker(dialogMock, null, english.choose);
+    await openArchivePicker(dialogMock, null, english.home.emptyAction);
     await expect($(".path")).toHaveText("No package selected");
     await expect($("aria/Import selected package")).toBeDisabled();
 

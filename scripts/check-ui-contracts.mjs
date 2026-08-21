@@ -93,10 +93,13 @@ if (!application.includes("<ApplicationShell")) {
   throw new Error("App must render the shared application shell");
 }
 if (!/<aside\s+className="app-sidebar"\s+aria-label=/.test(applicationShell)) {
-  throw new Error("the application shell must expose semantic sidebar navigation");
+  throw new Error("the application shell must expose semantic primary navigation");
 }
 if (!applicationShell.includes('{ destination: "home", icon: "home" }')) {
   throw new Error("the application shell must expose Home as an explicit destination");
+}
+if (!applicationShell.includes("fitfreed-icon.svg")) {
+  throw new Error("the application shell must use the approved FitFreed brand asset");
 }
 
 requireRule(
@@ -114,7 +117,7 @@ requireRule(
 requireRule(
   stylesheet,
   ".app-content",
-  [/width:\s*min\(1440px,\s*calc\(100%\s*-\s*64px\)\)/],
+  [/width:\s*min\(1600px,\s*calc\(100%\s*-\s*56px\)\)/],
   "the broad desktop workspace",
 );
 requireRule(
@@ -188,14 +191,14 @@ if (!application.includes('useState<ApplicationHome>("home")')
 
 const compactNavigation = balancedBlock(
   stylesheet,
-  "@media (max-width: 980px)",
+  "@media (max-width: 1080px)",
   "App.css must define the compact navigation boundary",
 );
 requireRule(
   compactNavigation,
   ".app-shell",
-  [/grid-template-columns:\s*76px\s+minmax\(0,\s*1fr\)/],
-  "the compact navigation rail",
+  [/grid-template-columns:\s*1fr/, /grid-template-rows:\s*auto\s+minmax\(0,\s*1fr\)/],
+  "the labelled compact navigation layout",
 );
 
 const mainWindow = tauriConfiguration.app?.windows?.[0];
@@ -205,9 +208,36 @@ if (mainWindow?.width < 1280 || mainWindow?.height < 800) {
 requireRule(
   compactNavigation,
   ".app-sidebar",
-  [/width:\s*76px/],
-  "the compact navigation rail",
+  [/width:\s*100%/, /height:\s*auto/],
+  "the labelled compact navigation layout",
 );
+requireRule(
+  compactNavigation,
+  ".app-sidebar nav",
+  [/grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/],
+  "all five named workspaces",
+);
+if (compactNavigation.includes(".app-sidebar nav button > span")) {
+  throw new Error("compact primary navigation must not visually hide workspace labels");
+}
+for (const zoom of ["175", "200"]) {
+  if (!stylesheet.includes(`:root[data-content-zoom="${zoom}"] .app-shell`)
+    || !stylesheet.includes(`:root[data-content-zoom="${zoom}"] .app-sidebar nav`)) {
+    throw new Error(`${zoom}% content zoom must use labelled horizontal navigation`);
+  }
+  requireRule(
+    stylesheet,
+    `:root[data-content-zoom="${zoom}"] .library-home-empty`,
+    [/grid-template-columns:\s*1fr/],
+    "first-run actions before the illustrative preview at high zoom",
+  );
+  requireRule(
+    stylesheet,
+    `:root[data-content-zoom="${zoom}"] .library-home-empty h1`,
+    [/max-width:\s*26ch/],
+    "a readable first-run heading that does not bury the primary action at high zoom",
+  );
+}
 
 for (const selector of ["a:focus-visible", "summary:focus-visible"]) {
   if (!stylesheet.includes(selector)) {
@@ -285,5 +315,5 @@ for (const [selector, token] of contrastContracts) {
 }
 
 process.stdout.write(
-  `${JSON.stringify({ motionDeclarations: motionDeclarations.length, reducedMotionBoundary: true, darkContrastOverrides: contrastContracts.size, responsiveSidebar: true, broadWorkspace: true, progressiveTrainingWorkspace: true, progressiveDomainWorkspaces: true, stagedReportWorkspace: true, secondarySources: true, categorizedSettings: true, initialWindow: `${mainWindow.width}x${mainWindow.height}` })}\n`,
+  `${JSON.stringify({ motionDeclarations: motionDeclarations.length, reducedMotionBoundary: true, darkContrastOverrides: contrastContracts.size, labelledAdaptiveNavigation: true, broadWorkspace: true, progressiveTrainingWorkspace: true, progressiveDomainWorkspaces: true, stagedReportWorkspace: true, secondarySources: true, categorizedSettings: true, initialWindow: `${mainWindow.width}x${mainWindow.height}` })}\n`,
 );
