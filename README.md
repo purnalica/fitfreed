@@ -61,9 +61,9 @@ remains governed independently by the [current ledger](docs/testing/public-relea
 | Implemented in source | Work in progress | Later scope |
 |---|---|---|
 | Polar Flow ZIP validation and import | Behavioral user models, jobs, critical journeys, and task architecture | Additional providers and live APIs |
-| Explicit supported, ignored, and unrecognized coverage | History Desk and Answer Canvas comparison complete; review candidate pending product-owner decision | Linux and Windows distribution |
+| Explicit supported, ignored, and unrecognized coverage | History Desk selected as the product structure, with bounded Answer Canvas explanations | Linux and Windows distribution |
 | Safe exact and cumulative reimport | Meaning-first and strongly visual history, training, and session exploration | Local MCP access for authorized agents |
-| Provider-neutral SQLite history for activity, training summaries, structure, routes, signals, sleep, and recovery | Result-first reports, contextual detail, human-scale formatting, and visible data exit | Advanced encryption and extension systems |
+| Provider-neutral SQLite history for activity, training summaries, structure, routes, signals, sleep, and recovery | Report identity, contextual detail, human-scale formatting, and visible data exit | Advanced encryption and extension systems |
 | Bounded visual comparison and longitudinal context |  | Collaborative or hosted analytics |
 | User-authored sport classification and complete-history session search |  | Features without validated user value |
 | Chronology, source-separated calendar discovery, session comparison, and restart restoration |  |  |
