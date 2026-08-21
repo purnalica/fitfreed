@@ -12,7 +12,8 @@ results outside the platform that recorded them.
 [Evaluate the current source](docs/user/development-preview.md) · [Contribute](CONTRIBUTING.md)
 
 > **No supported release is available yet.** The current source contains the tested macOS engineering
-> baseline and implemented MVP capability, while a systemic experience redesign and exact-candidate acceptance remain active work. Real
+> baseline and implemented MVP capability, while the accepted systemic experience redesign is being
+> migrated incrementally and exact-candidate acceptance remains future work. Real
 > personal exports remain outside the public-evaluation boundary until an exact release candidate
 > passes its privacy, installation, update, and usability gates.
 
@@ -60,10 +61,10 @@ remains governed independently by the [current ledger](docs/testing/public-relea
 <!-- product-status:start -->
 | Implemented in source | Work in progress | Later scope |
 |---|---|---|
-| Polar Flow ZIP validation and import | Behavioral user models, jobs, critical journeys, and task architecture | Additional providers and live APIs |
-| Explicit supported, ignored, and unrecognized coverage | History Desk selected as the product structure, with bounded Answer Canvas explanations | Linux and Windows distribution |
-| Safe exact and cumulative reimport | Meaning-first and strongly visual history, training, and session exploration | Local MCP access for authorized agents |
-| Provider-neutral SQLite history for activity, training summaries, structure, routes, signals, sleep, and recovery | Report identity, contextual detail, human-scale formatting, and visible data exit | Advanced encryption and extension systems |
+| Polar Flow ZIP validation and import | Accepted History Desk structure with bounded Answer Canvas explanations | Additional providers and live APIs |
+| Explicit supported, ignored, and unrecognized coverage | Incremental migration from import to recognizable personal value | Linux and Windows distribution |
+| Safe exact and cumulative reimport | Map-led outdoor session investigation with synchronized recorded evidence | Local MCP access for authorized agents |
+| Provider-neutral SQLite history for activity, training summaries, structure, routes, signals, sleep, and recovery | Result-first reports, human-scale presentation, and visible data exit | Advanced encryption and extension systems |
 | Bounded visual comparison and longitudinal context |  | Collaborative or hosted analytics |
 | User-authored sport classification and complete-history session search |  | Features without validated user value |
 | Chronology, source-separated calendar discovery, session comparison, and restart restoration |  |  |
@@ -84,7 +85,7 @@ remains governed independently by the [current ledger](docs/testing/public-relea
 | Deliberate stale-report refresh through an exact current-evidence review |  |  |
 | Origin-aware navigation between saved reports and their exact session or comparison source |  |  |
 
-Status sources: [MVP capability boundary](docs/roadmap.md#milestone-2--mvp) · [Active UI and UX redesign plan](docs/plans/ui-redesign.md) · [Post-MVP evolution tracks](docs/roadmap.md#evolution-tracks-after-the-mvp).
+Status sources: [MVP capability boundary](docs/roadmap.md#milestone-2--mvp) · [Active production migration plan](docs/plans/mvp-redesign-production-migration.md) · [Post-MVP evolution tracks](docs/roadmap.md#evolution-tracks-after-the-mvp).
 <!-- product-status:end -->
 
 Polar Flow is the first importer, not the product identity. Provider-specific formats stay at the

@@ -2,16 +2,17 @@
 
 ## Status and authority
 
-**X3 review candidate as of 2026-08-21.** This document is the single source of truth for the
-proposed screen, interaction, navigation, state, responsive, localization, and accessibility
-contract of the systemic MVP experience redesign. It does not describe the current production
-presentation and does not authorize claims that missing application contracts already exist.
+**Accepted X3 contract as of 2026-08-21.** This document is the single source of truth for the
+screen, interaction, navigation, state, responsive, localization, and accessibility contract of the
+systemic MVP experience redesign. It does not describe the current production presentation and does
+not authorize claims that missing application contracts already exist.
 
 The [requirements](../requirements.md#product-experience-contract) own normative product behavior.
 The [redesign plan](../plans/ui-redesign.md) owns rationale, journeys, feasibility analysis, and
-delivery gates. This specification makes the accepted X2 direction concrete for X3 review without
-repeating either source. Production migration begins only after the X3 human gate accepts or amends
-this candidate.
+delivery gates. This specification makes the accepted X2 direction concrete without repeating either
+source. The X3 human gate accepted this contract on 2026-08-21, including the recorded Alpha status
+of reports and personal range definition and the requirement that compact primary navigation retain
+visible text labels.
 
 ## Stable workspace
 
@@ -266,9 +267,9 @@ The contract applies to wide macOS desktop and compact windows, not only a singl
 
 - At 100% content zoom, the wide shell uses its full horizontal workspace and may use coordinated
   side-by-side regions where they improve comparison or editing.
-- At 175% and 200%, the rail becomes narrow while retaining unambiguous destinations; multi-region
-  workspaces, classification, criteria, settings, and change summaries stack before text or controls
-  collide.
+- At 175% and 200%, primary navigation becomes a labelled horizontal region so every icon and text
+  label remains visible without consuming the enlarged content width; multi-region workspaces,
+  classification, criteria, settings, and change summaries stack before text or controls collide.
 - Components also adapt to their allocated inline size. A map, chart, inspector, or detail column can
   be narrow inside an otherwise wide window, so its metric summaries, legends, labels, and controls
   change columns through component-level breakpoints before text wraps into isolated words or units.
@@ -320,7 +321,7 @@ align compatible evidence revisions and elapsed timestamps, retain gaps, and pro
 sport-specific labels and units before the production interface offers synchronized tracking. No
 component may correlate repository results independently.
 
-## X3 review evidence
+## X3 acceptance evidence
 
 The ignored local prototype at `.local/ui-redesign-v2/` realizes every state in this specification
 with independently invented multi-sport data. Its automated checks exercise meaningful field input,
@@ -328,8 +329,7 @@ validation, save/cancel behavior, multiple items, ordering, removal, persistence
 locale switching, recovery, synchronized running and paddling track inspection, exact evidence, all
 import outcomes, report lifecycle, structural accessibility, and light/dark contrast tokens.
 
-The review must still supply human observations. X3 is not accepted until the product owner confirms
-that the candidate:
+The product owner accepted X3 on 2026-08-21 after reviewing the candidate against these outcomes:
 
 1. makes the product purpose and first useful action understandable without explanation;
 2. makes sports and sessions recognizable and a remembered session findable;
@@ -342,6 +342,10 @@ that the candidate:
 6. remains coherent in both locales, appearances, window widths, and at 200% content zoom; and
 7. preserves a clear route from concise meaning to exact evidence and user control.
 
-Acceptance observations and amendments update this specification first. X4 then derives production
-vertical increments from the accepted version; screenshots or prototype code never become a parallel
-implementation source.
+Reports and personal range definition remain Alpha experiences: their end-to-end purposes and
+integrity contracts are accepted, while their interaction hierarchy, density, and composition remain
+open to substantial revision. Compact navigation always retains a visible text label beside every
+workspace icon; tooltips or accessible names alone do not satisfy the contract.
+
+X4 derives production vertical increments from this accepted version; screenshots or prototype code
+never become a parallel implementation source.

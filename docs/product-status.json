@@ -39,16 +39,16 @@
     {
       "key": "active",
       "label": "Work in progress",
-      "title": "Experience redesign",
+      "title": "Experience production migration",
       "items": [
-        "Behavioral user models, jobs, critical journeys, and task architecture",
-        "History Desk selected as the product structure, with bounded Answer Canvas explanations",
-        "Meaning-first and strongly visual history, training, and session exploration",
-        "Report identity, contextual detail, human-scale formatting, and visible data exit"
+        "Accepted History Desk structure with bounded Answer Canvas explanations",
+        "Incremental migration from import to recognizable personal value",
+        "Map-led outdoor session investigation with synchronized recorded evidence",
+        "Result-first reports, human-scale presentation, and visible data exit"
       ],
       "source": {
-        "label": "Active UI and UX redesign plan",
-        "path": "docs/plans/ui-redesign.md"
+        "label": "Active production migration plan",
+        "path": "docs/plans/mvp-redesign-production-migration.md"
       }
     },
     {

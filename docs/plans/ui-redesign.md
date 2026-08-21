@@ -2,9 +2,9 @@
 
 ## Status
 
-Active redesign phase as of 2026-08-21. X2 selected History Desk with a bounded Answer Canvas pattern; the [X3 MVP experience specification](../design/experience-specification.md) is now the review candidate and is not accepted production behavior. Product capability, architecture, data safety, and the persistent desktop shell retain their verified evidence, but the current product experience is not accepted. The [independent product-experience audit](../research/mvp-product-experience-audit.md) identified concrete failures, and the subsequent product-owner review concluded that correcting those findings one by one would not guarantee the radical improvement required. The experience is dense, too control-led, insufficiently visual, and too often exposes implementation capability before user meaning.
+Active production-migration planning as of 2026-08-21. X2 selected History Desk with a bounded Answer Canvas pattern, and the product owner accepted the [X3 MVP experience specification](../design/experience-specification.md) on 2026-08-21 as the production redesign contract. Reports and personal range definition retain their explicit Alpha classification, and the compact-navigation amendment recorded by the pre-review audit remains mandatory. Product capability, architecture, data safety, and the persistent desktop shell retain their verified evidence, but the current production experience is not yet accepted. The [independent product-experience audit](../research/mvp-product-experience-audit.md) identified concrete failures, and the subsequent product-owner review concluded that correcting those findings one by one would not guarantee the radical improvement required. The experience is dense, too control-led, insufficiently visual, and too often exposes implementation capability before user meaning.
 
-Functional growth is frozen while this phase is active. Work may change lower-layer contracts only when necessary to make an already accepted MVP journey understandable and complete; it may not add providers, connected APIs, MCP access, new analytical domains, or other roadmap capability. Production presentation implementation resumes only after a coherent interaction direction passes the design gate defined here.
+Functional growth remains frozen while this phase is active. Work may change lower-layer contracts only when necessary to make an accepted MVP journey understandable and complete; it may not add providers, connected APIs, MCP access, new analytical domains, or other roadmap capability. X4 derives the incremental production migration before X5 changes the ordinary application surface.
 
 Current product behavior remains canonical in [requirements](../requirements.md). The previous production sequence and its evidence remain in the [MVP experience delivery plan](mvp-experience-delivery.md); they are an engineering baseline, not the design specification for this intervention. No parallel executable will be created. Exploratory alternatives remain non-production design material until one direction is accepted.
 
@@ -343,7 +343,7 @@ The comparison covers first run, active import, import result, populated Home, t
 
 Record the selected information architecture, task flows, interaction and state contracts, visual-explanation grammar, content hierarchy, responsive behavior, localization behavior, accessibility alternatives, and component responsibilities. Produce reviewable high-fidelity views for every critical state rather than only an ideal populated dashboard.
 
-The [MVP experience specification](../design/experience-specification.md) is the canonical X3 review candidate. This plan retains the method and gate; amendments to screen or interaction behavior belong in that specification rather than in a second description here.
+The [MVP experience specification](../design/experience-specification.md) is the accepted canonical X3 contract. This plan retains the method and gate; amendments to screen or interaction behavior belong in that specification rather than in a second description here.
 
 Begin by resolving the identity of saved views, saved answers, and reports. Revisit the behavioral modes, jobs, and journeys with report-specific tasks before retaining labels or controls from the X2 study. No action such as “Keep as report” may enter the production specification until its resulting object, later destination, lifecycle, evidence semantics, and export behavior are predictable.
 
@@ -354,6 +354,11 @@ Review at realistic macOS desktop and compact sizes, 100% and 200% content zoom,
 ### X4 — Plan the production migration
 
 Derive vertical increments from the accepted journeys. Each increment begins with required application and persistence contracts, proceeds through TDD, replaces the ordinary product surface without creating a second executable, and preserves existing safety, exact evidence, provenance, localization, accessibility, navigation, and report reproducibility.
+
+The [MVP redesign production migration plan](mvp-redesign-production-migration.md) is the canonical
+implementation-facing X4/X5 sequence. It maps the retained D0–E6 engineering baseline into functional
+increments and owns their current status, dependencies, verification, documentation, and intervention
+gates.
 
 The published product site is an early delivery surface once X3 has fixed the product identity, information hierarchy, and factual language. Update it before or alongside the first production-application increment so the public explanation reflects the accepted direction. The site must clearly distinguish the current released experience from work in progress and later scope; design acceptance alone must never make an unimplemented application capability appear available.
 
@@ -573,7 +578,7 @@ The audit records failures rather than treating the corrected screenshot as suff
 | X3-UX-08 | Major | Route and signal point targets shrank below 24 CSS pixels at compact width, even though their visible marks remained legible. | Invisible hit geometry is now independent from the visible marks and measures at least 25 CSS pixels at the compact audit viewport. Native range controls and report block actions also retain at least 32 CSS pixels of interaction height. |
 | X3-UX-09 | Major | At an intermediate compact width, the sticky navigation assumed a one-line evaluator bar and overlapped its second line while scrolling. | A shared responsive evaluator-height token now positions both shell and navigation; evaluator actions no longer wrap internally, and long-page scroll checks cover wide, compact, and narrow layouts. |
 | X3-UX-10 | Minor | The partial-session page heading repeated a catalogue of missing evidence immediately before the evidence summary, increasing warning density without helping the task. | The redundant heading copy was removed; the compact evidence summary remains the single explicit account of available data and source gaps. |
-| X3-UX-11 | Major | Collapsed navigation retained accessible names but gave pointer users no visible way to identify less universal icons such as Reports and Sources. | Collapsed navigation now reveals its label on hover and keyboard focus; the narrow horizontal navigation keeps labels permanently visible. |
+| X3-UX-11 | Major | Collapsed navigation retained accessible names but hid text labels, contradicting the canonical X3 prohibition on icon-only primary navigation. | Compact navigation keeps every icon and text label visible. Intermediate widths use a labelled compact rail; high zoom and narrow widths use labelled horizontal navigation. |
 
 The corrected candidate has no horizontal overflow, clipped interactive control, or interaction
 target below 24 CSS pixels in a 66-case matrix across the three named 100% viewport profiles. The
@@ -588,7 +593,15 @@ classification validation/save/cancel/navigation, range validation and pointer/k
 selection/save/navigation/reload/remove, and report validation/add/reorder/save/export/cancel/reopen.
 Lighthouse snapshots of the complete session, partial session, and report editor score 100 for both
 accessibility and best practices, and the final browser console contains no warning, error, or issue.
-These results are evidence for the audit; the reopened human X3 gate still requires explicit review.
+
+### X3 acceptance record
+
+The product owner accepted the redesign plan and X3 direction on 2026-08-21. Acceptance preserves
+the report and personal-range experiences as Alpha candidates rather than treating their current
+composition as stabilized. It also incorporates X3-UX-11 as a mandatory conformance correction:
+compact primary navigation always presents both the provider-neutral icon and visible workspace text.
+X4 may now plan the production migration; acceptance does not claim that the ordinary application
+already implements this specification.
 
 ### Range concept model
 
