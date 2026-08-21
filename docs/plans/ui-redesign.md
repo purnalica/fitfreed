@@ -509,6 +509,20 @@ The next X3 review fails unless a person can, without instruction:
 6. complete the same tasks with keyboard controls, in both locales and themes, at compact width and
    200% content zoom.
 
+Human review on 2026-08-21 accepted deferring a deeper range-definition interaction review. The
+current candidate is sufficient to evaluate the map-led direction, but it does not close the design
+of range boundary selection, adjustment, naming, or presentation density. A later review must test
+those tasks explicitly at ordinary 100% content zoom as well as at the required 200% accessibility
+state. Oversized range controls at 100% are a design finding, not something that may be dismissed as
+an artifact of the prototype.
+
+The report experience and the range-definition experience are **Alpha UX candidates**. Alpha means
+that each candidate demonstrates a valuable end-to-end purpose and is suitable for structured use
+and learning, while its interaction model, hierarchy, density, and presentation remain deliberately
+open to substantial revision. Neither experience is a stabilized UX contract, and future refinement
+does not require preserving the current screen composition. Their underlying product requirements,
+authorship, provenance, data integrity, and export guarantees remain mandatory.
+
 ### Range concept model
 
 A **session range** is one contiguous chronological interval inside one exercise. Its canonical
