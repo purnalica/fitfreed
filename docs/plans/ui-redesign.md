@@ -58,6 +58,241 @@ The redesign must help a person ask and answer at least these classes of questio
 
 The interface distinguishes recorded facts, calculated comparisons, observed co-occurrence, source-specific assessments, and unavailable conclusions. It does not present correlation as causation, invent a readiness score, provide medical interpretation, or disguise missing data as zero.
 
+## Provisional experience model
+
+The current evidence supports behavioral modes, not demographic personas. Names, ages, occupations, motivations, and quotations would be invented rather than researched and therefore must not drive the design. One person may move through every mode as confidence and curiosity grow.
+
+| Mode | Immediate intent | Required default | Complexity available on request |
+|---|---|---|---|
+| Reclaim | Obtain and safely incorporate an owned export | Clear promise, provider guidance, visible local processing, consequence-led result | Artifact coverage, compatibility evidence, provenance, reimport semantics |
+| Recognize | See whether the library feels like their actual sporting history | Time span, sports with names and visual identity, recent or memorable sessions, one honest observation | Search, calendar, filters, domain coverage, source separation |
+| Investigate | Understand what happened in a period or session | Coherent visual story with the most relevant comparison, structure, and context | Aligned signals, routes, zones, criteria, exact values, limitations, provenance |
+| Author and reuse | Preserve an interpretation and use it elsewhere | A useful report result ready to read, refresh, and export | Composition, narrative, exact tables, privacy choices, versioning, portable definitions |
+| Steward | Maintain trust in the local library over time | Clear source status, update state, and next safe action only when needed | Import history, compatibility detail, settings, recovery, future backup and normalized export |
+
+These are engagement modes, not separate editions or permission tiers. The same canonical object and navigation model must support them. Progressive disclosure adds evidence and control without replacing the result, changing terminology, or forcing a person to restart in an “advanced” workspace.
+
+### Jobs the product must complete
+
+1. **Establish ownership:** when a person obtains data from a provider, help turn it into a safe, durable local library and explain exactly what became usable.
+2. **Restore recognition:** when the archive is abstract or unfamiliar, reconstruct a history the person recognizes through sports, time, places where safe, and individual sessions.
+3. **Answer a real question:** when curiosity arises, provide one bounded understandable answer and a direct path to the records that support it.
+4. **Explain a workout:** when a session matters, align its structure, route, signals, and authored criteria into one story without inventing unavailable evidence.
+5. **Preserve interpretation:** when an answer matters beyond the current screen, let the person save, refresh, inspect, and export it without losing authorship or provenance.
+6. **Leave with the result:** when a person wants another tool or no longer wants FitFreed, provide open documented outputs rather than creating replacement lock-in.
+7. **Recover trust:** when input, compatibility, update, or evidence is partial or fails, state the consequence for the existing library first and provide one safe next action before diagnostics.
+
+### Progressive engagement contract
+
+| Level | Person receives | Product withholds until requested |
+|---|---|---|
+| Glance | One conclusion or recognizable record, relevant period, strong visual explanation, plain-language consequence | Exhaustive metrics, source terminology, editor controls, raw precision |
+| Explore | Browsable history, direct comparisons, clear refinements, contextual navigation | Raw samples, version identifiers, full compatibility matrix |
+| Inspect | Attributed structure, aligned evidence, limitations that affect the answer, exact-value entry points | Unrelated diagnostics and configuration |
+| Control | Criteria, classification, report composition, privacy choices, provenance, export and maintenance evidence | Nothing supported; the person can inspect every transformation and portable result |
+
+Advancing a level never removes the prior explanation. Exact detail supports meaning; it does not replace it with a second disconnected interface.
+
+### Evidence and validation register
+
+| Hypothesis | Current evidence | Validation route |
+|---|---|---|
+| Personal meaning must arrive before inventory or controls | Product-owner review, PX-01, PX-05, and the product utility contract | Five-second populated-Home comprehension and time to first evidence action |
+| One person moves between simple consultation and advanced control | Product-owner requirement for different engagement levels; current journeys expose both behaviors | Scenario sessions that begin with recognition and later require exact evidence or authorship without switching product mode |
+| Training and sports are the primary recognition hierarchy | Confirmed product contract, multi-sport reference evidence, and owner review | Find-a-remembered-session tasks using sport, approximate time, and one distinctive attribute |
+| A composed visual story reduces session interpretation burden | PX-07, PX-08, and owner request for a radical increase in visual information | Explain-back testing: identify structure, meaningful change, missing evidence, and exact-value path from one session |
+| Most visits to a saved report begin with reading, not editing | Product-owner report observation and PX-09 | Reopen, identify the finding, refresh, export, then deliberately edit without instruction |
+| Concentrating source coverage improves trust more than repeating warnings | Product-owner review and PX-04 | Successful-partial and rejected-import consequence comprehension before opening diagnostics |
+| Recognizable labels and visual identifiers are ownership behavior | Product-owner review and PX-06 | Scan mixed-sport history, classify an unknown reference in context, and find the updated sessions |
+| Visible data exit increases perceived control | Product thesis, ownership contract, and product-owner review | Locate the available report export, explain its scope and privacy choices, and distinguish it from future full-library exit |
+
+No hypothesis becomes accepted merely because a mockup looks plausible. Results update this register and the applicable requirement before implementation direction changes.
+
+## Critical journeys and task success
+
+### J1 — From legal access to first personal value
+
+**Trigger:** the person has heard that an export exists, or already has an archive, but does not know whether FitFreed is useful.
+
+**Task:** understand the promise → obtain or choose the archive → remain oriented during processing → understand what entered the library → encounter one supported personal answer or recognizable record → choose a relevant next exploration.
+
+**Success:** no provider-format knowledge is required; the active operation owns the viewport; prior-library safety and current consequence are plain; diagnostics are optional; the completed import leads to history rather than file counts.
+
+### J2 — Find a remembered workout
+
+**Trigger:** the person remembers a sport, approximate date, route, duration, or distinctive measurement.
+
+**Task:** open Training → recognize the overall sports history → scan chronology or calendar → refine only when useful → open the session → return to the exact origin.
+
+**Success:** visible sessions precede filter setup; sport labels and identifiers are recognizable; applied filters are unmistakable; the return action restores view, query, selection, position, and focus.
+
+### J3 — Understand one workout
+
+**Trigger:** a session is interesting because of performance, memory, route, structure, or comparison.
+
+**Task:** grasp the session at a glance → follow one aligned visual story → inspect relevant structure, route, zones, or signals → select or author segmentation when useful → reach exact evidence or provenance deliberately.
+
+**Success:** the person does not assemble a story from unrelated long sections; missing laps, routes, or samples alter the composition honestly; structure and signals share an understandable time context; exact values remain accessible.
+
+### J4 — Make an anonymous sport recognizable
+
+**Trigger:** a repeated source sport cannot be named safely from imported evidence.
+
+**Task:** see affected sessions in context → understand why classification is unresolved → assign a family, display label, and visual identifier → see every relevant history view update → revise or defer without losing access.
+
+**Success:** FitFreed never guesses; classification is not a detached maintenance chore; one action resolves the repeated reference consistently and preserves authorship through restart and reimport.
+
+### J5 — Ask, compare, and preserve
+
+**Trigger:** the person wants to understand change across periods or preserve a session interpretation.
+
+**Task:** begin from a question, completed exploration, or session → review a prepared result → inspect supporting evidence → save if not already durable → reopen on the result → refresh deliberately when stale → export after a focused privacy review.
+
+**Success:** the editor is not the default destination; a useful result exists before advanced composition; report state and source state remain connected; exported output is understandable without FitFreed.
+
+### J6 — Recover from an import problem
+
+**Trigger:** an archive is invalid, partly understood, incompatible, interrupted, repeated, or fails unexpectedly.
+
+**Task:** learn whether existing history changed → understand whether any new history is usable → take one safe next action → inspect family or technical detail only if needed → retry or leave without corruption.
+
+**Success:** red severity reflects consequence rather than parser vocabulary; repeated imports are reassuring rather than suspicious; detailed coverage has one canonical home; no unsupported content is silently discarded.
+
+### J7 — Reuse or leave
+
+**Trigger:** the person wants to use a result in another context, preserve the library independently, or stop using FitFreed.
+
+**Task:** choose the intended output → understand scope, privacy, format, provenance, and known loss → create a documented reusable artifact → verify where it was saved.
+
+**Success:** the current MVP provides deterministic report HTML. Portable library backup and normalized-data export remain confirmed obligations but have no implemented application port; they must not appear as available actions during this redesign. Their future conceptual home and discoverability are reserved without breaching the functional-growth freeze.
+
+## Lower-layer feasibility map
+
+| Journey need | Current support | Design consequence |
+|---|---|---|
+| Import phase, progress, cancellation, terminal safety | `ImportProgress`, `ImportOutcome`, transactional import coordinator, coverage and recovery state | Primarily hierarchy and consequence-language work; a presentation-specific consequence projection may be needed so React does not interpret technical codes |
+| First personal answer | Home exposes ranges, domain and measurement coverage, question destinations, import counts, and resume state | Insufficient: a bounded application read model must provide a conclusion or recognizable-record fallback before Home can claim an answer |
+| Complete-history recognition and finding | Indexed session search, summaries, calendar, sports, classifications, selection snapshots, durable discovery workspace | Sufficient foundation; default ordering, recognition, refinement disclosure, and in-context classification require redesign |
+| Human-readable sport identity | Canonical family, optional user label, authorship, revision, affected-session coverage | Data support exists; provider-neutral icon semantics and presentation mapping remain to be specified |
+| Coherent workout story | Independent validated structure, route, signal, aligned-signal, zone, segmentation, exact pagination, and provenance queries | Insufficient composition: define an application-level session-story contract rather than joining independent commands in presentation |
+| Period questions and exact evidence | Activity, training, sleep, recovery, and longitudinal overview/comparison use cases | Supported calculations exist, but question selection and explanation need a bounded result contract rather than a dashboard assembled from unrelated summaries |
+| Result-first saved reports | List, resolve, stale detection, refresh, source navigation, privacy authorization, deterministic HTML export | Lower layers are sufficient for reading and export; presentation hierarchy currently exposes composition too early |
+| Report composition and authorship | Versioned definitions, typed ordered blocks, optimistic revision, multi-origin starts, persistence | Preserve behind deliberate editing; do not simplify by weakening reproducibility or block behavior |
+| Context-preserving navigation | Canonical destinations, presentation origin descriptors, discovery persistence, focus and restart restoration | Preserve and extend to redesigned detail states; no new business persistence is implied |
+| Human-scale formatting | Raw typed values and existing domain-specific presentation formatters | Consolidate scale-aware locale rules and acceptance examples; preserve exact DTO values and evidence paths |
+| Source coverage detail | Exact artifact classification, family reason codes, counts, mapping and adapter versions, source history | Keep in import result and Sources; surface elsewhere only through answer-specific consequence supplied by an application contract |
+| Current data exit | Deterministic self-contained report HTML only | Make existing export prominent and honest. Backup and normalized export remain unimplemented requirements and cannot be simulated by UI |
+
+This map is a design constraint, not implementation authorization. Before a later production control is specified, its command, DTO, use case, persistence behavior, and failure semantics must be verified at the exact lower-layer boundary.
+
+## Information and state architecture
+
+### Canonical object hierarchy
+
+The library is the root product object. Provider archives establish and update it, but they do not define how a person navigates it.
+
+```text
+Owned library
+├── Sports history
+│   ├── Sport
+│   │   └── Session
+│   │       ├── Workout story
+│   │       ├── Source structure
+│   │       ├── Signals and zones
+│   │       ├── Route evidence
+│   │       ├── Personal criteria
+│   │       └── Exact evidence and provenance
+│   ├── Chronology and calendar
+│   └── Period questions and comparisons
+├── Context
+│   ├── Daily activity
+│   ├── Sleep
+│   └── Recovery
+├── Authored results
+│   ├── Saved report result
+│   └── Report definition and export
+└── Ownership operations
+    ├── Sources, imports, and coverage
+    ├── Preferences and privacy
+    └── Portable outputs
+```
+
+Activity, sleep, and recovery can explain or contextualize a training question, but they do not replace Sports history as the default recognition path. Reports reference canonical evidence without becoming a second copy of the library. Sources explain origin and incorporation without becoming the ordinary exploration hierarchy.
+
+### Conceptual homes
+
+Labels and exact navigation composition remain candidates for X2, but each responsibility has one owner:
+
+| Home | Primary outcome | Default content | Secondary depth |
+|---|---|---|---|
+| Home | Understand what is worth seeing now | One personal answer or recognizable fallback, period, visual evidence, resume path | Question catalogue and library orientation |
+| History | Recognize and explore the owned record | Sports and recent sessions, chronology or calendar, direct browsing | Filters, comparisons, contextual activity/sleep/recovery, exact evidence |
+| Reports | Read and reuse durable interpretations | Saved result or guided result starts | Refresh, export, then deliberate editing and advanced composition |
+| Sources | Establish and maintain the library | Obtain/select source, active operation, consequence-led result | Full family coverage, provenance, compatibility, reimport history |
+| Settings | Control lasting application behavior | Appearance and language | Accessibility, data/privacy policy, updates, application information |
+
+Portable backup and normalized export ultimately belong to ownership operations, not report composition or general preferences. Until their application contracts exist, no available control or false empty panel will imply that they are implemented.
+
+### Result, detail, and control states
+
+Each workspace uses mutually understandable states instead of appending every capability to one document:
+
+1. **Orient:** identify the current object, question, period, and one useful next action.
+2. **Browse or read:** show the history or result as the primary content, with refinements available but not preceding it.
+3. **Inspect:** replace the primary content region with focused detail while persistent navigation and an explicit origin-aware return remain visible.
+4. **Control:** enter editing, classification, criterion, privacy, export, or maintenance as a deliberate task with save/cancel and a named return destination.
+5. **Recover:** when the primary task cannot continue, replace it with consequence, preserved state, and one next action; diagnostics disclose beneath or beyond that recovery path.
+
+List and selected detail, report result and editor, active import and disabled source choices, or error recovery and the failed form must not compete as equally prominent content. A side sheet, modal, inline expansion, or full destination is chosen according to task interruption and evidence depth during X2; all must implement the same state ownership.
+
+### Disclosure grammar
+
+Every answer-bearing surface follows one semantic sequence even when its visual composition differs:
+
+1. **Meaning:** one conclusion, recognizable record, or plain-language consequence.
+2. **Visual explanation:** the relationship, structure, time, route, or change that makes the meaning intelligible.
+3. **Supporting evidence:** only the dates, units, comparison boundary, coverage, and attribution needed to trust that meaning.
+4. **Next questions:** a small number of relevant routes that continue the same line of inquiry.
+5. **Exact detail and control:** tables, raw precision, provenance history, criteria, editor mechanics, diagnostics, and export choices on deliberate request.
+
+Missing or unsupported evidence enters step three only when it changes the meaning. General importer capability belongs to Sources. This grammar does not hide evidence: it gives every layer a predictable route and prevents exhaustive values from becoming the default explanation.
+
+### State lifetime
+
+| Lifetime | Examples | Owner |
+|---|---|---|
+| Canonical and durable | Imported facts, source provenance, sport classifications, segment criteria, report definitions | Domain and persistence through application use cases |
+| Durable preference | Locale, appearance, content zoom | Preferences application port and persistence |
+| Restorable exploration | Applied query, chronology/calendar mode, comparison basket, open subject, origin, focus and meaningful position | Versioned workspace contract plus presentation navigation |
+| Current-task draft | Unsaved report edits, classification edit, criterion edit, export privacy choices | Mounted presentation state until save, cancel, or explicit leave |
+| Ephemeral inspection | Hover/focus value, selected chart interval, disclosure expansion | Presentation only; never silently promoted to business state |
+
+A task transition must state whether draft or selection is preserved, discarded, or saved. Restart restores only behavior promised by a versioned contract; apparent persistence is not inferred from a mounted React component.
+
+### Formatting and visual evidence grammar
+
+- Summary duration uses the largest useful human units; elapsed session positions may use minute/second precision; milliseconds appear only when exact evidence makes them meaningful.
+- Dates use locale-aware human labels in summaries and an unambiguous localized full form in detail; machine timestamps remain confined to provenance or export contracts.
+- Values keep their unit adjacent, apply scale-appropriate precision, and never imply accuracy beyond the source.
+- Sport visual identifiers combine icon and text; color alone never carries identity.
+- Time-aligned session visuals share an elapsed axis and selection when evidence can be related. Each lane retains its own unit and scale; no hidden normalization or causal claim is introduced.
+- Gaps interrupt marks rather than becoming zeros or interpolated continuity. A concise explanation accompanies the affected answer, with exact coverage available on request.
+- Dense tables are exact-evidence views with stable headings, units, pagination, and export paths; they are not default dashboards.
+
+### Coverage ownership
+
+| Surface | Coverage shown by default |
+|---|---|
+| Import result | What became usable, what did not, consequence for the library, and one next action |
+| Sources detail | Complete classification by family, reason, compatibility evidence, mapping version, and provenance |
+| Home or comparison | Only the period and measurement coverage required to qualify the displayed answer |
+| History | Only gaps that change recognition, filtering, or comparison; unknown sports become contextual actions |
+| Session | Only missing structure or signals that alter the current workout story or selected inspection layer |
+| Report result and export | Coverage and limitations attached to the affected finding or block, plus privacy scope at export |
+| Settings | No source coverage; it is not a preference |
+
+This routing makes source transparency explicit without turning FitFreed's current importer boundary into the dominant message on every screen.
+
 ## First-run promise
 
 The initial experience has very little time to establish relevance and trust. It must:
