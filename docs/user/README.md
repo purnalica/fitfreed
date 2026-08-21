@@ -6,8 +6,10 @@ FitFreed has an executable development preview and a complete public-release eng
 supported public release. It is not ready for general use with real personal exports. An empty library opens
 a value-first Home that demonstrates the supported outcome and offers both choosing an existing archive and
 learning how to obtain one. The latter path opens Sources, where a versioned offline guide explains how to
-obtain a Polar Flow ZIP through explicit allowlisted official links and keeps acquisition, import progress,
-outcomes, and compatibility evidence together.
+obtain a Polar Flow ZIP through explicit allowlisted official links. Sources replaces acquisition choices
+with one protected active task while importing, then leads with the exact effect on the local library.
+Reconciliation counts, compatibility evidence, and family coverage remain available on request instead of
+competing with that consequence.
 FitFreed never handles provider credentials or requests and downloads an export on the person's behalf. A
 populated library opens the question-led Home, which shows the usable period, honest domain coverage, and
 only the explorations supported by canonical local evidence. A successful import returns there with its exact

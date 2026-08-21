@@ -152,6 +152,10 @@
     "title": "Bring your fitness history home",
     "intro": "Start with the original export ZIP. FitFreed validates it, translates supported records into an independent local library, and leaves the source archive untouched.",
     "localOnly": "The ZIP and the history built from it stay on this device. FitFreed does not upload them or ask for your provider credentials.",
+    "operationProblemTitle": "The source action could not be completed",
+    "activeEyebrow": "Import in progress",
+    "activeProtectedHistory": "Your existing history remains unchanged until the complete import is committed.",
+    "activeWorking": "FitFreed is working through the archive on this device…",
     "haveArchiveTitle": "I have the ZIP",
     "haveArchiveBody": "Choose the original archive supplied by the provider. You can safely import a newer or repeated export later.",
     "needArchiveTitle": "I need the ZIP",
@@ -1026,44 +1030,62 @@
       "averageRecovery": "Average beat-to-beat interval"
     }
   },
-  "exactRepeat": "Exact package repeat; history was not duplicated.",
-  "completed": "Import completed",
-  "counts": {
-    "recognized": {
-      "one": "recognized",
-      "other": "recognized"
-    },
-    "created": {
-      "one": "new",
-      "other": "new"
-    },
-    "enriched": {
-      "one": "enriched",
-      "other": "enriched"
-    },
-    "amended": {
-      "one": "amended",
-      "other": "amended"
-    },
-    "equivalent": {
-      "one": "equivalent",
-      "other": "equivalent"
-    },
-    "preserved": {
-      "one": "preserved",
-      "other": "preserved"
-    },
-    "conflicts": {
-      "one": "conflict",
-      "other": "conflicts"
-    }
-  },
   "outcome": {
     "heading": "Latest import outcome",
+    "changedHeading": "Your local history has been updated",
+    "changedConsequence": "The archive added or improved information that is now usable in your library.",
+    "reviewedHeading": "The archive was checked",
+    "reviewedConsequence": "The archive was processed successfully, but it did not change your current library.",
+    "repeatHeading": "This archive is already accounted for",
+    "repeatConsequence": "Nothing was duplicated. If support for the source evolves, a later FitFreed mapping can reassess the same ZIP.",
+    "rejectedHeading": "This archive was not imported",
+    "rejectedConsequence": "Your existing library was not changed. Choose another ZIP or inspect the exact reason and coverage.",
+    "failedHeading": "The import could not be completed",
+    "failedConsequence": "Your existing library was not changed. You can retry or inspect the exact reason before choosing another ZIP.",
+    "cancelledHeading": "The import was cancelled",
+    "cancelledConsequence": "Your existing library was not changed. You can leave safely or choose a ZIP when you are ready.",
+    "openHome": "Go to Home",
+    "chooseAnother": "Choose another ZIP",
+    "choosingAnother": "Opening ZIP chooser…",
+    "terminalDetails": "Why the import stopped",
+    "details": "View incorporation and coverage details",
+    "incorporationHeading": "Information incorporated into the library",
+    "incorporationCounts": {
+      "recognized": {
+        "one": "{count} recognized artifact",
+        "other": "{count} recognized artifacts"
+      },
+      "created": {
+        "one": "{count} new observation",
+        "other": "{count} new observations"
+      },
+      "enriched": {
+        "one": "{count} enriched observation",
+        "other": "{count} enriched observations"
+      },
+      "amended": {
+        "one": "{count} amended observation",
+        "other": "{count} amended observations"
+      },
+      "equivalent": {
+        "one": "{count} equivalent observation",
+        "other": "{count} equivalent observations"
+      },
+      "preserved": {
+        "one": "{count} preserved observation",
+        "other": "{count} preserved observations"
+      },
+      "conflicts": {
+        "one": "{count} conflict",
+        "other": "{count} conflicts"
+      }
+    },
     "status": "Status",
     "provider": "Source",
     "polarFlow": "Polar Flow",
     "historyEffect": "History effect",
+    "sourceAdapterVersion": "Source reader version",
+    "mappingVersion": "Library mapping version",
     "historyChanged": "Canonical history changed",
     "historyUnchanged": "Canonical history unchanged",
     "coverageHeading": "Package coverage",

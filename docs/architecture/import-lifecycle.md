@@ -112,9 +112,11 @@ Version 2 can prove the recovery result without guessing: canonical changes and 
 ## Progress and outcomes
 
 Progress is phase-aware. When total work is knowable, the application may report bounded artifact or byte progress; when it is not, it reports the active phase and completed work without displaying a false percentage.
-The Sources presentation keeps import and cancellation action names stable, marks the archive path busy, and
+The Sources presentation replaces competing acquisition choices with one dominant operation surface,
+keeps cancellation explicit, and states that the existing library remains unchanged until commit. It
 announces immediate localized importing or cancellation-requested feedback while the detailed phase stream
-continues to report authoritative application progress.
+continues to report authoritative application progress. The chosen archive is rendered by filename only;
+the presentation never exposes its local directory.
 
 Every terminal outcome includes:
 
@@ -127,6 +129,12 @@ Every terminal outcome includes:
 - whether canonical history changed and whether temporary state was removed.
 
 The family breakdown prioritizes invalid, unrecognized, unsupported, and deliberately ignored content before supported content. Presentation translates stable family, classification, and reason codes into an explanation and next action. Public diagnostics use opaque operation references and sanitized aggregates. Archive locators, source hashes, account evidence, and detailed local provenance remain protected as personal-library data.
+
+The terminal presentation separates three concerns. A consequence-led result states whether usable
+history changed; an optional reason disclosure explains a rejected or failed transaction; and one exact
+incorporation disclosure contains reconciliation counts and family coverage. Picker and official-link
+failures are source-action errors outside the terminal import outcome, so a later source-action failure
+cannot rewrite or mislabel the persisted transaction result.
 
 ## Reimport invariants
 

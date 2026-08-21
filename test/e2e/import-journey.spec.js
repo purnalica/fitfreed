@@ -816,6 +816,14 @@ async function expectCoverage(expectedItems) {
   }
 }
 
+async function openOutcomeDisclosure(selector) {
+  const disclosure = await $(selector);
+  if ((await disclosure.getAttribute("open")) === null) {
+    await disclosure.$("summary").click();
+  }
+  await expect(disclosure).toHaveAttribute("open");
+}
+
 async function expectSourceGuide(catalog) {
   const expectedItems = [
     ...Object.values(catalog.sources.instructions),
@@ -938,7 +946,7 @@ describe("packaged FitFreed import journey", () => {
     await selectArchive(dialogMock, largeArchive, english.choose);
     const progressStartedAt = Date.now();
     await $("aria/Import selected package").click();
-    await $("#progress-heading").waitForDisplayed({ timeout: 1_000 });
+    await $("#source-active-heading").waitForDisplayed({ timeout: 1_000 });
     expect(Date.now() - progressStartedAt).toBeLessThanOrEqual(1_000);
 
     await selectLocale("es-ES", "sources");
@@ -955,7 +963,7 @@ describe("packaged FitFreed import journey", () => {
       { timeout: 1_000, timeoutMsg: "cancellation control remained enabled" },
     );
     expect(Date.now() - cancellationStartedAt).toBeLessThanOrEqual(1_000);
-    await waitForNotice(spanish.phases.cancelled, 5_000);
+    await waitForNotice(spanish.outcome.cancelledConsequence, 5_000);
     await $(`aria/${spanish.import}`).waitForEnabled({ timeout: 5_000 });
     expect(Date.now() - cancellationStartedAt).toBeLessThanOrEqual(5_000);
     expect(await $$(".history-grid table tbody tr")).toHaveLength(0);
@@ -963,12 +971,13 @@ describe("packaged FitFreed import journey", () => {
     await selectLocale("en-US", "sources");
     await selectArchive(dialogMock, path.join(fixtureDirectory, "invalid.zip"), english.choose);
     await $("aria/Import selected package").click();
-    const alert = await $("[role='alert']");
-    await alert.waitForDisplayed();
-    await expect(alert).toHaveText(
+    expect(await $$('[role="alert"]')).toHaveLength(0);
+    await expect($("#outcome-heading")).toHaveText(english.outcome.rejectedHeading);
+    await openOutcomeDisclosure(".outcome-terminal-detail");
+    await expect($(".outcome-terminal-detail")).toHaveText(
       expect.stringContaining("contains recognized data that FitFreed cannot validate"),
     );
-    await expect($("#outcome-heading")).toHaveText("Latest import outcome");
+    await openOutcomeDisclosure(".outcome-coverage-detail");
     await expectCoverage([
       ["1", "Supported"],
       ["0", "Unsupported"],
@@ -996,7 +1005,7 @@ describe("packaged FitFreed import journey", () => {
 
     await selectArchive(dialogMock, path.join(fixtureDirectory, "valid.zip"), english.choose);
     await $("aria/Import selected package").click();
-    await waitForNotice("Import completed: 9 recognized, 7 new");
+    await waitForNotice(english.home.postImportChanged);
     await expectLibraryHome(english);
     await expect($(".library-home-reveal")).toHaveText(
       expect.stringContaining(english.home.postImportChanged),
@@ -1005,6 +1014,7 @@ describe("packaged FitFreed import journey", () => {
       expect.stringContaining("7 new observations"),
     );
     await goToHome("sources");
+    await openOutcomeDisclosure(".outcome-coverage-detail");
     await expectCoverage([
       ["9", "Supported"],
       ["0", "Unsupported"],
@@ -1852,7 +1862,8 @@ describe("packaged FitFreed import journey", () => {
     await selectLocale("es-ES");
     await setAppearanceAndZoom("dark", 200, true);
     await goToHome("sources");
-    await expect($("#outcome-heading")).toHaveText(spanish.outcome.heading);
+    await expect($("#outcome-heading")).toHaveText(spanish.outcome.changedHeading);
+    await openOutcomeDisclosure(".outcome-coverage-detail");
     await expectCoverage([
       ["9", spanish.outcome.supported],
       ["0", spanish.outcome.unsupported],
@@ -2073,7 +2084,7 @@ describe("packaged FitFreed import journey", () => {
 
     await goToHome("sources");
     await $("aria/Import selected package").click();
-    await waitForNotice("Exact package repeat; history was not duplicated.");
+    await waitForNotice(english.home.postImportExactRepeat);
     await expectLibraryHome(english);
     await expect($(".library-home-reveal")).toHaveText(
       expect.stringContaining(english.home.postImportExactRepeat),
@@ -2107,9 +2118,7 @@ describe("packaged FitFreed import journey", () => {
     await goToHome("sources");
     await selectArchive(dialogMock, path.join(fixtureDirectory, "overlap.zip"), english.choose);
     await $("aria/Import selected package").click();
-    await waitForNotice(
-      "Import completed: 5 recognized, 2 new, 0 enriched, 1 amended, 1 equivalent",
-    );
+    await waitForNotice(english.home.postImportChanged);
     await expectLibraryHome(english);
     await expect($(".library-home-reveal")).toHaveText(
       expect.stringContaining(english.home.postImportChanged),
@@ -2898,7 +2907,8 @@ describe("packaged FitFreed import journey", () => {
     expect(await $$("#activity-heading, .training-insights, .sleep-insights, .longitudinal-insights")).toHaveLength(0);
     recordJourneyPhase("reimport-report-refresh-and-return");
     await goToHome("sources");
-    await expect($("#outcome-heading")).toHaveText(spanish.outcome.heading);
+    await expect($("#outcome-heading")).toHaveText(spanish.outcome.changedHeading);
+    await openOutcomeDisclosure(".outcome-coverage-detail");
     await expectFamilyCoverage([
       {
         family: spanish.outcome.familyNames["polar-flow-account-data"],
@@ -3057,7 +3067,7 @@ describe("packaged FitFreed import journey", () => {
       spanish.choose,
     );
     await $(`aria/${spanish.import}`).click();
-    await waitForNotice(`${spanish.completed}:`);
+    await waitForNotice(spanish.home.postImportChanged);
     await expectLibraryHome(spanish);
     expect(await $$(".library-home-resume")).toHaveLength(1);
     await goToHome("reports");

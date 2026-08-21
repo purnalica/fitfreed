@@ -213,6 +213,13 @@ Sources owns provider guidance, archive selection, active processing, source his
 coverage, compatibility, and technical provenance. Import is a task state that temporarily dominates
 the content region; source choices do not compete with an active operation.
 
+The general acquisition explanation appears only while Sources is ready for a decision. During an
+operation and when presenting its result, the page identity becomes compact so that progress or the
+leading consequence begins in the initial viewport. A selected archive is identified by filename,
+never by its local directory. Recoverable chooser and official-link failures stay beside the source
+task and use a restrained warning treatment; they do not become an application-wide emergency or
+replace the last import outcome.
+
 | State | Leading consequence | Required next behavior |
 |---|---|---|
 | Guide | No import has started | Continue with the ZIP or open clearly attributed official instructions |
@@ -227,6 +234,11 @@ the content region; source choices do not compete with an active operation.
 The completed result reports incorporated information explicitly. Uninterpreted or unsupported source
 families appear in this account and only reappear elsewhere when they affect the current answer. The
 ordinary application must not repeat a general “missing data” warning across unrelated screens.
+The visible result leads with whether usable history changed, followed only by non-zero added,
+enriched, or amended counts and a useful next action. Exact reconciliation counts, status, provider,
+history effect, package coverage, and family-level reasons remain in one collapsed disclosure. A
+rejected or failed import gets a separate collapsed reason disclosure; cancellation does not masquerade
+as a failure.
 
 ### Settings
 

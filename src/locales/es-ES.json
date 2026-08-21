@@ -152,6 +152,10 @@
     "title": "Trae a casa tu historial deportivo",
     "intro": "Empieza con el ZIP original de la exportación. FitFreed lo valida, traduce los registros compatibles a una biblioteca local independiente y no modifica el archivo de origen.",
     "localOnly": "El ZIP y el historial construido a partir de él permanecen en este dispositivo. FitFreed no los sube ni solicita las credenciales del proveedor.",
+    "operationProblemTitle": "No se ha podido completar la acción del origen",
+    "activeEyebrow": "Importación en curso",
+    "activeProtectedHistory": "Tu historial existente permanece sin cambios hasta que se confirme la importación completa.",
+    "activeWorking": "FitFreed está procesando el archivo en este dispositivo…",
     "haveArchiveTitle": "Ya tengo el ZIP",
     "haveArchiveBody": "Elige el archivo original suministrado por el proveedor. Más adelante podrás volver a importarlo o cargar una exportación más reciente con seguridad.",
     "needArchiveTitle": "Necesito obtener el ZIP",
@@ -1026,44 +1030,62 @@
       "averageRecovery": "Intervalo medio entre latidos"
     }
   },
-  "exactRepeat": "El paquete es una repetición exacta; el historial no se ha duplicado.",
-  "completed": "Importación completada",
-  "counts": {
-    "recognized": {
-      "one": "reconocido",
-      "other": "reconocidos"
-    },
-    "created": {
-      "one": "nuevo",
-      "other": "nuevos"
-    },
-    "enriched": {
-      "one": "enriquecido",
-      "other": "enriquecidos"
-    },
-    "amended": {
-      "one": "enmendado",
-      "other": "enmendados"
-    },
-    "equivalent": {
-      "one": "equivalente",
-      "other": "equivalentes"
-    },
-    "preserved": {
-      "one": "conservado",
-      "other": "conservados"
-    },
-    "conflicts": {
-      "one": "conflicto",
-      "other": "conflictos"
-    }
-  },
   "outcome": {
     "heading": "Resultado de la última importación",
+    "changedHeading": "Tu historial local se ha actualizado",
+    "changedConsequence": "El archivo ha añadido o mejorado información que ya puedes usar en tu biblioteca.",
+    "reviewedHeading": "El archivo se ha comprobado",
+    "reviewedConsequence": "El archivo se ha procesado correctamente, pero no ha modificado tu biblioteca actual.",
+    "repeatHeading": "Este archivo ya está incorporado",
+    "repeatConsequence": "No se ha duplicado nada. Si evoluciona la compatibilidad con el origen, una correspondencia posterior de FitFreed podrá reevaluar el mismo ZIP.",
+    "rejectedHeading": "Este archivo no se ha importado",
+    "rejectedConsequence": "Tu biblioteca existente no se ha modificado. Elige otro ZIP o consulta el motivo y la cobertura exactos.",
+    "failedHeading": "La importación no se ha podido completar",
+    "failedConsequence": "Tu biblioteca existente no se ha modificado. Puedes reintentarlo o consultar el motivo exacto antes de elegir otro ZIP.",
+    "cancelledHeading": "La importación se ha cancelado",
+    "cancelledConsequence": "Tu biblioteca existente no se ha modificado. Puedes salir con seguridad o elegir un ZIP cuando quieras.",
+    "openHome": "Ir a Inicio",
+    "chooseAnother": "Elegir otro ZIP",
+    "choosingAnother": "Abriendo el selector de ZIP…",
+    "terminalDetails": "Por qué se detuvo la importación",
+    "details": "Ver los detalles de incorporación y cobertura",
+    "incorporationHeading": "Información incorporada a la biblioteca",
+    "incorporationCounts": {
+      "recognized": {
+        "one": "{count} artefacto reconocido",
+        "other": "{count} artefactos reconocidos"
+      },
+      "created": {
+        "one": "{count} observación nueva",
+        "other": "{count} observaciones nuevas"
+      },
+      "enriched": {
+        "one": "{count} observación enriquecida",
+        "other": "{count} observaciones enriquecidas"
+      },
+      "amended": {
+        "one": "{count} observación rectificada",
+        "other": "{count} observaciones rectificadas"
+      },
+      "equivalent": {
+        "one": "{count} observación equivalente",
+        "other": "{count} observaciones equivalentes"
+      },
+      "preserved": {
+        "one": "{count} observación conservada",
+        "other": "{count} observaciones conservadas"
+      },
+      "conflicts": {
+        "one": "{count} conflicto",
+        "other": "{count} conflictos"
+      }
+    },
     "status": "Estado",
     "provider": "Origen",
     "polarFlow": "Polar Flow",
     "historyEffect": "Efecto sobre el historial",
+    "sourceAdapterVersion": "Versión del lector del origen",
+    "mappingVersion": "Versión de correspondencia de la biblioteca",
     "historyChanged": "El historial canónico ha cambiado",
     "historyUnchanged": "El historial canónico no ha cambiado",
     "coverageHeading": "Cobertura del paquete",

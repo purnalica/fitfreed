@@ -410,13 +410,14 @@ describe("SourcesPanel", () => {
       />,
     );
 
-    const importPath = screen.getByRole("heading", { name: "I have the ZIP" })
-      .closest("article");
-    expect(importPath).not.toBeNull();
-    expect(importPath).toHaveAttribute("aria-busy", "true");
-    expect(screen.getByRole("button", { name: "Import selected package" })).toBeDisabled();
-    expect(within(importPath!).getByRole("status")).toHaveTextContent(
-      "Importing and reconciling…",
+    const activeImport = screen.getByRole("region", {
+      name: "Importing and reconciling…",
+    });
+    expect(activeImport).toHaveAttribute("aria-busy", "true");
+    expect(screen.queryByRole("button", { name: "Import selected package" }))
+      .not.toBeInTheDocument();
+    expect(within(activeImport).getByRole("status")).toHaveTextContent(
+      "FitFreed is working through the archive on this device…",
     );
     await user.click(screen.getByRole("button", { name: "Cancel import" }));
     expect(onCancel).toHaveBeenCalledOnce();
@@ -443,7 +444,9 @@ describe("SourcesPanel", () => {
       />,
     );
     expect(screen.getByRole("button", { name: "Cancel import" })).toBeDisabled();
-    expect(within(importPath!).getByRole("status")).toHaveTextContent("Cancelling…");
+    expect(within(screen.getByRole("region", {
+      name: "Importing and reconciling…",
+    })).getByRole("status")).toHaveTextContent("Cancelling…");
 
     view.rerender(
       <SourcesPanel
@@ -468,5 +471,81 @@ describe("SourcesPanel", () => {
     );
     expect(screen.getByRole("button", { name: "Choose ZIP package" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Import selected package" })).toBeDisabled();
+  });
+
+  it("lets an active import dominate the workspace while keeping cancellation explicit", async () => {
+    const user = userEvent.setup();
+    const onCancel = vi.fn().mockResolvedValue(undefined);
+    render(
+      <SourcesPanel
+        locale="en-US"
+        messages={catalogs["en-US"].sources}
+        importMessages={importMessages}
+        guide={guide}
+        guideLoading={false}
+        mode="active"
+        progressLabel="Importing and reconciling artifacts"
+        progressValue={37}
+        archivePath="/synthetic/export.zip"
+        importReady
+        busy
+        cancellable
+        updateInstalling={false}
+        cancelRequested={false}
+        onChooseArchive={vi.fn()}
+        onArchiveError={vi.fn()}
+        onImport={vi.fn()}
+        onCancel={onCancel}
+        onOpenOfficialLink={vi.fn()}
+        onLinkError={vi.fn()}
+      >
+        <p>Competing result</p>
+      </SourcesPanel>,
+    );
+
+    const active = screen.getByRole("region", { name: "Importing and reconciling artifacts" });
+    expect(active).toHaveTextContent("Your existing history remains unchanged until the complete import is committed");
+    expect(within(active).getByRole("progressbar", {
+      name: "Importing and reconciling artifacts",
+    })).toHaveAttribute("value", "37");
+    expect(screen.queryByRole("heading", { name: "I have the ZIP" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Show me how" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Competing result")).not.toBeInTheDocument();
+
+    await user.click(within(active).getByRole("button", { name: "Cancel import" }));
+    expect(onCancel).toHaveBeenCalledOnce();
+  });
+
+  it("places the latest result before follow-up source actions and hides the local path", () => {
+    render(
+      <SourcesPanel
+        locale="en-US"
+        messages={catalogs["en-US"].sources}
+        importMessages={importMessages}
+        guide={guide}
+        guideLoading={false}
+        mode="result"
+        archivePath="/synthetic/private-folder/export.zip"
+        importReady
+        busy={false}
+        cancellable={false}
+        updateInstalling={false}
+        cancelRequested={false}
+        onChooseArchive={vi.fn()}
+        onArchiveError={vi.fn()}
+        onImport={vi.fn()}
+        onCancel={vi.fn()}
+        onOpenOfficialLink={vi.fn()}
+        onLinkError={vi.fn()}
+      >
+        <section data-testid="latest-result">Latest result</section>
+      </SourcesPanel>,
+    );
+
+    const result = screen.getByTestId("latest-result");
+    const actions = screen.getByRole("heading", { name: "I have the ZIP" }).closest("article");
+    expect(result.compareDocumentPosition(actions!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(screen.getByText("export.zip")).toBeVisible();
+    expect(screen.queryByText("/synthetic/private-folder/export.zip")).not.toBeInTheDocument();
   });
 });

@@ -43,6 +43,11 @@ import type {
 import { LibraryHomePanel } from "./presentation/LibraryHomePanel";
 import type { SourceAcquisitionGuide } from "./presentation/source-acquisition";
 import { SourcesPanel } from "./presentation/SourcesPanel";
+import {
+  ImportOutcomePanel,
+  type ImportOutcome,
+  type ImportReport,
+} from "./presentation/ImportOutcomePanel";
 import type { ReportSourceTarget } from "./presentation/report-navigation";
 import type { ReportStartOrigin } from "./presentation/session-report";
 import { LoadingSurface } from "./presentation/LoadingSurface";
@@ -92,60 +97,7 @@ const UpdatePanel = lazy(() =>
   }))
 );
 
-type CountMessageKey = keyof (typeof catalogs)["en-US"]["counts"];
 type ActivityWorkspace = "history" | "comparison";
-
-interface ImportReport {
-  exactRepeat: boolean;
-  recognizedArtifacts: number;
-  newObservations: number;
-  equivalentObservations: number;
-  enrichedObservations: number;
-  amendedObservations: number;
-  preservedObservations: number;
-  conflicts: number;
-}
-
-type ImportOutcomeState = "completed" | "rejected" | "cancelled" | "failed";
-
-interface ArtifactCoverageSummary {
-  total: number;
-  supported: number;
-  unsupported: number;
-  deliberatelyIgnored: number;
-  unrecognized: number;
-  invalid: number;
-}
-
-type ArtifactClassification =
-  | "supported"
-  | "unsupported"
-  | "deliberately-ignored"
-  | "unrecognized"
-  | "invalid";
-
-interface ArtifactFamilyCoverage {
-  familyCode: string | null;
-  classification: ArtifactClassification;
-  reasonCode: string;
-  artifactCount: number;
-}
-
-interface ImportOutcome {
-  operationRef: string;
-  state: ImportOutcomeState;
-  sourceProvider: string;
-  sourceAdapterVersion: string;
-  mappingVersion: string;
-  exactRepeat: boolean;
-  coverageComplete: boolean;
-  coverage: ArtifactCoverageSummary;
-  artifactFamilies: ArtifactFamilyCoverage[];
-  report: ImportReport;
-  canonicalHistoryChanged: boolean;
-  terminalCode: string | null;
-  recoveryNote: string | null;
-}
 
 type ImportPhase =
   | "fingerprinting"
@@ -275,10 +227,10 @@ function App() {
   const [updateRecoveryAcknowledging, setUpdateRecoveryAcknowledging] = useState(false);
   const [cancelRequested, setCancelRequested] = useState(false);
   const [errorCode, setErrorCode] = useState<string>();
+  const [sourceErrorCode, setSourceErrorCode] = useState<string>();
   const activityRangeValidation = useInvalidForm(setErrorCode);
   const messages = catalogs[locale];
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
-  const plural = useMemo(() => new Intl.PluralRules(locale), [locale]);
   const date = useMemo(
     () => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }),
     [locale],
@@ -450,12 +402,12 @@ function App() {
     if (!applicationReady) return;
     refreshLibraryHome(null, true, startupHomeNavigationRevision.current)
       .catch((reason) => setErrorCode(commandErrorCode(reason)));
-    refreshOutcome().catch((reason) => setErrorCode(commandErrorCode(reason)));
+    refreshOutcome().catch((reason) => setSourceErrorCode(commandErrorCode(reason)));
     invoke<SourceAcquisitionGuide[]>("query_source_acquisition_guides")
       .then(setSourceGuides)
       .catch((reason) => {
         setSourceGuides([]);
-        setErrorCode(commandErrorCode(reason));
+        setSourceErrorCode(commandErrorCode(reason));
       });
   }, [applicationReady]);
 
@@ -628,6 +580,7 @@ function App() {
   }
 
   async function openSourceLink(url: string) {
+    setSourceErrorCode(undefined);
     await openOfficialSourceLink(url);
   }
 
@@ -760,10 +713,10 @@ function App() {
   }
 
   async function chooseArchive() {
+    setSourceErrorCode(undefined);
     const selected = await chooseZipArchive();
     if (typeof selected === "string") {
       setArchivePath(selected);
-      setErrorCode(undefined);
     }
   }
 
@@ -772,7 +725,7 @@ function App() {
     try {
       await chooseArchive();
     } catch {
-      setErrorCode("archive-picker-failed");
+      setSourceErrorCode("archive-picker-failed");
     }
   }
 
@@ -781,7 +734,7 @@ function App() {
     setBusy(true);
     setCancelRequested(false);
     setProgress(undefined);
-    setErrorCode(undefined);
+    setSourceErrorCode(undefined);
     setOutcome(undefined);
     try {
       const onProgress = new Channel<ImportProgress>();
@@ -799,14 +752,14 @@ function App() {
       if (code === "import-failed") {
         try {
           const latest = await refreshOutcome();
-          if (latest && (latest.state === "rejected" || latest.state === "failed")) {
-            setErrorCode(latest.terminalCode ?? code);
+          if (!latest || latest.state === "completed") {
+            setSourceErrorCode(code);
           }
         } catch (outcomeReason) {
-          setErrorCode(commandErrorCode(outcomeReason));
+          setSourceErrorCode(commandErrorCode(outcomeReason));
         }
       } else {
-        setErrorCode(code);
+        setSourceErrorCode(code);
       }
     } finally {
       setBusy(false);
@@ -821,7 +774,7 @@ function App() {
       if (!accepted) setCancelRequested(false);
     } catch (reason) {
       setCancelRequested(false);
-      setErrorCode(commandErrorCode(reason));
+      setSourceErrorCode(commandErrorCode(reason));
     }
   }
 
@@ -874,53 +827,8 @@ function App() {
     : undefined;
   const progressValue = artifactProgress ?? byteProgress;
   const rangeLoading = rangeOperation !== undefined;
-  const classifiedArtifacts = outcome
-    ? outcome.coverage.supported +
-      outcome.coverage.unsupported +
-      outcome.coverage.deliberatelyIgnored +
-      outcome.coverage.unrecognized +
-      outcome.coverage.invalid
-    : 0;
-  const visibleErrorCode =
-    errorCode ??
-    (outcome && (outcome.state === "rejected" || outcome.state === "failed")
-      ? outcome.terminalCode ?? "unexpected"
-      : undefined);
+  const visibleErrorCode = errorCode;
   const errorMessages = messages.errors as Record<string, string>;
-
-  function outcomeSummary(latest: ImportOutcome): string {
-    if (latest.state === "cancelled") return messages.cancelled;
-    if (latest.state === "rejected") return messages.outcome.rejectedSummary;
-    if (latest.state === "failed") return messages.outcome.failedSummary;
-    if (latest.exactRepeat) return messages.exactRepeat;
-    const count = (value: number, key: CountMessageKey) => {
-      const form = plural.select(value) === "one" ? "one" : "other";
-      return `${number.format(value)} ${messages.counts[key][form]}`;
-    };
-    return `${messages.completed}: ${count(latest.report.recognizedArtifacts, "recognized")}, ${count(latest.report.newObservations, "created")}, ${count(latest.report.enrichedObservations, "enriched")}, ${count(latest.report.amendedObservations, "amended")}, ${count(latest.report.equivalentObservations, "equivalent")}, ${count(latest.report.preservedObservations, "preserved")}, ${count(latest.report.conflicts, "conflicts")}.`;
-  }
-
-  function providerName(provider: string): string {
-    return provider === "polar-flow" ? messages.outcome.polarFlow : provider;
-  }
-
-  function classificationName(classification: ArtifactClassification): string {
-    return messages.outcome.familyClassifications[classification];
-  }
-
-  function familyName(familyCode: string | null): string {
-    if (familyCode === null) return messages.outcome.unrecognizedFamily;
-    const familyNames = messages.outcome.familyNames as Record<string, string>;
-    return familyNames[familyCode] ?? familyCode;
-  }
-
-  function coverageExplanation(reasonCode: string) {
-    const explanations = messages.outcome.coverageExplanations as Record<
-      string,
-      { reason: string; action: string }
-    >;
-    return explanations[reasonCode] ?? explanations.unknown;
-  }
 
   function formatStepCount(value: string | null): string {
     return value === null ? messages.unavailable : number.format(BigInt(value));
@@ -1109,6 +1017,12 @@ function App() {
             guide={sourceGuides?.find((guide) => guide.sourceId === "polar-flow")}
             guideLoading={sourceGuides === undefined}
             guideRequestId={sourceGuideRequestId}
+            mode={busy ? "active" : outcome ? "result" : "ready"}
+            progressLabel={progress ? messages.phases[progress.phase] : messages.importing}
+            progressValue={progressValue}
+            errorMessage={sourceErrorCode
+              ? errorMessages[sourceErrorCode] ?? messages.errors.unexpected
+              : undefined}
             archivePath={archivePath}
             importReady={libraryReady}
             busy={busy}
@@ -1116,125 +1030,28 @@ function App() {
             updateInstalling={updateInstalling}
             cancelRequested={cancelRequested}
             onChooseArchive={chooseArchive}
-            onArchiveError={() => setErrorCode("archive-picker-failed")}
+            onArchiveError={() => setSourceErrorCode("archive-picker-failed")}
             onImport={runImport}
             onCancel={cancelImport}
             onOpenOfficialLink={openSourceLink}
-            onLinkError={() => setErrorCode("official-source-link-failed")}
+            onLinkError={() => setSourceErrorCode("official-source-link-failed")}
           >
-            {progress && busy && (
-              <section
-                className="progress-panel"
-                aria-labelledby="progress-heading"
-                aria-live="polite"
-              >
-                <h2 id="progress-heading">{messages.phases[progress.phase]}</h2>
-                {progressValue === undefined ? (
-                  <p>{messages.phases[progress.phase]}</p>
-                ) : (
-                  <progress
-                    max="100"
-                    value={progressValue}
-                    aria-label={messages.phases[progress.phase]}
-                  />
-                )}
-              </section>
-            )}
             {progress?.phase === "cancelled" && !busy && outcome?.state !== "cancelled" && (
               <p className="notice" role="status" aria-live="polite">{messages.cancelled}</p>
             )}
             {outcome && (
-              <section className="outcome-panel" aria-labelledby="outcome-heading">
-                <h2 id="outcome-heading">{messages.outcome.heading}</h2>
-                <p className="notice" role="status" aria-live="polite">
-                  {outcomeSummary(outcome)}
-                </p>
-                <dl className="outcome-metadata">
-                  <div>
-                    <dt>{messages.outcome.status}</dt>
-                    <dd>{messages.outcome.states[outcome.state]}</dd>
-                  </div>
-                  <div>
-                    <dt>{messages.outcome.provider}</dt>
-                    <dd>{providerName(outcome.sourceProvider)}</dd>
-                  </div>
-                  <div>
-                    <dt>{messages.outcome.historyEffect}</dt>
-                    <dd>
-                      {outcome.canonicalHistoryChanged
-                        ? messages.outcome.historyChanged
-                        : messages.outcome.historyUnchanged}
-                    </dd>
-                  </div>
-                </dl>
-                <h3 id="coverage-heading">{messages.outcome.coverageHeading}</h3>
-                <p>
-                  <strong>
-                    {number.format(classifiedArtifacts)} / {number.format(outcome.coverage.total)}
-                  </strong>{" "}
-                  <span>
-                    {messages.outcome.artifactsClassified[
-                      plural.select(classifiedArtifacts) === "one" ? "one" : "other"
-                    ]}.
-                  </span>{" "}
-                  <span>
-                    {outcome.coverageComplete
-                      ? messages.outcome.coverageComplete
-                      : messages.outcome.coverageIncomplete}
-                  </span>
-                </p>
-                <ul className="coverage-summary" aria-labelledby="coverage-heading">
-                  <li><strong>{number.format(outcome.coverage.supported)}</strong><span>{messages.outcome.supported}</span></li>
-                  <li><strong>{number.format(outcome.coverage.unsupported)}</strong><span>{messages.outcome.unsupported}</span></li>
-                  <li><strong>{number.format(outcome.coverage.deliberatelyIgnored)}</strong><span>{messages.outcome.ignored}</span></li>
-                  <li><strong>{number.format(outcome.coverage.unrecognized)}</strong><span>{messages.outcome.unrecognized}</span></li>
-                  <li><strong>{number.format(outcome.coverage.invalid)}</strong><span>{messages.outcome.invalid}</span></li>
-                </ul>
-                {outcome.artifactFamilies.length > 0 && (
-                  <>
-                    <h3 id="family-coverage-heading">{messages.outcome.familyCoverageHeading}</h3>
-                    <table className="family-coverage-table">
-                      <caption className="sr-only">{messages.outcome.familyCoverageHeading}</caption>
-                      <thead>
-                        <tr>
-                          <th scope="col">{messages.outcome.familyColumn}</th>
-                          <th scope="col">{messages.outcome.classificationColumn}</th>
-                          <th scope="col">{messages.outcome.artifactCountColumn}</th>
-                          <th scope="col">{messages.outcome.explanationColumn}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {outcome.artifactFamilies.map((family) => {
-                          const explanation = coverageExplanation(family.reasonCode);
-                          return (
-                            <tr key={`${family.familyCode ?? "unrecognized"}:${family.classification}:${family.reasonCode}`}>
-                              <th scope="row" data-label={messages.outcome.familyColumn}>
-                                {familyName(family.familyCode)}
-                              </th>
-                              <td data-label={messages.outcome.classificationColumn}>
-                                {classificationName(family.classification)}
-                              </td>
-                              <td data-label={messages.outcome.artifactCountColumn}>
-                                {number.format(family.artifactCount)}
-                              </td>
-                              <td data-label={messages.outcome.explanationColumn}>
-                                <p>
-                                  <strong>{messages.outcome.reasonLabel}:</strong>{" "}
-                                  {explanation.reason}
-                                </p>
-                                <p>
-                                  <strong>{messages.outcome.nextActionLabel}:</strong>{" "}
-                                  {explanation.action}
-                                </p>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </>
-                )}
-              </section>
+              <ImportOutcomePanel
+                locale={locale}
+                messages={messages.outcome}
+                outcome={outcome}
+                terminalMessage={outcome.state === "rejected" || outcome.state === "failed"
+                  ? errorMessages[outcome.terminalCode ?? "unexpected"]
+                    ?? messages.errors.unexpected
+                  : undefined}
+                onOpenHome={() => navigateHome("home", "start")}
+                onChooseAnother={chooseArchive}
+                onArchiveError={() => setSourceErrorCode("archive-picker-failed")}
+              />
             )}
           </SourcesPanel>
         </div>

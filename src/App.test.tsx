@@ -754,7 +754,9 @@ async function chooseArchive(user: ReturnType<typeof userEvent.setup>, path: str
   }
   mocks.open.mockResolvedValue(path);
   await user.click(await screen.findByRole("button", { name: "Choose ZIP package" }));
-  expect(screen.getByText(path)).toBeVisible();
+  const name = path.split(/[\\/]/).filter(Boolean).at(-1)!;
+  expect(screen.getByText(name)).toBeVisible();
+  if (name !== path) expect(screen.queryByText(path)).not.toBeInTheDocument();
 }
 
 async function changeLanguageToSpanish(
@@ -800,7 +802,8 @@ describe("FitFreed import interface", () => {
     expect(await screen.findByRole("heading", { name: "Bring your fitness history home" }))
       .toBeVisible();
     expect(mocks.open).toHaveBeenCalledOnce();
-    expect(screen.getByText("/synthetic/first-export.zip")).toBeVisible();
+    expect(screen.getByText("first-export.zip")).toBeVisible();
+    expect(screen.queryByText("/synthetic/first-export.zip")).not.toBeInTheDocument();
     expect(home).not.toHaveAttribute("aria-current");
 
     await user.click(home);
@@ -2178,6 +2181,7 @@ describe("FitFreed import interface", () => {
     render(<App />);
 
     await user.click(await screen.findByRole("button", { name: "Sources" }));
+    await user.click(await screen.findByText("View incorporation and coverage details"));
     const coverage = await screen.findByRole("table", { name: "Coverage by data family" });
     expect(within(coverage).getAllByRole("row")).toHaveLength(11);
     expect(within(coverage).getByRole("row", {
@@ -2204,6 +2208,11 @@ describe("FitFreed import interface", () => {
     expect(screen.queryByText(/activity-2026-01-01/)).not.toBeInTheDocument();
 
     await changeLanguageToSpanish(user, "sources");
+    const spanishDetails = screen.getByText("Ver los detalles de incorporación y cobertura")
+      .closest("details");
+    if (!spanishDetails?.hasAttribute("open")) {
+      await user.click(screen.getByText("Ver los detalles de incorporación y cobertura"));
+    }
     const spanishCoverage = screen.getByRole("table", { name: "Cobertura por familia de datos" });
     expect(within(spanishCoverage).getByRole("row", {
       name: /Actividad diaria No válido 1 Motivo: El contenido reconocido no ha superado la validación\. Siguiente acción: Conserva el ZIP original y comunica el problema de compatibilidad/,
@@ -2262,14 +2271,21 @@ describe("FitFreed import interface", () => {
 
     await user.click(screen.getByRole("button", { name: "Import selected package" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
+    const rejected = await screen.findByRole("region", {
+      name: "This archive was not imported",
+    });
+    expect(rejected).toHaveTextContent("Your existing library was not changed");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    await user.click(screen.getByText("Why the import stopped"));
+    expect(rejected).toHaveTextContent(
       "FitFreed will not merge it with the existing history automatically",
     );
-    expect(screen.getByText("Import rejected; no history was changed.")).toBeVisible();
     expect(screen.queryByText(/fixture-(?:primary|other)-claim/)).not.toBeInTheDocument();
 
     await changeLanguageToSpanish(user, "sources");
-    expect(screen.getByRole("alert")).toHaveTextContent(
+    expect(screen.getByRole("region", {
+      name: "Este archivo no se ha importado",
+    })).toHaveTextContent(
       "FitFreed no lo combinará automáticamente con el historial existente",
     );
   });
@@ -2410,11 +2426,13 @@ describe("FitFreed import interface", () => {
 
     await user.click(await screen.findByRole("button", { name: "Orígenes" }));
     const outcomeRegion = await screen.findByRole("region", {
-      name: spanish.outcome.heading,
+      name: spanish.outcome.changedHeading,
     });
-    expect(within(outcomeRegion).getByRole("status")).toHaveTextContent(
-      `${spanish.completed}: 1 ${spanish.counts.recognized.one}, 1 ${spanish.counts.created.one}, 1 ${spanish.counts.enriched.one}, 1 ${spanish.counts.amended.one}, 1 ${spanish.counts.equivalent.one}, 1 ${spanish.counts.preserved.one}, 1 ${spanish.counts.conflicts.one}.`,
-    );
+    await user.click(within(outcomeRegion).getByText(spanish.outcome.details));
+    for (const countMessages of Object.values(spanish.outcome.incorporationCounts)) {
+      expect(within(outcomeRegion).getByText(countMessages.one.replace("{count}", "1")))
+        .toBeVisible();
+    }
     expect(screen.getByText(`${spanish.outcome.artifactsClassified.one}.`)).toBeVisible();
   });
 
@@ -2752,6 +2770,10 @@ describe("FitFreed import interface", () => {
     );
     expect(choose).toBeEnabled();
 
+    mocks.open.mockResolvedValueOnce(null);
+    await user.click(choose);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+
     await chooseArchive(user, "/synthetic/valid.zip");
     expect(screen.getByRole("button", { name: "Import selected package" })).toBeEnabled();
   });
@@ -2805,13 +2827,20 @@ describe("FitFreed import interface", () => {
 
     await user.click(screen.getByRole("button", { name: "Import selected package" }));
     expect(await screen.findByRole("progressbar", { name: "Importing and reconciling artifacts" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Choose ZIP package" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Choose ZIP package" }))
+      .not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancel import" })).toBeVisible();
 
     await changeLanguageToSpanish(user, "sources");
     expect(screen.getByRole("heading", { name: spanish.sources.title })).toBeVisible();
     await user.click(screen.getByRole("button", { name: spanish.cancel }));
 
-    expect(await screen.findByText(spanish.cancelled)).toBeVisible();
+    const cancelledOutcome = await screen.findByRole("region", {
+      name: spanish.outcome.cancelledHeading,
+    });
+    expect(cancelledOutcome).toHaveTextContent(spanish.outcome.cancelledConsequence);
+    expect(screen.getByRole("button", { name: spanish.import })).toBeEnabled();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.queryAllByRole("row")).toHaveLength(0);
   });
 
@@ -2947,9 +2976,16 @@ describe("FitFreed import interface", () => {
 
     await chooseArchive(user, "/synthetic/invalid.zip");
     await user.click(screen.getByRole("button", { name: "Import selected package" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent(
+    const rejected = await screen.findByRole("region", {
+      name: "This archive was not imported",
+    });
+    expect(rejected).toHaveTextContent("Your existing library was not changed");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    await user.click(screen.getByText("Why the import stopped"));
+    expect(rejected).toHaveTextContent(
       "This package contains recognized data that FitFreed cannot validate. Keep the original ZIP and report the compatibility problem; no history was changed.",
     );
+    await user.click(screen.getByText("View incorporation and coverage details"));
     expect(screen.getByRole("heading", { name: "Package coverage" })).toBeVisible();
     expect(screen.getByText("2 / 2")).toBeVisible();
     const rejectedCoverage = screen.getByRole("list", { name: "Package coverage" });
@@ -2957,7 +2993,17 @@ describe("FitFreed import interface", () => {
     expect(invalidCoverage).not.toBeNull();
     expect(within(invalidCoverage!).getByText("1")).toBeVisible();
 
+    mocks.open.mockRejectedValueOnce(new Error("dialog unavailable"));
+    await user.click(within(rejected).getByRole("button", { name: "Choose another ZIP" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "FitFreed could not open the ZIP chooser. Try again; no history was changed.",
+    );
+    expect(within(rejected).getByText(
+      "This package contains recognized data that FitFreed cannot validate. Keep the original ZIP and report the compatibility problem; no history was changed.",
+    )).toBeVisible();
+
     await chooseArchive(user, "/synthetic/valid.zip");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Import selected package" }));
     expect(await screen.findByRole("status", { name: "Your library grew" }))
       .toHaveTextContent("3 new observations");
@@ -2966,6 +3012,7 @@ describe("FitFreed import interface", () => {
       request: { afterImportOperationRef: "synthetic-operation" },
     });
     await user.click(screen.getByRole("button", { name: "Sources" }));
+    await user.click(screen.getByText("View incorporation and coverage details"));
     expect(screen.getByText("Every package artifact was classified.")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "History" }));
     expect(await screen.findByRole("heading", { name: "Daily activity overview" })).toBeVisible();
@@ -2977,9 +3024,12 @@ describe("FitFreed import interface", () => {
 
     await user.click(screen.getByRole("button", { name: "Sources" }));
     await user.click(screen.getByRole("button", { name: "Import selected package" }));
-    expect(await screen.findByText(
-      "This package was an exact repeat; your library remains unchanged and duplicate-free.",
-    )).toBeVisible();
+    expect(await screen.findByRole("status", { name: "Your library grew" }))
+      .toHaveTextContent("exact repeat");
+    await user.click(screen.getByRole("button", { name: "Sources" }));
+    expect(await screen.findByRole("region", {
+      name: "This archive is already accounted for",
+    })).toHaveTextContent("Nothing was duplicated");
     expect(mocks.sleepInvoke).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "History" }));
     expect(await screen.findByRole("heading", { name: "Daily activity overview" })).toBeVisible();
