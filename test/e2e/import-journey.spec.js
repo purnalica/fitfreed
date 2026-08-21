@@ -129,15 +129,15 @@ async function expectSettingsControlsWithinInitialViewport() {
     const heading = document.querySelector(".settings-heading").getBoundingClientRect();
     const root = document.documentElement;
     return {
-      headingTop: heading.top,
-      formTop: form.top,
+      headingDocumentTop: heading.top + window.scrollY,
+      formDocumentTop: form.top + window.scrollY,
       viewportHeight: root.clientHeight,
       hasHorizontalOverflow: root.scrollWidth > root.clientWidth,
     };
   });
-  expect(state.headingTop).toBeGreaterThanOrEqual(0);
-  expect(state.formTop).toBeGreaterThan(state.headingTop);
-  expect(state.formTop).toBeLessThan(state.viewportHeight);
+  expect(state.headingDocumentTop).toBeGreaterThanOrEqual(0);
+  expect(state.formDocumentTop).toBeGreaterThan(state.headingDocumentTop);
+  expect(state.formDocumentTop).toBeLessThan(state.viewportHeight);
   expect(state.hasHorizontalOverflow).toBe(false);
 }
 
