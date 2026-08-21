@@ -357,21 +357,29 @@ Implement in order of time to personal value: import confidence and result, firs
 
 **Gate:** the independent product-experience audit is repeated against the ordinary release-shaped application. Functional implementation, attractive presentation, or green automation alone cannot close this phase.
 
-## Design thesis under evaluation
+## X2 review candidate — not accepted
 
-The primary candidate is a question-first desktop workspace with an editorial, non-judgmental visual language. It is not yet an accepted production direction.
+The interactive comparison considered three materially different hierarchies:
 
-- The default view offers one bounded observation or comparison before presenting supporting metrics.
-- A structured question catalogue expresses user intent without implying unsupported natural-language or artificial-intelligence capabilities.
-- Every calculated statement provides a direct route to its dates and source-derived records.
-- Domain-specific coverage and limitations accompany the conclusion they affect; FitFreed does not collapse unrelated coverage into a single score.
-- Provider import, schema coverage, reimport, and local-library controls remain fully inspectable in a secondary data-library surface.
-- The first-run experience demonstrates the answer structure with explicitly illustrative data, then offers local archive processing as the primary action.
-- The interface remains warm without grading, coaching, diagnosing, or inferring causation.
+- **History Desk** makes the owned sports history the stable desktop object and keeps direct browsing, recognition, and origin-aware detail primary.
+- **Answer Canvas** leads with one bounded supported conclusion and presents its included sessions as inspectable evidence.
+- **Living Chronicle** organizes the library as an editorial time narrative; it is emotionally legible but makes exact retrieval, report work, keyboard interaction, and existing application-contract reuse less direct.
 
-An alternative chronological direction is also being evaluated for its stronger emotional connection to long personal histories. It is not the leading default because it makes analytical controls less direct and requires full-history aggregates beyond the existing bounded insight queries. Its strongest narrative qualities may be incorporated into the question-first workspace without adopting it as the application structure.
+The coherent review candidate uses History Desk for the stable architecture—Home, History, Reports, Sources, and Settings—and includes one bounded Answer Canvas module on Home and after import. The module accelerates the first useful reading but never displaces recognizable sports, recent sessions, or direct browsing. Living Chronicle remains a possible History lens rather than a competing application shell.
 
-The current application contracts already support the principal training comparison, training-day counts, aligned multi-domain days, domain-specific availability, and date-level inspection used in the leading prototype. Production implementation still requires an application-level home and question-catalogue contract; the presentation layer must not assemble a new business read model from unrelated commands.
+The candidate also establishes these state choices:
+
+- session selection opens a composed story or focused detail while preserving the exact filtered origin;
+- a saved report opens on its result and evidence; its ordered definition appears only in a deliberate editing state;
+- import progress dominates its active operation, cancellation states what remained unchanged, and completion leads with the usable history while keeping exact source incorporation available on request;
+- first run explains local processing and demonstrates only illustrative capability before asking for an archive; and
+- application copy identifies facts, evidence, consequence, limitation, and action without promotional claims or manufactured excitement.
+
+The executable study uses independently invented multi-sport data. Interaction checks cover meaningful filter input and return-state persistence; exact session evidence; report validation, multiple blocks, ordering, removal, save, reopen, and export intent; import guidance, cancellation, retry, completion, coverage, and source detail; settings; all primary navigation; and structural accessibility across initial and dynamic states. Visual review covers wide desktop and compact reflow. This evidence validates the candidate's task and state model, not production data correctness or unimplemented capability.
+
+Production implementation still requires an application-level bounded Home result and a composed session-story contract. Portable library backup and normalized-data export also remain confirmed MVP obligations without current application ports. Presentation code must not assemble these business read models itself or imply that the missing contracts already exist.
+
+The candidate remains pending product-owner review. No production presentation code changes are authorized by the study alone.
 
 ## Training-centred expansion
 
