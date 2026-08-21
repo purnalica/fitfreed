@@ -51,41 +51,70 @@ Compose evidence and your own words into a saved, reproducible report. Review ho
 change it, inspect sensitive location or physiological content, and export an independently useful
 artifact under your control.
 
-The sports, deep-session, navigation, and report MVP experience is implemented in the current source.
-Its evidence boundary is explicit in the
+The underlying sports, session-evidence, navigation, and report capabilities are implemented in the
+current source. Their production presentation does not yet conform to the accepted direction; that
+migration is tracked in the [active delivery plan](docs/plans/mvp-redesign-production-migration.md).
+The evidence boundary remains explicit in the
 [experience assessment](docs/research/mvp-experience-boundary-assessment.md), while release readiness
-remains governed independently by the [current ledger](docs/testing/public-release-readiness.md).
+is governed independently by the [current ledger](docs/testing/public-release-readiness.md).
 
 ## Where the project stands
 
 <!-- product-status:start -->
-| Implemented in source | Work in progress | Later scope |
-|---|---|---|
-| Polar Flow ZIP validation and import | Accepted History Desk structure with bounded Answer Canvas explanations | Additional providers and live APIs |
-| Explicit supported, ignored, and unrecognized coverage | Incremental migration from import to recognizable personal value | Linux and Windows distribution |
-| Safe exact and cumulative reimport | Map-led outdoor session investigation with synchronized recorded evidence | Local MCP access for authorized agents |
-| Provider-neutral SQLite history for activity, training summaries, structure, routes, signals, sleep, and recovery | Result-first reports, human-scale presentation, and visible data exit | Advanced encryption and extension systems |
-| Bounded visual comparison and longitudinal context |  | Collaborative or hosted analytics |
-| User-authored sport classification and complete-history session search |  | Features without validated user value |
-| Chronology, source-separated calendar discovery, session comparison, and restart restoration |  |  |
-| Recorded exercise, mixed-sport, source-lap, automatic-lap, and pause inspection |  |  |
-| Private local primary and transition route traces with paginated exact points |  |  |
-| Gap-aware supported signal charts with paginated exact samples |  |  |
-| Exact recorded heart-rate, speed, and power zones with applicable aggregates |  |  |
-| Reusable personal segment criteria with exact locally derived session views |  |  |
-| Library Home, post-import summary, and resumable exploration |  |  |
-| Persistent navigation, offline export guidance, and allowlisted official links |  |  |
-| Durable language, appearance, and content zoom settings |  |  |
-| en-US and es-ES, packaging, update recovery, and release-shaped tests |  |  |
-| On-demand privacy-bounded session provenance and reconciliation history |  |  |
-| Selectable same-role signal alignment with exact sample paths |  |  |
-| Composable session and route reports with privacy-reviewed self-contained HTML export |  |  |
-| Versioned training-period findings, comparisons, charts, exact tables, and coverage views |  |  |
-| Question-led, exploration-led, session-led, and blank report starts with durable authored results |  |  |
-| Deliberate stale-report refresh through an exact current-evidence review |  |  |
-| Origin-aware navigation between saved reports and their exact session or comparison source |  |  |
+<details data-status="available">
+<summary><strong>Implemented in source — Current capability</strong></summary>
+<ul>
+<li>Polar Flow ZIP validation and import</li>
+<li>Explicit supported, ignored, and unrecognized coverage</li>
+<li>Safe exact and cumulative reimport</li>
+<li>Provider-neutral SQLite history for activity, training summaries, structure, routes, signals, sleep, and recovery</li>
+<li>Bounded visual comparison and longitudinal context</li>
+<li>User-authored sport classification and complete-history session search</li>
+<li>Chronology, source-separated calendar discovery, session comparison, and restart restoration</li>
+<li>Recorded exercise, mixed-sport, source-lap, automatic-lap, and pause inspection</li>
+<li>Private local primary and transition route traces with paginated exact points</li>
+<li>Gap-aware supported signal charts with paginated exact samples</li>
+<li>Exact recorded heart-rate, speed, and power zones with applicable aggregates</li>
+<li>Reusable personal segment criteria with exact locally derived session views</li>
+<li>Library Home, post-import summary, and resumable exploration</li>
+<li>Persistent navigation, offline export guidance, and allowlisted official links</li>
+<li>Durable language, appearance, and content zoom settings</li>
+<li>en-US and es-ES, packaging, update recovery, and release-shaped tests</li>
+<li>On-demand privacy-bounded session provenance and reconciliation history</li>
+<li>Selectable same-role signal alignment with exact sample paths</li>
+<li>Composable session and route reports with privacy-reviewed self-contained HTML export</li>
+<li>Versioned training-period findings, comparisons, charts, exact tables, and coverage views</li>
+<li>Question-led, exploration-led, session-led, and blank report starts with durable authored results</li>
+<li>Deliberate stale-report refresh through an exact current-evidence review</li>
+<li>Origin-aware navigation between saved reports and their exact session or comparison source</li>
+</ul>
+<p><a href="docs/roadmap.md#milestone-2--mvp">MVP capability boundary →</a></p>
+</details>
 
-Status sources: [MVP capability boundary](docs/roadmap.md#milestone-2--mvp) · [Active production migration plan](docs/plans/mvp-redesign-production-migration.md) · [Post-MVP evolution tracks](docs/roadmap.md#evolution-tracks-after-the-mvp).
+<details data-status="active" open>
+<summary><strong>Work in progress — Experience production migration</strong></summary>
+<ul>
+<li>Accepted History Desk structure with bounded Answer Canvas explanations</li>
+<li>Incremental migration from import to recognizable personal value</li>
+<li>Map-led outdoor session investigation with synchronized recorded evidence</li>
+<li>Result-first reports, human-scale presentation, and visible data exit</li>
+</ul>
+<p><a href="docs/plans/mvp-redesign-production-migration.md">Active production migration plan →</a></p>
+</details>
+
+<details data-status="later">
+<summary><strong>Later scope — Outside the current MVP</strong></summary>
+<ul>
+<li>Additional providers and live APIs</li>
+<li>Linux and Windows distribution</li>
+<li>Local MCP access for authorized agents</li>
+<li>Advanced encryption and extension systems</li>
+<li>Collaborative or hosted analytics</li>
+<li>Features without validated user value</li>
+</ul>
+<p><a href="docs/roadmap.md#evolution-tracks-after-the-mvp">Post-MVP evolution tracks →</a></p>
+</details>
+
 <!-- product-status:end -->
 
 Polar Flow is the first importer, not the product identity. Provider-specific formats stay at the

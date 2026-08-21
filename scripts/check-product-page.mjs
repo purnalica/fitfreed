@@ -21,9 +21,9 @@ const sourceDocument = new JSDOM(source, {
 }).window.document;
 
 assert.equal(sourceDocument.documentElement.lang, "en-US", "product page must declare its source locale");
-assert.equal(sourceDocument.title, "FitFreed — Explore personal fitness exports");
+assert.equal(sourceDocument.title, "FitFreed — Explore the fitness history you own");
 assert.equal(sourceDocument.querySelector('link[rel="canonical"]')?.href, publicOrigin);
-assert.ok(sourceDocument.querySelector('meta[name="description"]')?.content.includes("fitness exports"));
+assert.ok(sourceDocument.querySelector('meta[name="description"]')?.content.includes("local fitness history"));
 assert.equal(sourceDocument.querySelectorAll("script").length, 0, "canonical source must not contain generated runtime code");
 assert.doesNotMatch(
   sourceDocument.body.textContent,
@@ -31,11 +31,43 @@ assert.doesNotMatch(
   "product-page copy must inform rather than advertise",
 );
 assert.doesNotMatch(sourceDocument.body.textContent, /!/u, "product-page copy must not manufacture excitement");
+assert.match(sourceDocument.querySelector("h1")?.textContent ?? "", /fitness history.*platform that recorded it/isu);
+assert.match(sourceDocument.querySelector(".product-direction-label")?.textContent ?? "", /Product direction.*illustrative data/isu);
+assert.deepEqual(
+  [...sourceDocument.querySelectorAll(".product-shell-navigation span")].map(({ textContent }) => textContent.trim()),
+  ["Home", "History", "Reports", "Sources", "Settings"],
+  "the product illustration must use visible workspace labels",
+);
+assert.equal(sourceDocument.querySelectorAll("[data-product-story]").length, 3);
+assert.deepEqual(
+  [...sourceDocument.querySelectorAll("[data-product-story]")].map(({ dataset }) => dataset.productStory),
+  ["find", "understand", "keep"],
+);
+assert.ok(sourceDocument.querySelector("figure.route-evidence figcaption"));
+assert.match(sourceDocument.querySelector("figure.route-evidence figcaption")?.textContent ?? "", /recorded route.*local/isu);
+assert.equal(sourceDocument.querySelectorAll("details[data-status]").length, 3);
+assert.ok(sourceDocument.querySelector('details[data-status="active"][open]'));
+assert.equal(
+  sourceDocument.querySelectorAll('picture source[media="(prefers-color-scheme: dark)"][srcset="../assets/brand/fitfreed-logo-dark.svg"]').length,
+  2,
+  "header and footer brands must remain visible in dark mode",
+);
+assert.doesNotMatch(
+  sourceDocument.body.textContent,
+  /revolutionary|effortless|unleash|game-changing|ultimate|best-in-class|transform your life/iu,
+  "product-page copy must stay factual",
+);
 
 for (const localAsset of sourceDocument.querySelectorAll('img[src], link[rel="stylesheet"], link[rel="icon"]')) {
   const reference = localAsset.getAttribute("src") || localAsset.getAttribute("href");
   assert.doesNotMatch(reference, /^https?:/u);
   assert.ok(existsSync(resolve(pageDirectory, reference)), `missing local product-page asset: ${reference}`);
+}
+
+for (const sourceAsset of sourceDocument.querySelectorAll("source[srcset]")) {
+  const reference = sourceAsset.getAttribute("srcset");
+  assert.doesNotMatch(reference, /^https?:/u);
+  assert.ok(existsSync(resolve(pageDirectory, reference)), `missing local product-page source asset: ${reference}`);
 }
 
 for (const link of sourceDocument.querySelectorAll("a[href]")) {
@@ -68,6 +100,8 @@ async function validateLocalizedPage(output, expected) {
     [...document.querySelectorAll("[data-status]")].map(({ dataset }) => dataset.status),
     ["available", "active", "later"],
   );
+  assert.equal(document.querySelectorAll("details[data-status]").length, 3);
+  assert.ok(document.querySelector('details[data-status="active"][open]'));
   assert.match(document.querySelector('[data-status="available"]').textContent, expected.available);
   assert.match(document.querySelector('[data-status="active"]').textContent, expected.active);
   assert.match(document.querySelector('[data-status="later"]').textContent, expected.later);
@@ -93,7 +127,7 @@ await validateLocalizedPage(pages["index.html"], {
   active: /Work in progress/u,
   available: /Implemented in source/u,
   canonical: publicOrigin,
-  heading: /fitness export/iu,
+  heading: /fitness history/iu,
   later: /Later scope/u,
   locale: "en-US",
 });
@@ -101,7 +135,7 @@ await validateLocalizedPage(pages["es/index.html"], {
   active: /Trabajo en curso/u,
   available: /Implementado en el código/u,
   canonical: new URL("es/", publicOrigin).toString(),
-  heading: /exportación de actividad física/iu,
+  heading: /historial deportivo/iu,
   later: /Alcance posterior/u,
   locale: "es-ES",
 });
@@ -112,5 +146,8 @@ assert.match(sourceDocument.querySelector("#status .section-heading").textConten
 
 const styles = readFileSync(resolve(pageDirectory, "styles.css"), "utf8");
 assert.doesNotMatch(styles, /url\(\s*["']?https?:/u, "product-page styles must not load remote assets");
+assert.doesNotMatch(styles, /font-size:\s*(?:[0-9]|10|11)px/u, "product-page text must not use sub-12px fixed sizes");
+assert.match(styles, /\.product-shell-navigation[\s\S]*grid-template-columns:\s*repeat\(5,/u);
+assert.match(styles, /\.route-evidence-map[\s\S]*min-height:\s*clamp\(/u);
 
 console.log("Localized product page contracts passed");

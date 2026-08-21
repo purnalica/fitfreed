@@ -99,8 +99,8 @@ test("renders deterministic, accessible-language static routes", () => {
   assert.equal(spanish.documentElement.lang, "es-ES");
   assert.equal(english.querySelector("link[rel=canonical]").href, "https://fitfreed.org/");
   assert.equal(spanish.querySelector("link[rel=canonical]").href, "https://fitfreed.org/es/");
-  assert.match(english.querySelector("h1").textContent, /fitness export/iu);
-  assert.match(spanish.querySelector("h1").textContent, /exportación de actividad física/iu);
+  assert.match(english.querySelector("h1").textContent, /fitness history/iu);
+  assert.match(spanish.querySelector("h1").textContent, /historial deportivo/iu);
   assert.match(spanish.querySelector('[data-status="available"]').textContent, /Implementado en el código/iu);
   assert.equal(spanish.querySelectorAll("[data-i18n]").length, 0, "build output must not expose source localization markers");
 

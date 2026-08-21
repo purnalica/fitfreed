@@ -67,15 +67,17 @@ test("composes the canonical product root without an unsupported update channel"
   const spanishPage = readFileSync(path.join(outputDirectory, "es", "index.html"), "utf8");
   assert.match(page, /href="assets\/brand\/fitfreed-favicon\.svg"/u);
   assert.match(spanishPage, /href="\.\.\/assets\/brand\/fitfreed-favicon\.svg"/u);
+  assert.match(page, /srcset="assets\/brand\/fitfreed-logo-dark\.svg"/u);
+  assert.match(spanishPage, /srcset="\.\.\/assets\/brand\/fitfreed-logo-dark\.svg"/u);
   assert.match(spanishPage, /<html lang="es-ES"/u);
   assert.match(spanishPage, /<h1[^>]*>.*historial deportivo/isu);
   assert.match(
     page,
-    /href="https:\/\/github\.com\/purnalica\/fitfreed\/blob\/main\/docs\/roadmap\.md"/u,
+    /href="https:\/\/github\.com\/purnalica\/fitfreed\/blob\/main\/docs\/roadmap\.md#milestone-2--mvp"/u,
   );
-  assert.doesNotMatch(page, /(?:href|src)="\.\.\//u);
+  assert.doesNotMatch(page, /(?:href|src|srcset)="\.\.\//u);
   for (const [outputFile, output] of [["index.html", page], ["es/index.html", spanishPage]]) {
-    for (const [, reference] of output.matchAll(/(?:href|src)="([^"\n]+)"/gu)) {
+    for (const [, reference] of output.matchAll(/(?:href|src|srcset)="([^"\n]+)"/gu)) {
       if (/^(?:#|\/|https:\/\/)/u.test(reference)) continue;
       const deployedPath = new URL(reference, new URL(outputFile, "https://pages.invalid/")).pathname;
       const target = path.resolve(outputDirectory, deployedPath.slice(1));

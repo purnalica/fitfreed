@@ -51,12 +51,21 @@ export function relativeFiles(root) {
 function deployedProductPage(source, outputFile) {
   const pageDirectory = path.posix.dirname(outputFile);
   const artifactReference = (target) => path.posix.relative(pageDirectory, target) || path.posix.basename(target);
-  return source.replaceAll(/(href|src)="([^"\n]+)"/gu, (_match, attribute, target) => {
+  const deployedReference = (target) => {
     let destination = target;
     if (target === "styles.css") destination = artifactReference("styles.css");
     else if (target.endsWith("locale.js")) destination = artifactReference("locale.js");
     else if (target.startsWith("../assets/")) destination = artifactReference(target.slice(3));
     else if (target.startsWith("../")) destination = new URL(target.slice(3), repositoryUrl).toString();
+    return destination;
+  };
+  const deployedSourceSet = (sourceSet) => sourceSet.split(",").map((candidate) => {
+    const [, target, descriptor = ""] = candidate.trim().match(/^(\S+)(.*)$/u);
+    return `${deployedReference(target)}${descriptor}`;
+  }).join(", ");
+
+  return source.replaceAll(/(href|src|srcset)="([^"\n]+)"/gu, (_match, attribute, target) => {
+    const destination = attribute === "srcset" ? deployedSourceSet(target) : deployedReference(target);
     return `${attribute}="${destination}"`;
   });
 }

@@ -33,9 +33,13 @@ test("renders README and product-page status from one model", () => {
     "<div>\n  <!-- product-status:start -->\n  stale\n  <!-- product-status:end -->\n</div>\n",
   );
 
-  assert.match(rendered.readme, /\| Available \| Active \| Later \|/u);
-  assert.match(rendered.readme, /Ready & inspectable/u);
+  assert.equal((rendered.readme.match(/<details data-status=/gu) ?? []).length, 3);
+  assert.match(rendered.readme, /<details data-status="active" open>/u);
+  assert.match(rendered.readme, /<summary><strong>Available — Current<\/strong><\/summary>/u);
+  assert.match(rendered.readme, /Ready &amp; inspectable/u);
   assert.match(rendered.productPage, /data-status="active"/u);
+  assert.match(rendered.productPage, /<details data-status="active" open>/u);
+  assert.match(rendered.productPage, /<summary>/u);
   assert.match(rendered.productPage, /data-i18n="status\.available\.label"/u);
   assert.match(rendered.productPage, /data-i18n="status\.active\.items\.0"/u);
   assert.match(rendered.productPage, /Ready &amp; inspectable/u);

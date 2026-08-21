@@ -6,9 +6,9 @@
     <meta
       name="description"
       data-i18n-content="meta.description"
-      content="FitFreed imports supported personal fitness exports into a local history for exploration and reporting."
+      content="FitFreed turns supported fitness exports into a local fitness history for searching sessions, inspecting evidence, and exporting reports."
     >
-    <title data-i18n="meta.title">FitFreed — Explore personal fitness exports</title>
+    <title data-i18n="meta.title">FitFreed — Explore the fitness history you own</title>
     <link rel="canonical" href="https://fitfreed.org/">
     <link rel="icon" href="../assets/brand/fitfreed-favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="styles.css">
@@ -18,13 +18,16 @@
 
     <header class="site-header">
       <a class="brand" href="#top" aria-label="FitFreed home" data-i18n-aria-label="navigation.homeLabel">
-        <img src="../assets/brand/fitfreed-logo.svg" alt="FitFreed" data-i18n-static>
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="../assets/brand/fitfreed-logo-dark.svg">
+          <img src="../assets/brand/fitfreed-logo.svg" alt="FitFreed" data-i18n-static>
+        </picture>
       </a>
-      <nav aria-label="Product" data-i18n-aria-label="navigation.productLabel">
-        <a href="#experience" data-i18n="navigation.experience">Experience</a>
-        <a href="#ownership" data-i18n="navigation.ownership">Ownership</a>
+      <nav class="site-navigation" aria-label="Product" data-i18n-aria-label="navigation.productLabel">
+        <a href="#product" data-i18n="navigation.product">Product</a>
+        <a href="#control" data-i18n="navigation.control">Data control</a>
         <a href="#status" data-i18n="navigation.status">Status</a>
-        <a href="#community" data-i18n="navigation.community">Community</a>
+        <a href="#community" data-i18n="navigation.community">Contribute</a>
       </nav>
       <nav
         class="locale-switcher"
@@ -32,213 +35,225 @@
         aria-label="Language"
         data-i18n-aria-label="language.switcher"
       ></nav>
-      <a class="header-action" href="https://github.com/purnalica/fitfreed" data-i18n="navigation.github">View on GitHub</a>
+      <a class="header-action" href="https://github.com/purnalica/fitfreed" data-i18n="navigation.github">GitHub repository</a>
     </header>
 
     <main id="main">
       <section class="hero" id="top">
         <div class="hero-copy">
-          <p class="eyebrow" data-i18n="hero.eyebrow">Open-source desktop application · Local processing · Provider-neutral data model</p>
-          <h1><span data-i18n="hero.titleLead">Explore the history inside</span> <em data-i18n="hero.titleEmphasis">your fitness export.</em></h1>
+          <p class="eyebrow" data-i18n="hero.eyebrow">Open-source desktop application · Local processing</p>
+          <h1>
+            <span data-i18n="hero.titleLead">Your fitness history,</span>
+            <span data-i18n="hero.titleEmphasis">outside the platform that recorded it.</span>
+          </h1>
           <p class="hero-intro" data-i18n="hero.intro">
-            FitFreed imports supported Polar Flow export data into a local history for browsing
-            sessions, inspecting routes and signals, comparing periods, and creating reports. Core
-            use requires no FitFreed account or upload.
+            FitFreed turns a supported fitness export into a local, searchable history. Find a
+            session, inspect its route and recorded signals, compare periods, and export reports.
+            Core use needs no FitFreed account and no upload.
           </p>
           <div class="hero-actions">
-            <a class="primary-action" href="#experience"><span data-i18n="hero.explore">Review the product scope</span> <span data-i18n-static>↓</span></a>
-            <a class="secondary-action" href="../docs/roadmap.md" data-i18n="hero.roadmap">Read the roadmap</a>
+            <a class="primary-action" href="#product">
+              <span data-i18n="hero.product">See what it is for</span>
+              <span aria-hidden="true" data-i18n-static>↓</span>
+            </a>
+            <a class="secondary-action" href="../docs/user/development-preview.md" data-i18n="hero.evaluate">Evaluate the current source</a>
           </div>
-          <p class="release-note">
-            <span aria-hidden="true" data-i18n-static></span>
-            <span data-i18n="hero.releaseNote">No supported download yet · macOS experience MVP in active development</span>
-          </p>
+          <div class="availability-note">
+            <strong data-i18n="hero.availabilityTitle">No supported download yet</strong>
+            <span data-i18n="hero.availabilityBody">The macOS engineering baseline exists; the accepted experience migration is in progress.</span>
+          </div>
         </div>
 
-        <div class="hero-product" role="img" aria-label="Illustrative FitFreed sports history concept" data-i18n-aria-label="hero.conceptLabel">
-          <div class="window-bar" aria-hidden="true">
-            <i></i><i></i><i></i><span data-i18n="hero.conceptWindow">Illustrative history · not your data</span>
+        <div class="product-direction">
+          <div class="product-direction-heading">
+            <div>
+              <p class="product-direction-label" data-i18n="hero.directionLabel">Product direction — illustrative data, not a screenshot</p>
+              <h2 data-i18n="hero.directionTitle">A recorded route stays connected to the session evidence around it.</h2>
+            </div>
+            <p data-i18n="hero.directionStatus">Map-led synchronization is accepted design work and is not yet the current production presentation.</p>
           </div>
-          <div class="app-concept">
-            <aside aria-hidden="true" data-i18n-static>
-              <span class="mini-mark">F<sup>▪▪</sup></span>
-              <div class="mini-nav"><i></i><i class="active"></i><i></i><i></i><i></i></div>
-              <b></b>
-            </aside>
-            <div class="concept-main">
-              <div class="concept-toolbar"><span data-i18n="hero.conceptPrompt">Browse history or choose a supported comparison…</span><b data-i18n-static>⌘ K</b></div>
-              <p class="concept-kicker" data-i18n="hero.conceptKicker">Your sports history · 2022–2026</p>
-              <h2 data-i18n="hero.conceptTitle">520 sessions across four sports.</h2>
-              <div class="sport-mix" aria-hidden="true">
-                <i style="--mix: 44%"></i><i style="--mix: 31%"></i>
-                <i style="--mix: 15%"></i><i style="--mix: 10%"></i>
-              </div>
-              <div class="concept-grid" aria-hidden="true">
-                <article><span data-i18n-static>RUN</span><strong data-i18n="hero.sports.running.title">Running</strong><small data-i18n="hero.sports.running.detail">history, routes, pace</small></article>
-                <article><span data-i18n-static>BIK</span><strong data-i18n="hero.sports.cycling.title">Cycling</strong><small data-i18n="hero.sports.cycling.detail">distance, power, ascent</small></article>
-                <article><span data-i18n-static>SWM</span><strong data-i18n="hero.sports.swimming.title">Swimming</strong><small data-i18n="hero.sports.swimming.detail">lengths, stroke, sets</small></article>
-                <article><span data-i18n-static>STR</span><strong data-i18n="hero.sports.strength.title">Strength</strong><small data-i18n="hero.sports.strength.detail">sessions, load, structure</small></article>
+
+          <div class="product-window">
+            <div class="window-bar" aria-hidden="true" data-i18n-static>
+              <i></i><i></i><i></i><span>FitFreed</span>
+            </div>
+            <div class="product-shell">
+              <nav class="product-shell-navigation" aria-label="Illustrative FitFreed workspaces" data-i18n-aria-label="hero.workspaceLabel">
+                <span>
+                  <svg viewBox="0 0 24 24" aria-hidden="true" data-i18n-static><path d="M4 11 12 4l8 7v9h-5v-6H9v6H4Z"></path></svg>
+                  <b data-i18n="hero.workspaces.home">Home</b>
+                </span>
+                <span class="active">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" data-i18n-static><path d="M5 5h14v15H5Zm3-3v6m8-6v6M8 12h8m-8 4h5"></path></svg>
+                  <b data-i18n="hero.workspaces.history">History</b>
+                </span>
+                <span>
+                  <svg viewBox="0 0 24 24" aria-hidden="true" data-i18n-static><path d="M5 3h14v18H5Zm4 13V9m3 7V6m3 10v-4"></path></svg>
+                  <b data-i18n="hero.workspaces.reports">Reports</b>
+                </span>
+                <span>
+                  <svg viewBox="0 0 24 24" aria-hidden="true" data-i18n-static><path d="M4 6c0-2 16-2 16 0s-16 2-16 0Zm0 0v6c0 2 16 2 16 0V6m0 6v6c0 2-16 2-16 0v-6"></path></svg>
+                  <b data-i18n="hero.workspaces.sources">Sources</b>
+                </span>
+                <span>
+                  <svg viewBox="0 0 24 24" aria-hidden="true" data-i18n-static><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0-5v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1m-8.6 8.6-2.1 2.1"></path></svg>
+                  <b data-i18n="hero.workspaces.settings">Settings</b>
+                </span>
+              </nav>
+
+              <div class="product-workspace">
+                <div class="session-identity">
+                  <div>
+                    <p class="workspace-kicker" data-i18n="hero.session.kicker">History · Running · Session</p>
+                    <h3 data-i18n="hero.session.title">River progression</h3>
+                    <p data-i18n="hero.session.date">Sunday, 14 September · Recorded outdoor session</p>
+                  </div>
+                  <dl>
+                    <div><dt data-i18n="hero.session.distance">Distance</dt><dd data-i18n-static>12.0 km</dd></div>
+                    <div><dt data-i18n="hero.session.duration">Duration</dt><dd data-i18n-static>57 min</dd></div>
+                    <div><dt data-i18n="hero.session.pace">Average pace</dt><dd data-i18n-static>4:47 /km</dd></div>
+                  </dl>
+                </div>
+
+                <figure class="route-evidence">
+                  <div class="route-evidence-heading">
+                    <div>
+                      <h4 data-i18n="hero.map.title">Recorded route</h4>
+                      <p data-i18n="hero.map.summary">Complete track · 2,418 ordered GPS points · no recorded gaps</p>
+                    </div>
+                    <span data-i18n="hero.map.overlay">Overlay: pace</span>
+                  </div>
+                  <div class="route-evidence-map">
+                    <svg viewBox="0 0 1000 500" role="img" aria-label="Illustrative recorded route with start, finish, direction, and selected point" data-i18n-aria-label="hero.map.label">
+                      <path class="map-water" d="M-20 380 C160 295 285 436 445 350 S727 228 1020 278"></path>
+                      <path class="map-path" d="M80 80 160 460M410 30 455 490M735 20 700 480M28 162C238 220 350 108 520 155s292 85 500 8M0 432c255-98 410 11 595-37s250-45 440-8"></path>
+                      <path class="recorded-route-shadow" d="M170 356 C95 255 190 178 315 157 S438 56 567 94 730 116 770 204 702 319 598 374 401 431 270 405 188 378 170 356"></path>
+                      <path class="recorded-route" d="M170 356 C95 255 190 178 315 157 S438 56 567 94 730 116 770 204 702 319 598 374 401 431 270 405 188 378 170 356"></path>
+                      <circle class="route-start" cx="170" cy="356" r="13"></circle>
+                      <rect class="route-finish" x="158" y="344" width="24" height="24"></rect>
+                      <circle class="route-selection" cx="567" cy="94" r="18"></circle>
+                      <path class="route-direction" d="m376 117 24-4-11 22Z"></path>
+                      <g class="map-scale"><path d="M785 447h130"></path><text x="850" y="435" text-anchor="middle" data-i18n="hero.map.scale">1 km</text></g>
+                      <g class="map-north"><path d="m930 62 12-31 12 31Z"></path><text x="942" y="84" text-anchor="middle" data-i18n-static>N</text></g>
+                    </svg>
+                  </div>
+                  <div class="route-selection-summary">
+                    <strong data-i18n="hero.map.selectionTime">28:40 · 6.1 km</strong>
+                    <span data-i18n="hero.map.selectionPace">Pace 4:38 /km</span>
+                    <span data-i18n="hero.map.selectionHeart">Heart rate 151 bpm</span>
+                    <span data-i18n="hero.map.selectionAltitude">Altitude 76 m</span>
+                  </div>
+                  <figcaption data-i18n="hero.map.caption">Illustrative recorded route. Precise location stays local; exact evidence remains available separately.</figcaption>
+                </figure>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section class="problem-statement" aria-labelledby="problem-heading">
-        <p class="section-number" data-i18n="problem.number">01 · WHY</p>
-        <div>
-          <h2 id="problem-heading" data-i18n="problem.title">A data export provides access. FitFreed is intended to make it usable.</h2>
-          <p data-i18n="problem.body">
-            A machine-readable archive can be difficult to explore directly. FitFreed maps supported
-            records into a documented provider-neutral model, stores them locally, and keeps
-            calculations and supporting evidence inspectable.
-          </p>
-        </div>
-        <blockquote>
-          <strong data-i18n="problem.equation.portability">GDPR data access</strong>
-          <span data-i18n-static>+</span>
-          <strong data-i18n="problem.equation.oss">open-source software</strong>
-          <span data-i18n-static>=</span>
-          <strong data-i18n="problem.equation.freedom">usable, inspectable history</strong>
-        </blockquote>
-      </section>
-
-      <section class="experience" id="experience" aria-labelledby="experience-heading">
+      <section class="product-stories" id="product" aria-labelledby="product-heading">
         <div class="section-heading">
-          <p class="eyebrow" data-i18n="experience.eyebrow">Training history and evidence</p>
-          <h2 id="experience-heading" data-i18n="experience.title">Browse sessions. Inspect how each result was produced.</h2>
-          <p data-i18n="experience.intro">
-            Questions and recognizable sessions lead the experience. Metrics, health context and
-            provider diagnostics support the answer instead of competing for the first viewport.
-          </p>
+          <p class="eyebrow" data-i18n="product.eyebrow">What the application is for</p>
+          <h2 id="product-heading" data-i18n="product.title">Find a session. Understand what was recorded. Keep the result.</h2>
+          <p data-i18n="product.intro">The source already implements the underlying capabilities. The active migration is making their order, density, and visual explanation match these tasks.</p>
         </div>
-
-        <div class="question-grid">
-          <article>
-            <span data-i18n-static>01</span>
-            <h3 data-i18n="experience.questions.change.title">How has my training changed?</h3>
-            <p data-i18n="experience.questions.change.body">Compare periods while keeping active days, exact sessions, coverage and gaps visible.</p>
+        <div class="story-grid">
+          <article data-product-story="find">
+            <span class="story-state" data-i18n="product.find.state">Implemented in source</span>
+            <div class="story-number" aria-hidden="true" data-i18n-static>01</div>
+            <h3 data-i18n="product.find.title">Find the part of the history that matters.</h3>
+            <p data-i18n="product.find.body">Browse the complete history by sport, date, available evidence, authored label, or imprecise text. Return from detail to the same filters and position.</p>
           </article>
-          <article>
-            <span data-i18n-static>02</span>
-            <h3 data-i18n="experience.questions.find.title">Where is that session I remember?</h3>
-            <p data-i18n="experience.questions.find.body">Browse by sport, chronology, route and available measurements across the whole history.</p>
+          <article data-product-story="understand">
+            <span class="story-state active" data-i18n="product.understand.state">Implemented evidence · presentation in progress</span>
+            <div class="story-number" aria-hidden="true" data-i18n-static>02</div>
+            <h3 data-i18n="product.understand.title">Investigate a session without losing the evidence.</h3>
+            <p data-i18n="product.understand.body">Inspect recorded structure, route points, signals, zones, gaps, exact values, and provenance. The accepted map-led workbench is the active presentation migration.</p>
           </article>
-          <article>
-            <span data-i18n-static>03</span>
-            <h3 data-i18n="experience.questions.inspect.title">What happened inside it?</h3>
-            <p data-i18n="experience.questions.inspect.body">Inspect structure, signals, route and exact values without mistaking a chart for evidence.</p>
+          <article data-product-story="keep">
+            <span class="story-state alpha" data-i18n="product.keep.state">Implemented in source · Alpha UX</span>
+            <div class="story-number" aria-hidden="true" data-i18n-static>03</div>
+            <h3 data-i18n="product.keep.title">Save and export a result, not just a screenshot.</h3>
+            <p data-i18n="product.keep.body">Create a reproducible report from supported evidence, review sensitive content, and export one self-contained HTML document.</p>
           </article>
-        </div>
-
-        <div class="session-story">
-          <div class="session-copy">
-            <p class="section-number" data-i18n="experience.session.number">FROM SESSION TO EVIDENCE</p>
-            <h3 data-i18n="experience.session.title">Session structure, route and signals share one timeline.</h3>
-            <p data-i18n="experience.session.body">
-              Source laps, FitFreed-derived segments and your own criteria remain visibly different.
-              When the provider recorded no useful phases, define equal time, equal distance, zones or
-              manual boundaries without changing the imported record.
-            </p>
-            <ul>
-              <li data-i18n="experience.session.facts.source">Recorded facts keep their source and exact values.</li>
-              <li data-i18n="experience.session.facts.missing">Missing measurements stay unavailable, never zero.</li>
-              <li data-i18n="experience.session.facts.accessible">Every visual has an accessible exact alternative.</li>
-            </ul>
-          </div>
-          <div class="session-panel" role="img" aria-label="Illustrative outdoor session evidence concept" data-i18n-aria-label="experience.session.conceptLabel">
-            <div class="session-title"><span data-i18n="experience.session.dateSport">14 SEP · RUNNING</span><strong data-i18n="experience.session.name">River progression</strong></div>
-            <div class="session-facts">
-              <div><small data-i18n="experience.session.metrics.distance">Distance</small><strong data-i18n-static>12.00 km</strong></div>
-              <div><small data-i18n="experience.session.metrics.duration">Duration</small><strong data-i18n-static>57:21</strong></div>
-              <div><small data-i18n="experience.session.metrics.pace">Average pace</small><strong data-i18n-static>4:47 /km</strong></div>
-            </div>
-            <div class="signal-chart" aria-hidden="true">
-              <span data-i18n="experience.session.chartLabel">PACE</span>
-              <svg viewBox="0 0 620 165" preserveAspectRatio="none">
-                <path d="M0 116 C54 105 83 126 128 96 S210 78 258 91 341 130 389 76 470 50 519 72 620 31"></path>
-                <path d="M0 138 C56 126 104 146 151 124 S241 117 286 102 374 93 421 79 510 91 620 59"></path>
-              </svg>
-              <div><i></i><i></i><i></i><i></i><i></i><i></i></div>
-            </div>
-            <div class="route-strip" aria-hidden="true">
-              <svg viewBox="0 0 620 120" preserveAspectRatio="none">
-                <path d="M22 89 C71 22 131 105 190 62 S294 9 347 58 430 111 480 61 556 24 600 72"></path>
-              </svg>
-              <span data-i18n="experience.session.routeNote">Precise route stays local · endpoint privacy at export</span>
-            </div>
-          </div>
         </div>
       </section>
 
-      <section class="reports" aria-labelledby="reports-heading">
-        <div class="report-preview" aria-hidden="true">
-          <div class="report-side"><span data-i18n="reports.preview.finding">+ Finding</span><span data-i18n="reports.preview.session">+ Session</span><span data-i18n="reports.preview.chart">+ Chart</span><span data-i18n="reports.preview.table">+ Exact table</span><span data-i18n="reports.preview.note">+ Your note</span></div>
-          <div class="report-page">
-            <small data-i18n="reports.preview.kicker">FITFREED · PERSONAL REPORT</small>
-            <h3 data-i18n="reports.preview.title">Summer consistency review</h3>
-            <article><b data-i18n="reports.preview.findingTitle">Training was more consistent this summer</b><p data-i18n="reports.preview.findingDetail">FitFreed calculation · coverage attached</p></article>
-            <article class="report-bars" data-i18n-static><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></article>
-            <article><b data-i18n="reports.preview.noteTitle">Why this matters to me</b><p data-i18n="reports.preview.noteDetail">Written by you · saved with the report definition</p></article>
-          </div>
+      <section class="journey" aria-labelledby="journey-heading">
+        <div class="section-heading compact">
+          <p class="eyebrow" data-i18n="journey.eyebrow">From archive to useful history</p>
+          <h2 id="journey-heading" data-i18n="journey.title">The ZIP is the starting point, not the destination.</h2>
+        </div>
+        <ol class="journey-steps">
+          <li>
+            <span data-i18n-static>1</span>
+            <div><h3 data-i18n="journey.obtain.title">Obtain or choose the export</h3><p data-i18n="journey.obtain.body">FitFreed provides provider-owned acquisition guidance and imports the selected archive locally.</p></div>
+          </li>
+          <li>
+            <span data-i18n-static>2</span>
+            <div><h3 data-i18n="journey.incorporate.title">See what was incorporated</h3><p data-i18n="journey.incorporate.body">The result separates added, enriched, unchanged, unsupported, and invalid information without changing an existing library on failure.</p></div>
+          </li>
+          <li>
+            <span data-i18n-static>3</span>
+            <div><h3 data-i18n="journey.explore.title">Begin with recognizable value</h3><p data-i18n="journey.explore.body">Home leads to sports, recent sessions, answerable questions, and exact coverage when it is relevant.</p></div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="report-section" aria-labelledby="report-heading">
+        <div class="report-result" aria-hidden="true">
+          <span data-i18n="report.preview.state">ALPHA REPORT RESULT</span>
+          <h3 data-i18n="report.preview.title">Summer consistency review</h3>
+          <p data-i18n="report.preview.finding">Three weekly sessions continued for six of the eight recorded weeks.</p>
+          <div class="report-chart" data-i18n-static><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <dl>
+            <div><dt data-i18n="report.preview.period">Period</dt><dd data-i18n-static>1 Jul–25 Aug</dd></div>
+            <div><dt data-i18n="report.preview.coverage">Coverage</dt><dd data-i18n="report.preview.coverageValue">24 recorded sessions</dd></div>
+            <div><dt data-i18n="report.preview.source">Evidence</dt><dd data-i18n="report.preview.sourceValue">Local training history</dd></div>
+          </dl>
         </div>
         <div class="report-copy">
-          <p class="eyebrow" data-i18n="reports.eyebrow">Saved reports and export</p>
-          <h2 id="reports-heading" data-i18n="reports.title">Save a result together with its evidence.</h2>
-          <p data-i18n="reports.intro">
-            Begin from an answer or session, arrange evidence and exact values, add your own
-            interpretation, save the definition and reopen it after the history changes.
-          </p>
-          <ol>
-            <li><span data-i18n="reports.steps.compose.label">Compose</span> <span data-i18n="reports.steps.compose.body">recorded facts, calculations, coverage and your words.</span></li>
-            <li><span data-i18n="reports.steps.review.label">Review</span> <span data-i18n="reports.steps.review.body">what a later import changes before refreshing.</span></li>
-            <li><span data-i18n="reports.steps.export.label">Export</span> <span data-i18n="reports.steps.export.body">a self-contained result after checking sensitive content.</span></li>
-          </ol>
-          <a href="../docs/research/mvp-experience-boundary-assessment.md" data-i18n="reports.boundary">Review the report boundary →</a>
+          <p class="eyebrow" data-i18n="report.eyebrow">Reports and data exit</p>
+          <h2 id="report-heading" data-i18n="report.title">A saved report opens as a result.</h2>
+          <p data-i18n="report.body">Editing is deliberate and secondary. The report keeps its subject, evidence choices, order, authorship, source revision, and privacy choices so it can be reviewed again later.</p>
+          <ul>
+            <li data-i18n="report.facts.context">Creation starts from a supported session or comparison.</li>
+            <li data-i18n="report.facts.refresh">A later import never refreshes reviewed evidence silently.</li>
+            <li data-i18n="report.facts.export">Export produces deterministic HTML with no external request.</li>
+          </ul>
+          <p class="alpha-note"><strong data-i18n="report.alpha.title">Alpha interaction</strong> <span data-i18n="report.alpha.body">The purpose and integrity boundary are accepted; hierarchy and composition remain open to refinement.</span></p>
         </div>
       </section>
 
-      <section class="ownership" id="ownership" aria-labelledby="ownership-heading">
+      <section class="control" id="control" aria-labelledby="control-heading">
         <div class="section-heading">
-          <p class="eyebrow" data-i18n="ownership.eyebrow">Data-handling commitments</p>
-          <h2 id="ownership-heading" data-i18n="ownership.title">Local processing, inspectable calculations and explicit data exit.</h2>
+          <p class="eyebrow" data-i18n="control.eyebrow">Data control</p>
+          <h2 id="control-heading" data-i18n="control.title">Local by default. Inspectable by design. Exportable on purpose.</h2>
+          <p data-i18n="control.intro">FitFreed is intended to make an export useful without becoming another data silo.</p>
         </div>
-        <div class="ownership-grid">
-          <article>
-            <span class="ownership-icon" data-i18n-static>⌂</span>
-            <h3 data-i18n="ownership.local.title">Local first</h3>
-            <p data-i18n="ownership.local.body">Core use works without a FitFreed account or mandatory hosted service.</p>
-          </article>
-          <article>
-            <span class="ownership-icon" data-i18n-static>◎</span>
-            <h3 data-i18n="ownership.explainable.title">Explainable</h3>
-            <p data-i18n="ownership.explainable.body">Source facts, mappings, calculations, gaps and unsupported content remain inspectable.</p>
-          </article>
-          <article>
-            <span class="ownership-icon" data-i18n-static>↗</span>
-            <h3 data-i18n="ownership.portable.title">Data exit</h3>
-            <p data-i18n="ownership.portable.body">Current source exports self-contained reports. Versioned backup and normalized-data export remain documented MVP requirements.</p>
-          </article>
-          <article>
-            <span class="ownership-icon" data-i18n-static>{ }</span>
-            <h3 data-i18n="ownership.oss.title">Open source</h3>
-            <p data-i18n="ownership.oss.body">GPL-3.0-or-later code lets a community audit, repair and extend the product.</p>
-          </article>
+        <div class="control-grid">
+          <article><span aria-hidden="true" data-i18n-static>01</span><h3 data-i18n="control.local.title">Local processing</h3><p data-i18n="control.local.body">Core use needs no FitFreed account or mandatory hosted service. Precise routes stay on the current device.</p></article>
+          <article><span aria-hidden="true" data-i18n-static>02</span><h3 data-i18n="control.provenance.title">Visible provenance</h3><p data-i18n="control.provenance.body">Recorded facts, mappings, calculations, authored material, gaps, and unsupported content remain distinguishable.</p></article>
+          <article><span aria-hidden="true" data-i18n-static>03</span><h3 data-i18n="control.exit.title">Supported exit</h3><p data-i18n="control.exit.body">Self-contained report export exists today. Versioned backup and normalized-data export remain explicit MVP requirements.</p></article>
+          <article><span aria-hidden="true" data-i18n-static>04</span><h3 data-i18n="control.open.title">Open implementation</h3><p data-i18n="control.open.body">GPL-3.0-or-later source, documented formats, and public architecture decisions make the product inspectable and repairable.</p></article>
         </div>
       </section>
 
       <section class="status" id="status" aria-labelledby="status-heading">
-        <div class="section-heading">
+        <div class="section-heading compact">
           <p class="eyebrow" data-i18n="status.eyebrow">Project status</p>
-          <h2 id="status-heading" data-i18n="status.title">Implemented, in progress, and later.</h2>
-          <p data-i18n="status.disclaimer">The lists below distinguish code that exists from active design work and later scope. There is no supported public download yet.</p>
+          <h2 id="status-heading" data-i18n="status.title">Current source, active migration, and later scope.</h2>
+          <p data-i18n="status.disclaimer">The sections below separate code that exists from accepted work in progress and later ideas. There is no supported public download yet.</p>
         </div>
         <div class="status-columns">
         <!-- product-status:start -->
-          <article data-status="available">
-            <span data-i18n="status.available.label">Implemented in source</span>
-            <h3 data-i18n="status.available.title">Current capability</h3>
-            <ul>
+          <details data-status="available">
+            <summary>
+              <span data-i18n="status.available.label">Implemented in source</span>
+              <h3 data-i18n="status.available.title">Current capability</h3>
+            </summary>
+            <div class="status-detail">
+              <ul>
               <li data-i18n="status.available.items.0">Polar Flow ZIP validation and import</li>
               <li data-i18n="status.available.items.1">Explicit supported, ignored, and unrecognized coverage</li>
               <li data-i18n="status.available.items.2">Safe exact and cumulative reimport</li>
@@ -262,66 +277,81 @@
               <li data-i18n="status.available.items.20">Question-led, exploration-led, session-led, and blank report starts with durable authored results</li>
               <li data-i18n="status.available.items.21">Deliberate stale-report refresh through an exact current-evidence review</li>
               <li data-i18n="status.available.items.22">Origin-aware navigation between saved reports and their exact session or comparison source</li>
-            </ul>
-            <a href="../docs/roadmap.md#milestone-2--mvp" data-i18n="status.available.source">MVP capability boundary →</a>
-          </article>
-          <article data-status="active">
-            <span data-i18n="status.active.label">Work in progress</span>
-            <h3 data-i18n="status.active.title">Experience production migration</h3>
-            <ul>
+              </ul>
+              <a href="../docs/roadmap.md#milestone-2--mvp" data-i18n="status.available.source">MVP capability boundary →</a>
+            </div>
+          </details>
+          <details data-status="active" open>
+            <summary>
+              <span data-i18n="status.active.label">Work in progress</span>
+              <h3 data-i18n="status.active.title">Experience production migration</h3>
+            </summary>
+            <div class="status-detail">
+              <ul>
               <li data-i18n="status.active.items.0">Accepted History Desk structure with bounded Answer Canvas explanations</li>
               <li data-i18n="status.active.items.1">Incremental migration from import to recognizable personal value</li>
               <li data-i18n="status.active.items.2">Map-led outdoor session investigation with synchronized recorded evidence</li>
               <li data-i18n="status.active.items.3">Result-first reports, human-scale presentation, and visible data exit</li>
-            </ul>
-            <a href="../docs/plans/mvp-redesign-production-migration.md" data-i18n="status.active.source">Active production migration plan →</a>
-          </article>
-          <article data-status="later">
-            <span data-i18n="status.later.label">Later scope</span>
-            <h3 data-i18n="status.later.title">Outside the current MVP</h3>
-            <ul>
+              </ul>
+              <a href="../docs/plans/mvp-redesign-production-migration.md" data-i18n="status.active.source">Active production migration plan →</a>
+            </div>
+          </details>
+          <details data-status="later">
+            <summary>
+              <span data-i18n="status.later.label">Later scope</span>
+              <h3 data-i18n="status.later.title">Outside the current MVP</h3>
+            </summary>
+            <div class="status-detail">
+              <ul>
               <li data-i18n="status.later.items.0">Additional providers and live APIs</li>
               <li data-i18n="status.later.items.1">Linux and Windows distribution</li>
               <li data-i18n="status.later.items.2">Local MCP access for authorized agents</li>
               <li data-i18n="status.later.items.3">Advanced encryption and extension systems</li>
               <li data-i18n="status.later.items.4">Collaborative or hosted analytics</li>
               <li data-i18n="status.later.items.5">Features without validated user value</li>
-            </ul>
-            <a href="../docs/roadmap.md#evolution-tracks-after-the-mvp" data-i18n="status.later.source">Post-MVP evolution tracks →</a>
-          </article>
+              </ul>
+              <a href="../docs/roadmap.md#evolution-tracks-after-the-mvp" data-i18n="status.later.source">Post-MVP evolution tracks →</a>
+            </div>
+          </details>
         <!-- product-status:end -->
         </div>
         <p class="status-footnote">
-          <span data-i18n="status.footnote">The public macOS release still requires exact-candidate evaluation, production trust and explicit publication.</span>
-          <a href="../docs/testing/public-release-readiness.md" data-i18n="status.readiness">See the readiness ledger.</a>
+          <span data-i18n="status.footnote">A public macOS release still requires exact-candidate evaluation, production trust, and explicit publication.</span>
+          <a href="../docs/testing/public-release-readiness.md" data-i18n="status.readiness">Read the readiness ledger.</a>
         </p>
       </section>
 
       <section class="community" id="community" aria-labelledby="community-heading">
         <div>
-          <p class="eyebrow" data-i18n="community.eyebrow">Contributing</p>
-          <h2 id="community-heading" data-i18n="community.title">The repository is open for review and contribution.</h2>
-          <p data-i18n="community.body">
-            The project documents import formats, the provider-neutral model, architecture decisions,
-            testing, product research, and translation. Contributions can address Rust, React,
-            accessible visualization, documentation, or product design.
-          </p>
+          <p class="eyebrow" data-i18n="community.eyebrow">Open-source development</p>
+          <h2 id="community-heading" data-i18n="community.title">The implementation, formats, decisions, tests, and limitations are open.</h2>
+          <p data-i18n="community.body">Contributions can improve Rust and React code, accessible visualization, provider format knowledge, documentation, translation, testing, or product design. A clean clone uses synthetic data and documented commands.</p>
           <div class="hero-actions">
-            <a class="primary-action" href="https://github.com/purnalica/fitfreed"><span data-i18n="community.repository">Explore the repository</span> <span data-i18n-static>↗</span></a>
-            <a class="secondary-action" href="../CONTRIBUTING.md" data-i18n="community.contributing">Contributor guide</a>
+            <a class="primary-action" href="../CONTRIBUTING.md" data-i18n="community.contributing">Start contributing</a>
+            <a class="secondary-action" href="https://github.com/purnalica/fitfreed" data-i18n="community.repository">Browse the repository</a>
           </div>
         </div>
-        <blockquote>
-          <span data-i18n-static>“</span>
-          <p><span data-i18n="community.quote.record">Roadmap, decisions, formats and tests are public.</span><br><span data-i18n="community.quote.tools">Current limitations are documented, too.</span></p>
-        </blockquote>
+        <aside>
+          <strong data-i18n="community.aside.title">Useful starting points</strong>
+          <a href="../docs/development/getting-started.md" data-i18n="community.aside.setup">Contributor setup</a>
+          <a href="../docs/architecture/module-map.md" data-i18n="community.aside.architecture">Architecture map</a>
+          <a href="../docs/data-formats/README.md" data-i18n="community.aside.formats">Open data specifications</a>
+          <a href="../docs/plans/mvp-redesign-production-migration.md" data-i18n="community.aside.plan">Current delivery plan</a>
+        </aside>
       </section>
     </main>
 
     <footer>
-      <img src="../assets/brand/fitfreed-logo-mono.svg" alt="FitFreed" data-i18n-static>
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="../assets/brand/fitfreed-logo-dark.svg">
+        <img src="../assets/brand/fitfreed-logo.svg" alt="FitFreed" data-i18n-static>
+      </picture>
       <p data-i18n="footer.legal">Independent open-source software · GPL-3.0-or-later · Experimental and provided without warranty.</p>
-      <div><a href="../DISCLAIMER.md" data-i18n="footer.disclaimer">Disclaimer</a><a href="../SECURITY.md" data-i18n="footer.security">Security</a><a href="../docs/product-thesis.md" data-i18n="footer.thesis">Product thesis</a></div>
+      <nav aria-label="Legal and project information" data-i18n-aria-label="footer.navigationLabel">
+        <a href="../DISCLAIMER.md" data-i18n="footer.disclaimer">Disclaimer</a>
+        <a href="../SECURITY.md" data-i18n="footer.security">Security</a>
+        <a href="../docs/product-thesis.md" data-i18n="footer.thesis">Product thesis</a>
+      </nav>
       <small data-i18n="footer.affiliation">Not affiliated with or endorsed by Polar Electro, Garmin, the European Union, or any regulator.</small>
     </footer>
   </body>

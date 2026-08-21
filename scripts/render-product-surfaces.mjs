@@ -47,20 +47,20 @@ export function validateProductStatus(model) {
 }
 
 export function renderReadmeStatus(model) {
-  const headings = model.statuses.map(({ label }) => label);
-  const rowCount = Math.max(...model.statuses.map(({ items }) => items.length));
-  const rows = Array.from({ length: rowCount }, (_, index) =>
-    `| ${model.statuses.map(({ items }) => items[index] ?? "").join(" | ")} |`,
-  );
-  const sources = model.statuses.map(({ source }) => `[${source.label}](${source.path})`).join(" · ");
+  const disclosures = model.statuses.flatMap((status) => [
+    `<details data-status="${escapeHtml(status.key)}"${status.key === "active" ? " open" : ""}>`,
+    `<summary><strong>${escapeHtml(status.label)} — ${escapeHtml(status.title)}</strong></summary>`,
+    "<ul>",
+    ...status.items.map((item) => `<li>${escapeHtml(item)}</li>`),
+    "</ul>",
+    `<p><a href="${escapeHtml(status.source.path)}">${escapeHtml(status.source.label)} →</a></p>`,
+    "</details>",
+    "",
+  ]);
 
   return [
     startMarker,
-    `| ${headings.join(" | ")} |`,
-    `|${headings.map(() => "---").join("|")}|`,
-    ...rows,
-    "",
-    `Status sources: ${sources}.`,
+    ...disclosures,
     endMarker,
   ].join("\n");
 }
@@ -72,14 +72,18 @@ export function renderProductPageStatus(model) {
     ).join("\n");
     const sourcePath = `../${escapeHtml(status.source.path)}`;
     return [
-      `          <article data-status="${escapeHtml(status.key)}">`,
-      `            <span data-i18n="status.${escapeHtml(status.key)}.label">${escapeHtml(status.label)}</span>`,
-      `            <h3 data-i18n="status.${escapeHtml(status.key)}.title">${escapeHtml(status.title)}</h3>`,
-      "            <ul>",
+      `          <details data-status="${escapeHtml(status.key)}"${status.key === "active" ? " open" : ""}>`,
+      "            <summary>",
+      `              <span data-i18n="status.${escapeHtml(status.key)}.label">${escapeHtml(status.label)}</span>`,
+      `              <h3 data-i18n="status.${escapeHtml(status.key)}.title">${escapeHtml(status.title)}</h3>`,
+      "            </summary>",
+      '            <div class="status-detail">',
+      "              <ul>",
       items,
-      "            </ul>",
-      `            <a href="${sourcePath}" data-i18n="status.${escapeHtml(status.key)}.source">${escapeHtml(status.source.label)} →</a>`,
-      "          </article>",
+      "              </ul>",
+      `              <a href="${sourcePath}" data-i18n="status.${escapeHtml(status.key)}.source">${escapeHtml(status.source.label)} →</a>`,
+      "            </div>",
+      "          </details>",
     ].join("\n");
   });
 
