@@ -523,6 +523,73 @@ open to substantial revision. Neither experience is a stabilized UX contract, an
 does not require preserving the current screen composition. Their underlying product requirements,
 authorship, provenance, data integrity, and export guarantees remain mandatory.
 
+The subsequent human review reopens the X3 gate: at ordinary 100% content zoom, the complete map does
+not fit within an ordinary laptop viewport. Map dominance does not justify making the
+primary object impossible to see as a whole. The candidate must balance horizontal and vertical
+space against the actual application viewport, keep the complete route visible without initial
+scrolling, and preserve usable map detail. This failure must be reproduced and corrected across the
+ordinary laptop viewport, compact width, and 200% accessibility state before X3 can pass again.
+
+### Mandatory pre-human design audit
+
+No design candidate may be presented for human review or pass an experience gate merely because its
+interaction checks, DOM assertions, localization checks, or automated accessibility audit succeed.
+Those checks are necessary evidence, not a substitute for critical UX review.
+
+Before every human design review, a separate falsification pass must try to disprove the candidate's
+quality. It must, at minimum:
+
+1. inspect the complete first viewport and the full scrolled journey at each named target viewport,
+   including wide and short laptop profiles, compact width, and the 200% accessibility state;
+2. repeat the inspection in both locales and themes with realistic longest content, empty, partial,
+   error, loading, and populated states where applicable;
+3. verify hierarchy, balance, density, legibility, control scale, complete visibility of the primary
+   object, scroll continuity, focus movement, overlays, and absence of clipping or obstruction;
+4. complete every principal task using realistic input, save, cancel, edit, remove, reload, keyboard,
+   pointer, and recovery paths rather than checking only that controls exist;
+5. apply established usability heuristics for system status, real-world match, user control,
+   consistency, error prevention and recovery, recognition, progressive disclosure, and help; and
+6. record every discovered defect, its severity, affected tasks and states, root cause, and explicit
+   disposition before the gate can pass.
+
+The pass fails if ordinary visual inspection exposes a material defect that the checklist should
+have found. A candidate with unresolved critical or major defects is not review-ready. The human gate
+evaluates a rigorously challenged proposal; it is not the mechanism used to discover basic layout or
+interaction failures.
+
+### Reopened X3 audit record
+
+The audit records failures rather than treating the corrected screenshot as sufficient evidence:
+
+| ID | Severity | Failure and root cause | Disposition |
+|---|---|---|---|
+| X3-UX-01 | Critical | The complete route map extended below an ordinary laptop viewport. A later generic SVG rule overrode the intended aspect ratio, while width-derived height and duplicated vertical context ignored useful viewport height. | Corrected with one compact session context, a viewport-aware map height, and a workbench-specific SVG rule. At 100% the complete prototype map now fits within the first viewport across the wide laptop, short laptop, and compact desktop target profiles. |
+| X3-UX-02 | Major | The floating overlay legend covered geographic labels and could obstruct route evidence. | Legend moved into an attached region outside map geometry in wide, compact, and high-zoom layouts. |
+| X3-UX-03 | Major | The primary navigation rail scrolled away during long session, report, and import journeys. | Rail now remains within the useful viewport while document content scrolls; the narrow horizontal navigation uses its own non-overlapping sticky position. |
+| X3-UX-04 | Major | First run vertically centred a short composition, leaving a large empty region before the purpose and first action. | The first-run composition now starts near the top of the useful viewport and retains balanced whitespace below. |
+| X3-UX-05 | Major | History and report headers exposed design rationale as application copy, and Settings appeared in both primary navigation and the workspace header. | Copy now answers the person's task; the redundant workspace action was removed while Settings remains in primary navigation. |
+| X3-UX-06 | Major | A partial session repeated its title and gave an absent map the same visual area as recorded pace, amplifying a limitation instead of the usable evidence. | One session title remains; available evidence and gaps are summarized compactly; recorded pace receives the visual region; source structure remains an optional action. |
+| X3-UX-07 | Alpha finding | Report composition at compact width places document structure before the result, and range definition still needs a dedicated density and boundary-selection review. | Deliberately deferred under the accepted Alpha classification; neither composition is a stabilized UX contract. Integrity, provenance, save/cancel, recovery, and export behavior remain tested. |
+| X3-UX-08 | Major | Route and signal point targets shrank below 24 CSS pixels at compact width, even though their visible marks remained legible. | Invisible hit geometry is now independent from the visible marks and measures at least 25 CSS pixels at the compact audit viewport. Native range controls and report block actions also retain at least 32 CSS pixels of interaction height. |
+| X3-UX-09 | Major | At an intermediate compact width, the sticky navigation assumed a one-line evaluator bar and overlapped its second line while scrolling. | A shared responsive evaluator-height token now positions both shell and navigation; evaluator actions no longer wrap internally, and long-page scroll checks cover wide, compact, and narrow layouts. |
+| X3-UX-10 | Minor | The partial-session page heading repeated a catalogue of missing evidence immediately before the evidence summary, increasing warning density without helping the task. | The redundant heading copy was removed; the compact evidence summary remains the single explicit account of available data and source gaps. |
+| X3-UX-11 | Major | Collapsed navigation retained accessible names but gave pointer users no visible way to identify less universal icons such as Reports and Sources. | Collapsed navigation now reveals its label on hover and keyboard focus; the narrow horizontal navigation keeps labels permanently visible. |
+
+The corrected candidate has no horizontal overflow, clipped interactive control, or interaction
+target below 24 CSS pixels in a 66-case matrix across the three named 100% viewport profiles. The
+complete route map fits the first viewport in each profile. A separate
+44-case matrix covers all 22 representative states in English/light and Spanish/dark at 200%; it has
+no horizontal overflow or clipped interactive control, and the route map itself remains shorter than
+the viewport once reached.
+
+Long-page scroll checks keep navigation visible without evaluator overlap in session, report-editor,
+and import-result journeys at wide, compact, and narrow widths. Real-browser task passes cover sport
+classification validation/save/cancel/navigation, range validation and pointer/keyboard boundary
+selection/save/navigation/reload/remove, and report validation/add/reorder/save/export/cancel/reopen.
+Lighthouse snapshots of the complete session, partial session, and report editor score 100 for both
+accessibility and best practices, and the final browser console contains no warning, error, or issue.
+These results are evidence for the audit; the reopened human X3 gate still requires explicit review.
+
 ### Range concept model
 
 A **session range** is one contiguous chronological interval inside one exercise. Its canonical
