@@ -36,6 +36,7 @@ FitFreed does not have a supported public release yet. The implemented applicati
 - [Requirements](requirements.md) define confirmed scope and acceptance.
 - [Roadmap](roadmap.md) defines outcome order and milestone boundaries.
 - [UI and UX redesign plan](plans/ui-redesign.md) defines the active experience model, design method, functional-growth freeze, review artifacts, and implementation gates.
+- [MVP experience specification](design/experience-specification.md) defines the X3 review candidate for screens, interactions, navigation, states, localization, adaptation, and accessibility.
 - [Public product status](product-status.json) is the canonical available, active, and later capability snapshot rendered into the README and product page.
 - [Implemented Milestone 2 plan](plans/milestone-2.md) defines the MVP capability sequence and evidence.
 - [Active Milestone 3 plan](plans/milestone-3.md) defines the public macOS distribution sequence and evidence.

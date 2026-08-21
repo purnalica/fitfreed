@@ -27,6 +27,7 @@ knowledge is recorded.
 | Product purpose, scope, behavior, and acceptance | `docs/requirements.md` |
 | Product argument, GDPR framing, and public messaging constraints | `docs/product-thesis.md` |
 | Milestone order and outcome boundaries | `docs/roadmap.md` |
+| Accepted screen, interaction, navigation, and adaptive experience contracts | `docs/design/` |
 | Public available, active, and later capability snapshot | `docs/product-status.json`, rendered into entry surfaces by `npm run render:product-surfaces` |
 | Repository and public-product entry surfaces | `README.md` and `site/`, derived from and linked to their canonical product sources |
 | Current thematic architecture | `docs/architecture/` |

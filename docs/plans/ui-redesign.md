@@ -2,7 +2,7 @@
 
 ## Status
 
-Active redesign phase as of 2026-08-21. Product capability, architecture, data safety, and the persistent desktop shell retain their verified evidence, but the current product experience is not accepted. The [independent product-experience audit](../research/mvp-product-experience-audit.md) identified concrete failures, and the subsequent product-owner review concluded that correcting those findings one by one would not guarantee the radical improvement required. The experience is dense, too control-led, insufficiently visual, and too often exposes implementation capability before user meaning.
+Active redesign phase as of 2026-08-21. X2 selected History Desk with a bounded Answer Canvas pattern; the [X3 MVP experience specification](../design/experience-specification.md) is now the review candidate and is not accepted production behavior. Product capability, architecture, data safety, and the persistent desktop shell retain their verified evidence, but the current product experience is not accepted. The [independent product-experience audit](../research/mvp-product-experience-audit.md) identified concrete failures, and the subsequent product-owner review concluded that correcting those findings one by one would not guarantee the radical improvement required. The experience is dense, too control-led, insufficiently visual, and too often exposes implementation capability before user meaning.
 
 Functional growth is frozen while this phase is active. Work may change lower-layer contracts only when necessary to make an already accepted MVP journey understandable and complete; it may not add providers, connected APIs, MCP access, new analytical domains, or other roadmap capability. Production presentation implementation resumes only after a coherent interaction direction passes the design gate defined here.
 
@@ -341,6 +341,8 @@ The comparison covers first run, active import, import result, populated Home, t
 
 Record the selected information architecture, task flows, interaction and state contracts, visual-explanation grammar, content hierarchy, responsive behavior, localization behavior, accessibility alternatives, and component responsibilities. Produce reviewable high-fidelity views for every critical state rather than only an ideal populated dashboard.
 
+The [MVP experience specification](../design/experience-specification.md) is the canonical X3 review candidate. This plan retains the method and gate; amendments to screen or interaction behavior belong in that specification rather than in a second description here.
+
 Begin by resolving the identity of saved views, saved answers, and reports. Revisit the behavioral modes, jobs, and journeys with report-specific tasks before retaining labels or controls from the X2 study. No action such as “Keep as report” may enter the production specification until its resulting object, later destination, lifecycle, evidence semantics, and export behavior are predictable.
 
 Review at realistic macOS desktop and compact sizes, 100% and 200% content zoom, reduced motion, light and dark appearance, and both initial locales. Evaluate five-second promise comprehension, thirty-second first-action comprehension, time to first useful result, session findability, report-result recognition, and recovery from realistic failure.
@@ -448,35 +450,19 @@ The capability is provider-specific behind a shared acquisition journey. Each fu
 
 ## Result-first personal reporting
 
-The existing report engine proves composition, persistence, deliberate refresh, privacy review, and deterministic export, but its interaction begins with authoring mechanics. The X2 prototype also used “report” too broadly: preserving an answer, reopening an exploration, authoring a durable analytical artifact, and exporting a document are related actions but not necessarily the same product object. Treating every FitFreed screen as a report would remove the term's meaning and make consequences such as “Keep as report” unpredictable.
-
-X3 compared these structural identities before fixing the model and vocabulary:
+The existing report engine proves composition, persistence, deliberate refresh, privacy review, and deterministic export, but its interaction begins with authoring mechanics. The X2 prototype also used “report” too broadly: preserving an answer, reopening an exploration, authoring a durable analytical artifact, and exporting a document are related actions but not necessarily the same product object. Treating every FitFreed screen as a report would remove the term's meaning and make consequences such as “Keep as report” unpredictable. X3 therefore compared these structural identities:
 
 - a **saved view** preserves navigation, filters, selection, and presentation for continued exploration;
 - a **saved answer** preserves a question, criteria, reproducible result, evidence, and refresh semantics; and
 - a **report** is an intentionally authored, durable, readable, and exportable artifact assembled from supported answers, sessions, visual explanations, exact evidence, and authored context.
 
-Making all three first-class MVP objects would add separate persistence, management, compatibility, and lifecycle models without evidence that each is needed. Making every screen a report would instead remove the term's meaning. The X3 working candidate therefore keeps exploration resumable through the established workspace and reserves **report** for a named, intentionally authored analytical document about one primary subject or supported question. A report combines selected canonical evidence with the person's interpretation, opens as a readable result, remains tied to a reviewed evidence revision, and can be exported as an independently understandable artifact. It is neither a bookmark nor a library backup or normalized-data export.
+Making all three first-class MVP objects would add separate persistence, management, compatibility, and lifecycle models without evidence that each is needed. Making every screen a report would remove the term's meaning. The X3 candidate keeps exploration resumable through its existing workspace contract and reserves **report** for a named, deliberately authored analytical document about one supported subject or question. Selected canonical evidence, block choice and order, criteria, privacy choices, and optional attributed interpretation constitute authorship. A generic blank report is excluded because it weakens this bounded identity.
 
-The ambiguous “Keep as report” action is rejected. Contextual actions use a predictable consequence such as **Create report from this session** or **Create report from this comparison**: preserve the exact source and return context, open a new unsaved composition with supported evidence selected, ask for a title and authored interpretation, and create nothing until explicit save succeeds. The MVP does not promise a generic “add to existing report” action because origin and single-query invariants make only some existing reports compatible.
+The ambiguous “Keep as report” action is rejected. Contextual creation names its source and consequence, creates nothing before explicit save, and always returns to that source on cancel. Reports opens on readable results; editing, evidence refresh, export, and deletion are separate deliberate tasks. The complete proposed lifecycle and state contract live only in the [MVP experience specification](../design/experience-specification.md).
 
-Reports opens on a visual library of authored documents. Selection opens the resolved result; editing is deliberate and uses a document outline, substantial result preview, and focused inspector rather than a long form followed by a distant preview. Evidence refresh and export remain separate reviewed operations. The saved report is reproducible and evidence-bound; its exported HTML is an immutable local snapshot.
+This resolution exposes three lower-layer gaps that production presentation must not conceal: `ReportSummary` lacks the subject, meaningful result, evidence state, and sensitivity projection needed for the library; report deletion does not cross domain, application, and persistence boundaries; and the current definition invariant requires narrative even though supported evidence plus a title can form a factual document. These contracts must change before their dependent UI is implemented.
 
-This candidate exposes two lower-layer gaps that production presentation must not conceal. `ReportSummary` lacks the primary subject, meaningful result, evidence state, and sensitivity projection needed for an understandable library, so an application-owned report-library read model is required. Reports can be created and revised but not deleted; deletion through domain, application, and persistence boundaries is required for meaningful control over a durable user-authored object. Task evaluation must also decide whether non-empty narrative remains mandatory or whether composition itself can provide sufficient authorship for a factual report.
-
-The candidate remains subject to X3 task evaluation. Reviewers must be able to predict creation and cancellation consequences; create, reopen, read, edit, reorder, remove, save, and export; navigate to exact source and back; explain stale evidence and refresh boundaries; delete without affecting history; and distinguish a report export from data exit. Preference alone does not validate the model.
-
-Once the identity is established, the redesign must define how a person first reads, trusts, refreshes, and exports a useful result, and only then chooses to alter its definition. This remains a product-design problem rather than a charting or document-generation library choice.
-
-The report-authoring experience must let the person:
-
-- begin from a question, an existing exploration, a session, or a reusable blank report;
-- select periods, sports, sessions, measurements, comparisons, user-defined session criteria, and contextual records without needing database terminology;
-- arrange narrative findings, exact values, tables, charts, maps, provenance, coverage, and limitations while retaining accessible alternatives;
-- preview the result independently of the editor and understand which elements contain sensitive location or health information;
-- save a versioned, reproducible definition that references evidence rather than copying unexplained values;
-- refresh a report deliberately when newly imported data or calculation definitions can change its results; and
-- export through explicit formats and privacy choices while keeping the saved report usable inside FitFreed.
+Reviewers must be able to predict creation and cancellation consequences; create, reopen, read, edit, reorder, remove, save, refresh, export, and delete; navigate to the exact source and back; and distinguish report export from data exit. Preference alone does not validate the model. Reporting remains a product-design problem before it becomes a charting or document-generation library choice.
 
 Implementation selection includes a focused evaluation of maintained open-source libraries for composable layouts, accessible visualisation, paginated document rendering, and export. Reuse is preferred when it preserves local-first operation, licence compatibility, portability, accessibility, deterministic output, and the Clean Architecture boundary. No library choice is mandatory if it compromises those outcomes.
 
