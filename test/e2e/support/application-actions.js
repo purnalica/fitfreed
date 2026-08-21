@@ -21,7 +21,9 @@ export async function openArchivePicker(dialogMock, selectedPath, chooseLabel) {
 
 export async function selectArchive(dialogMock, archivePath, chooseLabel) {
   await openArchivePicker(dialogMock, archivePath, chooseLabel);
-  await expect($(".path")).toHaveText(archivePath);
+  const archiveName = archivePath.split(/[\\/]/).filter(Boolean).at(-1);
+  await expect($(".path")).toHaveText(archiveName);
+  await expect($("body")).not.toHaveText(expect.stringContaining(archivePath));
 }
 
 export async function persistSettings() {
