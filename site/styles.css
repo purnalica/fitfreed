@@ -139,11 +139,11 @@ svg {
   position: relative;
   display: grid;
   width: min(1420px, calc(100% - 64px));
-  min-height: 760px;
+  min-height: 680px;
   align-items: center;
   gap: clamp(44px, 6vw, 100px);
   margin: 0 auto;
-  padding: 70px 0 110px;
+  padding: 56px 0 90px;
   grid-template-columns: minmax(0, 0.82fr) minmax(560px, 1.18fr);
 }
 
@@ -172,19 +172,19 @@ svg {
 }
 
 .hero h1 {
-  max-width: 680px;
+  max-width: 650px;
   margin: 20px 0 0;
-  letter-spacing: -0.055em;
+  letter-spacing: -0.045em;
   font-family: var(--serif);
-  font-size: clamp(58px, 6.3vw, 104px);
+  font-size: clamp(48px, 4.8vw, 74px);
   font-weight: 500;
-  line-height: 0.93;
+  line-height: 1.02;
 }
 
 .hero h1 em {
   display: block;
   color: var(--purple);
-  font-style: italic;
+  font-style: normal;
 }
 
 .hero-intro {
@@ -219,7 +219,6 @@ svg {
 .primary-action {
   background: var(--purple);
   color: #fff;
-  box-shadow: 0 12px 28px rgb(90 61 225 / 24%);
 }
 
 .primary-action:hover {
@@ -251,11 +250,10 @@ svg {
 
 .hero-product {
   overflow: hidden;
-  transform: perspective(1400px) rotateY(-3deg) rotateX(1deg);
   border: 1px solid var(--line);
   border-radius: 22px;
   background: var(--surface);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-soft);
 }
 
 .window-bar {
@@ -459,7 +457,7 @@ svg {
   margin: 0;
   letter-spacing: -0.045em;
   font-family: var(--serif);
-  font-size: clamp(42px, 5vw, 76px);
+  font-size: clamp(38px, 4.2vw, 62px);
   font-weight: 500;
   line-height: 1;
 }
@@ -1164,7 +1162,7 @@ footer small {
 
   .hero h1 {
     overflow-wrap: anywhere;
-    font-size: clamp(46px, 14vw, 68px);
+    font-size: clamp(40px, 11vw, 54px);
   }
 
   .hero-product {

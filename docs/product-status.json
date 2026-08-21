@@ -4,8 +4,8 @@
   "statuses": [
     {
       "key": "available",
-      "label": "Available in source",
-      "title": "The trusted data spine",
+      "label": "Implemented in source",
+      "title": "Current capability",
       "items": [
         "Polar Flow ZIP validation and import",
         "Explicit supported, ignored, and unrecognized coverage",
@@ -38,8 +38,8 @@
     },
     {
       "key": "active",
-      "label": "Active experience work",
-      "title": "A systemic experience redesign",
+      "label": "Work in progress",
+      "title": "Experience redesign",
       "items": [
         "Behavioral user models, jobs, critical journeys, and task architecture",
         "Competing interaction directions before production presentation changes",
@@ -53,8 +53,8 @@
     },
     {
       "key": "later",
-      "label": "Deliberately later",
-      "title": "Expansion after value is proven",
+      "label": "Later scope",
+      "title": "Outside the current MVP",
       "items": [
         "Additional providers and live APIs",
         "Linux and Windows distribution",

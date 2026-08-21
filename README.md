@@ -58,7 +58,7 @@ remains governed independently by the [current ledger](docs/testing/public-relea
 ## Where the project stands
 
 <!-- product-status:start -->
-| Available in source | Active experience work | Deliberately later |
+| Implemented in source | Work in progress | Later scope |
 |---|---|---|
 | Polar Flow ZIP validation and import | Behavioral user models, jobs, critical journeys, and task architecture | Additional providers and live APIs |
 | Explicit supported, ignored, and unrecognized coverage | Competing interaction directions before production presentation changes | Linux and Windows distribution |

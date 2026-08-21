@@ -6,9 +6,9 @@
     <meta
       name="description"
       data-i18n-content="meta.description"
-      content="FitFreed turns personal fitness exports into a private, explorable and portable history."
+      content="FitFreed imports supported personal fitness exports into a local history for exploration and reporting."
     >
-    <title data-i18n="meta.title">FitFreed — Your fitness data, freed</title>
+    <title data-i18n="meta.title">FitFreed — Explore personal fitness exports</title>
     <link rel="canonical" href="https://fitfreed.org/">
     <link rel="icon" href="../assets/brand/fitfreed-favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="styles.css">
@@ -38,14 +38,15 @@
     <main id="main">
       <section class="hero" id="top">
         <div class="hero-copy">
-          <p class="eyebrow" data-i18n="hero.eyebrow">Open source · Local first · Provider neutral</p>
-          <h1><span data-i18n="hero.titleLead">Your fitness history is</span> <em data-i18n="hero.titleEmphasis">more than a ZIP.</em></h1>
+          <p class="eyebrow" data-i18n="hero.eyebrow">Open-source desktop application · Local processing · Provider-neutral data model</p>
+          <h1><span data-i18n="hero.titleLead">Explore the history inside</span> <em data-i18n="hero.titleEmphasis">your fitness export.</em></h1>
           <p class="hero-intro" data-i18n="hero.intro">
-            Turn the data you can download into a history you can search, understand, compare,
-            annotate and carry with you—without handing it to another platform.
+            FitFreed imports supported Polar Flow export data into a local history for browsing
+            sessions, inspecting routes and signals, comparing periods, and creating reports. Core
+            use requires no FitFreed account or upload.
           </p>
           <div class="hero-actions">
-            <a class="primary-action" href="#experience"><span data-i18n="hero.explore">Explore the direction</span> <span data-i18n-static>↓</span></a>
+            <a class="primary-action" href="#experience"><span data-i18n="hero.explore">Review the product scope</span> <span data-i18n-static>↓</span></a>
             <a class="secondary-action" href="../docs/roadmap.md" data-i18n="hero.roadmap">Read the roadmap</a>
           </div>
           <p class="release-note">
@@ -65,9 +66,9 @@
               <b></b>
             </aside>
             <div class="concept-main">
-              <div class="concept-toolbar"><span data-i18n="hero.conceptPrompt">Choose a question to explore…</span><b data-i18n-static>⌘ K</b></div>
+              <div class="concept-toolbar"><span data-i18n="hero.conceptPrompt">Browse history or choose a supported comparison…</span><b data-i18n-static>⌘ K</b></div>
               <p class="concept-kicker" data-i18n="hero.conceptKicker">Your sports history · 2022–2026</p>
-              <h2 data-i18n="hero.conceptTitle">Four ways you kept moving.</h2>
+              <h2 data-i18n="hero.conceptTitle">520 sessions across four sports.</h2>
               <div class="sport-mix" aria-hidden="true">
                 <i style="--mix: 44%"></i><i style="--mix: 31%"></i>
                 <i style="--mix: 15%"></i><i style="--mix: 10%"></i>
@@ -86,26 +87,26 @@
       <section class="problem-statement" aria-labelledby="problem-heading">
         <p class="section-number" data-i18n="problem.number">01 · WHY</p>
         <div>
-          <h2 id="problem-heading" data-i18n="problem.title">Downloading your data is a right. Using it should be a reality.</h2>
+          <h2 id="problem-heading" data-i18n="problem.title">A data export provides access. FitFreed is intended to make it usable.</h2>
           <p data-i18n="problem.body">
-            A machine-readable archive satisfies access better than it satisfies understanding.
-            FitFreed exists to make a portable history genuinely useful: transparent transformations,
-            durable local storage, open formats and an application no provider can switch off.
+            A machine-readable archive can be difficult to explore directly. FitFreed maps supported
+            records into a documented provider-neutral model, stores them locally, and keeps
+            calculations and supporting evidence inspectable.
           </p>
         </div>
         <blockquote>
-          <strong data-i18n="problem.equation.portability">GDPR-enabled portability</strong>
+          <strong data-i18n="problem.equation.portability">GDPR data access</strong>
           <span data-i18n-static>+</span>
           <strong data-i18n="problem.equation.oss">open-source software</strong>
           <span data-i18n-static>=</span>
-          <strong data-i18n="problem.equation.freedom">meaningful user freedom</strong>
+          <strong data-i18n="problem.equation.freedom">usable, inspectable history</strong>
         </blockquote>
       </section>
 
       <section class="experience" id="experience" aria-labelledby="experience-heading">
         <div class="section-heading">
-          <p class="eyebrow" data-i18n="experience.eyebrow">Training first. Evidence always.</p>
-          <h2 id="experience-heading" data-i18n="experience.title">Start with a question. Go as deep as the data allows.</h2>
+          <p class="eyebrow" data-i18n="experience.eyebrow">Training history and evidence</p>
+          <h2 id="experience-heading" data-i18n="experience.title">Browse sessions. Inspect how each result was produced.</h2>
           <p data-i18n="experience.intro">
             Questions and recognizable sessions lead the experience. Metrics, health context and
             provider diagnostics support the answer instead of competing for the first viewport.
@@ -133,7 +134,7 @@
         <div class="session-story">
           <div class="session-copy">
             <p class="section-number" data-i18n="experience.session.number">FROM SESSION TO EVIDENCE</p>
-            <h3 data-i18n="experience.session.title">The average is only the beginning.</h3>
+            <h3 data-i18n="experience.session.title">Session structure, route and signals share one timeline.</h3>
             <p data-i18n="experience.session.body">
               Source laps, FitFreed-derived segments and your own criteria remain visibly different.
               When the provider recorded no useful phases, define equal time, equal distance, zones or
@@ -182,8 +183,8 @@
           </div>
         </div>
         <div class="report-copy">
-          <p class="eyebrow" data-i18n="reports.eyebrow">Own the result, too.</p>
-          <h2 id="reports-heading" data-i18n="reports.title">Build a report, not a screenshot.</h2>
+          <p class="eyebrow" data-i18n="reports.eyebrow">Saved reports and export</p>
+          <h2 id="reports-heading" data-i18n="reports.title">Save a result together with its evidence.</h2>
           <p data-i18n="reports.intro">
             Begin from an answer or session, arrange evidence and exact values, add your own
             interpretation, save the definition and reopen it after the history changes.
@@ -199,8 +200,8 @@
 
       <section class="ownership" id="ownership" aria-labelledby="ownership-heading">
         <div class="section-heading">
-          <p class="eyebrow" data-i18n="ownership.eyebrow">Freedom needs architecture.</p>
-          <h2 id="ownership-heading" data-i18n="ownership.title">Private by default. Inspectable by design. Portable by contract.</h2>
+          <p class="eyebrow" data-i18n="ownership.eyebrow">Data-handling commitments</p>
+          <h2 id="ownership-heading" data-i18n="ownership.title">Local processing, inspectable calculations and explicit data exit.</h2>
         </div>
         <div class="ownership-grid">
           <article>
@@ -215,8 +216,8 @@
           </article>
           <article>
             <span class="ownership-icon" data-i18n-static>↗</span>
-            <h3 data-i18n="ownership.portable.title">Portable again</h3>
-            <p data-i18n="ownership.portable.body">Versioned open formats, backups and exports prevent replacement lock-in.</p>
+            <h3 data-i18n="ownership.portable.title">Data exit</h3>
+            <p data-i18n="ownership.portable.body">Current source exports self-contained reports. Versioned backup and normalized-data export remain documented MVP requirements.</p>
           </article>
           <article>
             <span class="ownership-icon" data-i18n-static>{ }</span>
@@ -228,15 +229,15 @@
 
       <section class="status" id="status" aria-labelledby="status-heading">
         <div class="section-heading">
-          <p class="eyebrow" data-i18n="status.eyebrow">Ambitious, without pretending.</p>
-          <h2 id="status-heading" data-i18n="status.title">What exists, what comes next, and what can wait.</h2>
-          <p data-i18n="status.disclaimer">No roadmap capability is marketed as a released feature.</p>
+          <p class="eyebrow" data-i18n="status.eyebrow">Project status</p>
+          <h2 id="status-heading" data-i18n="status.title">Implemented, in progress, and later.</h2>
+          <p data-i18n="status.disclaimer">The lists below distinguish code that exists from active design work and later scope. There is no supported public download yet.</p>
         </div>
         <div class="status-columns">
         <!-- product-status:start -->
           <article data-status="available">
-            <span data-i18n="status.available.label">Available in source</span>
-            <h3 data-i18n="status.available.title">The trusted data spine</h3>
+            <span data-i18n="status.available.label">Implemented in source</span>
+            <h3 data-i18n="status.available.title">Current capability</h3>
             <ul>
               <li data-i18n="status.available.items.0">Polar Flow ZIP validation and import</li>
               <li data-i18n="status.available.items.1">Explicit supported, ignored, and unrecognized coverage</li>
@@ -265,8 +266,8 @@
             <a href="../docs/roadmap.md#milestone-2--mvp" data-i18n="status.available.source">MVP capability boundary →</a>
           </article>
           <article data-status="active">
-            <span data-i18n="status.active.label">Active experience work</span>
-            <h3 data-i18n="status.active.title">A systemic experience redesign</h3>
+            <span data-i18n="status.active.label">Work in progress</span>
+            <h3 data-i18n="status.active.title">Experience redesign</h3>
             <ul>
               <li data-i18n="status.active.items.0">Behavioral user models, jobs, critical journeys, and task architecture</li>
               <li data-i18n="status.active.items.1">Competing interaction directions before production presentation changes</li>
@@ -276,8 +277,8 @@
             <a href="../docs/plans/ui-redesign.md" data-i18n="status.active.source">Active UI and UX redesign plan →</a>
           </article>
           <article data-status="later">
-            <span data-i18n="status.later.label">Deliberately later</span>
-            <h3 data-i18n="status.later.title">Expansion after value is proven</h3>
+            <span data-i18n="status.later.label">Later scope</span>
+            <h3 data-i18n="status.later.title">Outside the current MVP</h3>
             <ul>
               <li data-i18n="status.later.items.0">Additional providers and live APIs</li>
               <li data-i18n="status.later.items.1">Linux and Windows distribution</li>
@@ -298,11 +299,12 @@
 
       <section class="community" id="community" aria-labelledby="community-heading">
         <div>
-          <p class="eyebrow" data-i18n="community.eyebrow">A project without collaborators has an expiry date.</p>
-          <h2 id="community-heading" data-i18n="community.title">Help make personal fitness history genuinely free.</h2>
+          <p class="eyebrow" data-i18n="community.eyebrow">Contributing</p>
+          <h2 id="community-heading" data-i18n="community.title">The repository is open for review and contribution.</h2>
           <p data-i18n="community.body">
-            Import formats, domain modeling, accessible visualization, Rust, React, testing,
-            documentation, translation and product design all have a durable home here.
+            The project documents import formats, the provider-neutral model, architecture decisions,
+            testing, product research, and translation. Contributions can address Rust, React,
+            accessible visualization, documentation, or product design.
           </p>
           <div class="hero-actions">
             <a class="primary-action" href="https://github.com/purnalica/fitfreed"><span data-i18n="community.repository">Explore the repository</span> <span data-i18n-static>↗</span></a>
@@ -311,7 +313,7 @@
         </div>
         <blockquote>
           <span data-i18n-static>“</span>
-          <p><span data-i18n="community.quote.record">The record is yours.</span><br><span data-i18n="community.quote.tools">The tools should be, too.</span></p>
+          <p><span data-i18n="community.quote.record">Roadmap, decisions, formats and tests are public.</span><br><span data-i18n="community.quote.tools">Current limitations are documented, too.</span></p>
         </blockquote>
       </section>
     </main>

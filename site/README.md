@@ -24,6 +24,13 @@ When changing product copy:
 3. run `npm run check:site` to reject missing, extra, empty, unmarked, or duplicated source keys; and
 4. review both generated routes at narrow and wide widths because translated text changes layout.
 
+The page informs rather than advertises. Every capability claim must be traceable to the current
+status source, active work and later scope must remain visibly distinct, and a limitation that would
+change a visitor's expectation must be stated in context. Visual personality is welcome, but
+billboard-scale promises, manufactured urgency, promotional superlatives and calls to action that
+suggest an unavailable release are not. Progressive disclosure keeps the full account accessible
+without turning the first viewport into either a campaign or a warning ledger.
+
 Do not edit generated localized HTML. Adding a locale also requires one entry in
 `site/locales/config.json`, a complete catalog, route metadata, and acceptance coverage under
 [ADR 0024](../docs/architecture/decisions/0024-generate-localized-product-pages.md).

@@ -21,10 +21,16 @@ const sourceDocument = new JSDOM(source, {
 }).window.document;
 
 assert.equal(sourceDocument.documentElement.lang, "en-US", "product page must declare its source locale");
-assert.equal(sourceDocument.title, "FitFreed — Your fitness data, freed");
+assert.equal(sourceDocument.title, "FitFreed — Explore personal fitness exports");
 assert.equal(sourceDocument.querySelector('link[rel="canonical"]')?.href, publicOrigin);
 assert.ok(sourceDocument.querySelector('meta[name="description"]')?.content.includes("fitness exports"));
 assert.equal(sourceDocument.querySelectorAll("script").length, 0, "canonical source must not contain generated runtime code");
+assert.doesNotMatch(
+  sourceDocument.body.textContent,
+  /Ambitious, without pretending|Freedom needs architecture|Own the result, too|The average is only the beginning|A project without collaborators has an expiry date/u,
+  "product-page copy must inform rather than advertise",
+);
+assert.doesNotMatch(sourceDocument.body.textContent, /!/u, "product-page copy must not manufacture excitement");
 
 for (const localAsset of sourceDocument.querySelectorAll('img[src], link[rel="stylesheet"], link[rel="icon"]')) {
   const reference = localAsset.getAttribute("src") || localAsset.getAttribute("href");
@@ -84,25 +90,25 @@ async function validateLocalizedPage(output, expected) {
 }
 
 await validateLocalizedPage(pages["index.html"], {
-  active: /Active experience work/u,
-  available: /Available in source/u,
+  active: /Work in progress/u,
+  available: /Implemented in source/u,
   canonical: publicOrigin,
-  heading: /fitness history/iu,
-  later: /Deliberately later/u,
+  heading: /fitness export/iu,
+  later: /Later scope/u,
   locale: "en-US",
 });
 await validateLocalizedPage(pages["es/index.html"], {
-  active: /Experiencia en desarrollo activo/u,
-  available: /Disponible en el código/u,
+  active: /Trabajo en curso/u,
+  available: /Implementado en el código/u,
   canonical: new URL("es/", publicOrigin).toString(),
-  heading: /historial deportivo/iu,
-  later: /Reservado para más adelante/u,
+  heading: /exportación de actividad física/iu,
+  later: /Alcance posterior/u,
   locale: "es-ES",
 });
 
 assert.doesNotMatch(source, /download (fitfreed|for macos)|get fitfreed/iu);
 assert.match(source, /No supported download yet/u);
-assert.match(sourceDocument.querySelector("#status .section-heading").textContent, /No roadmap capability is marketed as a released feature/u);
+assert.match(sourceDocument.querySelector("#status .section-heading").textContent, /There is no supported public download yet/u);
 
 const styles = readFileSync(resolve(pageDirectory, "styles.css"), "utf8");
 assert.doesNotMatch(styles, /url\(\s*["']?https?:/u, "product-page styles must not load remote assets");
