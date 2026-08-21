@@ -446,7 +446,9 @@ async function openTrainingDetailSection(catalog, section) {
 
 async function openDomainWorkspace(catalog, domain, workspace) {
   const expected = catalog[domain].workspaces[workspace];
-  const navigation = await $(".workspace-navigation");
+  const navigation = await $('.workspace-navigation[aria-label="'
+    + catalog[domain].workspaceNavigation
+    + '"]');
   const buttons = await navigation.$$("button");
   let target;
   for (const button of buttons) {
