@@ -9,8 +9,20 @@ const commitSha = /^[0-9a-f]{40}$/;
 function productSurfacePath(candidatePath) {
   return (
     [
+      ".github/workflows/pages.yml",
       "README.md",
       "docs/product-status.json",
+      "scripts/check-product-page.mjs",
+      "scripts/pages-artifact.mjs",
+      "scripts/pages-artifact.test.mjs",
+      "scripts/pages-publication.mjs",
+      "scripts/pages-publication.test.mjs",
+      "scripts/pages-workflow.mjs",
+      "scripts/pages-workflow.test.mjs",
+      "scripts/product-page-localization.mjs",
+      "scripts/product-page-localization.test.mjs",
+      "scripts/render-product-surfaces.mjs",
+      "scripts/render-product-surfaces.test.mjs",
       "site/README.md",
       "site/index.html",
       "site/styles.css",

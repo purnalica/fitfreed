@@ -61,6 +61,9 @@ jobs:
           npm run check:product-surfaces
           npm run check:site
 
+      - name: Verify the product publication automation
+        run: npm run test:product-site
+
       - name: Compose the complete Pages artifact
         run: npm run build:pages
 

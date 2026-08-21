@@ -22,6 +22,7 @@ test("rejects publication that can erase, race, or bypass verified product evide
     [(source) => source.replace("cancel-in-progress: false", "cancel-in-progress: true"), /concurrency/u],
     [(source) => source.replace("npm run verify:pages:preflight", "node -e true"), /preflight/u],
     [(source) => source.replace("npm run check:site", "node -e true"), /source page/u],
+    [(source) => source.replace("npm run test:product-site", "node -e true"), /publication automation/u],
     [(source) => source.replace("npm run build:pages", "cp -R site .artifacts/pages"), /compositor/u],
     [(source) => source.replace("npm run verify:pages:remote", "node -e true"), /remote/u],
     [(source) => source.replace("contents: read\n      id-token", "contents: write\n      id-token"), /permissions/u],

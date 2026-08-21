@@ -107,13 +107,25 @@ test("verifies product surfaces without rebuilding unchanged executable inputs",
         "site/styles.css",
         "site/locales/config.json",
         "site/locales/es-ES.json",
+        "scripts/check-product-page.mjs",
+        "scripts/pages-artifact.mjs",
+        "scripts/pages-artifact.test.mjs",
+        "scripts/pages-publication.mjs",
+        "scripts/pages-publication.test.mjs",
+        "scripts/pages-workflow.mjs",
+        "scripts/pages-workflow.test.mjs",
+        "scripts/product-page-localization.mjs",
+        "scripts/product-page-localization.test.mjs",
+        "scripts/render-product-surfaces.mjs",
+        "scripts/render-product-surfaces.test.mjs",
+        ".github/workflows/pages.yml",
       ],
     }),
     {
       fullVerification: false,
       productSurfaceVerification: true,
       reason: "documentation-only",
-      changedPathCount: 6,
+      changedPathCount: 18,
     },
   );
 });
@@ -125,6 +137,7 @@ test("keys reusable evidence to every executable and release input", () => {
     "100644 blob status-hash\tdocs/product-status.json",
     "100644 blob guide-hash\tdocs/user/README.md",
     "100644 blob site-hash\tsite/index.html",
+    "100644 blob pages-hash\tscripts/pages-artifact.mjs",
   ]);
 
   assert.equal(
@@ -134,6 +147,7 @@ test("keys reusable evidence to every executable and release input", () => {
       "100644 blob changed-status\tdocs/product-status.json",
       "100644 blob changed-guide\tdocs/user/README.md",
       "100644 blob changed-site\tsite/index.html",
+      "100644 blob changed-pages\tscripts/pages-artifact.mjs",
     ]),
     original,
   );
@@ -186,6 +200,9 @@ test("wires the fail-closed classifier into both hosted verification lanes", () 
   assert.match(workflow, /run: node scripts\/classify-ci-impact\.mjs resolve/);
   assert.match(workflow, /npm run check:product-surfaces/);
   assert.match(workflow, /npm run check:site/);
+  assert.match(workflow, /npm run test:product-site/);
+  assert.match(workflow, /npm run build:pages/);
+  assert.match(workflow, /npm run verify:pages:preflight/);
   assert.match(workflow, /npm run check:workflows/);
   assert.match(workflow, /npm run check:public-release-workflow/);
   assert.match(

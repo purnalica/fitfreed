@@ -101,6 +101,16 @@ jobs:
           npm run check:product-surfaces
           npm run check:site
 
+      - name: Verify product publication automation
+        if: >-
+          steps.decision.outputs.full-verification == 'true' ||
+          steps.impact.outputs.product-surface-verification == 'true'
+        run: |
+          npm run test:product-site
+          npm run check:pages-workflow
+          npm run build:pages
+          npm run verify:pages:preflight
+
       - name: Verify architecture boundaries
         if: steps.decision.outputs.full-verification == 'true'
         run: npm run check:architecture
