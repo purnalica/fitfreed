@@ -47,8 +47,9 @@ Every answer-bearing screen applies the disclosure order defined by the redesign
 
 The default view must not become a numeric inventory. Dates, durations, quantities, and precision
 use the person's locale and a human scale. Exact source values remain reachable. Sport identity uses
-text plus a provider-neutral family icon; color alone never identifies a sport. Missing evidence
-changes the composition instead of leaving empty charts or inventing zero values.
+text plus a coherent provider-neutral family icon across every surface; placeholder glyphs and color
+alone are not accepted final identifiers. Missing evidence changes the composition instead of leaving
+empty charts or inventing zero values.
 
 Severity follows consequence. A failed or rejected operation first states what happened to the
 existing library or saved document, then offers one safe next action. Technical detail is optional,
@@ -82,8 +83,11 @@ misleading personalized claim.
 ### History
 
 History opens with sports and visible sessions. Refinements are secondary and can be disclosed
-without hiding the results. Search, dates, sport, and applicable measurements update a single result
-set. Clearing refinements restores the default set.
+without hiding the results. Sport, date range, and applicable measurement availability use structured
+selectors populated from supported domain values; date controls also provide calendar interaction and
+an explicit unbounded state. Free text searches session names or helps with imprecise recall, but does
+not replace those selectors. All refinements update a single result set, expose their active state,
+and can be removed individually or cleared together to restore the default set.
 
 An empty result belongs to the current refinements, not to the library. It names the active query,
 confirms that imported sessions remain unchanged, and offers a clear-refinements action.
@@ -98,9 +102,27 @@ Source evidence remains unchanged and the classification survives navigation and
 
 A session opens as a focused workout story, not an appendix beneath a list. Its heading gives sport,
 date, duration, distance where applicable, and evidence availability at a glance. A complete outdoor
-session aligns source structure, route, pace or equivalent sport-specific signal, heart rate, zones,
-and relevant annotations on one understandable elapsed-time context. Exact samples and provenance
-remain closed until requested.
+session aligns source structure, a geographically recognizable map of the recorded GPS track, pace
+or equivalent sport-specific signal, heart rate, zones, and relevant annotations on one
+understandable elapsed-time context. The map is evidence rather than decoration: it distinguishes
+recorded and missing geometry, relates route position to elapsed evidence when supported, performs no
+hidden external request, and has a structured distance/coordinate alternative. Exact samples and
+provenance remain closed until requested.
+
+The map supports pan and zoom without losing the complete-track reset. Track traversal and the
+aligned signal lanes share one selected elapsed instant. Pointer hover, click, keyboard traversal, or
+an exact-evidence row highlights the corresponding map position and every available signal value;
+moving through a signal highlights the mapped point when geometry exists for that instant. The
+selection names elapsed time and recorded values, never inferred replacements. Missing route or signal
+samples break the applicable link visibly. A keyboard-operable elapsed-position control and the exact
+table provide equivalent non-map exploration.
+
+Tracking exploration is not reduced to a thumbnail beside generic metrics. It receives enough
+workspace to inspect geography and time together and retains sport-specific meaning: pace for
+running, speed and stroke-related evidence for paddling when recorded, speed and cadence or power for
+cycling when recorded, and the applicable elevation, heart-rate, temperature, or other supported
+signals. The interaction grammar remains stable across sports while labels, units, lanes, sections,
+and useful defaults change with the canonical sport family and available evidence.
 
 The composition is evidence-dependent:
 
@@ -198,6 +220,15 @@ change uses the canonical hierarchy and names the actual destination—for examp
 running sessions**. Breadcrumbs communicate hierarchy; they do not pretend to be transient history.
 Unsaved control states always offer explicit save and cancel semantics before navigation.
 
+An action that expands detail below a table, list, or long result must not change content silently
+outside the viewport. If the revealed region is not already substantially visible, the interface
+scrolls its heading into a stable reading position and moves programmatic focus to that heading or
+region. The movement is restrained, uses smooth scrolling only when reduced motion is not requested,
+and keeps enough originating context visible to explain the relationship. Collapsing returns focus to
+the control that disclosed the region; it does not force the viewport to jump when the control remains
+visible. A side-by-side inspector or in-place row expansion may avoid scrolling only when its
+association and new content are immediately perceivable.
+
 ## Adaptive and accessible behavior
 
 The contract applies to wide macOS desktop and compact windows, not only a single showcase size.
@@ -207,6 +238,9 @@ The contract applies to wide macOS desktop and compact windows, not only a singl
 - At 175% and 200%, the rail becomes narrow while retaining unambiguous destinations; multi-region
   workspaces, classification, criteria, settings, and change summaries stack before text or controls
   collide.
+- Components also adapt to their allocated inline size. A map, chart, inspector, or detail column can
+  be narrow inside an otherwise wide window, so its metric summaries, legends, labels, and controls
+  change columns through component-level breakpoints before text wraps into isolated words or units.
 - Compact windows keep labeled navigation, stack primary regions, and preserve the explicit return
   path. Horizontal scrolling is reserved for evidence that cannot be truthfully reflowed and has an
   accessible alternative.
@@ -242,20 +276,31 @@ Existing sport classification, user segmentation, source evidence, report resolu
 refresh, privacy authorization, and deterministic HTML export contracts remain authoritative. The
 production UI must consume them through their application ports rather than reproducing their rules.
 
+The current application contracts already expose exact route points with coordinates, altitude, and
+optional elapsed time, plus separate elapsed signal series for heart rate, speed, distance, altitude,
+cadence, temperature, and power. The canonical sport model also provides a provider-neutral water
+sport family suitable for an authored paddling label. These are necessary evidence, but separate route
+and signal queries are not a presentation join contract. The composed session-story read model must
+align compatible evidence revisions and elapsed timestamps, retain gaps, and project the
+sport-specific labels and units before the production interface offers synchronized tracking. No
+component may correlate repository results independently.
+
 ## X3 review evidence
 
 The ignored local prototype at `.local/ui-redesign-v2/` realizes every state in this specification
 with independently invented multi-sport data. Its automated checks exercise meaningful field input,
 validation, save/cancel behavior, multiple items, ordering, removal, persistence across navigation,
-locale switching, recovery, exact evidence, all import outcomes, report lifecycle, structural
-accessibility, and light/dark contrast tokens.
+locale switching, recovery, synchronized running and paddling track inspection, exact evidence, all
+import outcomes, report lifecycle, structural accessibility, and light/dark contrast tokens.
 
 The review must still supply human observations. X3 is not accepted until the product owner confirms
 that the candidate:
 
 1. makes the product purpose and first useful action understandable without explanation;
 2. makes sports and sessions recognizable and a remembered session findable;
-3. explains a complete and a partial session without hiding depth or inventing evidence;
+3. makes a route-bearing session genuinely investigable through a navigable map, synchronized
+   sport-specific signals, sections, exact points, and an equivalent keyboard path, while explaining
+   a partial session without hiding depth or inventing evidence;
 4. gives reports a predictable identity and lifecycle distinct from exploration and data exit;
 5. handles invalid, repeated, extended, and failed imports without alarm or ambiguity;
 6. remains coherent in both locales, appearances, window widths, and at 200% content zoom; and
