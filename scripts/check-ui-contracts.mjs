@@ -174,15 +174,15 @@ for (const boundary of [
   'hidden={workspace !== "appearance"}',
   '{ workspace: "appearance", label: messages.workspaces.appearance }',
   '{ workspace: "updates", label: messages.workspaces.updates }',
+  'hidden={workspace !== "updates"}',
+  "{updatePanel}",
 ]) {
   if (!settingsPanel.includes(boundary)) {
     throw new Error(`Settings must preserve category orientation: ${boundary}`);
   }
 }
-if (!application.includes(
-  'hidden={activeHome !== "settings" || settingsWorkspace !== "updates"}',
-)) {
-  throw new Error("update maintenance must be isolated in its Settings category");
+if (!application.includes('className="settings-home" hidden={activeHome !== "settings"}')) {
+  throw new Error("Settings must remain mounted but hidden outside its application workspace");
 }
 if (!application.includes('useState<ApplicationHome>("home")')
   || !libraryHomePanel.includes("onClick={onOpenSources}")) {

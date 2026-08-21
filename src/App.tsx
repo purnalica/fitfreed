@@ -968,38 +968,33 @@ function App() {
             )}
           </section>
         )}
-        {activeHome === "settings" && (
+        <div className="settings-home" hidden={activeHome !== "settings"}>
           <SettingsPanel
-            key={preferencesEditorRevision}
             savedPreferences={savedPreferences}
             messages={messages.settings}
             workspace={settingsWorkspace}
             disabled={!libraryReady || updateInstalling}
             operation={preferencesOperation}
             savedNotice={preferencesSavedNotice}
+            editorRevision={preferencesEditorRevision}
             onWorkspaceChange={setSettingsWorkspace}
             onPreview={previewPreferences}
             onSave={savePreferences}
             onReset={resetPreferences}
+            updatePanel={applicationReady && (
+              <Suspense fallback={<LoadingSurface message={messages.shell.loading} />}>
+                <UpdatePanel
+                  locale={locale}
+                  messages={messages.updates}
+                  errors={errorMessages}
+                  ready
+                  refreshToken={updateLocaleRefreshToken}
+                  installationBlocked={busy}
+                  onInstallationStateChange={setUpdateInstalling}
+                />
+              </Suspense>
+            )}
           />
-        )}
-        <div
-          className="settings-updates-workspace"
-          hidden={activeHome !== "settings" || settingsWorkspace !== "updates"}
-        >
-          {applicationReady && (
-            <Suspense fallback={<LoadingSurface message={messages.shell.loading} />}>
-              <UpdatePanel
-                locale={locale}
-                messages={messages.updates}
-                errors={errorMessages}
-                ready
-                refreshToken={updateLocaleRefreshToken}
-                installationBlocked={busy}
-                onInstallationStateChange={setUpdateInstalling}
-              />
-            </Suspense>
-          )}
         </div>
         <div className="sources-home" hidden={activeHome !== "sources"}>
           <SourcesPanel

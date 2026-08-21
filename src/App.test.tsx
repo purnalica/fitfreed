@@ -825,7 +825,7 @@ describe("FitFreed import interface", () => {
     scrollingElement.scrollTop = 180;
 
     await user.click(screen.getByRole("button", { name: "Settings" }));
-    await screen.findByRole("heading", { name: "Make FitFreed feel right on this device" });
+    await screen.findByRole("heading", { name: "Application settings" });
     await waitFor(() => expect(scrollingElement.scrollTop).toBe(0));
     scrollingElement.scrollTop = 420;
 
@@ -1426,6 +1426,10 @@ describe("FitFreed import interface", () => {
     await user.click(within(navigation).getByRole("button", { name: "Updates" }));
 
     expect(await screen.findByRole("heading", { name: "Application updates" })).toBeVisible();
+    expect(screen.getByRole("region", { name: "Application settings" }))
+      .toContainElement(screen.getByRole("region", { name: "Application updates" }));
+    expect(screen.getByText("Installed version")).toBeVisible();
+    expect(screen.getByText("0.1.0")).toBeVisible();
     expect(screen.getByRole("button", { name: "Check now" })).toBeEnabled();
     expect(screen.getByRole("form", {
       name: "Appearance and language",
@@ -1672,7 +1676,7 @@ describe("FitFreed import interface", () => {
       .getAllByRole("button", { name: /View session details/ })).toHaveLength(1));
 
     await user.click(screen.getByRole("button", { name: "Settings" }));
-    expect(screen.getByRole("region", { name: "Make FitFreed feel right on this device" }))
+    expect(screen.getByRole("region", { name: "Application settings" }))
       .toBeVisible();
     await user.click(screen.getByRole("button", { name: "History" }));
 

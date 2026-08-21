@@ -33,6 +33,7 @@ describe("SettingsPanel", () => {
           onPreview={vi.fn()}
           onSave={vi.fn()}
           onReset={vi.fn()}
+          updatePanel={<section aria-label="Update maintenance">Update controls</section>}
         />
       );
     }
@@ -52,11 +53,53 @@ describe("SettingsPanel", () => {
       name: "Appearance and language",
       hidden: true,
     })).not.toBeVisible();
-    expect(screen.getByLabelText("Preview")).not.toBeVisible();
+    expect(screen.getByRole("complementary", {
+      name: "Interface preview",
+      hidden: true,
+    })).not.toBeVisible();
+    expect(screen.getByRole("region", { name: "Update maintenance" })).toBeVisible();
+    expect(screen.getByRole("region", { name: "Application settings" }))
+      .toContainElement(screen.getByRole("region", { name: "Update maintenance" }));
 
     await user.click(within(navigation).getByRole("button", { name: "Appearance & language" }));
     expect(screen.getByRole("radio", { name: "Dark" })).toBeChecked();
     expect(screen.getByLabelText("Default content zoom")).toHaveValue("175");
+    expect(screen.queryByRole("region", { name: "Update maintenance" }))
+      .not.toBeInTheDocument();
+  });
+
+  it("uses a concrete interface example and lets the preview be discarded explicitly", async () => {
+    const user = userEvent.setup();
+    const onPreview = vi.fn();
+
+    render(
+      <SettingsPanel
+        savedPreferences={savedPreferences}
+        messages={catalogs["en-US"].settings}
+        workspace="appearance"
+        disabled={false}
+        savedNotice={false}
+        onWorkspaceChange={vi.fn()}
+        onPreview={onPreview}
+        onSave={vi.fn()}
+        onReset={vi.fn()}
+      />,
+    );
+
+    const preview = screen.getByRole("article", { name: "Interface preview" });
+    expect(within(preview).getByText("Example session")).toBeVisible();
+    expect(within(preview).getByText("Running")).toBeVisible();
+    expect(within(preview).getByText("42 min")).toBeVisible();
+    expect(within(preview).getByText("8.2 km")).toBeVisible();
+
+    await user.click(screen.getByRole("radio", { name: "Dark" }));
+    await user.selectOptions(screen.getByLabelText("Default content zoom"), "175");
+    await user.click(screen.getByRole("button", { name: "Discard preview" }));
+
+    expect(screen.getByRole("radio", { name: "System" })).toBeChecked();
+    expect(screen.getByLabelText("Default content zoom")).toHaveValue("100");
+    expect(onPreview).toHaveBeenLastCalledWith(savedPreferences);
+    expect(screen.queryByText("Changes not saved")).not.toBeInTheDocument();
   });
 
   it("previews and saves every application preference as one set", async () => {
@@ -82,7 +125,7 @@ describe("SettingsPanel", () => {
     await user.click(screen.getByRole("radio", { name: "Dark" }));
     await user.selectOptions(screen.getByLabelText("Default content zoom"), "175");
 
-    expect(screen.getByRole("status")).toHaveTextContent("Previewing unsaved changes");
+    expect(screen.getByRole("status")).toHaveTextContent("Changes not saved");
     expect(onPreview).toHaveBeenLastCalledWith({
       version: 1,
       locale: "es-ES",

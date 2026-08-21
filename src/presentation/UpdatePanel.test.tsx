@@ -70,6 +70,8 @@ describe("UpdatePanel", () => {
       "fitfreed://update-check-completed",
       expect.any(Function),
     ));
+    expect(await within(panel).findByText("0.1.0")).toBeVisible();
+    expect(within(panel).getByText("Installed version")).toBeVisible();
     expect(within(panel).queryByText(/not configured/)).not.toBeInTheDocument();
 
     act(() => updateEventListener?.({ payload: outcome() }));

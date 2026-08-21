@@ -123,6 +123,24 @@ async function expectFirstRunActionsBeforePreview() {
   expect(positions.previewTop).toBeGreaterThan(positions.actionsBottom);
 }
 
+async function expectSettingsControlsWithinInitialViewport() {
+  const state = await browser.execute(() => {
+    const form = document.querySelector(".settings-form").getBoundingClientRect();
+    const heading = document.querySelector(".settings-heading").getBoundingClientRect();
+    const root = document.documentElement;
+    return {
+      headingTop: heading.top,
+      formTop: form.top,
+      viewportHeight: root.clientHeight,
+      hasHorizontalOverflow: root.scrollWidth > root.clientWidth,
+    };
+  });
+  expect(state.headingTop).toBeGreaterThanOrEqual(0);
+  expect(state.formTop).toBeGreaterThan(state.headingTop);
+  expect(state.formTop).toBeLessThan(state.viewportHeight);
+  expect(state.hasHorizontalOverflow).toBe(false);
+}
+
 async function expectLibraryHome(catalog) {
   await expect($(".library-home h1")).toHaveText(catalog.home.title);
   const questionButtons = await $$(".library-home-questions button");
@@ -904,6 +922,9 @@ describe("packaged FitFreed import journey", () => {
     await expect($("html")).toHaveAttribute("data-appearance", "light");
     await expectApplicationShellLayout(english, "compact");
     await expectFirstRunActionsBeforePreview();
+    await openSettingsCategory("appearance");
+    await expectSettingsControlsWithinInitialViewport();
+    await goToHome("home");
     await resizeApplication(900, 760);
     await expectApplicationShellLayout(english, "compact");
     await resizeApplication(1280, 820);
@@ -914,8 +935,30 @@ describe("packaged FitFreed import journey", () => {
     )).toBe("2");
     await resetSettings("home");
     await expect($("html")).toHaveAttribute("data-appearance", "system");
+    await openSettingsCategory("appearance");
+    await expect($(".settings-preview")).toHaveText(
+      expect.stringContaining(english.settings.previewTitle),
+    );
+    await expect($(".settings-preview")).toHaveText(
+      expect.stringContaining(english.settings.previewDistance),
+    );
+    await $("input[name='appearance'][value='dark']").click();
+    await expect($(".settings-status")).toHaveText(english.settings.unsaved);
+    await $(`aria/${english.settings.discard}`).click();
+    await expect($("html")).toHaveAttribute("data-appearance", "system");
+    expect(await $("input[name='appearance'][value='system']").isSelected()).toBe(true);
+    expect(await $$(".settings-status")).toHaveLength(0);
     await openSettingsCategory("updates");
     await expect($("#update-heading")).toHaveText(english.updates.heading);
+    await expect($(".update-installed-version")).toHaveText(
+      expect.stringContaining(english.updates.installedVersion),
+    );
+    await expect($(".update-installed-version")).toHaveText(
+      expect.stringContaining("0.1.0"),
+    );
+    expect(await browser.execute(
+      () => document.querySelector(".settings-panel .update-panel") !== null,
+    )).toBe(true);
     await expect($("aria/Check now")).toBeEnabled();
     await expect($(".settings-layout")).not.toBeDisplayed();
     await openSettingsCategory("appearance");

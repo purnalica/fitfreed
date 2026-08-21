@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import type { catalogs } from "../locales/catalogs";
 import {
@@ -7,6 +7,7 @@ import {
   type ApplicationPreferences,
 } from "./application-preferences";
 import { ProgressSubmitButton } from "./ProgressSubmitButton";
+import { SportFamilyIcon } from "./SportFamilyIcon";
 import { WorkspaceNavigation } from "./WorkspaceNavigation";
 
 type SettingsMessages = (typeof catalogs)["en-US"]["settings"];
@@ -18,10 +19,12 @@ interface SettingsPanelProps {
   disabled: boolean;
   operation?: "save" | "reset";
   savedNotice: boolean;
+  editorRevision?: number;
   onWorkspaceChange: (workspace: SettingsWorkspace) => void;
   onPreview: (preferences: ApplicationPreferences) => void;
   onSave: (preferences: ApplicationPreferences) => Promise<void>;
   onReset: () => Promise<void>;
+  updatePanel?: ReactNode;
 }
 
 export type SettingsWorkspace = "appearance" | "updates";
@@ -35,10 +38,12 @@ export function SettingsPanel({
   disabled,
   operation,
   savedNotice,
+  editorRevision = 0,
   onWorkspaceChange,
   onPreview,
   onSave,
   onReset,
+  updatePanel,
 }: SettingsPanelProps) {
   const [draft, setDraft] = useState(savedPreferences);
 
@@ -49,6 +54,7 @@ export function SettingsPanel({
     savedPreferences.locale,
     savedPreferences.appearance,
     savedPreferences.contentZoomPercent,
+    editorRevision,
   ]);
 
   const dirty = !sameApplicationPreferences(draft, savedPreferences);
@@ -57,6 +63,11 @@ export function SettingsPanel({
   function preview(next: ApplicationPreferences) {
     setDraft(next);
     onPreview(next);
+  }
+
+  function discardPreview() {
+    setDraft(savedPreferences);
+    onPreview(savedPreferences);
   }
 
   return (
@@ -115,15 +126,20 @@ export function SettingsPanel({
             <small>{messages.appearanceBody}</small>
             <div>
               {(["system", "light", "dark"] as AppearancePreference[]).map((appearance) => (
-                <label key={appearance}>
+                <label key={appearance} data-appearance-option={appearance}>
                   <input
                     type="radio"
                     name="appearance"
                     value={appearance}
+                    aria-label={messages[appearance]}
                     checked={draft.appearance === appearance}
                     onChange={() => preview({ ...draft, appearance })}
                   />
-                  <span>{messages[appearance]}</span>
+                  <span className="appearance-swatch" aria-hidden="true"><i /></span>
+                  <span className="appearance-option-copy">
+                    <strong>{messages[appearance]}</strong>
+                    <small>{messages.appearanceOptions[appearance]}</small>
+                  </span>
                 </label>
               ))}
             </div>
@@ -165,6 +181,16 @@ export function SettingsPanel({
             >
               {messages.restore}
             </button>
+            {dirty && !busy && (
+              <button
+                type="button"
+                className="secondary settings-discard"
+                disabled={disabled}
+                onClick={discardPreview}
+              >
+                {messages.discard}
+              </button>
+            )}
             <ProgressSubmitButton
               loading={operation === "save"}
               disabled={disabled || busy || !dirty}
@@ -180,15 +206,42 @@ export function SettingsPanel({
         </form>
 
         <aside className="settings-preview" aria-label={messages.preview}>
-          <span>{messages.previewEyebrow}</span>
-          <h2>{messages.previewTitle}</h2>
-          <p>{messages.previewBody}</p>
-          <div aria-hidden="true">
-            <i />
-            <i />
-            <i />
-          </div>
+          <p className="eyebrow">{messages.previewEyebrow}</p>
+          <article aria-label={messages.preview}>
+            <header>
+              <SportFamilyIcon family="running" />
+              <div>
+                <p>{messages.previewSport}</p>
+                <h2>{messages.previewTitle}</h2>
+              </div>
+            </header>
+            <dl>
+              <div>
+                <dt>{messages.previewDurationLabel}</dt>
+                <dd>{messages.previewDuration}</dd>
+              </div>
+              <div>
+                <dt>{messages.previewDistanceLabel}</dt>
+                <dd>{messages.previewDistance}</dd>
+              </div>
+            </dl>
+            <svg
+              className="settings-preview-chart"
+              viewBox="0 0 320 84"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path className="settings-preview-chart-grid" d="M0 21H320M0 42H320M0 63H320" />
+              <path className="settings-preview-chart-line" d="M0 67 34 55 70 60 106 35 142 44 178 20 214 31 250 14 286 29 320 18" />
+            </svg>
+          </article>
+          <p className="settings-preview-note">{messages.previewBody}</p>
         </aside>
+      </div>
+
+      <div className="settings-updates-workspace" hidden={workspace !== "updates"}>
+        {updatePanel}
       </div>
     </section>
   );

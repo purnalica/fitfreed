@@ -314,6 +314,15 @@ export function UpdatePanel({
         </button>
       </div>
 
+      {outcome && (
+        <dl className="update-installed-version">
+          <div>
+            <dt>{messages.installedVersion}</dt>
+            <dd>{outcome.installedVersion}</dd>
+          </div>
+        </dl>
+      )}
+
       {operationProgress && (
         <p className="update-progress" role="status" aria-live="polite">
           {operationProgress}

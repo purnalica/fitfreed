@@ -244,8 +244,16 @@ as a failure.
 
 Settings is a dedicated space for lasting preferences. The initial groups contain interface language
 (`en-US`, `es-ES`), appearance (system, light, dark), and content zoom from 100% through 200%.
-Changes have a representative preview and save explicitly. Current-task controls and data-library
-operations do not migrate into Settings merely because they are configurable.
+Changes immediately affect one concrete fictional session preview and save explicitly. The preview
+must expose the actual effects of locale, appearance, and zoom rather than decorate the form. An
+unsaved draft is named, survives movement between Settings categories, and offers an explicit discard
+action; leaving Settings also restores the complete persisted preference set. Appearance choices use
+recognizable visual samples in addition to names.
+
+Update discovery and maintenance form a second Settings category. They remain mounted so a scheduled
+or launch check is not repeated when the person switches categories, always identify the installed
+version once update state is available, and never compete visually with the preference form. Current-task
+controls and data-library operations do not migrate into Settings merely because they are configurable.
 
 Invalid or obsolete saved values recover to a documented safe default while preserving valid
 preferences. Recovery is announced without blocking the application. Locale changes translate the

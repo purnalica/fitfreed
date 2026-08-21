@@ -22,8 +22,10 @@ temporarily replaces the history list, and returning restores the point from whi
 
 Current builds also demonstrate import safety, source-subject correlation, reconciliation, and localized
 family coverage. Settings separates **Appearance & language** from **Updates**, so maintenance does not
-compete with the preference preview. Builds expose trusted update checking at ready startup, in the Updates
-category on explicit request, and
+compete with the preference preview. Language, appearance, and content size can be previewed against one
+recognizable fictional session before saving or deliberately discarding the draft. The Updates category
+identifies the installed version as soon as update state is available. Builds expose trusted update checking
+at ready startup, in the Updates category on explicit request, and
 every 24 hours while the application remains open; exact-candidate installation; persisted dismissal;
 24-hour postponement; and automatic application-and-library recovery coordination. Ordinary scheduled
 outcomes stay quiet unless they require attention. The ordinary build has no endpoint or production trust
