@@ -1759,7 +1759,7 @@ describe("packaged FitFreed import journey", () => {
     );
     const recordedExercises = await $$("#training-detail-structure > .training-exercise");
     expect(recordedExercises).toHaveLength(1);
-    await expect(recordedExercises[0].$("header h5")).toHaveText("Exercise 1");
+    await expect(recordedExercises[0].$(".training-exercise-heading")).toHaveText("Exercise 1");
     const recordedCollections = await recordedExercises[0].$$(
       ".training-structure-collection",
     );
@@ -2911,8 +2911,8 @@ describe("packaged FitFreed import journey", () => {
     await openTrainingDetailSection(english, "structure");
     const mixedSportExercises = await $$("#training-detail-structure > .training-exercise");
     expect(mixedSportExercises).toHaveLength(2);
-    await expect(mixedSportExercises[0].$("header h5")).toHaveText("Exercise 1");
-    await expect(mixedSportExercises[1].$("header h5")).toHaveText("Exercise 2");
+    await expect(mixedSportExercises[0].$(".training-exercise-heading")).toHaveText("Exercise 1");
+    await expect(mixedSportExercises[1].$(".training-exercise-heading")).toHaveText("Exercise 2");
     await expect(mixedSportExercises[1].$("header span")).toHaveText("Unknown sport 1");
     await $("aria/Back to session results").click();
 
@@ -3342,7 +3342,7 @@ describe("packaged FitFreed import journey", () => {
       spanish.training.sessionLibrary.structureHeading,
     );
     const spanishExercise = await $("#training-detail-structure > .training-exercise");
-    await expect(spanishExercise.$("header h5")).toHaveText("Ejercicio 1");
+    await expect(spanishExercise.$(".training-exercise-heading")).toHaveText("Ejercicio 1");
     const spanishSourceLapCells = await spanishExercise.$$(
       ".training-structure-collection:first-of-type tbody tr:first-child th, .training-structure-collection:first-of-type tbody tr:first-child td",
     );

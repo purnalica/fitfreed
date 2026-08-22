@@ -1912,7 +1912,7 @@ export function TrainingSessionLibraryPanel({
     return (
       <>
         <header>
-          <h4>{interpolate(copy.exerciseHeading, {
+          <h4 className="training-exercise-heading">{interpolate(copy.exerciseHeading, {
             number: number.format(exercise.ordinal + 1),
           })}</h4>
           <span className="training-exercise-sport-identity">
@@ -1942,7 +1942,7 @@ export function TrainingSessionLibraryPanel({
     if (exercise.structure) return exerciseSummary(exercise.structure);
     return (
       <header>
-        <h4>{interpolate(copy.exerciseHeading, {
+        <h4 className="training-exercise-heading">{interpolate(copy.exerciseHeading, {
           number: number.format(exercise.ordinal + 1),
         })}</h4>
         {exercise.sport && (
