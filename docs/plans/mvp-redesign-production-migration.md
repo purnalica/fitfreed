@@ -209,7 +209,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R3 | Complete locally — R3.1 and R3.2 exact packaged gates passed 2026-08-22 | Import ends in recognizable personal value |
 | X5-R4 | Complete locally — exact packaged and exhaustive adaptive gates passed 2026-08-22 | Existing health and aligned-history questions read as answers |
 | X5-R5 | Complete locally — R5.4, R5.5, and real-process restart gates passed 2026-08-22 | A remembered session is findable and sports are recognizable |
-| X5-R6 | In progress — R6.1/R6.2 and the first production workbench slice implemented; exact committed-source package gate pending | A routed workout is investigated through a dominant synchronized map |
+| X5-R6 | In progress — R6.1/R6.2 and the first production workbench slice passed exact packaged gates on 2026-08-22 | A routed workout is investigated through a dominant synchronized map |
 | X5-R7 | Pending | Every session composition reflects its actual evidence |
 | X5-R8 | Pending | Personal ranges and reusable criteria work end to end |
 | X5-R9 | Pending | Reports open as results and leave FitFreed safely |
@@ -953,13 +953,17 @@ focused-view controls, preserves focus on initial session entry, restores the in
 range, source-aware exact actions, and local-privacy statement attached to the same story. A route action opens
 the existing paginated Routes evidence and a metric action opens its exact Signals source, moving focus and
 the visible workspace to the requested result without adding a second reader. Unit and component tests,
-translation and architecture contracts, dependency audit, production
-build, and the complete contributor fast lane pass. A preliminary packaged campaign passed the complete
-functional journey, real application-process restart, and insight-performance budgets; because the final
-source revision is not yet committed, this checkpoint does not treat that run as acceptance evidence. R6
-remains open for exact committed-source packaged evidence, synchronized full-width signal lanes and exact-row
-selection, remaining locale/theme/zoom/accessibility visual matrices, dense-session interaction evidence, and
-the personal/source range workbench integration already assigned to R8.
+translation and architecture contracts, dependency audit, production build, and the complete contributor
+fast lane pass. The exact `3c8e217` packaged source passed the 3-minute 11-second functional journey, a real
+application-process restart, and the 4-minute 2-second dense insight campaign. The route journey covers local
+pointer selection, keyboard evidence traversal, WebView-safe keyboard pan, named zoom and fit, route-role
+separation, transformed overlay evidence, modal isolation and restoration, exact-result focus, local-only
+rendering, adaptive layout, and accessibility. Training p95 measurements were 46 ms for common filtering,
+46 ms for the maximum filter, 21 ms for comparison, 36 ms for calendar navigation, 42 ms for signal overview,
+and 202 ms for an exact signal page, all within their accepted budgets. R6 remains open for synchronized
+full-width signal lanes and exact-row selection, remaining locale/theme/zoom/accessibility visual matrices,
+dense-session route-interaction evidence, and the personal/source range workbench integration already assigned
+to R8.
 
 ## X5-R7 — Make session composition evidence-adaptive
 
