@@ -19,8 +19,8 @@ ADR 0013 selected semantic HTML and CSS for the original bounded bars, compositi
 aligned lanes. It explicitly requires reconsideration when a product need introduces dense spatial
 interaction. The accepted outdoor-session experience has now crossed that boundary: the recorded route is
 the dominant workspace and must support pointer and keyboard pan, zoom, complete-track reset, selected
-position, route gaps, direction, start and finish, synchronized elapsed evidence, focused viewing, and
-responsive restoration.
+position, route-role discontinuities, signal gaps, direction, start and finish, synchronized elapsed
+evidence, focused viewing, and responsive restoration.
 
 The spatial surface remains deliberately narrower than a general map product. The MVP draws only recorded
 local geometry over a neutral geographic context. It does not load a basemap, request a tile, contact a
@@ -140,9 +140,10 @@ FitFreed will use stable Leaflet 1.9.4 for one lazily loaded, local, vector-only
 - The component creates no `TileLayer`, remote layer, geocoder, geolocation control, telemetry, plugin,
   remote icon, or popup from source-authored HTML. It imports Leaflet code and CSS from the packaged
   application only. Content security policy remains unchanged.
-- Route gaps are separate polylines. Primary and transition roles remain separate. Anti-meridian unwrapping,
-  exact source ordinals, and missing elapsed positions remain explicit presentation inputs rather than being
-  hidden by renderer normalization.
+- Primary routes, transition routes, and exercises are separate polylines and are never bridged. Canonical
+  route version 1 contains no source-authored intra-route break; missing elapsed time prevents synchronization
+  but does not prove a geometric break. Anti-meridian unwrapping, exact source ordinals, and missing elapsed
+  positions remain explicit presentation inputs rather than being hidden by renderer normalization.
 - Leaflet owns spatial pan, zoom, fit, resize, pointer projection, and metric scale. FitFreed owns the selected
   recorded point, elapsed traversal, direction/start/end/selected symbols, overlay legend, focus/full-screen
   state, reset behavior, and origin restoration.
@@ -205,8 +206,8 @@ and the unchanged Tauri content security policy. Production acceptance additiona
 
 1. architecture tests proving that Leaflet remains presentation-only and that no remote map source,
    geolocation, geocoder, plugin, or source-authored popup enters production;
-2. unit tests for route gaps, anti-meridian unwrapping, fit/reset, selected source ordinal, pointer and
-   keyboard selection, primary/transition separation, resize, and disposal;
+2. unit tests for exercise and route-role discontinuities, signal gaps, anti-meridian unwrapping, fit/reset,
+   selected source ordinal, pointer and keyboard selection, missing elapsed evidence, resize, and disposal;
 3. synchronized component tests proving visual, value-strip, signal-lane, elapsed-control, and exact-table
    agreement from the same `SessionStory`;
 4. packaged macOS E2E proving pan, zoom, reset, focused view, focus restoration, both locales, light/dark/

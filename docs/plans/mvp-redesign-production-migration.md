@@ -840,8 +840,11 @@ visibly synchronized when those facts exist.
 1. Introduce one `SessionStory` query and projection over the authoritative session selection,
    structure, route, signal, zone, classification, and provenance ports.
 2. Bind every sub-result to one discovery and evidence revision; reject mixed snapshots.
-3. Align route points and signal slots only by compatible recorded elapsed time. Preserve route gaps,
-   signal gaps, absent timestamps, source roles, units, exact ordinals, and unavailable values.
+3. Align route points and signal slots only by compatible recorded elapsed time. Preserve exercise and
+   route-role discontinuities, signal gaps, absent timestamps, source roles, units, exact ordinals, and
+   unavailable values. Canonical route version 1 contains no source-authored intra-route break, so missing
+   elapsed time cannot be presented as a geometric gap; such a capability requires explicit source evidence
+   and a later canonical contract.
 4. Project sport-specific primary labels and eligible overlays without choosing presentation color.
 5. Return bounded overview geometry and lanes plus stable capabilities for exact pagination.
 6. Add no joined cache or presentation reconstruction in SQLite.

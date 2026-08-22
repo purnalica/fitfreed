@@ -59,8 +59,9 @@ Primary and transition evidence never crosses roles.
 
 The story embeds the same endpoint-preserving `source-ordinal-v1` route and signal projections
 returned by the route and signal read models. It performs no interpolation, smoothing, normalization,
-or resampling. Exact ordinals, units, null values, `gapBefore`, optional route elapsed time, and
-primary/transition roles remain intact.
+or resampling. Exact ordinals, units, null values, signal-sample `gapBefore`, optional route elapsed time,
+and primary/transition roles remain intact. Canonical route version 1 has no source-authored intra-route
+break: missing route elapsed time prevents alignment but does not authorize a geometric gap.
 
 `exactRoute` contains the opaque `routeRef` and exact `pointCount`. `exactSignals` contains every
 opaque `signalRef`, source `kind`, source `unit`, and exact `sampleCount`. Clients use those stable
