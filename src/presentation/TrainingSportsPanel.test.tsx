@@ -239,7 +239,7 @@ describe("TrainingSportsPanel", () => {
       .toEqual(["Trail running", "Unknown sport 1", "Sport not recorded"]);
   });
 
-  it("reloads a concurrent classification without overwriting the newer authored value", async () => {
+  it("reloads a concurrent classification without overwriting it and retains the draft for review", async () => {
     let current = overview([unknownSport]);
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_training_sports") return Promise.resolve(current);
@@ -274,7 +274,9 @@ describe("TrainingSportsPanel", () => {
     await user.click(screen.getByRole("button", { name: "Save sport classification" }));
 
     expect(await screen.findByRole("heading", { name: "Concurrent running" })).toBeVisible();
-    expect(screen.queryByText("Stale running")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Your sport name")).toHaveValue("Stale running");
+    expect(screen.getByText("Current saved identity: Concurrent running")).toBeVisible();
+    expect(screen.getByRole("alert")).toHaveTextContent("Your edits are still here");
     expect(onError).toHaveBeenCalledWith("sport-classification-conflict");
     expect(mocks.invoke).toHaveBeenCalledTimes(3);
   });

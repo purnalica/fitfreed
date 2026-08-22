@@ -5,6 +5,7 @@ import { type catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
 import { restoreFocusAfterReveal } from "./focus-restoration";
 import { ProgressSubmitButton } from "./ProgressSubmitButton";
+import { SportClassificationTask } from "./SportClassificationTask";
 import { SportFamilyIcon } from "./SportFamilyIcon";
 import type { SessionReportOrigin } from "./session-report";
 import {
@@ -45,7 +46,12 @@ import type {
   TrainingSignalVisualSample,
 } from "./training-session-signal";
 import type { TrainingSessionZonesResult } from "./training-session-zone";
-import type { SportFamily, TrainingSport, TrainingSportsOverview } from "./training-sports";
+import type {
+  SavedTrainingSportClassification,
+  SportFamily,
+  TrainingSport,
+  TrainingSportsOverview,
+} from "./training-sports";
 import { TrainingCrossSignalPanel } from "./TrainingCrossSignalPanel";
 import { TrainingSegmentationPanel } from "./TrainingSegmentationPanel";
 import { TrainingSessionProvenancePanel } from "./TrainingSessionProvenancePanel";
@@ -104,6 +110,7 @@ interface TrainingSessionLibraryPanelProps {
   onAvailableRange: (range: { from: string; through: string } | null) => void;
   onCreateReport: (origin: SessionReportOrigin) => void;
   onError: (code: string | undefined) => void;
+  onSportClassificationChange?: (result: SavedTrainingSportClassification) => void;
 }
 
 interface SearchDraft {
@@ -257,6 +264,7 @@ export function TrainingSessionLibraryPanel({
   onAvailableRange,
   onCreateReport,
   onError,
+  onSportClassificationChange = () => undefined,
 }: TrainingSessionLibraryPanelProps) {
   const [draft, setDraft] = useState<SearchDraft>(() => emptyDraft(initialDate));
   const [applied, setApplied] = useState<SearchDraft>(() => emptyDraft(initialDate));
@@ -269,6 +277,9 @@ export function TrainingSessionLibraryPanel({
   const [selectedCalendarDay, setSelectedCalendarDay] = useState<string>();
   const [workspaceReady, setWorkspaceReady] = useState(false);
   const [sports, setSports] = useState<TrainingSportsOverview>();
+  const [contextSportRef, setContextSportRef] = useState<string>();
+  const [classificationBusy, setClassificationBusy] = useState(false);
+  const [classificationStatus, setClassificationStatus] = useState<string>();
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [status, setStatus] = useState<string>();
@@ -304,6 +315,12 @@ export function TrainingSessionLibraryPanel({
   const appliedQueryFocusRef = useRef<HTMLParagraphElement>(null);
   const refinementsRef = useRef<HTMLDetailsElement>(null);
   const detailOriginButtonRef = useRef<HTMLButtonElement | null>(null);
+  const contextActionRefs = useRef(new Map<string, HTMLButtonElement>());
+  const contextIdentityRefs = useRef(new Map<string, HTMLElement>());
+  const contextReturnFocus = useRef<{
+    sportRef: string;
+    target: "action" | "identity";
+  } | undefined>(undefined);
   const createReportButtonRef = useRef<HTMLButtonElement>(null);
   const handledCreateReportFocusRequest = useRef<number | undefined>(undefined);
   const copy = messages.training.sessionLibrary;
@@ -1085,6 +1102,87 @@ export function TrainingSessionLibraryPanel({
     return sport.classification?.canonicalFamily ?? null;
   }
 
+  function sessionSportFromOverview(
+    current: TrainingSessionSport,
+    nextOverview: TrainingSportsOverview,
+  ): TrainingSessionSport {
+    const replacement = nextOverview.sports.find(
+      (sport) => sport.sportRef !== null && sport.sportRef === current.sportRef,
+    );
+    return replacement
+      ? {
+          sportRef: replacement.sportRef,
+          state: replacement.state,
+          classification: replacement.classification,
+        }
+      : current;
+  }
+
+  function sessionWithOverview(
+    session: TrainingSessionSearchItem,
+    nextOverview: TrainingSportsOverview,
+  ): TrainingSessionSearchItem {
+    return {
+      ...session,
+      sport: sessionSportFromOverview(session.sport, nextOverview),
+    };
+  }
+
+  function applyClassificationOverview(nextOverview: TrainingSportsOverview) {
+    setSports(nextOverview);
+    setPage((current) => current && ({
+      ...current,
+      sessions: current.sessions.map((session) => sessionWithOverview(session, nextOverview)),
+    }));
+    setSelected((current) => current && sessionWithOverview(current, nextOverview));
+    setComparison((current) => current.map(
+      (session) => sessionWithOverview(session, nextOverview),
+    ));
+    setDetailStructure((current) => current?.structure?.exercises
+      ? {
+          ...current,
+          structure: {
+            ...current.structure,
+            exercises: current.structure.exercises.map((exercise) => ({
+              ...exercise,
+              sport: sessionSportFromOverview(exercise.sport, nextOverview),
+            })),
+          },
+        }
+      : current);
+  }
+
+  function closeContextClassification(
+    sportRef: string,
+    target: "action" | "identity",
+  ) {
+    contextReturnFocus.current = { sportRef, target };
+    setContextSportRef(undefined);
+  }
+
+  function finishContextClassification(
+    sportRef: string,
+    result: SavedTrainingSportClassification,
+  ) {
+    setClassificationStatus(
+      result.outcome === "changed"
+        ? messages.training.sports.saved
+        : messages.training.sports.unchanged,
+    );
+    closeContextClassification(sportRef, "identity");
+    if (result.outcome === "changed") onSportClassificationChange(result);
+  }
+
+  useEffect(() => {
+    const request = contextReturnFocus.current;
+    if (contextSportRef !== undefined || !request) return;
+    contextReturnFocus.current = undefined;
+    const target = request.target === "action"
+      ? contextActionRefs.current.get(request.sportRef)
+      : contextIdentityRefs.current.get(request.sportRef);
+    return restoreFocusAfterReveal(target ?? null);
+  }, [contextSportRef]);
+
   function lapRows(laps: TrainingLapStructure[] | null, heading: string) {
     return (
       <section className="training-structure-collection">
@@ -1662,6 +1760,8 @@ export function TrainingSessionLibraryPanel({
     );
   }
 
+  const contextSport = sports?.sports.find((sport) => sport.sportRef === contextSportRef);
+
   return (
     <section
       className="training-session-library"
@@ -1690,18 +1790,70 @@ export function TrainingSessionLibraryPanel({
                 data-state={sport.state}
                 data-sport-family={sportFamily(sport) ?? sport.state}
               >
-                <SportFamilyIcon family={sportFamily(sport)} state={sport.state} />
-                <span>
-                  <strong>{sportTitle(sport)}</strong>
-                  <small>
-                    {number.format(sport.coverage.sessionCount)} {sessionUnit(
-                      sport.coverage.sessionCount,
-                    )}
-                  </small>
-                </span>
+                <div className="training-history-sport-identity">
+                  <SportFamilyIcon family={sportFamily(sport)} state={sport.state} />
+                  <span>
+                    <strong
+                      ref={(element) => {
+                        if (!sport.sportRef) return;
+                        if (element) contextIdentityRefs.current.set(sport.sportRef, element);
+                        else contextIdentityRefs.current.delete(sport.sportRef);
+                      }}
+                      tabIndex={-1}
+                    >
+                      {sportTitle(sport)}
+                    </strong>
+                    <small>
+                      {number.format(sport.coverage.sessionCount)} {sessionUnit(
+                        sport.coverage.sessionCount,
+                      )}
+                    </small>
+                  </span>
+                  {sport.state === "unknown" && sport.sportRef && (
+                    <button
+                      type="button"
+                      className="secondary training-history-sport-classify"
+                      ref={(element) => {
+                        if (element) contextActionRefs.current.set(sport.sportRef!, element);
+                        else contextActionRefs.current.delete(sport.sportRef!);
+                      }}
+                      disabled={
+                        classificationBusy
+                        || (contextSportRef !== undefined && contextSportRef !== sport.sportRef)
+                      }
+                      onClick={() => {
+                        setContextSportRef(sport.sportRef!);
+                        setClassificationStatus(undefined);
+                      }}
+                    >
+                      {messages.training.sports.edit}
+                    </button>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
+          {contextSport?.sportRef && contextSport.classification && (
+            <div className="training-history-sport-editor">
+              <SportClassificationTask
+                editorId="history-sport-context"
+                sport={contextSport}
+                title={sportTitle(contextSport)}
+                messages={messages.training.sports}
+                onCancel={() => closeContextClassification(contextSport.sportRef!, "action")}
+                onBusyChange={setClassificationBusy}
+                onError={onError}
+                onOverviewChange={applyClassificationOverview}
+                onSaved={(result) => finishContextClassification(
+                  contextSport.sportRef!,
+                  result,
+                )}
+              />
+            </div>
+          )}
+          {classificationStatus && (
+            <p className="training-sports-status" role="status">{classificationStatus}</p>
+          )}
           </section>
         )}
         <div className="training-session-tools">

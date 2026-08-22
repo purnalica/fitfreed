@@ -3,7 +3,7 @@
 ## Status and authority
 
 Authorized for autonomous execution as of 2026-08-21. X4-P0 through X5-R4 and X5-R5.1 through
-X5-R5.2 are complete locally; X5-R5.3 is next.
+X5-R5.3a are complete locally; X5-R5.3b is next.
 The X5-R1 product entrance is live; exact hosted verification of its CI resource optimizer remains
 pending synchronization of the workflow-changing commit. The product owner accepted the X3
 direction and its amendments on 2026-08-21. This
@@ -207,7 +207,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R2.3 | Complete locally — exact packaged gates passed 2026-08-22 | Durable language, appearance, zoom, and update settings form one coherent workspace |
 | X5-R3 | Complete locally — exact packaged and dense-history gates passed 2026-08-22 | Import ends in recognizable personal value |
 | X5-R4 | Complete locally — exact packaged and exhaustive adaptive gates passed 2026-08-22 | Existing health and aligned-history questions read as answers |
-| X5-R5 | In progress — R5.1 complete locally 2026-08-22 | A remembered session is findable and sports are recognizable |
+| X5-R5 | In progress — R5.1 through R5.3a complete locally 2026-08-22 | A remembered session is findable and sports are recognizable |
 | X5-R6 | Pending | A routed workout is investigated through a dominant synchronized map |
 | X5-R7 | Pending | Every session composition reflects its actual evidence |
 | X5-R8 | Pending | Personal ranges and reusable criteria work end to end |
@@ -600,6 +600,52 @@ stale snapshot; keyboard; both locales/themes; 100%–200%; accessibility; dense
 
 **Documentation:** sport classification and discovery contracts remain canonical; update user History,
 classification, filters, calendar, comparison, navigation, icon semantics, and developer component guidance.
+
+**Incremental execution:**
+
+1. **R5.3a — One classification task, available in context.** Extract the existing family, personal-label,
+   validation, save, cancel, reset, progress, and optimistic-conflict behavior into one reusable presentation
+   task. Use that exact task in the full Sports workspace and beside one unresolved sport in the History sport
+   summary. Keep only one contextual task open, restore focus to its initiating action on cancel and to the
+   newly named identity on completion,
+   preserve the person's unsaved values when a conflict reloads newer evidence, and retain every existing
+   full-workspace behavior. This slice is runnable only when both entry points exercise the same Tauri command
+   and the same localized vocabulary; a second abbreviated editor is a rejection condition.
+2. **R5.3b — Coherent identity propagation without context loss.** Treat a successful classification as a
+   versioned library change. Refresh the current History snapshot, calendar, selected comparison sessions,
+   and open session against the new revision while preserving applied refinements, page, calendar day,
+   detail section, and exact return origin. Refresh the hidden Sports workspace and Home projection from the
+   returned overview without navigating the person elsewhere. Prove that filters, list cards, detail,
+   comparison, recent sessions, report preparation/resolution, restart, and reimport all read the authored
+   identity; a partially refreshed surface or an avoidable stale-data warning rejects the slice.
+3. **R5.3c — Close visual and navigation coherence.** Inventory every rendered sport identity and require a
+   semantic icon plus visible localized or personally authored label in Home, History summary, filter choices,
+   chronology, calendar-derived results, comparison, detail, report preview/export, and relevant empty states.
+   Exercise entry and exact return from Home recent sessions, chronology, calendar, comparison, and reports.
+   Close with both locales, light/dark/system appearance, 100%, 125%, 150%, 175%, and 200% zoom, compact and
+   wide allocation, keyboard-only operation, reduced motion, Axe, no page-level horizontal overflow, the dense
+   History performance campaign, full packaged macOS journeys, repository/privacy/content gates, and an actual
+   WebKit screenshot matrix reviewed before acceptance.
+
+Each slice receives focused behavior tests before implementation and remains independently runnable after its
+applicable fast and packaged checks. Documentation changes land with the slice whose behavior they describe;
+local screenshots and exploratory drivers remain ignored evidence. A slice is reopened immediately when the
+first actual WebKit review exposes hierarchy, density, focus, overflow, contrast, or context-loss defects.
+
+R5.3a verification on 2026-08-22 covered 29 focused shared-task, Sports, and History journeys. They prove
+the same command, vocabulary, validation, progress, reset, conflict recovery, authored-draft preservation,
+single contextual task, immediate visible identity, and exact cancel and completion focus. The complete fast
+suite passed 152 automation, 236 React, 2 vendored-updater, 211 host, 147 application, and 33 domain tests.
+The packaged macOS journey passed the complete functional, localized, maximum-zoom, accessibility, restart,
+reimport, report, and durable-state campaign in 1 minute 18 seconds.
+
+The first actual WebKit review rejected the contextual composition because an inherited broad selector
+truncated the personal-label guidance inside the shared task. Scoping compact summary typography to the
+identity row restored the complete guidance without enlarging the summary cards. The repeated matrix retained
+the prior nine History states and added wide light 100% and compact dark 200% contextual-classification states,
+with the session list still visible, exact cancellation focus, zero page-level horizontal overflow, and zero
+Axe violations. Repository-content, complete reachable-history secret, formatting, documentation,
+localization, site, product-surface, and diff checks passed without versioning local evidence.
 
 ## X5-R6 — Deliver the outdoor session workbench
 

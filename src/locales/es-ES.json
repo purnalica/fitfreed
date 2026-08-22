@@ -802,6 +802,8 @@
       "resetting": "Devolviendo el deporte a desconocido…",
       "saved": "Clasificación del deporte guardada.",
       "unchanged": "La clasificación del deporte ya estaba actualizada.",
+      "conflict": "La identidad guardada ha cambiado en otro lugar. Tus cambios siguen aquí. Revisa la identidad guardada actual y vuelve a guardar.",
+      "currentSaved": "Identidad guardada actual: {sport}",
       "families": {
         "running": "Carrera",
         "cycling": "Ciclismo",

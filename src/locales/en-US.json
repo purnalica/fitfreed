@@ -802,6 +802,8 @@
       "resetting": "Returning sport to unknown…",
       "saved": "Sport classification saved.",
       "unchanged": "Sport classification was already current.",
+      "conflict": "The saved identity changed elsewhere. Your edits are still here. Review the current saved identity, then save again.",
+      "currentSaved": "Current saved identity: {sport}",
       "families": {
         "running": "Running",
         "cycling": "Cycling",

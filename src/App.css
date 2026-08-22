@@ -483,7 +483,12 @@ th:last-child, td:last-child { text-align: right; }
 .training-history-sports { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; margin-top: 11px; }
 .training-history-sports h3 { margin: 0; color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; }
 .training-history-sports ul { display: flex; gap: 9px; max-width: 100%; margin: 0; padding: 0 0 3px; overflow-x: auto; list-style: none; }
-.training-history-sports li { display: flex; flex: 0 0 auto; align-items: center; gap: 8px; min-width: 160px; padding: 7px 10px; background: var(--paper); border: 1px solid var(--line); border-radius: 11px; }
+.training-history-sports li { display: block; flex: 0 0 auto; min-width: 160px; padding: 7px 10px; background: var(--paper); border: 1px solid var(--line); border-radius: 11px; }
+.training-history-sport-identity { display: flex; align-items: center; gap: 8px; }
+.training-history-sport-identity > span { min-width: 0; }
+.training-history-sport-classify { min-height: 34px; margin-left: 6px; padding: 5px 8px; font-size: .7rem; }
+.training-history-sport-editor, .training-history-sports > .training-sports-status { grid-column: 1 / -1; }
+.training-history-sport-editor { padding: 2px 14px 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; }
 .training-history-sports .sport-family-icon,
 .training-session-result-identity .sport-family-icon,
 .training-sport-identity .sport-family-icon { flex: 0 0 36px; width: 36px; height: 36px; padding: 7px; color: var(--accent-deep); background: var(--accent-soft); border-radius: 50%; stroke: currentcolor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; fill: none; }
@@ -491,9 +496,9 @@ th:last-child, td:last-child { text-align: right; }
 .training-sport-list > li[data-state="unknown"] .sport-family-icon { color: var(--ink-soft); background: var(--warning-soft); }
 .training-history-sports li[data-state="unavailable"] .sport-family-icon,
 .training-sport-list > li[data-state="unavailable"] .sport-family-icon { color: var(--muted); background: var(--surface-soft); }
-.training-history-sports strong, .training-history-sports small { display: block; max-width: 17ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.training-history-sports strong { font-size: .86rem; }
-.training-history-sports small { margin-top: 2px; color: var(--muted); font-size: .7rem; }
+.training-history-sport-identity strong, .training-history-sport-identity small { display: block; max-width: 17ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.training-history-sport-identity strong { font-size: .86rem; }
+.training-history-sport-identity small { margin-top: 2px; color: var(--muted); font-size: .7rem; }
 .training-session-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 11px; }
 .training-session-refinements,
 .training-session-result-summary { margin-top: 0; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; }
@@ -638,6 +643,11 @@ th:last-child, td:last-child { text-align: right; }
 .training-sport-coverage dt { color: var(--ink-soft); font-size: .76rem; font-weight: 700; }
 .training-sport-coverage dd { margin: 0; color: var(--muted); font-size: .76rem; text-align: right; }
 .training-sport-editor { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.training-sport-editor-preview { grid-column: 1 / -1; display: flex; align-items: center; gap: 9px; min-width: 0; }
+.training-sport-editor-preview .sport-family-icon { flex: 0 0 34px; width: 34px; height: 34px; padding: 6px; color: var(--accent-deep); background: var(--accent-soft); border-radius: 50%; stroke: currentcolor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+.training-sport-editor-preview strong { min-width: 0; overflow-wrap: anywhere; }
+.training-sport-editor-conflict { grid-column: 1 / -1; padding: 11px 13px; color: var(--warning-ink); background: var(--warning-soft); border-left: 4px solid var(--warning); border-radius: 9px; }
+.training-sport-editor-conflict p { margin: 0 0 5px; }
 .training-sport-editor-field { display: grid; gap: 5px; min-width: 0; }
 .training-sport-editor-field label { color: var(--muted); font-size: .78rem; font-weight: 700; }
 .training-sport-editor-field input, .training-sport-editor-field select { min-width: 0; width: 100%; }

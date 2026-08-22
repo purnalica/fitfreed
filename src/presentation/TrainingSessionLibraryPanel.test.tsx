@@ -24,7 +24,10 @@ import type { TrainingSessionSegmentationResult } from "./training-session-segme
 import type { TrainingSessionProvenanceResult } from "./training-session-provenance";
 import type { TrainingSessionZonesResult } from "./training-session-zone";
 import { TrainingSessionLibraryPanel } from "./TrainingSessionLibraryPanel";
-import type { TrainingSportsOverview } from "./training-sports";
+import type {
+  SavedTrainingSportClassification,
+  TrainingSportsOverview,
+} from "./training-sports";
 
 const mocks = vi.hoisted(() => ({ invoke: vi.fn() }));
 
@@ -159,6 +162,14 @@ function session(
 const newest = session("b", "2026-08-18T07:30:00");
 const second = session("e", "2026-08-17T07:30:00");
 const oldest = session("f", "2024-01-01T07:30:00");
+const unknownSession: TrainingSessionSearchItem = {
+  ...session("9", "2026-01-01T07:30:00", 2),
+  sport: {
+    sportRef: sports.sports[1].sportRef,
+    state: "unknown",
+    classification: sports.sports[1].classification,
+  },
+};
 
 function trainingStructure(sessionRef: string): TrainingSessionStructureResult {
   return {
@@ -559,6 +570,83 @@ beforeEach(() => {
 });
 
 describe("TrainingSessionLibraryPanel", () => {
+  it("names one unresolved sport in context through the shared classification task", async () => {
+    const namedSport = {
+      ...sports.sports[1],
+      state: "classified" as const,
+      classification: {
+        canonicalFamily: "water-sport" as const,
+        displayLabel: "River paddling",
+        authorship: "user" as const,
+        revision: 1,
+      },
+    };
+    const namedOverview: TrainingSportsOverview = {
+      ...sports,
+      sports: [sports.sports[0], namedSport],
+    };
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+      if (workspaceResult) return workspaceResult;
+      if (command === "query_training_sports") return Promise.resolve(sports);
+      if (command === "query_training_sessions") {
+        return Promise.resolve(page([unknownSession], 0, 1, null));
+      }
+      if (command === "save_training_sport_classification") {
+        return Promise.resolve(({
+          outcome: "changed",
+          overview: namedOverview,
+        }) satisfies SavedTrainingSportClassification);
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const onSportClassificationChange = vi.fn();
+    const user = userEvent.setup();
+    renderPanel(vi.fn(), { onSportClassificationChange });
+
+    const sportSummary = await screen.findByRole("region", { name: "Sports in this history" });
+    const unknownIdentity = within(sportSummary).getByText("Unknown sport 1");
+    const unknownItem = unknownIdentity.closest("li");
+    expect(unknownItem).not.toBeNull();
+    const action = within(unknownItem!).getByRole("button", { name: "Name this sport" });
+    await user.click(action);
+    let editor = within(sportSummary).getByRole("form", { name: "Classify Unknown sport 1" });
+    expect(within(editor).getByLabelText("Broad sport family")).toBeVisible();
+    expect(within(editor).getByLabelText("Your sport name")).toBeVisible();
+
+    await user.type(within(editor).getByLabelText("Your sport name"), "Discarded draft");
+    await user.click(within(editor).getByRole("button", { name: "Cancel editing" }));
+    await waitFor(() => expect(action).toHaveFocus());
+    expect(mocks.invoke.mock.calls.filter(
+      ([command]) => command === "save_training_sport_classification",
+    )).toHaveLength(0);
+
+    await user.click(action);
+    editor = within(sportSummary).getByRole("form", { name: "Classify Unknown sport 1" });
+    await user.selectOptions(within(editor).getByLabelText("Broad sport family"), "water-sport");
+    await user.type(within(editor).getByLabelText("Your sport name"), "River paddling");
+    await user.click(within(editor).getByRole("button", { name: "Save sport classification" }));
+
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
+      "save_training_sport_classification",
+      {
+        request: {
+          sportRef: sports.sports[1].sportRef,
+          expectedRevision: 0,
+          canonicalFamily: "water-sport",
+          displayLabel: "River paddling",
+        },
+      },
+    ));
+    const namedIdentity = await within(sportSummary).findByText("River paddling");
+    expect(namedIdentity).toHaveFocus();
+    expect(within(screen.getByRole("list", { name: "Training sessions" }))
+      .getByText("River paddling")).toBeVisible();
+    expect(onSportClassificationChange).toHaveBeenCalledWith(expect.objectContaining({
+      outcome: "changed",
+    }));
+  });
+
   it("opens on recognizable sports and session results while refinements stay secondary", async () => {
     mocks.invoke.mockImplementation((command, arguments_) => {
       const workspaceResult = emptyWorkspaceCommand(command, arguments_);

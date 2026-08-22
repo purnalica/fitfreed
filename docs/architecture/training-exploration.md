@@ -34,6 +34,14 @@ An absent authored value is revision-zero unknown. Resetting a value writes a ne
 revision rather than deleting the history of user intent. Compare-and-save revision checks reject stale
 editors. Import and reimport can reveal a new source reference but cannot create or overwrite its meaning.
 
+`SportClassificationTask` is the sole presentation mutation boundary for family, personal label, validation,
+save, reset, cancellation, operation progress, and optimistic-conflict recovery. The Sports workspace composes
+it as the complete management surface; the Sessions sport summary composes the same task only for an
+unresolved identity encountered in context. A conflict reloads the authoritative overview and revision but
+retains the person's unsaved family and label for deliberate review and retry. Presentation parents may
+choose where the task is revealed and where focus returns, but cannot issue a parallel classification command
+or define another label rule.
+
 Broad FitFreed family codes support localized navigation across providers. They do not assert that equal
 families identify the same activity, session, or person. Exact origin separation remains visible whenever
 otherwise equal labels would create ambiguity.
@@ -82,8 +90,9 @@ measurement, personal-label text, and sorting controls remain one complete form 
 The aggregate summary remains calculated over the complete filtered set, but follows the paginated result
 list behind **Result summary** so numeric coverage does not displace the sessions a person came to find.
 Chronology, calendar, comparison selection, pagination, and workspace restoration retain their application
-contracts. `TrainingSessionLibraryPanel` owns this composition, `TrainingSportsPanel` owns full classification
-management, and `SportFamilyIcon` is the single presentation primitive for sport identity.
+contracts. `TrainingSessionLibraryPanel` owns this composition and the restrained unresolved-sport entry,
+`TrainingSportsPanel` owns full classification management, `SportClassificationTask` owns the one mutation
+interaction, and `SportFamilyIcon` is the single presentation primitive for sport identity.
 
 The History Desk keeps the editable refinement draft distinct from the applied discovery criteria. The
 visible **Applied refinements** region is derived only from the applied criteria and authoritative sport

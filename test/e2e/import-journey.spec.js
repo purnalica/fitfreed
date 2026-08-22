@@ -583,10 +583,10 @@ async function saveSportClassification(catalog, currentTitle, family, label) {
   const card = await trainingSportCard(currentTitle);
   await card.$("button").click();
   const editor = await card.$("form");
-  await expect(editor.$("label[for^='sport-family-']")).toHaveText(
+  await expect(editor.$("label[for$='-family']")).toHaveText(
     catalog.training.sports.family,
   );
-  await expect(editor.$("label[for^='sport-label-']")).toHaveText(
+  await expect(editor.$("label[for$='-label']")).toHaveText(
     catalog.training.sports.displayLabel,
   );
   await editor.$("select").selectByAttribute("value", family);

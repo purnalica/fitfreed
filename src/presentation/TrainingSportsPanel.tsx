@@ -1,15 +1,14 @@
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
 import { type catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
-import { ProgressSubmitButton } from "./ProgressSubmitButton";
+import { restoreFocusAfterReveal } from "./focus-restoration";
+import { SportClassificationTask } from "./SportClassificationTask";
 import { SportFamilyIcon } from "./SportFamilyIcon";
 import { formatDuration } from "./training-format";
 import {
-  sportFamilies,
   type SavedTrainingSportClassification,
-  type SportFamily,
   type TrainingSport,
   type TrainingSportsOverview,
 } from "./training-sports";
@@ -21,13 +20,7 @@ interface TrainingSportsPanelProps {
   messages: (typeof catalogs)["en-US"];
   refreshToken: number;
   onError: (code: string | undefined) => void;
-  onChange?: () => void;
-}
-
-interface ClassificationDraft {
-  sportRef: string;
-  family: SportFamily | "";
-  label: string;
+  onChange?: (result: SavedTrainingSportClassification) => void;
 }
 
 function localDate(value: string): Date {
@@ -65,9 +58,11 @@ export function TrainingSportsPanel({
   const [overview, setOverview] = useState<TrainingSportsOverview>();
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
-  const [draft, setDraft] = useState<ClassificationDraft>();
-  const [operation, setOperation] = useState<"save" | "reset">();
+  const [editingSportRef, setEditingSportRef] = useState<string>();
+  const [taskBusy, setTaskBusy] = useState(false);
   const [status, setStatus] = useState<string>();
+  const actionRefs = useRef(new Map<string, HTMLButtonElement>());
+  const returnFocusSportRef = useRef<string | undefined>(undefined);
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const plural = useMemo(() => new Intl.PluralRules(locale), [locale]);
   const date = useMemo(
@@ -75,21 +70,12 @@ export function TrainingSportsPanel({
     [locale],
   );
   const copy = messages.training.sports;
-  const busy = operation !== undefined;
-  const draftLabelTooLong = draft !== undefined && [...draft.label.trim()].length > 80;
-
-  async function loadOverview(): Promise<TrainingSportsOverview> {
-    const result = await invoke<TrainingSportsOverview>("query_training_sports");
-    setOverview(result);
-    setFailed(false);
-    return result;
-  }
 
   useEffect(() => {
     let active = true;
     setLoading(true);
     setFailed(false);
-    setDraft(undefined);
+    setEditingSportRef(undefined);
     setStatus(undefined);
     invoke<TrainingSportsOverview>("query_training_sports")
       .then((result) => {
@@ -117,62 +103,30 @@ export function TrainingSportsPanel({
 
   function beginEditing(sport: TrainingSport) {
     if (!sport.sportRef) return;
-    setDraft({
-      sportRef: sport.sportRef,
-      family: sport.classification?.canonicalFamily ?? "",
-      label: sport.classification?.displayLabel ?? "",
-    });
+    setEditingSportRef(sport.sportRef);
     setStatus(undefined);
   }
 
-  async function persist(
-    sport: TrainingSport,
-    canonicalFamily: SportFamily | null,
-    displayLabel: string | null,
-    nextOperation: "save" | "reset",
-  ) {
-    if (!sport.sportRef || !sport.classification) return;
-    setOperation(nextOperation);
-    onError(undefined);
-    try {
-      const result = await invoke<SavedTrainingSportClassification>(
-        "save_training_sport_classification",
-        {
-          request: {
-            sportRef: sport.sportRef,
-            expectedRevision: sport.classification.revision,
-            canonicalFamily,
-            displayLabel,
-          },
-        },
-      );
-      setOverview(result.overview);
-      setDraft(undefined);
-      setStatus(result.outcome === "changed" ? copy.saved : copy.unchanged);
-      if (result.outcome === "changed") onChange?.();
-    } catch (reason) {
-      const code = commandErrorCode(reason);
-      onError(code);
-      if (code === "sport-classification-conflict") {
-        try {
-          await loadOverview();
-          setDraft(undefined);
-        } catch (reloadReason) {
-          setFailed(true);
-          onError(commandErrorCode(reloadReason));
-        }
-      }
-    } finally {
-      setOperation(undefined);
-    }
+  function finishEditing(sportRef: string) {
+    returnFocusSportRef.current = sportRef;
+    setEditingSportRef(undefined);
   }
 
-  function saveClassification(event: FormEvent<HTMLFormElement>, sport: TrainingSport) {
-    event.preventDefault();
-    if (!draft || draft.sportRef !== sport.sportRef) return;
-    const label = draft.label.trim();
-    void persist(sport, draft.family || null, label || null, "save");
+  function classificationSaved(
+    sportRef: string,
+    result: SavedTrainingSportClassification,
+  ) {
+    setStatus(result.outcome === "changed" ? copy.saved : copy.unchanged);
+    finishEditing(sportRef);
+    if (result.outcome === "changed") onChange?.(result);
   }
+
+  useEffect(() => {
+    if (editingSportRef !== undefined || returnFocusSportRef.current === undefined) return;
+    const sportRef = returnFocusSportRef.current;
+    returnFocusSportRef.current = undefined;
+    return restoreFocusAfterReveal(actionRefs.current.get(sportRef) ?? null);
+  }, [editingSportRef]);
 
   const summary = overview && interpolate(
     copy.summary[plural.select(overview.sports.length) === "one" ? "one" : "other"],
@@ -187,7 +141,7 @@ export function TrainingSportsPanel({
       className="training-sports"
       role="region"
       aria-labelledby="training-sports-heading"
-      aria-busy={loading || busy}
+      aria-busy={loading || taskBusy}
     >
       <header className="training-sports-heading">
         <div>
@@ -207,7 +161,7 @@ export function TrainingSportsPanel({
         <ul className="training-sport-list">
           {overview.sports.map((sport, index) => {
             const title = titleFor(sport);
-            const editing = draft?.sportRef === sport.sportRef;
+            const editing = editingSportRef === sport.sportRef;
             const sessionTemplate = copy.sessions[
               plural.select(sport.coverage.sessionCount) === "one" ? "one" : "other"
             ];
@@ -242,7 +196,12 @@ export function TrainingSportsPanel({
                     <button
                       type="button"
                       className="secondary"
-                      disabled={busy}
+                      ref={(element) => {
+                        if (!sport.sportRef) return;
+                        if (element) actionRefs.current.set(sport.sportRef, element);
+                        else actionRefs.current.delete(sport.sportRef);
+                      }}
+                      disabled={taskBusy}
                       onClick={() => beginEditing(sport)}
                     >
                       {sport.state === "classified" ? copy.editNamed : copy.edit}
@@ -287,87 +246,20 @@ export function TrainingSportsPanel({
                 </dl>
 
                 {editing && sport.classification && (
-                  <form
-                    className="training-sport-editor"
-                    aria-label={interpolate(copy.editorHeading, { sport: title })}
-                    aria-busy={busy}
-                    onSubmit={(event) => saveClassification(event, sport)}
-                  >
-                    <div className="training-sport-editor-field">
-                      <label htmlFor={`sport-family-${index}`}>{copy.family}</label>
-                      <select
-                        id={`sport-family-${index}`}
-                        value={draft.family}
-                        disabled={busy}
-                        onChange={(event) => setDraft({
-                          ...draft,
-                          family: event.target.value as SportFamily | "",
-                        })}
-                      >
-                        <option value="">{copy.noFamily}</option>
-                        {sportFamilies.map((family) => (
-                          <option key={family} value={family}>{copy.families[family]}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="training-sport-editor-field">
-                      <label htmlFor={`sport-label-${index}`}>{copy.displayLabel}</label>
-                      <input
-                        id={`sport-label-${index}`}
-                        value={draft.label}
-                        aria-invalid={draftLabelTooLong}
-                        aria-describedby={draftLabelTooLong
-                          ? `sport-label-help-${index} sport-label-error-${index}`
-                          : `sport-label-help-${index}`}
-                        disabled={busy}
-                        onChange={(event) => setDraft({ ...draft, label: event.target.value })}
-                      />
-                      <small id={`sport-label-help-${index}`}>{copy.displayLabelHelp}</small>
-                      {draftLabelTooLong && (
-                        <small
-                          id={`sport-label-error-${index}`}
-                          className="field-error"
-                          role="alert"
-                        >
-                          {copy.displayLabelTooLong}
-                        </small>
-                      )}
-                    </div>
-                    <div className="training-sport-editor-actions">
-                      <button
-                        type="button"
-                        className="secondary"
-                        disabled={busy}
-                        onClick={() => setDraft(undefined)}
-                      >
-                        {copy.cancel}
-                      </button>
-                      {sport.state === "classified" && (
-                        <button
-                          type="button"
-                          className="secondary"
-                          disabled={busy}
-                          onClick={() => void persist(sport, null, null, "reset")}
-                        >
-                          {copy.reset}
-                        </button>
-                      )}
-                      <ProgressSubmitButton
-                        loading={operation === "save"}
-                        disabled={
-                          busy || draftLabelTooLong
-                          || (!draft.family && !draft.label.trim())
-                        }
-                        actionLabel={copy.save}
-                        progressLabel={copy.saving}
-                      />
-                      {operation === "reset" && (
-                        <span className="progress-submit-status" role="status" aria-live="polite">
-                          {copy.resetting}
-                        </span>
-                      )}
-                    </div>
-                  </form>
+                  <SportClassificationTask
+                    editorId={`sport-${index}`}
+                    sport={sport}
+                    title={title}
+                    messages={copy}
+                    onCancel={() => finishEditing(sport.sportRef!)}
+                    onBusyChange={setTaskBusy}
+                    onError={onError}
+                    onOverviewChange={(nextOverview) => {
+                      setOverview(nextOverview);
+                      setFailed(false);
+                    }}
+                    onSaved={(result) => classificationSaved(sport.sportRef!, result)}
+                  />
                 )}
               </li>
             );
