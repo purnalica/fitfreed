@@ -94,8 +94,9 @@ Directories are created with their first real contract; empty specifications are
 - [Training-session signal read models version 1](insights/training-session-signal-v1.md)
 - [Training-session zone read model version 1](insights/training-session-zone-v1.md)
 - [Training-session provenance read model version 1](insights/training-session-provenance-v1.md)
-- [Composed session story version 2](insights/session-story-v2.md)
-- [Composed session story version 1](insights/session-story-v1.md) — preceding response contract
+- [Composed session story version 3](insights/session-story-v3.md)
+- [Composed session story version 2](insights/session-story-v2.md) — preceding response contract
+- [Composed session story version 1](insights/session-story-v1.md) — initial response contract
 - [Training-session segmentation read model version 1](insights/training-session-segmentation-v1.md)
 - [Training-session range read model version 2](insights/training-session-range-v2.md)
 - [Training-session range read model version 1](insights/training-session-range-v1.md) — preceding contract

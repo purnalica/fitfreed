@@ -86,6 +86,7 @@ function role(points: TrainingRoutePoint[]): SessionStoryRole {
       sourceKind: "speed",
       sourceUnit: "kilometers-per-hour",
       valueTransform: "kilometers-per-hour-to-minutes-per-kilometer",
+      alignmentState: "exact-recorded",
       alignedSamples: [{
         routePointOrdinal: 0,
         signalSampleOrdinal: 0,
@@ -236,5 +237,18 @@ describe("route workbench model", () => {
 
     expect(buildRouteWorkbenchModel(withoutRoute)).toBeNull();
     expect(buildRouteWorkbenchModel(role([]))).toBeNull();
+  });
+
+  it("does not place series-relative samples on a route without exact alignment evidence", () => {
+    const evidence = role([
+      point(0, -3.7, "0"),
+      point(1, -3.69, "1000"),
+    ]);
+    evidence.eligibleOverlays[0].alignmentState = "unavailable";
+
+    const model = buildRouteWorkbenchModel(evidence)!;
+
+    expect(model.overlays).toEqual([]);
+    expect(selectRoutePoint(model, 0).overlayValues).toEqual([]);
   });
 });

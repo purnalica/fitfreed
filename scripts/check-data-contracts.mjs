@@ -2798,6 +2798,26 @@ for (const field of [
   requireMention(sessionStoryV2, field, sessionStoryV2Path);
 }
 
+const sessionStoryV3Path = "docs/data-formats/insights/session-story-v3.md";
+const sessionStoryV3 = read(sessionStoryV3Path);
+for (const field of [
+  "query_session_story",
+  "session-story-query-v1.schema.json",
+  "session-story-v3.schema.json",
+  "schemaVersion",
+  "eligibleOverlays",
+  "alignmentState",
+  "exact-recorded",
+  "unavailable",
+  "alignedSamples",
+  "elapsedMilliseconds",
+  "training-session-detail-changed",
+  "invalid-training-session-detail",
+  "training-session-detail-failed",
+]) {
+  requireMention(sessionStoryV3, field, sessionStoryV3Path);
+}
+
 const sessionStoryQuerySchemaPath = "schemas/session-story-query-v1.schema.json";
 const validateSessionStoryQuery = ajv.compile(JSON.parse(read(sessionStoryQuerySchemaPath)));
 const syntheticSessionStoryQuery = {
@@ -2995,6 +3015,50 @@ for (const invalidResponse of [
 ]) {
   if (validateSessionStoryV2(invalidResponse)) {
     throw new Error(`${sessionStoryV2SchemaPath} accepted an invalid response`);
+  }
+}
+
+const sessionStoryV3SchemaPath = "schemas/session-story-v3.schema.json";
+const validateSessionStoryV3 = ajv.compile(JSON.parse(read(sessionStoryV3SchemaPath)));
+const syntheticSessionStoryV3 = structuredClone(syntheticSessionStoryV2);
+syntheticSessionStoryV3.schemaVersion = 3;
+syntheticSessionStoryV3.exercises[0].primary.eligibleOverlays[0].alignmentState =
+  "exact-recorded";
+const syntheticSessionStoryV3WithoutAlignment = structuredClone(syntheticSessionStoryV3);
+syntheticSessionStoryV3WithoutAlignment.exercises[0].primary.eligibleOverlays[0]
+  .alignmentState = "unavailable";
+syntheticSessionStoryV3WithoutAlignment.exercises[0].primary.eligibleOverlays[0]
+  .alignedSamples = [];
+for (const validResponse of [
+  syntheticSessionStoryV3,
+  syntheticSessionStoryV3WithoutAlignment,
+]) {
+  if (!validateSessionStoryV3(validResponse)) {
+    throw new Error(
+      `${sessionStoryV3SchemaPath} rejected a valid synthetic response: ${ajv.errorsText(validateSessionStoryV3.errors)}`,
+    );
+  }
+}
+for (const invalidResponse of [
+  { ...syntheticSessionStoryV3, schemaVersion: 2 },
+  (() => {
+    const value = structuredClone(syntheticSessionStoryV3);
+    value.exercises[0].primary.eligibleOverlays[0].alignmentState = "inferred";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticSessionStoryV3);
+    value.exercises[0].primary.eligibleOverlays[0].alignmentState = "unavailable";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticSessionStoryV3);
+    delete value.exercises[0].primary.eligibleOverlays[0].alignmentState;
+    return value;
+  })(),
+]) {
+  if (validateSessionStoryV3(invalidResponse)) {
+    throw new Error(`${sessionStoryV3SchemaPath} accepted an invalid response`);
   }
 }
 
@@ -6052,6 +6116,7 @@ process.stdout.write(
       sessionStoryQuerySchemaPath,
       sessionStorySchemaPath,
       sessionStoryV2SchemaPath,
+      sessionStoryV3SchemaPath,
     ],
     trainingComparisonSchemas: [
       trainingComparisonQuerySchemaPath,

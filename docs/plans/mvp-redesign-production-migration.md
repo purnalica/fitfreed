@@ -211,7 +211,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R5 | Complete locally — R5.4, R5.5, and real-process restart gates passed 2026-08-22 | A remembered session is findable and sports are recognizable |
 | X5-R6 | Complete locally — R6.1 through R6.5 passed exact packaged, adaptive visual, and dense-route gates on 2026-08-22 | A routed workout is investigated through a dominant synchronized map |
 | X5-R7 | Complete locally — R7.1 through R7.6 passed the exact fast, functional, restart, adaptive, accessibility, visual, and performance gates on 2026-08-22 | Every session composition reflects its actual evidence |
-| X5-R8 | In progress — R8.1 through R8.3 complete locally; the R8.4 exercise-ownership correction passed the full fast gate on 2026-08-22 and Range Summary is next | Personal ranges and reusable criteria work end to end |
+| X5-R8 | In progress — R8.1 through R8.3 complete locally; R8.4 corrected unproven route/signal alignment in Session Story v3 and is defining explicit range coordinates | Personal ranges and reusable criteria work end to end |
 | X5-R9 | Pending | Reports open as results and leave FitFreed safely |
 | X5-R10 | Pending | The complete release-shaped product is coherent and documented |
 | X6 | Pending | Independent audit has no unresolved material finding |
@@ -1319,6 +1319,36 @@ The complete fast gate passes 156 tooling tests, 290 React tests, two vendored-u
 formatting, architecture, contract, migration, compatibility, documentation, localization, site, workflow,
 and UI checks also pass. Range Summary remains the active R8.4 work; production range interaction, criteria
 integration, packaged E2E/accessibility/performance evidence, and the Alpha UX review remain open under R8.
+
+Range Summary falsification then exposed a second lower-layer mismatch before any UI used the contract. The
+official source correspondence defines route waypoint offsets relative to route start and lap split offsets
+relative to exercise start, while declared exercise duration remains an independent measurement. Regular
+series have their own interval coordinate. A privacy-minimized structural check of the maintained compatibility
+source confirms that route start, route extent, lap extent, series extent, and declared duration cannot be
+treated as one interchangeable upper-bounded coordinate. No personal value, count, timestamp, path, or
+fingerprint enters this evidence record.
+
+R8.4 is therefore reopened at the coordinate model rather than hiding the mismatch inside Range Summary.
+The next correction must represent the exact coordinate authority of a boundary, preserve the schema-26
+exercise-owned rows without guessing a representation, and permit cross-representation synchronization only
+when an explicit recorded relationship proves it. Declared duration remains a useful source measurement but
+cannot be the universal upper bound for route, series, source-lap, and manual boundaries. Range Summary starts
+only after domain, application, persistence, and transport enforce that distinction.
+
+### R8.4 Session Story coordinate correction — 2026-08-22
+
+The first correction removes one invalid downstream dependency before the range model builds on it. Session
+Story version 3 adds an explicit `alignmentState` to every eligible signal overlay. The current Polar mapping
+emits `unavailable` and an empty aligned-sample collection because route and regular-series offsets have
+different recorded authorities. Presentation keeps that signal independently explorable and excludes it from
+route coloring and synchronized cursor interaction. The versioned contract reserves `exact-recorded` only for
+a future explicit source or canonical relationship; equal numbers, compatible cardinality, timestamp
+subtraction, proximity, and interpolation cannot establish it.
+
+The focused application, desktop transport, presentation, and schema checks pass. The complete fast gate
+passes with 156 tooling tests, 291 presentation tests, two vendored-updater tests, 217 desktop-adapter tests,
+170 application tests, and 44 domain tests. Strict Clippy and Rust formatting also pass. The next R8.4 slice
+defines coordinate authority for personal ranges; Range Summary remains downstream of that contract.
 
 ## X5-R9 — Make reports result-first and portable
 

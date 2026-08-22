@@ -48,6 +48,7 @@ export interface SessionStoryOverlay {
   sourceKind: TrainingSignalKind;
   sourceUnit: TrainingSignalUnit;
   valueTransform: SessionStoryValueTransform;
+  alignmentState: "exact-recorded" | "unavailable";
   alignedSamples: SessionStoryAlignedSample[];
 }
 
@@ -128,7 +129,7 @@ export interface SessionStoryProvenance {
 }
 
 export interface SessionStory {
-  schemaVersion: 2;
+  schemaVersion: 3;
   snapshotRef: string;
   session: TrainingSessionSearchItem;
   structure: TrainingStructure | null;

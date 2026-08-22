@@ -61,6 +61,7 @@ function story(options: {
     sourceKind: signal.kind,
     sourceUnit: signal.unit,
     valueTransform: "identity" as const,
+    alignmentState: "unavailable" as const,
     alignedSamples: [],
   } : null;
   const structure = options.structure ? {
@@ -107,7 +108,7 @@ function story(options: {
   const unsupportedSignals = options.signal === "unsupported" ? 1 : 0;
 
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     snapshotRef: "snapshot-1",
     session: {
       sessionRef: "session-1",

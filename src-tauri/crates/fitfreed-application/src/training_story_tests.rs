@@ -374,7 +374,7 @@ fn composes_a_running_story_at_one_authoritative_snapshot() {
     let story = query_session_story(ports(&port), query()).unwrap();
 
     assert_eq!(story.schema_version, TRAINING_SESSION_STORY_SCHEMA_VERSION);
-    assert_eq!(TRAINING_SESSION_STORY_SCHEMA_VERSION, 2);
+    assert_eq!(TRAINING_SESSION_STORY_SCHEMA_VERSION, 3);
     assert_eq!(story.snapshot_ref, SNAPSHOT);
     assert_eq!(story.session.session_ref, SESSION);
     assert_eq!(port.accepted_snapshots.borrow().as_slice(), [SNAPSHOT; 5]);
@@ -431,33 +431,29 @@ fn composes_a_running_story_at_one_authoritative_snapshot() {
         primary
             .eligible_overlays
             .iter()
-            .map(|overlay| (overlay.metric, overlay.value_transform))
+            .map(|overlay| (
+                overlay.metric,
+                overlay.value_transform,
+                overlay.alignment_state,
+            ))
             .collect::<Vec<_>>(),
         vec![
             (
                 SessionStoryMetricView::Pace,
                 SessionStoryValueTransform::KilometersPerHourToMinutesPerKilometer,
+                SessionStoryAlignmentStateView::Unavailable,
             ),
             (
                 SessionStoryMetricView::HeartRate,
                 SessionStoryValueTransform::Identity,
+                SessionStoryAlignmentStateView::Unavailable,
             ),
         ]
     );
-    assert_eq!(
-        primary.eligible_overlays[0]
-            .aligned_samples
-            .iter()
-            .map(|sample| (
-                sample.route_point_ordinal,
-                sample.signal_sample_ordinal,
-                sample.elapsed_milliseconds,
-                sample.value,
-                sample.gap_before,
-            ))
-            .collect::<Vec<_>>(),
-        vec![(0, 0, 0, Some(10.0), false), (1, 1, 1_000, None, true)]
-    );
+    assert!(primary
+        .eligible_overlays
+        .iter()
+        .all(|overlay| overlay.aligned_samples.is_empty()));
     assert_eq!(story.provenance.total_event_count, 1);
 }
 

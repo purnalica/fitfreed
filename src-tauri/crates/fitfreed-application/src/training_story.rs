@@ -17,14 +17,13 @@ use crate::{
     TrainingSessionStructureQuery, TrainingSessionZonePort, TrainingSessionZonesQuery,
     TrainingSessionZonesView, TrainingSignalCollectionView, TrainingSignalKindView,
     TrainingSignalRoleView, TrainingSignalSeriesOverview, TrainingSignalUnitView,
-    TrainingSignalVisualSampleView, TrainingStructure, TrainingZoneCollectionView,
-    TrainingZoneGroupView,
+    TrainingStructure, TrainingZoneCollectionView, TrainingZoneGroupView,
 };
 
 const SNAPSHOT_PREFIX: &str = "training-snapshot-";
 const SESSION_PREFIX: &str = "session-";
 
-pub const TRAINING_SESSION_STORY_SCHEMA_VERSION: u32 = 2;
+pub const TRAINING_SESSION_STORY_SCHEMA_VERSION: u32 = 3;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SessionStoryQuery {
@@ -61,6 +60,12 @@ pub enum SessionStoryValueTransform {
     KilometersPerHourToMinutesPerKilometer,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SessionStoryAlignmentStateView {
+    ExactRecorded,
+    Unavailable,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct SessionStoryAlignedSampleView {
     pub route_point_ordinal: usize,
@@ -77,6 +82,7 @@ pub struct SessionStoryOverlayView {
     pub source_kind: TrainingSignalKindView,
     pub source_unit: TrainingSignalUnitView,
     pub value_transform: SessionStoryValueTransform,
+    pub alignment_state: SessionStoryAlignmentStateView,
     pub aligned_samples: Vec<SessionStoryAlignedSampleView>,
 }
 
@@ -589,7 +595,7 @@ fn build_role(
     let mut eligible_overlays = signals
         .iter()
         .filter(|signal| signal.available_sample_count > 0)
-        .filter_map(|signal| build_overlay(route.as_ref(), signal, family))
+        .filter_map(|signal| build_overlay(signal, family))
         .collect::<Vec<_>>();
     eligible_overlays.sort_by_key(|overlay| {
         (
@@ -714,7 +720,6 @@ fn checked_zone_sum(
 }
 
 fn build_overlay(
-    route: Option<&TrainingRouteOverview>,
     signal: &TrainingSignalSeriesOverview,
     family: Option<&str>,
 ) -> Option<SessionStoryOverlayView> {
@@ -725,9 +730,8 @@ fn build_overlay(
         source_kind: signal.kind,
         source_unit: signal.unit,
         value_transform,
-        aligned_samples: route
-            .map(|route| align_samples(route, &signal.visual_samples))
-            .unwrap_or_default(),
+        alignment_state: SessionStoryAlignmentStateView::Unavailable,
+        aligned_samples: Vec::new(),
     })
 }
 
@@ -787,31 +791,6 @@ fn metric_priority(family: Option<&str>, metric: SessionStoryMetricView) -> usiz
             SessionStoryMetricView::Power => 5,
         },
     }
-}
-
-fn align_samples(
-    route: &TrainingRouteOverview,
-    samples: &[TrainingSignalVisualSampleView],
-) -> Vec<SessionStoryAlignedSampleView> {
-    let mut aligned = Vec::new();
-    for point in &route.visual_points {
-        let Some(elapsed_milliseconds) = point.elapsed_milliseconds else {
-            continue;
-        };
-        for sample in samples
-            .iter()
-            .filter(|sample| sample.elapsed_milliseconds == elapsed_milliseconds)
-        {
-            aligned.push(SessionStoryAlignedSampleView {
-                route_point_ordinal: point.ordinal,
-                signal_sample_ordinal: sample.ordinal,
-                elapsed_milliseconds,
-                value: sample.value,
-                gap_before: sample.gap_before,
-            });
-        }
-    }
-    aligned
 }
 
 fn invalid<T>(message: &'static str) -> Result<T, ApplicationError> {

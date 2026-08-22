@@ -190,8 +190,8 @@ Evaluated exercise objects also correspond to the official nested `TrainingSessi
 | `exercises[].calories` | Official and observed | optional non-negative integer | Exercise energy in kilocalories. |
 | `exercises[].sport.id` | Official and observed | optional string reference | Exercise-level reference in Polar's separate sports catalogue. |
 | `exercises[].laps` | Official and observed | optional object | Container for separately ordered source/manual and automatic laps. |
-| `exercises[].laps.laps[]` | Official and observed | optional object array | Source/manual laps with `splitTimeMillis`, `durationMillis`, and optional `distanceMeters`. |
-| `exercises[].laps.autoLaps[]` | Official and observed | optional object array | Automatic laps with the same supported measurement shape. |
+| `exercises[].laps.laps[]` | Official and observed | optional object array | Source/manual laps with `splitTimeMillis`, `durationMillis`, and optional `distanceMeters`. The official contract defines `splitTimeMillis` as elapsed from exercise start. In the evaluated takeout, each collection uses it as a cumulative end boundary: the first split equals its duration and every later split equals the preceding split plus the current duration. |
+| `exercises[].laps.autoLaps[]` | Official and observed | optional object array | Automatic laps with the same supported measurement shape and the same evaluated cumulative-end relationship. |
 | `exercises[].pauseTimes[]` | Official and observed | optional object array | Ordered pauses with local `startTime` and `endTime`; evaluated exports mix minute, second, and fractional-second precision. |
 | `exercises[].routes` | Observed with official route correspondence | optional object | Container whose absence differs from a present object without route kinds. |
 | `exercises[].routes.route` | Observed with official route correspondence | optional object | Primary exercise route with a local `startTime` and ordered `wayPoints`. |
@@ -201,12 +201,12 @@ Evaluated exercise objects also correspond to the official nested `TrainingSessi
 | `.wayPoints[].latitude` | Official correspondence and observed | required finite number | WGS84 latitude in degrees. |
 | `.wayPoints[].longitude` | Official correspondence and observed | required finite number | WGS84 longitude in degrees. |
 | `.wayPoints[].altitude` | Official correspondence and observed | optional finite number | Recorded altitude in metres. |
-| `.wayPoints[].elapsedMillis` | Observed | optional non-negative integer | Elapsed route offset in milliseconds; the API location model uses a duration-valued time field rather than this takeout field name. |
+| `.wayPoints[].elapsedMillis` | Official correspondence and observed | optional non-negative integer in the takeout; required by the current API contract | Elapsed milliseconds since that route object's own `startTime`. It is not exercise elapsed time, and equal numbers in route and exercise or signal evidence do not establish equal instants. |
 | `exercises[].samples` | Observed with official sample correspondence | optional object | Container whose absence differs from present primary or transition collections. |
 | `exercises[].samples.samples` | Observed with official interval-series correspondence | optional ordered array | Regular measurements attributed to the exercise. |
 | `exercises[].samples.transitionSamples` | Observed with official interval-series correspondence | optional ordered array | Regular measurements separately attributed to a transition. |
 | regular series `.type` | Official correspondence and observed | required string in evaluated series | Source measurement enumeration; only explicitly mapped meanings enter the canonical vocabulary. |
-| regular series `.intervalMillis` | Official correspondence and observed | required positive integer in evaluated series | Regular interval in milliseconds. |
+| regular series `.intervalMillis` | Official correspondence and observed | required positive integer in evaluated series | Regular interval between adjacent values in milliseconds. Neither the official contract nor the evaluated takeout records the series time origin, so ordinal zero cannot be asserted to equal exercise start, route start, or a lap boundary. |
 | regular series `.values[]` | Official correspondence and observed | required ordered array of numbers or the string `NaN` | Source slot values; `NaN` represents an unavailable slot rather than zero. |
 | `exercises[].zones` | Official and observed | optional ordered array | Aggregate zone groups attributed to the exercise; absence differs from present-empty. |
 | zone group `.type` | Official correspondence and observed | required string | The API enum defines `HEART_RATE`, `SPEED`, `POWER`, `FIT_FAT`, and `UNSPECIFIED`; the takeout uses corresponding `ZONE_TYPE_` tokens in the evaluated shapes. |
@@ -224,6 +224,13 @@ enumeration; its training-sample contracts establish beats per minute for heart 
 speed, metres for distance and altitude, rotations per minute for cadence, degrees Celsius for temperature,
 and watts for power. This correspondence does not make the API a specification of takeout field names or
 historical archive compatibility.
+
+The evaluated training-session shape contains no additional time-origin field inside a regular series and no
+series-level timestamp beside `intervalMillis`. A route does carry its own local `startTime`, while an exercise
+carries a separate local `startTime`; both lack an embedded offset in the evaluated representation. Their
+recorded local values can be retained as evidence, but subtracting them is not a provider-defined elapsed-time
+transformation. FitFreed must therefore keep exercise, route, and regular-series coordinates distinct unless a
+future provider contract or independently preserved source field supplies an explicit relationship.
 
 **Evidence: Official correspondence and observed.** Polar's current zone contract establishes heart-rate,
 speed, power, fit-versus-fat, and unspecified group meanings, milliseconds for time in zone, metres for speed

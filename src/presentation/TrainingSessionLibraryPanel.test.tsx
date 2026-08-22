@@ -586,6 +586,7 @@ function trainingStory(
       valueTransform: signal.kind === "speed"
         ? "kilometers-per-hour-to-minutes-per-kilometer" as const
         : "identity" as const,
+      alignmentState: "exact-recorded" as const,
       alignedSamples: firstRoute?.visualPoints.flatMap((point) => {
         if (point.elapsedMilliseconds === null) return [];
         const sample = samplesByElapsed.get(point.elapsedMilliseconds);
@@ -607,7 +608,7 @@ function trainingStory(
   }));
 
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     snapshotRef: acceptedSnapshotRef,
     session: storySession(sessionRef),
     structure,
@@ -770,7 +771,11 @@ function signalOnlyTrainingStory(
         signals: [signal],
         evidence: roleEvidence,
         primaryMetric: "pace",
-        eligibleOverlays: [{ ...overlay, alignedSamples: [] }],
+        eligibleOverlays: [{
+          ...overlay,
+          alignmentState: "unavailable",
+          alignedSamples: [],
+        }],
         exactRoute: null,
         exactSignals: [{
           signalRef: signal.signalRef,

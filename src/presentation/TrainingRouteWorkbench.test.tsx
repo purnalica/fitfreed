@@ -53,6 +53,7 @@ function story(withElapsed = true): SessionStory {
     sourceKind: "speed" as const,
     sourceUnit: "kilometers-per-hour" as const,
     valueTransform: "kilometers-per-hour-to-minutes-per-kilometer" as const,
+    alignmentState: "exact-recorded" as const,
     alignedSamples: withElapsed ? [{
       routePointOrdinal: 0,
       signalSampleOrdinal: 0,
@@ -111,7 +112,7 @@ function story(withElapsed = true): SessionStory {
     exactSignals: [],
   };
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     snapshotRef: "snapshot-current",
     session: {
       sessionRef: `session-${"d".repeat(64)}`,
@@ -433,6 +434,7 @@ describe("TrainingRouteWorkbench", () => {
         sourceKind: kind,
         sourceUnit: unit,
         valueTransform: "identity",
+        alignmentState: "exact-recorded",
         alignedSamples: [0, 1, 2].map((ordinal) => ({
           routePointOrdinal: ordinal,
           signalSampleOrdinal: ordinal,

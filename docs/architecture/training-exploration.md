@@ -182,25 +182,30 @@ The exact query returns stable contiguous pages of at most 250 slots. Exercise a
 kind, unit, interval, source ordinal, and sample ordinal remain explicit, and no signal query loads a complete
 series merely to draw a bounded chart.
 
-The [Session Story v2 composition](../data-formats/insights/session-story-v2.md) is the application
+The [Session Story v3 composition](../data-formats/insights/session-story-v3.md) is the application
 boundary for a single-session workbench. It resolves discovery first and requires every structure,
 route, signal, zone, and provenance port to answer at that accepted snapshot. The application then
-matches exercise identities and primary/transition roles, exposes exact-page capabilities, and joins
-bounded route and signal evidence only at identical recorded elapsed times. SQLite remains a set of
+matches exercise identities and primary/transition roles and exposes exact-page capabilities. SQLite remains a set of
 independent evidence adapters; it has no joined story query, presentation cache, or reconstructed
 timeline. The production session surface invokes `query_session_story` once per selected session and
 accepted discovery revision. It renders structure, routes, signals, and zones from that one response;
 independent exact-route and exact-signal pagination remains deliberately on demand.
-Version 2 also carries application-owned assessment states and exact supported-evidence counts for every
+The story also carries application-owned assessment states and exact supported-evidence counts for every
 composed exercise and role. Those summaries distinguish source absence, source emptiness, empty series,
 fully unavailable series, partial series, unsupported series, zone bands without recorded time, and
 multi-exercise composition without turning presentation into a second evidence interpreter. The immutable
-[version-1 contract](../data-formats/insights/session-story-v1.md) remains the preceding transport shape.
-Production requests the same bounded 400-item source-ordinal budget for route geometry and signal lanes.
-Equal-cardinality recorded streams therefore retain the same projected source ordinals instead of losing
-valid exact alignment merely because presentation chose different limits. Streams with different recorded
-cadence or cardinality remain independently projected and join only when their returned elapsed values are
-identical; the shared budget grants no proximity or interpolation authority.
+[version-2 contract](../data-formats/insights/session-story-v2.md) and
+[version-1 contract](../data-formats/insights/session-story-v1.md) remain the preceding transport shapes.
+Production requests the same bounded 400-item source-ordinal budget for route geometry and signal lanes for
+predictable workbench cost, not as alignment authority.
+
+Version 3 makes coordinate authority explicit on every eligible overlay. Route waypoint elapsed values are
+route-relative; regular signal values are series-relative unless the source supplies an explicit shared
+origin. Equal or nearby numbers, compatible cardinality, and subtraction of separate local civil timestamps
+cannot establish a relationship. `alignmentState: unavailable` requires an empty aligned-sample collection
+and keeps route and signal interaction independent. `alignmentState: exact-recorded` is reserved for a
+validated recorded relationship and permits only the exact matches returned by the application. The current
+Polar Flow mapping emits `unavailable`.
 
 Presentation applies one evidence-adaptive hierarchy to that application-owned composition. A role with
 bounded route points receives the local route workbench. When no route can be drawn, the first

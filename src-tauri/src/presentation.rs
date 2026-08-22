@@ -32,19 +32,20 @@ use fitfreed_application::{
     ResolvedSessionReport, SaveSportClassificationRequest, SavedTrainingSportClassification,
     SegmentApplicabilityView, SegmentMeasurementView, SessionReportBlockDraft,
     SessionReportBlockDraftContent, SessionStory, SessionStoryAlignedSampleView,
-    SessionStoryAssessmentStateView, SessionStoryCompositionView, SessionStoryExactRoute,
-    SessionStoryExactSignal, SessionStoryExercise, SessionStoryExerciseEvidenceView,
-    SessionStoryMetricView, SessionStoryOverlayView, SessionStoryProvenance, SessionStoryQuery,
-    SessionStoryRole, SessionStoryRoleEvidenceView, SessionStoryValueTransform, SleepComparison,
-    SleepDateRange, SleepDayAvailability, SleepDayInsight, SleepOverview, SleepPeriodDetail,
-    SleepPeriodInsight, SleepPhaseTotals, SleepSeriesComparison, SleepSeriesOverview,
-    SleepSeriesSummary, SourceAcquisitionGuide, SportClassificationSaveOutcome, TrainingComparison,
-    TrainingDateRange, TrainingDerivedSegment, TrainingDiscoveryView, TrainingDiscoveryWorkspace,
-    TrainingExerciseRoutesView, TrainingExerciseSegmentation, TrainingExerciseSignalsView,
-    TrainingExerciseStructure, TrainingExerciseZonesView, TrainingLapStructure,
-    TrainingMeasurementFilter, TrainingPauseStructure, TrainingProvenanceCurrentView,
-    TrainingProvenanceDecisionView, TrainingProvenanceEventView, TrainingRouteCollectionView,
-    TrainingRouteKindView, TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
+    SessionStoryAlignmentStateView, SessionStoryAssessmentStateView, SessionStoryCompositionView,
+    SessionStoryExactRoute, SessionStoryExactSignal, SessionStoryExercise,
+    SessionStoryExerciseEvidenceView, SessionStoryMetricView, SessionStoryOverlayView,
+    SessionStoryProvenance, SessionStoryQuery, SessionStoryRole, SessionStoryRoleEvidenceView,
+    SessionStoryValueTransform, SleepComparison, SleepDateRange, SleepDayAvailability,
+    SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight, SleepPhaseTotals,
+    SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary, SourceAcquisitionGuide,
+    SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange, TrainingDerivedSegment,
+    TrainingDiscoveryView, TrainingDiscoveryWorkspace, TrainingExerciseRoutesView,
+    TrainingExerciseSegmentation, TrainingExerciseSignalsView, TrainingExerciseStructure,
+    TrainingExerciseZonesView, TrainingLapStructure, TrainingMeasurementFilter,
+    TrainingPauseStructure, TrainingProvenanceCurrentView, TrainingProvenanceDecisionView,
+    TrainingProvenanceEventView, TrainingRouteCollectionView, TrainingRouteKindView,
+    TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
     TrainingSegmentCriterionDirection, TrainingSegmentCriterionMutationRequest,
     TrainingSeriesComparison, TrainingSeriesSummary, TrainingSessionCalendar,
     TrainingSessionCalendarDay, TrainingSessionCalendarRequest, TrainingSessionProvenanceQuery,
@@ -2657,6 +2658,13 @@ fn session_story_assessment_state(state: SessionStoryAssessmentStateView) -> &'s
     }
 }
 
+fn session_story_alignment_state(state: SessionStoryAlignmentStateView) -> &'static str {
+    match state {
+        SessionStoryAlignmentStateView::ExactRecorded => "exact-recorded",
+        SessionStoryAlignmentStateView::Unavailable => "unavailable",
+    }
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionStoryAlignedSampleDto {
@@ -2687,6 +2695,7 @@ pub struct SessionStoryOverlayDto {
     source_kind: &'static str,
     source_unit: &'static str,
     value_transform: &'static str,
+    alignment_state: &'static str,
     aligned_samples: Vec<SessionStoryAlignedSampleDto>,
 }
 
@@ -2698,6 +2707,7 @@ impl From<SessionStoryOverlayView> for SessionStoryOverlayDto {
             source_kind: training_signal_kind(overlay.source_kind),
             source_unit: training_signal_unit(overlay.source_unit),
             value_transform: session_story_value_transform(overlay.value_transform),
+            alignment_state: session_story_alignment_state(overlay.alignment_state),
             aligned_samples: overlay
                 .aligned_samples
                 .into_iter()
@@ -7082,7 +7092,7 @@ mod tests {
             },
         };
         let story = SessionStory {
-            schema_version: 2,
+            schema_version: 3,
             snapshot_ref:
                 "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
                     .to_owned(),
@@ -7152,13 +7162,8 @@ mod tests {
                         source_unit: TrainingSignalUnitView::KilometersPerHour,
                         value_transform:
                             SessionStoryValueTransform::KilometersPerHourToMinutesPerKilometer,
-                        aligned_samples: vec![SessionStoryAlignedSampleView {
-                            route_point_ordinal: 9,
-                            signal_sample_ordinal: 10,
-                            elapsed_milliseconds: i64::MAX,
-                            value: Some(12.5),
-                            gap_before: true,
-                        }],
+                        alignment_state: SessionStoryAlignmentStateView::Unavailable,
+                        aligned_samples: Vec::new(),
                     }],
                     exact_route: Some(SessionStoryExactRoute {
                         route_ref:
@@ -7200,7 +7205,7 @@ mod tests {
 
         let json =
             serde_json::to_value(SessionStoryDto::from(story)).expect("session story response");
-        assert_eq!(json["schemaVersion"], 2);
+        assert_eq!(json["schemaVersion"], 3);
         assert_eq!(
             json["session"]["durationMilliseconds"],
             i64::MAX.to_string()
@@ -7217,9 +7222,13 @@ mod tests {
             "kilometers-per-hour-to-minutes-per-kilometer"
         );
         assert_eq!(
-            json["exercises"][0]["primary"]["eligibleOverlays"][0]["alignedSamples"][0]
-                ["elapsedMilliseconds"],
-            i64::MAX.to_string()
+            json["exercises"][0]["primary"]["eligibleOverlays"][0]["alignmentState"],
+            "unavailable"
+        );
+        assert!(
+            json["exercises"][0]["primary"]["eligibleOverlays"][0]["alignedSamples"]
+                .as_array()
+                .is_some_and(Vec::is_empty)
         );
         assert_eq!(
             json["exercises"][0]["primary"]["exactRoute"]["pointCount"],

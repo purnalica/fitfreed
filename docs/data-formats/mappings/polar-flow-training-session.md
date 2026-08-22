@@ -92,6 +92,12 @@ and between zero and `9999000`. Source order becomes zero-based `ordinal`; the e
 `durationMillis` becomes canonical `durationMilliseconds`, both without derivation. No provider lap identifier
 is required or invented.
 
+The official correspondence defines `splitTimeMillis` as elapsed from exercise start. The evaluated takeout
+uses it as the cumulative end boundary inside each manual or automatic collection: the first split equals the
+first duration and each subsequent split equals the preceding split plus the current duration. Version 6 still
+stores the two source measurements independently and does not materialize a derived start. A consumer may use
+the recorded split as exercise-coordinate evidence; it must not substitute route or signal elapsed values.
+
 Each `exercises[].pauseTimes[]` entry requires valid local-form `startTime` and `endTime`. Observed exports use
 both minute (`YYYY-MM-DDTHH:mm`) and second or fractional-second precision within the same pause collection;
 minute precision maps to exact second zero. The end must not precede the start. Source order becomes zero-based
@@ -118,6 +124,8 @@ protected `exerciseId` and zero-based `ordinal` as structure.
 Waypoint source order becomes contiguous zero-based `ordinal`. Present elapsed values must be
 non-decreasing even when other points omit the field. Missing values are not interpolated. Empty routes,
 one-point routes, repeated points, and primary and transition identity are preserved rather than repaired.
+Each present elapsed value remains relative to that route's own recorded `startedAtLocal`; mapping does not
+subtract exercise and route local timestamps or relabel the result as exercise elapsed time.
 
 ## Signal assessment and interval-series mapping
 
@@ -149,6 +157,11 @@ series are excluded. Each source value retains its zero-based slot ordinal. The 
 an unavailable slot; no other string, non-finite number, interpolation, conversion, or imputation is accepted.
 Heart rate, speed, distance, cadence, and left-crank power values must be non-negative. Altitude and
 temperature may be negative. The last ordinal multiplied by `intervalMillis` must fit a signed 64-bit integer.
+
+The derived ordinal product is a series-relative coordinate only. The source supplies no series time origin,
+and mapping does not assert that ordinal zero equals exercise start, route start, or any source-lap boundary.
+Equal numeric route and series offsets therefore remain values in different coordinate systems and are not an
+alignment relationship.
 
 An unknown series type is not assigned an invented meaning. It increments
 `unsupportedPrimarySeriesCount` or `unsupportedTransitionSeriesCount`, while its provider token and values do

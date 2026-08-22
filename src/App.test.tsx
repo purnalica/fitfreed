@@ -252,7 +252,7 @@ function testSessionStory(
   };
 
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     snapshotRef,
     session,
     structure: { exercises: exercise ? [exercise] : null },

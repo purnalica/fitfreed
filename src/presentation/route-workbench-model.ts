@@ -186,7 +186,9 @@ export function buildRouteWorkbenchModel(
   const elapsedPointIndexes = points.flatMap((point, pointIndex) => (
     point.source.elapsedMilliseconds === null ? [] : [pointIndex]
   ));
-  const overlays = role.eligibleOverlays.map(
+  const overlays = role.eligibleOverlays.filter(
+    (overlay) => overlay.alignmentState === "exact-recorded",
+  ).map(
     (overlay) => workbenchOverlay(overlay, role, pointIndexesByOrdinal),
   );
   const elapsedValues = [

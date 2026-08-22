@@ -94,10 +94,11 @@ pub use training_signal::{
 mod training_story;
 pub use training_story::{
     query_session_story, SessionStory, SessionStoryAlignedSampleView,
-    SessionStoryAssessmentStateView, SessionStoryCompositionView, SessionStoryExactRoute,
-    SessionStoryExactSignal, SessionStoryExercise, SessionStoryExerciseEvidenceView,
-    SessionStoryMetricView, SessionStoryOverlayView, SessionStoryPorts, SessionStoryProvenance,
-    SessionStoryQuery, SessionStoryRole, SessionStoryRoleEvidenceView, SessionStoryValueTransform,
+    SessionStoryAlignmentStateView, SessionStoryAssessmentStateView, SessionStoryCompositionView,
+    SessionStoryExactRoute, SessionStoryExactSignal, SessionStoryExercise,
+    SessionStoryExerciseEvidenceView, SessionStoryMetricView, SessionStoryOverlayView,
+    SessionStoryPorts, SessionStoryProvenance, SessionStoryQuery, SessionStoryRole,
+    SessionStoryRoleEvidenceView, SessionStoryValueTransform,
     TRAINING_SESSION_STORY_SCHEMA_VERSION,
 };
 
