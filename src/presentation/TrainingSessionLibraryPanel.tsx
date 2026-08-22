@@ -115,6 +115,16 @@ interface SearchDraft {
   sort: TrainingSessionSort;
 }
 
+type AppliedRefinement =
+  | { key: string; kind: "from" | "through" | "text" | "sort"; label: string }
+  | { key: string; kind: "sport"; value: string; label: string }
+  | {
+    key: string;
+    kind: "measurement";
+    value: TrainingMeasurementFilter;
+    label: string;
+  };
+
 type SessionView = "chronology" | "calendar";
 type DetailSection = "overview" | "structure" | "signals" | "routes" | "provenance";
 
@@ -142,6 +152,38 @@ function draftFromWorkspace(workspace: TrainingDiscoveryWorkspace): SearchDraft 
 
 function criteriaForCalendarDay(draft: SearchDraft, localDate: string | null): SearchDraft {
   return localDate ? { ...draft, from: localDate, through: localDate } : draft;
+}
+
+function localDate(value: string): Date {
+  return new Date(`${value}T00:00:00Z`);
+}
+
+function withoutRefinement(
+  criteria: SearchDraft,
+  refinement: AppliedRefinement,
+): SearchDraft {
+  switch (refinement.kind) {
+    case "from":
+      return { ...criteria, from: "" };
+    case "through":
+      return { ...criteria, through: "" };
+    case "sport":
+      return {
+        ...criteria,
+        sportRefs: criteria.sportRefs.filter((candidate) => candidate !== refinement.value),
+      };
+    case "measurement":
+      return {
+        ...criteria,
+        requiredMeasurements: criteria.requiredMeasurements.filter(
+          (candidate) => candidate !== refinement.value,
+        ),
+      };
+    case "text":
+      return { ...criteria, text: "" };
+    case "sort":
+      return { ...criteria, sort: "started-desc" };
+  }
 }
 
 function interpolate(template: string, values: Record<string, string>): string {
@@ -259,6 +301,8 @@ export function TrainingSessionLibraryPanel({
   const dateRangeValidation = useInvalidForm(onError);
   const detailHeadingRef = useRef<HTMLHeadingElement>(null);
   const libraryHeadingRef = useRef<HTMLHeadingElement>(null);
+  const appliedQueryFocusRef = useRef<HTMLParagraphElement>(null);
+  const refinementsRef = useRef<HTMLDetailsElement>(null);
   const detailOriginButtonRef = useRef<HTMLButtonElement | null>(null);
   const createReportButtonRef = useRef<HTMLButtonElement>(null);
   const handledCreateReportFocusRequest = useRef<number | undefined>(undefined);
@@ -282,6 +326,71 @@ export function TrainingSessionLibraryPanel({
     useGrouping: false,
     maximumSignificantDigits: 17,
   }), [locale]);
+  const appliedRefinements = useMemo<AppliedRefinement[]>(() => {
+    const refinements: AppliedRefinement[] = [];
+    const label = (name: string, value: string) => interpolate(copy.refinementLabel, {
+      name,
+      value,
+    });
+    if (applied.from) {
+      refinements.push({
+        key: "from",
+        kind: "from",
+        label: label(copy.from, calendarDate.format(localDate(applied.from))),
+      });
+    }
+    if (applied.through) {
+      refinements.push({
+        key: "through",
+        kind: "through",
+        label: label(copy.through, calendarDate.format(localDate(applied.through))),
+      });
+    }
+    applied.sportRefs.forEach((sportRef, index) => {
+      const sport = sports?.sports.find((candidate) => candidate.sportRef === sportRef);
+      refinements.push({
+        key: `sport-${sportRef}`,
+        kind: "sport",
+        value: sportRef,
+        label: label(
+          copy.sportRefinement,
+          sport
+            ? sportTitle(sport)
+            : interpolate(copy.unavailableSportRefinement, {
+              index: number.format(index + 1),
+            }),
+        ),
+      });
+    });
+    const measurementLabels: Record<TrainingMeasurementFilter, string> = {
+      distance: copy.distanceMeasurement,
+      energy: copy.energyMeasurement,
+      "heart-rate": copy.heartRateMeasurement,
+    };
+    applied.requiredMeasurements.forEach((measurement) => {
+      refinements.push({
+        key: `measurement-${measurement}`,
+        kind: "measurement",
+        value: measurement,
+        label: label(copy.measurementRefinement, measurementLabels[measurement]),
+      });
+    });
+    if (applied.text) {
+      refinements.push({
+        key: "text",
+        kind: "text",
+        label: label(copy.textRefinement, applied.text),
+      });
+    }
+    if (applied.sort !== "started-desc") {
+      refinements.push({
+        key: "sort",
+        kind: "sort",
+        label: label(copy.sort, copy.sortOptions[applied.sort]),
+      });
+    }
+    return refinements;
+  }, [applied, calendarDate, copy, sports]);
 
   async function query(
     criteria: SearchDraft,
@@ -742,11 +851,60 @@ export function TrainingSessionLibraryPanel({
     }
   }
 
-  async function loadAppliedCriteria(criteria: SearchDraft) {
-    const result = await loadPage(criteria, 0, null);
-    if (view === "calendar" && result?.availableRange) {
-      const month = monthInsideCriteria(calendarMonth, criteria, result.availableRange);
-      await loadCalendar(criteria, month, result.snapshotRef);
+  async function loadAppliedCriteria(
+    criteria: SearchDraft,
+  ): Promise<TrainingSessionSearchPage | undefined> {
+    setLoading(true);
+    if (view === "calendar") setCalendarLoading(true);
+    setStatus(undefined);
+    onError(undefined);
+    try {
+      let result = await query(criteria, 0, null);
+      let nextCalendar: TrainingSessionCalendar | undefined;
+      let nextMonth = calendarMonth;
+      let snapshotChanged = false;
+      if (view === "calendar" && result.availableRange) {
+        nextMonth = monthInsideCriteria(calendarMonth, criteria, result.availableRange);
+        try {
+          nextCalendar = await invoke<TrainingSessionCalendar>(
+            "query_training_session_calendar",
+            { request: calendarRequestFor(criteria, nextMonth, result.snapshotRef) },
+          );
+        } catch (reason) {
+          if (commandErrorCode(reason) !== "training-session-search-changed") throw reason;
+          snapshotChanged = true;
+          result = await query(criteria, 0, null);
+          nextMonth = result.availableRange
+            ? monthInsideCriteria(calendarMonth, criteria, result.availableRange)
+            : nextMonth;
+          nextCalendar = result.availableRange
+            ? await invoke<TrainingSessionCalendar>(
+              "query_training_session_calendar",
+              { request: calendarRequestFor(criteria, nextMonth, result.snapshotRef) },
+            )
+            : undefined;
+        }
+      }
+      setPage(result);
+      setPageCriteria(criteria);
+      if (view === "calendar") {
+        setCalendar(nextCalendar);
+        setCalendarMonth(nextMonth);
+      }
+      if (snapshotChanged) {
+        setComparison([]);
+        setStatus(copy.libraryChanged);
+      }
+      setFailed(false);
+      onAvailableRange(result.availableRange);
+      return result;
+    } catch (reason) {
+      setFailed(true);
+      onError(commandErrorCode(reason));
+      return undefined;
+    } finally {
+      setLoading(false);
+      if (view === "calendar") setCalendarLoading(false);
     }
   }
 
@@ -759,18 +917,58 @@ export function TrainingSessionLibraryPanel({
     dateRangeValidation.accept();
     const canonical = { ...draft, text: draft.text.trim() };
     setDraft(canonical);
-    setApplied(canonical);
-    setSelectedCalendarDay(undefined);
-    void loadAppliedCriteria(canonical);
+    const initiatingElement = event.nativeEvent instanceof SubmitEvent
+      && event.nativeEvent.submitter instanceof HTMLButtonElement
+      ? event.nativeEvent.submitter
+      : null;
+    void loadAppliedCriteria(canonical).then((result) => {
+      if (!result) return;
+      setApplied(canonical);
+      setSelectedCalendarDay(undefined);
+      refinementsRef.current?.removeAttribute("open");
+      restoreFocusAfterReveal(
+        appliedQueryFocusRef.current,
+        initiatingElement,
+        { align: "nearest" },
+      );
+    });
   }
 
-  function clearFilters() {
+  function clearFilters(initiatingElement: HTMLButtonElement | null = null) {
     dateRangeValidation.accept();
     const cleared = emptyDraft();
     setDraft(cleared);
-    setApplied(cleared);
-    setSelectedCalendarDay(undefined);
-    void loadAppliedCriteria(cleared);
+    void loadAppliedCriteria(cleared).then((result) => {
+      if (!result) return;
+      setApplied(cleared);
+      setSelectedCalendarDay(undefined);
+      if (initiatingElement) {
+        restoreFocusAfterReveal(
+          appliedQueryFocusRef.current,
+          initiatingElement,
+          { align: "nearest" },
+        );
+      }
+    });
+  }
+
+  function removeAppliedRefinement(
+    refinement: AppliedRefinement,
+    initiatingElement: HTMLButtonElement,
+  ) {
+    dateRangeValidation.accept();
+    const nextApplied = withoutRefinement(applied, refinement);
+    setDraft((current) => withoutRefinement(current, refinement));
+    void loadAppliedCriteria(nextApplied).then((result) => {
+      if (!result) return;
+      setApplied(nextApplied);
+      setSelectedCalendarDay(undefined);
+      restoreFocusAfterReveal(
+        appliedQueryFocusRef.current,
+        initiatingElement,
+        { align: "nearest" },
+      );
+    });
   }
 
   function toggleMeasurement(measurement: TrainingMeasurementFilter) {
@@ -1508,8 +1706,9 @@ export function TrainingSessionLibraryPanel({
         )}
         <div className="training-session-tools">
           <details
-        className="training-session-refinements"
-        aria-label={copy.refine}
+            className="training-session-refinements"
+            aria-label={copy.refine}
+            ref={refinementsRef}
           >
             <summary>
               <span>{copy.refine}</span>
@@ -1531,13 +1730,20 @@ export function TrainingSessionLibraryPanel({
               max={page?.availableRange?.through}
               value={draft.from}
               disabled={loading}
+              aria-label={copy.from}
               aria-invalid={dateRangeValidation.invalid || undefined}
-              aria-describedby={dateRangeValidation.errorElementId}
+              aria-describedby={[
+                dateRangeValidation.errorElementId,
+                !draft.from ? "training-search-from-unbounded" : undefined,
+              ].filter(Boolean).join(" ") || undefined}
               onChange={(event) => {
                 dateRangeValidation.edit();
                 setDraft({ ...draft, from: event.target.value });
               }}
             />
+            {!draft.from && (
+              <small id="training-search-from-unbounded">{copy.fromUnbounded}</small>
+            )}
           </label>
           <label>
             <span>{copy.through}</span>
@@ -1547,13 +1753,20 @@ export function TrainingSessionLibraryPanel({
               max={page?.availableRange?.through}
               value={draft.through}
               disabled={loading}
+              aria-label={copy.through}
               aria-invalid={dateRangeValidation.invalid || undefined}
-              aria-describedby={dateRangeValidation.errorElementId}
+              aria-describedby={[
+                dateRangeValidation.errorElementId,
+                !draft.through ? "training-search-through-unbounded" : undefined,
+              ].filter(Boolean).join(" ") || undefined}
               onChange={(event) => {
                 dateRangeValidation.edit();
                 setDraft({ ...draft, through: event.target.value });
               }}
             />
+            {!draft.through && (
+              <small id="training-search-through-unbounded">{copy.throughUnbounded}</small>
+            )}
           </label>
           <label className="training-session-text-filter">
             <span>{copy.text}</span>
@@ -1584,16 +1797,21 @@ export function TrainingSessionLibraryPanel({
           </label>
         </div>
         {sports && sports.sports.some((sport) => sport.sportRef !== null) && (
-          <fieldset className="training-session-filter-options">
+          <fieldset className="training-session-filter-options training-session-sport-options">
             <legend>{copy.sports}</legend>
             {sports.sports.filter((sport) => sport.sportRef !== null).map((sport) => (
-              <label key={sport.sportRef}>
+              <label
+                key={sport.sportRef}
+                data-state={sport.state}
+                data-sport-family={sportFamily(sport) ?? sport.state}
+              >
                 <input
                   type="checkbox"
                   checked={draft.sportRefs.includes(sport.sportRef!)}
                   disabled={loading}
                   onChange={() => toggleSport(sport.sportRef!)}
                 />
+                <SportFamilyIcon family={sportFamily(sport)} state={sport.state} />
                 <span>{sportTitle(sport)}</span>
               </label>
             ))}
@@ -1618,7 +1836,12 @@ export function TrainingSessionLibraryPanel({
           ))}
         </fieldset>
         <div className="training-session-search-actions">
-          <button type="button" className="secondary" disabled={loading} onClick={clearFilters}>
+          <button
+            type="button"
+            className="secondary"
+            disabled={loading}
+            onClick={() => clearFilters()}
+          >
             {copy.clear}
           </button>
           <ProgressSubmitButton
@@ -1656,6 +1879,65 @@ export function TrainingSessionLibraryPanel({
           )}
         </div>
 
+        {page?.availableRange && (
+          <section
+            className="training-session-applied-query"
+            role="region"
+            aria-label={copy.appliedHeading}
+            data-refined={appliedRefinements.length > 0}
+          >
+            <header>
+              <div>
+                <h3 className={appliedRefinements.length === 0 ? "sr-only" : undefined}>
+                  {copy.appliedHeading}
+                </h3>
+                <p aria-live="polite" ref={appliedQueryFocusRef} tabIndex={-1}>
+                  {interpolate(
+                    page.totalCount === 1
+                      ? copy.matchingCount.one
+                      : copy.matchingCount.other,
+                    { count: number.format(page.totalCount) },
+                  )}
+                </p>
+              </div>
+              {appliedRefinements.length > 0 && page.totalCount > 0 && (
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={loading}
+                  onClick={(event) => clearFilters(event.currentTarget)}
+                >
+                  {copy.clearApplied}
+                </button>
+              )}
+            </header>
+            {appliedRefinements.length === 0 ? (
+              <p className="training-session-default-query">{copy.defaultRefinements}</p>
+            ) : (
+              <ul aria-label={copy.appliedHeading}>
+                {appliedRefinements.map((refinement) => (
+                  <li key={refinement.key}>
+                    <button
+                      type="button"
+                      disabled={loading}
+                      aria-label={interpolate(copy.removeRefinement, {
+                        label: refinement.label,
+                      })}
+                      onClick={(event) => removeAppliedRefinement(
+                        refinement,
+                        event.currentTarget,
+                      )}
+                    >
+                      <span>{refinement.label}</span>
+                      <span aria-hidden="true">×</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
+
       {status && <p className="notice" role="status">{status}</p>}
       {loading && !page ? (
         <p role="status">{copy.loading}</p>
@@ -1663,6 +1945,22 @@ export function TrainingSessionLibraryPanel({
         <p className="training-sessions-unavailable">{copy.unavailable}</p>
       ) : !page?.availableRange ? (
         <p>{copy.emptyLibrary}</p>
+      ) : page.totalCount === 0 && appliedRefinements.length > 0 ? (
+        <section
+          className="training-session-empty-result"
+          role="region"
+          aria-label={copy.emptyRefinedHeading}
+        >
+          <h3>{copy.emptyRefinedHeading}</h3>
+          <p>{copy.emptyRefinedHelp}</p>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={(event) => clearFilters(event.currentTarget)}
+          >
+            {copy.clearRefinements}
+          </button>
+        </section>
       ) : page.sessions.length === 0 && view === "chronology" ? (
         <p>{copy.emptyResults}</p>
       ) : (

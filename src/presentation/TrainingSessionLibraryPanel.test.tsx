@@ -597,6 +597,324 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(within(refinements).getByRole("form", { name: "Filter sessions" })).toBeVisible();
   });
 
+  it("keeps the applied query distinct from its draft and removes every refinement independently", async () => {
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+      if (workspaceResult) return workspaceResult;
+      if (command === "query_training_sports") return Promise.resolve(sports);
+      if (command === "query_training_sessions") {
+        const request = arguments_.request as TrainingSessionSearchRequest;
+        const filtered = request.from !== null
+          || request.through !== null
+          || request.sportRefs.length > 0
+          || request.requiredMeasurements.length > 0
+          || request.text !== null
+          || request.sort !== "started-desc";
+        return Promise.resolve(filtered
+          ? page([newest], 0, 1, null)
+          : page([newest, second], 0, 26, 25));
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    renderPanel();
+
+    const region = await screen.findByRole("region", { name: "Find a training session" });
+    const appliedQuery = within(region).getByRole("region", { name: "Applied refinements" });
+    expect(appliedQuery).toHaveTextContent("26 matching sessions");
+    expect(appliedQuery).toHaveTextContent("All sessions · newest first");
+
+    const refinements = within(region).getByRole("group", { name: "Refine sessions" });
+    await user.click(within(refinements).getByText("Refine sessions"));
+    const form = within(refinements).getByRole("form", { name: "Filter sessions" });
+    expect(form).toHaveTextContent("No start-date limit");
+    expect(form).toHaveTextContent("No end-date limit");
+    await user.type(within(form).getByLabelText("From date"), "2025-01-01");
+    await user.type(within(form).getByLabelText("Through date"), "2026-08-18");
+    expect(form).not.toHaveTextContent("No start-date limit");
+    expect(form).not.toHaveTextContent("No end-date limit");
+    await user.type(within(form).getByRole("textbox", {
+      name: /^Your sport name contains/,
+    }), " Trail ");
+    await user.click(within(form).getByRole("checkbox", { name: "Trail running" }));
+    await user.click(within(form).getByRole("checkbox", { name: "Unknown sport 1" }));
+    await user.click(within(form).getByRole("checkbox", { name: "Distance" }));
+    await user.click(within(form).getByRole("checkbox", { name: "Energy" }));
+    await user.click(within(form).getByRole("checkbox", { name: "Heart rate" }));
+    await user.selectOptions(within(form).getByLabelText("Order"), "distance-desc");
+
+    expect(appliedQuery).toHaveTextContent("All sessions · newest first");
+    expect(appliedQuery).not.toHaveTextContent("Trail running");
+    await user.click(within(form).getByRole("button", { name: "Apply filters" }));
+
+    expect(await within(appliedQuery).findByText("1 matching session")).toBeVisible();
+    await waitFor(() => expect(within(appliedQuery).getByText("1 matching session"))
+      .toHaveFocus());
+    const refinementNames = [
+      "From date: January 1, 2025",
+      "Through date: August 18, 2026",
+      "Sport: Trail running",
+      "Sport: Unknown sport 1",
+      "Recorded measurement: Distance",
+      "Recorded measurement: Energy",
+      "Recorded measurement: Heart rate",
+      "Sport name: Trail",
+      "Order: Farthest first",
+    ];
+    refinementNames.forEach((name) => {
+      expect(within(appliedQuery).getByRole("button", { name: `Remove ${name}` }))
+        .toBeVisible();
+    });
+
+    await user.click(within(appliedQuery).getByRole("button", {
+      name: "Remove Sport: Trail running",
+    }));
+    expect(within(appliedQuery).queryByText("Sport: Trail running")).not.toBeInTheDocument();
+    expect(within(appliedQuery).getByText("Sport: Unknown sport 1")).toBeVisible();
+    expect(within(form).getByRole("checkbox", { name: "Trail running" })).not.toBeChecked();
+    expect(within(form).getByRole("checkbox", { name: "Unknown sport 1" })).toBeChecked();
+    await waitFor(() => expect(within(appliedQuery).getByText("1 matching session"))
+      .toHaveFocus());
+    expect(mocks.invoke).toHaveBeenLastCalledWith("query_training_sessions", {
+      request: expect.objectContaining({
+        sportRefs: [sports.sports[1].sportRef],
+        offset: 0,
+        snapshotRef: null,
+      }),
+    });
+
+    for (const name of refinementNames.filter((candidate) => (
+      candidate !== "Sport: Trail running" && candidate !== "Sport: Unknown sport 1"
+    ))) {
+      await user.click(within(appliedQuery).getByRole("button", { name: `Remove ${name}` }));
+    }
+    expect(within(appliedQuery).getByText("Sport: Unknown sport 1")).toBeVisible();
+    expect(within(appliedQuery).getByRole("button", { name: "Clear all" })).toBeVisible();
+    await user.click(within(appliedQuery).getByRole("button", { name: "Clear all" }));
+
+    expect(await within(appliedQuery).findByText("26 matching sessions")).toBeVisible();
+    expect(appliedQuery).toHaveTextContent("All sessions · newest first");
+    expect(within(form).getByLabelText("From date")).toHaveValue("");
+    expect(within(form).getByLabelText("Through date")).toHaveValue("");
+    expect(form).toHaveTextContent("No start-date limit");
+    expect(form).toHaveTextContent("No end-date limit");
+    expect(within(form).getByRole("textbox", { name: /^Your sport name contains/ }))
+      .toHaveValue("");
+    expect(within(form).getByLabelText("Order")).toHaveValue("started-desc");
+    expect(within(form).queryAllByRole("checkbox", { checked: true })).toHaveLength(0);
+  });
+
+  it("explains an empty refined result and clears it without implying data loss", async () => {
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+      if (workspaceResult) return workspaceResult;
+      if (command === "query_training_sports") return Promise.resolve(sports);
+      if (command === "query_training_sessions") {
+        const request = arguments_.request as TrainingSessionSearchRequest;
+        return Promise.resolve(request.text === null
+          ? page([newest, second], 0, 26, 25)
+          : page([], 0, 0, null));
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    renderPanel();
+
+    const region = await screen.findByRole("region", { name: "Find a training session" });
+    const refinements = within(region).getByRole("group", { name: "Refine sessions" });
+    await user.click(within(refinements).getByText("Refine sessions"));
+    await user.type(within(refinements).getByRole("textbox", {
+      name: /^Your sport name contains/,
+    }), "Rowing");
+    await user.click(within(refinements).getByRole("button", { name: "Apply filters" }));
+
+    const emptyResult = await within(region).findByRole("region", {
+      name: "No sessions match the applied refinements",
+    });
+    expect(emptyResult).toHaveTextContent("Your imported history is unchanged.");
+    expect(within(region).getByRole("region", { name: "Applied refinements" }))
+      .toHaveTextContent("Sport name: Rowing");
+    expect(within(region).queryByRole("button", { name: "Clear all" }))
+      .not.toBeInTheDocument();
+    await user.click(within(emptyResult).getByRole("button", { name: "Clear refinements" }));
+
+    expect(await within(region).findByText("1–2 of 26 matching sessions")).toBeVisible();
+    expect(within(region).queryByRole("region", {
+      name: "No sessions match the applied refinements",
+    })).not.toBeInTheDocument();
+  });
+
+  it("gives an empty refined calendar the same direct recovery as chronology", async () => {
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+      if (workspaceResult) return workspaceResult;
+      if (command === "query_training_sports") return Promise.resolve(sports);
+      if (command === "query_training_sessions") {
+        const request = arguments_.request as TrainingSessionSearchRequest;
+        return Promise.resolve(request.text === null
+          ? page([newest, second], 0, 26, 25)
+          : page([], 0, 0, null));
+      }
+      if (command === "query_training_session_calendar") {
+        return Promise.resolve(arguments_.request.text === null
+          ? calendar
+          : { ...calendar, days: [] });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    renderPanel();
+
+    const region = await screen.findByRole("region", { name: "Find a training session" });
+    await user.click(within(region).getByRole("radio", { name: "Calendar" }));
+    expect(await within(region).findByRole("heading", { name: "August 2026" })).toBeVisible();
+    const refinements = within(region).getByRole("group", { name: "Refine sessions" });
+    await user.click(within(refinements).getByText("Refine sessions"));
+    await user.type(within(refinements).getByRole("textbox", {
+      name: /^Your sport name contains/,
+    }), "Rowing");
+    await user.click(within(refinements).getByRole("button", { name: "Apply filters" }));
+
+    const emptyResult = await within(region).findByRole("region", {
+      name: "No sessions match the applied refinements",
+    });
+    expect(within(region).queryByRole("heading", { name: "August 2026" }))
+      .not.toBeInTheDocument();
+    await user.click(within(emptyResult).getByRole("button", { name: "Clear refinements" }));
+
+    expect(await within(region).findByRole("heading", { name: "August 2026" })).toBeVisible();
+    expect(within(region).getByRole("button", {
+      name: /August 18, 2026.*1 session/,
+    })).toBeVisible();
+  });
+
+  it("applies every stable order and exposes only a non-default order as removable", async () => {
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+      if (workspaceResult) return workspaceResult;
+      if (command === "query_training_sports") return Promise.resolve(sports);
+      if (command === "query_training_sessions") {
+        return Promise.resolve(page([newest, second], 0, 26, 25));
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    renderPanel();
+
+    const region = await screen.findByRole("region", { name: "Find a training session" });
+    const refinements = within(region).getByRole("group", { name: "Refine sessions" });
+    const appliedQuery = within(region).getByRole("region", { name: "Applied refinements" });
+    for (const [value, label] of [
+      ["started-asc", "Oldest first"],
+      ["duration-desc", "Longest first"],
+      ["distance-desc", "Farthest first"],
+      ["started-desc", "Newest first"],
+    ] as const) {
+      if (!refinements.hasAttribute("open")) {
+        await user.click(within(refinements).getByText("Refine sessions"));
+      }
+      await user.selectOptions(within(refinements).getByLabelText("Order"), value);
+      await user.click(within(refinements).getByRole("button", { name: "Apply filters" }));
+      await waitFor(() => expect(mocks.invoke).toHaveBeenLastCalledWith(
+        "query_training_sessions",
+        { request: expect.objectContaining({ sort: value, offset: 0, snapshotRef: null }) },
+      ));
+      if (value === "started-desc") {
+        expect(appliedQuery).toHaveTextContent("All sessions · newest first");
+        expect(within(appliedQuery).queryByRole("button", {
+          name: `Remove Order: ${label}`,
+        })).not.toBeInTheDocument();
+      } else {
+        expect(within(appliedQuery).getByRole("button", {
+          name: `Remove Order: ${label}`,
+        })).toBeVisible();
+      }
+    }
+  });
+
+  it("localizes the complete applied query in Spanish", async () => {
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+      if (workspaceResult) return workspaceResult;
+      if (command === "query_training_sports") return Promise.resolve(sports);
+      if (command === "query_training_sessions") {
+        return Promise.resolve(page([newest], 0, 1, null));
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    renderPanel(vi.fn(), { locale: "es-ES", messages: catalogs["es-ES"] });
+
+    const region = await screen.findByRole("region", {
+      name: "Encontrar una sesión de entrenamiento",
+    });
+    const refinements = within(region).getByRole("group", { name: "Acotar sesiones" });
+    await user.click(within(refinements).getByText("Acotar sesiones"));
+    await user.type(within(refinements).getByLabelText("Fecha inicial"), "2025-01-01");
+    await user.click(within(refinements).getByRole("checkbox", { name: "Trail running" }));
+    await user.selectOptions(within(refinements).getByLabelText("Orden"), "duration-desc");
+    await user.click(within(refinements).getByRole("button", { name: "Aplicar filtros" }));
+
+    const appliedQuery = within(region).getByRole("region", { name: "Filtros aplicados" });
+    expect(appliedQuery).toHaveTextContent("1 sesión coincidente");
+    expect(within(appliedQuery).getByRole("button", {
+      name: "Quitar Fecha inicial: 1 de enero de 2025",
+    })).toBeVisible();
+    expect(within(appliedQuery).getByRole("button", {
+      name: "Quitar Deporte: Trail running",
+    })).toBeVisible();
+    expect(within(appliedQuery).getByRole("button", {
+      name: "Quitar Orden: Más largas primero",
+    })).toBeVisible();
+  });
+
+  it("keeps an unavailable saved sport refinement explicit and removable without exposing its ref", async () => {
+    const savedSportRef = `sport-${"9".repeat(64)}`;
+    const workspace: TrainingDiscoveryWorkspace = {
+      version: 1,
+      snapshotRef,
+      from: null,
+      through: null,
+      sportRefs: [savedSportRef],
+      requiredMeasurements: [],
+      text: null,
+      sort: "started-desc",
+      offset: 0,
+      limit: 25,
+      view: "chronology",
+      calendarMonth: null,
+      calendarDay: null,
+      selectedSessionRefs: [],
+      openSessionRef: null,
+    };
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "query_training_sports") {
+        return Promise.reject({ code: "training-sports-query-failed" });
+      }
+      if (command === "load_training_discovery_workspace") return Promise.resolve(workspace);
+      if (command === "save_training_discovery_workspace") return Promise.resolve(arguments_.workspace);
+      if (command === "query_training_sessions") {
+        return Promise.resolve(page([newest], 0, 1, null));
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    renderPanel();
+
+    const region = await screen.findByRole("region", { name: "Find a training session" });
+    const appliedQuery = within(region).getByRole("region", { name: "Applied refinements" });
+    expect(appliedQuery).not.toHaveTextContent(savedSportRef);
+    const remove = within(appliedQuery).getByRole("button", {
+      name: "Remove Sport: Unavailable saved sport 1",
+    });
+    expect(remove).toBeVisible();
+    await user.click(remove);
+    await waitFor(() => expect(mocks.invoke).toHaveBeenLastCalledWith(
+      "query_training_sessions",
+      { request: expect.objectContaining({ sportRefs: [], offset: 0, snapshotRef: null }) },
+    ));
+  });
+
   it("opens and focuses an exact session reached from a report", async () => {
     mocks.invoke.mockImplementation((command, arguments_) => {
       const workspaceResult = emptyWorkspaceCommand(command, arguments_);
@@ -1131,6 +1449,87 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(within(region).getByText("1–1 of 1 matching sessions")).toBeVisible();
   });
 
+  it("keeps the prior applied query and editable draft when a refinement query fails", async () => {
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+      if (workspaceResult) return workspaceResult;
+      if (command === "query_training_sports") return Promise.resolve(sports);
+      if (command === "query_training_sessions") {
+        const request = arguments_.request as TrainingSessionSearchRequest;
+        return request.text === "Trail"
+          ? Promise.reject({ code: "training-session-search-failed" })
+          : Promise.resolve(page([newest, second], 0, 26, 25));
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    const { onError } = renderPanel();
+    const region = await screen.findByRole("region", { name: "Find a training session" });
+    const refinements = within(region).getByRole("group", { name: "Refine sessions" });
+    await user.click(within(refinements).getByText("Refine sessions"));
+    const text = within(refinements).getByRole("textbox", {
+      name: /^Your sport name contains/,
+    });
+    await user.type(text, "Trail");
+    await user.click(within(refinements).getByRole("button", { name: "Apply filters" }));
+
+    await waitFor(() => expect(onError).toHaveBeenCalledWith("training-session-search-failed"));
+    expect(refinements).toHaveAttribute("open");
+    expect(text).toHaveValue("Trail");
+    const appliedQuery = within(region).getByRole("region", { name: "Applied refinements" });
+    expect(appliedQuery).toHaveTextContent("26 matching sessions");
+    expect(appliedQuery).toHaveTextContent("All sessions · newest first");
+    expect(appliedQuery).not.toHaveTextContent("Sport name: Trail");
+    expect(within(region).getByText("1–2 of 26 matching sessions")).toBeVisible();
+  });
+
+  it("keeps the prior list, calendar, and applied query when the refined calendar fails", async () => {
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+      if (workspaceResult) return workspaceResult;
+      if (command === "query_training_sports") return Promise.resolve(sports);
+      if (command === "query_training_sessions") {
+        const request = arguments_.request as TrainingSessionSearchRequest;
+        return Promise.resolve(request.text === "Trail"
+          ? page([newest], 0, 1, null)
+          : page([newest, second], 0, 26, 25));
+      }
+      if (command === "query_training_session_calendar") {
+        return arguments_.request.text === "Trail"
+          ? Promise.reject({ code: "training-session-calendar-failed" })
+          : Promise.resolve(calendar);
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    const { onError } = renderPanel();
+    const region = await screen.findByRole("region", { name: "Find a training session" });
+    await user.click(within(region).getByRole("radio", { name: "Calendar" }));
+    expect(await within(region).findByRole("heading", { name: "August 2026" })).toBeVisible();
+
+    const refinements = within(region).getByRole("group", { name: "Refine sessions" });
+    await user.click(within(refinements).getByText("Refine sessions"));
+    const text = within(refinements).getByRole("textbox", {
+      name: /^Your sport name contains/,
+    });
+    await user.type(text, "Trail");
+    await user.click(within(refinements).getByRole("button", { name: "Apply filters" }));
+
+    await waitFor(() => expect(onError).toHaveBeenCalledWith(
+      "training-session-calendar-failed",
+    ));
+    expect(refinements).toHaveAttribute("open");
+    expect(text).toHaveValue("Trail");
+    expect(within(region).getByRole("heading", { name: "August 2026" })).toBeVisible();
+    expect(within(region).getByRole("button", {
+      name: /August 18, 2026.*1 session/,
+    })).toBeVisible();
+    const appliedQuery = within(region).getByRole("region", { name: "Applied refinements" });
+    expect(appliedQuery).toHaveTextContent("26 matching sessions");
+    expect(appliedQuery).toHaveTextContent("All sessions · newest first");
+    expect(appliedQuery).not.toHaveTextContent("Sport name: Trail");
+  });
+
   it("keeps deep session failures contextual instead of requesting duplicate shell alerts", async () => {
     const detailCommands = new Set([
       "query_training_session_structure",
@@ -1421,6 +1820,14 @@ describe("TrainingSessionLibraryPanel", () => {
     ));
     await user.click(backToCalendar);
 
+    const appliedQuery = within(region).getByRole("region", { name: "Applied refinements" });
+    expect(appliedQuery).toHaveTextContent("From date: January 1, 2026");
+    expect(appliedQuery).toHaveTextContent("Through date: August 18, 2026");
+    expect(appliedQuery).toHaveTextContent("Sport: Trail running");
+    expect(appliedQuery).toHaveTextContent("Recorded measurement: Distance");
+    expect(appliedQuery).toHaveTextContent("Recorded measurement: Heart rate");
+    expect(appliedQuery).toHaveTextContent("Sport name: Trail");
+    expect(appliedQuery).toHaveTextContent("Order: Farthest first");
     expect(within(region).getByLabelText("From date")).toHaveValue("2026-01-01");
     expect(within(region).getByLabelText("Through date")).toHaveValue("2026-08-18");
     expect(within(region).getByRole("textbox", { name: /^Your sport name contains/ }))

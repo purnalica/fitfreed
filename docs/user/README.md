@@ -45,7 +45,10 @@ comparison, mapping-aware reimport, cumulative import, and restart. Training sep
 and Compare periods without losing a temporary view when moving among them. Sessions opens on a compact
 provider-neutral sport index and the actual chronology; refinements and complete-result aggregates remain
 available through explicit disclosures instead of displacing the first session. The same semantic icon and
-visible label identify a sport in the index, results, comparisons, and classification management. Session detail progressively
+visible label identify a sport in the index, filters, results, comparisons, and classification management.
+Applied refinements remain visible after the editor closes, report the exact result count, and can be removed
+one at a time or cleared together. An empty refined result confirms that the imported history has not changed
+and provides a direct reset. Session detail progressively
 opens Overview, Structure and segments, Signals and zones, Routes, and Source history. It distinguishes
 unevaluated, absent, empty, and populated exercise/lap/pause, route, signal, and recorded-zone states. Primary and transition
 routes render as bounded local SVG traces with no external location request, while exact paginated tables retain

@@ -85,6 +85,19 @@ Chronology, calendar, comparison selection, pagination, and workspace restoratio
 contracts. `TrainingSessionLibraryPanel` owns this composition, `TrainingSportsPanel` owns full classification
 management, and `SportFamilyIcon` is the single presentation primitive for sport identity.
 
+The History Desk keeps the editable refinement draft distinct from the applied discovery criteria. The
+visible **Applied refinements** region is derived only from the applied criteria and authoritative sport
+overview; it never reflects unsubmitted form values. It gives the exact result count and represents each
+bounded date, sport, required measurement, authored-label text, and non-default sort as a localized removable
+control. A saved sport whose overview is temporarily unavailable remains an explicit removable filter without
+exposing its opaque reference. Removing one criterion or clearing all submits a new canonical application query at offset zero,
+updates the matching draft field, and retains every unrelated draft value. The same snapshot-recovery path as
+the complete form handles library changes. The applied criteria and visible result set change only after a
+successful query; failure leaves the prior applied query and results intact, while a failed form submission
+also leaves its edited draft open for recovery. A successful form submission closes the secondary editor and moves
+focus to the applied-query count; removal and clear actions restore focus there when their initiating control
+disappears. An empty refined result is a result state with direct recovery, not an empty-library state.
+
 An open session replaces discovery content inside Sessions and provides five explicit evidence sections:
 Overview, Structure and segments, Signals and zones, Routes, and Source history. Only one section is visible
 and exposed to assistive technology at a time. Every lower-layer query retains its existing independent error

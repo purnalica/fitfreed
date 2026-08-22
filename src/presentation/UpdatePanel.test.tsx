@@ -161,10 +161,11 @@ describe("UpdatePanel", () => {
     );
 
     const panel = await screen.findByRole("region", { name: "Application updates" });
+    const install = await within(panel).findByRole("button", { name: "Install and restart" });
     expect(within(panel).getByText("Version 0.2.0 is available.")).toBeVisible();
     expect(within(panel).getByText(/improved import recovery/)).toBeVisible();
     expect(within(panel).getByText(/preserves the current application and library/)).toBeVisible();
-    expect(within(panel).getByRole("button", { name: "Install and restart" })).toBeEnabled();
+    expect(install).toBeEnabled();
     await user.click(within(panel).getByRole("button", { name: "Remind me tomorrow" }));
 
     expect(invoke).toHaveBeenCalledWith("postpone_available_update", {
@@ -269,7 +270,8 @@ describe("UpdatePanel", () => {
     );
 
     const panel = await screen.findByRole("region", { name: "Application updates" });
-    expect(within(panel).getByRole("button", { name: "Install and restart" })).toBeDisabled();
+    expect(await within(panel).findByRole("button", { name: "Install and restart" }))
+      .toBeDisabled();
   });
 
   it("persists dismissal for the exact candidate and keeps manual checking available", async () => {
@@ -296,7 +298,7 @@ describe("UpdatePanel", () => {
     );
 
     const panel = await screen.findByRole("region", { name: "Application updates" });
-    await user.click(within(panel).getByRole("button", { name: "Ignore this version" }));
+    await user.click(await within(panel).findByRole("button", { name: "Ignore this version" }));
 
     expect(invoke).toHaveBeenCalledWith("dismiss_available_update", {
       candidateVersion: "0.2.0",

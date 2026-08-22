@@ -2,8 +2,8 @@
 
 ## Status and authority
 
-Authorized for autonomous execution as of 2026-08-21. X4-P0 through X5-R4 and X5-R5.1 are complete
-locally; X5-R5.2 is next.
+Authorized for autonomous execution as of 2026-08-21. X4-P0 through X5-R4 and X5-R5.1 through
+X5-R5.2 are complete locally; X5-R5.3 is next.
 The X5-R1 product entrance is live; exact hosted verification of its CI resource optimizer remains
 pending synchronization of the workflow-changing commit. The product owner accepted the X3
 direction and its amendments on 2026-08-21. This
@@ -540,6 +540,29 @@ The increment is complete only after realistic multi-sport tests enter and apply
 kind of refinement, reload persisted state, exercise every sort, navigate both result views and multiple
 pages, recover from stale snapshots, and prove the same behavior in both locales with no accessibility or
 horizontal-overflow regression from 100% through 200% zoom.
+
+R5.2 verification on 2026-08-22 covered 21 focused History journeys, including draft-versus-applied
+state, individual removal, clear-all, all four sorts, empty recovery, unavailable saved sports, durable
+workspace restoration, both locales, focus restoration, equivalent empty recovery in both views, and atomic
+failure in chronology and calendar. The complete fast suite passed 152 automation, 234 React, 2
+vendored-updater, 211 host, 147 application,
+and 33 domain tests. The packaged macOS journey passed the complete functional, localized, maximum-zoom,
+accessibility, restart, reimport, and durable-state campaign in 1 minute 21 seconds. The isolated two-year
+performance campaign retained every accepted budget; the slowest common-interaction p95 was 34 ms, the
+slowest maximum-range p95 was 124 ms, and the bounded signal-overview p95 was 62 ms.
+
+The first actual WebKit pass rejected the default composition because the applied-query block left too
+little of the first session visible. The corrected unrefined state is one compact result sentence; an
+active query expands only for refinements a person can remove. Further review removed a duplicate clear
+action from the empty state, kept the editor below the sticky compact navigation, and changed the
+maximum-zoom editor from four cramped columns to two legible columns. The final nine-state macOS matrix
+covered default, editor, applied, and chronology/calendar empty results across wide and compact allocation,
+light and dark appearance, and 100%, 175%, and 200% zoom with zero page-level horizontal overflow and zero Axe
+violations. The packaged journey also exposed that Tauri WebKit's native WebDriver select command did not
+change this sorting control; the retained event adapter now verifies both the selected value and the
+visible applied order instead of accepting a silently untested sort. Repository-content, reachable-history
+secret, formatting, documentation, localization, site, product-surface, and diff checks passed without
+versioning local evidence.
 
 ### R5.3 — Classify in context and close the identity system
 

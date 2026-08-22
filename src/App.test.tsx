@@ -436,7 +436,9 @@ async function enterExploration(
   destination: keyof typeof questionForDestination,
 ) {
   if (destination === "activity") {
-    await user.click(await screen.findByRole("button", { name: "History" }));
+    const history = await screen.findByRole("button", { name: "History" });
+    await waitFor(() => expect(history).toBeEnabled());
+    await user.click(history);
     return;
   }
   await user.click(await screen.findByRole("button", {

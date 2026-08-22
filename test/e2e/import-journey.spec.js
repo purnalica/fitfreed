@@ -423,6 +423,20 @@ async function setTrainingRange(from, through) {
   }
 }
 
+async function selectTrainingSort(value) {
+  await browser.execute((nextValue) => {
+    const select = document.querySelector(".training-session-search select");
+    const setValue = Object.getOwnPropertyDescriptor(
+      window.HTMLSelectElement.prototype,
+      "value",
+    ).set;
+    setValue.call(select, nextValue);
+    select.dispatchEvent(new Event("input", { bubbles: true }));
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  }, value);
+  await expect($(".training-session-search select")).toHaveValue(value);
+}
+
 async function setTrainingComparisonRanges(
   baselineFrom,
   baselineThrough,
@@ -1312,10 +1326,19 @@ describe("packaged FitFreed import journey", () => {
       await checkbox.click();
       await expect(checkbox).toBeChecked();
     }
-    await $(".training-session-search select").selectByAttribute("value", "distance-desc");
+    await selectTrainingSort("distance-desc");
     await $(".training-session-search button[type='submit']").click();
     await expectTrainingRows([[enJan4Start, "1 h", "10,000 m", "600 kcal"]]);
-    await $(".training-session-search button.secondary").click();
+    const appliedTrainingQuery = await $(".training-session-applied-query");
+    await expect(appliedTrainingQuery).toHaveText(expect.stringContaining("Sport: Trail running"));
+    await expect(appliedTrainingQuery).toHaveText(expect.stringContaining(
+      "Recorded measurement: Heart rate",
+    ));
+    await expect(appliedTrainingQuery).toHaveText(expect.stringContaining("Order: Farthest first"));
+    await $('button[aria-label="Remove Sport: Trail running"]').click();
+    await expect(appliedTrainingQuery).not.toHaveText(expect.stringContaining("Sport: Trail running"));
+    await expectTrainingRows([[enJan4Start, "1 h", "10,000 m", "600 kcal"]]);
+    await $(".training-session-applied-query > header button.secondary").click();
     await expectTrainingRows([
       [enJan5Start, "30 min", "Not recorded", "Not recorded"],
       [enJan4Start, "1 h", "10,000 m", "600 kcal"],
