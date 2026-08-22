@@ -188,7 +188,9 @@ route, signal, zone, and provenance port to answer at that accepted snapshot. Th
 matches exercise identities and primary/transition roles, exposes exact-page capabilities, and joins
 bounded route and signal evidence only at identical recorded elapsed times. SQLite remains a set of
 independent evidence adapters; it has no joined story query, presentation cache, or reconstructed
-timeline.
+timeline. The production session surface invokes `query_session_story` once per selected session and
+accepted discovery revision. It renders structure, routes, signals, and zones from that one response;
+independent exact-route and exact-signal pagination remains deliberately on demand.
 
 [ADR 0026](decisions/0026-use-leaflet-for-the-local-route-workbench.md) defines the one spatial exception
 to the semantic-HTML visualization policy. A lazily loaded presentation adapter uses stable Leaflet 1.x

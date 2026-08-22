@@ -12,6 +12,7 @@ import type {
   TrainingSessionSearchRequest,
 } from "./training-session-search";
 import type { TrainingSessionStructureResult } from "./training-session-detail";
+import type { SessionStory } from "./session-story";
 import type {
   TrainingRoutePointsResult,
   TrainingSessionRoutesResult,
@@ -40,13 +41,9 @@ function emptyWorkspaceCommand(command: string, arguments_: unknown) {
   if (command === "save_training_discovery_workspace") {
     return Promise.resolve((arguments_ as { workspace: TrainingDiscoveryWorkspace }).workspace);
   }
-  if (command === "query_training_session_structure") {
-    const query = (arguments_ as { query: { sessionRef: string } }).query;
-    return Promise.resolve(trainingStructure(query.sessionRef));
-  }
-  if (command === "query_training_session_routes") {
-    const query = (arguments_ as { query: { sessionRef: string } }).query;
-    return Promise.resolve(trainingRoutes(query.sessionRef));
+  if (command === "query_session_story") {
+    const query = (arguments_ as { query: { sessionRef: string; snapshotRef: string } }).query;
+    return Promise.resolve(trainingStory(query.sessionRef, query.snapshotRef));
   }
   if (command === "query_training_route_points") {
     const query = (arguments_ as {
@@ -58,14 +55,6 @@ function emptyWorkspaceCommand(command: string, arguments_: unknown) {
       query.offset,
       query.limit,
     ));
-  }
-  if (command === "query_training_session_signals") {
-    const query = (arguments_ as { query: { sessionRef: string } }).query;
-    return Promise.resolve(trainingSignals(query.sessionRef));
-  }
-  if (command === "query_training_session_zones") {
-    const query = (arguments_ as { query: { sessionRef: string } }).query;
-    return Promise.resolve(trainingZones(query.sessionRef));
   }
   if (command === "query_training_signal_samples") {
     const query = (arguments_ as {
@@ -489,6 +478,122 @@ function trainingProvenance(sessionRef: string): TrainingSessionProvenanceResult
   };
 }
 
+function storySession(sessionRef: string): TrainingSessionSearchItem {
+  return [newest, second, oldest, unknownSession].find(
+    (candidate) => candidate.sessionRef === sessionRef,
+  ) ?? { ...newest, sessionRef };
+}
+
+function trainingStory(
+  sessionRef: string,
+  acceptedSnapshotRef = snapshotRef,
+): SessionStory {
+  const structure = trainingStructure(sessionRef).structure;
+  const routes = trainingRoutes(sessionRef).routes;
+  const signals = trainingSignals(sessionRef).signals;
+  const zones = trainingZones(sessionRef).zones;
+  const provenance = trainingProvenance(sessionRef);
+  const firstStructure = structure?.exercises?.[0] ?? null;
+  const secondStructure = structure?.exercises?.[1] ?? null;
+  const firstRoute = routes?.exercises?.[0]?.routes?.primary ?? null;
+  const firstSignals = signals?.exercises?.[0]?.signals?.primary ?? [];
+  const firstZones = zones?.exercises?.[0]?.zones ?? null;
+
+  const overlays = firstSignals.map((signal) => {
+    const samplesByElapsed = new Map(signal.visualSamples.map(
+      (sample) => [sample.elapsedMilliseconds, sample],
+    ));
+    return {
+      signalRef: signal.signalRef,
+      metric: signal.kind === "speed" ? "pace" as const : "heart-rate" as const,
+      sourceKind: signal.kind,
+      sourceUnit: signal.unit,
+      valueTransform: signal.kind === "speed"
+        ? "kilometers-per-hour-to-minutes-per-kilometer" as const
+        : "identity" as const,
+      alignedSamples: firstRoute?.visualPoints.flatMap((point) => {
+        if (point.elapsedMilliseconds === null) return [];
+        const sample = samplesByElapsed.get(point.elapsedMilliseconds);
+        return sample ? [{
+          routePointOrdinal: point.ordinal,
+          signalSampleOrdinal: sample.ordinal,
+          elapsedMilliseconds: point.elapsedMilliseconds,
+          value: sample.value,
+          gapBefore: sample.gapBefore,
+        }] : [];
+      }) ?? [],
+    };
+  });
+  const exactSignals = firstSignals.map((signal) => ({
+    signalRef: signal.signalRef,
+    kind: signal.kind,
+    unit: signal.unit,
+    sampleCount: signal.sampleCount,
+  }));
+
+  return {
+    schemaVersion: 1,
+    snapshotRef: acceptedSnapshotRef,
+    session: storySession(sessionRef),
+    structure,
+    routes,
+    signals,
+    zones,
+    provenance: {
+      totalEventCount: provenance.totalEventCount,
+      current: provenance.current,
+    },
+    exercises: [{
+      exerciseRef: firstStructure?.exerciseRef ?? `exercise-${"1".repeat(64)}`,
+      ordinal: 0,
+      sport: firstStructure?.sport ?? null,
+      structure: firstStructure,
+      zones: firstZones,
+      primary: {
+        route: firstRoute,
+        signals: firstSignals,
+        primaryMetric: "heart-rate",
+        eligibleOverlays: overlays,
+        exactRoute: firstRoute ? {
+          routeRef: firstRoute.routeRef,
+          pointCount: firstRoute.pointCount,
+        } : null,
+        exactSignals,
+      },
+      transition: {
+        route: routes?.exercises?.[0]?.routes?.transition ?? null,
+        signals: signals?.exercises?.[0]?.signals?.transition ?? [],
+        primaryMetric: null,
+        eligibleOverlays: [],
+        exactRoute: null,
+        exactSignals: [],
+      },
+    }, {
+      exerciseRef: secondStructure?.exerciseRef ?? `exercise-${"4".repeat(64)}`,
+      ordinal: 1,
+      sport: secondStructure?.sport ?? null,
+      structure: secondStructure,
+      zones: zones?.exercises?.[1]?.zones ?? null,
+      primary: {
+        route: routes?.exercises?.[1]?.routes?.primary ?? null,
+        signals: signals?.exercises?.[1]?.signals?.primary ?? [],
+        primaryMetric: null,
+        eligibleOverlays: [],
+        exactRoute: null,
+        exactSignals: [],
+      },
+      transition: {
+        route: routes?.exercises?.[1]?.routes?.transition ?? null,
+        signals: signals?.exercises?.[1]?.signals?.transition ?? [],
+        primaryMetric: null,
+        eligibleOverlays: [],
+        exactRoute: null,
+        exactSignals: [],
+      },
+    }],
+  };
+}
+
 const calendar: TrainingSessionCalendar = {
   availableRange: { from: "2024-01-01", through: "2026-08-18" },
   snapshotRef,
@@ -723,29 +828,11 @@ describe("TrainingSessionLibraryPanel", () => {
           sessions: classificationSaved ? [second, namedSession] : [second, unknownSession],
         });
       }
-      if (command === "query_training_session_structure") {
-        return Promise.resolve({
-          ...trainingStructure(arguments_.query.sessionRef),
-          snapshotRef: arguments_.query.snapshotRef,
-        });
-      }
-      if (command === "query_training_session_routes") {
-        return Promise.resolve({
-          ...trainingRoutes(arguments_.query.sessionRef),
-          snapshotRef: arguments_.query.snapshotRef,
-        });
-      }
-      if (command === "query_training_session_signals") {
-        return Promise.resolve({
-          ...trainingSignals(arguments_.query.sessionRef),
-          snapshotRef: arguments_.query.snapshotRef,
-        });
-      }
-      if (command === "query_training_session_zones") {
-        return Promise.resolve({
-          ...trainingZones(arguments_.query.sessionRef),
-          snapshotRef: arguments_.query.snapshotRef,
-        });
+      if (command === "query_session_story") {
+        return Promise.resolve(trainingStory(
+          arguments_.query.sessionRef,
+          arguments_.query.snapshotRef,
+        ));
       }
       if (command === "query_training_session_segmentation") {
         return Promise.resolve({
@@ -1722,6 +1809,23 @@ describe("TrainingSessionLibraryPanel", () => {
     await waitFor(() => expect(within(detail!).getByRole("heading", {
       name: "Session summary",
     })).toHaveFocus());
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
+      "query_session_story",
+      {
+        query: {
+          sessionRef: newest.sessionRef,
+          snapshotRef,
+          maxVisualPoints: 400,
+          maxVisualSamples: 300,
+        },
+      },
+    ));
+    expect(mocks.invoke.mock.calls.some(([command]) => [
+      "query_training_session_structure",
+      "query_training_session_routes",
+      "query_training_session_signals",
+      "query_training_session_zones",
+    ].includes(command))).toBe(false);
     expect(detail).toHaveTextContent("10,000.5 m");
     expect(detail).toHaveTextContent("650 kcal");
     expect(detail).toHaveTextContent("145 bpm");
@@ -2049,14 +2153,8 @@ describe("TrainingSessionLibraryPanel", () => {
   });
 
   it("keeps deep session failures contextual instead of requesting duplicate shell alerts", async () => {
-    const detailCommands = new Set([
-      "query_training_session_structure",
-      "query_training_session_routes",
-      "query_training_session_signals",
-      "query_training_session_zones",
-    ]);
     mocks.invoke.mockImplementation((command, arguments_) => {
-      if (detailCommands.has(command)) {
+      if (command === "query_session_story") {
         return Promise.reject({ code: "training-session-detail-failed" });
       }
       const workspaceResult = emptyWorkspaceCommand(command, arguments_);
@@ -2073,9 +2171,12 @@ describe("TrainingSessionLibraryPanel", () => {
     const region = await screen.findByRole("region", { name: "Find a training session" });
     await user.click(within(region).getByRole("button", { name: /View session details for/ }));
 
-    const alerts = await within(region).findAllByRole("alert");
-    expect(alerts).toHaveLength(4);
-    alerts.forEach((alert) => expect(alert).toHaveClass("error"));
+    const alert = await within(region).findByRole("alert");
+    expect(alert).toHaveClass("error");
+    expect(alert).toHaveTextContent(
+      "This session could not be loaded from your local library. "
+      + "Try opening it again; your history has not changed.",
+    );
     expect(onError).not.toHaveBeenCalledWith("training-session-detail-failed");
   });
 
@@ -2308,17 +2409,11 @@ describe("TrainingSessionLibraryPanel", () => {
         });
         return Promise.resolve({ snapshotRef, sessions: [second, newest] });
       }
-      if (command === "query_training_session_structure") {
-        return Promise.resolve(trainingStructure(arguments_.query.sessionRef));
-      }
-      if (command === "query_training_session_routes") {
-        return Promise.resolve(trainingRoutes(arguments_.query.sessionRef));
-      }
-      if (command === "query_training_session_signals") {
-        return Promise.resolve(trainingSignals(arguments_.query.sessionRef));
-      }
-      if (command === "query_training_session_zones") {
-        return Promise.resolve(trainingZones(arguments_.query.sessionRef));
+      if (command === "query_session_story") {
+        return Promise.resolve(trainingStory(
+          arguments_.query.sessionRef,
+          arguments_.query.snapshotRef,
+        ));
       }
       if (command === "query_training_session_segmentation") {
         return Promise.resolve(trainingSegmentation(arguments_.query.sessionRef));

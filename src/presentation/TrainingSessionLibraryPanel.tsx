@@ -35,22 +35,19 @@ import type {
 import type {
   TrainingExerciseStructure,
   TrainingLapStructure,
-  TrainingSessionStructureResult,
 } from "./training-session-detail";
 import type {
   TrainingRouteOverview,
   TrainingRoutePointsResult,
-  TrainingSessionRoutesResult,
 } from "./training-session-route";
 import { routeSvgPoints } from "./route-svg";
+import type { SessionStory } from "./session-story";
 import type {
   TrainingSignalKind,
   TrainingSignalSamplesResult,
   TrainingSignalSeriesOverview,
-  TrainingSessionSignalsResult,
   TrainingSignalVisualSample,
 } from "./training-session-signal";
-import type { TrainingSessionZonesResult } from "./training-session-zone";
 import type {
   SavedTrainingSportClassification,
   SportFamily,
@@ -294,23 +291,14 @@ export function TrainingSessionLibraryPanel({
   const [status, setStatus] = useState<string>();
   const [selected, setSelected] = useState<TrainingSessionSearchItem>();
   const [detailSection, setDetailSection] = useState<DetailSection>("overview");
-  const [detailStructure, setDetailStructure] = useState<TrainingSessionStructureResult>();
+  const [detailStory, setDetailStory] = useState<SessionStory>();
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailFailed, setDetailFailed] = useState(false);
-  const [detailRoutes, setDetailRoutes] = useState<TrainingSessionRoutesResult>();
-  const [routesLoading, setRoutesLoading] = useState(false);
-  const [routesFailed, setRoutesFailed] = useState(false);
   const [exactRouteRef, setExactRouteRef] = useState<string>();
   const [exactRoutePoints, setExactRoutePoints] = useState<TrainingRoutePointsResult>();
   const [exactRouteLoading, setExactRouteLoading] = useState(false);
   const [exactRouteFailed, setExactRouteFailed] = useState(false);
   const exactRequestSequence = useRef(0);
-  const [detailSignals, setDetailSignals] = useState<TrainingSessionSignalsResult>();
-  const [signalsLoading, setSignalsLoading] = useState(false);
-  const [signalsFailed, setSignalsFailed] = useState(false);
-  const [detailZones, setDetailZones] = useState<TrainingSessionZonesResult>();
-  const [zonesLoading, setZonesLoading] = useState(false);
-  const [zonesFailed, setZonesFailed] = useState(false);
   const [exactSignalRef, setExactSignalRef] = useState<string>();
   const [exactSignalSamples, setExactSignalSamples] = useState<TrainingSignalSamplesResult>();
   const [exactSignalLoading, setExactSignalLoading] = useState(false);
@@ -638,120 +626,39 @@ export function TrainingSessionLibraryPanel({
 
   useEffect(() => {
     let active = true;
-    if (!selected || !page) {
-      setDetailStructure(undefined);
-      setDetailLoading(false);
-      setDetailFailed(false);
-      return () => { active = false; };
-    }
-    setDetailStructure(undefined);
-    setDetailLoading(true);
-    setDetailFailed(false);
-    void invoke<TrainingSessionStructureResult>("query_training_session_structure", {
-      query: {
-        sessionRef: selected.sessionRef,
-        snapshotRef: page.snapshotRef,
-      },
-    }).then((result) => {
-      if (active) setDetailStructure(result);
-    }).catch(() => {
-      if (!active) return;
-      setDetailFailed(true);
-    }).finally(() => {
-      if (active) setDetailLoading(false);
-    });
-    return () => { active = false; };
-  }, [selected?.sessionRef, page?.snapshotRef]);
-
-  useEffect(() => {
-    let active = true;
-    if (!selected || !page) {
-      setDetailZones(undefined);
-      setZonesLoading(false);
-      setZonesFailed(false);
-      return () => { active = false; };
-    }
-    setDetailZones(undefined);
-    setZonesLoading(true);
-    setZonesFailed(false);
-    void invoke<TrainingSessionZonesResult>("query_training_session_zones", {
-      query: {
-        sessionRef: selected.sessionRef,
-        snapshotRef: page.snapshotRef,
-      },
-    }).then((result) => {
-      if (active) setDetailZones(result);
-    }).catch(() => {
-      if (!active) return;
-      setZonesFailed(true);
-    }).finally(() => {
-      if (active) setZonesLoading(false);
-    });
-    return () => { active = false; };
-  }, [selected?.sessionRef, page?.snapshotRef]);
-
-  useEffect(() => {
-    let active = true;
+    exactRequestSequence.current += 1;
     exactSignalRequestSequence.current += 1;
+    setExactRouteRef(undefined);
+    setExactRoutePoints(undefined);
+    setExactRouteLoading(false);
+    setExactRouteFailed(false);
     setExactSignalRef(undefined);
     setExactSignalSamples(undefined);
     setExactSignalLoading(false);
     setExactSignalFailed(false);
     if (!selected || !page) {
-      setDetailSignals(undefined);
-      setSignalsLoading(false);
-      setSignalsFailed(false);
+      setDetailStory(undefined);
+      setDetailLoading(false);
+      setDetailFailed(false);
       return () => { active = false; };
     }
-    setDetailSignals(undefined);
-    setSignalsLoading(true);
-    setSignalsFailed(false);
-    void invoke<TrainingSessionSignalsResult>("query_training_session_signals", {
-      query: {
-        sessionRef: selected.sessionRef,
-        snapshotRef: page.snapshotRef,
-        maxVisualSamples: SIGNAL_VISUAL_SAMPLE_LIMIT,
-      },
-    }).then((result) => {
-      if (active) setDetailSignals(result);
-    }).catch(() => {
-      if (!active) return;
-      setSignalsFailed(true);
-    }).finally(() => {
-      if (active) setSignalsLoading(false);
-    });
-    return () => { active = false; };
-  }, [selected?.sessionRef, page?.snapshotRef]);
-
-  useEffect(() => {
-    let active = true;
-    exactRequestSequence.current += 1;
-    setExactRouteRef(undefined);
-    setExactRoutePoints(undefined);
-    setExactRouteLoading(false);
-    setExactRouteFailed(false);
-    if (!selected || !page) {
-      setDetailRoutes(undefined);
-      setRoutesLoading(false);
-      setRoutesFailed(false);
-      return () => { active = false; };
-    }
-    setDetailRoutes(undefined);
-    setRoutesLoading(true);
-    setRoutesFailed(false);
-    void invoke<TrainingSessionRoutesResult>("query_training_session_routes", {
+    setDetailStory(undefined);
+    setDetailLoading(true);
+    setDetailFailed(false);
+    void invoke<SessionStory>("query_session_story", {
       query: {
         sessionRef: selected.sessionRef,
         snapshotRef: page.snapshotRef,
         maxVisualPoints: ROUTE_VISUAL_POINT_LIMIT,
+        maxVisualSamples: SIGNAL_VISUAL_SAMPLE_LIMIT,
       },
     }).then((result) => {
-      if (active) setDetailRoutes(result);
+      if (active) setDetailStory(result);
     }).catch(() => {
       if (!active) return;
-      setRoutesFailed(true);
+      setDetailFailed(true);
     }).finally(() => {
-      if (active) setRoutesLoading(false);
+      if (active) setDetailLoading(false);
     });
     return () => { active = false; };
   }, [selected?.sessionRef, page?.snapshotRef]);
@@ -1149,18 +1056,31 @@ export function TrainingSessionLibraryPanel({
     setComparison((current) => current.map(
       (session) => sessionWithOverview(session, nextOverview),
     ));
-    setDetailStructure((current) => current?.structure?.exercises
-      ? {
-          ...current,
-          structure: {
+    setDetailStory((current) => current && ({
+      ...current,
+      session: sessionWithOverview(current.session, nextOverview),
+      structure: current.structure?.exercises
+        ? {
             ...current.structure,
             exercises: current.structure.exercises.map((exercise) => ({
               ...exercise,
               sport: sessionSportFromOverview(exercise.sport, nextOverview),
             })),
-          },
-        }
-      : current);
+          }
+        : current.structure,
+      exercises: current.exercises.map((exercise) => ({
+        ...exercise,
+        sport: exercise.sport
+          ? sessionSportFromOverview(exercise.sport, nextOverview)
+          : null,
+        structure: exercise.structure
+          ? {
+              ...exercise.structure,
+              sport: sessionSportFromOverview(exercise.structure.sport, nextOverview),
+            }
+          : null,
+      })),
+    }));
   }
 
   async function refreshClassificationSnapshot(
@@ -1488,7 +1408,7 @@ export function TrainingSessionLibraryPanel({
   }
 
   function exerciseRouteEvidence(exerciseRef: string, exerciseOrdinal: number) {
-    const assessed = detailRoutes?.routes?.exercises?.find(
+    const assessed = detailStory?.routes?.exercises?.find(
       (exercise) => exercise.exerciseRef === exerciseRef,
     );
     if (!assessed) return null;
@@ -1747,7 +1667,7 @@ export function TrainingSessionLibraryPanel({
   }
 
   function exerciseSignalEvidence(exerciseRef: string, exerciseOrdinal: number) {
-    const assessed = detailSignals?.signals?.exercises?.find(
+    const assessed = detailStory?.signals?.exercises?.find(
       (exercise) => exercise.exerciseRef === exerciseRef,
     );
     if (!assessed) return null;
@@ -1780,7 +1700,7 @@ export function TrainingSessionLibraryPanel({
   }
 
   function exerciseZoneEvidence(exerciseRef: string) {
-    const assessed = detailZones?.zones?.exercises?.find(
+    const assessed = detailStory?.zones?.exercises?.find(
       (exercise) => exercise.exerciseRef === exerciseRef,
     );
     if (!assessed) return null;
@@ -1821,7 +1741,7 @@ export function TrainingSessionLibraryPanel({
   const weekdays = Array.from({ length: 7 }, (_, index) => weekdayName.format(
     new Date(Date.UTC(2026, 7, 17 + index)),
   ));
-  const detailUnknownSportRefs = detailStructure?.structure?.exercises?.reduce<string[]>(
+  const detailUnknownSportRefs = detailStory?.structure?.exercises?.reduce<string[]>(
     (refs, exercise) => {
       if (exercise.sport.state === "unknown"
         && exercise.sport.sportRef
@@ -2629,7 +2549,7 @@ export function TrainingSessionLibraryPanel({
         <section
           className="training-detail"
           aria-labelledby="training-session-detail-heading"
-          aria-busy={detailLoading || routesLoading || signalsLoading || zonesLoading}
+          aria-busy={detailLoading}
         >
           <div className="training-detail-heading">
             <div>
@@ -2683,14 +2603,8 @@ export function TrainingSessionLibraryPanel({
             ))}
           </nav>
           <div className="training-detail-query-status" aria-live="polite">
-            {detailLoading && <p role="status">{copy.structureLoading}</p>}
-            {detailFailed && <p className="error" role="alert">{copy.structureFailed}</p>}
-            {routesLoading && <p role="status">{copy.routeLoading}</p>}
-            {routesFailed && <p className="error" role="alert">{copy.routeFailed}</p>}
-            {signalsLoading && <p role="status">{copy.signalLoading}</p>}
-            {signalsFailed && <p className="error" role="alert">{copy.signalFailed}</p>}
-            {zonesLoading && <p role="status">{copy.zoneLoading}</p>}
-            {zonesFailed && <p className="error" role="alert">{copy.zoneFailed}</p>}
+            {detailLoading && <p role="status">{copy.storyLoading}</p>}
+            {detailFailed && <p className="error" role="alert">{copy.storyFailed}</p>}
           </div>
           <section
             id="training-detail-overview"
@@ -2720,16 +2634,16 @@ export function TrainingSessionLibraryPanel({
           >
             <h4 id="training-structure-heading">{copy.structureHeading}</h4>
             <p>{copy.structureIntro}</p>
-            {!detailLoading && detailStructure?.structure === null && (
+            {!detailLoading && detailStory?.structure === null && (
               <p>{copy.structureNotEvaluated}</p>
             )}
-            {detailStructure?.structure?.exercises === null && (
+            {detailStory?.structure?.exercises === null && (
               <p>{copy.exercisesNotProvided}</p>
             )}
-            {detailStructure?.structure?.exercises?.length === 0 && (
+            {detailStory?.structure?.exercises?.length === 0 && (
               <p>{copy.exercisesProvidedEmpty}</p>
             )}
-            {detailStructure?.structure?.exercises?.map((exercise) => (
+            {detailStory?.structure?.exercises?.map((exercise) => (
               <article className="training-exercise" key={exercise.exerciseRef}>
                 {exerciseSummary(exercise)}
                 {lapRows(exercise.manualLaps, copy.manualLaps)}
@@ -2780,13 +2694,13 @@ export function TrainingSessionLibraryPanel({
             hidden={detailSection !== "signals"}
           >
             <p className="training-detail-section-intro">{copy.detailSignalsIntro}</p>
-            {!signalsLoading && detailSignals?.signals === null && <p>{copy.signalNotEvaluated}</p>}
-            {detailSignals?.signals?.exercises === null && <p>{copy.signalExercisesNotProvided}</p>}
-            {detailSignals?.signals?.exercises?.length === 0 && <p>{copy.signalExercisesProvidedEmpty}</p>}
-            {!zonesLoading && detailZones?.zones === null && <p>{copy.zoneNotEvaluated}</p>}
-            {detailZones?.zones?.exercises === null && <p>{copy.zoneExercisesNotProvided}</p>}
-            {detailZones?.zones?.exercises?.length === 0 && <p>{copy.zoneExercisesProvidedEmpty}</p>}
-            {detailStructure?.structure?.exercises?.map((exercise) => (
+            {!detailLoading && detailStory?.signals === null && <p>{copy.signalNotEvaluated}</p>}
+            {detailStory?.signals?.exercises === null && <p>{copy.signalExercisesNotProvided}</p>}
+            {detailStory?.signals?.exercises?.length === 0 && <p>{copy.signalExercisesProvidedEmpty}</p>}
+            {!detailLoading && detailStory?.zones === null && <p>{copy.zoneNotEvaluated}</p>}
+            {detailStory?.zones?.exercises === null && <p>{copy.zoneExercisesNotProvided}</p>}
+            {detailStory?.zones?.exercises?.length === 0 && <p>{copy.zoneExercisesProvidedEmpty}</p>}
+            {detailStory?.structure?.exercises?.map((exercise) => (
               <article className="training-exercise" key={exercise.exerciseRef}>
                 {exerciseSummary(exercise)}
                 {exerciseSignalEvidence(exercise.exerciseRef, exercise.ordinal)}
@@ -2801,10 +2715,10 @@ export function TrainingSessionLibraryPanel({
             hidden={detailSection !== "routes"}
           >
             <p className="training-detail-section-intro">{copy.detailRoutesIntro}</p>
-            {!routesLoading && detailRoutes?.routes === null && <p>{copy.routeNotEvaluated}</p>}
-            {detailRoutes?.routes?.exercises === null && <p>{copy.routeExercisesNotProvided}</p>}
-            {detailRoutes?.routes?.exercises?.length === 0 && <p>{copy.routeExercisesProvidedEmpty}</p>}
-            {detailStructure?.structure?.exercises?.map((exercise) => (
+            {!detailLoading && detailStory?.routes === null && <p>{copy.routeNotEvaluated}</p>}
+            {detailStory?.routes?.exercises === null && <p>{copy.routeExercisesNotProvided}</p>}
+            {detailStory?.routes?.exercises?.length === 0 && <p>{copy.routeExercisesProvidedEmpty}</p>}
+            {detailStory?.structure?.exercises?.map((exercise) => (
               <article className="training-exercise" key={exercise.exerciseRef}>
                 {exerciseSummary(exercise)}
                 {exerciseRouteEvidence(exercise.exerciseRef, exercise.ordinal)}

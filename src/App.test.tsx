@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { catalogs } from "./locales/catalogs";
 import type { ApplicationPreferencesLoad } from "./presentation/application-preferences";
+import type { SessionStory } from "./presentation/session-story";
 import type { TrainingSessionSearchPage } from "./presentation/training-session-search";
 import type { TrainingSportsOverview } from "./presentation/training-sports";
 
@@ -207,6 +208,78 @@ function trainingSessionSearchPage(
 
 function emptyTrainingSessionSearchPage(): TrainingSessionSearchPage {
   return trainingSessionSearchPage([], null);
+}
+
+function testSessionStory(
+  session: SessionStory["session"],
+  snapshotRef: string,
+  exerciseRef?: string,
+): SessionStory {
+  const resolvedExerciseRef = exerciseRef ?? null;
+  const exercise = resolvedExerciseRef ? {
+    exerciseRef: resolvedExerciseRef,
+    ordinal: 0,
+    startedAtLocal: session.startedAtLocal,
+    stoppedAtLocal: session.stoppedAtLocal,
+    utcOffsetMinutes: session.utcOffsetMinutes,
+    durationMilliseconds: session.durationMilliseconds,
+    distanceMeters: session.distanceMeters,
+    energyKilocalories: session.energyKilocalories,
+    sport: session.sport,
+    manualLaps: [],
+    automaticLaps: null,
+    pauses: [],
+  } : null;
+  const emptyRole = {
+    route: null,
+    signals: [],
+    primaryMetric: null,
+    eligibleOverlays: [],
+    exactRoute: null,
+    exactSignals: [],
+  };
+
+  return {
+    schemaVersion: 1,
+    snapshotRef,
+    session,
+    structure: { exercises: exercise ? [exercise] : null },
+    routes: {
+      exercises: exercise
+        ? [{ exerciseRef: exercise.exerciseRef, ordinal: 0, routes: null }]
+        : null,
+    },
+    signals: {
+      exercises: exercise
+        ? [{ exerciseRef: exercise.exerciseRef, ordinal: 0, signals: null }]
+        : null,
+    },
+    zones: {
+      exercises: exercise
+        ? [{ exerciseRef: exercise.exerciseRef, ordinal: 0, zones: null }]
+        : null,
+    },
+    provenance: {
+      totalEventCount: 1,
+      current: {
+        provider: "polar-flow",
+        sourceModifiedAtUtc: "2026-01-20T10:00:00Z",
+        sourceAdapterVersion: "polar-flow-archive@11",
+        mappingVersion: "polar-flow-training-session@6",
+        contributingEventCount: 1,
+        nonContributingEventCount: 0,
+      },
+    },
+    exercises: exercise ? [{
+      exerciseRef: exercise.exerciseRef,
+      ordinal: 0,
+      sport: exercise.sport,
+      structure: exercise,
+      zones: null,
+      primary: emptyRole,
+      transition: emptyRole,
+    }] : [],
+  };
 }
 
 function emptySleepOverview() {
@@ -999,33 +1072,11 @@ describe("FitFreed import interface", () => {
           sessions: [selectedSession],
         });
       }
-      if (command === "query_training_session_structure") {
-        return Promise.resolve({
-          snapshotRef: arguments_.query.snapshotRef,
-          sessionRef: arguments_.query.sessionRef,
-          structure: { exercises: null },
-        });
-      }
-      if (command === "query_training_session_routes") {
-        return Promise.resolve({
-          snapshotRef: arguments_.query.snapshotRef,
-          sessionRef: arguments_.query.sessionRef,
-          routes: { exercises: null },
-        });
-      }
-      if (command === "query_training_session_signals") {
-        return Promise.resolve({
-          snapshotRef: arguments_.query.snapshotRef,
-          sessionRef: arguments_.query.sessionRef,
-          signals: { exercises: null },
-        });
-      }
-      if (command === "query_training_session_zones") {
-        return Promise.resolve({
-          snapshotRef: arguments_.query.snapshotRef,
-          sessionRef: arguments_.query.sessionRef,
-          zones: { exercises: null },
-        });
+      if (command === "query_session_story") {
+        return Promise.resolve(testSessionStory(
+          selectedSession,
+          arguments_.query.snapshotRef,
+        ));
       }
       if (command === "query_training_session_segmentation") {
         return Promise.resolve({
@@ -1063,6 +1114,14 @@ describe("FitFreed import interface", () => {
         snapshotRef: "snapshot-current",
       },
     });
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith("query_session_story", {
+      query: {
+        sessionRef: selectedSession.sessionRef,
+        snapshotRef: "snapshot-current",
+        maxVisualPoints: 400,
+        maxVisualSamples: 300,
+      },
+    }));
     const detail = await screen.findByRole("region", { name: "Session summary" });
     const detailIdentity = detail.querySelector<HTMLElement>(".training-detail-identity");
     expect(detailIdentity).not.toBeNull();
@@ -3737,70 +3796,13 @@ describe("FitFreed import interface", () => {
         },
         suggestedQuery: arguments_.start.query,
       });
-      if (command === "query_training_session_structure") {
-        return Promise.resolve({
-          snapshotRef: "snapshot-current",
-          sessionRef: arguments_.query.sessionRef,
-          structure: {
-            exercises: [{
-              exerciseRef: "opaque-exercise",
-              ordinal: 0,
-              startedAtLocal: later.startedAtLocal,
-              stoppedAtLocal: later.stoppedAtLocal,
-              utcOffsetMinutes: later.utcOffsetMinutes,
-              durationMilliseconds: later.durationMilliseconds,
-              distanceMeters: later.distanceMeters,
-              energyKilocalories: later.energyKilocalories,
-              sport: {
-                sportRef: later.sportRef,
-                state: "unknown",
-                classification: null,
-              },
-              manualLaps: [],
-              automaticLaps: null,
-              pauses: [],
-            }],
-          },
-        });
-      }
-      if (command === "query_training_session_routes") {
-        return Promise.resolve({
-          snapshotRef: "snapshot-current",
-          sessionRef: arguments_.query.sessionRef,
-          routes: {
-            exercises: [{
-              exerciseRef: "opaque-exercise",
-              ordinal: 0,
-              routes: null,
-            }],
-          },
-        });
-      }
-      if (command === "query_training_session_signals") {
-        return Promise.resolve({
-          snapshotRef: "snapshot-current",
-          sessionRef: arguments_.query.sessionRef,
-          signals: {
-            exercises: [{
-              exerciseRef: "opaque-exercise",
-              ordinal: 0,
-              signals: null,
-            }],
-          },
-        });
-      }
-      if (command === "query_training_session_zones") {
-        return Promise.resolve({
-          snapshotRef: "snapshot-current",
-          sessionRef: arguments_.query.sessionRef,
-          zones: {
-            exercises: [{
-              exerciseRef: "opaque-exercise",
-              ordinal: 0,
-              zones: null,
-            }],
-          },
-        });
+      if (command === "query_session_story") {
+        const selectedSession = trainingSessionSearchPage([later]).sessions[0];
+        return Promise.resolve(testSessionStory(
+          selectedSession,
+          arguments_.query.snapshotRef,
+          "opaque-exercise",
+        ));
       }
       if (command === "query_training_session_segmentation") {
         return Promise.resolve({
