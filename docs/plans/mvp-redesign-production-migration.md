@@ -210,7 +210,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R4 | Complete locally — exact packaged and exhaustive adaptive gates passed 2026-08-22 | Existing health and aligned-history questions read as answers |
 | X5-R5 | Complete locally — R5.4, R5.5, and real-process restart gates passed 2026-08-22 | A remembered session is findable and sports are recognizable |
 | X5-R6 | Complete locally — R6.1 through R6.5 passed exact packaged, adaptive visual, and dense-route gates on 2026-08-22 | A routed workout is investigated through a dominant synchronized map |
-| X5-R7 | Pending | Every session composition reflects its actual evidence |
+| X5-R7 | In progress — Session Story v2 composition contract verified locally on 2026-08-22 | Every session composition reflects its actual evidence |
 | X5-R8 | Pending | Personal ranges and reusable criteria work end to end |
 | X5-R9 | Pending | Reports open as results and leave FitFreed safely |
 | X5-R10 | Pending | The complete release-shaped product is coherent and documented |
@@ -1046,6 +1046,23 @@ performance budgets.
 
 **Documentation:** Session Story state table, user evidence/limitations guidance, architecture, UI state
 ownership, and synthetic scenario catalogue.
+
+### R7.1 application composition contract — 2026-08-22
+
+Session Story version 2 now adds application-owned assessment states plus exact supported-evidence counts
+without changing the preceding version-1 response. The composition distinguishes unevaluated, source-absent,
+source-empty, and source-present exercise containers. Every composed exercise and independent primary or
+transition role describes structure, route points, supported signal series, empty, unavailable and partial
+series, unsupported series, exact sample availability, recorded zone bands, timed zone bands, and unsupported
+zone groups. A partial exercise created solely from signal evidence remains in the story when structure and
+route evidence are absent.
+
+Application, transport, JSON Schema, TypeScript, architecture, and contract documentation consume the same
+versioned definitions. Focused Rust tests cover routed, signal-only, empty, unavailable, partial, unsupported,
+untimed-zone, transition, and conflicting exercise states. The complete Rust workspace, 275 React tests,
+TypeScript production build, schema checks, documentation checks, localization checks, formatting, and strict
+Clippy passed. This closes the R7 application contract only; evidence-adaptive production composition and its
+packaged visual and interaction gates remain open.
 
 ## X5-R8 — Add personal ranges and integrate segmentation
 

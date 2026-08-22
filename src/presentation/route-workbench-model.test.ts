@@ -67,6 +67,18 @@ function role(points: TrainingRoutePoint[]): SessionStoryRole {
         gapBefore: false,
       }],
     }],
+    evidence: {
+      routePointCount: points.length,
+      signalSeriesCount: 1,
+      signalSeriesWithValuesCount: 1,
+      partialSignalSeriesCount: 1,
+      unavailableSignalSeriesCount: 0,
+      emptySignalSeriesCount: 0,
+      unsupportedSignalSeriesCount: 0,
+      signalSampleCount: 3,
+      availableSignalSampleCount: 2,
+      unavailableSignalSampleCount: 1,
+    },
     primaryMetric: "pace",
     eligibleOverlays: [{
       signalRef,

@@ -374,12 +374,52 @@ fn composes_a_running_story_at_one_authoritative_snapshot() {
     let story = query_session_story(ports(&port), query()).unwrap();
 
     assert_eq!(story.schema_version, TRAINING_SESSION_STORY_SCHEMA_VERSION);
+    assert_eq!(TRAINING_SESSION_STORY_SCHEMA_VERSION, 2);
     assert_eq!(story.snapshot_ref, SNAPSHOT);
     assert_eq!(story.session.session_ref, SESSION);
     assert_eq!(port.accepted_snapshots.borrow().as_slice(), [SNAPSHOT; 5]);
     assert_eq!(story.exercises.len(), 1);
+    assert_eq!(
+        story.composition,
+        SessionStoryCompositionView {
+            structure_state: SessionStoryAssessmentStateView::SourcePresent,
+            route_state: SessionStoryAssessmentStateView::SourcePresent,
+            signal_state: SessionStoryAssessmentStateView::SourcePresent,
+            zone_state: SessionStoryAssessmentStateView::SourcePresent,
+            exercise_count: 1,
+        }
+    );
 
-    let primary = &story.exercises[0].primary;
+    let exercise = &story.exercises[0];
+    assert_eq!(
+        exercise.evidence,
+        SessionStoryExerciseEvidenceView {
+            has_structure: true,
+            manual_lap_count: 0,
+            automatic_lap_count: 0,
+            pause_count: 0,
+            zone_group_count: 0,
+            zone_count: 0,
+            timed_zone_count: 0,
+            unsupported_zone_group_count: 0,
+        }
+    );
+    let primary = &exercise.primary;
+    assert_eq!(
+        primary.evidence,
+        SessionStoryRoleEvidenceView {
+            route_point_count: 3,
+            signal_series_count: 2,
+            signal_series_with_values_count: 2,
+            partial_signal_series_count: 2,
+            unavailable_signal_series_count: 0,
+            empty_signal_series_count: 0,
+            unsupported_signal_series_count: 1,
+            signal_sample_count: 6,
+            available_signal_sample_count: 4,
+            unavailable_signal_sample_count: 2,
+        }
+    );
     assert_eq!(
         primary.route.as_ref().unwrap().visual_points[1].longitude_degrees,
         -179.9
@@ -560,6 +600,150 @@ fn preserves_source_assessment_states_while_composing_no_workbench_evidence() {
     assert_eq!(story.signals, None);
     assert_eq!(story.zones, None);
     assert!(story.exercises.is_empty());
+    assert_eq!(
+        story.composition,
+        SessionStoryCompositionView {
+            structure_state: SessionStoryAssessmentStateView::NotEvaluated,
+            route_state: SessionStoryAssessmentStateView::NotEvaluated,
+            signal_state: SessionStoryAssessmentStateView::NotEvaluated,
+            zone_state: SessionStoryAssessmentStateView::NotEvaluated,
+            exercise_count: 0,
+        }
+    );
+}
+
+#[test]
+fn describes_partial_signal_evidence_without_requiring_structure_or_a_route() {
+    let mut port = port("running");
+    port.evidence.structure.structure = None;
+    port.evidence.routes.routes = Some(TrainingSessionRoutesView { exercises: None });
+    port.evidence.zones.zones = Some(TrainingSessionZonesView {
+        exercises: Some(Vec::new()),
+    });
+
+    let story = query_session_story(ports(&port), query()).unwrap();
+
+    assert_eq!(story.exercises.len(), 1);
+    assert_eq!(
+        story.composition,
+        SessionStoryCompositionView {
+            structure_state: SessionStoryAssessmentStateView::NotEvaluated,
+            route_state: SessionStoryAssessmentStateView::SourceAbsent,
+            signal_state: SessionStoryAssessmentStateView::SourcePresent,
+            zone_state: SessionStoryAssessmentStateView::SourceEmpty,
+            exercise_count: 1,
+        }
+    );
+    let exercise = &story.exercises[0];
+    assert!(!exercise.evidence.has_structure);
+    assert_eq!(exercise.primary.evidence.route_point_count, 0);
+    assert_eq!(exercise.primary.evidence.signal_series_count, 2);
+    assert_eq!(
+        exercise.primary.primary_metric,
+        Some(SessionStoryMetricView::Pace)
+    );
+    assert!(exercise
+        .primary
+        .eligible_overlays
+        .iter()
+        .all(|overlay| overlay.aligned_samples.is_empty()));
+}
+
+#[test]
+fn distinguishes_empty_unavailable_partial_and_unsupported_signal_evidence() {
+    let mut port = port("cycling");
+    let collection = port
+        .evidence
+        .signals
+        .signals
+        .as_mut()
+        .unwrap()
+        .exercises
+        .as_mut()
+        .unwrap()[0]
+        .signals
+        .as_mut()
+        .unwrap();
+    let primary = collection.primary.as_mut().unwrap();
+    primary[0].sample_count = 0;
+    primary[0].available_sample_count = 0;
+    primary[0].visual_samples.clear();
+    primary[1].available_sample_count = 0;
+    for (ordinal, sample) in primary[1].visual_samples.iter_mut().enumerate() {
+        sample.value = None;
+        sample.gap_before = ordinal > 0;
+    }
+    collection.unsupported_primary_series_count = 3;
+
+    let story = query_session_story(ports(&port), query()).unwrap();
+    let evidence = &story.exercises[0].primary.evidence;
+
+    assert_eq!(evidence.signal_series_count, 2);
+    assert_eq!(evidence.signal_series_with_values_count, 0);
+    assert_eq!(evidence.partial_signal_series_count, 0);
+    assert_eq!(evidence.unavailable_signal_series_count, 1);
+    assert_eq!(evidence.empty_signal_series_count, 1);
+    assert_eq!(evidence.unsupported_signal_series_count, 3);
+    assert_eq!(evidence.signal_sample_count, 3);
+    assert_eq!(evidence.available_signal_sample_count, 0);
+    assert_eq!(evidence.unavailable_signal_sample_count, 3);
+    assert_eq!(story.exercises[0].primary.primary_metric, None);
+}
+
+#[test]
+fn describes_recorded_zone_bands_without_inventing_time_for_untimed_bands() {
+    let mut port = port("cycling");
+    port.evidence
+        .zones
+        .zones
+        .as_mut()
+        .unwrap()
+        .exercises
+        .as_mut()
+        .unwrap()[0]
+        .zones = Some(TrainingZoneCollectionView {
+        groups: vec![TrainingZoneGroupView {
+            zone_group_ref:
+                "zone-group-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    .to_owned(),
+            ordinal: 0,
+            kind: TrainingZoneKindView::HeartRate,
+            unit: TrainingZoneUnitView::BeatsPerMinute,
+            zones: Some(vec![
+                TrainingZoneView {
+                    zone_ref:
+                        "zone-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                            .to_owned(),
+                    ordinal: 0,
+                    lower_limit: 120.0,
+                    higher_limit: 139.0,
+                    time_in_zone_milliseconds: Some(900_000),
+                    distance_meters: None,
+                    muscle_load: None,
+                },
+                TrainingZoneView {
+                    zone_ref:
+                        "zone-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                            .to_owned(),
+                    ordinal: 1,
+                    lower_limit: 140.0,
+                    higher_limit: 159.0,
+                    time_in_zone_milliseconds: None,
+                    distance_meters: None,
+                    muscle_load: None,
+                },
+            ]),
+        }],
+        unsupported_group_count: 2,
+    });
+
+    let story = query_session_story(ports(&port), query()).unwrap();
+    let evidence = &story.exercises[0].evidence;
+
+    assert_eq!(evidence.zone_group_count, 1);
+    assert_eq!(evidence.zone_count, 2);
+    assert_eq!(evidence.timed_zone_count, 1);
+    assert_eq!(evidence.unsupported_zone_group_count, 2);
 }
 
 #[test]

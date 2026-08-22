@@ -2535,6 +2535,45 @@ for (const field of [
   requireMention(sessionStory, field, sessionStoryPath);
 }
 
+const sessionStoryV2Path = "docs/data-formats/insights/session-story-v2.md";
+const sessionStoryV2 = read(sessionStoryV2Path);
+for (const field of [
+  "query_session_story",
+  "session-story-query-v1.schema.json",
+  "session-story-v2.schema.json",
+  "schemaVersion",
+  "composition",
+  "structureState",
+  "routeState",
+  "signalState",
+  "zoneState",
+  "exerciseCount",
+  "evidence",
+  "hasStructure",
+  "manualLapCount",
+  "automaticLapCount",
+  "pauseCount",
+  "zoneGroupCount",
+  "zoneCount",
+  "timedZoneCount",
+  "unsupportedZoneGroupCount",
+  "routePointCount",
+  "signalSeriesCount",
+  "signalSeriesWithValuesCount",
+  "partialSignalSeriesCount",
+  "unavailableSignalSeriesCount",
+  "emptySignalSeriesCount",
+  "unsupportedSignalSeriesCount",
+  "signalSampleCount",
+  "availableSignalSampleCount",
+  "unavailableSignalSampleCount",
+  "training-session-detail-changed",
+  "invalid-training-session-detail",
+  "training-session-detail-failed",
+]) {
+  requireMention(sessionStoryV2, field, sessionStoryV2Path);
+}
+
 const sessionStoryQuerySchemaPath = "schemas/session-story-query-v1.schema.json";
 const validateSessionStoryQuery = ajv.compile(JSON.parse(read(sessionStoryQuerySchemaPath)));
 const syntheticSessionStoryQuery = {
@@ -2657,6 +2696,81 @@ for (const invalidResponse of [
 ]) {
   if (validateSessionStory(invalidResponse)) {
     throw new Error(`${sessionStorySchemaPath} accepted an invalid response`);
+  }
+}
+
+const sessionStoryV2SchemaPath = "schemas/session-story-v2.schema.json";
+const validateSessionStoryV2 = ajv.compile(JSON.parse(read(sessionStoryV2SchemaPath)));
+const syntheticRoleEvidence = {
+  routePointCount: 1,
+  signalSeriesCount: 1,
+  signalSeriesWithValuesCount: 1,
+  partialSignalSeriesCount: 1,
+  unavailableSignalSeriesCount: 0,
+  emptySignalSeriesCount: 0,
+  unsupportedSignalSeriesCount: 1,
+  signalSampleCount: 2,
+  availableSignalSampleCount: 1,
+  unavailableSignalSampleCount: 1,
+};
+const syntheticEmptyRoleEvidence = {
+  routePointCount: 0,
+  signalSeriesCount: 0,
+  signalSeriesWithValuesCount: 0,
+  partialSignalSeriesCount: 0,
+  unavailableSignalSeriesCount: 0,
+  emptySignalSeriesCount: 0,
+  unsupportedSignalSeriesCount: 0,
+  signalSampleCount: 0,
+  availableSignalSampleCount: 0,
+  unavailableSignalSampleCount: 0,
+};
+const syntheticSessionStoryV2 = structuredClone(syntheticSessionStory);
+syntheticSessionStoryV2.schemaVersion = 2;
+syntheticSessionStoryV2.composition = {
+  structureState: "source-present",
+  routeState: "source-present",
+  signalState: "source-present",
+  zoneState: "source-present",
+  exerciseCount: 1,
+};
+syntheticSessionStoryV2.exercises[0].evidence = {
+  hasStructure: true,
+  manualLapCount: 0,
+  automaticLapCount: 0,
+  pauseCount: 0,
+  zoneGroupCount: 1,
+  zoneCount: 1,
+  timedZoneCount: 1,
+  unsupportedZoneGroupCount: 1,
+};
+syntheticSessionStoryV2.exercises[0].primary.evidence = syntheticRoleEvidence;
+syntheticSessionStoryV2.exercises[0].transition.evidence = syntheticEmptyRoleEvidence;
+if (!validateSessionStoryV2(syntheticSessionStoryV2)) {
+  throw new Error(
+    `${sessionStoryV2SchemaPath} rejected its synthetic response: ${ajv.errorsText(validateSessionStoryV2.errors)}`,
+  );
+}
+for (const invalidResponse of [
+  { ...syntheticSessionStoryV2, schemaVersion: 1 },
+  { ...syntheticSessionStoryV2, sourceSessionId: "private" },
+  { ...syntheticSessionStoryV2, composition: {
+    ...syntheticSessionStoryV2.composition,
+    routeState: "maybe-recorded",
+  } },
+  (() => {
+    const value = structuredClone(syntheticSessionStoryV2);
+    value.exercises[0].primary.evidence.unavailableSignalSampleCount = -1;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticSessionStoryV2);
+    value.exercises[0].evidence.inferredPhaseCount = 1;
+    return value;
+  })(),
+]) {
+  if (validateSessionStoryV2(invalidResponse)) {
+    throw new Error(`${sessionStoryV2SchemaPath} accepted an invalid response`);
   }
 }
 
@@ -5711,6 +5825,7 @@ process.stdout.write(
     sessionStorySchemas: [
       sessionStoryQuerySchemaPath,
       sessionStorySchemaPath,
+      sessionStoryV2SchemaPath,
     ],
     trainingComparisonSchemas: [
       trainingComparisonQuerySchemaPath,

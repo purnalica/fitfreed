@@ -18,12 +18,13 @@ use crate::{
     TrainingSessionZonesView, TrainingSignalCollectionView, TrainingSignalKindView,
     TrainingSignalRoleView, TrainingSignalSeriesOverview, TrainingSignalUnitView,
     TrainingSignalVisualSampleView, TrainingStructure, TrainingZoneCollectionView,
+    TrainingZoneGroupView,
 };
 
 const SNAPSHOT_PREFIX: &str = "training-snapshot-";
 const SESSION_PREFIX: &str = "session-";
 
-pub const TRAINING_SESSION_STORY_SCHEMA_VERSION: u32 = 1;
+pub const TRAINING_SESSION_STORY_SCHEMA_VERSION: u32 = 2;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SessionStoryQuery {
@@ -97,10 +98,25 @@ pub struct SessionStoryExactSignal {
 pub struct SessionStoryRole {
     pub route: Option<TrainingRouteOverview>,
     pub signals: Vec<TrainingSignalSeriesOverview>,
+    pub evidence: SessionStoryRoleEvidenceView,
     pub primary_metric: Option<SessionStoryMetricView>,
     pub eligible_overlays: Vec<SessionStoryOverlayView>,
     pub exact_route: Option<SessionStoryExactRoute>,
     pub exact_signals: Vec<SessionStoryExactSignal>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SessionStoryRoleEvidenceView {
+    pub route_point_count: usize,
+    pub signal_series_count: usize,
+    pub signal_series_with_values_count: usize,
+    pub partial_signal_series_count: usize,
+    pub unavailable_signal_series_count: usize,
+    pub empty_signal_series_count: usize,
+    pub unsupported_signal_series_count: usize,
+    pub signal_sample_count: usize,
+    pub available_signal_sample_count: usize,
+    pub unavailable_signal_sample_count: usize,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -110,8 +126,38 @@ pub struct SessionStoryExercise {
     pub sport: Option<TrainingSessionSport>,
     pub structure: Option<TrainingExerciseStructure>,
     pub zones: Option<TrainingZoneCollectionView>,
+    pub evidence: SessionStoryExerciseEvidenceView,
     pub primary: SessionStoryRole,
     pub transition: SessionStoryRole,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SessionStoryExerciseEvidenceView {
+    pub has_structure: bool,
+    pub manual_lap_count: usize,
+    pub automatic_lap_count: usize,
+    pub pause_count: usize,
+    pub zone_group_count: usize,
+    pub zone_count: usize,
+    pub timed_zone_count: usize,
+    pub unsupported_zone_group_count: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SessionStoryAssessmentStateView {
+    NotEvaluated,
+    SourceAbsent,
+    SourceEmpty,
+    SourcePresent,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SessionStoryCompositionView {
+    pub structure_state: SessionStoryAssessmentStateView,
+    pub route_state: SessionStoryAssessmentStateView,
+    pub signal_state: SessionStoryAssessmentStateView,
+    pub zone_state: SessionStoryAssessmentStateView,
+    pub exercise_count: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -130,6 +176,7 @@ pub struct SessionStory {
     pub signals: Option<TrainingSessionSignalsView>,
     pub zones: Option<TrainingSessionZonesView>,
     pub provenance: SessionStoryProvenance,
+    pub composition: SessionStoryCompositionView,
     pub exercises: Vec<SessionStoryExercise>,
 }
 
@@ -200,6 +247,15 @@ pub fn query_session_story(
         signals.as_ref(),
         zones.as_ref(),
     )?;
+    let composition = SessionStoryCompositionView {
+        structure_state: assessment_state(
+            structure.as_ref().map(|value| value.exercises.as_deref()),
+        ),
+        route_state: assessment_state(routes.as_ref().map(|value| value.exercises.as_deref())),
+        signal_state: assessment_state(signals.as_ref().map(|value| value.exercises.as_deref())),
+        zone_state: assessment_state(zones.as_ref().map(|value| value.exercises.as_deref())),
+        exercise_count: exercises.len(),
+    };
 
     Ok(SessionStory {
         schema_version: TRAINING_SESSION_STORY_SCHEMA_VERSION,
@@ -213,8 +269,18 @@ pub fn query_session_story(
             total_event_count: provenance.total_event_count,
             current: provenance.current,
         },
+        composition,
         exercises,
     })
+}
+
+fn assessment_state<T>(exercises: Option<Option<&[T]>>) -> SessionStoryAssessmentStateView {
+    match exercises {
+        None => SessionStoryAssessmentStateView::NotEvaluated,
+        Some(None) => SessionStoryAssessmentStateView::SourceAbsent,
+        Some(Some([])) => SessionStoryAssessmentStateView::SourceEmpty,
+        Some(Some(_)) => SessionStoryAssessmentStateView::SourcePresent,
+    }
 }
 
 fn validate_query(query: &SessionStoryQuery) -> Result<(), ApplicationError> {
@@ -451,6 +517,10 @@ fn build_exercise(
             .and_then(|signals| signals.primary.as_deref()),
         TrainingRouteKindView::Primary,
         TrainingSignalRoleView::Primary,
+        composition
+            .signals
+            .as_ref()
+            .map_or(0, |signals| signals.unsupported_primary_series_count),
         family,
     )?;
     let transition = build_role(
@@ -464,14 +534,20 @@ fn build_exercise(
             .and_then(|signals| signals.transition.as_deref()),
         TrainingRouteKindView::Transition,
         TrainingSignalRoleView::Transition,
+        composition
+            .signals
+            .as_ref()
+            .map_or(0, |signals| signals.unsupported_transition_series_count),
         family,
     )?;
+    let evidence = exercise_evidence(composition.structure.as_ref(), composition.zones.as_ref())?;
     Ok(SessionStoryExercise {
         exercise_ref: composition.exercise_ref,
         ordinal: composition.ordinal,
         sport,
         structure: composition.structure,
         zones: composition.zones,
+        evidence,
         primary,
         transition,
     })
@@ -482,6 +558,7 @@ fn build_role(
     signals: Option<&[TrainingSignalSeriesOverview]>,
     expected_route_kind: TrainingRouteKindView,
     expected_signal_role: TrainingSignalRoleView,
+    unsupported_signal_series_count: usize,
     family: Option<&str>,
 ) -> Result<SessionStoryRole, ApplicationError> {
     if route.is_some_and(|route| route.kind != expected_route_kind)
@@ -495,6 +572,7 @@ fn build_role(
     }
     let route = route.cloned();
     let signals = signals.unwrap_or_default().to_vec();
+    let evidence = role_evidence(&route, &signals, unsupported_signal_series_count)?;
     let exact_route = route.as_ref().map(|route| SessionStoryExactRoute {
         route_ref: route.route_ref.clone(),
         point_count: route.point_count,
@@ -526,10 +604,112 @@ fn build_role(
     Ok(SessionStoryRole {
         route,
         signals,
+        evidence,
         primary_metric,
         eligible_overlays,
         exact_route,
         exact_signals,
+    })
+}
+
+fn role_evidence(
+    route: &Option<TrainingRouteOverview>,
+    signals: &[TrainingSignalSeriesOverview],
+    unsupported_signal_series_count: usize,
+) -> Result<SessionStoryRoleEvidenceView, ApplicationError> {
+    let signal_sample_count = checked_signal_sum(signals, |signal| signal.sample_count)?;
+    let available_signal_sample_count =
+        checked_signal_sum(signals, |signal| signal.available_sample_count)?;
+    let unavailable_signal_sample_count = signal_sample_count
+        .checked_sub(available_signal_sample_count)
+        .ok_or(ApplicationError::InvalidTrainingSessionDetail(
+            "session story signal availability is inconsistent",
+        ))?;
+    Ok(SessionStoryRoleEvidenceView {
+        route_point_count: route.as_ref().map_or(0, |route| route.point_count),
+        signal_series_count: signals.len(),
+        signal_series_with_values_count: signals
+            .iter()
+            .filter(|signal| signal.available_sample_count > 0)
+            .count(),
+        partial_signal_series_count: signals
+            .iter()
+            .filter(|signal| {
+                signal.available_sample_count > 0
+                    && signal.available_sample_count < signal.sample_count
+            })
+            .count(),
+        unavailable_signal_series_count: signals
+            .iter()
+            .filter(|signal| signal.sample_count > 0 && signal.available_sample_count == 0)
+            .count(),
+        empty_signal_series_count: signals
+            .iter()
+            .filter(|signal| signal.sample_count == 0)
+            .count(),
+        unsupported_signal_series_count,
+        signal_sample_count,
+        available_signal_sample_count,
+        unavailable_signal_sample_count,
+    })
+}
+
+fn checked_signal_sum(
+    signals: &[TrainingSignalSeriesOverview],
+    count: impl Fn(&TrainingSignalSeriesOverview) -> usize,
+) -> Result<usize, ApplicationError> {
+    signals.iter().try_fold(0usize, |total, signal| {
+        total
+            .checked_add(count(signal))
+            .ok_or(ApplicationError::InvalidTrainingSessionDetail(
+                "session story signal evidence count overflowed",
+            ))
+    })
+}
+
+fn exercise_evidence(
+    structure: Option<&TrainingExerciseStructure>,
+    zones: Option<&TrainingZoneCollectionView>,
+) -> Result<SessionStoryExerciseEvidenceView, ApplicationError> {
+    let zone_count = checked_zone_sum(zones, |group| group.zones.as_ref().map_or(0, Vec::len))?;
+    let timed_zone_count = checked_zone_sum(zones, |group| {
+        group.zones.as_ref().map_or(0, |zones| {
+            zones
+                .iter()
+                .filter(|zone| zone.time_in_zone_milliseconds.is_some())
+                .count()
+        })
+    })?;
+    Ok(SessionStoryExerciseEvidenceView {
+        has_structure: structure.is_some(),
+        manual_lap_count: structure
+            .and_then(|value| value.manual_laps.as_ref())
+            .map_or(0, Vec::len),
+        automatic_lap_count: structure
+            .and_then(|value| value.automatic_laps.as_ref())
+            .map_or(0, Vec::len),
+        pause_count: structure
+            .and_then(|value| value.pauses.as_ref())
+            .map_or(0, Vec::len),
+        zone_group_count: zones.map_or(0, |value| value.groups.len()),
+        zone_count,
+        timed_zone_count,
+        unsupported_zone_group_count: zones.map_or(0, |value| value.unsupported_group_count),
+    })
+}
+
+fn checked_zone_sum(
+    zones: Option<&TrainingZoneCollectionView>,
+    count: impl Fn(&TrainingZoneGroupView) -> usize,
+) -> Result<usize, ApplicationError> {
+    zones.map_or(Ok(0), |zones| {
+        zones.groups.iter().try_fold(0usize, |total, group| {
+            total
+                .checked_add(count(group))
+                .ok_or(ApplicationError::InvalidTrainingSessionDetail(
+                    "session story zone evidence count overflowed",
+                ))
+        })
     })
 }
 

@@ -11,19 +11,27 @@ import type {
   TrainingSessionSearchPage,
   TrainingSessionSearchRequest,
 } from "./training-session-search";
-import type { TrainingSessionStructureResult } from "./training-session-detail";
+import type {
+  TrainingExerciseStructure,
+  TrainingSessionStructureResult,
+} from "./training-session-detail";
 import type { SessionStory } from "./session-story";
 import type {
   TrainingRoutePointsResult,
+  TrainingRouteOverview,
   TrainingSessionRoutesResult,
 } from "./training-session-route";
 import type {
   TrainingSignalSamplesResult,
   TrainingSessionSignalsResult,
+  TrainingSignalSeriesOverview,
 } from "./training-session-signal";
 import type { TrainingSessionSegmentationResult } from "./training-session-segmentation";
 import type { TrainingSessionProvenanceResult } from "./training-session-provenance";
-import type { TrainingSessionZonesResult } from "./training-session-zone";
+import type {
+  TrainingSessionZonesResult,
+  TrainingZoneCollection,
+} from "./training-session-zone";
 import { TrainingSessionLibraryPanel } from "./TrainingSessionLibraryPanel";
 import type {
   SavedTrainingSportClassification,
@@ -499,6 +507,54 @@ function storySession(sessionRef: string): TrainingSessionSearchItem {
   ) ?? { ...newest, sessionRef };
 }
 
+function storyRoleEvidence(
+  route: TrainingRouteOverview | null,
+  series: TrainingSignalSeriesOverview[],
+  unsupportedSignalSeriesCount: number,
+): SessionStory["exercises"][number]["primary"]["evidence"] {
+  const signalSampleCount = series.reduce((total, signal) => total + signal.sampleCount, 0);
+  const availableSignalSampleCount = series.reduce(
+    (total, signal) => total + signal.availableSampleCount,
+    0,
+  );
+  return {
+    routePointCount: route?.pointCount ?? 0,
+    signalSeriesCount: series.length,
+    signalSeriesWithValuesCount: series.filter(
+      (signal) => signal.availableSampleCount > 0,
+    ).length,
+    partialSignalSeriesCount: series.filter(
+      (signal) => signal.availableSampleCount > 0
+        && signal.availableSampleCount < signal.sampleCount,
+    ).length,
+    unavailableSignalSeriesCount: series.filter(
+      (signal) => signal.sampleCount > 0 && signal.availableSampleCount === 0,
+    ).length,
+    emptySignalSeriesCount: series.filter((signal) => signal.sampleCount === 0).length,
+    unsupportedSignalSeriesCount,
+    signalSampleCount,
+    availableSignalSampleCount,
+    unavailableSignalSampleCount: signalSampleCount - availableSignalSampleCount,
+  };
+}
+
+function storyExerciseEvidence(
+  structure: TrainingExerciseStructure | null,
+  zones: TrainingZoneCollection | null,
+): SessionStory["exercises"][number]["evidence"] {
+  const zoneValues = zones?.groups.flatMap((group) => group.zones ?? []) ?? [];
+  return {
+    hasStructure: structure !== null,
+    manualLapCount: structure?.manualLaps?.length ?? 0,
+    automaticLapCount: structure?.automaticLaps?.length ?? 0,
+    pauseCount: structure?.pauses?.length ?? 0,
+    zoneGroupCount: zones?.groups.length ?? 0,
+    zoneCount: zoneValues.length,
+    timedZoneCount: zoneValues.filter((zone) => zone.timeInZoneMilliseconds !== null).length,
+    unsupportedZoneGroupCount: zones?.unsupportedGroupCount ?? 0,
+  };
+}
+
 function trainingStory(
   sessionRef: string,
   acceptedSnapshotRef = snapshotRef,
@@ -547,7 +603,7 @@ function trainingStory(
   }));
 
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     snapshotRef: acceptedSnapshotRef,
     session: storySession(sessionRef),
     structure,
@@ -558,15 +614,32 @@ function trainingStory(
       totalEventCount: provenance.totalEventCount,
       current: provenance.current,
     },
+    composition: {
+      structureState: structure?.exercises === null ? "source-absent"
+        : structure?.exercises.length === 0 ? "source-empty" : "source-present",
+      routeState: routes?.exercises === null ? "source-absent"
+        : routes?.exercises.length === 0 ? "source-empty" : "source-present",
+      signalState: signals?.exercises === null ? "source-absent"
+        : signals?.exercises.length === 0 ? "source-empty" : "source-present",
+      zoneState: zones?.exercises === null ? "source-absent"
+        : zones?.exercises.length === 0 ? "source-empty" : "source-present",
+      exerciseCount: 2,
+    },
     exercises: [{
       exerciseRef: firstStructure?.exerciseRef ?? `exercise-${"1".repeat(64)}`,
       ordinal: 0,
       sport: firstStructure?.sport ?? null,
       structure: firstStructure,
       zones: firstZones,
+      evidence: storyExerciseEvidence(firstStructure, firstZones),
       primary: {
         route: firstRoute,
         signals: firstSignals,
+        evidence: storyRoleEvidence(
+          firstRoute,
+          firstSignals,
+          signals?.exercises?.[0]?.signals?.unsupportedPrimarySeriesCount ?? 0,
+        ),
         primaryMetric: "heart-rate",
         eligibleOverlays: overlays,
         exactRoute: firstRoute ? {
@@ -578,6 +651,11 @@ function trainingStory(
       transition: {
         route: routes?.exercises?.[0]?.routes?.transition ?? null,
         signals: signals?.exercises?.[0]?.signals?.transition ?? [],
+        evidence: storyRoleEvidence(
+          routes?.exercises?.[0]?.routes?.transition ?? null,
+          signals?.exercises?.[0]?.signals?.transition ?? [],
+          signals?.exercises?.[0]?.signals?.unsupportedTransitionSeriesCount ?? 0,
+        ),
         primaryMetric: null,
         eligibleOverlays: [],
         exactRoute: null,
@@ -589,9 +667,18 @@ function trainingStory(
       sport: secondStructure?.sport ?? null,
       structure: secondStructure,
       zones: zones?.exercises?.[1]?.zones ?? null,
+      evidence: storyExerciseEvidence(
+        secondStructure,
+        zones?.exercises?.[1]?.zones ?? null,
+      ),
       primary: {
         route: routes?.exercises?.[1]?.routes?.primary ?? null,
         signals: signals?.exercises?.[1]?.signals?.primary ?? [],
+        evidence: storyRoleEvidence(
+          routes?.exercises?.[1]?.routes?.primary ?? null,
+          signals?.exercises?.[1]?.signals?.primary ?? [],
+          signals?.exercises?.[1]?.signals?.unsupportedPrimarySeriesCount ?? 0,
+        ),
         primaryMetric: null,
         eligibleOverlays: [],
         exactRoute: null,
@@ -600,6 +687,11 @@ function trainingStory(
       transition: {
         route: routes?.exercises?.[1]?.routes?.transition ?? null,
         signals: signals?.exercises?.[1]?.signals?.transition ?? [],
+        evidence: storyRoleEvidence(
+          routes?.exercises?.[1]?.routes?.transition ?? null,
+          signals?.exercises?.[1]?.signals?.transition ?? [],
+          signals?.exercises?.[1]?.signals?.unsupportedTransitionSeriesCount ?? 0,
+        ),
         primaryMetric: null,
         eligibleOverlays: [],
         exactRoute: null,

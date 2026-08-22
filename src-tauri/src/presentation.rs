@@ -30,18 +30,20 @@ use fitfreed_application::{
     ReportSummary, ResolvedReport, ResolvedSessionReport, SaveSportClassificationRequest,
     SavedTrainingSportClassification, SegmentApplicabilityView, SegmentMeasurementView,
     SessionReportBlockDraft, SessionReportBlockDraftContent, SessionStory,
-    SessionStoryAlignedSampleView, SessionStoryExactRoute, SessionStoryExactSignal,
-    SessionStoryExercise, SessionStoryMetricView, SessionStoryOverlayView, SessionStoryProvenance,
-    SessionStoryQuery, SessionStoryRole, SessionStoryValueTransform, SleepComparison,
-    SleepDateRange, SleepDayAvailability, SleepDayInsight, SleepOverview, SleepPeriodDetail,
-    SleepPeriodInsight, SleepPhaseTotals, SleepSeriesComparison, SleepSeriesOverview,
-    SleepSeriesSummary, SourceAcquisitionGuide, SportClassificationSaveOutcome, TrainingComparison,
-    TrainingDateRange, TrainingDerivedSegment, TrainingDiscoveryView, TrainingDiscoveryWorkspace,
-    TrainingExerciseRoutesView, TrainingExerciseSegmentation, TrainingExerciseSignalsView,
-    TrainingExerciseStructure, TrainingExerciseZonesView, TrainingLapStructure,
-    TrainingMeasurementFilter, TrainingPauseStructure, TrainingProvenanceCurrentView,
-    TrainingProvenanceDecisionView, TrainingProvenanceEventView, TrainingRouteCollectionView,
-    TrainingRouteKindView, TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
+    SessionStoryAlignedSampleView, SessionStoryAssessmentStateView, SessionStoryCompositionView,
+    SessionStoryExactRoute, SessionStoryExactSignal, SessionStoryExercise,
+    SessionStoryExerciseEvidenceView, SessionStoryMetricView, SessionStoryOverlayView,
+    SessionStoryProvenance, SessionStoryQuery, SessionStoryRole, SessionStoryRoleEvidenceView,
+    SessionStoryValueTransform, SleepComparison, SleepDateRange, SleepDayAvailability,
+    SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight, SleepPhaseTotals,
+    SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary, SourceAcquisitionGuide,
+    SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange, TrainingDerivedSegment,
+    TrainingDiscoveryView, TrainingDiscoveryWorkspace, TrainingExerciseRoutesView,
+    TrainingExerciseSegmentation, TrainingExerciseSignalsView, TrainingExerciseStructure,
+    TrainingExerciseZonesView, TrainingLapStructure, TrainingMeasurementFilter,
+    TrainingPauseStructure, TrainingProvenanceCurrentView, TrainingProvenanceDecisionView,
+    TrainingProvenanceEventView, TrainingRouteCollectionView, TrainingRouteKindView,
+    TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
     TrainingSegmentCriterionDirection, TrainingSegmentCriterionMutationRequest,
     TrainingSeriesComparison, TrainingSeriesSummary, TrainingSessionCalendar,
     TrainingSessionCalendarDay, TrainingSessionCalendarRequest, TrainingSessionProvenanceQuery,
@@ -2506,6 +2508,15 @@ fn session_story_value_transform(transform: SessionStoryValueTransform) -> &'sta
     }
 }
 
+fn session_story_assessment_state(state: SessionStoryAssessmentStateView) -> &'static str {
+    match state {
+        SessionStoryAssessmentStateView::NotEvaluated => "not-evaluated",
+        SessionStoryAssessmentStateView::SourceAbsent => "source-absent",
+        SessionStoryAssessmentStateView::SourceEmpty => "source-empty",
+        SessionStoryAssessmentStateView::SourcePresent => "source-present",
+    }
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionStoryAlignedSampleDto {
@@ -2597,10 +2608,43 @@ impl From<SessionStoryExactSignal> for SessionStoryExactSignalDto {
 pub struct SessionStoryRoleDto {
     route: Option<TrainingRouteOverviewDto>,
     signals: Vec<TrainingSignalSeriesOverviewDto>,
+    evidence: SessionStoryRoleEvidenceDto,
     primary_metric: Option<&'static str>,
     eligible_overlays: Vec<SessionStoryOverlayDto>,
     exact_route: Option<SessionStoryExactRouteDto>,
     exact_signals: Vec<SessionStoryExactSignalDto>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionStoryRoleEvidenceDto {
+    route_point_count: usize,
+    signal_series_count: usize,
+    signal_series_with_values_count: usize,
+    partial_signal_series_count: usize,
+    unavailable_signal_series_count: usize,
+    empty_signal_series_count: usize,
+    unsupported_signal_series_count: usize,
+    signal_sample_count: usize,
+    available_signal_sample_count: usize,
+    unavailable_signal_sample_count: usize,
+}
+
+impl From<SessionStoryRoleEvidenceView> for SessionStoryRoleEvidenceDto {
+    fn from(evidence: SessionStoryRoleEvidenceView) -> Self {
+        Self {
+            route_point_count: evidence.route_point_count,
+            signal_series_count: evidence.signal_series_count,
+            signal_series_with_values_count: evidence.signal_series_with_values_count,
+            partial_signal_series_count: evidence.partial_signal_series_count,
+            unavailable_signal_series_count: evidence.unavailable_signal_series_count,
+            empty_signal_series_count: evidence.empty_signal_series_count,
+            unsupported_signal_series_count: evidence.unsupported_signal_series_count,
+            signal_sample_count: evidence.signal_sample_count,
+            available_signal_sample_count: evidence.available_signal_sample_count,
+            unavailable_signal_sample_count: evidence.unavailable_signal_sample_count,
+        }
+    }
 }
 
 impl From<SessionStoryRole> for SessionStoryRoleDto {
@@ -2608,6 +2652,7 @@ impl From<SessionStoryRole> for SessionStoryRoleDto {
         Self {
             route: role.route.map(Into::into),
             signals: role.signals.into_iter().map(Into::into).collect(),
+            evidence: role.evidence.into(),
             primary_metric: role.primary_metric.map(session_story_metric),
             eligible_overlays: role.eligible_overlays.into_iter().map(Into::into).collect(),
             exact_route: role.exact_route.map(Into::into),
@@ -2624,8 +2669,37 @@ pub struct SessionStoryExerciseDto {
     sport: Option<TrainingSessionSportDto>,
     structure: Option<TrainingExerciseStructureDto>,
     zones: Option<TrainingZoneCollectionDto>,
+    evidence: SessionStoryExerciseEvidenceDto,
     primary: SessionStoryRoleDto,
     transition: SessionStoryRoleDto,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionStoryExerciseEvidenceDto {
+    has_structure: bool,
+    manual_lap_count: usize,
+    automatic_lap_count: usize,
+    pause_count: usize,
+    zone_group_count: usize,
+    zone_count: usize,
+    timed_zone_count: usize,
+    unsupported_zone_group_count: usize,
+}
+
+impl From<SessionStoryExerciseEvidenceView> for SessionStoryExerciseEvidenceDto {
+    fn from(evidence: SessionStoryExerciseEvidenceView) -> Self {
+        Self {
+            has_structure: evidence.has_structure,
+            manual_lap_count: evidence.manual_lap_count,
+            automatic_lap_count: evidence.automatic_lap_count,
+            pause_count: evidence.pause_count,
+            zone_group_count: evidence.zone_group_count,
+            zone_count: evidence.zone_count,
+            timed_zone_count: evidence.timed_zone_count,
+            unsupported_zone_group_count: evidence.unsupported_zone_group_count,
+        }
+    }
 }
 
 impl From<SessionStoryExercise> for SessionStoryExerciseDto {
@@ -2636,6 +2710,7 @@ impl From<SessionStoryExercise> for SessionStoryExerciseDto {
             sport: exercise.sport.map(Into::into),
             structure: exercise.structure.map(Into::into),
             zones: exercise.zones.map(Into::into),
+            evidence: exercise.evidence.into(),
             primary: exercise.primary.into(),
             transition: exercise.transition.into(),
         }
@@ -2669,7 +2744,30 @@ pub struct SessionStoryDto {
     signals: Option<TrainingSessionSignalsDto>,
     zones: Option<TrainingSessionZonesDto>,
     provenance: SessionStoryProvenanceDto,
+    composition: SessionStoryCompositionDto,
     exercises: Vec<SessionStoryExerciseDto>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionStoryCompositionDto {
+    structure_state: &'static str,
+    route_state: &'static str,
+    signal_state: &'static str,
+    zone_state: &'static str,
+    exercise_count: usize,
+}
+
+impl From<SessionStoryCompositionView> for SessionStoryCompositionDto {
+    fn from(composition: SessionStoryCompositionView) -> Self {
+        Self {
+            structure_state: session_story_assessment_state(composition.structure_state),
+            route_state: session_story_assessment_state(composition.route_state),
+            signal_state: session_story_assessment_state(composition.signal_state),
+            zone_state: session_story_assessment_state(composition.zone_state),
+            exercise_count: composition.exercise_count,
+        }
+    }
 }
 
 impl From<SessionStory> for SessionStoryDto {
@@ -2683,6 +2781,7 @@ impl From<SessionStory> for SessionStoryDto {
             signals: story.signals.map(Into::into),
             zones: story.zones.map(Into::into),
             provenance: story.provenance.into(),
+            composition: story.composition.into(),
             exercises: story.exercises.into_iter().map(Into::into).collect(),
         }
     }
@@ -6764,7 +6863,7 @@ mod tests {
             },
         };
         let story = SessionStory {
-            schema_version: 1,
+            schema_version: 2,
             snapshot_ref:
                 "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
                     .to_owned(),
@@ -6784,6 +6883,13 @@ mod tests {
                     non_contributing_event_count: 1,
                 },
             },
+            composition: SessionStoryCompositionView {
+                structure_state: SessionStoryAssessmentStateView::NotEvaluated,
+                route_state: SessionStoryAssessmentStateView::NotEvaluated,
+                signal_state: SessionStoryAssessmentStateView::NotEvaluated,
+                zone_state: SessionStoryAssessmentStateView::NotEvaluated,
+                exercise_count: 1,
+            },
             exercises: vec![SessionStoryExercise {
                 exercise_ref:
                     "exercise-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
@@ -6792,9 +6898,31 @@ mod tests {
                 sport: None,
                 structure: None,
                 zones: None,
+                evidence: SessionStoryExerciseEvidenceView {
+                    has_structure: false,
+                    manual_lap_count: 0,
+                    automatic_lap_count: 0,
+                    pause_count: 0,
+                    zone_group_count: 0,
+                    zone_count: 0,
+                    timed_zone_count: 0,
+                    unsupported_zone_group_count: 0,
+                },
                 primary: SessionStoryRole {
                     route: None,
                     signals: Vec::new(),
+                    evidence: SessionStoryRoleEvidenceView {
+                        route_point_count: 501,
+                        signal_series_count: 1,
+                        signal_series_with_values_count: 1,
+                        partial_signal_series_count: 0,
+                        unavailable_signal_series_count: 0,
+                        empty_signal_series_count: 0,
+                        unsupported_signal_series_count: 2,
+                        signal_sample_count: 601,
+                        available_signal_sample_count: 601,
+                        unavailable_signal_sample_count: 0,
+                    },
                     primary_metric: Some(SessionStoryMetricView::Pace),
                     eligible_overlays: vec![SessionStoryOverlayView {
                         signal_ref:
@@ -6831,6 +6959,18 @@ mod tests {
                 transition: SessionStoryRole {
                     route: None,
                     signals: Vec::new(),
+                    evidence: SessionStoryRoleEvidenceView {
+                        route_point_count: 0,
+                        signal_series_count: 0,
+                        signal_series_with_values_count: 0,
+                        partial_signal_series_count: 0,
+                        unavailable_signal_series_count: 0,
+                        empty_signal_series_count: 0,
+                        unsupported_signal_series_count: 0,
+                        signal_sample_count: 0,
+                        available_signal_sample_count: 0,
+                        unavailable_signal_sample_count: 0,
+                    },
                     primary_metric: None,
                     eligible_overlays: Vec::new(),
                     exact_route: None,
@@ -6841,12 +6981,17 @@ mod tests {
 
         let json =
             serde_json::to_value(SessionStoryDto::from(story)).expect("session story response");
-        assert_eq!(json["schemaVersion"], 1);
+        assert_eq!(json["schemaVersion"], 2);
         assert_eq!(
             json["session"]["durationMilliseconds"],
             i64::MAX.to_string()
         );
         assert!(json["structure"].is_null());
+        assert_eq!(json["composition"]["signalState"], "not-evaluated");
+        assert_eq!(
+            json["exercises"][0]["primary"]["evidence"]["unsupportedSignalSeriesCount"],
+            2
+        );
         assert_eq!(json["exercises"][0]["primary"]["primaryMetric"], "pace");
         assert_eq!(
             json["exercises"][0]["primary"]["eligibleOverlays"][0]["valueTransform"],

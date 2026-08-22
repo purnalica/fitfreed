@@ -182,7 +182,7 @@ The exact query returns stable contiguous pages of at most 250 slots. Exercise a
 kind, unit, interval, source ordinal, and sample ordinal remain explicit, and no signal query loads a complete
 series merely to draw a bounded chart.
 
-The [Session Story v1 composition](../data-formats/insights/session-story-v1.md) is the application
+The [Session Story v2 composition](../data-formats/insights/session-story-v2.md) is the application
 boundary for a single-session workbench. It resolves discovery first and requires every structure,
 route, signal, zone, and provenance port to answer at that accepted snapshot. The application then
 matches exercise identities and primary/transition roles, exposes exact-page capabilities, and joins
@@ -191,6 +191,11 @@ independent evidence adapters; it has no joined story query, presentation cache,
 timeline. The production session surface invokes `query_session_story` once per selected session and
 accepted discovery revision. It renders structure, routes, signals, and zones from that one response;
 independent exact-route and exact-signal pagination remains deliberately on demand.
+Version 2 also carries application-owned assessment states and exact supported-evidence counts for every
+composed exercise and role. Those summaries distinguish source absence, source emptiness, empty series,
+fully unavailable series, partial series, unsupported series, zone bands without recorded time, and
+multi-exercise composition without turning presentation into a second evidence interpreter. The immutable
+[version-1 contract](../data-formats/insights/session-story-v1.md) remains the preceding transport shape.
 Production requests the same bounded 400-item source-ordinal budget for route geometry and signal lanes.
 Equal-cardinality recorded streams therefore retain the same projected source ordinals instead of losing
 valid exact alignment merely because presentation chose different limits. Streams with different recorded

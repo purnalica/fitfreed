@@ -233,6 +233,18 @@ function testSessionStory(
   const emptyRole = {
     route: null,
     signals: [],
+    evidence: {
+      routePointCount: 0,
+      signalSeriesCount: 0,
+      signalSeriesWithValuesCount: 0,
+      partialSignalSeriesCount: 0,
+      unavailableSignalSeriesCount: 0,
+      emptySignalSeriesCount: 0,
+      unsupportedSignalSeriesCount: 0,
+      signalSampleCount: 0,
+      availableSignalSampleCount: 0,
+      unavailableSignalSampleCount: 0,
+    },
     primaryMetric: null,
     eligibleOverlays: [],
     exactRoute: null,
@@ -240,7 +252,7 @@ function testSessionStory(
   };
 
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     snapshotRef,
     session,
     structure: { exercises: exercise ? [exercise] : null },
@@ -270,12 +282,29 @@ function testSessionStory(
         nonContributingEventCount: 0,
       },
     },
+    composition: {
+      structureState: exercise ? "source-present" : "source-absent",
+      routeState: exercise ? "source-present" : "source-absent",
+      signalState: exercise ? "source-present" : "source-absent",
+      zoneState: exercise ? "source-present" : "source-absent",
+      exerciseCount: exercise ? 1 : 0,
+    },
     exercises: exercise ? [{
       exerciseRef: exercise.exerciseRef,
       ordinal: 0,
       sport: exercise.sport,
       structure: exercise,
       zones: null,
+      evidence: {
+        hasStructure: true,
+        manualLapCount: 0,
+        automaticLapCount: 0,
+        pauseCount: 0,
+        zoneGroupCount: 0,
+        zoneCount: 0,
+        timedZoneCount: 0,
+        unsupportedZoneGroupCount: 0,
+      },
       primary: emptyRole,
       transition: emptyRole,
     }] : [],

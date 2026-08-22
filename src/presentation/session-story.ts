@@ -66,10 +66,24 @@ export interface SessionStoryExactSignal {
 export interface SessionStoryRole {
   route: TrainingRouteOverview | null;
   signals: TrainingSignalSeriesOverview[];
+  evidence: SessionStoryRoleEvidence;
   primaryMetric: SessionStoryMetric | null;
   eligibleOverlays: SessionStoryOverlay[];
   exactRoute: SessionStoryExactRoute | null;
   exactSignals: SessionStoryExactSignal[];
+}
+
+export interface SessionStoryRoleEvidence {
+  routePointCount: number;
+  signalSeriesCount: number;
+  signalSeriesWithValuesCount: number;
+  partialSignalSeriesCount: number;
+  unavailableSignalSeriesCount: number;
+  emptySignalSeriesCount: number;
+  unsupportedSignalSeriesCount: number;
+  signalSampleCount: number;
+  availableSignalSampleCount: number;
+  unavailableSignalSampleCount: number;
 }
 
 export interface SessionStoryExercise {
@@ -78,8 +92,34 @@ export interface SessionStoryExercise {
   sport: TrainingSessionSport | null;
   structure: TrainingExerciseStructure | null;
   zones: TrainingZoneCollection | null;
+  evidence: SessionStoryExerciseEvidence;
   primary: SessionStoryRole;
   transition: SessionStoryRole;
+}
+
+export interface SessionStoryExerciseEvidence {
+  hasStructure: boolean;
+  manualLapCount: number;
+  automaticLapCount: number;
+  pauseCount: number;
+  zoneGroupCount: number;
+  zoneCount: number;
+  timedZoneCount: number;
+  unsupportedZoneGroupCount: number;
+}
+
+export type SessionStoryAssessmentState =
+  | "not-evaluated"
+  | "source-absent"
+  | "source-empty"
+  | "source-present";
+
+export interface SessionStoryComposition {
+  structureState: SessionStoryAssessmentState;
+  routeState: SessionStoryAssessmentState;
+  signalState: SessionStoryAssessmentState;
+  zoneState: SessionStoryAssessmentState;
+  exerciseCount: number;
 }
 
 export interface SessionStoryProvenance {
@@ -88,7 +128,7 @@ export interface SessionStoryProvenance {
 }
 
 export interface SessionStory {
-  schemaVersion: 1;
+  schemaVersion: 2;
   snapshotRef: string;
   session: TrainingSessionSearchItem;
   structure: TrainingStructure | null;
@@ -96,5 +136,6 @@ export interface SessionStory {
   signals: TrainingSessionSignals | null;
   zones: TrainingSessionZones | null;
   provenance: SessionStoryProvenance;
+  composition: SessionStoryComposition;
   exercises: SessionStoryExercise[];
 }
