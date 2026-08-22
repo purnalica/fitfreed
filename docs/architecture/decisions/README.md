@@ -38,5 +38,6 @@ This directory contains durable FitFreed architecture decisions. Read [the docum
 - [ADR 0023: Use fitfreed.org as the public origin](0023-use-fitfreed-org-as-the-public-origin.md) — Accepted on 2026-08-18.
 - [ADR 0024: Generate localized product pages from one source](0024-generate-localized-product-pages.md) — Accepted on 2026-08-18.
 - [ADR 0025: Normalize dense signal storage by series identity](0025-normalize-dense-signal-storage.md) — Accepted on 2026-08-20.
+- [ADR 0026: Use Leaflet for the local route workbench](0026-use-leaflet-for-the-local-route-workbench.md) — Accepted on 2026-08-22.
 
 Confirmed product constraints remain in `docs/requirements.md`. Public release execution and any future mandatory-update policy remain open until their evidence and product authority gates close.

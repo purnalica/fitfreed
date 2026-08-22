@@ -190,6 +190,16 @@ bounded route and signal evidence only at identical recorded elapsed times. SQLi
 independent evidence adapters; it has no joined story query, presentation cache, or reconstructed
 timeline.
 
+[ADR 0026](decisions/0026-use-leaflet-for-the-local-route-workbench.md) defines the one spatial exception
+to the semantic-HTML visualization policy. A lazily loaded presentation adapter uses stable Leaflet 1.x
+only for a local vector viewport: projection, pan, zoom, fit, resize, pointer coordinates, and metric scale.
+It receives one bounded `SessionStory`, creates no independent query, and exposes no Leaflet type outside
+presentation. FitFreed continues to own selected source ordinal, elapsed traversal, route roles and gaps,
+sport-aware overlays, focus and return state, semantic controls, exact alternatives, and all evidence
+meaning. The adapter cannot create tiles, remote layers, geocoding, geolocation, telemetry, plugins,
+source-authored popup HTML, or any coordinate-bearing request. Application code and styles are packaged
+locally and the Tauri content security policy remains unchanged.
+
 Cross-signal inspection is a presentation of that same validated overview, not a new calculated fact. It
 allows two through four series from one exercise and one role to be selected, then places them in separate
 vertically scaled lanes over one elapsed-time axis. Exercise and transition series never share a view. Each

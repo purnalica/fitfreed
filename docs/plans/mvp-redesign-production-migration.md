@@ -895,6 +895,20 @@ documentation and data-contract checks, all 213 host, 156 application, and 33 do
 workspace-wide all-feature Clippy passed. R6 remains open for the spatial-rendering ADR and the complete
 map-led workbench, interaction, accessibility, exact-evidence, privacy, responsive, and performance gates.
 
+### R6.2 local closure — 2026-08-22
+
+[ADR 0026](../architecture/decisions/0026-use-leaflet-for-the-local-route-workbench.md) records the measured
+spatial exception without rewriting ADR 0013. The evaluation compared the existing application-owned SVG
+projection with stable Leaflet 1.9.4, OpenLayers 10.10.0, and MapLibre GL JS 6.5.0 across required interaction,
+synchronized selection, keyboard behavior, accessibility, minified and gzip package cost, WebView risk,
+contributor surface, maintenance, GPL compatibility, and offline privacy. Leaflet is selected for one lazily
+loaded local vector-only presentation adapter. It adds no runtime dependency graph, worker, WebGL context,
+tile, geocoder, geolocation, plugin, remote asset, source-authored popup HTML, or transport type. The Session
+Story remains the sole evidence input; FitFreed retains elapsed selection, route roles and gaps, overlays,
+semantic alternatives, exact evidence, focus, and navigation ownership. R6 remains open until the complete
+production workbench and every unit, packaged-WebView, accessibility, privacy, synchronization, responsive,
+and dense-session gate pass.
+
 ## X5-R7 — Make session composition evidence-adaptive
 
 **User outcome:** indoor, partial, mixed, and non-routed sessions foreground their best recorded evidence
