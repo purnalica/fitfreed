@@ -53,7 +53,8 @@ to interpret session-relative boundaries. Import reconciliation classifies the n
 than comparing only archive bytes:
 
 - equivalent evidence leaves the range unchanged;
-- compatible strict enrichment can rebase the unchanged exact boundaries to the new evidence revision;
+- compatible strict enrichment can rebase a current range's unchanged exact boundaries to the new evidence
+  revision but cannot clear an existing review requirement;
 - an amendment that can alter elapsed alignment is incompatible;
 - a missing owning session or a duration shorter than the stored end is incompatible.
 

@@ -96,6 +96,7 @@ Directories are created with their first real contract; empty specifications are
 - [Composed session story version 2](insights/session-story-v2.md)
 - [Composed session story version 1](insights/session-story-v1.md) — preceding response contract
 - [Training-session segmentation read model version 1](insights/training-session-segmentation-v1.md)
+- [Training-session range read model version 1](insights/training-session-range-v1.md)
 - [Session report read models version 1](insights/session-report-v1.md)
 - [Session report read models version 2](insights/session-report-v2.md)
 - [Session report read models version 3](insights/session-report-v3.md)
@@ -141,6 +142,7 @@ Directories are created with their first real contract; empty specifications are
 - [SQLite schema version 22](persistence/sqlite-v22.md)
 - [SQLite schema version 23](persistence/sqlite-v23.md)
 - [SQLite schema version 24](persistence/sqlite-v24.md)
+- [SQLite schema version 25](persistence/sqlite-v25.md)
 - [Release manifest version 1](release/release-manifest-v1.md)
 - [Release manifest version 2](release/release-manifest-v2.md)
 - [Public release manifest version 3](release/release-manifest-v3.md)

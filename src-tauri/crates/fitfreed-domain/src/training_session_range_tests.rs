@@ -117,6 +117,35 @@ fn incompatible_or_missing_evidence_requires_review_without_redirecting_boundari
 }
 
 #[test]
+fn compatible_enrichment_does_not_clear_an_unreviewed_incompatible_change() {
+    let review_required = reconcile_training_session_range(
+        &range(),
+        Some(300_000),
+        NEXT_EVIDENCE_REVISION,
+        TrainingSessionRangeEvidenceCompatibility::Incompatible,
+    )
+    .expect("review-required range");
+    let enriched_evidence_revision = concat!(
+        "range-evidence-",
+        "4444444444444444444444444444444444444444444444444444444444444444"
+    );
+
+    let enriched = reconcile_training_session_range(
+        &review_required,
+        Some(300_000),
+        enriched_evidence_revision,
+        TrainingSessionRangeEvidenceCompatibility::Compatible,
+    )
+    .expect("compatible enrichment after an unreviewed amendment");
+
+    assert_eq!(enriched.started_at_elapsed_milliseconds(), 60_000);
+    assert_eq!(enriched.ended_at_elapsed_milliseconds(), 180_000);
+    assert_eq!(enriched.evidence_revision(), enriched_evidence_revision);
+    assert_eq!(enriched.state(), TrainingSessionRangeState::ReviewRequired);
+    assert_eq!(enriched.revision(), 3);
+}
+
+#[test]
 fn adjustment_against_current_evidence_completes_review() {
     let review_required = reconcile_training_session_range(
         &range(),

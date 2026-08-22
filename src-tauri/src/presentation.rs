@@ -5,10 +5,11 @@ use serde::{Deserialize, Serialize};
 use fitfreed_application::{
     ActivityComparison, ActivityDateRange, ActivityDayAvailability, ActivityDayInsight,
     ActivityOverview, ActivitySeriesComparison, ActivitySeriesOverview, ActivitySeriesSummary,
-    AppearancePreference, ApplicationError, ApplicationPreferences, ApplicationPreferencesLoad,
-    AppliedTrainingSegmentCriterion, CreateComposedSessionReportRequest, CreateReportRequest,
-    CreateSessionReportRequest, CreateTrainingSegmentCriterionRequest, ExpectedSourceArchive,
-    ExplorationWorkspace, ExploreDestination, HistoricalTrainingHighlight,
+    AdjustTrainingSessionRangeRequest, AppearancePreference, ApplicationError,
+    ApplicationPreferences, ApplicationPreferencesLoad, AppliedTrainingSegmentCriterion,
+    CreateComposedSessionReportRequest, CreateReportRequest, CreateSessionReportRequest,
+    CreateTrainingSegmentCriterionRequest, CreateTrainingSessionRangeRequest,
+    ExpectedSourceArchive, ExplorationWorkspace, ExploreDestination, HistoricalTrainingHighlight,
     HistoricalTrainingReason, ImportPhase, ImportProgress, InvalidApplicationPreferences,
     LibraryDomain, LibraryDomainCoverage, LibraryHistoryHighlight, LibraryHome,
     LibraryHomeDateRange, LibraryHomeHighlight, LibraryHomeRecentSession, LibraryHomeRequest,
@@ -24,32 +25,33 @@ use fitfreed_application::{
     PreferencesLoadStatus, PreparedReportStart, RecoveryComparison, RecoveryDateRange,
     RecoveryDayAvailability, RecoveryDayInsight, RecoveryNightDetail, RecoveryNightInsight,
     RecoveryOverview, RecoverySeriesComparison, RecoverySeriesOverview, RecoverySeriesSummary,
-    RefreshReportRequest, ReportEvidenceProvenance, ReportExportReceipt, ReportExportRequest,
-    ReportLimitation, ReportResolutionStatus, ReportRouteEvidence, ReportRouteExportChoice,
-    ReportSensitiveContent, ReportSensitiveContentKind, ReportSessionEvidence, ReportStart,
-    ReportSummary, ResolvedReport, ResolvedSessionReport, SaveSportClassificationRequest,
-    SavedTrainingSportClassification, SegmentApplicabilityView, SegmentMeasurementView,
-    SessionReportBlockDraft, SessionReportBlockDraftContent, SessionStory,
-    SessionStoryAlignedSampleView, SessionStoryAssessmentStateView, SessionStoryCompositionView,
-    SessionStoryExactRoute, SessionStoryExactSignal, SessionStoryExercise,
-    SessionStoryExerciseEvidenceView, SessionStoryMetricView, SessionStoryOverlayView,
-    SessionStoryProvenance, SessionStoryQuery, SessionStoryRole, SessionStoryRoleEvidenceView,
-    SessionStoryValueTransform, SleepComparison, SleepDateRange, SleepDayAvailability,
-    SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight, SleepPhaseTotals,
-    SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary, SourceAcquisitionGuide,
-    SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange, TrainingDerivedSegment,
-    TrainingDiscoveryView, TrainingDiscoveryWorkspace, TrainingExerciseRoutesView,
-    TrainingExerciseSegmentation, TrainingExerciseSignalsView, TrainingExerciseStructure,
-    TrainingExerciseZonesView, TrainingLapStructure, TrainingMeasurementFilter,
-    TrainingPauseStructure, TrainingProvenanceCurrentView, TrainingProvenanceDecisionView,
-    TrainingProvenanceEventView, TrainingRouteCollectionView, TrainingRouteKindView,
-    TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
+    RefreshReportRequest, RemoveTrainingSessionRangeRequest, RenameTrainingSessionRangeRequest,
+    ReportEvidenceProvenance, ReportExportReceipt, ReportExportRequest, ReportLimitation,
+    ReportResolutionStatus, ReportRouteEvidence, ReportRouteExportChoice, ReportSensitiveContent,
+    ReportSensitiveContentKind, ReportSessionEvidence, ReportStart, ReportSummary, ResolvedReport,
+    ResolvedSessionReport, SaveSportClassificationRequest, SavedTrainingSportClassification,
+    SegmentApplicabilityView, SegmentMeasurementView, SessionReportBlockDraft,
+    SessionReportBlockDraftContent, SessionStory, SessionStoryAlignedSampleView,
+    SessionStoryAssessmentStateView, SessionStoryCompositionView, SessionStoryExactRoute,
+    SessionStoryExactSignal, SessionStoryExercise, SessionStoryExerciseEvidenceView,
+    SessionStoryMetricView, SessionStoryOverlayView, SessionStoryProvenance, SessionStoryQuery,
+    SessionStoryRole, SessionStoryRoleEvidenceView, SessionStoryValueTransform, SleepComparison,
+    SleepDateRange, SleepDayAvailability, SleepDayInsight, SleepOverview, SleepPeriodDetail,
+    SleepPeriodInsight, SleepPhaseTotals, SleepSeriesComparison, SleepSeriesOverview,
+    SleepSeriesSummary, SourceAcquisitionGuide, SportClassificationSaveOutcome, TrainingComparison,
+    TrainingDateRange, TrainingDerivedSegment, TrainingDiscoveryView, TrainingDiscoveryWorkspace,
+    TrainingExerciseRoutesView, TrainingExerciseSegmentation, TrainingExerciseSignalsView,
+    TrainingExerciseStructure, TrainingExerciseZonesView, TrainingLapStructure,
+    TrainingMeasurementFilter, TrainingPauseStructure, TrainingProvenanceCurrentView,
+    TrainingProvenanceDecisionView, TrainingProvenanceEventView, TrainingRouteCollectionView,
+    TrainingRouteKindView, TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
     TrainingSegmentCriterionDirection, TrainingSegmentCriterionMutationRequest,
     TrainingSeriesComparison, TrainingSeriesSummary, TrainingSessionCalendar,
     TrainingSessionCalendarDay, TrainingSessionCalendarRequest, TrainingSessionProvenanceQuery,
-    TrainingSessionProvenanceResult, TrainingSessionRouteQuery, TrainingSessionRoutesResult,
-    TrainingSessionRoutesView, TrainingSessionSearchItem, TrainingSessionSearchPage,
-    TrainingSessionSearchRequest, TrainingSessionSearchSummary, TrainingSessionSegmentationQuery,
+    TrainingSessionProvenanceResult, TrainingSessionRangesQuery, TrainingSessionRangesResult,
+    TrainingSessionRouteQuery, TrainingSessionRoutesResult, TrainingSessionRoutesView,
+    TrainingSessionSearchItem, TrainingSessionSearchPage, TrainingSessionSearchRequest,
+    TrainingSessionSearchSummary, TrainingSessionSegmentationQuery,
     TrainingSessionSegmentationResult, TrainingSessionSelection, TrainingSessionSelectionRequest,
     TrainingSessionSignalsQuery, TrainingSessionSignalsResult, TrainingSessionSignalsView,
     TrainingSessionSort, TrainingSessionSport, TrainingSessionStructureQuery,
@@ -607,7 +609,8 @@ use fitfreed_domain::{
     ReportProvenancePolicy, ReportQuestion, ReportTrainingComparisonQuery, ReportTrainingMetric,
     SegmentCriterion, SegmentCriterionAuthorship, SegmentCriterionDefinition, SleepPhaseSummary,
     SleepScore, SleepStage, SleepStageTransition, SourceSpecificRecoveryAssessment,
-    SourceSpecificRecoveryBaseline, SourceSpecificRecoveryGuidance,
+    SourceSpecificRecoveryBaseline, SourceSpecificRecoveryGuidance, TrainingSessionRange,
+    TrainingSessionRangeAuthorship, TrainingSessionRangeState,
 };
 
 #[derive(Debug, Serialize)]
@@ -1191,6 +1194,132 @@ impl From<TrainingSessionSegmentationQueryDto> for TrainingSessionSegmentationQu
         Self {
             session_ref: query.session_ref,
             snapshot_ref: query.snapshot_ref,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TrainingSessionRangesQueryDto {
+    session_ref: String,
+    snapshot_ref: Option<String>,
+}
+
+impl From<TrainingSessionRangesQueryDto> for TrainingSessionRangesQuery {
+    fn from(query: TrainingSessionRangesQueryDto) -> Self {
+        Self {
+            session_ref: query.session_ref,
+            snapshot_ref: query.snapshot_ref,
+        }
+    }
+}
+
+fn parse_training_session_range_i64(value: &str) -> Result<i64, CommandErrorDto> {
+    let parsed = value
+        .parse::<i64>()
+        .map_err(|_| CommandErrorDto::new("invalid-training-session-range"))?;
+    if parsed.to_string() != value {
+        return Err(CommandErrorDto::new("invalid-training-session-range"));
+    }
+    Ok(parsed)
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CreateTrainingSessionRangeRequestDto {
+    session_ref: String,
+    snapshot_ref: String,
+    title: String,
+    started_at_elapsed_milliseconds: String,
+    ended_at_elapsed_milliseconds: String,
+}
+
+impl TryFrom<CreateTrainingSessionRangeRequestDto> for CreateTrainingSessionRangeRequest {
+    type Error = CommandErrorDto;
+
+    fn try_from(request: CreateTrainingSessionRangeRequestDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            session_ref: request.session_ref,
+            snapshot_ref: request.snapshot_ref,
+            title: request.title,
+            started_at_elapsed_milliseconds: parse_training_session_range_i64(
+                &request.started_at_elapsed_milliseconds,
+            )?,
+            ended_at_elapsed_milliseconds: parse_training_session_range_i64(
+                &request.ended_at_elapsed_milliseconds,
+            )?,
+        })
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RenameTrainingSessionRangeRequestDto {
+    session_ref: String,
+    snapshot_ref: String,
+    range_ref: String,
+    expected_revision: u64,
+    title: String,
+}
+
+impl From<RenameTrainingSessionRangeRequestDto> for RenameTrainingSessionRangeRequest {
+    fn from(request: RenameTrainingSessionRangeRequestDto) -> Self {
+        Self {
+            session_ref: request.session_ref,
+            snapshot_ref: request.snapshot_ref,
+            range_ref: request.range_ref,
+            expected_revision: request.expected_revision,
+            title: request.title,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AdjustTrainingSessionRangeRequestDto {
+    session_ref: String,
+    snapshot_ref: String,
+    range_ref: String,
+    expected_revision: u64,
+    started_at_elapsed_milliseconds: String,
+    ended_at_elapsed_milliseconds: String,
+}
+
+impl TryFrom<AdjustTrainingSessionRangeRequestDto> for AdjustTrainingSessionRangeRequest {
+    type Error = CommandErrorDto;
+
+    fn try_from(request: AdjustTrainingSessionRangeRequestDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            session_ref: request.session_ref,
+            snapshot_ref: request.snapshot_ref,
+            range_ref: request.range_ref,
+            expected_revision: request.expected_revision,
+            started_at_elapsed_milliseconds: parse_training_session_range_i64(
+                &request.started_at_elapsed_milliseconds,
+            )?,
+            ended_at_elapsed_milliseconds: parse_training_session_range_i64(
+                &request.ended_at_elapsed_milliseconds,
+            )?,
+        })
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RemoveTrainingSessionRangeRequestDto {
+    session_ref: String,
+    snapshot_ref: String,
+    range_ref: String,
+    expected_revision: u64,
+}
+
+impl From<RemoveTrainingSessionRangeRequestDto> for RemoveTrainingSessionRangeRequest {
+    fn from(request: RemoveTrainingSessionRangeRequestDto) -> Self {
+        Self {
+            session_ref: request.session_ref,
+            snapshot_ref: request.snapshot_ref,
+            range_ref: request.range_ref,
+            expected_revision: request.expected_revision,
         }
     }
 }
@@ -4053,6 +4182,63 @@ impl From<TrainingSessionSegmentationResult> for TrainingSessionSegmentationResu
             exercises: result
                 .exercises
                 .map(|exercises| exercises.into_iter().map(Into::into).collect()),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSessionRangeDto {
+    range_ref: String,
+    title: String,
+    started_at_elapsed_milliseconds: String,
+    ended_at_elapsed_milliseconds: String,
+    evidence_revision: String,
+    authorship: &'static str,
+    state: &'static str,
+    revision: u64,
+}
+
+impl From<TrainingSessionRange> for TrainingSessionRangeDto {
+    fn from(range: TrainingSessionRange) -> Self {
+        let authorship = match range.authorship() {
+            TrainingSessionRangeAuthorship::User => "user",
+        };
+        let state = match range.state() {
+            TrainingSessionRangeState::Current => "current",
+            TrainingSessionRangeState::ReviewRequired => "review-required",
+        };
+        Self {
+            range_ref: range.range_id().to_owned(),
+            title: range.title().to_owned(),
+            started_at_elapsed_milliseconds: range.started_at_elapsed_milliseconds().to_string(),
+            ended_at_elapsed_milliseconds: range.ended_at_elapsed_milliseconds().to_string(),
+            evidence_revision: range.evidence_revision().to_owned(),
+            authorship,
+            state,
+            revision: range.revision(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSessionRangesResultDto {
+    snapshot_ref: String,
+    session_ref: String,
+    session_duration_milliseconds: String,
+    evidence_revision: String,
+    ranges: Vec<TrainingSessionRangeDto>,
+}
+
+impl From<TrainingSessionRangesResult> for TrainingSessionRangesResultDto {
+    fn from(result: TrainingSessionRangesResult) -> Self {
+        Self {
+            snapshot_ref: result.snapshot_ref,
+            session_ref: result.session_ref,
+            session_duration_milliseconds: result.session_duration_milliseconds.to_string(),
+            evidence_revision: result.evidence_revision,
+            ranges: result.ranges.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -7327,6 +7513,10 @@ mod tests {
                 "training-session-ranges-changed",
             ),
             (
+                ApplicationError::TrainingSessionRangeQuery("failed".to_owned()),
+                "training-session-range-failed",
+            ),
+            (
                 ApplicationError::TrainingSessionRangeUpdate("failed".to_owned()),
                 "training-session-range-failed",
             ),
@@ -7337,6 +7527,157 @@ mod tests {
                 serde_json::json!({ "code": code })
             );
         }
+    }
+
+    #[test]
+    fn validates_and_serializes_personal_range_transport_contracts() {
+        let query_input: TrainingSessionRangesQueryDto =
+            serde_json::from_value(serde_json::json!({
+                "sessionRef":
+                    "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "snapshotRef": null
+            }))
+            .expect("personal range query transport");
+        let query = TrainingSessionRangesQuery::from(query_input);
+        assert_eq!(
+            query.session_ref,
+            "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        );
+        assert_eq!(query.snapshot_ref, None);
+
+        let create_input: CreateTrainingSessionRangeRequestDto =
+            serde_json::from_value(serde_json::json!({
+                "sessionRef":
+                    "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "snapshotRef":
+                    "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "title": "Bridge to bend",
+                "startedAtElapsedMilliseconds": "0",
+                "endedAtElapsedMilliseconds": "9223372036854775807"
+            }))
+            .expect("personal range create transport");
+        let create = CreateTrainingSessionRangeRequest::try_from(create_input)
+            .expect("personal range create request");
+        assert_eq!(create.started_at_elapsed_milliseconds, 0);
+        assert_eq!(create.ended_at_elapsed_milliseconds, i64::MAX);
+
+        let rename_input: RenameTrainingSessionRangeRequestDto =
+            serde_json::from_value(serde_json::json!({
+                "sessionRef":
+                    "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "snapshotRef":
+                    "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "rangeRef":
+                    "range-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                "expectedRevision": 2,
+                "title": "Strong finish"
+            }))
+            .expect("personal range rename transport");
+        let rename = RenameTrainingSessionRangeRequest::from(rename_input);
+        assert_eq!(rename.expected_revision, 2);
+        assert_eq!(rename.title, "Strong finish");
+
+        let adjust_input: AdjustTrainingSessionRangeRequestDto =
+            serde_json::from_value(serde_json::json!({
+                "sessionRef":
+                    "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "snapshotRef":
+                    "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "rangeRef":
+                    "range-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                "expectedRevision": 3,
+                "startedAtElapsedMilliseconds": "10",
+                "endedAtElapsedMilliseconds": "20"
+            }))
+            .expect("personal range adjustment transport");
+        let adjust = AdjustTrainingSessionRangeRequest::try_from(adjust_input)
+            .expect("personal range adjustment request");
+        assert_eq!(adjust.expected_revision, 3);
+        assert_eq!(adjust.started_at_elapsed_milliseconds, 10);
+        assert_eq!(adjust.ended_at_elapsed_milliseconds, 20);
+
+        let remove_input: RemoveTrainingSessionRangeRequestDto =
+            serde_json::from_value(serde_json::json!({
+                "sessionRef":
+                    "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "snapshotRef":
+                    "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "rangeRef":
+                    "range-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                "expectedRevision": 4
+            }))
+            .expect("personal range removal transport");
+        let remove = RemoveTrainingSessionRangeRequest::from(remove_input);
+        assert_eq!(remove.expected_revision, 4);
+
+        assert!(
+            CreateTrainingSessionRangeRequest::try_from(
+                serde_json::from_value::<CreateTrainingSessionRangeRequestDto>(
+                    serde_json::json!({
+                        "sessionRef":
+                            "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                        "snapshotRef":
+                            "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        "title": "Invalid boundary",
+                        "startedAtElapsedMilliseconds": "00",
+                        "endedAtElapsedMilliseconds": "1"
+                    })
+                )
+                .expect("structurally valid range request")
+            )
+            .is_err()
+        );
+        assert!(
+            serde_json::from_value::<AdjustTrainingSessionRangeRequestDto>(serde_json::json!({
+                "sessionRef":
+                    "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "snapshotRef":
+                    "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "rangeRef":
+                    "range-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                "expectedRevision": 2,
+                "startedAtElapsedMilliseconds": "10",
+                "endedAtElapsedMilliseconds": "20",
+                "sourceLapId": "must-not-cross-the-boundary"
+            }))
+            .is_err()
+        );
+
+        let range = TrainingSessionRange::restore(
+            "range-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "Bridge to bend",
+            i64::MAX - 2,
+            i64::MAX,
+            "range-evidence-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            TrainingSessionRangeAuthorship::User,
+            TrainingSessionRangeState::ReviewRequired,
+            7,
+        )
+        .expect("transport range");
+        let result = TrainingSessionRangesResult {
+            snapshot_ref:
+                "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    .to_owned(),
+            session_ref: "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                .to_owned(),
+            session_duration_milliseconds: i64::MAX,
+            evidence_revision:
+                "range-evidence-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                    .to_owned(),
+            ranges: vec![range],
+        };
+        let json = serde_json::to_value(TrainingSessionRangesResultDto::from(result))
+            .expect("personal range result JSON");
+        assert_eq!(json["sessionDurationMilliseconds"], i64::MAX.to_string());
+        assert_eq!(
+            json["ranges"][0]["startedAtElapsedMilliseconds"],
+            (i64::MAX - 2).to_string()
+        );
+        assert_eq!(json["ranges"][0]["authorship"], "user");
+        assert_eq!(json["ranges"][0]["state"], "review-required");
+        assert_eq!(json["ranges"][0]["revision"], 7);
+        assert!(json.to_string().find("sourceSessionId").is_none());
     }
 
     #[test]

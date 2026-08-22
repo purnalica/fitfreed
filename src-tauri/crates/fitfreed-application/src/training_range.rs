@@ -5,6 +5,7 @@ use fitfreed_domain::{
     rename_training_session_range as rename_range, RemovedTrainingSessionRange,
     TrainingSessionRange, TrainingSessionRangeError, TrainingSessionRangeState,
 };
+use thiserror::Error;
 
 use crate::{training_detail::valid_ref, ApplicationError};
 
@@ -38,12 +39,17 @@ pub struct TrainingSessionRangesResult {
     pub ranges: Vec<TrainingSessionRange>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
 pub enum TrainingSessionRangePortError {
+    #[error("training-session range snapshot changed")]
     SnapshotChanged,
+    #[error("training-session range or owner was not found")]
     NotFound,
+    #[error("training-session range revision conflicted")]
     Conflict,
+    #[error("training-session range identity already exists")]
     AlreadyExists,
+    #[error("training-session range persistence failed: {0}")]
     Failure(String),
 }
 

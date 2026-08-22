@@ -237,7 +237,8 @@ pub fn reconcile_training_session_range(
     let boundaries_remain_valid = session_duration_milliseconds
         .filter(|duration| *duration >= 0)
         .is_some_and(|duration| existing.ended_at_elapsed_milliseconds <= duration);
-    let state = if compatibility == TrainingSessionRangeEvidenceCompatibility::Compatible
+    let state = if existing.state == TrainingSessionRangeState::Current
+        && compatibility == TrainingSessionRangeEvidenceCompatibility::Compatible
         && boundaries_remain_valid
     {
         TrainingSessionRangeState::Current

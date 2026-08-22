@@ -211,7 +211,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R5 | Complete locally — R5.4, R5.5, and real-process restart gates passed 2026-08-22 | A remembered session is findable and sports are recognizable |
 | X5-R6 | Complete locally — R6.1 through R6.5 passed exact packaged, adaptive visual, and dense-route gates on 2026-08-22 | A routed workout is investigated through a dominant synchronized map |
 | X5-R7 | Complete locally — R7.1 through R7.6 passed the exact fast, functional, restart, adaptive, accessibility, visual, and performance gates on 2026-08-22 | Every session composition reflects its actual evidence |
-| X5-R8 | In progress — R8.1 and R8.2 domain/application contracts complete locally on 2026-08-22 | Personal ranges and reusable criteria work end to end |
+| X5-R8 | In progress — R8.1 through R8.3 domain, application, persistence, and transport complete locally on 2026-08-22 | Personal ranges and reusable criteria work end to end |
 | X5-R9 | Pending | Reports open as results and leave FitFreed safely |
 | X5-R10 | Pending | The complete release-shaped product is coherent and documented |
 | X6 | Pending | Independent audit has no unresolved material finding |
@@ -1229,16 +1229,17 @@ evidence revision, current or review-required state, and an optimistic aggregate
 adjust, evidence reconciliation, and revision-bound removal are explicit domain transitions. Duplicate names
 and overlapping ranges remain valid because neither title nor geometry is identity.
 
-Compatible strict enrichment can rebase unchanged exact boundaries to a new evidence revision. An
-incompatible amendment, missing owner, or shortened duration preserves the authored title and numeric
-boundaries in review-required state instead of clamping or redirecting them. Explicit adjustment against
-current evidence completes review, including when the person deliberately retains the same values. Every
+Compatible strict enrichment can rebase unchanged exact boundaries of a current range to a new evidence
+revision. An incompatible amendment, missing owner, or shortened duration preserves the authored title and
+numeric boundaries in review-required state instead of clamping or redirecting them; later enrichment cannot
+clear that state. Explicit adjustment against current evidence completes review, including when the person
+deliberately retains the same values. Every
 effective authored or reconciliation transition advances the revision exactly once; repeated equivalent
 state is idempotent.
 
 The canonical range, architecture, domain, and format-index sources document session elapsed coordinates,
 separation from source and derived evidence, concurrency, reimport, deletion, privacy, and future portability.
-Eight focused domain tests, the complete 41-test domain suite, strict domain Clippy, formatting, and public
+Nine focused domain tests, the complete 42-test domain suite, strict domain Clippy, formatting, and public
 documentation checks pass. Application commands, persistence, the revision-coherent Range Summary, and
 production interaction remain open under R8.
 
@@ -1257,6 +1258,35 @@ optimistic conflicts, invalid requests, query failures, and update failures have
 desktop error codes. Eight focused application behaviors, the complete 167-test application suite, strict
 application Clippy, architecture checks, and host transport compilation pass. SQLite persistence, import-time
 evidence reconciliation, JSON transport shapes, and the Range Summary remain open.
+
+### R8.3 personal-range persistence and desktop transport — 2026-08-22
+
+SQLite schema 25 now persists each user-authored range separately from imported structure and reusable
+criteria. The additive migration is atomic from every supported schema baseline, creates no inferred ranges,
+keeps authored ownership recoverable without a destructive cascade, and remains part of the normal online
+backup. Bounded reads reconstruct complete aggregates; create, compare-and-save, and compare-and-remove each
+return their committed context from one immediate transaction with snapshot and optimistic-revision checks.
+
+Import-time reconciliation runs inside the same visibility transaction as the canonical session change.
+Exact repeat and semantically equivalent archives leave evidence and range revisions stable. Compatible
+enrichment rebases current ranges without moving their boundaries; it cannot clear an existing review
+requirement. Amendment retains exact authored boundaries as review-required until the person explicitly
+adjusts or confirms them. Restart, overlap, duplicate titles, stale edits, removal, compatible enrichment,
+amendment, review completion, and the version-24 rollback/retry migration are covered through real SQLite and
+archive paths.
+
+Five Tauri commands expose opaque query, create, rename, adjust, and remove inputs and one complete result.
+The six JSON Schemas preserve exact elapsed milliseconds as decimal text, reject provider or storage identity,
+and are checked against synthetic valid and invalid values. The canonical format, read model, schema-25
+persistence, storage architecture, compatibility matrix, release notes, and release-readiness sources are
+linked and current.
+
+The final `test:fast` gate passes 156 tooling tests, 290 React tests, two vendored-updater tests, 216 host tests,
+167 application tests, 42 domain tests, and two private-acceptance example tests, together with architecture,
+contract, workflow, documentation, site, i18n, and UI-contract checks. Workspace Clippy with warnings denied,
+Rust formatting, and diff whitespace checks also pass. The revision-coherent Range Summary, production range
+interaction, criteria integration, packaged E2E/accessibility/performance evidence, and alpha UX review remain
+open under R8.
 
 ## X5-R9 — Make reports result-first and portable
 

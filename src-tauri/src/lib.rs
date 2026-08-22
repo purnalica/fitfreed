@@ -19,6 +19,7 @@ use std::fs;
 
 use chrono::{SecondsFormat, Utc};
 use fitfreed_application::{
+    adjust_training_session_range as adjust_training_session_range_through_port,
     apply_training_segment_criterion as apply_segment_criterion_through_port,
     authorize_update_installation as authorize_update, check_for_updates as evaluate_updates,
     clear_exploration_workspace as clear_workspace,
@@ -26,6 +27,7 @@ use fitfreed_application::{
     create_report as create_report_through_port,
     create_session_report as create_session_report_through_port,
     create_training_segment_criterion as create_segment_criterion_through_port,
+    create_training_session_range as create_training_session_range_through_port,
     dismiss_update as persist_update_dismissal, export_report as export_report_through_port,
     export_session_report as export_session_report_through_port,
     list_reports as list_reports_through_port,
@@ -41,6 +43,7 @@ use fitfreed_application::{
     query_source_acquisition_guides as build_source_acquisition_guides,
     query_training_route_points as build_training_route_points,
     query_training_session_provenance as build_training_session_provenance,
+    query_training_session_ranges as build_training_session_ranges,
     query_training_session_routes as build_training_session_routes,
     query_training_session_segmentation as build_training_session_segmentation,
     query_training_session_signals as build_training_session_signals,
@@ -49,6 +52,8 @@ use fitfreed_application::{
     query_training_signal_samples as build_training_signal_samples,
     query_training_sports as build_training_sports, refresh_report as refresh_report_through_port,
     remove_training_segment_criterion as remove_segment_criterion_through_port,
+    remove_training_session_range as remove_training_session_range_through_port,
+    rename_training_session_range as rename_training_session_range_through_port,
     reset_application_preferences as reset_preferences_through_port,
     resolve_report as resolve_report_through_port,
     resolve_session_report as resolve_session_report_through_port,
@@ -79,24 +84,28 @@ use infrastructure::{
     UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
 };
 use presentation::{
-    ActivityComparisonDto, ActivityDateRangeDto, ActivityOverviewDto, ApplicationPreferencesDto,
+    ActivityComparisonDto, ActivityDateRangeDto, ActivityOverviewDto,
+    AdjustTrainingSessionRangeRequestDto, ApplicationPreferencesDto,
     ApplicationPreferencesInputDto, ApplicationPreferencesLoadDto, CommandErrorDto,
     CreateComposedSessionReportRequestDto, CreateReportRequestDto, CreateSessionReportRequestDto,
-    CreateTrainingSegmentCriterionRequestDto, ExplorationWorkspaceDto, ExploreDestinationInputDto,
-    ImportOutcomeDto, ImportProgressDto, ImportReportDto, LibraryHomeDto, LibraryHomeRequestDto,
-    LongitudinalComparisonDto, LongitudinalDateRangeDto, LongitudinalOverviewDto,
-    MoveTrainingSegmentCriterionRequestDto, PreparedReportStartDto, RecoveryComparisonDto,
-    RecoveryDateRangeDto, RecoveryNightDetailDto, RecoveryOverviewDto, RefreshReportRequestDto,
-    ReportDefinitionDto, ReportExportReceiptDto, ReportExportRequestDto, ReportListDto,
-    ReportStartDto, ResolvedReportDto, ResolvedSessionReportDto, SaveSportClassificationRequestDto,
+    CreateTrainingSegmentCriterionRequestDto, CreateTrainingSessionRangeRequestDto,
+    ExplorationWorkspaceDto, ExploreDestinationInputDto, ImportOutcomeDto, ImportProgressDto,
+    ImportReportDto, LibraryHomeDto, LibraryHomeRequestDto, LongitudinalComparisonDto,
+    LongitudinalDateRangeDto, LongitudinalOverviewDto, MoveTrainingSegmentCriterionRequestDto,
+    PreparedReportStartDto, RecoveryComparisonDto, RecoveryDateRangeDto, RecoveryNightDetailDto,
+    RecoveryOverviewDto, RefreshReportRequestDto, RemoveTrainingSessionRangeRequestDto,
+    RenameTrainingSessionRangeRequestDto, ReportDefinitionDto, ReportExportReceiptDto,
+    ReportExportRequestDto, ReportListDto, ReportStartDto, ResolvedReportDto,
+    ResolvedSessionReportDto, SaveSportClassificationRequestDto,
     SavedTrainingSportClassificationDto, SessionReportExportRequestDto, SessionStoryDto,
     SessionStoryQueryDto, SleepComparisonDto, SleepDateRangeDto, SleepOverviewDto,
     SleepPeriodDetailDto, SourceAcquisitionGuideDto, TrainingComparisonDto, TrainingDateRangeDto,
     TrainingDiscoveryWorkspaceDto, TrainingRoutePointsQueryDto, TrainingRoutePointsResultDto,
     TrainingSegmentCriterionMutationRequestDto, TrainingSessionCalendarDto,
     TrainingSessionCalendarRequestDto, TrainingSessionProvenanceQueryDto,
-    TrainingSessionProvenanceResultDto, TrainingSessionRouteQueryDto,
-    TrainingSessionRoutesResultDto, TrainingSessionSearchPageDto, TrainingSessionSearchRequestDto,
+    TrainingSessionProvenanceResultDto, TrainingSessionRangesQueryDto,
+    TrainingSessionRangesResultDto, TrainingSessionRouteQueryDto, TrainingSessionRoutesResultDto,
+    TrainingSessionSearchPageDto, TrainingSessionSearchRequestDto,
     TrainingSessionSegmentationQueryDto, TrainingSessionSegmentationResultDto,
     TrainingSessionSelectionDto, TrainingSessionSelectionRequestDto,
     TrainingSessionSignalsQueryDto, TrainingSessionSignalsResultDto,
@@ -638,6 +647,67 @@ fn move_training_segment_criterion(
 ) -> Result<TrainingSessionSegmentationResultDto, CommandErrorDto> {
     let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
     move_segment_criterion_through_port(&SqliteTrainingLibrary::new(path), request.into())
+        .map(Into::into)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn query_training_session_ranges(
+    app: AppHandle,
+    query: TrainingSessionRangesQueryDto,
+) -> Result<TrainingSessionRangesResultDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    build_training_session_ranges(&SqliteTrainingLibrary::new(path), query.into())
+        .map(Into::into)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn create_training_session_range(
+    app: AppHandle,
+    request: CreateTrainingSessionRangeRequestDto,
+) -> Result<TrainingSessionRangesResultDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    create_training_session_range_through_port(
+        &SqliteTrainingLibrary::new(path),
+        request.try_into()?,
+    )
+    .map(Into::into)
+    .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn rename_training_session_range(
+    app: AppHandle,
+    request: RenameTrainingSessionRangeRequestDto,
+) -> Result<TrainingSessionRangesResultDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    rename_training_session_range_through_port(&SqliteTrainingLibrary::new(path), request.into())
+        .map(Into::into)
+        .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn adjust_training_session_range(
+    app: AppHandle,
+    request: AdjustTrainingSessionRangeRequestDto,
+) -> Result<TrainingSessionRangesResultDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    adjust_training_session_range_through_port(
+        &SqliteTrainingLibrary::new(path),
+        request.try_into()?,
+    )
+    .map(Into::into)
+    .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn remove_training_session_range(
+    app: AppHandle,
+    request: RemoveTrainingSessionRangeRequestDto,
+) -> Result<TrainingSessionRangesResultDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    remove_training_session_range_through_port(&SqliteTrainingLibrary::new(path), request.into())
         .map(Into::into)
         .map_err(CommandErrorDto::from)
 }
@@ -1929,6 +1999,11 @@ pub fn run() {
             apply_training_segment_criterion,
             remove_training_segment_criterion,
             move_training_segment_criterion,
+            query_training_session_ranges,
+            create_training_session_range,
+            rename_training_session_range,
+            adjust_training_session_range,
+            remove_training_session_range,
             load_training_discovery_workspace,
             save_training_discovery_workspace,
             clear_training_discovery_workspace,

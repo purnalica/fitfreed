@@ -18,7 +18,7 @@ use regex::Regex;
 use rusqlite::{
     params, params_from_iter,
     types::{Type, Value},
-    Connection, Error as SqliteError, OptionalExtension, Row, Transaction,
+    Connection, Error as SqliteError, OptionalExtension, Row, Transaction, TransactionBehavior,
 };
 use serde::{
     de::{IgnoredAny, SeqAccess, Visitor},
@@ -30,19 +30,22 @@ use zip::ZipArchive;
 
 #[cfg(test)]
 use fitfreed_application::{
-    apply_training_segment_criterion, clear_exploration_workspace,
-    create_training_segment_criterion, move_training_segment_criterion,
-    query_default_recovery_overview, query_default_sleep_overview, query_default_training_overview,
-    query_library_home, query_longitudinal_overview, query_recovery_detail,
-    query_training_route_points, query_training_session_provenance, query_training_session_routes,
+    adjust_training_session_range, apply_training_segment_criterion, clear_exploration_workspace,
+    create_training_segment_criterion, create_training_session_range,
+    move_training_segment_criterion, query_default_recovery_overview, query_default_sleep_overview,
+    query_default_training_overview, query_library_home, query_longitudinal_overview,
+    query_recovery_detail, query_training_route_points, query_training_session_provenance,
+    query_training_session_ranges, query_training_session_routes,
     query_training_session_segmentation, query_training_session_signals,
     query_training_session_structure, query_training_session_zones, query_training_signal_samples,
-    query_training_sports, remove_training_segment_criterion, save_exploration_workspace,
-    save_training_sport_classification, update_training_segment_criterion, AppearancePreference,
-    ApplicationError, CreateTrainingSegmentCriterionRequest, LibraryDomain, LibraryHomeDateRange,
-    LibraryHomeHighlight, LibraryHomeRequest, LibraryQuestion, LibraryQuestionKind,
-    LocalePreference, MoveTrainingSegmentCriterionRequest, SaveSportClassificationRequest,
-    SegmentApplicabilityView, SportClassificationSaveOutcome,
+    query_training_sports, remove_training_segment_criterion, remove_training_session_range,
+    rename_training_session_range, save_exploration_workspace, save_training_sport_classification,
+    update_training_segment_criterion, AdjustTrainingSessionRangeRequest, AppearancePreference,
+    ApplicationError, CreateTrainingSegmentCriterionRequest, CreateTrainingSessionRangeRequest,
+    LibraryDomain, LibraryHomeDateRange, LibraryHomeHighlight, LibraryHomeRequest, LibraryQuestion,
+    LibraryQuestionKind, LocalePreference, MoveTrainingSegmentCriterionRequest,
+    RemoveTrainingSessionRangeRequest, RenameTrainingSessionRangeRequest,
+    SaveSportClassificationRequest, SegmentApplicabilityView, SportClassificationSaveOutcome,
     TrainingSegmentCriterionMutationRequest, UpdateTrainingSegmentCriterionRequest,
 };
 use fitfreed_application::{
@@ -51,24 +54,26 @@ use fitfreed_application::{
     ExploreDestination, ImportOutcomeLibraryPort, ImportPhase, ImportPhaseTimings, ImportProgress,
     LibraryHomeClockPort, LibraryHomeRevisionPort, PersistedTrainingExerciseSegmentation,
     PersistedTrainingRoutePoints, PersistedTrainingSessionCalendar,
-    PersistedTrainingSessionProvenance, PersistedTrainingSessionRoutes,
-    PersistedTrainingSessionSearchPage, PersistedTrainingSessionSegmentation,
-    PersistedTrainingSessionSelection, PersistedTrainingSessionSignals,
-    PersistedTrainingSessionStructure, PersistedTrainingSessionZones,
-    PersistedTrainingSignalSamples, ProfiledImport, RecoveryDateRange, RecoveryLibraryNight,
-    RecoveryLibraryPort, ReportDefinitionPort, ReportDefinitionPortError, SegmentSignalEvidence,
-    SegmentSignalKind, SegmentSignalSample, SleepDateRange, SleepLibraryPeriod, SleepLibraryPort,
-    StoredApplicationPreferences, StoredExplorationWorkspace, TrainingDateRange,
-    TrainingDiscoveryView, TrainingDiscoveryWorkspace, TrainingDiscoveryWorkspacePort,
-    TrainingExerciseRoutesView, TrainingExerciseSignalsView, TrainingExerciseStructure,
-    TrainingExerciseZonesView, TrainingLapStructure, TrainingLibraryPort,
-    TrainingMeasurementFilter, TrainingPauseStructure, TrainingProvenanceCurrentView,
-    TrainingProvenanceDecisionView, TrainingProvenanceEventView, TrainingRouteCollectionView,
-    TrainingRouteKindView, TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
-    TrainingSegmentCriterionDirection, TrainingSegmentationPort, TrainingSegmentationPortError,
-    TrainingSessionCalendarDay, TrainingSessionCalendarRequest, TrainingSessionDiscoveryPort,
+    PersistedTrainingSessionProvenance, PersistedTrainingSessionRanges,
+    PersistedTrainingSessionRoutes, PersistedTrainingSessionSearchPage,
+    PersistedTrainingSessionSegmentation, PersistedTrainingSessionSelection,
+    PersistedTrainingSessionSignals, PersistedTrainingSessionStructure,
+    PersistedTrainingSessionZones, PersistedTrainingSignalSamples, ProfiledImport,
+    RecoveryDateRange, RecoveryLibraryNight, RecoveryLibraryPort, ReportDefinitionPort,
+    ReportDefinitionPortError, SegmentSignalEvidence, SegmentSignalKind, SegmentSignalSample,
+    SleepDateRange, SleepLibraryPeriod, SleepLibraryPort, StoredApplicationPreferences,
+    StoredExplorationWorkspace, TrainingDateRange, TrainingDiscoveryView,
+    TrainingDiscoveryWorkspace, TrainingDiscoveryWorkspacePort, TrainingExerciseRoutesView,
+    TrainingExerciseSignalsView, TrainingExerciseStructure, TrainingExerciseZonesView,
+    TrainingLapStructure, TrainingLibraryPort, TrainingMeasurementFilter, TrainingPauseStructure,
+    TrainingProvenanceCurrentView, TrainingProvenanceDecisionView, TrainingProvenanceEventView,
+    TrainingRouteCollectionView, TrainingRouteKindView, TrainingRouteOverview,
+    TrainingRoutePointView, TrainingRoutePointsQuery, TrainingSegmentCriterionDirection,
+    TrainingSegmentationPort, TrainingSegmentationPortError, TrainingSessionCalendarDay,
+    TrainingSessionCalendarRequest, TrainingSessionDiscoveryPort,
     TrainingSessionDiscoveryPortError, TrainingSessionProvenancePort,
-    TrainingSessionProvenancePortError, TrainingSessionProvenanceQuery, TrainingSessionRoutePort,
+    TrainingSessionProvenancePortError, TrainingSessionProvenanceQuery, TrainingSessionRangePort,
+    TrainingSessionRangePortError, TrainingSessionRangesQuery, TrainingSessionRoutePort,
     TrainingSessionRoutePortError, TrainingSessionRouteQuery, TrainingSessionRoutesView,
     TrainingSessionSearchItem, TrainingSessionSearchRequest, TrainingSessionSearchSummary,
     TrainingSessionSegmentationQuery, TrainingSessionSelectionRequest, TrainingSessionSignalPort,
@@ -86,22 +91,26 @@ use fitfreed_application::{
 use fitfreed_domain::{
     decide_nightly_recovery_reconciliation, decide_reconciliation,
     decide_sleep_period_reconciliation, decide_training_session_record_reconciliation,
-    ArtifactClassification, ArtifactCoverageSummary, ArtifactFamilyCoverage, DailyActivity,
-    ExistingObservation, ImportOperationState, ImportOutcome, ImportReport, NightlyRecovery,
-    ReconciliationDecision, ReportAuthorship, ReportBlock, ReportBlockContent, ReportDateRange,
-    ReportDefinition, ReportLocale, ReportOrigin, ReportProvenancePolicy, ReportQuestion,
-    ReportTrainingComparisonQuery, ReportTrainingMetric, RevisionOrder, SegmentCriterion,
-    SegmentCriterionAuthorship, SegmentCriterionDefinition, SleepPeriod, SleepPhaseSummary,
-    SleepScore, SleepStage, SleepStageTransition, SourceSpecificRecoveryAssessment,
-    SourceSpecificRecoveryBaseline, SourceSpecificRecoveryGuidance, SportClassification,
-    SportClassificationAuthorship, SportClassificationKey, SportClassificationState, SportFamily,
-    TrainingExercise, TrainingExerciseRouteAssessment, TrainingExerciseSignalAssessment,
+    reconcile_training_session_range, ArtifactClassification, ArtifactCoverageSummary,
+    ArtifactFamilyCoverage, DailyActivity, ExistingObservation, ImportOperationState,
+    ImportOutcome, ImportReport, NightlyRecovery, ReconciliationDecision,
+    RemovedTrainingSessionRange, ReportAuthorship, ReportBlock, ReportBlockContent,
+    ReportDateRange, ReportDefinition, ReportLocale, ReportOrigin, ReportProvenancePolicy,
+    ReportQuestion, ReportTrainingComparisonQuery, ReportTrainingMetric, RevisionOrder,
+    SegmentCriterion, SegmentCriterionAuthorship, SegmentCriterionDefinition, SleepPeriod,
+    SleepPhaseSummary, SleepScore, SleepStage, SleepStageTransition,
+    SourceSpecificRecoveryAssessment, SourceSpecificRecoveryBaseline,
+    SourceSpecificRecoveryGuidance, SportClassification, SportClassificationAuthorship,
+    SportClassificationKey, SportClassificationState, SportFamily, TrainingExercise,
+    TrainingExerciseRouteAssessment, TrainingExerciseSignalAssessment,
     TrainingExerciseZoneAssessment, TrainingLap, TrainingLapKind, TrainingPause, TrainingRoute,
-    TrainingRouteKind, TrainingRoutePoint, TrainingRoutes, TrainingSession, TrainingSessionRecord,
-    TrainingSessionRouteAssessment, TrainingSessionSignalAssessment, TrainingSessionStructure,
-    TrainingSessionZoneAssessment, TrainingSignalKind, TrainingSignalSample, TrainingSignalSeries,
-    TrainingSignalUnit, TrainingSignals, TrainingZone, TrainingZoneGroup, TrainingZoneKind,
-    TrainingZoneUnit, TrainingZones,
+    TrainingRouteKind, TrainingRoutePoint, TrainingRoutes, TrainingSession, TrainingSessionRange,
+    TrainingSessionRangeAuthorship, TrainingSessionRangeEvidenceCompatibility,
+    TrainingSessionRangeState, TrainingSessionRecord, TrainingSessionRouteAssessment,
+    TrainingSessionSignalAssessment, TrainingSessionStructure, TrainingSessionZoneAssessment,
+    TrainingSignalKind, TrainingSignalSample, TrainingSignalSeries, TrainingSignalUnit,
+    TrainingSignals, TrainingZone, TrainingZoneGroup, TrainingZoneKind, TrainingZoneUnit,
+    TrainingZones,
 };
 
 mod local_file;
@@ -160,7 +169,7 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 24;
+const SCHEMA_VERSION: i64 = 25;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
@@ -185,6 +194,7 @@ const SCHEMA_V21: &str = include_str!("../migrations/0021_composable_route_repor
 const SCHEMA_V22: &str = include_str!("../migrations/0022_training_comparison_reports.sql");
 const SCHEMA_V23: &str = include_str!("../migrations/0023_report_start_origins.sql");
 const SCHEMA_V24: &str = include_str!("../migrations/0024_compact_training_signal_samples.sql");
+const SCHEMA_V25: &str = include_str!("../migrations/0025_training_session_ranges.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
 const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@11";
 const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@6";
@@ -4735,6 +4745,450 @@ fn move_segment_criterion(
     Ok(())
 }
 
+fn training_range_failure(error: impl std::fmt::Display) -> TrainingSessionRangePortError {
+    TrainingSessionRangePortError::Failure(error.to_string())
+}
+
+fn training_range_snapshot_and_identity(
+    transaction: &Transaction<'_>,
+    session_ref: &str,
+    expected_snapshot_ref: Option<&str>,
+) -> StandardResult<(String, String, String), TrainingSessionRangePortError> {
+    signal_snapshot_and_identity(transaction, session_ref, expected_snapshot_ref).map_err(|error| {
+        match error {
+            TrainingSessionSignalPortError::SnapshotChanged => {
+                TrainingSessionRangePortError::SnapshotChanged
+            }
+            TrainingSessionSignalPortError::NotFound => TrainingSessionRangePortError::NotFound,
+            TrainingSessionSignalPortError::Failure(reason) => {
+                TrainingSessionRangePortError::Failure(reason)
+            }
+        }
+    })
+}
+
+fn update_digest_text(digest: &mut Sha256, value: &str) {
+    digest.update(value.len().to_be_bytes());
+    digest.update(value.as_bytes());
+}
+
+fn training_range_evidence_revision_on(
+    transaction: &Transaction<'_>,
+    origin_id: &str,
+    session_id: &str,
+) -> StandardResult<(i64, String), TrainingSessionRangePortError> {
+    let evidence = transaction
+        .query_row(
+            "SELECT session.started_at_local, session.stopped_at_local,
+                    session.duration_milliseconds, provenance.source_artifact_sha256,
+                    provenance.mapping_version, provenance.source_modified_at_utc
+             FROM training_session AS session
+             JOIN training_session_provenance AS provenance
+               ON provenance.origin_id = session.origin_id
+              AND provenance.session_id = session.session_id
+             WHERE session.origin_id = ?1 AND session.session_id = ?2
+               AND provenance.contributes_to_visible_state = 1
+               AND provenance.reconciliation_decision IN ('create', 'enrich', 'amend')
+             ORDER BY provenance.id DESC LIMIT 1",
+            params![origin_id, session_id],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, i64>(2)?,
+                    row.get::<_, String>(3)?,
+                    row.get::<_, String>(4)?,
+                    row.get::<_, String>(5)?,
+                ))
+            },
+        )
+        .optional()
+        .map_err(training_range_failure)?
+        .ok_or(TrainingSessionRangePortError::NotFound)?;
+    let (
+        started_at_local,
+        stopped_at_local,
+        duration_milliseconds,
+        artifact_sha256,
+        mapping_version,
+        source_modified_at_utc,
+    ) = evidence;
+    if duration_milliseconds < 0 {
+        return Err(training_range_failure(
+            "training-session range owner has a negative duration",
+        ));
+    }
+    let mut digest = Sha256::new();
+    digest.update(b"fitfreed:training-range-evidence:v1\0");
+    for value in [
+        origin_id,
+        session_id,
+        &started_at_local,
+        &stopped_at_local,
+        &artifact_sha256,
+        &mapping_version,
+        &source_modified_at_utc,
+    ] {
+        update_digest_text(&mut digest, value);
+    }
+    digest.update(duration_milliseconds.to_be_bytes());
+    Ok((
+        duration_milliseconds,
+        format!("range-evidence-{:x}", digest.finalize()),
+    ))
+}
+
+fn load_training_session_ranges_on(
+    transaction: &Transaction<'_>,
+    origin_id: &str,
+    session_id: &str,
+) -> StandardResult<Vec<TrainingSessionRange>, TrainingSessionRangePortError> {
+    let mut statement = transaction
+        .prepare(
+            "SELECT range_id, title, started_at_elapsed_milliseconds,
+                    ended_at_elapsed_milliseconds, evidence_revision, authorship, state, revision
+             FROM training_session_range
+             WHERE origin_id = ?1 AND session_id = ?2
+             ORDER BY started_at_elapsed_milliseconds, ended_at_elapsed_milliseconds,
+                      title, range_id
+             LIMIT 1001",
+        )
+        .map_err(training_range_failure)?;
+    let rows = statement
+        .query_map(params![origin_id, session_id], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, i64>(2)?,
+                row.get::<_, i64>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, String>(5)?,
+                row.get::<_, String>(6)?,
+                row.get::<_, i64>(7)?,
+            ))
+        })
+        .map_err(training_range_failure)?;
+    let session_ref = training_session_ref(origin_id, session_id);
+    let mut ranges = Vec::new();
+    for row in rows {
+        let (range_id, title, started, ended, evidence_revision, authorship, state, revision) =
+            row.map_err(training_range_failure)?;
+        let authorship = TrainingSessionRangeAuthorship::from_code(&authorship)
+            .ok_or_else(|| training_range_failure("stored range authorship is invalid"))?;
+        let state = TrainingSessionRangeState::from_code(&state)
+            .ok_or_else(|| training_range_failure("stored range state is invalid"))?;
+        let revision = u64::try_from(revision)
+            .map_err(|_| training_range_failure("stored range revision is invalid"))?;
+        ranges.push(
+            TrainingSessionRange::restore(
+                range_id,
+                &session_ref,
+                title,
+                started,
+                ended,
+                evidence_revision,
+                authorship,
+                state,
+                revision,
+            )
+            .map_err(training_range_failure)?,
+        );
+    }
+    Ok(ranges)
+}
+
+fn training_session_ranges_context_on(
+    transaction: &Transaction<'_>,
+    session_ref: &str,
+    expected_snapshot_ref: Option<&str>,
+) -> StandardResult<PersistedTrainingSessionRanges, TrainingSessionRangePortError> {
+    let (snapshot_ref, origin_id, session_id) =
+        training_range_snapshot_and_identity(transaction, session_ref, expected_snapshot_ref)?;
+    let (session_duration_milliseconds, evidence_revision) =
+        training_range_evidence_revision_on(transaction, &origin_id, &session_id)?;
+    let ranges = load_training_session_ranges_on(transaction, &origin_id, &session_id)?;
+    Ok(PersistedTrainingSessionRanges {
+        snapshot_ref,
+        session_ref: session_ref.to_owned(),
+        session_duration_milliseconds,
+        evidence_revision,
+        ranges,
+    })
+}
+
+fn query_training_session_ranges_persistence(
+    database_path: &Path,
+    query: &TrainingSessionRangesQuery,
+) -> StandardResult<PersistedTrainingSessionRanges, TrainingSessionRangePortError> {
+    let mut connection = Connection::open(database_path).map_err(training_range_failure)?;
+    ensure_schema(&connection).map_err(training_range_failure)?;
+    let transaction = connection.transaction().map_err(training_range_failure)?;
+    let persisted = training_session_ranges_context_on(
+        &transaction,
+        &query.session_ref,
+        query.snapshot_ref.as_deref(),
+    )?;
+    transaction.commit().map_err(training_range_failure)?;
+    Ok(persisted)
+}
+
+fn new_training_session_range_id(
+    database_path: &Path,
+) -> StandardResult<String, TrainingSessionRangePortError> {
+    let connection = Connection::open(database_path).map_err(training_range_failure)?;
+    ensure_schema(&connection).map_err(training_range_failure)?;
+    for _ in 0..4 {
+        let suffix = connection
+            .query_row("SELECT lower(hex(randomblob(32)))", [], |row| {
+                row.get::<_, String>(0)
+            })
+            .map_err(training_range_failure)?;
+        let range_id = format!("range-{suffix}");
+        let exists = connection
+            .query_row(
+                "SELECT EXISTS (
+                     SELECT 1 FROM training_session_range WHERE range_id = ?1
+                 )",
+                params![range_id],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(training_range_failure)?;
+        if !exists {
+            return Ok(range_id);
+        }
+    }
+    Err(training_range_failure(
+        "could not allocate a unique training-session range identity",
+    ))
+}
+
+fn create_training_session_range_persistence(
+    database_path: &Path,
+    snapshot_ref: &str,
+    range: &TrainingSessionRange,
+) -> StandardResult<PersistedTrainingSessionRanges, TrainingSessionRangePortError> {
+    let mut connection = Connection::open(database_path).map_err(training_range_failure)?;
+    ensure_schema(&connection).map_err(training_range_failure)?;
+    let transaction = connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(training_range_failure)?;
+    let (_, origin_id, session_id) = training_range_snapshot_and_identity(
+        &transaction,
+        range.session_ref(),
+        Some(snapshot_ref),
+    )?;
+    let (duration, evidence_revision) =
+        training_range_evidence_revision_on(&transaction, &origin_id, &session_id)?;
+    if range.revision() != 1
+        || range.authorship() != TrainingSessionRangeAuthorship::User
+        || range.state() != TrainingSessionRangeState::Current
+        || range.evidence_revision() != evidence_revision
+        || range.ended_at_elapsed_milliseconds() > duration
+    {
+        return Err(training_range_failure(
+            "new training-session range does not match current evidence",
+        ));
+    }
+    let exists = transaction
+        .query_row(
+            "SELECT EXISTS (
+                 SELECT 1 FROM training_session_range WHERE range_id = ?1
+             )",
+            params![range.range_id()],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(training_range_failure)?;
+    if exists {
+        return Err(TrainingSessionRangePortError::AlreadyExists);
+    }
+    transaction
+        .execute(
+            "INSERT INTO training_session_range (
+                 range_id, origin_id, session_id, title,
+                 started_at_elapsed_milliseconds, ended_at_elapsed_milliseconds,
+                 evidence_revision, authorship, state, revision,
+                 created_at_utc, updated_at_utc
+             ) VALUES (
+                 ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10,
+                 strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                 strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+             )",
+            params![
+                range.range_id(),
+                origin_id,
+                session_id,
+                range.title(),
+                range.started_at_elapsed_milliseconds(),
+                range.ended_at_elapsed_milliseconds(),
+                range.evidence_revision(),
+                range.authorship().code(),
+                range.state().code(),
+                i64::try_from(range.revision()).map_err(training_range_failure)?,
+            ],
+        )
+        .map_err(training_range_failure)?;
+    let persisted =
+        training_session_ranges_context_on(&transaction, range.session_ref(), Some(snapshot_ref))?;
+    transaction.commit().map_err(training_range_failure)?;
+    Ok(persisted)
+}
+
+fn compare_and_save_training_session_range_persistence(
+    database_path: &Path,
+    snapshot_ref: &str,
+    expected_revision: u64,
+    range: &TrainingSessionRange,
+) -> StandardResult<Option<PersistedTrainingSessionRanges>, TrainingSessionRangePortError> {
+    let mut connection = Connection::open(database_path).map_err(training_range_failure)?;
+    ensure_schema(&connection).map_err(training_range_failure)?;
+    let transaction = connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(training_range_failure)?;
+    let (_, origin_id, session_id) = training_range_snapshot_and_identity(
+        &transaction,
+        range.session_ref(),
+        Some(snapshot_ref),
+    )?;
+    let (duration, evidence_revision) =
+        training_range_evidence_revision_on(&transaction, &origin_id, &session_id)?;
+    let expected_revision = i64::try_from(expected_revision).map_err(training_range_failure)?;
+    let revision = i64::try_from(range.revision()).map_err(training_range_failure)?;
+    if revision != expected_revision.saturating_add(1)
+        || range.authorship() != TrainingSessionRangeAuthorship::User
+        || range.evidence_revision() != evidence_revision
+        || (range.state() == TrainingSessionRangeState::Current
+            && range.ended_at_elapsed_milliseconds() > duration)
+    {
+        return Err(training_range_failure(
+            "revised training-session range does not match current evidence",
+        ));
+    }
+    let changed = transaction
+        .execute(
+            "UPDATE training_session_range
+             SET title = ?4, started_at_elapsed_milliseconds = ?5,
+                 ended_at_elapsed_milliseconds = ?6, evidence_revision = ?7,
+                 authorship = ?8, state = ?9, revision = ?10,
+                 updated_at_utc = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+             WHERE range_id = ?1 AND origin_id = ?2 AND session_id = ?3
+               AND revision = ?11",
+            params![
+                range.range_id(),
+                origin_id,
+                session_id,
+                range.title(),
+                range.started_at_elapsed_milliseconds(),
+                range.ended_at_elapsed_milliseconds(),
+                range.evidence_revision(),
+                range.authorship().code(),
+                range.state().code(),
+                revision,
+                expected_revision,
+            ],
+        )
+        .map_err(training_range_failure)?;
+    if changed == 0 {
+        transaction.commit().map_err(training_range_failure)?;
+        return Ok(None);
+    }
+    let persisted =
+        training_session_ranges_context_on(&transaction, range.session_ref(), Some(snapshot_ref))?;
+    transaction.commit().map_err(training_range_failure)?;
+    Ok(Some(persisted))
+}
+
+fn compare_and_remove_training_session_range_persistence(
+    database_path: &Path,
+    snapshot_ref: &str,
+    removal: &RemovedTrainingSessionRange,
+) -> StandardResult<Option<PersistedTrainingSessionRanges>, TrainingSessionRangePortError> {
+    let mut connection = Connection::open(database_path).map_err(training_range_failure)?;
+    ensure_schema(&connection).map_err(training_range_failure)?;
+    let transaction = connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(training_range_failure)?;
+    let (_, origin_id, session_id) = training_range_snapshot_and_identity(
+        &transaction,
+        removal.session_ref(),
+        Some(snapshot_ref),
+    )?;
+    let removed = transaction
+        .execute(
+            "DELETE FROM training_session_range
+             WHERE range_id = ?1 AND origin_id = ?2 AND session_id = ?3 AND revision = ?4",
+            params![
+                removal.range_id(),
+                origin_id,
+                session_id,
+                i64::try_from(removal.expected_revision()).map_err(training_range_failure)?,
+            ],
+        )
+        .map_err(training_range_failure)?;
+    if removed == 0 {
+        transaction.commit().map_err(training_range_failure)?;
+        return Ok(None);
+    }
+    let persisted = training_session_ranges_context_on(
+        &transaction,
+        removal.session_ref(),
+        Some(snapshot_ref),
+    )?;
+    transaction.commit().map_err(training_range_failure)?;
+    Ok(Some(persisted))
+}
+
+fn reconcile_persisted_training_session_ranges(
+    transaction: &Transaction<'_>,
+    origin_id: &str,
+    session_id: &str,
+    compatibility: TrainingSessionRangeEvidenceCompatibility,
+) -> Result<()> {
+    let (duration, evidence_revision) =
+        training_range_evidence_revision_on(transaction, origin_id, session_id)
+            .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
+    let ranges = load_training_session_ranges_on(transaction, origin_id, session_id)
+        .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
+    for range in ranges {
+        let reconciled = reconcile_training_session_range(
+            &range,
+            Some(duration),
+            &evidence_revision,
+            compatibility,
+        )
+        .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
+        if reconciled == range {
+            continue;
+        }
+        let changed = transaction.execute(
+            "UPDATE training_session_range
+             SET evidence_revision = ?2, state = ?3, revision = ?4,
+                 updated_at_utc = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+             WHERE range_id = ?1 AND revision = ?5",
+            params![
+                reconciled.range_id(),
+                reconciled.evidence_revision(),
+                reconciled.state().code(),
+                i64::try_from(reconciled.revision()).map_err(|_| {
+                    ImportError::InvalidTrainingLibrary(
+                        "training-session range revision is too large".to_owned(),
+                    )
+                })?,
+                i64::try_from(range.revision()).map_err(|_| {
+                    ImportError::InvalidTrainingLibrary(
+                        "training-session range revision is too large".to_owned(),
+                    )
+                })?,
+            ],
+        )?;
+        if changed != 1 {
+            return Err(ImportError::InvalidTrainingLibrary(
+                "training-session range reconciliation lost its exact revision".to_owned(),
+            ));
+        }
+    }
+    Ok(())
+}
+
 fn query_training_bounds_on(connection: &Connection) -> Result<Option<TrainingDateRange>> {
     let (from, through) = connection.query_row(
         "SELECT substr(MIN(started_at_local), 1, 10),
@@ -6103,6 +6557,9 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         }
         if version < 24 {
             connection.execute_batch(SCHEMA_V24)?;
+        }
+        if version < 25 {
+            connection.execute_batch(SCHEMA_V25)?;
         }
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
@@ -10323,6 +10780,25 @@ fn reconcile_training_session(
             ),
         ],
     )?;
+    match decision {
+        ReconciliationDecision::Enrich => reconcile_persisted_training_session_ranges(
+            transaction,
+            &incoming_summary.origin_id,
+            &incoming_summary.session_id,
+            TrainingSessionRangeEvidenceCompatibility::Compatible,
+        )?,
+        ReconciliationDecision::Create | ReconciliationDecision::Amend => {
+            reconcile_persisted_training_session_ranges(
+                transaction,
+                &incoming_summary.origin_id,
+                &incoming_summary.session_id,
+                TrainingSessionRangeEvidenceCompatibility::Incompatible,
+            )?
+        }
+        ReconciliationDecision::Equivalent
+        | ReconciliationDecision::Preserve
+        | ReconciliationDecision::Conflict => {}
+    }
     report.record(decision);
     Ok(())
 }
@@ -12366,6 +12842,55 @@ impl TrainingSegmentationPort for SqliteTrainingLibrary {
             exercise_ref,
             criterion_ref,
             direction,
+        )
+    }
+}
+
+impl TrainingSessionRangePort for SqliteTrainingLibrary {
+    fn query_training_session_ranges(
+        &self,
+        query: &TrainingSessionRangesQuery,
+    ) -> StandardResult<PersistedTrainingSessionRanges, TrainingSessionRangePortError> {
+        query_training_session_ranges_persistence(&self.database_path, query)
+    }
+
+    fn new_training_session_range_id(
+        &self,
+    ) -> StandardResult<String, TrainingSessionRangePortError> {
+        new_training_session_range_id(&self.database_path)
+    }
+
+    fn create_training_session_range(
+        &self,
+        snapshot_ref: &str,
+        range: &TrainingSessionRange,
+    ) -> StandardResult<PersistedTrainingSessionRanges, TrainingSessionRangePortError> {
+        create_training_session_range_persistence(&self.database_path, snapshot_ref, range)
+    }
+
+    fn compare_and_save_training_session_range(
+        &self,
+        snapshot_ref: &str,
+        expected_revision: u64,
+        range: &TrainingSessionRange,
+    ) -> StandardResult<Option<PersistedTrainingSessionRanges>, TrainingSessionRangePortError> {
+        compare_and_save_training_session_range_persistence(
+            &self.database_path,
+            snapshot_ref,
+            expected_revision,
+            range,
+        )
+    }
+
+    fn compare_and_remove_training_session_range(
+        &self,
+        snapshot_ref: &str,
+        removal: &RemovedTrainingSessionRange,
+    ) -> StandardResult<Option<PersistedTrainingSessionRanges>, TrainingSessionRangePortError> {
+        compare_and_remove_training_session_range_persistence(
+            &self.database_path,
+            snapshot_ref,
+            removal,
         )
     }
 }
@@ -14539,6 +15064,252 @@ mod tests {
     }
 
     #[test]
+    fn persists_personal_ranges_across_restart_repeat_conflict_removal_and_amendment() {
+        let harness = Harness::new();
+        let initial = harness.archive(
+            "training-range-initial.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-training-range-claim"}"#,
+                ),
+                (
+                    "training-session_2026-01-02T10-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                        "identifier":{"id":"range-session"},
+                        "created":"2026-01-02T12:00:00.000",
+                        "modified":"2026-01-02T12:05:00.000",
+                        "startTime":"2026-01-02T10:00:00",
+                        "stopTime":"2026-01-02T10:10:00",
+                        "durationMillis":600000
+                    }"#,
+                ),
+            ],
+        );
+        import_polar_archive(&harness.database(), &initial).expect("initial range session import");
+        let session = query_training_sessions(&harness.database())
+            .expect("training history")
+            .remove(0);
+        let session_ref = training_session_ref(&session.origin_id, &session.session_id);
+        let library = SqliteTrainingLibrary::new(harness.database());
+        let empty = query_training_session_ranges(
+            &library,
+            TrainingSessionRangesQuery {
+                session_ref: session_ref.clone(),
+                snapshot_ref: None,
+            },
+        )
+        .expect("empty personal ranges");
+        assert!(empty.ranges.is_empty());
+
+        let first = create_training_session_range(
+            &library,
+            CreateTrainingSessionRangeRequest {
+                session_ref: session_ref.clone(),
+                snapshot_ref: empty.snapshot_ref.clone(),
+                title: "River section".to_owned(),
+                started_at_elapsed_milliseconds: 100_000,
+                ended_at_elapsed_milliseconds: 400_000,
+            },
+        )
+        .expect("first personal range");
+        let first_ref = first.ranges[0].range_id().to_owned();
+        let initial_evidence_revision = first.evidence_revision.clone();
+        let second = create_training_session_range(
+            &library,
+            CreateTrainingSessionRangeRequest {
+                session_ref: session_ref.clone(),
+                snapshot_ref: first.snapshot_ref.clone(),
+                title: "River section".to_owned(),
+                started_at_elapsed_milliseconds: 300_000,
+                ended_at_elapsed_milliseconds: 500_000,
+            },
+        )
+        .expect("overlapping duplicate-title range");
+        assert_eq!(second.ranges.len(), 2);
+        let second_ref = second
+            .ranges
+            .iter()
+            .find(|range| range.range_id() != first_ref)
+            .expect("second range")
+            .range_id()
+            .to_owned();
+
+        let renamed = rename_training_session_range(
+            &library,
+            RenameTrainingSessionRangeRequest {
+                session_ref: session_ref.clone(),
+                snapshot_ref: second.snapshot_ref.clone(),
+                range_ref: first_ref.clone(),
+                expected_revision: 1,
+                title: "Bridge to bend".to_owned(),
+            },
+        )
+        .expect("renamed range");
+        assert!(matches!(
+            rename_training_session_range(
+                &library,
+                RenameTrainingSessionRangeRequest {
+                    session_ref: session_ref.clone(),
+                    snapshot_ref: renamed.snapshot_ref.clone(),
+                    range_ref: first_ref.clone(),
+                    expected_revision: 1,
+                    title: "Stale overwrite".to_owned(),
+                },
+            ),
+            Err(ApplicationError::TrainingSessionRangeConflict)
+        ));
+        let adjusted = adjust_training_session_range(
+            &library,
+            AdjustTrainingSessionRangeRequest {
+                session_ref: session_ref.clone(),
+                snapshot_ref: renamed.snapshot_ref.clone(),
+                range_ref: first_ref.clone(),
+                expected_revision: 2,
+                started_at_elapsed_milliseconds: 150_000,
+                ended_at_elapsed_milliseconds: 450_000,
+            },
+        )
+        .expect("adjusted range");
+        assert_eq!(
+            adjusted
+                .ranges
+                .iter()
+                .find(|range| range.range_id() == first_ref)
+                .expect("adjusted first range")
+                .revision(),
+            3
+        );
+        let removed = remove_training_session_range(
+            &library,
+            RemoveTrainingSessionRangeRequest {
+                session_ref: session_ref.clone(),
+                snapshot_ref: adjusted.snapshot_ref.clone(),
+                range_ref: second_ref,
+                expected_revision: 1,
+            },
+        )
+        .expect("removed second range");
+        assert_eq!(removed.ranges.len(), 1);
+
+        let reopened = SqliteTrainingLibrary::new(harness.database());
+        let restarted = query_training_session_ranges(
+            &reopened,
+            TrainingSessionRangesQuery {
+                session_ref: session_ref.clone(),
+                snapshot_ref: None,
+            },
+        )
+        .expect("range after restart");
+        assert_eq!(restarted.ranges[0].title(), "Bridge to bend");
+        assert_eq!(restarted.ranges[0].revision(), 3);
+
+        let repeated = import_polar_archive(&harness.database(), &initial).expect("exact reimport");
+        assert!(repeated.exact_repeat);
+        let after_repeat = query_training_session_ranges(
+            &reopened,
+            TrainingSessionRangesQuery {
+                session_ref: session_ref.clone(),
+                snapshot_ref: None,
+            },
+        )
+        .expect("range after exact repeat");
+        assert_eq!(after_repeat.ranges[0].revision(), 3);
+        assert_eq!(after_repeat.evidence_revision, initial_evidence_revision);
+
+        let equivalent_archive = harness.archive(
+            "training-range-equivalent.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-training-range-claim"}"#,
+                ),
+                (
+                    "training-session_2026-01-02T10-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"durationMillis":600000,"stopTime":"2026-01-02T10:10:00","startTime":"2026-01-02T10:00:00","modified":"2026-01-02T12:05:00.000","created":"2026-01-02T12:00:00.000","identifier":{"id":"range-session"}}"#,
+                ),
+            ],
+        );
+        let equivalent = import_polar_archive(&harness.database(), &equivalent_archive)
+            .expect("semantically equivalent range session import");
+        assert!(!equivalent.exact_repeat);
+        assert_eq!(equivalent.equivalent_observations, 1);
+        let after_equivalent = query_training_session_ranges(
+            &reopened,
+            TrainingSessionRangesQuery {
+                session_ref: session_ref.clone(),
+                snapshot_ref: None,
+            },
+        )
+        .expect("range after semantically equivalent reimport");
+        assert_eq!(after_equivalent.ranges[0].revision(), 3);
+        assert_eq!(
+            after_equivalent.evidence_revision,
+            initial_evidence_revision
+        );
+
+        let amended_archive = harness.archive(
+            "training-range-amended.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-training-range-claim"}"#,
+                ),
+                (
+                    "training-session_2026-01-02T10-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                        "identifier":{"id":"range-session"},
+                        "created":"2026-01-02T12:00:00.000",
+                        "modified":"2026-01-02T12:10:00.000",
+                        "startTime":"2026-01-02T10:00:00",
+                        "stopTime":"2026-01-02T10:05:00",
+                        "durationMillis":300000
+                    }"#,
+                ),
+            ],
+        );
+        let amendment = import_polar_archive(&harness.database(), &amended_archive)
+            .expect("amended range session import");
+        assert_eq!(amendment.amended_observations, 1);
+        let review_required = query_training_session_ranges(
+            &reopened,
+            TrainingSessionRangesQuery {
+                session_ref: session_ref.clone(),
+                snapshot_ref: None,
+            },
+        )
+        .expect("range after amendment");
+        assert_ne!(review_required.evidence_revision, initial_evidence_revision);
+        assert_eq!(review_required.ranges[0].revision(), 4);
+        assert_eq!(
+            review_required.ranges[0].state(),
+            TrainingSessionRangeState::ReviewRequired
+        );
+        assert_eq!(
+            review_required.ranges[0].ended_at_elapsed_milliseconds(),
+            450_000
+        );
+
+        let reviewed = adjust_training_session_range(
+            &reopened,
+            AdjustTrainingSessionRangeRequest {
+                session_ref,
+                snapshot_ref: review_required.snapshot_ref,
+                range_ref: first_ref,
+                expected_revision: 4,
+                started_at_elapsed_milliseconds: 100_000,
+                ended_at_elapsed_milliseconds: 250_000,
+            },
+        )
+        .expect("reviewed amended range");
+        assert_eq!(
+            reviewed.ranges[0].state(),
+            TrainingSessionRangeState::Current
+        );
+        assert_eq!(reviewed.ranges[0].revision(), 5);
+    }
+
+    #[test]
     fn reimports_identical_bytes_after_a_mapping_upgrade_and_enriches_without_duplicates() {
         let harness = Harness::new();
         let archive = harness.archive(
@@ -14613,6 +15384,80 @@ mod tests {
             .expect("simulate version-four persisted library");
         drop(connection);
 
+        let pre_upgrade_session = query_training_sessions(&harness.database())
+            .expect("pre-upgrade training history")
+            .remove(0);
+        let pre_upgrade_session_ref = training_session_ref(
+            &pre_upgrade_session.origin_id,
+            &pre_upgrade_session.session_id,
+        );
+        let pre_upgrade_library = SqliteTrainingLibrary::new(harness.database());
+        let pre_upgrade_ranges = query_training_session_ranges(
+            &pre_upgrade_library,
+            TrainingSessionRangesQuery {
+                session_ref: pre_upgrade_session_ref.clone(),
+                snapshot_ref: None,
+            },
+        )
+        .expect("pre-upgrade range context");
+        let authored_before_enrichment = create_training_session_range(
+            &pre_upgrade_library,
+            CreateTrainingSessionRangeRequest {
+                session_ref: pre_upgrade_session_ref.clone(),
+                snapshot_ref: pre_upgrade_ranges.snapshot_ref,
+                title: "First recorded seconds".to_owned(),
+                started_at_elapsed_milliseconds: 0,
+                ended_at_elapsed_milliseconds: 2_000,
+            },
+        )
+        .expect("range before compatible enrichment");
+        let review_required_range_ref = authored_before_enrichment.ranges[0].range_id().to_owned();
+        let pre_upgrade_evidence_revision = authored_before_enrichment.evidence_revision.clone();
+        let mut review_connection =
+            Connection::open(harness.database()).expect("range review database");
+        let review_transaction = review_connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .expect("range review transaction");
+        reconcile_persisted_training_session_ranges(
+            &review_transaction,
+            &pre_upgrade_session.origin_id,
+            &pre_upgrade_session.session_id,
+            TrainingSessionRangeEvidenceCompatibility::Incompatible,
+        )
+        .expect("mark range for review before compatible enrichment");
+        review_transaction.commit().expect("commit range review");
+        let review_context = query_training_session_ranges(
+            &pre_upgrade_library,
+            TrainingSessionRangesQuery {
+                session_ref: pre_upgrade_session_ref.clone(),
+                snapshot_ref: None,
+            },
+        )
+        .expect("review-required pre-upgrade range context");
+        assert_eq!(review_context.ranges[0].revision(), 2);
+        assert_eq!(
+            review_context.ranges[0].state(),
+            TrainingSessionRangeState::ReviewRequired
+        );
+        let with_current_range = create_training_session_range(
+            &pre_upgrade_library,
+            CreateTrainingSessionRangeRequest {
+                session_ref: pre_upgrade_session_ref.clone(),
+                snapshot_ref: review_context.snapshot_ref,
+                title: "Next recorded seconds".to_owned(),
+                started_at_elapsed_milliseconds: 3_000,
+                ended_at_elapsed_milliseconds: 4_000,
+            },
+        )
+        .expect("current range beside a review-required range");
+        let current_range_ref = with_current_range
+            .ranges
+            .iter()
+            .find(|range| range.range_id() != review_required_range_ref)
+            .expect("second pre-upgrade range")
+            .range_id()
+            .to_owned();
+
         let enriched =
             import_polar_archive(&harness.database(), &archive).expect("mapping upgrade import");
         assert!(!enriched.exact_repeat);
@@ -14685,6 +15530,38 @@ mod tests {
         let groups = &zones[0].zones.as_ref().unwrap().groups;
         assert_eq!(groups.len(), 1);
         assert_eq!(groups[0].zones.as_ref().unwrap().len(), 1);
+
+        let range_after_enrichment = query_training_session_ranges(
+            &pre_upgrade_library,
+            TrainingSessionRangesQuery {
+                session_ref: pre_upgrade_session_ref,
+                snapshot_ref: None,
+            },
+        )
+        .expect("range after compatible enrichment");
+        assert_ne!(
+            range_after_enrichment.evidence_revision,
+            pre_upgrade_evidence_revision
+        );
+        assert_eq!(range_after_enrichment.ranges.len(), 2);
+        let review_required_range = range_after_enrichment
+            .ranges
+            .iter()
+            .find(|range| range.range_id() == review_required_range_ref)
+            .expect("review-required range after compatible enrichment");
+        assert_eq!(review_required_range.revision(), 3);
+        assert_eq!(
+            review_required_range.state(),
+            TrainingSessionRangeState::ReviewRequired
+        );
+        let current_range = range_after_enrichment
+            .ranges
+            .iter()
+            .find(|range| range.range_id() == current_range_ref)
+            .expect("current range after compatible enrichment");
+        assert_eq!(current_range.revision(), 2);
+        assert_eq!(current_range.state(), TrainingSessionRangeState::Current);
+        assert_eq!(review_required_range.ended_at_elapsed_milliseconds(), 2_000);
 
         let session = query_training_sessions(&harness.database())
             .expect("training history for provenance")
@@ -18192,7 +19069,7 @@ mod tests {
             SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8,
             SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15,
             SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22,
-            SCHEMA_V23, SCHEMA_V24,
+            SCHEMA_V23, SCHEMA_V24, SCHEMA_V25,
         ];
         for migration in migrations
             .iter()
@@ -18315,7 +19192,7 @@ mod tests {
             connection
                 .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
                 .expect("compact schema marker"),
-            24
+            SCHEMA_VERSION
         );
         let logical_samples = connection
             .prepare(
@@ -18425,6 +19302,66 @@ mod tests {
                 .expect("completed signal-storage maintenance retry"),
             0
         );
+        assert_integrity(&connection);
+    }
+
+    #[test]
+    fn upgrades_version_twenty_four_with_atomic_personal_range_storage() {
+        let harness = Harness::new();
+        let connection = Connection::open(harness.database()).expect("database");
+        create_schema_baseline(&connection, 24);
+
+        let error = migrate_schema(&connection, true).expect_err("interrupted version twenty-five");
+        assert!(matches!(error, ImportError::InjectedMigrationInterruption));
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("retained schema version"),
+            24
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_schema
+                     WHERE type = 'table' AND name = 'training_session_range'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("rolled-back personal range table"),
+            0
+        );
+
+        migrate_schema(&connection, false).expect("version twenty-five migration");
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("current schema version"),
+            SCHEMA_VERSION
+        );
+        let range_ref = format!("range-{}", "a".repeat(64));
+        let evidence_revision = format!("range-evidence-{}", "b".repeat(64));
+        connection
+            .execute(
+                "INSERT INTO training_session_range (
+                     range_id, origin_id, session_id, title,
+                     started_at_elapsed_milliseconds, ended_at_elapsed_milliseconds,
+                     evidence_revision, authorship, state, revision,
+                     created_at_utc, updated_at_utc
+                 ) VALUES (
+                     ?1, 'preserved-origin', 'preserved-session', 'Bridge to bend',
+                     1000, 2000, ?2, 'user', 'review-required', 3,
+                     '2026-08-22T12:00:00.000Z', '2026-08-22T12:00:00.000Z'
+                 )",
+                params![range_ref, evidence_revision],
+            )
+            .expect("valid preserved personal range");
+        assert!(connection
+            .execute(
+                "UPDATE training_session_range
+                 SET ended_at_elapsed_milliseconds = started_at_elapsed_milliseconds",
+                [],
+            )
+            .is_err());
         assert_integrity(&connection);
     }
 
