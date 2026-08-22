@@ -108,6 +108,14 @@ the provider-neutral sport groups and actual chronological session results befor
 and session combines visible localized text with the same semantic family icon; unknown and unavailable
 evidence use distinct explicit symbols and labels rather than a provider value or placeholder. Date, sport,
 measurement, personal-label text, and sorting controls remain one complete form behind **Refine sessions**.
+The sport index is a wrapping grid whose complete identities and contextual actions stay visible without a
+horizontal-scroll convention or ellipsis. Session cards are evidence-adaptive: duration is the only required
+summary fact, while distance, energy, and average heart rate create rows only when recorded. Presentation
+formatters reduce dates, times, durations, and distances to locale-appropriate human precision for scanning;
+they never mutate, round, or replace the exact application result. Deliberate detail, comparison, result-summary,
+and provenance surfaces continue to expose exact source-separated evidence. Calendar cells describe multiple
+source-separated entries as separate histories without exposing their opaque references or unexplained ordinal
+badges.
 The aggregate summary remains calculated over the complete filtered set, but follows the paginated result
 list behind **Result summary** so numeric coverage does not displace the sessions a person came to find.
 Chronology, calendar, comparison selection, pagination, and workspace restoration retain their application

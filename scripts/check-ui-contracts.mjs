@@ -138,6 +138,41 @@ for (const workspace of ["sessions", "sports", "comparison"]) {
 if (!trainingSessionLibrary.includes("aria-label={copy.detailNavigation}")) {
   throw new Error("Training session detail must expose its section navigation");
 }
+requireRule(
+  stylesheet,
+  ".training-history-sports ul",
+  [
+    /display:\s*grid/,
+    /grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(/,
+  ],
+  "every History sport identity without an unannounced continuation",
+);
+if (/overflow-x:\s*auto/.test(balancedBlock(
+  stylesheet,
+  ".training-history-sports ul",
+  "History sport identities must have a visible complete composition",
+))) {
+  throw new Error("History sport identities must not rely on unannounced horizontal scrolling");
+}
+requireRule(
+  stylesheet,
+  ".training-history-sport-identity strong",
+  [/white-space:\s*normal/, /overflow-wrap:\s*anywhere/],
+  "complete visible History sport labels",
+);
+for (const zoom of ["150", "175", "200"]) {
+  if (!stylesheet.includes(
+    `:root[data-content-zoom="${zoom}"] .training-history-sports ul`,
+  )) {
+    throw new Error(`History sport composition must respond explicitly to ${zoom}% content zoom`);
+  }
+}
+requireRule(
+  stylesheet,
+  ':root[data-content-zoom="150"] .training-history-sports ul',
+  [/grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(min\(500px,\s*100%\),\s*1fr\)\)/],
+  "readable History sport identities at high content zoom",
+);
 for (const section of ["overview", "structure", "signals", "routes", "provenance"]) {
   if (!trainingSessionLibrary.includes(`hidden={detailSection !== "${section}"}`)) {
     throw new Error(`Training session detail must progressively disclose ${section}`);

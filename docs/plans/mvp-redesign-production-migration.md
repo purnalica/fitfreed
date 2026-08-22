@@ -777,6 +777,32 @@ macOS WebView inspection of a deterministic four-sport history covered wide ligh
 in both supported locales, with no page-level horizontal overflow and zero Axe violations. RC-02 is closed;
 R3 returns to complete locally, while R5 remains reopened for RC-03 and RC-04.
 
+### R5.5 local closure — 2026-08-22
+
+History chronology now presents a medium localized date and short time, a human-scale rounded duration, and
+metres or kilometres at useful precision. A card creates distance, energy, and average-heart-rate rows only
+when that evidence exists; it no longer repeats unavailable values or opaque source ordinals. Exact timestamps,
+unrounded source quantities, source separation, and provenance remain unchanged in deliberate detail,
+comparison, result-summary, and source-evidence surfaces. A calendar date backed by more than one separated
+history states that multiplicity in plain language without exposing a reference or unexplained ordinal.
+
+The complete sport index is a wrapping grid rather than an unannounced horizontal rail. Its high-zoom
+composition uses an explicit readable minimum so 150%, 175%, and 200% zoom reduce column count instead of
+compressing a label to individual characters. The first automated geometry pass was rejected after screenshot
+inspection exposed that exact failure at 200%; the corrected English and Spanish compact-dark captures retain
+four complete labels, counts, icons, and naming actions with no horizontal page overflow and zero Axe violations.
+Wide light inspection also proved both complete and sparse cards: omitted evidence changes composition while
+recorded facts remain concise and recognizable.
+
+The complete fast lane passed 154 automation, 255 React, 2 vendored-updater, 212 host, 148 application, and 33
+domain tests, together with Clippy, Rust formatting, production build, localization, UI-contract,
+documentation, repository, and privacy gates. The final packaged functional journey passed both locales,
+maximum zoom, accessibility, reimport, and durable-state behavior. The isolated packaged performance campaign
+passed every unchanged interaction budget. Its completion boundary was corrected to use the documented next
+browser task and synchronous layout read rather than an animation frame that macOS can suspend when the WebView
+is occluded; a configuration test now prevents that visibility dependency from returning. RC-03 and RC-04 are
+closed, and R5 returns to complete locally.
+
 ## X5-R6 — Deliver the outdoor session workbench
 
 **User outcome:** a routed session becomes an exceptional investigation surface in which recorded

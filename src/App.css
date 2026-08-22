@@ -488,10 +488,10 @@ th:last-child, td:last-child { text-align: right; }
 .training-workspace-panel > .training-comparison { margin-top: 0; padding: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 14px 40px rgb(21 29 44 / 7%); }
 .training-session-library { margin: 0 0 24px; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 14px 40px rgb(21 29 44 / 7%); }
 .training-session-library-heading h2 { margin: 0; font-size: 1.15rem; letter-spacing: -.02em; }
-.training-history-sports { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; margin-top: 11px; }
+.training-history-sports { display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; align-items: start; margin-top: 11px; }
 .training-history-sports h3 { margin: 0; color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; }
-.training-history-sports ul { display: flex; gap: 9px; max-width: 100%; margin: 0; padding: 0 0 3px; overflow-x: auto; list-style: none; }
-.training-history-sports li { display: block; flex: 0 0 auto; min-width: 160px; padding: 7px 10px; background: var(--paper); border: 1px solid var(--line); border-radius: 11px; }
+.training-history-sports ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr)); gap: 9px; width: 100%; max-width: 100%; margin: 0; padding: 0; list-style: none; }
+.training-history-sports li { display: block; min-width: 0; padding: 7px 10px; background: var(--paper); border: 1px solid var(--line); border-radius: 11px; }
 .training-history-sport-identity { display: flex; align-items: center; gap: 8px; }
 .training-history-sport-identity > span { min-width: 0; }
 .training-history-sport-classify { min-height: 34px; margin-left: 6px; padding: 5px 8px; font-size: .7rem; }
@@ -504,7 +504,7 @@ th:last-child, td:last-child { text-align: right; }
 .training-sport-list > li[data-state="unknown"] .sport-family-icon { color: var(--ink-soft); background: var(--warning-soft); }
 .training-history-sports li[data-state="unavailable"] .sport-family-icon,
 .training-sport-list > li[data-state="unavailable"] .sport-family-icon { color: var(--muted); background: var(--surface-soft); }
-.training-history-sport-identity strong, .training-history-sport-identity small { display: block; max-width: 17ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.training-history-sport-identity strong, .training-history-sport-identity small { display: block; max-width: 100%; overflow: visible; overflow-wrap: anywhere; text-overflow: clip; white-space: normal; }
 .training-history-sport-identity strong { font-size: .86rem; }
 .training-history-sport-identity small { margin-top: 2px; color: var(--muted); font-size: .7rem; }
 .training-session-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 11px; }
@@ -586,14 +586,15 @@ th:last-child, td:last-child { text-align: right; }
 .training-session-result-count { margin: 9px 0 6px; color: var(--muted); font-size: .8rem; font-weight: 700; }
 .training-session-results { container: training-session-results / inline-size; display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
 .training-session-results > li { min-width: 0; }
-.training-session-results article { display: grid; grid-template-columns: minmax(180px, .8fr) minmax(360px, 1.55fr) minmax(160px, auto); gap: 16px; align-items: center; height: 100%; padding: 12px 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 13px; }
-.training-session-results article > header { display: flex; justify-content: space-between; gap: 14px; align-items: start; }
+.training-session-results article { display: grid; grid-template-columns: minmax(210px, .9fr) minmax(240px, 1.2fr) minmax(160px, auto); gap: 16px; align-items: center; height: 100%; padding: 12px 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 13px; }
+.training-session-results article > header { display: block; min-width: 0; }
 .training-session-results article > header h3 { margin: 3px 0 0; font-size: 1.05rem; }
-.training-session-results article > header > span { flex: 0 0 auto; padding: 5px 8px; color: var(--accent-deep); background: var(--accent-soft); border-radius: 999px; font-size: .7rem; font-weight: 750; }
 .training-session-result-identity, .training-sport-identity { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .training-session-result-identity > div, .training-sport-identity > div { min-width: 0; }
 .training-session-sport { margin: 0; color: var(--muted); font-size: .76rem; font-weight: 750; }
-.training-session-results dl { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.training-session-result-date, .training-session-result-time { display: block; }
+.training-session-result-time { margin-top: 2px; color: var(--muted); font-size: .76rem; font-weight: 650; }
+.training-session-results dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; margin: 0; }
 .training-session-results dl > div { min-width: 0; padding-top: 8px; border-top: 1px solid var(--line); }
 .training-session-results dt { color: var(--muted); font-size: .7rem; font-weight: 700; }
 .training-session-results dd { margin: 3px 0 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
@@ -1321,6 +1322,9 @@ th:last-child, td:last-child { text-align: right; }
 :root[data-content-zoom="200"] .training-session-refinements { scroll-margin-block-start: 210px; }
 :root[data-content-zoom="175"] .training-session-search-fields,
 :root[data-content-zoom="200"] .training-session-search-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+:root[data-content-zoom="150"] .training-history-sports ul,
+:root[data-content-zoom="175"] .training-history-sports ul,
+:root[data-content-zoom="200"] .training-history-sports ul { grid-template-columns: repeat(auto-fit, minmax(min(500px, 100%), 1fr)); }
 :root[data-content-zoom="175"] .training-comparison-result-heading,
 :root[data-content-zoom="200"] .training-comparison-result-heading { align-items: stretch; flex-direction: column; }
 :root[data-content-zoom="175"] :is(.sleep-comparison-result-heading, .recovery-comparison-result-heading),

@@ -451,6 +451,10 @@
       "nextMonth": "Next month",
       "calendarEmpty": "No matching sessions in this month.",
       "calendarDay": "{date}, {count} {unit}",
+      "calendarHistories": {
+        "one": "{count} separate history",
+        "other": "{count} separate histories"
+      },
       "comparisonHeading": "Session comparison",
       "comparisonIntro": "Compare two to four recorded session summaries without treating missing measurements as zero.",
       "comparisonSelected": "{count} {unit} selected",
@@ -815,6 +819,7 @@
     },
     "units": {
       "meters": "m",
+      "kilometers": "km",
       "kilocalories": "kcal",
       "beatsPerMinute": "bpm"
     },

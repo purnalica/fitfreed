@@ -983,6 +983,90 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(within(refinements).getByRole("form", { name: "Filter sessions" })).toBeVisible();
   });
 
+  it("presents every available sport identity as an explicit refinement", async () => {
+    const fourSports: TrainingSportsOverview = {
+      ...sports,
+      sports: [
+        sports.sports[0],
+        {
+          ...sports.sports[0],
+          sportRef: `sport-${"e".repeat(64)}`,
+          sourceIndex: 2,
+          classification: {
+            canonicalFamily: "cycling",
+            displayLabel: null,
+            authorship: "user",
+            revision: 1,
+          },
+        },
+        sports.sports[1],
+        {
+          ...sports.sports[1],
+          sportRef: `sport-${"f".repeat(64)}`,
+          sourceIndex: 1,
+        },
+      ],
+    };
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+      if (workspaceResult) return workspaceResult;
+      if (command === "query_training_sports") return Promise.resolve(fourSports);
+      if (command === "query_training_sessions") {
+        return Promise.resolve(page([newest], 0, 1, null));
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    renderPanel();
+
+    const summary = await screen.findByRole("region", { name: "Sports in this history" });
+    expect(within(summary).getAllByRole("listitem")).toHaveLength(4);
+    for (const label of ["Trail running", "Cycling", "Unknown sport 1", "Unknown sport 2"]) {
+      expect(within(summary).getByText(label)).toBeVisible();
+    }
+    expect(within(summary).getAllByRole("button", { name: "Name this sport" }))
+      .toHaveLength(2);
+  });
+
+  it("composes each result card from available evidence at a human scale", async () => {
+    const recognizableSession: TrainingSessionSearchItem = {
+      ...newest,
+      startedAtLocal: "2026-08-18T07:30:47.123",
+      durationMilliseconds: "3723456",
+      distanceMeters: 10_000.5,
+      energyKilocalories: null,
+      averageHeartRateBpm: null,
+      maximumHeartRateBpm: null,
+    };
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+      if (workspaceResult) return workspaceResult;
+      if (command === "query_training_sports") return Promise.resolve(sports);
+      if (command === "query_training_sessions") {
+        return Promise.resolve(page([recognizableSession], 0, 1, null));
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    renderPanel();
+
+    const resultList = await screen.findByRole("list", { name: "Training sessions" });
+    const card = within(resultList).getByRole("article");
+    expect(card).toHaveTextContent("Aug 18, 2026");
+    expect(card).toHaveTextContent("7:30 AM");
+    expect(card).not.toHaveTextContent("7:30:47");
+    expect(card).toHaveTextContent("1 h 2 min");
+    expect(card).toHaveTextContent("10 km");
+    expect(card).not.toHaveTextContent("10,000.5 m");
+    expect(card).not.toHaveTextContent("Source 1");
+    expect(card).not.toHaveTextContent("Not recorded");
+    expect(within(card).getByText("Duration")).toBeVisible();
+    expect(within(card).getByText("Distance")).toBeVisible();
+    expect(within(card).queryByText("Energy")).not.toBeInTheDocument();
+    expect(within(card).queryByText("Average heart rate")).not.toBeInTheDocument();
+    expect(card.querySelectorAll("dl > div")).toHaveLength(2);
+  });
+
   it("keeps the applied query distinct from its draft and removes every refinement independently", async () => {
     mocks.invoke.mockImplementation((command, arguments_) => {
       const workspaceResult = emptyWorkspaceCommand(command, arguments_);
@@ -1394,9 +1478,10 @@ describe("TrainingSessionLibraryPanel", () => {
 
     await user.click(within(region).getByRole("radio", { name: "Calendar" }));
     expect(await within(region).findByRole("heading", { name: "August 2026" })).toBeVisible();
-    expect(within(region).getByRole("button", {
+    const calendarDay = within(region).getByRole("button", {
       name: /August 18, 2026.*1 session/,
-    })).toHaveTextContent("Source 1");
+    });
+    expect(calendarDay).not.toHaveTextContent("Source 1");
     expect(mocks.invoke).toHaveBeenCalledWith("query_training_session_calendar", {
       request: {
         month: "2026-08",
@@ -1451,6 +1536,43 @@ describe("TrainingSessionLibraryPanel", () => {
       }),
     }));
     expect(await within(region).findByText("1–2 of 26 matching sessions")).toBeVisible();
+  });
+
+  it("keeps source-separated calendar evidence legible without opaque ordinals", async () => {
+    const twoHistoryCalendar: TrainingSessionCalendar = {
+      ...calendar,
+      days: [
+        calendar.days[1],
+        {
+          ...calendar.days[1],
+          sourceIndex: 2,
+        },
+      ],
+    };
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+      if (workspaceResult) return workspaceResult;
+      if (command === "query_training_sports") return Promise.resolve(sports);
+      if (command === "query_training_sessions") {
+        return Promise.resolve(page([newest], 0, 1, null));
+      }
+      if (command === "query_training_session_calendar") {
+        return Promise.resolve(twoHistoryCalendar);
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    renderPanel();
+
+    const region = await screen.findByRole("region", { name: "Find a training session" });
+    await user.click(within(region).getByRole("radio", { name: "Calendar" }));
+
+    const day = await within(region).findByRole("button", {
+      name: /August 18, 2026.*2 sessions/,
+    });
+    expect(day).toHaveTextContent("2 separate histories");
+    expect(day).not.toHaveTextContent("Source 1");
+    expect(day).not.toHaveTextContent("Source 2");
   });
 
   it("opens the calendar inside the applied search window", async () => {

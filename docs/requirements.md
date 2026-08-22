@@ -391,6 +391,8 @@ All user-facing features included in the first release will be available in Engl
 ### FR-025 — Evidence-complete session exploration
 
 - The MVP will provide one common session workspace that proves an outdoor routed session and an indoor or non-routed session without assuming every source supplies laps, phases, routes, or samples.
+- Ordinary session discovery will use locale-appropriate human-scale dates and quantities and will compose each session card only from evidence that is actually available. Exact timestamps, source separation, unrounded values, and provenance will remain reachable through deliberate evidence inspection rather than dominating the first scan.
+- Source-separated histories will remain distinguishable without exposing opaque source references or unexplained ordinal badges. When more than one separated history contributes to the same calendar date, discovery will state that multiplicity in plain language.
 - Supported source exercises, source and automatic laps, pauses, zones, routes, and numeric sample series will retain distinct identity, ordering, provenance, optionality, and mapping version beneath a provider-neutral session identity.
 - The initial numeric sample families are heart rate, speed or pace, cumulative distance, altitude, cadence, and power only where their exact enumeration, unit, interval, origin, missing-value encoding, valid range, and reconciliation behavior are documented and verified.
 - Visual queries will be bounded and may use attributed downsampling; exact values will remain available through a stable paginated alternative.
@@ -406,6 +408,7 @@ All user-facing features included in the first release will be available in Engl
 - Classification will survive restart, reimport, migration, and portable backup without overwriting source evidence.
 - A future provider catalogue or connected API may offer a provenance-bearing suggestion but will not silently replace a user choice.
 - Training history will use a recognizable provider-neutral sport label and visual identifier wherever trustworthy classification exists. Unresolved references remain honest but are classifiable from the affected history itself; assigning or revising a display label and sport family updates every relevant view without requiring reimport.
+- Every sport identity available to the current history will be visibly discoverable at supported widths and zoom levels. Discovery will wrap complete labels and actions instead of relying on unannounced horizontal scrolling, truncation, or hidden continuation.
 - Home will preserve each unresolved sport profile as a distinct visible identity and offer a contextual path to the same classification task used by History. Multiple unresolved profiles will never collapse into one apparent sport, expose source values, or create competing editors.
 
 ## Confirmed MVP scope

@@ -12,6 +12,11 @@ import {
   formatDistance,
   formatDuration,
   formatExactMetric,
+  formatSessionCardDate,
+  formatSessionCardDateTime,
+  formatSessionCardDistance,
+  formatSessionCardDuration,
+  formatSessionCardTime,
   formatTrainingDateTime,
   formatUtcOffset,
 } from "./training-format";
@@ -2296,9 +2301,11 @@ export function TrainingSessionLibraryPanel({
                         >
                           <span>{number.format(day)}</span>
                           <strong>{number.format(count)}</strong>
-                          <small>{entries.map((entry) => interpolate(copy.source, {
-                            index: number.format(entry.sourceIndex),
-                          })).join(" · ")}</small>
+                          {entries.length > 1 && (
+                            <small>{interpolate(copy.calendarHistories.other, {
+                              count: number.format(entries.length),
+                            })}</small>
+                          )}
                         </button>
                       )}
                     </li>
@@ -2329,34 +2336,35 @@ export function TrainingSessionLibraryPanel({
                       <p className="training-session-sport">{sessionSportTitle(session)}</p>
                       <h3>
                         <time dateTime={session.startedAtLocal}>
-                          {formatTrainingDateTime(session.startedAtLocal, locale)}
+                          <span className="training-session-result-date">
+                            {formatSessionCardDate(session.startedAtLocal, locale)}
+                          </span>
+                          <span className="training-session-result-time">
+                            {formatSessionCardTime(session.startedAtLocal, locale)}
+                          </span>
                         </time>
                       </h3>
                       </div>
                     </div>
-                    <span>{interpolate(copy.source, {
-                      index: number.format(session.sourceIndex),
-                    })}</span>
                   </header>
                   <dl>
                     <div>
                       <dt>{messages.training.duration}</dt>
-                      <dd>{formatDuration(
+                      <dd>{formatSessionCardDuration(
                         session.durationMilliseconds,
                         locale,
                         messages.training.durationUnits,
                       )}</dd>
                     </div>
-                    <div>
+                    {session.distanceMeters !== null && <div>
                       <dt>{messages.training.distance}</dt>
-                      <dd>{formatDistance(
+                      <dd>{formatSessionCardDistance(
                         session.distanceMeters,
                         locale,
-                        copy.metricUnavailable,
-                        messages.training.units.meters,
+                        messages.training.units,
                       )}</dd>
-                    </div>
-                    <div>
+                    </div>}
+                    {session.energyKilocalories !== null && <div>
                       <dt>{messages.training.energy}</dt>
                       <dd>{formatExactMetric(
                         session.energyKilocalories,
@@ -2364,8 +2372,8 @@ export function TrainingSessionLibraryPanel({
                         copy.metricUnavailable,
                         messages.training.units.kilocalories,
                       )}</dd>
-                    </div>
-                    <div>
+                    </div>}
+                    {session.averageHeartRateBpm !== null && <div>
                       <dt>{messages.training.averageHeartRate}</dt>
                       <dd>{formatExactMetric(
                         session.averageHeartRateBpm,
@@ -2373,7 +2381,7 @@ export function TrainingSessionLibraryPanel({
                         copy.metricUnavailable,
                         messages.training.units.beatsPerMinute,
                       )}</dd>
-                    </div>
+                    </div>}
                   </dl>
                   <div className="training-session-result-actions">
                     <label>
@@ -2389,7 +2397,7 @@ export function TrainingSessionLibraryPanel({
                           comparison.some(
                             (candidate) => candidate.sessionRef === session.sessionRef,
                           ) ? copy.removeFromComparison : copy.addToComparison,
-                          { date: formatTrainingDateTime(session.startedAtLocal, locale) },
+                          { date: formatSessionCardDateTime(session.startedAtLocal, locale) },
                         )}
                         onChange={() => toggleComparison(session)}
                       />
@@ -2399,7 +2407,7 @@ export function TrainingSessionLibraryPanel({
                       type="button"
                       className="secondary"
                       aria-label={interpolate(copy.viewDetails, {
-                        date: formatTrainingDateTime(session.startedAtLocal, locale),
+                        date: formatSessionCardDateTime(session.startedAtLocal, locale),
                       })}
                       onClick={(event) => openDetail(session, event.currentTarget)}
                     >
@@ -2561,7 +2569,7 @@ export function TrainingSessionLibraryPanel({
                               />
                               <span>
                                 <strong>{sessionSportTitle(session)}</strong>
-                                <small>{formatTrainingDateTime(
+                                <small>{formatSessionCardDateTime(
                                   session.startedAtLocal,
                                   locale,
                                 )}</small>

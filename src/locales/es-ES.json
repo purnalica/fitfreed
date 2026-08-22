@@ -451,6 +451,10 @@
       "nextMonth": "Mes siguiente",
       "calendarEmpty": "No hay sesiones coincidentes en este mes.",
       "calendarDay": "{date}, {count} {unit}",
+      "calendarHistories": {
+        "one": "{count} historial independiente",
+        "other": "{count} historiales independientes"
+      },
       "comparisonHeading": "Comparación de sesiones",
       "comparisonIntro": "Compara entre dos y cuatro resúmenes de sesiones registradas sin considerar que una medición ausente equivale a cero.",
       "comparisonSelected": "{count} {unit} seleccionadas",
@@ -815,6 +819,7 @@
     },
     "units": {
       "meters": "m",
+      "kilometers": "km",
       "kilocalories": "kcal",
       "beatsPerMinute": "ppm"
     },

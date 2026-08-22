@@ -47,6 +47,12 @@ and Compare periods without losing a temporary view when moving among them. Sess
 provider-neutral sport index and the actual chronology; refinements and complete-result aggregates remain
 available through explicit disclosures instead of displacing the first session. The same semantic icon and
 visible label identify a sport in Home, the index, filters, results, comparisons, and classification management.
+Every sport in the current history remains visibly available without a hidden horizontal continuation. Session
+cards use the person's locale and everyday precision for dates, times, durations, and distances, and show only
+the optional facts that were recorded. Exact timestamps, unrounded quantities, source separation, and provenance
+remain available when the person opens the session, comparison, result summary, or source evidence. A calendar
+date contributed by more than one separated history says so directly instead of presenting an unexplained source
+number.
 Home keeps distinct unresolved sport profiles separate, gives them stable localized ordinal names, and uses the
 same ordinal for their recent sessions. **Name this sport** opens the existing Sports classification task for
 that exact profile; it never reveals a provider value or creates a second editor. Saving a broad family, a

@@ -202,12 +202,12 @@ async function compareActivityRanges(ranges) {
           ".activity-comparison-result .answer-exact-values",
         );
         exactValues.open = true;
-        requestAnimationFrame(() => {
+        setTimeout(() => {
           exactValues.querySelector("table").getBoundingClientRect();
-          setTimeout(() => done({
+          done({
             duration: window.performance.now() - started,
             error: null,
-          }));
+          });
         });
         return;
       }

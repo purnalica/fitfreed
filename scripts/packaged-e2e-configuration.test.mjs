@@ -78,3 +78,24 @@ test("isolates the longer performance campaign without relaxing interaction budg
     defaultConfig.connectionRetryTimeout,
   );
 });
+
+test("keeps packaged layout timing independent of animation-frame visibility", () => {
+  const performanceJourney = readFileSync(
+    path.resolve("test/e2e/support/insights-performance.js"),
+    "utf8",
+  );
+  const comparisonStart = performanceJourney.indexOf(
+    "async function compareActivityRanges",
+  );
+  const comparisonEnd = performanceJourney.indexOf(
+    "async function applyTrainingRange",
+    comparisonStart,
+  );
+  assert.ok(comparisonStart >= 0 && comparisonEnd > comparisonStart);
+  const comparison = performanceJourney.slice(comparisonStart, comparisonEnd);
+
+  assert.doesNotMatch(comparison, /requestAnimationFrame/);
+  assert.match(comparison, /exactValues\.open = true/);
+  assert.match(comparison, /setTimeout\(\(\) => \{/);
+  assert.match(comparison, /querySelector\("table"\)\.getBoundingClientRect\(\)/);
+});

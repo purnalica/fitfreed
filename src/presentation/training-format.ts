@@ -5,6 +5,11 @@ export interface DurationUnitLabels {
   milliseconds: string;
 }
 
+export interface DistanceUnitLabels {
+  meters: string;
+  kilometers: string;
+}
+
 export function trainingLocalDateTime(value: string): Date {
   return new Date(`${value}Z`);
 }
@@ -24,6 +29,65 @@ export function formatTrainingDateTime(value: string, locale: string): string {
     .formatToParts(trainingLocalDateTime(value))
     .map((part) => part.type === "second" ? `${part.value}${decimal}${fractional}` : part.value)
     .join("");
+}
+
+export function formatSessionCardDate(value: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeZone: "UTC",
+  }).format(trainingLocalDateTime(value));
+}
+
+export function formatSessionCardTime(value: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    timeStyle: "short",
+    timeZone: "UTC",
+  }).format(trainingLocalDateTime(value));
+}
+
+export function formatSessionCardDateTime(value: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "UTC",
+  }).format(trainingLocalDateTime(value));
+}
+
+export function formatSessionCardDuration(
+  value: string,
+  locale: string,
+  units: DurationUnitLabels,
+): string {
+  const number = new Intl.NumberFormat(locale);
+  const exact = BigInt(value);
+  const negative = exact < 0n;
+  const absolute = negative ? -exact : exact;
+  const sign = negative ? "−" : "";
+  if (absolute < 59_500n) {
+    const seconds = (absolute + 500n) / 1_000n;
+    return `${sign}${number.format(seconds)} ${units.seconds}`;
+  }
+
+  const roundedMinutes = (absolute + 30_000n) / 60_000n;
+  const hours = roundedMinutes / 60n;
+  const minutes = roundedMinutes % 60n;
+  const parts: string[] = [];
+  if (hours > 0n) parts.push(`${number.format(hours)} ${units.hours}`);
+  if (minutes > 0n) parts.push(`${number.format(minutes)} ${units.minutes}`);
+  return `${sign}${parts.join(" ")}`;
+}
+
+export function formatSessionCardDistance(
+  value: number,
+  locale: string,
+  units: DistanceUnitLabels,
+): string {
+  if (value >= 1_000) {
+    const kilometers = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 });
+    return `${kilometers.format(value / 1_000)} ${units.kilometers}`;
+  }
+  const meters = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 });
+  return `${meters.format(value)} ${units.meters}`;
 }
 
 export function formatDuration(

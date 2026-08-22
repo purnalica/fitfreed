@@ -376,6 +376,25 @@ async function formatBrowserTrainingLocalDateTime(locale, value) {
   });
 }
 
+async function formatBrowserTrainingCardDateTime(locale, value) {
+  return browser.execute(({ requestedLocale, localDateTime }) => {
+    const date = new Date(`${localDateTime}Z`);
+    return {
+      date: new Intl.DateTimeFormat(
+        requestedLocale,
+        { dateStyle: "medium", timeZone: "UTC" },
+      ).format(date),
+      time: new Intl.DateTimeFormat(
+        requestedLocale,
+        { timeStyle: "short", timeZone: "UTC" },
+      ).format(date),
+    };
+  }, {
+    requestedLocale: locale,
+    localDateTime: value,
+  });
+}
+
 async function formatBrowserSleepLocalDateTime(locale, value) {
   return browser.execute(({ requestedLocale, offsetDateTime }) => {
     const offset = offsetDateTime.slice(-6);
@@ -579,12 +598,15 @@ async function expectTrainingRows(expectedRows) {
   }
   const rows = await $$(selector);
   for (let index = 0; index < expectedRows.length; index += 1) {
-    await expect(rows[index].$("time")).toHaveText(expectedRows[index][0]);
+    await expect(rows[index].$(".training-session-result-date"))
+      .toHaveText(expectedRows[index][0].date);
+    await expect(rows[index].$(".training-session-result-time"))
+      .toHaveText(expectedRows[index][0].time);
     const values = await rows[index].$$("dd");
-    expect(values).toHaveLength(4);
-    await expect(values[0]).toHaveText(expectedRows[index][1]);
-    await expect(values[1]).toHaveText(expectedRows[index][2]);
-    await expect(values[2]).toHaveText(expectedRows[index][3]);
+    expect(values).toHaveLength(expectedRows[index].length - 1);
+    for (let valueIndex = 1; valueIndex < expectedRows[index].length; valueIndex += 1) {
+      await expect(values[valueIndex - 1]).toHaveText(expectedRows[index][valueIndex]);
+    }
   }
 }
 
@@ -1382,11 +1404,15 @@ describe("packaged FitFreed import journey", () => {
       "en-US",
       "2026-01-04T07:15:00",
     );
-    const enJan5Start = await formatBrowserTrainingLocalDateTime(
+    const enJan4Card = await formatBrowserTrainingCardDateTime(
+      "en-US",
+      "2026-01-04T06:15:00",
+    );
+    const enJan5Card = await formatBrowserTrainingCardDateTime(
       "en-US",
       "2026-01-05T18:00:00",
     );
-    const enJan6Start = await formatBrowserTrainingLocalDateTime(
+    const enJan6Card = await formatBrowserTrainingCardDateTime(
       "en-US",
       "2026-01-06T07:30:00",
     );
@@ -1432,8 +1458,8 @@ describe("packaged FitFreed import journey", () => {
     );
     await openTrainingWorkspace(english, "sessions");
     await expectTrainingRows([
-      [enJan5Start, "30 min", "Not recorded", "Not recorded"],
-      [enJan4Start, "1 h", "10,000 m", "600 kcal"],
+      [enJan5Card, "30 min"],
+      [enJan4Card, "1 h", "10 km", "600 kcal", "142 bpm"],
     ]);
     await expectTrainingSummary([
       ["2 sessions", "Sessions"],
@@ -1463,7 +1489,7 @@ describe("packaged FitFreed import journey", () => {
     }
     await selectTrainingSort("distance-desc");
     await $(".training-session-search button[type='submit']").click();
-    await expectTrainingRows([[enJan4Start, "1 h", "10,000 m", "600 kcal"]]);
+    await expectTrainingRows([[enJan4Card, "1 h", "10 km", "600 kcal", "142 bpm"]]);
     const appliedTrainingQuery = await $(".training-session-applied-query");
     await expect(appliedTrainingQuery).toHaveText(expect.stringContaining("Sport: Trail running"));
     await expect(appliedTrainingQuery).toHaveText(expect.stringContaining(
@@ -1472,11 +1498,11 @@ describe("packaged FitFreed import journey", () => {
     await expect(appliedTrainingQuery).toHaveText(expect.stringContaining("Order: Farthest first"));
     await $('button[aria-label="Remove Sport: Trail running"]').click();
     await expect(appliedTrainingQuery).not.toHaveText(expect.stringContaining("Sport: Trail running"));
-    await expectTrainingRows([[enJan4Start, "1 h", "10,000 m", "600 kcal"]]);
+    await expectTrainingRows([[enJan4Card, "1 h", "10 km", "600 kcal", "142 bpm"]]);
     await $(".training-session-applied-query > header button.secondary").click();
     await expectTrainingRows([
-      [enJan5Start, "30 min", "Not recorded", "Not recorded"],
-      [enJan4Start, "1 h", "10,000 m", "600 kcal"],
+      [enJan5Card, "30 min"],
+      [enJan4Card, "1 h", "10 km", "600 kcal", "142 bpm"],
     ]);
     const comparisonCheckboxes = await $$(
       ".training-session-result-actions input[type='checkbox']",
@@ -1494,7 +1520,7 @@ describe("packaged FitFreed import journey", () => {
     await $("aria/Calendar").click();
     await expect($(".training-calendar h3")).toHaveText("January 2026");
     await $('button[aria-label*="January 4, 2026"]').click();
-    await expectTrainingRows([[enJan4Start, "1 h", "10,000 m", "600 kcal"]]);
+    await expectTrainingRows([[enJan4Card, "1 h", "10 km", "600 kcal", "142 bpm"]]);
     await $(".training-session-results button.secondary").click();
     await expect($("#training-session-detail-heading")).toHaveText("Session summary");
     await openTrainingDetailSection(english, "structure");
@@ -1930,8 +1956,8 @@ describe("packaged FitFreed import journey", () => {
     await $("aria/Back to calendar").click();
     await $("aria/Chronology").click();
     await expectTrainingRows([
-      [enJan5Start, "30 min", "Not recorded", "Not recorded"],
-      [enJan4Start, "1 h", "10,000 m", "600 kcal"],
+      [enJan5Card, "30 min"],
+      [enJan4Card, "1 h", "10 km", "600 kcal", "142 bpm"],
     ]);
     await openHomeQuestion(
       english,
@@ -2041,11 +2067,11 @@ describe("packaged FitFreed import journey", () => {
     await $('button[aria-label="View aligned details for Jan 4, 2026"]').click();
     await $("aria/Open training explorer for this date").click();
     await expectFilterRange(".training-session-search", "2026-01-04", "2026-01-04");
-    await expectTrainingRows([[enJan4Start, "1 h", "10,000 m", "600 kcal"]]);
+    await expectTrainingRows([[enJan4Card, "1 h", "10 km", "600 kcal", "142 bpm"]]);
     await $(".training-session-search button.secondary").click();
     await expectTrainingRows([
-      [enJan5Start, "30 min", "Not recorded", "Not recorded"],
-      [enJan4Start, "1 h", "10,000 m", "600 kcal"],
+      [enJan5Card, "30 min"],
+      [enJan4Card, "1 h", "10 km", "600 kcal", "142 bpm"],
     ]);
 
     await openHomeQuestion(
@@ -2238,15 +2264,15 @@ describe("packaged FitFreed import journey", () => {
     ]);
     await returnToLibraryHome(spanish);
     await expectLibraryHome(spanish);
-    const esJan4Start = await formatBrowserTrainingLocalDateTime(
+    const esJan4Card = await formatBrowserTrainingCardDateTime(
       "es-ES",
       "2026-01-04T06:15:00",
     );
-    const esJan5Start = await formatBrowserTrainingLocalDateTime(
+    const esJan5Card = await formatBrowserTrainingCardDateTime(
       "es-ES",
       "2026-01-05T18:00:00",
     );
-    const esJan6Start = await formatBrowserTrainingLocalDateTime(
+    const esJan6Card = await formatBrowserTrainingCardDateTime(
       "es-ES",
       "2026-01-06T07:30:00",
     );
@@ -2270,13 +2296,8 @@ describe("packaged FitFreed import journey", () => {
     );
     await openTrainingWorkspace(spanish, "sessions");
     await expectTrainingRows([
-      [
-        esJan5Start,
-        "30 min",
-        spanish.training.sessionLibrary.metricUnavailable,
-        spanish.training.sessionLibrary.metricUnavailable,
-      ],
-      [esJan4Start, "1 h", "10.000 m", "600 kcal"],
+      [esJan5Card, "30 min"],
+      [esJan4Card, "1 h", "10 km", "600 kcal", "142 ppm"],
     ]);
     await expectTrainingSummary([
       ["2 sesiones", spanish.training.sessionCount],
@@ -2420,8 +2441,8 @@ describe("packaged FitFreed import journey", () => {
     );
     await openTrainingWorkspace(english, "sessions");
     await expectTrainingRows([
-      [enJan5Start, "30 min", "Not recorded", "Not recorded"],
-      [enJan4Start, "1 h", "10,000 m", "600 kcal"],
+      [enJan5Card, "30 min"],
+      [enJan4Card, "1 h", "10 km", "600 kcal", "142 bpm"],
     ]);
 
     await goToHome("sources");
@@ -2462,9 +2483,9 @@ describe("packaged FitFreed import journey", () => {
     );
     await openTrainingWorkspace(english, "sessions");
     await expectTrainingRows([
-      [enJan6Start, "45 min", "5,000 m", "300 kcal"],
-      [enJan5Start, "30 min", "Not recorded", "Not recorded"],
-      [enJan4Start, "1 h", "10,500 m", "600 kcal"],
+      [enJan6Card, "45 min", "5 km", "300 kcal", "130 bpm"],
+      [enJan5Card, "30 min"],
+      [enJan4Card, "1 h", "10.5 km", "600 kcal", "142 bpm"],
     ]);
     await expectTrainingSummary([
       ["3 sessions", "Sessions"],
@@ -2621,7 +2642,7 @@ describe("packaged FitFreed import journey", () => {
     await setTrainingRange("2026-01-05", "2026-01-05");
     await $(".training-session-search button[type='submit']").click();
     await expectTrainingRows([
-      [enJan5Start, "30 min", "Not recorded", "Not recorded"],
+      [enJan5Card, "30 min"],
     ]);
     await expectTrainingSummary([
       ["1 session", "Sessions"],
@@ -2644,14 +2665,14 @@ describe("packaged FitFreed import journey", () => {
       "Choose an ordered training-session date range and a personal sport name of up to 80 characters.",
     );
     await expectTrainingRows([
-      [enJan5Start, "30 min", "Not recorded", "Not recorded"],
+      [enJan5Card, "30 min"],
     ]);
 
     await $(".training-session-search button.secondary").click();
     await expectTrainingRows([
-      [enJan6Start, "45 min", "5,000 m", "300 kcal"],
-      [enJan5Start, "30 min", "Not recorded", "Not recorded"],
-      [enJan4Start, "1 h", "10,500 m", "600 kcal"],
+      [enJan6Card, "45 min", "5 km", "300 kcal", "130 bpm"],
+      [enJan5Card, "30 min"],
+      [enJan4Card, "1 h", "10.5 km", "600 kcal", "142 bpm"],
     ]);
     const completeTrainingDetailButtons = await $$(
       'button[aria-label^="View session details for"]',
@@ -2996,14 +3017,9 @@ describe("packaged FitFreed import journey", () => {
       ".training-insights",
     );
     await expectTrainingRows([
-      [esJan6Start, "45 min", "5000 m", "300 kcal"],
-      [
-        esJan5Start,
-        "30 min",
-        spanish.training.sessionLibrary.metricUnavailable,
-        spanish.training.sessionLibrary.metricUnavailable,
-      ],
-      [esJan4Start, "1 h", "10.500 m", "600 kcal"],
+      [esJan6Card, "45 min", "5 km", "300 kcal", "130 ppm"],
+      [esJan5Card, "30 min"],
+      [esJan4Card, "1 h", "10,5 km", "600 kcal", "142 ppm"],
     ]);
     await expectTrainingSummary([
       ["3 sesiones", spanish.training.sessionCount],
@@ -3330,7 +3346,7 @@ describe("packaged FitFreed import journey", () => {
     await $(`aria/${spanish.training.sessionLibrary.calendar}`).click();
     await expect($(".training-calendar h3")).toHaveText("enero de 2026");
     await $('button[aria-label*="4 de enero de 2026"]').click();
-    await expectTrainingRows([[esJan4Start, "1 h", "10.500 m", "600 kcal"]]);
+    await expectTrainingRows([[esJan4Card, "1 h", "10,5 km", "600 kcal", "142 ppm"]]);
     const restoredDetailButton = await $(
       'button[aria-label^="Ver detalles de la sesión del"]',
     );
