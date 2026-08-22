@@ -209,7 +209,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R3 | Complete locally — R3.1 and R3.2 exact packaged gates passed 2026-08-22 | Import ends in recognizable personal value |
 | X5-R4 | Complete locally — exact packaged and exhaustive adaptive gates passed 2026-08-22 | Existing health and aligned-history questions read as answers |
 | X5-R5 | Complete locally — R5.4, R5.5, and real-process restart gates passed 2026-08-22 | A remembered session is findable and sports are recognizable |
-| X5-R6 | In progress — R6.1/R6.2 complete and production session reader cut over locally 2026-08-22 | A routed workout is investigated through a dominant synchronized map |
+| X5-R6 | In progress — R6.1/R6.2 complete; production reader cut-over exact packaged gates passed 2026-08-22 | A routed workout is investigated through a dominant synchronized map |
 | X5-R7 | Pending | Every session composition reflects its actual evidence |
 | X5-R8 | Pending | Personal ranges and reusable criteria work end to end |
 | X5-R9 | Pending | Reports open as results and leave FitFreed safely |
@@ -911,6 +911,23 @@ Story remains the sole evidence input; FitFreed retains elapsed selection, route
 semantic alternatives, exact evidence, focus, and navigation ownership. R6 remains open until the complete
 production workbench and every unit, packaged-WebView, accessibility, privacy, synchronization, responsive,
 and dense-session gate pass.
+
+### Production session reader cut-over — 2026-08-22
+
+The ordinary session surface now reads structure, routes, signals, zones, exercise composition, and current
+provenance from one revision-coherent `query_session_story` response. It no longer launches four independent
+detail queries whose responses could arrive or fail separately. Exact route points and exact signal samples
+remain deliberate, independently paginated disclosures. A story failure produces one calm contextual alert
+and no duplicate shell alert; successful sport classification updates both the selected session and its
+composed exercise identities without a stale technical reference becoming visible.
+
+Focused React coverage proves the one-command boundary, bounded overview requests, every retained detail
+operation, classification refresh, restoration, and one contextual failure. The complete 255-test React
+suite, contributor fast lane, production build, documentation, localization, repository-content and secret
+checks passed. The exact committed-source macOS campaign passed the complete functional journey, a real
+process restart, accessibility checks, and the packaged insight-performance suite. R6 remains open for the
+dominant Leaflet route workbench and its synchronized interaction, adaptive-layout, privacy, and visual
+falsification gates.
 
 ## X5-R7 — Make session composition evidence-adaptive
 
