@@ -1085,6 +1085,27 @@ The complete fast contributor lane passed 156 automation, 279 React, 2 vendored-
 159 application, and 33 domain tests together with architecture, contracts, workflows, documentation,
 product surfaces, localization, site, production TypeScript build, and Rust formatting gates.
 
+### R7.3 structure-only production composition — 2026-08-22
+
+A session with recorded exercise structure but no drawable route or supported visual signal now gives that
+structure the leading visual region. Sport identity, exercise duration, distance, source laps, automatic laps,
+and pauses are concise before the person requests detail. Recorded lap split times and durations determine the
+bar geometry against the recorded exercise duration. Pause positions remain undisclosed because the current
+contract carries local timestamps rather than a validated elapsed-session alignment; presentation reports the
+count and leaves exact timestamps in the structural detail instead of inventing a timeline.
+
+The workbench supports each composed structured exercise, distinguishes source and automatic lap authorship,
+and moves focus to Structure and segments through an explicit action. Source structure remains separate from
+personal segmentation. Focused behavior proves that no route or signal workbench appears, one half-duration
+source lap occupies exactly half the recorded-duration track, session evidence is counted once, irrelevant
+detail destinations stay absent, and the structural action reveals and focuses both source detail and the
+personal-segment capability. Responsive layout, high zoom, both locales, production compilation, localization,
+and UI contracts pass their focused gates. The complete R7 behavior matrix, packaged visual journey, and
+zone-leading composition remain open. The complete fast contributor lane passed 156 automation, 280 React,
+2 vendored-updater, 213 host, 159 application, and 33 domain tests together with architecture, contracts,
+workflows, documentation, product surfaces, localization, site, production TypeScript build, and Rust
+formatting gates.
+
 ## X5-R8 — Add personal ranges and integrate segmentation
 
 **User outcome:** a person can name and revisit a contiguous part of one session and can apply reusable

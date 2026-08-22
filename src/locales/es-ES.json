@@ -658,6 +658,32 @@
         "exactSignal": "Consultar muestras exactas de {signal}",
         "chartSummary": "Gráfico de {metric} con {available} valores registrados de {total} muestras, medidos en {unit}. Los huecos muestran valores ausentes en el origen."
       },
+      "structureWorkbench": {
+        "regionLabel": "Área de trabajo de la estructura registrada",
+        "eyebrow": "Estructura registrada de la sesión",
+        "heading": "Explorar la estructura registrada",
+        "introduction": "Las vueltas de origen y las vueltas automáticas se muestran sobre la duración registrada del ejercicio. Aquí las pausas se mantienen como un recuento; sus horas exactas permanecen en el detalle.",
+        "visibleExercise": "Ejercicio visible",
+        "exerciseChoice": "Ejercicio {exercise} · {sport}",
+        "exerciseNumber": "Ejercicio {exercise}",
+        "exerciseDuration": "Duración del ejercicio",
+        "measurements": "Resumen de la estructura registrada",
+        "sourceLapUnit": {
+          "one": "vuelta de origen",
+          "other": "vueltas de origen"
+        },
+        "automaticLapUnit": {
+          "one": "vuelta automática",
+          "other": "vueltas automáticas"
+        },
+        "pauseUnit": {
+          "one": "pausa",
+          "other": "pausas"
+        },
+        "chartSummary": "Estructura registrada del ejercicio {exercise}: {sourceLaps}, {automaticLaps} y {pauses} durante {duration}.",
+        "meaning": "Las barras utilizan únicamente los tiempos de inicio y las duraciones registradas. La posición de las pausas no se deduce de las horas locales.",
+        "openStructure": "Explorar la estructura y los segmentos personales"
+      },
       "viewExactRoutePoints": "Consultar los puntos registrados exactos",
       "hideExactRoutePoints": "Ocultar los puntos registrados exactos",
       "exactRouteHeading": "Puntos exactos de la ruta registrada",

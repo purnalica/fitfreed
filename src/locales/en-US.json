@@ -658,6 +658,32 @@
         "exactSignal": "Inspect exact {signal} samples",
         "chartSummary": "{metric} chart with {available} recorded values out of {total} samples, measured in {unit}. Gaps show missing source values."
       },
+      "structureWorkbench": {
+        "regionLabel": "Recorded structure workbench",
+        "eyebrow": "Recorded session structure",
+        "heading": "Explore recorded structure",
+        "introduction": "Source laps and automatic laps are shown against recorded exercise duration. Pauses remain a count here; their exact timestamps stay in detail.",
+        "visibleExercise": "Visible exercise",
+        "exerciseChoice": "Exercise {exercise} · {sport}",
+        "exerciseNumber": "Exercise {exercise}",
+        "exerciseDuration": "Exercise duration",
+        "measurements": "Recorded structure summary",
+        "sourceLapUnit": {
+          "one": "source lap",
+          "other": "source laps"
+        },
+        "automaticLapUnit": {
+          "one": "automatic lap",
+          "other": "automatic laps"
+        },
+        "pauseUnit": {
+          "one": "pause",
+          "other": "pauses"
+        },
+        "chartSummary": "Recorded structure for exercise {exercise}: {sourceLaps}, {automaticLaps}, and {pauses} across {duration}.",
+        "meaning": "Bars use only recorded split times and durations. Pause positions are not inferred from local timestamps.",
+        "openStructure": "Explore structure and personal segments"
+      },
       "viewExactRoutePoints": "Inspect exact recorded points",
       "hideExactRoutePoints": "Hide exact recorded points",
       "exactRouteHeading": "Exact recorded route points",

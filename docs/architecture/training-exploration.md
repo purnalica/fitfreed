@@ -211,6 +211,14 @@ as the exact-evidence path. Route lanes and the independent signal workbench sha
 two renderers. A session-level evidence account aggregates only the exact counts already present in Session
 Story; it does not reinterpret absent containers or repeat a missing-data warning in every section.
 
+When neither route nor supported visual signal exists, a composed exercise with recorded structure receives
+the leading visual region. Its duration track and source- or automatic-lap bars use only validated recorded
+duration, split, and lap-duration values. The renderer clamps those bars to the exercise duration but does not
+place pauses on the track: pause timestamps are local civil times and Session Story does not claim an
+elapsed-session alignment for them. Counts and exact local timestamps remain available without turning that
+absence of alignment into fabricated chronology. This source-authored structure is still distinct from the
+user-authored segment criteria available in the same progressive-detail destination.
+
 Detail navigation is capability-adaptive after the story arrives. Routes are present only when a composed
 exercise has a route object, and Signals and zones only when a composed exercise has supported or unsupported
 signal or zone evidence. Structure and segments remains available even without source structure because

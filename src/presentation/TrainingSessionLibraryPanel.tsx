@@ -61,6 +61,7 @@ import { TrainingSessionProvenancePanel } from "./TrainingSessionProvenancePanel
 import { TrainingRouteWorkbench } from "./TrainingRouteWorkbench";
 import { TrainingSignalPlot } from "./TrainingSignalPlot";
 import { TrainingSignalWorkbench } from "./TrainingSignalWorkbench";
+import { TrainingStructureWorkbench } from "./TrainingStructureWorkbench";
 import { TrainingSessionZonesPanel } from "./TrainingSessionZonesPanel";
 import { useInvalidForm } from "./useInvalidForm";
 import { useResultFocus } from "./useResultFocus";
@@ -143,6 +144,22 @@ function hasVisualRoute(story: SessionStory): boolean {
     (exercise.primary.route?.visualPoints.length ?? 0) > 0
       || (exercise.transition.route?.visualPoints.length ?? 0) > 0
   ));
+}
+
+function hasVisualSignal(story: SessionStory): boolean {
+  return story.exercises.some((exercise) => (
+    (["primary", "transition"] as const).some((role) => (
+      exercise[role].eligibleOverlays.some((overlay) => (
+        exercise[role].signals.some((signal) => (
+          signal.signalRef === overlay.signalRef && signal.availableSampleCount > 0
+        ))
+      ))
+    ))
+  ));
+}
+
+function hasRecordedStructure(story: SessionStory): boolean {
+  return story.exercises.some((exercise) => exercise.structure !== null);
 }
 
 function emptyDraft(initialDate?: string): SearchDraft {
@@ -326,6 +343,10 @@ export function TrainingSessionLibraryPanel({
     detailSection === "signals" && exactSignalRef !== undefined
       && exactSignalTarget === undefined,
   );
+  const {
+    resultHeadingRef: structureHeadingRef,
+    requestResultFocus: requestStructureFocus,
+  } = useResultFocus<HTMLHeadingElement>(detailSection === "structure");
   const {
     resultHeadingRef: exactRouteTargetRowRef,
     requestResultFocus: requestExactRouteTargetFocus,
@@ -1029,6 +1050,11 @@ export function TrainingSessionLibraryPanel({
     setSelected(undefined);
     detailOriginButtonRef.current = null;
     restoreFocusAfterReveal(target, initiatingElement);
+  }
+
+  function openStructureFromWorkbench(initiatingElement: HTMLButtonElement) {
+    requestStructureFocus(initiatingElement);
+    setDetailSection("structure");
   }
 
   function sportTitle(sport: TrainingSport): string {
@@ -2747,6 +2773,19 @@ export function TrainingSessionLibraryPanel({
                   onOpenExactSignal={openExactSignalSamplesFromWorkbench}
                 />
               )}
+              {!hasVisualRoute(detailStory)
+                && !hasVisualSignal(detailStory)
+                && hasRecordedStructure(detailStory) && (
+                <TrainingStructureWorkbench
+                  story={detailStory}
+                  locale={locale}
+                  messages={messages}
+                  exerciseLabel={(exercise) => exercise.sport
+                    ? trainingSportTitle(exercise.sport, detailUnknownSportRefs)
+                    : copy.notRecordedType}
+                  onOpenStructure={openStructureFromWorkbench}
+                />
+              )}
               <TrainingSessionEvidenceSummary
                 story={detailStory}
                 locale={locale}
@@ -2793,7 +2832,11 @@ export function TrainingSessionLibraryPanel({
             aria-labelledby="training-structure-heading"
             hidden={detailSection !== "structure"}
           >
-            <h4 id="training-structure-heading">{copy.structureHeading}</h4>
+            <h4
+              id="training-structure-heading"
+              ref={structureHeadingRef}
+              tabIndex={-1}
+            >{copy.structureHeading}</h4>
             <p>{copy.structureIntro}</p>
             {!detailLoading && detailStory?.structure === null && (
               <p>{copy.structureNotEvaluated}</p>

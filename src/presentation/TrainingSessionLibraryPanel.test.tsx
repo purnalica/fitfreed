@@ -792,6 +792,46 @@ function signalOnlyTrainingStory(
   };
 }
 
+function structureOnlyTrainingStory(
+  sessionRef: string,
+  acceptedSnapshotRef = snapshotRef,
+): SessionStory {
+  const story = trainingStory(sessionRef, acceptedSnapshotRef);
+  const exercise = story.exercises[0]!;
+  const emptyRole = {
+    route: null,
+    signals: [],
+    evidence: storyRoleEvidence(null, [], 0),
+    primaryMetric: null,
+    eligibleOverlays: [],
+    exactRoute: null,
+    exactSignals: [],
+  };
+
+  return {
+    ...story,
+    session: { ...story.session, exerciseCount: 1 },
+    structure: { exercises: [exercise.structure!] },
+    routes: { exercises: null },
+    signals: { exercises: null },
+    zones: { exercises: null },
+    composition: {
+      structureState: "source-present",
+      routeState: "source-absent",
+      signalState: "source-absent",
+      zoneState: "source-absent",
+      exerciseCount: 1,
+    },
+    exercises: [{
+      ...exercise,
+      zones: null,
+      evidence: storyExerciseEvidence(exercise.structure, null),
+      primary: emptyRole,
+      transition: emptyRole,
+    }],
+  };
+}
+
 const calendar: TrainingSessionCalendar = {
   availableRange: { from: "2024-01-01", through: "2026-08-18" },
   snapshotRef,
@@ -2380,6 +2420,77 @@ describe("TrainingSessionLibraryPanel", () => {
         limit: 100,
       },
     });
+  });
+
+  it("foregrounds recorded structure without inventing a map or signal timeline", async () => {
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "query_session_story") {
+        const query = arguments_.query as { sessionRef: string; snapshotRef: string };
+        return Promise.resolve(structureOnlyTrainingStory(query.sessionRef, query.snapshotRef));
+      }
+      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+      if (workspaceResult) return workspaceResult;
+      if (command === "query_training_sports") return Promise.resolve(sports);
+      if (command === "query_training_sessions") {
+        return Promise.resolve(page([newest], 0, 1, null));
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    renderPanel();
+
+    const region = await screen.findByRole("region", { name: "Find a training session" });
+    await user.click(within(region).getByRole("button", {
+      name: /View session details for/,
+    }));
+    const detail = within(region).getByRole("region", { name: "Session summary" });
+    const workbench = await within(detail).findByRole("region", {
+      name: "Recorded structure workbench",
+    });
+
+    expect(within(workbench).getByRole("heading", {
+      name: "Explore recorded structure",
+    })).toBeVisible();
+    expect(within(workbench).getByTestId("sport-family-icon")).toBeVisible();
+    expect(within(workbench).getByText("Intervals")).toBeVisible();
+    const structureVisual = within(workbench).getByRole("img", {
+      name: /Recorded structure for exercise 1: 1 source lap, 0 automatic laps, and 1 pause across 1 h/,
+    });
+    expect(structureVisual).toBeVisible();
+    const visualBars = structureVisual.querySelectorAll(".training-structure-workbench-track i");
+    expect(visualBars).toHaveLength(2);
+    expect(visualBars[1]).toHaveStyle({ left: "0%", width: "50%" });
+    expect(workbench).toHaveTextContent("10,000.5 m");
+    expect(workbench).toHaveTextContent("1 source lap");
+    expect(workbench).toHaveTextContent("1 pause");
+    expect(within(detail).queryByRole("region", {
+      name: "Recorded route workbench",
+    })).not.toBeInTheDocument();
+    expect(within(detail).queryByRole("region", {
+      name: "Recorded signal workbench",
+    })).not.toBeInTheDocument();
+
+    const evidence = within(detail).getByRole("region", { name: "Session evidence" });
+    expect(evidence).toHaveTextContent("1 exercise with recorded structure");
+    expect(evidence).toHaveTextContent("1 recorded lap");
+    expect(evidence).toHaveTextContent("1 recorded pause");
+    const navigation = within(detail).getByRole("navigation", { name: "Session detail" });
+    expect(within(navigation).queryByRole("button", { name: "Signals and zones" }))
+      .not.toBeInTheDocument();
+    expect(within(navigation).queryByRole("button", { name: "Routes" }))
+      .not.toBeInTheDocument();
+
+    await user.click(within(workbench).getByRole("button", {
+      name: "Explore structure and personal segments",
+    }));
+    const structureHeading = await within(detail).findByRole("heading", {
+      name: "Recorded structure",
+    });
+    await waitFor(() => expect(structureHeading).toHaveFocus());
+    expect(within(detail).getByRole("heading", { name: "Source laps" })).toBeVisible();
+    expect(await within(detail).findByRole("heading", {
+      name: "Your session segments",
+    })).toBeVisible();
   });
 
   it("announces a search without renaming its action or hiding the current results", async () => {

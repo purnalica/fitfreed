@@ -75,6 +75,11 @@ measurement the leading visual region instead of reserving an empty map. The dis
 coverage, interval, source identity, and gaps remain connected to the exact source-series action. A compact
 evidence account states once what the session contains; deeper sections remain for requested detail rather
 than repeating general absence notices.
+When a session has recorded exercise structure but neither a route nor a supported visual signal, recorded
+duration and source or automatic laps take that leading region. Pause counts are visible there, while their
+recorded local timestamps remain in structural detail because FitFreed does not infer an elapsed position that
+the evidence contract does not provide. The same action opens and focuses source structure and personal
+segments without presenting the two as the same kind of evidence.
 Supported recorded heart-rate, speed, and power zones preserve
 their exact bounds and applicable aggregates without implying a timeline. Session provenance loads only on
 request and distinguishes source revision time, local import time, interpretation versions, and reconciliation
