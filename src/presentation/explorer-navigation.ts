@@ -19,7 +19,14 @@ export interface TrainingComparisonNavigationRequest {
   requestId: number;
 }
 
+export interface TrainingSportNavigationRequest {
+  kind: "sport";
+  sportRef: string;
+  requestId: number;
+}
+
 export type TrainingNavigationRequest =
   | ExplorerNavigationRequest
   | TrainingSessionNavigationRequest
-  | TrainingComparisonNavigationRequest;
+  | TrainingComparisonNavigationRequest
+  | TrainingSportNavigationRequest;

@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { type catalogs } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
+import { restoreFocusAfterReveal } from "./focus-restoration";
 import { ProgressSubmitButton } from "./ProgressSubmitButton";
 import { SportFamilyIcon } from "./SportFamilyIcon";
 import {
@@ -57,6 +58,7 @@ export function SportClassificationTask({
   const [operation, setOperation] = useState<"save" | "reset">();
   const [conflict, setConflict] = useState(false);
   const observedRevision = useRef(sport.classification?.revision);
+  const formRef = useRef<HTMLFormElement>(null);
   const busy = operation !== undefined;
   const labelTooLong = [...draft.label.trim()].length > 80;
   const familyId = `${editorId}-family`;
@@ -69,6 +71,13 @@ export function SportClassificationTask({
     if (observedRevision.current !== nextRevision) setConflict(true);
     observedRevision.current = nextRevision;
   }, [sport.classification?.revision]);
+
+  useEffect(() => {
+    const initiatingElement = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    return restoreFocusAfterReveal(formRef.current, initiatingElement, { align: "start" });
+  }, []);
 
   async function persist(
     canonicalFamily: SportFamily | null,
@@ -123,9 +132,11 @@ export function SportClassificationTask({
 
   return (
     <form
+      ref={formRef}
       className="training-sport-editor"
       aria-label={interpolate(messages.editorHeading, { sport: title })}
       aria-busy={busy}
+      tabIndex={-1}
       onSubmit={submit}
     >
       <div className="training-sport-editor-preview" aria-live="polite">

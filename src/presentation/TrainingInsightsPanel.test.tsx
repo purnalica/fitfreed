@@ -38,6 +38,7 @@ vi.mock("./TrainingSessionLibraryPanel", () => ({
 
 vi.mock("./TrainingSportsPanel", () => ({
   TrainingSportsPanel: (properties: {
+    openSportRef?: string;
     classificationChange?: {
       requestId: number;
       result: { overview: { sports: Array<{ classification: { displayLabel: string } }> } };
@@ -45,6 +46,7 @@ vi.mock("./TrainingSportsPanel", () => ({
     onChange: (result: unknown) => void;
   }) => (
     <section aria-label="Sports child">
+      <output data-testid="open-sport-ref">{properties.openSportRef ?? "none"}</output>
       <button
         type="button"
         onClick={() => properties.onChange({
@@ -74,6 +76,30 @@ vi.mock("./TrainingComparisonPanel", () => ({
 afterEach(cleanup);
 
 describe("TrainingInsightsPanel", () => {
+  it("opens the Sports workspace for an exact contextual classification request", () => {
+    render(
+      <TrainingInsightsPanel
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        refreshToken={0}
+        navigationRequest={{
+          kind: "sport",
+          sportRef: "sport-local-unknown",
+          requestId: 7,
+        }}
+        onCreateReport={vi.fn()}
+        onError={vi.fn()}
+        onSportClassificationChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Sports" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(screen.getByTestId("open-sport-ref")).toHaveTextContent("sport-local-unknown");
+  });
+
   it("broadcasts each classification to both workspaces and the application owner", async () => {
     const onSportClassificationChange = vi.fn();
     const user = userEvent.setup();

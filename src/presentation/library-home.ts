@@ -49,6 +49,7 @@ export interface LibraryPostImportReveal {
 }
 
 export interface LibraryHomeSportSummary {
+  sportRef: string | null;
   state: TrainingSportState;
   canonicalFamily: SportFamily | null;
   displayLabel: string | null;
@@ -58,6 +59,7 @@ export interface LibraryHomeSportSummary {
 
 export interface LibraryHomeRecentSession {
   sessionRef: string;
+  sportRef: string | null;
   startedAtLocal: string;
   durationMilliseconds: string;
   distanceMeters: number | null;
@@ -114,7 +116,7 @@ export interface ExplorationWorkspace {
 }
 
 export interface LibraryHome {
-  version: 2;
+  version: 3;
   libraryRevisionRef: string;
   availableRange: LibraryHomeDateRange | null;
   domains: LibraryDomainCoverage[];
@@ -151,7 +153,10 @@ export interface LibraryHomeMessages {
   sportsIntro: string;
   sportFamilies: Record<SportFamily, string>;
   sportUnknown: string;
+  sportUnknownIndexed: string;
   sportUnavailable: string;
+  classifySport: string;
+  classifySportAccessible: string;
   sportSessions: { one: string; other: string };
   sportProfiles: { one: string; other: string };
   omittedSports: { one: string; other: string };

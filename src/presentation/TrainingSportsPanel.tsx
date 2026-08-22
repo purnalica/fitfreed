@@ -20,6 +20,8 @@ interface TrainingSportsPanelProps {
   locale: Locale;
   messages: (typeof catalogs)["en-US"];
   refreshToken: number;
+  openSportRef?: string;
+  navigationRequestId?: number;
   classificationChange?: TrainingSportClassificationChange;
   onError: (code: string | undefined) => void;
   onChange?: (result: SavedTrainingSportClassification) => void;
@@ -54,6 +56,8 @@ export function TrainingSportsPanel({
   locale,
   messages,
   refreshToken,
+  openSportRef,
+  navigationRequestId,
   classificationChange,
   onError,
   onChange,
@@ -66,6 +70,7 @@ export function TrainingSportsPanel({
   const [status, setStatus] = useState<string>();
   const actionRefs = useRef(new Map<string, HTMLButtonElement>());
   const returnFocusSportRef = useRef<string | undefined>(undefined);
+  const handledNavigationRequest = useRef<number | undefined>(undefined);
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const plural = useMemo(() => new Intl.PluralRules(locale), [locale]);
   const date = useMemo(
@@ -106,6 +111,20 @@ export function TrainingSportsPanel({
       classificationChange.result.outcome === "changed" ? copy.saved : copy.unchanged,
     );
   }, [classificationChange?.requestId, copy.saved, copy.unchanged]);
+
+  useEffect(() => {
+    if (
+      !overview
+      || !openSportRef
+      || navigationRequestId === undefined
+      || handledNavigationRequest.current === navigationRequestId
+    ) return;
+    handledNavigationRequest.current = navigationRequestId;
+    const requested = overview.sports.find((sport) => sport.sportRef === openSportRef);
+    if (!requested?.classification) return;
+    setEditingSportRef(openSportRef);
+    setStatus(undefined);
+  }, [navigationRequestId, openSportRef, overview]);
 
   function titleFor(sport: TrainingSport): string {
     const unknownSports = overview?.sports.filter((candidate) => candidate.state === "unknown") ?? [];

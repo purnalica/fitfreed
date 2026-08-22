@@ -1,0 +1,243 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/library-home-v3.schema.json",
+  "title": "FitFreed library home version 3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "libraryRevisionRef",
+    "availableRange",
+    "domains",
+    "questions",
+    "training",
+    "highlight",
+    "postImport",
+    "resumableExploration"
+  ],
+  "properties": {
+    "version": { "const": 3 },
+    "libraryRevisionRef": { "$ref": "library-home-v2.schema.json#/$defs/libraryRevisionRef" },
+    "availableRange": { "$ref": "library-home-v1.schema.json#/$defs/optionalRange" },
+    "domains": {
+      "type": "array",
+      "prefixItems": [
+        { "$ref": "library-home-v1.schema.json#/$defs/trainingDomain" },
+        { "$ref": "library-home-v1.schema.json#/$defs/activityDomain" },
+        { "$ref": "library-home-v1.schema.json#/$defs/sleepDomain" },
+        { "$ref": "library-home-v1.schema.json#/$defs/recoveryDomain" }
+      ],
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "questions": {
+      "type": "array",
+      "uniqueItems": true,
+      "maxItems": 5,
+      "items": { "$ref": "library-home-v1.schema.json#/$defs/question" }
+    },
+    "training": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/training" }
+      ]
+    },
+    "highlight": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "library-home-v2.schema.json#/$defs/recentTrainingComparison" },
+        { "$ref": "library-home-v2.schema.json#/$defs/historicalTraining" },
+        { "$ref": "library-home-v2.schema.json#/$defs/libraryHistory" }
+      ]
+    },
+    "postImport": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "library-home-v2.schema.json#/$defs/postImport" }
+      ]
+    },
+    "resumableExploration": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "library-home-v1.schema.json#/$defs/explorationWorkspace" }
+      ]
+    }
+  },
+  "$defs": {
+    "sportRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "nullableSportRef": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/sportRef" }
+      ]
+    },
+    "sportSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sportRef",
+        "state",
+        "canonicalFamily",
+        "displayLabel",
+        "profileCount",
+        "sessionCount"
+      ],
+      "properties": {
+        "sportRef": { "$ref": "#/$defs/nullableSportRef" },
+        "state": { "enum": ["unknown", "classified", "unavailable"] },
+        "canonicalFamily": { "$ref": "library-home-v2.schema.json#/$defs/nullableSportFamily" },
+        "displayLabel": { "$ref": "library-home-v2.schema.json#/$defs/nullableLabel" },
+        "profileCount": { "type": "integer", "minimum": 1 },
+        "sessionCount": { "type": "integer", "minimum": 1 }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": ["state"],
+            "properties": { "state": { "const": "classified" } }
+          },
+          "then": {
+            "anyOf": [
+              { "properties": { "canonicalFamily": { "$ref": "library-home-v2.schema.json#/$defs/sportFamily" } } },
+              { "properties": { "displayLabel": { "type": "string" } } }
+            ]
+          },
+          "else": {
+            "properties": {
+              "canonicalFamily": { "type": "null" },
+              "displayLabel": { "type": "null" }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["state"],
+            "properties": { "state": { "const": "unknown" } }
+          },
+          "then": {
+            "properties": {
+              "sportRef": { "$ref": "#/$defs/sportRef" },
+              "profileCount": { "const": 1 }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["state"],
+            "properties": { "state": { "const": "unavailable" } }
+          },
+          "then": {
+            "properties": { "sportRef": { "type": "null" } }
+          },
+          "else": {
+            "if": {
+              "required": ["profileCount"],
+              "properties": { "profileCount": { "const": 1 } }
+            },
+            "then": {
+              "properties": { "sportRef": { "$ref": "#/$defs/sportRef" } }
+            },
+            "else": {
+              "properties": { "sportRef": { "type": "null" } }
+            }
+          }
+        }
+      ]
+    },
+    "recentSession": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sessionRef",
+        "sportRef",
+        "startedAtLocal",
+        "durationMilliseconds",
+        "distanceMeters",
+        "sportState",
+        "canonicalFamily",
+        "displayLabel"
+      ],
+      "properties": {
+        "sessionRef": { "$ref": "library-home-v2.schema.json#/$defs/sessionRef" },
+        "sportRef": { "$ref": "#/$defs/nullableSportRef" },
+        "startedAtLocal": { "$ref": "library-home-v2.schema.json#/$defs/localDateTime" },
+        "durationMilliseconds": { "$ref": "library-home-v2.schema.json#/$defs/nonNegativeIntegerString" },
+        "distanceMeters": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "number", "minimum": 0 }
+          ]
+        },
+        "sportState": { "enum": ["unknown", "classified", "unavailable"] },
+        "canonicalFamily": { "$ref": "library-home-v2.schema.json#/$defs/nullableSportFamily" },
+        "displayLabel": { "$ref": "library-home-v2.schema.json#/$defs/nullableLabel" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": ["sportState"],
+            "properties": { "sportState": { "const": "classified" } }
+          },
+          "then": {
+            "anyOf": [
+              { "properties": { "canonicalFamily": { "$ref": "library-home-v2.schema.json#/$defs/sportFamily" } } },
+              { "properties": { "displayLabel": { "type": "string" } } }
+            ]
+          },
+          "else": {
+            "properties": {
+              "canonicalFamily": { "type": "null" },
+              "displayLabel": { "type": "null" }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["sportState"],
+            "properties": { "sportState": { "const": "unavailable" } }
+          },
+          "then": {
+            "properties": { "sportRef": { "type": "null" } }
+          },
+          "else": {
+            "properties": { "sportRef": { "$ref": "#/$defs/sportRef" } }
+          }
+        }
+      ]
+    },
+    "training": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trainingSnapshotRef",
+        "sessionCount",
+        "sportProfileCount",
+        "omittedSportProfileCount",
+        "sports",
+        "recentSessions"
+      ],
+      "properties": {
+        "trainingSnapshotRef": { "$ref": "library-home-v2.schema.json#/$defs/trainingSnapshotRef" },
+        "sessionCount": { "type": "integer", "minimum": 1 },
+        "sportProfileCount": { "type": "integer", "minimum": 1 },
+        "omittedSportProfileCount": { "type": "integer", "minimum": 0 },
+        "sports": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 6,
+          "items": { "$ref": "#/$defs/sportSummary" }
+        },
+        "recentSessions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": { "$ref": "#/$defs/recentSession" }
+        }
+      }
+    }
+  }
+}

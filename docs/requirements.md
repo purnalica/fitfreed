@@ -406,6 +406,7 @@ All user-facing features included in the first release will be available in Engl
 - Classification will survive restart, reimport, migration, and portable backup without overwriting source evidence.
 - A future provider catalogue or connected API may offer a provenance-bearing suggestion but will not silently replace a user choice.
 - Training history will use a recognizable provider-neutral sport label and visual identifier wherever trustworthy classification exists. Unresolved references remain honest but are classifiable from the affected history itself; assigning or revising a display label and sport family updates every relevant view without requiring reimport.
+- Home will preserve each unresolved sport profile as a distinct visible identity and offer a contextual path to the same classification task used by History. Multiple unresolved profiles will never collapse into one apparent sport, expose source values, or create competing editors.
 
 ## Confirmed MVP scope
 

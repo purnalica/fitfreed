@@ -37,10 +37,13 @@ editors. Import and reimport can reveal a new source reference but cannot create
 `SportClassificationTask` is the sole presentation mutation boundary for family, personal label, validation,
 save, reset, cancellation, operation progress, and optimistic-conflict recovery. The Sports workspace composes
 it as the complete management surface; the Sessions sport summary composes the same task only for an
-unresolved identity encountered in context. A conflict reloads the authoritative overview and revision but
-retains the person's unsaved family and label for deliberate review and retry. Presentation parents may
-choose where the task is revealed and where focus returns, but cannot issue a parallel classification command
-or define another label rule.
+unresolved identity encountered in context. Library Home version 3 also preserves every unresolved profile as
+a separate summary, associates recent sessions through the same opaque presentation capability, and routes its
+contextual naming action to that exact task in Sports. It never aggregates unresolved profiles, displays the
+capability, or owns another mutation path. A conflict reloads the authoritative overview and revision but retains
+the person's unsaved family and label for deliberate review and retry. Presentation parents may choose where the
+task is revealed and where focus returns, but cannot issue a parallel classification command or define another
+label rule.
 
 A changed classification is also a discovery-snapshot change. `TrainingInsightsPanel` publishes one ordered
 classification event to the Sessions and Sports workspaces and to the application owner. Sessions applies the
@@ -93,9 +96,12 @@ recorded-history range boundaries. The normative comparison behavior is document
 
 Training is one product workspace with three explicit views: Sessions, Sports, and Compare periods. Sessions
 is the stable default. A deep session destination opens Sessions; a deep comparison destination opens Compare
-periods. Switching views hides rather than unmounts their presentation boundaries so a temporary visit does
-not discard filters, calendar position, classification editor state, comparison input, or a selected session.
-This presentation state is disposable; only the versioned discovery workspace described above is durable.
+periods; and a deep sport destination opens Sports with the exact shared classification task revealed and
+focused. Returning to Home restores the initiating sport action when it still exists and falls back to the Home
+heading after a saved classification removes that action. Switching views hides rather than unmounts their
+presentation boundaries so a temporary visit does not discard filters, calendar position, classification editor
+state, comparison input, or a selected session. This presentation state is disposable; only the versioned
+discovery workspace described above is durable.
 
 The Sessions view composes that existing discovery contract as a History Desk. Its default viewport presents
 the provider-neutral sport groups and actual chronological session results before query controls. Each sport

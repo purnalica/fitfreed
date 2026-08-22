@@ -13740,7 +13740,7 @@ mod tests {
                 LibraryDomain::Recovery,
             ]
         );
-        assert_eq!(home.version, 2);
+        assert_eq!(home.version, 3);
         assert!(home
             .library_revision_ref
             .starts_with("library-home-revision-"));
@@ -13751,10 +13751,18 @@ mod tests {
         assert_eq!(training.omitted_sport_profile_count, 0);
         assert_eq!(training.sports.len(), 1);
         assert_eq!(training.sports[0].state, TrainingSportState::Unknown);
+        let home_sport_ref = training.sports[0]
+            .sport_ref
+            .clone()
+            .expect("safe Home sport reference");
         assert_eq!(training.recent_sessions.len(), 1);
         assert_eq!(
             training.recent_sessions[0].sport_state,
             TrainingSportState::Unknown
+        );
+        assert_eq!(
+            training.recent_sessions[0].sport_ref.as_deref(),
+            Some(home_sport_ref.as_str())
         );
         assert!(matches!(
             home.highlight,
@@ -13803,6 +13811,7 @@ mod tests {
             .into_iter()
             .next()
             .expect("detected sport");
+        assert_eq!(sport.sport_ref.as_deref(), Some(home_sport_ref.as_str()));
         save_training_sport_classification(
             &sports,
             SaveSportClassificationRequest {

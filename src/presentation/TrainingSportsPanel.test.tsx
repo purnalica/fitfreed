@@ -84,6 +84,25 @@ beforeEach(() => {
 });
 
 describe("TrainingSportsPanel", () => {
+  it("reveals and focuses the shared editor for an exact contextual sport request", async () => {
+    mocks.invoke.mockResolvedValueOnce(overview());
+
+    render(
+      <TrainingSportsPanel
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        refreshToken={0}
+        openSportRef="sport-local-unknown"
+        navigationRequestId={7}
+        onError={vi.fn()}
+      />,
+    );
+
+    const editor = await screen.findByRole("form", { name: "Classify Unknown sport 1" });
+    expect(editor).toBeVisible();
+    await waitFor(() => expect(editor).toHaveFocus());
+  });
+
   it("uses one explicit sport identity system for classified, unknown, and unavailable evidence", async () => {
     mocks.invoke.mockResolvedValueOnce(overview());
 

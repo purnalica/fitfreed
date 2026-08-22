@@ -115,7 +115,10 @@
       "other": "Other sport"
     },
     "sportUnknown": "Unclassified sport",
+    "sportUnknownIndexed": "Unclassified sport {index}",
     "sportUnavailable": "Sport unavailable from source",
+    "classifySport": "Name this sport",
+    "classifySportAccessible": "Name {sport}",
     "sportSessions": {
       "one": "{count} session",
       "other": "{count} sessions"

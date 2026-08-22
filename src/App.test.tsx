@@ -297,7 +297,7 @@ function longitudinalOverviewWithTrainingDay() {
 
 function emptyLibraryHome() {
   return {
-    version: 2,
+    version: 3,
     libraryRevisionRef: "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     availableRange: null,
     domains: ["training", "activity", "sleep", "recovery"].map((domain) => ({
@@ -319,7 +319,7 @@ function emptyLibraryHome() {
 function populatedLibraryHome(overrides: Record<string, unknown> = {}) {
   const range = { from: "2025-01-01", through: "2026-08-17" };
   return {
-    version: 2,
+    version: 3,
     libraryRevisionRef: "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     availableRange: range,
     domains: [
@@ -347,6 +347,7 @@ function populatedLibraryHome(overrides: Record<string, unknown> = {}) {
       sportProfileCount: 1,
       omittedSportProfileCount: 0,
       sports: [{
+        sportRef: `sport-${"1".repeat(64)}`,
         state: "classified",
         canonicalFamily: "running",
         displayLabel: "Road running",
@@ -355,6 +356,7 @@ function populatedLibraryHome(overrides: Record<string, unknown> = {}) {
       }],
       recentSessions: [{
         sessionRef: "training-session-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        sportRef: `sport-${"1".repeat(64)}`,
         startedAtLocal: "2026-08-17T18:30:00.000",
         durationMilliseconds: "3723000",
         distanceMeters: 12340,
@@ -3505,7 +3507,7 @@ describe("FitFreed import interface", () => {
     );
   });
 
-  it("refreshes Home after a sport classification without leaving the active History workspace", async () => {
+  it("opens the shared sport task from Home and refreshes every identity after saving", async () => {
     const sportRef = `sport-${"7".repeat(64)}`;
     const session: TestTrainingSession = {
       sessionRef: `session-${"8".repeat(64)}`,
@@ -3569,6 +3571,7 @@ describe("FitFreed import interface", () => {
             sportProfileCount: 1,
             omittedSportProfileCount: 0,
             sports: [{
+              sportRef,
               state: homeNamed ? "classified" : "unknown",
               canonicalFamily: homeNamed ? "water-sport" : null,
               displayLabel: homeNamed ? "River paddling" : null,
@@ -3577,6 +3580,7 @@ describe("FitFreed import interface", () => {
             }],
             recentSessions: [{
               sessionRef: session.sessionRef,
+              sportRef,
               startedAtLocal: session.startedAtLocal,
               durationMilliseconds: session.durationMilliseconds,
               distanceMeters: session.distanceMeters,
@@ -3636,10 +3640,17 @@ describe("FitFreed import interface", () => {
 
     const user = userEvent.setup();
     render(<App />);
-    await enterExploration(user, "training");
+    const homeSports = await screen.findByRole("region", { name: "Your sports" });
+    await user.click(within(homeSports).getByRole("button", {
+      name: "Name Unclassified sport",
+    }));
     const training = await screen.findByRole("region", { name: "Training history" });
-    await user.click(within(training).getByRole("button", { name: "Sports" }));
-    await user.click(await within(training).findByRole("button", { name: "Name this sport" }));
+    expect(within(training).getByRole("button", { name: "Sports" }))
+      .toHaveAttribute("aria-current", "page");
+    const classificationTask = await within(training).findByRole("form", {
+      name: "Classify Unknown sport 1",
+    });
+    await waitFor(() => expect(classificationTask).toHaveFocus());
     await user.selectOptions(within(training).getByLabelText("Broad sport family"), "water-sport");
     await user.type(within(training).getByLabelText("Your sport name"), "River paddling");
     await user.click(within(training).getByRole("button", {

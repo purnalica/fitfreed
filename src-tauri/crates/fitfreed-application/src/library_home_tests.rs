@@ -5,7 +5,7 @@ use fitfreed_domain::{
     TrainingSession,
 };
 use std::{
-    collections::{BTreeMap, VecDeque},
+    collections::{BTreeMap, BTreeSet, VecDeque},
     hash::{DefaultHasher, Hash, Hasher},
     sync::Mutex,
 };
@@ -611,6 +611,33 @@ fn classified_detected_sport_named(
     }
 }
 
+fn unknown_detected_sport(index: usize, session_count: usize) -> DetectedTrainingSport {
+    let origin_id = "origin-a";
+    let source_sport_ref = format!("source-sport-{index}");
+    DetectedTrainingSport {
+        sport_ref: Some(format!("sport-{index:064x}")),
+        origin_id: origin_id.to_owned(),
+        classification: Some(
+            SportClassification::restore(
+                SportClassificationKey::new(origin_id, source_sport_ref)
+                    .expect("controlled sport key"),
+                SportClassificationState::Unknown,
+                None,
+                None,
+                None,
+                0,
+            )
+            .expect("controlled unknown sport classification"),
+        ),
+        first_local_date: "2020-01-01".to_owned(),
+        last_local_date: "2026-01-05".to_owned(),
+        session_count,
+        total_duration_milliseconds: 3_600_000_i128 * session_count as i128,
+        distance_session_count: session_count,
+        heart_rate_session_count: session_count,
+    }
+}
+
 fn revision_ref(digit: char) -> String {
     format!("library-home-revision-{}", digit.to_string().repeat(64))
 }
@@ -768,7 +795,7 @@ fn composes_recognizable_complete_training_identity_and_one_recent_comparison() 
     let home = query_library_home(&representative_port(), LibraryHomeRequest::default())
         .expect("recognizable library home");
 
-    assert_eq!(home.version, 2);
+    assert_eq!(home.version, 3);
     assert_eq!(home.library_revision_ref, HOME_REVISION);
     let training = home.training.expect("complete training identity");
     assert_eq!(training.training_snapshot_ref, TRAINING_SNAPSHOT);
@@ -846,8 +873,61 @@ fn reports_complete_history_and_bounded_aggregated_sports_instead_of_recent_cove
     );
     assert_eq!(training.sports[0].profile_count, 8);
     assert_eq!(training.sports[0].session_count, 40);
+    assert_eq!(training.sports[0].sport_ref, None);
     assert_eq!(training.omitted_sport_profile_count, 0);
     assert_eq!(training.recent_sessions.len(), 4);
+}
+
+#[test]
+fn preserves_each_unknown_profile_as_a_distinct_safe_home_identity() {
+    let mut port = representative_port();
+    port.training_bounds = Some(training_range("2026-01-02", "2026-01-05"));
+    port.sessions = (0..4)
+        .map(|index| {
+            let mut session = training_session(
+                &format!("session-{index}"),
+                &format!("2026-01-{:02}", index + 2),
+                true,
+            );
+            session.sport_ref = Some(format!("source-sport-{index}"));
+            session
+        })
+        .collect();
+    port.detected_sports = (0..4)
+        .map(|index| unknown_detected_sport(index, 1))
+        .collect();
+
+    let home = query_library_home(&port, LibraryHomeRequest::default())
+        .expect("distinct unresolved Home sports");
+    let training = home.training.expect("training identity");
+
+    assert_eq!(home.version, 3);
+    assert_eq!(training.sport_profile_count, 4);
+    assert_eq!(training.sports.len(), 4);
+    assert_eq!(training.omitted_sport_profile_count, 0);
+    assert!(training
+        .sports
+        .iter()
+        .all(|sport| { sport.state == TrainingSportState::Unknown && sport.profile_count == 1 }));
+    let expected_refs = (0..4)
+        .map(|index| format!("sport-{index:064x}"))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        training
+            .sports
+            .iter()
+            .filter_map(|sport| sport.sport_ref.as_ref())
+            .collect::<Vec<_>>(),
+        expected_refs.iter().collect::<Vec<_>>()
+    );
+    assert_eq!(
+        training
+            .recent_sessions
+            .iter()
+            .filter_map(|session| session.sport_ref.as_ref())
+            .collect::<BTreeSet<_>>(),
+        expected_refs.iter().collect::<BTreeSet<_>>()
+    );
 }
 
 #[test]
@@ -1199,7 +1279,7 @@ fn returns_an_empty_home_without_querying_unavailable_facts_or_an_unrequested_ou
 
     let home = query_library_home(&EmptyPort, LibraryHomeRequest::default()).expect("empty home");
 
-    assert_eq!(home.version, 2);
+    assert_eq!(home.version, 3);
     assert_eq!(home.library_revision_ref, HOME_REVISION);
     assert_eq!(home.available_range, None);
     assert_eq!(home.domains.len(), 4);

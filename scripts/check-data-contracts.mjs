@@ -4147,6 +4147,92 @@ for (const invalidHome of [
   }
 }
 
+const libraryHomeV3Path = "docs/data-formats/insights/library-home-v3.md";
+const libraryHomeV3 = read(libraryHomeV3Path);
+for (const field of [
+  "version",
+  "training.sports",
+  "sportRef",
+  "profileCount",
+  "sessionCount",
+  "canonicalFamily",
+  "displayLabel",
+  "state",
+]) {
+  requireMention(libraryHomeV3, field, libraryHomeV3Path);
+}
+
+const libraryHomeV3SchemaPath = "schemas/library-home-v3.schema.json";
+const libraryHomeV3Schema = JSON.parse(read(libraryHomeV3SchemaPath));
+const validateLibraryHomeV3Schema = ajv.compile(libraryHomeV3Schema);
+const syntheticLibraryHomeV3 = structuredClone(syntheticLibraryHomeV2);
+syntheticLibraryHomeV3.version = 3;
+syntheticLibraryHomeV3.training.sports[0].sportRef = "sport-" + "d".repeat(64);
+syntheticLibraryHomeV3.training.sports[1].sportRef = "sport-" + "e".repeat(64);
+syntheticLibraryHomeV3.training.recentSessions[0].sportRef = "sport-" + "d".repeat(64);
+const emptyLibraryHomeV3 = structuredClone(emptyLibraryHomeV2);
+emptyLibraryHomeV3.version = 3;
+
+function libraryHomeV3IsSemanticallyValid(value) {
+  if (!validateLibraryHomeV3Schema(value)) return false;
+  const legacy = structuredClone(value);
+  legacy.version = 2;
+  for (const sport of legacy.training?.sports ?? []) delete sport.sportRef;
+  for (const session of legacy.training?.recentSessions ?? []) delete session.sportRef;
+  if (!libraryHomeV2IsSemanticallyValid(legacy)) return false;
+  const sportRefs = (value.training?.sports ?? [])
+    .map((sport) => sport.sportRef)
+    .filter((sportRef) => sportRef !== null);
+  return new Set(sportRefs).size === sportRefs.length;
+}
+
+for (const home of [emptyLibraryHomeV3, syntheticLibraryHomeV3]) {
+  if (!libraryHomeV3IsSemanticallyValid(home)) {
+    throw new Error(
+      libraryHomeV3SchemaPath
+        + " rejected a valid response: "
+        + ajv.errorsText(validateLibraryHomeV3Schema.errors),
+    );
+  }
+}
+for (const invalidHome of [
+  (() => {
+    const value = structuredClone(syntheticLibraryHomeV3);
+    value.version = 2;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticLibraryHomeV3);
+    value.training.sports[1].sportRef = null;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticLibraryHomeV3);
+    value.training.recentSessions[0].sportRef = null;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticLibraryHomeV3);
+    value.training.sports[1].sportRef = value.training.sports[0].sportRef;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticLibraryHomeV3);
+    value.training.sports[0].profileCount = 2;
+    value.training.sportProfileCount = 3;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticLibraryHomeV3);
+    value.training.sports[0].sourceSport = "must-not-cross-the-boundary";
+    return value;
+  })(),
+]) {
+  if (libraryHomeV3IsSemanticallyValid(invalidHome)) {
+    throw new Error(libraryHomeV3SchemaPath + " accepted an invalid response");
+  }
+}
+
 const updateChannelPath = "docs/data-formats/release/update-channel-v1.md";
 const updateChannel = read(updateChannelPath);
 for (const field of [
@@ -5497,6 +5583,7 @@ process.stdout.write(
       libraryHomeQuerySchemaPath,
       libraryHomeSchemaPath,
       libraryHomeV2SchemaPath,
+      libraryHomeV3SchemaPath,
       explorationWorkspaceSaveSchemaPath,
     ],
     updateChannelSchemas: [

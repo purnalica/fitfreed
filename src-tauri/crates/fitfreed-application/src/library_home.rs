@@ -13,7 +13,7 @@ use super::{
     TrainingSportsPort,
 };
 
-const LIBRARY_HOME_VERSION: u32 = 2;
+const LIBRARY_HOME_VERSION: u32 = 3;
 const RECENT_SESSION_LIMIT: usize = 4;
 const SPORT_SUMMARY_LIMIT: usize = 6;
 const COMPARISON_PERIOD_DAYS: u64 = 7;
@@ -149,6 +149,7 @@ pub struct PostImportReveal {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LibraryHomeSportSummary {
+    pub sport_ref: Option<String>,
     pub state: TrainingSportState,
     pub canonical_family: Option<String>,
     pub display_label: Option<String>,
@@ -159,6 +160,7 @@ pub struct LibraryHomeSportSummary {
 #[derive(Debug, Clone, PartialEq)]
 pub struct LibraryHomeRecentSession {
     pub session_ref: String,
+    pub sport_ref: Option<String>,
     pub started_at_local: String,
     pub duration_milliseconds: i64,
     pub distance_meters: Option<f64>,
@@ -490,6 +492,7 @@ struct SportSummaryKey {
     state_rank: u8,
     canonical_family: Option<String>,
     display_label: Option<String>,
+    unresolved_sport_ref: Option<String>,
 }
 
 fn summarized_sports(
@@ -504,8 +507,14 @@ fn summarized_sports(
                 .and_then(|classification| classification.canonical_family.clone()),
             display_label: classification
                 .and_then(|classification| classification.display_label.clone()),
+            unresolved_sport_ref: if sport.state == TrainingSportState::Unknown {
+                sport.sport_ref.clone()
+            } else {
+                None
+            },
         };
         let summary = groups.entry(key).or_insert(LibraryHomeSportSummary {
+            sport_ref: sport.sport_ref.clone(),
             state: sport.state,
             canonical_family: classification
                 .and_then(|classification| classification.canonical_family.clone()),
@@ -514,6 +523,9 @@ fn summarized_sports(
             profile_count: 0,
             session_count: 0,
         });
+        if summary.profile_count > 0 {
+            summary.sport_ref = None;
+        }
         summary.profile_count = summary.profile_count.checked_add(1).ok_or_else(|| {
             ApplicationError::Query("Home sport profile count overflowed".to_owned())
         })?;
@@ -532,6 +544,7 @@ fn summarized_sports(
             .then_with(|| sport_state_rank(left.state).cmp(&sport_state_rank(right.state)))
             .then_with(|| left.canonical_family.cmp(&right.canonical_family))
             .then_with(|| left.display_label.cmp(&right.display_label))
+            .then_with(|| left.sport_ref.cmp(&right.sport_ref))
     });
     summaries.truncate(SPORT_SUMMARY_LIMIT);
     Ok(summaries)
@@ -549,6 +562,7 @@ fn recent_session(session: TrainingSessionSearchItem) -> LibraryHomeRecentSessio
     let classification = session.sport.classification;
     LibraryHomeRecentSession {
         session_ref: session.session_ref,
+        sport_ref: session.sport.sport_ref,
         started_at_local: session.started_at_local,
         duration_milliseconds: session.duration_milliseconds,
         distance_meters: session.distance_meters,

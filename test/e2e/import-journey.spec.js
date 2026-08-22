@@ -614,6 +614,34 @@ async function trainingHistorySportItem(title) {
   throw new Error(`Training history sport was not available: ${title}`);
 }
 
+async function expectHomeSportClassificationRoundTrip(catalog, homeTitle, trainingTitle) {
+  const homeActionLabel = catalog.home.classifySportAccessible.replace("{sport}", homeTitle);
+  const homeAction = await $(`aria/${homeActionLabel}`);
+  await homeAction.click();
+  await $(".training-sports").waitForDisplayed({ timeout: 10_000 });
+  const sportsWorkspace = await $(`aria/${catalog.training.workspaces.sports}`);
+  await expect(sportsWorkspace).toHaveAttribute("aria-current", "page");
+  const editor = await $(".training-sport-editor");
+  await expect(editor).toHaveAttribute(
+    "aria-label",
+    catalog.training.sports.editorHeading.replace("{sport}", trainingTitle),
+  );
+  await expectDocumentFocus(
+    ".training-sport-editor",
+    "Home sport classification did not focus the shared editor",
+  );
+  await editor.$(`aria/${catalog.training.sports.cancel}`).click();
+  await expectDocumentFocus(
+    ".training-sport-list > li[data-state='unknown'] button",
+    "sport classification cancellation did not restore Sports focus",
+  );
+  await returnToLibraryHome(catalog);
+  await expectDocumentFocus(
+    ".library-home-sport-classify",
+    "Home did not restore the exact sport-classification origin",
+  );
+}
+
 async function saveContextSportClassification(catalog, currentTitle, family, label) {
   const item = await trainingHistorySportItem(currentTitle);
   const action = await item.$("button");
@@ -1230,6 +1258,11 @@ describe("packaged FitFreed import journey", () => {
     await expectLibraryHome(english);
     await expect($(".library-home-reveal")).toHaveText(
       expect.stringContaining(english.home.postImportChanged),
+    );
+    await expectHomeSportClassificationRoundTrip(
+      english,
+      english.home.sportUnknown,
+      english.training.sports.unknown.replace("{index}", "1"),
     );
     const recentSession = (await $$(".library-home-recent button"))[0];
     const recentSessionLabel = await recentSession.getAttribute("aria-label");

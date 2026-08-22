@@ -46,7 +46,12 @@ comparison, mapping-aware reimport, cumulative import, and restart. Training sep
 and Compare periods without losing a temporary view when moving among them. Sessions opens on a compact
 provider-neutral sport index and the actual chronology; refinements and complete-result aggregates remain
 available through explicit disclosures instead of displacing the first session. The same semantic icon and
-visible label identify a sport in the index, filters, results, comparisons, and classification management.
+visible label identify a sport in Home, the index, filters, results, comparisons, and classification management.
+Home keeps distinct unresolved sport profiles separate, gives them stable localized ordinal names, and uses the
+same ordinal for their recent sessions. **Name this sport** opens the existing Sports classification task for
+that exact profile; it never reveals a provider value or creates a second editor. Saving a broad family, a
+personal name, or both refreshes every affected visible identity, while returning restores the originating Home
+control when it still exists.
 Applied refinements remain visible after the editor closes, report the exact result count, and can be removed
 one at a time or cleared together. An empty refined result confirms that the imported history has not changed
 and provides a direct reset. Session detail progressively

@@ -105,6 +105,7 @@ Directories are created with their first real contract; empty specifications are
 - [Longitudinal overview and comparison read model version 1](insights/longitudinal-overview-v1.md)
 - [Library Home read model version 1](insights/library-home-v1.md)
 - [Library Home read model version 2](insights/library-home-v2.md)
+- [Library Home read model version 3](insights/library-home-v3.md)
 - [Portable report definition version 1](portable/report-definition-v1.md)
 - [Portable report definition version 2](portable/report-definition-v2.md)
 - [Portable report definition version 3](portable/report-definition-v3.md)

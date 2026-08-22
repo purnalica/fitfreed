@@ -25,6 +25,7 @@ interface LibraryHomePanelProps {
   onOpenQuestion?: (question: LibraryQuestion) => void;
   onOpenComparison: (comparison: RecentTrainingComparisonHighlight) => void;
   onOpenSession: (session: LibraryHomeRecentSession) => void;
+  onOpenSportClassification?: (sportRef: string) => void;
   onOpenSources: () => void;
   onChooseArchive?: () => void;
   onOpenSourceGuide?: () => void;
@@ -56,6 +57,7 @@ export function LibraryHomePanel({
   ),
   onOpenComparison,
   onOpenSession,
+  onOpenSportClassification = () => undefined,
   onOpenSources,
   onChooseArchive = onOpenSources,
   onOpenSourceGuide = onOpenSources,
@@ -67,6 +69,10 @@ export function LibraryHomePanel({
     () => new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }),
     [locale],
   );
+  const unknownSportRefs = home.training?.sports
+    .flatMap((sport) => sport.state === "unknown" && sport.sportRef !== null
+      ? [sport.sportRef]
+      : []) ?? [];
   const plural = useMemo(() => new Intl.PluralRules(locale), [locale]);
   const date = useMemo(
     () => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }),
@@ -94,6 +100,7 @@ export function LibraryHomePanel({
   const formatDistance = (value: number) => messages.recentDistance
     .replace("{distance}", decimal.format(value / 1_000));
   const sportLabel = (sport: {
+    sportRef?: string | null;
     sportState?: LibraryHomeRecentSession["sportState"];
     state?: LibraryHomeSportSummary["state"];
     canonicalFamily: LibraryHomeRecentSession["canonicalFamily"];
@@ -104,7 +111,11 @@ export function LibraryHomePanel({
     if (state === "classified" && sport.canonicalFamily) {
       return messages.sportFamilies[sport.canonicalFamily];
     }
-    return state === "unavailable" ? messages.sportUnavailable : messages.sportUnknown;
+    if (state === "unavailable") return messages.sportUnavailable;
+    const unknownIndex = sport.sportRef ? unknownSportRefs.indexOf(sport.sportRef) : -1;
+    return unknownSportRefs.length > 1 && unknownIndex >= 0
+      ? messages.sportUnknownIndexed.replace("{index}", number.format(unknownIndex + 1))
+      : messages.sportUnknown;
   };
 
   useEffect(() => {
@@ -202,9 +213,10 @@ export function LibraryHomePanel({
           <ul>
             {training.sports.map((sport, index) => {
               const label = sportLabel(sport);
+              const sportRef = sport.sportRef;
               return (
-                <li key={`${sport.state}-${sport.canonicalFamily ?? "none"}-${sport.displayLabel ?? "none"}-${index}`}>
-                  <SportFamilyIcon family={sport.canonicalFamily} />
+                <li key={sportRef ?? `${sport.state}-${sport.canonicalFamily ?? "none"}-${sport.displayLabel ?? "none"}-${index}`}>
+                  <SportFamilyIcon family={sport.canonicalFamily} state={sport.state} />
                   <div>
                     <strong>{label}</strong>
                     <span>{formatCount(sport.sessionCount, messages.sportSessions)}</span>
@@ -212,6 +224,18 @@ export function LibraryHomePanel({
                       <small>{formatCount(sport.profileCount, messages.sportProfiles)}</small>
                     )}
                   </div>
+                  {sport.state === "unknown" && sportRef && (
+                    <button
+                      type="button"
+                      className="secondary library-home-sport-classify"
+                      ref={registerFocusTarget(`sport:${sportRef}`)}
+                      aria-label={messages.classifySportAccessible.replace("{sport}", label)}
+                      disabled={pendingDestination !== undefined}
+                      onClick={() => onOpenSportClassification(sportRef)}
+                    >
+                      {messages.classifySport}
+                    </button>
+                  )}
                 </li>
               );
             })}
@@ -324,7 +348,7 @@ export function LibraryHomePanel({
                       .replace("{date}", formattedDate)}
                     onClick={() => onOpenSession(session)}
                   >
-                    <SportFamilyIcon family={session.canonicalFamily} />
+                    <SportFamilyIcon family={session.canonicalFamily} state={session.sportState} />
                     <span className="library-home-recent-identity">
                       <strong>{label}</strong>
                       <span>{formattedDate}</span>

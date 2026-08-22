@@ -237,6 +237,18 @@ for (const zoom of ["175", "200"]) {
     [/max-width:\s*26ch/],
     "a readable first-run heading that does not bury the primary action at high zoom",
   );
+  requireRule(
+    stylesheet,
+    `:root[data-content-zoom="${zoom}"] .library-home-sports ul`,
+    [/grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/],
+    "distinct Home sport identities at high zoom",
+  );
+  requireRule(
+    stylesheet,
+    `:root[data-content-zoom="${zoom}"] .library-home-sports li strong`,
+    [/white-space:\s*normal/, /overflow-wrap:\s*anywhere/],
+    "complete Home sport labels at high zoom",
+  );
 }
 
 for (const selector of ["a:focus-visible", "summary:focus-visible"]) {

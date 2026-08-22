@@ -676,6 +676,31 @@ function App() {
     }
   }
 
+  async function openHomeSportClassification(sportRef: string) {
+    if (homeNavigationOperation) return;
+    setLibraryHomeFocusTarget(`sport:${sportRef}`);
+    setHomeNavigationOperation({ kind: "open", destination: "training" });
+    setReportReturnRef(undefined);
+    setReportReturnFocusRequest(undefined);
+    navigationSequence.current += 1;
+    const navigation = {
+      domain: "training" as const,
+      kind: "sport" as const,
+      sportRef,
+      requestId: navigationSequence.current,
+    };
+    setExplorerNavigation(navigation);
+    try {
+      if (!(await openExploration("training"))) {
+        setExplorerNavigation((current) => current?.requestId === navigation.requestId
+          ? undefined
+          : current);
+      }
+    } finally {
+      setHomeNavigationOperation(undefined);
+    }
+  }
+
   async function openHomeTrainingComparison(highlight: RecentTrainingComparisonHighlight) {
     if (homeNavigationOperation) return;
     setLibraryHomeFocusTarget("highlight");
@@ -1172,6 +1197,7 @@ function App() {
           onOpenQuestion={(question) => void openHomeQuestion(question)}
           onOpenComparison={(comparison) => void openHomeTrainingComparison(comparison)}
           onOpenSession={(session) => void openHomeTrainingSession(session)}
+          onOpenSportClassification={(sportRef) => void openHomeSportClassification(sportRef)}
           onOpenSources={openSources}
           onChooseArchive={() => void chooseArchiveFromHome()}
           onOpenSourceGuide={openSourceGuideFromHome}

@@ -206,9 +206,9 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R2.1 | Complete locally — exact packaged gates passed 2026-08-22 | A new person can orient and act through the labelled shell and first-run Home |
 | X5-R2.2 | Complete locally — exact packaged gates passed 2026-08-22 | Sources leads with acquisition, a protected active task, and a calm exact outcome |
 | X5-R2.3 | Complete locally — exact packaged gates passed 2026-08-22 | Durable language, appearance, zoom, and update settings form one coherent workspace |
-| X5-R3 | Reopened — R3.1 complete locally; RC-02 remains | Import ends in recognizable personal value |
+| X5-R3 | Complete locally — R3.1 and R3.2 exact packaged gates passed 2026-08-22 | Import ends in recognizable personal value |
 | X5-R4 | Complete locally — exact packaged and exhaustive adaptive gates passed 2026-08-22 | Existing health and aligned-history questions read as answers |
-| X5-R5 | Reopened by the independent R5 checkpoint — RC-02 through RC-04 | A remembered session is findable and sports are recognizable |
+| X5-R5 | Reopened — R5.4 complete locally; RC-03 and RC-04 remain | A remembered session is findable and sports are recognizable |
 | X5-R6 | Pending | A routed workout is investigated through a dominant synchronized map |
 | X5-R7 | Pending | Every session composition reflects its actual evidence |
 | X5-R8 | Pending | Personal ranges and reusable criteria work end to end |
@@ -750,7 +750,32 @@ domain tests, together with the production build, localization, UI-contract, doc
 privacy gates. The packaged functional journey and isolated performance suite passed. Actual macOS WebView
 inspection covered wide light 100% and compact dark 200% Home states; personal results preceded the receipt,
 the receipt remained calm and legible, the page had no horizontal overflow, and Axe reported no violations.
-R3 remains reopened because RC-02 still requires distinct, actionable identity for unresolved sport profiles.
+At that checkpoint, R3 remained reopened because RC-02 still required distinct, actionable identity for
+unresolved sport profiles.
+
+### R3.2/R5.4 local closure — 2026-08-22
+
+Library Home version 3 retains one safe opaque capability for each distinct unresolved sport profile instead
+of grouping every unknown value into one false identity. Home gives those profiles separate localized ordinal
+labels, associates recent sessions with the same ordinal, and routes each contextual action to the existing
+Sports classification task. The capability is never displayed, exported, interpreted, or used as provider
+vocabulary. Saving through the shared task refreshes Home and mounted History identities; cancellation and
+return preserve the exact focus origin.
+
+Application, infrastructure, transport, schema, presentation, integration, and packaged tests cover four
+distinct unresolved profiles, bounded aggregation, safe capability propagation, editor focus, cancellation,
+save, cross-surface refresh, exact return, reimport, restart, localization, and accessibility. The complete
+fast lane passed 153 automation, 249 React, 2 vendored-updater, 212 host, 148 application, and 33 domain tests;
+Clippy, Rust formatting, production build, documentation, localization, UI-contract, repository, and privacy
+checks also passed. The final packaged functional journey and the isolated performance campaign passed every
+accepted assertion and budget.
+
+The first compact 200% visual pass was rejected because four technically present cards stayed in one row and
+ellipsized the identities they were meant to distinguish. The corrected adaptive composition uses two rows,
+keeps every ordinal, count, and naming action readable, and is protected by the UI-contract gate. A repeated
+macOS WebView inspection of a deterministic four-sport history covered wide light 100% and compact dark 200%
+in both supported locales, with no page-level horizontal overflow and zero Axe violations. RC-02 is closed;
+R3 returns to complete locally, while R5 remains reopened for RC-03 and RC-04.
 
 ## X5-R6 — Deliver the outdoor session workbench
 

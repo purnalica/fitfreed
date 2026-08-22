@@ -57,8 +57,12 @@ export function TrainingInsightsPanel({
     && navigationRequest.kind === "comparison"
     ? navigationRequest
     : undefined;
+  const sportNavigation = navigationRequest && "kind" in navigationRequest
+    && navigationRequest.kind === "sport"
+    ? navigationRequest
+    : undefined;
   const [workspace, setWorkspace] = useState<TrainingWorkspace>(
-    comparisonNavigation ? "comparison" : "sessions",
+    comparisonNavigation ? "comparison" : sportNavigation ? "sports" : "sessions",
   );
   const initialDate = sessionNavigation?.localDate
     ?? (navigationRequest && !("kind" in navigationRequest)
@@ -66,7 +70,9 @@ export function TrainingInsightsPanel({
       : undefined);
 
   useEffect(() => {
-    if (comparisonNavigation || reportReturnFocusRequest?.kind === "comparison") {
+    if (sportNavigation) {
+      setWorkspace("sports");
+    } else if (comparisonNavigation || reportReturnFocusRequest?.kind === "comparison") {
       setWorkspace("comparison");
     } else if (sessionNavigation || reportReturnFocusRequest?.kind === "session") {
       setWorkspace("sessions");
@@ -76,6 +82,7 @@ export function TrainingInsightsPanel({
     reportReturnFocusRequest?.kind,
     reportReturnFocusRequest?.requestId,
     sessionNavigation?.requestId,
+    sportNavigation?.requestId,
   ]);
 
   const workspaces = ["sessions", "sports", "comparison"] as const;
@@ -139,6 +146,8 @@ export function TrainingInsightsPanel({
           locale={locale}
           messages={messages}
           refreshToken={refreshToken}
+          openSportRef={sportNavigation?.sportRef}
+          navigationRequestId={sportNavigation?.requestId}
           classificationChange={classificationChange}
           onError={onError}
           onChange={(result) => publishClassification("sports", result)}

@@ -329,6 +329,7 @@ impl From<PostImportReveal> for PostImportRevealDto {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LibraryHomeSportSummaryDto {
+    sport_ref: Option<String>,
     state: &'static str,
     canonical_family: Option<String>,
     display_label: Option<String>,
@@ -339,6 +340,7 @@ pub struct LibraryHomeSportSummaryDto {
 impl From<LibraryHomeSportSummary> for LibraryHomeSportSummaryDto {
     fn from(sport: LibraryHomeSportSummary) -> Self {
         Self {
+            sport_ref: sport.sport_ref,
             state: training_sport_state_code(sport.state),
             canonical_family: sport.canonical_family,
             display_label: sport.display_label,
@@ -352,6 +354,7 @@ impl From<LibraryHomeSportSummary> for LibraryHomeSportSummaryDto {
 #[serde(rename_all = "camelCase")]
 pub struct LibraryHomeRecentSessionDto {
     session_ref: String,
+    sport_ref: Option<String>,
     started_at_local: String,
     duration_milliseconds: String,
     distance_meters: Option<f64>,
@@ -364,6 +367,7 @@ impl From<LibraryHomeRecentSession> for LibraryHomeRecentSessionDto {
     fn from(session: LibraryHomeRecentSession) -> Self {
         Self {
             session_ref: session.session_ref,
+            sport_ref: session.sport_ref,
             started_at_local: session.started_at_local,
             duration_milliseconds: session.duration_milliseconds.to_string(),
             distance_meters: session.distance_meters,
@@ -7035,7 +7039,7 @@ mod tests {
     #[test]
     fn serializes_the_library_home_as_stable_provider_neutral_codes() {
         let home = LibraryHome {
-            version: 2,
+            version: 3,
             library_revision_ref: "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
             available_range: Some(LibraryHomeDateRange {
                 from: "2025-12-31".to_owned(),
@@ -7069,6 +7073,7 @@ mod tests {
                 sport_profile_count: 1,
                 omitted_sport_profile_count: 0,
                 sports: vec![LibraryHomeSportSummary {
+                    sport_ref: Some("sport-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd".to_owned()),
                     state: TrainingSportState::Classified,
                     canonical_family: Some("running".to_owned()),
                     display_label: Some("Trail running".to_owned()),
@@ -7077,6 +7082,7 @@ mod tests {
                 }],
                 recent_sessions: vec![LibraryHomeRecentSession {
                     session_ref: "session-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_owned(),
+                    sport_ref: Some("sport-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd".to_owned()),
                     started_at_local: "2026-01-05T08:00:00".to_owned(),
                     duration_milliseconds: 3_600_000,
                     distance_meters: Some(10_000.5),
@@ -7128,7 +7134,7 @@ mod tests {
         assert_eq!(
             json,
             serde_json::json!({
-                "version": 2,
+                "version": 3,
                 "libraryRevisionRef": "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                 "availableRange": { "from": "2025-12-31", "through": "2026-01-06" },
                 "domains": [{
@@ -7153,6 +7159,7 @@ mod tests {
                     "sportProfileCount": 1,
                     "omittedSportProfileCount": 0,
                     "sports": [{
+                        "sportRef": "sport-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
                         "state": "classified",
                         "canonicalFamily": "running",
                         "displayLabel": "Trail running",
@@ -7161,6 +7168,7 @@ mod tests {
                     }],
                     "recentSessions": [{
                         "sessionRef": "session-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                        "sportRef": "sport-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
                         "startedAtLocal": "2026-01-05T08:00:00",
                         "durationMilliseconds": "3600000",
                         "distanceMeters": 10000.5,
