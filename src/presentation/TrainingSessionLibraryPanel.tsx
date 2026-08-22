@@ -49,6 +49,7 @@ import type { TrainingSessionZonesResult } from "./training-session-zone";
 import type {
   SavedTrainingSportClassification,
   SportFamily,
+  TrainingSportClassificationChange,
   TrainingSport,
   TrainingSportsOverview,
 } from "./training-sports";
@@ -110,6 +111,7 @@ interface TrainingSessionLibraryPanelProps {
   onAvailableRange: (range: { from: string; through: string } | null) => void;
   onCreateReport: (origin: SessionReportOrigin) => void;
   onError: (code: string | undefined) => void;
+  classificationChange?: TrainingSportClassificationChange;
   onSportClassificationChange?: (result: SavedTrainingSportClassification) => void;
 }
 
@@ -264,6 +266,7 @@ export function TrainingSessionLibraryPanel({
   onAvailableRange,
   onCreateReport,
   onError,
+  classificationChange,
   onSportClassificationChange = () => undefined,
 }: TrainingSessionLibraryPanelProps) {
   const [draft, setDraft] = useState<SearchDraft>(() => emptyDraft(initialDate));
@@ -280,6 +283,7 @@ export function TrainingSessionLibraryPanel({
   const [contextSportRef, setContextSportRef] = useState<string>();
   const [classificationBusy, setClassificationBusy] = useState(false);
   const [classificationStatus, setClassificationStatus] = useState<string>();
+  const [classificationRefreshFailed, setClassificationRefreshFailed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [status, setStatus] = useState<string>();
@@ -321,6 +325,8 @@ export function TrainingSessionLibraryPanel({
     sportRef: string;
     target: "action" | "identity";
   } | undefined>(undefined);
+  const classificationRefreshSequence = useRef(0);
+  const handledClassificationRequest = useRef<number | undefined>(undefined);
   const createReportButtonRef = useRef<HTMLButtonElement>(null);
   const handledCreateReportFocusRequest = useRef<number | undefined>(undefined);
   const copy = messages.training.sessionLibrary;
@@ -1152,6 +1158,99 @@ export function TrainingSessionLibraryPanel({
       : current);
   }
 
+  async function refreshClassificationSnapshot(
+    change: TrainingSportClassificationChange,
+  ) {
+    if (!page) return;
+    const sequence = classificationRefreshSequence.current + 1;
+    classificationRefreshSequence.current = sequence;
+    const currentOffset = page.offset;
+    const comparisonRefs = comparison.map((session) => session.sessionRef);
+    const selectedRef = selected?.sessionRef;
+    const selectionRefs = selectedRef && !comparisonRefs.includes(selectedRef)
+      ? [...comparisonRefs, selectedRef]
+      : comparisonRefs;
+    setLoading(true);
+    setClassificationRefreshFailed(false);
+    applyClassificationOverview(change.result.overview);
+    onError(undefined);
+    try {
+      let nextPage: TrainingSessionSearchPage;
+      try {
+        nextPage = await query(pageCriteria, currentOffset, null);
+      } catch (reason) {
+        if (currentOffset === 0 || commandErrorCode(reason) !== "invalid-training-session-search") {
+          throw reason;
+        }
+        nextPage = await query(pageCriteria, 0, null);
+      }
+
+      const nextCalendar = view === "calendar" && nextPage.availableRange
+        ? await invoke<TrainingSessionCalendar>("query_training_session_calendar", {
+            request: calendarRequestFor(applied, calendarMonth, nextPage.snapshotRef),
+          })
+        : undefined;
+      if (nextCalendar && nextCalendar.snapshotRef !== nextPage.snapshotRef) {
+        throw new Error("classification calendar snapshot mismatch");
+      }
+
+      let nextComparison = comparison;
+      let nextSelected = selected;
+      if (selectionRefs.length > 0) {
+        const selection = await invoke<TrainingSessionSelection>(
+          "query_training_session_selection",
+          {
+            request: {
+              sessionRefs: selectionRefs,
+              snapshotRef: nextPage.snapshotRef,
+            },
+          },
+        );
+        if (
+          selection.snapshotRef !== nextPage.snapshotRef
+          || selection.sessions.length !== selectionRefs.length
+        ) {
+          throw new Error("classification session selection mismatch");
+        }
+        const sessionsByRef = new Map(selection.sessions.map(
+          (session) => [session.sessionRef, session],
+        ));
+        if (selectionRefs.some((sessionRef) => !sessionsByRef.has(sessionRef))) {
+          throw new Error("classification session identity mismatch");
+        }
+        nextComparison = comparisonRefs.map((sessionRef) => sessionsByRef.get(sessionRef)!);
+        nextSelected = selectedRef ? sessionsByRef.get(selectedRef) : undefined;
+      }
+
+      if (classificationRefreshSequence.current !== sequence) return;
+      setSports(change.result.overview);
+      setPage(nextPage);
+      setCalendar(nextCalendar);
+      setComparison(nextComparison);
+      setSelected(nextSelected);
+      setFailed(false);
+      setClassificationRefreshFailed(false);
+      onAvailableRange(nextPage.availableRange);
+    } catch {
+      if (classificationRefreshSequence.current === sequence) {
+        setClassificationRefreshFailed(true);
+      }
+    } finally {
+      if (classificationRefreshSequence.current === sequence) setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (
+      !classificationChange
+      || !workspaceReady
+      || !page
+      || handledClassificationRequest.current === classificationChange.requestId
+    ) return;
+    handledClassificationRequest.current = classificationChange.requestId;
+    void refreshClassificationSnapshot(classificationChange);
+  }, [classificationChange?.requestId, workspaceReady]);
+
   function closeContextClassification(
     sportRef: string,
     target: "action" | "identity",
@@ -1769,6 +1868,19 @@ export function TrainingSessionLibraryPanel({
       aria-label={copy.heading}
       aria-busy={loading}
     >
+      {classificationRefreshFailed && classificationChange && (
+        <div className="notice training-classification-refresh-failure" role="alert">
+          <p>{copy.classificationRefreshFailed}</p>
+          <button
+            type="button"
+            className="secondary"
+            disabled={loading}
+            onClick={() => void refreshClassificationSnapshot(classificationChange)}
+          >
+            {copy.retryClassificationRefresh}
+          </button>
+        </div>
+      )}
       <div className="training-session-discovery" hidden={selected !== undefined}>
         <header className="training-session-library-heading">
         <h2 id="training-session-library-heading" ref={libraryHeadingRef} tabIndex={-1}>
@@ -1852,7 +1964,7 @@ export function TrainingSessionLibraryPanel({
             </div>
           )}
           {classificationStatus && (
-            <p className="training-sports-status" role="status">{classificationStatus}</p>
+            <p className="sr-only" role="status">{classificationStatus}</p>
           )}
           </section>
         )}

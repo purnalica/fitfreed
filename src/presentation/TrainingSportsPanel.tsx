@@ -9,6 +9,7 @@ import { SportFamilyIcon } from "./SportFamilyIcon";
 import { formatDuration } from "./training-format";
 import {
   type SavedTrainingSportClassification,
+  type TrainingSportClassificationChange,
   type TrainingSport,
   type TrainingSportsOverview,
 } from "./training-sports";
@@ -19,6 +20,7 @@ interface TrainingSportsPanelProps {
   locale: Locale;
   messages: (typeof catalogs)["en-US"];
   refreshToken: number;
+  classificationChange?: TrainingSportClassificationChange;
   onError: (code: string | undefined) => void;
   onChange?: (result: SavedTrainingSportClassification) => void;
 }
@@ -52,6 +54,7 @@ export function TrainingSportsPanel({
   locale,
   messages,
   refreshToken,
+  classificationChange,
   onError,
   onChange,
 }: TrainingSportsPanelProps) {
@@ -94,6 +97,15 @@ export function TrainingSportsPanel({
       active = false;
     };
   }, [refreshToken, onError]);
+
+  useEffect(() => {
+    if (!classificationChange || classificationChange.source === "sports") return;
+    setOverview(classificationChange.result.overview);
+    setFailed(false);
+    setStatus(
+      classificationChange.result.outcome === "changed" ? copy.saved : copy.unchanged,
+    );
+  }, [classificationChange?.requestId, copy.saved, copy.unchanged]);
 
   function titleFor(sport: TrainingSport): string {
     const unknownSports = overview?.sports.filter((candidate) => candidate.state === "unknown") ?? [];

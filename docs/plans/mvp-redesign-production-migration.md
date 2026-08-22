@@ -3,7 +3,7 @@
 ## Status and authority
 
 Authorized for autonomous execution as of 2026-08-21. X4-P0 through X5-R4 and X5-R5.1 through
-X5-R5.3a are complete locally; X5-R5.3b is next.
+X5-R5.3b are complete locally; X5-R5.3c is next.
 The X5-R1 product entrance is live; exact hosted verification of its CI resource optimizer remains
 pending synchronization of the workflow-changing commit. The product owner accepted the X3
 direction and its amendments on 2026-08-21. This
@@ -207,7 +207,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R2.3 | Complete locally — exact packaged gates passed 2026-08-22 | Durable language, appearance, zoom, and update settings form one coherent workspace |
 | X5-R3 | Complete locally — exact packaged and dense-history gates passed 2026-08-22 | Import ends in recognizable personal value |
 | X5-R4 | Complete locally — exact packaged and exhaustive adaptive gates passed 2026-08-22 | Existing health and aligned-history questions read as answers |
-| X5-R5 | In progress — R5.1 through R5.3a complete locally 2026-08-22 | A remembered session is findable and sports are recognizable |
+| X5-R5 | In progress — R5.1 through R5.3b complete locally 2026-08-22 | A remembered session is findable and sports are recognizable |
 | X5-R6 | Pending | A routed workout is investigated through a dominant synchronized map |
 | X5-R7 | Pending | Every session composition reflects its actual evidence |
 | X5-R8 | Pending | Personal ranges and reusable criteria work end to end |
@@ -646,6 +646,26 @@ the prior nine History states and added wide light 100% and compact dark 200% co
 with the session list still visible, exact cancellation focus, zero page-level horizontal overflow, and zero
 Axe violations. Repository-content, complete reachable-history secret, formatting, documentation,
 localization, site, product-surface, and diff checks passed without versioning local evidence.
+
+R5.3b verification on 2026-08-22 covered the classification event owner, both classification entry points,
+the current History page, calendar and comparison selections, open detail, Home, and report preparation. It
+proves that one ordered save event refreshes every revision-bound projection without changing the person's
+applied filters, page, selected calendar day, comparison, detail section, or return origin. A failed dependent
+refresh keeps the saved identity visible, explains the recoverable local inconsistency without claiming a
+rollback, and succeeds through an explicit retry. A draft already open in the hidden Sports workspace remains
+authored and reports the newer saved revision instead of being overwritten.
+
+The complete fast suite passed 152 automation, 241 React, 2 vendored-updater, 211 host, 147 application, and
+33 domain tests. The packaged macOS journey passed the complete functional, localized, maximum-zoom,
+accessibility, restart, reimport, report, and durable-state campaign in 1 minute 18 seconds. The isolated
+packaged insight campaign passed every accepted interaction budget in 1 minute 2 seconds.
+
+The first actual WebKit review rejected a persistent success message because it consumed a grid row and moved
+the first session below the intended result position. Retaining it as an assistive announcement removed the
+visual displacement without losing save confirmation. The repeated wide light 100% History and Home states
+and compact dark 200% Sports state retained labelled navigation and task hierarchy, showed the authored
+identity across workspaces, produced no page-level horizontal overflow, and passed Axe. Local screenshots and
+their exploratory driver remain ignored evidence.
 
 ## X5-R6 — Deliver the outdoor session workbench
 

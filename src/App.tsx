@@ -180,6 +180,7 @@ function App() {
   });
   const homeNavigationRevision = useRef(0);
   const startupHomeNavigationRevision = useRef(homeNavigationRevision.current);
+  const libraryHomeProjectionRequest = useRef(0);
   const [libraryHome, setLibraryHome] = useState<LibraryHome>();
   const [libraryHomeFocusRequestId, setLibraryHomeFocusRequestId] = useState(0);
   const [libraryHomeFocusTarget, setLibraryHomeFocusTarget] = useState<string>();
@@ -320,6 +321,21 @@ function App() {
       }
     }
     return home;
+  }
+
+  function refreshLibraryHomeProjection() {
+    libraryHomeProjectionRequest.current += 1;
+    const requestId = libraryHomeProjectionRequest.current;
+    setErrorCode(undefined);
+    void invoke<LibraryHome>("query_library_home", {
+      request: { afterImportOperationRef: null },
+    }).then((home) => {
+      if (libraryHomeProjectionRequest.current === requestId) setLibraryHome(home);
+    }).catch((reason) => {
+      if (libraryHomeProjectionRequest.current === requestId) {
+        setErrorCode(commandErrorCode(reason));
+      }
+    });
   }
 
   useEffect(() => {
@@ -1501,6 +1517,7 @@ function App() {
             reportReturnFocusRequest={reportReturnFocusRequest}
             onCreateReport={createReport}
             onError={setErrorCode}
+            onSportClassificationChange={refreshLibraryHomeProjection}
           />
           )}
           {exploreDestination === "sleep" && (

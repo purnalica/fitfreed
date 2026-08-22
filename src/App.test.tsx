@@ -6,6 +6,7 @@ import App from "./App";
 import { catalogs } from "./locales/catalogs";
 import type { ApplicationPreferencesLoad } from "./presentation/application-preferences";
 import type { TrainingSessionSearchPage } from "./presentation/training-session-search";
+import type { TrainingSportsOverview } from "./presentation/training-sports";
 
 const spanish = catalogs["es-ES"];
 
@@ -3430,6 +3431,158 @@ describe("FitFreed import interface", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "FitFreed could not read fitness history.",
     );
+  });
+
+  it("refreshes Home after a sport classification without leaving the active History workspace", async () => {
+    const sportRef = `sport-${"7".repeat(64)}`;
+    const session: TestTrainingSession = {
+      sessionRef: `session-${"8".repeat(64)}`,
+      startedAtLocal: "2026-01-20T09:00:00",
+      stoppedAtLocal: "2026-01-20T10:00:00",
+      utcOffsetMinutes: 60,
+      durationMilliseconds: "3600000",
+      distanceMeters: 8000,
+      energyKilocalories: "500",
+      averageHeartRateBpm: "140",
+      maximumHeartRateBpm: "170",
+      sportRef,
+      exerciseCount: 1,
+    };
+    const unknownSport = {
+      sportRef,
+      sourceIndex: 1,
+      state: "unknown" as const,
+      classification: {
+        canonicalFamily: null,
+        displayLabel: null,
+        authorship: null,
+        revision: 0,
+      },
+      firstLocalDate: "2026-01-20",
+      lastLocalDate: "2026-01-20",
+      coverage: {
+        sessionCount: 1,
+        totalDurationMilliseconds: "3600000",
+        distanceSessionCount: 1,
+        heartRateSessionCount: 1,
+      },
+    };
+    const namedSport = {
+      ...unknownSport,
+      state: "classified" as const,
+      classification: {
+        canonicalFamily: "water-sport" as const,
+        displayLabel: "River paddling",
+        authorship: "user" as const,
+        revision: 1,
+      },
+    };
+    let currentSports: TrainingSportsOverview = {
+      originCount: 1,
+      sessionCount: 1,
+      sports: [unknownSport],
+    };
+    let savedDestination: "training" | null = null;
+    let homeNamed = false;
+    mocks.homeInvoke.mockImplementation((command, arguments_) => {
+      if (command === "query_library_home") {
+        return Promise.resolve(populatedLibraryHome({
+          questions: [{ kind: "explore-training-sessions", destination: "training" }],
+          resumableExploration: savedDestination
+            ? { version: 1, destination: savedDestination }
+            : null,
+          training: {
+            trainingSnapshotRef: homeNamed ? "training-snapshot-named" : "training-snapshot-old",
+            sessionCount: 1,
+            sportProfileCount: 1,
+            omittedSportProfileCount: 0,
+            sports: [{
+              state: homeNamed ? "classified" : "unknown",
+              canonicalFamily: homeNamed ? "water-sport" : null,
+              displayLabel: homeNamed ? "River paddling" : null,
+              profileCount: 1,
+              sessionCount: 1,
+            }],
+            recentSessions: [{
+              sessionRef: session.sessionRef,
+              startedAtLocal: session.startedAtLocal,
+              durationMilliseconds: session.durationMilliseconds,
+              distanceMeters: session.distanceMeters,
+              sportState: homeNamed ? "classified" : "unknown",
+              canonicalFamily: homeNamed ? "water-sport" : null,
+              displayLabel: homeNamed ? "River paddling" : null,
+            }],
+          },
+        }));
+      }
+      if (command === "save_exploration_workspace") {
+        savedDestination = arguments_.destination;
+        return Promise.resolve({ version: 1, destination: savedDestination });
+      }
+      if (command === "clear_exploration_workspace") {
+        savedDestination = null;
+        return Promise.resolve(undefined);
+      }
+      if (command === "clear_training_discovery_workspace") return Promise.resolve(undefined);
+      throw new Error(`Unexpected Home command: ${command}`);
+    });
+    mocks.sportsInvoke.mockImplementation((command) => {
+      if (command === "query_training_sports") return Promise.resolve(currentSports);
+      if (command === "save_training_sport_classification") {
+        currentSports = { ...currentSports, sports: [namedSport] };
+        homeNamed = true;
+        return Promise.resolve({ outcome: "changed", overview: currentSports });
+      }
+      throw new Error(`Unexpected sports command: ${command}`);
+    });
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
+      if (command === "query_training_sessions") {
+        const result = trainingSessionSearchPage([session]);
+        return Promise.resolve({
+          ...result,
+          snapshotRef: homeNamed ? "training-snapshot-named" : "training-snapshot-old",
+          sessions: result.sessions.map((item) => ({
+            ...item,
+            sport: homeNamed
+              ? {
+                  sportRef,
+                  state: "classified",
+                  classification: namedSport.classification,
+                }
+              : {
+                  sportRef,
+                  state: "unknown",
+                  classification: unknownSport.classification,
+                },
+          })),
+        });
+      }
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    const user = userEvent.setup();
+    render(<App />);
+    await enterExploration(user, "training");
+    const training = await screen.findByRole("region", { name: "Training history" });
+    await user.click(within(training).getByRole("button", { name: "Sports" }));
+    await user.click(await within(training).findByRole("button", { name: "Name this sport" }));
+    await user.selectOptions(within(training).getByLabelText("Broad sport family"), "water-sport");
+    await user.type(within(training).getByLabelText("Your sport name"), "River paddling");
+    await user.click(within(training).getByRole("button", {
+      name: "Save sport classification",
+    }));
+
+    await waitFor(() => expect(mocks.homeInvoke.mock.calls.filter(
+      ([command]) => command === "query_library_home",
+    )).toHaveLength(2));
+    expect(within(training).getByRole("button", { name: "Sports" }))
+      .toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("region", { name: "Training history" })).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Home" }));
+    expect(await screen.findAllByText("River paddling")).not.toHaveLength(0);
   });
 
   it("explores, filters, details, compares, localizes, and reloads training sessions", async () => {

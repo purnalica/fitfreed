@@ -281,6 +281,55 @@ describe("TrainingSportsPanel", () => {
     expect(mocks.invoke).toHaveBeenCalledTimes(3);
   });
 
+  it("applies a classification from Sessions while preserving an open Sports draft", async () => {
+    mocks.invoke.mockResolvedValueOnce(overview([unknownSport]));
+    const concurrent = {
+      ...unknownSport,
+      state: "classified" as const,
+      classification: {
+        canonicalFamily: "water-sport" as const,
+        displayLabel: "River paddling",
+        authorship: "user" as const,
+        revision: 1,
+      },
+    };
+    const onError = vi.fn();
+    const user = userEvent.setup();
+    const view = render(
+      <TrainingSportsPanel
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        refreshToken={0}
+        onError={onError}
+      />,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Name this sport" }));
+    await user.type(screen.getByLabelText("Your sport name"), "Unfinished local draft");
+    view.rerender(
+      <TrainingSportsPanel
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        refreshToken={0}
+        classificationChange={{
+          requestId: 1,
+          source: "sessions",
+          result: {
+            outcome: "changed",
+            overview: overview([concurrent]),
+          },
+        }}
+        onError={onError}
+      />,
+    );
+
+    expect(await screen.findByRole("heading", { name: "River paddling" })).toBeVisible();
+    expect(screen.getByLabelText("Your sport name")).toHaveValue("Unfinished local draft");
+    expect(screen.getByText("Current saved identity: River paddling")).toBeVisible();
+    expect(screen.getByRole("alert")).toHaveTextContent("Your edits are still here");
+    expect(onError).not.toHaveBeenCalledWith("sport-classification-conflict");
+  });
+
   it("keeps the classification action stable and the current sport visible while saving", async () => {
     let resolveSave: (value: SavedTrainingSportClassification) => void = () => undefined;
     mocks.invoke.mockImplementation((command) => {

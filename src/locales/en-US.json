@@ -485,6 +485,8 @@
       "next": "Next page",
       "pageStatus": "Showing {from} through {through} of {total}",
       "libraryChanged": "Your library changed, so results restarted from the first page.",
+      "classificationRefreshFailed": "The sport identity was saved, but this view could not refresh. Your saved identity is safe.",
+      "retryClassificationRefresh": "Refresh this history",
       "detailHeading": "Session summary",
       "closeDetail": "Back to session results",
       "createReport": "Build a report from this session",

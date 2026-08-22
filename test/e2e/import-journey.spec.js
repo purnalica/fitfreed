@@ -579,6 +579,47 @@ async function trainingSportCard(title) {
   throw new Error(`Training sport card was not available: ${title}`);
 }
 
+async function trainingHistorySportItem(title) {
+  const items = await $$(".training-history-sports li");
+  for (const item of items) {
+    if (await item.$("strong").getText() === title) return item;
+  }
+  throw new Error(`Training history sport was not available: ${title}`);
+}
+
+async function saveContextSportClassification(catalog, currentTitle, family, label) {
+  const item = await trainingHistorySportItem(currentTitle);
+  const action = await item.$("button");
+  await action.click();
+  const editor = await $(".training-history-sport-editor form");
+  await expect(editor.$("label[for$='-family']")).toHaveText(
+    catalog.training.sports.family,
+  );
+  await expect(editor.$("label[for$='-label']")).toHaveText(
+    catalog.training.sports.displayLabel,
+  );
+  await editor.$("select").selectByAttribute("value", family);
+  const input = await editor.$("input");
+  await input.clearValue();
+  await input.setValue(label);
+  await editor.$("button[type='submit']").click();
+  await browser.waitUntil(
+    async () => (await item.$("strong").getText()) === label,
+    { timeout: 10_000, timeoutMsg: `context sport classification was not saved as ${label}` },
+  );
+  await browser.waitUntil(
+    async () => {
+      const sessionSports = await $$(".training-session-results .training-session-sport");
+      for (const sport of sessionSports) {
+        if (await sport.getText() === label) return true;
+      }
+      return false;
+    },
+    { timeout: 10_000, timeoutMsg: `session identities did not refresh as ${label}` },
+  );
+  await waitForNotice(catalog.training.sports.saved);
+}
+
 async function saveSportClassification(catalog, currentTitle, family, label) {
   const card = await trainingSportCard(currentTitle);
   await card.$("button").click();
@@ -1283,15 +1324,38 @@ describe("packaged FitFreed import journey", () => {
       "explore-training-sessions",
       ".training-insights",
     );
+    const contextualSport = await trainingHistorySportItem("Unknown sport 1");
+    const contextualAction = await contextualSport.$("button");
+    await contextualAction.click();
+    const contextualEditor = await $(".training-history-sport-editor form");
+    await contextualEditor.$("input").setValue("Discarded draft");
+    await contextualEditor.$(`aria/${english.training.sports.cancel}`).click();
+    await browser.waitUntil(
+      async () => browser.execute(
+        () => document.activeElement
+          === document.querySelector(".training-history-sports li[data-state='unknown'] button"),
+      ),
+      { timeout: 10_000, timeoutMsg: "context classification cancellation did not restore focus" },
+    );
+    await saveContextSportClassification(
+      english,
+      "Unknown sport 1",
+      "running",
+      "Trail running",
+    );
+    await expect($(".training-insights")).toBeDisplayed();
+    await goToHome("home");
+    await expect($(".library-home-sports")).toHaveText(expect.stringContaining("Trail running"));
+    await expect($(".library-home-recent")).toHaveText(expect.stringContaining("Trail running"));
+    await goToHome("explore");
     await openTrainingWorkspace(english, "sports");
     expect(await $$(".training-sport-list > li")).toHaveLength(2);
-    await expect($(".training-sport-list > li[data-state='unknown'] h3")).toHaveText(
-      "Unknown sport 1",
+    await expect($(".training-sport-list > li[data-state='classified'] h3")).toHaveText(
+      "Trail running",
     );
     await expect($(".training-sport-list > li[data-state='unavailable'] h3")).toHaveText(
       "Sport not recorded",
     );
-    await saveSportClassification(english, "Unknown sport 1", "running", "Trail running");
     await expect($(".training-sport-list > li[data-state='classified']")).toHaveText(
       expect.stringContaining("Named by you"),
     );

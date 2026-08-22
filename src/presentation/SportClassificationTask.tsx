@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
 import { type catalogs } from "../locales/catalogs";
@@ -56,12 +56,19 @@ export function SportClassificationTask({
   }));
   const [operation, setOperation] = useState<"save" | "reset">();
   const [conflict, setConflict] = useState(false);
+  const observedRevision = useRef(sport.classification?.revision);
   const busy = operation !== undefined;
   const labelTooLong = [...draft.label.trim()].length > 80;
   const familyId = `${editorId}-family`;
   const labelId = `${editorId}-label`;
   const labelHelpId = `${editorId}-label-help`;
   const labelErrorId = `${editorId}-label-error`;
+
+  useEffect(() => {
+    const nextRevision = sport.classification?.revision;
+    if (observedRevision.current !== nextRevision) setConflict(true);
+    observedRevision.current = nextRevision;
+  }, [sport.classification?.revision]);
 
   async function persist(
     canonicalFamily: SportFamily | null,

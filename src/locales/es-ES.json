@@ -485,6 +485,8 @@
       "next": "Página siguiente",
       "pageStatus": "Mostrando de {from} a {through} de {total}",
       "libraryChanged": "Tu biblioteca ha cambiado, por lo que los resultados han vuelto a la primera página.",
+      "classificationRefreshFailed": "La identidad del deporte se ha guardado, pero esta vista no se ha podido actualizar. La identidad guardada está a salvo.",
+      "retryClassificationRefresh": "Actualizar este historial",
       "detailHeading": "Resumen de la sesión",
       "closeDetail": "Volver a los resultados de sesiones",
       "createReport": "Crear un informe a partir de esta sesión",

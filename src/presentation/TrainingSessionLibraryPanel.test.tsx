@@ -1,6 +1,6 @@
 import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { ComponentProps } from "react";
+import { type ComponentProps, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { catalogs } from "../locales/catalogs";
@@ -645,6 +645,304 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(onSportClassificationChange).toHaveBeenCalledWith(expect.objectContaining({
       outcome: "changed",
     }));
+  });
+
+  it("refreshes the classification snapshot without losing page, calendar, selection, or detail context", async () => {
+    const nextSnapshotRef = `training-snapshot-${"e".repeat(64)}`;
+    const namedSport = {
+      ...sports.sports[1],
+      state: "classified" as const,
+      classification: {
+        canonicalFamily: "water-sport" as const,
+        displayLabel: "River paddling",
+        authorship: "user" as const,
+        revision: 1,
+      },
+    };
+    const namedOverview: TrainingSportsOverview = {
+      ...sports,
+      sports: [sports.sports[0], namedSport],
+    };
+    const namedSession: TrainingSessionSearchItem = {
+      ...unknownSession,
+      sport: {
+        sportRef: namedSport.sportRef,
+        state: namedSport.state,
+        classification: namedSport.classification,
+      },
+    };
+    const restoredWorkspace: TrainingDiscoveryWorkspace = {
+      version: 1,
+      snapshotRef,
+      from: null,
+      through: null,
+      sportRefs: [],
+      requiredMeasurements: [],
+      text: null,
+      sort: "started-desc",
+      offset: 25,
+      limit: 25,
+      view: "calendar",
+      calendarMonth: "2026-01",
+      calendarDay: "2026-01-01",
+      selectedSessionRefs: [second.sessionRef, unknownSession.sessionRef],
+      openSessionRef: unknownSession.sessionRef,
+    };
+    let classificationSaved = false;
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "load_training_discovery_workspace") {
+        return Promise.resolve(restoredWorkspace);
+      }
+      if (command === "save_training_discovery_workspace") {
+        return Promise.resolve(arguments_.workspace);
+      }
+      if (command === "query_training_sports") return Promise.resolve(sports);
+      if (command === "query_training_sessions") {
+        if (!classificationSaved) {
+          return Promise.resolve({
+            ...page([unknownSession], 25, 26, null),
+            snapshotRef,
+          });
+        }
+        return Promise.resolve({
+          ...page([namedSession], 25, 26, null),
+          snapshotRef: nextSnapshotRef,
+        });
+      }
+      if (command === "query_training_session_calendar") {
+        return Promise.resolve({
+          ...calendar,
+          snapshotRef: classificationSaved ? nextSnapshotRef : snapshotRef,
+          month: "2026-01",
+          days: [{ ...calendar.days[0], localDate: "2026-01-01" }],
+        });
+      }
+      if (command === "query_training_session_selection") {
+        return Promise.resolve({
+          snapshotRef: classificationSaved ? nextSnapshotRef : snapshotRef,
+          sessions: classificationSaved ? [second, namedSession] : [second, unknownSession],
+        });
+      }
+      if (command === "query_training_session_structure") {
+        return Promise.resolve({
+          ...trainingStructure(arguments_.query.sessionRef),
+          snapshotRef: arguments_.query.snapshotRef,
+        });
+      }
+      if (command === "query_training_session_routes") {
+        return Promise.resolve({
+          ...trainingRoutes(arguments_.query.sessionRef),
+          snapshotRef: arguments_.query.snapshotRef,
+        });
+      }
+      if (command === "query_training_session_signals") {
+        return Promise.resolve({
+          ...trainingSignals(arguments_.query.sessionRef),
+          snapshotRef: arguments_.query.snapshotRef,
+        });
+      }
+      if (command === "query_training_session_zones") {
+        return Promise.resolve({
+          ...trainingZones(arguments_.query.sessionRef),
+          snapshotRef: arguments_.query.snapshotRef,
+        });
+      }
+      if (command === "query_training_session_segmentation") {
+        return Promise.resolve({
+          ...trainingSegmentation(arguments_.query.sessionRef),
+          snapshotRef: arguments_.query.snapshotRef,
+        });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    const onAvailableRange = vi.fn();
+    const onCreateReport = vi.fn();
+    const onError = vi.fn();
+    function Harness() {
+      const [classificationChange, setClassificationChange] = useState<{
+        requestId: number;
+        source: "sports";
+        result: SavedTrainingSportClassification;
+      }>();
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              classificationSaved = true;
+              setClassificationChange({
+                requestId: 1,
+                source: "sports",
+                result: { outcome: "changed", overview: namedOverview },
+              });
+            }}
+          >
+            Apply external classification
+          </button>
+          <TrainingSessionLibraryPanel
+            locale="en-US"
+            messages={catalogs["en-US"]}
+            refreshToken={0}
+            classificationChange={classificationChange}
+            onAvailableRange={onAvailableRange}
+            onCreateReport={onCreateReport}
+            onError={onError}
+          />
+        </>
+      );
+    }
+
+    const user = userEvent.setup();
+    render(<Harness />);
+    const region = await screen.findByRole("region", { name: "Find a training session" });
+    expect(within(region).getByRole("heading", { name: "Session summary" })).toBeVisible();
+    await user.click(within(region).getByRole("button", {
+      name: "Structure and segments",
+    }));
+    expect(await within(region).findByRole("heading", { name: "Recorded structure" }))
+      .toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Apply external classification" }));
+
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
+      "query_training_sessions",
+      {
+        request: {
+          from: "2026-01-01",
+          through: "2026-01-01",
+          sportRefs: [],
+          requiredMeasurements: [],
+          text: null,
+          sort: "started-desc",
+          offset: 25,
+          limit: 25,
+          snapshotRef: null,
+        },
+      },
+    ));
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
+      "query_training_session_calendar",
+      {
+        request: expect.objectContaining({
+          month: "2026-01",
+          snapshotRef: nextSnapshotRef,
+        }),
+      },
+    ));
+    expect(mocks.invoke).toHaveBeenCalledWith("query_training_session_selection", {
+      request: {
+        sessionRefs: [second.sessionRef, unknownSession.sessionRef],
+        snapshotRef: nextSnapshotRef,
+      },
+    });
+    const refreshedDetail = within(region).getByRole("heading", { name: "Session summary" })
+      .closest("section");
+    expect(refreshedDetail).not.toBeNull();
+    expect(within(region).getByRole("heading", { name: "Recorded structure" })).toBeVisible();
+    expect(within(refreshedDetail!).getByText("River paddling", { selector: "p.eyebrow" }))
+      .toBeVisible();
+    await user.click(within(region).getByRole("button", { name: "Back to calendar" }));
+    expect(within(region).getByText("2 sessions selected")).toBeVisible();
+    expect(within(region).getByRole("heading", { name: "January 2026" })).toBeVisible();
+    expect(within(region).queryByText(
+      "Your library changed, so results restarted from the first page.",
+    )).not.toBeInTheDocument();
+  });
+
+  it("keeps the saved identity and offers recovery when its snapshot refresh fails", async () => {
+    const namedSport = {
+      ...sports.sports[1],
+      state: "classified" as const,
+      classification: {
+        canonicalFamily: "water-sport" as const,
+        displayLabel: "River paddling",
+        authorship: "user" as const,
+        revision: 1,
+      },
+    };
+    const namedOverview: TrainingSportsOverview = {
+      ...sports,
+      sports: [sports.sports[0], namedSport],
+    };
+    const namedSession: TrainingSessionSearchItem = {
+      ...unknownSession,
+      sport: {
+        sportRef: namedSport.sportRef,
+        state: namedSport.state,
+        classification: namedSport.classification,
+      },
+    };
+    let classificationSaved = false;
+    let refreshAttempts = 0;
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+      if (workspaceResult) return workspaceResult;
+      if (command === "query_training_sports") return Promise.resolve(sports);
+      if (command === "query_training_sessions") {
+        if (!classificationSaved) return Promise.resolve(page([unknownSession], 0, 1, null));
+        refreshAttempts += 1;
+        if (refreshAttempts === 1) return Promise.reject({ code: "library-query-failed" });
+        return Promise.resolve({
+          ...page([namedSession], 0, 1, null),
+          snapshotRef: `training-snapshot-${"f".repeat(64)}`,
+        });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const onAvailableRange = vi.fn();
+    const onCreateReport = vi.fn();
+    const onError = vi.fn();
+
+    function Harness() {
+      const [classificationChange, setClassificationChange] = useState<{
+        requestId: number;
+        source: "sports";
+        result: SavedTrainingSportClassification;
+      }>();
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              classificationSaved = true;
+              setClassificationChange({
+                requestId: 1,
+                source: "sports",
+                result: { outcome: "changed", overview: namedOverview },
+              });
+            }}
+          >
+            Apply external classification
+          </button>
+          <TrainingSessionLibraryPanel
+            locale="en-US"
+            messages={catalogs["en-US"]}
+            refreshToken={0}
+            classificationChange={classificationChange}
+            onAvailableRange={onAvailableRange}
+            onCreateReport={onCreateReport}
+            onError={onError}
+          />
+        </>
+      );
+    }
+
+    const user = userEvent.setup();
+    render(<Harness />);
+    const region = await screen.findByRole("region", { name: "Find a training session" });
+    await user.click(screen.getByRole("button", { name: "Apply external classification" }));
+
+    const recovery = await within(region).findByRole("alert");
+    expect(recovery).toHaveTextContent(
+      "The sport identity was saved, but this view could not refresh. Your saved identity is safe.",
+    );
+    expect(within(region).getAllByText("River paddling").length).toBeGreaterThan(1);
+    expect(onError).not.toHaveBeenCalledWith("library-query-failed");
+
+    await user.click(within(recovery).getByRole("button", { name: "Refresh this history" }));
+    await waitFor(() => expect(within(region).queryByRole("alert")).not.toBeInTheDocument());
+    expect(refreshAttempts).toBe(2);
   });
 
   it("opens on recognizable sports and session results while refinements stay secondary", async () => {

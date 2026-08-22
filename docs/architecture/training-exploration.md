@@ -42,6 +42,21 @@ retains the person's unsaved family and label for deliberate review and retry. P
 choose where the task is revealed and where focus returns, but cannot issue a parallel classification command
 or define another label rule.
 
+A changed classification is also a discovery-snapshot change. `TrainingInsightsPanel` publishes one ordered
+classification event to the Sessions and Sports workspaces and to the application owner. Sessions applies the
+returned overview immediately, then obtains a fresh page with a null snapshot request and resolves its calendar,
+comparison basket, open session, and detail evidence against that one returned snapshot. Editable and applied
+criteria, a still-valid page offset, calendar month and day, detail section, and return origin remain unchanged.
+An invalidated final page alone may fall back to offset zero. The intentional refresh never produces the generic
+library-changed warning. If any dependent query fails, the already saved identity remains visible with a local
+retry; the prior exploration is not discarded and the save is never described as rolled back.
+
+The application owner refreshes only the `LibraryHome` projection and never changes the active workspace as a
+side effect. The hidden Sports workspace adopts the same overview; an open draft is retained and marked against
+the newer saved revision. Report definitions remain immutable snapshot evidence: a later report resolution or
+preparation reads the authored identity, while a previously saved report becomes deliberately stale and still
+requires the existing explicit review instead of being rewritten silently.
+
 Broad FitFreed family codes support localized navigation across providers. They do not assert that equal
 families identify the same activity, session, or person. Exact origin separation remains visible whenever
 otherwise equal labels would create ambiguity.

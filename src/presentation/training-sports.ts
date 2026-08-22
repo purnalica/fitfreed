@@ -63,3 +63,9 @@ export interface SavedTrainingSportClassification {
   outcome: "changed" | "unchanged";
   overview: TrainingSportsOverview;
 }
+
+export interface TrainingSportClassificationChange {
+  requestId: number;
+  source: "sessions" | "sports";
+  result: SavedTrainingSportClassification;
+}
