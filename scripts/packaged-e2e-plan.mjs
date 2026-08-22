@@ -20,6 +20,13 @@ export function packagedE2eScenarioPlan(runDirectory) {
       restartIdentityPath,
     },
     {
+      name: "adaptive-sessions",
+      configuration: "wdio.conf.js",
+      spec: "test/e2e/adaptive-session-composition.spec.js",
+      databasePath: path.join(runDirectory, "adaptive-sessions.sqlite"),
+      restartIdentityPath: null,
+    },
+    {
       name: "performance",
       configuration: "wdio.performance.conf.js",
       spec: "test/e2e/insights-performance.spec.js",

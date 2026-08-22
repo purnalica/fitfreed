@@ -87,6 +87,7 @@ test("restarts the packaged process against the exact functional-journey library
   assert.deepEqual(plan.map(({ name }) => name), [
     "journey",
     "restart",
+    "adaptive-sessions",
     "performance",
   ]);
   assert.equal(plan[0].databasePath, plan[1].databasePath);
@@ -95,8 +96,12 @@ test("restarts the packaged process against the exact functional-journey library
     plan[1].restartIdentityPath,
   );
   assert.equal(plan[1].spec, "test/e2e/restart-evidence.e2e.js");
+  assert.equal(plan[2].spec, "test/e2e/adaptive-session-composition.spec.js");
   assert.notEqual(plan[2].databasePath, plan[0].databasePath);
   assert.equal(plan[2].restartIdentityPath, null);
+  assert.notEqual(plan[3].databasePath, plan[0].databasePath);
+  assert.notEqual(plan[3].databasePath, plan[2].databasePath);
+  assert.equal(plan[3].restartIdentityPath, null);
 });
 
 test("identifies only the exact packaged application command", () => {

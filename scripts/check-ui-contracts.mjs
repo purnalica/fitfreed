@@ -113,6 +113,15 @@ function sourceFiles(directory) {
   });
 }
 
+for (const sourcePath of sourceFiles(path.join(repositoryRoot, "src"))) {
+  const source = readFileSync(sourcePath, "utf8");
+  if (/<dl\s+[^>]*role=/.test(source)) {
+    throw new Error(
+      `description-list semantics must not be overridden in ${path.relative(repositoryRoot, sourcePath)}`,
+    );
+  }
+}
+
 if (/\bfallback=\{null\}/.test(application)) {
   throw new Error("lazy presentation boundaries must expose a visible loading status");
 }
@@ -165,6 +174,46 @@ for (const workspace of ["sessions", "sports", "comparison"]) {
 }
 if (!trainingSessionLibrary.includes("aria-label={copy.detailNavigation}")) {
   throw new Error("Training session detail must expose its section navigation");
+}
+if (!trainingSessionLibrary.includes('<h2\n                id="training-session-detail-heading"')) {
+  throw new Error("an open training session must remain the level-two subject below Training");
+}
+for (const semanticHeadingSelector of [
+  ".training-detail-heading h2",
+  ".training-structure > h3",
+  ".training-exercise > header h4",
+  ".training-route-workbench-heading h3",
+  ".training-signal-workbench-heading h3",
+  ".training-structure-workbench-heading h3",
+  ".training-zone-workbench-heading h3",
+  ".training-session-evidence-summary h3",
+]) {
+  if (!stylesheet.includes(semanticHeadingSelector)) {
+    throw new Error(`training heading styles must follow the semantic hierarchy: ${semanticHeadingSelector}`);
+  }
+}
+requireRule(
+  stylesheet,
+  ".training-result-focus-target",
+  [/scroll-margin-block-start:\s*var\(--shell-reveal-offset\)/],
+  "revealed training evidence below persistent navigation",
+);
+for (const resultFocusTarget of [
+  "exactRouteHeadingRef",
+  "exactSignalHeadingRef",
+  "structureHeadingRef",
+  "focusHeadingRef",
+  "training-exact-selected-row training-result-focus-target",
+]) {
+  const sources = `${trainingSessionLibrary}\n${readFileSync(path.join(
+    repositoryRoot,
+    "src",
+    "presentation",
+    "TrainingSessionZonesPanel.tsx",
+  ), "utf8")}`;
+  if (!sources.includes(resultFocusTarget)) {
+    throw new Error(`training evidence must preserve the shared reveal target: ${resultFocusTarget}`);
+  }
 }
 if (packageManifest.dependencies?.leaflet !== "1.9.4"
   || packageManifest.devDependencies?.["@types/leaflet"] !== "1.9.22") {

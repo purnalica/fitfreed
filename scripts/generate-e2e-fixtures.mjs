@@ -474,4 +474,111 @@ await createArchive("report-refresh.zip", [
   ],
 ]);
 
-process.stdout.write(`${JSON.stringify({ outputDirectory, fixtureCount: 4 })}\n`);
+await createArchive("adaptive-sessions.zip", [
+  [
+    `account-data-91-${uuidC}.json`,
+    JSON.stringify({ exportVersion: "synthetic-adaptive", username: syntheticUsername }),
+  ],
+  [
+    `training-session_2026-01-10T06-30-00_91-${uuidC}.json`,
+    trainingSession({
+      id: "fixture-adaptive-signal-session",
+      created: "2026-01-10T07:20:00.000",
+      modified: "2026-01-10T07:20:00.000",
+      startTime: "2026-01-10T06:30:00",
+      stopTime: "2026-01-10T07:10:00",
+      durationMillis: 2_400_000,
+      distanceMeters: 7_200,
+      calories: 410,
+      hrAvg: 138,
+      hrMax: 166,
+      sportId: "201",
+      exercises: [{
+        identifier: { id: "fixture-adaptive-signal-exercise" },
+        created: "2026-01-10T07:20:00.000",
+        modified: "2026-01-10T07:20:00.000",
+        startTime: "2026-01-10T06:30:00",
+        stopTime: "2026-01-10T07:10:00",
+        timezoneOffsetMinutes: 60,
+        durationMillis: 2_400_000,
+        distanceMeters: 7_200,
+        calories: 410,
+        sport: { id: "201" },
+        laps: { laps: [], autoLaps: [] },
+        pauseTimes: [],
+        samples: recordedTrainingSignals(),
+      }],
+    }),
+  ],
+  [
+    `training-session_2026-01-11T07-00-00_91-${uuidC}.json`,
+    trainingSession({
+      id: "fixture-adaptive-structure-session",
+      created: "2026-01-11T08:00:00.000",
+      modified: "2026-01-11T08:00:00.000",
+      startTime: "2026-01-11T07:00:00",
+      stopTime: "2026-01-11T07:45:00",
+      durationMillis: 2_700_000,
+      distanceMeters: 8_000,
+      calories: 460,
+      sportId: "202",
+      exercises: [{
+        identifier: { id: "fixture-adaptive-structure-exercise" },
+        created: "2026-01-11T08:00:00.000",
+        modified: "2026-01-11T08:00:00.000",
+        startTime: "2026-01-11T07:00:00",
+        stopTime: "2026-01-11T07:45:00",
+        timezoneOffsetMinutes: 60,
+        durationMillis: 2_700_000,
+        distanceMeters: 8_000,
+        calories: 460,
+        sport: { id: "202" },
+        laps: {
+          laps: [{
+            splitTimeMillis: 0,
+            durationMillis: 900_000,
+            distanceMeters: 2_500,
+          }, {
+            splitTimeMillis: 900_000,
+            durationMillis: 1_800_000,
+            distanceMeters: 5_500,
+          }],
+          autoLaps: [],
+        },
+        pauseTimes: [{
+          startTime: "2026-01-11T07:18:00",
+          endTime: "2026-01-11T07:19:00",
+        }],
+      }],
+    }),
+  ],
+  [
+    `training-session_2026-01-12T08-00-00_91-${uuidC}.json`,
+    trainingSession({
+      id: "fixture-adaptive-zone-session",
+      created: "2026-01-12T08:40:00.000",
+      modified: "2026-01-12T08:40:00.000",
+      startTime: "2026-01-12T08:00:00",
+      stopTime: "2026-01-12T08:30:00",
+      durationMillis: 1_800_000,
+      calories: 280,
+      sportId: "203",
+      exercises: [{
+        identifier: { id: "fixture-adaptive-zone-exercise" },
+        created: "2026-01-12T08:40:00.000",
+        modified: "2026-01-12T08:40:00.000",
+        startTime: "2026-01-12T08:00:00",
+        stopTime: "2026-01-12T08:30:00",
+        timezoneOffsetMinutes: 60,
+        durationMillis: 1_800_000,
+        calories: 280,
+        sport: { id: "203" },
+        laps: { laps: [], autoLaps: [] },
+        pauseTimes: [],
+        zones: recordedTrainingZones(),
+      }],
+    }),
+  ],
+]);
+
+process.stdout.write(`${JSON.stringify({ outputDirectory, fixtureCount: 5 })}\n`);

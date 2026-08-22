@@ -184,7 +184,7 @@ export function TrainingZoneWorkbench({
       }`}>
         <div>
           <p className="eyebrow">{copy.eyebrow}</p>
-          <h4>{interpolate(copy.heading, { kind: kind.toLocaleLowerCase(locale) })}</h4>
+          <h3>{interpolate(copy.heading, { kind: kind.toLocaleLowerCase(locale) })}</h3>
           <p>{copy.introduction}</p>
         </div>
         {choices.length > 1 && (
@@ -236,11 +236,13 @@ export function TrainingZoneWorkbench({
           </div>
         ))}
       </div>
-      <dl role="group" aria-label={copy.measurements}>
-        <div><dt>{copy.bands}</dt><dd>{number.format(zones.length)}</dd></div>
-        <div><dt>{copy.coverage}</dt><dd>{coverage}</dd></div>
-        <div><dt>{copy.total}</dt><dd>{totalLabel}</dd></div>
-      </dl>
+      <div role="group" aria-label={copy.measurements}>
+        <dl>
+          <div><dt>{copy.bands}</dt><dd>{number.format(zones.length)}</dd></div>
+          <div><dt>{copy.coverage}</dt><dd>{coverage}</dd></div>
+          <div><dt>{copy.total}</dt><dd>{totalLabel}</dd></div>
+        </dl>
+      </div>
       <footer>
         <p><strong>{copy.aggregateMeaning}</strong> {copy.meaning}</p>
         <button

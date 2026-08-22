@@ -312,7 +312,7 @@ export function TrainingRouteWorkbench({
       <header className="training-route-workbench-heading">
         <div>
           <p className="eyebrow">{copy.eyebrow}</p>
-          <h4>{copy.heading}</h4>
+          <h3>{copy.heading}</h3>
           <p>{copy.introduction}</p>
         </div>
         <div className="training-route-workbench-controls">

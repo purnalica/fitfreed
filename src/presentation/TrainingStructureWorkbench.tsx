@@ -120,7 +120,7 @@ export function TrainingStructureWorkbench({
       }`}>
         <div>
           <p className="eyebrow">{copy.eyebrow}</p>
-          <h4>{copy.heading}</h4>
+          <h3>{copy.heading}</h3>
           <p>{copy.introduction}</p>
         </div>
         {exercises.length > 1 && (
@@ -164,13 +164,15 @@ export function TrainingStructureWorkbench({
         {timelineRow(sessionCopy.manualLaps, "source", manualLaps)}
         {timelineRow(sessionCopy.automaticLaps, "automatic", automaticLaps)}
       </div>
-      <dl role="group" aria-label={copy.measurements}>
-        <div><dt>{messages.training.duration}</dt><dd>{duration}</dd></div>
-        <div><dt>{messages.training.distance}</dt><dd>{distance}</dd></div>
-        <div><dt>{sessionCopy.manualLaps}</dt><dd>{sourceLapCount}</dd></div>
-        <div><dt>{sessionCopy.automaticLaps}</dt><dd>{automaticLapCount}</dd></div>
-        <div><dt>{sessionCopy.pauses}</dt><dd>{pauses}</dd></div>
-      </dl>
+      <div role="group" aria-label={copy.measurements}>
+        <dl>
+          <div><dt>{messages.training.duration}</dt><dd>{duration}</dd></div>
+          <div><dt>{messages.training.distance}</dt><dd>{distance}</dd></div>
+          <div><dt>{sessionCopy.manualLaps}</dt><dd>{sourceLapCount}</dd></div>
+          <div><dt>{sessionCopy.automaticLaps}</dt><dd>{automaticLapCount}</dd></div>
+          <div><dt>{sessionCopy.pauses}</dt><dd>{pauses}</dd></div>
+        </dl>
+      </div>
       <footer>
         <p>{copy.meaning}</p>
         <button

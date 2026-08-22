@@ -83,6 +83,9 @@ export function TrainingSessionZonesPanel({
         >
           <h6
             ref={group.zoneGroupRef === focusGroupRef ? focusHeadingRef : undefined}
+            className={group.zoneGroupRef === focusGroupRef
+              ? "training-result-focus-target"
+              : undefined}
             tabIndex={group.zoneGroupRef === focusGroupRef ? -1 : undefined}
           >{heading}</h6>
           <p>{copy.zoneBandsNotProvided}</p>
@@ -99,6 +102,9 @@ export function TrainingSessionZonesPanel({
         >
           <h6
             ref={group.zoneGroupRef === focusGroupRef ? focusHeadingRef : undefined}
+            className={group.zoneGroupRef === focusGroupRef
+              ? "training-result-focus-target"
+              : undefined}
             tabIndex={group.zoneGroupRef === focusGroupRef ? -1 : undefined}
           >{heading}</h6>
           <p>{copy.zoneBandsProvidedEmpty}</p>
@@ -126,6 +132,9 @@ export function TrainingSessionZonesPanel({
       >
         <h6
           ref={group.zoneGroupRef === focusGroupRef ? focusHeadingRef : undefined}
+          className={group.zoneGroupRef === focusGroupRef
+            ? "training-result-focus-target"
+            : undefined}
           tabIndex={group.zoneGroupRef === focusGroupRef ? -1 : undefined}
         >{heading}</h6>
         <div className="training-zone-distribution" role="img" aria-label={summary}>

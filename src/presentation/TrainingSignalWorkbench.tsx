@@ -117,9 +117,9 @@ export function TrainingSignalWorkbench({
       }`}>
         <div>
           <p className="eyebrow">{copy.eyebrow}</p>
-          <h4>{interpolate(copy.heading, {
+          <h3>{interpolate(copy.heading, {
             metric: metricLabel.toLocaleLowerCase(locale),
-          })}</h4>
+          })}</h3>
           <p>{copy.introduction}</p>
         </div>
         {choices.length > 1 && (
@@ -154,24 +154,26 @@ export function TrainingSignalWorkbench({
           lowerValuesAtTop={metric === "pace"}
         />
       </div>
-      <dl role="group" aria-label={choiceLabel}>
-        <div>
-          <dt>{copy.coverage}</dt>
-          <dd>{number.format(availableSampleCount)} {messages.training.of} {number.format(choice.signal.sampleCount)}</dd>
-        </div>
-        <div>
-          <dt>{copy.interval}</dt>
-          <dd>{formatDuration(
-            choice.signal.intervalMilliseconds,
-            locale,
-            messages.training.durationUnits,
-          )}</dd>
-        </div>
-        <div>
-          <dt>{copy.source}</dt>
-          <dd>{interpolate(copy.sourceSeries, { signal: sourceLabel })}</dd>
-        </div>
-      </dl>
+      <div role="group" aria-label={choiceLabel}>
+        <dl>
+          <div>
+            <dt>{copy.coverage}</dt>
+            <dd>{number.format(availableSampleCount)} {messages.training.of} {number.format(choice.signal.sampleCount)}</dd>
+          </div>
+          <div>
+            <dt>{copy.interval}</dt>
+            <dd>{formatDuration(
+              choice.signal.intervalMilliseconds,
+              locale,
+              messages.training.durationUnits,
+            )}</dd>
+          </div>
+          <div>
+            <dt>{copy.source}</dt>
+            <dd>{interpolate(copy.sourceSeries, { signal: sourceLabel })}</dd>
+          </div>
+        </dl>
+      </div>
       <footer>
         <p>{copy.projection}</p>
         <button

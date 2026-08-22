@@ -210,7 +210,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R4 | Complete locally — exact packaged and exhaustive adaptive gates passed 2026-08-22 | Existing health and aligned-history questions read as answers |
 | X5-R5 | Complete locally — R5.4, R5.5, and real-process restart gates passed 2026-08-22 | A remembered session is findable and sports are recognizable |
 | X5-R6 | Complete locally — R6.1 through R6.5 passed exact packaged, adaptive visual, and dense-route gates on 2026-08-22 | A routed workout is investigated through a dominant synchronized map |
-| X5-R7 | In progress — Session Story v2 composition contract verified locally on 2026-08-22 | Every session composition reflects its actual evidence |
+| X5-R7 | In progress — R7.1 through R7.6 implemented and focused packaged evidence passed on 2026-08-22; exact complete campaign pending | Every session composition reflects its actual evidence |
 | X5-R8 | Pending | Personal ranges and reusable criteria work end to end |
 | X5-R9 | Pending | Reports open as results and leave FitFreed safely |
 | X5-R10 | Pending | The complete release-shaped product is coherent and documented |
@@ -1144,6 +1144,30 @@ process-restart evidence remain the final R7 gate. The complete fast contributor
 290 React, 2 vendored-updater, 213 host, 159 application, and 33 domain tests together with architecture,
 contracts, workflows, documentation, product surfaces, localization, site, production TypeScript build, and
 Rust formatting gates.
+
+### R7.6 packaged adaptive-session checkpoint — 2026-08-22
+
+The packaged campaign now gives evidence-adaptive session composition an isolated application process and
+library between the retained restart journey and the performance journey. Its independently generated source
+archive imports three deliberately different sessions through the real import boundary: supported signals
+without route or source structure, source laps and a pause without route or supported signals, and recorded
+structure with heart-rate, speed, power, and unsupported zone groups. The last state deliberately proves the
+accepted structure-before-zones priority; a provider archive cannot carry Polar zone groups without an
+exercise container, while the pure and React matrices retain the structurally possible zone-leading case.
+
+The real WebKit journey proves leading-workbench selection, capability-adaptive navigation, selector changes,
+exact samples, exact source laps, recorded zone alternatives, unsupported evidence counts, focus transfer, and
+return. It covers English/light at broad desktop geometry and Spanish/dark at compact geometry with 200%
+content zoom. Every workbench and revealed target remains within the visible workspace, below persistent
+compact navigation, and without page-level horizontal overflow. Four privacy-safe synthetic screenshots are
+retained under the ignored evidence directory for local review.
+
+Automated accessibility exposed two implementation defects before acceptance: overriding native `dl`
+semantics orphaned its terms and definitions in WebKit, and the session title skipped a heading level. Native
+description-list semantics, a complete Training → session → section hierarchy, matching visual selectors, and
+one shared reveal-target scroll margin now form static UI contracts. The focused packaged scenario passes with
+zero Axe violations. The exact complete functional, restart, adaptive-session, and performance campaign remains
+the closure gate for X5-R7.
 
 ## X5-R8 — Add personal ranges and integrate segmentation
 
