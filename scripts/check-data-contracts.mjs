@@ -3921,6 +3921,232 @@ for (const invalidHome of [
   }
 }
 
+const libraryHomeV2Path = "docs/data-formats/insights/library-home-v2.md";
+const libraryHomeV2 = read(libraryHomeV2Path);
+for (const field of [
+  "libraryRevisionRef",
+  "trainingSnapshotRef",
+  "sessionCount",
+  "sportProfileCount",
+  "omittedSportProfileCount",
+  "sports",
+  "profileCount",
+  "recentSessions",
+  "sessionRef",
+  "startedAtLocal",
+  "durationMilliseconds",
+  "distanceMeters",
+  "canonicalFamily",
+  "displayLabel",
+  "highlight",
+  "recent-training-comparison",
+  "historical-training",
+  "library-history",
+  "referenceDate",
+  "baseline",
+  "comparison",
+  "sessionCountChange",
+  "durationChangeMilliseconds",
+  "latestSessionDate",
+  "latestEvidenceDate",
+  "no-current-training",
+  "history-after-reference-date",
+  "unchangedObservations",
+]) {
+  requireMention(libraryHomeV2, field, libraryHomeV2Path);
+}
+
+const libraryHomeV2SchemaPath = "schemas/library-home-v2.schema.json";
+const libraryHomeV2Schema = JSON.parse(read(libraryHomeV2SchemaPath));
+const validateLibraryHomeV2Schema = ajv.compile(libraryHomeV2Schema);
+const libraryRevisionRef = "library-home-revision-" + "a".repeat(64);
+const trainingSnapshotRef = "training-snapshot-" + "b".repeat(64);
+const sessionRef = "session-" + "c".repeat(64);
+const syntheticLibraryHomeV2 = {
+  ...structuredClone(syntheticLibraryHome),
+  version: 2,
+  libraryRevisionRef,
+  training: {
+    trainingSnapshotRef,
+    sessionCount: 2,
+    sportProfileCount: 2,
+    omittedSportProfileCount: 0,
+    sports: [
+      {
+        state: "classified",
+        canonicalFamily: "running",
+        displayLabel: "Trail running",
+        profileCount: 1,
+        sessionCount: 1,
+      },
+      {
+        state: "unknown",
+        canonicalFamily: null,
+        displayLabel: null,
+        profileCount: 1,
+        sessionCount: 1,
+      },
+    ],
+    recentSessions: [{
+      sessionRef,
+      startedAtLocal: "2026-01-05T08:00:00",
+      durationMilliseconds: "3600000",
+      distanceMeters: 10000.5,
+      sportState: "classified",
+      canonicalFamily: "running",
+      displayLabel: "Trail running",
+    }],
+  },
+  highlight: {
+    kind: "recent-training-comparison",
+    referenceDate: "2026-01-06",
+    baseline: {
+      range: { from: "2025-12-24", through: "2025-12-30" },
+      sessionCount: 1,
+      totalDurationMilliseconds: "3000000",
+    },
+    comparison: {
+      range: { from: "2025-12-31", through: "2026-01-06" },
+      sessionCount: 2,
+      totalDurationMilliseconds: "7200000",
+    },
+    sessionCountChange: "1",
+    durationChangeMilliseconds: "4200000",
+  },
+  postImport: {
+    ...syntheticLibraryHome.postImport,
+    unchangedObservations: 2,
+  },
+};
+const emptyLibraryHomeV2 = {
+  ...structuredClone(emptyLibraryHome),
+  version: 2,
+  libraryRevisionRef,
+  training: null,
+  highlight: null,
+};
+
+function sevenDateRangeEndingOn(through) {
+  const end = new Date(through + "T00:00:00Z");
+  const start = new Date(end);
+  start.setUTCDate(start.getUTCDate() - 6);
+  return { from: start.toISOString().slice(0, 10), through };
+}
+
+function nextDate(value) {
+  const date = new Date(value + "T00:00:00Z");
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString().slice(0, 10);
+}
+
+function libraryHomeV2IsSemanticallyValid(value) {
+  if (!validateLibraryHomeV2Schema(value)) return false;
+  const legacy = structuredClone(value);
+  delete legacy.version;
+  delete legacy.libraryRevisionRef;
+  delete legacy.training;
+  delete legacy.highlight;
+  if (legacy.postImport !== null) delete legacy.postImport.unchangedObservations;
+  if (!libraryHomeIsSemanticallyValid(legacy)) return false;
+  const trainingAvailable = value.domains[0].availableRange !== null;
+  if (!trainingAvailable) {
+    return value.training === null
+      && (value.availableRange === null
+        ? value.highlight === null
+        : value.highlight?.kind === "library-history"
+          && value.highlight.latestEvidenceDate === value.availableRange.through);
+  }
+  if (value.training === null || value.highlight === null) return false;
+  const representedProfiles = value.training.sports
+    .reduce((total, sport) => total + sport.profileCount, 0);
+  if (
+    representedProfiles + value.training.omittedSportProfileCount
+      !== value.training.sportProfileCount
+    || value.training.recentSessions.some((session, index, sessions) => (
+      index > 0 && sessions[index - 1].startedAtLocal < session.startedAtLocal
+    ))
+  ) {
+    return false;
+  }
+  if (value.highlight.kind === "recent-training-comparison") {
+    const expectedComparison = sevenDateRangeEndingOn(value.highlight.referenceDate);
+    const baselineEndsBeforeComparison = nextDate(value.highlight.baseline.range.through)
+      === value.highlight.comparison.range.from;
+    return JSON.stringify(value.highlight.comparison.range) === JSON.stringify(expectedComparison)
+      && JSON.stringify(value.highlight.baseline.range)
+        === JSON.stringify(sevenDateRangeEndingOn(value.highlight.baseline.range.through))
+      && baselineEndsBeforeComparison
+      && value.highlight.comparison.sessionCount > 0
+      && BigInt(value.highlight.sessionCountChange)
+        === BigInt(value.highlight.comparison.sessionCount)
+          - BigInt(value.highlight.baseline.sessionCount)
+      && BigInt(value.highlight.durationChangeMilliseconds)
+        === BigInt(value.highlight.comparison.totalDurationMilliseconds)
+          - BigInt(value.highlight.baseline.totalDurationMilliseconds);
+  }
+  if (value.highlight.kind === "historical-training") {
+    return JSON.stringify(value.highlight.currentRange)
+      === JSON.stringify(sevenDateRangeEndingOn(value.highlight.referenceDate));
+  }
+  return false;
+}
+
+for (const home of [emptyLibraryHomeV2, syntheticLibraryHomeV2]) {
+  if (!libraryHomeV2IsSemanticallyValid(home)) {
+    throw new Error(
+      libraryHomeV2SchemaPath
+        + " rejected a valid response: "
+        + ajv.errorsText(validateLibraryHomeV2Schema.errors),
+    );
+  }
+}
+for (const invalidHome of [
+  (() => {
+    const value = structuredClone(syntheticLibraryHomeV2);
+    value.version = 1;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticLibraryHomeV2);
+    value.libraryRevisionRef = "operation-must-not-cross-the-boundary";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticLibraryHomeV2);
+    value.training.sports[1].displayLabel = "Provider sport";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticLibraryHomeV2);
+    value.training.recentSessions[0].durationMilliseconds = 3600000;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticLibraryHomeV2);
+    value.training.omittedSportProfileCount = 1;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticLibraryHomeV2);
+    value.highlight.comparison.range.from = "2026-01-01";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticLibraryHomeV2);
+    value.highlight.durationChangeMilliseconds = "4199999";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(emptyLibraryHomeV2);
+    value.highlight = { kind: "library-history", latestEvidenceDate: "2026-01-01" };
+    return value;
+  })(),
+]) {
+  if (libraryHomeV2IsSemanticallyValid(invalidHome)) {
+    throw new Error(libraryHomeV2SchemaPath + " accepted an invalid response");
+  }
+}
+
 const updateChannelPath = "docs/data-formats/release/update-channel-v1.md";
 const updateChannel = read(updateChannelPath);
 for (const field of [
@@ -5270,6 +5496,7 @@ process.stdout.write(
     libraryHomeSchemas: [
       libraryHomeQuerySchemaPath,
       libraryHomeSchemaPath,
+      libraryHomeV2SchemaPath,
       explorationWorkspaceSaveSchemaPath,
     ],
     updateChannelSchemas: [

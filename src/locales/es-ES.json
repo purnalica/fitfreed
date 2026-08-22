@@ -42,9 +42,9 @@
     "loading": "Cargando esta vista…"
   },
   "home": {
-    "eyebrow": "Tu biblioteca independiente",
-    "title": "Tu historial, preparado para tus preguntas",
-    "intro": "Empieza con algo que quieras comprender. FitFreed solo ofrece vías respaldadas por los indicios de tu biblioteca local.",
+    "eyebrow": "Local, independiente y tuyo",
+    "title": "Tu historial deportivo",
+    "intro": "Consulta lo que has registrado, vuelve a cada sesión y explora únicamente lo que permiten tus datos locales.",
     "availablePeriod": "Periodo disponible",
     "rangeSeparator": "–",
     "questionsHeading": "¿Qué quieres comprender?",
@@ -72,6 +72,7 @@
       "longitudinal": "Retomar la exploración del historial relacionado"
     },
     "coverageHeading": "Tu historial utilizable",
+    "coverageSummary": "Revisar el historial utilizable",
     "coverageIntro": "La disponibilidad se muestra con honestidad: las mediciones ausentes no se consideran cero.",
     "domains": {
       "training": "Entrenamiento",
@@ -89,6 +90,70 @@
     },
     "unavailable": "No disponible",
     "sources": "Revisar la cobertura del origen",
+    "summarySessions": {
+      "one": "{count} sesión de entrenamiento",
+      "other": "{count} sesiones de entrenamiento"
+    },
+    "summarySports": {
+      "one": "{count} perfil deportivo",
+      "other": "{count} perfiles deportivos"
+    },
+    "sportsHeading": "Tus deportes",
+    "sportsIntro": "Los deportes representados en tu historial de entrenamiento importado.",
+    "sportFamilies": {
+      "running": "Carrera",
+      "cycling": "Ciclismo",
+      "swimming": "Natación",
+      "walking": "Caminata",
+      "hiking": "Senderismo",
+      "strength": "Fuerza",
+      "mobility": "Movilidad",
+      "racket-sport": "Deporte de raqueta",
+      "team-sport": "Deporte de equipo",
+      "winter-sport": "Deporte de invierno",
+      "water-sport": "Deporte acuático",
+      "other": "Otro deporte"
+    },
+    "sportUnknown": "Deporte sin clasificar",
+    "sportUnavailable": "Deporte no disponible en el origen",
+    "sportSessions": {
+      "one": "{count} sesión",
+      "other": "{count} sesiones"
+    },
+    "sportProfiles": {
+      "one": "{count} perfil de origen",
+      "other": "{count} perfiles de origen"
+    },
+    "omittedSports": {
+      "one": "{count} perfil deportivo adicional",
+      "other": "{count} perfiles deportivos adicionales"
+    },
+    "recentHeading": "Sesiones recientes",
+    "recentIntro": "Abre una sesión para inspeccionar los detalles registrados.",
+    "recentOpen": "Abrir {sport}, {date}",
+    "durationHoursMinutes": "{hours} h {minutes} min",
+    "durationHours": "{hours} h",
+    "durationMinutes": "{minutes} min",
+    "durationLessThanMinute": "Menos de 1 min",
+    "recentDistance": "{distance} km",
+    "comparisonEyebrow": "Comparación entre periodos equivalentes",
+    "comparisonHeading": "Últimos 7 días",
+    "comparisonIntro": "Comparados con los 7 días anteriores. Los recuentos y duraciones proceden de sesiones de entrenamiento completas.",
+    "comparisonCurrent": "Periodo actual de 7 días",
+    "comparisonPrevious": "7 días anteriores",
+    "comparisonOpen": "Explorar estos 7 días",
+    "comparisonSessions": {
+      "one": "{count} sesión",
+      "other": "{count} sesiones"
+    },
+    "historicalEyebrow": "Solo datos registrados",
+    "historicalHeading": "Historial de entrenamiento",
+    "historicalNoCurrentTraining": "Última sesión de entrenamiento: {date}. Puedes seguir explorando tu historial completo.",
+    "historicalFutureHistory": "Última sesión de entrenamiento: {date}. Parte del historial es posterior a la fecha actual de este equipo, por lo que no se muestra ninguna afirmación sobre el rendimiento reciente.",
+    "historicalOpen": "Explorar el historial de entrenamiento",
+    "libraryHistoryEyebrow": "Disponible en este dispositivo",
+    "libraryHistoryHeading": "Tu historial local",
+    "libraryHistoryIntro": "Último indicio disponible: {date}. Abre una pregunta compatible para inspeccionarlo.",
     "emptyHeading": "Explora tu exportación deportiva en este dispositivo",
     "emptyIntro": "Elige un ZIP de exportación original para crear un historial local de sesiones, rutas, señales, comparaciones e informes.",
     "emptyLocalBoundary": "Sin cuenta. Sin subir datos. El archivo y la biblioteca permanecen en este dispositivo.",
@@ -127,7 +192,9 @@
       "other": "FitFreed ha encontrado {count} preguntas respaldadas por indicios que puede responder sin inventar los datos ausentes."
     },
     "answerAction": "Explorar esta respuesta",
-    "postImportHeading": "Tu biblioteca ha crecido",
+    "postImportHeadingChanged": "Tu biblioteca ha crecido",
+    "postImportHeadingUnchanged": "Importación completada",
+    "postImportHeadingExactRepeat": "Ya estaba en tu biblioteca",
     "postImportChanged": "La importación confirmada ha añadido o mejorado historial utilizable.",
     "postImportUnchanged": "La importación confirmada ha conservado tu historial utilizable actual.",
     "postImportExactRepeat": "Este paquete era una repetición exacta; tu biblioteca permanece sin cambios ni duplicados.",
@@ -143,7 +210,11 @@
       "one": "{count} observación rectificada",
       "other": "{count} observaciones rectificadas"
     },
-    "postImportReview": "Parte de la cobertura del origen requiere tu atención.",
+    "postImportUnchangedObservations": {
+      "one": "{count} observación sin cambios",
+      "other": "{count} observaciones sin cambios"
+    },
+    "postImportReview": "Puedes consultar los detalles de cobertura del origen.",
     "backHome": "Volver a Inicio",
     "returning": "Volviendo a Inicio…"
   },

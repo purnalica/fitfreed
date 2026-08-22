@@ -10,6 +10,8 @@ const messages = catalogs["en-US"].home;
 
 function populatedHome(overrides: Partial<LibraryHome> = {}): LibraryHome {
   return {
+    version: 2,
+    libraryRevisionRef: "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     availableRange: { from: "2024-01-02", through: "2026-08-17" },
     domains: [
       {
@@ -65,6 +67,71 @@ function populatedHome(overrides: Partial<LibraryHome> = {}): LibraryHome {
       { kind: "review-sleep-patterns", destination: "sleep" },
       { kind: "review-recovery-patterns", destination: "recovery" },
     ],
+    training: {
+      trainingSnapshotRef: "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      sessionCount: 42,
+      sportProfileCount: 4,
+      omittedSportProfileCount: 0,
+      sports: [
+        {
+          state: "classified",
+          canonicalFamily: "running",
+          displayLabel: "Road running",
+          profileCount: 1,
+          sessionCount: 22,
+        },
+        {
+          state: "classified",
+          canonicalFamily: "water-sport",
+          displayLabel: "Kayaking",
+          profileCount: 1,
+          sessionCount: 12,
+        },
+        {
+          state: "unknown",
+          canonicalFamily: null,
+          displayLabel: null,
+          profileCount: 2,
+          sessionCount: 8,
+        },
+      ],
+      recentSessions: [
+        {
+          sessionRef: "training-session-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          startedAtLocal: "2026-08-17T18:30:00.000",
+          durationMilliseconds: "3723000",
+          distanceMeters: 12340,
+          sportState: "classified",
+          canonicalFamily: "running",
+          displayLabel: "Road running",
+        },
+        {
+          sessionRef: "training-session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          startedAtLocal: "2026-08-16T07:00:00.000",
+          durationMilliseconds: "2700000",
+          distanceMeters: null,
+          sportState: "unknown",
+          canonicalFamily: null,
+          displayLabel: null,
+        },
+      ],
+    },
+    highlight: {
+      kind: "recent-training-comparison",
+      referenceDate: "2026-08-17",
+      baseline: {
+        range: { from: "2026-08-04", through: "2026-08-10" },
+        sessionCount: 2,
+        totalDurationMilliseconds: "5400000",
+      },
+      comparison: {
+        range: { from: "2026-08-11", through: "2026-08-17" },
+        sessionCount: 4,
+        totalDurationMilliseconds: "10800000",
+      },
+      sessionCountChange: "2",
+      durationChangeMilliseconds: "5400000",
+    },
     postImport: null,
     resumableExploration: null,
     ...overrides,
@@ -74,6 +141,50 @@ function populatedHome(overrides: Partial<LibraryHome> = {}): LibraryHome {
 afterEach(cleanup);
 
 describe("LibraryHomePanel", () => {
+  it("leads with recognizable sports, a bounded recent comparison, and exact sessions", async () => {
+    const user = userEvent.setup();
+    const onOpenComparison = vi.fn();
+    const onOpenSession = vi.fn();
+    render(
+      <LibraryHomePanel
+        home={populatedHome()}
+        locale="en-US"
+        messages={messages}
+        onExplore={vi.fn()}
+        onOpenComparison={onOpenComparison}
+        onOpenSession={onOpenSession}
+        onOpenSources={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Your fitness history" })).toBeVisible();
+    expect(screen.getByText("42 training sessions")).toBeVisible();
+    expect(screen.getByText("4 sport profiles")).toBeVisible();
+    const sports = screen.getByRole("region", { name: "Your sports" });
+    expect(within(sports).getByText("Road running")).toBeVisible();
+    expect(within(sports).getByText("Kayaking")).toBeVisible();
+    expect(within(sports).getByText("Unclassified sport")).toBeVisible();
+    expect(within(sports).getAllByTestId("sport-family-icon")).toHaveLength(3);
+
+    const comparison = screen.getByRole("region", { name: "Last 7 days" });
+    expect(comparison).toHaveTextContent("4 sessions");
+    expect(comparison).toHaveTextContent("3 hr");
+    expect(comparison).toHaveTextContent("Previous 7 days");
+    await user.click(within(comparison).getByRole("button", { name: "Explore these 7 days" }));
+    expect(onOpenComparison).toHaveBeenCalledWith(populatedHome().highlight);
+
+    const recent = screen.getByRole("region", { name: "Recent sessions" });
+    const roadRun = within(recent).getByRole("button", { name: /Open Road running/ });
+    expect(roadRun).toHaveTextContent("Aug 17, 2026");
+    expect(roadRun).toHaveTextContent("1 hr 2 min");
+    expect(roadRun).toHaveTextContent("12.3 km");
+    const unknown = within(recent).getByRole("button", { name: /Open Unclassified sport/ });
+    expect(unknown).toHaveTextContent("45 min");
+    expect(unknown).not.toHaveTextContent("km");
+    await user.click(roadRun);
+    expect(onOpenSession).toHaveBeenCalledWith(populatedHome().training?.recentSessions[0]);
+  });
+
   it("offers every evidence-backed question and opens its exact destination", async () => {
     const user = userEvent.setup();
     const onExplore = vi.fn();
@@ -83,20 +194,18 @@ describe("LibraryHomePanel", () => {
         locale="en-US"
         messages={messages}
         onExplore={onExplore}
+        onOpenComparison={vi.fn()}
+        onOpenSession={vi.fn()}
         onOpenSources={vi.fn()}
       />,
     );
 
     expect(screen.getByRole("heading", { name: "What do you want to understand?" }))
       .toBeVisible();
-    const firstAnswer = screen.getByRole("region", { name: "42 recent training sessions are ready to inspect" });
-    expect(firstAnswer).toHaveTextContent("Jan 2, 2024 – Aug 17, 2026");
-    await user.click(within(firstAnswer).getByRole("button", { name: "Explore this answer" }));
     for (const question of populatedHome().questions) {
       await user.click(screen.getByRole("button", { name: messages.questions[question.kind] }));
     }
     expect(onExplore.mock.calls.map(([destination]) => destination)).toEqual([
-      "training",
       "training",
       "longitudinal",
       "activity",
@@ -105,7 +214,7 @@ describe("LibraryHomePanel", () => {
     ]);
   });
 
-  it("summarizes coverage without turning unavailable evidence into zero", async () => {
+  it("keeps source coverage subordinate and does not turn unavailable evidence into zero", async () => {
     const user = userEvent.setup();
     const onOpenSources = vi.fn();
     const home = populatedHome({
@@ -128,11 +237,16 @@ describe("LibraryHomePanel", () => {
         locale="en-US"
         messages={messages}
         onExplore={vi.fn()}
+        onOpenComparison={vi.fn()}
+        onOpenSession={vi.fn()}
         onOpenSources={onOpenSources}
       />,
     );
 
-    const coverage = screen.getByRole("region", { name: "Your usable history" });
+    const coverageDisclosure = screen.getByRole("group", { name: "Review usable history" });
+    expect(coverageDisclosure).not.toHaveAttribute("open");
+    await user.click(within(coverageDisclosure).getByText("Review usable history"));
+    const coverage = within(coverageDisclosure).getByRole("region", { name: "Your usable history" });
     expect(within(coverage).getByText("Jan 2, 2024 – Aug 17, 2026")).toBeVisible();
     expect(within(coverage).getByRole("listitem", { name: /Training/ }))
       .toHaveTextContent("42 records");
@@ -145,49 +259,89 @@ describe("LibraryHomePanel", () => {
     expect(onOpenSources).toHaveBeenCalledOnce();
   });
 
+  it("presents old, future-dated, and library-only history without implying recent performance", () => {
+    const { rerender } = render(
+      <LibraryHomePanel
+        home={populatedHome({
+          highlight: {
+            kind: "historical-training",
+            referenceDate: "2026-08-17",
+            currentRange: { from: "2026-08-11", through: "2026-08-17" },
+            latestSessionDate: "2024-01-02",
+            reason: "no-current-training",
+          },
+        })}
+        locale="en-US"
+        messages={messages}
+        onExplore={vi.fn()}
+        onOpenComparison={vi.fn()}
+        onOpenSession={vi.fn()}
+        onOpenSources={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("region", { name: "Training history" }))
+      .toHaveTextContent("Latest training session: Jan 2, 2024");
+    expect(screen.queryByText("Last 7 days")).not.toBeInTheDocument();
+
+    rerender(
+      <LibraryHomePanel
+        home={populatedHome({
+          training: null,
+          highlight: { kind: "library-history", latestEvidenceDate: "2026-08-16" },
+        })}
+        locale="en-US"
+        messages={messages}
+        onExplore={vi.fn()}
+        onOpenComparison={vi.fn()}
+        onOpenSession={vi.fn()}
+        onOpenSources={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("region", { name: "Your local history" }))
+      .toHaveTextContent("Latest available evidence: Aug 16, 2026");
+  });
+
   it("makes a valid saved exploration resumable", async () => {
     const user = userEvent.setup();
     const onExplore = vi.fn();
     render(
       <LibraryHomePanel
-        home={populatedHome({
-          resumableExploration: { version: 1, destination: "training" },
-        })}
+        home={populatedHome({ resumableExploration: { version: 1, destination: "training" } })}
         locale="en-US"
         messages={messages}
         onExplore={onExplore}
+        onOpenComparison={vi.fn()}
+        onOpenSession={vi.fn()}
         onOpenSources={vi.fn()}
       />,
     );
 
     await user.click(screen.getByRole("button", { name: "Resume training exploration" }));
-    expect(onExplore).toHaveBeenCalledWith("training");
+    expect(onExplore).toHaveBeenCalledWith("training", "resume:training");
   });
 
   it("keeps Home and stable actions visible while the exact destination opens", () => {
     render(
       <LibraryHomePanel
-        home={populatedHome({
-          resumableExploration: { version: 1, destination: "training" },
-        })}
+        home={populatedHome({ resumableExploration: { version: 1, destination: "training" } })}
         locale="en-US"
         messages={messages}
         pendingDestination="training"
         onExplore={vi.fn()}
+        onOpenComparison={vi.fn()}
+        onOpenSession={vi.fn()}
         onOpenSources={vi.fn()}
       />,
     );
 
     expect(screen.getByRole("heading", { name: "What do you want to understand?" }))
       .toBeVisible();
-    expect(screen.getByRole("button", { name: "Explore my training sessions" }))
-      .toBeDisabled();
-    expect(screen.getByRole("button", { name: "Resume training exploration" }))
-      .toBeDisabled();
+    expect(screen.getByRole("button", { name: "Explore my training sessions" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Resume training exploration" })).toBeDisabled();
     expect(screen.getByRole("status")).toHaveTextContent("Opening training exploration…");
   });
 
-  it("reveals canonical import value and keeps limitations reachable", async () => {
+  it("reveals only meaningful canonical import changes and keeps limitations reachable", async () => {
     const user = userEvent.setup();
     const onOpenSources = vi.fn();
     render(
@@ -198,13 +352,16 @@ describe("LibraryHomePanel", () => {
             canonicalHistoryChanged: true,
             newObservations: 37,
             enrichedObservations: 4,
-            amendedObservations: 2,
+            amendedObservations: 0,
+            unchangedObservations: 11,
             sourceReviewRecommended: true,
           },
         })}
         locale="en-US"
         messages={messages}
         onExplore={vi.fn()}
+        onOpenComparison={vi.fn()}
+        onOpenSession={vi.fn()}
         onOpenSources={onOpenSources}
       />,
     );
@@ -212,10 +369,57 @@ describe("LibraryHomePanel", () => {
     const reveal = screen.getByRole("status", { name: "Your library grew" });
     expect(reveal).toHaveTextContent("37 new observations");
     expect(reveal).toHaveTextContent("4 enriched observations");
-    expect(reveal).toHaveTextContent("2 amended observations");
-    expect(reveal).toHaveTextContent("Some source coverage needs your attention");
+    expect(reveal).toHaveTextContent("11 unchanged observations");
+    expect(reveal).not.toHaveTextContent("amended");
+    expect(reveal).toHaveTextContent("Source coverage details are available for review");
     await user.click(within(reveal).getByRole("button", { name: "Review source coverage" }));
     expect(onOpenSources).toHaveBeenCalledOnce();
+  });
+
+  it("describes unchanged and repeated imports without claiming that the library grew", () => {
+    const unchangedHome = populatedHome({
+      postImport: {
+        exactRepeat: false,
+        canonicalHistoryChanged: false,
+        newObservations: 0,
+        enrichedObservations: 0,
+        amendedObservations: 0,
+        unchangedObservations: 42,
+        sourceReviewRecommended: false,
+      },
+    });
+    const { rerender } = render(
+      <LibraryHomePanel
+        home={unchangedHome}
+        locale="en-US"
+        messages={messages}
+        onExplore={vi.fn()}
+        onOpenComparison={vi.fn()}
+        onOpenSession={vi.fn()}
+        onOpenSources={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("status", { name: "Import complete" }))
+      .not.toHaveTextContent("Your library grew");
+
+    rerender(
+      <LibraryHomePanel
+        home={{
+          ...unchangedHome,
+          postImport: { ...unchangedHome.postImport!, exactRepeat: true },
+        }}
+        locale="en-US"
+        messages={messages}
+        onExplore={vi.fn()}
+        onOpenComparison={vi.fn()}
+        onOpenSession={vi.fn()}
+        onOpenSources={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("status", { name: "Already in your library" }))
+      .toHaveTextContent("exact repeat");
   });
 
   it("presents truthful first-run value and sends both acquisition paths to Sources", async () => {
@@ -225,6 +429,8 @@ describe("LibraryHomePanel", () => {
     render(
       <LibraryHomePanel
         home={{
+          version: 2,
+          libraryRevisionRef: "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           availableRange: null,
           domains: ["training", "activity", "sleep", "recovery"].map((domain) => ({
             domain: domain as "training" | "activity" | "sleep" | "recovery",
@@ -235,12 +441,16 @@ describe("LibraryHomePanel", () => {
             measurements: [],
           })),
           questions: [],
+          training: null,
+          highlight: null,
           postImport: null,
           resumableExploration: null,
         }}
         locale="en-US"
         messages={messages}
         onExplore={vi.fn()}
+        onOpenComparison={vi.fn()}
+        onOpenSession={vi.fn()}
         onOpenSources={vi.fn()}
         onChooseArchive={onChooseArchive}
         onOpenSourceGuide={onOpenSourceGuide}
@@ -251,9 +461,7 @@ describe("LibraryHomePanel", () => {
       .not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Explore your fitness export on this device" }))
       .toBeVisible();
-    const preview = screen.getByRole("region", {
-      name: "One local history, across your sports",
-    });
+    const preview = screen.getByRole("region", { name: "One local history, across your sports" });
     expect(preview).toHaveTextContent("Illustrative preview — your history appears after import");
     expect(within(preview).getAllByRole("listitem")).toHaveLength(4);
     expect(within(preview).getByRole("listitem", { name: /Running/ }))

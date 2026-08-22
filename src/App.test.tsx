@@ -296,6 +296,8 @@ function longitudinalOverviewWithTrainingDay() {
 
 function emptyLibraryHome() {
   return {
+    version: 2,
+    libraryRevisionRef: "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     availableRange: null,
     domains: ["training", "activity", "sleep", "recovery"].map((domain) => ({
       domain,
@@ -306,6 +308,8 @@ function emptyLibraryHome() {
       measurements: [],
     })),
     questions: [],
+    training: null,
+    highlight: null,
     postImport: null,
     resumableExploration: null,
   };
@@ -314,6 +318,8 @@ function emptyLibraryHome() {
 function populatedLibraryHome(overrides: Record<string, unknown> = {}) {
   const range = { from: "2025-01-01", through: "2026-08-17" };
   return {
+    version: 2,
+    libraryRevisionRef: "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     availableRange: range,
     domains: [
       {
@@ -334,6 +340,44 @@ function populatedLibraryHome(overrides: Record<string, unknown> = {}) {
     questions: [
       { kind: "explore-training-sessions", destination: "training" },
     ],
+    training: {
+      trainingSnapshotRef: "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      sessionCount: 24,
+      sportProfileCount: 1,
+      omittedSportProfileCount: 0,
+      sports: [{
+        state: "classified",
+        canonicalFamily: "running",
+        displayLabel: "Road running",
+        profileCount: 1,
+        sessionCount: 24,
+      }],
+      recentSessions: [{
+        sessionRef: "training-session-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        startedAtLocal: "2026-08-17T18:30:00.000",
+        durationMilliseconds: "3723000",
+        distanceMeters: 12340,
+        sportState: "classified",
+        canonicalFamily: "running",
+        displayLabel: "Road running",
+      }],
+    },
+    highlight: {
+      kind: "recent-training-comparison",
+      referenceDate: "2026-08-17",
+      baseline: {
+        range: { from: "2026-08-04", through: "2026-08-10" },
+        sessionCount: 2,
+        totalDurationMilliseconds: "5400000",
+      },
+      comparison: {
+        range: { from: "2026-08-11", through: "2026-08-17" },
+        sessionCount: 4,
+        totalDurationMilliseconds: "10800000",
+      },
+      sessionCountChange: "2",
+      durationChangeMilliseconds: "5400000",
+    },
     postImport: null,
     resumableExploration: null,
     ...overrides,
@@ -855,7 +899,7 @@ describe("FitFreed import interface", () => {
     const user = userEvent.setup();
     render(<App />);
 
-    expect(await screen.findByRole("heading", { name: "Your history, ready for your questions" }))
+    expect(await screen.findByRole("heading", { name: "Your fitness history" }))
       .toBeVisible();
     expect(mocks.homeInvoke).toHaveBeenCalledWith("query_library_home", {
       request: { afterImportOperationRef: null },
@@ -874,10 +918,12 @@ describe("FitFreed import interface", () => {
 
     await user.click(screen.getByRole("button", { name: "Back to Home" }));
     const homeHeading = await screen.findByRole("heading", {
-      name: "Your history, ready for your questions",
+      name: "Your fitness history",
     });
     expect(homeHeading).toBeVisible();
-    await waitFor(() => expect(homeHeading).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole("button", {
+      name: "Explore my training sessions",
+    })).toHaveFocus());
     expect(mocks.homeInvoke).toHaveBeenCalledWith("clear_exploration_workspace", undefined);
     expect(mocks.homeInvoke).toHaveBeenCalledWith(
       "clear_training_discovery_workspace",
@@ -890,6 +936,109 @@ describe("FitFreed import interface", () => {
     ]).toBeLessThan(mocks.homeInvoke.mock.invocationCallOrder[
       mocks.homeInvoke.mock.calls.findIndex(([command]) => command === "clear_exploration_workspace")
     ]);
+  });
+
+  it("opens the exact recent session selected on Home", async () => {
+    const home = populatedLibraryHome();
+    mocks.homeInvoke.mockImplementation((command, arguments_) => {
+      if (command === "query_library_home") return Promise.resolve(home);
+      if (command === "save_exploration_workspace") {
+        return Promise.resolve({ version: 1, destination: arguments_.destination });
+      }
+      if (command === "clear_training_discovery_workspace") return Promise.resolve(undefined);
+      if (command === "clear_exploration_workspace") return Promise.resolve(undefined);
+      throw new Error(`Unexpected Home command: ${command}`);
+    });
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      if (command === "query_training_sessions") {
+        return Promise.resolve(trainingSessionSearchPage([], {
+          from: "2025-01-01",
+          through: "2026-08-17",
+        }));
+      }
+      if (command === "query_training_session_selection") {
+        return Promise.resolve({
+          snapshotRef: arguments_.request.snapshotRef,
+          sessions: [],
+        });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole("button", {
+      name: "Open Road running, Aug 17, 2026",
+    }));
+
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith("query_training_sessions", {
+      request: {
+        from: "2026-08-17",
+        through: "2026-08-17",
+        sportRefs: [],
+        requiredMeasurements: [],
+        text: null,
+        sort: "started-desc",
+        offset: 0,
+        limit: 25,
+        snapshotRef: null,
+      },
+    }));
+    expect(mocks.invoke).toHaveBeenCalledWith("query_training_session_selection", {
+      request: {
+        sessionRefs: ["training-session-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+        snapshotRef: "snapshot-current",
+      },
+    });
+    await user.click(screen.getByRole("button", { name: "Back to Home" }));
+    await waitFor(() => expect(screen.getByRole("button", {
+      name: "Open Road running, Aug 17, 2026",
+    })).toHaveFocus());
+  });
+
+  it("opens the exact bounded comparison selected on Home", async () => {
+    const home = populatedLibraryHome();
+    mocks.homeInvoke.mockImplementation((command, arguments_) => {
+      if (command === "query_library_home") return Promise.resolve(home);
+      if (command === "save_exploration_workspace") {
+        return Promise.resolve({ version: 1, destination: arguments_.destination });
+      }
+      if (command === "clear_training_discovery_workspace") return Promise.resolve(undefined);
+      if (command === "clear_exploration_workspace") return Promise.resolve(undefined);
+      throw new Error(`Unexpected Home command: ${command}`);
+    });
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      if (command === "query_training_sessions") {
+        return Promise.resolve(trainingSessionSearchPage([], {
+          from: "2025-01-01",
+          through: "2026-08-17",
+        }));
+      }
+      if (command === "query_training_comparison") {
+        return Promise.resolve({
+          availableRange: { from: "2025-01-01", through: "2026-08-17" },
+          baselineRange: { from: "2026-08-04", through: "2026-08-10" },
+          comparisonRange: { from: "2026-08-11", through: "2026-08-17" },
+          series: [],
+        });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole("button", { name: "Explore these 7 days" }));
+
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith("query_training_comparison", {
+      baselineRange: { from: "2026-08-04", through: "2026-08-10" },
+      comparisonRange: { from: "2026-08-11", through: "2026-08-17" },
+    }));
+    await user.click(screen.getByRole("button", { name: "Back to Home" }));
+    await waitFor(() => expect(screen.getByRole("button", {
+      name: "Explore these 7 days",
+    })).toHaveFocus());
   });
 
   it("uses sidebar Home as a reversible visit and contextual return as an explicit reset", async () => {
@@ -1004,7 +1153,7 @@ describe("FitFreed import interface", () => {
 
     resolveTrainingClear();
     expect(await screen.findByRole("heading", {
-      name: "Your history, ready for your questions",
+      name: "Your fitness history",
     })).toBeVisible();
   });
 
@@ -3028,7 +3177,7 @@ describe("FitFreed import interface", () => {
 
     await user.click(screen.getByRole("button", { name: "Sources" }));
     await user.click(screen.getByRole("button", { name: "Import selected package" }));
-    expect(await screen.findByRole("status", { name: "Your library grew" }))
+    expect(await screen.findByRole("status", { name: "Already in your library" }))
       .toHaveTextContent("exact repeat");
     await user.click(screen.getByRole("button", { name: "Sources" }));
     expect(await screen.findByRole("region", {

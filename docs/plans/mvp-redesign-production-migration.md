@@ -2,7 +2,7 @@
 
 ## Status and authority
 
-Authorized for autonomous execution as of 2026-08-21. X4-P0 is complete and X5-R2 is in progress.
+Authorized for autonomous execution as of 2026-08-21. X4-P0 through X5-R3 are complete locally; X5-R4 is next.
 The X5-R1 product entrance is live; exact hosted verification of its CI resource optimizer remains
 pending synchronization of the workflow-changing commit. The product owner accepted the X3
 direction and its amendments on 2026-08-21. This
@@ -204,7 +204,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R2.1 | Complete locally — exact packaged gates passed 2026-08-22 | A new person can orient and act through the labelled shell and first-run Home |
 | X5-R2.2 | Complete locally — exact packaged gates passed 2026-08-22 | Sources leads with acquisition, a protected active task, and a calm exact outcome |
 | X5-R2.3 | Complete locally — exact packaged gates passed 2026-08-22 | Durable language, appearance, zoom, and update settings form one coherent workspace |
-| X5-R3 | Pending | Import ends in recognizable personal value |
+| X5-R3 | Complete locally — exact packaged and dense-history gates passed 2026-08-22 | Import ends in recognizable personal value |
 | X5-R4 | Pending | Existing health and aligned-history questions read as answers |
 | X5-R5 | Pending | A remembered session is findable and sports are recognizable |
 | X5-R6 | Pending | A routed workout is investigated through a dominant synchronized map |

@@ -1,8 +1,14 @@
 use fitfreed_domain::{
     ArtifactCoverageSummary, DailyActivity, ImportOperationState, ImportOutcome, ImportReport,
-    NightlyRecovery, SleepPeriod, SleepPhaseSummary, SleepScore, TrainingSession,
+    NightlyRecovery, SleepPeriod, SleepPhaseSummary, SleepScore, SportClassification,
+    SportClassificationAuthorship, SportClassificationKey, SportClassificationState, SportFamily,
+    TrainingSession,
 };
-use std::sync::Mutex;
+use std::{
+    collections::{BTreeMap, VecDeque},
+    hash::{DefaultHasher, Hash, Hasher},
+    sync::Mutex,
+};
 
 use super::*;
 
@@ -20,9 +26,19 @@ struct ControlledLibraryHomePort {
     recovery_bounds: Option<RecoveryDateRange>,
     recovery_origins: Vec<String>,
     recoveries: Vec<RecoveryLibraryNight>,
+    detected_sports: Vec<DetectedTrainingSport>,
     outcome: Option<ImportOutcome>,
     workspace: Mutex<Option<StoredExplorationWorkspace>>,
+    revision_reads: Mutex<VecDeque<String>>,
+    training_snapshot_reads: Mutex<VecDeque<String>>,
+    current_local_date_reads: Mutex<VecDeque<String>>,
+    current_local_date: Option<String>,
 }
+
+const HOME_REVISION: &str =
+    "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const TRAINING_SNAPSHOT: &str =
+    "training-snapshot-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 
 impl ActivityLibraryPort for ControlledLibraryHomePort {
     fn activity_bounds(&self) -> Result<Option<ActivityDateRange>, String> {
@@ -61,6 +77,202 @@ impl TrainingLibraryPort for ControlledLibraryHomePort {
             })
             .cloned()
             .collect())
+    }
+}
+
+impl TrainingSessionDiscoveryPort for ControlledLibraryHomePort {
+    fn query_training_sessions(
+        &self,
+        request: &TrainingSessionSearchRequest,
+    ) -> Result<PersistedTrainingSessionSearchPage, TrainingSessionDiscoveryPortError> {
+        let snapshot_ref = self
+            .training_snapshot_reads
+            .lock()
+            .expect("training snapshot reads")
+            .pop_front()
+            .unwrap_or_else(|| TRAINING_SNAPSHOT.to_owned());
+        if request
+            .snapshot_ref
+            .as_deref()
+            .is_some_and(|snapshot| snapshot != snapshot_ref)
+        {
+            return Err(TrainingSessionDiscoveryPortError::SnapshotChanged);
+        }
+        let origins = self
+            .training_origins
+            .iter()
+            .enumerate()
+            .map(|(index, origin)| (origin.as_str(), index + 1))
+            .collect::<BTreeMap<_, _>>();
+        let mut sessions = self
+            .sessions
+            .iter()
+            .filter(|session| {
+                request
+                    .from
+                    .as_deref()
+                    .is_none_or(|from| &session.started_at_local[..10] >= from)
+                    && request
+                        .through
+                        .as_deref()
+                        .is_none_or(|through| &session.started_at_local[..10] <= through)
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        sessions.sort_by(|left, right| right.started_at_local.cmp(&left.started_at_local));
+        let total_count = sessions.len();
+        let mut summaries = BTreeMap::<usize, TrainingSessionSearchSummary>::new();
+        for session in &sessions {
+            let source_index = origins[session.origin_id.as_str()];
+            let summary = summaries
+                .entry(source_index)
+                .or_insert(TrainingSessionSearchSummary {
+                    source_index,
+                    training_days: 0,
+                    session_count: 0,
+                    total_duration_milliseconds: 0,
+                    distance_session_count: 0,
+                    total_distance_meters: None,
+                    energy_session_count: 0,
+                    total_energy_kilocalories: None,
+                    heart_rate_session_count: 0,
+                });
+            summary.session_count += 1;
+            summary.training_days += usize::from(!sessions.iter().any(|candidate| {
+                candidate.origin_id == session.origin_id
+                    && candidate.started_at_local[..10] == session.started_at_local[..10]
+                    && candidate.started_at_local < session.started_at_local
+            }));
+            summary.total_duration_milliseconds += i128::from(session.duration_milliseconds);
+            if let Some(distance) = session.distance_meters {
+                summary.distance_session_count += 1;
+                *summary.total_distance_meters.get_or_insert(0.0) += distance;
+            }
+            if let Some(energy) = session.energy_kilocalories {
+                summary.energy_session_count += 1;
+                *summary.total_energy_kilocalories.get_or_insert(0) += i128::from(energy);
+            }
+            if session.average_heart_rate_bpm.is_some() || session.maximum_heart_rate_bpm.is_some()
+            {
+                summary.heart_rate_session_count += 1;
+            }
+        }
+        let sessions = sessions
+            .into_iter()
+            .skip(request.offset)
+            .take(request.limit)
+            .map(|session| {
+                controlled_search_item(self, &session, origins[session.origin_id.as_str()])
+            })
+            .collect();
+        Ok(PersistedTrainingSessionSearchPage {
+            available_range: self.training_bounds.clone(),
+            snapshot_ref,
+            total_count,
+            summaries: summaries.into_values().collect(),
+            sessions,
+        })
+    }
+
+    fn query_training_calendar(
+        &self,
+        _request: &TrainingSessionCalendarRequest,
+    ) -> Result<PersistedTrainingSessionCalendar, TrainingSessionDiscoveryPortError> {
+        panic!("the library home never queries the training calendar")
+    }
+
+    fn query_training_session_selection(
+        &self,
+        _request: &TrainingSessionSelectionRequest,
+    ) -> Result<PersistedTrainingSessionSelection, TrainingSessionDiscoveryPortError> {
+        panic!("the library home never resolves a training selection")
+    }
+}
+
+impl TrainingSportsPort for ControlledLibraryHomePort {
+    fn query_detected_training_sports(&self) -> Result<Vec<DetectedTrainingSport>, String> {
+        if !self.detected_sports.is_empty() {
+            return Ok(self.detected_sports.clone());
+        }
+        let mut by_origin = BTreeMap::<String, Vec<&TrainingSession>>::new();
+        for session in &self.sessions {
+            by_origin
+                .entry(session.origin_id.clone())
+                .or_default()
+                .push(session);
+        }
+        Ok(by_origin
+            .into_iter()
+            .map(|(origin_id, sessions)| DetectedTrainingSport {
+                sport_ref: None,
+                origin_id,
+                classification: None,
+                first_local_date: sessions
+                    .iter()
+                    .map(|session| session.started_at_local[..10].to_owned())
+                    .min()
+                    .expect("controlled first training date"),
+                last_local_date: sessions
+                    .iter()
+                    .map(|session| session.started_at_local[..10].to_owned())
+                    .max()
+                    .expect("controlled last training date"),
+                session_count: sessions.len(),
+                total_duration_milliseconds: sessions
+                    .iter()
+                    .map(|session| i128::from(session.duration_milliseconds))
+                    .sum(),
+                distance_session_count: sessions
+                    .iter()
+                    .filter(|session| session.distance_meters.is_some())
+                    .count(),
+                heart_rate_session_count: sessions
+                    .iter()
+                    .filter(|session| {
+                        session.average_heart_rate_bpm.is_some()
+                            || session.maximum_heart_rate_bpm.is_some()
+                    })
+                    .count(),
+            })
+            .collect())
+    }
+
+    fn find_detected_training_sport(
+        &self,
+        _sport_ref: &str,
+    ) -> Result<Option<DetectedTrainingSport>, String> {
+        panic!("the library home never resolves an editable sport")
+    }
+
+    fn compare_and_save_sport_classification(
+        &self,
+        _expected_revision: u64,
+        _classification: &SportClassification,
+    ) -> Result<bool, String> {
+        panic!("the library home never saves sport meaning")
+    }
+}
+
+impl LibraryHomeRevisionPort for ControlledLibraryHomePort {
+    fn library_home_revision_ref(&self) -> Result<String, String> {
+        Ok(self
+            .revision_reads
+            .lock()
+            .expect("revision reads")
+            .pop_front()
+            .unwrap_or_else(|| HOME_REVISION.to_owned()))
+    }
+}
+
+impl LibraryHomeClockPort for ControlledLibraryHomePort {
+    fn current_local_date(&self) -> Result<String, String> {
+        Ok(self
+            .current_local_date_reads
+            .lock()
+            .expect("current local date reads")
+            .pop_front()
+            .or_else(|| self.current_local_date.clone())
+            .unwrap_or_else(|| "2026-01-10".to_owned()))
     }
 }
 
@@ -155,6 +367,65 @@ impl ExplorationWorkspacePort for ControlledLibraryHomePort {
 
 fn in_range(value: &str, from: &str, through: &str) -> bool {
     value >= from && value <= through
+}
+
+fn controlled_search_item(
+    port: &ControlledLibraryHomePort,
+    session: &TrainingSession,
+    source_index: usize,
+) -> TrainingSessionSearchItem {
+    let mut hasher = DefaultHasher::new();
+    session.origin_id.hash(&mut hasher);
+    session.session_id.hash(&mut hasher);
+    let sport = port
+        .detected_sports
+        .iter()
+        .find(|sport| {
+            sport.origin_id == session.origin_id
+                && sport.classification.as_ref().is_some_and(|classification| {
+                    Some(classification.key().source_sport_ref()) == session.sport_ref.as_deref()
+                })
+        })
+        .map(|sport| {
+            let classification = sport
+                .classification
+                .as_ref()
+                .expect("controlled sport classification");
+            TrainingSessionSport {
+                sport_ref: sport.sport_ref.clone(),
+                state: match classification.state() {
+                    SportClassificationState::Unknown => TrainingSportState::Unknown,
+                    SportClassificationState::Classified => TrainingSportState::Classified,
+                },
+                classification: Some(TrainingSportClassification {
+                    canonical_family: classification
+                        .canonical_family()
+                        .map(|family| family.as_code().to_owned()),
+                    display_label: classification.display_label().map(str::to_owned),
+                    authorship: classification.authorship().map(|_| "user".to_owned()),
+                    revision: classification.revision(),
+                }),
+            }
+        })
+        .unwrap_or(TrainingSessionSport {
+            sport_ref: None,
+            state: TrainingSportState::Unavailable,
+            classification: None,
+        });
+    TrainingSessionSearchItem {
+        session_ref: format!("session-{:064x}", hasher.finish()),
+        source_index,
+        started_at_local: session.started_at_local.clone(),
+        stopped_at_local: session.stopped_at_local.clone(),
+        utc_offset_minutes: session.utc_offset_minutes,
+        duration_milliseconds: session.duration_milliseconds,
+        distance_meters: session.distance_meters,
+        energy_kilocalories: session.energy_kilocalories,
+        average_heart_rate_bpm: session.average_heart_rate_bpm,
+        maximum_heart_rate_bpm: session.maximum_heart_rate_bpm,
+        exercise_count: session.exercise_count,
+        sport,
+    }
 }
 
 fn activity_range(from: &str, through: &str) -> ActivityDateRange {
@@ -305,6 +576,49 @@ fn completed_outcome(operation_ref: &str) -> ImportOutcome {
     }
 }
 
+fn classified_detected_sport(index: usize, session_count: usize) -> DetectedTrainingSport {
+    classified_detected_sport_named(index, session_count, "Trail running")
+}
+
+fn classified_detected_sport_named(
+    index: usize,
+    session_count: usize,
+    display_label: &str,
+) -> DetectedTrainingSport {
+    let origin_id = "origin-a";
+    let source_sport_ref = format!("source-sport-{index}");
+    DetectedTrainingSport {
+        sport_ref: Some(format!("sport-{index:064x}")),
+        origin_id: origin_id.to_owned(),
+        classification: Some(
+            SportClassification::restore(
+                SportClassificationKey::new(origin_id, source_sport_ref)
+                    .expect("controlled sport key"),
+                SportClassificationState::Classified,
+                Some(SportFamily::Running),
+                Some(display_label.to_owned()),
+                Some(SportClassificationAuthorship::User),
+                1,
+            )
+            .expect("controlled sport classification"),
+        ),
+        first_local_date: "2020-01-01".to_owned(),
+        last_local_date: "2026-01-05".to_owned(),
+        session_count,
+        total_duration_milliseconds: 3_600_000_i128 * session_count as i128,
+        distance_session_count: session_count,
+        heart_rate_session_count: session_count,
+    }
+}
+
+fn revision_ref(digit: char) -> String {
+    format!("library-home-revision-{}", digit.to_string().repeat(64))
+}
+
+fn snapshot_ref(digit: char) -> String {
+    format!("training-snapshot-{}", digit.to_string().repeat(64))
+}
+
 fn representative_port() -> ControlledLibraryHomePort {
     ControlledLibraryHomePort {
         activity_bounds: Some(activity_range("2026-01-01", "2026-01-03")),
@@ -333,11 +647,16 @@ fn representative_port() -> ControlledLibraryHomePort {
         recovery_bounds: Some(recovery_range("2026-01-06", "2026-01-06")),
         recovery_origins: vec!["origin-b".to_owned()],
         recoveries: vec![recovery("2026-01-06")],
+        detected_sports: Vec::new(),
         outcome: Some(completed_outcome("operation-accepted")),
         workspace: Mutex::new(Some(StoredExplorationWorkspace {
             version: 1,
             destination: "training".to_owned(),
         })),
+        revision_reads: Mutex::new(VecDeque::new()),
+        training_snapshot_reads: Mutex::new(VecDeque::new()),
+        current_local_date_reads: Mutex::new(VecDeque::new()),
+        current_local_date: Some("2026-01-10".to_owned()),
     }
 }
 
@@ -438,8 +757,276 @@ fn composes_coverage_and_conservative_questions_from_authoritative_read_models()
             new_observations: 4,
             enriched_observations: 1,
             amended_observations: 1,
+            unchanged_observations: 1,
             source_review_recommended: true,
         })
+    );
+}
+
+#[test]
+fn composes_recognizable_complete_training_identity_and_one_recent_comparison() {
+    let home = query_library_home(&representative_port(), LibraryHomeRequest::default())
+        .expect("recognizable library home");
+
+    assert_eq!(home.version, 2);
+    assert_eq!(home.library_revision_ref, HOME_REVISION);
+    let training = home.training.expect("complete training identity");
+    assert_eq!(training.training_snapshot_ref, TRAINING_SNAPSHOT);
+    assert_eq!(training.session_count, 2);
+    assert_eq!(training.sport_profile_count, 1);
+    assert_eq!(training.omitted_sport_profile_count, 0);
+    assert_eq!(training.sports.len(), 1);
+    assert_eq!(training.sports[0].state, TrainingSportState::Unavailable);
+    assert_eq!(training.sports[0].profile_count, 1);
+    assert_eq!(training.sports[0].session_count, 2);
+    assert_eq!(training.recent_sessions.len(), 2);
+    assert_eq!(
+        training.recent_sessions[0].started_at_local,
+        "2026-01-05T08:00:00"
+    );
+    assert_eq!(
+        training.recent_sessions[1].started_at_local,
+        "2026-01-04T08:00:00"
+    );
+
+    let LibraryHomeHighlight::RecentTrainingComparison(comparison) =
+        home.highlight.expect("recent comparison")
+    else {
+        panic!("current training must produce a recent comparison")
+    };
+    assert_eq!(comparison.reference_date, "2026-01-10");
+    assert_eq!(comparison.baseline.range.from, "2025-12-28");
+    assert_eq!(comparison.baseline.range.through, "2026-01-03");
+    assert_eq!(comparison.baseline.session_count, 0);
+    assert_eq!(comparison.comparison.range.from, "2026-01-04");
+    assert_eq!(comparison.comparison.range.through, "2026-01-10");
+    assert_eq!(comparison.comparison.session_count, 2);
+    assert_eq!(comparison.comparison.total_duration_milliseconds, 7_200_000);
+    assert_eq!(comparison.session_count_change, 2);
+    assert_eq!(comparison.duration_change_milliseconds, 7_200_000);
+}
+
+#[test]
+fn reports_complete_history_and_bounded_aggregated_sports_instead_of_recent_coverage() {
+    let mut port = representative_port();
+    port.training_bounds = Some(training_range("2020-01-01", "2026-01-05"));
+    port.sessions = (0..40)
+        .map(|index| {
+            let mut session = training_session(
+                &format!("session-{index}"),
+                if index < 2 {
+                    "2026-01-05"
+                } else {
+                    "2020-01-01"
+                },
+                true,
+            );
+            session.sport_ref = Some(format!("source-sport-{}", index % 8));
+            session
+        })
+        .collect();
+    port.detected_sports = (0..8)
+        .map(|index| classified_detected_sport(index, 5))
+        .collect();
+
+    let home = query_library_home(&port, LibraryHomeRequest::default()).expect("dense home");
+    let training = home.training.expect("training identity");
+
+    assert_eq!(home.domains[0].observed_record_count, 2);
+    assert_eq!(training.session_count, 40);
+    assert_eq!(training.sport_profile_count, 8);
+    assert_eq!(training.sports.len(), 1);
+    assert_eq!(
+        training.sports[0].canonical_family.as_deref(),
+        Some("running")
+    );
+    assert_eq!(
+        training.sports[0].display_label.as_deref(),
+        Some("Trail running")
+    );
+    assert_eq!(training.sports[0].profile_count, 8);
+    assert_eq!(training.sports[0].session_count, 40);
+    assert_eq!(training.omitted_sport_profile_count, 0);
+    assert_eq!(training.recent_sessions.len(), 4);
+}
+
+#[test]
+fn bounds_distinct_sport_summaries_and_reports_the_omitted_profile_count() {
+    let mut port = representative_port();
+    port.training_bounds = Some(training_range("2026-01-04", "2026-01-10"));
+    port.sessions = (0..7)
+        .map(|index| {
+            let mut session = training_session(
+                &format!("session-{index}"),
+                &format!("2026-01-{:02}", index + 4),
+                true,
+            );
+            session.sport_ref = Some(format!("source-sport-{index}"));
+            session
+        })
+        .collect();
+    port.detected_sports = (0..7)
+        .map(|index| {
+            classified_detected_sport_named(index, 1, &format!("Running profile {}", index + 1))
+        })
+        .collect();
+
+    let training = query_library_home(&port, LibraryHomeRequest::default())
+        .expect("bounded sport Home")
+        .training
+        .expect("training identity");
+
+    assert_eq!(training.sport_profile_count, 7);
+    assert_eq!(training.sports.len(), 6);
+    assert_eq!(training.omitted_sport_profile_count, 1);
+    assert_eq!(
+        training
+            .sports
+            .iter()
+            .map(|sport| sport.profile_count)
+            .sum::<usize>(),
+        6
+    );
+}
+
+#[test]
+fn uses_historical_and_non_training_fallbacks_without_implying_current_performance() {
+    let mut historical = representative_port();
+    historical.current_local_date = Some("2026-02-01".to_owned());
+    let home = query_library_home(&historical, LibraryHomeRequest::default())
+        .expect("historical training home");
+    let LibraryHomeHighlight::HistoricalTraining(highlight) = home.highlight.expect("fallback")
+    else {
+        panic!("old-only history must use the historical fallback")
+    };
+    assert_eq!(highlight.latest_session_date, "2026-01-05");
+    assert_eq!(highlight.current_range.from, "2026-01-26");
+    assert_eq!(highlight.current_range.through, "2026-02-01");
+    assert_eq!(
+        highlight.reason,
+        HistoricalTrainingReason::NoCurrentTraining
+    );
+
+    let mut future = representative_port();
+    future.current_local_date = Some("2025-12-31".to_owned());
+    let home = query_library_home(&future, LibraryHomeRequest::default())
+        .expect("future-dated training Home");
+    let LibraryHomeHighlight::HistoricalTraining(highlight) = home.highlight.expect("fallback")
+    else {
+        panic!("future-dated history must use the historical fallback")
+    };
+    assert_eq!(
+        highlight.reason,
+        HistoricalTrainingReason::HistoryAfterReferenceDate
+    );
+
+    let activity_only = ControlledLibraryHomePort {
+        activity_bounds: Some(activity_range("2026-01-01", "2026-01-01")),
+        activity_origins: vec!["origin-a".to_owned()],
+        activities: vec![DailyActivity {
+            origin_id: "origin-a".to_owned(),
+            local_date: "2026-01-01".to_owned(),
+            step_count: Some(3_100),
+        }],
+        ..ControlledLibraryHomePort::default()
+    };
+    let home = query_library_home(&activity_only, LibraryHomeRequest::default())
+        .expect("non-training home");
+    assert_eq!(home.training, None);
+    assert_eq!(
+        home.highlight,
+        Some(LibraryHomeHighlight::LibraryHistory(
+            LibraryHistoryHighlight {
+                latest_evidence_date: "2026-01-01".to_owned(),
+            }
+        ))
+    );
+}
+
+#[test]
+fn retries_one_changed_library_revision_and_fails_closed_on_a_second_change() {
+    let retrying = representative_port();
+    *retrying.revision_reads.lock().expect("revision reads") = VecDeque::from([
+        revision_ref('a'),
+        revision_ref('b'),
+        revision_ref('b'),
+        revision_ref('b'),
+    ]);
+    assert_eq!(
+        query_library_home(&retrying, LibraryHomeRequest::default())
+            .expect("retried coherent home")
+            .library_revision_ref,
+        revision_ref('b')
+    );
+
+    let changing = representative_port();
+    *changing.revision_reads.lock().expect("revision reads") = VecDeque::from([
+        revision_ref('a'),
+        revision_ref('b'),
+        revision_ref('c'),
+        revision_ref('d'),
+    ]);
+    assert!(matches!(
+        query_library_home(&changing, LibraryHomeRequest::default()),
+        Err(ApplicationError::Query(reason)) if reason.contains("changed while Home was composed")
+    ));
+}
+
+#[test]
+fn retries_a_transient_composition_failure_only_when_the_outer_revision_changed() {
+    let retrying = representative_port();
+    *retrying.revision_reads.lock().expect("revision reads") = VecDeque::from([
+        revision_ref('a'),
+        revision_ref('b'),
+        revision_ref('b'),
+        revision_ref('b'),
+    ]);
+    *retrying
+        .current_local_date_reads
+        .lock()
+        .expect("current local date reads") =
+        VecDeque::from(["not-a-date".to_owned(), "2026-01-10".to_owned()]);
+
+    assert_eq!(
+        query_library_home(&retrying, LibraryHomeRequest::default())
+            .expect("retried coherent Home")
+            .library_revision_ref,
+        revision_ref('b')
+    );
+
+    let stable = representative_port();
+    *stable
+        .current_local_date_reads
+        .lock()
+        .expect("current local date reads") = VecDeque::from(["not-a-date".to_owned()]);
+    assert!(matches!(
+        query_library_home(&stable, LibraryHomeRequest::default()),
+        Err(ApplicationError::Query(reason)) if reason.contains("local calendar date is invalid")
+    ));
+}
+
+#[test]
+fn retries_a_stale_training_snapshot_without_returning_mixed_training_evidence() {
+    let port = representative_port();
+    *port
+        .training_snapshot_reads
+        .lock()
+        .expect("training snapshot reads") = VecDeque::from([
+        snapshot_ref('a'),
+        snapshot_ref('b'),
+        snapshot_ref('b'),
+        snapshot_ref('b'),
+        snapshot_ref('b'),
+    ]);
+
+    let home =
+        query_library_home(&port, LibraryHomeRequest::default()).expect("retried training Home");
+
+    assert_eq!(
+        home.training
+            .expect("coherent training identity")
+            .training_snapshot_ref,
+        snapshot_ref('b')
     );
 }
 
@@ -475,6 +1062,68 @@ fn returns_an_empty_home_without_querying_unavailable_facts_or_an_unrequested_ou
             _range: &TrainingDateRange,
         ) -> Result<Vec<TrainingSession>, String> {
             panic!("empty training must not query facts")
+        }
+    }
+
+    impl TrainingSessionDiscoveryPort for EmptyPort {
+        fn query_training_sessions(
+            &self,
+            _request: &TrainingSessionSearchRequest,
+        ) -> Result<PersistedTrainingSessionSearchPage, TrainingSessionDiscoveryPortError> {
+            Ok(PersistedTrainingSessionSearchPage {
+                available_range: None,
+                snapshot_ref: TRAINING_SNAPSHOT.to_owned(),
+                total_count: 0,
+                summaries: Vec::new(),
+                sessions: Vec::new(),
+            })
+        }
+
+        fn query_training_calendar(
+            &self,
+            _request: &TrainingSessionCalendarRequest,
+        ) -> Result<PersistedTrainingSessionCalendar, TrainingSessionDiscoveryPortError> {
+            panic!("the library home never queries the training calendar")
+        }
+
+        fn query_training_session_selection(
+            &self,
+            _request: &TrainingSessionSelectionRequest,
+        ) -> Result<PersistedTrainingSessionSelection, TrainingSessionDiscoveryPortError> {
+            panic!("the library home never resolves a training selection")
+        }
+    }
+
+    impl TrainingSportsPort for EmptyPort {
+        fn query_detected_training_sports(&self) -> Result<Vec<DetectedTrainingSport>, String> {
+            Ok(Vec::new())
+        }
+
+        fn find_detected_training_sport(
+            &self,
+            _sport_ref: &str,
+        ) -> Result<Option<DetectedTrainingSport>, String> {
+            panic!("the library home never resolves an editable sport")
+        }
+
+        fn compare_and_save_sport_classification(
+            &self,
+            _expected_revision: u64,
+            _classification: &SportClassification,
+        ) -> Result<bool, String> {
+            panic!("the library home never saves sport meaning")
+        }
+    }
+
+    impl LibraryHomeRevisionPort for EmptyPort {
+        fn library_home_revision_ref(&self) -> Result<String, String> {
+            Ok(HOME_REVISION.to_owned())
+        }
+    }
+
+    impl LibraryHomeClockPort for EmptyPort {
+        fn current_local_date(&self) -> Result<String, String> {
+            Ok("2026-01-10".to_owned())
         }
     }
 
@@ -550,6 +1199,8 @@ fn returns_an_empty_home_without_querying_unavailable_facts_or_an_unrequested_ou
 
     let home = query_library_home(&EmptyPort, LibraryHomeRequest::default()).expect("empty home");
 
+    assert_eq!(home.version, 2);
+    assert_eq!(home.library_revision_ref, HOME_REVISION);
     assert_eq!(home.available_range, None);
     assert_eq!(home.domains.len(), 4);
     assert!(home.domains.iter().all(|domain| {
@@ -560,6 +1211,8 @@ fn returns_an_empty_home_without_querying_unavailable_facts_or_an_unrequested_ou
             && domain.measurements.is_empty()
     }));
     assert!(home.questions.is_empty());
+    assert_eq!(home.training, None);
+    assert_eq!(home.highlight, None);
     assert_eq!(home.post_import, None);
     assert_eq!(home.resumable_exploration, None);
 }
@@ -627,6 +1280,7 @@ fn reveals_only_the_matching_completed_import_and_rejects_blank_references() {
             new_observations: 0,
             enriched_observations: 0,
             amended_observations: 0,
+            unchanged_observations: 1,
             source_review_recommended: false,
         })
     );

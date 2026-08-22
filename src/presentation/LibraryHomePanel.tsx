@@ -6,6 +6,9 @@ import type {
   LibraryDomainCoverage,
   LibraryHome,
   LibraryHomeMessages,
+  LibraryHomeRecentSession,
+  LibraryHomeSportSummary,
+  RecentTrainingComparisonHighlight,
 } from "./library-home";
 import { restoreFocusAfterReveal } from "./focus-restoration";
 import { SportFamilyIcon } from "./SportFamilyIcon";
@@ -15,8 +18,11 @@ interface LibraryHomePanelProps {
   locale: string;
   messages: LibraryHomeMessages;
   focusRequestId?: number;
+  focusTarget?: string;
   pendingDestination?: ExploreDestination;
-  onExplore: (destination: ExploreDestination) => void;
+  onExplore: (destination: ExploreDestination, focusTarget?: string) => void;
+  onOpenComparison: (comparison: RecentTrainingComparisonHighlight) => void;
+  onOpenSession: (session: LibraryHomeRecentSession) => void;
   onOpenSources: () => void;
   onChooseArchive?: () => void;
   onOpenSourceGuide?: () => void;
@@ -39,14 +45,22 @@ export function LibraryHomePanel({
   locale,
   messages,
   focusRequestId = 0,
+  focusTarget,
   pendingDestination,
   onExplore,
+  onOpenComparison,
+  onOpenSession,
   onOpenSources,
   onChooseArchive = onOpenSources,
   onOpenSourceGuide = onOpenSources,
 }: LibraryHomePanelProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const focusTargets = useRef(new Map<string, HTMLButtonElement>());
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const decimal = useMemo(
+    () => new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }),
+    [locale],
+  );
   const plural = useMemo(() => new Intl.PluralRules(locale), [locale]);
   const date = useMemo(
     () => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }),
@@ -57,11 +71,50 @@ export function LibraryHomePanel({
     templates: { one: string; other: string },
   ) => templates[plural.select(value) === "one" ? "one" : "other"]
     .replace("{count}", number.format(value));
+  const formatDate = (value: string) => date.format(localDate(value.slice(0, 10)));
+  const formatDuration = (value: string) => {
+    const totalMinutes = BigInt(value) / 60_000n;
+    const hours = totalMinutes / 60n;
+    const minutes = totalMinutes % 60n;
+    if (hours > 0n && minutes > 0n) {
+      return messages.durationHoursMinutes
+        .replace("{hours}", number.format(hours))
+        .replace("{minutes}", number.format(minutes));
+    }
+    if (hours > 0n) return messages.durationHours.replace("{hours}", number.format(hours));
+    if (minutes > 0n) return messages.durationMinutes.replace("{minutes}", number.format(minutes));
+    return messages.durationLessThanMinute;
+  };
+  const formatDistance = (value: number) => messages.recentDistance
+    .replace("{distance}", decimal.format(value / 1_000));
+  const sportLabel = (sport: {
+    sportState?: LibraryHomeRecentSession["sportState"];
+    state?: LibraryHomeSportSummary["state"];
+    canonicalFamily: LibraryHomeRecentSession["canonicalFamily"];
+    displayLabel: string | null;
+  }) => {
+    if (sport.displayLabel) return sport.displayLabel;
+    const state = sport.sportState ?? sport.state;
+    if (state === "classified" && sport.canonicalFamily) {
+      return messages.sportFamilies[sport.canonicalFamily];
+    }
+    return state === "unavailable" ? messages.sportUnavailable : messages.sportUnknown;
+  };
 
   useEffect(() => {
     if (focusRequestId === 0) return;
-    return restoreFocusAfterReveal(headingRef.current);
-  }, [focusRequestId]);
+    return restoreFocusAfterReveal(
+      focusTarget ? focusTargets.current.get(focusTarget) ?? headingRef.current : headingRef.current,
+    );
+  }, [focusRequestId, focusTarget]);
+
+  const registerFocusTarget = (key: string) => (element: HTMLButtonElement | null) => {
+    if (element) {
+      focusTargets.current.set(key, element);
+    } else {
+      focusTargets.current.delete(key);
+    }
+  };
 
   if (home.availableRange === null) {
     return (
@@ -85,9 +138,7 @@ export function LibraryHomePanel({
           aria-labelledby="library-home-empty-preview-heading"
         >
           <p className="eyebrow">{messages.emptyPreviewEyebrow}</p>
-          <h2 id="library-home-empty-preview-heading">
-            {messages.emptyPreviewHeading}
-          </h2>
+          <h2 id="library-home-empty-preview-heading">{messages.emptyPreviewHeading}</h2>
           <p className="library-home-empty-preview-note">{messages.emptyPreviewNote}</p>
           <ul>
             {illustratedSportFamilies.map((family) => (
@@ -109,19 +160,15 @@ export function LibraryHomePanel({
     );
   }
 
-  const range = `${date.format(localDate(home.availableRange.from))} ${messages.rangeSeparator} ${date.format(localDate(home.availableRange.through))}`;
+  const range = `${formatDate(home.availableRange.from)} ${messages.rangeSeparator} ${formatDate(home.availableRange.through)}`;
+  const training = home.training;
+  const highlight = home.highlight;
   const resumableExploration = home.resumableExploration;
-  const leadingQuestion = home.questions[0];
-  const recentTraining = home.domains.find((domain) => domain.domain === "training");
-  const hasTrainingAnswer = leadingQuestion?.destination === "training"
-    && recentTraining !== undefined
-    && recentTraining.availableRange !== null;
-  const answerHeading = hasTrainingAnswer && recentTraining
-    ? formatCount(recentTraining.observedRecordCount, messages.answerTrainingHeading)
-    : messages.answerHistoryHeading.replace("{range}", range);
-  const answerIntro = hasTrainingAnswer
-    ? messages.answerTrainingIntro.replace("{range}", range)
-    : formatCount(home.questions.length, messages.answerQuestionCount);
+  const postImportHeading = home.postImport?.exactRepeat
+    ? messages.postImportHeadingExactRepeat
+    : home.postImport?.canonicalHistoryChanged
+      ? messages.postImportHeadingChanged
+      : messages.postImportHeadingUnchanged;
 
   return (
     <div className="library-home" aria-busy={pendingDestination !== undefined}>
@@ -129,31 +176,16 @@ export function LibraryHomePanel({
         <p className="eyebrow">{messages.eyebrow}</p>
         <h1 ref={headingRef} tabIndex={-1}>{messages.title}</h1>
         <p>{messages.intro}</p>
-        <p className="library-home-range">
-          <strong>{messages.availablePeriod}</strong>
+        <div className="library-home-summary" aria-label={messages.availablePeriod}>
+          {training && (
+            <>
+              <strong>{formatCount(training.sessionCount, messages.summarySessions)}</strong>
+              <strong>{formatCount(training.sportProfileCount, messages.summarySports)}</strong>
+            </>
+          )}
           <span>{range}</span>
-        </p>
+        </div>
       </header>
-
-      {leadingQuestion && (
-        <section
-          className="library-home-answer"
-          aria-labelledby="library-home-answer-heading"
-        >
-          <div>
-            <p className="eyebrow">{messages.answerEyebrow}</p>
-            <h2 id="library-home-answer-heading">{answerHeading}</h2>
-            <p>{answerIntro}</p>
-          </div>
-          <button
-            type="button"
-            disabled={pendingDestination !== undefined}
-            onClick={() => onExplore(leadingQuestion.destination)}
-          >
-            {messages.answerAction}
-          </button>
-        </section>
-      )}
 
       {home.postImport && (
         <section
@@ -162,7 +194,7 @@ export function LibraryHomePanel({
           aria-labelledby="library-home-reveal-heading"
           aria-live="polite"
         >
-          <h2 id="library-home-reveal-heading">{messages.postImportHeading}</h2>
+          <h2 id="library-home-reveal-heading">{postImportHeading}</h2>
           <p>
             {home.postImport.exactRepeat
               ? messages.postImportExactRepeat
@@ -171,9 +203,21 @@ export function LibraryHomePanel({
                 : messages.postImportUnchanged}
           </p>
           <ul>
-            <li>{formatCount(home.postImport.newObservations, messages.postImportNew)}</li>
-            <li>{formatCount(home.postImport.enrichedObservations, messages.postImportEnriched)}</li>
-            <li>{formatCount(home.postImport.amendedObservations, messages.postImportAmended)}</li>
+            {home.postImport.newObservations > 0 && (
+              <li>{formatCount(home.postImport.newObservations, messages.postImportNew)}</li>
+            )}
+            {home.postImport.enrichedObservations > 0 && (
+              <li>{formatCount(home.postImport.enrichedObservations, messages.postImportEnriched)}</li>
+            )}
+            {home.postImport.amendedObservations > 0 && (
+              <li>{formatCount(home.postImport.amendedObservations, messages.postImportAmended)}</li>
+            )}
+            {home.postImport.unchangedObservations > 0 && (
+              <li>{formatCount(
+                home.postImport.unchangedObservations,
+                messages.postImportUnchangedObservations,
+              )}</li>
+            )}
           </ul>
           {home.postImport.sourceReviewRecommended && <p>{messages.postImportReview}</p>}
           <button type="button" className="secondary" onClick={onOpenSources}>
@@ -182,15 +226,166 @@ export function LibraryHomePanel({
         </section>
       )}
 
-      {resumableExploration && (
-        <section className="library-home-resume" aria-labelledby="library-home-resume-heading">
+      {training && training.sports.length > 0 && (
+        <section className="library-home-sports" aria-labelledby="library-home-sports-heading">
           <div>
-            <h2 id="library-home-resume-heading">{messages.resumeHeading}</h2>
+            <h2 id="library-home-sports-heading">{messages.sportsHeading}</h2>
+            <p>{messages.sportsIntro}</p>
+          </div>
+          <ul>
+            {training.sports.map((sport, index) => {
+              const label = sportLabel(sport);
+              return (
+                <li key={`${sport.state}-${sport.canonicalFamily ?? "none"}-${sport.displayLabel ?? "none"}-${index}`}>
+                  <SportFamilyIcon family={sport.canonicalFamily} />
+                  <div>
+                    <strong>{label}</strong>
+                    <span>{formatCount(sport.sessionCount, messages.sportSessions)}</span>
+                    {sport.profileCount > 1 && (
+                      <small>{formatCount(sport.profileCount, messages.sportProfiles)}</small>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+          {training.omittedSportProfileCount > 0 && (
+            <p className="library-home-sports-omitted">
+              {formatCount(training.omittedSportProfileCount, messages.omittedSports)}
+            </p>
+          )}
+        </section>
+      )}
+
+      {highlight?.kind === "recent-training-comparison" && (
+        <section className="library-home-highlight" aria-labelledby="library-home-highlight-heading">
+          <div className="library-home-highlight-copy">
+            <p className="eyebrow">{messages.comparisonEyebrow}</p>
+            <h2 id="library-home-highlight-heading">{messages.comparisonHeading}</h2>
+            <p>{messages.comparisonIntro}</p>
+          </div>
+          <div className="library-home-periods">
+            <TrainingPeriod
+              label={messages.comparisonCurrent}
+              period={highlight.comparison}
+              comparisonMaximum={Math.max(
+                highlight.baseline.sessionCount,
+                highlight.comparison.sessionCount,
+                1,
+              )}
+              formatCount={(value) => formatCount(value, messages.comparisonSessions)}
+              formatDate={formatDate}
+              formatDuration={formatDuration}
+              rangeSeparator={messages.rangeSeparator}
+            />
+            <TrainingPeriod
+              label={messages.comparisonPrevious}
+              period={highlight.baseline}
+              comparisonMaximum={Math.max(
+                highlight.baseline.sessionCount,
+                highlight.comparison.sessionCount,
+                1,
+              )}
+              formatCount={(value) => formatCount(value, messages.comparisonSessions)}
+              formatDate={formatDate}
+              formatDuration={formatDuration}
+              rangeSeparator={messages.rangeSeparator}
+            />
           </div>
           <button
             type="button"
+            ref={registerFocusTarget("highlight")}
             disabled={pendingDestination !== undefined}
-            onClick={() => onExplore(resumableExploration.destination)}
+            onClick={() => onOpenComparison(highlight)}
+          >
+            {messages.comparisonOpen}
+          </button>
+        </section>
+      )}
+
+      {highlight?.kind === "historical-training" && (
+        <section className="library-home-highlight library-home-historical" aria-labelledby="library-home-highlight-heading">
+          <div>
+            <p className="eyebrow">{messages.historicalEyebrow}</p>
+            <h2 id="library-home-highlight-heading">{messages.historicalHeading}</h2>
+            <p>
+              {(highlight.reason === "no-current-training"
+                ? messages.historicalNoCurrentTraining
+                : messages.historicalFutureHistory)
+                .replace("{date}", formatDate(highlight.latestSessionDate))}
+            </p>
+          </div>
+          <button
+            type="button"
+            ref={registerFocusTarget("highlight")}
+            disabled={pendingDestination !== undefined}
+            onClick={() => onExplore("training", "highlight")}
+          >
+            {messages.historicalOpen}
+          </button>
+        </section>
+      )}
+
+      {highlight?.kind === "library-history" && (
+        <section className="library-home-highlight library-home-historical" aria-labelledby="library-home-highlight-heading">
+          <div>
+            <p className="eyebrow">{messages.libraryHistoryEyebrow}</p>
+            <h2 id="library-home-highlight-heading">{messages.libraryHistoryHeading}</h2>
+            <p>{messages.libraryHistoryIntro.replace("{date}", formatDate(highlight.latestEvidenceDate))}</p>
+          </div>
+        </section>
+      )}
+
+      {training && training.recentSessions.length > 0 && (
+        <section className="library-home-recent" aria-labelledby="library-home-recent-heading">
+          <div>
+            <h2 id="library-home-recent-heading">{messages.recentHeading}</h2>
+            <p>{messages.recentIntro}</p>
+          </div>
+          <ul>
+            {training.recentSessions.map((session) => {
+              const label = sportLabel(session);
+              const formattedDate = formatDate(session.startedAtLocal);
+              return (
+                <li key={session.sessionRef}>
+                  <button
+                    type="button"
+                    ref={registerFocusTarget(`session:${session.sessionRef}`)}
+                    disabled={pendingDestination !== undefined}
+                    aria-label={messages.recentOpen
+                      .replace("{sport}", label)
+                      .replace("{date}", formattedDate)}
+                    onClick={() => onOpenSession(session)}
+                  >
+                    <SportFamilyIcon family={session.canonicalFamily} />
+                    <span className="library-home-recent-identity">
+                      <strong>{label}</strong>
+                      <span>{formattedDate}</span>
+                    </span>
+                    <span className="library-home-recent-facts">
+                      <strong>{formatDuration(session.durationMilliseconds)}</strong>
+                      {session.distanceMeters !== null && <span>{formatDistance(session.distanceMeters)}</span>}
+                    </span>
+                    <span aria-hidden="true">→</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      {resumableExploration && (
+        <section className="library-home-resume" aria-labelledby="library-home-resume-heading">
+          <h2 id="library-home-resume-heading">{messages.resumeHeading}</h2>
+          <button
+            type="button"
+            ref={registerFocusTarget(`resume:${resumableExploration.destination}`)}
+            disabled={pendingDestination !== undefined}
+            onClick={() => onExplore(
+              resumableExploration.destination,
+              `resume:${resumableExploration.destination}`,
+            )}
           >
             {messages.resume[resumableExploration.destination]}
           </button>
@@ -203,58 +398,98 @@ export function LibraryHomePanel({
         </p>
       )}
 
-      <section
-        className="library-home-questions"
-        aria-labelledby="library-home-questions-heading"
-        aria-busy={pendingDestination !== undefined}
-      >
-        <div>
-          <h2 id="library-home-questions-heading">{messages.questionsHeading}</h2>
-          <p>{messages.questionsIntro}</p>
-        </div>
-        <ol>
-          {home.questions.map((question, index) => (
-            <li key={question.kind}>
-              <button
-                type="button"
-                disabled={pendingDestination !== undefined}
-                onClick={() => onExplore(question.destination)}
-              >
-                <span aria-hidden="true">{number.format(index + 1).padStart(2, "0")}</span>
-                <strong>{messages.questions[question.kind]}</strong>
-              </button>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <section
-        className="library-home-coverage"
-        role="region"
-        aria-labelledby="library-home-coverage-heading"
-      >
-        <div className="library-home-coverage-heading">
+      {home.questions.length > 0 && (
+        <section
+          className="library-home-questions"
+          aria-labelledby="library-home-questions-heading"
+          aria-busy={pendingDestination !== undefined}
+        >
           <div>
-            <h2 id="library-home-coverage-heading">{messages.coverageHeading}</h2>
-            <p>{messages.coverageIntro}</p>
+            <h2 id="library-home-questions-heading">{messages.questionsHeading}</h2>
+            <p>{messages.questionsIntro}</p>
           </div>
-          <button type="button" className="secondary" onClick={onOpenSources}>
-            {messages.sources}
-          </button>
-        </div>
-        <p className="library-home-coverage-range">{range}</p>
-        <ul>
-          {home.domains.map((domain) => (
-            <DomainCoverage
-              key={domain.domain}
-              coverage={domain}
-              messages={messages}
-              formatCount={formatCount}
-            />
-          ))}
-        </ul>
-      </section>
+          <ol>
+            {home.questions.map((question, index) => (
+              <li key={question.kind}>
+                <button
+                  type="button"
+                  ref={registerFocusTarget(`question:${question.kind}`)}
+                  disabled={pendingDestination !== undefined}
+                  onClick={() => onExplore(question.destination, `question:${question.kind}`)}
+                >
+                  <span aria-hidden="true">{number.format(index + 1).padStart(2, "0")}</span>
+                  <strong>{messages.questions[question.kind]}</strong>
+                </button>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      <details className="library-home-coverage-disclosure" aria-label={messages.coverageSummary}>
+        <summary>{messages.coverageSummary}</summary>
+        <section
+          className="library-home-coverage"
+          role="region"
+          aria-labelledby="library-home-coverage-heading"
+        >
+          <div className="library-home-coverage-heading">
+            <div>
+              <h2 id="library-home-coverage-heading">{messages.coverageHeading}</h2>
+              <p>{messages.coverageIntro}</p>
+            </div>
+            <button type="button" className="secondary" onClick={onOpenSources}>
+              {messages.sources}
+            </button>
+          </div>
+          <p className="library-home-coverage-range">{range}</p>
+          <ul>
+            {home.domains.map((domain) => (
+              <DomainCoverage
+                key={domain.domain}
+                coverage={domain}
+                messages={messages}
+                formatCount={formatCount}
+              />
+            ))}
+          </ul>
+        </section>
+      </details>
     </div>
+  );
+}
+
+interface TrainingPeriodProps {
+  label: string;
+  period: RecentTrainingComparisonHighlight["comparison"];
+  comparisonMaximum: number;
+  formatCount: (value: number) => string;
+  formatDate: (value: string) => string;
+  formatDuration: (value: string) => string;
+  rangeSeparator: string;
+}
+
+function TrainingPeriod({
+  label,
+  period,
+  comparisonMaximum,
+  formatCount,
+  formatDate,
+  formatDuration,
+  rangeSeparator,
+}: TrainingPeriodProps) {
+  return (
+    <section aria-label={label}>
+      <div>
+        <strong>{label}</strong>
+        <span>{formatDate(period.range.from)} {rangeSeparator} {formatDate(period.range.through)}</span>
+      </div>
+      <progress max={comparisonMaximum} value={period.sessionCount} aria-label={formatCount(period.sessionCount)} />
+      <p>
+        <strong>{formatCount(period.sessionCount)}</strong>
+        <span>{formatDuration(period.totalDurationMilliseconds)}</span>
+      </p>
+    </section>
   );
 }
 

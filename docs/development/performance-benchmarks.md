@@ -60,8 +60,11 @@ derivative of a private history.
 The release-mode Rust benchmark process uses the production archive adapter, anti-corruption mapping,
 reconciliation, SQLite persistence, and application query use cases. Three fresh processes each receive a
 new library, perform the first import, repeat the exact same archive, checkpoint SQLite, and verify every
-persisted count. Each process then executes five warm-ups and 20 measurements for the first 25 sessions,
-the four-series 300-sample-per-series bounded overview, and one 250-sample exact page. Query p95 uses sorted
+persisted count. Each process then executes five warm-ups and 20 measurements for the coherent Library Home,
+the first 25 sessions, the four-series 300-sample-per-series bounded overview, and one 250-sample exact page.
+The Home measurement composes the complete history span, sport identities, four most recent sessions,
+historical or equal-period highlight, domain coverage, and latest import outcome through the production
+SQLite ports and application use case. Query p95 uses sorted
 zero-based index `ceil((n - 1) * 0.95)`. Campaign aggregation applies the same formula to the three
 process-level results, intentionally selecting the slowest process.
 
@@ -71,7 +74,7 @@ The gate enforces:
 - exact repeat at or below 30 seconds;
 - peak resident memory strictly below 1,536 MiB;
 - checkpointed SQLite size at or below 512 MiB;
-- session discovery, signal overview, and exact sample page p95 at or below 500 milliseconds; and
+- Library Home composition, session discovery, signal overview, and exact sample page p95 at or below 500 milliseconds; and
 - exact session, series, sample, visual-sample, and page counts.
 
 Database size is `page_count * page_size` after the WAL checkpoint. The limit qualifies this exact workload,

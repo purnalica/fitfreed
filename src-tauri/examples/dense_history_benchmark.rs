@@ -5,11 +5,14 @@ use std::{
 };
 
 use fitfreed_application::{
-    query_training_session_signals, query_training_sessions, query_training_signal_samples,
-    ImportPhaseTimings, TrainingSessionSearchRequest, TrainingSessionSignalsQuery,
-    TrainingSessionSort, TrainingSignalSamplesQuery,
+    query_library_home, query_training_session_signals, query_training_sessions,
+    query_training_signal_samples, ImportPhaseTimings, LibraryHomeRequest,
+    TrainingSessionSearchRequest, TrainingSessionSignalsQuery, TrainingSessionSort,
+    TrainingSignalSamplesQuery,
 };
-use fitfreed_lib::infrastructure::{profile_polar_import_archive, SqliteTrainingLibrary};
+use fitfreed_lib::infrastructure::{
+    profile_polar_import_archive, SqliteLibraryHome, SqliteTrainingLibrary,
+};
 use rusqlite::Connection;
 use serde_json::{json, Value};
 
@@ -49,6 +52,17 @@ fn main() {
     let page_count = pragma(&connection, "page_count");
     let page_size = pragma(&connection, "page_size");
     drop(connection);
+
+    let home_library = SqliteLibraryHome::new(database.to_path_buf());
+    let (library_home_p95, library_home_recent_sessions) = measure(|| {
+        query_library_home(&home_library, LibraryHomeRequest::default())
+            .expect("query dense-history Library Home")
+            .training
+            .expect("dense-history Home training identity")
+            .recent_sessions
+            .len()
+    });
+    assert_eq!(library_home_recent_sessions, 4);
 
     let library = SqliteTrainingLibrary::new(database.to_path_buf());
     let session_query = TrainingSessionSearchRequest {
@@ -125,6 +139,7 @@ fn main() {
             "runtime": "rust",
             "firstImportMilliseconds": milliseconds(first_import),
             "exactRepeatMilliseconds": milliseconds(exact_repeat),
+            "libraryHomeP95Milliseconds": milliseconds(library_home_p95),
             "sessionPageP95Milliseconds": milliseconds(session_page_p95),
             "signalOverviewP95Milliseconds": milliseconds(signal_overview_p95),
             "signalExactPageP95Milliseconds": milliseconds(signal_exact_page_p95),
@@ -136,6 +151,7 @@ fn main() {
             "persistedSessions": persisted_sessions,
             "persistedSeries": persisted_series,
             "persistedSamples": persisted_samples,
+            "libraryHomeRecentSessions": library_home_recent_sessions,
             "sessionPageSessions": session_page_sessions,
             "overviewSeries": overview_series,
             "overviewVisualSamples": overview_visual_samples,

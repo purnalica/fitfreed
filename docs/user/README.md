@@ -11,11 +11,15 @@ with one protected active task while importing, then leads with the exact effect
 Reconciliation counts, compatibility evidence, and family coverage remain available on request instead of
 competing with that consequence.
 FitFreed never handles provider credentials or requests and downloads an export on the person's behalf. A
-populated library opens the question-led Home, which shows the usable period, honest domain coverage, and
-only the explorations supported by canonical local evidence. A successful import returns there with its exact
-canonical effect; a later launch safely restores the last supported exploration destination or returns to
-Home. Activity, training, sleep, recovery, and longitudinal views load only when selected, and **Back to
-Home** clears the durable destination without persisting disposable filters, details, or comparisons. The
+populated library opens a result-led Home with the complete usable period, training-session and sport-profile
+counts, current provider-neutral sport identities, recent exact sessions, and either an equal-period recent comparison or
+an honest historical fallback. Supported questions and detailed source coverage remain available without
+competing with that personal context. A successful import returns there with its exact canonical effect; an
+unchanged or repeated import never claims that the library grew. Opening a Home session, comparison, question,
+or resumable exploration retains its exact return origin; a later launch safely restores the last supported
+exploration destination or returns to Home. Activity, training, sleep, recovery, and longitudinal views load
+only when selected, and **Back to Home** clears the durable destination without persisting disposable filters,
+details, or comparisons. The
 longitudinal dashboard aligns domains without merging sources or implying causation. Activity, sleep,
 recovery, and aligned history each separate their history from **Compare periods**; an exact day or night
 temporarily replaces the history list, and returning restores the point from which it was opened.
@@ -31,8 +35,8 @@ every 24 hours while the application remains open; exact-candidate installation;
 outcomes stay quiet unless they require attention. The ordinary build has no endpoint or production trust
 key and therefore performs no update request or installation.
 
-The independently generated synthetic journey covers both first-run acquisition paths, question-led
-exploration, range filtering, exact aligned day detail, navigation to authoritative explorers, two-period
+The independently generated synthetic journey covers both first-run acquisition paths, result-led Home
+exploration, exact recent-session entry and return, range filtering, exact aligned day detail, navigation to authoritative explorers, two-period
 comparison, mapping-aware reimport, cumulative import, and restart. Training separates Sessions, Sports,
 and Compare periods without losing a temporary view when moving among them. Session detail progressively
 opens Overview, Structure and segments, Signals and zones, Routes, and Source history. It distinguishes

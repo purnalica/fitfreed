@@ -8,10 +8,13 @@ use fitfreed_application::{
     AppearancePreference, ApplicationError, ApplicationPreferences, ApplicationPreferencesLoad,
     AppliedTrainingSegmentCriterion, CreateComposedSessionReportRequest, CreateReportRequest,
     CreateSessionReportRequest, CreateTrainingSegmentCriterionRequest, ExpectedSourceArchive,
-    ExplorationWorkspace, ExploreDestination, ImportPhase, ImportProgress,
-    InvalidApplicationPreferences, LibraryDomain, LibraryDomainCoverage, LibraryHome,
-    LibraryHomeDateRange, LibraryHomeRequest, LibraryMeasurement, LibraryMeasurementCoverage,
-    LibraryQuestion, LibraryQuestionKind, LongitudinalActivityComparison, LongitudinalActivityDay,
+    ExplorationWorkspace, ExploreDestination, HistoricalTrainingHighlight,
+    HistoricalTrainingReason, ImportPhase, ImportProgress, InvalidApplicationPreferences,
+    LibraryDomain, LibraryDomainCoverage, LibraryHistoryHighlight, LibraryHome,
+    LibraryHomeDateRange, LibraryHomeHighlight, LibraryHomeRecentSession, LibraryHomeRequest,
+    LibraryHomeSportSummary, LibraryHomeTraining, LibraryHomeTrainingComparison,
+    LibraryHomeTrainingPeriod, LibraryMeasurement, LibraryMeasurementCoverage, LibraryQuestion,
+    LibraryQuestionKind, LongitudinalActivityComparison, LongitudinalActivityDay,
     LongitudinalComparison, LongitudinalDateRange, LongitudinalDayInsight, LongitudinalOverview,
     LongitudinalRecoveryComparison, LongitudinalRecoveryDay, LongitudinalSeriesComparison,
     LongitudinalSeriesOverview, LongitudinalSleepComparison, LongitudinalSleepDay,
@@ -305,6 +308,7 @@ pub struct PostImportRevealDto {
     new_observations: usize,
     enriched_observations: usize,
     amended_observations: usize,
+    unchanged_observations: usize,
     source_review_recommended: bool,
 }
 
@@ -316,6 +320,7 @@ impl From<PostImportReveal> for PostImportRevealDto {
             new_observations: reveal.new_observations,
             enriched_observations: reveal.enriched_observations,
             amended_observations: reveal.amended_observations,
+            unchanged_observations: reveal.unchanged_observations,
             source_review_recommended: reveal.source_review_recommended,
         }
     }
@@ -323,10 +328,197 @@ impl From<PostImportReveal> for PostImportRevealDto {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct LibraryHomeSportSummaryDto {
+    state: &'static str,
+    canonical_family: Option<String>,
+    display_label: Option<String>,
+    profile_count: usize,
+    session_count: usize,
+}
+
+impl From<LibraryHomeSportSummary> for LibraryHomeSportSummaryDto {
+    fn from(sport: LibraryHomeSportSummary) -> Self {
+        Self {
+            state: training_sport_state_code(sport.state),
+            canonical_family: sport.canonical_family,
+            display_label: sport.display_label,
+            profile_count: sport.profile_count,
+            session_count: sport.session_count,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryHomeRecentSessionDto {
+    session_ref: String,
+    started_at_local: String,
+    duration_milliseconds: String,
+    distance_meters: Option<f64>,
+    sport_state: &'static str,
+    canonical_family: Option<String>,
+    display_label: Option<String>,
+}
+
+impl From<LibraryHomeRecentSession> for LibraryHomeRecentSessionDto {
+    fn from(session: LibraryHomeRecentSession) -> Self {
+        Self {
+            session_ref: session.session_ref,
+            started_at_local: session.started_at_local,
+            duration_milliseconds: session.duration_milliseconds.to_string(),
+            distance_meters: session.distance_meters,
+            sport_state: training_sport_state_code(session.sport_state),
+            canonical_family: session.canonical_family,
+            display_label: session.display_label,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryHomeTrainingDto {
+    training_snapshot_ref: String,
+    session_count: usize,
+    sport_profile_count: usize,
+    omitted_sport_profile_count: usize,
+    sports: Vec<LibraryHomeSportSummaryDto>,
+    recent_sessions: Vec<LibraryHomeRecentSessionDto>,
+}
+
+impl From<LibraryHomeTraining> for LibraryHomeTrainingDto {
+    fn from(training: LibraryHomeTraining) -> Self {
+        Self {
+            training_snapshot_ref: training.training_snapshot_ref,
+            session_count: training.session_count,
+            sport_profile_count: training.sport_profile_count,
+            omitted_sport_profile_count: training.omitted_sport_profile_count,
+            sports: training.sports.into_iter().map(Into::into).collect(),
+            recent_sessions: training
+                .recent_sessions
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryHomeTrainingPeriodDto {
+    range: LibraryHomeDateRangeDto,
+    session_count: usize,
+    total_duration_milliseconds: String,
+}
+
+impl From<LibraryHomeTrainingPeriod> for LibraryHomeTrainingPeriodDto {
+    fn from(period: LibraryHomeTrainingPeriod) -> Self {
+        Self {
+            range: period.range.into(),
+            session_count: period.session_count,
+            total_duration_milliseconds: period.total_duration_milliseconds.to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryHomeTrainingComparisonDto {
+    kind: &'static str,
+    reference_date: String,
+    baseline: LibraryHomeTrainingPeriodDto,
+    comparison: LibraryHomeTrainingPeriodDto,
+    session_count_change: String,
+    duration_change_milliseconds: String,
+}
+
+impl From<LibraryHomeTrainingComparison> for LibraryHomeTrainingComparisonDto {
+    fn from(comparison: LibraryHomeTrainingComparison) -> Self {
+        Self {
+            kind: "recent-training-comparison",
+            reference_date: comparison.reference_date,
+            baseline: comparison.baseline.into(),
+            comparison: comparison.comparison.into(),
+            session_count_change: comparison.session_count_change.to_string(),
+            duration_change_milliseconds: comparison.duration_change_milliseconds.to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HistoricalTrainingHighlightDto {
+    kind: &'static str,
+    reference_date: String,
+    current_range: LibraryHomeDateRangeDto,
+    latest_session_date: String,
+    reason: &'static str,
+}
+
+impl From<HistoricalTrainingHighlight> for HistoricalTrainingHighlightDto {
+    fn from(highlight: HistoricalTrainingHighlight) -> Self {
+        Self {
+            kind: "historical-training",
+            reference_date: highlight.reference_date,
+            current_range: highlight.current_range.into(),
+            latest_session_date: highlight.latest_session_date,
+            reason: match highlight.reason {
+                HistoricalTrainingReason::NoCurrentTraining => "no-current-training",
+                HistoricalTrainingReason::HistoryAfterReferenceDate => {
+                    "history-after-reference-date"
+                }
+            },
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryHistoryHighlightDto {
+    kind: &'static str,
+    latest_evidence_date: String,
+}
+
+impl From<LibraryHistoryHighlight> for LibraryHistoryHighlightDto {
+    fn from(highlight: LibraryHistoryHighlight) -> Self {
+        Self {
+            kind: "library-history",
+            latest_evidence_date: highlight.latest_evidence_date,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+pub enum LibraryHomeHighlightDto {
+    RecentTrainingComparison(LibraryHomeTrainingComparisonDto),
+    HistoricalTraining(HistoricalTrainingHighlightDto),
+    LibraryHistory(LibraryHistoryHighlightDto),
+}
+
+impl From<LibraryHomeHighlight> for LibraryHomeHighlightDto {
+    fn from(highlight: LibraryHomeHighlight) -> Self {
+        match highlight {
+            LibraryHomeHighlight::RecentTrainingComparison(comparison) => {
+                Self::RecentTrainingComparison(comparison.into())
+            }
+            LibraryHomeHighlight::HistoricalTraining(historical) => {
+                Self::HistoricalTraining(historical.into())
+            }
+            LibraryHomeHighlight::LibraryHistory(history) => Self::LibraryHistory(history.into()),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LibraryHomeDto {
+    version: u32,
+    library_revision_ref: String,
     available_range: Option<LibraryHomeDateRangeDto>,
     domains: Vec<LibraryDomainCoverageDto>,
     questions: Vec<LibraryQuestionDto>,
+    training: Option<LibraryHomeTrainingDto>,
+    highlight: Option<LibraryHomeHighlightDto>,
     post_import: Option<PostImportRevealDto>,
     resumable_exploration: Option<ExplorationWorkspaceDto>,
 }
@@ -334,9 +526,13 @@ pub struct LibraryHomeDto {
 impl From<LibraryHome> for LibraryHomeDto {
     fn from(home: LibraryHome) -> Self {
         Self {
+            version: home.version,
+            library_revision_ref: home.library_revision_ref,
             available_range: home.available_range.map(Into::into),
             domains: home.domains.into_iter().map(Into::into).collect(),
             questions: home.questions.into_iter().map(Into::into).collect(),
+            training: home.training.map(Into::into),
+            highlight: home.highlight.map(Into::into),
             post_import: home.post_import.map(Into::into),
             resumable_exploration: home.resumable_exploration.map(Into::into),
         }
@@ -6839,8 +7035,10 @@ mod tests {
     #[test]
     fn serializes_the_library_home_as_stable_provider_neutral_codes() {
         let home = LibraryHome {
+            version: 2,
+            library_revision_ref: "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
             available_range: Some(LibraryHomeDateRange {
-                from: "2026-01-01".to_owned(),
+                from: "2025-12-31".to_owned(),
                 through: "2026-01-06".to_owned(),
             }),
             domains: vec![LibraryDomainCoverage {
@@ -6865,12 +7063,58 @@ mod tests {
                 LibraryQuestionKind::ExploreTrainingSessions,
                 ExploreDestination::Training,
             )],
+            training: Some(LibraryHomeTraining {
+                training_snapshot_ref: "training-snapshot-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_owned(),
+                session_count: 2,
+                sport_profile_count: 1,
+                omitted_sport_profile_count: 0,
+                sports: vec![LibraryHomeSportSummary {
+                    state: TrainingSportState::Classified,
+                    canonical_family: Some("running".to_owned()),
+                    display_label: Some("Trail running".to_owned()),
+                    profile_count: 1,
+                    session_count: 2,
+                }],
+                recent_sessions: vec![LibraryHomeRecentSession {
+                    session_ref: "session-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_owned(),
+                    started_at_local: "2026-01-05T08:00:00".to_owned(),
+                    duration_milliseconds: 3_600_000,
+                    distance_meters: Some(10_000.5),
+                    sport_state: TrainingSportState::Classified,
+                    canonical_family: Some("running".to_owned()),
+                    display_label: Some("Trail running".to_owned()),
+                }],
+            }),
+            highlight: Some(LibraryHomeHighlight::RecentTrainingComparison(
+                LibraryHomeTrainingComparison {
+                    reference_date: "2026-01-06".to_owned(),
+                    baseline: LibraryHomeTrainingPeriod {
+                        range: LibraryHomeDateRange {
+                            from: "2025-12-24".to_owned(),
+                            through: "2025-12-30".to_owned(),
+                        },
+                        session_count: 1,
+                        total_duration_milliseconds: 3_000_000,
+                    },
+                    comparison: LibraryHomeTrainingPeriod {
+                        range: LibraryHomeDateRange {
+                            from: "2025-12-31".to_owned(),
+                            through: "2026-01-06".to_owned(),
+                        },
+                        session_count: 2,
+                        total_duration_milliseconds: 7_200_000,
+                    },
+                    session_count_change: 1,
+                    duration_change_milliseconds: 4_200_000,
+                },
+            )),
             post_import: Some(PostImportReveal {
                 exact_repeat: false,
                 canonical_history_changed: true,
                 new_observations: 2,
                 enriched_observations: 0,
                 amended_observations: 0,
+                unchanged_observations: 3,
                 source_review_recommended: true,
             }),
             resumable_exploration: Some(ExplorationWorkspace {
@@ -6884,7 +7128,9 @@ mod tests {
         assert_eq!(
             json,
             serde_json::json!({
-                "availableRange": { "from": "2026-01-01", "through": "2026-01-06" },
+                "version": 2,
+                "libraryRevisionRef": "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "availableRange": { "from": "2025-12-31", "through": "2026-01-06" },
                 "domains": [{
                     "domain": "training",
                     "availableRange": { "from": "2026-01-04", "through": "2026-01-05" },
@@ -6901,12 +7147,51 @@ mod tests {
                     "kind": "explore-training-sessions",
                     "destination": "training"
                 }],
+                "training": {
+                    "trainingSnapshotRef": "training-snapshot-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                    "sessionCount": 2,
+                    "sportProfileCount": 1,
+                    "omittedSportProfileCount": 0,
+                    "sports": [{
+                        "state": "classified",
+                        "canonicalFamily": "running",
+                        "displayLabel": "Trail running",
+                        "profileCount": 1,
+                        "sessionCount": 2
+                    }],
+                    "recentSessions": [{
+                        "sessionRef": "session-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                        "startedAtLocal": "2026-01-05T08:00:00",
+                        "durationMilliseconds": "3600000",
+                        "distanceMeters": 10000.5,
+                        "sportState": "classified",
+                        "canonicalFamily": "running",
+                        "displayLabel": "Trail running"
+                    }]
+                },
+                "highlight": {
+                    "kind": "recent-training-comparison",
+                    "referenceDate": "2026-01-06",
+                    "baseline": {
+                        "range": { "from": "2025-12-24", "through": "2025-12-30" },
+                        "sessionCount": 1,
+                        "totalDurationMilliseconds": "3000000"
+                    },
+                    "comparison": {
+                        "range": { "from": "2025-12-31", "through": "2026-01-06" },
+                        "sessionCount": 2,
+                        "totalDurationMilliseconds": "7200000"
+                    },
+                    "sessionCountChange": "1",
+                    "durationChangeMilliseconds": "4200000"
+                },
                 "postImport": {
                     "exactRepeat": false,
                     "canonicalHistoryChanged": true,
                     "newObservations": 2,
                     "enrichedObservations": 0,
                     "amendedObservations": 0,
+                    "unchangedObservations": 3,
                     "sourceReviewRecommended": true
                 },
                 "resumableExploration": {

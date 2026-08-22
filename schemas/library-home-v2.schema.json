@@ -1,0 +1,335 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/library-home-v2.schema.json",
+  "title": "FitFreed library home version 2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "libraryRevisionRef",
+    "availableRange",
+    "domains",
+    "questions",
+    "training",
+    "highlight",
+    "postImport",
+    "resumableExploration"
+  ],
+  "properties": {
+    "version": { "const": 2 },
+    "libraryRevisionRef": { "$ref": "#/$defs/libraryRevisionRef" },
+    "availableRange": { "$ref": "library-home-v1.schema.json#/$defs/optionalRange" },
+    "domains": {
+      "type": "array",
+      "prefixItems": [
+        { "$ref": "library-home-v1.schema.json#/$defs/trainingDomain" },
+        { "$ref": "library-home-v1.schema.json#/$defs/activityDomain" },
+        { "$ref": "library-home-v1.schema.json#/$defs/sleepDomain" },
+        { "$ref": "library-home-v1.schema.json#/$defs/recoveryDomain" }
+      ],
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "questions": {
+      "type": "array",
+      "uniqueItems": true,
+      "maxItems": 5,
+      "items": { "$ref": "library-home-v1.schema.json#/$defs/question" }
+    },
+    "training": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/training" }
+      ]
+    },
+    "highlight": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/recentTrainingComparison" },
+        { "$ref": "#/$defs/historicalTraining" },
+        { "$ref": "#/$defs/libraryHistory" }
+      ]
+    },
+    "postImport": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/postImport" }
+      ]
+    },
+    "resumableExploration": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "library-home-v1.schema.json#/$defs/explorationWorkspace" }
+      ]
+    }
+  },
+  "$defs": {
+    "libraryRevisionRef": {
+      "type": "string",
+      "pattern": "^library-home-revision-[0-9a-f]{64}$"
+    },
+    "trainingSnapshotRef": {
+      "type": "string",
+      "pattern": "^training-snapshot-[0-9a-f]{64}$"
+    },
+    "sessionRef": {
+      "type": "string",
+      "pattern": "^session-[0-9a-f]{64}$"
+    },
+    "localDateTime": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{3})?$"
+    },
+    "nonNegativeIntegerString": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$"
+    },
+    "signedIntegerString": {
+      "type": "string",
+      "pattern": "^(0|-?[1-9][0-9]*)$"
+    },
+    "sportFamily": {
+      "type": "string",
+      "enum": [
+        "running",
+        "cycling",
+        "swimming",
+        "walking",
+        "hiking",
+        "strength",
+        "mobility",
+        "racket-sport",
+        "team-sport",
+        "winter-sport",
+        "water-sport",
+        "other"
+      ]
+    },
+    "nullableSportFamily": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/sportFamily" }
+      ]
+    },
+    "nullableLabel": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "pattern": "^\\S(?:.*\\S)?$"
+        }
+      ]
+    },
+    "sportMeaning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "canonicalFamily", "displayLabel"],
+      "properties": {
+        "state": { "enum": ["unknown", "classified", "unavailable"] },
+        "canonicalFamily": { "$ref": "#/$defs/nullableSportFamily" },
+        "displayLabel": { "$ref": "#/$defs/nullableLabel" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "state": { "const": "classified" } } },
+          "then": {
+            "anyOf": [
+              { "properties": { "canonicalFamily": { "$ref": "#/$defs/sportFamily" } } },
+              { "properties": { "displayLabel": { "type": "string" } } }
+            ]
+          },
+          "else": {
+            "properties": {
+              "canonicalFamily": { "type": "null" },
+              "displayLabel": { "type": "null" }
+            }
+          }
+        }
+      ]
+    },
+    "sportSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "canonicalFamily",
+        "displayLabel",
+        "profileCount",
+        "sessionCount"
+      ],
+      "properties": {
+        "state": { "enum": ["unknown", "classified", "unavailable"] },
+        "canonicalFamily": { "$ref": "#/$defs/nullableSportFamily" },
+        "displayLabel": { "$ref": "#/$defs/nullableLabel" },
+        "profileCount": { "type": "integer", "minimum": 1 },
+        "sessionCount": { "type": "integer", "minimum": 1 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "state": { "const": "classified" } } },
+          "then": {
+            "anyOf": [
+              { "properties": { "canonicalFamily": { "$ref": "#/$defs/sportFamily" } } },
+              { "properties": { "displayLabel": { "type": "string" } } }
+            ]
+          },
+          "else": {
+            "properties": {
+              "canonicalFamily": { "type": "null" },
+              "displayLabel": { "type": "null" }
+            }
+          }
+        }
+      ]
+    },
+    "recentSession": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sessionRef",
+        "startedAtLocal",
+        "durationMilliseconds",
+        "distanceMeters",
+        "sportState",
+        "canonicalFamily",
+        "displayLabel"
+      ],
+      "properties": {
+        "sessionRef": { "$ref": "#/$defs/sessionRef" },
+        "startedAtLocal": { "$ref": "#/$defs/localDateTime" },
+        "durationMilliseconds": { "$ref": "#/$defs/nonNegativeIntegerString" },
+        "distanceMeters": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "number", "minimum": 0 }
+          ]
+        },
+        "sportState": { "enum": ["unknown", "classified", "unavailable"] },
+        "canonicalFamily": { "$ref": "#/$defs/nullableSportFamily" },
+        "displayLabel": { "$ref": "#/$defs/nullableLabel" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "sportState": { "const": "classified" } } },
+          "then": {
+            "anyOf": [
+              { "properties": { "canonicalFamily": { "$ref": "#/$defs/sportFamily" } } },
+              { "properties": { "displayLabel": { "type": "string" } } }
+            ]
+          },
+          "else": {
+            "properties": {
+              "canonicalFamily": { "type": "null" },
+              "displayLabel": { "type": "null" }
+            }
+          }
+        }
+      ]
+    },
+    "training": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trainingSnapshotRef",
+        "sessionCount",
+        "sportProfileCount",
+        "omittedSportProfileCount",
+        "sports",
+        "recentSessions"
+      ],
+      "properties": {
+        "trainingSnapshotRef": { "$ref": "#/$defs/trainingSnapshotRef" },
+        "sessionCount": { "type": "integer", "minimum": 1 },
+        "sportProfileCount": { "type": "integer", "minimum": 1 },
+        "omittedSportProfileCount": { "type": "integer", "minimum": 0 },
+        "sports": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 6,
+          "items": { "$ref": "#/$defs/sportSummary" }
+        },
+        "recentSessions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": { "$ref": "#/$defs/recentSession" }
+        }
+      }
+    },
+    "period": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["range", "sessionCount", "totalDurationMilliseconds"],
+      "properties": {
+        "range": { "$ref": "library-home-v1.schema.json#/$defs/range" },
+        "sessionCount": { "type": "integer", "minimum": 0 },
+        "totalDurationMilliseconds": { "$ref": "#/$defs/nonNegativeIntegerString" }
+      }
+    },
+    "recentTrainingComparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "referenceDate",
+        "baseline",
+        "comparison",
+        "sessionCountChange",
+        "durationChangeMilliseconds"
+      ],
+      "properties": {
+        "kind": { "const": "recent-training-comparison" },
+        "referenceDate": { "$ref": "library-home-v1.schema.json#/$defs/localDate" },
+        "baseline": { "$ref": "#/$defs/period" },
+        "comparison": { "$ref": "#/$defs/period" },
+        "sessionCountChange": { "$ref": "#/$defs/signedIntegerString" },
+        "durationChangeMilliseconds": { "$ref": "#/$defs/signedIntegerString" }
+      }
+    },
+    "historicalTraining": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "referenceDate", "currentRange", "latestSessionDate", "reason"],
+      "properties": {
+        "kind": { "const": "historical-training" },
+        "referenceDate": { "$ref": "library-home-v1.schema.json#/$defs/localDate" },
+        "currentRange": { "$ref": "library-home-v1.schema.json#/$defs/range" },
+        "latestSessionDate": { "$ref": "library-home-v1.schema.json#/$defs/localDate" },
+        "reason": { "enum": ["no-current-training", "history-after-reference-date"] }
+      }
+    },
+    "libraryHistory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "latestEvidenceDate"],
+      "properties": {
+        "kind": { "const": "library-history" },
+        "latestEvidenceDate": { "$ref": "library-home-v1.schema.json#/$defs/localDate" }
+      }
+    },
+    "postImport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exactRepeat",
+        "canonicalHistoryChanged",
+        "newObservations",
+        "enrichedObservations",
+        "amendedObservations",
+        "unchangedObservations",
+        "sourceReviewRecommended"
+      ],
+      "properties": {
+        "exactRepeat": { "type": "boolean" },
+        "canonicalHistoryChanged": { "type": "boolean" },
+        "newObservations": { "type": "integer", "minimum": 0 },
+        "enrichedObservations": { "type": "integer", "minimum": 0 },
+        "amendedObservations": { "type": "integer", "minimum": 0 },
+        "unchangedObservations": { "type": "integer", "minimum": 0 },
+        "sourceReviewRecommended": { "type": "boolean" }
+      }
+    }
+  }
+}

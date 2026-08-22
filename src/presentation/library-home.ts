@@ -1,3 +1,5 @@
+import type { SportFamily, TrainingSportState } from "./training-sports";
+
 export type LibraryDomain = "training" | "activity" | "sleep" | "recovery";
 
 export type ExploreDestination = LibraryDomain | "longitudinal";
@@ -42,8 +44,69 @@ export interface LibraryPostImportReveal {
   newObservations: number;
   enrichedObservations: number;
   amendedObservations: number;
+  unchangedObservations: number;
   sourceReviewRecommended: boolean;
 }
+
+export interface LibraryHomeSportSummary {
+  state: TrainingSportState;
+  canonicalFamily: SportFamily | null;
+  displayLabel: string | null;
+  profileCount: number;
+  sessionCount: number;
+}
+
+export interface LibraryHomeRecentSession {
+  sessionRef: string;
+  startedAtLocal: string;
+  durationMilliseconds: string;
+  distanceMeters: number | null;
+  sportState: TrainingSportState;
+  canonicalFamily: SportFamily | null;
+  displayLabel: string | null;
+}
+
+export interface LibraryHomeTraining {
+  trainingSnapshotRef: string;
+  sessionCount: number;
+  sportProfileCount: number;
+  omittedSportProfileCount: number;
+  sports: LibraryHomeSportSummary[];
+  recentSessions: LibraryHomeRecentSession[];
+}
+
+export interface LibraryHomeTrainingPeriod {
+  range: LibraryHomeDateRange;
+  sessionCount: number;
+  totalDurationMilliseconds: string;
+}
+
+export interface RecentTrainingComparisonHighlight {
+  kind: "recent-training-comparison";
+  referenceDate: string;
+  baseline: LibraryHomeTrainingPeriod;
+  comparison: LibraryHomeTrainingPeriod;
+  sessionCountChange: string;
+  durationChangeMilliseconds: string;
+}
+
+export interface HistoricalTrainingHighlight {
+  kind: "historical-training";
+  referenceDate: string;
+  currentRange: LibraryHomeDateRange;
+  latestSessionDate: string;
+  reason: "no-current-training" | "history-after-reference-date";
+}
+
+export interface LibraryHistoryHighlight {
+  kind: "library-history";
+  latestEvidenceDate: string;
+}
+
+export type LibraryHomeHighlight =
+  | RecentTrainingComparisonHighlight
+  | HistoricalTrainingHighlight
+  | LibraryHistoryHighlight;
 
 export interface ExplorationWorkspace {
   version: 1;
@@ -51,9 +114,13 @@ export interface ExplorationWorkspace {
 }
 
 export interface LibraryHome {
+  version: 2;
+  libraryRevisionRef: string;
   availableRange: LibraryHomeDateRange | null;
   domains: LibraryDomainCoverage[];
   questions: LibraryQuestion[];
+  training: LibraryHomeTraining | null;
+  highlight: LibraryHomeHighlight | null;
   postImport: LibraryPostImportReveal | null;
   resumableExploration: ExplorationWorkspace | null;
 }
@@ -71,12 +138,46 @@ export interface LibraryHomeMessages {
   resumeHeading: string;
   resume: Record<ExploreDestination, string>;
   coverageHeading: string;
+  coverageSummary: string;
   coverageIntro: string;
   domains: Record<LibraryDomain, string>;
   records: { one: string; other: string };
   measurements: { one: string; other: string };
   unavailable: string;
   sources: string;
+  summarySessions: { one: string; other: string };
+  summarySports: { one: string; other: string };
+  sportsHeading: string;
+  sportsIntro: string;
+  sportFamilies: Record<SportFamily, string>;
+  sportUnknown: string;
+  sportUnavailable: string;
+  sportSessions: { one: string; other: string };
+  sportProfiles: { one: string; other: string };
+  omittedSports: { one: string; other: string };
+  recentHeading: string;
+  recentIntro: string;
+  recentOpen: string;
+  durationHoursMinutes: string;
+  durationHours: string;
+  durationMinutes: string;
+  durationLessThanMinute: string;
+  recentDistance: string;
+  comparisonEyebrow: string;
+  comparisonHeading: string;
+  comparisonIntro: string;
+  comparisonCurrent: string;
+  comparisonPrevious: string;
+  comparisonOpen: string;
+  comparisonSessions: { one: string; other: string };
+  historicalEyebrow: string;
+  historicalHeading: string;
+  historicalNoCurrentTraining: string;
+  historicalFutureHistory: string;
+  historicalOpen: string;
+  libraryHistoryEyebrow: string;
+  libraryHistoryHeading: string;
+  libraryHistoryIntro: string;
   emptyHeading: string;
   emptyIntro: string;
   emptyLocalBoundary: string;
@@ -86,19 +187,16 @@ export interface LibraryHomeMessages {
   emptyPreviewHeading: string;
   emptyPreviewNote: string;
   emptyPreviewSports: Record<IllustratedSportFamily, { label: string; detail: string }>;
-  answerEyebrow: string;
-  answerTrainingHeading: { one: string; other: string };
-  answerTrainingIntro: string;
-  answerHistoryHeading: string;
-  answerQuestionCount: { one: string; other: string };
-  answerAction: string;
-  postImportHeading: string;
+  postImportHeadingChanged: string;
+  postImportHeadingUnchanged: string;
+  postImportHeadingExactRepeat: string;
   postImportChanged: string;
   postImportUnchanged: string;
   postImportExactRepeat: string;
   postImportNew: { one: string; other: string };
   postImportEnriched: { one: string; other: string };
   postImportAmended: { one: string; other: string };
+  postImportUnchangedObservations: { one: string; other: string };
   postImportReview: string;
   backHome: string;
   returning: string;

@@ -158,10 +158,14 @@ pub use longitudinal::{
 mod library_home;
 pub use library_home::{
     clear_exploration_workspace, query_library_home, save_exploration_workspace,
-    ExplorationWorkspace, ExplorationWorkspacePort, ExploreDestination, LibraryDomain,
-    LibraryDomainCoverage, LibraryHome, LibraryHomeDateRange, LibraryHomePort, LibraryHomeRequest,
-    LibraryMeasurement, LibraryMeasurementCoverage, LibraryQuestion, LibraryQuestionKind,
-    PostImportReveal, StoredExplorationWorkspace,
+    ExplorationWorkspace, ExplorationWorkspacePort, ExploreDestination,
+    HistoricalTrainingHighlight, HistoricalTrainingReason, LibraryDomain, LibraryDomainCoverage,
+    LibraryHistoryHighlight, LibraryHome, LibraryHomeClockPort, LibraryHomeDateRange,
+    LibraryHomeHighlight, LibraryHomePort, LibraryHomeRecentSession, LibraryHomeRequest,
+    LibraryHomeRevisionPort, LibraryHomeSportSummary, LibraryHomeTraining,
+    LibraryHomeTrainingComparison, LibraryHomeTrainingPeriod, LibraryMeasurement,
+    LibraryMeasurementCoverage, LibraryQuestion, LibraryQuestionKind, PostImportReveal,
+    StoredExplorationWorkspace,
 };
 mod update;
 pub use update::{

@@ -13,7 +13,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use chrono::{DateTime, Months, NaiveDate, NaiveDateTime, SecondsFormat, Timelike};
+use chrono::{DateTime, Local, Months, NaiveDate, NaiveDateTime, SecondsFormat, Timelike};
 use regex::Regex;
 use rusqlite::{
     params, params_from_iter,
@@ -40,33 +40,33 @@ use fitfreed_application::{
     query_training_sports, remove_training_segment_criterion, save_exploration_workspace,
     save_training_sport_classification, update_training_segment_criterion, AppearancePreference,
     ApplicationError, CreateTrainingSegmentCriterionRequest, LibraryDomain, LibraryHomeDateRange,
-    LibraryHomeRequest, LibraryQuestion, LibraryQuestionKind, LocalePreference,
-    MoveTrainingSegmentCriterionRequest, SaveSportClassificationRequest, SegmentApplicabilityView,
-    SportClassificationSaveOutcome, TrainingSegmentCriterionMutationRequest,
-    UpdateTrainingSegmentCriterionRequest,
+    LibraryHomeHighlight, LibraryHomeRequest, LibraryQuestion, LibraryQuestionKind,
+    LocalePreference, MoveTrainingSegmentCriterionRequest, SaveSportClassificationRequest,
+    SegmentApplicabilityView, SportClassificationSaveOutcome,
+    TrainingSegmentCriterionMutationRequest, UpdateTrainingSegmentCriterionRequest,
 };
 use fitfreed_application::{
     ActivityDateRange, ActivityLibraryPort, ApplicationPreferences, ApplicationPreferencesPort,
     ArchiveImportPort, DetectedTrainingSport, ExplorationWorkspace, ExplorationWorkspacePort,
     ExploreDestination, ImportOutcomeLibraryPort, ImportPhase, ImportPhaseTimings, ImportProgress,
-    PersistedTrainingExerciseSegmentation, PersistedTrainingRoutePoints,
-    PersistedTrainingSessionCalendar, PersistedTrainingSessionProvenance,
-    PersistedTrainingSessionRoutes, PersistedTrainingSessionSearchPage,
-    PersistedTrainingSessionSegmentation, PersistedTrainingSessionSelection,
-    PersistedTrainingSessionSignals, PersistedTrainingSessionStructure,
-    PersistedTrainingSessionZones, PersistedTrainingSignalSamples, ProfiledImport,
-    RecoveryDateRange, RecoveryLibraryNight, RecoveryLibraryPort, ReportDefinitionPort,
-    ReportDefinitionPortError, SegmentSignalEvidence, SegmentSignalKind, SegmentSignalSample,
-    SleepDateRange, SleepLibraryPeriod, SleepLibraryPort, StoredApplicationPreferences,
-    StoredExplorationWorkspace, TrainingDateRange, TrainingDiscoveryView,
-    TrainingDiscoveryWorkspace, TrainingDiscoveryWorkspacePort, TrainingExerciseRoutesView,
-    TrainingExerciseSignalsView, TrainingExerciseStructure, TrainingExerciseZonesView,
-    TrainingLapStructure, TrainingLibraryPort, TrainingMeasurementFilter, TrainingPauseStructure,
-    TrainingProvenanceCurrentView, TrainingProvenanceDecisionView, TrainingProvenanceEventView,
-    TrainingRouteCollectionView, TrainingRouteKindView, TrainingRouteOverview,
-    TrainingRoutePointView, TrainingRoutePointsQuery, TrainingSegmentCriterionDirection,
-    TrainingSegmentationPort, TrainingSegmentationPortError, TrainingSessionCalendarDay,
-    TrainingSessionCalendarRequest, TrainingSessionDiscoveryPort,
+    LibraryHomeClockPort, LibraryHomeRevisionPort, PersistedTrainingExerciseSegmentation,
+    PersistedTrainingRoutePoints, PersistedTrainingSessionCalendar,
+    PersistedTrainingSessionProvenance, PersistedTrainingSessionRoutes,
+    PersistedTrainingSessionSearchPage, PersistedTrainingSessionSegmentation,
+    PersistedTrainingSessionSelection, PersistedTrainingSessionSignals,
+    PersistedTrainingSessionStructure, PersistedTrainingSessionZones,
+    PersistedTrainingSignalSamples, ProfiledImport, RecoveryDateRange, RecoveryLibraryNight,
+    RecoveryLibraryPort, ReportDefinitionPort, ReportDefinitionPortError, SegmentSignalEvidence,
+    SegmentSignalKind, SegmentSignalSample, SleepDateRange, SleepLibraryPeriod, SleepLibraryPort,
+    StoredApplicationPreferences, StoredExplorationWorkspace, TrainingDateRange,
+    TrainingDiscoveryView, TrainingDiscoveryWorkspace, TrainingDiscoveryWorkspacePort,
+    TrainingExerciseRoutesView, TrainingExerciseSignalsView, TrainingExerciseStructure,
+    TrainingExerciseZonesView, TrainingLapStructure, TrainingLibraryPort,
+    TrainingMeasurementFilter, TrainingPauseStructure, TrainingProvenanceCurrentView,
+    TrainingProvenanceDecisionView, TrainingProvenanceEventView, TrainingRouteCollectionView,
+    TrainingRouteKindView, TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
+    TrainingSegmentCriterionDirection, TrainingSegmentationPort, TrainingSegmentationPortError,
+    TrainingSessionCalendarDay, TrainingSessionCalendarRequest, TrainingSessionDiscoveryPort,
     TrainingSessionDiscoveryPortError, TrainingSessionProvenancePort,
     TrainingSessionProvenancePortError, TrainingSessionProvenanceQuery, TrainingSessionRoutePort,
     TrainingSessionRoutePortError, TrainingSessionRouteQuery, TrainingSessionRoutesView,
@@ -5471,6 +5471,39 @@ pub fn query_latest_import_outcome(database_path: &Path) -> Result<Option<Import
             import_outcome_from_persistence(persisted, artifact_families)
         })
         .transpose()
+}
+
+fn query_library_home_revision_ref(database_path: &Path) -> Result<String> {
+    let connection = Connection::open(database_path)?;
+    ensure_schema(&connection)?;
+    let training_revision = connection.query_row(
+        "SELECT revision FROM training_discovery_revision WHERE id = 1",
+        [],
+        |row| row.get::<_, i64>(0),
+    )?;
+    if training_revision < 1 {
+        return Err(ImportError::InvalidTrainingLibrary(
+            "training discovery revision is invalid".to_owned(),
+        ));
+    }
+    let latest_terminal_operation_ref = connection
+        .query_row(
+            "SELECT operation_ref
+             FROM import_operation
+             WHERE state IN ('completed', 'rejected', 'cancelled', 'failed')
+             ORDER BY id DESC LIMIT 1",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()?;
+    let mut digest = Sha256::new();
+    digest.update(b"fitfreed:library-home-revision:v2\0");
+    digest.update(training_revision.to_be_bytes());
+    digest.update(b"\0");
+    if let Some(operation_ref) = latest_terminal_operation_ref {
+        digest.update(operation_ref.as_bytes());
+    }
+    Ok(format!("library-home-revision-{:x}", digest.finalize()))
 }
 
 fn query_artifact_family_coverage(
@@ -12625,6 +12658,53 @@ impl TrainingLibraryPort for SqliteLibraryHome {
     }
 }
 
+impl TrainingSessionDiscoveryPort for SqliteLibraryHome {
+    fn query_training_sessions(
+        &self,
+        request: &TrainingSessionSearchRequest,
+    ) -> StandardResult<PersistedTrainingSessionSearchPage, TrainingSessionDiscoveryPortError> {
+        SqliteTrainingLibrary::new(self.database_path.clone()).query_training_sessions(request)
+    }
+
+    fn query_training_calendar(
+        &self,
+        request: &TrainingSessionCalendarRequest,
+    ) -> StandardResult<PersistedTrainingSessionCalendar, TrainingSessionDiscoveryPortError> {
+        SqliteTrainingLibrary::new(self.database_path.clone()).query_training_calendar(request)
+    }
+
+    fn query_training_session_selection(
+        &self,
+        request: &TrainingSessionSelectionRequest,
+    ) -> StandardResult<PersistedTrainingSessionSelection, TrainingSessionDiscoveryPortError> {
+        SqliteTrainingLibrary::new(self.database_path.clone())
+            .query_training_session_selection(request)
+    }
+}
+
+impl TrainingSportsPort for SqliteLibraryHome {
+    fn query_detected_training_sports(&self) -> StandardResult<Vec<DetectedTrainingSport>, String> {
+        SqliteTrainingSports::new(self.database_path.clone()).query_detected_training_sports()
+    }
+
+    fn find_detected_training_sport(
+        &self,
+        sport_ref: &str,
+    ) -> StandardResult<Option<DetectedTrainingSport>, String> {
+        SqliteTrainingSports::new(self.database_path.clone())
+            .find_detected_training_sport(sport_ref)
+    }
+
+    fn compare_and_save_sport_classification(
+        &self,
+        expected_revision: u64,
+        classification: &SportClassification,
+    ) -> StandardResult<bool, String> {
+        SqliteTrainingSports::new(self.database_path.clone())
+            .compare_and_save_sport_classification(expected_revision, classification)
+    }
+}
+
 impl SleepLibraryPort for SqliteLibraryHome {
     fn sleep_bounds(&self) -> StandardResult<Option<SleepDateRange>, String> {
         SqliteSleepLibrary::new(self.database_path.clone()).sleep_bounds()
@@ -12700,6 +12780,18 @@ impl ExplorationWorkspacePort for SqliteLibraryHome {
 
     fn clear_exploration_workspace(&self) -> StandardResult<(), String> {
         clear_exploration_workspace_record(&self.database_path).map_err(|error| error.to_string())
+    }
+}
+
+impl LibraryHomeRevisionPort for SqliteLibraryHome {
+    fn library_home_revision_ref(&self) -> StandardResult<String, String> {
+        query_library_home_revision_ref(&self.database_path).map_err(|error| error.to_string())
+    }
+}
+
+impl LibraryHomeClockPort for SqliteLibraryHome {
+    fn current_local_date(&self) -> StandardResult<String, String> {
+        Ok(Local::now().date_naive().format("%Y-%m-%d").to_string())
     }
 }
 
@@ -13598,7 +13690,8 @@ mod tests {
                         "distanceMeters":10000.5,
                         "calories":650,
                         "hrAvg":145,
-                        "hrMax":178
+                        "hrMax":178,
+                        "sport":{"id":"synthetic-home-sport"}
                     }"#,
                 ),
                 (
@@ -13647,6 +13740,26 @@ mod tests {
                 LibraryDomain::Recovery,
             ]
         );
+        assert_eq!(home.version, 2);
+        assert!(home
+            .library_revision_ref
+            .starts_with("library-home-revision-"));
+        let initial_revision = home.library_revision_ref.clone();
+        let training = home.training.as_ref().expect("complete training identity");
+        assert_eq!(training.session_count, 1);
+        assert_eq!(training.sport_profile_count, 1);
+        assert_eq!(training.omitted_sport_profile_count, 0);
+        assert_eq!(training.sports.len(), 1);
+        assert_eq!(training.sports[0].state, TrainingSportState::Unknown);
+        assert_eq!(training.recent_sessions.len(), 1);
+        assert_eq!(
+            training.recent_sessions[0].sport_state,
+            TrainingSportState::Unknown
+        );
+        assert!(matches!(
+            home.highlight,
+            Some(LibraryHomeHighlight::HistoricalTraining(_))
+        ));
         assert!(home
             .domains
             .iter()
@@ -13680,11 +13793,56 @@ mod tests {
         assert!(!reveal.exact_repeat);
         assert!(reveal.canonical_history_changed);
         assert_eq!(reveal.new_observations, 4);
+        assert_eq!(reveal.unchanged_observations, 0);
         assert!(!reveal.source_review_recommended);
+
+        let sports = SqliteTrainingSports::new(harness.database());
+        let sport = query_training_sports(&sports)
+            .expect("sport discovery")
+            .sports
+            .into_iter()
+            .next()
+            .expect("detected sport");
+        save_training_sport_classification(
+            &sports,
+            SaveSportClassificationRequest {
+                sport_ref: sport.sport_ref.expect("editable sport reference"),
+                expected_revision: sport
+                    .classification
+                    .expect("unresolved classification")
+                    .revision,
+                canonical_family: Some("running".to_owned()),
+                display_label: Some("Trail running".to_owned()),
+            },
+        )
+        .expect("authored sport meaning");
+        let classified_home = query_library_home(&library, LibraryHomeRequest::default())
+            .expect("Home after sport classification");
+        assert_ne!(classified_home.library_revision_ref, initial_revision);
+        let classified_training = classified_home
+            .training
+            .expect("classified training identity");
+        assert_eq!(
+            classified_training.sports[0].canonical_family.as_deref(),
+            Some("running")
+        );
+        assert_eq!(
+            classified_training.recent_sessions[0]
+                .display_label
+                .as_deref(),
+            Some("Trail running")
+        );
+        let classified_revision = classified_home.library_revision_ref;
 
         save_exploration_workspace(&library, ExploreDestination::Training)
             .expect("persist training workspace");
         let reopened = SqliteLibraryHome::new(harness.database());
+        assert_eq!(
+            query_library_home(&reopened, LibraryHomeRequest::default())
+                .expect("reopened coherent Home")
+                .library_revision_ref,
+            classified_revision
+        );
         assert_eq!(
             query_library_home(&reopened, LibraryHomeRequest::default())
                 .expect("reopened library home")

@@ -143,12 +143,26 @@ async function expectSettingsControlsWithinInitialViewport() {
 
 async function expectLibraryHome(catalog) {
   await expect($(".library-home h1")).toHaveText(catalog.home.title);
+  const summaryFacts = await $$(".library-home-summary strong");
+  expect(summaryFacts).toHaveLength(2);
+  for (const fact of summaryFacts) await expect(fact).toBeDisplayed();
+  await expect($(".library-home-sports h2")).toHaveText(catalog.home.sportsHeading);
+  const sportRows = await $$(".library-home-sports li");
+  expect(sportRows.length).toBeGreaterThan(0);
+  expect(await $$(".library-home-sports .sport-family-icon")).toHaveLength(sportRows.length);
+  await expect($(".library-home-recent h2")).toHaveText(catalog.home.recentHeading);
+  const recentSessions = await $$(".library-home-recent button");
+  expect(recentSessions.length).toBeGreaterThan(0);
+  expect(await $$(".library-home-recent .sport-family-icon")).toHaveLength(recentSessions.length);
+  await expect($(".library-home-historical h2")).toHaveText(catalog.home.historicalHeading);
   const questionButtons = await $$(".library-home-questions button");
   expect(questionButtons).toHaveLength(Object.keys(catalog.home.questions).length);
   for (const label of Object.values(catalog.home.questions)) {
     await expect($(".library-home-questions")).toHaveText(expect.stringContaining(label));
   }
-  const domainRows = await $$(".library-home-coverage li");
+  const coverageDisclosure = await $(".library-home-coverage-disclosure");
+  expect(await coverageDisclosure.getAttribute("open")).toBeNull();
+  const domainRows = await coverageDisclosure.$$(".library-home-coverage li");
   expect(domainRows).toHaveLength(Object.keys(catalog.home.domains).length);
   expect(await $$("#activity-heading, .training-insights, .sleep-insights, .recovery-insights, .longitudinal-insights")).toHaveLength(0);
 }
@@ -1057,6 +1071,18 @@ describe("packaged FitFreed import journey", () => {
     );
     await expect($(".library-home-reveal")).toHaveText(
       expect.stringContaining("7 new observations"),
+    );
+    const recentSession = (await $$(".library-home-recent button"))[0];
+    const recentSessionLabel = await recentSession.getAttribute("aria-label");
+    await recentSession.click();
+    await $("#training-session-detail-heading").waitForDisplayed({ timeout: 10_000 });
+    await returnToLibraryHome(english);
+    await browser.waitUntil(
+      () => browser.execute(
+        (expectedLabel) => document.activeElement?.getAttribute("aria-label") === expectedLabel,
+        recentSessionLabel,
+      ),
+      { timeout: 10_000, timeoutMsg: "Home did not restore the exact recent-session origin" },
     );
     await goToHome("sources");
     await openOutcomeDisclosure(".outcome-coverage-detail");

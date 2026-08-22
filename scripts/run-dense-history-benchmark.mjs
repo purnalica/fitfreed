@@ -129,6 +129,9 @@ export function validateDenseHistoryBenchmarkRun(run) {
   if (run.persistedSamples !== scenario.persistedSamples) {
     errors.push(`expected ${scenario.persistedSamples} persisted signal samples`);
   }
+  if (run.libraryHomeRecentSessions !== 4) {
+    errors.push("expected four bounded recent Home sessions");
+  }
   if (run.sessionPageSessions !== 25) {
     errors.push("expected 25 sessions in the discovery page");
   }
@@ -143,6 +146,7 @@ export function validateDenseHistoryBenchmarkRun(run) {
   for (const name of [
     "firstImportMilliseconds",
     "exactRepeatMilliseconds",
+    "libraryHomeP95Milliseconds",
     "sessionPageP95Milliseconds",
     "signalOverviewP95Milliseconds",
     "signalExactPageP95Milliseconds",
@@ -173,6 +177,10 @@ export function evaluateDenseHistoryBenchmarkRuns(runs) {
     exactRepeat: timedMeasurement(
       runs.map(({ exactRepeatMilliseconds }) => exactRepeatMilliseconds),
       exactRepeatBudgetMilliseconds,
+    ),
+    libraryHome: timedMeasurement(
+      runs.map(({ libraryHomeP95Milliseconds }) => libraryHomeP95Milliseconds),
+      queryBudgetMilliseconds,
     ),
     sessionPage: timedMeasurement(
       runs.map(({ sessionPageP95Milliseconds }) => sessionPageP95Milliseconds),
@@ -303,7 +311,7 @@ function executeDenseHistoryBenchmark() {
         warmUpQueriesPerProcess: 5,
         measuredQueriesPerProcess: 20,
         percentile: "sorted zero-based index ceil((n - 1) * 0.95)",
-        scope: "release-mode production archive, mapping, reconciliation, SQLite storage, exact repeat, session discovery, signal overview, and exact pagination",
+        scope: "release-mode production archive, mapping, reconciliation, SQLite storage, exact repeat, coherent Library Home composition, session discovery, signal overview, and exact pagination",
       },
       ...evaluation,
     };

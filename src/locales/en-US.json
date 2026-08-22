@@ -42,9 +42,9 @@
     "loading": "Loading this view…"
   },
   "home": {
-    "eyebrow": "Your independent library",
-    "title": "Your history, ready for your questions",
-    "intro": "Start with something you want to understand. FitFreed only offers paths supported by evidence in your local library.",
+    "eyebrow": "Local, independent, yours",
+    "title": "Your fitness history",
+    "intro": "See what you have recorded, return to individual sessions, and explore only what your local data supports.",
     "availablePeriod": "Available period",
     "rangeSeparator": "–",
     "questionsHeading": "What do you want to understand?",
@@ -72,6 +72,7 @@
       "longitudinal": "Resume aligned-history exploration"
     },
     "coverageHeading": "Your usable history",
+    "coverageSummary": "Review usable history",
     "coverageIntro": "Availability is shown honestly: missing measurements are not treated as zero.",
     "domains": {
       "training": "Training",
@@ -89,6 +90,70 @@
     },
     "unavailable": "Not available",
     "sources": "Review source coverage",
+    "summarySessions": {
+      "one": "{count} training session",
+      "other": "{count} training sessions"
+    },
+    "summarySports": {
+      "one": "{count} sport profile",
+      "other": "{count} sport profiles"
+    },
+    "sportsHeading": "Your sports",
+    "sportsIntro": "The sports represented in your imported training history.",
+    "sportFamilies": {
+      "running": "Running",
+      "cycling": "Cycling",
+      "swimming": "Swimming",
+      "walking": "Walking",
+      "hiking": "Hiking",
+      "strength": "Strength",
+      "mobility": "Mobility",
+      "racket-sport": "Racket sport",
+      "team-sport": "Team sport",
+      "winter-sport": "Winter sport",
+      "water-sport": "Water sport",
+      "other": "Other sport"
+    },
+    "sportUnknown": "Unclassified sport",
+    "sportUnavailable": "Sport unavailable from source",
+    "sportSessions": {
+      "one": "{count} session",
+      "other": "{count} sessions"
+    },
+    "sportProfiles": {
+      "one": "{count} source profile",
+      "other": "{count} source profiles"
+    },
+    "omittedSports": {
+      "one": "{count} additional sport profile",
+      "other": "{count} additional sport profiles"
+    },
+    "recentHeading": "Recent sessions",
+    "recentIntro": "Open a session to inspect its recorded details.",
+    "recentOpen": "Open {sport}, {date}",
+    "durationHoursMinutes": "{hours} hr {minutes} min",
+    "durationHours": "{hours} hr",
+    "durationMinutes": "{minutes} min",
+    "durationLessThanMinute": "Less than 1 min",
+    "recentDistance": "{distance} km",
+    "comparisonEyebrow": "Compared over equal periods",
+    "comparisonHeading": "Last 7 days",
+    "comparisonIntro": "Compared with the preceding 7 days. Counts and durations come from complete training sessions.",
+    "comparisonCurrent": "Current 7 days",
+    "comparisonPrevious": "Previous 7 days",
+    "comparisonOpen": "Explore these 7 days",
+    "comparisonSessions": {
+      "one": "{count} session",
+      "other": "{count} sessions"
+    },
+    "historicalEyebrow": "Recorded data only",
+    "historicalHeading": "Training history",
+    "historicalNoCurrentTraining": "Latest training session: {date}. Your complete history remains available to explore.",
+    "historicalFutureHistory": "Latest training session: {date}. Some history is later than this computer's current date, so no recent-performance claim is shown.",
+    "historicalOpen": "Explore training history",
+    "libraryHistoryEyebrow": "Available on this device",
+    "libraryHistoryHeading": "Your local history",
+    "libraryHistoryIntro": "Latest available evidence: {date}. Open a supported question to inspect it.",
     "emptyHeading": "Explore your fitness export on this device",
     "emptyIntro": "Choose an original export ZIP to build a local history of sessions, routes, signals, comparisons, and reports.",
     "emptyLocalBoundary": "No account. No upload. The archive and library stay on this device.",
@@ -127,7 +192,9 @@
       "other": "FitFreed found {count} evidence-backed questions it can answer without inventing missing data."
     },
     "answerAction": "Explore this answer",
-    "postImportHeading": "Your library grew",
+    "postImportHeadingChanged": "Your library grew",
+    "postImportHeadingUnchanged": "Import complete",
+    "postImportHeadingExactRepeat": "Already in your library",
     "postImportChanged": "The committed import added or improved usable history.",
     "postImportUnchanged": "The committed import preserved your current usable history.",
     "postImportExactRepeat": "This package was an exact repeat; your library remains unchanged and duplicate-free.",
@@ -143,7 +210,11 @@
       "one": "{count} amended observation",
       "other": "{count} amended observations"
     },
-    "postImportReview": "Some source coverage needs your attention.",
+    "postImportUnchangedObservations": {
+      "one": "{count} unchanged observation",
+      "other": "{count} unchanged observations"
+    },
+    "postImportReview": "Source coverage details are available for review.",
     "backHome": "Back to Home",
     "returning": "Returning to Home…"
   },

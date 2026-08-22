@@ -76,7 +76,7 @@ is governed independently by the [current ledger](docs/testing/public-release-re
 <li>Gap-aware supported signal charts with paginated exact samples</li>
 <li>Exact recorded heart-rate, speed, and power zones with applicable aggregates</li>
 <li>Reusable personal segment criteria with exact locally derived session views</li>
-<li>Library Home, post-import summary, and resumable exploration</li>
+<li>Result-led Library Home with complete span, current sport identities, recent exact sessions, conservative comparison or historical fallback, and precise post-import outcomes</li>
 <li>Persistent navigation, offline export guidance, and allowlisted official links</li>
 <li>Durable language, appearance, and content zoom settings</li>
 <li>en-US and es-ES, packaging, update recovery, and release-shaped tests</li>
@@ -95,7 +95,6 @@ is governed independently by the [current ledger](docs/testing/public-release-re
 <summary><strong>Work in progress — Experience production migration</strong></summary>
 <ul>
 <li>Accepted History Desk structure with bounded Answer Canvas explanations</li>
-<li>Incremental migration from import to recognizable personal value</li>
 <li>Map-led outdoor session investigation with synchronized recorded evidence</li>
 <li>Result-first reports, human-scale presentation, and visible data exit</li>
 </ul>

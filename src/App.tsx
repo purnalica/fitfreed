@@ -39,6 +39,8 @@ import {
 import type {
   ExploreDestination,
   LibraryHome,
+  LibraryHomeRecentSession,
+  RecentTrainingComparisonHighlight,
 } from "./presentation/library-home";
 import { LibraryHomePanel } from "./presentation/LibraryHomePanel";
 import type { SourceAcquisitionGuide } from "./presentation/source-acquisition";
@@ -179,6 +181,7 @@ function App() {
   const startupHomeNavigationRevision = useRef(homeNavigationRevision.current);
   const [libraryHome, setLibraryHome] = useState<LibraryHome>();
   const [libraryHomeFocusRequestId, setLibraryHomeFocusRequestId] = useState(0);
+  const [libraryHomeFocusTarget, setLibraryHomeFocusTarget] = useState<string>();
   const [homeNavigationOperation, setHomeNavigationOperation]
     = useState<HomeNavigationOperation>();
   const [exploreDestination, setExploreDestination] = useState<ExploreDestination>();
@@ -216,7 +219,7 @@ function App() {
   const [longitudinalRefreshToken, setLongitudinalRefreshToken] = useState(0);
   const [explorerNavigation, setExplorerNavigation] = useState<
     | (ExplorerNavigationRequest & { domain: "training" | "sleep" | "recovery" })
-    | (TrainingNavigationRequest & { domain: "training"; reportRef: string })
+    | (TrainingNavigationRequest & { domain: "training"; reportRef?: string })
   >();
   const navigationSequence = useRef(0);
   const [outcome, setOutcome] = useState<ImportOutcome>();
@@ -606,14 +609,71 @@ function App() {
     }
   }
 
-  async function openHomeExploration(destination: ExploreDestination) {
+  async function openHomeExploration(destination: ExploreDestination, focusTarget?: string) {
     if (homeNavigationOperation) return;
+    setLibraryHomeFocusTarget(focusTarget);
     setHomeNavigationOperation({ kind: "open", destination });
     setExplorerNavigation(undefined);
     setReportReturnRef(undefined);
     setReportReturnFocusRequest(undefined);
     try {
       await openExploration(destination);
+    } finally {
+      setHomeNavigationOperation(undefined);
+    }
+  }
+
+  async function openHomeTrainingSession(session: LibraryHomeRecentSession) {
+    if (homeNavigationOperation) return;
+    setLibraryHomeFocusTarget(`session:${session.sessionRef}`);
+    setHomeNavigationOperation({ kind: "open", destination: "training" });
+    setReportReturnRef(undefined);
+    setReportReturnFocusRequest(undefined);
+    navigationSequence.current += 1;
+    const navigation = {
+      domain: "training" as const,
+      kind: "session" as const,
+      sessionRef: session.sessionRef,
+      localDate: session.startedAtLocal.slice(0, 10),
+      requestId: navigationSequence.current,
+    };
+    setExplorerNavigation(navigation);
+    try {
+      if (!(await openExploration("training"))) {
+        setExplorerNavigation((current) => current?.requestId === navigation.requestId
+          ? undefined
+          : current);
+      }
+    } finally {
+      setHomeNavigationOperation(undefined);
+    }
+  }
+
+  async function openHomeTrainingComparison(highlight: RecentTrainingComparisonHighlight) {
+    if (homeNavigationOperation) return;
+    setLibraryHomeFocusTarget("highlight");
+    setHomeNavigationOperation({ kind: "open", destination: "training" });
+    setReportReturnRef(undefined);
+    setReportReturnFocusRequest(undefined);
+    navigationSequence.current += 1;
+    const navigation = {
+      domain: "training" as const,
+      kind: "comparison" as const,
+      query: {
+        question: "training-period-comparison" as const,
+        questionVersion: 1 as const,
+        baselineRange: highlight.baseline.range,
+        comparisonRange: highlight.comparison.range,
+      },
+      requestId: navigationSequence.current,
+    };
+    setExplorerNavigation(navigation);
+    try {
+      if (!(await openExploration("training"))) {
+        setExplorerNavigation((current) => current?.requestId === navigation.requestId
+          ? undefined
+          : current);
+      }
     } finally {
       setHomeNavigationOperation(undefined);
     }
@@ -1073,10 +1133,16 @@ function App() {
           locale={locale}
           messages={messages.home}
           focusRequestId={libraryHomeFocusRequestId}
+          focusTarget={libraryHomeFocusTarget}
           pendingDestination={homeNavigationOperation?.kind === "open"
             ? homeNavigationOperation.destination
             : undefined}
-          onExplore={(destination) => void openHomeExploration(destination)}
+          onExplore={(destination, focusTarget) => void openHomeExploration(
+            destination,
+            focusTarget,
+          )}
+          onOpenComparison={(comparison) => void openHomeTrainingComparison(comparison)}
+          onOpenSession={(session) => void openHomeTrainingSession(session)}
           onOpenSources={openSources}
           onChooseArchive={() => void chooseArchiveFromHome()}
           onOpenSourceGuide={openSourceGuideFromHome}
