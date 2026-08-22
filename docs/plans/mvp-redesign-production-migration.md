@@ -206,7 +206,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R2.1 | Complete locally — exact packaged gates passed 2026-08-22 | A new person can orient and act through the labelled shell and first-run Home |
 | X5-R2.2 | Complete locally — exact packaged gates passed 2026-08-22 | Sources leads with acquisition, a protected active task, and a calm exact outcome |
 | X5-R2.3 | Complete locally — exact packaged gates passed 2026-08-22 | Durable language, appearance, zoom, and update settings form one coherent workspace |
-| X5-R3 | Reopened by the independent R5 checkpoint — RC-01 and RC-02 | Import ends in recognizable personal value |
+| X5-R3 | Reopened — R3.1 complete locally; RC-02 remains | Import ends in recognizable personal value |
 | X5-R4 | Complete locally — exact packaged and exhaustive adaptive gates passed 2026-08-22 | Existing health and aligned-history questions read as answers |
 | X5-R5 | Reopened by the independent R5 checkpoint — RC-02 through RC-04 | A remembered session is findable and sports are recognizable |
 | X5-R6 | Pending | A routed workout is investigated through a dominant synchronized map |
@@ -735,6 +735,22 @@ ordered correction slices before R6:
 Each slice follows the ordinary TDD and release-shaped gates. The checkpoint's copy advisory is corrected
 with the owning surface; it does not independently reopen R2. R3 and R5 return to complete only after a fresh
 clean-first-use and representative multi-sport inspection confirms the required product outcome.
+
+### R3.1 local closure — 2026-08-22
+
+The application contract already provided coherent personal results and a revision-correlated import outcome;
+the defect was the presentation order. Home now leads with its summary, recognizable sports, historical
+highlight, and recent sessions. A compact changed, unchanged, or exact-repeat acknowledgement follows those
+personal results. Sources remains the single detailed owner of incorporation counts, coverage, diagnostics,
+and provider evidence.
+
+Focused presentation and integration tests preserve both the useful handoff and exact coverage reachability.
+The complete fast lane passed 153 automation, 246 React, 2 vendored-updater, 212 host, 147 application, and 33
+domain tests, together with the production build, localization, UI-contract, documentation, repository, and
+privacy gates. The packaged functional journey and isolated performance suite passed. Actual macOS WebView
+inspection covered wide light 100% and compact dark 200% Home states; personal results preceded the receipt,
+the receipt remained calm and legible, the page had no horizontal overflow, and Axe reported no violations.
+R3 remains reopened because RC-02 still requires distinct, actionable identity for unresolved sport profiles.
 
 ## X5-R6 — Deliver the outdoor session workbench
 

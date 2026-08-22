@@ -193,11 +193,6 @@ export interface LibraryHomeMessages {
   postImportChanged: string;
   postImportUnchanged: string;
   postImportExactRepeat: string;
-  postImportNew: { one: string; other: string };
-  postImportEnriched: { one: string; other: string };
-  postImportAmended: { one: string; other: string };
-  postImportUnchangedObservations: { one: string; other: string };
-  postImportReview: string;
   backHome: string;
   returning: string;
 }

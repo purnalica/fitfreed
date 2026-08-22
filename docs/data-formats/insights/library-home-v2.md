@@ -45,10 +45,12 @@ bounded latest-30-date availability projection; it must never be presented as a 
 record count.
 
 Version 2 adds `unchangedObservations` to `postImport`. It is the checked sum of equivalent and
-preserved canonical observations from the matching completed import. Presentation shows only
-non-zero change categories and keeps exact artifact coverage, unsupported input, invalid input, and
-provenance behind an explicit Sources action. A failed, rejected, cancelled, active, missing, or
-superseded operation still produces no Home reveal.
+preserved canonical observations from the matching completed import. Home uses the correlated result
+only to distinguish a changed, unchanged, or exact-repeat completion after the personal result hierarchy;
+it does not repeat reconciliation counts or source diagnostics. Sources presents the non-zero change
+categories and keeps exact artifact coverage, unsupported input, invalid input, and provenance behind
+its deliberate result disclosure. A failed, rejected, cancelled, active, missing, or superseded operation
+still produces no Home acknowledgement.
 
 ## Complete training identity
 

@@ -192,29 +192,12 @@
       "other": "FitFreed ha encontrado {count} preguntas respaldadas por indicios que puede responder sin inventar los datos ausentes."
     },
     "answerAction": "Explorar esta respuesta",
-    "postImportHeadingChanged": "Tu biblioteca ha crecido",
+    "postImportHeadingChanged": "Importación completada",
     "postImportHeadingUnchanged": "Importación completada",
     "postImportHeadingExactRepeat": "Ya estaba en tu biblioteca",
-    "postImportChanged": "La importación confirmada ha añadido o mejorado historial utilizable.",
-    "postImportUnchanged": "La importación confirmada ha conservado tu historial utilizable actual.",
+    "postImportChanged": "Tu historial importado está listo para explorarlo.",
+    "postImportUnchanged": "No se ha encontrado historial utilizable nuevo; tu biblioteca actual no ha cambiado.",
     "postImportExactRepeat": "Este paquete era una repetición exacta; tu biblioteca permanece sin cambios ni duplicados.",
-    "postImportNew": {
-      "one": "{count} observación nueva",
-      "other": "{count} observaciones nuevas"
-    },
-    "postImportEnriched": {
-      "one": "{count} observación enriquecida",
-      "other": "{count} observaciones enriquecidas"
-    },
-    "postImportAmended": {
-      "one": "{count} observación rectificada",
-      "other": "{count} observaciones rectificadas"
-    },
-    "postImportUnchangedObservations": {
-      "one": "{count} observación sin cambios",
-      "other": "{count} observaciones sin cambios"
-    },
-    "postImportReview": "Puedes consultar los detalles de cobertura del origen.",
     "backHome": "Volver a Inicio",
     "returning": "Volviendo a Inicio…"
   },

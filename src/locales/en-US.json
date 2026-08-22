@@ -192,29 +192,12 @@
       "other": "FitFreed found {count} evidence-backed questions it can answer without inventing missing data."
     },
     "answerAction": "Explore this answer",
-    "postImportHeadingChanged": "Your library grew",
+    "postImportHeadingChanged": "Import complete",
     "postImportHeadingUnchanged": "Import complete",
     "postImportHeadingExactRepeat": "Already in your library",
-    "postImportChanged": "The committed import added or improved usable history.",
-    "postImportUnchanged": "The committed import preserved your current usable history.",
+    "postImportChanged": "Your imported history is ready to explore.",
+    "postImportUnchanged": "No new usable history was found; your existing library is unchanged.",
     "postImportExactRepeat": "This package was an exact repeat; your library remains unchanged and duplicate-free.",
-    "postImportNew": {
-      "one": "{count} new observation",
-      "other": "{count} new observations"
-    },
-    "postImportEnriched": {
-      "one": "{count} enriched observation",
-      "other": "{count} enriched observations"
-    },
-    "postImportAmended": {
-      "one": "{count} amended observation",
-      "other": "{count} amended observations"
-    },
-    "postImportUnchangedObservations": {
-      "one": "{count} unchanged observation",
-      "other": "{count} unchanged observations"
-    },
-    "postImportReview": "Source coverage details are available for review.",
     "backHome": "Back to Home",
     "returning": "Returning to Home…"
   },

@@ -3419,8 +3419,12 @@ describe("FitFreed import interface", () => {
     await chooseArchive(user, "/synthetic/valid.zip");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Import selected package" }));
-    expect(await screen.findByRole("status", { name: "Your library grew" }))
-      .toHaveTextContent("3 new observations");
+    expect(await screen.findByRole("status", { name: "Import complete" }))
+      .toHaveTextContent("Your imported history is ready to explore");
+    expect(screen.getByRole("region", { name: "Your sports" }))
+      .toHaveTextContent("Road running");
+    expect(screen.getByRole("region", { name: "Recent sessions" }))
+      .toHaveTextContent("Aug 17, 2026");
     expect(mocks.sleepInvoke).not.toHaveBeenCalled();
     expect(mocks.homeInvoke).toHaveBeenCalledWith("query_library_home", {
       request: { afterImportOperationRef: "synthetic-operation" },

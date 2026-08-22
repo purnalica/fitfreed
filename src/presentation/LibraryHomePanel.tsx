@@ -193,45 +193,6 @@ export function LibraryHomePanel({
         </div>
       </header>
 
-      {home.postImport && (
-        <section
-          className="library-home-reveal"
-          role="status"
-          aria-labelledby="library-home-reveal-heading"
-          aria-live="polite"
-        >
-          <h2 id="library-home-reveal-heading">{postImportHeading}</h2>
-          <p>
-            {home.postImport.exactRepeat
-              ? messages.postImportExactRepeat
-              : home.postImport.canonicalHistoryChanged
-                ? messages.postImportChanged
-                : messages.postImportUnchanged}
-          </p>
-          <ul>
-            {home.postImport.newObservations > 0 && (
-              <li>{formatCount(home.postImport.newObservations, messages.postImportNew)}</li>
-            )}
-            {home.postImport.enrichedObservations > 0 && (
-              <li>{formatCount(home.postImport.enrichedObservations, messages.postImportEnriched)}</li>
-            )}
-            {home.postImport.amendedObservations > 0 && (
-              <li>{formatCount(home.postImport.amendedObservations, messages.postImportAmended)}</li>
-            )}
-            {home.postImport.unchangedObservations > 0 && (
-              <li>{formatCount(
-                home.postImport.unchangedObservations,
-                messages.postImportUnchangedObservations,
-              )}</li>
-            )}
-          </ul>
-          {home.postImport.sourceReviewRecommended && <p>{messages.postImportReview}</p>}
-          <button type="button" className="secondary" onClick={onOpenSources}>
-            {messages.sources}
-          </button>
-        </section>
-      )}
-
       {training && training.sports.length > 0 && (
         <section className="library-home-sports" aria-labelledby="library-home-sports-heading">
           <div>
@@ -378,6 +339,24 @@ export function LibraryHomePanel({
               );
             })}
           </ul>
+        </section>
+      )}
+
+      {home.postImport && (
+        <section
+          className="library-home-reveal"
+          role="status"
+          aria-labelledby="library-home-reveal-heading"
+          aria-live="polite"
+        >
+          <h2 id="library-home-reveal-heading">{postImportHeading}</h2>
+          <p>
+            {home.postImport.exactRepeat
+              ? messages.postImportExactRepeat
+              : home.postImport.canonicalHistoryChanged
+                ? messages.postImportChanged
+                : messages.postImportUnchanged}
+          </p>
         </section>
       )}
 

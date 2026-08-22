@@ -341,7 +341,7 @@ describe("LibraryHomePanel", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Opening training exploration…");
   });
 
-  it("reveals only meaningful canonical import changes and keeps limitations reachable", async () => {
+  it("keeps import accounting after personal value and source detail one deliberate action away", async () => {
     const user = userEvent.setup();
     const onOpenSources = vi.fn();
     render(
@@ -366,17 +366,30 @@ describe("LibraryHomePanel", () => {
       />,
     );
 
-    const reveal = screen.getByRole("status", { name: "Your library grew" });
-    expect(reveal).toHaveTextContent("37 new observations");
-    expect(reveal).toHaveTextContent("4 enriched observations");
-    expect(reveal).toHaveTextContent("11 unchanged observations");
-    expect(reveal).not.toHaveTextContent("amended");
-    expect(reveal).toHaveTextContent("Source coverage details are available for review");
-    await user.click(within(reveal).getByRole("button", { name: "Review source coverage" }));
+    const reveal = screen.getByRole("status", { name: "Import complete" });
+    const personalResults = [
+      screen.getByRole("region", { name: "Your sports" }),
+      screen.getByRole("region", { name: "Last 7 days" }),
+      screen.getByRole("region", { name: "Recent sessions" }),
+    ];
+    for (const result of personalResults) {
+      expect(result.compareDocumentPosition(reveal) & Node.DOCUMENT_POSITION_FOLLOWING)
+        .toBeTruthy();
+    }
+    expect(reveal).toHaveTextContent("Your imported history is ready to explore");
+    expect(reveal).not.toHaveTextContent("observations");
+    expect(within(reveal).queryByRole("button", { name: "Review source coverage" }))
+      .not.toBeInTheDocument();
+
+    const coverageDisclosure = screen.getByRole("group", { name: "Review usable history" });
+    await user.click(within(coverageDisclosure).getByText("Review usable history"));
+    await user.click(within(coverageDisclosure).getByRole("button", {
+      name: "Review source coverage",
+    }));
     expect(onOpenSources).toHaveBeenCalledOnce();
   });
 
-  it("describes unchanged and repeated imports without claiming that the library grew", () => {
+  it("describes unchanged and repeated imports without implying new usable history", () => {
     const unchangedHome = populatedHome({
       postImport: {
         exactRepeat: false,
@@ -401,7 +414,9 @@ describe("LibraryHomePanel", () => {
     );
 
     expect(screen.getByRole("status", { name: "Import complete" }))
-      .not.toHaveTextContent("Your library grew");
+      .toHaveTextContent("No new usable history was found");
+    expect(screen.getByRole("status", { name: "Import complete" }))
+      .not.toHaveTextContent("ready to explore");
 
     rerender(
       <LibraryHomePanel

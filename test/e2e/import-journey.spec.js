@@ -186,6 +186,21 @@ async function expectLibraryHome(catalog) {
   const recentSessions = await $$(".library-home-recent button");
   expect(recentSessions.length).toBeGreaterThan(0);
   expect(await $$(".library-home-recent .sport-family-icon")).toHaveLength(recentSessions.length);
+  if (await $(".library-home-reveal").isExisting()) {
+    const personalValuePrecedesReceipt = await browser.execute(() => {
+      const receipt = document.querySelector(".library-home-reveal");
+      const personalResults = [
+        document.querySelector(".library-home-sports"),
+        document.querySelector(".library-home-highlight"),
+        document.querySelector(".library-home-recent"),
+      ];
+      return receipt !== null && personalResults.every((result) => (
+        result !== null
+        && Boolean(result.compareDocumentPosition(receipt) & Node.DOCUMENT_POSITION_FOLLOWING)
+      ));
+    });
+    expect(personalValuePrecedesReceipt).toBe(true);
+  }
   await expect($(".library-home-historical h2")).toHaveText(catalog.home.historicalHeading);
   const questionButtons = await $$(".library-home-questions button");
   expect(questionButtons).toHaveLength(Object.keys(catalog.home.questions).length);
@@ -1216,9 +1231,6 @@ describe("packaged FitFreed import journey", () => {
     await expect($(".library-home-reveal")).toHaveText(
       expect.stringContaining(english.home.postImportChanged),
     );
-    await expect($(".library-home-reveal")).toHaveText(
-      expect.stringContaining("7 new observations"),
-    );
     const recentSession = (await $$(".library-home-recent button"))[0];
     const recentSessionLabel = await recentSession.getAttribute("aria-label");
     await recentSession.click();
@@ -1234,6 +1246,10 @@ describe("packaged FitFreed import journey", () => {
       { timeout: 10_000, timeoutMsg: "Home did not restore the exact recent-session origin" },
     );
     await goToHome("sources");
+    const importedChanges = await $$(".outcome-change-summary li");
+    expect(importedChanges.length).toBeGreaterThan(0);
+    await expect(importedChanges[0].$("strong")).toHaveText("7");
+    await expect(importedChanges[0].$("span")).toHaveText("new observations");
     await openOutcomeDisclosure(".outcome-coverage-detail");
     await expectCoverage([
       ["9", "Supported"],

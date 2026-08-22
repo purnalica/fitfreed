@@ -18,8 +18,9 @@ competing with that personal context. The daily-activity question opens an immed
 adjacent equal periods, up to 30 days each. It leads with the change in average daily steps and the evidence
 coverage; period controls, exact values, missing observations, and each independent source remain available
 on request. With fewer than two calendar days, it explains why no change can be calculated and keeps daily
-history available. A successful import returns there with its exact canonical effect; an
-unchanged or repeated import never claims that the library grew. Opening a Home session, comparison, question,
+history available. A successful import returns there with personal history first and a brief completion
+acknowledgement after the useful results; exact import accounting remains in Sources. An unchanged or
+repeated import states that the existing library is unchanged. Opening a Home session, comparison, question,
 or resumable exploration retains its exact return origin; a later launch safely restores the last supported
 exploration destination or returns to Home. Activity, training, sleep, recovery, and longitudinal views load
 only when selected, and **Back to Home** clears the durable destination without persisting disposable filters,
