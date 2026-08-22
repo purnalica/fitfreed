@@ -2,8 +2,9 @@
 
 ## Status and authority
 
-Authorized for autonomous execution as of 2026-08-21. X4-P0 through X5-R5 are complete locally; the
-independent whole-redesign audit checkpoint precedes X5-R6.
+Authorized for autonomous execution as of 2026-08-21. The independent R5 checkpoint audit completed on
+2026-08-22 and reopened X5-R3 and X5-R5 before X5-R6. Its immutable findings are recorded in the
+[R5 checkpoint audit](../research/mvp-redesign-r5-checkpoint-audit.md).
 The X5-R1 product entrance is live; exact hosted verification of its CI resource optimizer remains
 pending synchronization of the workflow-changing commit. The product owner accepted the X3
 direction and its amendments on 2026-08-21. This
@@ -205,9 +206,9 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R2.1 | Complete locally — exact packaged gates passed 2026-08-22 | A new person can orient and act through the labelled shell and first-run Home |
 | X5-R2.2 | Complete locally — exact packaged gates passed 2026-08-22 | Sources leads with acquisition, a protected active task, and a calm exact outcome |
 | X5-R2.3 | Complete locally — exact packaged gates passed 2026-08-22 | Durable language, appearance, zoom, and update settings form one coherent workspace |
-| X5-R3 | Complete locally — exact packaged and dense-history gates passed 2026-08-22 | Import ends in recognizable personal value |
+| X5-R3 | Reopened by the independent R5 checkpoint — RC-01 and RC-02 | Import ends in recognizable personal value |
 | X5-R4 | Complete locally — exact packaged and exhaustive adaptive gates passed 2026-08-22 | Existing health and aligned-history questions read as answers |
-| X5-R5 | Complete locally — exact packaged gates passed 2026-08-22 | A remembered session is findable and sports are recognizable |
+| X5-R5 | Reopened by the independent R5 checkpoint — RC-02 through RC-04 | A remembered session is findable and sports are recognizable |
 | X5-R6 | Pending | A routed workout is investigated through a dominant synchronized map |
 | X5-R7 | Pending | Every session composition reflects its actual evidence |
 | X5-R8 | Pending | Personal ranges and reusable criteria work end to end |
@@ -365,7 +366,8 @@ R4 is delivered as five independently usable vertical increments. Each increment
 exact-data route and leaves the application coherent if the following increment has not landed.
 
 **Status:** R4.1 through R4.5 passed their focused, full fast, packaged functional, packaged
-performance, privacy, and actual macOS visual gates on 2026-08-22. R4 is complete; X5-R5 is next.
+performance, privacy, and actual macOS visual gates on 2026-08-22. R4 remains complete; current
+execution status is maintained in the increment table above.
 
 | Increment | User-visible outcome | Required implementation and evidence |
 |---|---|---|
@@ -707,8 +709,32 @@ keyboard focus, zero page-level horizontal overflow, and zero Axe violations. Th
 fingerprint passed the complete packaged functional, localized, maximum-zoom, accessibility, restart, reimport,
 report, and durable-state journey in 1 minute 17 seconds. Its isolated packaged Insights campaign passed every
 accepted budget in 1 minute 16 seconds; the slowest common-interaction p95 was 36 ms, the slowest maximum-range
-p95 was 121 ms, and the bounded signal-overview p95 was 63 ms. R5 is complete locally; hosted verification
-remains evidence for the outgoing exact revision rather than a reason to repeat an unchanged local campaign.
+p95 was 121 ms, and the bounded signal-overview p95 was 63 ms. At that gate, R5 was recorded complete
+locally; the independent checkpoint disposition below supersedes that status without invalidating the
+recorded engineering evidence.
+
+### Independent R5 checkpoint disposition
+
+The later [R5 checkpoint audit](../research/mvp-redesign-r5-checkpoint-audit.md) preserves the original gate
+evidence but contradicts its product-experience conclusion. It reopens R3 and R5 through the following
+ordered correction slices before R6:
+
+1. **R3.1 — Personal-value handoff.** Reduce the transient import receipt to supporting evidence, make the
+   useful personal result the initial Home hierarchy, and keep exact coverage in Sources as a deliberate
+   action.
+2. **R3.2/R5.4 — Distinct unresolved sport identity.** Preserve each stable unresolved source profile in
+   Home, expose one contextual path to the existing classification task, and retain coherent authored
+   identity propagation everywhere.
+3. **R5.5 — Human-scale session discovery.** Compose cards from available evidence, apply locale-appropriate
+   human-scale date and quantity formatting, replace opaque source ordinals, and make every sport refinement
+   visibly discoverable at supported geometry.
+4. **Cross-cutting restart evidence.** Replace `reloadSession()`-based restart claims with a controlled
+   packaged process termination and relaunch against the same durable state. Preserve every behavioral
+   assertion while changing the evidence mechanism.
+
+Each slice follows the ordinary TDD and release-shaped gates. The checkpoint's copy advisory is corrected
+with the owning surface; it does not independently reopen R2. R3 and R5 return to complete only after a fresh
+clean-first-use and representative multi-sport inspection confirms the required product outcome.
 
 ## X5-R6 — Deliver the outdoor session workbench
 
@@ -923,9 +949,13 @@ screens, or successful lower-layer operations cannot override the finding. Final
 experience review occurs only after the independent machine-assisted audit has challenged and corrected
 the candidate.
 
-**Next UX evaluation topic:** assess whether optional appearance themes beyond system, light, and dark would
-provide meaningful personal expression without weakening readability, accessibility, visual hierarchy, or
-cross-platform coherence. This is an evaluation prompt, not confirmed MVP implementation scope.
+### Topics for the next UX evaluation
+
+- [ ] Appearance-personalization themes: assess whether optional themes beyond system, light, and dark would
+  provide meaningful personal expression without weakening readability, accessibility, visual hierarchy, or
+  cross-platform coherence.
+
+These are evaluation prompts, not confirmed MVP implementation scope.
 
 ## Traceability to the retained D0–E6 baseline
 
