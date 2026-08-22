@@ -1,9 +1,10 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use fitfreed_domain::{
     adjust_training_session_range as adjust_range, remove_training_session_range as remove_range,
     rename_training_session_range as rename_range, RemovedTrainingSessionRange,
-    TrainingSessionRange, TrainingSessionRangeError, TrainingSessionRangeState,
+    TrainingSessionRange, TrainingSessionRangeCoordinate, TrainingSessionRangeCoordinateScope,
+    TrainingSessionRangeError, TrainingSessionRangeState,
 };
 use thiserror::Error;
 
@@ -16,6 +17,7 @@ const RANGE_PREFIX: &str = "range-";
 const EVIDENCE_REVISION_PREFIX: &str = "range-evidence-";
 const MAX_SESSION_RANGES: usize = 1_000;
 const MAX_SESSION_RANGE_EXERCISES: usize = 1_000;
+const MAX_EXERCISE_RANGE_COORDINATES: usize = 1_000;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TrainingSessionRangesQuery {
@@ -37,7 +39,13 @@ pub struct PersistedTrainingSessionRanges {
 pub struct TrainingSessionRangeExerciseContext {
     pub exercise_ref: String,
     pub ordinal: usize,
-    pub duration_milliseconds: i64,
+    pub coordinates: Vec<TrainingSessionRangeCoordinateContext>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TrainingSessionRangeCoordinateContext {
+    pub coordinate: TrainingSessionRangeCoordinate,
+    pub maximum_elapsed_milliseconds: i64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -97,6 +105,7 @@ pub struct CreateTrainingSessionRangeRequest {
     pub session_ref: String,
     pub snapshot_ref: String,
     pub exercise_ref: String,
+    pub coordinate: TrainingSessionRangeCoordinate,
     pub title: String,
     pub started_at_elapsed_milliseconds: i64,
     pub ended_at_elapsed_milliseconds: i64,
@@ -118,6 +127,7 @@ pub struct AdjustTrainingSessionRangeRequest {
     pub range_ref: String,
     pub expected_revision: u64,
     pub exercise_ref: String,
+    pub coordinate: TrainingSessionRangeCoordinate,
     pub started_at_elapsed_milliseconds: i64,
     pub ended_at_elapsed_milliseconds: i64,
 }
@@ -149,6 +159,7 @@ pub fn create_training_session_range(
     validate_exercise_ref(&request.exercise_ref)?;
     let current = load_context(port, &query)?;
     let exercise = find_exercise(&current, &request.exercise_ref)?;
+    let coordinate = find_coordinate(exercise, &request.coordinate)?;
     let range_id = port
         .new_training_session_range_id()
         .map_err(map_update_error)?;
@@ -156,10 +167,11 @@ pub fn create_training_session_range(
         range_id,
         &request.session_ref,
         &request.exercise_ref,
+        request.coordinate,
         &request.title,
         request.started_at_elapsed_milliseconds,
         request.ended_at_elapsed_milliseconds,
-        exercise.duration_milliseconds,
+        coordinate.maximum_elapsed_milliseconds,
         &current.evidence_revision,
     )
     .map_err(invalid_range)?;
@@ -206,12 +218,14 @@ pub fn adjust_training_session_range(
     let current = load_context(port, &query)?;
     let existing = find_expected_range(&current, &request.range_ref, request.expected_revision)?;
     let exercise = find_exercise(&current, &request.exercise_ref)?;
+    let coordinate = find_coordinate(exercise, &request.coordinate)?;
     let revised = adjust_range(
         existing,
         &request.exercise_ref,
+        request.coordinate,
         request.started_at_elapsed_milliseconds,
         request.ended_at_elapsed_milliseconds,
-        exercise.duration_milliseconds,
+        coordinate.maximum_elapsed_milliseconds,
         &current.evidence_revision,
     )
     .map_err(invalid_range)?;
@@ -309,9 +323,26 @@ fn build_result(
     mut persisted: PersistedTrainingSessionRanges,
 ) -> Result<TrainingSessionRangesResult, ApplicationError> {
     validate_persisted(query, &persisted)?;
+    let exercise_ordinals = persisted
+        .exercises
+        .iter()
+        .map(|exercise| (exercise.exercise_ref.as_str(), exercise.ordinal))
+        .collect::<BTreeMap<_, _>>();
     persisted.ranges.sort_by(|left, right| {
-        left.started_at_elapsed_milliseconds()
-            .cmp(&right.started_at_elapsed_milliseconds())
+        left.exercise_ref()
+            .and_then(|exercise_ref| exercise_ordinals.get(exercise_ref).copied())
+            .unwrap_or(usize::MAX)
+            .cmp(
+                &right
+                    .exercise_ref()
+                    .and_then(|exercise_ref| exercise_ordinals.get(exercise_ref).copied())
+                    .unwrap_or(usize::MAX),
+            )
+            .then_with(|| left.coordinate().cmp(right.coordinate()))
+            .then_with(|| {
+                left.started_at_elapsed_milliseconds()
+                    .cmp(&right.started_at_elapsed_milliseconds())
+            })
             .then_with(|| {
                 left.ended_at_elapsed_milliseconds()
                     .cmp(&right.ended_at_elapsed_milliseconds())
@@ -379,6 +410,17 @@ fn find_exercise<'a>(
         .ok_or(ApplicationError::TrainingSessionRangeNotFound)
 }
 
+fn find_coordinate<'a>(
+    exercise: &'a TrainingSessionRangeExerciseContext,
+    coordinate: &TrainingSessionRangeCoordinate,
+) -> Result<&'a TrainingSessionRangeCoordinateContext, ApplicationError> {
+    exercise
+        .coordinates
+        .iter()
+        .find(|context| &context.coordinate == coordinate)
+        .ok_or(ApplicationError::TrainingSessionRangeNotFound)
+}
+
 fn validate_persisted(
     query: &TrainingSessionRangesQuery,
     persisted: &PersistedTrainingSessionRanges,
@@ -405,26 +447,46 @@ fn validate_persisted(
         if !valid_ref(&exercise.exercise_ref, EXERCISE_PREFIX)
             || !exercise_refs.insert(exercise.exercise_ref.as_str())
             || !exercise_ordinals.insert(exercise.ordinal)
-            || exercise.duration_milliseconds < 0
+            || exercise.coordinates.is_empty()
+            || exercise.coordinates.len() > MAX_EXERCISE_RANGE_COORDINATES
         {
             return query_failed("range exercise context is invalid");
+        }
+        let mut coordinates = BTreeSet::new();
+        for coordinate in &exercise.coordinates {
+            if coordinate.maximum_elapsed_milliseconds < 0
+                || coordinate.coordinate.scope()
+                    == TrainingSessionRangeCoordinateScope::LegacySessionElapsed
+                || !coordinates.insert(&coordinate.coordinate)
+            {
+                return query_failed("range coordinate context is invalid");
+            }
+        }
+        if !coordinates.contains(&TrainingSessionRangeCoordinate::exercise_elapsed()) {
+            return query_failed("range exercise coordinate is missing");
         }
     }
     let mut identities = BTreeSet::new();
     for range in &persisted.ranges {
-        let exercise_duration = range.exercise_ref().and_then(|range_exercise_ref| {
+        let coordinate_maximum = range.exercise_ref().and_then(|range_exercise_ref| {
             persisted
                 .exercises
                 .iter()
                 .find(|exercise| exercise.exercise_ref == range_exercise_ref)
-                .map(|exercise| exercise.duration_milliseconds)
+                .and_then(|exercise| {
+                    exercise
+                        .coordinates
+                        .iter()
+                        .find(|context| context.coordinate == *range.coordinate())
+                        .map(|context| context.maximum_elapsed_milliseconds)
+                })
         });
         if range.session_ref() != persisted.session_ref
             || range.evidence_revision() != persisted.evidence_revision
             || !identities.insert(range.range_id())
             || (range.state() == TrainingSessionRangeState::Current
-                && !exercise_duration
-                    .is_some_and(|duration| range.ended_at_elapsed_milliseconds() <= duration))
+                && !coordinate_maximum
+                    .is_some_and(|maximum| range.ended_at_elapsed_milliseconds() <= maximum))
         {
             return query_failed("range result is inconsistent with current session evidence");
         }

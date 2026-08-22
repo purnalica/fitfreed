@@ -139,9 +139,9 @@ pub use training_range::{
     remove_training_session_range, rename_training_session_range,
     AdjustTrainingSessionRangeRequest, CreateTrainingSessionRangeRequest,
     PersistedTrainingSessionRanges, RemoveTrainingSessionRangeRequest,
-    RenameTrainingSessionRangeRequest, TrainingSessionRangeExerciseContext,
-    TrainingSessionRangePort, TrainingSessionRangePortError, TrainingSessionRangesQuery,
-    TrainingSessionRangesResult,
+    RenameTrainingSessionRangeRequest, TrainingSessionRangeCoordinateContext,
+    TrainingSessionRangeExerciseContext, TrainingSessionRangePort, TrainingSessionRangePortError,
+    TrainingSessionRangesQuery, TrainingSessionRangesResult,
 };
 
 #[cfg(test)]

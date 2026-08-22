@@ -68,8 +68,9 @@ Directories are created with their first real contract; empty specifications are
 - [Canonical training-session signal](canonical/training-session-signal.md)
 - [Canonical training-session zone](canonical/training-session-zone.md)
 - [Canonical segment criterion](canonical/segment-criterion.md)
-- [Canonical training-session range version 2](canonical/training-session-range-v2.md)
-- [Canonical training-session range version 1](canonical/training-session-range.md) — preceding contract
+- [Canonical training-session range version 3](canonical/training-session-range-v3.md)
+- [Canonical training-session range version 2](canonical/training-session-range-v2.md) — preceding contract
+- [Canonical training-session range version 1](canonical/training-session-range.md) — initial contract
 - [Canonical report definition version 1](canonical/report-definition.md)
 - [Canonical report definition version 2](canonical/report-definition-v2.md)
 - [Canonical report definition version 3](canonical/report-definition-v3.md)
@@ -98,8 +99,9 @@ Directories are created with their first real contract; empty specifications are
 - [Composed session story version 2](insights/session-story-v2.md) — preceding response contract
 - [Composed session story version 1](insights/session-story-v1.md) — initial response contract
 - [Training-session segmentation read model version 1](insights/training-session-segmentation-v1.md)
-- [Training-session range read model version 2](insights/training-session-range-v2.md)
-- [Training-session range read model version 1](insights/training-session-range-v1.md) — preceding contract
+- [Training-session range read model version 3](insights/training-session-range-v3.md)
+- [Training-session range read model version 2](insights/training-session-range-v2.md) — preceding contract
+- [Training-session range read model version 1](insights/training-session-range-v1.md) — initial contract
 - [Session report read models version 1](insights/session-report-v1.md)
 - [Session report read models version 2](insights/session-report-v2.md)
 - [Session report read models version 3](insights/session-report-v3.md)
@@ -147,6 +149,7 @@ Directories are created with their first real contract; empty specifications are
 - [SQLite schema version 24](persistence/sqlite-v24.md)
 - [SQLite schema version 25](persistence/sqlite-v25.md)
 - [SQLite schema version 26](persistence/sqlite-v26.md)
+- [SQLite schema version 27](persistence/sqlite-v27.md)
 - [Release manifest version 1](release/release-manifest-v1.md)
 - [Release manifest version 2](release/release-manifest-v2.md)
 - [Public release manifest version 3](release/release-manifest-v3.md)

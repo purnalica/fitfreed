@@ -73,10 +73,11 @@ use fitfreed_application::{
     TrainingSessionCalendarRequest, TrainingSessionDiscoveryPort,
     TrainingSessionDiscoveryPortError, TrainingSessionProvenancePort,
     TrainingSessionProvenancePortError, TrainingSessionProvenanceQuery,
-    TrainingSessionRangeExerciseContext, TrainingSessionRangePort, TrainingSessionRangePortError,
-    TrainingSessionRangesQuery, TrainingSessionRoutePort, TrainingSessionRoutePortError,
-    TrainingSessionRouteQuery, TrainingSessionRoutesView, TrainingSessionSearchItem,
-    TrainingSessionSearchRequest, TrainingSessionSearchSummary, TrainingSessionSegmentationQuery,
+    TrainingSessionRangeCoordinateContext, TrainingSessionRangeExerciseContext,
+    TrainingSessionRangePort, TrainingSessionRangePortError, TrainingSessionRangesQuery,
+    TrainingSessionRoutePort, TrainingSessionRoutePortError, TrainingSessionRouteQuery,
+    TrainingSessionRoutesView, TrainingSessionSearchItem, TrainingSessionSearchRequest,
+    TrainingSessionSearchSummary, TrainingSessionSegmentationQuery,
     TrainingSessionSelectionRequest, TrainingSessionSignalPort, TrainingSessionSignalPortError,
     TrainingSessionSignalsQuery, TrainingSessionSignalsView, TrainingSessionSort,
     TrainingSessionSport, TrainingSessionStructurePort, TrainingSessionStructurePortError,
@@ -105,7 +106,8 @@ use fitfreed_domain::{
     TrainingExerciseRouteAssessment, TrainingExerciseSignalAssessment,
     TrainingExerciseZoneAssessment, TrainingLap, TrainingLapKind, TrainingPause, TrainingRoute,
     TrainingRouteKind, TrainingRoutePoint, TrainingRoutes, TrainingSession, TrainingSessionRange,
-    TrainingSessionRangeAuthorship, TrainingSessionRangeEvidenceCompatibility,
+    TrainingSessionRangeAuthorship, TrainingSessionRangeCoordinate,
+    TrainingSessionRangeCoordinateScope, TrainingSessionRangeEvidenceCompatibility,
     TrainingSessionRangeState, TrainingSessionRecord, TrainingSessionRouteAssessment,
     TrainingSessionSignalAssessment, TrainingSessionStructure, TrainingSessionZoneAssessment,
     TrainingSignalKind, TrainingSignalSample, TrainingSignalSeries, TrainingSignalUnit,
@@ -169,7 +171,7 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 26;
+const SCHEMA_VERSION: i64 = 27;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
@@ -196,6 +198,7 @@ const SCHEMA_V23: &str = include_str!("../migrations/0023_report_start_origins.s
 const SCHEMA_V24: &str = include_str!("../migrations/0024_compact_training_signal_samples.sql");
 const SCHEMA_V25: &str = include_str!("../migrations/0025_training_session_ranges.sql");
 const SCHEMA_V26: &str = include_str!("../migrations/0026_training_session_range_exercises.sql");
+const SCHEMA_V27: &str = include_str!("../migrations/0027_training_session_range_coordinates.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
 const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@11";
 const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@6";
@@ -4846,7 +4849,7 @@ fn load_training_session_ranges_on(
 ) -> StandardResult<Vec<TrainingSessionRange>, TrainingSessionRangePortError> {
     let mut statement = transaction
         .prepare(
-            "SELECT range_id, exercise_id, coordinate_scope, title,
+            "SELECT range_id, exercise_id, coordinate_scope, coordinate_ref, title,
                     started_at_elapsed_milliseconds, ended_at_elapsed_milliseconds,
                     evidence_revision, authorship, state, revision
              FROM training_session_range
@@ -4862,13 +4865,14 @@ fn load_training_session_ranges_on(
                 row.get::<_, String>(0)?,
                 row.get::<_, Option<String>>(1)?,
                 row.get::<_, String>(2)?,
-                row.get::<_, String>(3)?,
-                row.get::<_, i64>(4)?,
+                row.get::<_, Option<String>>(3)?,
+                row.get::<_, String>(4)?,
                 row.get::<_, i64>(5)?,
-                row.get::<_, String>(6)?,
+                row.get::<_, i64>(6)?,
                 row.get::<_, String>(7)?,
                 row.get::<_, String>(8)?,
-                row.get::<_, i64>(9)?,
+                row.get::<_, String>(9)?,
+                row.get::<_, i64>(10)?,
             ))
         })
         .map_err(training_range_failure)?;
@@ -4879,6 +4883,7 @@ fn load_training_session_ranges_on(
             range_id,
             exercise_id,
             coordinate_scope,
+            coordinate_ref,
             title,
             started,
             ended,
@@ -4893,14 +4898,23 @@ fn load_training_session_ranges_on(
             .ok_or_else(|| training_range_failure("stored range state is invalid"))?;
         let revision = u64::try_from(revision)
             .map_err(|_| training_range_failure("stored range revision is invalid"))?;
-        let exercise_ref = match (coordinate_scope.as_str(), exercise_id) {
-            ("exercise-elapsed", Some(exercise_id)) => {
-                Some(training_exercise_ref(origin_id, session_id, &exercise_id))
-            }
-            ("legacy-session-elapsed", None)
+        let coordinate_scope = TrainingSessionRangeCoordinateScope::from_code(&coordinate_scope)
+            .ok_or_else(|| training_range_failure("stored range coordinate scope is invalid"))?;
+        let coordinate = TrainingSessionRangeCoordinate::restore(coordinate_scope, coordinate_ref)
+            .map_err(training_range_failure)?;
+        let exercise_ref = match (coordinate.scope(), exercise_id) {
+            (TrainingSessionRangeCoordinateScope::LegacySessionElapsed, None)
                 if state == TrainingSessionRangeState::ReviewRequired =>
             {
                 None
+            }
+            (TrainingSessionRangeCoordinateScope::LegacySessionElapsed, _) => {
+                return Err(training_range_failure(
+                    "stored legacy range exercise owner is invalid",
+                ))
+            }
+            (_, Some(exercise_id)) => {
+                Some(training_exercise_ref(origin_id, session_id, &exercise_id))
             }
             _ => {
                 return Err(training_range_failure(
@@ -4913,6 +4927,7 @@ fn load_training_session_ranges_on(
                 range_id,
                 &session_ref,
                 exercise_ref,
+                coordinate,
                 title,
                 started,
                 ended,
@@ -4932,42 +4947,185 @@ fn training_range_exercises_on(
     origin_id: &str,
     session_id: &str,
 ) -> StandardResult<Vec<TrainingSessionRangeExerciseContext>, TrainingSessionRangePortError> {
-    let mut statement = transaction
-        .prepare(
-            "SELECT exercise_id, ordinal, duration_milliseconds
-             FROM training_exercise
-             WHERE origin_id = ?1 AND session_id = ?2
-             ORDER BY ordinal
-             LIMIT 1001",
-        )
-        .map_err(training_range_failure)?;
-    let rows = statement
-        .query_map(params![origin_id, session_id], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, i64>(1)?,
-                row.get::<_, i64>(2)?,
-            ))
+    let exercises = {
+        let mut statement = transaction
+            .prepare(
+                "SELECT exercise_id, ordinal, duration_milliseconds
+                 FROM training_exercise
+                 WHERE origin_id = ?1 AND session_id = ?2
+                 ORDER BY ordinal
+                 LIMIT 1001",
+            )
+            .map_err(training_range_failure)?;
+        let exercises = statement
+            .query_map(params![origin_id, session_id], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, i64>(2)?,
+                ))
+            })
+            .map_err(training_range_failure)?
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(training_range_failure)?;
+        exercises
+    };
+    exercises
+        .into_iter()
+        .map(|(exercise_id, ordinal, duration_milliseconds)| {
+            Ok(TrainingSessionRangeExerciseContext {
+                exercise_ref: training_exercise_ref(origin_id, session_id, &exercise_id),
+                ordinal: persisted_count(ordinal, "training-session range exercise ordinal")
+                    .map_err(training_range_failure)?,
+                coordinates: training_range_coordinates_on(
+                    transaction,
+                    origin_id,
+                    session_id,
+                    &exercise_id,
+                    duration_milliseconds,
+                )?,
+            })
         })
-        .map_err(training_range_failure)?;
-    rows.map(|row| {
-        let (exercise_id, ordinal, duration_milliseconds) = row.map_err(training_range_failure)?;
-        Ok(TrainingSessionRangeExerciseContext {
-            exercise_ref: training_exercise_ref(origin_id, session_id, &exercise_id),
-            ordinal: persisted_count(ordinal, "training-session range exercise ordinal")
-                .map_err(training_range_failure)?,
-            duration_milliseconds,
-        })
-    })
-    .collect()
+        .collect()
 }
 
-fn resolve_training_range_exercise_on(
+fn training_range_coordinates_on(
+    transaction: &Transaction<'_>,
+    origin_id: &str,
+    session_id: &str,
+    exercise_id: &str,
+    exercise_duration_milliseconds: i64,
+) -> StandardResult<Vec<TrainingSessionRangeCoordinateContext>, TrainingSessionRangePortError> {
+    if exercise_duration_milliseconds < 0 {
+        return Err(training_range_failure(
+            "training-session range exercise coordinate is negative",
+        ));
+    }
+    let mut coordinates = vec![TrainingSessionRangeCoordinateContext {
+        coordinate: TrainingSessionRangeCoordinate::exercise_elapsed(),
+        maximum_elapsed_milliseconds: exercise_duration_milliseconds,
+    }];
+    {
+        let mut statement = transaction
+            .prepare(
+                "SELECT route.kind, MAX(point.elapsed_milliseconds)
+                 FROM training_route AS route
+                 LEFT JOIN training_route_point AS point
+                   ON point.origin_id = route.origin_id
+                  AND point.session_id = route.session_id
+                  AND point.exercise_id = route.exercise_id
+                  AND point.kind = route.kind
+                 WHERE route.origin_id = ?1 AND route.session_id = ?2
+                   AND route.exercise_id = ?3
+                 GROUP BY route.kind
+                 ORDER BY route.kind",
+            )
+            .map_err(training_range_failure)?;
+        let rows = statement
+            .query_map(params![origin_id, session_id, exercise_id], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, Option<i64>>(1)?))
+            })
+            .map_err(training_range_failure)?;
+        for row in rows {
+            let (kind, maximum_elapsed_milliseconds) = row.map_err(training_range_failure)?;
+            let Some(maximum_elapsed_milliseconds) = maximum_elapsed_milliseconds else {
+                continue;
+            };
+            let kind = match kind.as_str() {
+                "primary" => TrainingRouteKind::Primary,
+                "transition" => TrainingRouteKind::Transition,
+                _ => return Err(training_range_failure("stored range route kind is invalid")),
+            };
+            coordinates.push(TrainingSessionRangeCoordinateContext {
+                coordinate: TrainingSessionRangeCoordinate::route_elapsed(training_route_ref(
+                    origin_id,
+                    session_id,
+                    exercise_id,
+                    kind,
+                ))
+                .map_err(training_range_failure)?,
+                maximum_elapsed_milliseconds,
+            });
+        }
+    }
+    {
+        let mut statement = transaction
+            .prepare(
+                "SELECT role, ordinal, interval_milliseconds, sample_count
+                 FROM training_signal_series
+                 WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3
+                 ORDER BY role, ordinal",
+            )
+            .map_err(training_range_failure)?;
+        let rows = statement
+            .query_map(params![origin_id, session_id, exercise_id], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, i64>(2)?,
+                    row.get::<_, i64>(3)?,
+                ))
+            })
+            .map_err(training_range_failure)?;
+        for row in rows {
+            let (role, ordinal, interval_milliseconds, sample_count) =
+                row.map_err(training_range_failure)?;
+            let role = match role.as_str() {
+                "primary" => TrainingSignalRoleView::Primary,
+                "transition" => TrainingSignalRoleView::Transition,
+                _ => {
+                    return Err(training_range_failure(
+                        "stored range signal role is invalid",
+                    ))
+                }
+            };
+            let ordinal = persisted_count(ordinal, "training-session range signal ordinal")
+                .map_err(training_range_failure)?;
+            if interval_milliseconds <= 0 || sample_count < 0 {
+                return Err(training_range_failure(
+                    "stored range signal coordinate is invalid",
+                ));
+            }
+            let maximum_elapsed_milliseconds = if sample_count == 0 {
+                0
+            } else {
+                (sample_count - 1)
+                    .checked_mul(interval_milliseconds)
+                    .ok_or_else(|| {
+                        training_range_failure("training-session range signal extent overflowed")
+                    })?
+            };
+            coordinates.push(TrainingSessionRangeCoordinateContext {
+                coordinate: TrainingSessionRangeCoordinate::signal_elapsed(training_signal_ref(
+                    origin_id,
+                    session_id,
+                    exercise_id,
+                    role,
+                    ordinal,
+                ))
+                .map_err(training_range_failure)?,
+                maximum_elapsed_milliseconds,
+            });
+        }
+    }
+    coordinates.sort_by(|left, right| left.coordinate.cmp(&right.coordinate));
+    Ok(coordinates)
+}
+
+struct ResolvedTrainingRangeCoordinate {
+    exercise_id: String,
+    coordinate_scope: &'static str,
+    coordinate_ref: Option<String>,
+    maximum_elapsed_milliseconds: i64,
+}
+
+fn resolve_training_range_coordinate_on(
     transaction: &Transaction<'_>,
     origin_id: &str,
     session_id: &str,
     exercise_ref: &str,
-) -> StandardResult<(String, i64), TrainingSessionRangePortError> {
+    coordinate: &TrainingSessionRangeCoordinate,
+) -> StandardResult<ResolvedTrainingRangeCoordinate, TrainingSessionRangePortError> {
     let mut statement = transaction
         .prepare(
             "SELECT exercise_id, duration_milliseconds
@@ -4984,7 +5142,23 @@ fn resolve_training_range_exercise_on(
     for row in rows {
         let (exercise_id, duration_milliseconds) = row.map_err(training_range_failure)?;
         if training_exercise_ref(origin_id, session_id, &exercise_id) == exercise_ref {
-            return Ok((exercise_id, duration_milliseconds));
+            let maximum_elapsed_milliseconds = training_range_coordinates_on(
+                transaction,
+                origin_id,
+                session_id,
+                &exercise_id,
+                duration_milliseconds,
+            )?
+            .into_iter()
+            .find(|context| context.coordinate == *coordinate)
+            .map(|context| context.maximum_elapsed_milliseconds)
+            .ok_or(TrainingSessionRangePortError::NotFound)?;
+            return Ok(ResolvedTrainingRangeCoordinate {
+                exercise_id,
+                coordinate_scope: coordinate.scope().code(),
+                coordinate_ref: coordinate.reference().map(str::to_owned),
+                maximum_elapsed_milliseconds,
+            });
         }
     }
     Err(TrainingSessionRangePortError::NotFound)
@@ -5077,13 +5251,18 @@ fn create_training_session_range_persistence(
     let exercise_ref = range.exercise_ref().ok_or_else(|| {
         training_range_failure("new training-session range has no exercise owner")
     })?;
-    let (exercise_id, exercise_duration) =
-        resolve_training_range_exercise_on(&transaction, &origin_id, &session_id, exercise_ref)?;
+    let coordinate = resolve_training_range_coordinate_on(
+        &transaction,
+        &origin_id,
+        &session_id,
+        exercise_ref,
+        range.coordinate(),
+    )?;
     if range.revision() != 1
         || range.authorship() != TrainingSessionRangeAuthorship::User
         || range.state() != TrainingSessionRangeState::Current
         || range.evidence_revision() != evidence_revision
-        || range.ended_at_elapsed_milliseconds() > exercise_duration
+        || range.ended_at_elapsed_milliseconds() > coordinate.maximum_elapsed_milliseconds
     {
         return Err(training_range_failure(
             "new training-session range does not match current evidence",
@@ -5104,12 +5283,13 @@ fn create_training_session_range_persistence(
     transaction
         .execute(
             "INSERT INTO training_session_range (
-                 range_id, origin_id, session_id, exercise_id, coordinate_scope, title,
+                 range_id, origin_id, session_id, exercise_id, coordinate_scope,
+                 coordinate_ref, title,
                  started_at_elapsed_milliseconds, ended_at_elapsed_milliseconds,
                  evidence_revision, authorship, state, revision,
                  created_at_utc, updated_at_utc
              ) VALUES (
-                 ?1, ?2, ?3, ?4, 'exercise-elapsed', ?5, ?6, ?7, ?8, ?9, ?10, ?11,
+                 ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13,
                  strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
                  strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
              )",
@@ -5117,7 +5297,9 @@ fn create_training_session_range_persistence(
                 range.range_id(),
                 origin_id,
                 session_id,
-                exercise_id,
+                coordinate.exercise_id,
+                coordinate.coordinate_scope,
+                coordinate.coordinate_ref,
                 range.title(),
                 range.started_at_elapsed_milliseconds(),
                 range.ended_at_elapsed_milliseconds(),
@@ -5152,38 +5334,69 @@ fn compare_and_save_training_session_range_persistence(
     )?;
     let (_, evidence_revision) =
         training_range_evidence_revision_on(&transaction, &origin_id, &session_id)?;
-    let target_exercise = range
+    let current_coordinate = range
         .exercise_ref()
         .map(|exercise_ref| {
-            resolve_training_range_exercise_on(&transaction, &origin_id, &session_id, exercise_ref)
+            resolve_training_range_coordinate_on(
+                &transaction,
+                &origin_id,
+                &session_id,
+                exercise_ref,
+                range.coordinate(),
+            )
         })
-        .transpose()?;
+        .transpose()
+        .or_else(|error| match error {
+            TrainingSessionRangePortError::NotFound => Ok(None),
+            other => Err(other),
+        })?;
     let stored_owner = transaction
         .query_row(
-            "SELECT exercise_id, coordinate_scope
+            "SELECT exercise_id, coordinate_scope, coordinate_ref
              FROM training_session_range
              WHERE range_id = ?1 AND origin_id = ?2 AND session_id = ?3",
             params![range.range_id(), origin_id, session_id],
-            |row| Ok((row.get::<_, Option<String>>(0)?, row.get::<_, String>(1)?)),
+            |row| {
+                Ok((
+                    row.get::<_, Option<String>>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, Option<String>>(2)?,
+                ))
+            },
         )
         .optional()
         .map_err(training_range_failure)?
         .ok_or(TrainingSessionRangePortError::NotFound)?;
-    let owner_is_valid = match (&stored_owner.0, stored_owner.1.as_str(), &target_exercise) {
-        (Some(stored), "exercise-elapsed", Some((target, _))) => stored == target,
-        (None, "legacy-session-elapsed", None | Some(_)) => true,
+    let authored_owner_matches = match (
+        &stored_owner.0,
+        stored_owner.1.as_str(),
+        &stored_owner.2,
+        range.exercise_ref(),
+    ) {
+        (Some(stored_exercise), stored_scope, stored_reference, Some(authored_exercise)) => {
+            training_exercise_ref(&origin_id, &session_id, stored_exercise) == authored_exercise
+                && stored_scope == range.coordinate().scope().code()
+                && stored_reference.as_deref() == range.coordinate().reference()
+        }
+        (None, "legacy-session-elapsed", None, None) => {
+            range.coordinate().scope() == TrainingSessionRangeCoordinateScope::LegacySessionElapsed
+        }
         _ => false,
     };
+    let anchoring_legacy = stored_owner.0.is_none()
+        && stored_owner.1 == "legacy-session-elapsed"
+        && stored_owner.2.is_none()
+        && current_coordinate.is_some();
     let expected_revision = i64::try_from(expected_revision).map_err(training_range_failure)?;
     let revision = i64::try_from(range.revision()).map_err(training_range_failure)?;
     if revision != expected_revision.saturating_add(1)
         || range.authorship() != TrainingSessionRangeAuthorship::User
         || range.evidence_revision() != evidence_revision
-        || !owner_is_valid
+        || (!authored_owner_matches && !anchoring_legacy)
         || (range.state() == TrainingSessionRangeState::Current
-            && !target_exercise
-                .as_ref()
-                .is_some_and(|(_, duration)| range.ended_at_elapsed_milliseconds() <= *duration))
+            && !current_coordinate.as_ref().is_some_and(|coordinate| {
+                range.ended_at_elapsed_milliseconds() <= coordinate.maximum_elapsed_milliseconds
+            }))
         || (range.exercise_ref().is_none()
             && range.state() != TrainingSessionRangeState::ReviewRequired)
     {
@@ -5191,25 +5404,36 @@ fn compare_and_save_training_session_range_persistence(
             "revised training-session range does not match current evidence",
         ));
     }
-    let (exercise_id, coordinate_scope) = target_exercise
-        .map(|(exercise_id, _)| (Some(exercise_id), "exercise-elapsed"))
-        .unwrap_or((None, "legacy-session-elapsed"));
+    let (exercise_id, coordinate_scope, coordinate_ref) = if anchoring_legacy {
+        current_coordinate
+            .map(|coordinate| {
+                (
+                    Some(coordinate.exercise_id),
+                    coordinate.coordinate_scope.to_owned(),
+                    coordinate.coordinate_ref,
+                )
+            })
+            .ok_or_else(|| training_range_failure("anchored range coordinate disappeared"))?
+    } else {
+        stored_owner
+    };
     let changed = transaction
         .execute(
             "UPDATE training_session_range
-             SET exercise_id = ?4, coordinate_scope = ?5, title = ?6,
-                 started_at_elapsed_milliseconds = ?7,
-                 ended_at_elapsed_milliseconds = ?8, evidence_revision = ?9,
-                 authorship = ?10, state = ?11, revision = ?12,
+             SET exercise_id = ?4, coordinate_scope = ?5, coordinate_ref = ?6,
+                 title = ?7, started_at_elapsed_milliseconds = ?8,
+                 ended_at_elapsed_milliseconds = ?9, evidence_revision = ?10,
+                 authorship = ?11, state = ?12, revision = ?13,
                  updated_at_utc = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
              WHERE range_id = ?1 AND origin_id = ?2 AND session_id = ?3
-               AND revision = ?13",
+               AND revision = ?14",
             params![
                 range.range_id(),
                 origin_id,
                 session_id,
                 exercise_id,
                 coordinate_scope,
+                coordinate_ref,
                 range.title(),
                 range.started_at_elapsed_milliseconds(),
                 range.ended_at_elapsed_milliseconds(),
@@ -5248,11 +5472,17 @@ fn compare_and_remove_training_session_range_persistence(
     )?;
     let stored_owner = transaction
         .query_row(
-            "SELECT exercise_id, coordinate_scope
+            "SELECT exercise_id, coordinate_scope, coordinate_ref
              FROM training_session_range
              WHERE range_id = ?1 AND origin_id = ?2 AND session_id = ?3",
             params![removal.range_id(), origin_id, session_id],
-            |row| Ok((row.get::<_, Option<String>>(0)?, row.get::<_, String>(1)?)),
+            |row| {
+                Ok((
+                    row.get::<_, Option<String>>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, Option<String>>(2)?,
+                ))
+            },
         )
         .optional()
         .map_err(training_range_failure)?
@@ -5261,11 +5491,23 @@ fn compare_and_remove_training_session_range_persistence(
         removal.exercise_ref(),
         stored_owner.0.as_deref(),
         stored_owner.1.as_str(),
+        stored_owner.2.as_deref(),
+        removal.coordinate().scope().code(),
+        removal.coordinate().reference(),
     ) {
-        (Some(expected), Some(stored), "exercise-elapsed") => {
-            training_exercise_ref(&origin_id, &session_id, stored) == expected
+        (
+            Some(expected_exercise),
+            Some(stored_exercise),
+            stored_scope,
+            stored_reference,
+            expected_scope,
+            expected_reference,
+        ) => {
+            training_exercise_ref(&origin_id, &session_id, stored_exercise) == expected_exercise
+                && stored_scope == expected_scope
+                && stored_reference == expected_reference
         }
-        (None, None, "legacy-session-elapsed") => true,
+        (None, None, "legacy-session-elapsed", None, "legacy-session-elapsed", None) => true,
         _ => false,
     };
     if !owner_matches {
@@ -5308,11 +5550,17 @@ fn reconcile_persisted_training_session_ranges(
     let ranges = load_training_session_ranges_on(transaction, origin_id, session_id)
         .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
     for range in ranges {
-        let exercise_duration = range
+        let coordinate_maximum = range
             .exercise_ref()
             .map(|exercise_ref| {
-                resolve_training_range_exercise_on(transaction, origin_id, session_id, exercise_ref)
-                    .map(|(_, duration)| duration)
+                resolve_training_range_coordinate_on(
+                    transaction,
+                    origin_id,
+                    session_id,
+                    exercise_ref,
+                    range.coordinate(),
+                )
+                .map(|coordinate| coordinate.maximum_elapsed_milliseconds)
             })
             .transpose()
             .or_else(|error| match error {
@@ -5322,7 +5570,7 @@ fn reconcile_persisted_training_session_ranges(
             .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
         let reconciled = reconcile_training_session_range(
             &range,
-            exercise_duration,
+            coordinate_maximum,
             &evidence_revision,
             compatibility,
         )
@@ -6734,6 +6982,9 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         }
         if version < 26 {
             connection.execute_batch(SCHEMA_V26)?;
+        }
+        if version < 27 {
+            connection.execute_batch(SCHEMA_V27)?;
         }
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
@@ -15291,6 +15542,7 @@ mod tests {
                 session_ref: session_ref.clone(),
                 snapshot_ref: empty.snapshot_ref.clone(),
                 exercise_ref: exercise_ref.clone(),
+                coordinate: TrainingSessionRangeCoordinate::exercise_elapsed(),
                 title: "River section".to_owned(),
                 started_at_elapsed_milliseconds: 100_000,
                 ended_at_elapsed_milliseconds: 400_000,
@@ -15305,6 +15557,7 @@ mod tests {
                 session_ref: session_ref.clone(),
                 snapshot_ref: first.snapshot_ref.clone(),
                 exercise_ref: exercise_ref.clone(),
+                coordinate: TrainingSessionRangeCoordinate::exercise_elapsed(),
                 title: "River section".to_owned(),
                 started_at_elapsed_milliseconds: 300_000,
                 ended_at_elapsed_milliseconds: 500_000,
@@ -15352,6 +15605,7 @@ mod tests {
                 range_ref: first_ref.clone(),
                 expected_revision: 2,
                 exercise_ref: exercise_ref.clone(),
+                coordinate: TrainingSessionRangeCoordinate::exercise_elapsed(),
                 started_at_elapsed_milliseconds: 150_000,
                 ended_at_elapsed_milliseconds: 450_000,
             },
@@ -15492,6 +15746,7 @@ mod tests {
                 range_ref: first_ref,
                 expected_revision: 4,
                 exercise_ref,
+                coordinate: TrainingSessionRangeCoordinate::exercise_elapsed(),
                 started_at_elapsed_milliseconds: 100_000,
                 ended_at_elapsed_milliseconds: 250_000,
             },
@@ -15595,16 +15850,51 @@ mod tests {
             },
         )
         .expect("pre-upgrade range context");
-        let pre_upgrade_exercise_ref = pre_upgrade_ranges.exercises[0].exercise_ref.clone();
+        let pre_upgrade_exercise = &pre_upgrade_ranges.exercises[0];
+        let pre_upgrade_exercise_ref = pre_upgrade_exercise.exercise_ref.clone();
+        let route_coordinate = pre_upgrade_exercise
+            .coordinates
+            .iter()
+            .find(|context| {
+                context.coordinate.scope() == TrainingSessionRangeCoordinateScope::RouteElapsed
+            })
+            .expect("route range coordinate");
+        assert_eq!(route_coordinate.maximum_elapsed_milliseconds, 1_000);
+        let route_coordinate = route_coordinate.coordinate.clone();
+        let signal_coordinate = pre_upgrade_exercise
+            .coordinates
+            .iter()
+            .find(|context| {
+                context.coordinate.scope() == TrainingSessionRangeCoordinateScope::SignalElapsed
+            })
+            .expect("signal range coordinate");
+        assert_eq!(signal_coordinate.maximum_elapsed_milliseconds, 2_000);
+        let signal_coordinate = signal_coordinate.coordinate.clone();
+        assert!(matches!(
+            create_training_session_range(
+                &pre_upgrade_library,
+                CreateTrainingSessionRangeRequest {
+                    session_ref: pre_upgrade_session_ref.clone(),
+                    snapshot_ref: pre_upgrade_ranges.snapshot_ref.clone(),
+                    exercise_ref: pre_upgrade_exercise_ref.clone(),
+                    coordinate: route_coordinate.clone(),
+                    title: "Outside recorded route".to_owned(),
+                    started_at_elapsed_milliseconds: 0,
+                    ended_at_elapsed_milliseconds: 2_000,
+                },
+            ),
+            Err(ApplicationError::InvalidTrainingSessionRange(_))
+        ));
         let authored_before_enrichment = create_training_session_range(
             &pre_upgrade_library,
             CreateTrainingSessionRangeRequest {
                 session_ref: pre_upgrade_session_ref.clone(),
                 snapshot_ref: pre_upgrade_ranges.snapshot_ref,
                 exercise_ref: pre_upgrade_exercise_ref.clone(),
-                title: "First recorded seconds".to_owned(),
+                coordinate: route_coordinate.clone(),
+                title: "Recorded route".to_owned(),
                 started_at_elapsed_milliseconds: 0,
-                ended_at_elapsed_milliseconds: 2_000,
+                ended_at_elapsed_milliseconds: 1_000,
             },
         )
         .expect("range before compatible enrichment");
@@ -15642,9 +15932,10 @@ mod tests {
                 session_ref: pre_upgrade_session_ref.clone(),
                 snapshot_ref: review_context.snapshot_ref,
                 exercise_ref: pre_upgrade_exercise_ref,
-                title: "Next recorded seconds".to_owned(),
-                started_at_elapsed_milliseconds: 3_000,
-                ended_at_elapsed_milliseconds: 4_000,
+                coordinate: signal_coordinate.clone(),
+                title: "Recorded signal".to_owned(),
+                started_at_elapsed_milliseconds: 1_000,
+                ended_at_elapsed_milliseconds: 2_000,
             },
         )
         .expect("current range beside a review-required range");
@@ -15732,7 +16023,7 @@ mod tests {
         let range_after_enrichment = query_training_session_ranges(
             &pre_upgrade_library,
             TrainingSessionRangesQuery {
-                session_ref: pre_upgrade_session_ref,
+                session_ref: pre_upgrade_session_ref.clone(),
                 snapshot_ref: None,
             },
         )
@@ -15752,6 +16043,7 @@ mod tests {
             review_required_range.state(),
             TrainingSessionRangeState::ReviewRequired
         );
+        assert_eq!(review_required_range.coordinate(), &route_coordinate);
         let current_range = range_after_enrichment
             .ranges
             .iter()
@@ -15759,7 +16051,68 @@ mod tests {
             .expect("current range after compatible enrichment");
         assert_eq!(current_range.revision(), 2);
         assert_eq!(current_range.state(), TrainingSessionRangeState::Current);
-        assert_eq!(review_required_range.ended_at_elapsed_milliseconds(), 2_000);
+        assert_eq!(current_range.coordinate(), &signal_coordinate);
+        assert_eq!(review_required_range.ended_at_elapsed_milliseconds(), 1_000);
+        let enriched_exercise = &range_after_enrichment.exercises[0];
+        assert_eq!(enriched_exercise.coordinates.len(), 3);
+        assert!(enriched_exercise.coordinates.iter().any(|context| {
+            context.coordinate == route_coordinate && context.maximum_elapsed_milliseconds == 1_000
+        }));
+        assert!(enriched_exercise.coordinates.iter().any(|context| {
+            context.coordinate == signal_coordinate && context.maximum_elapsed_milliseconds == 2_000
+        }));
+
+        let missing_route_connection = Connection::open(harness.database()).expect("database");
+        missing_route_connection
+            .execute(
+                "DELETE FROM training_route_point
+                 WHERE origin_id = ?1 AND session_id = ?2",
+                params![
+                    pre_upgrade_session.origin_id,
+                    pre_upgrade_session.session_id
+                ],
+            )
+            .expect("remove current route points");
+        missing_route_connection
+            .execute(
+                "DELETE FROM training_route
+                 WHERE origin_id = ?1 AND session_id = ?2",
+                params![
+                    pre_upgrade_session.origin_id,
+                    pre_upgrade_session.session_id
+                ],
+            )
+            .expect("remove current route coordinate");
+        let missing_route_context = query_training_session_ranges(
+            &pre_upgrade_library,
+            TrainingSessionRangesQuery {
+                session_ref: pre_upgrade_session_ref.clone(),
+                snapshot_ref: None,
+            },
+        )
+        .expect("review range with missing coordinate");
+        let renamed_missing_route = rename_training_session_range(
+            &pre_upgrade_library,
+            RenameTrainingSessionRangeRequest {
+                session_ref: pre_upgrade_session_ref,
+                snapshot_ref: missing_route_context.snapshot_ref,
+                range_ref: review_required_range_ref,
+                expected_revision: 3,
+                title: "Preserved route selection".to_owned(),
+            },
+        )
+        .expect("rename review range with missing coordinate");
+        let preserved_route_range = renamed_missing_route
+            .ranges
+            .iter()
+            .find(|range| range.title() == "Preserved route selection")
+            .expect("renamed missing-coordinate range");
+        assert_eq!(preserved_route_range.coordinate(), &route_coordinate);
+        assert_eq!(
+            preserved_route_range.state(),
+            TrainingSessionRangeState::ReviewRequired
+        );
+        assert_eq!(preserved_route_range.revision(), 4);
 
         let session = query_training_sessions(&harness.database())
             .expect("training history for provenance")
@@ -19267,7 +19620,7 @@ mod tests {
             SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8,
             SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15,
             SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22,
-            SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26,
+            SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27,
         ];
         for migration in migrations
             .iter()
@@ -19647,6 +20000,166 @@ mod tests {
                 "2026-08-22T12:00:00.000Z".to_owned(),
             )
         );
+        assert_integrity(&connection);
+    }
+
+    #[test]
+    fn preserves_version_twenty_six_ranges_and_enforces_exact_coordinate_storage() {
+        let harness = Harness::new();
+        let connection = Connection::open(harness.database()).expect("database");
+        create_schema_baseline(&connection, 26);
+        let range_ref = format!("range-{}", "a".repeat(64));
+        let evidence_revision = format!("range-evidence-{}", "b".repeat(64));
+        connection
+            .execute(
+                "INSERT INTO training_session_range (
+                     range_id, origin_id, session_id, exercise_id, coordinate_scope, title,
+                     started_at_elapsed_milliseconds, ended_at_elapsed_milliseconds,
+                     evidence_revision, authorship, state, revision,
+                     created_at_utc, updated_at_utc
+                 ) VALUES (
+                     ?1, 'preserved-origin', 'preserved-session', 'preserved-exercise',
+                     'exercise-elapsed', 'Bridge to bend', 1000, 2000,
+                     ?2, 'user', 'current', 3,
+                     '2026-08-22T12:00:00.000Z', '2026-08-22T13:00:00.000Z'
+                 )",
+                params![range_ref, evidence_revision],
+            )
+            .expect("version twenty-six range");
+
+        let error =
+            migrate_schema(&connection, true).expect_err("interrupted coordinate migration");
+        assert!(matches!(error, ImportError::InjectedMigrationInterruption));
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("retained version twenty-six marker"),
+            26
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info('training_session_range')
+                     WHERE name = 'coordinate_ref'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("rolled-back coordinate column count"),
+            0
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT coordinate_scope || '|' || state || '|' || revision || '|' ||
+                            created_at_utc || '|' || updated_at_utc
+                     FROM training_session_range WHERE range_id = ?1",
+                    params![range_ref],
+                    |row| row.get::<_, String>(0),
+                )
+                .expect("unchanged version twenty-six range"),
+            "exercise-elapsed|current|3|2026-08-22T12:00:00.000Z|2026-08-22T13:00:00.000Z"
+        );
+
+        migrate_schema(&connection, false).expect("exact coordinate migration");
+        let preserved = connection
+            .query_row(
+                "SELECT exercise_id, coordinate_scope, coordinate_ref, title,
+                        started_at_elapsed_milliseconds, ended_at_elapsed_milliseconds,
+                        evidence_revision, authorship, state, revision,
+                        created_at_utc, updated_at_utc
+                 FROM training_session_range WHERE range_id = ?1",
+                params![range_ref],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, Option<String>>(2)?,
+                        row.get::<_, String>(3)?,
+                        row.get::<_, i64>(4)?,
+                        row.get::<_, i64>(5)?,
+                        row.get::<_, String>(6)?,
+                        row.get::<_, String>(7)?,
+                        row.get::<_, String>(8)?,
+                        row.get::<_, i64>(9)?,
+                        row.get::<_, String>(10)?,
+                        row.get::<_, String>(11)?,
+                    ))
+                },
+            )
+            .expect("preserved exact-coordinate range");
+        assert_eq!(
+            preserved,
+            (
+                "preserved-exercise".to_owned(),
+                "exercise-elapsed".to_owned(),
+                None,
+                "Bridge to bend".to_owned(),
+                1_000,
+                2_000,
+                evidence_revision.clone(),
+                "user".to_owned(),
+                "current".to_owned(),
+                3,
+                "2026-08-22T12:00:00.000Z".to_owned(),
+                "2026-08-22T13:00:00.000Z".to_owned(),
+            )
+        );
+
+        let route_ref = format!("route-{}", "c".repeat(64));
+        let signal_ref = format!("signal-{}", "d".repeat(64));
+        for (suffix, scope, coordinate_ref) in [
+            ("e", "route-elapsed", route_ref.as_str()),
+            ("f", "signal-elapsed", signal_ref.as_str()),
+        ] {
+            let additional_range_ref = format!("range-{}", suffix.repeat(64));
+            connection
+                .execute(
+                    "INSERT INTO training_session_range (
+                         range_id, origin_id, session_id, exercise_id, coordinate_scope,
+                         coordinate_ref, title,
+                         started_at_elapsed_milliseconds, ended_at_elapsed_milliseconds,
+                         evidence_revision, authorship, state, revision,
+                         created_at_utc, updated_at_utc
+                     ) VALUES (
+                         ?1, 'preserved-origin', 'preserved-session', 'preserved-exercise',
+                         ?2, ?3, 'Exact coordinate', 0, 1000,
+                         ?4, 'user', 'current', 1,
+                         '2026-08-22T14:00:00.000Z', '2026-08-22T14:00:00.000Z'
+                     )",
+                    params![
+                        additional_range_ref,
+                        scope,
+                        coordinate_ref,
+                        evidence_revision
+                    ],
+                )
+                .expect("valid exact coordinate range");
+        }
+        for (scope, coordinate_ref) in [
+            ("route-elapsed", None),
+            ("route-elapsed", Some(signal_ref.as_str())),
+            ("signal-elapsed", Some(route_ref.as_str())),
+            ("exercise-elapsed", Some(route_ref.as_str())),
+        ] {
+            let invalid_range_ref = format!("range-{}", "1".repeat(64));
+            assert!(connection
+                .execute(
+                    "INSERT INTO training_session_range (
+                         range_id, origin_id, session_id, exercise_id, coordinate_scope,
+                         coordinate_ref, title,
+                         started_at_elapsed_milliseconds, ended_at_elapsed_milliseconds,
+                         evidence_revision, authorship, state, revision,
+                         created_at_utc, updated_at_utc
+                     ) VALUES (
+                         ?1, 'preserved-origin', 'preserved-session', 'preserved-exercise',
+                         ?2, ?3, 'Invalid coordinate', 0, 1000,
+                         ?4, 'user', 'current', 1,
+                         '2026-08-22T14:00:00.000Z', '2026-08-22T14:00:00.000Z'
+                     )",
+                    params![invalid_range_ref, scope, coordinate_ref, evidence_revision],
+                )
+                .is_err());
+        }
         assert_integrity(&connection);
     }
 

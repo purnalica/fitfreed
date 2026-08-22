@@ -2,7 +2,7 @@ use std::cell::{Cell, RefCell};
 
 use fitfreed_domain::{
     reconcile_training_session_range as reconcile_range, RemovedTrainingSessionRange,
-    TrainingSessionRange, TrainingSessionRangeAuthorship,
+    TrainingSessionRange, TrainingSessionRangeAuthorship, TrainingSessionRangeCoordinate,
     TrainingSessionRangeEvidenceCompatibility, TrainingSessionRangeState,
 };
 
@@ -11,8 +11,9 @@ use super::{
     remove_training_session_range, rename_training_session_range,
     AdjustTrainingSessionRangeRequest, ApplicationError, CreateTrainingSessionRangeRequest,
     PersistedTrainingSessionRanges, RemoveTrainingSessionRangeRequest,
-    RenameTrainingSessionRangeRequest, TrainingSessionRangeExerciseContext,
-    TrainingSessionRangePort, TrainingSessionRangePortError, TrainingSessionRangesQuery,
+    RenameTrainingSessionRangeRequest, TrainingSessionRangeCoordinateContext,
+    TrainingSessionRangeExerciseContext, TrainingSessionRangePort, TrainingSessionRangePortError,
+    TrainingSessionRangesQuery,
 };
 
 const SNAPSHOT_REF: &str = concat!(
@@ -25,6 +26,8 @@ const EXERCISE_REF: &str =
     "exercise-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const OTHER_EXERCISE_REF: &str =
     "exercise-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+const ROUTE_REF: &str = "route-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+const SIGNAL_REF: &str = "signal-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
 const EVIDENCE_REVISION: &str = concat!(
     "range-evidence-",
     "3333333333333333333333333333333333333333333333333333333333333333"
@@ -35,14 +38,33 @@ fn range_id(index: usize) -> String {
 }
 
 fn range(index: usize, title: &str, started: i64, ended: i64) -> TrainingSessionRange {
+    range_on_coordinate(
+        index,
+        title,
+        started,
+        ended,
+        TrainingSessionRangeCoordinate::exercise_elapsed(),
+        600_000,
+    )
+}
+
+fn range_on_coordinate(
+    index: usize,
+    title: &str,
+    started: i64,
+    ended: i64,
+    coordinate: TrainingSessionRangeCoordinate,
+    maximum_elapsed_milliseconds: i64,
+) -> TrainingSessionRange {
     TrainingSessionRange::create(
         range_id(index),
         SESSION_REF,
         EXERCISE_REF,
+        coordinate,
         title,
         started,
         ended,
-        600_000,
+        maximum_elapsed_milliseconds,
         EVIDENCE_REVISION,
     )
     .expect("valid range")
@@ -66,7 +88,22 @@ impl ControlledPort {
                 exercises: vec![TrainingSessionRangeExerciseContext {
                     exercise_ref: EXERCISE_REF.to_owned(),
                     ordinal: 0,
-                    duration_milliseconds: 600_000,
+                    coordinates: vec![
+                        TrainingSessionRangeCoordinateContext {
+                            coordinate: TrainingSessionRangeCoordinate::exercise_elapsed(),
+                            maximum_elapsed_milliseconds: 600_000,
+                        },
+                        TrainingSessionRangeCoordinateContext {
+                            coordinate: TrainingSessionRangeCoordinate::route_elapsed(ROUTE_REF)
+                                .expect("route coordinate"),
+                            maximum_elapsed_milliseconds: 450_000,
+                        },
+                        TrainingSessionRangeCoordinateContext {
+                            coordinate: TrainingSessionRangeCoordinate::signal_elapsed(SIGNAL_REF)
+                                .expect("signal coordinate"),
+                            maximum_elapsed_milliseconds: 599_000,
+                        },
+                    ],
                 }],
                 ranges,
             }),
@@ -170,8 +207,16 @@ fn query() -> TrainingSessionRangesQuery {
 }
 
 #[test]
-fn lists_bounded_ranges_in_elapsed_order_with_current_evidence() {
+fn lists_bounded_ranges_by_exercise_coordinate_and_elapsed_position() {
     let port = ControlledPort::new(vec![
+        range_on_coordinate(
+            3,
+            "Recorded route",
+            10_000,
+            20_000,
+            TrainingSessionRangeCoordinate::route_elapsed(ROUTE_REF).expect("route coordinate"),
+            450_000,
+        ),
         range(2, "Finish", 400_000, 500_000),
         range(1, "Opening", 0, 120_000),
     ]);
@@ -190,7 +235,7 @@ fn lists_bounded_ranges_in_elapsed_order_with_current_evidence() {
             .iter()
             .map(|range| range.title())
             .collect::<Vec<_>>(),
-        vec!["Opening", "Finish"]
+        vec!["Opening", "Finish", "Recorded route"]
     );
 }
 
@@ -204,6 +249,7 @@ fn creates_and_returns_a_named_range_against_the_current_session_revision() {
             session_ref: SESSION_REF.to_owned(),
             snapshot_ref: SNAPSHOT_REF.to_owned(),
             exercise_ref: EXERCISE_REF.to_owned(),
+            coordinate: TrainingSessionRangeCoordinate::exercise_elapsed(),
             title: "  Riverside effort  ".to_owned(),
             started_at_elapsed_milliseconds: 60_000,
             ended_at_elapsed_milliseconds: 180_000,
@@ -216,6 +262,46 @@ fn creates_and_returns_a_named_range_against_the_current_session_revision() {
     assert_eq!(result.ranges[0].exercise_ref(), Some(EXERCISE_REF));
     assert_eq!(result.ranges[0].title(), "Riverside effort");
     assert_eq!(result.ranges[0].evidence_revision(), EVIDENCE_REVISION);
+}
+
+#[test]
+fn validates_boundaries_against_the_selected_coordinate_not_exercise_duration() {
+    let port = ControlledPort::new(Vec::new());
+    let route_coordinate =
+        TrainingSessionRangeCoordinate::route_elapsed(ROUTE_REF).expect("route coordinate");
+
+    assert!(matches!(
+        create_training_session_range(
+            &port,
+            CreateTrainingSessionRangeRequest {
+                session_ref: SESSION_REF.to_owned(),
+                snapshot_ref: SNAPSHOT_REF.to_owned(),
+                exercise_ref: EXERCISE_REF.to_owned(),
+                coordinate: route_coordinate.clone(),
+                title: "Outside recorded route".to_owned(),
+                started_at_elapsed_milliseconds: 400_000,
+                ended_at_elapsed_milliseconds: 500_000,
+            },
+        ),
+        Err(ApplicationError::InvalidTrainingSessionRange(_))
+    ));
+    assert!(port.persisted.borrow().ranges.is_empty());
+
+    let result = create_training_session_range(
+        &port,
+        CreateTrainingSessionRangeRequest {
+            session_ref: SESSION_REF.to_owned(),
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+            exercise_ref: EXERCISE_REF.to_owned(),
+            coordinate: route_coordinate,
+            title: "Recorded route finish".to_owned(),
+            started_at_elapsed_milliseconds: 300_000,
+            ended_at_elapsed_milliseconds: 450_000,
+        },
+    )
+    .expect("route-relative range");
+
+    assert_eq!(result.ranges[0].coordinate().reference(), Some(ROUTE_REF));
 }
 
 #[test]
@@ -283,6 +369,7 @@ fn adjusts_current_boundaries_and_completes_review_against_current_evidence() {
             range_ref: range_id(1),
             expected_revision: 2,
             exercise_ref: EXERCISE_REF.to_owned(),
+            coordinate: TrainingSessionRangeCoordinate::exercise_elapsed(),
             started_at_elapsed_milliseconds: 30_000,
             ended_at_elapsed_milliseconds: 150_000,
         },
@@ -300,6 +387,7 @@ fn anchors_a_preserved_legacy_range_only_through_explicit_review() {
         range_id(1),
         SESSION_REF,
         None,
+        TrainingSessionRangeCoordinate::legacy_session_elapsed(),
         "Legacy selection",
         60_000,
         180_000,
@@ -319,6 +407,8 @@ fn anchors_a_preserved_legacy_range_only_through_explicit_review() {
             range_ref: range_id(1),
             expected_revision: 2,
             exercise_ref: EXERCISE_REF.to_owned(),
+            coordinate: TrainingSessionRangeCoordinate::route_elapsed(ROUTE_REF)
+                .expect("route coordinate"),
             started_at_elapsed_milliseconds: 30_000,
             ended_at_elapsed_milliseconds: 150_000,
         },
@@ -339,7 +429,10 @@ fn rejects_an_unknown_or_changed_exercise_owner_without_mutation() {
         .push(TrainingSessionRangeExerciseContext {
             exercise_ref: OTHER_EXERCISE_REF.to_owned(),
             ordinal: 1,
-            duration_milliseconds: 600_000,
+            coordinates: vec![TrainingSessionRangeCoordinateContext {
+                coordinate: TrainingSessionRangeCoordinate::exercise_elapsed(),
+                maximum_elapsed_milliseconds: 600_000,
+            }],
         });
 
     for exercise_ref in [
@@ -355,6 +448,7 @@ fn rejects_an_unknown_or_changed_exercise_owner_without_mutation() {
                     range_ref: range_id(1),
                     expected_revision: 1,
                     exercise_ref,
+                    coordinate: TrainingSessionRangeCoordinate::exercise_elapsed(),
                     started_at_elapsed_milliseconds: 30_000,
                     ended_at_elapsed_milliseconds: 150_000,
                 },
@@ -426,7 +520,10 @@ fn rejects_duplicate_or_missing_exercise_context_for_current_ranges() {
         .push(TrainingSessionRangeExerciseContext {
             exercise_ref: OTHER_EXERCISE_REF.to_owned(),
             ordinal: 0,
-            duration_milliseconds: 600_000,
+            coordinates: vec![TrainingSessionRangeCoordinateContext {
+                coordinate: TrainingSessionRangeCoordinate::exercise_elapsed(),
+                maximum_elapsed_milliseconds: 600_000,
+            }],
         });
     assert!(matches!(
         query_training_session_ranges(&port, query()),
@@ -436,6 +533,46 @@ fn rejects_duplicate_or_missing_exercise_context_for_current_ranges() {
     port.persisted.borrow_mut().exercises.clear();
     assert!(matches!(
         query_training_session_ranges(&port, query()),
+        Err(ApplicationError::TrainingSessionRangeQuery(_))
+    ));
+}
+
+#[test]
+fn rejects_duplicate_or_invalid_coordinate_authority() {
+    let port = ControlledPort::new(vec![range(1, "Opening", 0, 120_000)]);
+    port.persisted.borrow_mut().exercises[0].coordinates.push(
+        TrainingSessionRangeCoordinateContext {
+            coordinate: TrainingSessionRangeCoordinate::exercise_elapsed(),
+            maximum_elapsed_milliseconds: 600_000,
+        },
+    );
+    assert!(matches!(
+        query_training_session_ranges(&port, query()),
+        Err(ApplicationError::TrainingSessionRangeQuery(_))
+    ));
+
+    port.persisted.borrow_mut().exercises[0].coordinates.pop();
+    port.persisted.borrow_mut().exercises[0].coordinates[0].maximum_elapsed_milliseconds = -1;
+    assert!(matches!(
+        query_training_session_ranges(&port, query()),
+        Err(ApplicationError::TrainingSessionRangeQuery(_))
+    ));
+
+    let missing_exercise_coordinate = ControlledPort::new(Vec::new());
+    missing_exercise_coordinate.persisted.borrow_mut().exercises[0]
+        .coordinates
+        .retain(|context| context.coordinate != TrainingSessionRangeCoordinate::exercise_elapsed());
+    assert!(matches!(
+        query_training_session_ranges(&missing_exercise_coordinate, query()),
+        Err(ApplicationError::TrainingSessionRangeQuery(_))
+    ));
+
+    let empty_coordinates = ControlledPort::new(Vec::new());
+    empty_coordinates.persisted.borrow_mut().exercises[0]
+        .coordinates
+        .clear();
+    assert!(matches!(
+        query_training_session_ranges(&empty_coordinates, query()),
         Err(ApplicationError::TrainingSessionRangeQuery(_))
     ));
 }
@@ -500,6 +637,7 @@ fn rejects_invalid_capabilities_revisions_titles_and_boundaries_before_mutation(
                 session_ref: "invalid".to_owned(),
                 snapshot_ref: SNAPSHOT_REF.to_owned(),
                 exercise_ref: EXERCISE_REF.to_owned(),
+                coordinate: TrainingSessionRangeCoordinate::exercise_elapsed(),
                 title: "Selection".to_owned(),
                 started_at_elapsed_milliseconds: 0,
                 ended_at_elapsed_milliseconds: 1,
@@ -529,6 +667,7 @@ fn rejects_invalid_capabilities_revisions_titles_and_boundaries_before_mutation(
                 range_ref: range_id(1),
                 expected_revision: 1,
                 exercise_ref: EXERCISE_REF.to_owned(),
+                coordinate: TrainingSessionRangeCoordinate::exercise_elapsed(),
                 started_at_elapsed_milliseconds: 200_000,
                 ended_at_elapsed_milliseconds: 100_000,
             },

@@ -1,8 +1,8 @@
 use super::{
     adjust_training_session_range, reconcile_training_session_range, remove_training_session_range,
     rename_training_session_range, TrainingSessionRange, TrainingSessionRangeAuthorship,
-    TrainingSessionRangeError, TrainingSessionRangeEvidenceCompatibility,
-    TrainingSessionRangeState,
+    TrainingSessionRangeCoordinate, TrainingSessionRangeCoordinateScope, TrainingSessionRangeError,
+    TrainingSessionRangeEvidenceCompatibility, TrainingSessionRangeState,
 };
 
 const RANGE_ID: &str = "range-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
@@ -12,6 +12,8 @@ const EXERCISE_REF: &str =
     "exercise-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const OTHER_EXERCISE_REF: &str =
     "exercise-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+const ROUTE_REF: &str = "route-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+const SIGNAL_REF: &str = "signal-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
 const EVIDENCE_REVISION: &str = concat!(
     "range-evidence-",
     "2222222222222222222222222222222222222222222222222222222222222222"
@@ -26,6 +28,7 @@ fn range() -> TrainingSessionRange {
         RANGE_ID,
         SESSION_REF,
         EXERCISE_REF,
+        TrainingSessionRangeCoordinate::exercise_elapsed(),
         "  Riverside effort  ",
         60_000,
         180_000,
@@ -42,6 +45,11 @@ fn creates_an_exercise_owned_user_range() {
     assert_eq!(range.range_id(), RANGE_ID);
     assert_eq!(range.session_ref(), SESSION_REF);
     assert_eq!(range.exercise_ref(), Some(EXERCISE_REF));
+    assert_eq!(
+        range.coordinate().scope(),
+        TrainingSessionRangeCoordinateScope::ExerciseElapsed
+    );
+    assert_eq!(range.coordinate().reference(), None);
     assert_eq!(range.title(), "Riverside effort");
     assert_eq!(range.started_at_elapsed_milliseconds(), 60_000);
     assert_eq!(range.ended_at_elapsed_milliseconds(), 180_000);
@@ -49,6 +57,84 @@ fn creates_an_exercise_owned_user_range() {
     assert_eq!(range.authorship(), TrainingSessionRangeAuthorship::User);
     assert_eq!(range.state(), TrainingSessionRangeState::Current);
     assert_eq!(range.revision(), 1);
+}
+
+#[test]
+fn creates_ranges_against_one_explicit_coordinate_authority() {
+    let route_coordinate =
+        TrainingSessionRangeCoordinate::route_elapsed(ROUTE_REF).expect("route coordinate");
+    let route_range = TrainingSessionRange::create(
+        RANGE_ID,
+        SESSION_REF,
+        EXERCISE_REF,
+        route_coordinate.clone(),
+        "Recorded bend",
+        10_000,
+        120_000,
+        120_000,
+        EVIDENCE_REVISION,
+    )
+    .expect("route-relative range");
+    assert_eq!(
+        route_range.coordinate().scope(),
+        TrainingSessionRangeCoordinateScope::RouteElapsed
+    );
+    assert_eq!(route_range.coordinate().reference(), Some(ROUTE_REF));
+
+    let signal_coordinate =
+        TrainingSessionRangeCoordinate::signal_elapsed(SIGNAL_REF).expect("signal coordinate");
+    let signal_range = TrainingSessionRange::create(
+        RANGE_ID,
+        SESSION_REF,
+        EXERCISE_REF,
+        signal_coordinate,
+        "Heart-rate rise",
+        10_000,
+        90_000,
+        100_000,
+        EVIDENCE_REVISION,
+    )
+    .expect("signal-relative range");
+    assert_eq!(
+        signal_range.coordinate().scope(),
+        TrainingSessionRangeCoordinateScope::SignalElapsed
+    );
+    assert_eq!(signal_range.coordinate().reference(), Some(SIGNAL_REF));
+
+    assert_eq!(
+        TrainingSessionRange::create(
+            RANGE_ID,
+            SESSION_REF,
+            EXERCISE_REF,
+            route_coordinate,
+            "Outside route",
+            10_000,
+            120_001,
+            120_000,
+            EVIDENCE_REVISION,
+        ),
+        Err(TrainingSessionRangeError::OutsideCoordinate)
+    );
+    assert_eq!(
+        TrainingSessionRangeCoordinate::route_elapsed("route-invalid"),
+        Err(TrainingSessionRangeError::InvalidCoordinateReference)
+    );
+}
+
+#[test]
+fn established_coordinate_authority_cannot_be_reinterpreted() {
+    assert_eq!(
+        adjust_training_session_range(
+            &range(),
+            EXERCISE_REF,
+            TrainingSessionRangeCoordinate::route_elapsed(ROUTE_REF).expect("route coordinate"),
+            60_000,
+            180_000,
+            300_000,
+            EVIDENCE_REVISION,
+        ),
+        Err(TrainingSessionRangeError::CoordinateChanged)
+    );
 }
 
 #[test]
@@ -65,6 +151,7 @@ fn renames_and_adjusts_with_one_revision_per_effective_authored_change() {
     let adjusted = adjust_training_session_range(
         &renamed,
         EXERCISE_REF,
+        TrainingSessionRangeCoordinate::exercise_elapsed(),
         90_000,
         240_000,
         300_000,
@@ -79,6 +166,7 @@ fn renames_and_adjusts_with_one_revision_per_effective_authored_change() {
     let unchanged = adjust_training_session_range(
         &adjusted,
         EXERCISE_REF,
+        TrainingSessionRangeCoordinate::exercise_elapsed(),
         90_000,
         240_000,
         300_000,
@@ -176,6 +264,7 @@ fn adjustment_against_current_evidence_completes_review() {
     let reviewed = adjust_training_session_range(
         &review_required,
         EXERCISE_REF,
+        TrainingSessionRangeCoordinate::exercise_elapsed(),
         30_000,
         120_000,
         300_000,
@@ -194,6 +283,10 @@ fn removal_is_an_explicit_revision_bound_domain_decision() {
     assert_eq!(removed.range_id(), RANGE_ID);
     assert_eq!(removed.session_ref(), SESSION_REF);
     assert_eq!(removed.exercise_ref(), Some(EXERCISE_REF));
+    assert_eq!(
+        removed.coordinate(),
+        &TrainingSessionRangeCoordinate::exercise_elapsed()
+    );
     assert_eq!(removed.expected_revision(), 1);
 }
 
@@ -204,6 +297,7 @@ fn rejects_invalid_identity_title_boundaries_and_restore_state() {
             "range-not-a-capability",
             SESSION_REF,
             EXERCISE_REF,
+            TrainingSessionRangeCoordinate::exercise_elapsed(),
             "Warm-up",
             0,
             1,
@@ -214,6 +308,7 @@ fn rejects_invalid_identity_title_boundaries_and_restore_state() {
             RANGE_ID,
             "session-not-a-capability",
             EXERCISE_REF,
+            TrainingSessionRangeCoordinate::exercise_elapsed(),
             "Warm-up",
             0,
             1,
@@ -224,6 +319,7 @@ fn rejects_invalid_identity_title_boundaries_and_restore_state() {
             RANGE_ID,
             SESSION_REF,
             EXERCISE_REF,
+            TrainingSessionRangeCoordinate::exercise_elapsed(),
             "   ",
             0,
             1,
@@ -234,6 +330,7 @@ fn rejects_invalid_identity_title_boundaries_and_restore_state() {
             RANGE_ID,
             SESSION_REF,
             EXERCISE_REF,
+            TrainingSessionRangeCoordinate::exercise_elapsed(),
             "Warm-up",
             10,
             10,
@@ -244,6 +341,7 @@ fn rejects_invalid_identity_title_boundaries_and_restore_state() {
             RANGE_ID,
             SESSION_REF,
             EXERCISE_REF,
+            TrainingSessionRangeCoordinate::exercise_elapsed(),
             "Warm-up",
             -1,
             1,
@@ -254,6 +352,7 @@ fn rejects_invalid_identity_title_boundaries_and_restore_state() {
             RANGE_ID,
             SESSION_REF,
             EXERCISE_REF,
+            TrainingSessionRangeCoordinate::exercise_elapsed(),
             "Warm-up",
             0,
             11,
@@ -264,6 +363,7 @@ fn rejects_invalid_identity_title_boundaries_and_restore_state() {
             RANGE_ID,
             SESSION_REF,
             EXERCISE_REF,
+            TrainingSessionRangeCoordinate::exercise_elapsed(),
             "Warm-up",
             0,
             1,
@@ -274,6 +374,7 @@ fn rejects_invalid_identity_title_boundaries_and_restore_state() {
             RANGE_ID,
             SESSION_REF,
             "exercise-not-a-capability",
+            TrainingSessionRangeCoordinate::exercise_elapsed(),
             "Warm-up",
             0,
             1,
@@ -288,6 +389,7 @@ fn rejects_invalid_identity_title_boundaries_and_restore_state() {
             RANGE_ID,
             SESSION_REF,
             Some(EXERCISE_REF.to_owned()),
+            TrainingSessionRangeCoordinate::exercise_elapsed(),
             " Warm-up ",
             0,
             1,
@@ -303,6 +405,7 @@ fn rejects_invalid_identity_title_boundaries_and_restore_state() {
             RANGE_ID,
             SESSION_REF,
             Some(EXERCISE_REF.to_owned()),
+            TrainingSessionRangeCoordinate::exercise_elapsed(),
             "Warm-up",
             0,
             1,
@@ -323,6 +426,7 @@ fn rejects_invalid_adjustments_without_changing_the_range() {
         adjust_training_session_range(
             &original,
             EXERCISE_REF,
+            TrainingSessionRangeCoordinate::exercise_elapsed(),
             180_000,
             60_000,
             300_000,
@@ -331,6 +435,7 @@ fn rejects_invalid_adjustments_without_changing_the_range() {
         adjust_training_session_range(
             &original,
             EXERCISE_REF,
+            TrainingSessionRangeCoordinate::exercise_elapsed(),
             0,
             310_000,
             300_000,
@@ -339,6 +444,7 @@ fn rejects_invalid_adjustments_without_changing_the_range() {
         adjust_training_session_range(
             &original,
             EXERCISE_REF,
+            TrainingSessionRangeCoordinate::exercise_elapsed(),
             0,
             10_000,
             300_000,
@@ -347,6 +453,7 @@ fn rejects_invalid_adjustments_without_changing_the_range() {
         adjust_training_session_range(
             &original,
             OTHER_EXERCISE_REF,
+            TrainingSessionRangeCoordinate::exercise_elapsed(),
             0,
             10_000,
             300_000,
@@ -364,6 +471,7 @@ fn preserves_a_legacy_session_coordinate_until_explicit_exercise_review() {
         RANGE_ID,
         SESSION_REF,
         None,
+        TrainingSessionRangeCoordinate::legacy_session_elapsed(),
         "Legacy selection",
         60_000,
         180_000,
@@ -378,6 +486,7 @@ fn preserves_a_legacy_session_coordinate_until_explicit_exercise_review() {
     let reviewed = adjust_training_session_range(
         &legacy,
         EXERCISE_REF,
+        TrainingSessionRangeCoordinate::route_elapsed(ROUTE_REF).expect("route coordinate"),
         30_000,
         120_000,
         300_000,
@@ -386,6 +495,7 @@ fn preserves_a_legacy_session_coordinate_until_explicit_exercise_review() {
     .expect("explicitly anchored range");
 
     assert_eq!(reviewed.exercise_ref(), Some(EXERCISE_REF));
+    assert_eq!(reviewed.coordinate().reference(), Some(ROUTE_REF));
     assert_eq!(reviewed.started_at_elapsed_milliseconds(), 30_000);
     assert_eq!(reviewed.state(), TrainingSessionRangeState::Current);
     assert_eq!(reviewed.revision(), 3);
@@ -398,6 +508,7 @@ fn rejects_a_current_range_without_an_exercise_owner() {
             RANGE_ID,
             SESSION_REF,
             None,
+            TrainingSessionRangeCoordinate::legacy_session_elapsed(),
             "Unanchored",
             0,
             1,

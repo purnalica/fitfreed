@@ -49,23 +49,23 @@ use fitfreed_application::{
     TrainingSegmentCriterionDirection, TrainingSegmentCriterionMutationRequest,
     TrainingSeriesComparison, TrainingSeriesSummary, TrainingSessionCalendar,
     TrainingSessionCalendarDay, TrainingSessionCalendarRequest, TrainingSessionProvenanceQuery,
-    TrainingSessionProvenanceResult, TrainingSessionRangeExerciseContext,
-    TrainingSessionRangesQuery, TrainingSessionRangesResult, TrainingSessionRouteQuery,
-    TrainingSessionRoutesResult, TrainingSessionRoutesView, TrainingSessionSearchItem,
-    TrainingSessionSearchPage, TrainingSessionSearchRequest, TrainingSessionSearchSummary,
-    TrainingSessionSegmentationQuery, TrainingSessionSegmentationResult, TrainingSessionSelection,
-    TrainingSessionSelectionRequest, TrainingSessionSignalsQuery, TrainingSessionSignalsResult,
-    TrainingSessionSignalsView, TrainingSessionSort, TrainingSessionSport,
-    TrainingSessionStructureQuery, TrainingSessionStructureResult, TrainingSessionZonesQuery,
-    TrainingSessionZonesResult, TrainingSessionZonesView, TrainingSignalCollectionView,
-    TrainingSignalKindView, TrainingSignalRoleView, TrainingSignalSampleView,
-    TrainingSignalSamplesQuery, TrainingSignalSeriesOverview, TrainingSignalUnitView,
-    TrainingSignalVisualSampleView, TrainingSourceProviderView, TrainingSport,
-    TrainingSportClassification, TrainingSportCoverage, TrainingSportState, TrainingSportsOverview,
-    TrainingStructure, TrainingZoneCollectionView, TrainingZoneGroupView, TrainingZoneKindView,
-    TrainingZoneUnitView, TrainingZoneView, UpdateCheckOutcome, UpdateCheckStatus,
-    UpdateComposedSessionReportRequest, UpdateError, UpdateRecoveryOutcome,
-    UpdateRecoveryOutcomeKind, UpdateReleaseSummary, UpdateReportRequest,
+    TrainingSessionProvenanceResult, TrainingSessionRangeCoordinateContext,
+    TrainingSessionRangeExerciseContext, TrainingSessionRangesQuery, TrainingSessionRangesResult,
+    TrainingSessionRouteQuery, TrainingSessionRoutesResult, TrainingSessionRoutesView,
+    TrainingSessionSearchItem, TrainingSessionSearchPage, TrainingSessionSearchRequest,
+    TrainingSessionSearchSummary, TrainingSessionSegmentationQuery,
+    TrainingSessionSegmentationResult, TrainingSessionSelection, TrainingSessionSelectionRequest,
+    TrainingSessionSignalsQuery, TrainingSessionSignalsResult, TrainingSessionSignalsView,
+    TrainingSessionSort, TrainingSessionSport, TrainingSessionStructureQuery,
+    TrainingSessionStructureResult, TrainingSessionZonesQuery, TrainingSessionZonesResult,
+    TrainingSessionZonesView, TrainingSignalCollectionView, TrainingSignalKindView,
+    TrainingSignalRoleView, TrainingSignalSampleView, TrainingSignalSamplesQuery,
+    TrainingSignalSeriesOverview, TrainingSignalUnitView, TrainingSignalVisualSampleView,
+    TrainingSourceProviderView, TrainingSport, TrainingSportClassification, TrainingSportCoverage,
+    TrainingSportState, TrainingSportsOverview, TrainingStructure, TrainingZoneCollectionView,
+    TrainingZoneGroupView, TrainingZoneKindView, TrainingZoneUnitView, TrainingZoneView,
+    UpdateCheckOutcome, UpdateCheckStatus, UpdateComposedSessionReportRequest, UpdateError,
+    UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind, UpdateReleaseSummary, UpdateReportRequest,
     UpdateSessionReportRequest, UpdateTrainingSegmentCriterionRequest, UpdateTrustFailure,
     UpdateWithdrawalReason, UpdateWithdrawalSummary,
 };
@@ -612,7 +612,8 @@ use fitfreed_domain::{
     SegmentCriterion, SegmentCriterionAuthorship, SegmentCriterionDefinition, SleepPhaseSummary,
     SleepScore, SleepStage, SleepStageTransition, SourceSpecificRecoveryAssessment,
     SourceSpecificRecoveryBaseline, SourceSpecificRecoveryGuidance, TrainingSessionRange,
-    TrainingSessionRangeAuthorship, TrainingSessionRangeState,
+    TrainingSessionRangeAuthorship, TrainingSessionRangeCoordinate,
+    TrainingSessionRangeCoordinateScope, TrainingSessionRangeState,
 };
 
 #[derive(Debug, Serialize)]
@@ -1227,11 +1228,45 @@ fn parse_training_session_range_i64(value: &str) -> Result<i64, CommandErrorDto>
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(
+    tag = "scope",
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase",
+    deny_unknown_fields
+)]
+pub enum TrainingSessionRangeCoordinateInputDto {
+    ExerciseElapsed {},
+    RouteElapsed { route_ref: String },
+    SignalElapsed { signal_ref: String },
+}
+
+impl TryFrom<TrainingSessionRangeCoordinateInputDto> for TrainingSessionRangeCoordinate {
+    type Error = CommandErrorDto;
+
+    fn try_from(coordinate: TrainingSessionRangeCoordinateInputDto) -> Result<Self, Self::Error> {
+        match coordinate {
+            TrainingSessionRangeCoordinateInputDto::ExerciseElapsed {} => {
+                Ok(Self::exercise_elapsed())
+            }
+            TrainingSessionRangeCoordinateInputDto::RouteElapsed { route_ref } => {
+                Self::route_elapsed(route_ref)
+                    .map_err(|_| CommandErrorDto::new("invalid-training-session-range"))
+            }
+            TrainingSessionRangeCoordinateInputDto::SignalElapsed { signal_ref } => {
+                Self::signal_elapsed(signal_ref)
+                    .map_err(|_| CommandErrorDto::new("invalid-training-session-range"))
+            }
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CreateTrainingSessionRangeRequestDto {
     session_ref: String,
     snapshot_ref: String,
     exercise_ref: String,
+    coordinate: TrainingSessionRangeCoordinateInputDto,
     title: String,
     started_at_elapsed_milliseconds: String,
     ended_at_elapsed_milliseconds: String,
@@ -1245,6 +1280,7 @@ impl TryFrom<CreateTrainingSessionRangeRequestDto> for CreateTrainingSessionRang
             session_ref: request.session_ref,
             snapshot_ref: request.snapshot_ref,
             exercise_ref: request.exercise_ref,
+            coordinate: request.coordinate.try_into()?,
             title: request.title,
             started_at_elapsed_milliseconds: parse_training_session_range_i64(
                 &request.started_at_elapsed_milliseconds,
@@ -1286,6 +1322,7 @@ pub struct AdjustTrainingSessionRangeRequestDto {
     range_ref: String,
     expected_revision: u64,
     exercise_ref: String,
+    coordinate: TrainingSessionRangeCoordinateInputDto,
     started_at_elapsed_milliseconds: String,
     ended_at_elapsed_milliseconds: String,
 }
@@ -1300,6 +1337,7 @@ impl TryFrom<AdjustTrainingSessionRangeRequestDto> for AdjustTrainingSessionRang
             range_ref: request.range_ref,
             expected_revision: request.expected_revision,
             exercise_ref: request.exercise_ref,
+            coordinate: request.coordinate.try_into()?,
             started_at_elapsed_milliseconds: parse_training_session_range_i64(
                 &request.started_at_elapsed_milliseconds,
             )?,
@@ -4202,10 +4240,45 @@ impl From<TrainingSessionSegmentationResult> for TrainingSessionSegmentationResu
 }
 
 #[derive(Debug, Serialize)]
+#[serde(
+    tag = "scope",
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase"
+)]
+pub enum TrainingSessionRangeCoordinateDto {
+    ExerciseElapsed,
+    RouteElapsed { route_ref: String },
+    SignalElapsed { signal_ref: String },
+    LegacySessionElapsed,
+}
+
+impl From<&TrainingSessionRangeCoordinate> for TrainingSessionRangeCoordinateDto {
+    fn from(coordinate: &TrainingSessionRangeCoordinate) -> Self {
+        match coordinate.scope() {
+            TrainingSessionRangeCoordinateScope::ExerciseElapsed => Self::ExerciseElapsed,
+            TrainingSessionRangeCoordinateScope::RouteElapsed => Self::RouteElapsed {
+                route_ref: coordinate
+                    .reference()
+                    .expect("validated route coordinate has a reference")
+                    .to_owned(),
+            },
+            TrainingSessionRangeCoordinateScope::SignalElapsed => Self::SignalElapsed {
+                signal_ref: coordinate
+                    .reference()
+                    .expect("validated signal coordinate has a reference")
+                    .to_owned(),
+            },
+            TrainingSessionRangeCoordinateScope::LegacySessionElapsed => Self::LegacySessionElapsed,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TrainingSessionRangeDto {
     range_ref: String,
     exercise_ref: Option<String>,
+    coordinate: TrainingSessionRangeCoordinateDto,
     title: String,
     started_at_elapsed_milliseconds: String,
     ended_at_elapsed_milliseconds: String,
@@ -4227,6 +4300,7 @@ impl From<TrainingSessionRange> for TrainingSessionRangeDto {
         Self {
             range_ref: range.range_id().to_owned(),
             exercise_ref: range.exercise_ref().map(str::to_owned),
+            coordinate: range.coordinate().into(),
             title: range.title().to_owned(),
             started_at_elapsed_milliseconds: range.started_at_elapsed_milliseconds().to_string(),
             ended_at_elapsed_milliseconds: range.ended_at_elapsed_milliseconds().to_string(),
@@ -4240,10 +4314,26 @@ impl From<TrainingSessionRange> for TrainingSessionRangeDto {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct TrainingSessionRangeCoordinateContextDto {
+    coordinate: TrainingSessionRangeCoordinateDto,
+    maximum_elapsed_milliseconds: String,
+}
+
+impl From<TrainingSessionRangeCoordinateContext> for TrainingSessionRangeCoordinateContextDto {
+    fn from(context: TrainingSessionRangeCoordinateContext) -> Self {
+        Self {
+            coordinate: (&context.coordinate).into(),
+            maximum_elapsed_milliseconds: context.maximum_elapsed_milliseconds.to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TrainingSessionRangeExerciseContextDto {
     exercise_ref: String,
     ordinal: usize,
-    duration_milliseconds: String,
+    coordinates: Vec<TrainingSessionRangeCoordinateContextDto>,
 }
 
 impl From<TrainingSessionRangeExerciseContext> for TrainingSessionRangeExerciseContextDto {
@@ -4251,7 +4341,7 @@ impl From<TrainingSessionRangeExerciseContext> for TrainingSessionRangeExerciseC
         Self {
             exercise_ref: exercise.exercise_ref,
             ordinal: exercise.ordinal,
-            duration_milliseconds: exercise.duration_milliseconds.to_string(),
+            coordinates: exercise.coordinates.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -7589,6 +7679,11 @@ mod tests {
                     "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                 "exerciseRef":
                     "exercise-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                "coordinate": {
+                    "scope": "route-elapsed",
+                    "routeRef":
+                        "route-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
                 "title": "Bridge to bend",
                 "startedAtElapsedMilliseconds": "0",
                 "endedAtElapsedMilliseconds": "9223372036854775807"
@@ -7598,6 +7693,13 @@ mod tests {
             .expect("personal range create request");
         assert_eq!(create.started_at_elapsed_milliseconds, 0);
         assert_eq!(create.ended_at_elapsed_milliseconds, i64::MAX);
+        assert_eq!(
+            create.coordinate,
+            TrainingSessionRangeCoordinate::route_elapsed(
+                "route-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            )
+            .expect("route coordinate")
+        );
         assert_eq!(
             create.exercise_ref,
             "exercise-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
@@ -7630,6 +7732,11 @@ mod tests {
                 "expectedRevision": 3,
                 "exerciseRef":
                     "exercise-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                "coordinate": {
+                    "scope": "signal-elapsed",
+                    "signalRef":
+                        "signal-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                },
                 "startedAtElapsedMilliseconds": "10",
                 "endedAtElapsedMilliseconds": "20"
             }))
@@ -7639,6 +7746,13 @@ mod tests {
         assert_eq!(adjust.expected_revision, 3);
         assert_eq!(adjust.started_at_elapsed_milliseconds, 10);
         assert_eq!(adjust.ended_at_elapsed_milliseconds, 20);
+        assert_eq!(
+            adjust.coordinate,
+            TrainingSessionRangeCoordinate::signal_elapsed(
+                "signal-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            )
+            .expect("signal coordinate")
+        );
 
         let remove_input: RemoveTrainingSessionRangeRequestDto =
             serde_json::from_value(serde_json::json!({
@@ -7664,6 +7778,7 @@ mod tests {
                             "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                         "exerciseRef":
                             "exercise-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                        "coordinate": { "scope": "exercise-elapsed" },
                         "title": "Invalid boundary",
                         "startedAtElapsedMilliseconds": "00",
                         "endedAtElapsedMilliseconds": "1"
@@ -7684,12 +7799,33 @@ mod tests {
                 "expectedRevision": 2,
                 "exerciseRef":
                     "exercise-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                "coordinate": { "scope": "exercise-elapsed" },
                 "startedAtElapsedMilliseconds": "10",
                 "endedAtElapsedMilliseconds": "20",
                 "sourceLapId": "must-not-cross-the-boundary"
             }))
             .is_err()
         );
+        for invalid_coordinate in [
+            serde_json::json!({
+                "scope": "route-elapsed",
+                "signalRef":
+                    "signal-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            }),
+            serde_json::json!({
+                "scope": "exercise-elapsed",
+                "routeRef":
+                    "route-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }),
+            serde_json::json!({ "scope": "legacy-session-elapsed" }),
+        ] {
+            assert!(
+                serde_json::from_value::<TrainingSessionRangeCoordinateInputDto>(
+                    invalid_coordinate
+                )
+                .is_err()
+            );
+        }
 
         let range = TrainingSessionRange::restore(
             "range-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
@@ -7698,6 +7834,10 @@ mod tests {
                 "exercise-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
                     .to_owned(),
             ),
+            TrainingSessionRangeCoordinate::route_elapsed(
+                "route-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            )
+            .expect("transport route coordinate"),
             "Bridge to bend",
             i64::MAX - 2,
             i64::MAX,
@@ -7707,6 +7847,20 @@ mod tests {
             7,
         )
         .expect("transport range");
+        let legacy_range = TrainingSessionRange::restore(
+            "range-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            None,
+            TrainingSessionRangeCoordinate::legacy_session_elapsed(),
+            "Preserved selection",
+            1,
+            2,
+            "range-evidence-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            TrainingSessionRangeAuthorship::User,
+            TrainingSessionRangeState::ReviewRequired,
+            4,
+        )
+        .expect("transport legacy range");
         let result = TrainingSessionRangesResult {
             snapshot_ref:
                 "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
@@ -7722,16 +7876,55 @@ mod tests {
                     "exercise-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
                         .to_owned(),
                 ordinal: 0,
-                duration_milliseconds: i64::MAX,
+                coordinates: vec![
+                    TrainingSessionRangeCoordinateContext {
+                        coordinate: TrainingSessionRangeCoordinate::exercise_elapsed(),
+                        maximum_elapsed_milliseconds: i64::MAX,
+                    },
+                    TrainingSessionRangeCoordinateContext {
+                        coordinate: TrainingSessionRangeCoordinate::route_elapsed(
+                            "route-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        )
+                        .expect("transport route context"),
+                        maximum_elapsed_milliseconds: i64::MAX - 1,
+                    },
+                    TrainingSessionRangeCoordinateContext {
+                        coordinate: TrainingSessionRangeCoordinate::signal_elapsed(
+                            "signal-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                        )
+                        .expect("transport signal context"),
+                        maximum_elapsed_milliseconds: i64::MAX - 2,
+                    },
+                ],
             }],
-            ranges: vec![range],
+            ranges: vec![range, legacy_range],
         };
         let json = serde_json::to_value(TrainingSessionRangesResultDto::from(result))
             .expect("personal range result JSON");
         assert_eq!(json["sessionDurationMilliseconds"], i64::MAX.to_string());
         assert_eq!(
-            json["exercises"][0]["durationMilliseconds"],
+            json["exercises"][0]["coordinates"][0]["maximumElapsedMilliseconds"],
             i64::MAX.to_string()
+        );
+        assert_eq!(
+            json["exercises"][0]["coordinates"][0]["coordinate"],
+            serde_json::json!({ "scope": "exercise-elapsed" })
+        );
+        assert_eq!(
+            json["exercises"][0]["coordinates"][1]["coordinate"],
+            serde_json::json!({
+                "scope": "route-elapsed",
+                "routeRef":
+                    "route-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            })
+        );
+        assert_eq!(
+            json["exercises"][0]["coordinates"][2]["coordinate"],
+            serde_json::json!({
+                "scope": "signal-elapsed",
+                "signalRef":
+                    "signal-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            })
         );
         assert_eq!(
             json["ranges"][0]["exerciseRef"],
@@ -7744,6 +7937,19 @@ mod tests {
         assert_eq!(json["ranges"][0]["authorship"], "user");
         assert_eq!(json["ranges"][0]["state"], "review-required");
         assert_eq!(json["ranges"][0]["revision"], 7);
+        assert_eq!(
+            json["ranges"][0]["coordinate"],
+            serde_json::json!({
+                "scope": "route-elapsed",
+                "routeRef":
+                    "route-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            })
+        );
+        assert_eq!(json["ranges"][1]["exerciseRef"], serde_json::Value::Null);
+        assert_eq!(
+            json["ranges"][1]["coordinate"],
+            serde_json::json!({ "scope": "legacy-session-elapsed" })
+        );
         assert!(json.to_string().find("sourceSessionId").is_none());
     }
 

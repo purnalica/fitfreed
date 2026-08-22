@@ -211,7 +211,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R5 | Complete locally — R5.4, R5.5, and real-process restart gates passed 2026-08-22 | A remembered session is findable and sports are recognizable |
 | X5-R6 | Complete locally — R6.1 through R6.5 passed exact packaged, adaptive visual, and dense-route gates on 2026-08-22 | A routed workout is investigated through a dominant synchronized map |
 | X5-R7 | Complete locally — R7.1 through R7.6 passed the exact fast, functional, restart, adaptive, accessibility, visual, and performance gates on 2026-08-22 | Every session composition reflects its actual evidence |
-| X5-R8 | In progress — R8.1 through R8.3 complete locally; R8.4 corrected unproven route/signal alignment in Session Story v3 and is defining explicit range coordinates | Personal ranges and reusable criteria work end to end |
+| X5-R8 | In progress — R8.1 through R8.3 complete locally; R8.4 corrected unproven Session Story alignment and now enforces explicit exercise, route, or signal range coordinates; Range Summary is active | Personal ranges and reusable criteria work end to end |
 | X5-R9 | Pending | Reports open as results and leave FitFreed safely |
 | X5-R10 | Pending | The complete release-shaped product is coherent and documented |
 | X6 | Pending | Independent audit has no unresolved material finding |
@@ -1349,6 +1349,32 @@ The focused application, desktop transport, presentation, and schema checks pass
 passes with 156 tooling tests, 291 presentation tests, two vendored-updater tests, 217 desktop-adapter tests,
 170 application tests, and 44 domain tests. Strict Clippy and Rust formatting also pass. The next R8.4 slice
 defines coordinate authority for personal ranges; Range Summary remains downstream of that contract.
+
+### R8.4 explicit range-coordinate correction — 2026-08-22
+
+Personal ranges now name the exact elapsed authority that gives their boundaries meaning. The closed
+provider-neutral value object distinguishes declared exercise elapsed, one opaque route coordinate, one
+opaque regular-signal coordinate, and preserved legacy session elapsed. Established exercise and coordinate
+ownership cannot change; only explicit review may anchor a legacy object to one current exercise and
+coordinate. Bounds are validated against that exact authority rather than a universal exercise duration, and
+range ordering never compares offsets from different coordinates as one timeline.
+
+SQLite schema 27 preserves every schema-26 value and timestamp exactly while adding a scope-bound opaque route
+or signal reference. It derives route extent from the greatest exact recorded waypoint offset and signal
+extent from the last exact regular-sample position, without inventing a trailing interval. Creation, update,
+removal, reimport reconciliation, restart, and review-required editing match the complete owner and coordinate.
+A missing current coordinate can keep and rename authored review evidence, but cannot make it current.
+Atomic interruption, retry, every declared schema baseline, mismatched scope/reference storage, route bounds
+smaller than exercise duration, compatible enrichment, and missing-coordinate behavior have real SQLite
+coverage.
+
+Canonical range version 3, read-model version 3, three version-3 JSON Schemas, SQLite version 27, architecture,
+compatibility, release, and current-status sources describe one contract. Machine checks add signed-64-bit
+extent validation, exact scope/reference discrimination, current-coordinate availability, legacy-state, and
+cross-object consistency evidence. The complete fast gate passes 156 tooling tests, 291 presentation tests,
+two vendored-updater tests, 218 all-feature host tests, 172 application tests, and 46 domain tests. Strict
+workspace Clippy, Rust formatting, architecture, migration, contract, documentation, localization, site,
+workflow, and UI checks also pass. Range Summary is now the active R8.4 slice.
 
 ## X5-R9 — Make reports result-first and portable
 

@@ -814,12 +814,19 @@ for (const [schemaPath, validValue, invalidValue] of segmentationCommandContract
 }
 
 const trainingSessionRangeCanonicalPath =
-  "docs/data-formats/canonical/training-session-range-v2.md";
+  "docs/data-formats/canonical/training-session-range-v3.md";
 const trainingSessionRangeCanonical = read(trainingSessionRangeCanonicalPath);
 for (const value of [
   "rangeRef",
   "sessionRef",
   "exerciseRef",
+  "coordinate",
+  "exercise-elapsed",
+  "route-elapsed",
+  "routeRef",
+  "signal-elapsed",
+  "signalRef",
+  "legacy-session-elapsed",
   "title",
   "startedAtElapsedMilliseconds",
   "endedAtElapsedMilliseconds",
@@ -835,7 +842,7 @@ for (const value of [
 }
 
 const trainingSessionRangeReadModelPath =
-  "docs/data-formats/insights/training-session-range-v2.md";
+  "docs/data-formats/insights/training-session-range-v3.md";
 const trainingSessionRangeReadModel = read(trainingSessionRangeReadModelPath);
 for (const value of [
   "query_training_session_ranges",
@@ -849,7 +856,12 @@ for (const value of [
   "evidenceRevision",
   "exercises",
   "exerciseRef",
-  "durationMilliseconds",
+  "coordinates",
+  "coordinate",
+  "scope",
+  "routeRef",
+  "signalRef",
+  "maximumElapsedMilliseconds",
   "ranges",
   "rangeRef",
   "title",
@@ -865,6 +877,10 @@ for (const value of [
 const syntheticTrainingSessionRange = {
   rangeRef: `range-${"c".repeat(64)}`,
   exerciseRef: `exercise-${"e".repeat(64)}`,
+  coordinate: {
+    scope: "route-elapsed",
+    routeRef: `route-${"f".repeat(64)}`,
+  },
   title: "Bridge to bend",
   startedAtElapsedMilliseconds: "1000",
   endedAtElapsedMilliseconds: "2000",
@@ -882,16 +898,108 @@ const syntheticTrainingSessionRanges = {
     {
       exerciseRef: syntheticTrainingSessionRange.exerciseRef,
       ordinal: 0,
-      durationMilliseconds: "300000",
+      coordinates: [
+        {
+          coordinate: { scope: "exercise-elapsed" },
+          maximumElapsedMilliseconds: "300000",
+        },
+        {
+          coordinate: syntheticTrainingSessionRange.coordinate,
+          maximumElapsedMilliseconds: "2000",
+        },
+        {
+          coordinate: {
+            scope: "signal-elapsed",
+            signalRef: `signal-${"1".repeat(64)}`,
+          },
+          maximumElapsedMilliseconds: "3000",
+        },
+      ],
     },
   ],
   ranges: [syntheticTrainingSessionRange],
 };
-const trainingSessionRangesSchemaPath = "schemas/training-session-ranges-v2.schema.json";
+const trainingSessionRangesSchemaPath = "schemas/training-session-ranges-v3.schema.json";
 const validateTrainingSessionRanges = ajv.compile(
   JSON.parse(read(trainingSessionRangesSchemaPath)),
 );
-if (!validateTrainingSessionRanges(syntheticTrainingSessionRanges)) {
+
+const maximumSignedI64 = 9_223_372_036_854_775_807n;
+
+function exactElapsed(value, positive = false) {
+  if (typeof value !== "string" || !/^(0|[1-9][0-9]*)$/.test(value)) return null;
+  const parsed = BigInt(value);
+  if (parsed > maximumSignedI64 || (positive && parsed === 0n)) return null;
+  return parsed;
+}
+
+function rangeCoordinateKey(coordinate, allowLegacy) {
+  if (!coordinate || typeof coordinate !== "object") return null;
+  switch (coordinate.scope) {
+    case "exercise-elapsed":
+      return Object.keys(coordinate).length === 1 ? "exercise-elapsed" : null;
+    case "route-elapsed":
+      return typeof coordinate.routeRef === "string"
+        ? `route-elapsed:${coordinate.routeRef}`
+        : null;
+    case "signal-elapsed":
+      return typeof coordinate.signalRef === "string"
+        ? `signal-elapsed:${coordinate.signalRef}`
+        : null;
+    case "legacy-session-elapsed":
+      return allowLegacy && Object.keys(coordinate).length === 1
+        ? "legacy-session-elapsed"
+        : null;
+    default:
+      return null;
+  }
+}
+
+function trainingSessionRangesAreSemanticallyValid(result) {
+  if (exactElapsed(result.sessionDurationMilliseconds) === null) return false;
+  const exerciseContexts = new Map();
+  const ordinals = new Set();
+  for (const exercise of result.exercises) {
+    if (exerciseContexts.has(exercise.exerciseRef) || ordinals.has(exercise.ordinal)) return false;
+    ordinals.add(exercise.ordinal);
+    const coordinates = new Map();
+    for (const context of exercise.coordinates) {
+      const key = rangeCoordinateKey(context.coordinate, false);
+      const maximum = exactElapsed(context.maximumElapsedMilliseconds);
+      if (key === null || maximum === null || coordinates.has(key)) return false;
+      coordinates.set(key, maximum);
+    }
+    if (!coordinates.has("exercise-elapsed")) return false;
+    exerciseContexts.set(exercise.exerciseRef, coordinates);
+  }
+  const rangeRefs = new Set();
+  for (const range of result.ranges) {
+    const start = exactElapsed(range.startedAtElapsedMilliseconds);
+    const end = exactElapsed(range.endedAtElapsedMilliseconds, true);
+    const coordinateKey = rangeCoordinateKey(range.coordinate, true);
+    if (start === null || end === null || start >= end || coordinateKey === null
+      || rangeRefs.has(range.rangeRef) || range.evidenceRevision !== result.evidenceRevision) {
+      return false;
+    }
+    rangeRefs.add(range.rangeRef);
+    if (coordinateKey === "legacy-session-elapsed") {
+      if (range.exerciseRef !== null || range.state !== "review-required") return false;
+      continue;
+    }
+    if (range.exerciseRef === null) return false;
+    if (range.state === "current") {
+      const maximum = exerciseContexts.get(range.exerciseRef)?.get(coordinateKey);
+      if (maximum === undefined || end > maximum) return false;
+    }
+  }
+  return true;
+}
+
+function validTrainingSessionRanges(value) {
+  return validateTrainingSessionRanges(value) && trainingSessionRangesAreSemanticallyValid(value);
+}
+
+if (!validTrainingSessionRanges(syntheticTrainingSessionRanges)) {
   throw new Error(
     `${trainingSessionRangesSchemaPath} rejected its synthetic contract: ${ajv.errorsText(validateTrainingSessionRanges.errors)}`,
   );
@@ -918,8 +1026,47 @@ for (const invalidRanges of [
     ...syntheticTrainingSessionRanges,
     exercises: [{ ...syntheticTrainingSessionRanges.exercises[0], exerciseRef: "exercise-private" }],
   },
+  {
+    ...syntheticTrainingSessionRanges,
+    ranges: [{
+      ...syntheticTrainingSessionRange,
+      coordinate: {
+        scope: "route-elapsed",
+        signalRef: `signal-${"1".repeat(64)}`,
+      },
+    }],
+  },
+  {
+    ...syntheticTrainingSessionRanges,
+    exercises: [{
+      ...syntheticTrainingSessionRanges.exercises[0],
+      coordinates: syntheticTrainingSessionRanges.exercises[0].coordinates.filter(
+        (context) => context.coordinate.scope !== "route-elapsed",
+      ),
+    }],
+  },
+  {
+    ...syntheticTrainingSessionRanges,
+    exercises: [{
+      ...syntheticTrainingSessionRanges.exercises[0],
+      coordinates: syntheticTrainingSessionRanges.exercises[0].coordinates.map((context) => (
+        context.coordinate.scope === "route-elapsed"
+          ? { ...context, maximumElapsedMilliseconds: "9223372036854775808" }
+          : context
+      )),
+    }],
+  },
+  {
+    ...syntheticTrainingSessionRanges,
+    ranges: [{
+      ...syntheticTrainingSessionRange,
+      coordinate: { scope: "legacy-session-elapsed" },
+      exerciseRef: null,
+      state: "current",
+    }],
+  },
 ]) {
-  if (validateTrainingSessionRanges(invalidRanges)) {
+  if (validTrainingSessionRanges(invalidRanges)) {
     throw new Error(`${trainingSessionRangesSchemaPath} accepted an invalid result`);
   }
 }
@@ -929,11 +1076,12 @@ const legacyTrainingSessionRanges = {
     {
       ...syntheticTrainingSessionRange,
       exerciseRef: null,
+      coordinate: { scope: "legacy-session-elapsed" },
       state: "review-required",
     },
   ],
 };
-if (!validateTrainingSessionRanges(legacyTrainingSessionRanges)) {
+if (!validTrainingSessionRanges(legacyTrainingSessionRanges)) {
   throw new Error(
     `${trainingSessionRangesSchemaPath} rejected preserved legacy evidence: ${ajv.errorsText(validateTrainingSessionRanges.errors)}`,
   );
@@ -953,11 +1101,12 @@ const trainingSessionRangeCommandContracts = [
     },
   ],
   [
-    "schemas/training-session-range-create-v2.schema.json",
+    "schemas/training-session-range-create-v3.schema.json",
     {
       sessionRef: syntheticTrainingSessionRanges.sessionRef,
       snapshotRef: syntheticTrainingSessionRanges.snapshotRef,
       exerciseRef: syntheticTrainingSessionRange.exerciseRef,
+      coordinate: syntheticTrainingSessionRange.coordinate,
       title: syntheticTrainingSessionRange.title,
       startedAtElapsedMilliseconds: syntheticTrainingSessionRange.startedAtElapsedMilliseconds,
       endedAtElapsedMilliseconds: syntheticTrainingSessionRange.endedAtElapsedMilliseconds,
@@ -965,9 +1114,13 @@ const trainingSessionRangeCommandContracts = [
     {
       sessionRef: syntheticTrainingSessionRanges.sessionRef,
       snapshotRef: syntheticTrainingSessionRanges.snapshotRef,
-      exerciseRef: "exercise-private",
+      exerciseRef: syntheticTrainingSessionRange.exerciseRef,
+      coordinate: {
+        scope: "route-elapsed",
+        signalRef: `signal-${"1".repeat(64)}`,
+      },
       title: syntheticTrainingSessionRange.title,
-      startedAtElapsedMilliseconds: "00",
+      startedAtElapsedMilliseconds: syntheticTrainingSessionRange.startedAtElapsedMilliseconds,
       endedAtElapsedMilliseconds: syntheticTrainingSessionRange.endedAtElapsedMilliseconds,
     },
   ],
@@ -989,13 +1142,14 @@ const trainingSessionRangeCommandContracts = [
     },
   ],
   [
-    "schemas/training-session-range-adjust-v2.schema.json",
+    "schemas/training-session-range-adjust-v3.schema.json",
     {
       sessionRef: syntheticTrainingSessionRanges.sessionRef,
       snapshotRef: syntheticTrainingSessionRanges.snapshotRef,
       rangeRef: syntheticTrainingSessionRange.rangeRef,
       expectedRevision: syntheticTrainingSessionRange.revision,
       exerciseRef: syntheticTrainingSessionRange.exerciseRef,
+      coordinate: syntheticTrainingSessionRange.coordinate,
       startedAtElapsedMilliseconds: "1500",
       endedAtElapsedMilliseconds: "2500",
     },
@@ -1005,6 +1159,7 @@ const trainingSessionRangeCommandContracts = [
       rangeRef: syntheticTrainingSessionRange.rangeRef,
       expectedRevision: syntheticTrainingSessionRange.revision,
       exerciseRef: syntheticTrainingSessionRange.exerciseRef,
+      coordinate: { scope: "legacy-session-elapsed" },
       startedAtElapsedMilliseconds: "1500",
       endedAtElapsedMilliseconds: "0",
     },

@@ -33,7 +33,8 @@ mod training_session_range;
 pub use training_session_range::{
     adjust_training_session_range, reconcile_training_session_range, remove_training_session_range,
     rename_training_session_range, RemovedTrainingSessionRange, TrainingSessionRange,
-    TrainingSessionRangeAuthorship, TrainingSessionRangeError,
+    TrainingSessionRangeAuthorship, TrainingSessionRangeCoordinate,
+    TrainingSessionRangeCoordinateScope, TrainingSessionRangeError,
     TrainingSessionRangeEvidenceCompatibility, TrainingSessionRangeState,
 };
 

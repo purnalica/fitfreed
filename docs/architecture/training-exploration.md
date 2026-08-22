@@ -331,22 +331,24 @@ private evidence as a public diagnostic.
 
 ## Personal segmentation boundary
 
-The [canonical training-session range version 2](../data-formats/canonical/training-session-range-v2.md) is a
-durable, session-owned named selection on one selected exercise's elapsed coordinate. It is independent from
-source laps, reusable criteria, and disposable derived segments even when their boundaries coincide. Its
-optimistic revision covers both authored edits and evidence reconciliation. Compatible strict enrichment
-retains exact boundaries only while the same exercise remains valid; incompatible or missing elapsed evidence
-preserves them in a review-required state and never redirects the range to another session or exercise.
-Schema-25 session-coordinate rows have no provable exercise transformation and remain unanchored review
-evidence until explicit adjustment supplies one current exercise and complete replacement boundaries.
+The [canonical training-session range version 3](../data-formats/canonical/training-session-range-v3.md) is a
+durable, session-owned named selection on one selected exercise and one exact exercise, route, or signal
+coordinate. It is independent from source laps, reusable criteria, and disposable derived segments even when
+their numeric boundaries coincide. Its optimistic revision covers both authored edits and evidence
+reconciliation. Compatible strict enrichment retains exact boundaries only while the same exercise and exact
+coordinate remain valid; incompatible or missing evidence preserves them in a review-required state and never
+redirects the range or treats equal offsets from different representations as aligned. Preserved session-
+coordinate rows remain unanchored until explicit adjustment supplies one current exercise, coordinate, and
+complete replacement boundary pair.
 
-The [version-2 application range boundary](../data-formats/insights/training-session-range-v2.md) lists at most
-1,000 exercise contexts and 1,000 aggregates for one opaque session and one coherent training-discovery
-snapshot, ordered by elapsed start, end, title, and identity. Create, rename, adjust, and remove require that
-snapshot; edits and removal also require the expected aggregate revision. Every port mutation returns its
-complete committed range context from the same transaction, so presentation never constructs success by
-combining a write with a later unrelated query. Invalid context, stale source evidence, missing identity,
-optimistic conflict, and local-storage failure remain distinct application outcomes.
+The [version-3 application range boundary](../data-formats/insights/training-session-range-v3.md) lists at most
+1,000 exercise contexts, 1,000 coordinates per exercise, and 1,000 aggregates for one opaque session and one
+coherent training-discovery snapshot. It orders by exercise ordinal and complete coordinate before comparing
+boundaries, because elapsed values from different authorities are not one timeline. Create, rename, adjust,
+and remove require that snapshot; edits and removal also require the expected aggregate revision. Every port
+mutation returns its complete committed range context from the same transaction, so presentation never
+constructs success by combining a write with a later unrelated query. Invalid context, stale source evidence,
+missing identity or coordinate, optimistic conflict, and local-storage failure remain distinct outcomes.
 
 The [canonical segment criterion](../data-formats/canonical/segment-criterion.md) is reusable user-authored
 evidence with stable local identity, optimistic revision, and one versioned rule. Its ordered exercise
