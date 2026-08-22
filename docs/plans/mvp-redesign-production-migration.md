@@ -209,7 +209,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R3 | Complete locally — R3.1 and R3.2 exact packaged gates passed 2026-08-22 | Import ends in recognizable personal value |
 | X5-R4 | Complete locally — exact packaged and exhaustive adaptive gates passed 2026-08-22 | Existing health and aligned-history questions read as answers |
 | X5-R5 | Complete locally — R5.4, R5.5, and real-process restart gates passed 2026-08-22 | A remembered session is findable and sports are recognizable |
-| X5-R6 | In progress — R6.1/R6.2 and the first production workbench slice passed exact packaged gates on 2026-08-22 | A routed workout is investigated through a dominant synchronized map |
+| X5-R6 | In progress — R6.1 through R6.4 passed exact packaged and adaptive visual gates on 2026-08-22 | A routed workout is investigated through a dominant synchronized map |
 | X5-R7 | Pending | Every session composition reflects its actual evidence |
 | X5-R8 | Pending | Personal ranges and reusable criteria work end to end |
 | X5-R9 | Pending | Reports open as results and leave FitFreed safely |
@@ -964,6 +964,34 @@ and 202 ms for an exact signal page, all within their accepted budgets. R6 remai
 full-width signal lanes and exact-row selection, remaining locale/theme/zoom/accessibility visual matrices,
 dense-session route-interaction evidence, and the personal/source range workbench integration already assigned
 to R8.
+
+### R6.4 implementation checkpoint — 2026-08-22
+
+The route workbench now attaches full-width heart-rate, pace or speed, elevation, cadence, temperature,
+and power lanes only when the coherent Session Story contains that evidence. One shared elapsed-position
+model keeps the map, value strip, recorded-range summary, every lane, and exact evidence action aligned.
+Complete bounded signal series draw the visual line and explicit source gaps; selected values and route
+overlays appear only for samples whose recorded elapsed time is exactly aligned. Missing elapsed time,
+unaligned samples, null values, and unavailable series remain visibly distinct rather than being interpolated.
+Opening exact evidence resolves the containing source page and current row by stable ordinal, then moves focus
+to that row without reconstructing or replacing the source record.
+
+The adaptive visual review covered the map and lanes independently in English and Spanish, light and dark
+appearance, wide and compact windows, and 100%, 175%, and 200% content zoom. It found and corrected three
+material presentation defects before closure: undersized native route selectors in the packaged WebView,
+assistive-only instructions rendered as visible content because of a noncanonical class, and in-page reveals
+covered by the persistent compact navigation. Native selectors now retain a 44-pixel minimum target, the
+single `sr-only` utility owns visually hidden instructions, and one shell reveal-offset token governs the
+workbench, map, lanes, comparisons, and answer headings at every navigation geometry. Packaged assertions
+scroll to and measure each route region outside the persistent navigation instead of relying on CSS inspection.
+
+The complete contributor lane passed 156 automation, 274 React, 2 vendored-updater, 213 host, 156 application,
+and 33 domain tests. The exact `3eed7fd` packaged source passed the 3-minute 31-second functional journey,
+distinct-process restart in under 1 second, and the 3-minute 53-second two-year insight campaign. Training
+p95 measurements were 49 ms for common filtering, 48 ms for the maximum filter, 23 ms for comparison,
+46 ms for calendar navigation, 43 ms for a four-lane signal overview, and 210 ms for an exact 20,001-sample
+signal page, all within their accepted budgets. R6 remains open only for explicit dense-session route-
+interaction evidence; personal and source-authored ranges remain intentionally assigned to R8.
 
 ## X5-R7 — Make session composition evidence-adaptive
 
