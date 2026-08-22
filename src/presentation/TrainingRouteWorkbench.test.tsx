@@ -175,6 +175,40 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("TrainingRouteWorkbench", () => {
+  it("names projected positions by their exact source ordinal in a dense route", async () => {
+    const denseStory = story();
+    const role = denseStory.exercises[0].primary;
+    role.route!.pointCount = 20_001;
+    role.exactRoute!.pointCount = 20_001;
+    role.route!.visualPoints = role.route!.visualPoints.map((point, index) => ({
+      ...point,
+      ordinal: [0, 10_000, 20_000][index],
+    }));
+    role.eligibleOverlays[0].alignedSamples = role.eligibleOverlays[0].alignedSamples.map(
+      (sample, index) => ({
+        ...sample,
+        routePointOrdinal: [0, 10_000, 20_000][index],
+      }),
+    );
+
+    render(
+      <TrainingRouteWorkbench
+        story={denseStory}
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        onOpenExactRoute={vi.fn()}
+        onOpenExactSignal={vi.fn()}
+      />,
+    );
+
+    const position = await screen.findByRole("slider", { name: "Recorded position" });
+    fireEvent.change(position, { target: { value: "1" } });
+
+    expect(await screen.findByText("Point 10,001 of 20,001")).toBeVisible();
+    expect(position).toHaveAttribute("max", "2");
+    expect(position).toHaveAttribute("aria-valuetext", "Point 10,001 of 20,001 · 1 s");
+  });
+
   it("keeps map, elapsed selection, overlay evidence, exact paths, and named viewport controls synchronized", async () => {
     const user = userEvent.setup();
     const onOpenExactRoute = vi.fn();

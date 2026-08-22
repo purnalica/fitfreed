@@ -267,8 +267,8 @@ export function TrainingRouteWorkbench({
 
   const selection = selectRoutePoint(choice.model, selectedPointIndex);
   const selectedPointPosition = interpolate(copy.pointPosition, {
-    point: number.format(selection.pointIndex + 1),
-    total: number.format(choice.model.points.length),
+    point: number.format(selection.point.source.ordinal + 1),
+    total: number.format(choice.model.sourcePointCount),
   });
   const selectedElapsed = selection.point.source.elapsedMilliseconds === null
     ? copy.elapsedUnavailable

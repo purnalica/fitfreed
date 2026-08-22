@@ -1833,7 +1833,7 @@ describe("TrainingSessionLibraryPanel", () => {
           sessionRef: newest.sessionRef,
           snapshotRef,
           maxVisualPoints: 400,
-          maxVisualSamples: 300,
+          maxVisualSamples: 400,
         },
       },
     ));

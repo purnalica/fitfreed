@@ -102,6 +102,7 @@ function evidence(measurements) {
       calendarDays,
       origins: 1,
       trainingSessions: calendarDays,
+      trainingRoutePoints: 20_001,
       trainingSignalSeries: 4,
       largestTrainingSignalSamples: 20_001,
       crossSignalLanes: 4,
@@ -449,6 +450,186 @@ async function measureTrainingSignalExactPage() {
     { timeout: 5_000, timeoutMsg: "exact training signal detail did not close" },
   );
   return result.duration;
+}
+
+async function measureTrainingRouteWorkbenchOpen() {
+  const result = await browser.executeAsync((done) => {
+    const detailButton = document.querySelector(
+      '.training-session-results button[aria-label^="View session details"]',
+    );
+    if (!detailButton) {
+      done({ duration: null, error: "training detail navigation was not available" });
+      return;
+    }
+    const started = window.performance.now();
+    detailButton.click();
+    function observeResult() {
+      const route = document.querySelector(".training-route-workbench .fitfreed-route-track");
+      const position = document.querySelector(
+        ".training-route-position-control input[type='range']",
+      );
+      const lanes = document.querySelectorAll(".training-route-signal-lane-chart");
+      const laneChoices = document.querySelectorAll(
+        ".training-route-signal-lane-selection input[type='checkbox']",
+      );
+      const overlays = document.querySelectorAll(
+        ".training-route-map .fitfreed-route-overlay",
+      );
+      if (
+        route?.getAttribute("d")
+        && position?.getAttribute("max") === "399"
+        && position.getAttribute("aria-valuetext")?.startsWith("Point 1 of 20,001 ·")
+        && lanes.length === 3
+        && laneChoices.length === 4
+        && overlays.length > 0
+      ) {
+        document.querySelector(".training-route-map-frame").getBoundingClientRect();
+        setTimeout(() => done({
+          duration: window.performance.now() - started,
+          error: null,
+        }));
+        return;
+      }
+      if (window.performance.now() - started > 10_000) {
+        done({ duration: null, error: "dense route workbench was not rendered" });
+        return;
+      }
+      setTimeout(observeResult, 16);
+    }
+    setTimeout(observeResult, 16);
+  });
+  if (result.error) throw new Error(result.error);
+  await $(`aria/${english.training.sessionLibrary.closeDetail}`).click();
+  await browser.waitUntil(
+    async () => (await $$(".training-detail")).length === 0,
+    { timeout: 5_000, timeoutMsg: "dense route detail did not close" },
+  );
+  return result.duration;
+}
+
+async function openDenseTrainingRouteWorkbench() {
+  await $('.training-session-results button[aria-label^="View session details"]').click();
+  await $(".training-route-workbench .fitfreed-route-track").waitForDisplayed({
+    timeout: 10_000,
+  });
+  await browser.waitUntil(
+    async () => (await $$(".training-route-signal-lane-chart")).length === 3,
+    { timeout: 5_000, timeoutMsg: "dense route signal lanes did not render" },
+  );
+}
+
+async function measureTrainingRouteSelection(scenario) {
+  const result = await browser.executeAsync((expected, done) => {
+    const position = document.querySelector(
+      ".training-route-position-control input[type='range']",
+    );
+    const marker = document.querySelector(
+      ".training-route-map .fitfreed-route-selection",
+    );
+    if (!position || !marker) {
+      done({ duration: null, error: "dense route selection controls were not available" });
+      return;
+    }
+    const previousMarker = marker.getAttribute("d");
+    const setValue = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    ).set;
+    const started = window.performance.now();
+    setValue.call(position, expected.value);
+    position.dispatchEvent(new Event("input", { bubbles: true }));
+    position.dispatchEvent(new Event("change", { bubbles: true }));
+    function observeResult() {
+      const selectedPosition = document.querySelector(
+        ".training-route-selection > div > strong",
+      )?.textContent;
+      const updatedMarker = document.querySelector(
+        ".training-route-map .fitfreed-route-selection",
+      )?.getAttribute("d");
+      const lanes = Array.from(document.querySelectorAll(
+        ".training-route-signal-lane-chart",
+      ));
+      if (
+        selectedPosition === expected.label
+        && updatedMarker
+        && updatedMarker !== previousMarker
+        && lanes.length === 3
+        && lanes.every((lane) => lane.getAttribute("aria-valuetext")
+          ?.startsWith(`${expected.label} ·`))
+      ) {
+        document.querySelector(".training-route-map-frame").getBoundingClientRect();
+        setTimeout(() => done({
+          duration: window.performance.now() - started,
+          error: null,
+        }));
+        return;
+      }
+      if (window.performance.now() - started > 5_000) {
+        done({ duration: null, error: "dense route selection did not synchronize" });
+        return;
+      }
+      setTimeout(observeResult, 16);
+    }
+    setTimeout(observeResult, 0);
+  }, scenario);
+  if (result.error) throw new Error(`${result.error}: ${scenario.label}`);
+  return result.duration;
+}
+
+async function measureTrainingRouteOverlay(optionIndex) {
+  const result = await browser.executeAsync((targetIndex, done) => {
+    const display = document.querySelectorAll(
+      ".training-route-workbench-controls select",
+    )[1];
+    const option = display?.options[targetIndex];
+    if (!display || !option) {
+      done({ duration: null, error: "dense route overlay choice was not available" });
+      return;
+    }
+    const expectedHeading = `${option.textContent} on the recorded track`;
+    const setValue = Object.getOwnPropertyDescriptor(
+      window.HTMLSelectElement.prototype,
+      "value",
+    ).set;
+    const started = window.performance.now();
+    setValue.call(display, option.value);
+    display.dispatchEvent(new Event("change", { bubbles: true }));
+    function observeResult() {
+      const heading = document.querySelector(
+        ".training-route-overlay-legend strong",
+      )?.textContent;
+      const overlays = document.querySelectorAll(
+        ".training-route-map .fitfreed-route-overlay",
+      );
+      if (display.value === option.value && heading === expectedHeading && overlays.length > 0) {
+        document.querySelector(".training-route-map-frame").getBoundingClientRect();
+        setTimeout(() => done({
+          duration: window.performance.now() - started,
+          error: null,
+        }));
+        return;
+      }
+      if (window.performance.now() - started > 5_000) {
+        done({ duration: null, error: "dense route overlay did not update" });
+        return;
+      }
+      setTimeout(observeResult, 16);
+    }
+    setTimeout(observeResult, 0);
+  }, optionIndex);
+  if (result.error) throw new Error(result.error);
+  return result.duration;
+}
+
+async function expectDenseRouteExactEndpoint() {
+  await measureTrainingRouteSelection({ value: "399", label: "Point 20,001 of 20,001" });
+  await $(".training-route-exact-actions button").click();
+  await expect($(".training-route-exact [aria-live='polite']")).toHaveText(
+    "Point 20,001 of 20,001",
+  );
+  const selectedRow = await $(".training-route-exact tbody tr[aria-current='true']");
+  await expect(selectedRow).toExist();
+  await expect(selectedRow.$("th")).toHaveText(expect.stringContaining("20,001"));
 }
 
 async function applySleepRange(from, through) {
@@ -1079,6 +1260,44 @@ export async function runInsightsPerformanceJourney({
   );
   expect(await $$(".training-session-comparison thead th")).toHaveLength(5);
   await $(".training-session-comparison button.secondary").click();
+  reportPhase("training-route");
+  await measureAlternating(warmUpRuns, [null], measureTrainingRouteWorkbenchOpen);
+  const trainingRouteWorkbenchOpenTimings = await measureAlternating(
+    7,
+    [null],
+    measureTrainingRouteWorkbenchOpen,
+  );
+  await openDenseTrainingRouteWorkbench();
+  const routeSelectionScenarios = [{
+    value: "399",
+    label: "Point 20,001 of 20,001",
+  }, {
+    value: "0",
+    label: "Point 1 of 20,001",
+  }];
+  await measureAlternating(
+    warmUpRuns,
+    routeSelectionScenarios,
+    measureTrainingRouteSelection,
+  );
+  const trainingRouteSelectionTimings = await measureAlternating(
+    20,
+    routeSelectionScenarios,
+    measureTrainingRouteSelection,
+  );
+  const routeOverlayScenarios = [2, 1];
+  await measureAlternating(warmUpRuns, routeOverlayScenarios, measureTrainingRouteOverlay);
+  const trainingRouteOverlayTimings = await measureAlternating(
+    7,
+    routeOverlayScenarios,
+    measureTrainingRouteOverlay,
+  );
+  await expectDenseRouteExactEndpoint();
+  await $(`aria/${english.training.sessionLibrary.closeDetail}`).click();
+  await browser.waitUntil(
+    async () => (await $$(".training-detail")).length === 0,
+    { timeout: 5_000, timeoutMsg: "dense exact route detail did not close" },
+  );
   reportPhase("training-signals");
   await measureAlternating(warmUpRuns, [null], measureTrainingSignalOverview);
   const trainingSignalOverviewTimings = await measureAlternating(
@@ -1210,6 +1429,9 @@ export async function runInsightsPerformanceJourney({
       maximumFilter: measurementEvidence(trainingMaximumFilterTimings, 2_000),
       commonComparison: measurementEvidence(trainingCommonComparisonTimings, 500),
       calendarNavigation: measurementEvidence(trainingCalendarTimings, 500),
+      routeWorkbenchOpen: measurementEvidence(trainingRouteWorkbenchOpenTimings, 1_000),
+      routeSelection: measurementEvidence(trainingRouteSelectionTimings, 100),
+      routeOverlay: measurementEvidence(trainingRouteOverlayTimings, 250),
       signalOverview: measurementEvidence(trainingSignalOverviewTimings, 1_000),
       signalExactPage: measurementEvidence(trainingSignalExactPageTimings, 500),
     },

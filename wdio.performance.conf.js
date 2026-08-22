@@ -5,6 +5,6 @@ export const config = {
   specs: ["./test/e2e/insights-performance.spec.js"],
   mochaOpts: {
     ...baseConfig.mochaOpts,
-    timeout: 420_000,
+    timeout: 600_000,
   },
 };

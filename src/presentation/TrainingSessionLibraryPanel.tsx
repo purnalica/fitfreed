@@ -64,9 +64,8 @@ import { useInvalidForm } from "./useInvalidForm";
 import { useResultFocus } from "./useResultFocus";
 
 const PAGE_SIZE = 25;
-const ROUTE_VISUAL_POINT_LIMIT = 400;
+const SESSION_STORY_VISUAL_EVIDENCE_LIMIT = 400;
 const EXACT_ROUTE_PAGE_SIZE = 100;
-const SIGNAL_VISUAL_SAMPLE_LIMIT = 300;
 const EXACT_SIGNAL_PAGE_SIZE = 100;
 
 interface ExactEvidenceTarget {
@@ -698,8 +697,8 @@ export function TrainingSessionLibraryPanel({
       query: {
         sessionRef: selected.sessionRef,
         snapshotRef: page.snapshotRef,
-        maxVisualPoints: ROUTE_VISUAL_POINT_LIMIT,
-        maxVisualSamples: SIGNAL_VISUAL_SAMPLE_LIMIT,
+        maxVisualPoints: SESSION_STORY_VISUAL_EVIDENCE_LIMIT,
+        maxVisualSamples: SESSION_STORY_VISUAL_EVIDENCE_LIMIT,
       },
     }).then((result) => {
       if (active) setDetailStory(result);

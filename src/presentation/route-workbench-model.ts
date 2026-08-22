@@ -60,6 +60,7 @@ export interface RouteWorkbenchOverlay {
 export interface RouteWorkbenchModel {
   routeRef: string;
   routeKind: "primary" | "transition";
+  sourcePointCount: number;
   points: RouteWorkbenchPoint[];
   elapsedPointIndexes: number[];
   maximumElapsedMilliseconds: string | null;
@@ -210,6 +211,7 @@ export function buildRouteWorkbenchModel(
   return {
     routeRef: role.route.routeRef,
     routeKind: role.route.kind,
+    sourcePointCount: role.route.pointCount,
     points,
     elapsedPointIndexes,
     maximumElapsedMilliseconds,

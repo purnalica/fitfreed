@@ -67,6 +67,7 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Home, History, Reports, Sources, and Settings navigation with independent scroll restoration, preserved workspace state, visible labels at compact widths and high zoom, focus behavior, exploration, filtering, visualizations, all included controls, and accessible alternatives.
 - Sources ready, guide, active, changed, repeated, rejected, failed, and cancelled states; filename-only archive identity; active-task dominance; local picker/link recovery; distinct terminal reasons; closed-by-default exact coverage; result actions; and unchanged-library guarantees.
 - Rendered shell geometry at broad desktop and compact widths, localized current-location semantics, route workbench, map, and signal-lane reveals outside persistent navigation, and absence of page-level horizontal overflow at 100% and 200% content zoom. The packaged performance journey fixes a 1024-by-720 logical window before its maximum-range 200% checks so layout evidence is independent of the host display size.
+- A packaged 20,001-point route aligned with four 20,001-slot signals, including bounded local rendering, a non-empty exact overlay, alternating first/last selection synchronized across map and lanes, truthful source-ordinal labels, overlay changes, and focused retrieval of the exact final source row under explicit interaction budgets.
 - Full-history training discovery with combined filters, deterministic sorting, coherent forward and backward pagination, source-separated calendar traversal, two-through-four-session comparison, exact chronology or calendar return, complete application-process restart restoration, library-change recovery, exact results, and lightweight detail.
 - Explicit traversal among Sessions, Sports, and Compare periods and among every session evidence section, proving that hidden views are inaccessible while their disposable state survives temporary navigation.
 - Explicit traversal between history and comparison in every other explorer, including preserved comparison input and results, exact-detail return, cross-explorer entry, and inaccessible hidden views.
@@ -84,7 +85,7 @@ Synthetic fixtures will be generated from the explicitly documented [`testing/sy
 
 - Minimal valid exports for each supported file family and historical variant.
 - Multiple related records and high-resolution samples at bounded test sizes.
-- A long multi-session history with dense supported signals, exact gaps, and a bounded current-schema storage envelope.
+- A long multi-session history with dense supported routes and signals, exact gaps, and a bounded current-schema storage envelope.
 - Exact duplicate archives and logically equivalent exports with different file identities.
 - Older and newer overlapping exports, amended entities, and deterministic conflicts.
 - Unknown file families, unknown fields, unsupported versions, malformed JSON, unsafe paths, decompression-limit violations, and interrupted streams.

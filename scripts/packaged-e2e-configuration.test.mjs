@@ -72,7 +72,7 @@ test("gives the exhaustive functional journey a bounded campaign watchdog", () =
 });
 
 test("isolates the longer performance campaign without relaxing interaction budgets", () => {
-  assert.equal(performanceConfig.mochaOpts.timeout, 420_000);
+  assert.equal(performanceConfig.mochaOpts.timeout, 600_000);
   assert.deepEqual(performanceConfig.specs, ["./test/e2e/insights-performance.spec.js"]);
   assert.equal(performanceConfig.waitforTimeout, defaultConfig.waitforTimeout);
   assert.equal(

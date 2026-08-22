@@ -13,6 +13,19 @@ const firstDate = Date.UTC(2024, 0, 1);
 const throughDate = Date.UTC(2025, 11, 31);
 const calendarDays = Math.floor((throughDate - firstDate) / 86_400_000) + 1;
 const syntheticUsername = "fixture-primary-claim";
+const performanceRoutePointCount = 20_001;
+const performanceRoutePoints = Array.from(
+  { length: performanceRoutePointCount },
+  (_, ordinal) => {
+    const progress = ordinal / (performanceRoutePointCount - 1);
+    return {
+      latitude: 40.4 + progress * 0.12 + Math.sin(progress * Math.PI * 12) * 0.01,
+      longitude: -3.7 + progress * 0.15 + Math.cos(progress * Math.PI * 10) * 0.008,
+      altitude: 400 + ordinal % 240,
+      elapsedMillis: ordinal * 1_000,
+    };
+  },
+);
 const performanceSignalValues = Array.from(
   { length: 20_001 },
   (_, ordinal) => ordinal % 997 === 0 ? "NaN" : 115 + ordinal % 80,
@@ -66,7 +79,9 @@ for (let index = 0; index < calendarDays; index += 1) {
     if (unavailable) unavailableObservations += 1;
   }
 
-  const durationMillis = 1_800_000 + (index % 5) * 900_000;
+  const durationMillis = index === calendarDays - 1
+    ? (performanceRoutePointCount - 1) * 1_000
+    : 1_800_000 + (index % 5) * 900_000;
   const startedAt = new Date(firstDate + index * 86_400_000 + 6 * 3_600_000);
   const stoppedAt = new Date(startedAt.getTime() + durationMillis);
   const optionalIndex = index;
@@ -95,6 +110,14 @@ for (let index = 0; index < calendarDays; index += 1) {
         timezoneOffsetMinutes: 60,
         durationMillis,
         sport: { id: `synthetic-performance-sport-${optionalIndex % 4}` },
+        ...(optionalIndex === calendarDays - 1 && exerciseIndex === 0 ? {
+          routes: {
+            route: {
+              startTime: startedAt.toISOString().slice(0, 19),
+              wayPoints: performanceRoutePoints,
+            },
+          },
+        } : {}),
         ...(optionalIndex === calendarDays - 1 && exerciseIndex === 0 ? {
           samples: {
             samples: [{
@@ -252,6 +275,7 @@ process.stdout.write(`${JSON.stringify({
   unavailableObservations,
   missingDays: calendarDays - storedObservations,
   trainingSessions,
+  performanceRoutePointCount,
   sleepPeriods: sleepResults.length,
   recoveryNights: recoveryNights.length,
 })}\n`);

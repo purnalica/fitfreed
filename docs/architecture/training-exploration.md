@@ -191,6 +191,11 @@ independent evidence adapters; it has no joined story query, presentation cache,
 timeline. The production session surface invokes `query_session_story` once per selected session and
 accepted discovery revision. It renders structure, routes, signals, and zones from that one response;
 independent exact-route and exact-signal pagination remains deliberately on demand.
+Production requests the same bounded 400-item source-ordinal budget for route geometry and signal lanes.
+Equal-cardinality recorded streams therefore retain the same projected source ordinals instead of losing
+valid exact alignment merely because presentation chose different limits. Streams with different recorded
+cadence or cardinality remain independently projected and join only when their returned elapsed values are
+identical; the shared budget grants no proximity or interpolation authority.
 
 [ADR 0026](decisions/0026-use-leaflet-for-the-local-route-workbench.md) defines the one spatial exception
 to the semantic-HTML visualization policy. A lazily loaded presentation adapter uses stable Leaflet 1.x
@@ -234,6 +239,9 @@ The selected bounded point remains a capability for exact disclosure, not exact 
 action uses its retained source point ordinal to request the containing exact page. A lane action does the
 same with the retained signal-sample ordinal when that point has an aligned source sample. The existing exact
 query validates the page and contiguous ordinals; presentation marks, scrolls to, and focuses that exact row.
+The visible position and accessible value name that source ordinal against the route's complete exact point
+count, while the native range control retains only bounded visual indexes as its internal mechanics. A dense
+20,001-point route therefore names its last projected point as point 20,001 of 20,001, not point 400 of 400.
 If no signal sample aligns at the selected route point, the action opens the exact source series without
 claiming a corresponding row. Ordinary route and signal detail actions continue to open the first exact page.
 

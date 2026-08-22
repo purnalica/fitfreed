@@ -1119,7 +1119,7 @@ describe("FitFreed import interface", () => {
         sessionRef: selectedSession.sessionRef,
         snapshotRef: "snapshot-current",
         maxVisualPoints: 400,
-        maxVisualSamples: 300,
+        maxVisualSamples: 400,
       },
     }));
     const detail = await screen.findByRole("region", { name: "Session summary" });
