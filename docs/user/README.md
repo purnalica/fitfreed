@@ -65,8 +65,8 @@ opens Overview, Structure and segments, Signals and zones, Routes, and Source hi
 unevaluated, absent, empty, and populated exercise/lap/pause, route, signal, and recorded-zone states. A routed
 session leads with the [interactive local route workbench](session-routes.md): primary and transition routes remain
 separate while pan, zoom, fit, focused view, recorded-position traversal, sport-aware measurement overlays, a
-structured value alternative, and direct exact-evidence paths stay synchronized without an external location
-request. Exact paginated tables retain every recorded coordinate. Supported exercise and transition signals render as gap-aware bounded charts with
+structured value alternative, full-width elapsed measurement lanes, and direct exact-evidence paths stay synchronized without an external location
+request. A selected position opens and focuses its containing exact route or aligned signal row. Exact paginated tables retain every recorded coordinate. Supported exercise and transition signals render as gap-aware bounded charts with
 paginated access to every original sample. When one role has enough recorded evidence, two through four
 signals can also be selected as independently scaled lanes over one stable elapsed-time axis; every lane
 retains a direct path to its exact samples, and the view neither bridges gaps nor implies causation.

@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { type ComponentProps, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -1885,6 +1885,10 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(within(firstExercise!).getByRole("heading", { name: "Automatic laps" })).toBeVisible();
     expect(within(firstExercise!).getByRole("heading", { name: "Pauses" })).toBeVisible();
 
+    fireEvent.change(within(workbench).getByRole("slider", {
+      name: "Recorded position",
+    }), { target: { value: "100" } });
+    expect(await within(workbench).findByText("Point 101 of 101")).toBeVisible();
     await user.click(within(workbench).getByRole("button", {
       name: "Inspect exact recorded route points",
     }));
@@ -1902,14 +1906,15 @@ describe("TrainingSessionLibraryPanel", () => {
     const exactRegion = await within(routeExercise!).findByRole("region", {
       name: "Exact recorded route points",
     });
-    await waitFor(() => expect(within(exactRegion).getByRole("heading", {
-      name: "Exact recorded route points",
-    })).toHaveFocus());
-    expect(within(exactRegion).getAllByRole("row")).toHaveLength(101);
+    const selectedRouteRow = await within(exactRegion).findByRole("row", {
+      name: /101/,
+    });
+    await waitFor(() => expect(selectedRouteRow).toHaveFocus());
+    expect(selectedRouteRow).toHaveAttribute("aria-current", "true");
+    expect(within(exactRegion).getAllByRole("row")).toHaveLength(2);
+    expect(exactRegion).toHaveTextContent("Point 101 of 101");
     expect(exactRegion).toHaveTextContent("40");
     expect(exactRegion).toHaveTextContent("-3");
-    await user.click(within(exactRegion).getByRole("button", { name: "Next route points" }));
-    expect(await within(exactRegion).findByText("Point 101 of 101")).toBeVisible();
     await user.click(within(exactRegion).getByRole("button", { name: "Previous route points" }));
     expect(await within(exactRegion).findByText("Points 1–100 of 101")).toBeVisible();
     await user.click(within(routeExercise!).getByRole("button", {
@@ -1945,10 +1950,21 @@ describe("TrainingSessionLibraryPanel", () => {
     const workbenchExactSignal = await within(signalExercise!).findByRole("region", {
       name: "Exact Heart rate samples",
     });
-    await waitFor(() => expect(within(workbenchExactSignal).getByRole("heading", {
-      name: "Exact Heart rate samples",
-    })).toHaveFocus());
-    expect(workbenchExactSignal).toHaveTextContent("Samples 1–100 of 601");
+    const selectedSignalRow = await within(workbenchExactSignal).findByRole("row", {
+      name: /101/,
+    });
+    await waitFor(() => expect(selectedSignalRow).toHaveFocus());
+    expect(selectedSignalRow).toHaveAttribute("aria-current", "true");
+    expect(workbenchExactSignal).toHaveTextContent("Samples 101–200 of 601");
+    expect(mocks.invoke).toHaveBeenCalledWith("query_training_signal_samples", {
+      query: {
+        sessionRef: newest.sessionRef,
+        signalRef: heartRateSignalRef,
+        snapshotRef,
+        offset: 100,
+        limit: 100,
+      },
+    });
     await user.click(within(signalExercise!).getByRole("button", {
       name: "Hide exact Heart rate samples",
     }));

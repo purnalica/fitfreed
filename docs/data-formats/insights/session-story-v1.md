@@ -81,6 +81,12 @@ unavailability is itself recorded evidence; presentation must show the gap rathe
 The bounded intersection is safe for overview interaction but is not a substitute for exact-page
 verification.
 
+For deliberate verification, a client may use a selected match's `routePointOrdinal` or
+`signalSampleOrdinal` to request the exact page containing that source item, then identify the returned row
+by the same ordinal. The exact route or signal command remains authoritative: clients must not display an
+aligned bounded value as though it came from an exact-page response. When a selected route point has no
+aligned sample, no signal ordinal exists to target and the client must not infer one from elapsed proximity.
+
 ## Sport-aware metric semantics
 
 `primaryMetric` is the first eligible metric in a provider-neutral sport profile. The profile changes

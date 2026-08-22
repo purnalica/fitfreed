@@ -206,6 +206,28 @@ event. A local element-scoped translation maps unmodified arrow and zoom keys to
 and `zoomOut`; Leaflet still owns every spatial operation, while the focused DOM boundary remains explicit,
 testable, and disposable.
 
+`TrainingRouteSignalLanes` is the semantic, renderer-independent timeline attached to that viewport. It pairs
+each selected role's bounded signal series with its application-composed `eligibleOverlay` by the validated
+signal capability. The complete bounded series supplies lane geometry and source gaps; the overlay's exact
+route-point and signal-sample ordinal matches supply only the selected value, map overlay, and exact-row path.
+This prevents differing endpoint-preserving route and signal projections from erasing legitimate lane
+evidence while still forbidding proximity joins. Each lane retains the transformed display metric, source
+signal identity, recorded elapsed time, null value, and gap marker already present in the coherent
+`SessionStory`. Up to four full-width lanes share the longest recorded elapsed value in the role and route.
+Their common selected route point can move from the map, the native
+position control, a lane pointer position, or a lane's Left, Right, Home, and End keys. A missing route elapsed
+time leaves the lane cursor unavailable rather than creating a timestamp, while a null or `gapBefore` sample
+splits the visible path. Presentation neither resamples nor launches an independent signal query to construct
+a lane. When the route contains no elapsed evidence at all, no synchronized lane workspace is rendered; the
+independent bounded signal views remain available in deliberate detail.
+
+The selected bounded point remains a capability for exact disclosure, not exact evidence itself. The route
+action uses its retained source point ordinal to request the containing exact page. A lane action does the
+same with the retained signal-sample ordinal when that point has an aligned source sample. The existing exact
+query validates the page and contiguous ordinals; presentation marks, scrolls to, and focuses that exact row.
+If no signal sample aligns at the selected route point, the action opens the exact source series without
+claiming a corresponding row. Ordinary route and signal detail actions continue to open the first exact page.
+
 Cross-signal inspection is a presentation of that same validated overview, not a new calculated fact. It
 allows two through four series from one exercise and one role to be selected, then places them in separate
 vertically scaled lanes over one elapsed-time axis. Exercise and transition series never share a view. Each

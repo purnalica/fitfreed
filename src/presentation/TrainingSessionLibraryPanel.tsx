@@ -69,6 +69,15 @@ const EXACT_ROUTE_PAGE_SIZE = 100;
 const SIGNAL_VISUAL_SAMPLE_LIMIT = 300;
 const EXACT_SIGNAL_PAGE_SIZE = 100;
 
+interface ExactEvidenceTarget {
+  sourceRef: string;
+  ordinal: number;
+}
+
+function exactPageOffset(ordinal: number, pageSize: number): number {
+  return Math.floor(ordinal / pageSize) * pageSize;
+}
+
 function signalSvgSegments(samples: TrainingSignalVisualSample[]): string[] {
   const available = samples.filter(
     (sample): sample is TrainingSignalVisualSample & { value: number } => sample.value !== null,
@@ -300,23 +309,47 @@ export function TrainingSessionLibraryPanel({
   const [exactRoutePoints, setExactRoutePoints] = useState<TrainingRoutePointsResult>();
   const [exactRouteLoading, setExactRouteLoading] = useState(false);
   const [exactRouteFailed, setExactRouteFailed] = useState(false);
+  const [exactRouteTarget, setExactRouteTarget] = useState<ExactEvidenceTarget>();
   const exactRequestSequence = useRef(0);
   const [exactSignalRef, setExactSignalRef] = useState<string>();
   const [exactSignalSamples, setExactSignalSamples] = useState<TrainingSignalSamplesResult>();
   const [exactSignalLoading, setExactSignalLoading] = useState(false);
   const [exactSignalFailed, setExactSignalFailed] = useState(false);
+  const [exactSignalTarget, setExactSignalTarget] = useState<ExactEvidenceTarget>();
   const exactSignalRequestSequence = useRef(0);
   const {
     resultHeadingRef: exactRouteHeadingRef,
     requestResultFocus: requestExactRouteFocus,
   } = useResultFocus<HTMLHeadingElement>(
-    detailSection === "routes" && exactRouteRef !== undefined,
+    detailSection === "routes" && exactRouteRef !== undefined
+      && exactRouteTarget === undefined,
   );
   const {
     resultHeadingRef: exactSignalHeadingRef,
     requestResultFocus: requestExactSignalFocus,
   } = useResultFocus<HTMLHeadingElement>(
-    detailSection === "signals" && exactSignalRef !== undefined,
+    detailSection === "signals" && exactSignalRef !== undefined
+      && exactSignalTarget === undefined,
+  );
+  const {
+    resultHeadingRef: exactRouteTargetRowRef,
+    requestResultFocus: requestExactRouteTargetFocus,
+  } = useResultFocus<HTMLTableRowElement>(
+    detailSection === "routes"
+      && exactRouteTarget !== undefined
+      && exactRoutePoints?.routeRef === exactRouteTarget.sourceRef
+      && exactRoutePoints.points.some((point) => point.ordinal === exactRouteTarget.ordinal),
+  );
+  const {
+    resultHeadingRef: exactSignalTargetRowRef,
+    requestResultFocus: requestExactSignalTargetFocus,
+  } = useResultFocus<HTMLTableRowElement>(
+    detailSection === "signals"
+      && exactSignalTarget !== undefined
+      && exactSignalSamples?.signalRef === exactSignalTarget.sourceRef
+      && exactSignalSamples.samples.some(
+        (sample) => sample.ordinal === exactSignalTarget.ordinal,
+      ),
   );
   const [detailOrigin, setDetailOrigin] = useState<SessionView>("chronology");
   const [comparison, setComparison] = useState<TrainingSessionSearchItem[]>([]);
@@ -646,10 +679,12 @@ export function TrainingSessionLibraryPanel({
     setExactRoutePoints(undefined);
     setExactRouteLoading(false);
     setExactRouteFailed(false);
+    setExactRouteTarget(undefined);
     setExactSignalRef(undefined);
     setExactSignalSamples(undefined);
     setExactSignalLoading(false);
     setExactSignalFailed(false);
+    setExactSignalTarget(undefined);
     if (!selected || !page) {
       setDetailStory(undefined);
       setDetailLoading(false);
@@ -1284,22 +1319,30 @@ export function TrainingSessionLibraryPanel({
       setExactRoutePoints(undefined);
       setExactRouteLoading(false);
       setExactRouteFailed(false);
+      setExactRouteTarget(undefined);
       return;
     }
+    setExactRouteTarget(undefined);
     requestExactRouteFocus(initiatingElement);
     setExactRoutePoints(undefined);
     void loadExactRoutePoints(routeRef, 0);
   }
 
-  function openExactRoutePoints(routeRef: string, initiatingElement: HTMLButtonElement) {
-    requestExactRouteFocus(initiatingElement);
+  function openExactRoutePointFromWorkbench(
+    routeRef: string,
+    pointOrdinal: number,
+    initiatingElement: HTMLButtonElement,
+  ) {
+    const offset = exactPageOffset(pointOrdinal, EXACT_ROUTE_PAGE_SIZE);
+    setExactRouteTarget({ sourceRef: routeRef, ordinal: pointOrdinal });
+    requestExactRouteTargetFocus(initiatingElement);
     setDetailSection("routes");
-    if (exactRouteRef === routeRef && exactRouteLoading) return;
     if (exactRouteRef === routeRef
       && exactRoutePoints?.routeRef === routeRef
+      && exactRoutePoints.offset === offset
       && !exactRouteFailed) return;
     setExactRoutePoints(undefined);
-    void loadExactRoutePoints(routeRef, 0);
+    void loadExactRoutePoints(routeRef, offset);
   }
 
   function routeCard(route: TrainingRouteOverview, exerciseOrdinal: number) {
@@ -1390,19 +1433,32 @@ export function TrainingSessionLibraryPanel({
                       <th scope="col">{copy.routeAltitude}</th>
                       <th scope="col">{copy.routeElapsed}</th>
                     </tr></thead>
-                    <tbody>{exactRoutePoints.points.map((point) => (
-                      <tr key={point.ordinal}>
-                        <th scope="row">{number.format(point.ordinal + 1)}</th>
-                        <td>{coordinate.format(point.latitudeDegrees)}</td>
-                        <td>{coordinate.format(point.longitudeDegrees)}</td>
-                        <td>{point.altitudeMeters === null
-                          ? copy.metricUnavailable
-                          : `${coordinate.format(point.altitudeMeters)} ${messages.training.units.meters}`}</td>
-                        <td>{point.elapsedMilliseconds === null
-                          ? copy.metricUnavailable
-                          : formatDuration(point.elapsedMilliseconds, locale, messages.training.durationUnits)}</td>
-                      </tr>
-                    ))}</tbody>
+                    <tbody>{exactRoutePoints.points.map((point) => {
+                      const target = exactRouteTarget?.sourceRef === route.routeRef
+                        && exactRouteTarget.ordinal === point.ordinal;
+                      return (
+                        <tr
+                          key={point.ordinal}
+                          ref={target ? exactRouteTargetRowRef : undefined}
+                          tabIndex={target ? -1 : undefined}
+                          aria-current={target ? "true" : undefined}
+                          className={target ? "training-exact-selected-row" : undefined}
+                        >
+                          <th scope="row">
+                            {number.format(point.ordinal + 1)}
+                            {target && <span className="visually-hidden"> · {copy.selectedRouteEvidence}</span>}
+                          </th>
+                          <td>{coordinate.format(point.latitudeDegrees)}</td>
+                          <td>{coordinate.format(point.longitudeDegrees)}</td>
+                          <td>{point.altitudeMeters === null
+                            ? copy.metricUnavailable
+                            : `${coordinate.format(point.altitudeMeters)} ${messages.training.units.meters}`}</td>
+                          <td>{point.elapsedMilliseconds === null
+                            ? copy.metricUnavailable
+                            : formatDuration(point.elapsedMilliseconds, locale, messages.training.durationUnits)}</td>
+                        </tr>
+                      );
+                    })}</tbody>
                   </table>
                 </div>
                 <div className="training-route-pagination">
@@ -1496,8 +1552,10 @@ export function TrainingSessionLibraryPanel({
       setExactSignalSamples(undefined);
       setExactSignalLoading(false);
       setExactSignalFailed(false);
+      setExactSignalTarget(undefined);
       return;
     }
+    setExactSignalTarget(undefined);
     requestExactSignalFocus(initiatingElement);
     setExactSignalSamples(undefined);
     void loadExactSignalSamples(signalRef, 0);
@@ -1507,6 +1565,7 @@ export function TrainingSessionLibraryPanel({
     signalRef: string,
     initiatingElement?: HTMLButtonElement,
   ) {
+    setExactSignalTarget(undefined);
     if (initiatingElement) requestExactSignalFocus(initiatingElement);
     if (exactSignalRef === signalRef && exactSignalLoading) return;
     if (exactSignalRef === signalRef
@@ -1518,10 +1577,23 @@ export function TrainingSessionLibraryPanel({
 
   function openExactSignalSamplesFromWorkbench(
     signalRef: string,
+    sampleOrdinal: number | null,
     initiatingElement: HTMLButtonElement,
   ) {
     setDetailSection("signals");
-    openExactSignalSamples(signalRef, initiatingElement);
+    if (sampleOrdinal === null) {
+      openExactSignalSamples(signalRef, initiatingElement);
+      return;
+    }
+    const offset = exactPageOffset(sampleOrdinal, EXACT_SIGNAL_PAGE_SIZE);
+    setExactSignalTarget({ sourceRef: signalRef, ordinal: sampleOrdinal });
+    requestExactSignalTargetFocus(initiatingElement);
+    if (exactSignalRef === signalRef
+      && exactSignalSamples?.signalRef === signalRef
+      && exactSignalSamples.offset === offset
+      && !exactSignalFailed) return;
+    setExactSignalSamples(undefined);
+    void loadExactSignalSamples(signalRef, offset);
   }
 
   function signalKindLabel(kind: TrainingSignalKind): string {
@@ -1612,7 +1684,12 @@ export function TrainingSessionLibraryPanel({
                 <button
                   type="button"
                   className="secondary"
-                  onClick={() => void loadExactSignalSamples(signal.signalRef, 0)}
+                  onClick={() => void loadExactSignalSamples(
+                    signal.signalRef,
+                    exactSignalTarget?.sourceRef === signal.signalRef
+                      ? exactPageOffset(exactSignalTarget.ordinal, EXACT_SIGNAL_PAGE_SIZE)
+                      : 0,
+                  )}
                 >{copy.retryExactSignal}</button>
               </div>
             )}
@@ -1626,15 +1703,28 @@ export function TrainingSessionLibraryPanel({
                       <th scope="col">{copy.signalElapsed}</th>
                       <th scope="col">{copy.signalValue}</th>
                     </tr></thead>
-                    <tbody>{exactSignalSamples.samples.map((sample) => (
-                      <tr key={sample.ordinal}>
-                        <th scope="row">{number.format(sample.ordinal + 1)}</th>
-                        <td>{formatDuration(sample.elapsedMilliseconds, locale, messages.training.durationUnits)}</td>
-                        <td>{sample.value === null
-                          ? copy.metricUnavailable
-                          : `${coordinate.format(sample.value)} ${unit}`}</td>
-                      </tr>
-                    ))}</tbody>
+                    <tbody>{exactSignalSamples.samples.map((sample) => {
+                      const target = exactSignalTarget?.sourceRef === signal.signalRef
+                        && exactSignalTarget.ordinal === sample.ordinal;
+                      return (
+                        <tr
+                          key={sample.ordinal}
+                          ref={target ? exactSignalTargetRowRef : undefined}
+                          tabIndex={target ? -1 : undefined}
+                          aria-current={target ? "true" : undefined}
+                          className={target ? "training-exact-selected-row" : undefined}
+                        >
+                          <th scope="row">
+                            {number.format(sample.ordinal + 1)}
+                            {target && <span className="visually-hidden"> · {copy.selectedSignalEvidence}</span>}
+                          </th>
+                          <td>{formatDuration(sample.elapsedMilliseconds, locale, messages.training.durationUnits)}</td>
+                          <td>{sample.value === null
+                            ? copy.metricUnavailable
+                            : `${coordinate.format(sample.value)} ${unit}`}</td>
+                        </tr>
+                      );
+                    })}</tbody>
                   </table>
                 </div>
                 <div className="training-signal-pagination">
@@ -2636,7 +2726,7 @@ export function TrainingSessionLibraryPanel({
             story={detailStory}
             locale={locale}
             messages={messages}
-            onOpenExactRoute={openExactRoutePoints}
+            onOpenExactRoute={openExactRoutePointFromWorkbench}
             onOpenExactSignal={openExactSignalSamplesFromWorkbench}
           />}
           <nav className="training-detail-navigation" aria-label={copy.detailNavigation}>

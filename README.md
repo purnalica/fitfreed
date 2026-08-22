@@ -72,7 +72,7 @@ is governed independently by the [current ledger](docs/testing/public-release-re
 <li>User-authored sport classification and complete-history session search</li>
 <li>Chronology, source-separated calendar discovery, session comparison, and restart restoration</li>
 <li>Recorded exercise, mixed-sport, source-lap, automatic-lap, and pause inspection</li>
-<li>Interactive local primary and transition route workbench with synchronized measurements and paginated exact evidence</li>
+<li>Interactive local primary and transition route workbench with synchronized full-width measurement lanes and selected-row exact evidence</li>
 <li>Gap-aware supported signal charts with paginated exact samples</li>
 <li>Exact recorded heart-rate, speed, and power zones with applicable aggregates</li>
 <li>Reusable personal segment criteria with exact locally derived session views</li>

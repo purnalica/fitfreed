@@ -15,7 +15,7 @@
         { "key": "sportClassification", "text": "User-authored sport classification and complete-history session search" },
         { "key": "historyDiscovery", "text": "Chronology, source-separated calendar discovery, session comparison, and restart restoration" },
         { "key": "sessionStructure", "text": "Recorded exercise, mixed-sport, source-lap, automatic-lap, and pause inspection" },
-        { "key": "routeTraces", "text": "Interactive local primary and transition route workbench with synchronized measurements and paginated exact evidence" },
+        { "key": "routeTraces", "text": "Interactive local primary and transition route workbench with synchronized full-width measurement lanes and selected-row exact evidence" },
         { "key": "signalCharts", "text": "Gap-aware supported signal charts with paginated exact samples" },
         { "key": "recordedZones", "text": "Exact recorded heart-rate, speed, and power zones with applicable aggregates" },
         { "key": "personalSegments", "text": "Reusable personal segment criteria with exact locally derived session views" },

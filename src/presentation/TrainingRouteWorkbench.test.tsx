@@ -73,6 +73,23 @@ function story(withElapsed = true): SessionStory {
       gapBefore: false,
     }] : [],
   };
+  const speedSignal = {
+    signalRef: overlay.signalRef,
+    ordinal: 0,
+    role: "primary" as const,
+    kind: "speed" as const,
+    unit: "kilometers-per-hour" as const,
+    intervalMilliseconds: "1000",
+    sampleCount: 3,
+    availableSampleCount: 2,
+    projection: "source-ordinal-v1" as const,
+    visualSamples: [12, 10, null].map((value, ordinal) => ({
+      ordinal,
+      elapsedMilliseconds: String(ordinal * 1000),
+      value,
+      gapBefore: false,
+    })),
+  };
   const emptyRole = {
     route: transitionRoute,
     signals: [],
@@ -130,7 +147,7 @@ function story(withElapsed = true): SessionStory {
       zones: null,
       primary: {
         route: primaryRoute,
-        signals: [],
+        signals: [speedSignal],
         primaryMetric: "pace",
         eligibleOverlays: [overlay],
         exactRoute: { routeRef: primaryRoute.routeRef, pointCount: 3 },
@@ -185,6 +202,19 @@ describe("TrainingRouteWorkbench", () => {
     expect(map).toHaveAttribute("tabindex", "0");
     expect(workbench).toHaveTextContent("0 ms");
     expect(workbench).toHaveTextContent("5:00 min/km");
+    const signalLanes = within(workbench).getByRole("region", {
+      name: "Recorded measurements along the route",
+    });
+    const paceLane = within(signalLanes).getByRole("slider", {
+      name: "Pace lane position",
+    });
+    expect(paceLane).toHaveAttribute("aria-valuenow", "1");
+    expect(paceLane).toHaveAttribute(
+      "aria-valuetext",
+      "Point 1 of 3 · 0 ms · 5:00 min/km",
+    );
+    expect(paceLane.querySelectorAll("polyline")).toHaveLength(1);
+    expect(paceLane.querySelectorAll(".training-route-signal-cursor")).toHaveLength(1);
 
     const position = within(workbench).getByRole("slider", { name: "Recorded position" });
     expect(position).toHaveAttribute("aria-valuetext", "Point 1 of 3 · 0 ms");
@@ -196,15 +226,34 @@ describe("TrainingRouteWorkbench", () => {
     expect(position).toHaveAttribute("aria-valuetext", "Point 2 of 3 · 1 s");
     expect(viewport.controller.updateSelection).toHaveBeenLastCalledWith(1);
 
+    paceLane.focus();
+    await user.keyboard("{ArrowRight}");
+    expect(await screen.findByText("Point 3 of 3")).toBeVisible();
+    expect(paceLane).toHaveAttribute("aria-valuenow", "3");
+
+    vi.spyOn(paceLane, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      right: 300,
+      bottom: 100,
+      width: 300,
+      height: 100,
+      toJSON: () => ({}),
+    });
+    fireEvent.click(paceLane, { clientX: 0 });
+    expect(await screen.findByText("Point 1 of 3")).toBeVisible();
+
     await act(async () => viewport.selectPoint?.(2));
     expect(await screen.findByText("Point 3 of 3")).toBeVisible();
     expect(workbench).toHaveTextContent("No recorded pace at this position");
 
     const trackDisplay = within(workbench).getByRole("combobox", { name: "Track display" });
     await user.selectOptions(trackDisplay, "");
-    expect(within(workbench).queryByRole("button", {
-      name: /Inspect exact .* samples/,
-    })).not.toBeInTheDocument();
+    expect(within(signalLanes).getByRole("button", {
+      name: "Inspect exact Pace source (Speed)",
+    })).toBeVisible();
     await user.selectOptions(
       trackDisplay,
       `signal-${"b".repeat(64)}`,
@@ -250,10 +299,12 @@ describe("TrainingRouteWorkbench", () => {
     }));
     expect(onOpenExactRoute).toHaveBeenCalledWith(
       `route-${"a".repeat(64)}`,
+      2,
       expect.any(HTMLButtonElement),
     );
     expect(onOpenExactSignal).toHaveBeenCalledWith(
       `signal-${"b".repeat(64)}`,
+      2,
       expect.any(HTMLButtonElement),
     );
   });
@@ -274,6 +325,9 @@ describe("TrainingRouteWorkbench", () => {
     expect(within(workbench).queryByRole("slider", { name: "Posición registrada" }))
       .not.toBeInTheDocument();
     expect(workbench).toHaveTextContent("Este punto no tiene tiempo transcurrido registrado.");
+    expect(within(workbench).queryByRole("region", {
+      name: "Mediciones registradas a lo largo de la ruta",
+    })).not.toBeInTheDocument();
     await user.selectOptions(
       within(workbench).getByRole("combobox", { name: "Ruta visible" }),
       "0:transition",
@@ -281,6 +335,130 @@ describe("TrainingRouteWorkbench", () => {
     expect(viewport.controller.destroy).toHaveBeenCalledOnce();
     expect(viewport.create).toHaveBeenCalledTimes(2);
     expect(workbench).toHaveTextContent("Ruta de transición");
+  });
+
+  it("bounds a dense route to four user-selected full-width measurement lanes", async () => {
+    const denseStory = story();
+    const primary = denseStory.exercises[0].primary;
+    const metrics = [
+      ["heart-rate", "heart-rate", "beats-per-minute"],
+      ["elevation", "altitude", "meters"],
+      ["cadence", "cadence", "rotations-per-minute"],
+      ["power", "left-crank-power", "watts"],
+    ] as const;
+    metrics.forEach(([metric, kind, unit], index) => {
+      const signalRef = `signal-${String(index + 2).repeat(64)}`;
+      primary.eligibleOverlays.push({
+        signalRef,
+        metric,
+        sourceKind: kind,
+        sourceUnit: unit,
+        valueTransform: "identity",
+        alignedSamples: [0, 1, 2].map((ordinal) => ({
+          routePointOrdinal: ordinal,
+          signalSampleOrdinal: ordinal,
+          elapsedMilliseconds: String(ordinal * 1000),
+          value: 100 + ordinal,
+          gapBefore: false,
+        })),
+      });
+      primary.signals.push({
+        signalRef,
+        ordinal: index + 1,
+        role: "primary",
+        kind,
+        unit,
+        intervalMilliseconds: "1000",
+        sampleCount: 3,
+        availableSampleCount: 3,
+        projection: "source-ordinal-v1",
+        visualSamples: [0, 1, 2].map((ordinal) => ({
+          ordinal,
+          elapsedMilliseconds: String(ordinal * 1000),
+          value: 100 + ordinal,
+          gapBefore: false,
+        })),
+      });
+      primary.exactSignals.push({ signalRef, kind, unit, sampleCount: 3 });
+    });
+    const user = userEvent.setup();
+
+    render(
+      <TrainingRouteWorkbench
+        story={denseStory}
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        onOpenExactRoute={vi.fn()}
+        onOpenExactSignal={vi.fn()}
+      />,
+    );
+
+    const lanes = screen.getByRole("region", {
+      name: "Recorded measurements along the route",
+    });
+    expect(within(lanes).getAllByRole("checkbox")).toHaveLength(5);
+    expect(within(lanes).getAllByRole("checkbox", { checked: true })).toHaveLength(3);
+    expect(within(lanes).getAllByRole("slider")).toHaveLength(3);
+
+    await user.click(within(lanes).getByRole("checkbox", { name: "Cadence" }));
+    expect(within(lanes).getAllByRole("slider")).toHaveLength(4);
+    expect(within(lanes).getByRole("checkbox", { name: "Power" })).toBeDisabled();
+    await user.click(within(lanes).getByRole("checkbox", { name: "Elevation" }));
+    expect(within(lanes).getByRole("checkbox", { name: "Power" })).toBeEnabled();
+    await user.click(within(lanes).getByRole("checkbox", { name: "Power" }));
+    expect(within(lanes).getAllByRole("slider")).toHaveLength(4);
+  });
+
+  it("splits synchronized lane geometry at a recorded source gap", () => {
+    const gapStory = story();
+    gapStory.exercises[0].primary.eligibleOverlays[0].alignedSamples[1].gapBefore = true;
+    gapStory.exercises[0].primary.signals[0].visualSamples[1].gapBefore = true;
+
+    render(
+      <TrainingRouteWorkbench
+        story={gapStory}
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        onOpenExactRoute={vi.fn()}
+        onOpenExactSignal={vi.fn()}
+      />,
+    );
+
+    const lane = screen.getByRole("slider", { name: "Pace lane position" });
+    expect(lane.querySelectorAll("polyline")).toHaveLength(0);
+    expect(lane.querySelectorAll(".training-route-signal-lane-isolated")).toHaveLength(2);
+  });
+
+  it("keeps the bounded lane but does not invent an exact sample target at an unaligned point", async () => {
+    const partiallyAligned = story();
+    partiallyAligned.exercises[0].primary.eligibleOverlays[0].alignedSamples =
+      partiallyAligned.exercises[0].primary.eligibleOverlays[0].alignedSamples.slice(0, 1);
+    const onOpenExactSignal = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <TrainingRouteWorkbench
+        story={partiallyAligned}
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        onOpenExactRoute={vi.fn()}
+        onOpenExactSignal={onOpenExactSignal}
+      />,
+    );
+
+    expect(screen.getByRole("slider", { name: "Pace lane position" })
+      .querySelectorAll("polyline")).toHaveLength(1);
+    fireEvent.change(screen.getByRole("slider", { name: "Recorded position" }), {
+      target: { value: "1" },
+    });
+    await user.click(screen.getByRole("button", {
+      name: "Inspect exact Pace source (Speed)",
+    }));
+
+    expect(onOpenExactSignal).toHaveBeenCalledWith(
+      `signal-${"b".repeat(64)}`,
+      null,
+      expect.any(HTMLButtonElement),
+    );
   });
 
   it("distinguishes route choices across multiple exercises", () => {

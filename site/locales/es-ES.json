@@ -122,7 +122,7 @@
     "status.available.items.sportClassification": "Clasificación de deportes definida por el usuario y búsqueda de sesiones en todo el historial",
     "status.available.items.historyDiscovery": "Cronología, calendario con separación por fuente, comparación de sesiones y restauración al reiniciar",
     "status.available.items.sessionStructure": "Consulta de ejercicios registrados, deportes mixtos, vueltas de origen, vueltas automáticas y pausas",
-    "status.available.items.routeTraces": "Banco de trabajo interactivo y local para rutas principales y de transición, con mediciones sincronizadas y evidencia exacta paginada",
+    "status.available.items.routeTraces": "Banco de trabajo interactivo y local para rutas principales y de transición, con franjas de medición sincronizadas a todo el ancho y acceso a la fila exacta seleccionada",
     "status.available.items.signalCharts": "Gráficos de señales compatibles que muestran los vacíos, con muestras exactas paginadas",
     "status.available.items.recordedZones": "Zonas exactas registradas de frecuencia cardíaca, velocidad y potencia con sus agregados aplicables",
     "status.available.items.personalSegments": "Criterios personales reutilizables de segmentación con vistas exactas de sesión derivadas en local",

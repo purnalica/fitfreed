@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildRouteWorkbenchModel,
+  routePointIndexAtTimelineFraction,
+  routeTimelineKeyboardSelection,
+  routeTimelinePosition,
   routeOverlaySegments,
   selectRoutePoint,
 } from "./route-workbench-model";
@@ -23,6 +26,7 @@ function point(
 }
 
 function role(points: TrainingRoutePoint[]): SessionStoryRole {
+  const signalRef = `signal-${"b".repeat(64)}`;
   return {
     route: {
       routeRef: `route-${"a".repeat(64)}`,
@@ -36,10 +40,36 @@ function role(points: TrainingRoutePoint[]): SessionStoryRole {
       projection: "source-ordinal-v1",
       visualPoints: points,
     },
-    signals: [],
+    signals: [{
+      signalRef,
+      ordinal: 0,
+      role: "primary",
+      kind: "speed",
+      unit: "kilometers-per-hour",
+      intervalMilliseconds: "1000",
+      sampleCount: 3,
+      availableSampleCount: 2,
+      projection: "source-ordinal-v1",
+      visualSamples: [{
+        ordinal: 0,
+        elapsedMilliseconds: "0",
+        value: 12,
+        gapBefore: false,
+      }, {
+        ordinal: 1,
+        elapsedMilliseconds: "1000",
+        value: 10,
+        gapBefore: true,
+      }, {
+        ordinal: 2,
+        elapsedMilliseconds: "2000",
+        value: null,
+        gapBefore: false,
+      }],
+    }],
     primaryMetric: "pace",
     eligibleOverlays: [{
-      signalRef: `signal-${"b".repeat(64)}`,
+      signalRef,
       metric: "pace",
       sourceKind: "speed",
       sourceUnit: "kilometers-per-hour",
@@ -69,7 +99,7 @@ function role(points: TrainingRoutePoint[]): SessionStoryRole {
       pointCount: points.length,
     },
     exactSignals: [{
-      signalRef: `signal-${"b".repeat(64)}`,
+      signalRef,
       kind: "speed",
       unit: "kilometers-per-hour",
       sampleCount: 3,
@@ -109,10 +139,14 @@ describe("route workbench model", () => {
 
     expect(selectRoutePoint(model, 0).overlayValues[0]).toMatchObject({
       metric: "pace",
+      signalSampleOrdinal: 0,
+      elapsedMilliseconds: "0",
       value: 5,
       gapBefore: false,
     });
     expect(selectRoutePoint(model, 1).overlayValues[0]).toMatchObject({
+      signalSampleOrdinal: 1,
+      elapsedMilliseconds: "1000",
       value: 6,
       gapBefore: true,
     });
@@ -141,6 +175,45 @@ describe("route workbench model", () => {
     ]);
     expect(selectRoutePoint(model, -10).pointIndex).toBe(0);
     expect(selectRoutePoint(model, 99).pointIndex).toBe(2);
+  });
+
+  it("moves a shared timeline through recorded route positions without inventing missing time", () => {
+    const model = buildRouteWorkbenchModel(role([
+      point(0, -3.7, "0"),
+      point(1, -3.69, null),
+      point(2, -3.68, "2000"),
+      point(3, -3.67, "6000"),
+    ]))!;
+
+    expect(routeTimelinePosition(model, 0)).toBe(0);
+    expect(routeTimelinePosition(model, 1)).toBeNull();
+    expect(routeTimelinePosition(model, 2)).toBeCloseTo(1 / 3);
+    expect(routeTimelinePosition(model, 3)).toBe(1);
+    expect(routePointIndexAtTimelineFraction(model, 0.32)).toBe(2);
+    expect(routePointIndexAtTimelineFraction(model, 0.9)).toBe(3);
+    expect(routeTimelineKeyboardSelection(model, 0, "ArrowRight")).toBe(2);
+    expect(routeTimelineKeyboardSelection(model, 2, "ArrowLeft")).toBe(0);
+    expect(routeTimelineKeyboardSelection(model, 1, "ArrowRight")).toBe(2);
+    expect(routeTimelineKeyboardSelection(model, 2, "Home")).toBe(0);
+    expect(routeTimelineKeyboardSelection(model, 2, "End")).toBe(3);
+    expect(routeTimelineKeyboardSelection(model, 2, "PageDown")).toBeNull();
+  });
+
+  it("keeps the complete bounded signal lane when only some samples align with route points", () => {
+    const evidence = role([
+      point(0, -3.7, "0"),
+      point(1, -3.69, "3000"),
+    ]);
+    evidence.eligibleOverlays[0].alignedSamples = evidence.eligibleOverlays[0]
+      .alignedSamples.slice(0, 1);
+
+    const overlay = buildRouteWorkbenchModel(evidence)!.overlays[0];
+
+    expect(overlay.samples).toHaveLength(1);
+    expect(overlay.laneSamples.map((sample) => sample.signalSampleOrdinal))
+      .toEqual([0, 1, 2]);
+    expect(overlay.laneSamples.map((sample) => sample.value)).toEqual([5, 6, null]);
+    expect(overlay.laneSamples[1].gapBefore).toBe(true);
   });
 
   it("does not create a workbench for absent or empty route geometry", () => {

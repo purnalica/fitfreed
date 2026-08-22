@@ -52,7 +52,7 @@ An exact reimport does not duplicate canonical history. Fast reuse is allowed on
 Version 0.1.0 provides:
 
 - daily-activity overview, range, exact day detail, and period comparison;
-- complete-history training-session search with date, sport, authored-label, and measurement filters, stable pagination and sorting, exact session summary, exercise/lap/pause structure, an [interactive local primary/transition route workbench](session-routes.md), paginated exact route points, gap-aware supported signal charts, paginated exact signal samples, and period comparison;
+- complete-history training-session search with date, sport, authored-label, and measurement filters, stable pagination and sorting, exact session summary, exercise/lap/pause structure, an [interactive local primary/transition route workbench](session-routes.md) with synchronized full-width measurement lanes and selected-row exact evidence, paginated exact route points, gap-aware supported signal charts, paginated exact signal samples, and period comparison;
 - primary-sleep overview, range, phases, timeline and score detail, and period comparison;
 - dated nightly-recovery overview, range, exact source-context detail, and period comparison; and
 - one provider-neutral longitudinal dashboard with a shared range, aligned exact day synopsis, navigation, and period comparison; and

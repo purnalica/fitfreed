@@ -1542,12 +1542,19 @@ describe("packaged FitFreed import journey", () => {
         ).backgroundImage,
         mapHeight: map.height,
         mapWidth: map.width,
+        signalLaneWidths: [...document.querySelectorAll(
+          ".training-route-signal-lane-chart",
+        )].map((lane) => lane.getBoundingClientRect().width),
         viewportHeight: document.documentElement.clientHeight,
         workbenchWidth: workbench.width,
       };
     });
     expect(routeWorkbenchLayout.mapWidth / routeWorkbenchLayout.workbenchWidth)
       .toBeGreaterThan(0.94);
+    expect(routeWorkbenchLayout.signalLaneWidths).toHaveLength(2);
+    expect(routeWorkbenchLayout.signalLaneWidths.every(
+      (width) => width / routeWorkbenchLayout.workbenchWidth > 0.9,
+    )).toBe(true);
     expect(routeWorkbenchLayout.mapHeight / routeWorkbenchLayout.viewportHeight)
       .toBeGreaterThan(0.38);
     expect(routeWorkbenchLayout.mapHeight / routeWorkbenchLayout.viewportHeight)
@@ -1561,6 +1568,11 @@ describe("packaged FitFreed import journey", () => {
     expect(await routeWorkbench.$$(".fitfreed-route-direction")).toHaveLength(4);
     expect(await routeWorkbench.$$(".fitfreed-route-start")).toHaveLength(1);
     expect(await routeWorkbench.$$(".fitfreed-route-finish")).toHaveLength(1);
+    const synchronizedLanes = await routeWorkbench.$$(
+      ".training-route-signal-lane-chart",
+    );
+    expect(synchronizedLanes).toHaveLength(2);
+    expect(await routeWorkbench.$$(".training-route-signal-cursor")).toHaveLength(2);
     await expect(routeWorkbench).toHaveText(expect.stringContaining("Point 1 of 5"));
     const routePosition = await routeWorkbench.$('input[type="range"]');
     await expect(routePosition).toHaveAttribute("max", "4");
@@ -1571,6 +1583,28 @@ describe("packaged FitFreed import journey", () => {
     await expect(routeWorkbench).toHaveText(expect.stringContaining(
       `Point ${keyboardPointIndex + 1} of 5`,
     ));
+    const paceLane = await routeWorkbench.$(
+      `aria/${english.training.sessionLibrary.routeWorkbench.signalLanePosition
+        .replace("{metric}", "Pace")}`,
+    );
+    await browser.execute(() => {
+      const lane = document.querySelector(
+        ".training-route-signal-lane-chart[aria-label='Pace lane position']",
+      );
+      const bounds = lane.getBoundingClientRect();
+      lane.dispatchEvent(new MouseEvent("click", {
+        bubbles: true,
+        clientX: bounds.right - 1,
+        clientY: bounds.top + bounds.height / 2,
+      }));
+    });
+    await expect(routeWorkbench).toHaveText(expect.stringContaining("Point 5 of 5"));
+    await paceLane.click();
+    await expect(paceLane).toBeFocused();
+    await browser.keys([Key.Home]);
+    await expect(routeWorkbench).toHaveText(expect.stringContaining("Point 1 of 5"));
+    await browser.keys([Key.End]);
+    await expect(routeWorkbench).toHaveText(expect.stringContaining("Point 5 of 5"));
     await browser.execute(() => {
       const path = document.querySelector(".training-route-workbench .fitfreed-route-track");
       const point = path.getPointAtLength(path.getTotalLength());
@@ -1651,14 +1685,20 @@ describe("packaged FitFreed import journey", () => {
     await expect(routeWorkbench).toHaveAttribute("data-focused", "true");
     await routeWorkbench.$(`aria/${exactOverlayLabel}`).click();
     await expect(routeWorkbench).toHaveAttribute("data-focused", "false");
-    const exactSignalHeading = await $(".training-signal-exact h6");
-    await exactSignalHeading.waitForDisplayed({ timeout: 10_000 });
-    await expect(exactSignalHeading).toBeFocused();
+    const selectedSignalRow = await $(
+      ".training-signal-exact .training-exact-selected-row",
+    );
+    await selectedSignalRow.waitForDisplayed({ timeout: 10_000 });
+    await expect(selectedSignalRow).toBeFocused();
+    await expect(selectedSignalRow).toHaveAttribute("aria-current", "true");
+    await expect(selectedSignalRow).toHaveText(expect.stringContaining("8.7 km/h"));
     const visibleRoute = routeSelectors[0];
     await selectNativeOption(visibleRoute, "0:transition");
     await expect(routeWorkbench).toHaveText(expect.stringContaining("Point 1 of 2"));
     await selectNativeOption(visibleRoute, "0:primary");
     await expect(routeWorkbench).toHaveText(expect.stringContaining("Point 1 of 5"));
+    await routePosition.addValue(Key.End);
+    await expect(routeWorkbench).toHaveText(expect.stringContaining("Point 5 of 5"));
     await routeWorkbench.$(
       `aria/${english.training.sessionLibrary.routeWorkbench.exactRoute}`,
     ).click();
@@ -1668,7 +1708,12 @@ describe("packaged FitFreed import journey", () => {
       )).length === 5,
       { timeout: 10_000, timeoutMsg: "workbench exact route evidence was not displayed" },
     );
-    await expect($(".training-route:first-of-type .training-route-exact h6")).toBeFocused();
+    const selectedRouteRow = await $(
+      ".training-route:first-of-type .training-route-exact .training-exact-selected-row",
+    );
+    await expect(selectedRouteRow).toBeFocused();
+    await expect(selectedRouteRow).toHaveAttribute("aria-current", "true");
+    await expect(selectedRouteRow).toHaveText(expect.stringContaining("5"));
     await expect($(".training-detail-navigation button[aria-current='page']"))
       .toHaveText(english.training.sessionLibrary.detailSections.routes);
     await $(".training-route:first-of-type button").click();

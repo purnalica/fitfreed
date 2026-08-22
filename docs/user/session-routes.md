@@ -37,13 +37,32 @@ does not interpolate it. When a displayed measurement is transformed from anothe
 exact-evidence action names both meanings—for example, pace derived for display from recorded speed
 samples.
 
+## Compare measurements along the route
+
+Recorded measurements that align with route positions appear as full-width lanes below the map. Every lane
+keeps its own named scale and source identity; their cursor is the same recorded position used by the map,
+value strip, and position control. Click or tap a lane to choose the closest recorded route position on its
+elapsed axis. When the lane has keyboard focus, use Left and Right to move between recorded positions or Home
+and End to move to the first or last timed position.
+
+FitFreed initially shows at most three useful lanes. If more measurements are available, **Visible
+measurements** lets you show up to four while keeping at least one. A line stops at a recorded unavailable
+value or source gap. The displayed ranges and selected values are structured text as well as graphics, and
+an unaligned point remains explicitly unavailable.
+
+If the route has no recorded elapsed time at any point, FitFreed does not pretend that its positions can be
+synchronized with signal time. The map remains available and the independent signal charts remain in session
+detail, but the attached synchronized lanes are absent.
+
 ## Inspect exact evidence
 
-**Inspect exact recorded route points** opens the existing Routes section and its paginated coordinate
-table, then moves focus and the visible workspace to that result. The measurement action does the same in
-Signals and zones at the corresponding exact source series. These
-paths retain source ordinals, coordinates, elapsed times, units, unavailable values, and gaps; the map is
-not a replacement for exact evidence.
+**Inspect exact recorded route points** opens the existing Routes section at the page containing the selected
+map point, marks its exact source row, and moves focus and the visible workspace to that row. Each measurement
+lane offers the corresponding action for its source series. When that route position has an aligned source
+sample, FitFreed opens its containing Signals and zones page and focuses the exact sample row. If no sample
+aligns there, the source series still opens without pretending that a corresponding row exists. These paths
+retain source ordinals, coordinates, elapsed times, units, unavailable values, and gaps; the map and lanes are
+not replacements for exact evidence.
 
 ## Privacy and current limits
 
@@ -53,9 +72,9 @@ remain on the device. Update checks are a separate application capability and ne
 facts.
 
 The current workbench deliberately has a neutral coordinate context rather than a street or terrain map.
-Full synchronized signal lanes, personal range editing inside the map, and source-attributed range
-exploration remain active MVP work. The existing exact tables, signal views, and personal segmentation
-criteria remain available in their current detail sections while that integration is completed.
+Personal range editing inside the map and source-attributed range exploration remain active MVP work. The
+existing signal views and personal segmentation criteria remain available in their current detail sections
+while that integration is completed.
 
 Never attach a screenshot, coordinate table, route, export, library, or diagnostic containing personal
 history to a public issue. Use a synthetic package and follow the repository security and support

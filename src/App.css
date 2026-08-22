@@ -776,6 +776,36 @@ th:last-child, td:last-child { text-align: right; }
 .training-route-overlay-scale i[data-level="3"], .fitfreed-route-overlay-3 { --route-overlay-color: #7ad151; }
 .training-route-overlay-scale i[data-level="4"], .fitfreed-route-overlay-4 { --route-overlay-color: #fde725; }
 .training-route-overlay-scale i { background: var(--route-overlay-color); }
+.training-route-signal-lanes { display: grid; gap: 12px; min-width: 0; padding: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; }
+.training-route-signal-lanes > header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 8px 20px; }
+.training-route-signal-lanes > header h5 { margin: 0; font-size: 1rem; }
+.training-route-signal-lanes > header p { max-width: 70ch; margin: 4px 0 0; color: var(--muted); font-size: .76rem; line-height: 1.45; }
+.training-route-signal-lanes > header > span { color: var(--ink-soft); font-size: .74rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.training-route-signal-lane-selection { margin: 0; padding: 0; border: 0; }
+.training-route-signal-lane-selection legend { margin-bottom: 7px; font-size: .74rem; font-weight: 800; }
+.training-route-signal-lane-selection > div { display: flex; flex-wrap: wrap; gap: 7px; }
+.training-route-signal-lane-selection label { display: inline-flex; align-items: center; gap: 6px; padding: 7px 9px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; font-size: .74rem; font-weight: 750; }
+.training-route-signal-lane-selection label:has(input:checked) { color: var(--accent-deep); border-color: var(--accent); }
+.training-route-signal-lane-selection input { margin: 0; }
+.training-route-signal-lane-list { display: grid; gap: 10px; min-width: 0; }
+.training-route-signal-lane-list article { min-width: 0; padding: 11px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 11px; }
+.training-route-signal-lane-heading { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 7px 18px; }
+.training-route-signal-lane-heading h6 { margin: 0; font-size: .86rem; }
+.training-route-signal-lane-heading div > span { display: block; margin-top: 2px; color: var(--muted); font-size: .7rem; }
+.training-route-signal-lane-heading > div:last-child { text-align: right; }
+.training-route-signal-lane-chart { min-width: 0; margin: 7px 0; border-radius: 12px; cursor: crosshair; touch-action: pan-y; }
+.training-route-signal-lane-chart:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.training-route-signal-lane-chart svg { display: block; width: 100%; height: clamp(76px, 8vw, 104px); }
+.training-route-signal-lane-chart rect { fill: var(--surface-soft); stroke: var(--line); }
+.training-route-signal-lane-chart polyline { fill: none; stroke: var(--accent-deep); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.training-route-signal-lane-grid { stroke: color-mix(in srgb, var(--line) 70%, transparent); stroke-dasharray: 4 6; vector-effect: non-scaling-stroke; }
+.training-route-signal-lane-isolated { fill: var(--accent-deep); stroke: var(--surface); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.training-route-signal-cursor { stroke: var(--ink); stroke-width: 2; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; }
+.training-route-signal-selected { fill: var(--surface); stroke: var(--danger); stroke-width: 4; vector-effect: non-scaling-stroke; }
+.training-route-signal-lane-list footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.training-route-signal-lane-list footer strong { font-size: .82rem; font-variant-numeric: tabular-nums; }
+.training-route-signal-lane-list footer button { min-height: 36px; padding: 6px 9px; font-size: .72rem; }
+.training-route-signal-lanes-meaning { margin: 0; color: var(--muted); font-size: .72rem; line-height: 1.45; }
 .training-route-exact-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .training-route-exact-actions button { min-height: 38px; padding: 7px 11px; font-size: .76rem; }
 .training-route-locality { margin: -2px 0 0; color: var(--muted); font-size: .72rem; }
@@ -794,6 +824,8 @@ th:last-child, td:last-child { text-align: right; }
 .training-route-exact { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
 .training-route-exact table { min-width: 720px; }
 .training-route-pagination { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; }
+.training-exact-selected-row > * { background: var(--accent-soft) !important; }
+.training-exact-selected-row:focus { outline: 3px solid var(--accent); outline-offset: -3px; }
 .training-exercise-signals { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
 .training-exercise-signals > h5 { margin: 0 0 5px; font-size: .95rem; }
 .training-exercise-signals > p { margin: 0; color: var(--muted); }
@@ -1392,6 +1424,12 @@ th:last-child, td:last-child { text-align: right; }
 :root[data-content-zoom="200"] .training-route-position-control { grid-template-columns: 1fr; gap: 4px; }
 :root[data-content-zoom="175"] .training-route-overlay-legend,
 :root[data-content-zoom="200"] .training-route-overlay-legend { grid-template-columns: 1fr; }
+:root[data-content-zoom="175"] .training-route-signal-lanes > header,
+:root[data-content-zoom="200"] .training-route-signal-lanes > header,
+:root[data-content-zoom="175"] .training-route-signal-lane-list footer,
+:root[data-content-zoom="200"] .training-route-signal-lane-list footer { align-items: stretch; flex-direction: column; }
+:root[data-content-zoom="175"] .training-route-signal-lane-heading > div:last-child,
+:root[data-content-zoom="200"] .training-route-signal-lane-heading > div:last-child { text-align: left; }
 :root[data-content-zoom="150"] .training-history-sports ul,
 :root[data-content-zoom="175"] .training-history-sports ul,
 :root[data-content-zoom="200"] .training-history-sports ul { grid-template-columns: repeat(auto-fit, minmax(min(500px, 100%), 1fr)); }
@@ -1540,6 +1578,10 @@ th:last-child, td:last-child { text-align: right; }
   .training-route-north { top: auto; bottom: 12px; }
   .training-route-position-control, .training-route-overlay-legend { grid-template-columns: 1fr; }
   .training-route-position-control { gap: 4px; }
+  .training-route-signal-lanes { padding: 11px; }
+  .training-route-signal-lanes > header, .training-route-signal-lane-list footer { align-items: stretch; flex-direction: column; }
+  .training-route-signal-lane-heading > div:last-child { text-align: left; }
+  .training-route-signal-lane-list footer button { width: 100%; }
   .training-route-exact-actions { align-items: stretch; flex-direction: column; }
   .training-route-exact-actions button { width: 100%; }
   .training-route-workbench[data-focused="true"] { inset: 4px; padding: 9px; }

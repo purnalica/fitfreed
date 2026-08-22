@@ -11,6 +11,7 @@ import {
 } from "./route-workbench-model";
 import type { LocalRouteViewport } from "./route-viewport";
 import type { SessionStory, SessionStoryMetric, SessionStoryRole } from "./session-story";
+import { TrainingRouteSignalLanes } from "./TrainingRouteSignalLanes";
 import { formatDuration } from "./training-format";
 
 type StoryRole = "primary" | "transition";
@@ -19,8 +20,16 @@ interface TrainingRouteWorkbenchProps {
   story: SessionStory;
   locale: Locale;
   messages: (typeof catalogs)["en-US"];
-  onOpenExactRoute: (routeRef: string, initiatingElement: HTMLButtonElement) => void;
-  onOpenExactSignal: (signalRef: string, initiatingElement: HTMLButtonElement) => void;
+  onOpenExactRoute: (
+    routeRef: string,
+    pointOrdinal: number,
+    initiatingElement: HTMLButtonElement,
+  ) => void;
+  onOpenExactSignal: (
+    signalRef: string,
+    sampleOrdinal: number | null,
+    initiatingElement: HTMLButtonElement,
+  ) => void;
 }
 
 interface RouteChoice {
@@ -271,20 +280,6 @@ export function TrainingRouteWorkbench({
   const selectedOverlay = choice.model.overlays.find(
     (overlay) => overlay.signalRef === selectedOverlayRef,
   );
-  const exactSignal = selectedOverlayRef === null
-    ? undefined
-    : choice.role.exactSignals.find((signal) => signal.signalRef === selectedOverlayRef);
-  const exactSignalName = exactSignal
-    ? messages.training.sessionLibrary.signalKinds[exactSignal.kind]
-    : null;
-  const exactSignalAction = exactSignal && exactSignalName
-    ? selectedOverlay && overlayLabel(selectedOverlay) !== exactSignalName
-      ? interpolate(copy.exactOverlaySignal, {
-        metric: overlayLabel(selectedOverlay),
-        signal: exactSignalName,
-      })
-      : interpolate(copy.exactSignal, { signal: exactSignalName })
-    : null;
 
   function selectChoice(nextKey: string) {
     const next = choices.find((candidate) => candidate.key === nextKey);
@@ -445,23 +440,40 @@ export function TrainingRouteWorkbench({
           </span>
         </section>
       )}
+      <TrainingRouteSignalLanes
+        model={choice.model}
+        role={choice.role}
+        selectedPointIndex={selectedPointIndex}
+        selectedPointPosition={selectedPointPosition}
+        selectedElapsed={selectedElapsed}
+        locale={locale}
+        messages={messages}
+        metricLabel={(metric) => copy.metrics[metric]}
+        formatMetricValue={(metric, value) => metricValue(
+          metric,
+          value,
+          locale,
+          copy.metricUnits,
+        )}
+        onSelectPoint={setSelectedPointIndex}
+        onOpenExactSignal={(signalRef, sampleOrdinal, initiatingElement) => {
+          if (focused) setFocused(false);
+          onOpenExactSignal(signalRef, sampleOrdinal, initiatingElement);
+        }}
+      />
       <div className="training-route-exact-actions">
         {choice.role.exactRoute && <button
           type="button"
           className="secondary"
           onClick={(event) => {
             if (focused) setFocused(false);
-            onOpenExactRoute(choice.role.exactRoute!.routeRef, event.currentTarget);
+            onOpenExactRoute(
+              choice.role.exactRoute!.routeRef,
+              selection.point.source.ordinal,
+              event.currentTarget,
+            );
           }}
         >{copy.exactRoute}</button>}
-        {exactSignal && exactSignalAction && <button
-          type="button"
-          className="secondary"
-          onClick={(event) => {
-            if (focused) setFocused(false);
-            onOpenExactSignal(exactSignal.signalRef, event.currentTarget);
-          }}
-        >{exactSignalAction}</button>}
       </div>
       <p className="training-route-locality">{copy.locality}</p>
     </section>

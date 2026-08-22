@@ -22,6 +22,23 @@ export interface RouteDirectionMarker {
 export interface RouteWorkbenchOverlayValue {
   signalRef: string;
   metric: SessionStoryMetric;
+  signalSampleOrdinal: number | null;
+  elapsedMilliseconds: string | null;
+  sourceValue: number | null;
+  value: number | null;
+  gapBefore: boolean;
+}
+
+export interface RouteWorkbenchOverlaySample extends RouteWorkbenchOverlayValue {
+  routePointOrdinal: number;
+  routePointIndex: number;
+  signalSampleOrdinal: number;
+  elapsedMilliseconds: string;
+}
+
+export interface RouteWorkbenchLaneSample {
+  signalSampleOrdinal: number;
+  elapsedMilliseconds: string;
   sourceValue: number | null;
   value: number | null;
   gapBefore: boolean;
@@ -32,6 +49,10 @@ export interface RouteWorkbenchOverlay {
   metric: SessionStoryMetric;
   minimum: number | null;
   maximum: number | null;
+  samples: RouteWorkbenchOverlaySample[];
+  laneMinimum: number | null;
+  laneMaximum: number | null;
+  laneSamples: RouteWorkbenchLaneSample[];
   valuesByRouteOrdinal: ReadonlyMap<number, RouteWorkbenchOverlayValue>;
 }
 
@@ -40,6 +61,7 @@ export interface RouteWorkbenchModel {
   routeKind: "primary" | "transition";
   points: RouteWorkbenchPoint[];
   elapsedPointIndexes: number[];
+  maximumElapsedMilliseconds: string | null;
   directionMarkers: RouteDirectionMarker[];
   overlays: RouteWorkbenchOverlay[];
 }
@@ -62,24 +84,52 @@ function transformedValue(overlay: SessionStoryOverlay, value: number | null): n
   return value > 0 ? 60 / value : null;
 }
 
-function workbenchOverlay(overlay: SessionStoryOverlay): RouteWorkbenchOverlay {
+function workbenchOverlay(
+  overlay: SessionStoryOverlay,
+  role: SessionStoryRole,
+  pointIndexesByOrdinal: ReadonlyMap<number, number>,
+): RouteWorkbenchOverlay {
   const valuesByRouteOrdinal = new Map<number, RouteWorkbenchOverlayValue>();
+  const samples: RouteWorkbenchOverlaySample[] = [];
   overlay.alignedSamples.forEach((sample) => {
-    valuesByRouteOrdinal.set(sample.routePointOrdinal, {
+    const routePointIndex = pointIndexesByOrdinal.get(sample.routePointOrdinal);
+    if (routePointIndex === undefined) return;
+    const value = {
       signalRef: overlay.signalRef,
       metric: overlay.metric,
+      routePointOrdinal: sample.routePointOrdinal,
+      routePointIndex,
+      signalSampleOrdinal: sample.signalSampleOrdinal,
+      elapsedMilliseconds: sample.elapsedMilliseconds,
       sourceValue: sample.value,
       value: transformedValue(overlay, sample.value),
       gapBefore: sample.gapBefore,
-    });
+    };
+    valuesByRouteOrdinal.set(sample.routePointOrdinal, value);
+    samples.push(value);
   });
   const available = [...valuesByRouteOrdinal.values()]
     .flatMap((sample) => sample.value === null ? [] : [sample.value]);
+  const signal = role.signals.find((candidate) => candidate.signalRef === overlay.signalRef);
+  const laneSamples = signal?.visualSamples.map((sample) => ({
+    signalSampleOrdinal: sample.ordinal,
+    elapsedMilliseconds: sample.elapsedMilliseconds,
+    sourceValue: sample.value,
+    value: transformedValue(overlay, sample.value),
+    gapBefore: sample.gapBefore,
+  })) ?? [];
+  const laneAvailable = laneSamples.flatMap(
+    (sample) => sample.value === null ? [] : [sample.value],
+  );
   return {
     signalRef: overlay.signalRef,
     metric: overlay.metric,
     minimum: available.length === 0 ? null : Math.min(...available),
     maximum: available.length === 0 ? null : Math.max(...available),
+    samples,
+    laneMinimum: laneAvailable.length === 0 ? null : Math.min(...laneAvailable),
+    laneMaximum: laneAvailable.length === 0 ? null : Math.max(...laneAvailable),
+    laneSamples,
     valuesByRouteOrdinal,
   };
 }
@@ -133,15 +183,37 @@ export function buildRouteWorkbenchModel(
 ): RouteWorkbenchModel | null {
   if (!role.route || role.route.visualPoints.length === 0) return null;
   const points = unwrapPoints(role.route.visualPoints);
+  const pointIndexesByOrdinal = new Map(points.map(
+    (point, pointIndex) => [point.source.ordinal, pointIndex],
+  ));
+  const elapsedPointIndexes = points.flatMap((point, pointIndex) => (
+    point.source.elapsedMilliseconds === null ? [] : [pointIndex]
+  ));
+  const overlays = role.eligibleOverlays.map(
+    (overlay) => workbenchOverlay(overlay, role, pointIndexesByOrdinal),
+  );
+  const elapsedValues = [
+    ...elapsedPointIndexes.map(
+      (pointIndex) => points[pointIndex].source.elapsedMilliseconds!,
+    ),
+    ...overlays.flatMap((overlay) => overlay.laneSamples.map(
+      (sample) => sample.elapsedMilliseconds,
+    )),
+  ];
+  const maximumElapsedMilliseconds = elapsedValues.reduce<string | null>(
+    (maximum, elapsed) => maximum === null || BigInt(elapsed) > BigInt(maximum)
+      ? elapsed
+      : maximum,
+    null,
+  );
   return {
     routeRef: role.route.routeRef,
     routeKind: role.route.kind,
     points,
-    elapsedPointIndexes: points.flatMap((point, pointIndex) => (
-      point.source.elapsedMilliseconds === null ? [] : [pointIndex]
-    )),
+    elapsedPointIndexes,
+    maximumElapsedMilliseconds,
     directionMarkers: directionMarkers(points),
-    overlays: role.eligibleOverlays.map(workbenchOverlay),
+    overlays,
   };
 }
 
@@ -161,12 +233,89 @@ export function selectRoutePoint(
       overlay.valuesByRouteOrdinal.get(point.source.ordinal) ?? {
         signalRef: overlay.signalRef,
         metric: overlay.metric,
+        signalSampleOrdinal: null,
+        elapsedMilliseconds: null,
         sourceValue: null,
         value: null,
         gapBefore: false,
       }
     )),
   };
+}
+
+const TIMELINE_SCALE = 1_000_000n;
+
+export function routeTimelinePosition(
+  model: RouteWorkbenchModel,
+  pointIndex: number,
+): number | null {
+  const elapsed = model.points[pointIndex]?.source.elapsedMilliseconds;
+  const maximum = model.maximumElapsedMilliseconds;
+  if (elapsed === null || elapsed === undefined || maximum === null) return null;
+  if (BigInt(maximum) === 0n) return 0;
+  return Number(BigInt(elapsed) * TIMELINE_SCALE / BigInt(maximum))
+    / Number(TIMELINE_SCALE);
+}
+
+export function routeTimelinePositionForElapsed(
+  model: RouteWorkbenchModel,
+  elapsedMilliseconds: string,
+): number | null {
+  const maximum = model.maximumElapsedMilliseconds;
+  if (maximum === null) return null;
+  if (BigInt(maximum) === 0n) return 0;
+  return Number(BigInt(elapsedMilliseconds) * TIMELINE_SCALE / BigInt(maximum))
+    / Number(TIMELINE_SCALE);
+}
+
+export function routePointIndexAtTimelineFraction(
+  model: RouteWorkbenchModel,
+  requestedFraction: number,
+): number {
+  if (model.elapsedPointIndexes.length === 0 || model.maximumElapsedMilliseconds === null) {
+    return 0;
+  }
+  const fraction = Number.isFinite(requestedFraction)
+    ? Math.max(0, Math.min(1, requestedFraction))
+    : 0;
+  const scaledFraction = BigInt(Math.round(fraction * Number(TIMELINE_SCALE)));
+  const target = BigInt(model.maximumElapsedMilliseconds) * scaledFraction / TIMELINE_SCALE;
+  return model.elapsedPointIndexes.reduce((nearestIndex, pointIndex) => {
+    const nearestElapsed = BigInt(
+      model.points[nearestIndex].source.elapsedMilliseconds!,
+    );
+    const candidateElapsed = BigInt(
+      model.points[pointIndex].source.elapsedMilliseconds!,
+    );
+    const nearestDistance = nearestElapsed >= target
+      ? nearestElapsed - target
+      : target - nearestElapsed;
+    const candidateDistance = candidateElapsed >= target
+      ? candidateElapsed - target
+      : target - candidateElapsed;
+    return candidateDistance < nearestDistance ? pointIndex : nearestIndex;
+  }, model.elapsedPointIndexes[0]);
+}
+
+export function routeTimelineKeyboardSelection(
+  model: RouteWorkbenchModel,
+  selectedPointIndex: number,
+  key: string,
+): number | null {
+  if (model.elapsedPointIndexes.length === 0) return null;
+  if (key === "Home") return model.elapsedPointIndexes[0];
+  if (key === "End") return model.elapsedPointIndexes.at(-1)!;
+  if (key === "ArrowRight") {
+    return model.elapsedPointIndexes.find((pointIndex) => pointIndex > selectedPointIndex)
+      ?? selectedPointIndex;
+  }
+  if (key === "ArrowLeft") {
+    return model.elapsedPointIndexes.filter(
+      (pointIndex) => pointIndex < selectedPointIndex,
+    ).at(-1)
+      ?? selectedPointIndex;
+  }
+  return null;
 }
 
 export function routeOverlaySegments(
