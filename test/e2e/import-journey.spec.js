@@ -127,6 +127,30 @@ async function expectApplicationShellLayout(catalog, mode, broadWorkspace = fals
   }
 }
 
+async function expectRevealOutsideApplicationNavigation(selector) {
+  await browser.execute((targetSelector) => {
+    document.querySelector(targetSelector).scrollIntoView({ block: "start", inline: "nearest" });
+  }, selector);
+  const geometry = await browser.execute((targetSelector) => {
+    const navigation = document.querySelector(".app-sidebar").getBoundingClientRect();
+    const target = document.querySelector(targetSelector).getBoundingClientRect();
+    return {
+      compact: navigation.width >= document.documentElement.clientWidth - 1,
+      navigationBottom: navigation.bottom,
+      navigationRight: navigation.right,
+      targetLeft: target.left,
+      targetTop: target.top,
+      viewportHeight: document.documentElement.clientHeight,
+    };
+  }, selector);
+  if (geometry.compact) {
+    expect(geometry.targetTop).toBeGreaterThanOrEqual(geometry.navigationBottom - 1);
+  } else {
+    expect(geometry.targetLeft).toBeGreaterThanOrEqual(geometry.navigationRight - 1);
+  }
+  expect(geometry.targetTop).toBeLessThan(geometry.viewportHeight);
+}
+
 async function expectFirstRunActionsBeforePreview() {
   const positions = await browser.execute(() => {
     const actions = document.querySelector(".library-home-empty-actions");
@@ -1530,6 +1554,9 @@ describe("packaged FitFreed import journey", () => {
     const routeWorkbench = await $(".training-route-workbench");
     await routeWorkbench.waitForDisplayed({ timeout: 10_000 });
     await routeWorkbench.$(".fitfreed-route-track").waitForDisplayed({ timeout: 10_000 });
+    await expectRevealOutsideApplicationNavigation(".training-route-workbench");
+    await expectRevealOutsideApplicationNavigation(".training-route-map-frame");
+    await expectRevealOutsideApplicationNavigation(".training-route-signal-lanes");
     const routeWorkbenchLayout = await browser.execute(() => {
       const workbench = document.querySelector(".training-route-workbench").getBoundingClientRect();
       const map = document.querySelector(".training-route-map-frame").getBoundingClientRect();

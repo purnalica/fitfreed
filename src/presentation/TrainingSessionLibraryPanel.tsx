@@ -1446,7 +1446,7 @@ export function TrainingSessionLibraryPanel({
                         >
                           <th scope="row">
                             {number.format(point.ordinal + 1)}
-                            {target && <span className="visually-hidden"> · {copy.selectedRouteEvidence}</span>}
+                            {target && <span className="sr-only"> · {copy.selectedRouteEvidence}</span>}
                           </th>
                           <td>{coordinate.format(point.latitudeDegrees)}</td>
                           <td>{coordinate.format(point.longitudeDegrees)}</td>
@@ -1716,7 +1716,7 @@ export function TrainingSessionLibraryPanel({
                         >
                           <th scope="row">
                             {number.format(sample.ordinal + 1)}
-                            {target && <span className="visually-hidden"> · {copy.selectedSignalEvidence}</span>}
+                            {target && <span className="sr-only"> · {copy.selectedSignalEvidence}</span>}
                           </th>
                           <td>{formatDuration(sample.elapsedMilliseconds, locale, messages.training.durationUnits)}</td>
                           <td>{sample.value === null

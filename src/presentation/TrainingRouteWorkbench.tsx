@@ -368,7 +368,7 @@ export function TrainingRouteWorkbench({
           aria-describedby="training-route-map-instructions"
           tabIndex={0}
         />
-        <p id="training-route-map-instructions" className="visually-hidden">
+        <p id="training-route-map-instructions" className="sr-only">
           {copy.mapInstructions}
         </p>
         {viewportState === "loading" && <p className="training-route-map-status" role="status">

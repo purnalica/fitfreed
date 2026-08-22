@@ -209,6 +209,12 @@ names. It leaves ordinary DOM keys unchanged and maps only the standard WebDrive
 that the embedded macOS automation driver exposes literally. Timeline and viewport mappings consume the
 normalized names; feature components contain no driver branch, environment switch, or synthetic event path.
 
+Route workbench, map, and synchronized-lane reveals use the application shell's single responsive
+reveal offset. The offset follows the persistent desktop, compact, and 175%–200% navigation geometry,
+so programmatic or keyboard-driven scrolling places the requested evidence below the navigation instead
+of hiding its heading or controls. Presentation contracts and packaged geometry assertions cover the
+same token; individual route components do not carry independent fixed offsets.
+
 `TrainingRouteSignalLanes` is the semantic, renderer-independent timeline attached to that viewport. It pairs
 each selected role's bounded signal series with its application-composed `eligibleOverlay` by the validated
 signal capability. The complete bounded series supplies lane geometry and source gaps; the overlay's exact

@@ -332,7 +332,7 @@ export function TrainingRouteSignalLanes({
               </div>
               <p
                 id={`training-route-lane-${lane.overlay.signalRef}-instructions`}
-                className="visually-hidden"
+                className="sr-only"
               >{copy.signalLaneInstructions}</p>
               <footer>
                 <strong aria-live="polite">{formattedValue}</strong>

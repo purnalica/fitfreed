@@ -233,6 +233,12 @@ requireRule(
 );
 requireRule(
   stylesheet,
+  ".training-route-workbench-controls select",
+  [/height:\s*max\(44px,\s*1\.5em\)/],
+  "native route selectors with a zoom-responsive explicit target height",
+);
+requireRule(
+  stylesheet,
   '.training-route-workbench[data-focused="true"]',
   [/position:\s*fixed/, /inset:\s*12px/],
   "a reversible focused map workspace",
@@ -336,6 +342,12 @@ const compactNavigation = balancedBlock(
   "App.css must define the compact navigation boundary",
 );
 requireRule(
+  stylesheet,
+  ":root",
+  [/--shell-reveal-offset:\s*24px/],
+  "the default in-page reveal offset",
+);
+requireRule(
   compactNavigation,
   ".app-shell",
   [/grid-template-columns:\s*1fr/, /grid-template-rows:\s*auto\s+minmax\(0,\s*1fr\)/],
@@ -349,8 +361,14 @@ if (mainWindow?.width < 1280 || mainWindow?.height < 800) {
 requireRule(
   compactNavigation,
   ".app-sidebar",
-  [/width:\s*100%/, /height:\s*auto/],
-  "the labelled compact navigation layout",
+  [/position:\s*sticky/, /width:\s*100%/, /height:\s*auto/],
+  "the labelled persistent compact navigation layout",
+);
+requireRule(
+  compactNavigation,
+  ":root",
+  [/--shell-reveal-offset:\s*120px/],
+  "the compact navigation reveal offset",
 );
 requireRule(
   compactNavigation,
@@ -366,6 +384,12 @@ for (const zoom of ["175", "200"]) {
     || !stylesheet.includes(`:root[data-content-zoom="${zoom}"] .app-sidebar nav`)) {
     throw new Error(`${zoom}% content zoom must use labelled horizontal navigation`);
   }
+  requireRule(
+    stylesheet,
+    `:root[data-content-zoom="${zoom}"] .app-sidebar`,
+    [/position:\s*sticky/],
+    "persistent high-zoom navigation",
+  );
   requireRule(
     stylesheet,
     `:root[data-content-zoom="${zoom}"] .library-home-empty`,
@@ -392,10 +416,35 @@ for (const zoom of ["175", "200"]) {
   );
 }
 
+requireRule(
+  stylesheet,
+  ':root[data-content-zoom="175"],\n:root[data-content-zoom="200"]',
+  [/--shell-reveal-offset:\s*210px/],
+  "the high-zoom navigation reveal offset",
+);
+requireRule(
+  stylesheet,
+  ".training-route-workbench,",
+  [/scroll-margin-block-start:\s*var\(--shell-reveal-offset\)/],
+  "route workbench, map, and lane reveals below persistent navigation",
+);
+
 for (const selector of ["a:focus-visible", "summary:focus-visible"]) {
   if (!stylesheet.includes(selector)) {
     throw new Error(`${selector} must use the global visible-focus treatment`);
   }
+}
+
+requireRule(
+  stylesheet,
+  ".sr-only",
+  [/position:\s*absolute/, /width:\s*1px/, /height:\s*1px/, /overflow:\s*hidden/],
+  "the canonical visually hidden accessible-content treatment",
+);
+const unsupportedHiddenClassConsumers = sourceFiles(path.join(repositoryRoot, "src"))
+  .filter((sourcePath) => readFileSync(sourcePath, "utf8").includes("visually-hidden"));
+if (unsupportedHiddenClassConsumers.length > 0) {
+  throw new Error("presentation sources must use the canonical sr-only class for visually hidden content");
 }
 
 if (!stylesheet.includes(':is(input, select, textarea)[aria-invalid="true"]')) {
