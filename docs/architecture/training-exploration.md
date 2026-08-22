@@ -200,7 +200,11 @@ presentation. FitFreed continues to own selected source ordinal, elapsed travers
 sport-aware overlays, focus and return state, semantic controls, exact alternatives, and all evidence
 meaning. The adapter cannot create tiles, remote layers, geocoding, geolocation, telemetry, plugins,
 source-authored popup HTML, or any coordinate-bearing request. Application code and styles are packaged
-locally and the Tauri content security policy remains unchanged.
+locally and the Tauri content security policy remains unchanged. The adapter disables Leaflet's document-level
+keyboard handler because it does not pan in the supported macOS WebView despite receiving the focused key
+event. A local element-scoped translation maps unmodified arrow and zoom keys to Leaflet `panBy`, `zoomIn`,
+and `zoomOut`; Leaflet still owns every spatial operation, while the focused DOM boundary remains explicit,
+testable, and disposable.
 
 Cross-signal inspection is a presentation of that same validated overview, not a new calculated fact. It
 allows two through four series from one exercise and one role to be selected, then places them in separate

@@ -1,10 +1,11 @@
 import "leaflet/dist/leaflet.css";
 import * as L from "leaflet";
 
-import type {
-  LocalRouteViewport,
-  LocalRouteViewportOptions,
-  LocalRouteViewportOverlay,
+import {
+  localRouteViewportKeyboardAction,
+  type LocalRouteViewport,
+  type LocalRouteViewportOptions,
+  type LocalRouteViewportOverlay,
 } from "./route-viewport";
 
 const SINGLE_POINT_ZOOM = 16;
@@ -25,7 +26,7 @@ export async function createLocalRouteViewport(
     boxZoom: true,
     doubleClickZoom: true,
     dragging: true,
-    keyboard: true,
+    keyboard: false,
     preferCanvas: false,
     scrollWheelZoom: false,
     touchZoom: true,
@@ -37,8 +38,23 @@ export async function createLocalRouteViewport(
   }).addTo(map);
   const enableDeliberateWheelZoom = () => map.scrollWheelZoom.enable();
   const disableIncidentalWheelZoom = () => map.scrollWheelZoom.disable();
-  map.on("focus", enableDeliberateWheelZoom);
-  map.on("blur", disableIncidentalWheelZoom);
+  element.addEventListener("focus", enableDeliberateWheelZoom);
+  element.addEventListener("blur", disableIncidentalWheelZoom);
+  const navigateByKeyboard = (event: KeyboardEvent) => {
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+    const action = localRouteViewportKeyboardAction(event.key);
+    if (!action) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (action.kind === "pan") {
+      map.panBy([action.xPixels, action.yPixels], { animate: false });
+    } else if (action.delta > 0) {
+      map.zoomIn(1, { animate: false });
+    } else {
+      map.zoomOut(1, { animate: false });
+    }
+  };
+  element.addEventListener("keydown", navigateByKeyboard);
   L.control.scale({ imperial: false, maxWidth: 140, position: "bottomleft" }).addTo(map);
 
   const start = options.points[0];
@@ -149,8 +165,9 @@ export async function createLocalRouteViewport(
     },
     destroy() {
       track.off("click", selectNearest);
-      map.off("focus", enableDeliberateWheelZoom);
-      map.off("blur", disableIncidentalWheelZoom);
+      element.removeEventListener("focus", enableDeliberateWheelZoom);
+      element.removeEventListener("blur", disableIncidentalWheelZoom);
+      element.removeEventListener("keydown", navigateByKeyboard);
       map.remove();
     },
   };

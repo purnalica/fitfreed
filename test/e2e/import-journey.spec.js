@@ -1583,14 +1583,18 @@ describe("packaged FitFreed import journey", () => {
     });
     await expect(routeWorkbench).toHaveText(expect.stringContaining("Point 5 of 5"));
     const routeMap = await routeWorkbench.$(".training-route-map");
-    const routePathBeforeKeyboardPan = await routeWorkbench.$(
-      ".fitfreed-route-track",
-    ).getAttribute("d");
+    const routeBeforeKeyboardPan = await browser.execute(
+      () => document.querySelector(".training-route-workbench .fitfreed-route-track")
+        .getBoundingClientRect().x,
+    );
     await routeMap.click();
-    await routeMap.addValue(Key.ArrowRight);
+    await expect(routeMap).toBeFocused();
+    await browser.keys([Key.ArrowRight]);
     await browser.waitUntil(
-      async () => await routeWorkbench.$(".fitfreed-route-track").getAttribute("d")
-        !== routePathBeforeKeyboardPan,
+      async () => await browser.execute(
+        () => document.querySelector(".training-route-workbench .fitfreed-route-track")
+          .getBoundingClientRect().x,
+      ) !== routeBeforeKeyboardPan,
       { timeout: 10_000, timeoutMsg: "the focused local route did not respond to keyboard pan" },
     );
     await routeWorkbench.$(

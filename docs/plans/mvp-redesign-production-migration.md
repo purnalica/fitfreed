@@ -941,6 +941,12 @@ scale, pointer hit testing, resize, and disposal; package and architecture contr
 and reject tiles, remote URLs, location services, popups, transport access, or Leaflet types outside that
 adapter.
 
+Packaged WebView falsification found that Leaflet 1.9.4 received a focused `ArrowRight` event with its
+legacy key code but did not execute its document-level keyboard handler. The adapter therefore disables
+that handler and translates only unmodified arrow and conventional zoom keys on the focused map element
+into Leaflet pan and zoom operations. Focus, event scope, disposal, pure key mapping, and visible packaged
+movement are explicit tests; this is a WebView compatibility boundary rather than a second spatial engine.
+
 The responsive surface gives the map a laptop-bounded majority region, offers named zoom/reset and reversible
 focused-view controls, preserves focus on initial session entry, restores the initiating control on button or
 `Escape` exit, and keeps a native recorded-position control, selected elapsed/value strip, non-color overlay

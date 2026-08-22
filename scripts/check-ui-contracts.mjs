@@ -185,8 +185,11 @@ for (const focusedMapAccessibility of [
 }
 for (const deliberateMapInteraction of [
   "scrollWheelZoom: false",
-  'map.on("focus", enableDeliberateWheelZoom)',
-  'map.on("blur", disableIncidentalWheelZoom)',
+  "keyboard: false",
+  'element.addEventListener("focus", enableDeliberateWheelZoom)',
+  'element.addEventListener("blur", disableIncidentalWheelZoom)',
+  'element.addEventListener("keydown", navigateByKeyboard)',
+  "localRouteViewportKeyboardAction(event.key)",
 ]) {
   if (!leafletAdapter.includes(deliberateMapInteraction)) {
     throw new Error(`the route viewport must preserve deliberate scroll interaction: ${deliberateMapInteraction}`);
