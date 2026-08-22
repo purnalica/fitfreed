@@ -37,6 +37,7 @@ use fitfreed_application::{
     query_library_home as build_library_home,
     query_longitudinal_comparison as build_longitudinal_comparison,
     query_longitudinal_overview as build_longitudinal_overview,
+    query_session_story as build_session_story,
     query_source_acquisition_guides as build_source_acquisition_guides,
     query_training_route_points as build_training_route_points,
     query_training_session_provenance as build_training_session_provenance,
@@ -59,8 +60,8 @@ use fitfreed_application::{
     update_session_report as update_session_report_through_port,
     update_training_segment_criterion as update_segment_criterion_through_port, ApplicationError,
     ApplicationPreferences, ImportCoordinator, ImportProgress, InvalidApplicationPreferences,
-    LocalePreference, ReportExportCancellation, UpdateChannelPort, UpdateCheckContext,
-    UpdateCheckTrigger, UpdateInstallationAuthorization, UpdateRecoveryOutcome,
+    LocalePreference, ReportExportCancellation, SessionStoryPorts, UpdateChannelPort,
+    UpdateCheckContext, UpdateCheckTrigger, UpdateInstallationAuthorization, UpdateRecoveryOutcome,
 };
 use infrastructure::{
     acknowledge_update_recovery_outcome as acknowledge_retained_update_recovery_outcome,
@@ -88,10 +89,10 @@ use presentation::{
     RecoveryDateRangeDto, RecoveryNightDetailDto, RecoveryOverviewDto, RefreshReportRequestDto,
     ReportDefinitionDto, ReportExportReceiptDto, ReportExportRequestDto, ReportListDto,
     ReportStartDto, ResolvedReportDto, ResolvedSessionReportDto, SaveSportClassificationRequestDto,
-    SavedTrainingSportClassificationDto, SessionReportExportRequestDto, SleepComparisonDto,
-    SleepDateRangeDto, SleepOverviewDto, SleepPeriodDetailDto, SourceAcquisitionGuideDto,
-    TrainingComparisonDto, TrainingDateRangeDto, TrainingDiscoveryWorkspaceDto,
-    TrainingRoutePointsQueryDto, TrainingRoutePointsResultDto,
+    SavedTrainingSportClassificationDto, SessionReportExportRequestDto, SessionStoryDto,
+    SessionStoryQueryDto, SleepComparisonDto, SleepDateRangeDto, SleepOverviewDto,
+    SleepPeriodDetailDto, SourceAcquisitionGuideDto, TrainingComparisonDto, TrainingDateRangeDto,
+    TrainingDiscoveryWorkspaceDto, TrainingRoutePointsQueryDto, TrainingRoutePointsResultDto,
     TrainingSegmentCriterionMutationRequestDto, TrainingSessionCalendarDto,
     TrainingSessionCalendarRequestDto, TrainingSessionProvenanceQueryDto,
     TrainingSessionProvenanceResultDto, TrainingSessionRouteQueryDto,
@@ -485,6 +486,28 @@ fn query_training_session_structure(
     build_training_session_structure(&SqliteTrainingLibrary::new(path), query.into())
         .map(Into::into)
         .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn query_session_story(
+    app: AppHandle,
+    query: SessionStoryQueryDto,
+) -> Result<SessionStoryDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    let library = SqliteTrainingLibrary::new(path);
+    build_session_story(
+        SessionStoryPorts {
+            discovery: &library,
+            structure: &library,
+            routes: &library,
+            signals: &library,
+            zones: &library,
+            provenance: &library,
+        },
+        query.into(),
+    )
+    .map(Into::into)
+    .map_err(CommandErrorDto::from)
 }
 
 #[tauri::command]
@@ -1893,6 +1916,7 @@ pub fn run() {
             query_training_session_calendar,
             query_training_session_selection,
             query_training_session_structure,
+            query_session_story,
             query_training_session_routes,
             query_training_route_points,
             query_training_session_signals,

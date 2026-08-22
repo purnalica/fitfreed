@@ -6,8 +6,8 @@ const SNAPSHOT_PREFIX: &str = "training-snapshot-";
 const SESSION_PREFIX: &str = "session-";
 const EXERCISE_PREFIX: &str = "exercise-";
 const SIGNAL_PREFIX: &str = "signal-";
-const MIN_VISUAL_SAMPLES: usize = 2;
-const MAX_VISUAL_SAMPLES: usize = 500;
+pub(crate) const MIN_VISUAL_SAMPLES: usize = 2;
+pub(crate) const MAX_VISUAL_SAMPLES: usize = 500;
 const MAX_EXACT_SAMPLES: usize = 250;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

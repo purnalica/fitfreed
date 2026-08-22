@@ -91,6 +91,14 @@ pub use training_signal::{
     TrainingSignalVisualSampleView,
 };
 
+mod training_story;
+pub use training_story::{
+    query_session_story, SessionStory, SessionStoryAlignedSampleView, SessionStoryExactRoute,
+    SessionStoryExactSignal, SessionStoryExercise, SessionStoryMetricView, SessionStoryOverlayView,
+    SessionStoryPorts, SessionStoryProvenance, SessionStoryQuery, SessionStoryRole,
+    SessionStoryValueTransform, TRAINING_SESSION_STORY_SCHEMA_VERSION,
+};
+
 mod training_zone;
 pub use training_zone::{
     query_training_session_zones, PersistedTrainingSessionZones, TrainingExerciseZonesView,
@@ -133,6 +141,9 @@ mod training_route_tests;
 
 #[cfg(test)]
 mod training_signal_tests;
+
+#[cfg(test)]
+mod training_story_tests;
 
 #[cfg(test)]
 mod training_zone_tests;

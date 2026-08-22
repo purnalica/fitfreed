@@ -2495,6 +2495,171 @@ for (const invalidResponse of [
   }
 }
 
+const sessionStoryPath = "docs/data-formats/insights/session-story-v1.md";
+const sessionStory = read(sessionStoryPath);
+for (const field of [
+  "query_session_story",
+  "session-story-query-v1.schema.json",
+  "session-story-v1.schema.json",
+  "schemaVersion",
+  "sessionRef",
+  "snapshotRef",
+  "maxVisualPoints",
+  "maxVisualSamples",
+  "session",
+  "structure",
+  "routes",
+  "signals",
+  "zones",
+  "provenance",
+  "exercises",
+  "exerciseRef",
+  "primary",
+  "transition",
+  "primaryMetric",
+  "eligibleOverlays",
+  "sourceKind",
+  "sourceUnit",
+  "valueTransform",
+  "alignedSamples",
+  "routePointOrdinal",
+  "signalSampleOrdinal",
+  "elapsedMilliseconds",
+  "gapBefore",
+  "exactRoute",
+  "exactSignals",
+  "training-session-detail-changed",
+  "invalid-training-session-detail",
+  "training-session-detail-failed",
+]) {
+  requireMention(sessionStory, field, sessionStoryPath);
+}
+
+const sessionStoryQuerySchemaPath = "schemas/session-story-query-v1.schema.json";
+const validateSessionStoryQuery = ajv.compile(JSON.parse(read(sessionStoryQuerySchemaPath)));
+const syntheticSessionStoryQuery = {
+  sessionRef: sessionRefDigest,
+  snapshotRef: snapshotRefDigest,
+  maxVisualPoints: 300,
+  maxVisualSamples: 400,
+};
+for (const query of [
+  syntheticSessionStoryQuery,
+  { ...syntheticSessionStoryQuery, snapshotRef: null },
+]) {
+  if (!validateSessionStoryQuery(query)) {
+    throw new Error(
+      `${sessionStoryQuerySchemaPath} rejected a valid query: ${ajv.errorsText(validateSessionStoryQuery.errors)}`,
+    );
+  }
+}
+for (const invalidQuery of [
+  { ...syntheticSessionStoryQuery, maxVisualPoints: 1 },
+  { ...syntheticSessionStoryQuery, maxVisualSamples: 501 },
+  { ...syntheticSessionStoryQuery, sourceSessionId: "private" },
+]) {
+  if (validateSessionStoryQuery(invalidQuery)) {
+    throw new Error(`${sessionStoryQuerySchemaPath} accepted an invalid query`);
+  }
+}
+
+const sessionStorySchemaPath = "schemas/session-story-v1.schema.json";
+for (const dependencyPath of [
+  trainingSessionSearchSchemaPath,
+  trainingSessionStructureSchemaPath,
+  trainingSessionRouteSchemaPath,
+  trainingSessionSignalsSchemaPath,
+  trainingSessionZonesSchemaPath,
+  trainingSessionProvenanceSchemaPath,
+]) {
+  const dependency = JSON.parse(read(dependencyPath));
+  if (!ajv.getSchema(dependency.$id)) ajv.addSchema(dependency);
+}
+const validateSessionStory = ajv.compile(JSON.parse(read(sessionStorySchemaPath)));
+const syntheticSessionStory = {
+  schemaVersion: 1,
+  snapshotRef: snapshotRefDigest,
+  session: syntheticTrainingSessionSearch.sessions[0],
+  structure: syntheticTrainingSessionStructure.structure,
+  routes: syntheticTrainingSessionRoute.routes,
+  signals: syntheticTrainingSessionSignals.signals,
+  zones: syntheticTrainingSessionZones.zones,
+  provenance: {
+    totalEventCount: syntheticTrainingSessionProvenance.totalEventCount,
+    current: syntheticTrainingSessionProvenance.current,
+  },
+  exercises: [{
+    exerciseRef: exerciseRefDigest,
+    ordinal: 0,
+    sport: syntheticTrainingSessionSearch.sessions[0].sport,
+    structure: syntheticTrainingSessionStructure.structure.exercises[0],
+    zones: syntheticTrainingSessionZones.zones.exercises[0].zones,
+    primary: {
+      route: syntheticTrainingSessionRoute.routes.exercises[0].routes.primary,
+      signals: syntheticTrainingSessionSignals.signals.exercises[0].signals.primary,
+      primaryMetric: "heart-rate",
+      eligibleOverlays: [{
+        signalRef: signalRefDigest,
+        metric: "heart-rate",
+        sourceKind: "heart-rate",
+        sourceUnit: "beats-per-minute",
+        valueTransform: "identity",
+        alignedSamples: [{
+          routePointOrdinal: 0,
+          signalSampleOrdinal: 0,
+          elapsedMilliseconds: "0",
+          value: 120.5,
+          gapBefore: false,
+        }],
+      }],
+      exactRoute: { routeRef: routeRefDigest, pointCount: 1 },
+      exactSignals: [{
+        signalRef: signalRefDigest,
+        kind: "heart-rate",
+        unit: "beats-per-minute",
+        sampleCount: 2,
+      }],
+    },
+    transition: {
+      route: null,
+      signals: [],
+      primaryMetric: null,
+      eligibleOverlays: [],
+      exactRoute: null,
+      exactSignals: [],
+    },
+  }],
+};
+if (!validateSessionStory(syntheticSessionStory)) {
+  throw new Error(
+    `${sessionStorySchemaPath} rejected its synthetic response: ${ajv.errorsText(validateSessionStory.errors)}`,
+  );
+}
+for (const invalidResponse of [
+  { ...syntheticSessionStory, schemaVersion: 2 },
+  { ...syntheticSessionStory, sourceSessionId: "private" },
+  (() => {
+    const value = structuredClone(syntheticSessionStory);
+    value.exercises[0].primary.eligibleOverlays[0].valueTransform = "interpolate";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticSessionStory);
+    value.exercises[0].primary.eligibleOverlays[0].alignedSamples[0]
+      .elapsedMilliseconds = 0;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticSessionStory);
+    value.exercises[0].primary.eligibleOverlays[0].color = "red";
+    return value;
+  })(),
+]) {
+  if (validateSessionStory(invalidResponse)) {
+    throw new Error(`${sessionStorySchemaPath} accepted an invalid response`);
+  }
+}
+
 const trainingDiscoveryWorkspacePath =
   "docs/data-formats/insights/training-discovery-workspace-v1.md";
 const trainingDiscoveryWorkspace = read(trainingDiscoveryWorkspacePath);
@@ -5542,6 +5707,10 @@ process.stdout.write(
     trainingSessionProvenanceSchemas: [
       trainingSessionProvenanceQuerySchemaPath,
       trainingSessionProvenanceSchemaPath,
+    ],
+    sessionStorySchemas: [
+      sessionStoryQuerySchemaPath,
+      sessionStorySchemaPath,
     ],
     trainingComparisonSchemas: [
       trainingComparisonQuerySchemaPath,

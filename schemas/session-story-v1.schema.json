@@ -1,0 +1,281 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/session-story-v1.schema.json",
+  "title": "FitFreed composed session story version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "snapshotRef",
+    "session",
+    "structure",
+    "routes",
+    "signals",
+    "zones",
+    "provenance",
+    "exercises"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "snapshotRef": { "$ref": "#/$defs/snapshotRef" },
+    "session": {
+      "$ref": "training-session-search-v1.schema.json#/$defs/session"
+    },
+    "structure": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "training-session-structure-v1.schema.json#/$defs/structure" }
+      ]
+    },
+    "routes": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "training-session-route-v1.schema.json#/$defs/assessment" }
+      ]
+    },
+    "signals": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "training-session-signals-v1.schema.json#/$defs/assessment" }
+      ]
+    },
+    "zones": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "training-session-zones-v1.schema.json#/$defs/assessment" }
+      ]
+    },
+    "provenance": { "$ref": "#/$defs/provenance" },
+    "exercises": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/exercise" }
+    }
+  },
+  "$defs": {
+    "snapshotRef": {
+      "type": "string",
+      "pattern": "^training-snapshot-[0-9a-f]{64}$"
+    },
+    "exerciseRef": {
+      "type": "string",
+      "pattern": "^exercise-[0-9a-f]{64}$"
+    },
+    "routeRef": {
+      "type": "string",
+      "pattern": "^route-[0-9a-f]{64}$"
+    },
+    "signalRef": {
+      "type": "string",
+      "pattern": "^signal-[0-9a-f]{64}$"
+    },
+    "elapsedMilliseconds": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$"
+    },
+    "metric": {
+      "enum": [
+        "pace",
+        "speed",
+        "heart-rate",
+        "elevation",
+        "cadence",
+        "stroke-rate",
+        "temperature",
+        "power"
+      ]
+    },
+    "optionalMetric": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/metric" }
+      ]
+    },
+    "signalKind": {
+      "enum": [
+        "heart-rate",
+        "speed",
+        "distance",
+        "altitude",
+        "cadence",
+        "temperature",
+        "left-crank-power"
+      ]
+    },
+    "signalUnit": {
+      "enum": [
+        "beats-per-minute",
+        "kilometers-per-hour",
+        "meters",
+        "rotations-per-minute",
+        "degrees-celsius",
+        "watts"
+      ]
+    },
+    "valueTransform": {
+      "enum": [
+        "identity",
+        "kilometers-per-hour-to-minutes-per-kilometer"
+      ]
+    },
+    "alignedSample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "routePointOrdinal",
+        "signalSampleOrdinal",
+        "elapsedMilliseconds",
+        "value",
+        "gapBefore"
+      ],
+      "properties": {
+        "routePointOrdinal": { "type": "integer", "minimum": 0 },
+        "signalSampleOrdinal": { "type": "integer", "minimum": 0 },
+        "elapsedMilliseconds": { "$ref": "#/$defs/elapsedMilliseconds" },
+        "value": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "number" }
+          ]
+        },
+        "gapBefore": { "type": "boolean" }
+      }
+    },
+    "overlay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "signalRef",
+        "metric",
+        "sourceKind",
+        "sourceUnit",
+        "valueTransform",
+        "alignedSamples"
+      ],
+      "properties": {
+        "signalRef": { "$ref": "#/$defs/signalRef" },
+        "metric": { "$ref": "#/$defs/metric" },
+        "sourceKind": { "$ref": "#/$defs/signalKind" },
+        "sourceUnit": { "$ref": "#/$defs/signalUnit" },
+        "valueTransform": { "$ref": "#/$defs/valueTransform" },
+        "alignedSamples": {
+          "type": "array",
+          "maxItems": 500,
+          "items": { "$ref": "#/$defs/alignedSample" }
+        }
+      }
+    },
+    "exactRoute": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["routeRef", "pointCount"],
+      "properties": {
+        "routeRef": { "$ref": "#/$defs/routeRef" },
+        "pointCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "optionalExactRoute": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/exactRoute" }
+      ]
+    },
+    "exactSignal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["signalRef", "kind", "unit", "sampleCount"],
+      "properties": {
+        "signalRef": { "$ref": "#/$defs/signalRef" },
+        "kind": { "$ref": "#/$defs/signalKind" },
+        "unit": { "$ref": "#/$defs/signalUnit" },
+        "sampleCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "role": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "route",
+        "signals",
+        "primaryMetric",
+        "eligibleOverlays",
+        "exactRoute",
+        "exactSignals"
+      ],
+      "properties": {
+        "route": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "training-session-route-v1.schema.json#/$defs/route" }
+          ]
+        },
+        "signals": {
+          "type": "array",
+          "items": {
+            "$ref": "training-session-signals-v1.schema.json#/$defs/series"
+          }
+        },
+        "primaryMetric": { "$ref": "#/$defs/optionalMetric" },
+        "eligibleOverlays": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/overlay" }
+        },
+        "exactRoute": { "$ref": "#/$defs/optionalExactRoute" },
+        "exactSignals": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/exactSignal" }
+        }
+      }
+    },
+    "optionalSport": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "training-session-search-v1.schema.json#/$defs/sport" }
+      ]
+    },
+    "optionalStructure": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "training-session-structure-v1.schema.json#/$defs/exercise" }
+      ]
+    },
+    "optionalZones": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "training-session-zones-v1.schema.json#/$defs/zoneEvidence" }
+      ]
+    },
+    "exercise": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exerciseRef",
+        "ordinal",
+        "sport",
+        "structure",
+        "zones",
+        "primary",
+        "transition"
+      ],
+      "properties": {
+        "exerciseRef": { "$ref": "#/$defs/exerciseRef" },
+        "ordinal": { "type": "integer", "minimum": 0 },
+        "sport": { "$ref": "#/$defs/optionalSport" },
+        "structure": { "$ref": "#/$defs/optionalStructure" },
+        "zones": { "$ref": "#/$defs/optionalZones" },
+        "primary": { "$ref": "#/$defs/role" },
+        "transition": { "$ref": "#/$defs/role" }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["totalEventCount", "current"],
+      "properties": {
+        "totalEventCount": { "type": "integer", "minimum": 1 },
+        "current": {
+          "$ref": "https://fitfreed.org/schemas/training-session-provenance-v1.schema.json#/$defs/current"
+        }
+      }
+    }
+  }
+}

@@ -209,7 +209,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R3 | Complete locally — R3.1 and R3.2 exact packaged gates passed 2026-08-22 | Import ends in recognizable personal value |
 | X5-R4 | Complete locally — exact packaged and exhaustive adaptive gates passed 2026-08-22 | Existing health and aligned-history questions read as answers |
 | X5-R5 | Complete locally — R5.4, R5.5, and real-process restart gates passed 2026-08-22 | A remembered session is findable and sports are recognizable |
-| X5-R6 | Pending | A routed workout is investigated through a dominant synchronized map |
+| X5-R6 | In progress — R6.1 application and transport contract complete locally 2026-08-22 | A routed workout is investigated through a dominant synchronized map |
 | X5-R7 | Pending | Every session composition reflects its actual evidence |
 | X5-R8 | Pending | Personal ranges and reusable criteria work end to end |
 | X5-R9 | Pending | Reports open as results and leave FitFreed safely |
@@ -873,6 +873,27 @@ performance. Visual and exact selected values must agree at every tested point.
 **Documentation:** composed Session Story v1 contract, transport schema, architecture and ADR, privacy,
 route/signal interpretation, exact evidence, synthetic contract examples, performance benchmark, and
 user session/map guidance.
+
+### R6.1 local closure — 2026-08-22
+
+The application now owns one provider-neutral `SessionStory` use case. It resolves the selected session
+first, pins structure, route, signal, zone, and provenance reads to that accepted snapshot, and rejects
+mixed revisions or conflicting exercise identities. The result retains every original assessment while
+adding exercise-level primary/transition composition, ordered sport-aware metrics, exact route and signal
+capabilities, and bounded route/signal matches only at identical recorded elapsed times. Missing route
+timestamps, null signal values, signal gaps, source units, roles, and exact ordinals remain explicit. A
+water-sport cadence series remains cadence until distinct stroke evidence exists, and the application
+chooses no presentation color.
+
+The `query_session_story` Tauri command, version-1 request and response schemas, TypeScript boundary,
+contract documentation, architecture link, and executable schema checks are present. The command composes
+the existing independent SQLite ports; no migration, joined persistence query, story cache, or presentation
+reconstruction was added. Eight application tests cover coherent running composition, revision rejection,
+role separation, running/cycling/water-sport priorities, conservative cadence semantics, source assessment
+states, partial-evidence sport restraint, and exercise conflicts. The production TypeScript build,
+documentation and data-contract checks, all 213 host, 156 application, and 33 domain tests, formatting, and
+workspace-wide all-feature Clippy passed. R6 remains open for the spatial-rendering ADR and the complete
+map-led workbench, interaction, accessibility, exact-evidence, privacy, responsive, and performance gates.
 
 ## X5-R7 — Make session composition evidence-adaptive
 

@@ -182,6 +182,14 @@ The exact query returns stable contiguous pages of at most 250 slots. Exercise a
 kind, unit, interval, source ordinal, and sample ordinal remain explicit, and no signal query loads a complete
 series merely to draw a bounded chart.
 
+The [Session Story v1 composition](../data-formats/insights/session-story-v1.md) is the application
+boundary for a single-session workbench. It resolves discovery first and requires every structure,
+route, signal, zone, and provenance port to answer at that accepted snapshot. The application then
+matches exercise identities and primary/transition roles, exposes exact-page capabilities, and joins
+bounded route and signal evidence only at identical recorded elapsed times. SQLite remains a set of
+independent evidence adapters; it has no joined story query, presentation cache, or reconstructed
+timeline.
+
 Cross-signal inspection is a presentation of that same validated overview, not a new calculated fact. It
 allows two through four series from one exercise and one role to be selected, then places them in separate
 vertically scaled lanes over one elapsed-time axis. Exercise and transition series never share a view. Each

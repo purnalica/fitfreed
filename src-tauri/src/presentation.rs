@@ -29,11 +29,14 @@ use fitfreed_application::{
     ReportSensitiveContent, ReportSensitiveContentKind, ReportSessionEvidence, ReportStart,
     ReportSummary, ResolvedReport, ResolvedSessionReport, SaveSportClassificationRequest,
     SavedTrainingSportClassification, SegmentApplicabilityView, SegmentMeasurementView,
-    SessionReportBlockDraft, SessionReportBlockDraftContent, SleepComparison, SleepDateRange,
-    SleepDayAvailability, SleepDayInsight, SleepOverview, SleepPeriodDetail, SleepPeriodInsight,
-    SleepPhaseTotals, SleepSeriesComparison, SleepSeriesOverview, SleepSeriesSummary,
-    SourceAcquisitionGuide, SportClassificationSaveOutcome, TrainingComparison, TrainingDateRange,
-    TrainingDerivedSegment, TrainingDiscoveryView, TrainingDiscoveryWorkspace,
+    SessionReportBlockDraft, SessionReportBlockDraftContent, SessionStory,
+    SessionStoryAlignedSampleView, SessionStoryExactRoute, SessionStoryExactSignal,
+    SessionStoryExercise, SessionStoryMetricView, SessionStoryOverlayView, SessionStoryProvenance,
+    SessionStoryQuery, SessionStoryRole, SessionStoryValueTransform, SleepComparison,
+    SleepDateRange, SleepDayAvailability, SleepDayInsight, SleepOverview, SleepPeriodDetail,
+    SleepPeriodInsight, SleepPhaseTotals, SleepSeriesComparison, SleepSeriesOverview,
+    SleepSeriesSummary, SourceAcquisitionGuide, SportClassificationSaveOutcome, TrainingComparison,
+    TrainingDateRange, TrainingDerivedSegment, TrainingDiscoveryView, TrainingDiscoveryWorkspace,
     TrainingExerciseRoutesView, TrainingExerciseSegmentation, TrainingExerciseSignalsView,
     TrainingExerciseStructure, TrainingExerciseZonesView, TrainingLapStructure,
     TrainingMeasurementFilter, TrainingPauseStructure, TrainingProvenanceCurrentView,
@@ -1030,6 +1033,26 @@ pub struct TrainingSessionSelectionRequestDto {
 pub struct TrainingSessionStructureQueryDto {
     session_ref: String,
     snapshot_ref: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SessionStoryQueryDto {
+    session_ref: String,
+    snapshot_ref: Option<String>,
+    max_visual_points: usize,
+    max_visual_samples: usize,
+}
+
+impl From<SessionStoryQueryDto> for SessionStoryQuery {
+    fn from(query: SessionStoryQueryDto) -> Self {
+        Self {
+            session_ref: query.session_ref,
+            snapshot_ref: query.snapshot_ref,
+            max_visual_points: query.max_visual_points,
+            max_visual_samples: query.max_visual_samples,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -2457,6 +2480,210 @@ impl From<TrainingProvenanceCurrentView> for TrainingProvenanceCurrentDto {
             mapping_version: current.mapping_version,
             contributing_event_count: current.contributing_event_count,
             non_contributing_event_count: current.non_contributing_event_count,
+        }
+    }
+}
+
+fn session_story_metric(metric: SessionStoryMetricView) -> &'static str {
+    match metric {
+        SessionStoryMetricView::Pace => "pace",
+        SessionStoryMetricView::Speed => "speed",
+        SessionStoryMetricView::HeartRate => "heart-rate",
+        SessionStoryMetricView::Elevation => "elevation",
+        SessionStoryMetricView::Cadence => "cadence",
+        SessionStoryMetricView::StrokeRate => "stroke-rate",
+        SessionStoryMetricView::Temperature => "temperature",
+        SessionStoryMetricView::Power => "power",
+    }
+}
+
+fn session_story_value_transform(transform: SessionStoryValueTransform) -> &'static str {
+    match transform {
+        SessionStoryValueTransform::Identity => "identity",
+        SessionStoryValueTransform::KilometersPerHourToMinutesPerKilometer => {
+            "kilometers-per-hour-to-minutes-per-kilometer"
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionStoryAlignedSampleDto {
+    route_point_ordinal: usize,
+    signal_sample_ordinal: usize,
+    elapsed_milliseconds: String,
+    value: Option<f64>,
+    gap_before: bool,
+}
+
+impl From<SessionStoryAlignedSampleView> for SessionStoryAlignedSampleDto {
+    fn from(sample: SessionStoryAlignedSampleView) -> Self {
+        Self {
+            route_point_ordinal: sample.route_point_ordinal,
+            signal_sample_ordinal: sample.signal_sample_ordinal,
+            elapsed_milliseconds: sample.elapsed_milliseconds.to_string(),
+            value: sample.value,
+            gap_before: sample.gap_before,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionStoryOverlayDto {
+    signal_ref: String,
+    metric: &'static str,
+    source_kind: &'static str,
+    source_unit: &'static str,
+    value_transform: &'static str,
+    aligned_samples: Vec<SessionStoryAlignedSampleDto>,
+}
+
+impl From<SessionStoryOverlayView> for SessionStoryOverlayDto {
+    fn from(overlay: SessionStoryOverlayView) -> Self {
+        Self {
+            signal_ref: overlay.signal_ref,
+            metric: session_story_metric(overlay.metric),
+            source_kind: training_signal_kind(overlay.source_kind),
+            source_unit: training_signal_unit(overlay.source_unit),
+            value_transform: session_story_value_transform(overlay.value_transform),
+            aligned_samples: overlay
+                .aligned_samples
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionStoryExactRouteDto {
+    route_ref: String,
+    point_count: usize,
+}
+
+impl From<SessionStoryExactRoute> for SessionStoryExactRouteDto {
+    fn from(route: SessionStoryExactRoute) -> Self {
+        Self {
+            route_ref: route.route_ref,
+            point_count: route.point_count,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionStoryExactSignalDto {
+    signal_ref: String,
+    kind: &'static str,
+    unit: &'static str,
+    sample_count: usize,
+}
+
+impl From<SessionStoryExactSignal> for SessionStoryExactSignalDto {
+    fn from(signal: SessionStoryExactSignal) -> Self {
+        Self {
+            signal_ref: signal.signal_ref,
+            kind: training_signal_kind(signal.kind),
+            unit: training_signal_unit(signal.unit),
+            sample_count: signal.sample_count,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionStoryRoleDto {
+    route: Option<TrainingRouteOverviewDto>,
+    signals: Vec<TrainingSignalSeriesOverviewDto>,
+    primary_metric: Option<&'static str>,
+    eligible_overlays: Vec<SessionStoryOverlayDto>,
+    exact_route: Option<SessionStoryExactRouteDto>,
+    exact_signals: Vec<SessionStoryExactSignalDto>,
+}
+
+impl From<SessionStoryRole> for SessionStoryRoleDto {
+    fn from(role: SessionStoryRole) -> Self {
+        Self {
+            route: role.route.map(Into::into),
+            signals: role.signals.into_iter().map(Into::into).collect(),
+            primary_metric: role.primary_metric.map(session_story_metric),
+            eligible_overlays: role.eligible_overlays.into_iter().map(Into::into).collect(),
+            exact_route: role.exact_route.map(Into::into),
+            exact_signals: role.exact_signals.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionStoryExerciseDto {
+    exercise_ref: String,
+    ordinal: usize,
+    sport: Option<TrainingSessionSportDto>,
+    structure: Option<TrainingExerciseStructureDto>,
+    zones: Option<TrainingZoneCollectionDto>,
+    primary: SessionStoryRoleDto,
+    transition: SessionStoryRoleDto,
+}
+
+impl From<SessionStoryExercise> for SessionStoryExerciseDto {
+    fn from(exercise: SessionStoryExercise) -> Self {
+        Self {
+            exercise_ref: exercise.exercise_ref,
+            ordinal: exercise.ordinal,
+            sport: exercise.sport.map(Into::into),
+            structure: exercise.structure.map(Into::into),
+            zones: exercise.zones.map(Into::into),
+            primary: exercise.primary.into(),
+            transition: exercise.transition.into(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionStoryProvenanceDto {
+    total_event_count: usize,
+    current: TrainingProvenanceCurrentDto,
+}
+
+impl From<SessionStoryProvenance> for SessionStoryProvenanceDto {
+    fn from(provenance: SessionStoryProvenance) -> Self {
+        Self {
+            total_event_count: provenance.total_event_count,
+            current: provenance.current.into(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionStoryDto {
+    schema_version: u32,
+    snapshot_ref: String,
+    session: TrainingSessionSearchItemDto,
+    structure: Option<TrainingStructureDto>,
+    routes: Option<TrainingSessionRoutesDto>,
+    signals: Option<TrainingSessionSignalsDto>,
+    zones: Option<TrainingSessionZonesDto>,
+    provenance: SessionStoryProvenanceDto,
+    exercises: Vec<SessionStoryExerciseDto>,
+}
+
+impl From<SessionStory> for SessionStoryDto {
+    fn from(story: SessionStory) -> Self {
+        Self {
+            schema_version: story.schema_version,
+            snapshot_ref: story.snapshot_ref,
+            session: story.session.into(),
+            structure: story.structure.map(Into::into),
+            routes: story.routes.map(Into::into),
+            signals: story.signals.map(Into::into),
+            zones: story.zones.map(Into::into),
+            provenance: story.provenance.into(),
+            exercises: story.exercises.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -6481,6 +6708,161 @@ mod tests {
         assert_eq!(exact_json["kind"], "temperature");
         assert_eq!(exact_json["samples"][0]["value"], -5.5);
         assert_eq!(exact_json["samples"][0]["elapsedMilliseconds"], "0");
+    }
+
+    #[test]
+    fn validates_and_serializes_the_composed_session_story_transport_contract() {
+        let input: SessionStoryQueryDto = serde_json::from_value(serde_json::json!({
+            "sessionRef":
+                "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "snapshotRef":
+                "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "maxVisualPoints": 300,
+            "maxVisualSamples": 400
+        }))
+        .expect("session story request");
+        let query = SessionStoryQuery::from(input);
+        assert_eq!(query.max_visual_points, 300);
+        assert_eq!(query.max_visual_samples, 400);
+        assert!(
+            serde_json::from_value::<SessionStoryQueryDto>(serde_json::json!({
+                "sessionRef":
+                    "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "snapshotRef": null,
+                "maxVisualPoints": 300,
+                "maxVisualSamples": 400,
+                "sourceSessionId": "must-not-cross-the-boundary"
+            }))
+            .is_err()
+        );
+
+        let session = TrainingSessionSearchItem {
+            session_ref: "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                .to_owned(),
+            source_index: 1,
+            started_at_local: "2026-08-18T07:30:00".to_owned(),
+            stopped_at_local: "2026-08-18T08:30:00".to_owned(),
+            utc_offset_minutes: Some(120),
+            duration_milliseconds: i64::MAX,
+            distance_meters: Some(10_000.5),
+            energy_kilocalories: Some(i64::MAX),
+            average_heart_rate_bpm: Some(145),
+            maximum_heart_rate_bpm: Some(175),
+            exercise_count: Some(1),
+            sport: TrainingSessionSport {
+                sport_ref: Some(
+                    "sport-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                        .to_owned(),
+                ),
+                state: TrainingSportState::Classified,
+                classification: Some(TrainingSportClassification {
+                    canonical_family: Some("running".to_owned()),
+                    display_label: Some("Trail running".to_owned()),
+                    authorship: Some("user".to_owned()),
+                    revision: 1,
+                }),
+            },
+        };
+        let story = SessionStory {
+            schema_version: 1,
+            snapshot_ref:
+                "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    .to_owned(),
+            session,
+            structure: None,
+            routes: None,
+            signals: None,
+            zones: None,
+            provenance: SessionStoryProvenance {
+                total_event_count: 2,
+                current: TrainingProvenanceCurrentView {
+                    provider: TrainingSourceProviderView::restore("polar-flow".to_owned()).unwrap(),
+                    source_modified_at_utc: "2026-08-18T08:30:00Z".to_owned(),
+                    source_adapter_version: "polar-flow@1".to_owned(),
+                    mapping_version: "training-session@1".to_owned(),
+                    contributing_event_count: 1,
+                    non_contributing_event_count: 1,
+                },
+            },
+            exercises: vec![SessionStoryExercise {
+                exercise_ref:
+                    "exercise-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                        .to_owned(),
+                ordinal: 0,
+                sport: None,
+                structure: None,
+                zones: None,
+                primary: SessionStoryRole {
+                    route: None,
+                    signals: Vec::new(),
+                    primary_metric: Some(SessionStoryMetricView::Pace),
+                    eligible_overlays: vec![SessionStoryOverlayView {
+                        signal_ref:
+                            "signal-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                                .to_owned(),
+                        metric: SessionStoryMetricView::Pace,
+                        source_kind: TrainingSignalKindView::Speed,
+                        source_unit: TrainingSignalUnitView::KilometersPerHour,
+                        value_transform:
+                            SessionStoryValueTransform::KilometersPerHourToMinutesPerKilometer,
+                        aligned_samples: vec![SessionStoryAlignedSampleView {
+                            route_point_ordinal: 9,
+                            signal_sample_ordinal: 10,
+                            elapsed_milliseconds: i64::MAX,
+                            value: Some(12.5),
+                            gap_before: true,
+                        }],
+                    }],
+                    exact_route: Some(SessionStoryExactRoute {
+                        route_ref:
+                            "route-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+                                .to_owned(),
+                        point_count: 501,
+                    }),
+                    exact_signals: vec![SessionStoryExactSignal {
+                        signal_ref:
+                            "signal-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                                .to_owned(),
+                        kind: TrainingSignalKindView::Speed,
+                        unit: TrainingSignalUnitView::KilometersPerHour,
+                        sample_count: 601,
+                    }],
+                },
+                transition: SessionStoryRole {
+                    route: None,
+                    signals: Vec::new(),
+                    primary_metric: None,
+                    eligible_overlays: Vec::new(),
+                    exact_route: None,
+                    exact_signals: Vec::new(),
+                },
+            }],
+        };
+
+        let json =
+            serde_json::to_value(SessionStoryDto::from(story)).expect("session story response");
+        assert_eq!(json["schemaVersion"], 1);
+        assert_eq!(
+            json["session"]["durationMilliseconds"],
+            i64::MAX.to_string()
+        );
+        assert!(json["structure"].is_null());
+        assert_eq!(json["exercises"][0]["primary"]["primaryMetric"], "pace");
+        assert_eq!(
+            json["exercises"][0]["primary"]["eligibleOverlays"][0]["valueTransform"],
+            "kilometers-per-hour-to-minutes-per-kilometer"
+        );
+        assert_eq!(
+            json["exercises"][0]["primary"]["eligibleOverlays"][0]["alignedSamples"][0]
+                ["elapsedMilliseconds"],
+            i64::MAX.to_string()
+        );
+        assert_eq!(
+            json["exercises"][0]["primary"]["exactRoute"]["pointCount"],
+            501
+        );
+        assert!(json.to_string().find("color").is_none());
+        assert!(json.to_string().find("sourceSessionId").is_none());
     }
 
     #[test]

@@ -9,8 +9,8 @@ const SNAPSHOT_PREFIX: &str = "training-snapshot-";
 const SESSION_PREFIX: &str = "session-";
 const EXERCISE_PREFIX: &str = "exercise-";
 const ROUTE_PREFIX: &str = "route-";
-const MIN_VISUAL_POINTS: usize = 2;
-const MAX_VISUAL_POINTS: usize = 500;
+pub(crate) const MIN_VISUAL_POINTS: usize = 2;
+pub(crate) const MAX_VISUAL_POINTS: usize = 500;
 const MAX_EXACT_POINTS: usize = 250;
 pub(crate) const MAX_PROCESSING_EXACT_POINTS: usize = 10_000;
 
