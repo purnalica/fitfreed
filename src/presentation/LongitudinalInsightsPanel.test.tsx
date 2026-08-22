@@ -227,6 +227,83 @@ function renderPanel(overrides: {
 }
 
 describe("LongitudinalInsightsPanel", () => {
+  it("leads with the aligned visual and discloses controls and exact days on request", async () => {
+    mocks.invoke.mockResolvedValue(overview());
+    const user = userEvent.setup();
+    renderPanel();
+    const region = screen.getByRole("region", { name: "Longitudinal dashboard" });
+
+    const answer = await within(region).findByRole("region", {
+      name: "Aligned-history answer",
+    });
+    const heading = within(answer).getByRole("heading", {
+      name: "Four histories aligned across 3 dates",
+    });
+    await waitFor(() => expect(heading).toHaveFocus());
+    expect(within(answer).getByText("Aligned four-domain history")).toBeVisible();
+    expect(within(answer).getByText(
+      /does not establish cause, diagnosis, readiness, or advice/,
+    )).toBeVisible();
+    expect(within(answer).queryByRole("table", {
+      name: "Exact longitudinal history",
+    })).not.toBeInTheDocument();
+    expect(within(region).queryByRole("form", {
+      name: "Explore one shared period",
+    })).not.toBeInTheDocument();
+
+    await user.click(within(answer).getByText("Review exact days and measurements"));
+    expect(within(answer).getByRole("table", {
+      name: "Exact longitudinal history",
+    })).toBeVisible();
+    await user.click(within(region).getByText("Change shared period"));
+    expect(within(region).getByRole("form", {
+      name: "Explore one shared period",
+    })).toBeVisible();
+  });
+
+  it("keeps partial histories and multiple origins separate in the answer", async () => {
+    const multiple = overview();
+    const second = structuredClone(multiple.series[0]);
+    second.seriesRef = "opaque-origin-beta";
+    second.activity = activitySummary({
+      observedDays: 0,
+      availableStepDays: 0,
+      unavailableStepDays: 0,
+      missingDays: 3,
+      totalStepCount: null,
+      averageStepCount: null,
+    });
+    second.training = trainingSummary({
+      trainingDays: 0,
+      sessionCount: 0,
+      totalDurationMilliseconds: "0",
+    });
+    second.sleep = sleepSummary({
+      observedNights: 0,
+      missingNights: 3,
+      totalAsleepMilliseconds: "0",
+      averageAsleepMilliseconds: null,
+    });
+    second.days = second.days.map((entry) => ({
+      ...entry,
+      activity: { availability: "missing", stepCount: null },
+      training: { sessionCount: 0, totalDurationMilliseconds: "0" },
+      sleep: { availability: "missing", asleepMilliseconds: null },
+    }));
+    multiple.series.push(second);
+    mocks.invoke.mockResolvedValue(multiple);
+    renderPanel();
+    const answer = await screen.findByRole("region", { name: "Aligned-history answer" });
+
+    expect(within(answer).getByRole("heading", {
+      name: "2 separate history sources aligned",
+    })).toBeVisible();
+    expect(within(answer).getAllByText("Four histories aligned across 3 dates"))
+      .toHaveLength(2);
+    expect(within(answer).queryByText("opaque-origin-alpha")).not.toBeInTheDocument();
+    expect(within(answer).queryByText("opaque-origin-beta")).not.toBeInTheDocument();
+  });
+
   it("announces the exact latest-window operation without replacing the current history", async () => {
     let requestCount = 0;
     let completeReset: (value: LongitudinalOverview) => void = () => undefined;
@@ -243,6 +320,7 @@ describe("LongitudinalInsightsPanel", () => {
     const user = userEvent.setup();
     renderPanel();
     const region = screen.getByRole("region", { name: "Longitudinal dashboard" });
+    await user.click(await within(region).findByText("Change shared period"));
     const form = await within(region).findByRole("form", {
       name: "Explore one shared period",
     });
@@ -256,12 +334,15 @@ describe("LongitudinalInsightsPanel", () => {
     expect(within(form).getByRole("status")).toHaveTextContent(
       "Loading latest shared 30-day window…",
     );
-    expect(within(region).getByRole("button", {
-      name: "View aligned details for Mar 28, 2026",
-    })).toBeVisible();
+    expect(within(region).getByText("Aligned four-domain history")).toBeVisible();
 
     act(() => completeReset(overview()));
-    await waitFor(() => expect(form).toHaveAttribute("aria-busy", "false"));
+    await waitFor(() => expect(within(region).queryByRole("form", {
+      name: "Explore one shared period",
+    })).not.toBeInTheDocument());
+    await waitFor(() => expect(within(region).getByRole("heading", {
+      name: "Four histories aligned across 3 dates",
+    })).toHaveFocus());
   });
 
   it("distinguishes loading, empty, and unavailable history", async () => {
@@ -295,6 +376,7 @@ describe("LongitudinalInsightsPanel", () => {
     renderPanel({ onNavigate });
 
     const region = screen.getByRole("region", { name: "Longitudinal dashboard" });
+    await user.click(await within(region).findByText("Review exact days and measurements"));
     expect((await within(region).findAllByText("12,000"))[0]).toBeVisible();
     expect(within(region).getByText("7 h 15 min")).toBeVisible();
     expect(within(region).getByText("905 ms")).toBeVisible();
@@ -335,6 +417,7 @@ describe("LongitudinalInsightsPanel", () => {
     const user = userEvent.setup();
     renderPanel({ onNavigate });
     const region = screen.getByRole("region", { name: "Longitudinal dashboard" });
+    await user.click(await within(region).findByText("Review exact days and measurements"));
     await user.click(await within(region).findByRole("button", {
       name: "View aligned details for Mar 28, 2026",
     }));
@@ -375,6 +458,7 @@ describe("LongitudinalInsightsPanel", () => {
     const user = userEvent.setup();
     renderPanel({ onError });
     const region = screen.getByRole("region", { name: "Longitudinal dashboard" });
+    await user.click(await within(region).findByText("Change shared period"));
     await within(region).findByText("Explore one shared period");
 
     const from = within(region).getByLabelText("From");
@@ -388,8 +472,8 @@ describe("LongitudinalInsightsPanel", () => {
     expect(from).toHaveAttribute("aria-invalid", "true");
     expect(from).toHaveAttribute("aria-describedby", "application-error");
     expect(through).toHaveAttribute("aria-invalid", "true");
-    expect(within(region).getByRole("button", {
-      name: "View aligned details for Mar 28, 2026",
+    expect(within(region).getByRole("heading", {
+      name: "Four histories aligned across 3 dates",
     })).toBeVisible();
 
     await user.clear(through);
@@ -404,6 +488,7 @@ describe("LongitudinalInsightsPanel", () => {
       "Mar 30, 2026 to Mar 30, 2026",
     );
 
+    await user.click(within(region).getByText("Change shared period"));
     await user.click(within(region).getByRole("button", { name: "Latest 30-day window" }));
     await waitFor(() => expect(mocks.invoke).toHaveBeenLastCalledWith(
       "query_longitudinal_overview",
@@ -427,6 +512,7 @@ describe("LongitudinalInsightsPanel", () => {
     const user = userEvent.setup();
     renderPanel({ onError: vi.fn() });
     const region = screen.getByRole("region", { name: "Longitudinal dashboard" });
+    await user.click(await within(region).findByText("Change shared period"));
     const form = await within(region).findByRole("form", {
       name: "Explore one shared period",
     });
@@ -442,13 +528,17 @@ describe("LongitudinalInsightsPanel", () => {
     expect(form).toHaveAttribute("aria-busy", "true");
     expect(within(form).getByRole("button", { name: "Apply shared period" })).toBeDisabled();
     expect(within(form).getByRole("status")).toHaveTextContent("Applying shared period…");
-    expect(within(region).getByRole("button", {
-      name: "View aligned details for Mar 28, 2026",
+    expect(within(region).getByRole("heading", {
+      name: "Four histories aligned across 3 dates",
     })).toBeVisible();
 
     act(() => resolveRange(filtered));
-    await waitFor(() => expect(form).toHaveAttribute("aria-busy", "false"));
-    expect(within(form).queryByRole("status")).not.toBeInTheDocument();
+    await waitFor(() => expect(within(region).queryByRole("form", {
+      name: "Explore one shared period",
+    })).not.toBeInTheDocument());
+    await waitFor(() => expect(within(region).getByRole("heading", {
+      name: "Four histories aligned across 1 date",
+    })).toHaveFocus());
   });
 
   it("runs all four comparisons, preserves a valid result after invalid input, and clears it", async () => {
@@ -480,28 +570,38 @@ describe("LongitudinalInsightsPanel", () => {
     await user.click(within(region).getByRole("button", { name: "Compare shared periods" }));
 
     const result = await within(region).findByRole("region", {
-      name: "Longitudinal period comparison",
+      name: "Compared-history answer",
     });
     await waitFor(() => expect(within(result).getByRole("heading", {
-      name: "Longitudinal period comparison",
+      name: "Four histories compared side by side",
     })).toHaveFocus());
+    expect(within(result).getByText("Four-domain period comparison")).toBeVisible();
+    expect(within(result).getByText(/missing measurements are not filled in/)).toBeVisible();
+    expect(within(result).queryByText("+2,000")).not.toBeVisible();
+
+    await user.click(within(result).getByText("Review exact values"));
     expect(within(result).getByText("+2,000")).toBeVisible();
     expect(within(result).getByText("+30 min")).toBeVisible();
     expect(within(result).getByText("+15 min")).toBeVisible();
     expect(within(result).getByText("+25 ms")).toBeVisible();
-    expect(within(result).getByText(/missing measurements remain explicit/)).toBeVisible();
+    const controls = within(region).getByText("Change the compared shared periods")
+      .closest("details");
+    expect(result.compareDocumentPosition(controls as Node) & Node.DOCUMENT_POSITION_FOLLOWING)
+      .toBeTruthy();
+    expect(controls).not.toHaveAttribute("open");
 
     await user.click(within(workspaceNavigation).getByRole("button", {
       name: "Aligned history",
     }));
     expect(within(region).queryByRole("region", {
-      name: "Longitudinal period comparison",
+      name: "Compared-history answer",
     })).not.toBeInTheDocument();
     await user.click(comparisonWorkspace);
     expect(within(region).getByRole("region", {
-      name: "Longitudinal period comparison",
+      name: "Compared-history answer",
     })).toBeVisible();
 
+    await user.click(within(region).getByText("Change the compared shared periods"));
     await user.clear(baselineFrom);
     await user.type(baselineFrom, "2026-03-30");
     await user.click(within(region).getByRole("button", { name: "Compare shared periods" }));
@@ -510,15 +610,83 @@ describe("LongitudinalInsightsPanel", () => {
     expect(baselineFrom).toHaveAttribute("aria-describedby", "application-error");
     expect(baselineThrough).toHaveAttribute("aria-invalid", "true");
     expect(within(region).getByRole("region", {
-      name: "Longitudinal period comparison",
+      name: "Compared-history answer",
     })).toBeVisible();
 
     await user.click(within(result).getByRole("button", {
       name: "Clear longitudinal comparison",
     }));
     expect(within(region).queryByRole("region", {
-      name: "Longitudinal period comparison",
+      name: "Compared-history answer",
     })).not.toBeInTheDocument();
+  });
+
+  it("preserves the last aligned comparison through a contextual failure and retry", async () => {
+    let comparisonRequests = 0;
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_longitudinal_overview") return Promise.resolve(overview());
+      if (command === "query_longitudinal_comparison") {
+        comparisonRequests += 1;
+        if (comparisonRequests === 2) return Promise.reject(new Error("library unavailable"));
+        return Promise.resolve(comparison());
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    renderPanel({ onError: vi.fn() });
+    const region = screen.getByRole("region", { name: "Longitudinal dashboard" });
+    await user.click(within(region).getByRole("button", { name: "Compare periods" }));
+    await user.click(within(region).getByRole("button", { name: "Compare shared periods" }));
+    await within(region).findByRole("region", { name: "Compared-history answer" });
+    await user.click(within(region).getByText("Change the compared shared periods"));
+    await user.click(within(region).getByRole("button", { name: "Compare shared periods" }));
+
+    const unavailable = await within(region).findByRole("region", {
+      name: "Longitudinal comparison unavailable",
+    });
+    expect(within(region).getByRole("region", { name: "Compared-history answer" }))
+      .toBeVisible();
+    expect(within(region).getByLabelText("Baseline period start"))
+      .toHaveValue("2026-03-28");
+    await user.click(within(unavailable).getByRole("button", {
+      name: "Try this comparison again",
+    }));
+
+    await waitFor(() => expect(comparisonRequests).toBe(3));
+    expect(within(region).queryByRole("region", {
+      name: "Longitudinal comparison unavailable",
+    })).not.toBeInTheDocument();
+    expect(within(region).getByRole("region", { name: "Compared-history answer" }))
+      .toBeVisible();
+  });
+
+  it("keeps every history source separate in a longitudinal comparison", async () => {
+    const multiple = comparison();
+    const second = structuredClone(multiple.series[0]);
+    second.seriesRef = "opaque-origin-beta";
+    second.activity.totalStepChange = null;
+    second.sleep.averageAsleepMillisecondsChange = null;
+    multiple.series.push(second);
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_longitudinal_overview") return Promise.resolve(overview());
+      if (command === "query_longitudinal_comparison") return Promise.resolve(multiple);
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    renderPanel();
+    const region = screen.getByRole("region", { name: "Longitudinal dashboard" });
+    await user.click(within(region).getByRole("button", { name: "Compare periods" }));
+    await user.click(within(region).getByRole("button", { name: "Compare shared periods" }));
+
+    const answer = await within(region).findByRole("region", {
+      name: "Compared-history answer",
+    });
+    expect(within(answer).getByRole("heading", {
+      name: "2 separate history sources compared",
+    })).toBeVisible();
+    expect(within(answer).getAllByText("Four-domain period comparison")).toHaveLength(2);
+    expect(within(answer).queryByText("opaque-origin-alpha")).not.toBeInTheDocument();
+    expect(within(answer).queryByText("opaque-origin-beta")).not.toBeInTheDocument();
   });
 
   it("localizes the complete experience and refreshes after a new import token", async () => {
@@ -527,14 +695,21 @@ describe("LongitudinalInsightsPanel", () => {
     const onNavigate = vi.fn();
     const view = renderPanel({ locale: "es-ES", onError, onNavigate });
     const region = screen.getByRole("region", { name: "Panel longitudinal" });
-    expect(await within(region).findByText("Explorar un periodo compartido")).toBeVisible();
-    expect(within(region).queryByText(
+    const user = userEvent.setup();
+    expect(await within(region).findByRole("heading", {
+      name: "Cuatro historiales alineados en 3 fechas",
+    })).toBeVisible();
+    expect(within(region).getByText(
       /No establece causas, diagnósticos/,
-    )).not.toBeInTheDocument();
-    await userEvent.setup().click(within(region).getByRole("button", {
+    )).toBeVisible();
+    await user.click(within(region).getByText("Cambiar el periodo compartido"));
+    expect(within(region).getByText("Explorar un periodo compartido")).toBeVisible();
+    await user.click(within(region).getByText("Revisar días y mediciones exactos"));
+    await user.click(within(region).getByRole("button", {
       name: "Ver detalles alineados del 28 mar 2026",
     }));
-    expect(within(region).getByText(
+    const detail = within(region).getByRole("region", { name: "Detalle del día alineado" });
+    expect(within(detail).getByText(
       "Esta vista muestra coincidencias registradas y cobertura. No establece causas, diagnósticos, preparación ni consejos.",
     )).toBeVisible();
 

@@ -1118,6 +1118,14 @@
   },
   "longitudinal": {
     "heading": "Panel longitudinal",
+    "answerLabel": "Respuesta del historial alineado",
+    "answerDates": {
+      "one": "Cuatro historiales alineados en {count} fecha",
+      "other": "Cuatro historiales alineados en {count} fechas"
+    },
+    "answerMultiple": "{count} orígenes de historial independientes alineados",
+    "answerExact": "Revisar días y mediciones exactos",
+    "changePeriod": "Cambiar el periodo compartido",
     "workspaceEyebrow": "Tu historial, alineado",
     "workspaceNavigation": "Espacio de trabajo del historial alineado",
     "workspaces": {
@@ -1182,6 +1190,15 @@
     "associationNotice": "Esta vista muestra coincidencias registradas y cobertura. No establece causas, diagnósticos, preparación ni consejos.",
     "comparison": {
       "heading": "Comparar periodos compartidos",
+      "answerLabel": "Respuesta del historial comparado",
+      "answerSingle": "Cuatro historiales comparados en paralelo",
+      "answerMultiple": "{count} orígenes de historial independientes comparados",
+      "visual": "Comparación de periodos en cuatro dominios",
+      "exactValues": "Revisar valores exactos",
+      "changePeriods": "Cambiar los periodos compartidos comparados",
+      "loadFailed": "No se ha podido cargar esta comparación. La última respuesta válida y ambos periodos no han cambiado.",
+      "retry": "Volver a intentar esta comparación",
+      "retryLabel": "Comparación longitudinal no disponible",
       "intro": "Compara los cuatro dominios en dos periodos del historial global. Cada periodo puede contener hasta 366 fechas.",
       "baselineFrom": "Inicio del periodo de referencia",
       "baselineThrough": "Fin del periodo de referencia",
@@ -1191,7 +1208,7 @@
       "comparing": "Comparando periodos compartidos…",
       "clear": "Borrar la comparación longitudinal",
       "resultHeading": "Comparación de periodos longitudinales",
-      "coverageCaution": "Los cambios son periodo comparado menos periodo de referencia. Los periodos desiguales y las mediciones ausentes siguen explícitos y nunca se imputan.",
+      "coverageCaution": "Los cambios son periodo comparado menos periodo de referencia; las mediciones ausentes no se completan.",
       "empty": "Ningún periodo contiene un origen que se pueda comparar.",
       "metric": "Métrica",
       "baseline": "Referencia",

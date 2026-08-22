@@ -1313,6 +1313,7 @@ describe("FitFreed import interface", () => {
     await user.click(await screen.findByRole("button", {
       name: questionForDestination.longitudinal.label,
     }));
+    await user.click(await screen.findByText("Review exact days and measurements"));
     await user.click(await screen.findByRole("button", {
       name: "View aligned details for Jan 4, 2026",
     }));

@@ -806,6 +806,7 @@ async function expectRecoveryComparison(expectedRows) {
 }
 
 async function setLongitudinalRange(from, through) {
+  await openDisclosure(".longitudinal-insights .explorer-history-workspace > .answer-controls");
   const values = [from, through];
   await browser.execute((nextValues) => {
     const inputs = document.querySelectorAll(".longitudinal-filter input[type='date']");
@@ -832,6 +833,7 @@ async function setLongitudinalComparisonRanges(
   comparisonFrom,
   comparisonThrough,
 ) {
+  await openDisclosure(".longitudinal-comparison > .answer-controls");
   const values = [baselineFrom, baselineThrough, comparisonFrom, comparisonThrough];
   await browser.execute((nextValues) => {
     const inputs = document.querySelectorAll(".longitudinal-comparison input[type='date']");
@@ -853,7 +855,8 @@ async function setLongitudinalComparisonRanges(
 }
 
 async function expectLongitudinalRows(expectedRows) {
-  const selector = ".longitudinal-history-grid .longitudinal-table-scroll tbody tr";
+  await openDisclosures(".longitudinal-exact-evidence");
+  const selector = ".longitudinal-exact-evidence .longitudinal-table-scroll tbody tr";
   await browser.waitUntil(async () => (await $$(selector)).length === expectedRows.length, {
     timeout: 10_000,
     timeoutMsg: `longitudinal history did not contain ${expectedRows.length} rows`,
@@ -868,6 +871,7 @@ async function expectLongitudinalRows(expectedRows) {
 }
 
 async function expectLongitudinalSummary(expectedItems) {
+  await openDisclosures(".longitudinal-exact-evidence");
   const items = await $$(".longitudinal-summary li");
   expect(items).toHaveLength(expectedItems.length);
   for (let index = 0; index < expectedItems.length; index += 1) {
@@ -877,6 +881,7 @@ async function expectLongitudinalSummary(expectedItems) {
 }
 
 async function expectLongitudinalComparison(expectedRows) {
+  await openDisclosures(".longitudinal-comparison-exact");
   const rows = await $$(".longitudinal-comparison-result table tbody tr");
   expect(rows).toHaveLength(expectedRows.length);
   for (let index = 0; index < expectedRows.length; index += 1) {
@@ -1852,6 +1857,7 @@ describe("packaged FitFreed import journey", () => {
       "align-history",
       ".longitudinal-insights",
     );
+    await openDisclosures(".longitudinal-exact-evidence");
     await $('button[aria-label="View aligned details for Jan 6, 2026"]').click();
     await $("aria/Open recovery explorer for this date").click();
     await expectFilterRange(".recovery-filter", "2026-01-06", "2026-01-06");
@@ -1863,6 +1869,7 @@ describe("packaged FitFreed import journey", () => {
       "align-history",
       ".longitudinal-insights",
     );
+    await openDisclosures(".longitudinal-exact-evidence");
     await $('button[aria-label="View aligned details for Jan 4, 2026"]').click();
     await $("aria/Open training explorer for this date").click();
     await expectFilterRange(".training-session-search", "2026-01-04", "2026-01-04");
@@ -1878,6 +1885,7 @@ describe("packaged FitFreed import journey", () => {
       "align-history",
       ".longitudinal-insights",
     );
+    await openDisclosures(".longitudinal-exact-evidence");
     await $('button[aria-label="View aligned details for Jan 1, 2026"]').click();
     await $("aria/Open activity explorer for this date").click();
     await expectFilterRange(".activity-filter", "2026-01-01", "2026-01-01");
@@ -2748,7 +2756,7 @@ describe("packaged FitFreed import journey", () => {
     await $(".longitudinal-comparison button[type='submit']").click();
     await expectComparisonHeading(
       "#longitudinal-comparison-heading",
-      "Longitudinal period comparison",
+      "Four histories compared side by side",
     );
     await expectLongitudinalComparison([
       ["Total steps", "Not available", "Not available", "Not available"],
@@ -2772,13 +2780,13 @@ describe("packaged FitFreed import journey", () => {
     );
     await expectComparisonHeading(
       "#longitudinal-comparison-heading",
-      "Longitudinal period comparison",
+      "Four histories compared side by side",
     );
 
     await selectLocale("es-ES");
     await expectComparisonHeading(
       "#longitudinal-comparison-heading",
-      spanish.longitudinal.comparison.resultHeading,
+      spanish.longitudinal.comparison.answerSingle,
     );
     await openHomeQuestion(
       spanish,
@@ -2873,7 +2881,7 @@ describe("packaged FitFreed import journey", () => {
     await $(".longitudinal-comparison button[type='submit']").click();
     await expectComparisonHeading(
       "#longitudinal-comparison-heading",
-      spanish.longitudinal.comparison.resultHeading,
+      spanish.longitudinal.comparison.answerSingle,
     );
     await openDomainWorkspace(spanish, "longitudinal", "history");
     await expectLongitudinalSummary([

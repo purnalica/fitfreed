@@ -3,7 +3,7 @@
 ## Status and authority
 
 Authorized for autonomous execution as of 2026-08-21. X4-P0 through X5-R3 and X5-R4.1 through
-X5-R4.3 are complete locally; X5-R4.4 is next.
+X5-R4.4 are complete locally; X5-R4.5 is next.
 The X5-R1 product entrance is live; exact hosted verification of its CI resource optimizer remains
 pending synchronization of the workflow-changing commit. The product owner accepted the X3
 direction and its amendments on 2026-08-21. This
@@ -206,7 +206,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R2.2 | Complete locally — exact packaged gates passed 2026-08-22 | Sources leads with acquisition, a protected active task, and a calm exact outcome |
 | X5-R2.3 | Complete locally — exact packaged gates passed 2026-08-22 | Durable language, appearance, zoom, and update settings form one coherent workspace |
 | X5-R3 | Complete locally — exact packaged and dense-history gates passed 2026-08-22 | Import ends in recognizable personal value |
-| X5-R4 | In progress — R4.1–R4.3 complete locally 2026-08-22 | Existing health and aligned-history questions read as answers |
+| X5-R4 | In progress — R4.1–R4.4 complete locally 2026-08-22 | Existing health and aligned-history questions read as answers |
 | X5-R5 | Pending | A remembered session is findable and sports are recognizable |
 | X5-R6 | Pending | A routed workout is investigated through a dominant synchronized map |
 | X5-R7 | Pending | Every session composition reflects its actual evidence |
@@ -364,8 +364,8 @@ precision, missing-data, and navigation guidance; architecture ownership and pre
 R4 is delivered as five independently usable vertical increments. Each increment retains the current
 exact-data route and leaves the application coherent if the following increment has not landed.
 
-**Status:** R4.1 through R4.3 passed their focused, full fast, packaged functional, packaged
-performance, and actual wide and 200%-zoom macOS visual gates on 2026-08-22. R4.4 is next; R4 as a
+**Status:** R4.1 through R4.4 passed their focused, full fast, packaged functional, packaged
+performance, and actual wide and 200%-zoom macOS visual gates on 2026-08-22. R4.5 is next; R4 as a
 whole remains open.
 
 | Increment | User-visible outcome | Required implementation and evidence |
@@ -395,6 +395,36 @@ R4.3 is implemented in two coherent checkpoints without weakening its joint acce
 Neither checkpoint changes an Insights calculation or merges origins. Presentation may round a primary
 duration or interval for reading, but the exact application values and comparison-minus-baseline changes
 remain available unchanged.
+
+R4.4 reuses longitudinal read-model version 1 because it already owns the required source-separated
+calendar alignment, complete daily values, independent domain summaries, comparison changes, and exact
+domain destinations. Presentation does not count new overlap categories or infer a relationship that the
+application has not supplied. It gives the existing facts a result-first hierarchy in two checkpoints:
+
+1. **R4.4a — Aligned-period answer:** the current shared period leads with its calendar span and one
+   source-separated four-lane timeline. Direct domain coverage follows the visual; the complete summary
+   and exact-day table become deliberate disclosures. Selecting an exact day replaces the canvas with a
+   focused synopsis whose available domain destinations return through the existing origin-aware path.
+   The non-causality boundary remains next to the visual evidence rather than hidden in diagnostics.
+2. **R4.4b — Aligned comparison and joint gate:** a completed comparison leads with four factual
+   baseline-versus-comparison relationships per origin. Range controls and exact values follow the
+   result, and a contextual failure preserves the last valid comparison with a retry. This checkpoint
+   closes R4.4 only after partial-domain, zero-event, unavailable, multi-origin, exact-day, destination,
+   focus, locale, high-zoom, packaged, performance, privacy, and documentation gates pass together.
+
+Neither checkpoint labels co-occurrence as causation, turns recovery evidence into a readiness measure,
+normalizes unequal periods, combines origins, treats missing observations as zero, or claims that a
+visually aligned date proves a physiological relationship.
+
+R4.4 verification on 2026-08-22 covered 12 focused longitudinal presentation tests and the complete
+fast suite: 152 automation tests, 219 React tests, 2 vendored-updater tests, 211 host tests, 147
+application tests, and 33 domain tests. The packaged functional journey passed the complete import,
+navigation, reimport, accessibility, restart, and cross-domain path. The packaged two-year benchmark
+measured the longitudinal common range at 18 ms p95, maximum range at 51 ms p95, and comparison at
+18 ms p95 against respective 500 ms, 2,000 ms, and 500 ms budgets. Actual 1280-by-820 macOS WebView
+inspection covered the overview and comparison in English light appearance at 100% and Spanish dark
+appearance at 200%, with no document overflow or clipped primary action. Repository-content and complete
+reachable-history secret scans passed without versioning local host evidence.
 
 For every increment, the red test must describe the user consequence before presentation code changes.
 An Answer Canvas may format an existing application result and choose a visual hierarchy; it must not

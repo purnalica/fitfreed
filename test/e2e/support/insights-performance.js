@@ -113,8 +113,8 @@ function evidence(measurements) {
       commonMeasuredRuns: 20,
       maximumMeasuredRuns: 7,
       percentile: "sorted zero-based index ceil((n - 1) * 0.95)",
-      completionBoundary: "exact DOM observed after synchronous layout on the following browser task",
-      scope: "packaged Tauri command, SQLite and application work, transport, React update, and exact laid-out domain or longitudinal view",
+      completionBoundary: "expected answer boundary observed after synchronous layout on the following browser task",
+      scope: "packaged Tauri command, SQLite and application work, transport, React update, and laid-out domain or longitudinal answer",
     },
     measurements,
   };
@@ -717,7 +717,22 @@ async function openRecoveryDetail(recoveryDate) {
   return result.duration;
 }
 
+async function openDisclosure(selector) {
+  const disclosure = await $(selector);
+  await disclosure.waitForExist({ timeout: 10_000 });
+  if ((await disclosure.getAttribute("open")) === null) {
+    await disclosure.$("summary").click();
+  }
+  await browser.waitUntil(async () => (await disclosure.getAttribute("open")) !== null, {
+    timeout: 10_000,
+    timeoutMsg: `${selector} did not open`,
+  });
+}
+
 async function applyLongitudinalRange(from, through) {
+  await openDisclosure(
+    ".longitudinal-insights .explorer-history-workspace > .answer-controls",
+  );
   const input = {
     from,
     through,
@@ -738,9 +753,7 @@ async function applyLongitudinalRange(from, through) {
     const started = window.performance.now();
     document.querySelector(".longitudinal-filter button[type='submit']").click();
     function observeResult() {
-      const rows = document.querySelectorAll(
-        ".longitudinal-history-grid .longitudinal-table-scroll tbody tr",
-      );
+      const rows = document.querySelectorAll(".longitudinal-chart > li");
       const renderedFirstDate = rows[0]?.querySelector("time")?.getAttribute("datetime");
       if (rows.length === expected.expectedRows && renderedFirstDate === expected.expectedFirstDate) {
         document.documentElement.getBoundingClientRect();
@@ -763,6 +776,7 @@ async function applyLongitudinalRange(from, through) {
 }
 
 async function compareLongitudinalRanges(ranges) {
+  await openDisclosure(".longitudinal-comparison > .answer-controls");
   const input = {
     ...ranges,
     expectedBaselineTotal: syntheticPeriodTotal(
@@ -789,11 +803,11 @@ async function compareLongitudinalRanges(ranges) {
     const started = window.performance.now();
     document.querySelector(".longitudinal-comparison button[type='submit']").click();
     function observeResult() {
-      const cells = document.querySelectorAll(
-        ".longitudinal-comparison-result table tbody tr:first-child th, "
-        + ".longitudinal-comparison-result table tbody tr:first-child td",
+      const baselineTotal = document.querySelector(
+        ".longitudinal-comparison-metrics > section:first-child "
+        + ".comparison-bars > div:first-child strong",
       );
-      if (cells.length === 4 && cells[1].textContent === expected.expectedBaselineTotal) {
+      if (baselineTotal?.textContent === expected.expectedBaselineTotal) {
         document.documentElement.getBoundingClientRect();
         setTimeout(() => done({
           duration: window.performance.now() - started,

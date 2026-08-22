@@ -67,6 +67,15 @@ selected periods and offers an in-place retry. Presentation never interprets sle
 intervals as health, readiness, improvement, or decline. Missing nights and unavailable measurements
 remain distinct from zero, and opening an exact night continues through the existing typed detail command.
 
+Aligned history presents the application-owned longitudinal projection as a source-separated four-lane
+calendar before its exact summary and table. React formats only the supplied dates, counts, and daily domain
+values; it does not derive overlap categories, fill missing measurements, combine origins, or reinterpret a
+training zero as missing evidence. Exact-day and range controls remain deliberate disclosures, while the
+non-causality boundary stays beside the visual relationship. A longitudinal comparison likewise presents
+the four application-owned baseline and comparison aggregates before exact values and controls, preserves
+the previous valid result across a contextual failure, and makes no claim about causation, health, or
+readiness.
+
 Reports uses the same current-location semantics for a separate staged workflow. Library owns saved definitions and new starts, Compose owns the complete ordered editor and its evidence tools, and Preview owns resolved output plus mutually exclusive stale-evidence or export review. The mounted draft and resolved candidate survive temporary stage changes, while a successful save and a saved-report selection lead to Preview. The stage never becomes durable report data; only the existing versioned definition and its application-owned evidence reference cross the transport and persistence boundaries.
 
 Settings has a presentation-owned category location. **Appearance & language** owns the atomic preference editor and representative preview; **Updates** owns maintenance status and actions without competing visually with those preferences. Moving between categories preserves an unsaved preview, while leaving Settings still discards it and reapplies the complete saved set. The update component remains mounted when its category or Settings itself is hidden, so launch and periodic discovery retain one lifecycle and do not restart merely because the person navigates. Category location never enters the preference DTO or SQLite row.

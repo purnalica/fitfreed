@@ -1118,6 +1118,14 @@
   },
   "longitudinal": {
     "heading": "Longitudinal dashboard",
+    "answerLabel": "Aligned-history answer",
+    "answerDates": {
+      "one": "Four histories aligned across {count} date",
+      "other": "Four histories aligned across {count} dates"
+    },
+    "answerMultiple": "{count} separate history sources aligned",
+    "answerExact": "Review exact days and measurements",
+    "changePeriod": "Change shared period",
     "workspaceEyebrow": "Your history, aligned",
     "workspaceNavigation": "Aligned-history workspace",
     "workspaces": {
@@ -1182,6 +1190,15 @@
     "associationNotice": "This view shows recorded co-occurrence and coverage. It does not establish cause, diagnosis, readiness, or advice.",
     "comparison": {
       "heading": "Compare shared periods",
+      "answerLabel": "Compared-history answer",
+      "answerSingle": "Four histories compared side by side",
+      "answerMultiple": "{count} separate history sources compared",
+      "visual": "Four-domain period comparison",
+      "exactValues": "Review exact values",
+      "changePeriods": "Change the compared shared periods",
+      "loadFailed": "This comparison could not be loaded. The last valid answer and both periods are unchanged.",
+      "retry": "Try this comparison again",
+      "retryLabel": "Longitudinal comparison unavailable",
       "intro": "Compare the four domains over two periods inside the global history. Each period may contain up to 366 dates.",
       "baselineFrom": "Baseline period start",
       "baselineThrough": "Baseline period end",
@@ -1191,7 +1208,7 @@
       "comparing": "Comparing shared periods…",
       "clear": "Clear longitudinal comparison",
       "resultHeading": "Longitudinal period comparison",
-      "coverageCaution": "Changes are comparison minus baseline. Unequal periods and missing measurements remain explicit and are never imputed.",
+      "coverageCaution": "Changes are comparison minus baseline; missing measurements are not filled in.",
       "empty": "Neither period contains a source that can be compared.",
       "metric": "Metric",
       "baseline": "Baseline",

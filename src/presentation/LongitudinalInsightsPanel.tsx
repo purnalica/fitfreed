@@ -1,8 +1,16 @@
-import { type FormEvent, type MouseEvent, useEffect, useMemo, useState } from "react";
+import {
+  type FormEvent,
+  type MouseEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { invoke } from "@tauri-apps/api/core";
 
 import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
+import { restoreFocusAfterReveal } from "./focus-restoration";
 import { WorkspaceNavigation } from "./WorkspaceNavigation";
 import { LongitudinalComparisonPanel } from "./LongitudinalComparisonPanel";
 import { RangeFilterActions, type RangeOperation } from "./RangeFilterActions";
@@ -21,6 +29,7 @@ import {
 import { formatSleepDuration } from "./sleep-format";
 import { formatDuration } from "./training-format";
 import { useInvalidForm } from "./useInvalidForm";
+import { useResultFocus } from "./useResultFocus";
 
 type LongitudinalDomain = "activity" | "training" | "sleep" | "recovery";
 type LongitudinalWorkspace = "history" | "comparison";
@@ -57,19 +66,52 @@ export function LongitudinalInsightsPanel({
   const [selectedDay, setSelectedDay] = useState<SelectedDay>();
   const [navigationDomain, setNavigationDomain] = useState<LongitudinalDomain>();
   const [workspace, setWorkspace] = useState<LongitudinalWorkspace>("history");
+  const [historyControlsOpen, setHistoryControlsOpen] = useState(false);
   const rangeValidation = useInvalidForm(onError);
+  const initialAnswerPending = useRef(true);
+  const overviewHeadingRef = useRef<HTMLHeadingElement>(null);
+  const detailHeadingRef = useRef<HTMLHeadingElement>(null);
+  const detailOriginRef = useRef<HTMLButtonElement | null>(null);
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const plural = useMemo(() => new Intl.PluralRules(locale), [locale]);
   const date = useMemo(
     () => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }),
     [locale],
   );
   const copy = messages.longitudinal;
+  const { resultHeadingRef: answerHeadingRef, requestResultFocus } =
+    useResultFocus<HTMLHeadingElement>(
+      overview !== undefined && workspace === "history" && selectedDay === undefined,
+    );
+
+  function answerDates(count: number): string {
+    return copy.answerDates[plural.select(count) === "one" ? "one" : "other"]
+      .replace("{count}", number.format(count));
+  }
+
+  function clearSelectedDay() {
+    setSelectedDay(undefined);
+    detailOriginRef.current = null;
+  }
+
+  function closeSelectedDay(initiatingElement: HTMLElement | null) {
+    const target = detailOriginRef.current?.isConnected
+      ? detailOriginRef.current
+      : overviewHeadingRef.current;
+    clearSelectedDay();
+    restoreFocusAfterReveal(target, initiatingElement);
+  }
 
   function acceptOverview(result: LongitudinalOverview) {
+    const focusInitialAnswer =
+      initialAnswerPending.current && result.series.length > 0 && result.selectedRange !== null;
+    initialAnswerPending.current = false;
     setOverview(result);
     setRangeFrom(result.selectedRange?.from ?? "");
     setRangeThrough(result.selectedRange?.through ?? "");
-    setSelectedDay(undefined);
+    setHistoryControlsOpen(false);
+    clearSelectedDay();
+    if (focusInitialAnswer) requestResultFocus();
   }
 
   async function refresh(requestedRange: LongitudinalDateRange | null = null) {
@@ -112,8 +154,12 @@ export function LongitudinalInsightsPanel({
     rangeValidation.accept();
     setRangeOperation("apply");
     onError(undefined);
+    const initiatingElement = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
     try {
       await refresh({ from: rangeFrom, through: rangeThrough });
+      requestResultFocus(initiatingElement);
     } catch (reason) {
       onError(commandErrorCode(reason));
     } finally {
@@ -125,8 +171,12 @@ export function LongitudinalInsightsPanel({
     rangeValidation.accept();
     setRangeOperation("reset");
     onError(undefined);
+    const initiatingElement = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
     try {
       await refresh();
+      requestResultFocus(initiatingElement);
     } catch (reason) {
       onError(commandErrorCode(reason));
     } finally {
@@ -179,7 +229,19 @@ export function LongitudinalInsightsPanel({
   const selectedInsight = selected();
   const loadingRange = rangeOperation !== undefined;
 
-  function selectDay(seriesRef: string, localDate: string) {
+  useEffect(() => {
+    if (!selectedDay) return;
+    return restoreFocusAfterReveal(detailHeadingRef.current, detailOriginRef.current, {
+      align: "start",
+    });
+  }, [selectedDay]);
+
+  function selectDay(
+    seriesRef: string,
+    localDate: string,
+    origin: HTMLButtonElement,
+  ) {
+    detailOriginRef.current = origin;
     setWorkspace("history");
     setSelectedDay({ seriesRef, localDate });
   }
@@ -192,7 +254,9 @@ export function LongitudinalInsightsPanel({
     >
       <header className="explorer-workspace-heading">
         <p className="eyebrow">{copy.workspaceEyebrow}</p>
-        <h1 id="longitudinal-heading">{copy.heading}</h1>
+        <h1 id="longitudinal-heading" ref={overviewHeadingRef} tabIndex={-1}>
+          {copy.heading}
+        </h1>
         <p>{copy.intro}</p>
       </header>
       <WorkspaceNavigation
@@ -220,89 +284,119 @@ export function LongitudinalInsightsPanel({
             className="explorer-history-workspace"
             hidden={workspace !== "history" || selectedInsight !== undefined}
           >
-          {overview.availableRange && overview.selectedRange && (
-            <form
-              className="longitudinal-filter"
-              aria-labelledby="longitudinal-filter-heading"
-              aria-busy={loadingRange}
-              onSubmit={(event) => void applyRange(event)}
-            >
-              <div>
-                <h2 id="longitudinal-filter-heading">{copy.filterHeading}</h2>
-                <p>{copy.rangeHelp}</p>
-              </div>
-              <label>
-                <span>{copy.from}</span>
-                <input
-                  type="date"
-                  min={overview.availableRange.from}
-                  max={overview.availableRange.through}
-                  value={rangeFrom}
-                  aria-invalid={rangeValidation.invalid || undefined}
-                  aria-describedby={rangeValidation.errorElementId}
-                  onChange={(event) => {
-                    rangeValidation.edit();
-                    setRangeFrom(event.target.value);
-                  }}
-                  disabled={loadingRange}
-                  required
-                />
-              </label>
-              <label>
-                <span>{copy.through}</span>
-                <input
-                  type="date"
-                  min={overview.availableRange.from}
-                  max={overview.availableRange.through}
-                  value={rangeThrough}
-                  aria-invalid={rangeValidation.invalid || undefined}
-                  aria-describedby={rangeValidation.errorElementId}
-                  onChange={(event) => {
-                    rangeValidation.edit();
-                    setRangeThrough(event.target.value);
-                  }}
-                  disabled={loadingRange}
-                  required
-                />
-              </label>
-              <RangeFilterActions
-                className="longitudinal-filter-actions"
-                operation={rangeOperation}
-                applyLabel={copy.applyRange}
-                applyingLabel={copy.applyingRange}
-                resetLabel={copy.latestWindow}
-                resettingLabel={copy.loadingLatestWindow}
-                onReset={() => void resetRange()}
-              />
-            </form>
-          )}
           {overview.selectedRange && (
-            <p className="longitudinal-range">
-              <strong>{copy.selectedRange}:</strong> {rangeLabel(overview.selectedRange)}
-              {overview.availableRange && (
-                <span>
-                  {" · "}<strong>{copy.availableRange}:</strong>{" "}
-                  {rangeLabel(overview.availableRange)}
-                </span>
-              )}
-            </p>
+            <section
+              className="longitudinal-answer answer-canvas"
+              aria-label={copy.answerLabel}
+            >
+              <header className="longitudinal-answer-heading">
+                <h2 ref={answerHeadingRef} tabIndex={-1}>
+                  {overview.series.length === 1
+                    ? answerDates(overview.series[0].days.length)
+                    : copy.answerMultiple.replace(
+                      "{count}",
+                      number.format(overview.series.length),
+                    )}
+                </h2>
+                <p>
+                  <strong>{copy.selectedRange}:</strong>{" "}
+                  {rangeLabel(overview.selectedRange)}
+                </p>
+              </header>
+              <p className="notice longitudinal-association-notice">
+                {copy.associationNotice}
+              </p>
+              {overview.series.map((series, seriesIndex) => (
+                <LongitudinalSeries
+                  key={series.seriesRef}
+                  series={series}
+                  seriesIndex={seriesIndex}
+                  seriesCount={overview.series.length}
+                  answerHeading={answerDates(series.days.length)}
+                  locale={locale}
+                  messages={messages}
+                  date={date}
+                  number={number}
+                  coverage={coverage}
+                  formatSteps={formatSteps}
+                  activityStatus={activityStatus}
+                  onSelect={(localDate, origin) => selectDay(
+                    series.seriesRef,
+                    localDate,
+                    origin,
+                  )}
+                />
+              ))}
+            </section>
           )}
-          {overview.series.map((series, seriesIndex) => (
-            <LongitudinalSeries
-              key={series.seriesRef}
-              series={series}
-              seriesIndex={seriesIndex}
-              seriesCount={overview.series.length}
-              locale={locale}
-              messages={messages}
-              date={date}
-              number={number}
-              coverage={coverage}
-              formatSteps={formatSteps}
-              activityStatus={activityStatus}
-              onSelect={(localDate) => selectDay(series.seriesRef, localDate)}
-            />
-          ))}
+          {overview.availableRange && overview.selectedRange && (
+            <details
+              className="answer-controls"
+              open={historyControlsOpen}
+              onToggle={(event) => setHistoryControlsOpen(event.currentTarget.open)}
+            >
+              <summary>{copy.changePeriod}</summary>
+              {historyControlsOpen && <form
+                className="longitudinal-filter"
+                aria-labelledby="longitudinal-filter-heading"
+                aria-busy={loadingRange}
+                onSubmit={(event) => void applyRange(event)}
+              >
+                <div>
+                  <h2 id="longitudinal-filter-heading">{copy.filterHeading}</h2>
+                  <p>{copy.rangeHelp}</p>
+                  <p>
+                    <strong>{copy.availableRange}:</strong>{" "}
+                    {rangeLabel(overview.availableRange)}
+                  </p>
+                </div>
+                <label>
+                  <span>{copy.from}</span>
+                  <input
+                    type="date"
+                    min={overview.availableRange.from}
+                    max={overview.availableRange.through}
+                    value={rangeFrom}
+                    aria-invalid={rangeValidation.invalid || undefined}
+                    aria-describedby={rangeValidation.errorElementId}
+                    onChange={(event) => {
+                      rangeValidation.edit();
+                      setRangeFrom(event.target.value);
+                    }}
+                    disabled={loadingRange}
+                    required
+                  />
+                </label>
+                <label>
+                  <span>{copy.through}</span>
+                  <input
+                    type="date"
+                    min={overview.availableRange.from}
+                    max={overview.availableRange.through}
+                    value={rangeThrough}
+                    aria-invalid={rangeValidation.invalid || undefined}
+                    aria-describedby={rangeValidation.errorElementId}
+                    onChange={(event) => {
+                      rangeValidation.edit();
+                      setRangeThrough(event.target.value);
+                    }}
+                    disabled={loadingRange}
+                    required
+                  />
+                </label>
+                <RangeFilterActions
+                  className="longitudinal-filter-actions"
+                  operation={rangeOperation}
+                  applyLabel={copy.applyRange}
+                  applyingLabel={copy.applyingRange}
+                  resetLabel={copy.latestWindow}
+                  resettingLabel={copy.loadingLatestWindow}
+                  onReset={() => void resetRange()}
+                />
+              </form>
+              }
+            </details>
+          )}
           </div>
           <div className="explorer-detail-workspace" hidden={workspace !== "history"}>
           {selectedInsight && (
@@ -313,7 +407,13 @@ export function LongitudinalInsightsPanel({
             >
               <div className="longitudinal-detail-heading">
                 <div>
-                  <h2 id="longitudinal-detail-heading">{copy.detailHeading}</h2>
+                  <h2
+                    id="longitudinal-detail-heading"
+                    ref={detailHeadingRef}
+                    tabIndex={-1}
+                  >
+                    {copy.detailHeading}
+                  </h2>
                   <time dateTime={selectedInsight.day.localDate}>
                     {date.format(recoveryLocalDate(selectedInsight.day.localDate))}
                   </time>
@@ -325,7 +425,7 @@ export function LongitudinalInsightsPanel({
                   type="button"
                   className="secondary"
                   disabled={navigationDomain !== undefined}
-                  onClick={() => setSelectedDay(undefined)}
+                  onClick={(event) => closeSelectedDay(event.currentTarget)}
                 >
                   {copy.closeDetail}
                 </button>
@@ -391,6 +491,7 @@ function LongitudinalSeries({
   series,
   seriesIndex,
   seriesCount,
+  answerHeading,
   locale,
   messages,
   date,
@@ -403,6 +504,7 @@ function LongitudinalSeries({
   series: LongitudinalSeriesOverview;
   seriesIndex: number;
   seriesCount: number;
+  answerHeading: string;
   locale: Locale;
   messages: (typeof catalogs)["en-US"];
   date: Intl.DateTimeFormat;
@@ -410,9 +512,10 @@ function LongitudinalSeries({
   coverage: (observed: number, calendarDays: number) => string;
   formatSteps: (value: string | null) => string;
   activityStatus: (day: LongitudinalDayInsight) => string;
-  onSelect: (localDate: string) => void;
+  onSelect: (localDate: string, origin: HTMLButtonElement) => void;
 }) {
   const copy = messages.longitudinal;
+  const [exactOpen, setExactOpen] = useState(false);
   const maxima = {
     activity: maximum(series.days.map((day) => day.activity.stepCount)),
     training: maximum(series.days.map((day) => day.training.totalDurationMilliseconds)),
@@ -422,67 +525,81 @@ function LongitudinalSeries({
 
   return (
     <section className="longitudinal-series">
-      {seriesCount > 1 && <h2>{copy.series} {number.format(seriesIndex + 1)}</h2>}
-      <ul className="longitudinal-summary" aria-label={copy.summaryLabel}>
-        <li><span>{copy.activity}</span><strong>{formatSteps(series.activity.totalStepCount)}</strong><small>{copy.totalSteps} · {coverage(series.activity.observedDays, series.activity.calendarDays)}</small></li>
-        <li><span>{copy.training}</span><strong>{number.format(series.training.sessionCount)}</strong><small>{copy.sessions} · {number.format(series.training.trainingDays)} · {copy.trainingDays}</small></li>
-        <li><span>{copy.sleep}</span><strong>{formatSleepDuration(series.sleep.averageAsleepMilliseconds, locale, messages.training.durationUnits, messages.unavailable)}</strong><small>{copy.averageSleep} · {coverage(series.sleep.observedNights, series.sleep.calendarDays)}</small></li>
-        <li><span>{copy.recovery}</span><strong>{formatRecoveryMilliseconds(series.recovery.averageBeatToBeatIntervalMilliseconds, locale, messages.unavailable)}</strong><small>{copy.averageRecovery} · {coverage(series.recovery.observedNights, series.recovery.calendarDays)}</small></li>
-      </ul>
-      <div className="longitudinal-history-grid">
-        <figure>
-          <figcaption>{copy.visual}</figcaption>
-          <ol className="longitudinal-chart" aria-hidden="true">
-            {series.days.map((day) => (
-              <li key={day.localDate}>
-                <time dateTime={day.localDate}>{date.format(recoveryLocalDate(day.localDate))}</time>
-                <div className="longitudinal-lanes">
-                  <Lane label={copy.activity} value={day.activity.stepCount} maximum={maxima.activity} className="activity" />
-                  <Lane label={copy.training} value={day.training.totalDurationMilliseconds} maximum={maxima.training} className="training" />
-                  <Lane label={copy.sleep} value={day.sleep.asleepMilliseconds} maximum={maxima.sleep} className="sleep" />
-                  <Lane label={copy.recovery} value={day.recovery.beatToBeatIntervalMilliseconds} maximum={maxima.recovery} className="recovery" />
-                </div>
-              </li>
-            ))}
-          </ol>
-        </figure>
-        <div className="longitudinal-table-scroll" tabIndex={0} aria-label={copy.exactTable}>
-          <table>
-            <caption className="sr-only">{copy.exactTable}</caption>
-            <thead>
-              <tr>
-                <th scope="col">{copy.date}</th>
-                <th scope="col">{copy.steps}</th>
-                <th scope="col">{copy.trainingDuration}</th>
-                <th scope="col">{copy.sleepDuration}</th>
-                <th scope="col">{copy.recoveryInterval}</th>
-                <th scope="col"><span className="sr-only">{copy.details}</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              {series.days.map((day) => (
-                <tr key={day.localDate}>
-                  <th scope="row"><time dateTime={day.localDate}>{date.format(recoveryLocalDate(day.localDate))}</time></th>
-                  <td>{day.activity.stepCount === null ? activityStatus(day) : formatSteps(day.activity.stepCount)}</td>
-                  <td>{formatDuration(day.training.totalDurationMilliseconds, locale, messages.training.durationUnits)}</td>
-                  <td>{formatSleepDuration(day.sleep.asleepMilliseconds, locale, messages.training.durationUnits, copy.missing)}</td>
-                  <td>{formatRecoveryMilliseconds(day.recovery.beatToBeatIntervalMilliseconds, locale, copy.missing)}</td>
-                  <td>
-                    <button
-                      type="button"
-                      className="detail-button"
-                      aria-label={`${copy.viewDay} ${date.format(recoveryLocalDate(day.localDate))}`}
-                      onClick={() => onSelect(day.localDate)}
-                    >
-                      {copy.details}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {seriesCount > 1 && (
+        <div className="answer-series-heading">
+          <p>{copy.series} {number.format(seriesIndex + 1)}</p>
+          <h3>{answerHeading}</h3>
         </div>
-      </div>
+      )}
+      <figure className="longitudinal-answer-visual">
+        <figcaption>{copy.visual}</figcaption>
+        <ol className="longitudinal-chart" aria-hidden="true">
+          {series.days.map((day) => (
+            <li key={day.localDate}>
+              <time dateTime={day.localDate}>{date.format(recoveryLocalDate(day.localDate))}</time>
+              <div className="longitudinal-lanes">
+                <Lane label={copy.activity} value={day.activity.stepCount} maximum={maxima.activity} className="activity" />
+                <Lane label={copy.training} value={day.training.totalDurationMilliseconds} maximum={maxima.training} className="training" />
+                <Lane label={copy.sleep} value={day.sleep.asleepMilliseconds} maximum={maxima.sleep} className="sleep" />
+                <Lane label={copy.recovery} value={day.recovery.beatToBeatIntervalMilliseconds} maximum={maxima.recovery} className="recovery" />
+              </div>
+            </li>
+          ))}
+        </ol>
+      </figure>
+      <details
+        className="answer-exact-values longitudinal-exact-evidence"
+        open={exactOpen}
+        onToggle={(event) => setExactOpen(event.currentTarget.open)}
+      >
+        <summary>{copy.answerExact}</summary>
+        {exactOpen && (
+          <>
+            <ul className="longitudinal-summary" aria-label={copy.summaryLabel}>
+              <li><span>{copy.activity}</span><strong>{formatSteps(series.activity.totalStepCount)}</strong><small>{copy.totalSteps} · {coverage(series.activity.observedDays, series.activity.calendarDays)}</small></li>
+              <li><span>{copy.training}</span><strong>{number.format(series.training.sessionCount)}</strong><small>{copy.sessions} · {number.format(series.training.trainingDays)} · {copy.trainingDays}</small></li>
+              <li><span>{copy.sleep}</span><strong>{formatSleepDuration(series.sleep.averageAsleepMilliseconds, locale, messages.training.durationUnits, messages.unavailable)}</strong><small>{copy.averageSleep} · {coverage(series.sleep.observedNights, series.sleep.calendarDays)}</small></li>
+              <li><span>{copy.recovery}</span><strong>{formatRecoveryMilliseconds(series.recovery.averageBeatToBeatIntervalMilliseconds, locale, messages.unavailable)}</strong><small>{copy.averageRecovery} · {coverage(series.recovery.observedNights, series.recovery.calendarDays)}</small></li>
+            </ul>
+            <div className="longitudinal-table-scroll" tabIndex={0}>
+              <table aria-label={copy.exactTable}>
+                <caption className="sr-only">{copy.exactTable}</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">{copy.date}</th>
+                    <th scope="col">{copy.steps}</th>
+                    <th scope="col">{copy.trainingDuration}</th>
+                    <th scope="col">{copy.sleepDuration}</th>
+                    <th scope="col">{copy.recoveryInterval}</th>
+                    <th scope="col"><span className="sr-only">{copy.details}</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {series.days.map((day) => (
+                    <tr key={day.localDate}>
+                      <th scope="row"><time dateTime={day.localDate}>{date.format(recoveryLocalDate(day.localDate))}</time></th>
+                      <td>{day.activity.stepCount === null ? activityStatus(day) : formatSteps(day.activity.stepCount)}</td>
+                      <td>{formatDuration(day.training.totalDurationMilliseconds, locale, messages.training.durationUnits)}</td>
+                      <td>{formatSleepDuration(day.sleep.asleepMilliseconds, locale, messages.training.durationUnits, copy.missing)}</td>
+                      <td>{formatRecoveryMilliseconds(day.recovery.beatToBeatIntervalMilliseconds, locale, copy.missing)}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="detail-button"
+                          aria-label={`${copy.viewDay} ${date.format(recoveryLocalDate(day.localDate))}`}
+                          onClick={(event) => onSelect(day.localDate, event.currentTarget)}
+                        >
+                          {copy.details}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </details>
     </section>
   );
 }
@@ -506,7 +623,7 @@ function Lane({
   className: string;
 }) {
   return (
-    <span className="longitudinal-lane">
+    <span className={`longitudinal-lane${value === null ? " missing" : ""}`}>
       <span>{label}</span>
       <span className="track">
         <span
