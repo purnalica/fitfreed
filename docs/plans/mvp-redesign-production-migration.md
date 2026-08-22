@@ -210,7 +210,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R4 | Complete locally — exact packaged and exhaustive adaptive gates passed 2026-08-22 | Existing health and aligned-history questions read as answers |
 | X5-R5 | Complete locally — R5.4, R5.5, and real-process restart gates passed 2026-08-22 | A remembered session is findable and sports are recognizable |
 | X5-R6 | Complete locally — R6.1 through R6.5 passed exact packaged, adaptive visual, and dense-route gates on 2026-08-22 | A routed workout is investigated through a dominant synchronized map |
-| X5-R7 | In progress — R7.1 through R7.6 implemented and focused packaged evidence passed on 2026-08-22; exact complete campaign pending | Every session composition reflects its actual evidence |
+| X5-R7 | Complete locally — R7.1 through R7.6 passed the exact fast, functional, restart, adaptive, accessibility, visual, and performance gates on 2026-08-22 | Every session composition reflects its actual evidence |
 | X5-R8 | Pending | Personal ranges and reusable criteria work end to end |
 | X5-R9 | Pending | Reports open as results and leave FitFreed safely |
 | X5-R10 | Pending | The complete release-shaped product is coherent and documented |
@@ -1166,8 +1166,17 @@ Automated accessibility exposed two implementation defects before acceptance: ov
 semantics orphaned its terms and definitions in WebKit, and the session title skipped a heading level. Native
 description-list semantics, a complete Training → session → section hierarchy, matching visual selectors, and
 one shared reveal-target scroll margin now form static UI contracts. The focused packaged scenario passes with
-zero Axe violations. The exact complete functional, restart, adaptive-session, and performance campaign remains
-the closure gate for X5-R7.
+zero Axe violations.
+
+The complete contributor lane passed 156 automation, 290 React, 2 vendored-updater, 213 host, 159 application,
+and 33 domain tests. The exact `8304227` packaged source then passed the 1-minute-29-second functional journey,
+distinct-process restart in 894 milliseconds, the isolated adaptive-session journey in 3.7 seconds, and the
+two-year performance journey in 2 minutes 28 seconds. Training p95 measurements were 43 milliseconds for common
+filtering, 38 milliseconds for the maximum filter, 18 milliseconds for comparison, 35 milliseconds for calendar
+navigation, 76 milliseconds for route-workbench opening, 3 milliseconds for synchronized selection,
+5 milliseconds for overlay replacement, 37 milliseconds for signal overview, and 42 milliseconds for exact
+signal pagination. Activity, sleep, recovery, and longitudinal interactions also remained inside every accepted
+budget. X5-R7 is complete locally.
 
 ## X5-R8 — Add personal ranges and integrate segmentation
 
