@@ -492,6 +492,53 @@
       "detailSignalsIntro": "Recorded temporal series and aggregate zones remain separate, exact, and explicit about missing evidence.",
       "detailRoutesIntro": "Route geometry is rendered locally and exact coordinates appear only when you deliberately reveal them.",
       "detailProvenanceIntro": "Open the source history on demand to inspect attribution, interpretation versions, and reconciliation decisions.",
+      "evidenceSummary": {
+        "regionLabel": "Session evidence",
+        "eyebrow": "Evidence account",
+        "heading": "What this session contains",
+        "introduction": "A concise account of the evidence FitFreed can currently present. Detailed values remain available in their relevant views.",
+        "exercises": {
+          "one": "{count} exercise",
+          "other": "{count} exercises"
+        },
+        "structuredExercises": {
+          "one": "{count} exercise with recorded structure",
+          "other": "{count} exercises with recorded structure"
+        },
+        "routePoints": {
+          "one": "{count} recorded route point",
+          "other": "{count} recorded route points"
+        },
+        "signalSeries": {
+          "one": "{count} signal series",
+          "other": "{count} signal series"
+        },
+        "missingSignalSamples": {
+          "one": "{count} sample without a recorded value",
+          "other": "{count} samples without a recorded value"
+        },
+        "laps": {
+          "one": "{count} recorded lap",
+          "other": "{count} recorded laps"
+        },
+        "pauses": {
+          "one": "{count} recorded pause",
+          "other": "{count} recorded pauses"
+        },
+        "zones": {
+          "one": "{count} recorded zone",
+          "other": "{count} recorded zones"
+        },
+        "unsupportedSignalSeries": {
+          "one": "{count} unsupported source series",
+          "other": "{count} unsupported source series"
+        },
+        "unsupportedZoneGroups": {
+          "one": "{count} unsupported source zone group",
+          "other": "{count} unsupported source zone groups"
+        },
+        "noDetailedEvidence": "No detailed route, signal, source-structure, or zone evidence is represented in this session."
+      },
       "summaryMeasurements": "Session summary measurements",
       "structureHeading": "Recorded structure",
       "structureIntro": "Inspect the exercises, source laps, automatic laps, and pauses preserved from this session.",
@@ -593,6 +640,23 @@
           "temperature": "°C",
           "power": "W"
         }
+      },
+      "signalWorkbench": {
+        "regionLabel": "Recorded signal workbench",
+        "eyebrow": "Recorded measurement",
+        "heading": "Explore recorded {metric}",
+        "introduction": "The most relevant available measurement takes the visual lead when this session has no recorded route. Source gaps remain visible.",
+        "visibleSignal": "Visible measurement",
+        "choice": "{metric} · exercise {exercise} · {role}",
+        "primaryRole": "exercise measurements",
+        "transitionRole": "transition measurements",
+        "coverage": "Recorded values",
+        "interval": "Sampling interval",
+        "source": "Exact source",
+        "sourceSeries": "{signal} series",
+        "projection": "This bounded chart preserves source order and gaps. Open the exact source series for every recorded sample.",
+        "exactSignal": "Inspect exact {signal} samples",
+        "chartSummary": "{metric} chart with {available} recorded values out of {total} samples, measured in {unit}. Gaps show missing source values."
       },
       "viewExactRoutePoints": "Inspect exact recorded points",
       "hideExactRoutePoints": "Hide exact recorded points",

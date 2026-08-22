@@ -3895,11 +3895,11 @@ describe("FitFreed import interface", () => {
     expect(within(detail!).getByText(
       "No personal criterion is applied to this exercise yet.",
     )).toBeVisible();
-    await user.click(within(detailNavigation).getByRole("button", {
+    expect(within(detailNavigation).queryByRole("button", {
       name: "Signals and zones",
-    }));
-    expect(await within(detail!).findByRole("region", { name: "Recorded zones" }))
-      .toHaveTextContent("The source did not provide a zone container for this exercise.");
+    })).not.toBeInTheDocument();
+    expect(within(detail!).getByRole("region", { name: "Session evidence" }))
+      .toHaveTextContent("1 exercise with recorded structure");
     await user.click(within(detail!).getByRole("button", { name: "Back to session results" }));
     expect(within(training).queryByRole("heading", { name: "Session summary" }))
       .not.toBeInTheDocument();

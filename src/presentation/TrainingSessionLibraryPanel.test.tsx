@@ -336,6 +336,10 @@ function visualSamples(samples: typeof heartRateSamples) {
 
 const heartRateVisualSamples = visualSamples(heartRateSamples);
 const speedVisualSamples = visualSamples(speedSamples);
+const signalOnlyGapOrdinals = new Set([
+  speedVisualSamples[80]!.ordinal,
+  speedVisualSamples[220]!.ordinal,
+]);
 
 function trainingSignals(sessionRef: string): TrainingSessionSignalsResult {
   return {
@@ -692,6 +696,93 @@ function trainingStory(
           signals?.exercises?.[1]?.signals?.transition ?? [],
           signals?.exercises?.[1]?.signals?.unsupportedTransitionSeriesCount ?? 0,
         ),
+        primaryMetric: null,
+        eligibleOverlays: [],
+        exactRoute: null,
+        exactSignals: [],
+      },
+    }],
+  };
+}
+
+function signalOnlyTrainingStory(
+  sessionRef: string,
+  acceptedSnapshotRef = snapshotRef,
+): SessionStory {
+  const story = trainingStory(sessionRef, acceptedSnapshotRef);
+  const exercise = story.exercises[0]!;
+  const sourceSignal = exercise.primary.signals.find((signal) => signal.kind === "speed")!;
+  const signal = {
+    ...sourceSignal,
+    availableSampleCount: sourceSignal.sampleCount - signalOnlyGapOrdinals.size,
+    visualSamples: sourceSignal.visualSamples.map((sample) => ({
+      ...sample,
+      value: signalOnlyGapOrdinals.has(sample.ordinal) ? null : sample.value,
+      gapBefore: signalOnlyGapOrdinals.has(sample.ordinal),
+    })),
+  };
+  const overlay = exercise.primary.eligibleOverlays.find(
+    (candidate) => candidate.signalRef === signal.signalRef,
+  )!;
+  const roleEvidence = storyRoleEvidence(null, [signal], 1);
+
+  return {
+    ...story,
+    session: { ...story.session, exerciseCount: 1 },
+    structure: null,
+    routes: { exercises: null },
+    signals: {
+      exercises: [{
+        exerciseRef: exercise.exerciseRef,
+        ordinal: 0,
+        signals: {
+          primary: [signal],
+          transition: [],
+          unsupportedPrimarySeriesCount: 1,
+          unsupportedTransitionSeriesCount: 0,
+        },
+      }],
+    },
+    zones: { exercises: null },
+    composition: {
+      structureState: "not-evaluated",
+      routeState: "source-absent",
+      signalState: "source-present",
+      zoneState: "source-absent",
+      exerciseCount: 1,
+    },
+    exercises: [{
+      ...exercise,
+      structure: null,
+      zones: null,
+      evidence: {
+        hasStructure: false,
+        manualLapCount: 0,
+        automaticLapCount: 0,
+        pauseCount: 0,
+        zoneGroupCount: 0,
+        zoneCount: 0,
+        timedZoneCount: 0,
+        unsupportedZoneGroupCount: 0,
+      },
+      primary: {
+        route: null,
+        signals: [signal],
+        evidence: roleEvidence,
+        primaryMetric: "pace",
+        eligibleOverlays: [{ ...overlay, alignedSamples: [] }],
+        exactRoute: null,
+        exactSignals: [{
+          signalRef: signal.signalRef,
+          kind: signal.kind,
+          unit: signal.unit,
+          sampleCount: signal.sampleCount,
+        }],
+      },
+      transition: {
+        route: null,
+        signals: [],
+        evidence: storyRoleEvidence(null, [], 0),
         primaryMetric: null,
         eligibleOverlays: [],
         exactRoute: null,
@@ -2184,6 +2275,111 @@ describe("TrainingSessionLibraryPanel", () => {
     await user.click(within(region).getByRole("button", { name: "Previous page" }));
     expect(await within(region).findByText("1–2 of 26 matching sessions")).toBeVisible();
     expect(onError).toHaveBeenCalledWith(undefined);
+  });
+
+  it("foregrounds recorded signals when a partial session has no route or source structure", async () => {
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "query_session_story") {
+        const query = arguments_.query as { sessionRef: string; snapshotRef: string };
+        return Promise.resolve(signalOnlyTrainingStory(query.sessionRef, query.snapshotRef));
+      }
+      if (command === "query_training_signal_samples") {
+        const query = arguments_.query as {
+          sessionRef: string;
+          signalRef: string;
+          offset: number;
+          limit: number;
+        };
+        const result = trainingSignalSamples(
+          query.sessionRef,
+          query.signalRef,
+          query.offset,
+          query.limit,
+        );
+        return Promise.resolve({
+          ...result,
+          samples: result.samples.map((sample) => ({
+            ...sample,
+            value: signalOnlyGapOrdinals.has(sample.ordinal) ? null : sample.value,
+          })),
+        });
+      }
+      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+      if (workspaceResult) return workspaceResult;
+      if (command === "query_training_sports") return Promise.resolve(sports);
+      if (command === "query_training_sessions") {
+        return Promise.resolve(page([newest], 0, 1, null));
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    renderPanel();
+
+    const region = await screen.findByRole("region", { name: "Find a training session" });
+    await user.click(within(region).getByRole("button", {
+      name: /View session details for/,
+    }));
+    const detail = within(region).getByRole("region", { name: "Session summary" });
+    const workbench = await within(detail).findByRole("region", {
+      name: "Recorded signal workbench",
+    });
+
+    expect(within(workbench).getByRole("heading", {
+      name: "Explore recorded pace",
+    })).toBeVisible();
+    expect(within(workbench).getByRole("img", {
+      name: /Pace chart with 299 recorded values out of 301 samples/,
+    })).toBeVisible();
+    expect(within(workbench).getByText("299 of 301")).toBeVisible();
+    expect(within(detail).queryByRole("region", {
+      name: "Recorded route workbench",
+    })).not.toBeInTheDocument();
+
+    const evidence = within(detail).getByRole("region", { name: "Session evidence" });
+    expect(evidence).toHaveTextContent("1 exercise");
+    expect(evidence).toHaveTextContent("1 signal series");
+    expect(evidence).toHaveTextContent("2 samples without a recorded value");
+    expect(evidence).toHaveTextContent("1 unsupported source series");
+
+    const detailNavigation = within(detail).getByRole("navigation", {
+      name: "Session detail",
+    });
+    expect(within(detailNavigation).getByRole("button", {
+      name: "Structure and segments",
+    })).toBeVisible();
+    expect(within(detailNavigation).queryByRole("button", { name: "Routes" }))
+      .not.toBeInTheDocument();
+    await user.click(within(detailNavigation).getByRole("button", {
+      name: "Signals and zones",
+    }));
+    const signalExercise = within(detail).getByRole("heading", { name: "Exercise 1" })
+      .closest("article");
+    expect(signalExercise).not.toBeNull();
+    expect(await within(signalExercise!).findByRole("heading", {
+      name: "Recorded signals",
+    })).toBeVisible();
+
+    await user.click(within(workbench).getByRole("button", {
+      name: "Inspect exact Speed samples",
+    }));
+    expect(within(detailNavigation).getByRole("button", { name: "Signals and zones" }))
+      .toHaveAttribute("aria-current", "page");
+    const exact = await within(signalExercise!).findByRole("region", {
+      name: "Exact Speed samples",
+    });
+    await waitFor(() => expect(within(exact).getByRole("heading", {
+      name: "Exact Speed samples",
+    })).toHaveFocus());
+    expect(exact).toHaveTextContent("Not recorded");
+    expect(mocks.invoke).toHaveBeenCalledWith("query_training_signal_samples", {
+      query: {
+        sessionRef: newest.sessionRef,
+        signalRef: speedSignalRef,
+        snapshotRef,
+        offset: 0,
+        limit: 100,
+      },
+    });
   });
 
   it("announces a search without renaming its action or hiding the current results", async () => {

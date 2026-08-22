@@ -1064,6 +1064,27 @@ TypeScript production build, schema checks, documentation checks, localization c
 Clippy passed. This closes the R7 application contract only; evidence-adaptive production composition and its
 packaged visual and interaction gates remain open.
 
+### R7.2 signal-only production composition — 2026-08-22
+
+Session detail now consumes composed exercises independently from source structure. When no bounded route can
+be drawn, the first application-ranked supported signal takes the leading visual region with the declared
+sport-aware metric, source gaps, source coverage, interval, source identity, and a direct exact-sample path.
+The route and signal workbenches share one deterministic value-transform function, so running pace has the
+same meaning with or without a route. A compact session evidence account reports supported counts, missing
+sample values, and unsupported source collections once rather than turning absence into repeated page-level
+warnings.
+
+Detail navigation removes Routes when no composed route exists and removes Signals and zones when neither
+signal nor zone evidence exists. Structure and segments deliberately remains available because personal
+segmentation is independent from provider-authored structure. The signals and routes sections now iterate
+Session Story exercises, so signal-only, route-only, and future mixed compositions are not discarded by an
+absent structure collection. Focused tests prove signal-leading composition, gap preservation, dynamic route
+navigation, retained sport identity, and the exact source-sample path. The complete behavior matrix,
+responsive visual review, packaged journey, and remaining structure- and zone-leading states keep R7 open.
+The complete fast contributor lane passed 156 automation, 279 React, 2 vendored-updater, 213 host,
+159 application, and 33 domain tests together with architecture, contracts, workflows, documentation,
+product surfaces, localization, site, production TypeScript build, and Rust formatting gates.
+
 ## X5-R8 — Add personal ranges and integrate segmentation
 
 **User outcome:** a person can name and revisit a contiguous part of one session and can apply reusable

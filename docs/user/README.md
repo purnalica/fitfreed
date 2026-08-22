@@ -70,6 +70,11 @@ request. A selected position opens and focuses its containing exact route or ali
 paginated access to every original sample. When one role has enough recorded evidence, two through four
 signals can also be selected as independently scaled lanes over one stable elapsed-time axis; every lane
 retains a direct path to its exact samples, and the view neither bridges gaps nor implies causation.
+When a session has useful recorded signals but no drawable route, FitFreed gives the application-ranked
+measurement the leading visual region instead of reserving an empty map. The displayed sport-aware metric,
+coverage, interval, source identity, and gaps remain connected to the exact source-series action. A compact
+evidence account states once what the session contains; deeper sections remain for requested detail rather
+than repeating general absence notices.
 Supported recorded heart-rate, speed, and power zones preserve
 their exact bounds and applicable aggregates without implying a timeline. Session provenance loads only on
 request and distinguishes source revision time, local import time, interpretation versions, and reconciliation

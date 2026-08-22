@@ -202,6 +202,23 @@ valid exact alignment merely because presentation chose different limits. Stream
 cadence or cardinality remain independently projected and join only when their returned elapsed values are
 identical; the shared budget grants no proximity or interpolation authority.
 
+Presentation applies one evidence-adaptive hierarchy to that application-owned composition. A role with
+bounded route points receives the local route workbench. When no route can be drawn, the first
+application-ranked supported signal receives a full-width signal workbench instead; presentation uses the
+overlay's declared metric and value transform, preserves the bounded source gaps, and keeps the source series
+as the exact-evidence path. Route lanes and the independent signal workbench share
+`transformSessionStoryValue`, so a sport-aware speed-to-pace choice cannot acquire different semantics in the
+two renderers. A session-level evidence account aggregates only the exact counts already present in Session
+Story; it does not reinterpret absent containers or repeat a missing-data warning in every section.
+
+Detail navigation is capability-adaptive after the story arrives. Routes are present only when a composed
+exercise has a route object, and Signals and zones only when a composed exercise has supported or unsupported
+signal or zone evidence. Structure and segments remains available even without source structure because
+personal segmentation is a separate user-authored capability, not a source-structure state. Signal and route
+detail iterate the composed exercises rather than using source structure as an accidental index; a valid
+signal-only or route-only exercise therefore remains inspectable. Overview and on-demand source history are
+always available.
+
 [ADR 0026](decisions/0026-use-leaflet-for-the-local-route-workbench.md) defines the one spatial exception
 to the semantic-HTML visualization policy. A lazily loaded presentation adapter uses stable Leaflet 1.x
 only for a local vector viewport: projection, pan, zoom, fit, resize, pointer coordinates, and metric scale.

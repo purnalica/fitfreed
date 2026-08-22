@@ -492,6 +492,53 @@
       "detailSignalsIntro": "Las series temporales registradas y las zonas agregadas permanecen separadas, exactas y explícitas sobre los indicios ausentes.",
       "detailRoutesIntro": "La geometría de las rutas se representa localmente y las coordenadas exactas solo aparecen cuando decides mostrarlas.",
       "detailProvenanceIntro": "Abre el historial del origen cuando lo necesites para consultar la atribución, las versiones de interpretación y las decisiones de conciliación.",
+      "evidenceSummary": {
+        "regionLabel": "Evidencias de la sesión",
+        "eyebrow": "Inventario de evidencias",
+        "heading": "Qué contiene esta sesión",
+        "introduction": "Un inventario conciso de las evidencias que FitFreed puede presentar actualmente. Los valores detallados siguen disponibles en sus vistas correspondientes.",
+        "exercises": {
+          "one": "{count} ejercicio",
+          "other": "{count} ejercicios"
+        },
+        "structuredExercises": {
+          "one": "{count} ejercicio con estructura registrada",
+          "other": "{count} ejercicios con estructura registrada"
+        },
+        "routePoints": {
+          "one": "{count} punto de ruta registrado",
+          "other": "{count} puntos de ruta registrados"
+        },
+        "signalSeries": {
+          "one": "{count} serie de señales",
+          "other": "{count} series de señales"
+        },
+        "missingSignalSamples": {
+          "one": "{count} muestra sin valor registrado",
+          "other": "{count} muestras sin valor registrado"
+        },
+        "laps": {
+          "one": "{count} vuelta registrada",
+          "other": "{count} vueltas registradas"
+        },
+        "pauses": {
+          "one": "{count} pausa registrada",
+          "other": "{count} pausas registradas"
+        },
+        "zones": {
+          "one": "{count} zona registrada",
+          "other": "{count} zonas registradas"
+        },
+        "unsupportedSignalSeries": {
+          "one": "{count} serie de origen no compatible",
+          "other": "{count} series de origen no compatibles"
+        },
+        "unsupportedZoneGroups": {
+          "one": "{count} grupo de zonas de origen no compatible",
+          "other": "{count} grupos de zonas de origen no compatibles"
+        },
+        "noDetailedEvidence": "Esta sesión no contiene evidencias detalladas de rutas, señales, estructura de origen ni zonas."
+      },
       "summaryMeasurements": "Mediciones del resumen de la sesión",
       "structureHeading": "Estructura registrada",
       "structureIntro": "Consulta los ejercicios, las vueltas de origen, las vueltas automáticas y las pausas conservadas de esta sesión.",
@@ -593,6 +640,23 @@
           "temperature": "°C",
           "power": "W"
         }
+      },
+      "signalWorkbench": {
+        "regionLabel": "Área de trabajo de señales registradas",
+        "eyebrow": "Medición registrada",
+        "heading": "Explorar {metric}",
+        "introduction": "La medición disponible más relevante adquiere el protagonismo visual cuando esta sesión no tiene una ruta registrada. Los huecos del origen permanecen visibles.",
+        "visibleSignal": "Medición visible",
+        "choice": "{metric} · ejercicio {exercise} · {role}",
+        "primaryRole": "mediciones del ejercicio",
+        "transitionRole": "mediciones de transición",
+        "coverage": "Valores registrados",
+        "interval": "Intervalo de muestreo",
+        "source": "Origen exacto",
+        "sourceSeries": "Serie de {signal}",
+        "projection": "Este gráfico acotado conserva el orden y los huecos del origen. Abre la serie exacta para consultar todas las muestras registradas.",
+        "exactSignal": "Consultar muestras exactas de {signal}",
+        "chartSummary": "Gráfico de {metric} con {available} valores registrados de {total} muestras, medidos en {unit}. Los huecos muestran valores ausentes en el origen."
       },
       "viewExactRoutePoints": "Consultar los puntos registrados exactos",
       "hideExactRoutePoints": "Ocultar los puntos registrados exactos",

@@ -4,6 +4,7 @@ import type {
   SessionStoryOverlay,
   SessionStoryRole,
 } from "./session-story";
+import { transformSessionStoryValue } from "./session-story-metric";
 import type { TrainingRoutePoint } from "./training-session-route";
 
 const MAX_DIRECTION_MARKERS = 6;
@@ -80,12 +81,6 @@ export interface RouteWorkbenchSelection {
   overlayValues: RouteWorkbenchOverlayValue[];
 }
 
-function transformedValue(overlay: SessionStoryOverlay, value: number | null): number | null {
-  if (value === null) return null;
-  if (overlay.valueTransform === "identity") return value;
-  return value > 0 ? 60 / value : null;
-}
-
 function workbenchOverlay(
   overlay: SessionStoryOverlay,
   role: SessionStoryRole,
@@ -104,7 +99,7 @@ function workbenchOverlay(
       signalSampleOrdinal: sample.signalSampleOrdinal,
       elapsedMilliseconds: sample.elapsedMilliseconds,
       sourceValue: sample.value,
-      value: transformedValue(overlay, sample.value),
+      value: transformSessionStoryValue(overlay.valueTransform, sample.value),
       gapBefore: sample.gapBefore,
     };
     valuesByRouteOrdinal.set(sample.routePointOrdinal, value);
@@ -117,7 +112,7 @@ function workbenchOverlay(
     signalSampleOrdinal: sample.ordinal,
     elapsedMilliseconds: sample.elapsedMilliseconds,
     sourceValue: sample.value,
-    value: transformedValue(overlay, sample.value),
+    value: transformSessionStoryValue(overlay.valueTransform, sample.value),
     gapBefore: sample.gapBefore,
   })) ?? [];
   const laneAvailable = laneSamples.flatMap(

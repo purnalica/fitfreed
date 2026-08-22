@@ -41,12 +41,11 @@ import type {
   TrainingRoutePointsResult,
 } from "./training-session-route";
 import { routeSvgPoints } from "./route-svg";
-import type { SessionStory } from "./session-story";
+import type { SessionStory, SessionStoryExercise } from "./session-story";
 import type {
   TrainingSignalKind,
   TrainingSignalSamplesResult,
   TrainingSignalSeriesOverview,
-  TrainingSignalVisualSample,
 } from "./training-session-signal";
 import type {
   SavedTrainingSportClassification,
@@ -57,8 +56,11 @@ import type {
 } from "./training-sports";
 import { TrainingCrossSignalPanel } from "./TrainingCrossSignalPanel";
 import { TrainingSegmentationPanel } from "./TrainingSegmentationPanel";
+import { TrainingSessionEvidenceSummary } from "./TrainingSessionEvidenceSummary";
 import { TrainingSessionProvenancePanel } from "./TrainingSessionProvenancePanel";
 import { TrainingRouteWorkbench } from "./TrainingRouteWorkbench";
+import { TrainingSignalPlot } from "./TrainingSignalPlot";
+import { TrainingSignalWorkbench } from "./TrainingSignalWorkbench";
 import { TrainingSessionZonesPanel } from "./TrainingSessionZonesPanel";
 import { useInvalidForm } from "./useInvalidForm";
 import { useResultFocus } from "./useResultFocus";
@@ -75,41 +77,6 @@ interface ExactEvidenceTarget {
 
 function exactPageOffset(ordinal: number, pageSize: number): number {
   return Math.floor(ordinal / pageSize) * pageSize;
-}
-
-function signalSvgSegments(samples: TrainingSignalVisualSample[]): string[] {
-  const available = samples.filter(
-    (sample): sample is TrainingSignalVisualSample & { value: number } => sample.value !== null,
-  );
-  if (available.length === 0) return [];
-  const ordinals = samples.map((sample) => sample.ordinal);
-  const values = available.map((sample) => sample.value);
-  const minimumOrdinal = Math.min(...ordinals);
-  const maximumOrdinal = Math.max(...ordinals);
-  const minimumValue = Math.min(...values);
-  const maximumValue = Math.max(...values);
-  const ordinalSpan = maximumOrdinal - minimumOrdinal;
-  const valueSpan = maximumValue - minimumValue;
-  const segments: string[] = [];
-  let current: string[] = [];
-  samples.forEach((sample) => {
-    if (sample.value === null || sample.gapBefore) {
-      if (current.length > 0) segments.push(current.join(" "));
-      current = [];
-    }
-    if (sample.value === null) {
-      return;
-    }
-    const x = ordinalSpan === 0
-      ? 320
-      : 36 + (sample.ordinal - minimumOrdinal) / ordinalSpan * 568;
-    const y = valueSpan === 0
-      ? 140
-      : 20 + (maximumValue - sample.value) / valueSpan * 240;
-    current.push(`${x.toFixed(2)},${y.toFixed(2)}`);
-  });
-  if (current.length > 0) segments.push(current.join(" "));
-  return segments;
 }
 
 interface TrainingSessionLibraryPanelProps {
@@ -148,6 +115,35 @@ type AppliedRefinement =
 
 type SessionView = "chronology" | "calendar";
 type DetailSection = "overview" | "structure" | "signals" | "routes" | "provenance";
+
+function availableDetailSections(story: SessionStory | undefined): DetailSection[] {
+  if (!story) return ["overview", "structure", "signals", "routes", "provenance"];
+  const hasSignalsOrZones = story.exercises.some((exercise) => (
+    exercise.primary.evidence.signalSeriesCount > 0
+      || exercise.primary.evidence.unsupportedSignalSeriesCount > 0
+      || exercise.transition.evidence.signalSeriesCount > 0
+      || exercise.transition.evidence.unsupportedSignalSeriesCount > 0
+      || exercise.evidence.zoneGroupCount > 0
+      || exercise.evidence.unsupportedZoneGroupCount > 0
+  ));
+  const hasRoutes = story.exercises.some((exercise) => (
+    exercise.primary.route !== null || exercise.transition.route !== null
+  ));
+  return [
+    "overview",
+    "structure",
+    ...(hasSignalsOrZones ? ["signals" as const] : []),
+    ...(hasRoutes ? ["routes" as const] : []),
+    "provenance",
+  ];
+}
+
+function hasVisualRoute(story: SessionStory): boolean {
+  return story.exercises.some((exercise) => (
+    (exercise.primary.route?.visualPoints.length ?? 0) > 0
+      || (exercise.transition.route?.visualPoints.length ?? 0) > 0
+  ));
+}
 
 function emptyDraft(initialDate?: string): SearchDraft {
   return {
@@ -370,6 +366,10 @@ export function TrainingSessionLibraryPanel({
   const handledCreateReportFocusRequest = useRef<number | undefined>(undefined);
   const copy = messages.training.sessionLibrary;
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const detailSections = useMemo(
+    () => availableDetailSections(detailStory),
+    [detailStory],
+  );
   const calendarDate = useMemo(() => new Intl.DateTimeFormat(locale, {
     dateStyle: "long",
     timeZone: "UTC",
@@ -453,6 +453,10 @@ export function TrainingSessionLibraryPanel({
     }
     return refinements;
   }, [applied, calendarDate, copy, sports]);
+
+  useEffect(() => {
+    if (!detailSections.includes(detailSection)) setDetailSection("overview");
+  }, [detailSection, detailSections]);
 
   async function query(
     criteria: SearchDraft,
@@ -1603,7 +1607,6 @@ export function TrainingSessionLibraryPanel({
     const kind = signalKindLabel(signal.kind);
     const unit = copy.signalUnits[signal.unit];
     const exactOpen = exactSignalRef === signal.signalRef;
-    const segments = signalSvgSegments(signal.visualSamples);
     const chartSummary = interpolate(copy.signalChartSummary, {
       kind,
       available: number.format(signal.availableSampleCount),
@@ -1635,20 +1638,13 @@ export function TrainingSessionLibraryPanel({
           <span>{unit}</span>
         </div>
         <div className="training-signal-visual">
-          {signal.visualSamples.length === 0 || segments.length === 0 ? (
-            <p>{signal.sampleCount === 0 ? copy.signalEmpty : copy.signalNoRecordedValues}</p>
-          ) : (
-            <svg viewBox="0 0 640 280" role="img" aria-label={chartSummary}>
-              <title>{chartSummary}</title>
-              <rect x="1" y="1" width="638" height="278" rx="18" />
-              {segments.map((points, index) => points.includes(" ")
-                ? <polyline key={`${signal.signalRef}-${index}`} points={points} />
-                : (() => {
-                  const [cx, cy] = points.split(",");
-                  return <circle key={`${signal.signalRef}-${index}`} cx={cx} cy={cy} r="4" />;
-                })())}
-            </svg>
-          )}
+          <TrainingSignalPlot
+            samples={signal.visualSamples}
+            summary={chartSummary}
+            sampleCount={signal.sampleCount}
+            emptyMessage={copy.signalEmpty}
+            noRecordedValuesMessage={copy.signalNoRecordedValues}
+          />
         </div>
         <dl role="group" aria-label={kind}>
           <div><dt>{copy.signalCoverage}</dt><dd>{coverageLabel(signal.availableSampleCount, signal.sampleCount)}</dd></div>
@@ -1869,9 +1865,9 @@ export function TrainingSessionLibraryPanel({
   const weekdays = Array.from({ length: 7 }, (_, index) => weekdayName.format(
     new Date(Date.UTC(2026, 7, 17 + index)),
   ));
-  const detailUnknownSportRefs = detailStory?.structure?.exercises?.reduce<string[]>(
+  const detailUnknownSportRefs = detailStory?.exercises.reduce<string[]>(
     (refs, exercise) => {
-      if (exercise.sport.state === "unknown"
+      if (exercise.sport?.state === "unknown"
         && exercise.sport.sportRef
         && !exercise.sport.classification?.displayLabel
         && !exercise.sport.classification?.canonicalFamily
@@ -1882,13 +1878,6 @@ export function TrainingSessionLibraryPanel({
     },
     [],
   ) ?? [];
-  const detailSections = [
-    "overview",
-    "structure",
-    "signals",
-    "routes",
-    "provenance",
-  ] as const;
 
   function exerciseSummary(exercise: TrainingExerciseStructure) {
     return (
@@ -1915,6 +1904,26 @@ export function TrainingSessionLibraryPanel({
           <div><dt>{messages.training.energy}</dt><dd>{formatExactMetric(exercise.energyKilocalories, locale, copy.metricUnavailable, messages.training.units.kilocalories)}</dd></div>
         </dl>
       </>
+    );
+  }
+
+  function storyExerciseSummary(exercise: SessionStoryExercise) {
+    if (exercise.structure) return exerciseSummary(exercise.structure);
+    return (
+      <header>
+        <h5>{interpolate(copy.exerciseHeading, {
+          number: number.format(exercise.ordinal + 1),
+        })}</h5>
+        {exercise.sport && (
+          <span className="training-exercise-sport-identity">
+            <SportFamilyIcon
+              family={sportFamily(exercise.sport)}
+              state={exercise.sport.state}
+            />
+            <span>{trainingSportTitle(exercise.sport, detailUnknownSportRefs)}</span>
+          </span>
+        )}
+      </header>
     );
   }
 
@@ -2721,13 +2730,30 @@ export function TrainingSessionLibraryPanel({
             {detailLoading && <p role="status">{copy.storyLoading}</p>}
             {detailFailed && <p className="error" role="alert">{copy.storyFailed}</p>}
           </div>
-          {detailStory && <TrainingRouteWorkbench
-            story={detailStory}
-            locale={locale}
-            messages={messages}
-            onOpenExactRoute={openExactRoutePointFromWorkbench}
-            onOpenExactSignal={openExactSignalSamplesFromWorkbench}
-          />}
+          {detailStory && (
+            <>
+              <TrainingRouteWorkbench
+                story={detailStory}
+                locale={locale}
+                messages={messages}
+                onOpenExactRoute={openExactRoutePointFromWorkbench}
+                onOpenExactSignal={openExactSignalSamplesFromWorkbench}
+              />
+              {!hasVisualRoute(detailStory) && (
+                <TrainingSignalWorkbench
+                  story={detailStory}
+                  locale={locale}
+                  messages={messages}
+                  onOpenExactSignal={openExactSignalSamplesFromWorkbench}
+                />
+              )}
+              <TrainingSessionEvidenceSummary
+                story={detailStory}
+                locale={locale}
+                messages={messages}
+              />
+            </>
+          )}
           <nav className="training-detail-navigation" aria-label={copy.detailNavigation}>
             {detailSections.map((section) => (
               <button
@@ -2822,44 +2848,48 @@ export function TrainingSessionLibraryPanel({
               <p>{copy.structureLimitations}</p>
             </aside>
           </section>
-          <section
-            id="training-detail-signals"
-            className="training-detail-section"
-            aria-label={copy.detailSections.signals}
-            hidden={detailSection !== "signals"}
-          >
-            <p className="training-detail-section-intro">{copy.detailSignalsIntro}</p>
-            {!detailLoading && detailStory?.signals === null && <p>{copy.signalNotEvaluated}</p>}
-            {detailStory?.signals?.exercises === null && <p>{copy.signalExercisesNotProvided}</p>}
-            {detailStory?.signals?.exercises?.length === 0 && <p>{copy.signalExercisesProvidedEmpty}</p>}
-            {!detailLoading && detailStory?.zones === null && <p>{copy.zoneNotEvaluated}</p>}
-            {detailStory?.zones?.exercises === null && <p>{copy.zoneExercisesNotProvided}</p>}
-            {detailStory?.zones?.exercises?.length === 0 && <p>{copy.zoneExercisesProvidedEmpty}</p>}
-            {detailStory?.structure?.exercises?.map((exercise) => (
-              <article className="training-exercise" key={exercise.exerciseRef}>
-                {exerciseSummary(exercise)}
-                {exerciseSignalEvidence(exercise.exerciseRef, exercise.ordinal)}
-                {exerciseZoneEvidence(exercise.exerciseRef)}
-              </article>
-            ))}
-          </section>
-          <section
-            id="training-detail-routes"
-            className="training-detail-section"
-            aria-label={copy.detailSections.routes}
-            hidden={detailSection !== "routes"}
-          >
-            <p className="training-detail-section-intro">{copy.detailRoutesIntro}</p>
-            {!detailLoading && detailStory?.routes === null && <p>{copy.routeNotEvaluated}</p>}
-            {detailStory?.routes?.exercises === null && <p>{copy.routeExercisesNotProvided}</p>}
-            {detailStory?.routes?.exercises?.length === 0 && <p>{copy.routeExercisesProvidedEmpty}</p>}
-            {detailStory?.structure?.exercises?.map((exercise) => (
-              <article className="training-exercise" key={exercise.exerciseRef}>
-                {exerciseSummary(exercise)}
-                {exerciseRouteEvidence(exercise.exerciseRef, exercise.ordinal)}
-              </article>
-            ))}
-          </section>
+          {detailSections.includes("signals") && (
+            <section
+              id="training-detail-signals"
+              className="training-detail-section"
+              aria-label={copy.detailSections.signals}
+              hidden={detailSection !== "signals"}
+            >
+              <p className="training-detail-section-intro">{copy.detailSignalsIntro}</p>
+              {!detailLoading && detailStory?.signals === null && <p>{copy.signalNotEvaluated}</p>}
+              {detailStory?.signals?.exercises === null && <p>{copy.signalExercisesNotProvided}</p>}
+              {detailStory?.signals?.exercises?.length === 0 && <p>{copy.signalExercisesProvidedEmpty}</p>}
+              {!detailLoading && detailStory?.zones === null && <p>{copy.zoneNotEvaluated}</p>}
+              {detailStory?.zones?.exercises === null && <p>{copy.zoneExercisesNotProvided}</p>}
+              {detailStory?.zones?.exercises?.length === 0 && <p>{copy.zoneExercisesProvidedEmpty}</p>}
+              {detailStory?.exercises.map((exercise) => (
+                <article className="training-exercise" key={exercise.exerciseRef}>
+                  {storyExerciseSummary(exercise)}
+                  {exerciseSignalEvidence(exercise.exerciseRef, exercise.ordinal)}
+                  {exerciseZoneEvidence(exercise.exerciseRef)}
+                </article>
+              ))}
+            </section>
+          )}
+          {detailSections.includes("routes") && (
+            <section
+              id="training-detail-routes"
+              className="training-detail-section"
+              aria-label={copy.detailSections.routes}
+              hidden={detailSection !== "routes"}
+            >
+              <p className="training-detail-section-intro">{copy.detailRoutesIntro}</p>
+              {!detailLoading && detailStory?.routes === null && <p>{copy.routeNotEvaluated}</p>}
+              {detailStory?.routes?.exercises === null && <p>{copy.routeExercisesNotProvided}</p>}
+              {detailStory?.routes?.exercises?.length === 0 && <p>{copy.routeExercisesProvidedEmpty}</p>}
+              {detailStory?.exercises.map((exercise) => (
+                <article className="training-exercise" key={exercise.exerciseRef}>
+                  {storyExerciseSummary(exercise)}
+                  {exerciseRouteEvidence(exercise.exerciseRef, exercise.ordinal)}
+                </article>
+              ))}
+            </section>
+          )}
           <section
             id="training-detail-provenance"
             className="training-detail-section"
