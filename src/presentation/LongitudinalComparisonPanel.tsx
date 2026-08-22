@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
 import { ProgressSubmitButton } from "./ProgressSubmitButton";
+import { submissionOrigin } from "./submission-origin";
 import { useInvalidForm } from "./useInvalidForm";
 import { useResultFocus } from "./useResultFocus";
 import type {
@@ -103,9 +104,7 @@ export function LongitudinalComparisonPanel({
       validation.reject("invalid-longitudinal-comparison");
       return;
     }
-    const initiatingElement = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
+    const initiatingElement = submissionOrigin(event.nativeEvent);
     await loadComparison(initiatingElement);
   }
 
@@ -182,7 +181,7 @@ export function LongitudinalComparisonPanel({
         >
           <div className="longitudinal-comparison-result-heading">
             <div>
-              <h3 ref={resultHeadingRef} id="longitudinal-comparison-heading" tabIndex={-1}>
+              <h2 ref={resultHeadingRef} id="longitudinal-comparison-heading" tabIndex={-1}>
                 {comparison.series.length === 0
                   ? copy.empty
                   : comparison.series.length === 1
@@ -191,7 +190,7 @@ export function LongitudinalComparisonPanel({
                       "{count}",
                       number.format(comparison.series.length),
                     )}
-              </h3>
+              </h2>
               <p>
                 {rangeLabel(comparison.baselineRange)} ·{" "}
                 {rangeLabel(comparison.comparisonRange)}
@@ -249,12 +248,13 @@ export function LongitudinalComparisonPanel({
                 ),
               },
             ];
+            const MetricHeading = comparison.series.length > 1 ? "h4" : "h3";
             return (
               <section className="longitudinal-comparison-series" key={series.seriesRef}>
                 {comparison.series.length > 1 && (
                   <div className="answer-series-heading">
                     <p>{messages.longitudinal.series} {number.format(index + 1)}</p>
-                    <h4>{copy.answerSingle}</h4>
+                    <h3>{copy.answerSingle}</h3>
                   </div>
                 )}
                 <figure className="longitudinal-comparison-visual">
@@ -267,7 +267,7 @@ export function LongitudinalComparisonPanel({
                       ]);
                       return (
                         <section key={metric.label}>
-                          <h5>{metric.label}</h5>
+                          <MetricHeading>{metric.label}</MetricHeading>
                           <div className="comparison-bars">
                             {[
                               [copy.baseline, metric.baseline],

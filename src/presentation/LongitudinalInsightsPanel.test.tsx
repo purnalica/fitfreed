@@ -574,7 +574,12 @@ describe("LongitudinalInsightsPanel", () => {
     });
     await waitFor(() => expect(within(result).getByRole("heading", {
       name: "Four histories compared side by side",
+      level: 2,
     })).toHaveFocus());
+    expect(within(result).getByRole("heading", {
+      name: "Total steps",
+      level: 3,
+    })).toBeVisible();
     expect(within(result).getByText("Four-domain period comparison")).toBeVisible();
     expect(within(result).getByText(/missing measurements are not filled in/)).toBeVisible();
     expect(within(result).queryByText("+2,000")).not.toBeVisible();
@@ -619,6 +624,37 @@ describe("LongitudinalInsightsPanel", () => {
     expect(within(region).queryByRole("region", {
       name: "Compared-history answer",
     })).not.toBeInTheDocument();
+  });
+
+  it("nests metric headings under each independent comparison origin", async () => {
+    const multiple = comparison();
+    multiple.series.push({
+      ...multiple.series[0],
+      seriesRef: "opaque-origin-beta",
+    });
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_longitudinal_overview") return Promise.resolve(overview());
+      if (command === "query_longitudinal_comparison") return Promise.resolve(multiple);
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    renderPanel();
+    const region = screen.getByRole("region", { name: "Longitudinal dashboard" });
+
+    await user.click(within(region).getByRole("button", { name: "Compare periods" }));
+    await user.click(within(region).getByRole("button", { name: "Compare shared periods" }));
+
+    const result = await within(region).findByRole("region", {
+      name: "Compared-history answer",
+    });
+    expect(within(result).getAllByRole("heading", {
+      name: "Four histories compared side by side",
+      level: 3,
+    })).toHaveLength(2);
+    expect(within(result).getAllByRole("heading", {
+      name: "Total steps",
+      level: 4,
+    })).toHaveLength(2);
   });
 
   it("preserves the last aligned comparison through a contextual failure and retry", async () => {

@@ -420,7 +420,7 @@ th:last-child, td:last-child { text-align: right; }
 .answer-retry p { margin: 0; }
 .answer-retry button { flex: 0 0 auto; }
 .answer-insufficient { margin: 0 0 18px; padding: 20px; color: var(--ink-soft); background: var(--surface-soft); border-left: 4px solid var(--accent); border-radius: 10px; }
-.answer-insufficient h3 { margin: 0 0 6px; font-size: 1.15rem; }
+.answer-insufficient h2 { margin: 0 0 6px; font-size: 1.15rem; }
 .answer-insufficient p { max-width: 64ch; margin: 0; }
 .answer-controls { margin-top: 18px; padding: 0; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; }
 .answer-controls > summary, .answer-exact-values > summary { padding: 14px 16px; color: var(--accent-deep); cursor: pointer; font-weight: 750; }
@@ -438,19 +438,19 @@ th:last-child, td:last-child { text-align: right; }
 .training-session-search-actions .progress-submit-status { order: 1; flex-basis: 100%; text-align: right; }
 .activity-comparison-result { padding: clamp(20px, 3vw, 34px); background: linear-gradient(145deg, var(--surface), var(--surface-soft)); border: 1px solid var(--line); border-radius: 18px; }
 .activity-comparison-result-heading { display: flex; align-items: start; justify-content: space-between; gap: 18px; }
-.activity-comparison-result-heading h3 { max-width: 20ch; margin: 0 0 8px; font-size: clamp(1.7rem, 3vw, 2.7rem); line-height: 1.05; letter-spacing: -.035em; }
-.activity-comparison-result-heading h3,
-.training-comparison-result-heading h3,
-.sleep-comparison-result-heading h3,
-.recovery-comparison-result-heading h3,
-.longitudinal-comparison-result-heading h3 { scroll-margin-block-start: 24px; }
+.activity-comparison-result-heading h2 { max-width: 20ch; margin: 0 0 8px; font-size: clamp(1.7rem, 3vw, 2.7rem); line-height: 1.05; letter-spacing: -.035em; }
+.activity-comparison-result-heading h2,
+.training-comparison-result-heading h2,
+.sleep-comparison-result-heading h2,
+.recovery-comparison-result-heading h2,
+.longitudinal-comparison-result-heading h2 { scroll-margin-block-start: 24px; }
 .activity-comparison-result-heading p { margin: 0; color: var(--muted); }
 .activity-comparison-series { margin-top: 22px; }
 .activity-comparison-series + .activity-comparison-series { padding-top: 22px; border-top: 1px solid var(--line); }
 .activity-comparison-series h4 { margin: 0 0 12px; font-size: 1rem; }
 .answer-series-heading { margin-bottom: 12px; }
 .answer-series-heading p { margin: 0 0 4px; color: var(--muted); font-size: .76rem; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
-.answer-series-heading h4 { margin: 0; }
+.answer-series-heading h3 { margin: 0; }
 .comparison-bars { display: grid; gap: 14px; margin: 24px 0 12px; padding: 18px; background: var(--paper); border-radius: 14px; }
 .comparison-bars > div { display: grid; grid-template-columns: minmax(90px, auto) minmax(120px, 1fr) minmax(90px, auto); gap: 12px; align-items: center; }
 .comparison-bars strong { text-align: right; font-variant-numeric: tabular-nums; }
@@ -759,7 +759,7 @@ th:last-child, td:last-child { text-align: right; }
 .training-comparison-form label, .training-comparison-form input { min-width: 0; width: 100%; }
 .training-comparison-result { padding: clamp(20px, 3vw, 34px); background: linear-gradient(145deg, var(--surface), var(--surface-soft)); border: 1px solid var(--line); border-radius: 18px; }
 .training-comparison-result-heading { display: flex; align-items: start; justify-content: space-between; gap: 18px; }
-.training-comparison-result-heading h3 { max-width: 22ch; margin: 0 0 8px; font-size: clamp(1.7rem, 3vw, 2.7rem); line-height: 1.05; letter-spacing: -.035em; }
+.training-comparison-result-heading h2 { max-width: 22ch; margin: 0 0 8px; font-size: clamp(1.7rem, 3vw, 2.7rem); line-height: 1.05; letter-spacing: -.035em; }
 .training-comparison-result-heading p { margin: 0; color: var(--muted); }
 .training-comparison-series { margin-top: 22px; }
 .training-comparison-series + .training-comparison-series { padding-top: 22px; border-top: 1px solid var(--line); }
@@ -835,7 +835,7 @@ th:last-child, td:last-child { text-align: right; }
 .sleep-comparison-form label, .sleep-comparison-form input { min-width: 0; width: 100%; }
 .sleep-comparison-result { padding: clamp(20px, 3vw, 34px); background: linear-gradient(145deg, var(--surface), var(--sleep-soft)); border: 1px solid var(--line); border-radius: 18px; }
 .sleep-comparison-result-heading { display: flex; align-items: start; justify-content: space-between; gap: 18px; }
-.sleep-comparison-result-heading h3 { max-width: 22ch; margin: 0 0 8px; font-size: clamp(1.7rem, 3vw, 2.7rem); line-height: 1.05; letter-spacing: -.035em; }
+.sleep-comparison-result-heading h2 { max-width: 22ch; margin: 0 0 8px; font-size: clamp(1.7rem, 3vw, 2.7rem); line-height: 1.05; letter-spacing: -.035em; }
 .sleep-comparison-result-heading p { margin: 0; color: var(--muted); }
 .sleep-comparison-series { margin-top: 22px; }
 .sleep-comparison-series + .sleep-comparison-series { padding-top: 22px; border-top: 1px solid var(--line); }
@@ -901,7 +901,7 @@ th:last-child, td:last-child { text-align: right; }
 .recovery-comparison-form label, .recovery-comparison-form input { min-width: 0; width: 100%; }
 .recovery-comparison-result { padding: clamp(20px, 3vw, 34px); background: linear-gradient(145deg, var(--surface), var(--recovery-soft)); border: 1px solid var(--line); border-radius: 18px; }
 .recovery-comparison-result-heading { display: flex; align-items: start; justify-content: space-between; gap: 18px; }
-.recovery-comparison-result-heading h3 { max-width: 24ch; margin: 0 0 8px; font-size: clamp(1.7rem, 3vw, 2.7rem); line-height: 1.05; letter-spacing: -.035em; }
+.recovery-comparison-result-heading h2 { max-width: 24ch; margin: 0 0 8px; font-size: clamp(1.7rem, 3vw, 2.7rem); line-height: 1.05; letter-spacing: -.035em; }
 .recovery-comparison-result-heading p { margin: 0; color: var(--muted); }
 .recovery-comparison-series { margin-top: 22px; }
 .recovery-comparison-series + .recovery-comparison-series { padding-top: 22px; border-top: 1px solid var(--line); }
@@ -972,7 +972,7 @@ th:last-child, td:last-child { text-align: right; }
 .longitudinal-comparison .answer-controls > form label, .longitudinal-comparison .answer-controls > form input { min-width: 0; width: 100%; }
 .longitudinal-comparison-result { padding: clamp(20px, 3vw, 34px); background: linear-gradient(145deg, var(--surface), var(--surface-soft)); border: 1px solid var(--line); border-radius: 18px; }
 .longitudinal-comparison-result-heading { display: flex; align-items: start; justify-content: space-between; gap: 18px; }
-.longitudinal-comparison-result-heading h3 { max-width: 24ch; margin: 0 0 8px; font-size: clamp(1.7rem, 3vw, 2.7rem); line-height: 1.05; letter-spacing: -.035em; }
+.longitudinal-comparison-result-heading h2 { max-width: 24ch; margin: 0 0 8px; font-size: clamp(1.7rem, 3vw, 2.7rem); line-height: 1.05; letter-spacing: -.035em; }
 .longitudinal-comparison-result-heading p { margin: 0; color: var(--muted); }
 .longitudinal-comparison-caution { margin: 18px 0 0; }
 .longitudinal-comparison-series { margin-top: 22px; }
@@ -981,7 +981,8 @@ th:last-child, td:last-child { text-align: right; }
 .longitudinal-comparison-visual { margin: 0; padding: 18px; background: var(--paper); border: 1px solid var(--line); border-radius: 15px; }
 .longitudinal-comparison-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .longitudinal-comparison-metrics > section { min-width: 0; padding: 14px; background: var(--surface); border-radius: 11px; }
-.longitudinal-comparison-metrics h5 { margin: 0; font-size: .82rem; }
+.longitudinal-comparison-metrics h3,
+.longitudinal-comparison-metrics h4 { margin: 0; font-size: .82rem; }
 .longitudinal-comparison-metrics .comparison-bars { gap: 9px; margin: 12px 0 0; padding: 0; background: transparent; }
 .longitudinal-comparison-metrics .comparison-bars > div { grid-template-columns: minmax(78px, auto) minmax(80px, 1fr) minmax(80px, auto); gap: 8px; font-size: .74rem; }
 .longitudinal-comparison-metrics .bar { background: var(--accent-deep); }
@@ -1188,14 +1189,14 @@ th:last-child, td:last-child { text-align: right; }
   .shell-local-boundary small { display: none; }
   .shell-workspace { grid-row: 2; }
   .app-content { width: min(100% - 40px, 1600px); }
-  .activity-comparison-result-heading h3,
-  .training-comparison-result-heading h3,
+  .activity-comparison-result-heading h2,
+  .training-comparison-result-heading h2,
   .sleep-answer-heading h2,
-  .sleep-comparison-result-heading h3,
+  .sleep-comparison-result-heading h2,
   .recovery-answer-heading h2,
-  .recovery-comparison-result-heading h3,
+  .recovery-comparison-result-heading h2,
   .longitudinal-answer-heading h2,
-  .longitudinal-comparison-result-heading h3 { scroll-margin-block-start: 120px; }
+  .longitudinal-comparison-result-heading h2 { scroll-margin-block-start: 120px; }
 }
 
 :root[data-content-zoom="175"] .app-shell,
@@ -1218,8 +1219,8 @@ th:last-child, td:last-child { text-align: right; }
 :root[data-content-zoom="200"] .shell-workspace { grid-row: 2; }
 :root[data-content-zoom="175"] .app-content,
 :root[data-content-zoom="200"] .app-content { width: min(100% - 40px, 1600px); }
-:root[data-content-zoom="175"] :is(.activity-comparison-result-heading, .training-comparison-result-heading, .sleep-comparison-result-heading, .recovery-comparison-result-heading, .longitudinal-comparison-result-heading) h3,
-:root[data-content-zoom="200"] :is(.activity-comparison-result-heading, .training-comparison-result-heading, .sleep-comparison-result-heading, .recovery-comparison-result-heading, .longitudinal-comparison-result-heading) h3,
+:root[data-content-zoom="175"] :is(.activity-comparison-result-heading, .training-comparison-result-heading, .sleep-comparison-result-heading, .recovery-comparison-result-heading, .longitudinal-comparison-result-heading) h2,
+:root[data-content-zoom="200"] :is(.activity-comparison-result-heading, .training-comparison-result-heading, .sleep-comparison-result-heading, .recovery-comparison-result-heading, .longitudinal-comparison-result-heading) h2,
 :root[data-content-zoom="175"] :is(.sleep-answer-heading, .recovery-answer-heading, .longitudinal-answer-heading) h2,
 :root[data-content-zoom="200"] :is(.sleep-answer-heading, .recovery-answer-heading, .longitudinal-answer-heading) h2 { scroll-margin-block-start: 210px; }
 :root[data-content-zoom="175"] .training-comparison-result-heading,

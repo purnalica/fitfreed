@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "updated": "2026-08-22",
   "statuses": [
     {
@@ -7,32 +7,33 @@
       "label": "Implemented in source",
       "title": "Current capability",
       "items": [
-        "Polar Flow ZIP validation and import",
-        "Explicit supported, ignored, and unrecognized coverage",
-        "Safe exact and cumulative reimport",
-        "Provider-neutral SQLite history for activity, training summaries, structure, routes, signals, sleep, and recovery",
-        "Immediate coverage-aware daily activity answers and bounded visual comparisons",
-        "User-authored sport classification and complete-history session search",
-        "Chronology, source-separated calendar discovery, session comparison, and restart restoration",
-        "Recorded exercise, mixed-sport, source-lap, automatic-lap, and pause inspection",
-        "Private local primary and transition route traces with paginated exact points",
-        "Gap-aware supported signal charts with paginated exact samples",
-        "Exact recorded heart-rate, speed, and power zones with applicable aggregates",
-        "Reusable personal segment criteria with exact locally derived session views",
-        "Result-led Library Home with complete span, current sport identities, recent exact sessions, conservative comparison or historical fallback, and precise post-import outcomes",
-        "Persistent navigation, offline export guidance, and allowlisted official links",
-        "Durable language, appearance, and content zoom settings",
-        "en-US and es-ES, packaging, update recovery, and release-shaped tests",
-        "On-demand privacy-bounded session provenance and reconciliation history",
-        "Selectable same-role signal alignment with exact sample paths",
-        "Composable session and route reports with privacy-reviewed self-contained HTML export",
-        "Result-first training-period answers with human-scale visuals, exact values, coverage, and report handoff",
-        "Result-first sleep-period answers with recorded-night coverage, human-scale visuals, exact evidence, and night detail",
-        "Result-first recovery-period answers with factual interval relationships, source boundaries, exact evidence, and no medical interpretation",
-        "Result-first aligned-history answers with four-lane daily evidence, exact cross-domain navigation, factual period comparisons, and an explicit non-causality boundary",
-        "Question-led, exploration-led, session-led, and blank report starts with durable authored results",
-        "Deliberate stale-report refresh through an exact current-evidence review",
-        "Origin-aware navigation between saved reports and their exact session or comparison source"
+        { "key": "polarFlowImport", "text": "Polar Flow ZIP validation and import" },
+        { "key": "importCoverage", "text": "Explicit supported, ignored, and unrecognized coverage" },
+        { "key": "safeReimport", "text": "Safe exact and cumulative reimport" },
+        { "key": "providerNeutralHistory", "text": "Provider-neutral SQLite history for activity, training summaries, structure, routes, signals, sleep, and recovery" },
+        { "key": "dailyActivityAnswers", "text": "Immediate coverage-aware daily activity answers and bounded visual comparisons" },
+        { "key": "sportClassification", "text": "User-authored sport classification and complete-history session search" },
+        { "key": "historyDiscovery", "text": "Chronology, source-separated calendar discovery, session comparison, and restart restoration" },
+        { "key": "sessionStructure", "text": "Recorded exercise, mixed-sport, source-lap, automatic-lap, and pause inspection" },
+        { "key": "routeTraces", "text": "Private local primary and transition route traces with paginated exact points" },
+        { "key": "signalCharts", "text": "Gap-aware supported signal charts with paginated exact samples" },
+        { "key": "recordedZones", "text": "Exact recorded heart-rate, speed, and power zones with applicable aggregates" },
+        { "key": "personalSegments", "text": "Reusable personal segment criteria with exact locally derived session views" },
+        { "key": "libraryHome", "text": "Result-led Library Home with complete span, current sport identities, recent exact sessions, conservative comparison or historical fallback, and precise post-import outcomes" },
+        { "key": "persistentNavigation", "text": "Persistent navigation, offline export guidance, and allowlisted official links" },
+        { "key": "preferences", "text": "Durable language, appearance, and content zoom settings" },
+        { "key": "localesAndPackaging", "text": "en-US and es-ES, packaging, update recovery, and release-shaped tests" },
+        { "key": "sessionProvenance", "text": "On-demand privacy-bounded session provenance and reconciliation history" },
+        { "key": "signalAlignment", "text": "Selectable same-role signal alignment with exact sample paths" },
+        { "key": "sessionReports", "text": "Composable session and route reports with privacy-reviewed self-contained HTML export" },
+        { "key": "trainingAnswers", "text": "Result-first training-period answers with human-scale visuals, exact values, coverage, and report handoff" },
+        { "key": "sleepAnswers", "text": "Result-first sleep-period answers with recorded-night coverage, human-scale visuals, exact evidence, and night detail" },
+        { "key": "recoveryAnswers", "text": "Result-first recovery-period answers with factual interval relationships, source boundaries, exact evidence, and no medical interpretation" },
+        { "key": "alignedHistoryAnswers", "text": "Result-first aligned-history answers with four-lane daily evidence, exact cross-domain navigation, factual period comparisons, and an explicit non-causality boundary" },
+        { "key": "answerCanvasContinuity", "text": "Coherent question-led entry, exact initiating-control focus, and Home return across all five History Answer Canvases" },
+        { "key": "authoredReports", "text": "Question-led, exploration-led, session-led, and blank report starts with durable authored results" },
+        { "key": "staleReportRefresh", "text": "Deliberate stale-report refresh through an exact current-evidence review" },
+        { "key": "reportOriginNavigation", "text": "Origin-aware navigation between saved reports and their exact session or comparison source" }
       ],
       "source": {
         "label": "MVP capability boundary",
@@ -44,9 +45,8 @@
       "label": "Work in progress",
       "title": "Experience production migration",
       "items": [
-        "Cross-question coherence for all five History Answer Canvases and exact Home return",
-        "Map-led outdoor session investigation with synchronized recorded evidence",
-        "Result-first reports, human-scale presentation, and visible data exit"
+        { "key": "outdoorSessionWorkbench", "text": "Map-led outdoor session investigation with synchronized recorded evidence" },
+        { "key": "resultFirstReports", "text": "Result-first reports, human-scale presentation, and visible data exit" }
       ],
       "source": {
         "label": "Active production migration plan",
@@ -58,12 +58,12 @@
       "label": "Later scope",
       "title": "Outside the current MVP",
       "items": [
-        "Additional providers and live APIs",
-        "Linux and Windows distribution",
-        "Local MCP access for authorized agents",
-        "Advanced encryption and extension systems",
-        "Collaborative or hosted analytics",
-        "Features without validated user value"
+        { "key": "additionalProviders", "text": "Additional providers and live APIs" },
+        { "key": "desktopPlatforms", "text": "Linux and Windows distribution" },
+        { "key": "localMcp", "text": "Local MCP access for authorized agents" },
+        { "key": "advancedProtection", "text": "Advanced encryption and extension systems" },
+        { "key": "hostedAnalytics", "text": "Collaborative or hosted analytics" },
+        { "key": "evidenceLedFeatures", "text": "Features without validated user value" }
       ],
       "source": {
         "label": "Post-MVP evolution tracks",

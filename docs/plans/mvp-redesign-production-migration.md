@@ -2,8 +2,8 @@
 
 ## Status and authority
 
-Authorized for autonomous execution as of 2026-08-21. X4-P0 through X5-R3 and X5-R4.1 through
-X5-R4.4 are complete locally; X5-R4.5 is next.
+Authorized for autonomous execution as of 2026-08-21. X4-P0 through X5-R4 are complete locally;
+X5-R5 is next.
 The X5-R1 product entrance is live; exact hosted verification of its CI resource optimizer remains
 pending synchronization of the workflow-changing commit. The product owner accepted the X3
 direction and its amendments on 2026-08-21. This
@@ -206,7 +206,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R2.2 | Complete locally — exact packaged gates passed 2026-08-22 | Sources leads with acquisition, a protected active task, and a calm exact outcome |
 | X5-R2.3 | Complete locally — exact packaged gates passed 2026-08-22 | Durable language, appearance, zoom, and update settings form one coherent workspace |
 | X5-R3 | Complete locally — exact packaged and dense-history gates passed 2026-08-22 | Import ends in recognizable personal value |
-| X5-R4 | In progress — R4.1–R4.4 complete locally 2026-08-22 | Existing health and aligned-history questions read as answers |
+| X5-R4 | Complete locally — exact packaged and exhaustive adaptive gates passed 2026-08-22 | Existing health and aligned-history questions read as answers |
 | X5-R5 | Pending | A remembered session is findable and sports are recognizable |
 | X5-R6 | Pending | A routed workout is investigated through a dominant synchronized map |
 | X5-R7 | Pending | Every session composition reflects its actual evidence |
@@ -364,9 +364,8 @@ precision, missing-data, and navigation guidance; architecture ownership and pre
 R4 is delivered as five independently usable vertical increments. Each increment retains the current
 exact-data route and leaves the application coherent if the following increment has not landed.
 
-**Status:** R4.1 through R4.4 passed their focused, full fast, packaged functional, packaged
-performance, and actual wide and 200%-zoom macOS visual gates on 2026-08-22. R4.5 is next; R4 as a
-whole remains open.
+**Status:** R4.1 through R4.5 passed their focused, full fast, packaged functional, packaged
+performance, privacy, and actual macOS visual gates on 2026-08-22. R4 is complete; X5-R5 is next.
 
 | Increment | User-visible outcome | Required implementation and evidence |
 |---|---|---|
@@ -425,6 +424,54 @@ measured the longitudinal common range at 18 ms p95, maximum range at 51 ms p95,
 inspection covered the overview and comparison in English light appearance at 100% and Spanish dark
 appearance at 200%, with no document overflow or clipped primary action. Repository-content and complete
 reachable-history secret scans passed without versioning local host evidence.
+
+R4.5 closes R4 through three independently reviewable checkpoints:
+
+1. **R4.5a — Answer grammar audit:** exercise the activity, training-period, sleep, recovery, and
+   aligned-history entry paths against one behavioral matrix. Each supported answer must lead with a
+   localized factual conclusion and bounded visual, retain source separation and missing semantics,
+   disclose exact evidence and period editing deliberately, preserve the last valid answer on a
+   contextual failure, and focus the resulting answer without stealing an explicit focus change. Remove
+   any superseded control-first question path, but do not turn ordinary History discovery into a forced
+   answer or hide its recognizable session and sport navigation.
+2. **R4.5b — Origin and workspace continuity:** verify every question, the recent training comparison,
+   and a recent session from Home through open, temporary top-level navigation, contextual return, and
+   restart where the destination is durable. **Back to Home** must clear only disposable exploration,
+   restore the exact initiating control and its Home scroll state, and never leave a longitudinal day,
+   report return, period, or training selection attached to a later unrelated question. History workspace
+   choices, exact detail close actions, comparison results, and entered periods must retain their existing
+   bounded ownership.
+3. **R4.5c — Joint adaptive and release-shaped gate:** inspect all five answers and their comparisons in
+   both locales, light and dark appearance, wide and compact allocation, 100%, 175%, and 200% content
+   zoom, keyboard operation, reduced motion, and automated accessibility. Exact alternatives must remain
+   reachable, wide evidence must scroll only inside its labelled region, focus and errors must not depend
+   on color, and no page may overflow horizontally. Run the complete fast, packaged functional, packaged
+   performance, privacy, documentation, and actual macOS visual gates before recording R4 complete.
+
+R4.5 changes no domain calculation, storage contract, or provider mapping. A coherence defect is fixed at
+the presentation or navigation owner that causes it; a missing factual capability returns to the
+application boundary rather than being approximated in React.
+
+R4.5 verification on 2026-08-22 covered exact question-origin return, temporary shell navigation, and
+preserved aligned-history state in 54 application-shell tests; semantic Answer Canvas hierarchies and
+form-origin behavior in 39 focused presentation tests; and the complete fast suite of 152 automation,
+224 React, 2 vendored-updater, 211 host, 147 application, and 33 domain tests. A WebKit stress test
+recalculated an already-visible training comparison 30 consecutive times. It exposed that a submit event
+may precede focus transfer to its button; every form-driven result now uses the event's actual submitter
+as its initiating control, while explicit user focus changes still cancel restoration.
+
+The packaged functional journey passed import, reimport, cancellation, both locales, maximum zoom,
+every analytical workspace, reports, accessibility, restart, and origin-aware return in 1 minute 18
+seconds. The isolated two-year packaged campaign kept every accepted performance budget: the slowest
+common interaction p95 was 33 ms, the slowest maximum-range p95 was 132 ms, and the bounded signal
+overview p95 was 63 ms. The actual macOS WebView then passed 192 Answer Canvas inspections covering the
+complete product of `en-US` and `es-ES`, light and dark appearance, wide and compact allocation, and
+100%, 175%, and 200% content zoom. Every inspection retained focused and visible conclusions, bounded
+visual and exact alternatives, zero page-level horizontal overflow, and zero Axe violations. Human
+inspection of the representative wide, compact 175%, and dark 200% contact sheets found no clipped or
+obscured primary result. The reduced-motion contract found its single motion declaration inside the
+`no-preference` boundary. Repository-content, complete reachable-history secret, formatting,
+documentation, localization, site, and product-surface checks passed without versioning local evidence.
 
 For every increment, the red test must describe the user consequence before presentation code changes.
 An Answer Canvas may format an existing application result and choose a visual hierarchy; it must not

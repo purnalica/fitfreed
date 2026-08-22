@@ -1082,6 +1082,53 @@ describe("FitFreed import interface", () => {
     expect(mocks.homeInvoke).toHaveBeenCalledWith("clear_exploration_workspace", undefined);
   });
 
+  it("preserves an aligned answer through a reversible Home visit and restores its exact origin", async () => {
+    const home = populatedLibraryHome({
+      questions: [{ kind: "align-history", destination: "longitudinal" }],
+    });
+    mocks.homeInvoke.mockImplementation((command, arguments_) => {
+      if (command === "query_library_home") return Promise.resolve(home);
+      if (command === "save_exploration_workspace") {
+        return Promise.resolve({ version: 1, destination: arguments_.destination });
+      }
+      if (command === "clear_training_discovery_workspace") return Promise.resolve(undefined);
+      if (command === "clear_exploration_workspace") return Promise.resolve(undefined);
+      throw new Error(`Unexpected Home command: ${command}`);
+    });
+    mocks.longitudinalInvoke.mockImplementation((command) => {
+      if (command === "query_longitudinal_overview") {
+        return Promise.resolve(longitudinalOverviewWithTrainingDay());
+      }
+      throw new Error(`Unexpected longitudinal command: ${command}`);
+    });
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+
+    const question = await screen.findByRole("button", {
+      name: questionForDestination.longitudinal.label,
+    });
+    await user.click(question);
+    await user.click(await screen.findByText("Review exact days and measurements"));
+    expect(screen.getByRole("table", { name: "Exact longitudinal history" })).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Home" }));
+    expect(await screen.findByRole("button", {
+      name: "Resume aligned-history exploration",
+    })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "History" }));
+    expect(screen.getByRole("table", { name: "Exact longitudinal history" })).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Back to Home" }));
+    await waitFor(() => expect(screen.getByRole("button", {
+      name: questionForDestination.longitudinal.label,
+    })).toHaveFocus());
+    expect(mocks.homeInvoke).toHaveBeenCalledWith("clear_exploration_workspace", undefined);
+  });
+
   it("announces one exact Home destination while its workspace is persisted", async () => {
     const home = populatedLibraryHome();
     let resolveSave: () => void = () => undefined;
@@ -1262,6 +1309,9 @@ describe("FitFreed import interface", () => {
       await user.click(screen.getByRole("button", { name: "Back to Home" }));
       expect(await screen.findByRole("heading", { name: "What do you want to understand?" }))
         .toBeVisible();
+      await waitFor(() => expect(screen.getByRole("button", {
+        name: questionForDestination[destination].label,
+      })).toHaveFocus());
     }
   });
 

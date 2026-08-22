@@ -12,6 +12,7 @@ import type {
   TrainingSeriesSummary,
 } from "./training-insights";
 import type { ReportTrainingComparisonQuery } from "./session-report";
+import { submissionOrigin } from "./submission-origin";
 import { useInvalidForm } from "./useInvalidForm";
 import { useResultFocus } from "./useResultFocus";
 
@@ -205,9 +206,7 @@ export function TrainingComparisonPanel({
       validation.reject("invalid-training-comparison");
       return;
     }
-    const initiatingElement = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
+    const initiatingElement = submissionOrigin(event.nativeEvent);
     await loadComparison(baselineRange, comparisonRange, initiatingElement);
   }
 
@@ -439,7 +438,7 @@ export function TrainingComparisonPanel({
         >
           <div className="training-comparison-result-heading">
             <div>
-              <h3
+              <h2
                 id="training-comparison-heading"
                 ref={resultHeadingRef}
                 tabIndex={-1}
@@ -452,7 +451,7 @@ export function TrainingComparisonPanel({
                       "{count}",
                       number.format(comparison.series.length),
                     )}
-              </h3>
+              </h2>
               <p>
                 {rangeLabel(comparison.baselineRange)} · {rangeLabel(comparison.comparisonRange)}
               </p>
@@ -501,7 +500,7 @@ export function TrainingComparisonPanel({
                 {comparison.series.length > 1 && (
                   <div className="answer-series-heading">
                     <p>{messages.training.series} {number.format(index + 1)}</p>
-                    <h4>{durationConclusion(series)}</h4>
+                    <h3>{durationConclusion(series)}</h3>
                   </div>
                 )}
                 <div className="comparison-bars" aria-hidden="true">

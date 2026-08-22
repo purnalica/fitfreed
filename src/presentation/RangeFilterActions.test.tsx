@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { RangeFilterActions, type RangeOperation } from "./RangeFilterActions";
@@ -23,6 +23,27 @@ function renderActions(operation?: RangeOperation) {
 }
 
 describe("RangeFilterActions", () => {
+  it("identifies the reset control that initiated the request", () => {
+    const onReset = vi.fn();
+    render(
+      <form aria-label="Period">
+        <RangeFilterActions
+          className="actions"
+          applyLabel="Apply period"
+          applyingLabel="Applying period…"
+          resetLabel="Latest window"
+          resettingLabel="Loading latest window…"
+          onReset={onReset}
+        />
+      </form>,
+    );
+    const reset = screen.getByRole("button", { name: "Latest window" });
+
+    fireEvent.click(reset);
+
+    expect(onReset).toHaveBeenCalledWith(reset);
+  });
+
   it.each([
     ["apply", "Applying period…"],
     ["reset", "Loading latest window…"],

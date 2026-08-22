@@ -88,6 +88,7 @@ describe("TrainingComparisonPanel", () => {
     act(() => resolveComparison(result));
     await waitFor(() => expect(form).toHaveAttribute("aria-busy", "false"));
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    await waitFor(() => expect(resultHeading).toHaveFocus());
   });
 
   it("associates an invalid comparison with every period input", async () => {
@@ -161,6 +162,7 @@ describe("TrainingComparisonPanel", () => {
     });
     const heading = within(answer).getByRole("heading", {
       name: "Recorded training time was 1 h 30 min longer",
+      level: 2,
     });
     await waitFor(() => expect(heading).toHaveFocus());
     expect(screen.getByText("Change periods").closest("details")).not.toHaveAttribute("open");
@@ -255,13 +257,18 @@ describe("TrainingComparisonPanel", () => {
     );
 
     const answer = await screen.findByRole("region", { name: "Training period answer" });
-    expect(within(answer).getByRole("heading", { name: "2 source histories compared" }))
+    expect(within(answer).getByRole("heading", {
+      name: "2 source histories compared",
+      level: 2,
+    }))
       .toBeVisible();
     expect(within(answer).getByRole("heading", {
       name: "Recorded training time was 1 h 30 min longer",
+      level: 3,
     })).toBeVisible();
     expect(within(answer).getByRole("heading", {
       name: "Recorded training time was 1 h shorter",
+      level: 3,
     })).toBeVisible();
     expect(within(answer).getAllByText("Training origin", { exact: false })).toHaveLength(2);
     expect(within(answer).getByText(

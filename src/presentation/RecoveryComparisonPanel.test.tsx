@@ -74,6 +74,7 @@ describe("RecoveryComparisonPanel", () => {
     const answer = await screen.findByRole("region", { name: "Recovery period answer" });
     const heading = within(answer).getByRole("heading", {
       name: "Average recorded beat-to-beat interval was 25 ms longer",
+      level: 2,
     });
     await waitFor(() => expect(heading).toHaveFocus());
     expect(within(answer).getByText(
@@ -158,13 +159,18 @@ describe("RecoveryComparisonPanel", () => {
     await user.click(screen.getByRole("button", { name: "Compare recovery periods" }));
 
     const answer = await screen.findByRole("region", { name: "Recovery period answer" });
-    expect(within(answer).getByRole("heading", { name: "2 recovery histories compared" }))
+    expect(within(answer).getByRole("heading", {
+      name: "2 recovery histories compared",
+      level: 2,
+    }))
       .toBeVisible();
     expect(within(answer).getByRole("heading", {
       name: "Average recorded beat-to-beat interval was 25 ms longer",
+      level: 3,
     })).toBeVisible();
     expect(within(answer).getByRole("heading", {
       name: "Average recorded beat-to-beat interval was 20 ms shorter",
+      level: 3,
     })).toBeVisible();
   });
 

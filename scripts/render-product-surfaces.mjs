@@ -31,7 +31,7 @@ function replaceGeneratedSection(source, replacement) {
 }
 
 export function validateProductStatus(model) {
-  assert.equal(model?.schemaVersion, 1, "unsupported product-status schema version");
+  assert.equal(model?.schemaVersion, 2, "unsupported product-status schema version");
   assert.match(model?.updated ?? "", /^\d{4}-\d{2}-\d{2}$/u, "product-status date must use YYYY-MM-DD");
   assert.ok(Array.isArray(model?.statuses), "product statuses must be an array");
   assert.deepEqual(model.statuses.map(({ key }) => key), expectedKeys, "product statuses must retain their semantic order");
@@ -40,7 +40,20 @@ export function validateProductStatus(model) {
     assert.match(status.label ?? "", /\S/u, `${status.key} label is required`);
     assert.match(status.title ?? "", /\S/u, `${status.key} title is required`);
     assert.ok(Array.isArray(status.items) && status.items.length > 0, `${status.key} items are required`);
-    assert.equal(new Set(status.items).size, status.items.length, `${status.key} contains duplicate items`);
+    for (const item of status.items) {
+      assert.match(item.key ?? "", /^[a-z][A-Za-z0-9]*$/u, `${status.key} item key is invalid`);
+      assert.match(item.text ?? "", /\S/u, `${status.key}.${item.key} item text is required`);
+    }
+    assert.equal(
+      new Set(status.items.map(({ key }) => key)).size,
+      status.items.length,
+      `${status.key} contains duplicate item keys`,
+    );
+    assert.equal(
+      new Set(status.items.map(({ text }) => text)).size,
+      status.items.length,
+      `${status.key} contains duplicate item text`,
+    );
     assert.match(status.source?.label ?? "", /\S/u, `${status.key} source label is required`);
     assert.match(status.source?.path ?? "", /^docs\//u, `${status.key} source must be a repository documentation path`);
   }
@@ -51,7 +64,7 @@ export function renderReadmeStatus(model) {
     `<details data-status="${escapeHtml(status.key)}"${status.key === "active" ? " open" : ""}>`,
     `<summary><strong>${escapeHtml(status.label)} — ${escapeHtml(status.title)}</strong></summary>`,
     "<ul>",
-    ...status.items.map((item) => `<li>${escapeHtml(item)}</li>`),
+    ...status.items.map((item) => `<li>${escapeHtml(item.text)}</li>`),
     "</ul>",
     `<p><a href="${escapeHtml(status.source.path)}">${escapeHtml(status.source.label)} →</a></p>`,
     "</details>",
@@ -67,8 +80,8 @@ export function renderReadmeStatus(model) {
 
 export function renderProductPageStatus(model) {
   const articles = model.statuses.map((status) => {
-    const items = status.items.map((item, index) =>
-      `              <li data-i18n="status.${escapeHtml(status.key)}.items.${index}">${escapeHtml(item)}</li>`,
+    const items = status.items.map((item) =>
+      `              <li data-i18n="status.${escapeHtml(status.key)}.items.${escapeHtml(item.key)}">${escapeHtml(item.text)}</li>`,
     ).join("\n");
     const sourcePath = `../${escapeHtml(status.source.path)}`;
     return [

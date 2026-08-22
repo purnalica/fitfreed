@@ -91,12 +91,15 @@ describe("ActivityComparisonPanel", () => {
     const answer = await screen.findByRole("region", { name: "Daily activity answer" });
     expect(within(answer).getByRole("heading", {
       name: "Daily activity changed across 2 independent sources",
+      level: 2,
     })).toBeVisible();
     expect(within(answer).getByRole("heading", {
       name: "Average daily steps were 1,500 higher",
+      level: 3,
     })).toBeVisible();
     expect(within(answer).getByRole("heading", {
       name: "The periods do not have enough comparable step totals",
+      level: 3,
     })).toBeVisible();
     expect(within(answer).getByText("Activity source 1")).toBeVisible();
     expect(within(answer).getByText("Activity source 2")).toBeVisible();

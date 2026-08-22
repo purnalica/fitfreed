@@ -14,6 +14,7 @@ import { restoreFocusAfterReveal } from "./focus-restoration";
 import { WorkspaceNavigation } from "./WorkspaceNavigation";
 import { LongitudinalComparisonPanel } from "./LongitudinalComparisonPanel";
 import { RangeFilterActions, type RangeOperation } from "./RangeFilterActions";
+import { submissionOrigin } from "./submission-origin";
 import type {
   LongitudinalDateRange,
   LongitudinalDayInsight,
@@ -154,9 +155,7 @@ export function LongitudinalInsightsPanel({
     rangeValidation.accept();
     setRangeOperation("apply");
     onError(undefined);
-    const initiatingElement = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
+    const initiatingElement = submissionOrigin(event.nativeEvent);
     try {
       await refresh({ from: rangeFrom, through: rangeThrough });
       requestResultFocus(initiatingElement);
@@ -167,13 +166,10 @@ export function LongitudinalInsightsPanel({
     }
   }
 
-  async function resetRange() {
+  async function resetRange(initiatingElement: HTMLButtonElement) {
     rangeValidation.accept();
     setRangeOperation("reset");
     onError(undefined);
-    const initiatingElement = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
     try {
       await refresh();
       requestResultFocus(initiatingElement);
@@ -391,7 +387,7 @@ export function LongitudinalInsightsPanel({
                   applyingLabel={copy.applyingRange}
                   resetLabel={copy.latestWindow}
                   resettingLabel={copy.loadingLatestWindow}
-                  onReset={() => void resetRange()}
+                  onReset={(initiatingElement) => void resetRange(initiatingElement)}
                 />
               </form>
               }

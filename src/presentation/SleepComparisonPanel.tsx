@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
 import { ProgressSubmitButton } from "./ProgressSubmitButton";
+import { submissionOrigin } from "./submission-origin";
 import { useInvalidForm } from "./useInvalidForm";
 import { useResultFocus } from "./useResultFocus";
 import {
@@ -148,9 +149,7 @@ export function SleepComparisonPanel({
       validation.reject("invalid-sleep-comparison");
       return;
     }
-    const initiatingElement = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
+    const initiatingElement = submissionOrigin(event.nativeEvent);
     await loadComparison(initiatingElement);
   }
 
@@ -242,7 +241,7 @@ export function SleepComparisonPanel({
         >
           <div className="sleep-comparison-result-heading">
             <div>
-              <h3 ref={resultHeadingRef} id="sleep-comparison-heading" tabIndex={-1}>
+              <h2 ref={resultHeadingRef} id="sleep-comparison-heading" tabIndex={-1}>
                 {comparison.series.length === 0
                   ? copy.empty
                   : comparison.series.length === 1
@@ -251,7 +250,7 @@ export function SleepComparisonPanel({
                       "{count}",
                       number.format(comparison.series.length),
                     )}
-              </h3>
+              </h2>
               <p>
                 {rangeLabel(comparison.baselineRange)} · {rangeLabel(comparison.comparisonRange)}
               </p>
@@ -278,7 +277,7 @@ export function SleepComparisonPanel({
                 {comparison.series.length > 1 && (
                   <div className="answer-series-heading">
                     <p>{messages.sleep.series} {number.format(index + 1)}</p>
-                    <h4>{durationConclusion(series)}</h4>
+                    <h3>{durationConclusion(series)}</h3>
                   </div>
                 )}
                 <div className="comparison-bars" aria-hidden="true">

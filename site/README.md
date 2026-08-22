@@ -10,7 +10,9 @@ roadmap; those documents remain authoritative.
 The available, active, and later capability block is generated from
 [`docs/product-status.json`](../docs/product-status.json). Change that source and run
 `npm run render:product-surfaces`; `npm run check:product-surfaces` rejects a divergent README or
-page.
+page. Every status item owns a stable semantic `key` as well as its English `text`; keep the key when
+copy or ordering changes, and use it in every translation catalog. Positional item keys are forbidden
+because inserting a capability would silently associate existing translations with the wrong claim.
 
 `site/index.html` is the only structural page source and contains the canonical `en-US` text.
 Translatable text and accessible labels use stable `data-i18n` keys. The complete Spanish catalog is

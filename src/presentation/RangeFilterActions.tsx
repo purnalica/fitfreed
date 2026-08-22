@@ -10,7 +10,7 @@ interface RangeFilterActionsProps {
   resetLabel: string;
   resettingLabel: string;
   navigationLabel?: string;
-  onReset: () => void;
+  onReset: (initiatingElement: HTMLButtonElement) => void;
 }
 
 export function RangeFilterActions({
@@ -40,7 +40,12 @@ export function RangeFilterActions({
         actionLabel={applyLabel}
         progressLabel={applyingLabel}
       />
-      <button type="button" className="secondary" onClick={onReset} disabled={busy}>
+      <button
+        type="button"
+        className="secondary"
+        onClick={(event) => onReset(event.currentTarget)}
+        disabled={busy}
+      >
         {resetLabel}
       </button>
       {operation !== "apply" && progress && (

@@ -9,6 +9,7 @@ import type {
 } from "./activity-insights";
 import { commandErrorCode } from "./command-error";
 import { ProgressSubmitButton } from "./ProgressSubmitButton";
+import { submissionOrigin } from "./submission-origin";
 import { useInvalidForm } from "./useInvalidForm";
 import { useResultFocus } from "./useResultFocus";
 
@@ -162,9 +163,7 @@ export function ActivityComparisonPanel({
       return;
     }
     validation.accept();
-    const initiatingElement = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
+    const initiatingElement = submissionOrigin(event.nativeEvent);
     await loadComparison(baselineRange, comparisonRange, initiatingElement);
   }
 
@@ -314,7 +313,7 @@ export function ActivityComparisonPanel({
       )}
       {insufficientHistory && (
         <section className="answer-insufficient" aria-label={copy.insufficientLabel}>
-          <h3>{copy.insufficientHeading}</h3>
+          <h2>{copy.insufficientHeading}</h2>
           <p>{copy.insufficientBody}</p>
         </section>
       )}
@@ -325,14 +324,14 @@ export function ActivityComparisonPanel({
         >
           <div className="activity-comparison-result-heading">
             <div>
-              <h3 ref={resultHeadingRef} id="activity-comparison-heading" tabIndex={-1}>
+              <h2 ref={resultHeadingRef} id="activity-comparison-heading" tabIndex={-1}>
                 {comparison.series.length === 1
                   ? conclusion(comparison.series[0])
                   : copy.answerMultiple.replace(
                     "{count}",
                     number.format(comparison.series.length),
                   )}
-              </h3>
+              </h2>
               <p>{rangeLabel(comparison.baselineRange)} · {rangeLabel(comparison.comparisonRange)}</p>
             </div>
             <button
@@ -362,7 +361,7 @@ export function ActivityComparisonPanel({
                 {comparison.series.length > 1 && (
                   <div className="answer-series-heading">
                     <p>{messages.activity.series} {number.format(index + 1)}</p>
-                    <h4>{conclusion(series)}</h4>
+                    <h3>{conclusion(series)}</h3>
                   </div>
                 )}
                 <div className="comparison-bars" aria-hidden="true">

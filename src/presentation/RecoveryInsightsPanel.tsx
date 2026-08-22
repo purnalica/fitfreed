@@ -8,6 +8,7 @@ import type { ExplorerNavigationRequest } from "./explorer-navigation";
 import { restoreFocusAfterReveal } from "./focus-restoration";
 import { RangeFilterActions, type RangeOperation } from "./RangeFilterActions";
 import { RecoveryComparisonPanel } from "./RecoveryComparisonPanel";
+import { submissionOrigin } from "./submission-origin";
 import {
   formatRecoveryMilliseconds,
   recoveryBarWidth,
@@ -165,9 +166,7 @@ export function RecoveryInsightsPanel({
     rangeValidation.accept();
     setRangeOperation("apply");
     onError(undefined);
-    const initiatingElement = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
+    const initiatingElement = submissionOrigin(event.nativeEvent);
     try {
       await refresh({ from: rangeFrom, through: rangeThrough });
       requestResultFocus(initiatingElement);
@@ -178,13 +177,10 @@ export function RecoveryInsightsPanel({
     }
   }
 
-  async function resetRange() {
+  async function resetRange(initiatingElement: HTMLButtonElement) {
     rangeValidation.accept();
     setRangeOperation("reset");
     onError(undefined);
-    const initiatingElement = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
     try {
       await refresh();
       requestResultFocus(initiatingElement);
@@ -515,7 +511,7 @@ export function RecoveryInsightsPanel({
                   resetLabel={copy.latestWindow}
                   resettingLabel={copy.loadingLatestWindow}
                   navigationLabel={copy.loadingDetail}
-                  onReset={() => void resetRange()}
+                  onReset={(initiatingElement) => void resetRange(initiatingElement)}
                 />
               </form>
             </details>

@@ -80,6 +80,7 @@ describe("SleepComparisonPanel", () => {
     const answer = await screen.findByRole("region", { name: "Sleep period answer" });
     const heading = within(answer).getByRole("heading", {
       name: "Average recorded sleep was 15 min longer",
+      level: 2,
     });
     await waitFor(() => expect(heading).toHaveFocus());
     expect(within(answer).getByText(
@@ -163,13 +164,18 @@ describe("SleepComparisonPanel", () => {
     await user.click(screen.getByRole("button", { name: "Compare sleep periods" }));
 
     const answer = await screen.findByRole("region", { name: "Sleep period answer" });
-    expect(within(answer).getByRole("heading", { name: "2 sleep histories compared" }))
+    expect(within(answer).getByRole("heading", {
+      name: "2 sleep histories compared",
+      level: 2,
+    }))
       .toBeVisible();
     expect(within(answer).getByRole("heading", {
       name: "Average recorded sleep was 15 min longer",
+      level: 3,
     })).toBeVisible();
     expect(within(answer).getByRole("heading", {
       name: "Average recorded sleep was 30 min shorter",
+      level: 3,
     })).toBeVisible();
   });
 

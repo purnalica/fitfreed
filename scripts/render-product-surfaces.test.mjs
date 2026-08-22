@@ -7,7 +7,7 @@ import {
 } from "./render-product-surfaces.mjs";
 
 const model = Object.freeze({
-  schemaVersion: 1,
+  schemaVersion: 2,
   updated: "2026-08-18",
   statuses: [
     createStatus("available", "Available", "Current", "Ready & inspectable"),
@@ -21,7 +21,7 @@ function createStatus(key, label, title, item) {
     key,
     label,
     title,
-    items: [item],
+    items: [{ key: "primaryCapability", text: item }],
     source: { label: `${label} source`, path: `docs/${key}.md` },
   };
 }
@@ -41,7 +41,7 @@ test("renders README and product-page status from one model", () => {
   assert.match(rendered.productPage, /<details data-status="active" open>/u);
   assert.match(rendered.productPage, /<summary>/u);
   assert.match(rendered.productPage, /data-i18n="status\.available\.label"/u);
-  assert.match(rendered.productPage, /data-i18n="status\.active\.items\.0"/u);
+  assert.match(rendered.productPage, /data-i18n="status\.active\.items\.primaryCapability"/u);
   assert.match(rendered.productPage, /Ready &amp; inspectable/u);
   assert.match(rendered.productPage, /Useful &lt; soon/u);
   assert.match(rendered.productPage, /href="\.\.\/docs\/later\.md"/u);
@@ -56,11 +56,17 @@ test("rejects missing, reordered, or duplicated status contracts", () => {
     () => validateProductStatus({
       ...model,
       statuses: [
-        { ...model.statuses[0], items: ["same", "same"] },
+        {
+          ...model.statuses[0],
+          items: [
+            { key: "sameCapability", text: "first" },
+            { key: "sameCapability", text: "second" },
+          ],
+        },
         model.statuses[1],
         model.statuses[2],
       ],
     }),
-    /duplicate items/u,
+    /duplicate item keys/u,
   );
 });
