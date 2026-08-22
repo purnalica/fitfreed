@@ -208,7 +208,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R2.3 | Complete locally — exact packaged gates passed 2026-08-22 | Durable language, appearance, zoom, and update settings form one coherent workspace |
 | X5-R3 | Complete locally — R3.1 and R3.2 exact packaged gates passed 2026-08-22 | Import ends in recognizable personal value |
 | X5-R4 | Complete locally — exact packaged and exhaustive adaptive gates passed 2026-08-22 | Existing health and aligned-history questions read as answers |
-| X5-R5 | Reopened — R5.4 complete locally; RC-03 and RC-04 remain | A remembered session is findable and sports are recognizable |
+| X5-R5 | Complete locally — R5.4, R5.5, and real-process restart gates passed 2026-08-22 | A remembered session is findable and sports are recognizable |
 | X5-R6 | Pending | A routed workout is investigated through a dominant synchronized map |
 | X5-R7 | Pending | Every session composition reflects its actual evidence |
 | X5-R8 | Pending | Personal ranges and reusable criteria work end to end |
@@ -728,7 +728,7 @@ ordered correction slices before R6:
 3. **R5.5 — Human-scale session discovery.** Compose cards from available evidence, apply locale-appropriate
    human-scale date and quantity formatting, replace opaque source ordinals, and make every sport refinement
    visibly discoverable at supported geometry.
-4. **Cross-cutting restart evidence.** Replace `reloadSession()`-based restart claims with a controlled
+4. **R5.6 — Application-process restart evidence.** Replace `reloadSession()`-based restart claims with a controlled
    packaged process termination and relaunch against the same durable state. Preserve every behavioral
    assertion while changing the evidence mechanism.
 
@@ -802,6 +802,32 @@ passed every unchanged interaction budget. Its completion boundary was corrected
 browser task and synchronous layout read rather than an animation frame that macOS can suspend when the WebView
 is occluded; a configuration test now prevents that visibility dependency from returning. RC-03 and RC-04 are
 closed, and R5 returns to complete locally.
+
+### R5.6 local closure — 2026-08-22
+
+The packaged gate now distinguishes WebDriver continuity from application restart. The complete functional
+journey retains its session-replacement assertions but no longer labels them as restart evidence. At its final
+durable boundary, it records the exact instrumented application process identity only after the training
+calendar, selected day, comparison basket, and open session have been confirmed through the persisted workspace
+query. The service then terminates that process. A second WebdriverIO invocation starts the same packaged
+executable against the same unique temporary library and must prove a different process identity before it can
+inspect recovered state.
+
+The second process recovered the Spanish locale, dark appearance, 200% content zoom, History destination,
+calendar month and day, comparison selection, open session, personal sport classification, two authored segment
+criteria, two saved reports and their resolved result, and the latest import outcome through ordinary startup
+and user-visible surfaces. The performance campaign remains a third process with a separate library. No process
+identity command or restart authority was added to the application; the harness observes the exact executable
+from outside the production boundary, and the ignored identity record exists only for the lifetime of one
+successful generated campaign.
+
+The first packaged attempt exposed an ordering defect in the new test: visible calendar state was inspected
+before its asynchronous workspace write completed. The corrected journey waits for the exact persisted calendar,
+day, session, and comparison condition instead of using a fixed delay. Nine harness configuration tests,
+documentation checks, and the complete packaged sequence passed: the functional journey in 2 minutes 58 seconds,
+the distinct-process recovery in under 1 second, and the isolated performance campaign in 3 minutes 53 seconds
+with every unchanged interaction budget satisfied. The complete fast lane also passed 156 automation, 255 React,
+2 vendored-updater, 212 host, 148 application, and 33 domain tests. EV-01 is closed.
 
 ## X5-R6 — Deliver the outdoor session workbench
 

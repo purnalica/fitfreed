@@ -4,12 +4,14 @@ import path from "node:path";
 import test from "node:test";
 
 import { e2eBuildEnvironment } from "./build-e2e.mjs";
+import { packagedE2eScenarioPlan } from "./packaged-e2e-plan.mjs";
 import {
   e2eTargetDirectory,
   updateE2eTargetDirectory,
 } from "./e2e-paths.mjs";
 import { config as defaultConfig } from "../wdio.conf.js";
 import { config as performanceConfig } from "../wdio.performance.conf.js";
+import { parseExactApplicationProcessIds } from "../test/e2e/support/application-process.js";
 
 test("keeps the instrumented executable outside the production target", () => {
   const application = defaultConfig.capabilities[0]["tauri:options"].application;
@@ -76,6 +78,39 @@ test("isolates the longer performance campaign without relaxing interaction budg
   assert.equal(
     performanceConfig.connectionRetryTimeout,
     defaultConfig.connectionRetryTimeout,
+  );
+});
+
+test("restarts the packaged process against the exact functional-journey library", () => {
+  const plan = packagedE2eScenarioPlan(path.resolve("controlled-run"));
+
+  assert.deepEqual(plan.map(({ name }) => name), [
+    "journey",
+    "restart",
+    "performance",
+  ]);
+  assert.equal(plan[0].databasePath, plan[1].databasePath);
+  assert.equal(
+    plan[0].restartIdentityPath,
+    plan[1].restartIdentityPath,
+  );
+  assert.equal(plan[1].spec, "test/e2e/restart-evidence.e2e.js");
+  assert.notEqual(plan[2].databasePath, plan[0].databasePath);
+  assert.equal(plan[2].restartIdentityPath, null);
+});
+
+test("identifies only the exact packaged application command", () => {
+  const application = "/tmp/Fit Freed.app/Contents/MacOS/fitfreed";
+  const processTable = [
+    `  101 ${application}`,
+    `  102 ${application} --private-mode`,
+    "  103 /tmp/fitfreed-helper",
+    "invalid row",
+  ].join("\n");
+
+  assert.deepEqual(
+    parseExactApplicationProcessIds(processTable, application),
+    [101],
   );
 });
 

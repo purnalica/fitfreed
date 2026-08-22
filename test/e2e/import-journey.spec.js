@@ -3,6 +3,7 @@ import path from "node:path";
 
 import AxeBuilder from "@axe-core/webdriverio";
 
+import { e2eApplicationBinary } from "../../scripts/e2e-paths.mjs";
 import {
   goToHome,
   openSettingsCategory,
@@ -14,6 +15,7 @@ import {
   selectArchive,
   selectLocale,
 } from "./support/application-actions.js";
+import { recordRestartProcessIdentity } from "./support/application-process.js";
 
 const english = JSON.parse(
   fs.readFileSync(new URL("../../src/locales/en-US.json", import.meta.url), "utf8"),
@@ -23,6 +25,7 @@ const spanish = JSON.parse(
 );
 const fixtureDirectory = process.env.FITFREED_E2E_FIXTURE_DIRECTORY;
 const largeArchive = process.env.FITFREED_E2E_LARGE_ARCHIVE;
+const restartIdentityPath = process.env.FITFREED_E2E_RESTART_IDENTITY_PATH;
 const reportOutput = path.resolve(".artifacts/e2e/evidence/session-report.html");
 const refreshedReportOutput = path.resolve(
   ".artifacts/e2e/evidence/refreshed-comparison-report.html",
@@ -1084,7 +1087,7 @@ async function expectSourceGuide(catalog) {
 }
 
 describe("packaged FitFreed import journey", () => {
-  it("covers validation, outcomes, coverage, cancellation, reimport, accessibility, performance, and restart", async () => {
+  it("covers validation, outcomes, coverage, cancellation, reimport, accessibility, performance, and WebDriver session continuity", async () => {
     const journeyStartedAt = Date.now();
     const recordJourneyPhase = (journeyPhase) => process.stdout.write(`${JSON.stringify({
       journeyPhase,
@@ -3271,7 +3274,7 @@ describe("packaged FitFreed import journey", () => {
     await $(".recovery-comparison-result button.secondary").click();
     expect(await $$(".recovery-comparison-result")).toHaveLength(0);
 
-    recordJourneyPhase("restart-and-durable-state");
+    recordJourneyPhase("webdriver-session-and-durable-state");
     await browser.reloadSession();
     await $(".recovery-insights").waitForDisplayed({ timeout: 10_000 });
     await expect($("html")).toHaveAttribute("data-appearance", "dark");
@@ -3413,23 +3416,25 @@ describe("packaged FitFreed import journey", () => {
     expect(await $$(
       "#training-detail-structure > .training-exercise .training-exercise-sport-identity .sport-family-icon",
     )).toHaveLength(1);
-    const restartedSegmentation = await $(".training-segmentation");
-    const restartedCriteria = await restartedSegmentation.$$(".training-segment-criterion");
-    expect(restartedCriteria).toHaveLength(2);
-    await expect(restartedCriteria[0].$("h6")).toHaveText("Race plan");
-    await expect(restartedCriteria[1].$("h6")).toHaveText("Quarter-hour blocks");
+    const sessionRestoredSegmentation = await $(".training-segmentation");
+    const sessionRestoredCriteria = await sessionRestoredSegmentation.$$(
+      ".training-segment-criterion",
+    );
+    expect(sessionRestoredCriteria).toHaveLength(2);
+    await expect(sessionRestoredCriteria[0].$("h6")).toHaveText("Race plan");
+    await expect(sessionRestoredCriteria[1].$("h6")).toHaveText("Quarter-hour blocks");
     await expect($(`aria/${spanish.training.sessionLibrary.backToCalendar}`)).toBeDisplayed();
     await goToHome("reports");
     await expect($(".reports-hero h1")).toHaveText(spanish.reports.heading);
-    const restartedReports = await $$(".report-list button");
-    expect(restartedReports).toHaveLength(2);
-    await expect(restartedReports[0]).toHaveText(
+    const sessionRestoredReports = await $$(".report-list button");
+    expect(sessionRestoredReports).toHaveLength(2);
+    await expect(sessionRestoredReports[0]).toHaveText(
       expect.stringContaining("Synthetic comparison answer"),
     );
-    await expect(restartedReports[1]).toHaveText(
+    await expect(sessionRestoredReports[1]).toHaveText(
       expect.stringContaining("Synthetic ridge progression"),
     );
-    await restartedReports[0].click();
+    await sessionRestoredReports[0].click();
     await expect($(".report-preview h3")).toHaveText("Synthetic comparison answer");
     await expect($(".report-preview")).toHaveText(
       expect.stringContaining(
@@ -3606,6 +3611,61 @@ describe("packaged FitFreed import journey", () => {
     await browser.reloadSession();
     await expectLibraryHome(spanish);
     expect(await $$(".library-home-resume")).toHaveLength(0);
+    recordJourneyPhase("prepare-application-process-restart");
+    await openHomeQuestion(
+      spanish,
+      "explore-training-sessions",
+      ".training-insights",
+    );
+    await openTrainingWorkspace(spanish, "sessions");
+    const restartComparisonCheckboxes = await $$(
+      ".training-session-result-actions input[type='checkbox']",
+    );
+    expect(restartComparisonCheckboxes).toHaveLength(3);
+    await restartComparisonCheckboxes[0].click();
+    await restartComparisonCheckboxes[1].click();
+    await $(`aria/${spanish.training.sessionLibrary.calendar}`).click();
+    await expect($(".training-calendar h3")).toHaveText("enero de 2026");
+    await $('button[aria-label*="4 de enero de 2026"]').click();
+    await $('.training-session-results button[aria-label^="Ver detalles de la sesión del"]').click();
+    await browser.waitUntil(async () => {
+      const persisted = await browser.executeAsync((done) => {
+        window.__TAURI__.core.invoke("load_training_discovery_workspace")
+          .then((workspace) => done({ workspace, error: null }))
+          .catch((error) => done({ workspace: null, error: String(error) }));
+      });
+      return persisted.error === null
+        && persisted.workspace.view === "calendar"
+        && persisted.workspace.calendarMonth === "2026-01"
+        && persisted.workspace.calendarDay === "2026-01-04"
+        && persisted.workspace.openSessionRef !== null
+        && persisted.workspace.selectedSessionRefs.length === 2;
+    }, {
+      timeout: 10_000,
+      timeoutMsg: "the process-restart workspace was not durably saved",
+    });
+    const processRestartWorkspace = await browser.executeAsync((done) => {
+      window.__TAURI__.core.invoke("load_training_discovery_workspace")
+        .then((workspace) => done({ workspace, error: null }))
+        .catch((error) => done({ workspace: null, error: String(error) }));
+    });
+    expect(processRestartWorkspace.error).toBeNull();
+    expect(processRestartWorkspace.workspace).toEqual(expect.objectContaining({
+      view: "calendar",
+      calendarMonth: "2026-01",
+      calendarDay: "2026-01-04",
+      openSessionRef: expect.stringMatching(/^session-[0-9a-f]{64}$/),
+      selectedSessionRefs: expect.arrayContaining([
+        expect.stringMatching(/^session-[0-9a-f]{64}$/),
+        expect.stringMatching(/^session-[0-9a-f]{64}$/),
+      ]),
+    }));
+    if (restartIdentityPath !== undefined) {
+      expect(recordRestartProcessIdentity(
+        restartIdentityPath,
+        e2eApplicationBinary,
+      )).toBeGreaterThan(0);
+    }
     recordJourneyPhase("complete");
 
   });
