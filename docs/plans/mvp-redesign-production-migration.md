@@ -1106,6 +1106,25 @@ zone-leading composition remain open. The complete fast contributor lane passed 
 workflows, documentation, product surfaces, localization, site, production TypeScript build, and Rust
 formatting gates.
 
+### R7.4 zone-only production composition — 2026-08-22
+
+Supported recorded zone bands now receive the leading visual region when a session has no drawable route,
+supported visual signal, or recorded structure. The workbench keeps exercise sport identity, source group,
+exact band ranges, aggregate coverage, and recorded total together without presenting aggregate zones as a
+timeline. Recorded time leads when available; speed distance and power muscle load are supported factual
+fallbacks when time is absent. Groups and exercises remain selectable rather than being silently combined.
+
+Missing aggregate values render as a distinct unavailable pattern and text, never as a zero-length recorded
+bar. The direct detail action retains the selected exercise and group, reveals Signals and zones, and focuses
+that exact source group. Source zones remain separate from user-authored segments, and unsupported groups
+remain a concise evidence count rather than acquiring invented bands. Focused behavior covers partial
+heart-rate time, a complete distance-only speed group, group switching, exact band and unavailable-value
+inspection, evidence totals, capability-adaptive navigation, and exact focus restoration. The complete R7
+behavior matrix, responsive visual review, and packaged journey remain open. The complete fast contributor
+lane passed 156 automation, 281 React, 2 vendored-updater, 213 host, 159 application, and 33 domain tests
+together with architecture, contracts, workflows, documentation, product surfaces, localization, site,
+production TypeScript build, and Rust formatting gates.
+
 ## X5-R8 — Add personal ranges and integrate segmentation
 
 **User outcome:** a person can name and revisit a contiguous part of one session and can apply reusable

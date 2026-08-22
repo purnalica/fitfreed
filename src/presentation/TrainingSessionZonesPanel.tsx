@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { type Ref, useMemo } from "react";
 
 import { type catalogs, type Locale } from "../locales/catalogs";
 import { formatDistance, formatDuration } from "./training-format";
@@ -12,6 +12,8 @@ interface TrainingSessionZonesPanelProps {
   assessment: TrainingExerciseZones;
   locale: Locale;
   messages: (typeof catalogs)["en-US"];
+  focusGroupRef?: string;
+  focusHeadingRef?: Ref<HTMLHeadingElement>;
 }
 
 function interpolate(template: string, values: Record<string, string>): string {
@@ -25,6 +27,8 @@ export function TrainingSessionZonesPanel({
   assessment,
   locale,
   messages,
+  focusGroupRef,
+  focusHeadingRef,
 }: TrainingSessionZonesPanelProps) {
   const copy = messages.training.sessionLibrary;
   const number = useMemo(() => new Intl.NumberFormat(locale, {
@@ -77,7 +81,10 @@ export function TrainingSessionZonesPanel({
           role="region"
           aria-label={heading}
         >
-          <h6>{heading}</h6>
+          <h6
+            ref={group.zoneGroupRef === focusGroupRef ? focusHeadingRef : undefined}
+            tabIndex={group.zoneGroupRef === focusGroupRef ? -1 : undefined}
+          >{heading}</h6>
           <p>{copy.zoneBandsNotProvided}</p>
         </section>
       );
@@ -90,7 +97,10 @@ export function TrainingSessionZonesPanel({
           role="region"
           aria-label={heading}
         >
-          <h6>{heading}</h6>
+          <h6
+            ref={group.zoneGroupRef === focusGroupRef ? focusHeadingRef : undefined}
+            tabIndex={group.zoneGroupRef === focusGroupRef ? -1 : undefined}
+          >{heading}</h6>
           <p>{copy.zoneBandsProvidedEmpty}</p>
         </section>
       );
@@ -114,7 +124,10 @@ export function TrainingSessionZonesPanel({
         role="region"
         aria-label={heading}
       >
-        <h6>{heading}</h6>
+        <h6
+          ref={group.zoneGroupRef === focusGroupRef ? focusHeadingRef : undefined}
+          tabIndex={group.zoneGroupRef === focusGroupRef ? -1 : undefined}
+        >{heading}</h6>
         <div className="training-zone-distribution" role="img" aria-label={summary}>
           {group.zones.map((zone) => {
             const width = zone.timeInZoneMilliseconds === null || totalKnownTime === 0n

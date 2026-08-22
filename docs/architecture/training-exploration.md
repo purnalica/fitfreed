@@ -219,6 +219,15 @@ elapsed-session alignment for them. Counts and exact local timestamps remain ava
 absence of alignment into fabricated chronology. This source-authored structure is still distinct from the
 user-authored segment criteria available in the same progressive-detail destination.
 
+Supported source-zone bands become the leading region only when no route, supported visual signal, or source
+structure can lead. The presentation keeps each exercise and group separate, prefers recorded time as the
+aggregate measure, and falls back to recorded distance for speed groups or recorded muscle load for power
+groups when time is wholly absent. The visual proportions compare only known values within that one group;
+coverage names how many bands contributed, and an unavailable pattern distinguishes missing evidence from a
+recorded zero. The exact bounds and aggregate values already carried by Session Story remain the authority.
+An action reveals and focuses the selected exact group in Signals and zones; it does not turn bands into
+elapsed boundaries, join groups, or reinterpret source zones as personal segments.
+
 Detail navigation is capability-adaptive after the story arrives. Routes are present only when a composed
 exercise has a route object, and Signals and zones only when a composed exercise has supported or unsupported
 signal or zone evidence. Structure and segments remains available even without source structure because

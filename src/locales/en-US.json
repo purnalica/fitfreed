@@ -684,6 +684,31 @@
         "meaning": "Bars use only recorded split times and durations. Pause positions are not inferred from local timestamps.",
         "openStructure": "Explore structure and personal segments"
       },
+      "zoneWorkbench": {
+        "regionLabel": "Recorded zone workbench",
+        "eyebrow": "Recorded zone evidence",
+        "heading": "Explore recorded {kind} zones",
+        "introduction": "Compare the exact source bands and the aggregate values that were recorded. Zones do not identify when a value occurred.",
+        "visibleGroup": "Visible zone group",
+        "groupChoice": "{kind} · group {group} · exercise {exercise} · {sport}",
+        "groupIdentity": "{kind} · group {group} · exercise {exercise}",
+        "aggregateValue": "aggregate values",
+        "measures": {
+          "time": "recorded time",
+          "distance": "recorded distance",
+          "muscleLoad": "recorded muscle load"
+        },
+        "coverageValue": "{known} of {total} zones",
+        "chartSummary": "{kind} distribution for exercise {exercise}: {known} of {total} zones have {measure}; recorded total {value}. This is not a timeline.",
+        "chartSummaryWithoutAggregate": "{kind} zones for exercise {exercise}: {total} exact bands with no recorded aggregate values. This is not a timeline.",
+        "measurements": "Recorded zone summary",
+        "bands": "Recorded bands",
+        "coverage": "Aggregate coverage",
+        "total": "Recorded total",
+        "aggregateMeaning": "Aggregate distribution, not a timeline.",
+        "meaning": "Missing values remain missing, and the source bands remain separate from personal segments.",
+        "openZones": "Explore exact recorded zones"
+      },
       "viewExactRoutePoints": "Inspect exact recorded points",
       "hideExactRoutePoints": "Hide exact recorded points",
       "exactRouteHeading": "Exact recorded route points",

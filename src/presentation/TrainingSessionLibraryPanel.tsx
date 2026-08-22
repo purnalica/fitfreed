@@ -63,6 +63,7 @@ import { TrainingSignalPlot } from "./TrainingSignalPlot";
 import { TrainingSignalWorkbench } from "./TrainingSignalWorkbench";
 import { TrainingStructureWorkbench } from "./TrainingStructureWorkbench";
 import { TrainingSessionZonesPanel } from "./TrainingSessionZonesPanel";
+import { TrainingZoneWorkbench } from "./TrainingZoneWorkbench";
 import { useInvalidForm } from "./useInvalidForm";
 import { useResultFocus } from "./useResultFocus";
 
@@ -160,6 +161,12 @@ function hasVisualSignal(story: SessionStory): boolean {
 
 function hasRecordedStructure(story: SessionStory): boolean {
   return story.exercises.some((exercise) => exercise.structure !== null);
+}
+
+function hasVisualZones(story: SessionStory): boolean {
+  return story.exercises.some((exercise) => (
+    exercise.zones?.groups.some((group) => (group.zones?.length ?? 0) > 0) ?? false
+  ));
 }
 
 function emptyDraft(initialDate?: string): SearchDraft {
@@ -328,6 +335,10 @@ export function TrainingSessionLibraryPanel({
   const [exactSignalLoading, setExactSignalLoading] = useState(false);
   const [exactSignalFailed, setExactSignalFailed] = useState(false);
   const [exactSignalTarget, setExactSignalTarget] = useState<ExactEvidenceTarget>();
+  const [zoneDetailTarget, setZoneDetailTarget] = useState<{
+    exerciseRef: string;
+    groupRef: string;
+  }>();
   const exactSignalRequestSequence = useRef(0);
   const {
     resultHeadingRef: exactRouteHeadingRef,
@@ -347,6 +358,12 @@ export function TrainingSessionLibraryPanel({
     resultHeadingRef: structureHeadingRef,
     requestResultFocus: requestStructureFocus,
   } = useResultFocus<HTMLHeadingElement>(detailSection === "structure");
+  const {
+    resultHeadingRef: zoneDetailHeadingRef,
+    requestResultFocus: requestZoneDetailFocus,
+  } = useResultFocus<HTMLHeadingElement>(
+    detailSection === "signals" && zoneDetailTarget !== undefined,
+  );
   const {
     resultHeadingRef: exactRouteTargetRowRef,
     requestResultFocus: requestExactRouteTargetFocus,
@@ -1039,6 +1056,7 @@ export function TrainingSessionLibraryPanel({
   function openDetail(session: TrainingSessionSearchItem, origin: HTMLButtonElement) {
     setDetailOrigin(view);
     setDetailSection("overview");
+    setZoneDetailTarget(undefined);
     detailOriginButtonRef.current = origin;
     setSelected(session);
   }
@@ -1048,6 +1066,7 @@ export function TrainingSessionLibraryPanel({
       ? detailOriginButtonRef.current
       : libraryHeadingRef.current;
     setSelected(undefined);
+    setZoneDetailTarget(undefined);
     detailOriginButtonRef.current = null;
     restoreFocusAfterReveal(target, initiatingElement);
   }
@@ -1055,6 +1074,16 @@ export function TrainingSessionLibraryPanel({
   function openStructureFromWorkbench(initiatingElement: HTMLButtonElement) {
     requestStructureFocus(initiatingElement);
     setDetailSection("structure");
+  }
+
+  function openZonesFromWorkbench(
+    exerciseRef: string,
+    groupRef: string,
+    initiatingElement: HTMLButtonElement,
+  ) {
+    setZoneDetailTarget({ exerciseRef, groupRef });
+    requestZoneDetailFocus(initiatingElement);
+    setDetailSection("signals");
   }
 
   function sportTitle(sport: TrainingSport): string {
@@ -1859,6 +1888,12 @@ export function TrainingSessionLibraryPanel({
         assessment={assessed}
         locale={locale}
         messages={messages}
+        focusGroupRef={zoneDetailTarget?.exerciseRef === exerciseRef
+          ? zoneDetailTarget.groupRef
+          : undefined}
+        focusHeadingRef={zoneDetailTarget?.exerciseRef === exerciseRef
+          ? zoneDetailHeadingRef
+          : undefined}
       />
     );
   }
@@ -2784,6 +2819,20 @@ export function TrainingSessionLibraryPanel({
                     ? trainingSportTitle(exercise.sport, detailUnknownSportRefs)
                     : copy.notRecordedType}
                   onOpenStructure={openStructureFromWorkbench}
+                />
+              )}
+              {!hasVisualRoute(detailStory)
+                && !hasVisualSignal(detailStory)
+                && !hasRecordedStructure(detailStory)
+                && hasVisualZones(detailStory) && (
+                <TrainingZoneWorkbench
+                  story={detailStory}
+                  locale={locale}
+                  messages={messages}
+                  exerciseLabel={(exercise) => exercise.sport
+                    ? trainingSportTitle(exercise.sport, detailUnknownSportRefs)
+                    : copy.notRecordedType}
+                  onOpenZones={openZonesFromWorkbench}
                 />
               )}
               <TrainingSessionEvidenceSummary

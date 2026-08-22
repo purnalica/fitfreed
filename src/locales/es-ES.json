@@ -684,6 +684,31 @@
         "meaning": "Las barras utilizan únicamente los tiempos de inicio y las duraciones registradas. La posición de las pausas no se deduce de las horas locales.",
         "openStructure": "Explorar la estructura y los segmentos personales"
       },
+      "zoneWorkbench": {
+        "regionLabel": "Área de trabajo de las zonas registradas",
+        "eyebrow": "Evidencias de zonas registradas",
+        "heading": "Explorar las zonas registradas de {kind}",
+        "introduction": "Compara las bandas exactas del origen y los valores agregados que se registraron. Las zonas no identifican cuándo ocurrió un valor.",
+        "visibleGroup": "Grupo de zonas visible",
+        "groupChoice": "{kind} · grupo {group} · ejercicio {exercise} · {sport}",
+        "groupIdentity": "{kind} · grupo {group} · ejercicio {exercise}",
+        "aggregateValue": "valores agregados",
+        "measures": {
+          "time": "tiempo registrado",
+          "distance": "distancia registrada",
+          "muscleLoad": "carga muscular registrada"
+        },
+        "coverageValue": "{known} de {total} zonas",
+        "chartSummary": "Distribución de {kind} del ejercicio {exercise}: {known} de {total} zonas tienen {measure}; total registrado: {value}. No es una línea temporal.",
+        "chartSummaryWithoutAggregate": "Zonas de {kind} del ejercicio {exercise}: {total} bandas exactas sin valores agregados registrados. No es una línea temporal.",
+        "measurements": "Resumen de las zonas registradas",
+        "bands": "Bandas registradas",
+        "coverage": "Cobertura agregada",
+        "total": "Total registrado",
+        "aggregateMeaning": "Distribución agregada, no una línea temporal.",
+        "meaning": "Los valores ausentes siguen ausentes y las bandas del origen permanecen separadas de los segmentos personales.",
+        "openZones": "Explorar las zonas registradas exactas"
+      },
       "viewExactRoutePoints": "Consultar los puntos registrados exactos",
       "hideExactRoutePoints": "Ocultar los puntos registrados exactos",
       "exactRouteHeading": "Puntos exactos de la ruta registrada",

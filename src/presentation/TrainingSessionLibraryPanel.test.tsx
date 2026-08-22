@@ -832,6 +832,77 @@ function structureOnlyTrainingStory(
   };
 }
 
+function zoneOnlyTrainingStory(
+  sessionRef: string,
+  acceptedSnapshotRef = snapshotRef,
+): SessionStory {
+  const story = trainingStory(sessionRef, acceptedSnapshotRef);
+  const exercise = story.exercises[0]!;
+  const zoneCollection: TrainingZoneCollection = {
+    ...exercise.zones!,
+    groups: [...exercise.zones!.groups, {
+      zoneGroupRef: `zone-group-${"6".repeat(64)}`,
+      ordinal: 1,
+      kind: "speed",
+      unit: "kilometers-per-hour",
+      zones: [{
+        zoneRef: `zone-${"5".repeat(64)}`,
+        ordinal: 0,
+        lowerLimit: 8,
+        higherLimit: 10,
+        timeInZoneMilliseconds: null,
+        distanceMeters: 3000,
+        muscleLoad: null,
+      }, {
+        zoneRef: `zone-${"4".repeat(64)}`,
+        ordinal: 1,
+        lowerLimit: 10,
+        higherLimit: 12,
+        timeInZoneMilliseconds: null,
+        distanceMeters: 7000,
+        muscleLoad: null,
+      }],
+    }],
+  };
+  const emptyRole = {
+    route: null,
+    signals: [],
+    evidence: storyRoleEvidence(null, [], 0),
+    primaryMetric: null,
+    eligibleOverlays: [],
+    exactRoute: null,
+    exactSignals: [],
+  };
+
+  return {
+    ...story,
+    session: { ...story.session, exerciseCount: 1 },
+    structure: { exercises: null },
+    routes: { exercises: null },
+    signals: { exercises: null },
+    zones: { exercises: [{
+      exerciseRef: exercise.exerciseRef,
+      ordinal: exercise.ordinal,
+      zones: zoneCollection,
+    }] },
+    composition: {
+      structureState: "source-absent",
+      routeState: "source-absent",
+      signalState: "source-absent",
+      zoneState: "source-present",
+      exerciseCount: 1,
+    },
+    exercises: [{
+      ...exercise,
+      structure: null,
+      zones: zoneCollection,
+      evidence: storyExerciseEvidence(null, zoneCollection),
+      primary: emptyRole,
+      transition: emptyRole,
+    }],
+  };
+}
+
 const calendar: TrainingSessionCalendar = {
   availableRange: { from: "2024-01-01", through: "2026-08-18" },
   snapshotRef,
@@ -2491,6 +2562,98 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(await within(detail).findByRole("heading", {
       name: "Your session segments",
     })).toBeVisible();
+  });
+
+  it("foregrounds recorded zone aggregates without presenting them as a timeline", async () => {
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "query_session_story") {
+        const query = arguments_.query as { sessionRef: string; snapshotRef: string };
+        return Promise.resolve(zoneOnlyTrainingStory(query.sessionRef, query.snapshotRef));
+      }
+      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+      if (workspaceResult) return workspaceResult;
+      if (command === "query_training_sports") return Promise.resolve(sports);
+      if (command === "query_training_sessions") {
+        return Promise.resolve(page([newest], 0, 1, null));
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    renderPanel();
+
+    const region = await screen.findByRole("region", { name: "Find a training session" });
+    await user.click(within(region).getByRole("button", {
+      name: /View session details for/,
+    }));
+    const detail = within(region).getByRole("region", { name: "Session summary" });
+    const workbench = await within(detail).findByRole("region", {
+      name: "Recorded zone workbench",
+    });
+
+    expect(within(workbench).getByRole("heading", {
+      name: "Explore recorded heart rate zones",
+    })).toBeVisible();
+    expect(within(workbench).getByTestId("sport-family-icon")).toBeVisible();
+    expect(within(workbench).getByText("Intervals")).toBeVisible();
+    const zoneVisual = within(workbench).getByRole("img", {
+      name: "Heart rate distribution for exercise 1: 1 of 2 zones have recorded time; recorded total 15 min. This is not a timeline.",
+    });
+    expect(zoneVisual).toBeVisible();
+    const initialTracks = zoneVisual.querySelectorAll(".training-zone-workbench-track");
+    expect(initialTracks[0]).toHaveAttribute("data-state", "recorded");
+    expect(initialTracks[1]).toHaveAttribute("data-state", "missing");
+    expect(workbench).toHaveTextContent("120–139 bpm");
+    expect(workbench).toHaveTextContent("1 of 2 zones");
+    expect(workbench).toHaveTextContent("15 min");
+    expect(workbench).toHaveTextContent("Aggregate distribution, not a timeline");
+    const groupSelector = within(workbench).getByRole("combobox", {
+      name: "Visible zone group",
+    });
+    await user.selectOptions(
+      groupSelector,
+      "Speed · group 2 · exercise 1 · Intervals",
+    );
+    expect(within(workbench).getByRole("heading", {
+      name: "Explore recorded speed zones",
+    })).toBeVisible();
+    expect(within(workbench).getByRole("img", {
+      name: "Speed distribution for exercise 1: 2 of 2 zones have recorded distance; recorded total 10,000 m. This is not a timeline.",
+    })).toBeVisible();
+    expect(workbench).toHaveTextContent("8–10 km/h");
+    await user.selectOptions(
+      groupSelector,
+      "Heart rate · group 1 · exercise 1 · Intervals",
+    );
+    expect(within(detail).queryByRole("region", {
+      name: "Recorded route workbench",
+    })).not.toBeInTheDocument();
+    expect(within(detail).queryByRole("region", {
+      name: "Recorded signal workbench",
+    })).not.toBeInTheDocument();
+    expect(within(detail).queryByRole("region", {
+      name: "Recorded structure workbench",
+    })).not.toBeInTheDocument();
+
+    const evidence = within(detail).getByRole("region", { name: "Session evidence" });
+    expect(evidence).toHaveTextContent("4 recorded zones");
+    expect(evidence).toHaveTextContent("1 unsupported source zone group");
+    const navigation = within(detail).getByRole("navigation", { name: "Session detail" });
+    expect(within(navigation).getByRole("button", { name: "Signals and zones" }))
+      .toBeVisible();
+    expect(within(navigation).queryByRole("button", { name: "Routes" }))
+      .not.toBeInTheDocument();
+
+    await user.click(within(workbench).getByRole("button", {
+      name: "Explore exact recorded zones",
+    }));
+    const zoneHeading = await within(detail).findByRole("heading", {
+      name: "Heart rate · group 1",
+    });
+    await waitFor(() => expect(zoneHeading).toHaveFocus());
+    const zoneGroup = zoneHeading.closest("section");
+    expect(zoneGroup).not.toBeNull();
+    expect(zoneGroup).toHaveTextContent("120–139 bpm");
+    expect(zoneGroup).toHaveTextContent("Not recorded");
   });
 
   it("announces a search without renaming its action or hiding the current results", async () => {

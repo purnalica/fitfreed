@@ -80,6 +80,11 @@ duration and source or automatic laps take that leading region. Pause counts are
 recorded local timestamps remain in structural detail because FitFreed does not infer an elapsed position that
 the evidence contract does not provide. The same action opens and focuses source structure and personal
 segments without presenting the two as the same kind of evidence.
+When supported recorded zones are the only detailed visual evidence, their exact bands and available
+aggregate distribution take the leading region. Heart-rate time, speed distance, or power muscle load is
+compared only within one selectable source group. The view states its coverage, renders missing aggregate
+values differently from recorded zero, and opens the chosen exact group without implying when a zone
+occurred or treating source bands as personal segments.
 Supported recorded heart-rate, speed, and power zones preserve
 their exact bounds and applicable aggregates without implying a timeline. Session provenance loads only on
 request and distinguishes source revision time, local import time, interpretation versions, and reconciliation
