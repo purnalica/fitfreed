@@ -196,6 +196,8 @@ describe("route workbench model", () => {
     expect(routeTimelineKeyboardSelection(model, 1, "ArrowRight")).toBe(2);
     expect(routeTimelineKeyboardSelection(model, 2, "Home")).toBe(0);
     expect(routeTimelineKeyboardSelection(model, 2, "End")).toBe(3);
+    expect(routeTimelineKeyboardSelection(model, 2, "\uE011")).toBe(0);
+    expect(routeTimelineKeyboardSelection(model, 2, "\uE010")).toBe(3);
     expect(routeTimelineKeyboardSelection(model, 2, "PageDown")).toBeNull();
   });
 

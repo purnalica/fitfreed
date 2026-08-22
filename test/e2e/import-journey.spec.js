@@ -1552,9 +1552,8 @@ describe("packaged FitFreed import journey", () => {
     expect(routeWorkbenchLayout.mapWidth / routeWorkbenchLayout.workbenchWidth)
       .toBeGreaterThan(0.94);
     expect(routeWorkbenchLayout.signalLaneWidths).toHaveLength(2);
-    expect(routeWorkbenchLayout.signalLaneWidths.every(
-      (width) => width / routeWorkbenchLayout.workbenchWidth > 0.9,
-    )).toBe(true);
+    expect(Math.min(...routeWorkbenchLayout.signalLaneWidths)
+      / routeWorkbenchLayout.workbenchWidth).toBeGreaterThan(0.9);
     expect(routeWorkbenchLayout.mapHeight / routeWorkbenchLayout.viewportHeight)
       .toBeGreaterThan(0.38);
     expect(routeWorkbenchLayout.mapHeight / routeWorkbenchLayout.viewportHeight)
@@ -1601,9 +1600,13 @@ describe("packaged FitFreed import journey", () => {
     await expect(routeWorkbench).toHaveText(expect.stringContaining("Point 5 of 5"));
     await paceLane.click();
     await expect(paceLane).toBeFocused();
-    await browser.keys([Key.Home]);
+    for (let movement = 0; movement < 4; movement += 1) {
+      await browser.keys([Key.ArrowLeft]);
+    }
     await expect(routeWorkbench).toHaveText(expect.stringContaining("Point 1 of 5"));
-    await browser.keys([Key.End]);
+    for (let movement = 0; movement < 4; movement += 1) {
+      await browser.keys([Key.ArrowRight]);
+    }
     await expect(routeWorkbench).toHaveText(expect.stringContaining("Point 5 of 5"));
     await browser.execute(() => {
       const path = document.querySelector(".training-route-workbench .fitfreed-route-track");
@@ -1697,7 +1700,13 @@ describe("packaged FitFreed import journey", () => {
     await expect(routeWorkbench).toHaveText(expect.stringContaining("Point 1 of 2"));
     await selectNativeOption(visibleRoute, "0:primary");
     await expect(routeWorkbench).toHaveText(expect.stringContaining("Point 1 of 5"));
-    await routePosition.addValue(Key.End);
+    const restoredPaceLane = await routeWorkbench.$(
+      `aria/${english.training.sessionLibrary.routeWorkbench.signalLanePosition
+        .replace("{metric}", "Pace")}`,
+    );
+    await restoredPaceLane.click();
+    await expect(restoredPaceLane).toBeFocused();
+    await browser.keys([Key.End]);
     await expect(routeWorkbench).toHaveText(expect.stringContaining("Point 5 of 5"));
     await routeWorkbench.$(
       `aria/${english.training.sessionLibrary.routeWorkbench.exactRoute}`,

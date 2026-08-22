@@ -1,3 +1,4 @@
+import { normalizeKeyboardKey } from "./keyboard-key";
 import type {
   RouteDirectionMarker,
   RouteOverlaySegment,
@@ -13,7 +14,7 @@ export type LocalRouteViewportKeyboardAction =
 export function localRouteViewportKeyboardAction(
   key: string,
 ): LocalRouteViewportKeyboardAction | null {
-  switch (key) {
+  switch (normalizeKeyboardKey(key)) {
     case "ArrowLeft":
       return { kind: "pan", xPixels: -KEYBOARD_PAN_PIXELS, yPixels: 0 };
     case "ArrowRight":

@@ -204,7 +204,10 @@ locally and the Tauri content security policy remains unchanged. The adapter dis
 keyboard handler because it does not pan in the supported macOS WebView despite receiving the focused key
 event. A local element-scoped translation maps unmodified arrow and zoom keys to Leaflet `panBy`, `zoomIn`,
 and `zoomOut`; Leaflet still owns every spatial operation, while the focused DOM boundary remains explicit,
-testable, and disposable.
+testable, and disposable. `keyboard-key.ts` is the single presentation compatibility adapter for keyboard
+names. It leaves ordinary DOM keys unchanged and maps only the standard WebDriver special-key code points
+that the embedded macOS automation driver exposes literally. Timeline and viewport mappings consume the
+normalized names; feature components contain no driver branch, environment switch, or synthetic event path.
 
 `TrainingRouteSignalLanes` is the semantic, renderer-independent timeline attached to that viewport. It pairs
 each selected role's bounded signal series with its application-composed `eligibleOverlay` by the validated

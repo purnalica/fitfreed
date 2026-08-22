@@ -24,6 +24,11 @@ describe("local route viewport keyboard actions", () => {
       xPixels: 0,
       yPixels: 80,
     });
+    expect(localRouteViewportKeyboardAction("\uE014")).toEqual({
+      kind: "pan",
+      xPixels: 80,
+      yPixels: 0,
+    });
   });
 
   it("maps conventional map zoom keys and ignores unrelated application keys", () => {

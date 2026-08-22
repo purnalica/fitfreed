@@ -1,3 +1,4 @@
+import { normalizeKeyboardKey } from "./keyboard-key";
 import type {
   SessionStoryMetric,
   SessionStoryOverlay,
@@ -303,13 +304,14 @@ export function routeTimelineKeyboardSelection(
   key: string,
 ): number | null {
   if (model.elapsedPointIndexes.length === 0) return null;
-  if (key === "Home") return model.elapsedPointIndexes[0];
-  if (key === "End") return model.elapsedPointIndexes.at(-1)!;
-  if (key === "ArrowRight") {
+  const normalizedKey = normalizeKeyboardKey(key);
+  if (normalizedKey === "Home") return model.elapsedPointIndexes[0];
+  if (normalizedKey === "End") return model.elapsedPointIndexes.at(-1)!;
+  if (normalizedKey === "ArrowRight") {
     return model.elapsedPointIndexes.find((pointIndex) => pointIndex > selectedPointIndex)
       ?? selectedPointIndex;
   }
-  if (key === "ArrowLeft") {
+  if (normalizedKey === "ArrowLeft") {
     return model.elapsedPointIndexes.filter(
       (pointIndex) => pointIndex < selectedPointIndex,
     ).at(-1)

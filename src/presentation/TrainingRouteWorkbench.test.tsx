@@ -230,6 +230,10 @@ describe("TrainingRouteWorkbench", () => {
     await user.keyboard("{ArrowRight}");
     expect(await screen.findByText("Point 3 of 3")).toBeVisible();
     expect(paceLane).toHaveAttribute("aria-valuenow", "3");
+    await user.keyboard("{Home}");
+    expect(await screen.findByText("Point 1 of 3")).toBeVisible();
+    await user.keyboard("{End}");
+    expect(await screen.findByText("Point 3 of 3")).toBeVisible();
 
     vi.spyOn(paceLane, "getBoundingClientRect").mockReturnValue({
       x: 0,
