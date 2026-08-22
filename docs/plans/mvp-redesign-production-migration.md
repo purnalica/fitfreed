@@ -209,7 +209,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R3 | Complete locally — R3.1 and R3.2 exact packaged gates passed 2026-08-22 | Import ends in recognizable personal value |
 | X5-R4 | Complete locally — exact packaged and exhaustive adaptive gates passed 2026-08-22 | Existing health and aligned-history questions read as answers |
 | X5-R5 | Complete locally — R5.4, R5.5, and real-process restart gates passed 2026-08-22 | A remembered session is findable and sports are recognizable |
-| X5-R6 | In progress — R6.1 through R6.4 passed exact packaged and adaptive visual gates on 2026-08-22 | A routed workout is investigated through a dominant synchronized map |
+| X5-R6 | Complete locally — R6.1 through R6.5 passed exact packaged, adaptive visual, and dense-route gates on 2026-08-22 | A routed workout is investigated through a dominant synchronized map |
 | X5-R7 | Pending | Every session composition reflects its actual evidence |
 | X5-R8 | Pending | Personal ranges and reusable criteria work end to end |
 | X5-R9 | Pending | Reports open as results and leave FitFreed safely |
@@ -992,6 +992,31 @@ p95 measurements were 49 ms for common filtering, 48 ms for the maximum filter, 
 46 ms for calendar navigation, 43 ms for a four-lane signal overview, and 210 ms for an exact 20,001-sample
 signal page, all within their accepted budgets. R6 remains open only for explicit dense-session route-
 interaction evidence; personal and source-authored ranges remain intentionally assigned to R8.
+
+### R6.5 local closure — 2026-08-22
+
+The packaged performance archive now places one independently generated 20,001-point route beside four
+aligned 20,001-slot signals in the latest session. Production requests one shared bounded 400-item visual
+evidence budget for route and signal projections, preserving exact matches for equal-cardinality streams
+without authorizing proximity matching for different cadences. The bounded control now names every selected
+position by its retained source ordinal and complete exact count rather than exposing its internal projected
+index. The dense final selection therefore reads point 20,001 of 20,001 and opens the exact containing page
+with that original row focused and current.
+
+The packaged campaign repeatedly opens the complete local workbench, requires a non-empty recorded overlay,
+three default lanes and four available lane choices, alternates first and last positions while checking both
+the Leaflet marker and every lane cursor, alternates recorded overlays, and retrieves the final exact source
+row. It measures the complete Tauri, SQLite, application, transport, React, Leaflet, DOM, and layout boundary.
+The campaign watchdog grew only to contain the expanded scenario; the 1-second workbench, 100-millisecond
+selection, 250-millisecond overlay, and every existing interaction budget remain unchanged or newly explicit.
+
+The complete contributor lane passed 156 automation, 275 React, 2 vendored-updater, 213 host, 156 application,
+and 33 domain tests. The exact `7fb81da` packaged source passed the functional journey in 2 minutes 42 seconds,
+distinct-process restart in under 1 second, and the expanded two-year performance campaign in 5 minutes
+47 seconds. Dense-route p95 measurements were 79 ms for workbench opening, 6 ms for synchronized source-point
+selection, and 5 ms for overlay replacement. Signal overview and exact-page p95 remained 42 ms and 252 ms;
+every other domain and longitudinal path remained within its accepted budget. X5-R6 is complete locally.
+Personal and source-authored range work remains in X5-R8 rather than being absorbed into the map increment.
 
 ## X5-R7 — Make session composition evidence-adaptive
 
