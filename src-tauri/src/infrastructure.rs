@@ -1,7 +1,7 @@
 use std::{
     cmp::Ordering as CmpOrdering,
     collections::{BTreeMap, BTreeSet, HashMap, HashSet},
-    fmt::{Formatter, Result as FmtResult},
+    fmt::{Display, Formatter, Result as FmtResult},
     fs::File,
     io::{self, Read, Seek, SeekFrom},
     path::{Path, PathBuf},
@@ -35,17 +35,19 @@ use fitfreed_application::{
     move_training_segment_criterion, query_default_recovery_overview, query_default_sleep_overview,
     query_default_training_overview, query_library_home, query_longitudinal_overview,
     query_recovery_detail, query_training_route_points, query_training_session_provenance,
-    query_training_session_ranges, query_training_session_routes,
-    query_training_session_segmentation, query_training_session_signals,
-    query_training_session_structure, query_training_session_zones, query_training_signal_samples,
-    query_training_sports, remove_training_segment_criterion, remove_training_session_range,
-    rename_training_session_range, save_exploration_workspace, save_training_sport_classification,
-    update_training_segment_criterion, AdjustTrainingSessionRangeRequest, AppearancePreference,
-    ApplicationError, CreateTrainingSegmentCriterionRequest, CreateTrainingSessionRangeRequest,
-    LibraryDomain, LibraryHomeDateRange, LibraryHomeHighlight, LibraryHomeRequest, LibraryQuestion,
+    query_training_session_range_summary, query_training_session_ranges,
+    query_training_session_routes, query_training_session_segmentation,
+    query_training_session_signals, query_training_session_structure, query_training_session_zones,
+    query_training_signal_samples, query_training_sports, remove_training_segment_criterion,
+    remove_training_session_range, rename_training_session_range, save_exploration_workspace,
+    save_training_sport_classification, update_training_segment_criterion,
+    AdjustTrainingSessionRangeRequest, AppearancePreference, ApplicationError,
+    CreateTrainingSegmentCriterionRequest, CreateTrainingSessionRangeRequest, LibraryDomain,
+    LibraryHomeDateRange, LibraryHomeHighlight, LibraryHomeRequest, LibraryQuestion,
     LibraryQuestionKind, LocalePreference, MoveTrainingSegmentCriterionRequest,
     RemoveTrainingSessionRangeRequest, RenameTrainingSessionRangeRequest,
     SaveSportClassificationRequest, SegmentApplicabilityView, SportClassificationSaveOutcome,
+    TrainingRangeBoundaryEvidenceState, TrainingRangeSummaryCoverageState,
     TrainingSegmentCriterionMutationRequest, UpdateTrainingSegmentCriterionRequest,
 };
 use fitfreed_application::{
@@ -53,8 +55,10 @@ use fitfreed_application::{
     ArchiveImportPort, DetectedTrainingSport, ExplorationWorkspace, ExplorationWorkspacePort,
     ExploreDestination, ImportOutcomeLibraryPort, ImportPhase, ImportPhaseTimings, ImportProgress,
     LibraryHomeClockPort, LibraryHomeRevisionPort, PersistedTrainingExerciseSegmentation,
-    PersistedTrainingRoutePoints, PersistedTrainingSessionCalendar,
-    PersistedTrainingSessionProvenance, PersistedTrainingSessionRanges,
+    PersistedTrainingRangeCoordinateEvidence, PersistedTrainingRangeSummaryExercise,
+    PersistedTrainingRangeSummarySourceRange, PersistedTrainingRoutePoints,
+    PersistedTrainingSessionCalendar, PersistedTrainingSessionProvenance,
+    PersistedTrainingSessionRangeSummary, PersistedTrainingSessionRanges,
     PersistedTrainingSessionRoutes, PersistedTrainingSessionSearchPage,
     PersistedTrainingSessionSegmentation, PersistedTrainingSessionSelection,
     PersistedTrainingSessionSignals, PersistedTrainingSessionStructure,
@@ -67,17 +71,18 @@ use fitfreed_application::{
     TrainingExerciseSignalsView, TrainingExerciseStructure, TrainingExerciseZonesView,
     TrainingLapStructure, TrainingLibraryPort, TrainingMeasurementFilter, TrainingPauseStructure,
     TrainingProvenanceCurrentView, TrainingProvenanceDecisionView, TrainingProvenanceEventView,
-    TrainingRouteCollectionView, TrainingRouteKindView, TrainingRouteOverview,
-    TrainingRoutePointView, TrainingRoutePointsQuery, TrainingSegmentCriterionDirection,
-    TrainingSegmentationPort, TrainingSegmentationPortError, TrainingSessionCalendarDay,
-    TrainingSessionCalendarRequest, TrainingSessionDiscoveryPort,
+    TrainingRangeEvidenceStreamItem, TrainingRangeSourceRangeKind, TrainingRouteCollectionView,
+    TrainingRouteKindView, TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
+    TrainingSegmentCriterionDirection, TrainingSegmentationPort, TrainingSegmentationPortError,
+    TrainingSessionCalendarDay, TrainingSessionCalendarRequest, TrainingSessionDiscoveryPort,
     TrainingSessionDiscoveryPortError, TrainingSessionProvenancePort,
     TrainingSessionProvenancePortError, TrainingSessionProvenanceQuery,
     TrainingSessionRangeCoordinateContext, TrainingSessionRangeExerciseContext,
-    TrainingSessionRangePort, TrainingSessionRangePortError, TrainingSessionRangesQuery,
-    TrainingSessionRoutePort, TrainingSessionRoutePortError, TrainingSessionRouteQuery,
-    TrainingSessionRoutesView, TrainingSessionSearchItem, TrainingSessionSearchRequest,
-    TrainingSessionSearchSummary, TrainingSessionSegmentationQuery,
+    TrainingSessionRangePort, TrainingSessionRangePortError, TrainingSessionRangeSummaryPort,
+    TrainingSessionRangeSummaryPortError, TrainingSessionRangeSummaryQuery,
+    TrainingSessionRangesQuery, TrainingSessionRoutePort, TrainingSessionRoutePortError,
+    TrainingSessionRouteQuery, TrainingSessionRoutesView, TrainingSessionSearchItem,
+    TrainingSessionSearchRequest, TrainingSessionSearchSummary, TrainingSessionSegmentationQuery,
     TrainingSessionSelectionRequest, TrainingSessionSignalPort, TrainingSessionSignalPortError,
     TrainingSessionSignalsQuery, TrainingSessionSignalsView, TrainingSessionSort,
     TrainingSessionSport, TrainingSessionStructurePort, TrainingSessionStructurePortError,
@@ -5199,6 +5204,767 @@ fn query_training_session_ranges_persistence(
     )?;
     transaction.commit().map_err(training_range_failure)?;
     Ok(persisted)
+}
+
+fn training_range_summary_failure(error: impl Display) -> TrainingSessionRangeSummaryPortError {
+    TrainingSessionRangeSummaryPortError::Failure(error.to_string())
+}
+
+fn training_range_summary_port_error(
+    error: TrainingSessionRangePortError,
+) -> TrainingSessionRangeSummaryPortError {
+    match error {
+        TrainingSessionRangePortError::SnapshotChanged => {
+            TrainingSessionRangeSummaryPortError::SnapshotChanged
+        }
+        TrainingSessionRangePortError::NotFound => TrainingSessionRangeSummaryPortError::NotFound,
+        TrainingSessionRangePortError::AlreadyExists | TrainingSessionRangePortError::Conflict => {
+            training_range_summary_failure(
+                "unexpected mutation result while reading a training-session range summary",
+            )
+        }
+        TrainingSessionRangePortError::Failure(message) => {
+            TrainingSessionRangeSummaryPortError::Failure(message)
+        }
+    }
+}
+
+fn training_range_summary_evidence_error(
+    error: TrainingSessionRangePortError,
+) -> TrainingSessionRangeSummaryPortError {
+    match error {
+        TrainingSessionRangePortError::Failure(message) => {
+            TrainingSessionRangeSummaryPortError::Failure(message)
+        }
+        TrainingSessionRangePortError::SnapshotChanged
+        | TrainingSessionRangePortError::NotFound
+        | TrainingSessionRangePortError::AlreadyExists
+        | TrainingSessionRangePortError::Conflict => training_range_summary_failure(
+            "stored training range summary evidence revision is unavailable",
+        ),
+    }
+}
+
+struct TrainingRangeSummaryIdentity {
+    snapshot_ref: String,
+    origin_id: String,
+    session_id: String,
+    range: TrainingSessionRange,
+}
+
+fn training_range_summary_identity_on(
+    transaction: &Transaction<'_>,
+    query: &TrainingSessionRangeSummaryQuery,
+) -> StandardResult<TrainingRangeSummaryIdentity, TrainingSessionRangeSummaryPortError> {
+    let (snapshot_ref, origin_id, session_id) = training_range_snapshot_and_identity(
+        transaction,
+        &query.session_ref,
+        Some(&query.snapshot_ref),
+    )
+    .map_err(training_range_summary_port_error)?;
+    let range = load_training_session_ranges_on(transaction, &origin_id, &session_id)
+        .map_err(training_range_summary_port_error)?
+        .into_iter()
+        .find(|range| range.range_id() == query.range_ref)
+        .ok_or(TrainingSessionRangeSummaryPortError::NotFound)?;
+    if range.revision() != query.expected_range_revision {
+        return Err(TrainingSessionRangeSummaryPortError::RangeChanged);
+    }
+    Ok(TrainingRangeSummaryIdentity {
+        snapshot_ref,
+        origin_id,
+        session_id,
+        range,
+    })
+}
+
+struct TrainingRangeSummaryExerciseRecord {
+    exercise_id: String,
+    public: PersistedTrainingRangeSummaryExercise,
+}
+
+fn training_range_summary_exercise_on(
+    transaction: &Transaction<'_>,
+    origin_id: &str,
+    session_id: &str,
+    exercise_ref: Option<&str>,
+) -> StandardResult<Option<TrainingRangeSummaryExerciseRecord>, TrainingSessionRangeSummaryPortError>
+{
+    let Some(exercise_ref) = exercise_ref else {
+        return Ok(None);
+    };
+    let mut statement = transaction
+        .prepare(
+            "SELECT exercise_id, ordinal, duration_milliseconds, distance_meters, sport_ref,
+                    manual_laps_present, automatic_laps_present
+             FROM training_exercise
+             WHERE origin_id = ?1 AND session_id = ?2
+             ORDER BY ordinal",
+        )
+        .map_err(training_range_summary_failure)?;
+    let rows = statement
+        .query_map(params![origin_id, session_id], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, i64>(1)?,
+                row.get::<_, i64>(2)?,
+                row.get::<_, Option<f64>>(3)?,
+                row.get::<_, Option<String>>(4)?,
+                row.get::<_, i64>(5)?,
+                row.get::<_, i64>(6)?,
+            ))
+        })
+        .map_err(training_range_summary_failure)?;
+    let mut selected = None;
+    for row in rows {
+        let row = row.map_err(training_range_summary_failure)?;
+        if training_exercise_ref(origin_id, session_id, &row.0) == exercise_ref {
+            selected = Some(row);
+            break;
+        }
+    }
+    drop(statement);
+    let Some((
+        exercise_id,
+        ordinal,
+        duration,
+        distance,
+        sport_ref,
+        manual_present,
+        automatic_present,
+    )) = selected
+    else {
+        return Ok(None);
+    };
+    let ordinal = persisted_count(ordinal, "training range summary exercise ordinal")
+        .map_err(training_range_summary_failure)?;
+    if duration < 0
+        || distance.is_some_and(|value| !value.is_finite() || value < 0.0)
+        || !matches!(manual_present, 0 | 1)
+        || !matches!(automatic_present, 0 | 1)
+    {
+        return Err(training_range_summary_failure(
+            "stored training range summary exercise is invalid",
+        ));
+    }
+    let sports =
+        query_training_discovery_sports(transaction).map_err(training_range_summary_failure)?;
+    let sport = sports
+        .into_iter()
+        .find(|entry| entry.origin_id == origin_id && entry.source_sport_ref == sport_ref)
+        .map(|entry| entry.public_sport)
+        .ok_or_else(|| training_range_summary_failure("range summary sport is unavailable"))?;
+    let source_ranges = training_range_summary_source_ranges_on(
+        transaction,
+        origin_id,
+        session_id,
+        &exercise_id,
+        manual_present == 1,
+        automatic_present == 1,
+    )?;
+    let coordinates =
+        training_range_coordinates_on(transaction, origin_id, session_id, &exercise_id, duration)
+            .map_err(training_range_summary_port_error)?;
+    let route_coordinate_count = coordinates
+        .iter()
+        .filter(|coordinate| {
+            coordinate.coordinate.scope() == TrainingSessionRangeCoordinateScope::RouteElapsed
+        })
+        .count();
+    let signal_coordinate_count = coordinates
+        .iter()
+        .filter(|coordinate| {
+            coordinate.coordinate.scope() == TrainingSessionRangeCoordinateScope::SignalElapsed
+        })
+        .count();
+    Ok(Some(TrainingRangeSummaryExerciseRecord {
+        exercise_id,
+        public: PersistedTrainingRangeSummaryExercise {
+            exercise_ref: exercise_ref.to_owned(),
+            ordinal,
+            duration_milliseconds: duration,
+            distance_meters: distance,
+            sport,
+            source_ranges,
+            route_coordinate_count,
+            signal_coordinate_count,
+        },
+    }))
+}
+
+fn training_range_summary_source_ranges_on(
+    transaction: &Transaction<'_>,
+    origin_id: &str,
+    session_id: &str,
+    exercise_id: &str,
+    manual_present: bool,
+    automatic_present: bool,
+) -> StandardResult<
+    Vec<PersistedTrainingRangeSummarySourceRange>,
+    TrainingSessionRangeSummaryPortError,
+> {
+    let mut statement = transaction
+        .prepare(
+            "SELECT kind, ordinal, split_time_milliseconds, duration_milliseconds,
+                    distance_meters
+             FROM training_lap
+             WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3
+             ORDER BY CASE kind WHEN 'manual' THEN 0 ELSE 1 END, ordinal",
+        )
+        .map_err(training_range_summary_failure)?;
+    let rows = statement
+        .query_map(params![origin_id, session_id, exercise_id], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, i64>(1)?,
+                row.get::<_, i64>(2)?,
+                row.get::<_, i64>(3)?,
+                row.get::<_, Option<f64>>(4)?,
+            ))
+        })
+        .map_err(training_range_summary_failure)?;
+    let mut ranges = Vec::new();
+    for row in rows {
+        let (kind, ordinal, started, duration, distance) =
+            row.map_err(training_range_summary_failure)?;
+        let ordinal = persisted_count(ordinal, "training range summary lap ordinal")
+            .map_err(training_range_summary_failure)?;
+        let (domain_kind, public_kind, present) = match kind.as_str() {
+            "manual" => (
+                TrainingLapKind::Manual,
+                TrainingRangeSourceRangeKind::ManualLap,
+                manual_present,
+            ),
+            "automatic" => (
+                TrainingLapKind::Automatic,
+                TrainingRangeSourceRangeKind::AutomaticLap,
+                automatic_present,
+            ),
+            _ => {
+                return Err(training_range_summary_failure(
+                    "stored training range summary lap kind is invalid",
+                ))
+            }
+        };
+        let ended = started.checked_add(duration).ok_or_else(|| {
+            training_range_summary_failure("training range summary lap boundary overflows")
+        })?;
+        if !present
+            || started < 0
+            || duration < 0
+            || distance.is_some_and(|value| !value.is_finite() || value < 0.0)
+        {
+            return Err(training_range_summary_failure(
+                "stored training range summary lap is invalid",
+            ));
+        }
+        if duration == 0 {
+            continue;
+        }
+        ranges.push(PersistedTrainingRangeSummarySourceRange {
+            source_range_ref: training_lap_ref(
+                origin_id,
+                session_id,
+                exercise_id,
+                domain_kind,
+                ordinal,
+            ),
+            kind: public_kind,
+            ordinal,
+            started_at_elapsed_milliseconds: started,
+            ended_at_elapsed_milliseconds: ended,
+            distance_meters: distance,
+        });
+    }
+    Ok(ranges)
+}
+
+enum TrainingRangeSummaryCoordinateRecord {
+    Exercise {
+        maximum_elapsed_milliseconds: i64,
+    },
+    Route {
+        kind: TrainingRouteKind,
+        point_count: usize,
+        elapsed_point_count: usize,
+        maximum_elapsed_milliseconds: i64,
+    },
+    Signal {
+        series_id: i64,
+        ordinal: usize,
+        role: TrainingSignalRoleView,
+        kind: TrainingSignalKindView,
+        unit: TrainingSignalUnitView,
+        interval_milliseconds: i64,
+        sample_count: usize,
+        available_sample_count: usize,
+    },
+    Unavailable,
+}
+
+fn training_range_summary_coordinate_on(
+    transaction: &Transaction<'_>,
+    origin_id: &str,
+    session_id: &str,
+    exercise: Option<&TrainingRangeSummaryExerciseRecord>,
+    coordinate: &TrainingSessionRangeCoordinate,
+) -> StandardResult<TrainingRangeSummaryCoordinateRecord, TrainingSessionRangeSummaryPortError> {
+    let Some(exercise) = exercise else {
+        return Ok(TrainingRangeSummaryCoordinateRecord::Unavailable);
+    };
+    match coordinate.scope() {
+        TrainingSessionRangeCoordinateScope::ExerciseElapsed => {
+            Ok(TrainingRangeSummaryCoordinateRecord::Exercise {
+                maximum_elapsed_milliseconds: exercise.public.duration_milliseconds,
+            })
+        }
+        TrainingSessionRangeCoordinateScope::RouteElapsed => {
+            for kind in [TrainingRouteKind::Primary, TrainingRouteKind::Transition] {
+                let candidate_ref =
+                    training_route_ref(origin_id, session_id, &exercise.exercise_id, kind);
+                if coordinate.reference() != Some(candidate_ref.as_str()) {
+                    continue;
+                }
+                let kind_code = training_route_kind_code(kind);
+                let metadata = transaction
+                    .query_row(
+                        "SELECT route.point_count, route.elapsed_point_count,
+                                MAX(point.elapsed_milliseconds)
+                         FROM training_route AS route
+                         LEFT JOIN training_route_point AS point
+                           ON point.origin_id = route.origin_id
+                          AND point.session_id = route.session_id
+                          AND point.exercise_id = route.exercise_id
+                          AND point.kind = route.kind
+                         WHERE route.origin_id = ?1 AND route.session_id = ?2
+                           AND route.exercise_id = ?3 AND route.kind = ?4
+                         GROUP BY route.point_count, route.elapsed_point_count",
+                        params![origin_id, session_id, exercise.exercise_id, kind_code],
+                        |row| {
+                            Ok((
+                                row.get::<_, i64>(0)?,
+                                row.get::<_, i64>(1)?,
+                                row.get::<_, Option<i64>>(2)?,
+                            ))
+                        },
+                    )
+                    .optional()
+                    .map_err(training_range_summary_failure)?;
+                let Some((point_count, elapsed_point_count, Some(maximum))) = metadata else {
+                    return Ok(TrainingRangeSummaryCoordinateRecord::Unavailable);
+                };
+                return Ok(TrainingRangeSummaryCoordinateRecord::Route {
+                    kind,
+                    point_count: persisted_count(point_count, "range summary route point count")
+                        .map_err(training_range_summary_failure)?,
+                    elapsed_point_count: persisted_count(
+                        elapsed_point_count,
+                        "range summary route elapsed point count",
+                    )
+                    .map_err(training_range_summary_failure)?,
+                    maximum_elapsed_milliseconds: maximum,
+                });
+            }
+            Ok(TrainingRangeSummaryCoordinateRecord::Unavailable)
+        }
+        TrainingSessionRangeCoordinateScope::SignalElapsed => {
+            let mut statement = transaction
+                .prepare(
+                    "SELECT series_id, role, ordinal, kind, unit, interval_milliseconds,
+                            sample_count, available_sample_count
+                     FROM training_signal_series
+                     WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3
+                     ORDER BY role, ordinal",
+                )
+                .map_err(training_range_summary_failure)?;
+            let rows = statement
+                .query_map(
+                    params![origin_id, session_id, exercise.exercise_id],
+                    |row| {
+                        Ok((
+                            row.get::<_, i64>(0)?,
+                            row.get::<_, String>(1)?,
+                            row.get::<_, i64>(2)?,
+                            row.get::<_, String>(3)?,
+                            row.get::<_, String>(4)?,
+                            row.get::<_, i64>(5)?,
+                            row.get::<_, i64>(6)?,
+                            row.get::<_, i64>(7)?,
+                        ))
+                    },
+                )
+                .map_err(training_range_summary_failure)?;
+            for row in rows {
+                let (series_id, role, ordinal, kind, unit, interval, count, available) =
+                    row.map_err(training_range_summary_failure)?;
+                let role = match role.as_str() {
+                    "primary" => TrainingSignalRoleView::Primary,
+                    "transition" => TrainingSignalRoleView::Transition,
+                    _ => {
+                        return Err(training_range_summary_failure(
+                            "stored range summary signal role is invalid",
+                        ))
+                    }
+                };
+                let ordinal = persisted_count(ordinal, "range summary signal ordinal")
+                    .map_err(training_range_summary_failure)?;
+                let candidate_ref = training_signal_ref(
+                    origin_id,
+                    session_id,
+                    &exercise.exercise_id,
+                    role,
+                    ordinal,
+                );
+                if coordinate.reference() != Some(candidate_ref.as_str()) {
+                    continue;
+                }
+                let (kind, unit) = training_signal_kind_and_unit(&kind, &unit)
+                    .map_err(training_range_summary_failure)?;
+                return Ok(TrainingRangeSummaryCoordinateRecord::Signal {
+                    series_id,
+                    ordinal,
+                    role,
+                    kind: training_signal_kind_view(kind),
+                    unit: training_signal_unit_view(unit),
+                    interval_milliseconds: interval,
+                    sample_count: persisted_count(count, "range summary signal sample count")
+                        .map_err(training_range_summary_failure)?,
+                    available_sample_count: persisted_count(
+                        available,
+                        "range summary signal available sample count",
+                    )
+                    .map_err(training_range_summary_failure)?,
+                });
+            }
+            Ok(TrainingRangeSummaryCoordinateRecord::Unavailable)
+        }
+        TrainingSessionRangeCoordinateScope::LegacySessionElapsed => {
+            Ok(TrainingRangeSummaryCoordinateRecord::Unavailable)
+        }
+    }
+}
+
+fn public_training_range_summary_coordinate(
+    origin_id: &str,
+    session_id: &str,
+    exercise: Option<&TrainingRangeSummaryExerciseRecord>,
+    coordinate: TrainingRangeSummaryCoordinateRecord,
+) -> StandardResult<PersistedTrainingRangeCoordinateEvidence, TrainingSessionRangeSummaryPortError>
+{
+    Ok(match coordinate {
+        TrainingRangeSummaryCoordinateRecord::Exercise {
+            maximum_elapsed_milliseconds,
+        } => PersistedTrainingRangeCoordinateEvidence::Exercise {
+            maximum_elapsed_milliseconds,
+        },
+        TrainingRangeSummaryCoordinateRecord::Route {
+            kind,
+            point_count,
+            elapsed_point_count,
+            maximum_elapsed_milliseconds,
+        } => PersistedTrainingRangeCoordinateEvidence::Route {
+            route_ref: {
+                let exercise_id = exercise
+                    .map(|value| value.exercise_id.as_str())
+                    .ok_or_else(|| {
+                        training_range_summary_failure("resolved route has no exercise")
+                    })?;
+                training_route_ref(origin_id, session_id, exercise_id, kind)
+            },
+            kind: training_route_kind_view(kind),
+            point_count,
+            elapsed_point_count,
+            maximum_elapsed_milliseconds,
+        },
+        TrainingRangeSummaryCoordinateRecord::Signal {
+            ordinal,
+            role,
+            kind,
+            unit,
+            interval_milliseconds,
+            sample_count,
+            available_sample_count,
+            ..
+        } => PersistedTrainingRangeCoordinateEvidence::Signal {
+            signal_ref: {
+                let exercise_id = exercise
+                    .map(|value| value.exercise_id.as_str())
+                    .ok_or_else(|| {
+                        training_range_summary_failure("resolved signal has no exercise")
+                    })?;
+                training_signal_ref(origin_id, session_id, exercise_id, role, ordinal)
+            },
+            ordinal,
+            role,
+            kind,
+            unit,
+            interval_milliseconds,
+            sample_count,
+            available_sample_count,
+        },
+        TrainingRangeSummaryCoordinateRecord::Unavailable => {
+            PersistedTrainingRangeCoordinateEvidence::Unavailable
+        }
+    })
+}
+
+fn training_range_summary_source_provider_on(
+    transaction: &Transaction<'_>,
+    origin_id: &str,
+    session_id: &str,
+) -> StandardResult<TrainingSourceProviderView, TrainingSessionRangeSummaryPortError> {
+    let provider = transaction
+        .query_row(
+            "SELECT source_provider
+             FROM training_session_provenance
+             WHERE origin_id = ?1 AND session_id = ?2
+               AND contributes_to_visible_state = 1
+             ORDER BY id DESC LIMIT 1",
+            params![origin_id, session_id],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()
+        .map_err(training_range_summary_failure)?
+        .ok_or_else(|| {
+            training_range_summary_failure("stored range summary source provider is unavailable")
+        })?;
+    TrainingSourceProviderView::restore(provider).ok_or_else(|| {
+        training_range_summary_failure("stored range summary source provider is invalid")
+    })
+}
+
+fn query_training_session_range_summary_context_persistence(
+    database_path: &Path,
+    query: &TrainingSessionRangeSummaryQuery,
+) -> StandardResult<PersistedTrainingSessionRangeSummary, TrainingSessionRangeSummaryPortError> {
+    let mut connection = Connection::open(database_path).map_err(training_range_summary_failure)?;
+    ensure_schema(&connection).map_err(training_range_summary_failure)?;
+    let transaction = connection
+        .transaction()
+        .map_err(training_range_summary_failure)?;
+    let identity = training_range_summary_identity_on(&transaction, query)?;
+    let exercise = training_range_summary_exercise_on(
+        &transaction,
+        &identity.origin_id,
+        &identity.session_id,
+        identity.range.exercise_ref(),
+    )?;
+    let coordinate = training_range_summary_coordinate_on(
+        &transaction,
+        &identity.origin_id,
+        &identity.session_id,
+        exercise.as_ref(),
+        identity.range.coordinate(),
+    )?;
+    let coordinate_evidence = public_training_range_summary_coordinate(
+        &identity.origin_id,
+        &identity.session_id,
+        exercise.as_ref(),
+        coordinate,
+    )?;
+    let (_, evidence_revision) = training_range_evidence_revision_on(
+        &transaction,
+        &identity.origin_id,
+        &identity.session_id,
+    )
+    .map_err(training_range_summary_evidence_error)?;
+    let source_provider = training_range_summary_source_provider_on(
+        &transaction,
+        &identity.origin_id,
+        &identity.session_id,
+    )?;
+    let persisted = PersistedTrainingSessionRangeSummary {
+        snapshot_ref: identity.snapshot_ref,
+        session_ref: query.session_ref.clone(),
+        evidence_revision,
+        source_provider,
+        range: identity.range,
+        exercise: exercise.map(|value| value.public),
+        coordinate_evidence,
+    };
+    transaction
+        .commit()
+        .map_err(training_range_summary_failure)?;
+    Ok(persisted)
+}
+
+fn visit_training_session_range_summary_evidence_persistence(
+    database_path: &Path,
+    query: &TrainingSessionRangeSummaryQuery,
+    visitor: &mut dyn FnMut(TrainingRangeEvidenceStreamItem) -> StandardResult<(), &'static str>,
+) -> StandardResult<(), TrainingSessionRangeSummaryPortError> {
+    let mut connection = Connection::open(database_path).map_err(training_range_summary_failure)?;
+    ensure_schema(&connection).map_err(training_range_summary_failure)?;
+    let transaction = connection
+        .transaction()
+        .map_err(training_range_summary_failure)?;
+    let identity = training_range_summary_identity_on(&transaction, query)?;
+    let exercise = training_range_summary_exercise_on(
+        &transaction,
+        &identity.origin_id,
+        &identity.session_id,
+        identity.range.exercise_ref(),
+    )?;
+    let coordinate = training_range_summary_coordinate_on(
+        &transaction,
+        &identity.origin_id,
+        &identity.session_id,
+        exercise.as_ref(),
+        identity.range.coordinate(),
+    )?;
+    match coordinate {
+        TrainingRangeSummaryCoordinateRecord::Route { kind, .. } => {
+            let exercise = exercise.as_ref().ok_or_else(|| {
+                training_range_summary_failure("range summary route exercise disappeared")
+            })?;
+            visit_training_range_summary_route_points_on(
+                &transaction,
+                &identity.origin_id,
+                &identity.session_id,
+                &exercise.exercise_id,
+                kind,
+                visitor,
+            )?;
+        }
+        TrainingRangeSummaryCoordinateRecord::Signal {
+            series_id,
+            ordinal,
+            role,
+            interval_milliseconds,
+            ..
+        } => {
+            let exercise = exercise.as_ref().ok_or_else(|| {
+                training_range_summary_failure("range summary signal exercise disappeared")
+            })?;
+            visit_training_range_summary_signal_samples_on(
+                &transaction,
+                TrainingRangeSummarySignalVisit {
+                    origin_id: &identity.origin_id,
+                    session_id: &identity.session_id,
+                    exercise_id: &exercise.exercise_id,
+                    series_id,
+                    series_ordinal: ordinal,
+                    role,
+                    interval_milliseconds,
+                },
+                visitor,
+            )?;
+        }
+        TrainingRangeSummaryCoordinateRecord::Exercise { .. }
+        | TrainingRangeSummaryCoordinateRecord::Unavailable => {}
+    }
+    transaction
+        .commit()
+        .map_err(training_range_summary_failure)?;
+    Ok(())
+}
+
+fn visit_training_range_summary_route_points_on(
+    transaction: &Transaction<'_>,
+    origin_id: &str,
+    session_id: &str,
+    exercise_id: &str,
+    kind: TrainingRouteKind,
+    visitor: &mut dyn FnMut(TrainingRangeEvidenceStreamItem) -> StandardResult<(), &'static str>,
+) -> StandardResult<(), TrainingSessionRangeSummaryPortError> {
+    let kind_code = training_route_kind_code(kind);
+    let route_ref = training_route_ref(origin_id, session_id, exercise_id, kind);
+    let mut statement = transaction
+        .prepare(
+            "SELECT ordinal, latitude_degrees, longitude_degrees, altitude_meters,
+                    elapsed_milliseconds
+             FROM training_route_point
+             WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3 AND kind = ?4
+             ORDER BY ordinal",
+        )
+        .map_err(training_range_summary_failure)?;
+    let rows = statement
+        .query_map(
+            params![origin_id, session_id, exercise_id, kind_code],
+            |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, f64>(1)?,
+                    row.get::<_, f64>(2)?,
+                    row.get::<_, Option<f64>>(3)?,
+                    row.get::<_, Option<i64>>(4)?,
+                ))
+            },
+        )
+        .map_err(training_range_summary_failure)?;
+    for row in rows {
+        let (ordinal, latitude, longitude, altitude, elapsed) =
+            row.map_err(training_range_summary_failure)?;
+        visitor(TrainingRangeEvidenceStreamItem::RoutePoint {
+            route_ref: route_ref.clone(),
+            point: TrainingRoutePointView {
+                ordinal: persisted_count(ordinal, "range summary route point ordinal")
+                    .map_err(training_range_summary_failure)?,
+                latitude_degrees: latitude,
+                longitude_degrees: longitude,
+                altitude_meters: altitude,
+                elapsed_milliseconds: elapsed,
+            },
+        })
+        .map_err(TrainingSessionRangeSummaryPortError::InvalidEvidence)?;
+    }
+    Ok(())
+}
+
+struct TrainingRangeSummarySignalVisit<'a> {
+    origin_id: &'a str,
+    session_id: &'a str,
+    exercise_id: &'a str,
+    series_id: i64,
+    series_ordinal: usize,
+    role: TrainingSignalRoleView,
+    interval_milliseconds: i64,
+}
+
+fn visit_training_range_summary_signal_samples_on(
+    transaction: &Transaction<'_>,
+    metadata: TrainingRangeSummarySignalVisit<'_>,
+    visitor: &mut dyn FnMut(TrainingRangeEvidenceStreamItem) -> StandardResult<(), &'static str>,
+) -> StandardResult<(), TrainingSessionRangeSummaryPortError> {
+    let signal_ref = training_signal_ref(
+        metadata.origin_id,
+        metadata.session_id,
+        metadata.exercise_id,
+        metadata.role,
+        metadata.series_ordinal,
+    );
+    let mut statement = transaction
+        .prepare(
+            "SELECT ordinal, value FROM training_signal_sample
+             WHERE series_id = ?1 ORDER BY ordinal",
+        )
+        .map_err(training_range_summary_failure)?;
+    let rows = statement
+        .query_map(params![metadata.series_id], |row| {
+            Ok((row.get::<_, i64>(0)?, row.get::<_, Option<f64>>(1)?))
+        })
+        .map_err(training_range_summary_failure)?;
+    for row in rows {
+        let (ordinal, value) = row.map_err(training_range_summary_failure)?;
+        let ordinal = persisted_count(ordinal, "range summary signal sample ordinal")
+            .map_err(training_range_summary_failure)?;
+        let elapsed_milliseconds = i64::try_from(ordinal)
+            .ok()
+            .and_then(|ordinal| ordinal.checked_mul(metadata.interval_milliseconds))
+            .ok_or_else(|| {
+                training_range_summary_failure("range summary signal elapsed offset overflows")
+            })?;
+        visitor(TrainingRangeEvidenceStreamItem::SignalSample {
+            signal_ref: signal_ref.clone(),
+            sample: TrainingSignalSampleView {
+                ordinal,
+                elapsed_milliseconds,
+                value,
+            },
+        })
+        .map_err(TrainingSessionRangeSummaryPortError::InvalidEvidence)?;
+    }
+    Ok(())
 }
 
 fn new_training_session_range_id(
@@ -13320,6 +14086,30 @@ impl TrainingSessionRangePort for SqliteTrainingLibrary {
     }
 }
 
+impl TrainingSessionRangeSummaryPort for SqliteTrainingLibrary {
+    fn query_training_session_range_summary_context(
+        &self,
+        query: &TrainingSessionRangeSummaryQuery,
+    ) -> StandardResult<PersistedTrainingSessionRangeSummary, TrainingSessionRangeSummaryPortError>
+    {
+        query_training_session_range_summary_context_persistence(&self.database_path, query)
+    }
+
+    fn visit_training_session_range_summary_evidence(
+        &self,
+        query: &TrainingSessionRangeSummaryQuery,
+        visitor: &mut dyn FnMut(
+            TrainingRangeEvidenceStreamItem,
+        ) -> StandardResult<(), &'static str>,
+    ) -> StandardResult<(), TrainingSessionRangeSummaryPortError> {
+        visit_training_session_range_summary_evidence_persistence(
+            &self.database_path,
+            query,
+            visitor,
+        )
+    }
+}
+
 impl TrainingDiscoveryWorkspacePort for SqliteTrainingLibrary {
     fn load_training_discovery_workspace(
         &self,
@@ -15760,6 +16550,261 @@ mod tests {
     }
 
     #[test]
+    fn composes_revision_coherent_range_summaries_from_exact_sqlite_evidence() {
+        let harness = Harness::new();
+        let archive = harness.archive(
+            "training-range-summary.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-training-range-summary-claim"}"#,
+                ),
+                (
+                    "training-session_2026-01-02T10-30-00_42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                        "identifier":{"id":"range-summary-session"},
+                        "created":"2026-01-02T12:00:00.000",
+                        "modified":"2026-01-02T12:05:00.000",
+                        "startTime":"2026-01-02T10:30:00",
+                        "stopTime":"2026-01-02T11:30:00",
+                        "durationMillis":3600000,
+                        "exercises":[{
+                            "identifier":{"id":"range-summary-exercise"},
+                            "created":"2026-01-02T12:00:00.000",
+                            "modified":"2026-01-02T12:05:00.000",
+                            "startTime":"2026-01-02T10:30:00",
+                            "stopTime":"2026-01-02T11:30:00",
+                            "durationMillis":3600000,
+                            "distanceMeters":5000,
+                            "laps":{"laps":[{
+                                "splitTimeMillis":0,
+                                "durationMillis":1800000,
+                                "distanceMeters":1000
+                            }]},
+                            "routes":{"route":{
+                                "startTime":"2026-01-02T10:30:00",
+                                "wayPoints":[
+                                    {"latitude":35.0,"longitude":-5.0,"altitude":10,"elapsedMillis":0},
+                                    {"latitude":35.001,"longitude":-5.001,"altitude":12,"elapsedMillis":1000},
+                                    {"latitude":35.002,"longitude":-5.002,"altitude":14,"elapsedMillis":2000}
+                                ]
+                            }},
+                            "samples":{"samples":[{
+                                "type":"HEART_RATE",
+                                "intervalMillis":1000,
+                                "values":[130,"NaN",140]
+                            }]}
+                        }]
+                    }"#,
+                ),
+            ],
+        );
+        import_polar_archive(&harness.database(), &archive).expect("range summary import");
+        let session = query_training_sessions(&harness.database())
+            .expect("training history")
+            .remove(0);
+        let session_ref = training_session_ref(&session.origin_id, &session.session_id);
+        let library = SqliteTrainingLibrary::new(harness.database());
+        let context = query_training_session_ranges(
+            &library,
+            TrainingSessionRangesQuery {
+                session_ref: session_ref.clone(),
+                snapshot_ref: None,
+            },
+        )
+        .expect("range context");
+        let exercise = &context.exercises[0];
+        let route_coordinate = exercise
+            .coordinates
+            .iter()
+            .find(|candidate| {
+                candidate.coordinate.scope() == TrainingSessionRangeCoordinateScope::RouteElapsed
+            })
+            .expect("route coordinate")
+            .coordinate
+            .clone();
+        let signal_coordinate = exercise
+            .coordinates
+            .iter()
+            .find(|candidate| {
+                candidate.coordinate.scope() == TrainingSessionRangeCoordinateScope::SignalElapsed
+            })
+            .expect("signal coordinate")
+            .coordinate
+            .clone();
+
+        let route_ranges = create_training_session_range(
+            &library,
+            CreateTrainingSessionRangeRequest {
+                session_ref: session_ref.clone(),
+                snapshot_ref: context.snapshot_ref.clone(),
+                exercise_ref: exercise.exercise_ref.clone(),
+                coordinate: route_coordinate,
+                title: "Recorded bridge".to_owned(),
+                started_at_elapsed_milliseconds: 0,
+                ended_at_elapsed_milliseconds: 2_000,
+            },
+        )
+        .expect("route range");
+        let route_range = route_ranges
+            .ranges
+            .iter()
+            .find(|range| range.title() == "Recorded bridge")
+            .expect("saved route range");
+        let route_range_ref = route_range.range_id().to_owned();
+        let route_summary = query_training_session_range_summary(
+            &library,
+            TrainingSessionRangeSummaryQuery {
+                session_ref: session_ref.clone(),
+                snapshot_ref: route_ranges.snapshot_ref.clone(),
+                range_ref: route_range_ref.clone(),
+                expected_range_revision: 1,
+            },
+        )
+        .expect("route summary");
+        assert_eq!(route_summary.source_provider.code(), SOURCE_PROVIDER);
+        assert!(route_summary
+            .distance
+            .as_ref()
+            .is_some_and(|value| value.meters > 0.0));
+        assert_eq!(route_summary.measurements.len(), 1);
+        assert_eq!(
+            route_summary.boundaries.start.state,
+            TrainingRangeBoundaryEvidenceState::Exact
+        );
+        assert_eq!(
+            route_summary.boundaries.end.state,
+            TrainingRangeBoundaryEvidenceState::Exact
+        );
+        assert_eq!(
+            route_summary.coverage.state,
+            TrainingRangeSummaryCoverageState::Complete
+        );
+
+        let signal_ranges = create_training_session_range(
+            &library,
+            CreateTrainingSessionRangeRequest {
+                session_ref: session_ref.clone(),
+                snapshot_ref: route_ranges.snapshot_ref.clone(),
+                exercise_ref: exercise.exercise_ref.clone(),
+                coordinate: signal_coordinate,
+                title: "Recorded pulse".to_owned(),
+                started_at_elapsed_milliseconds: 0,
+                ended_at_elapsed_milliseconds: 2_000,
+            },
+        )
+        .expect("signal range");
+        let signal_range = signal_ranges
+            .ranges
+            .iter()
+            .find(|range| range.title() == "Recorded pulse")
+            .expect("saved signal range");
+        let signal_summary = query_training_session_range_summary(
+            &library,
+            TrainingSessionRangeSummaryQuery {
+                session_ref: session_ref.clone(),
+                snapshot_ref: signal_ranges.snapshot_ref.clone(),
+                range_ref: signal_range.range_id().to_owned(),
+                expected_range_revision: 1,
+            },
+        )
+        .expect("signal summary");
+        assert_eq!(
+            signal_summary.coverage.state,
+            TrainingRangeSummaryCoverageState::Partial
+        );
+        assert_eq!(signal_summary.coverage.missing_evidence_count, 1);
+        assert_eq!(signal_summary.measurements[0].average, 130.0);
+        assert_eq!(
+            signal_summary.measurements[0].end_boundary_value,
+            Some(140.0)
+        );
+
+        let exercise_ranges = create_training_session_range(
+            &library,
+            CreateTrainingSessionRangeRequest {
+                session_ref: session_ref.clone(),
+                snapshot_ref: signal_ranges.snapshot_ref.clone(),
+                exercise_ref: exercise.exercise_ref.clone(),
+                coordinate: TrainingSessionRangeCoordinate::exercise_elapsed(),
+                title: "Recorded lap".to_owned(),
+                started_at_elapsed_milliseconds: 0,
+                ended_at_elapsed_milliseconds: 1_800_000,
+            },
+        )
+        .expect("exercise range");
+        let exercise_range = exercise_ranges
+            .ranges
+            .iter()
+            .find(|range| range.title() == "Recorded lap")
+            .expect("saved exercise range");
+        let exercise_summary = query_training_session_range_summary(
+            &library,
+            TrainingSessionRangeSummaryQuery {
+                session_ref: session_ref.clone(),
+                snapshot_ref: exercise_ranges.snapshot_ref.clone(),
+                range_ref: exercise_range.range_id().to_owned(),
+                expected_range_revision: 1,
+            },
+        )
+        .expect("exercise summary");
+        assert_eq!(exercise_summary.source_ranges.len(), 1);
+        assert_eq!(
+            exercise_summary.distance.expect("lap distance").meters,
+            1_000.0
+        );
+
+        let renamed = rename_training_session_range(
+            &library,
+            RenameTrainingSessionRangeRequest {
+                session_ref: session_ref.clone(),
+                snapshot_ref: exercise_ranges.snapshot_ref,
+                range_ref: route_range_ref.clone(),
+                expected_revision: 1,
+                title: "Renamed bridge".to_owned(),
+            },
+        )
+        .expect("rename route range");
+        assert!(matches!(
+            query_training_session_range_summary(
+                &library,
+                TrainingSessionRangeSummaryQuery {
+                    session_ref: session_ref.clone(),
+                    snapshot_ref: renamed.snapshot_ref.clone(),
+                    range_ref: route_range_ref.clone(),
+                    expected_range_revision: 1,
+                },
+            ),
+            Err(ApplicationError::TrainingSessionRangeSummaryChanged)
+        ));
+        Connection::open(harness.database())
+            .expect("range summary provenance database")
+            .execute(
+                "DELETE FROM training_session_provenance
+                 WHERE origin_id = ?1 AND session_id = ?2",
+                params![session.origin_id, session.session_id],
+            )
+            .expect("remove corrupt provenance fixture");
+        let missing_provider = query_training_session_range_summary(
+            &library,
+            TrainingSessionRangeSummaryQuery {
+                session_ref,
+                snapshot_ref: renamed.snapshot_ref,
+                range_ref: route_range_ref,
+                expected_range_revision: 2,
+            },
+        )
+        .expect_err("missing source provider must fail the summary");
+        assert!(
+            matches!(
+                missing_provider,
+                ApplicationError::TrainingSessionRangeSummaryQuery(_)
+            ),
+            "unexpected missing-provider result: {missing_provider:?}"
+        );
+    }
+
+    #[test]
     fn reimports_identical_bytes_after_a_mapping_upgrade_and_enriches_without_duplicates() {
         let harness = Harness::new();
         let archive = harness.archive(
@@ -16091,12 +17136,30 @@ mod tests {
             },
         )
         .expect("review range with missing coordinate");
+        let missing_route_summary = query_training_session_range_summary(
+            &pre_upgrade_library,
+            TrainingSessionRangeSummaryQuery {
+                session_ref: pre_upgrade_session_ref.clone(),
+                snapshot_ref: missing_route_context.snapshot_ref.clone(),
+                range_ref: review_required_range_ref.clone(),
+                expected_range_revision: 3,
+            },
+        )
+        .expect("review summary with missing coordinate");
+        assert_eq!(
+            missing_route_summary.coverage.state,
+            TrainingRangeSummaryCoverageState::Unavailable
+        );
+        assert_eq!(
+            missing_route_summary.boundaries.start.state,
+            TrainingRangeBoundaryEvidenceState::NoEvidence
+        );
         let renamed_missing_route = rename_training_session_range(
             &pre_upgrade_library,
             RenameTrainingSessionRangeRequest {
-                session_ref: pre_upgrade_session_ref,
+                session_ref: pre_upgrade_session_ref.clone(),
                 snapshot_ref: missing_route_context.snapshot_ref,
-                range_ref: review_required_range_ref,
+                range_ref: review_required_range_ref.clone(),
                 expected_revision: 3,
                 title: "Preserved route selection".to_owned(),
             },
@@ -16113,6 +17176,63 @@ mod tests {
             TrainingSessionRangeState::ReviewRequired
         );
         assert_eq!(preserved_route_range.revision(), 4);
+
+        let missing_exercise_archive = harness.archive(
+            "training-range-missing-exercise.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-training-upgrade-claim"}"#,
+                ),
+                (
+                    "training-session_2026-01-02T10-30-00_42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                        "identifier":{"id":"synthetic-upgrade-session"},
+                        "created":"2026-01-02T12:00:00.000",
+                        "modified":"2026-01-02T12:20:00.000",
+                        "startTime":"2026-01-02T10:30:00",
+                        "stopTime":"2026-01-02T11:30:00",
+                        "durationMillis":3600000,
+                        "exercises":[]
+                    }"#,
+                ),
+            ],
+        );
+        let missing_exercise_import =
+            import_polar_archive(&harness.database(), &missing_exercise_archive)
+                .expect("amendment without the previously owned exercise");
+        assert_eq!(missing_exercise_import.amended_observations, 1);
+        let missing_exercise_context = query_training_session_ranges(
+            &pre_upgrade_library,
+            TrainingSessionRangesQuery {
+                session_ref: pre_upgrade_session_ref.clone(),
+                snapshot_ref: None,
+            },
+        )
+        .expect("review range with missing exercise");
+        assert!(missing_exercise_context.exercises.is_empty());
+        let missing_exercise_revision = missing_exercise_context
+            .ranges
+            .iter()
+            .find(|range| range.range_id() == review_required_range_ref)
+            .expect("preserved range without its exercise")
+            .revision();
+        assert_eq!(missing_exercise_revision, 5);
+        let missing_exercise_summary = query_training_session_range_summary(
+            &pre_upgrade_library,
+            TrainingSessionRangeSummaryQuery {
+                session_ref: pre_upgrade_session_ref,
+                snapshot_ref: missing_exercise_context.snapshot_ref,
+                range_ref: review_required_range_ref,
+                expected_range_revision: missing_exercise_revision,
+            },
+        )
+        .expect("review summary with missing exercise");
+        assert!(missing_exercise_summary.exercise.is_none());
+        assert_eq!(
+            missing_exercise_summary.coverage.state,
+            TrainingRangeSummaryCoverageState::Unavailable
+        );
 
         let session = query_training_sessions(&harness.database())
             .expect("training history for provenance")
@@ -16131,9 +17251,9 @@ mod tests {
             },
         )
         .expect("first provenance page");
-        assert_eq!(first_page.total_event_count, 2);
+        assert_eq!(first_page.total_event_count, 3);
         assert_eq!(first_page.next_offset, Some(1));
-        assert_eq!(first_page.current.contributing_event_count, 2);
+        assert_eq!(first_page.current.contributing_event_count, 3);
         assert_eq!(first_page.current.non_contributing_event_count, 0);
         assert_eq!(
             first_page.current.mapping_version,
@@ -16148,23 +17268,42 @@ mod tests {
             "polar-flow-training-session@4"
         );
 
-        let last_page = query_training_session_provenance(
+        let enrichment_page = query_training_session_provenance(
             &library,
             TrainingSessionProvenanceQuery {
-                session_ref,
-                snapshot_ref: Some(first_page.snapshot_ref),
+                session_ref: session_ref.clone(),
+                snapshot_ref: Some(first_page.snapshot_ref.clone()),
                 offset: 1,
                 limit: 1,
             },
         )
-        .expect("last provenance page");
-        assert_eq!(last_page.next_offset, None);
+        .expect("enrichment provenance page");
+        assert_eq!(enrichment_page.next_offset, Some(2));
         assert_eq!(
-            last_page.events[0].decision,
+            enrichment_page.events[0].decision,
             TrainingProvenanceDecisionView::Enrich
         );
         assert_eq!(
-            last_page.events[0].mapping_version,
+            enrichment_page.events[0].mapping_version,
+            TRAINING_SESSION_MAPPING_VERSION
+        );
+        let amendment_page = query_training_session_provenance(
+            &library,
+            TrainingSessionProvenanceQuery {
+                session_ref,
+                snapshot_ref: Some(first_page.snapshot_ref),
+                offset: 2,
+                limit: 1,
+            },
+        )
+        .expect("amendment provenance page");
+        assert_eq!(amendment_page.next_offset, None);
+        assert_eq!(
+            amendment_page.events[0].decision,
+            TrainingProvenanceDecisionView::Amend
+        );
+        assert_eq!(
+            amendment_page.events[0].mapping_version,
             TRAINING_SESSION_MAPPING_VERSION
         );
     }

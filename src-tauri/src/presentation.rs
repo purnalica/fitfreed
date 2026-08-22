@@ -21,13 +21,14 @@ use fitfreed_application::{
     LongitudinalSeriesOverview, LongitudinalSleepComparison, LongitudinalSleepDay,
     LongitudinalTrainingComparison, LongitudinalTrainingDay, ManualUpdateReason,
     MoveTrainingSegmentCriterionRequest, OfficialSourceLink, OfficialSourceLinkPurpose,
-    PersistedTrainingRoutePoints, PersistedTrainingSignalSamples, PostImportReveal,
-    PreferencesLoadStatus, PreparedReportStart, RecoveryComparison, RecoveryDateRange,
-    RecoveryDayAvailability, RecoveryDayInsight, RecoveryNightDetail, RecoveryNightInsight,
-    RecoveryOverview, RecoverySeriesComparison, RecoverySeriesOverview, RecoverySeriesSummary,
-    RefreshReportRequest, RemoveTrainingSessionRangeRequest, RenameTrainingSessionRangeRequest,
-    ReportEvidenceProvenance, ReportExportReceipt, ReportExportRequest, ReportLimitation,
-    ReportResolutionStatus, ReportRouteEvidence, ReportRouteExportChoice, ReportSensitiveContent,
+    PersistedTrainingRangeSummaryExercise, PersistedTrainingRoutePoints,
+    PersistedTrainingSignalSamples, PostImportReveal, PreferencesLoadStatus, PreparedReportStart,
+    RecoveryComparison, RecoveryDateRange, RecoveryDayAvailability, RecoveryDayInsight,
+    RecoveryNightDetail, RecoveryNightInsight, RecoveryOverview, RecoverySeriesComparison,
+    RecoverySeriesOverview, RecoverySeriesSummary, RefreshReportRequest,
+    RemoveTrainingSessionRangeRequest, RenameTrainingSessionRangeRequest, ReportEvidenceProvenance,
+    ReportExportReceipt, ReportExportRequest, ReportLimitation, ReportResolutionStatus,
+    ReportRouteEvidence, ReportRouteExportChoice, ReportSensitiveContent,
     ReportSensitiveContentKind, ReportSessionEvidence, ReportStart, ReportSummary, ResolvedReport,
     ResolvedSessionReport, SaveSportClassificationRequest, SavedTrainingSportClassification,
     SegmentApplicabilityView, SegmentMeasurementView, SessionReportBlockDraft,
@@ -44,13 +45,21 @@ use fitfreed_application::{
     TrainingExerciseSegmentation, TrainingExerciseSignalsView, TrainingExerciseStructure,
     TrainingExerciseZonesView, TrainingLapStructure, TrainingMeasurementFilter,
     TrainingPauseStructure, TrainingProvenanceCurrentView, TrainingProvenanceDecisionView,
-    TrainingProvenanceEventView, TrainingRouteCollectionView, TrainingRouteKindView,
+    TrainingProvenanceEventView, TrainingRangeBoundaryEvidence, TrainingRangeBoundaryEvidenceState,
+    TrainingRangeBoundaryPair, TrainingRangeCardinalDirection, TrainingRangeCoordinateEvidence,
+    TrainingRangeDirectionSummary, TrainingRangeDistanceSummary, TrainingRangeEvidenceCoverage,
+    TrainingRangeEvidenceLocation, TrainingRangeExactEvidenceKind,
+    TrainingRangeIndependentEvidence, TrainingRangeMeasurementSummary, TrainingRangeMetricCoverage,
+    TrainingRangeMissingInterval, TrainingRangeSourceOverlap, TrainingRangeSourceOverlapRelation,
+    TrainingRangeSourceRangeKind, TrainingRangeSummaryCoverageState,
+    TrainingRangeSummaryLimitation, TrainingRouteCollectionView, TrainingRouteKindView,
     TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
     TrainingSegmentCriterionDirection, TrainingSegmentCriterionMutationRequest,
     TrainingSeriesComparison, TrainingSeriesSummary, TrainingSessionCalendar,
     TrainingSessionCalendarDay, TrainingSessionCalendarRequest, TrainingSessionProvenanceQuery,
     TrainingSessionProvenanceResult, TrainingSessionRangeCoordinateContext,
-    TrainingSessionRangeExerciseContext, TrainingSessionRangesQuery, TrainingSessionRangesResult,
+    TrainingSessionRangeExerciseContext, TrainingSessionRangeSummary,
+    TrainingSessionRangeSummaryQuery, TrainingSessionRangesQuery, TrainingSessionRangesResult,
     TrainingSessionRouteQuery, TrainingSessionRoutesResult, TrainingSessionRoutesView,
     TrainingSessionSearchItem, TrainingSessionSearchPage, TrainingSessionSearchRequest,
     TrainingSessionSearchSummary, TrainingSessionSegmentationQuery,
@@ -659,6 +668,15 @@ impl From<ApplicationError> for CommandErrorDto {
             ApplicationError::TrainingSessionRangesChanged => "training-session-ranges-changed",
             ApplicationError::TrainingSessionRangeQuery(_)
             | ApplicationError::TrainingSessionRangeUpdate(_) => "training-session-range-failed",
+            ApplicationError::InvalidTrainingSessionRangeSummary(_) => {
+                "invalid-training-session-range-summary"
+            }
+            ApplicationError::TrainingSessionRangeSummaryChanged => {
+                "training-session-range-summary-changed"
+            }
+            ApplicationError::TrainingSessionRangeSummaryQuery(_) => {
+                "training-session-range-summary-failed"
+            }
             ApplicationError::InvalidReportDefinition(_) => "invalid-report-definition",
             ApplicationError::ReportNotFound => "report-not-found",
             ApplicationError::ReportDefinitionConflict => "report-definition-conflict",
@@ -1235,9 +1253,12 @@ fn parse_training_session_range_i64(value: &str) -> Result<i64, CommandErrorDto>
     deny_unknown_fields
 )]
 pub enum TrainingSessionRangeCoordinateInputDto {
-    ExerciseElapsed {},
-    RouteElapsed { route_ref: String },
-    SignalElapsed { signal_ref: String },
+    #[serde(rename = "exercise-elapsed")]
+    Exercise {},
+    #[serde(rename = "route-elapsed")]
+    Route { route_ref: String },
+    #[serde(rename = "signal-elapsed")]
+    Signal { signal_ref: String },
 }
 
 impl TryFrom<TrainingSessionRangeCoordinateInputDto> for TrainingSessionRangeCoordinate {
@@ -1245,14 +1266,12 @@ impl TryFrom<TrainingSessionRangeCoordinateInputDto> for TrainingSessionRangeCoo
 
     fn try_from(coordinate: TrainingSessionRangeCoordinateInputDto) -> Result<Self, Self::Error> {
         match coordinate {
-            TrainingSessionRangeCoordinateInputDto::ExerciseElapsed {} => {
-                Ok(Self::exercise_elapsed())
-            }
-            TrainingSessionRangeCoordinateInputDto::RouteElapsed { route_ref } => {
+            TrainingSessionRangeCoordinateInputDto::Exercise {} => Ok(Self::exercise_elapsed()),
+            TrainingSessionRangeCoordinateInputDto::Route { route_ref } => {
                 Self::route_elapsed(route_ref)
                     .map_err(|_| CommandErrorDto::new("invalid-training-session-range"))
             }
-            TrainingSessionRangeCoordinateInputDto::SignalElapsed { signal_ref } => {
+            TrainingSessionRangeCoordinateInputDto::Signal { signal_ref } => {
                 Self::signal_elapsed(signal_ref)
                     .map_err(|_| CommandErrorDto::new("invalid-training-session-range"))
             }
@@ -4246,29 +4265,33 @@ impl From<TrainingSessionSegmentationResult> for TrainingSessionSegmentationResu
     rename_all_fields = "camelCase"
 )]
 pub enum TrainingSessionRangeCoordinateDto {
-    ExerciseElapsed,
-    RouteElapsed { route_ref: String },
-    SignalElapsed { signal_ref: String },
-    LegacySessionElapsed,
+    #[serde(rename = "exercise-elapsed")]
+    Exercise,
+    #[serde(rename = "route-elapsed")]
+    Route { route_ref: String },
+    #[serde(rename = "signal-elapsed")]
+    Signal { signal_ref: String },
+    #[serde(rename = "legacy-session-elapsed")]
+    LegacySession,
 }
 
 impl From<&TrainingSessionRangeCoordinate> for TrainingSessionRangeCoordinateDto {
     fn from(coordinate: &TrainingSessionRangeCoordinate) -> Self {
         match coordinate.scope() {
-            TrainingSessionRangeCoordinateScope::ExerciseElapsed => Self::ExerciseElapsed,
-            TrainingSessionRangeCoordinateScope::RouteElapsed => Self::RouteElapsed {
+            TrainingSessionRangeCoordinateScope::ExerciseElapsed => Self::Exercise,
+            TrainingSessionRangeCoordinateScope::RouteElapsed => Self::Route {
                 route_ref: coordinate
                     .reference()
                     .expect("validated route coordinate has a reference")
                     .to_owned(),
             },
-            TrainingSessionRangeCoordinateScope::SignalElapsed => Self::SignalElapsed {
+            TrainingSessionRangeCoordinateScope::SignalElapsed => Self::Signal {
                 signal_ref: coordinate
                     .reference()
                     .expect("validated signal coordinate has a reference")
                     .to_owned(),
             },
-            TrainingSessionRangeCoordinateScope::LegacySessionElapsed => Self::LegacySessionElapsed,
+            TrainingSessionRangeCoordinateScope::LegacySessionElapsed => Self::LegacySession,
         }
     }
 }
@@ -4366,6 +4389,460 @@ impl From<TrainingSessionRangesResult> for TrainingSessionRangesResultDto {
             evidence_revision: result.evidence_revision,
             exercises: result.exercises.into_iter().map(Into::into).collect(),
             ranges: result.ranges.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TrainingSessionRangeSummaryQueryDto {
+    session_ref: String,
+    snapshot_ref: String,
+    range_ref: String,
+    expected_range_revision: u64,
+}
+
+impl From<TrainingSessionRangeSummaryQueryDto> for TrainingSessionRangeSummaryQuery {
+    fn from(query: TrainingSessionRangeSummaryQueryDto) -> Self {
+        Self {
+            session_ref: query.session_ref,
+            snapshot_ref: query.snapshot_ref,
+            range_ref: query.range_ref,
+            expected_range_revision: query.expected_range_revision,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingRangeSummaryExerciseDto {
+    exercise_ref: String,
+    ordinal: usize,
+    duration_milliseconds: String,
+    distance_meters: Option<f64>,
+    sport: TrainingSessionSportDto,
+}
+
+impl From<PersistedTrainingRangeSummaryExercise> for TrainingRangeSummaryExerciseDto {
+    fn from(exercise: PersistedTrainingRangeSummaryExercise) -> Self {
+        Self {
+            exercise_ref: exercise.exercise_ref,
+            ordinal: exercise.ordinal,
+            duration_milliseconds: exercise.duration_milliseconds.to_string(),
+            distance_meters: exercise.distance_meters,
+            sport: exercise.sport.into(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(tag = "scope", rename_all_fields = "camelCase")]
+pub enum TrainingRangeCoordinateEvidenceDto {
+    #[serde(rename = "exercise-elapsed")]
+    Exercise {
+        maximum_elapsed_milliseconds: String,
+    },
+    #[serde(rename = "route-elapsed")]
+    Route {
+        route_ref: String,
+        kind: &'static str,
+    },
+    #[serde(rename = "signal-elapsed")]
+    Signal {
+        signal_ref: String,
+        ordinal: usize,
+        role: &'static str,
+        kind: &'static str,
+        unit: &'static str,
+        interval_milliseconds: String,
+    },
+    #[serde(rename = "unavailable")]
+    Unavailable,
+}
+
+impl From<TrainingRangeCoordinateEvidence> for TrainingRangeCoordinateEvidenceDto {
+    fn from(evidence: TrainingRangeCoordinateEvidence) -> Self {
+        match evidence {
+            TrainingRangeCoordinateEvidence::Exercise {
+                maximum_elapsed_milliseconds,
+            } => Self::Exercise {
+                maximum_elapsed_milliseconds: maximum_elapsed_milliseconds.to_string(),
+            },
+            TrainingRangeCoordinateEvidence::Route { route_ref, kind } => Self::Route {
+                route_ref,
+                kind: training_route_kind(kind),
+            },
+            TrainingRangeCoordinateEvidence::Signal {
+                signal_ref,
+                ordinal,
+                role,
+                kind,
+                unit,
+                interval_milliseconds,
+            } => Self::Signal {
+                signal_ref,
+                ordinal,
+                role: training_signal_role(role),
+                kind: training_signal_kind(kind),
+                unit: training_signal_unit(unit),
+                interval_milliseconds: interval_milliseconds.to_string(),
+            },
+            TrainingRangeCoordinateEvidence::Unavailable => Self::Unavailable,
+        }
+    }
+}
+
+fn training_range_boundary_state(state: TrainingRangeBoundaryEvidenceState) -> &'static str {
+    match state {
+        TrainingRangeBoundaryEvidenceState::Exact => "exact",
+        TrainingRangeBoundaryEvidenceState::BetweenEvidence => "between-evidence",
+        TrainingRangeBoundaryEvidenceState::OutsideRecordedEvidence => "outside-recorded-evidence",
+        TrainingRangeBoundaryEvidenceState::NoEvidence => "no-evidence",
+    }
+}
+
+fn training_range_exact_kind(kind: TrainingRangeExactEvidenceKind) -> &'static str {
+    match kind {
+        TrainingRangeExactEvidenceKind::Exercise => "exercise",
+        TrainingRangeExactEvidenceKind::ManualLap => "manual-lap",
+        TrainingRangeExactEvidenceKind::AutomaticLap => "automatic-lap",
+        TrainingRangeExactEvidenceKind::RoutePoint => "route-point",
+        TrainingRangeExactEvidenceKind::SignalSample => "signal-sample",
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingRangeEvidenceLocationDto {
+    kind: &'static str,
+    evidence_ref: String,
+    ordinal: Option<usize>,
+    elapsed_milliseconds: String,
+}
+
+impl From<TrainingRangeEvidenceLocation> for TrainingRangeEvidenceLocationDto {
+    fn from(location: TrainingRangeEvidenceLocation) -> Self {
+        Self {
+            kind: training_range_exact_kind(location.kind),
+            evidence_ref: location.evidence_ref,
+            ordinal: location.ordinal,
+            elapsed_milliseconds: location.elapsed_milliseconds.to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingRangeBoundaryEvidenceDto {
+    elapsed_milliseconds: String,
+    state: &'static str,
+    exact_match_count: usize,
+    exact_matches: Vec<TrainingRangeEvidenceLocationDto>,
+    preceding: Option<TrainingRangeEvidenceLocationDto>,
+    following: Option<TrainingRangeEvidenceLocationDto>,
+}
+
+impl From<TrainingRangeBoundaryEvidence> for TrainingRangeBoundaryEvidenceDto {
+    fn from(boundary: TrainingRangeBoundaryEvidence) -> Self {
+        Self {
+            elapsed_milliseconds: boundary.elapsed_milliseconds.to_string(),
+            state: training_range_boundary_state(boundary.state),
+            exact_match_count: boundary.exact_match_count,
+            exact_matches: boundary.exact_matches.into_iter().map(Into::into).collect(),
+            preceding: boundary.preceding.map(Into::into),
+            following: boundary.following.map(Into::into),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingRangeBoundaryPairDto {
+    start: TrainingRangeBoundaryEvidenceDto,
+    end: TrainingRangeBoundaryEvidenceDto,
+}
+
+impl From<TrainingRangeBoundaryPair> for TrainingRangeBoundaryPairDto {
+    fn from(boundaries: TrainingRangeBoundaryPair) -> Self {
+        Self {
+            start: boundaries.start.into(),
+            end: boundaries.end.into(),
+        }
+    }
+}
+
+fn training_range_coverage_state(state: TrainingRangeSummaryCoverageState) -> &'static str {
+    match state {
+        TrainingRangeSummaryCoverageState::Complete => "complete",
+        TrainingRangeSummaryCoverageState::Partial => "partial",
+        TrainingRangeSummaryCoverageState::Empty => "empty",
+        TrainingRangeSummaryCoverageState::Unavailable => "unavailable",
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingRangeMissingIntervalDto {
+    started_at_elapsed_milliseconds: String,
+    ended_at_elapsed_milliseconds: String,
+}
+
+impl From<TrainingRangeMissingInterval> for TrainingRangeMissingIntervalDto {
+    fn from(interval: TrainingRangeMissingInterval) -> Self {
+        Self {
+            started_at_elapsed_milliseconds: interval.started_at_elapsed_milliseconds.to_string(),
+            ended_at_elapsed_milliseconds: interval.ended_at_elapsed_milliseconds.to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingRangeEvidenceCoverageDto {
+    state: &'static str,
+    recorded_evidence_count: usize,
+    selected_evidence_count: usize,
+    available_evidence_count: usize,
+    missing_evidence_count: usize,
+    missing_elapsed_evidence_count: usize,
+    missing_intervals: Vec<TrainingRangeMissingIntervalDto>,
+    omitted_missing_interval_count: usize,
+}
+
+impl From<TrainingRangeEvidenceCoverage> for TrainingRangeEvidenceCoverageDto {
+    fn from(coverage: TrainingRangeEvidenceCoverage) -> Self {
+        Self {
+            state: training_range_coverage_state(coverage.state),
+            recorded_evidence_count: coverage.recorded_evidence_count,
+            selected_evidence_count: coverage.selected_evidence_count,
+            available_evidence_count: coverage.available_evidence_count,
+            missing_evidence_count: coverage.missing_evidence_count,
+            missing_elapsed_evidence_count: coverage.missing_elapsed_evidence_count,
+            missing_intervals: coverage
+                .missing_intervals
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            omitted_missing_interval_count: coverage.omitted_missing_interval_count,
+        }
+    }
+}
+
+fn training_range_metric_coverage(coverage: TrainingRangeMetricCoverage) -> &'static str {
+    match coverage {
+        TrainingRangeMetricCoverage::Complete => "complete",
+        TrainingRangeMetricCoverage::Partial => "partial",
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingRangeDistanceSummaryDto {
+    meters: f64,
+    coverage: &'static str,
+}
+
+impl From<TrainingRangeDistanceSummary> for TrainingRangeDistanceSummaryDto {
+    fn from(distance: TrainingRangeDistanceSummary) -> Self {
+        Self {
+            meters: distance.meters,
+            coverage: training_range_metric_coverage(distance.coverage),
+        }
+    }
+}
+
+fn training_range_cardinal_direction(direction: TrainingRangeCardinalDirection) -> &'static str {
+    match direction {
+        TrainingRangeCardinalDirection::North => "north",
+        TrainingRangeCardinalDirection::NorthEast => "north-east",
+        TrainingRangeCardinalDirection::East => "east",
+        TrainingRangeCardinalDirection::SouthEast => "south-east",
+        TrainingRangeCardinalDirection::South => "south",
+        TrainingRangeCardinalDirection::SouthWest => "south-west",
+        TrainingRangeCardinalDirection::West => "west",
+        TrainingRangeCardinalDirection::NorthWest => "north-west",
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingRangeDirectionSummaryDto {
+    initial_bearing_degrees: f64,
+    cardinal: &'static str,
+}
+
+impl From<TrainingRangeDirectionSummary> for TrainingRangeDirectionSummaryDto {
+    fn from(direction: TrainingRangeDirectionSummary) -> Self {
+        Self {
+            initial_bearing_degrees: direction.initial_bearing_degrees,
+            cardinal: training_range_cardinal_direction(direction.cardinal),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingRangeMeasurementSummaryDto {
+    kind: &'static str,
+    unit: &'static str,
+    minimum: f64,
+    maximum: f64,
+    average: f64,
+    available_evidence_count: usize,
+    missing_evidence_count: usize,
+    start_boundary_value: Option<f64>,
+    end_boundary_value: Option<f64>,
+}
+
+impl From<TrainingRangeMeasurementSummary> for TrainingRangeMeasurementSummaryDto {
+    fn from(measurement: TrainingRangeMeasurementSummary) -> Self {
+        Self {
+            kind: training_signal_kind(measurement.kind),
+            unit: training_signal_unit(measurement.unit),
+            minimum: measurement.minimum,
+            maximum: measurement.maximum,
+            average: measurement.average,
+            available_evidence_count: measurement.available_evidence_count,
+            missing_evidence_count: measurement.missing_evidence_count,
+            start_boundary_value: measurement.start_boundary_value,
+            end_boundary_value: measurement.end_boundary_value,
+        }
+    }
+}
+
+fn training_range_source_kind(kind: TrainingRangeSourceRangeKind) -> &'static str {
+    match kind {
+        TrainingRangeSourceRangeKind::ManualLap => "manual-lap",
+        TrainingRangeSourceRangeKind::AutomaticLap => "automatic-lap",
+    }
+}
+
+fn training_range_overlap_relation(relation: TrainingRangeSourceOverlapRelation) -> &'static str {
+    match relation {
+        TrainingRangeSourceOverlapRelation::Exact => "exact",
+        TrainingRangeSourceOverlapRelation::SourceContainsRange => "source-contains-range",
+        TrainingRangeSourceOverlapRelation::RangeContainsSource => "range-contains-source",
+        TrainingRangeSourceOverlapRelation::Overlap => "overlap",
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingRangeSourceOverlapDto {
+    source_range_ref: String,
+    kind: &'static str,
+    ordinal: usize,
+    started_at_elapsed_milliseconds: String,
+    ended_at_elapsed_milliseconds: String,
+    distance_meters: Option<f64>,
+    relation: &'static str,
+}
+
+impl From<TrainingRangeSourceOverlap> for TrainingRangeSourceOverlapDto {
+    fn from(source: TrainingRangeSourceOverlap) -> Self {
+        Self {
+            source_range_ref: source.source_range_ref,
+            kind: training_range_source_kind(source.kind),
+            ordinal: source.ordinal,
+            started_at_elapsed_milliseconds: source.started_at_elapsed_milliseconds.to_string(),
+            ended_at_elapsed_milliseconds: source.ended_at_elapsed_milliseconds.to_string(),
+            distance_meters: source.distance_meters,
+            relation: training_range_overlap_relation(source.relation),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingRangeIndependentEvidenceDto {
+    source_range_count: usize,
+    route_coordinate_count: usize,
+    signal_coordinate_count: usize,
+}
+
+impl From<TrainingRangeIndependentEvidence> for TrainingRangeIndependentEvidenceDto {
+    fn from(evidence: TrainingRangeIndependentEvidence) -> Self {
+        Self {
+            source_range_count: evidence.source_range_count,
+            route_coordinate_count: evidence.route_coordinate_count,
+            signal_coordinate_count: evidence.signal_coordinate_count,
+        }
+    }
+}
+
+fn training_range_limitation(limitation: TrainingRangeSummaryLimitation) -> &'static str {
+    match limitation {
+        TrainingRangeSummaryLimitation::CoordinateUnavailable => "coordinate-unavailable",
+        TrainingRangeSummaryLimitation::BoundaryNotExact => "boundary-not-exact",
+        TrainingRangeSummaryLimitation::MissingElapsedRouteEvidence => {
+            "missing-elapsed-route-evidence"
+        }
+        TrainingRangeSummaryLimitation::MissingSignalEvidence => "missing-signal-evidence",
+        TrainingRangeSummaryLimitation::InsufficientRouteGeometry => "insufficient-route-geometry",
+        TrainingRangeSummaryLimitation::AmbiguousSourceDistance => "ambiguous-source-distance",
+        TrainingRangeSummaryLimitation::DistanceUnavailable => "distance-unavailable",
+        TrainingRangeSummaryLimitation::MovingTimeUnavailable => "moving-time-unavailable",
+        TrainingRangeSummaryLimitation::PausedTimeUnavailable => "paused-time-unavailable",
+        TrainingRangeSummaryLimitation::UnalignedSourceRangeEvidence => {
+            "unaligned-source-range-evidence"
+        }
+        TrainingRangeSummaryLimitation::UnalignedRouteEvidence => "unaligned-route-evidence",
+        TrainingRangeSummaryLimitation::UnalignedSignalEvidence => "unaligned-signal-evidence",
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSessionRangeSummaryDto {
+    snapshot_ref: String,
+    session_ref: String,
+    evidence_revision: String,
+    source_provider: String,
+    range: TrainingSessionRangeDto,
+    exercise: Option<TrainingRangeSummaryExerciseDto>,
+    coordinate_evidence: TrainingRangeCoordinateEvidenceDto,
+    elapsed_duration_milliseconds: String,
+    moving_duration_milliseconds: Option<String>,
+    paused_duration_milliseconds: Option<String>,
+    distance: Option<TrainingRangeDistanceSummaryDto>,
+    direction: Option<TrainingRangeDirectionSummaryDto>,
+    measurements: Vec<TrainingRangeMeasurementSummaryDto>,
+    boundaries: TrainingRangeBoundaryPairDto,
+    coverage: TrainingRangeEvidenceCoverageDto,
+    source_ranges: Vec<TrainingRangeSourceOverlapDto>,
+    independent_evidence: TrainingRangeIndependentEvidenceDto,
+    limitations: Vec<&'static str>,
+}
+
+impl From<TrainingSessionRangeSummary> for TrainingSessionRangeSummaryDto {
+    fn from(summary: TrainingSessionRangeSummary) -> Self {
+        Self {
+            snapshot_ref: summary.snapshot_ref,
+            session_ref: summary.session_ref,
+            evidence_revision: summary.evidence_revision,
+            source_provider: summary.source_provider.code().to_owned(),
+            range: summary.range.into(),
+            exercise: summary.exercise.map(Into::into),
+            coordinate_evidence: summary.coordinate_evidence.into(),
+            elapsed_duration_milliseconds: summary.elapsed_duration_milliseconds.to_string(),
+            moving_duration_milliseconds: summary
+                .moving_duration_milliseconds
+                .map(|value| value.to_string()),
+            paused_duration_milliseconds: summary
+                .paused_duration_milliseconds
+                .map(|value| value.to_string()),
+            distance: summary.distance.map(Into::into),
+            direction: summary.direction.map(Into::into),
+            measurements: summary.measurements.into_iter().map(Into::into).collect(),
+            boundaries: summary.boundaries.into(),
+            coverage: summary.coverage.into(),
+            source_ranges: summary.source_ranges.into_iter().map(Into::into).collect(),
+            independent_evidence: summary.independent_evidence.into(),
+            limitations: summary
+                .limitations
+                .into_iter()
+                .map(training_range_limitation)
+                .collect(),
         }
     }
 }
@@ -7646,6 +8123,18 @@ mod tests {
                 ApplicationError::TrainingSessionRangeUpdate("failed".to_owned()),
                 "training-session-range-failed",
             ),
+            (
+                ApplicationError::InvalidTrainingSessionRangeSummary("invalid"),
+                "invalid-training-session-range-summary",
+            ),
+            (
+                ApplicationError::TrainingSessionRangeSummaryChanged,
+                "training-session-range-summary-changed",
+            ),
+            (
+                ApplicationError::TrainingSessionRangeSummaryQuery("failed".to_owned()),
+                "training-session-range-summary-failed",
+            ),
         ] {
             assert_eq!(
                 serde_json::to_value(CommandErrorDto::from(error))
@@ -7951,6 +8440,187 @@ mod tests {
             serde_json::json!({ "scope": "legacy-session-elapsed" })
         );
         assert!(json.to_string().find("sourceSessionId").is_none());
+    }
+
+    #[test]
+    fn validates_and_serializes_the_range_summary_transport_contract() {
+        let query: TrainingSessionRangeSummaryQuery = serde_json::from_value::<
+            TrainingSessionRangeSummaryQueryDto,
+        >(serde_json::json!({
+            "sessionRef":
+                "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "snapshotRef":
+                "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "rangeRef":
+                "range-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "expectedRangeRevision": 7
+        }))
+        .expect("range summary query transport")
+        .into();
+        assert_eq!(query.expected_range_revision, 7);
+        assert!(serde_json::from_value::<TrainingSessionRangeSummaryQueryDto>(
+            serde_json::json!({
+                "sessionRef":
+                    "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "snapshotRef":
+                    "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "rangeRef":
+                    "range-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                "expectedRangeRevision": 7,
+                "sourceSessionId": "must-not-cross-the-boundary"
+            })
+        )
+        .is_err());
+
+        let route_ref = "route-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
+        let range = TrainingSessionRange::restore(
+            &query.range_ref,
+            &query.session_ref,
+            Some(
+                "exercise-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                    .to_owned(),
+            ),
+            TrainingSessionRangeCoordinate::route_elapsed(route_ref)
+                .expect("summary route coordinate"),
+            "Bridge to bend",
+            i64::MAX - 2,
+            i64::MAX,
+            "range-evidence-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            TrainingSessionRangeAuthorship::User,
+            TrainingSessionRangeState::Current,
+            7,
+        )
+        .expect("summary range");
+        let location = |ordinal, elapsed| TrainingRangeEvidenceLocation {
+            kind: TrainingRangeExactEvidenceKind::RoutePoint,
+            evidence_ref: route_ref.to_owned(),
+            ordinal: Some(ordinal),
+            elapsed_milliseconds: elapsed,
+        };
+        let summary = TrainingSessionRangeSummary {
+            snapshot_ref: query.snapshot_ref,
+            session_ref: query.session_ref,
+            evidence_revision:
+                "range-evidence-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+                    .to_owned(),
+            source_provider: TrainingSourceProviderView::restore("synthetic-provider".to_owned())
+                .expect("summary provider"),
+            range,
+            exercise: Some(PersistedTrainingRangeSummaryExercise {
+                exercise_ref:
+                    "exercise-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                        .to_owned(),
+                ordinal: 0,
+                duration_milliseconds: i64::MAX,
+                distance_meters: Some(10_000.0),
+                sport: TrainingSessionSport {
+                    sport_ref: None,
+                    state: TrainingSportState::Unavailable,
+                    classification: None,
+                },
+                source_ranges: Vec::new(),
+                route_coordinate_count: 1,
+                signal_coordinate_count: 2,
+            }),
+            coordinate_evidence: TrainingRangeCoordinateEvidence::Route {
+                route_ref: route_ref.to_owned(),
+                kind: TrainingRouteKindView::Primary,
+            },
+            elapsed_duration_milliseconds: 2,
+            moving_duration_milliseconds: None,
+            paused_duration_milliseconds: None,
+            distance: Some(TrainingRangeDistanceSummary {
+                meters: 123.5,
+                coverage: TrainingRangeMetricCoverage::Complete,
+            }),
+            direction: Some(TrainingRangeDirectionSummary {
+                initial_bearing_degrees: 90.0,
+                cardinal: TrainingRangeCardinalDirection::East,
+            }),
+            measurements: vec![TrainingRangeMeasurementSummary {
+                kind: TrainingSignalKindView::Altitude,
+                unit: TrainingSignalUnitView::Meters,
+                minimum: 10.0,
+                maximum: 12.0,
+                average: 11.0,
+                available_evidence_count: 2,
+                missing_evidence_count: 0,
+                start_boundary_value: Some(10.0),
+                end_boundary_value: Some(12.0),
+            }],
+            boundaries: TrainingRangeBoundaryPair {
+                start: TrainingRangeBoundaryEvidence {
+                    elapsed_milliseconds: i64::MAX - 2,
+                    state: TrainingRangeBoundaryEvidenceState::Exact,
+                    exact_match_count: 1,
+                    exact_matches: vec![location(0, i64::MAX - 2)],
+                    preceding: None,
+                    following: None,
+                },
+                end: TrainingRangeBoundaryEvidence {
+                    elapsed_milliseconds: i64::MAX,
+                    state: TrainingRangeBoundaryEvidenceState::Exact,
+                    exact_match_count: 1,
+                    exact_matches: vec![location(1, i64::MAX)],
+                    preceding: None,
+                    following: None,
+                },
+            },
+            coverage: TrainingRangeEvidenceCoverage {
+                state: TrainingRangeSummaryCoverageState::Complete,
+                recorded_evidence_count: 2,
+                selected_evidence_count: 2,
+                available_evidence_count: 2,
+                missing_evidence_count: 0,
+                missing_elapsed_evidence_count: 0,
+                missing_intervals: Vec::new(),
+                omitted_missing_interval_count: 0,
+            },
+            source_ranges: Vec::new(),
+            independent_evidence: TrainingRangeIndependentEvidence {
+                source_range_count: 0,
+                route_coordinate_count: 1,
+                signal_coordinate_count: 2,
+            },
+            limitations: vec![
+                TrainingRangeSummaryLimitation::MovingTimeUnavailable,
+                TrainingRangeSummaryLimitation::PausedTimeUnavailable,
+                TrainingRangeSummaryLimitation::UnalignedSignalEvidence,
+            ],
+        };
+        let json = serde_json::to_value(TrainingSessionRangeSummaryDto::from(summary))
+            .expect("range summary JSON");
+
+        assert_eq!(json["sourceProvider"], "synthetic-provider");
+        assert_eq!(json["elapsedDurationMilliseconds"], "2");
+        assert_eq!(json["movingDurationMilliseconds"], serde_json::Value::Null);
+        assert_eq!(
+            json["coordinateEvidence"],
+            serde_json::json!({
+                "scope": "route-elapsed",
+                "routeRef": route_ref,
+                "kind": "primary"
+            })
+        );
+        assert_eq!(
+            json["boundaries"]["start"]["elapsedMilliseconds"],
+            (i64::MAX - 2).to_string()
+        );
+        assert_eq!(json["boundaries"]["end"]["state"], "exact");
+        assert_eq!(json["distance"]["coverage"], "complete");
+        assert_eq!(json["direction"]["cardinal"], "east");
+        assert_eq!(json["measurements"][0]["kind"], "altitude");
+        assert_eq!(json["independentEvidence"]["signalCoordinateCount"], 2);
+        assert_eq!(
+            json["limitations"],
+            serde_json::json!([
+                "moving-time-unavailable",
+                "paused-time-unavailable",
+                "unaligned-signal-evidence"
+            ])
+        );
+        assert!(json.to_string().find("originId").is_none());
+        assert!(json.to_string().find("seriesId").is_none());
     }
 
     #[test]

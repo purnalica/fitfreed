@@ -1192,6 +1192,519 @@ for (const [schemaPath, validValue, invalidValue] of trainingSessionRangeCommand
   }
 }
 
+const trainingSessionRangeSummaryPath =
+  "docs/data-formats/insights/training-session-range-summary-v1.md";
+const trainingSessionRangeSummary = read(trainingSessionRangeSummaryPath);
+for (const value of [
+  "query_training_session_range_summary",
+  "training-session-range-summary-query-v1.schema.json",
+  "training-session-range-summary-v1.schema.json",
+  "snapshotRef",
+  "sessionRef",
+  "rangeRef",
+  "expectedRangeRevision",
+  "evidenceRevision",
+  "sourceProvider",
+  "coordinateEvidence",
+  "elapsedDurationMilliseconds",
+  "movingDurationMilliseconds",
+  "pausedDurationMilliseconds",
+  "distance",
+  "direction",
+  "measurements",
+  "boundaries",
+  "coverage",
+  "sourceRanges",
+  "independentEvidence",
+  "limitations",
+  "exercise-elapsed",
+  "route-elapsed",
+  "signal-elapsed",
+  "unavailable",
+  "invalid-training-session-range-summary",
+  "training-session-range-not-found",
+  "training-session-range-summary-changed",
+  "training-session-range-summary-failed",
+]) {
+  requireMention(trainingSessionRangeSummary, value, trainingSessionRangeSummaryPath);
+}
+
+const trainingSessionRangeSummaryQuerySchemaPath =
+  "schemas/training-session-range-summary-query-v1.schema.json";
+const validateTrainingSessionRangeSummaryQuery = ajv.compile(
+  JSON.parse(read(trainingSessionRangeSummaryQuerySchemaPath)),
+);
+const syntheticTrainingSessionRangeSummaryQuery = {
+  sessionRef: syntheticTrainingSessionRanges.sessionRef,
+  snapshotRef: syntheticTrainingSessionRanges.snapshotRef,
+  rangeRef: syntheticTrainingSessionRange.rangeRef,
+  expectedRangeRevision: syntheticTrainingSessionRange.revision,
+};
+if (!validateTrainingSessionRangeSummaryQuery(syntheticTrainingSessionRangeSummaryQuery)) {
+  throw new Error(
+    `${trainingSessionRangeSummaryQuerySchemaPath} rejected its synthetic contract: ${ajv.errorsText(validateTrainingSessionRangeSummaryQuery.errors)}`,
+  );
+}
+for (const invalidQuery of [
+  { ...syntheticTrainingSessionRangeSummaryQuery, expectedRangeRevision: 0 },
+  { ...syntheticTrainingSessionRangeSummaryQuery, snapshotRef: null },
+  { ...syntheticTrainingSessionRangeSummaryQuery, sourceSessionId: "private" },
+]) {
+  if (validateTrainingSessionRangeSummaryQuery(invalidQuery)) {
+    throw new Error(`${trainingSessionRangeSummaryQuerySchemaPath} accepted an invalid query`);
+  }
+}
+
+for (const dependencyPath of [
+  "schemas/training-session-ranges-v3.schema.json",
+  "schemas/training-session-search-v1.schema.json",
+]) {
+  const dependency = JSON.parse(read(dependencyPath));
+  if (!ajv.getSchema(dependency.$id)) ajv.addSchema(dependency);
+}
+const trainingSessionRangeSummarySchemaPath =
+  "schemas/training-session-range-summary-v1.schema.json";
+const validateTrainingSessionRangeSummary = ajv.compile(
+  JSON.parse(read(trainingSessionRangeSummarySchemaPath)),
+);
+const routeRangeLocation = (ordinal, elapsedMilliseconds) => ({
+  kind: "route-point",
+  evidenceRef: syntheticTrainingSessionRange.coordinate.routeRef,
+  ordinal,
+  elapsedMilliseconds,
+});
+const syntheticTrainingSessionRangeSummary = {
+  snapshotRef: syntheticTrainingSessionRanges.snapshotRef,
+  sessionRef: syntheticTrainingSessionRanges.sessionRef,
+  evidenceRevision: syntheticTrainingSessionRange.evidenceRevision,
+  sourceProvider: "polar-flow",
+  range: syntheticTrainingSessionRange,
+  exercise: {
+    exerciseRef: syntheticTrainingSessionRange.exerciseRef,
+    ordinal: 0,
+    durationMilliseconds: "600000",
+    distanceMeters: 10000,
+    sport: {
+      sportRef: null,
+      state: "unavailable",
+      classification: null,
+    },
+  },
+  coordinateEvidence: {
+    scope: "route-elapsed",
+    routeRef: syntheticTrainingSessionRange.coordinate.routeRef,
+    kind: "primary",
+  },
+  elapsedDurationMilliseconds: "1000",
+  movingDurationMilliseconds: null,
+  pausedDurationMilliseconds: null,
+  distance: { meters: 123.5, coverage: "complete" },
+  direction: { initialBearingDegrees: 90, cardinal: "east" },
+  measurements: [{
+    kind: "altitude",
+    unit: "meters",
+    minimum: 10,
+    maximum: 12,
+    average: 11,
+    availableEvidenceCount: 2,
+    missingEvidenceCount: 0,
+    startBoundaryValue: null,
+    endBoundaryValue: null,
+  }],
+  boundaries: {
+    start: {
+      elapsedMilliseconds: syntheticTrainingSessionRange.startedAtElapsedMilliseconds,
+      state: "exact",
+      exactMatchCount: 1,
+      exactMatches: [routeRangeLocation(
+        1,
+        syntheticTrainingSessionRange.startedAtElapsedMilliseconds,
+      )],
+      preceding: routeRangeLocation(0, "0"),
+      following: routeRangeLocation(
+        2,
+        syntheticTrainingSessionRange.endedAtElapsedMilliseconds,
+      ),
+    },
+    end: {
+      elapsedMilliseconds: syntheticTrainingSessionRange.endedAtElapsedMilliseconds,
+      state: "exact",
+      exactMatchCount: 1,
+      exactMatches: [routeRangeLocation(
+        2,
+        syntheticTrainingSessionRange.endedAtElapsedMilliseconds,
+      )],
+      preceding: routeRangeLocation(
+        1,
+        syntheticTrainingSessionRange.startedAtElapsedMilliseconds,
+      ),
+      following: null,
+    },
+  },
+  coverage: {
+    state: "complete",
+    recordedEvidenceCount: 3,
+    selectedEvidenceCount: 2,
+    availableEvidenceCount: 2,
+    missingEvidenceCount: 0,
+    missingElapsedEvidenceCount: 0,
+    missingIntervals: [],
+    omittedMissingIntervalCount: 0,
+  },
+  sourceRanges: [],
+  independentEvidence: {
+    sourceRangeCount: 0,
+    routeCoordinateCount: 1,
+    signalCoordinateCount: 1,
+  },
+  limitations: [
+    "moving-time-unavailable",
+    "paused-time-unavailable",
+    "unaligned-signal-evidence",
+  ],
+};
+
+function rangeLocationMatchesCoordinate(location, summary) {
+  switch (summary.coordinateEvidence.scope) {
+    case "exercise-elapsed":
+      if (location.kind === "exercise") {
+        return summary.exercise !== null
+          && location.evidenceRef === summary.exercise.exerciseRef;
+      }
+      return location.kind === "manual-lap" || location.kind === "automatic-lap";
+    case "route-elapsed":
+      return location.kind === "route-point"
+        && location.evidenceRef === summary.coordinateEvidence.routeRef;
+    case "signal-elapsed":
+      return location.kind === "signal-sample"
+        && location.evidenceRef === summary.coordinateEvidence.signalRef;
+    case "unavailable":
+      return false;
+    default:
+      return false;
+  }
+}
+
+function validRangeBoundary(boundary, summary) {
+  const target = exactElapsed(boundary.elapsedMilliseconds);
+  if (target === null || boundary.exactMatchCount < boundary.exactMatches.length) return false;
+  const hasPreceding = boundary.preceding !== null;
+  const hasFollowing = boundary.following !== null;
+  const stateMatches = boundary.state === "exact"
+    ? boundary.exactMatchCount > 0
+    : boundary.state === "between-evidence"
+      ? boundary.exactMatchCount === 0 && hasPreceding && hasFollowing
+      : boundary.state === "outside-recorded-evidence"
+        ? boundary.exactMatchCount === 0 && hasPreceding !== hasFollowing
+        : boundary.exactMatchCount === 0 && !hasPreceding && !hasFollowing;
+  if (!stateMatches) return false;
+  for (const match of boundary.exactMatches) {
+    if (exactElapsed(match.elapsedMilliseconds) !== target
+      || !rangeLocationMatchesCoordinate(match, summary)) return false;
+  }
+  if (boundary.preceding !== null) {
+    const preceding = exactElapsed(boundary.preceding.elapsedMilliseconds);
+    if (preceding === null || preceding >= target
+      || !rangeLocationMatchesCoordinate(boundary.preceding, summary)) return false;
+  }
+  if (boundary.following !== null) {
+    const following = exactElapsed(boundary.following.elapsedMilliseconds);
+    if (following === null || following <= target
+      || !rangeLocationMatchesCoordinate(boundary.following, summary)) return false;
+  }
+  return true;
+}
+
+function rangeSummaryIsUnavailable(summary) {
+  return summary.coordinateEvidence.scope === "unavailable"
+    && summary.coverage.state === "unavailable"
+    && summary.distance === null
+    && summary.direction === null
+    && summary.measurements.length === 0
+    && summary.sourceRanges.length === 0
+    && summary.boundaries.start.state === "no-evidence"
+    && summary.boundaries.end.state === "no-evidence"
+    && summary.limitations.includes("coordinate-unavailable");
+}
+
+function trainingSessionRangeSummaryIsSemanticallyValid(summary, query) {
+  const start = exactElapsed(summary.range.startedAtElapsedMilliseconds);
+  const end = exactElapsed(summary.range.endedAtElapsedMilliseconds, true);
+  const duration = exactElapsed(summary.elapsedDurationMilliseconds);
+  if (start === null || end === null || duration === null || end - start !== duration) return false;
+  if ((summary.movingDurationMilliseconds !== null
+      && exactElapsed(summary.movingDurationMilliseconds) === null)
+    || (summary.pausedDurationMilliseconds !== null
+      && exactElapsed(summary.pausedDurationMilliseconds) === null)
+    || (summary.exercise !== null
+      && exactElapsed(summary.exercise.durationMilliseconds) === null)) return false;
+  if (summary.snapshotRef !== query.snapshotRef
+    || summary.sessionRef !== query.sessionRef
+    || summary.range.rangeRef !== query.rangeRef
+    || summary.range.revision !== query.expectedRangeRevision
+    || summary.boundaries.start.elapsedMilliseconds !== summary.range.startedAtElapsedMilliseconds
+    || summary.boundaries.end.elapsedMilliseconds !== summary.range.endedAtElapsedMilliseconds
+    || !validRangeBoundary(summary.boundaries.start, summary)
+    || !validRangeBoundary(summary.boundaries.end, summary)) {
+    return false;
+  }
+  if (summary.coverage.availableEvidenceCount + summary.coverage.missingEvidenceCount
+    !== summary.coverage.selectedEvidenceCount
+    || summary.coverage.selectedEvidenceCount > summary.coverage.recordedEvidenceCount
+    || summary.coverage.missingElapsedEvidenceCount > summary.coverage.selectedEvidenceCount) {
+    return false;
+  }
+  if (summary.coverage.state === "complete"
+    && (summary.boundaries.start.state !== "exact"
+      || summary.boundaries.end.state !== "exact"
+      || summary.coverage.missingEvidenceCount > 0
+      || summary.coverage.missingElapsedEvidenceCount > 0)) return false;
+  if (summary.coverage.state === "empty"
+    && summary.coverage.selectedEvidenceCount !== 0) return false;
+  if (summary.coverage.missingIntervals.length
+      + summary.coverage.omittedMissingIntervalCount
+    > summary.coverage.missingEvidenceCount) return false;
+  if ((summary.coverage.missingIntervals.length > 0
+      || summary.coverage.omittedMissingIntervalCount > 0)
+    && summary.coordinateEvidence.scope !== "signal-elapsed") return false;
+  for (const interval of summary.coverage.missingIntervals) {
+    const missingStart = exactElapsed(interval.startedAtElapsedMilliseconds);
+    const missingEnd = exactElapsed(interval.endedAtElapsedMilliseconds, true);
+    if (missingStart === null || missingEnd === null || missingStart >= missingEnd
+      || missingStart < start || missingEnd > end) return false;
+  }
+  for (const measurement of summary.measurements) {
+    if (measurement.minimum > measurement.average
+      || measurement.average > measurement.maximum
+      || measurement.availableEvidenceCount + measurement.missingEvidenceCount
+        !== summary.coverage.selectedEvidenceCount) {
+      return false;
+    }
+  }
+  if (summary.sourceRanges.length > summary.independentEvidence.sourceRangeCount) return false;
+  const coordinateKey = rangeCoordinateKey(summary.range.coordinate, true);
+  const evidenceKey = rangeCoordinateKey(summary.coordinateEvidence, false);
+  if (summary.range.exerciseRef === null) {
+    return summary.range.state === "review-required"
+      && summary.exercise === null
+      && coordinateKey === "legacy-session-elapsed"
+      && rangeSummaryIsUnavailable(summary);
+  }
+  if (summary.exercise === null) {
+    return summary.range.state === "review-required" && rangeSummaryIsUnavailable(summary);
+  }
+  if (summary.exercise.exerciseRef !== summary.range.exerciseRef) return false;
+  if (summary.coordinateEvidence.scope === "unavailable") {
+    return summary.range.state === "review-required" && rangeSummaryIsUnavailable(summary);
+  }
+  if (summary.coordinateEvidence.scope === "exercise-elapsed"
+    && exactElapsed(summary.coordinateEvidence.maximumElapsedMilliseconds) === null) return false;
+  if (summary.coordinateEvidence.scope === "signal-elapsed"
+    && exactElapsed(summary.coordinateEvidence.intervalMilliseconds, true) === null) return false;
+  if (summary.coordinateEvidence.scope !== "exercise-elapsed"
+    && summary.sourceRanges.length > 0) return false;
+  for (const sourceRange of summary.sourceRanges) {
+    const sourceStart = exactElapsed(sourceRange.startedAtElapsedMilliseconds);
+    const sourceEnd = exactElapsed(sourceRange.endedAtElapsedMilliseconds, true);
+    if (sourceStart === null || sourceEnd === null || sourceStart >= sourceEnd
+      || sourceStart >= end || sourceEnd <= start) return false;
+    const relation = sourceStart === start && sourceEnd === end
+      ? "exact"
+      : sourceStart <= start && sourceEnd >= end
+        ? "source-contains-range"
+        : start <= sourceStart && end >= sourceEnd
+          ? "range-contains-source"
+          : "overlap";
+    if (sourceRange.relation !== relation) return false;
+  }
+  if (summary.coordinateEvidence.scope === "route-elapsed") {
+    if (summary.measurements.some((measurement) => (
+      measurement.kind !== "altitude" || measurement.unit !== "meters"
+    ))) return false;
+  } else if (summary.coordinateEvidence.scope === "signal-elapsed") {
+    if (summary.direction !== null || summary.measurements.some((measurement) => (
+      measurement.kind !== summary.coordinateEvidence.kind
+      || measurement.unit !== summary.coordinateEvidence.unit
+    ))) return false;
+  } else if (summary.direction !== null || summary.measurements.length > 0) return false;
+  return coordinateKey === evidenceKey
+    && summary.coverage.state !== "unavailable"
+    && (summary.range.state !== "current"
+      || summary.evidenceRevision === summary.range.evidenceRevision);
+}
+
+function validTrainingSessionRangeSummary(value) {
+  return validateTrainingSessionRangeSummary(value)
+    && trainingSessionRangeSummaryIsSemanticallyValid(
+      value,
+      syntheticTrainingSessionRangeSummaryQuery,
+    );
+}
+
+if (!validTrainingSessionRangeSummary(syntheticTrainingSessionRangeSummary)) {
+  throw new Error(
+    `${trainingSessionRangeSummarySchemaPath} rejected its synthetic contract: ${ajv.errorsText(validateTrainingSessionRangeSummary.errors)}`,
+  );
+}
+const unavailableRangeSummary = {
+  ...syntheticTrainingSessionRangeSummary,
+  range: {
+    ...syntheticTrainingSessionRangeSummary.range,
+    evidenceRevision: `range-evidence-${"8".repeat(64)}`,
+    state: "review-required",
+  },
+  coordinateEvidence: { scope: "unavailable" },
+  distance: null,
+  direction: null,
+  measurements: [],
+  boundaries: {
+    start: {
+      elapsedMilliseconds: syntheticTrainingSessionRange.startedAtElapsedMilliseconds,
+      state: "no-evidence",
+      exactMatchCount: 0,
+      exactMatches: [],
+      preceding: null,
+      following: null,
+    },
+    end: {
+      elapsedMilliseconds: syntheticTrainingSessionRange.endedAtElapsedMilliseconds,
+      state: "no-evidence",
+      exactMatchCount: 0,
+      exactMatches: [],
+      preceding: null,
+      following: null,
+    },
+  },
+  coverage: {
+    state: "unavailable",
+    recordedEvidenceCount: 0,
+    selectedEvidenceCount: 0,
+    availableEvidenceCount: 0,
+    missingEvidenceCount: 0,
+    missingElapsedEvidenceCount: 0,
+    missingIntervals: [],
+    omittedMissingIntervalCount: 0,
+  },
+  sourceRanges: [],
+  limitations: [
+    "coordinate-unavailable",
+    "moving-time-unavailable",
+    "paused-time-unavailable",
+  ],
+};
+if (!validTrainingSessionRangeSummary(unavailableRangeSummary)) {
+  throw new Error(
+    `${trainingSessionRangeSummarySchemaPath} rejected preserved review evidence: ${ajv.errorsText(validateTrainingSessionRangeSummary.errors)}`,
+  );
+}
+const missingExerciseRangeSummary = {
+  ...unavailableRangeSummary,
+  exercise: null,
+};
+if (!validTrainingSessionRangeSummary(missingExerciseRangeSummary)) {
+  throw new Error(
+    `${trainingSessionRangeSummarySchemaPath} rejected a preserved missing exercise: ${ajv.errorsText(validateTrainingSessionRangeSummary.errors)}`,
+  );
+}
+for (const invalidSummary of [
+  { ...syntheticTrainingSessionRangeSummary, sourceSessionId: "private" },
+  { ...syntheticTrainingSessionRangeSummary, elapsedDurationMilliseconds: "999" },
+  {
+    ...syntheticTrainingSessionRangeSummary,
+    coordinateEvidence: {
+      scope: "signal-elapsed",
+      signalRef: `signal-${"9".repeat(64)}`,
+      ordinal: 0,
+      role: "primary",
+      kind: "heart-rate",
+      unit: "beats-per-minute",
+      intervalMilliseconds: "1000",
+    },
+  },
+  {
+    ...syntheticTrainingSessionRangeSummary,
+    coordinateEvidence: { scope: "unavailable" },
+  },
+  {
+    ...unavailableRangeSummary,
+    distance: { meters: 1, coverage: "partial" },
+  },
+  {
+    ...syntheticTrainingSessionRangeSummary,
+    coverage: {
+      ...syntheticTrainingSessionRangeSummary.coverage,
+      selectedEvidenceCount: 3,
+    },
+  },
+  {
+    ...syntheticTrainingSessionRangeSummary,
+    boundaries: {
+      ...syntheticTrainingSessionRangeSummary.boundaries,
+      start: {
+        ...syntheticTrainingSessionRangeSummary.boundaries.start,
+        exactMatches: [routeRangeLocation(1, "999")],
+      },
+    },
+  },
+  {
+    ...syntheticTrainingSessionRangeSummary,
+    boundaries: {
+      ...syntheticTrainingSessionRangeSummary.boundaries,
+      start: {
+        ...syntheticTrainingSessionRangeSummary.boundaries.start,
+        state: "between-evidence",
+        exactMatchCount: 0,
+        exactMatches: [],
+        preceding: null,
+      },
+    },
+  },
+  {
+    ...syntheticTrainingSessionRangeSummary,
+    boundaries: {
+      ...syntheticTrainingSessionRangeSummary.boundaries,
+      start: {
+        ...syntheticTrainingSessionRangeSummary.boundaries.start,
+        exactMatches: [{
+          kind: "signal-sample",
+          evidenceRef: `signal-${"9".repeat(64)}`,
+          ordinal: 1,
+          elapsedMilliseconds: syntheticTrainingSessionRange.startedAtElapsedMilliseconds,
+        }],
+      },
+    },
+  },
+  {
+    ...syntheticTrainingSessionRangeSummary,
+    coverage: {
+      ...syntheticTrainingSessionRangeSummary.coverage,
+      state: "partial",
+      missingIntervals: [{
+        startedAtElapsedMilliseconds: "9223372036854775808",
+        endedAtElapsedMilliseconds: "9223372036854775809",
+      }],
+    },
+  },
+  {
+    ...syntheticTrainingSessionRangeSummary,
+    measurements: [{
+      ...syntheticTrainingSessionRangeSummary.measurements[0],
+      average: 13,
+    }],
+  },
+  {
+    ...syntheticTrainingSessionRangeSummary,
+    measurements: [{
+      ...syntheticTrainingSessionRangeSummary.measurements[0],
+      missingEvidenceCount: 1,
+    }],
+  },
+]) {
+  if (validTrainingSessionRangeSummary(invalidSummary)) {
+    throw new Error(`${trainingSessionRangeSummarySchemaPath} accepted an invalid result`);
+  }
+}
+
 const sourceAcquisitionGuidePath = "docs/data-formats/guidance/source-acquisition-guide-v1.md";
 const sourceAcquisitionGuide = read(sourceAcquisitionGuidePath);
 for (const field of [
@@ -1907,7 +2420,8 @@ const trainingSessionSearchSchema = JSON.parse(read(trainingSessionSearchSchemaP
 if (JSON.stringify(trainingSessionSearchSchema.$defs.family.enum) !== JSON.stringify(sportFamilyCodes)) {
   throw new Error(`${trainingSessionSearchSchemaPath} family codes differ from the domain`);
 }
-const validateTrainingSessionSearch = ajv.compile(trainingSessionSearchSchema);
+const validateTrainingSessionSearch =
+  ajv.getSchema(trainingSessionSearchSchema.$id) ?? ajv.compile(trainingSessionSearchSchema);
 const syntheticTrainingSessionSearch = {
   availableRange: { from: "2024-01-01", through: "2026-08-18" },
   snapshotRef: snapshotRefDigest,
@@ -6284,6 +6798,8 @@ process.stdout.write(
     trainingSessionRangeSchemas: [
       trainingSessionRangesSchemaPath,
       ...trainingSessionRangeCommandContracts.map(([schemaPath]) => schemaPath),
+      trainingSessionRangeSummaryQuerySchemaPath,
+      trainingSessionRangeSummarySchemaPath,
     ],
     sleepOverviewSchemas: [
       sleepOverviewQuerySchemaPath,

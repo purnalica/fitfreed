@@ -211,7 +211,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R5 | Complete locally — R5.4, R5.5, and real-process restart gates passed 2026-08-22 | A remembered session is findable and sports are recognizable |
 | X5-R6 | Complete locally — R6.1 through R6.5 passed exact packaged, adaptive visual, and dense-route gates on 2026-08-22 | A routed workout is investigated through a dominant synchronized map |
 | X5-R7 | Complete locally — R7.1 through R7.6 passed the exact fast, functional, restart, adaptive, accessibility, visual, and performance gates on 2026-08-22 | Every session composition reflects its actual evidence |
-| X5-R8 | In progress — R8.1 through R8.3 complete locally; R8.4 corrected unproven Session Story alignment and now enforces explicit exercise, route, or signal range coordinates; Range Summary is active | Personal ranges and reusable criteria work end to end |
+| X5-R8 | In progress — R8.1 through R8.3 complete locally; R8.4 corrected unproven alignment, enforces explicit coordinates, and has a verified revision-coherent Range Summary; production range interaction is active | Personal ranges and reusable criteria work end to end |
 | X5-R9 | Pending | Reports open as results and leave FitFreed safely |
 | X5-R10 | Pending | The complete release-shaped product is coherent and documented |
 | X6 | Pending | Independent audit has no unresolved material finding |
@@ -1194,10 +1194,11 @@ criteria without confusing either object with provider laps or recorded evidence
    state rather than redirecting it silently.
 
 **Application and persistence work:** commands and ports for create/update/remove; additive recoverable
-SQLite migration; bounded listing; one revision-coherent Range Summary query aligning route, signals,
-gaps, source attribution, direction, duration, distance, sport-specific measurements, coverage, and exact
-boundary evidence. Publish canonical, portable/backup, persistence, migration, and read-model contracts
-with independent synthetic fixtures.
+SQLite migration; bounded listing; one revision-coherent Range Summary query resolving the selected exact
+coordinate, its gaps, source attribution, direction, duration, distance, sport-specific measurements,
+coverage, and exact boundary evidence while keeping independent route, signal, and source clocks unaligned.
+Publish canonical, portable/backup, persistence, migration, and read-model contracts with independent
+synthetic fixtures.
 
 **Production work:**
 
@@ -1375,6 +1376,35 @@ cross-object consistency evidence. The complete fast gate passes 156 tooling tes
 two vendored-updater tests, 218 all-feature host tests, 172 application tests, and 46 domain tests. Strict
 workspace Clippy, Rust formatting, architecture, migration, contract, documentation, localization, site,
 workflow, and UI checks also pass. Range Summary is now the active R8.4 slice.
+
+### R8.4 revision-coherent Range Summary — 2026-08-23
+
+One application-owned read model now answers a named personal range only against its exact discovery snapshot,
+optimistic range revision, exercise owner, and exercise, route, or regular-signal coordinate. Its dedicated
+port reads validated context and then visits raw route points or signal slots in source order; SQLite does not
+join independent clocks or calculate presentation metrics. Exercise ranges can attribute exact source-lap
+overlap, route ranges calculate recorded Haversine geometry and initial bearing, and signal ranges aggregate
+the half-open `[start, end)` interval while retaining the end sample as exact boundary evidence. Moving and
+paused duration remain explicitly unavailable until recorded evidence can prove them.
+
+Falsification covers non-exact boundaries without interpolation, independently missing waypoint elapsed and
+altitude values, gaps, distance-series deltas, ambiguous source distance, stale snapshot and range revision,
+malformed streams, 100,001 streamed signal slots with bounded returned gaps, and the exact route-end case that
+must exclude a following untimed point. Review-required ranges remain queryable when their route, signal, or
+owned exercise has disappeared; their authored owner, coordinate, boundaries, and prior evidence revision
+remain intact and the summary becomes unavailable instead of guessing or failing. A real amendment that
+removes the exercise passes import reconciliation, optimistic revision, SQLite restart/query, summary, and
+provenance coverage.
+
+The Tauri command exposes stable invalid, changed, and local-failure outcomes through two version-1 JSON
+Schemas. The versioned read-model specification, data-format index, architecture, testing strategy, transport
+serialization, exact signed-64-bit strings, public provider attribution, cross-object semantics, and
+private-identifier exclusions are machine checked. The complete fast gate passes 156 tooling tests, 291 React
+tests, two vendored-updater tests, 220 all-feature host tests, 192 application tests, 46 domain tests, and two
+private-acceptance tests. Strict workspace Clippy, Rust formatting, architecture, contracts, documentation,
+localization, site, workflow, and UI checks also pass. Production interaction for creating, selecting,
+reviewing, adjusting, renaming, removing, and reopening ranges is the next R8.4 slice; reusable-criterion
+integration, packaged evidence, and the Alpha UX review remain open under R8.
 
 ## X5-R9 — Make reports result-first and portable
 

@@ -1,0 +1,415 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-range-summary-v1.schema.json",
+  "title": "FitFreed training-session range summary version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "snapshotRef",
+    "sessionRef",
+    "evidenceRevision",
+    "sourceProvider",
+    "range",
+    "exercise",
+    "coordinateEvidence",
+    "elapsedDurationMilliseconds",
+    "movingDurationMilliseconds",
+    "pausedDurationMilliseconds",
+    "distance",
+    "direction",
+    "measurements",
+    "boundaries",
+    "coverage",
+    "sourceRanges",
+    "independentEvidence",
+    "limitations"
+  ],
+  "properties": {
+    "snapshotRef": { "$ref": "#/$defs/snapshotRef" },
+    "sessionRef": { "$ref": "#/$defs/sessionRef" },
+    "evidenceRevision": { "$ref": "#/$defs/evidenceRevision" },
+    "sourceProvider": { "$ref": "#/$defs/provider" },
+    "range": { "$ref": "training-session-ranges-v3.schema.json#/$defs/range" },
+    "exercise": { "$ref": "#/$defs/optionalExercise" },
+    "coordinateEvidence": { "$ref": "#/$defs/coordinateEvidence" },
+    "elapsedDurationMilliseconds": { "$ref": "#/$defs/elapsedMilliseconds" },
+    "movingDurationMilliseconds": { "$ref": "#/$defs/optionalElapsedMilliseconds" },
+    "pausedDurationMilliseconds": { "$ref": "#/$defs/optionalElapsedMilliseconds" },
+    "distance": { "$ref": "#/$defs/optionalDistance" },
+    "direction": { "$ref": "#/$defs/optionalDirection" },
+    "measurements": {
+      "type": "array",
+      "maxItems": 8,
+      "items": { "$ref": "#/$defs/measurement" }
+    },
+    "boundaries": { "$ref": "#/$defs/boundaryPair" },
+    "coverage": { "$ref": "#/$defs/coverage" },
+    "sourceRanges": {
+      "type": "array",
+      "maxItems": 2000,
+      "items": { "$ref": "#/$defs/sourceRange" }
+    },
+    "independentEvidence": { "$ref": "#/$defs/independentEvidence" },
+    "limitations": {
+      "type": "array",
+      "maxItems": 12,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/limitation" }
+    }
+  },
+  "$defs": {
+    "snapshotRef": { "type": "string", "pattern": "^training-snapshot-[0-9a-f]{64}$" },
+    "sessionRef": { "type": "string", "pattern": "^session-[0-9a-f]{64}$" },
+    "exerciseRef": { "type": "string", "pattern": "^exercise-[0-9a-f]{64}$" },
+    "routeRef": { "type": "string", "pattern": "^route-[0-9a-f]{64}$" },
+    "signalRef": { "type": "string", "pattern": "^signal-[0-9a-f]{64}$" },
+    "lapRef": { "type": "string", "pattern": "^lap-[0-9a-f]{64}$" },
+    "evidenceRevision": { "type": "string", "pattern": "^range-evidence-[0-9a-f]{64}$" },
+    "provider": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9.-]*$",
+      "maxLength": 64
+    },
+    "elapsedMilliseconds": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$",
+      "maxLength": 19
+    },
+    "positiveMilliseconds": {
+      "type": "string",
+      "pattern": "^[1-9][0-9]*$",
+      "maxLength": 19
+    },
+    "optionalElapsedMilliseconds": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/elapsedMilliseconds" }
+      ]
+    },
+    "optionalNonNegativeNumber": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "number", "minimum": 0 }
+      ]
+    },
+    "optionalNumber": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "number" }
+      ]
+    },
+    "exercise": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exerciseRef", "ordinal", "durationMilliseconds", "distanceMeters", "sport"],
+      "properties": {
+        "exerciseRef": { "$ref": "#/$defs/exerciseRef" },
+        "ordinal": { "type": "integer", "minimum": 0 },
+        "durationMilliseconds": { "$ref": "#/$defs/elapsedMilliseconds" },
+        "distanceMeters": { "$ref": "#/$defs/optionalNonNegativeNumber" },
+        "sport": { "$ref": "training-session-search-v1.schema.json#/$defs/sport" }
+      }
+    },
+    "optionalExercise": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/exercise" }
+      ]
+    },
+    "exerciseCoordinateEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "maximumElapsedMilliseconds"],
+      "properties": {
+        "scope": { "const": "exercise-elapsed" },
+        "maximumElapsedMilliseconds": { "$ref": "#/$defs/elapsedMilliseconds" }
+      }
+    },
+    "routeCoordinateEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "routeRef", "kind"],
+      "properties": {
+        "scope": { "const": "route-elapsed" },
+        "routeRef": { "$ref": "#/$defs/routeRef" },
+        "kind": { "enum": ["primary", "transition"] }
+      }
+    },
+    "signalKindUnit": {
+      "oneOf": [
+        { "type": "object", "properties": { "kind": { "const": "heart-rate" }, "unit": { "const": "beats-per-minute" } } },
+        { "type": "object", "properties": { "kind": { "const": "speed" }, "unit": { "const": "kilometers-per-hour" } } },
+        { "type": "object", "properties": { "kind": { "const": "distance" }, "unit": { "const": "meters" } } },
+        { "type": "object", "properties": { "kind": { "const": "altitude" }, "unit": { "const": "meters" } } },
+        { "type": "object", "properties": { "kind": { "const": "cadence" }, "unit": { "const": "rotations-per-minute" } } },
+        { "type": "object", "properties": { "kind": { "const": "temperature" }, "unit": { "const": "degrees-celsius" } } },
+        { "type": "object", "properties": { "kind": { "const": "left-crank-power" }, "unit": { "const": "watts" } } }
+      ]
+    },
+    "signalCoordinateEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "signalRef", "ordinal", "role", "kind", "unit", "intervalMilliseconds"],
+      "properties": {
+        "scope": { "const": "signal-elapsed" },
+        "signalRef": { "$ref": "#/$defs/signalRef" },
+        "ordinal": { "type": "integer", "minimum": 0 },
+        "role": { "enum": ["primary", "transition"] },
+        "kind": {
+          "enum": ["heart-rate", "speed", "distance", "altitude", "cadence", "temperature", "left-crank-power"]
+        },
+        "unit": {
+          "enum": ["beats-per-minute", "kilometers-per-hour", "meters", "rotations-per-minute", "degrees-celsius", "watts"]
+        },
+        "intervalMilliseconds": { "$ref": "#/$defs/positiveMilliseconds" }
+      },
+      "allOf": [{ "$ref": "#/$defs/signalKindUnit" }]
+    },
+    "unavailableCoordinateEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope"],
+      "properties": { "scope": { "const": "unavailable" } }
+    },
+    "coordinateEvidence": {
+      "oneOf": [
+        { "$ref": "#/$defs/exerciseCoordinateEvidence" },
+        { "$ref": "#/$defs/routeCoordinateEvidence" },
+        { "$ref": "#/$defs/signalCoordinateEvidence" },
+        { "$ref": "#/$defs/unavailableCoordinateEvidence" }
+      ]
+    },
+    "exerciseLocation": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "exercise" },
+        "evidenceRef": { "$ref": "#/$defs/exerciseRef" },
+        "ordinal": { "type": "null" }
+      }
+    },
+    "lapLocation": {
+      "type": "object",
+      "properties": {
+        "kind": { "enum": ["manual-lap", "automatic-lap"] },
+        "evidenceRef": { "$ref": "#/$defs/lapRef" },
+        "ordinal": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "routeLocation": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "route-point" },
+        "evidenceRef": { "$ref": "#/$defs/routeRef" },
+        "ordinal": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "signalLocation": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "signal-sample" },
+        "evidenceRef": { "$ref": "#/$defs/signalRef" },
+        "ordinal": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "evidenceLocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "evidenceRef", "ordinal", "elapsedMilliseconds"],
+      "properties": {
+        "kind": { "enum": ["exercise", "manual-lap", "automatic-lap", "route-point", "signal-sample"] },
+        "evidenceRef": { "type": "string" },
+        "ordinal": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "integer", "minimum": 0 }
+          ]
+        },
+        "elapsedMilliseconds": { "$ref": "#/$defs/elapsedMilliseconds" }
+      },
+      "oneOf": [
+        { "$ref": "#/$defs/exerciseLocation" },
+        { "$ref": "#/$defs/lapLocation" },
+        { "$ref": "#/$defs/routeLocation" },
+        { "$ref": "#/$defs/signalLocation" }
+      ]
+    },
+    "optionalEvidenceLocation": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/evidenceLocation" }
+      ]
+    },
+    "boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["elapsedMilliseconds", "state", "exactMatchCount", "exactMatches", "preceding", "following"],
+      "properties": {
+        "elapsedMilliseconds": { "$ref": "#/$defs/elapsedMilliseconds" },
+        "state": { "enum": ["exact", "between-evidence", "outside-recorded-evidence", "no-evidence"] },
+        "exactMatchCount": { "type": "integer", "minimum": 0 },
+        "exactMatches": {
+          "type": "array",
+          "maxItems": 25,
+          "items": { "$ref": "#/$defs/evidenceLocation" }
+        },
+        "preceding": { "$ref": "#/$defs/optionalEvidenceLocation" },
+        "following": { "$ref": "#/$defs/optionalEvidenceLocation" }
+      }
+    },
+    "boundaryPair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end"],
+      "properties": {
+        "start": { "$ref": "#/$defs/boundary" },
+        "end": { "$ref": "#/$defs/boundary" }
+      }
+    },
+    "missingInterval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["startedAtElapsedMilliseconds", "endedAtElapsedMilliseconds"],
+      "properties": {
+        "startedAtElapsedMilliseconds": { "$ref": "#/$defs/elapsedMilliseconds" },
+        "endedAtElapsedMilliseconds": { "$ref": "#/$defs/positiveMilliseconds" }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "recordedEvidenceCount",
+        "selectedEvidenceCount",
+        "availableEvidenceCount",
+        "missingEvidenceCount",
+        "missingElapsedEvidenceCount",
+        "missingIntervals",
+        "omittedMissingIntervalCount"
+      ],
+      "properties": {
+        "state": { "enum": ["complete", "partial", "empty", "unavailable"] },
+        "recordedEvidenceCount": { "type": "integer", "minimum": 0 },
+        "selectedEvidenceCount": { "type": "integer", "minimum": 0 },
+        "availableEvidenceCount": { "type": "integer", "minimum": 0 },
+        "missingEvidenceCount": { "type": "integer", "minimum": 0 },
+        "missingElapsedEvidenceCount": { "type": "integer", "minimum": 0 },
+        "missingIntervals": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": { "$ref": "#/$defs/missingInterval" }
+        },
+        "omittedMissingIntervalCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "distance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["meters", "coverage"],
+      "properties": {
+        "meters": { "type": "number", "minimum": 0 },
+        "coverage": { "enum": ["complete", "partial"] }
+      }
+    },
+    "optionalDistance": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/distance" }
+      ]
+    },
+    "direction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["initialBearingDegrees", "cardinal"],
+      "properties": {
+        "initialBearingDegrees": { "type": "number", "minimum": 0, "exclusiveMaximum": 360 },
+        "cardinal": { "enum": ["north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"] }
+      }
+    },
+    "optionalDirection": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/direction" }
+      ]
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "unit",
+        "minimum",
+        "maximum",
+        "average",
+        "availableEvidenceCount",
+        "missingEvidenceCount",
+        "startBoundaryValue",
+        "endBoundaryValue"
+      ],
+      "properties": {
+        "kind": {
+          "enum": ["heart-rate", "speed", "distance", "altitude", "cadence", "temperature", "left-crank-power"]
+        },
+        "unit": {
+          "enum": ["beats-per-minute", "kilometers-per-hour", "meters", "rotations-per-minute", "degrees-celsius", "watts"]
+        },
+        "minimum": { "type": "number" },
+        "maximum": { "type": "number" },
+        "average": { "type": "number" },
+        "availableEvidenceCount": { "type": "integer", "minimum": 1 },
+        "missingEvidenceCount": { "type": "integer", "minimum": 0 },
+        "startBoundaryValue": { "$ref": "#/$defs/optionalNumber" },
+        "endBoundaryValue": { "$ref": "#/$defs/optionalNumber" }
+      },
+      "allOf": [{ "$ref": "#/$defs/signalKindUnit" }]
+    },
+    "sourceRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourceRangeRef",
+        "kind",
+        "ordinal",
+        "startedAtElapsedMilliseconds",
+        "endedAtElapsedMilliseconds",
+        "distanceMeters",
+        "relation"
+      ],
+      "properties": {
+        "sourceRangeRef": { "$ref": "#/$defs/lapRef" },
+        "kind": { "enum": ["manual-lap", "automatic-lap"] },
+        "ordinal": { "type": "integer", "minimum": 0 },
+        "startedAtElapsedMilliseconds": { "$ref": "#/$defs/elapsedMilliseconds" },
+        "endedAtElapsedMilliseconds": { "$ref": "#/$defs/positiveMilliseconds" },
+        "distanceMeters": { "$ref": "#/$defs/optionalNonNegativeNumber" },
+        "relation": { "enum": ["exact", "source-contains-range", "range-contains-source", "overlap"] }
+      }
+    },
+    "independentEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceRangeCount", "routeCoordinateCount", "signalCoordinateCount"],
+      "properties": {
+        "sourceRangeCount": { "type": "integer", "minimum": 0, "maximum": 2000 },
+        "routeCoordinateCount": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "signalCoordinateCount": { "type": "integer", "minimum": 0, "maximum": 1000 }
+      }
+    },
+    "limitation": {
+      "enum": [
+        "coordinate-unavailable",
+        "boundary-not-exact",
+        "missing-elapsed-route-evidence",
+        "missing-signal-evidence",
+        "insufficient-route-geometry",
+        "ambiguous-source-distance",
+        "distance-unavailable",
+        "moving-time-unavailable",
+        "paused-time-unavailable",
+        "unaligned-source-range-evidence",
+        "unaligned-route-evidence",
+        "unaligned-signal-evidence"
+      ]
+    }
+  }
+}

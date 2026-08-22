@@ -350,6 +350,24 @@ mutation returns its complete committed range context from the same transaction,
 constructs success by combining a write with a later unrelated query. Invalid context, stale source evidence,
 missing identity or coordinate, optimistic conflict, and local-storage failure remain distinct outcomes.
 
+The [range summary read model](../data-formats/insights/training-session-range-summary-v1.md) resolves one
+range against its required discovery snapshot and optimistic range revision. A dedicated application port
+first returns the exact exercise, coordinate metadata, source-lap structure, public provider attribution, and
+independent-evidence counts. A second visit streams only the route or regular signal that owns the selected
+coordinate. The application validates order and totals and computes boundary evidence, Haversine route
+distance, initial bearing, measurement aggregates, gaps, source-range overlap, coverage, and explicit
+limitations. The SQLite adapter neither joins independent clocks nor calculates these metrics.
+
+Exercise, route, and signal coordinates deliberately yield different valid answers. Exercise ranges may use
+exact source-lap boundaries and one exact source distance, while route ranges use recorded waypoint geometry
+and signal ranges aggregate `[start, end)` samples while retaining the end sample as boundary evidence. Other
+routes, signals, source laps, pause timestamps, and declared duration remain independent unless a recorded
+relationship proves alignment. Moving and paused time therefore remain unavailable rather than being inferred.
+A review-required range whose exercise or coordinate disappeared remains queryable as unavailable evidence;
+its authored owner and coordinate are never redirected or discarded. Returned boundary matches and missing
+intervals are bounded while their complete counts remain explicit, so dense evidence is processed without
+creating an unbounded response.
+
 The [canonical segment criterion](../data-formats/canonical/segment-criterion.md) is reusable user-authored
 evidence with stable local identity, optimistic revision, and one versioned rule. Its ordered exercise
 application is independent from source laps, phases, routes, and signals. Editing a reused definition affects

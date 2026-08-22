@@ -144,6 +144,22 @@ pub use training_range::{
     TrainingSessionRangesQuery, TrainingSessionRangesResult,
 };
 
+mod training_range_summary;
+pub use training_range_summary::{
+    query_training_session_range_summary, PersistedTrainingRangeCoordinateEvidence,
+    PersistedTrainingRangeSummaryExercise, PersistedTrainingRangeSummarySourceRange,
+    PersistedTrainingSessionRangeSummary, TrainingRangeBoundaryEvidence,
+    TrainingRangeBoundaryEvidenceState, TrainingRangeBoundaryPair, TrainingRangeCardinalDirection,
+    TrainingRangeCoordinateEvidence, TrainingRangeDirectionSummary, TrainingRangeDistanceSummary,
+    TrainingRangeEvidenceCoverage, TrainingRangeEvidenceLocation, TrainingRangeEvidenceStreamItem,
+    TrainingRangeExactEvidenceKind, TrainingRangeIndependentEvidence,
+    TrainingRangeMeasurementSummary, TrainingRangeMetricCoverage, TrainingRangeMissingInterval,
+    TrainingRangeSourceOverlap, TrainingRangeSourceOverlapRelation, TrainingRangeSourceRangeKind,
+    TrainingRangeSummaryCoverageState, TrainingRangeSummaryLimitation, TrainingSessionRangeSummary,
+    TrainingSessionRangeSummaryPort, TrainingSessionRangeSummaryPortError,
+    TrainingSessionRangeSummaryQuery,
+};
+
 #[cfg(test)]
 mod training_discovery_tests;
 
@@ -170,6 +186,9 @@ mod training_segmentation_tests;
 
 #[cfg(test)]
 mod training_range_tests;
+
+#[cfg(test)]
+mod training_range_summary_tests;
 
 #[cfg(test)]
 mod sport_discovery_tests;
@@ -1488,6 +1507,12 @@ pub enum ApplicationError {
     TrainingSessionRangeQuery(String),
     #[error("training-session range update failed: {0}")]
     TrainingSessionRangeUpdate(String),
+    #[error("invalid training-session range summary: {0}")]
+    InvalidTrainingSessionRangeSummary(&'static str),
+    #[error("training-session range summary changed while it was being read")]
+    TrainingSessionRangeSummaryChanged,
+    #[error("training-session range summary query failed: {0}")]
+    TrainingSessionRangeSummaryQuery(String),
     #[error("invalid report definition: {0}")]
     InvalidReportDefinition(String),
     #[error("report definition was not found")]

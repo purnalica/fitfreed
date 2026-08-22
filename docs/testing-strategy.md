@@ -28,6 +28,9 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Calculations, time ranges, units, locale-independent semantics, and classifications.
 - Format-version selection and normalized error models.
 - Use-case orchestration through test-controlled ports.
+- Revision-coherent personal-range summaries over exact exercise, route, and signal coordinates, including
+  non-interpolation, half-open signal aggregation, bounded gaps, unavailable alignment, and dense streamed
+  evidence.
 
 **Excluded:** concrete databases, ZIP readers, JSON libraries, operating-system APIs, update services, and graphical interfaces.
 
@@ -41,6 +44,8 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Anti-corruption mapping from Polar Flow structures to domain inputs.
 - Database constraints, transactions, migrations, queries, rollback, and restart behavior.
 - Import fingerprints, provenance, overlap reconciliation, and retry behavior.
+- Range-summary composition from real SQLite route, signal, source-lap, review-required, reimported, and stale
+  revision evidence without moving calculation or cross-coordinate alignment into persistence.
 - Localization catalogs, placeholders, plural rules, and fallback.
 - Versioned source-acquisition guide validation, adapter ownership, exact locale selection, and least-privilege official-link capabilities.
 - Application-shell structure, semantic sidebar ownership, broad desktop workspace, compact navigation rail, and initial-window presentation contracts.
