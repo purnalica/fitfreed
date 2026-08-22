@@ -32,13 +32,18 @@ function localDate(value: string): Date {
   return new Date(Date.UTC(year, month - 1, day));
 }
 
-function rangeIsValid(range: TrainingDateRange, available: TrainingDateRange): boolean {
+function rangeShapeIsValid(range: TrainingDateRange): boolean {
   if (!range.from || !range.through || range.from > range.through) return false;
-  if (range.from < available.from || range.through > available.through) return false;
   const inclusiveDays = Math.floor(
     (localDate(range.through).getTime() - localDate(range.from).getTime()) / 86_400_000,
   ) + 1;
   return inclusiveDays <= 366;
+}
+
+function rangeIsValid(range: TrainingDateRange, available: TrainingDateRange): boolean {
+  return rangeShapeIsValid(range)
+    && range.from >= available.from
+    && range.through <= available.through;
 }
 
 export function TrainingComparisonPanel({
@@ -56,6 +61,8 @@ export function TrainingComparisonPanel({
   const [comparisonRange, setComparisonRange] = useState(initialRange);
   const [comparison, setComparison] = useState<TrainingComparison>();
   const [loading, setLoading] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [controlsOpen, setControlsOpen] = useState(initialQuery === undefined);
   const validation = useInvalidForm(onError);
   const { resultHeadingRef, requestResultFocus } = useResultFocus<HTMLHeadingElement>(
     comparison !== undefined,
@@ -71,7 +78,56 @@ export function TrainingComparisonPanel({
     () => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }),
     [locale],
   );
+  const selectableRange = useMemo(() => ({
+    from: [
+      availableRange.from,
+      initialQuery?.baselineRange.from,
+      initialQuery?.comparisonRange.from,
+    ].filter((value): value is string => value !== undefined).sort()[0],
+    through: [
+      availableRange.through,
+      initialQuery?.baselineRange.through,
+      initialQuery?.comparisonRange.through,
+    ].filter((value): value is string => value !== undefined).sort().at(-1) as string,
+  }), [
+    availableRange.from,
+    availableRange.through,
+    initialQuery?.baselineRange.from,
+    initialQuery?.baselineRange.through,
+    initialQuery?.comparisonRange.from,
+    initialQuery?.comparisonRange.through,
+  ]);
   const copy = messages.training.comparison;
+
+  async function loadComparison(
+    baseline: TrainingDateRange,
+    current: TrainingDateRange,
+    initiatingElement: HTMLElement | null,
+  ) {
+    validation.accept();
+    setLoading(true);
+    setLoadFailed(false);
+    onError(undefined);
+    try {
+      const result = await invoke<TrainingComparison>("query_training_comparison", {
+        baselineRange: baseline,
+        comparisonRange: current,
+      });
+      setComparison(result);
+      setControlsOpen(false);
+      requestResultFocus(initiatingElement);
+    } catch (reason) {
+      const code = commandErrorCode(reason);
+      if (code === "invalid-training-range") {
+        validation.reject("invalid-training-comparison");
+        setControlsOpen(true);
+      } else {
+        setLoadFailed(true);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
     if (!initialQuery || navigationRequestId === undefined) return;
@@ -79,14 +135,20 @@ export function TrainingComparisonPanel({
     const compared = initialQuery.comparisonRange;
     setBaselineRange(baseline);
     setComparisonRange(compared);
-    if (!rangeIsValid(baseline, availableRange) || !rangeIsValid(compared, availableRange)) {
+    setLoadFailed(false);
+    if (!rangeShapeIsValid(baseline) || !rangeShapeIsValid(compared)) {
       setComparison(undefined);
+      setControlsOpen(true);
       validation.reject("invalid-training-comparison");
       return;
     }
     let active = true;
+    const initiatingElement = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
     validation.accept();
     setLoading(true);
+    setLoadFailed(false);
     onError(undefined);
     void invoke<TrainingComparison>("query_training_comparison", {
       baselineRange: baseline,
@@ -94,14 +156,16 @@ export function TrainingComparisonPanel({
     }).then((result) => {
       if (!active) return;
       setComparison(result);
-      requestResultFocus();
+      setControlsOpen(false);
+      requestResultFocus(initiatingElement);
     }).catch((reason) => {
       if (!active) return;
       const code = commandErrorCode(reason);
       if (code === "invalid-training-range") {
         validation.reject("invalid-training-comparison");
+        setControlsOpen(true);
       } else {
-        onError(code);
+        setLoadFailed(true);
       }
     }).finally(() => {
       if (active) setLoading(false);
@@ -135,44 +199,27 @@ export function TrainingComparisonPanel({
   async function runComparison(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (
-      !rangeIsValid(baselineRange, availableRange)
-      || !rangeIsValid(comparisonRange, availableRange)
+      !rangeIsValid(baselineRange, selectableRange)
+      || !rangeIsValid(comparisonRange, selectableRange)
     ) {
       validation.reject("invalid-training-comparison");
       return;
     }
-    validation.accept();
-    setLoading(true);
-    onError(undefined);
     const initiatingElement = document.activeElement instanceof HTMLElement
       ? document.activeElement
       : null;
-    try {
-      const result = await invoke<TrainingComparison>("query_training_comparison", {
-        baselineRange,
-        comparisonRange,
-      });
-      setComparison(result);
-      requestResultFocus(initiatingElement);
-    } catch (reason) {
-      const code = commandErrorCode(reason);
-      if (code === "invalid-training-range") {
-        validation.reject("invalid-training-comparison");
-      } else {
-        onError(code);
-      }
-    } finally {
-      setLoading(false);
-    }
+    await loadComparison(baselineRange, comparisonRange, initiatingElement);
   }
 
   function updateBaseline(field: keyof TrainingDateRange, value: string) {
     validation.edit();
+    setLoadFailed(false);
     setBaselineRange((current) => ({ ...current, [field]: value }));
   }
 
   function updateComparison(field: keyof TrainingDateRange, value: string) {
     validation.edit();
+    setLoadFailed(false);
     setComparisonRange((current) => ({ ...current, [field]: value }));
   }
 
@@ -185,6 +232,56 @@ export function TrainingComparisonPanel({
     if (maximum === 0n) return "0%";
     const basisPoints = (BigInt(value) * 10_000n) / maximum;
     return `${Number(basisPoints) / 100}%`;
+  }
+
+  function humanDuration(value: string): string {
+    const exact = BigInt(value);
+    const absolute = exact < 0n ? -exact : exact;
+    if (absolute === 0n) return copy.zeroDuration;
+    if (absolute < 60_000n) return copy.lessThanMinute;
+    const totalMinutes = (absolute + 30_000n) / 60_000n;
+    const hours = totalMinutes / 60n;
+    const minutes = totalMinutes % 60n;
+    const parts: string[] = [];
+    if (hours > 0n) parts.push(`${number.format(hours)} ${messages.training.durationUnits.hours}`);
+    if (minutes > 0n) {
+      parts.push(`${number.format(minutes)} ${messages.training.durationUnits.minutes}`);
+    }
+    return parts.join(" ");
+  }
+
+  function durationConclusion(series: TrainingComparison["series"][number]): string {
+    const change = BigInt(series.durationMillisecondsChange);
+    if (series.baseline.sessionCount === 0 && series.comparison.sessionCount === 0) {
+      return copy.answerNoSessions;
+    }
+    if (change === 0n) return copy.answerUnchanged;
+    const value = humanDuration((change < 0n ? -change : change).toString());
+    return (change > 0n ? copy.answerHigher : copy.answerLower).replace("{value}", value);
+  }
+
+  function sessionEvidence(series: TrainingComparison["series"][number]): string {
+    const count = (value: number) => copy.sessionCount[value === 1 ? "one" : "other"]
+      .replace("{count}", number.format(value));
+    return copy.sessionEvidence
+      .replace("{baseline}", count(series.baseline.sessionCount))
+      .replace("{comparison}", count(series.comparison.sessionCount));
+  }
+
+  function coverageEvidence(series: TrainingComparison["series"][number]): string {
+    const summaries = [series.baseline, series.comparison];
+    const sessions = summaries.reduce((total, summary) => total + summary.sessionCount, 0);
+    const distance = summaries.reduce(
+      (total, summary) => total + summary.distanceSessionCount,
+      0,
+    );
+    const energy = summaries.reduce(
+      (total, summary) => total + summary.energySessionCount,
+      0,
+    );
+    if (distance === 0 && energy === 0) return copy.coverageNone;
+    if (distance === sessions && energy === sessions) return copy.coverageComplete;
+    return copy.coveragePartial;
   }
 
   function summaryRows(
@@ -315,42 +412,30 @@ export function TrainingComparisonPanel({
 
   return (
     <div className="training-comparison">
-      <div>
-        <h2 id="training-comparison-form-heading">{copy.heading}</h2>
-        <p>{copy.intro}</p>
-      </div>
-      <form
-        aria-labelledby="training-comparison-form-heading"
-        aria-busy={loading}
-        onSubmit={(event) => void runComparison(event)}
-      >
-        {rangeInputs.map(({ label, value, update }) => (
-          <label key={label}>
-            <span>{label}</span>
-            <input
-              type="date"
-              min={availableRange.from}
-              max={availableRange.through}
-              value={value}
-              aria-invalid={validation.invalid || undefined}
-              aria-describedby={validation.errorElementId}
-              onChange={(event) => update(event.target.value)}
-              disabled={loading}
-              required
-            />
-          </label>
-        ))}
-        <ProgressSubmitButton
-          loading={loading}
-          actionLabel={copy.compare}
-          progressLabel={copy.comparing}
-        />
-      </form>
-
+      {loading && !comparison && (
+        <p className="answer-loading" role="status" aria-live="polite">{copy.comparing}</p>
+      )}
+      {loadFailed && (
+        <section className="answer-retry" aria-label={copy.retryLabel}>
+          <p>{copy.loadFailed}</p>
+          <button
+            type="button"
+            className="secondary"
+            disabled={loading}
+            onClick={(event) => void loadComparison(
+              baselineRange,
+              comparisonRange,
+              event.currentTarget,
+            )}
+          >
+            {copy.retry}
+          </button>
+        </section>
+      )}
       {comparison && (
         <section
-          className="training-comparison-result"
-          aria-labelledby="training-comparison-heading"
+          className="training-comparison-result answer-canvas"
+          aria-label={copy.answerLabel}
         >
           <div className="training-comparison-result-heading">
             <div>
@@ -359,27 +444,45 @@ export function TrainingComparisonPanel({
                 ref={resultHeadingRef}
                 tabIndex={-1}
               >
-                {copy.resultHeading}
+                {comparison.series.length === 0
+                  ? copy.answerEmpty
+                  : comparison.series.length === 1
+                    ? durationConclusion(comparison.series[0])
+                    : copy.answerMultiple.replace(
+                      "{count}",
+                      number.format(comparison.series.length),
+                    )}
               </h3>
-              <p>{copy.coverageCaution}</p>
+              <p>
+                {rangeLabel(comparison.baselineRange)} · {rangeLabel(comparison.comparisonRange)}
+              </p>
             </div>
-            <button type="button" className="secondary" onClick={() => setComparison(undefined)}>
-              {copy.clear}
-            </button>
-            {comparison.baselineRange && comparison.comparisonRange && (
+            <div className="answer-actions">
               <button
                 type="button"
-                ref={createReportButtonRef}
-                onClick={() => onCreateReport({
-                  question: "training-period-comparison",
-                  questionVersion: 1,
-                  baselineRange: comparison.baselineRange as TrainingDateRange,
-                  comparisonRange: comparison.comparisonRange as TrainingDateRange,
-                })}
+                className="secondary"
+                onClick={() => {
+                  setComparison(undefined);
+                  setControlsOpen(true);
+                }}
               >
-                {copy.createReport}
+                {copy.clear}
               </button>
-            )}
+              {comparison.baselineRange && comparison.comparisonRange && (
+                <button
+                  type="button"
+                  ref={createReportButtonRef}
+                  onClick={() => onCreateReport({
+                    question: "training-period-comparison",
+                    questionVersion: 1,
+                    baselineRange: comparison.baselineRange as TrainingDateRange,
+                    comparisonRange: comparison.comparisonRange as TrainingDateRange,
+                  })}
+                >
+                  {copy.createReport}
+                </button>
+              )}
+            </div>
           </div>
           {comparison.series.map((series, index) => {
             const maximum = [
@@ -396,7 +499,10 @@ export function TrainingComparisonPanel({
             return (
               <section className="training-comparison-series" key={series.seriesRef}>
                 {comparison.series.length > 1 && (
-                  <h4>{messages.training.series} {number.format(index + 1)}</h4>
+                  <div className="answer-series-heading">
+                    <p>{messages.training.series} {number.format(index + 1)}</p>
+                    <h4>{durationConclusion(series)}</h4>
+                  </div>
                 )}
                 <div className="comparison-bars" aria-hidden="true">
                   {[
@@ -409,47 +515,88 @@ export function TrainingComparisonPanel({
                         <span className="bar" style={{ width: durationBarWidth(value, maximum) }} />
                       </span>
                       <strong>
-                        {formatDuration(value, locale, messages.training.durationUnits)}
+                        {humanDuration(value)}
                       </strong>
                     </div>
                   ))}
                 </div>
-                <div
-                  className="training-table-scroll"
-                  tabIndex={0}
-                  aria-label={copy.resultHeading}
-                >
-                  <table>
-                    <caption className="sr-only">{copy.resultHeading}</caption>
-                    <thead>
-                      <tr>
-                        <th scope="col">{copy.metric}</th>
-                        <th scope="col">
-                          {copy.baseline}<span>{rangeLabel(comparison.baselineRange)}</span>
-                        </th>
-                        <th scope="col">
-                          {copy.comparison}<span>{rangeLabel(comparison.comparisonRange)}</span>
-                        </th>
-                        <th scope="col">{copy.change}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows.map(([metric, baseline, current, change]) => (
-                        <tr key={metric}>
-                          <th scope="row">{metric}</th>
-                          <td>{baseline}</td>
-                          <td>{current}</td>
-                          <td>{change}</td>
+                <p className="answer-evidence">{sessionEvidence(series)}</p>
+                <p className="answer-coverage">{coverageEvidence(series)}</p>
+                <details className="answer-exact-values">
+                  <summary>{copy.exactValues}</summary>
+                  <p>{copy.coverageCaution}</p>
+                  <div className="training-table-scroll" tabIndex={0}>
+                    <table>
+                      <caption className="sr-only">{copy.resultHeading}</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">{copy.metric}</th>
+                          <th scope="col">
+                            {copy.baseline}<span>{rangeLabel(comparison.baselineRange)}</span>
+                          </th>
+                          <th scope="col">
+                            {copy.comparison}<span>{rangeLabel(comparison.comparisonRange)}</span>
+                          </th>
+                          <th scope="col">{copy.change}</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {rows.map(([metric, baseline, current, change]) => (
+                          <tr key={metric}>
+                            <th scope="row">{metric}</th>
+                            <td>{baseline}</td>
+                            <td>{current}</td>
+                            <td>{change}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
               </section>
             );
           })}
         </section>
       )}
+      <details
+        className="answer-controls"
+        open={controlsOpen}
+        onToggle={(event) => setControlsOpen(event.currentTarget.open)}
+      >
+        <summary>{comparison ? copy.changePeriods : copy.heading}</summary>
+        <div>
+          <h2 id="training-comparison-form-heading">{copy.heading}</h2>
+          <p>{copy.intro}</p>
+        </div>
+        <form
+          className="training-comparison-form"
+          aria-labelledby="training-comparison-form-heading"
+          aria-busy={loading}
+          onSubmit={(event) => void runComparison(event)}
+        >
+          {rangeInputs.map(({ label, value, update }) => (
+            <label key={label}>
+              <span>{label}</span>
+              <input
+                type="date"
+                min={selectableRange.from}
+                max={selectableRange.through}
+                value={value}
+                aria-invalid={validation.invalid || undefined}
+                aria-describedby={validation.errorElementId}
+                onChange={(event) => update(event.target.value)}
+                disabled={loading}
+                required
+              />
+            </label>
+          ))}
+          <ProgressSubmitButton
+            loading={loading}
+            actionLabel={copy.compare}
+            progressLabel={copy.comparing}
+          />
+        </form>
+      </details>
     </div>
   );
 }

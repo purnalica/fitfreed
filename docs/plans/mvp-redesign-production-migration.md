@@ -2,8 +2,8 @@
 
 ## Status and authority
 
-Authorized for autonomous execution as of 2026-08-21. X4-P0 through X5-R3 and X5-R4.1 are complete
-locally; X5-R4.2 is next.
+Authorized for autonomous execution as of 2026-08-21. X4-P0 through X5-R3 and X5-R4.1 through
+X5-R4.2 are complete locally; X5-R4.3 is next.
 The X5-R1 product entrance is live; exact hosted verification of its CI resource optimizer remains
 pending synchronization of the workflow-changing commit. The product owner accepted the X3
 direction and its amendments on 2026-08-21. This
@@ -206,7 +206,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R2.2 | Complete locally — exact packaged gates passed 2026-08-22 | Sources leads with acquisition, a protected active task, and a calm exact outcome |
 | X5-R2.3 | Complete locally — exact packaged gates passed 2026-08-22 | Durable language, appearance, zoom, and update settings form one coherent workspace |
 | X5-R3 | Complete locally — exact packaged and dense-history gates passed 2026-08-22 | Import ends in recognizable personal value |
-| X5-R4 | In progress — R4.1 complete locally 2026-08-22 | Existing health and aligned-history questions read as answers |
+| X5-R4 | In progress — R4.1–R4.2 complete locally 2026-08-22 | Existing health and aligned-history questions read as answers |
 | X5-R5 | Pending | A remembered session is findable and sports are recognizable |
 | X5-R6 | Pending | A routed workout is investigated through a dominant synchronized map |
 | X5-R7 | Pending | Every session composition reflects its actual evidence |
@@ -364,8 +364,9 @@ precision, missing-data, and navigation guidance; architecture ownership and pre
 R4 is delivered as five independently usable vertical increments. Each increment retains the current
 exact-data route and leaves the application coherent if the following increment has not landed.
 
-**Status:** R4.1 passed its focused, full fast, packaged functional, packaged performance, and actual
-wide and 200%-zoom macOS visual gates on 2026-08-22. R4.2 is next; R4 as a whole remains open.
+**Status:** R4.1 and R4.2 passed their focused, full fast, packaged functional, packaged performance,
+and actual wide and 200%-zoom macOS visual gates on 2026-08-22. R4.3 is next; R4 as a whole remains
+open.
 
 | Increment | User-visible outcome | Required implementation and evidence |
 |---|---|---|

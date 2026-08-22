@@ -1925,7 +1925,7 @@ pub fn query_training_overview(
     let (earliest, latest) = parse_training_bounds(&available_range)?;
     let (window_start, window_end, selected_range) = match requested_range {
         Some(range) => {
-            let (from, through) = validate_training_range(&range, earliest, latest)?;
+            let (from, through) = validate_training_range_within_bounds(&range, earliest, latest)?;
             (from, through, range)
         }
         None => {
@@ -1966,11 +1966,9 @@ pub fn query_training_comparison(
             series: Vec::new(),
         });
     };
-    let (earliest, latest) = parse_training_bounds(&available_range)?;
-    let (baseline_from, baseline_through) =
-        validate_training_range(&baseline_range, earliest, latest)?;
-    let (comparison_from, comparison_through) =
-        validate_training_range(&comparison_range, earliest, latest)?;
+    parse_training_bounds(&available_range)?;
+    let (baseline_from, baseline_through) = validate_training_range(&baseline_range)?;
+    let (comparison_from, comparison_through) = validate_training_range(&comparison_range)?;
     let origins = port.training_origins().map_err(ApplicationError::Query)?;
     let baseline_sessions = port
         .query_training(&baseline_range)
@@ -2050,8 +2048,6 @@ fn parse_training_bounds(
 
 fn validate_training_range(
     range: &TrainingDateRange,
-    earliest: NaiveDate,
-    latest: NaiveDate,
 ) -> Result<(NaiveDate, NaiveDate), ApplicationError> {
     let from = parse_training_date(&range.from).map_err(ApplicationError::InvalidTrainingRange)?;
     let through =
@@ -2061,14 +2057,23 @@ fn validate_training_range(
             "range dates are not ordered",
         ));
     }
-    if from < earliest || through > latest {
-        return Err(ApplicationError::InvalidTrainingRange(
-            "range is outside available training history",
-        ));
-    }
     if through.signed_duration_since(from).num_days() + 1 > MAX_TRAINING_RANGE_DAYS {
         return Err(ApplicationError::InvalidTrainingRange(
             "range exceeds 366 inclusive calendar days",
+        ));
+    }
+    Ok((from, through))
+}
+
+fn validate_training_range_within_bounds(
+    range: &TrainingDateRange,
+    earliest: NaiveDate,
+    latest: NaiveDate,
+) -> Result<(NaiveDate, NaiveDate), ApplicationError> {
+    let (from, through) = validate_training_range(range)?;
+    if from < earliest || through > latest {
+        return Err(ApplicationError::InvalidTrainingRange(
+            "range is outside available training history",
         ));
     }
     Ok((from, through))
@@ -4498,6 +4503,59 @@ mod tests {
     }
 
     #[test]
+    fn compares_an_accepted_empty_baseline_before_the_first_training_session() {
+        struct RecentTrainingPort;
+
+        impl TrainingLibraryPort for RecentTrainingPort {
+            fn training_bounds(&self) -> Result<Option<TrainingDateRange>, String> {
+                Ok(Some(TrainingDateRange {
+                    from: "2026-01-04".to_owned(),
+                    through: "2026-01-10".to_owned(),
+                }))
+            }
+
+            fn training_origins(&self) -> Result<Vec<String>, String> {
+                Ok(vec!["origin".to_owned()])
+            }
+
+            fn query_training(
+                &self,
+                range: &TrainingDateRange,
+            ) -> Result<Vec<TrainingSession>, String> {
+                match (range.from.as_str(), range.through.as_str()) {
+                    ("2025-12-28", "2026-01-03") => Ok(Vec::new()),
+                    ("2026-01-04", "2026-01-10") => Ok(vec![training_session(
+                        "origin",
+                        "current",
+                        "2026-01-05T10:00:00",
+                        3_600_000,
+                        None,
+                        None,
+                    )]),
+                    _ => panic!("unexpected recent training comparison range"),
+                }
+            }
+        }
+
+        let comparison = query_training_comparison(
+            &RecentTrainingPort,
+            TrainingDateRange {
+                from: "2025-12-28".to_owned(),
+                through: "2026-01-03".to_owned(),
+            },
+            TrainingDateRange {
+                from: "2026-01-04".to_owned(),
+                through: "2026-01-10".to_owned(),
+            },
+        )
+        .expect("accepted recent comparison");
+
+        assert_eq!(comparison.series[0].baseline.session_count, 0);
+        assert_eq!(comparison.series[0].comparison.session_count, 1);
+        assert_eq!(comparison.series[0].duration_milliseconds_change, 3_600_000);
+    }
+
+    #[test]
     fn rejects_invalid_training_facts_and_inconsistent_origin_catalogs() {
         let valid = training_session(
             "origin",
@@ -4581,7 +4639,7 @@ mod tests {
     }
 
     #[test]
-    fn rejects_invalid_out_of_bounds_and_oversized_training_ranges_before_fact_queries() {
+    fn rejects_malformed_and_oversized_training_ranges_before_fact_queries() {
         struct RangeValidationTrainingPort;
 
         impl TrainingLibraryPort for RangeValidationTrainingPort {
@@ -4614,14 +4672,6 @@ mod tests {
                 through: "2026-03-01".to_owned(),
             },
             TrainingDateRange {
-                from: "2023-12-31".to_owned(),
-                through: "2024-01-01".to_owned(),
-            },
-            TrainingDateRange {
-                from: "2026-12-31".to_owned(),
-                through: "2027-01-01".to_owned(),
-            },
-            TrainingDateRange {
                 from: "2025-01-01".to_owned(),
                 through: "2026-01-02".to_owned(),
             },
@@ -4639,6 +4689,22 @@ mod tests {
                         through: "2026-01-02".to_owned(),
                     },
                 ),
+                Err(ApplicationError::InvalidTrainingRange(_))
+            ));
+        }
+
+        for range in [
+            TrainingDateRange {
+                from: "2023-12-31".to_owned(),
+                through: "2024-01-01".to_owned(),
+            },
+            TrainingDateRange {
+                from: "2026-12-31".to_owned(),
+                through: "2027-01-01".to_owned(),
+            },
+        ] {
+            assert!(matches!(
+                query_training_overview(&RangeValidationTrainingPort, Some(range)),
                 Err(ApplicationError::InvalidTrainingRange(_))
             ));
         }

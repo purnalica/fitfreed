@@ -58,6 +58,14 @@ detailed workspace. The normative contracts are the
 [training-session search](../data-formats/insights/training-session-search-v1.md) and
 [training-discovery workspace](../data-formats/insights/training-discovery-workspace-v1.md) specifications.
 
+Training-period comparison remains a distinct bounded calendar read model. Its `availableRange` reports the
+first and last recorded session dates, but an ordered period of at most 366 inclusive dates may extend beyond
+those evidence bounds and yields an exact empty summary where no sessions exist. This lets Library Home
+compare two adjacent equal periods and lets a saved report reopen its exact source without converting a
+valid empty baseline into an error. Training overview and ordinary session discovery retain their own
+recorded-history range boundaries. The normative comparison behavior is documented in
+[training comparison version 1](../data-formats/insights/training-comparison-v1.md).
+
 ## Presentation hierarchy and state
 
 Training is one product workspace with three explicit views: Sessions, Sports, and Compare periods. Sessions
@@ -72,6 +80,13 @@ and exposed to assistive technology at a time. Every lower-layer query retains i
 boundary, exact-evidence path, and snapshot binding. The hierarchy changes disclosure, not evidence loading,
 identity, attribution, or availability semantics. The return action restores the exact chronology or calendar
 origin and its focus target; report return restores the originating session or period comparison.
+
+The period-comparison view is a result-first Answer Canvas. A Home or saved-report source entry executes its
+exact accepted periods immediately; manual entry keeps editable periods available without placing them
+before a valid answer. Each origin leads with a human-scale duration conclusion and proportional visual,
+then session and optional-measurement coverage. Exact values remain available in an accessible disclosure,
+and report creation carries the authoritative query rather than copying rendered values. Validation and
+contextual retrieval failures preserve the last valid answer, periods, and source separation.
 
 The [training-session structure read model](../data-formats/insights/training-session-structure-v1.md)
 loads separately for one opaque session capability under the same discovery snapshot. It preserves

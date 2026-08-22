@@ -83,7 +83,7 @@ is governed independently by the [current ledger](docs/testing/public-release-re
 <li>On-demand privacy-bounded session provenance and reconciliation history</li>
 <li>Selectable same-role signal alignment with exact sample paths</li>
 <li>Composable session and route reports with privacy-reviewed self-contained HTML export</li>
-<li>Versioned training-period findings, comparisons, charts, exact tables, and coverage views</li>
+<li>Result-first training-period answers with human-scale visuals, exact values, coverage, and report handoff</li>
 <li>Question-led, exploration-led, session-led, and blank report starts with durable authored results</li>
 <li>Deliberate stale-report refresh through an exact current-evidence review</li>
 <li>Origin-aware navigation between saved reports and their exact session or comparison source</li>
@@ -94,7 +94,7 @@ is governed independently by the [current ledger](docs/testing/public-release-re
 <details data-status="active" open>
 <summary><strong>Work in progress — Experience production migration</strong></summary>
 <ul>
-<li>Accepted History Desk structure with bounded Answer Canvas explanations</li>
+<li>Accepted History Desk structure with activity and training-period Answer Canvases</li>
 <li>Map-led outdoor session investigation with synchronized recorded evidence</li>
 <li>Result-first reports, human-scale presentation, and visible data exit</li>
 </ul>

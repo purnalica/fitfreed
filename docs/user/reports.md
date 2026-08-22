@@ -18,9 +18,10 @@ The report workspace has three explicit locations. **Library** contains saved re
 between available locations preserves the current draft. A successful save opens Preview; use **Edit
 composition** or **Compose** to continue editing, and return to Library to choose another saved report.
 
-A completed **Training period comparison** also offers **Turn this comparison into a report**. The report
-retains the exact periods that produced the visible result. **Back to the comparison** restores that mounted
-exploration and its result.
+A completed **Training period comparison** leads with its plain answer and keeps exact values behind an
+explicit review action. **Turn this comparison into a report** retains the exact periods that produced that
+answer; it never copies rounded presentation text as evidence. **Back to the comparison** restores the
+mounted answer and its focus.
 
 The fourth start is a specific training session:
 
@@ -78,8 +79,9 @@ controls, so a screen reader and a sighted user receive the same operation state
 
 A saved session report offers **View source session** when its exact current session is available. A saved
 question or exploration report offers **View source comparison** when its exact comparison query remains
-coherent. FitFreed opens that specific session or reruns those specific periods; it does not send you to a
-generic training page. Use **Back to report** to reopen the same saved report. Keyboard focus moves to the
+coherent. FitFreed opens that specific session or reruns those specific periods directly into the result-first
+answer, including a bounded period with no sessions; it does not send you to a generic training page or make
+you resubmit an editing form. Use **Back to report** to reopen the same saved report. Keyboard focus moves to the
 opened session, comparison result, or report heading so the location change is explicit without requiring a
 pointer.
 

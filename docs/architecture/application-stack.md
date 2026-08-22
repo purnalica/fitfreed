@@ -49,6 +49,14 @@ periods and offers an in-place retry; it does not replace the failure with a glo
 comparison focus aligns the result heading below persistent compact navigation, including at high
 content zoom, so the visible result rather than the preceding controls owns the viewport.
 
+The training-period Home highlight and saved-report source follow the same result-first grammar while using
+the authoritative training-comparison command. The command accepts structurally valid periods of at most
+366 inclusive dates even when an adjacent period contains no recorded session; its `availableRange` remains
+recorded-evidence metadata rather than a comparison validity boundary. React submits the exact accepted
+periods, presents the application-owned duration change and coverage per origin at a human scale, and keeps
+period editing, exact values, and report creation as deliberate actions. It neither recalculates aggregates
+nor converts missing distance, energy, or heart-rate evidence into zero.
+
 Reports uses the same current-location semantics for a separate staged workflow. Library owns saved definitions and new starts, Compose owns the complete ordered editor and its evidence tools, and Preview owns resolved output plus mutually exclusive stale-evidence or export review. The mounted draft and resolved candidate survive temporary stage changes, while a successful save and a saved-report selection lead to Preview. The stage never becomes durable report data; only the existing versioned definition and its application-owned evidence reference cross the transport and persistence boundaries.
 
 Settings has a presentation-owned category location. **Appearance & language** owns the atomic preference editor and representative preview; **Updates** owns maintenance status and actions without competing visually with those preferences. Moving between categories preserves an unsaved preview, while leaving Settings still discards it and reapplies the complete saved set. The update component remains mounted when its category or Settings itself is hidden, so launch and periodic discovery retain one lifecycle and do not restart merely because the person navigates. Category location never enters the preference DTO or SQLite row.

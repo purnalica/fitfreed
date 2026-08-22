@@ -593,6 +593,10 @@ async function resetSportClassification(catalog, currentTitle) {
 }
 
 async function expectTrainingComparison(expectedRows) {
+  const exactValues = await $(".training-comparison-result .answer-exact-values");
+  if ((await exactValues.getAttribute("open")) === null) {
+    await exactValues.$("summary").click();
+  }
   const rows = await $$(".training-comparison-result table tbody tr");
   expect(rows).toHaveLength(expectedRows.length);
   for (let index = 0; index < expectedRows.length; index += 1) {
@@ -2459,7 +2463,16 @@ describe("packaged FitFreed import journey", () => {
       "2026-01-05",
     );
     await $(".training-comparison button[type='submit']").click();
-    await expectComparisonHeading("#training-comparison-heading", "Training period comparison");
+    await expectComparisonHeading(
+      "#training-comparison-heading",
+      english.training.comparison.answerLower.replace("{value}", "30 min"),
+    );
+    expect(
+      await $(".training-comparison .answer-controls").getAttribute("open"),
+    ).toBeNull();
+    expect(
+      await $(".training-comparison-result .answer-exact-values").getAttribute("open"),
+    ).toBeNull();
     await expectTrainingComparison([
       ["Sessions", "1", "1", "0"],
       ["Training days", "1", "1", "0"],
@@ -2495,7 +2508,10 @@ describe("packaged FitFreed import journey", () => {
     await expect($(".report-preview")).not.toHaveText(expect.stringContaining("Polar Flow"));
     expect(await $$(".report-list > li")).toHaveLength(2);
     await $(`aria/${english.reports.backToComparison}`).click();
-    await expectComparisonHeading("#training-comparison-heading", "Training period comparison");
+    await expectComparisonHeading(
+      "#training-comparison-heading",
+      english.training.comparison.answerLower.replace("{value}", "30 min"),
+    );
     await expectTrainingComparison([
       ["Sessions", "1", "1", "0"],
       ["Training days", "1", "1", "0"],
@@ -2786,8 +2802,15 @@ describe("packaged FitFreed import journey", () => {
     await $(".training-comparison button[type='submit']").click();
     await expectComparisonHeading(
       "#training-comparison-heading",
-      spanish.training.comparison.resultHeading,
+      spanish.training.comparison.answerLower.replace("{value}", "30 min"),
     );
+    await expectResultBelowCompactNavigation("#training-comparison-heading");
+    expect(
+      await $(".training-comparison .answer-controls").getAttribute("open"),
+    ).toBeNull();
+    expect(
+      await $(".training-comparison-result .answer-exact-values").getAttribute("open"),
+    ).toBeNull();
     await $(".training-comparison-result button.secondary").click();
     await openHomeQuestion(
       spanish,
@@ -3282,7 +3305,7 @@ describe("packaged FitFreed import journey", () => {
     await $(`aria/${spanish.reports.viewSourceComparison}`).click();
     await expectComparisonHeading(
       "#training-comparison-heading",
-      spanish.training.comparison.resultHeading,
+      spanish.training.comparison.answerLower.replace("{value}", "30 min"),
     );
     const reopenedComparisonInputs = await $$(
       ".training-comparison input[type='date']",

@@ -455,6 +455,8 @@ th:last-child, td:last-child { text-align: right; }
 .comparison-bars > div { display: grid; grid-template-columns: minmax(90px, auto) minmax(120px, 1fr) minmax(90px, auto); gap: 12px; align-items: center; }
 .comparison-bars strong { text-align: right; font-variant-numeric: tabular-nums; }
 .answer-evidence { margin: 0; color: var(--ink-soft); font-size: .88rem; font-weight: 700; }
+.answer-coverage { margin: 6px 0 0; color: var(--muted); font-size: .84rem; }
+.answer-actions { display: flex; flex: 0 0 auto; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
 .answer-exact-values { margin-top: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
 .answer-exact-values > p { margin: 0; padding: 14px 16px 0; color: var(--muted); }
 .answer-exact-values > table { border: 0; background: transparent; }
@@ -753,13 +755,11 @@ th:last-child, td:last-child { text-align: right; }
 .training-segment-editor input, .training-segment-editor select, .training-segment-add-actions select { width: 100%; }
 .training-segment-editor-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .training-comparison { margin-top: 32px; padding-top: 28px; border-top: 1px solid var(--line); }
-.training-comparison > div:first-child h2 { margin: 0 0 5px; }
-.training-comparison > div:first-child p { margin: 0; color: var(--muted); }
-.training-comparison > form { display: grid; grid-template-columns: repeat(4, minmax(140px, 1fr)) auto; gap: 14px; align-items: end; margin-top: 16px; padding: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 15px; }
-.training-comparison > form label, .training-comparison > form input { min-width: 0; width: 100%; }
-.training-comparison-result { margin-top: 20px; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 15px; }
+.training-comparison-form { display: grid; grid-template-columns: repeat(4, minmax(140px, 1fr)) auto; gap: 14px; align-items: end; margin: 0; padding: 18px; }
+.training-comparison-form label, .training-comparison-form input { min-width: 0; width: 100%; }
+.training-comparison-result { padding: clamp(20px, 3vw, 34px); background: linear-gradient(145deg, var(--surface), var(--surface-soft)); border: 1px solid var(--line); border-radius: 18px; }
 .training-comparison-result-heading { display: flex; align-items: start; justify-content: space-between; gap: 18px; }
-.training-comparison-result-heading h3 { margin: 0 0 5px; font-size: 1.1rem; }
+.training-comparison-result-heading h3 { max-width: 22ch; margin: 0 0 8px; font-size: clamp(1.7rem, 3vw, 2.7rem); line-height: 1.05; letter-spacing: -.035em; }
 .training-comparison-result-heading p { margin: 0; color: var(--muted); }
 .training-comparison-series { margin-top: 22px; }
 .training-comparison-series + .training-comparison-series { padding-top: 22px; border-top: 1px solid var(--line); }
@@ -769,6 +769,8 @@ th:last-child, td:last-child { text-align: right; }
 .training-comparison-series thead th:not(:first-child), .training-comparison-series td { text-align: right; }
 .training-comparison-series thead span { display: block; margin-top: 4px; color: var(--muted); font-size: .7rem; font-weight: 500; }
 .training-comparison-series tbody th { text-align: left; }
+.training-comparison-series .training-table-scroll { border: 0; border-radius: 0; }
+.training-comparison-series .training-table-scroll table { background: transparent; }
 .sleep-filter { display: grid; grid-template-columns: minmax(0, 1fr) repeat(2, minmax(150px, auto)); gap: 14px 18px; align-items: end; margin: 16px 0; padding: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 15px; }
 .sleep-filter h2 { margin: 0 0 5px; font-size: 1rem; }
 .sleep-filter p { margin: 0; color: var(--muted); font-size: .85rem; }
@@ -1114,8 +1116,8 @@ th:last-child, td:last-child { text-align: right; }
   .longitudinal-filter > div:first-child, .longitudinal-filter-actions { grid-column: 1 / 3; }
   .activity-comparison-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .activity-comparison-form button { grid-column: 1 / 3; }
-  .training-comparison > form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .training-comparison > form button { grid-column: 1 / 3; }
+  .training-comparison-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .training-comparison-form button { grid-column: 1 / 3; }
   .sleep-comparison > form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sleep-comparison > form button { grid-column: 1 / 3; }
   .recovery-comparison > form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1178,6 +1180,14 @@ th:last-child, td:last-child { text-align: right; }
 :root[data-content-zoom="200"] .app-content { width: min(100% - 40px, 1600px); }
 :root[data-content-zoom="175"] :is(.activity-comparison-result-heading, .training-comparison-result-heading, .sleep-comparison-result-heading, .recovery-comparison-result-heading, .longitudinal-comparison-result-heading) h3,
 :root[data-content-zoom="200"] :is(.activity-comparison-result-heading, .training-comparison-result-heading, .sleep-comparison-result-heading, .recovery-comparison-result-heading, .longitudinal-comparison-result-heading) h3 { scroll-margin-block-start: 210px; }
+:root[data-content-zoom="175"] .training-comparison-result-heading,
+:root[data-content-zoom="200"] .training-comparison-result-heading { align-items: stretch; flex-direction: column; }
+:root[data-content-zoom="175"] .training-comparison-result-heading > div,
+:root[data-content-zoom="200"] .training-comparison-result-heading > div { min-width: 0; }
+:root[data-content-zoom="175"] .training-comparison-result-heading .answer-actions,
+:root[data-content-zoom="200"] .training-comparison-result-heading .answer-actions { width: 100%; justify-content: stretch; }
+:root[data-content-zoom="175"] .training-comparison-result-heading .answer-actions button,
+:root[data-content-zoom="200"] .training-comparison-result-heading .answer-actions button { flex: 1 1 100%; min-width: 0; white-space: normal; }
 :root[data-content-zoom="175"] .library-home-empty,
 :root[data-content-zoom="200"] .library-home-empty { grid-template-columns: 1fr; align-items: start; min-height: auto; padding-top: 3vh; }
 :root[data-content-zoom="175"] .library-home-highlight,
@@ -1311,9 +1321,11 @@ th:last-child, td:last-child { text-align: right; }
   .activity-comparison-result-heading { align-items: stretch; flex-direction: column; }
   .answer-retry { align-items: stretch; flex-direction: column; }
   .answer-retry button { width: 100%; }
-  .training-comparison > form { grid-template-columns: 1fr; }
-  .training-comparison > form button { grid-column: 1; }
+  .training-comparison-form { grid-template-columns: 1fr; }
+  .training-comparison-form button { grid-column: 1; }
   .training-comparison-result-heading { align-items: stretch; flex-direction: column; }
+  .answer-actions { justify-content: stretch; }
+  .answer-actions button { flex: 1 1 100%; }
   .sleep-comparison > form { grid-template-columns: 1fr; }
   .sleep-comparison > form button { grid-column: 1; }
   .sleep-comparison-result-heading { align-items: stretch; flex-direction: column; }

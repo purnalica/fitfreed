@@ -8,7 +8,12 @@ The Tauri `query_training_comparison` command accepts [`training-comparison-quer
 
 ## Query and response
 
-The query contains `baselineRange` and `comparisonRange`. Each range has canonical `from` and `through` dates, lies inside `availableRange`, is ordered, and contains at most 366 inclusive dates. Periods may overlap and have different lengths. Invalid input returns `invalid-training-range` before facts are queried.
+The query contains `baselineRange` and `comparisonRange`. Each range has canonical `from` and `through`
+dates, is ordered, and contains at most 366 inclusive dates. Periods may overlap, have different lengths,
+or include dates before or after the first and last recorded training session. `availableRange` describes the
+recorded-session bounds; it is evidence metadata, not a validity boundary for an otherwise bounded calendar
+comparison. A period with no sessions therefore returns an exact zero-session summary instead of an error.
+Malformed, reversed, or oversized input returns `invalid-training-range` before facts are queried.
 
 The response contains `availableRange`, the validated `baselineRange` and `comparisonRange`, and one independently calculated series per ordered opaque `seriesRef`. An empty library returns null ranges and no series. Each series contains complete `baseline` and `comparison` summaries plus:
 
@@ -24,6 +29,21 @@ Signed decimal text uses `0`, never negative zero or a leading plus sign. A dist
 
 ## Presentation and compatibility
 
-Presentation renders a visual comparison and an exact accessible table, identifies both date ranges, labels origins ordinally, preserves the previous valid result on invalid input, and clears only the disposable comparison result. It never exposes `seriesRef` or `sportRef` as user-facing names.
+Ordinary manual comparison starts within `availableRange`. An exact Home or report-source destination may
+extend that selectable boundary only far enough to preserve its already accepted periods, including an
+adjacent empty baseline. Presentation leads with one human-scale duration conclusion per origin, the two
+period labels, proportional duration bars, session evidence, and measurement coverage. Editable periods
+and the exact accessible table remain deliberate disclosures. Exact values retain their contract precision;
+the primary conclusion rounds duration to a useful human unit and never exposes milliseconds or seconds
+when minute-scale evidence is available.
 
-Changing range limits, subtraction direction, summary meaning, measurement-coverage disclosure, numeric encoding, null behavior, or origin separation requires a new comparison version. Application, transport, component, and packaged E2E tests protect positive, zero, negative, unavailable, unequal-period, multi-origin, and empty-library behavior.
+Presentation labels origins ordinally, preserves the previous valid answer and periods on invalid input or
+a contextual query failure, offers an in-place retry, and clears only the disposable comparison result. A
+successful Home or saved-report entry runs the exact accepted query without first presenting an empty form.
+Creating a report retains those exact periods, and contextual return restores the same answer and focus. The
+interface never exposes `seriesRef` or `sportRef` as user-facing names.
+
+Changing range limits, subtraction direction, summary meaning, measurement-coverage disclosure, numeric
+encoding, null behavior, empty-period semantics, or origin separation requires a new comparison version.
+Application, transport, component, integration, and packaged E2E tests protect positive, zero, negative,
+unavailable, unequal-period, multi-origin, bounded empty-period, and empty-library behavior.

@@ -1737,7 +1737,7 @@ describe("FitFreed import interface", () => {
     await user.click(await screen.findByRole("button", { name: "View source comparison" }));
 
     const comparisonHeading = await screen.findByRole("heading", {
-      name: "Training period comparison",
+      name: "No source history is available for this comparison",
     });
     await waitFor(() => expect(comparisonHeading).toHaveFocus());
     expect(mocks.invoke).toHaveBeenCalledWith("query_training_comparison", {
@@ -2861,6 +2861,83 @@ describe("FitFreed import interface", () => {
     await waitFor(() => expect(origin).toHaveFocus());
   });
 
+  it("opens the exact Home training periods as an immediate answer and restores the highlight", async () => {
+    offerExploration("training");
+    const baseline: TestTrainingSummary = {
+      calendarDays: 7,
+      trainingDays: 2,
+      sessionCount: 2,
+      totalDurationMilliseconds: "5400000",
+      distanceSessionCount: 2,
+      totalDistanceMeters: 18000,
+      energySessionCount: 2,
+      totalEnergyKilocalories: "900",
+      heartRateSessionCount: 2,
+    };
+    const comparison: TestTrainingSummary = {
+      ...baseline,
+      trainingDays: 4,
+      sessionCount: 4,
+      totalDurationMilliseconds: "10800000",
+      distanceSessionCount: 4,
+      totalDistanceMeters: 36000,
+      energySessionCount: 4,
+      totalEnergyKilocalories: "1800",
+      heartRateSessionCount: 4,
+    };
+    const comparisonResult: TestTrainingComparison = {
+      availableRange: { from: "2025-01-01", through: "2026-08-17" },
+      baselineRange: { from: "2026-08-04", through: "2026-08-10" },
+      comparisonRange: { from: "2026-08-11", through: "2026-08-17" },
+      series: [{
+        seriesRef: "synthetic-origin",
+        baseline,
+        comparison,
+        sessionCountChange: "2",
+        trainingDayChange: "2",
+        durationMillisecondsChange: "5400000",
+        distanceMetersChange: 18000,
+        energyKilocaloriesChange: "900",
+      }],
+    };
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
+      if (command === "query_training_sessions") {
+        return Promise.resolve(trainingSessionSearchPage(
+          [],
+          { from: "2026-08-11", through: "2026-08-17" },
+        ));
+      }
+      if (command === "query_training_comparison") return Promise.resolve(comparisonResult);
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+
+    const highlight = await screen.findByRole("region", { name: "Last 7 days" });
+    const origin = within(highlight).getByRole("button", { name: "Explore these 7 days" });
+    await user.click(origin);
+
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
+      "query_training_comparison",
+      {
+        baselineRange: { from: "2026-08-04", through: "2026-08-10" },
+        comparisonRange: { from: "2026-08-11", through: "2026-08-17" },
+      },
+    ));
+    const answer = await screen.findByRole("region", { name: "Training period answer" });
+    await waitFor(() => expect(within(answer).getByRole("heading", {
+      name: "Recorded training time was 1 h 30 min longer",
+    })).toHaveFocus());
+    expect(screen.getByText("Change periods").closest("details")).not.toHaveAttribute("open");
+    expect(within(answer).getByText("Review exact values").closest("details"))
+      .not.toHaveAttribute("open");
+
+    await user.click(screen.getByRole("button", { name: "Back to Home" }));
+    await waitFor(() => expect(origin).toHaveFocus());
+  });
+
   it("compares two entered periods with exact changes and visible coverage", async () => {
     offerExploration("activity");
     const overview = activityOverview([
@@ -3553,11 +3630,12 @@ describe("FitFreed import interface", () => {
       },
     ));
     const comparisonRegion = within(training).getByRole("region", {
-      name: "Training period comparison",
+      name: "Training period answer",
     });
     await waitFor(() => expect(within(comparisonRegion).getByRole("heading", {
-      name: "Training period comparison",
+      name: "Recorded training time was 30 min longer",
     })).toHaveFocus());
+    await user.click(within(comparisonRegion).getByText("Review exact values"));
     expect(within(comparisonRegion).getByText("+250 kcal")).toBeVisible();
     expect(within(comparisonRegion).getAllByText("Not available").length).toBeGreaterThan(0);
     const createReportButton = within(comparisonRegion).getByRole("button", {
@@ -3580,12 +3658,12 @@ describe("FitFreed import interface", () => {
     expect(screen.getByLabelText("Baseline starts")).toHaveValue("2026-01-18");
     await user.click(screen.getByRole("button", { name: "Back to the comparison" }));
     const restoredComparison = within(training).getByRole("region", {
-      name: "Training period comparison",
+      name: "Training period answer",
     });
     expect(within(restoredComparison).getByText("+250 kcal")).toBeVisible();
     await waitFor(() => expect(createReportButton).toHaveFocus());
     await user.click(within(restoredComparison).getByRole("button", { name: "Clear comparison" }));
-    expect(within(training).queryByRole("region", { name: "Training period comparison" }))
+    expect(within(training).queryByRole("region", { name: "Training period answer" }))
       .not.toBeInTheDocument();
 
     await user.click(within(workspaceNavigation).getByRole("button", { name: "Sessions" }));
