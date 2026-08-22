@@ -1339,6 +1339,10 @@ describe("TrainingSessionLibraryPanel", () => {
     const detailHeading = await screen.findByRole("heading", { name: "Session summary" });
     await waitFor(() => expect(detailHeading).toHaveFocus());
     const detail = screen.getByRole("region", { name: "Session summary" });
+    const detailIdentity = detail.querySelector<HTMLElement>(".training-detail-identity");
+    expect(detailIdentity).not.toBeNull();
+    expect(within(detailIdentity!).getByTestId("sport-family-icon")).toBeVisible();
+    expect(within(detailIdentity!).getByText("Trail running")).toBeVisible();
     expect(within(detail).getAllByText("Aug 18, 2026, 7:30:00 AM")[0]).toBeVisible();
     expect(mocks.invoke).not.toHaveBeenCalledWith("load_training_discovery_workspace");
     await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
@@ -1418,7 +1422,10 @@ describe("TrainingSessionLibraryPanel", () => {
         offset: 0,
       }),
     });
-    await user.click(within(region).getByRole("button", { name: /View session details for/ }));
+    const calendarDetailOrigin = within(region).getByRole("button", {
+      name: /View session details for/,
+    });
+    await user.click(calendarDetailOrigin);
     expect(within(region).getByRole("heading", { name: "Session summary" })).toBeVisible();
     const createReport = within(region).getByRole("button", {
       name: "Build a report from this session",
@@ -1433,6 +1440,7 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(within(region).getByRole("heading", { name: "August 2026" })).toBeVisible();
     expect(within(region).queryByRole("heading", { name: "Session summary" }))
       .not.toBeInTheDocument();
+    await waitFor(() => expect(calendarDetailOrigin).toHaveFocus());
     await user.click(within(region).getByRole("radio", { name: "Chronology" }));
     await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith("query_training_sessions", {
       request: expect.objectContaining({
@@ -1615,6 +1623,8 @@ describe("TrainingSessionLibraryPanel", () => {
     const firstExercise = within(detail!).getByRole("heading", { name: "Exercise 1" })
       .closest("article");
     expect(firstExercise).not.toBeNull();
+    expect(within(firstExercise!).getByTestId("sport-family-icon")).toBeVisible();
+    expect(within(firstExercise!).getByText("Intervals")).toBeVisible();
     expect(within(detail!).getByRole("heading", { name: "Exercise 2" })).toBeVisible();
     expect(detail).toHaveTextContent("Intervals");
     expect(detail).toHaveTextContent("Unknown sport 1");

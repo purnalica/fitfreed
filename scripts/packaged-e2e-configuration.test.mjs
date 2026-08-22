@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 
@@ -17,6 +18,18 @@ test("keeps the instrumented executable outside the production target", () => {
   assert.equal(application, path.resolve("src-tauri/target/e2e/release/fitfreed"));
   assert.equal(serviceApplication, application);
   assert.notEqual(application, path.resolve("src-tauri/target/release/fitfreed"));
+});
+
+test("gives the instrumented macOS application a stable isolated identity", () => {
+  const productionConfig = JSON.parse(
+    readFileSync(path.resolve("src-tauri/tauri.conf.json"), "utf8"),
+  );
+  const e2eConfig = JSON.parse(
+    readFileSync(path.resolve("src-tauri/tauri.e2e.conf.json"), "utf8"),
+  );
+
+  assert.equal(e2eConfig.identifier, "org.fitfreed.desktop.e2e");
+  assert.notEqual(e2eConfig.identifier, productionConfig.identifier);
 });
 
 test("binds the isolated E2E package to its exact source", () => {

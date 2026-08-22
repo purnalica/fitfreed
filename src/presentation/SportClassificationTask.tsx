@@ -146,10 +146,10 @@ export function SportClassificationTask({
           id={familyId}
           value={draft.family}
           disabled={busy}
-          onChange={(event) => setDraft({
-            ...draft,
+          onChange={(event) => setDraft((current) => ({
+            ...current,
             family: event.target.value as SportFamily | "",
-          })}
+          }))}
         >
           <option value="">{messages.noFamily}</option>
           {sportFamilies.map((family) => (
@@ -167,7 +167,10 @@ export function SportClassificationTask({
             ? `${labelHelpId} ${labelErrorId}`
             : labelHelpId}
           disabled={busy}
-          onChange={(event) => setDraft({ ...draft, label: event.target.value })}
+          onChange={(event) => setDraft((current) => ({
+            ...current,
+            label: event.target.value,
+          }))}
         />
         <small id={labelHelpId}>{messages.displayLabelHelp}</small>
         {labelTooLong && (

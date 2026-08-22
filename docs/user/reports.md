@@ -109,7 +109,9 @@ image, font, stylesheet, telemetry, or network request. Analytical charts use CS
 exact table; values from different imported sources remain separate, missing measurements stay explicit, and
 descriptive findings do not claim causation or advice. Route blocks contain only a normalized local SVG shape
 and declared privacy metadata: recorded latitude, longitude, altitude, and elapsed point values are not
-written to the HTML. The file can be opened independently in an ordinary browser, printed, or shared at the
+written to the HTML. Session sport identity keeps the same provider-neutral symbol and visible personal or
+localized label shown in FitFreed; no technical family code replaces that label. The file can be opened
+independently in an ordinary browser, printed, or shared at the
 user's discretion. The destination path is never stored in the report or returned in export metadata.
 
 Cancellation or a failure before completion leaves no partial file that looks complete and preserves an existing destination. Keep the original provider export and the FitFreed library backup separately; an exported report is not a fitness-library backup.

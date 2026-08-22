@@ -54,6 +54,7 @@ import {
 import type { ReportSourceTarget } from "./presentation/report-navigation";
 import type { ReportStartOrigin } from "./presentation/session-report";
 import { LoadingSurface } from "./presentation/LoadingSurface";
+import { SportIconDefinitions } from "./presentation/SportFamilyIcon";
 import {
   RangeFilterActions,
   type RangeOperation,
@@ -1004,6 +1005,7 @@ function App() {
       exploreDisabled={!libraryHome || libraryHome.availableRange === null}
       onNavigate={navigateApplication}
     >
+        <SportIconDefinitions />
         {preferencesRecovered && (
           <p className="notice" role="status" aria-live="polite">
             {messages.settings.recovered}

@@ -27,3 +27,9 @@ All user-authored title and narrative values are HTML-escaped. Analytical blocks
 values and accessible tables. Output contains no script, event handler, external URL, remote font, source
 filename, provider account, opaque series identity, copied database result, or unreviewed route coordinate.
 Repeated output from identical authorized input is byte-identical.
+
+Session evidence renders sport identity as a redundant inline SVG symbol plus visible text. The embedded
+symbols come from the same versioned provider-neutral sprite as the application and make no external request.
+A personal label takes precedence; otherwise a classified family uses the report locale's family name.
+Personal-label-only classifications, unclassified sport evidence, and unavailable sport evidence each retain
+a distinct non-empty symbol. Technical family codes are not visible output.

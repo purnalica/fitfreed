@@ -947,6 +947,36 @@ describe("FitFreed import interface", () => {
 
   it("opens the exact recent session selected on Home", async () => {
     const home = populatedLibraryHome();
+    const recentSession: TestTrainingSession = {
+      sessionRef: "training-session-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      startedAtLocal: "2026-08-17T18:30:00.000",
+      stoppedAtLocal: "2026-08-17T19:32:03.000",
+      utcOffsetMinutes: 120,
+      durationMilliseconds: "3723000",
+      distanceMeters: 12340,
+      energyKilocalories: "720",
+      averageHeartRateBpm: "146",
+      maximumHeartRateBpm: "173",
+      sportRef: "sport-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      exerciseCount: 1,
+    };
+    const recentPage = trainingSessionSearchPage([recentSession], {
+      from: "2025-01-01",
+      through: "2026-08-17",
+    });
+    const selectedSession = {
+      ...recentPage.sessions[0],
+      sport: {
+        sportRef: recentSession.sportRef,
+        state: "classified" as const,
+        classification: {
+          canonicalFamily: "running" as const,
+          displayLabel: "Road running",
+          authorship: "user" as const,
+          revision: 1,
+        },
+      },
+    };
     mocks.homeInvoke.mockImplementation((command, arguments_) => {
       if (command === "query_library_home") return Promise.resolve(home);
       if (command === "save_exploration_workspace") {
@@ -959,15 +989,48 @@ describe("FitFreed import interface", () => {
     mocks.invoke.mockImplementation((command, arguments_) => {
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
       if (command === "query_training_sessions") {
-        return Promise.resolve(trainingSessionSearchPage([], {
-          from: "2025-01-01",
-          through: "2026-08-17",
-        }));
+        return Promise.resolve({ ...recentPage, sessions: [selectedSession] });
       }
       if (command === "query_training_session_selection") {
         return Promise.resolve({
           snapshotRef: arguments_.request.snapshotRef,
-          sessions: [],
+          sessions: [selectedSession],
+        });
+      }
+      if (command === "query_training_session_structure") {
+        return Promise.resolve({
+          snapshotRef: arguments_.query.snapshotRef,
+          sessionRef: arguments_.query.sessionRef,
+          structure: { exercises: null },
+        });
+      }
+      if (command === "query_training_session_routes") {
+        return Promise.resolve({
+          snapshotRef: arguments_.query.snapshotRef,
+          sessionRef: arguments_.query.sessionRef,
+          routes: { exercises: null },
+        });
+      }
+      if (command === "query_training_session_signals") {
+        return Promise.resolve({
+          snapshotRef: arguments_.query.snapshotRef,
+          sessionRef: arguments_.query.sessionRef,
+          signals: { exercises: null },
+        });
+      }
+      if (command === "query_training_session_zones") {
+        return Promise.resolve({
+          snapshotRef: arguments_.query.snapshotRef,
+          sessionRef: arguments_.query.sessionRef,
+          zones: { exercises: null },
+        });
+      }
+      if (command === "query_training_session_segmentation") {
+        return Promise.resolve({
+          snapshotRef: arguments_.query.snapshotRef,
+          sessionRef: arguments_.query.sessionRef,
+          availableCriteria: [],
+          exercises: [],
         });
       }
       throw new Error(`Unexpected command: ${command}`);
@@ -998,6 +1061,11 @@ describe("FitFreed import interface", () => {
         snapshotRef: "snapshot-current",
       },
     });
+    const detail = await screen.findByRole("region", { name: "Session summary" });
+    const detailIdentity = detail.querySelector<HTMLElement>(".training-detail-identity");
+    expect(detailIdentity).not.toBeNull();
+    expect(within(detailIdentity!).getByText("Road running")).toBeVisible();
+    expect(within(detailIdentity!).getByTestId("sport-family-icon")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Back to Home" }));
     await waitFor(() => expect(screen.getByRole("button", {
       name: "Open Road running, Aug 17, 2026",
@@ -1678,7 +1746,7 @@ describe("FitFreed import interface", () => {
 
     await user.click(screen.getByRole("button", { name: "Reports" }));
     expect(await screen.findByRole("heading", {
-      name: "Turn recorded evidence into something you can use",
+      name: "Create and export reports",
     })).toBeVisible();
     expect(mocks.invoke.mock.calls.filter(([command]) => command === "list_reports")).toHaveLength(1);
     await act(async () => resolveLibraryHome(emptyLibraryHome()));
@@ -1689,7 +1757,7 @@ describe("FitFreed import interface", () => {
 
     await user.click(screen.getByRole("button", { name: "Sources" }));
     expect(screen.queryByRole("heading", {
-      name: "Turn recorded evidence into something you can use",
+      name: "Create and export reports",
     })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Reports" }));
     await waitFor(() => expect(
@@ -3859,7 +3927,7 @@ describe("FitFreed import interface", () => {
       { start: { kind: "exploration", query: reportQuery } },
     ));
     expect(await screen.findByRole("heading", {
-      name: "Turn recorded evidence into something you can use",
+      name: "Create and export reports",
     })).toBeVisible();
     expect(screen.getByLabelText("Baseline starts")).toHaveValue("2026-01-18");
     await user.click(screen.getByRole("button", { name: "Back to the comparison" }));

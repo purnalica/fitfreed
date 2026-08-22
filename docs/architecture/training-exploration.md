@@ -109,6 +109,14 @@ contracts. `TrainingSessionLibraryPanel` owns this composition and the restraine
 `TrainingSportsPanel` owns full classification management, `SportClassificationTask` owns the one mutation
 interaction, and `SportFamilyIcon` is the single presentation primitive for sport identity.
 
+`assets/sport/sport-icons.svg` is the single source for the project-authored provider-neutral icon geometry.
+The application mounts those trusted local definitions once in the document and `SportFamilyIcon` uses
+same-document fragment references. This avoids blank external-fragment rendering in packaged WebKit without
+copying paths into components. The self-contained HTML report adapter embeds the same sprite. Family, unknown,
+unavailable, and personal-label-only classified states always resolve to a non-empty symbol. Session headings,
+exercise summaries, report previews, and report exports retain the same visible localized or personally authored
+label beside the redundant visual symbol.
+
 The History Desk keeps the editable refinement draft distinct from the applied discovery criteria. The
 visible **Applied refinements** region is derived only from the applied criteria and authoritative sport
 overview; it never reflects unsubmitted form values. It gives the exact result count and represents each

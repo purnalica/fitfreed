@@ -34,6 +34,15 @@
   font-synthesis: none;
 }
 
+.sport-icon-definitions,
+.sport-icon-sprite {
+  position: absolute;
+  inline-size: 0;
+  block-size: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
 :root[data-appearance="dark"] {
   --ink: #edf3ee;
   --ink-soft: #ced8d0;
@@ -662,10 +671,26 @@ th:last-child, td:last-child { text-align: right; }
 .training-history-grid th, .training-history-grid td { min-width: 0; overflow-wrap: anywhere; }
 .training-detail { padding: 4px 2px 8px; }
 .training-detail-heading { display: flex; justify-content: space-between; gap: 18px; align-items: start; }
+.training-detail-identity { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.training-detail-identity .sport-family-icon { flex: 0 0 36px; width: 36px; height: 36px; padding: 7px; color: var(--accent-deep); background: var(--accent-soft); border-radius: 50%; stroke: currentcolor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; fill: none; }
 .training-detail-heading .eyebrow { margin: 0 0 8px; }
+.training-detail-identity .eyebrow { margin: 0; }
 .training-detail-heading h3 { margin: 0 0 7px; font-size: clamp(2rem, 4vw, 3.6rem); line-height: .98; letter-spacing: -.05em; }
 .training-detail-heading time { color: var(--ink-soft); font-size: .95rem; font-weight: 700; }
 .training-detail-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+:root[data-content-zoom="175"] .training-detail-heading,
+:root[data-content-zoom="200"] .training-detail-heading {
+  align-items: stretch;
+  flex-direction: column;
+}
+:root[data-content-zoom="175"] .training-detail-actions,
+:root[data-content-zoom="200"] .training-detail-actions {
+  justify-content: stretch;
+}
+:root[data-content-zoom="175"] .training-detail-actions button,
+:root[data-content-zoom="200"] .training-detail-actions button {
+  flex: 1 1 15rem;
+}
 .training-detail-navigation { width: 100%; margin-top: 24px; }
 .training-detail-query-status:not(:empty) { display: grid; gap: 8px; margin-top: 14px; }
 .training-detail-query-status p { margin: 0; }
@@ -685,6 +710,8 @@ th:last-child, td:last-child { text-align: right; }
 .training-exercise > header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
 .training-exercise > header h5 { margin: 0; font-size: 1rem; }
 .training-exercise > header span { color: var(--muted); font-size: .8rem; font-weight: 700; }
+.training-exercise > header .training-exercise-sport-identity { display: inline-flex; align-items: center; gap: 7px; }
+.training-exercise-sport-identity .sport-family-icon { width: 28px; height: 28px; padding: 5px; color: var(--accent-deep); background: var(--surface); border-radius: 50%; stroke: currentcolor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; fill: none; }
 .training-exercise dl { margin-top: 12px; }
 .training-structure-collection { margin-top: 20px; }
 .training-structure-collection h5 { margin: 0 0 9px; font-size: .9rem; }
@@ -1063,7 +1090,7 @@ th:last-child, td:last-child { text-align: right; }
 .longitudinal-comparison-series tbody th { text-align: left; }
 .reports-panel { display: grid; gap: 22px; }
 .reports-hero { max-width: 850px; padding: 22px 0 4px; }
-.reports-hero h1 { max-width: 15ch; }
+.reports-hero h1 { max-width: 20ch; font-size: clamp(2rem, 4vw, 3.25rem); }
 .reports-hero > p:last-child { max-width: 68ch; color: var(--ink-soft); font-size: 1.05rem; }
 .reports-panel > button.secondary { justify-self: start; }
 .reports-layout { display: grid; grid-template-columns: minmax(230px, .7fr) minmax(0, 1.8fr); gap: 22px; align-items: start; }
@@ -1143,6 +1170,8 @@ th:last-child, td:last-child { text-align: right; }
 .report-evidence-summary div, .report-preview details dl div { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line); }
 .report-evidence-summary dt, .report-preview details dt { color: var(--muted); font-size: .76rem; font-weight: 700; }
 .report-evidence-summary dd, .report-preview details dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+.report-evidence-summary .report-sport-identity { display: inline-flex; justify-content: flex-end; align-items: center; gap: 8px; }
+.report-sport-identity .sport-family-icon { flex: 0 0 30px; width: 30px; height: 30px; padding: 5px; color: var(--accent-deep); background: var(--accent-soft); border-radius: 50%; stroke: currentcolor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; fill: none; }
 .report-narrative { white-space: pre-wrap; }
 .report-analysis-finding { padding: 15px; background: var(--accent-soft); border-left: 4px solid var(--accent); border-radius: 9px; font-size: 1rem; font-weight: 700; }
 .report-analysis-limitation { color: var(--muted); font-size: .78rem; }

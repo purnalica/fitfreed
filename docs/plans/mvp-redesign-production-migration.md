@@ -2,8 +2,8 @@
 
 ## Status and authority
 
-Authorized for autonomous execution as of 2026-08-21. X4-P0 through X5-R4 and X5-R5.1 through
-X5-R5.3b are complete locally; X5-R5.3c is next.
+Authorized for autonomous execution as of 2026-08-21. X4-P0 through X5-R5 are complete locally; the
+independent whole-redesign audit checkpoint precedes X5-R6.
 The X5-R1 product entrance is live; exact hosted verification of its CI resource optimizer remains
 pending synchronization of the workflow-changing commit. The product owner accepted the X3
 direction and its amendments on 2026-08-21. This
@@ -207,7 +207,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R2.3 | Complete locally — exact packaged gates passed 2026-08-22 | Durable language, appearance, zoom, and update settings form one coherent workspace |
 | X5-R3 | Complete locally — exact packaged and dense-history gates passed 2026-08-22 | Import ends in recognizable personal value |
 | X5-R4 | Complete locally — exact packaged and exhaustive adaptive gates passed 2026-08-22 | Existing health and aligned-history questions read as answers |
-| X5-R5 | In progress — R5.1 through R5.3b complete locally 2026-08-22 | A remembered session is findable and sports are recognizable |
+| X5-R5 | Complete locally — exact packaged gates passed 2026-08-22 | A remembered session is findable and sports are recognizable |
 | X5-R6 | Pending | A routed workout is investigated through a dominant synchronized map |
 | X5-R7 | Pending | Every session composition reflects its actual evidence |
 | X5-R8 | Pending | Personal ranges and reusable criteria work end to end |
@@ -627,6 +627,22 @@ classification, filters, calendar, comparison, navigation, icon semantics, and d
    History performance campaign, full packaged macOS journeys, repository/privacy/content gates, and an actual
    WebKit screenshot matrix reviewed before acceptance.
 
+R5.3c closes through three independently testable checkpoints:
+
+1. **R5.3c1 — One complete sport identity system.** Move the existing project-authored family geometry into
+   one canonical SVG sprite consumed by the React primitive and self-contained report exporter. Close the
+   label-only classified state with a distinct non-empty icon. Add icon-plus-label composition to the session
+   heading, exercise summaries, report preview, and exported HTML; export localized family names rather than
+   technical codes. Verify every family, unknown, unavailable, and personal-label-only state in both locales.
+2. **R5.3c2 — Exact origin closure.** Exercise entry and focus-preserving return from a recent Home session,
+   chronological result, calendar-derived result, comparison report start, saved report comparison, and saved
+   report session. The visible return action must describe its actual destination, and a visit must preserve
+   the mounted origin state rather than reconstructing a generic workspace.
+3. **R5.3c3 — Adaptive and release-shaped closure.** Run the complete locale, appearance, zoom, allocation,
+   keyboard, reduced-motion, Axe, overflow, dense-history, packaged, repository, privacy, and documentation
+   gates. Review actual WebKit screenshots that include the canonical same-document sprite in Home, History,
+   detail, Sports, and report states before accepting R5.
+
 Each slice receives focused behavior tests before implementation and remains independently runnable after its
 applicable fast and packaged checks. Documentation changes land with the slice whose behavior they describe;
 local screenshots and exploratory drivers remain ignored evidence. A slice is reopened immediately when the
@@ -666,6 +682,33 @@ visual displacement without losing save confirmation. The repeated wide light 10
 and compact dark 200% Sports state retained labelled navigation and task hierarchy, showed the authored
 identity across workspaces, produced no page-level horizontal overflow, and passed Axe. Local screenshots and
 their exploratory driver remain ignored evidence.
+
+R5.3c local verification on 2026-08-22 covers one canonical 15-symbol geometry source across all twelve
+families and the personal-label-only, unknown, and unavailable states. The application mounts the trusted
+sprite once for same-document references; the deterministic self-contained HTML adapter embeds the same
+source and emits localized or personally authored labels rather than technical family codes. Focused tests
+cover the icon primitive, session heading and exercises, report preview and export, and exact focus-preserving
+return from Home, chronology, calendar, comparison, and saved-report origins.
+
+The complete fast lane passed 153 automation, 246 React, 2 vendored-updater, 212 host, 147 application, and 33
+domain tests. Strict Clippy, Rust formatting, the production TypeScript build, dependency audit, repository
+content, complete reachable-history secret, documentation, localization, site, product-surface, and diff
+checks passed. The exact dense-history campaign retained 7,490,080 supported signal samples and passed every
+accepted budget; its slowest query p95 was 8.20 ms and its first-import p95 was 10.64 seconds. Environment
+fingerprints remain local ignored evidence and are not project documentation.
+
+Actual packaged WebKit review rejected three intermediate results before local acceptance: external SVG
+fragment references rendered empty, maximum zoom compressed the detail actions against the session title, and
+the report entrance read as promotional copy while delaying the first useful result. Same-document symbols,
+stacked high-zoom detail actions, and a concrete report heading corrected those causes. The final matrix covers
+Home, History, detail, Sports, report, and empty states across wide and compact allocations; light, dark, and
+system appearance; and 100%, 125%, 150%, 175%, and 200% zoom. It retains visible icon geometry, exact labels,
+keyboard focus, zero page-level horizontal overflow, and zero Axe violations. The current exact executable
+fingerprint passed the complete packaged functional, localized, maximum-zoom, accessibility, restart, reimport,
+report, and durable-state journey in 1 minute 17 seconds. Its isolated packaged Insights campaign passed every
+accepted budget in 1 minute 16 seconds; the slowest common-interaction p95 was 36 ms, the slowest maximum-range
+p95 was 121 ms, and the bounded signal-overview p95 was 63 ms. R5 is complete locally; hosted verification
+remains evidence for the outgoing exact revision rather than a reason to repeat an unchanged local campaign.
 
 ## X5-R6 — Deliver the outdoor session workbench
 
@@ -879,6 +922,10 @@ Any unresolved critical or major finding reopens the owning increment. Green aut
 screens, or successful lower-layer operations cannot override the finding. Final human product-owner
 experience review occurs only after the independent machine-assisted audit has challenged and corrected
 the candidate.
+
+**Next UX evaluation topic:** assess whether optional appearance themes beyond system, light, and dark would
+provide meaningful personal expression without weakening readability, accessibility, visual hierarchy, or
+cross-platform coherence. This is an evaluation prompt, not confirmed MVP implementation scope.
 
 ## Traceability to the retained D0–E6 baseline
 

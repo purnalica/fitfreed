@@ -1461,8 +1461,8 @@
   },
   "reports": {
     "eyebrow": "Your reports",
-    "heading": "Turn recorded evidence into something you can use",
-    "intro": "Start with a question, a comparison, a training session, or a blank page. Combine local evidence with your own interpretation, review the boundary, and export a self-contained HTML report.",
+    "heading": "Create and export reports",
+    "intro": "Start with a question, a comparison, a training session, or a blank report. Add your interpretation, review exactly what will be included, and export a self-contained HTML file.",
     "workspaceNavigation": "Report workspace",
     "workspaces": {
       "library": "Library",

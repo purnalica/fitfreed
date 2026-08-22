@@ -10,12 +10,16 @@ use fitfreed_domain::{ReportBlockContent, ReportLocale, ReportTrainingMetric};
 
 use super::local_file::PrivateStagingFile;
 
+const SPORT_ICON_SPRITE: &str = include_str!("../../../assets/sport/sport-icons.svg");
+const SVG_NAMESPACE_DECLARATION: &str = " xmlns=\"http://www.w3.org/2000/svg\"";
 const EMBEDDED_STYLE: &str = "\
 :root{color-scheme:light dark;font-family:system-ui,-apple-system,sans-serif;line-height:1.5}\
 body{max-width:64rem;margin:0 auto;padding:2rem;color:#17211c;background:#f5f7f3}\
+.sport-icon-sprite{position:absolute;width:0;height:0;overflow:hidden}\
 main{background:#fff;border:1px solid #cad3cc;border-radius:1rem;padding:clamp(1rem,4vw,3rem)}\
 h1,h2{line-height:1.15}section{margin-block:2rem}dl{display:grid;grid-template-columns:minmax(10rem,1fr) 2fr;gap:.5rem 1rem}\
 dt{font-weight:700}dd{margin:0}.narrative{white-space:pre-wrap}.attribution,.limitation{color:#425149}\
+.sport-identity{display:inline-flex;align-items:center;gap:.5rem}.sport-icon{width:1.75rem;height:1.75rem;padding:.3rem;color:#276749;background:#eef3ef;border-radius:50%;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;fill:none}\
 .comparison-series{border:1px solid #cad3cc;border-radius:.75rem;padding:1rem;margin-block:1rem}.comparison-bars{display:grid;gap:.75rem}.comparison-bar{display:grid;grid-template-columns:minmax(7rem,auto) 1fr auto;gap:.75rem;align-items:center}.comparison-bar i{display:block;min-width:.2rem;height:1rem;border-radius:999px;background:#276749}.table-scroll{overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{padding:.6rem;text-align:left;border-bottom:1px solid #cad3cc}caption{font-weight:700;text-align:left;margin-bottom:.5rem}\
 .route-visual{background:#eef3ef;border:1px solid #cad3cc;border-radius:.75rem;max-width:100%;height:auto}.route-visual rect{fill:#eef3ef}.route-visual polyline{fill:none;stroke:#276749;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}.route-visual circle{fill:#17211c;stroke:#fff;stroke-width:2}\
 @media(max-width:40rem){body{padding:.5rem}main{border-radius:.5rem}dl{grid-template-columns:1fr}dd{margin-bottom:.75rem}}\
@@ -102,7 +106,9 @@ fn render_report(
     push_escaped(&mut html, report.definition.title());
     html.push_str("</title><style>");
     html.push_str(EMBEDDED_STYLE);
-    html.push_str("</style></head><body><main data-fitfreed-report-version=\"");
+    html.push_str("</style></head><body>");
+    html.push_str(&SPORT_ICON_SPRITE.replacen(SVG_NAMESPACE_DECLARATION, "", 1));
+    html.push_str("<main data-fitfreed-report-version=\"");
     html.push_str(&report.definition.definition_version().to_string());
     html.push_str("\"><header><p class=\"attribution\">");
     html.push_str(labels.personal_report);
@@ -352,7 +358,7 @@ fn render_session_section(
             );
         }
     }
-    push_term(html, labels.sport, &sport_label(&session.sport, labels));
+    push_sport_term(html, labels.sport, &sport_identity(&session.sport, labels));
     if let Some(count) = session.exercise_count {
         push_data_term(
             html,
@@ -1232,21 +1238,64 @@ fn format_utc_offset(minutes: i32) -> String {
     format!("{sign}{:02}:{:02}", absolute / 60, absolute % 60)
 }
 
-fn sport_label(sport: &TrainingSessionSport, labels: &Labels) -> String {
-    match sport.state {
-        TrainingSportState::Classified => sport
-            .classification
-            .as_ref()
-            .and_then(|classification| {
-                classification
-                    .display_label
-                    .clone()
-                    .or_else(|| classification.canonical_family.clone())
-            })
-            .unwrap_or_else(|| labels.sport_unavailable.to_owned()),
-        TrainingSportState::Unknown => labels.sport_unclassified.to_owned(),
-        TrainingSportState::Unavailable => labels.sport_unavailable.to_owned(),
+struct SportIdentity {
+    icon: &'static str,
+    label: String,
+}
+
+fn sport_family_identity(family: &str, labels: &Labels) -> Option<(&'static str, &'static str)> {
+    let families = labels.sport_families;
+    match family {
+        "running" => Some(("running", families.running)),
+        "cycling" => Some(("cycling", families.cycling)),
+        "swimming" => Some(("swimming", families.swimming)),
+        "walking" => Some(("walking", families.walking)),
+        "hiking" => Some(("hiking", families.hiking)),
+        "strength" => Some(("strength", families.strength)),
+        "mobility" => Some(("mobility", families.mobility)),
+        "racket-sport" => Some(("racket-sport", families.racket_sport)),
+        "team-sport" => Some(("team-sport", families.team_sport)),
+        "winter-sport" => Some(("winter-sport", families.winter_sport)),
+        "water-sport" => Some(("water-sport", families.water_sport)),
+        "other" => Some(("other", families.other)),
+        _ => None,
     }
+}
+
+fn sport_identity(sport: &TrainingSessionSport, labels: &Labels) -> SportIdentity {
+    match sport.state {
+        TrainingSportState::Classified => {
+            let classification = sport.classification.as_ref();
+            let family = classification
+                .and_then(|value| value.canonical_family.as_deref())
+                .and_then(|value| sport_family_identity(value, labels));
+            SportIdentity {
+                icon: family.map_or("custom", |(icon, _)| icon),
+                label: classification
+                    .and_then(|value| value.display_label.clone())
+                    .or_else(|| family.map(|(_, label)| label.to_owned()))
+                    .unwrap_or_else(|| labels.sport_unavailable.to_owned()),
+            }
+        }
+        TrainingSportState::Unknown => SportIdentity {
+            icon: "unknown",
+            label: labels.sport_unclassified.to_owned(),
+        },
+        TrainingSportState::Unavailable => SportIdentity {
+            icon: "unavailable",
+            label: labels.sport_unavailable.to_owned(),
+        },
+    }
+}
+
+fn push_sport_term(html: &mut String, term: &str, identity: &SportIdentity) {
+    html.push_str("<dt>");
+    html.push_str(term);
+    html.push_str("</dt><dd><span class=\"sport-identity\"><svg class=\"sport-icon\" viewBox=\"0 0 32 32\" aria-hidden=\"true\" focusable=\"false\"><use href=\"#sport-icon-");
+    html.push_str(identity.icon);
+    html.push_str("\"></use></svg><span>");
+    push_escaped(html, &identity.label);
+    html.push_str("</span></span></dd>");
 }
 
 fn source_label(code: &str) -> &str {
@@ -1280,6 +1329,21 @@ fn file_error(error: std::io::Error) -> ReportExportPortError {
     ReportExportPortError::Failure(error.to_string())
 }
 
+struct SportFamilyLabels {
+    running: &'static str,
+    cycling: &'static str,
+    swimming: &'static str,
+    walking: &'static str,
+    hiking: &'static str,
+    strength: &'static str,
+    mobility: &'static str,
+    racket_sport: &'static str,
+    team_sport: &'static str,
+    winter_sport: &'static str,
+    water_sport: &'static str,
+    other: &'static str,
+}
+
 struct Labels {
     personal_report: &'static str,
     definition_version: &'static str,
@@ -1298,6 +1362,7 @@ struct Labels {
     average_heart_rate: &'static str,
     maximum_heart_rate: &'static str,
     sport: &'static str,
+    sport_families: &'static SportFamilyLabels,
     exercises: &'static str,
     route: &'static str,
     precise_location: &'static str,
@@ -1368,6 +1433,21 @@ impl Labels {
     }
 }
 
+static EN_US_SPORT_FAMILIES: SportFamilyLabels = SportFamilyLabels {
+    running: "Running",
+    cycling: "Cycling",
+    swimming: "Swimming",
+    walking: "Walking",
+    hiking: "Hiking",
+    strength: "Strength",
+    mobility: "Mobility",
+    racket_sport: "Racket sport",
+    team_sport: "Team sport",
+    winter_sport: "Winter sport",
+    water_sport: "Water sport",
+    other: "Other",
+};
+
 static EN_US: Labels = Labels {
     personal_report: "Personal evidence report",
     definition_version: "Definition version",
@@ -1386,6 +1466,7 @@ static EN_US: Labels = Labels {
     average_heart_rate: "Average heart rate",
     maximum_heart_rate: "Maximum heart rate",
     sport: "Sport",
+    sport_families: &EN_US_SPORT_FAMILIES,
     exercises: "Exercises",
     route: "Route",
     precise_location: "Recorded location evidence with user-reviewed endpoint privacy",
@@ -1451,6 +1532,21 @@ static EN_US: Labels = Labels {
     sport_unavailable_limitation: "The source did not provide a sport reference.",
 };
 
+static ES_ES_SPORT_FAMILIES: SportFamilyLabels = SportFamilyLabels {
+    running: "Carrera",
+    cycling: "Ciclismo",
+    swimming: "Natación",
+    walking: "Caminata",
+    hiking: "Senderismo",
+    strength: "Fuerza",
+    mobility: "Movilidad",
+    racket_sport: "Deporte de raqueta",
+    team_sport: "Deporte de equipo",
+    winter_sport: "Deporte de invierno",
+    water_sport: "Deporte acuático",
+    other: "Otro",
+};
+
 static ES_ES: Labels = Labels {
     personal_report: "Informe personal de evidencias",
     definition_version: "Versión de la definición",
@@ -1469,6 +1565,7 @@ static ES_ES: Labels = Labels {
     average_heart_rate: "Frecuencia cardíaca media",
     maximum_heart_rate: "Frecuencia cardíaca máxima",
     sport: "Deporte",
+    sport_families: &ES_ES_SPORT_FAMILIES,
     exercises: "Ejercicios",
     route: "Ruta",
     precise_location:
@@ -1545,6 +1642,7 @@ mod tests {
         ReportSessionEvidence, TrainingComparison, TrainingDateRange,
         TrainingProvenanceCurrentView, TrainingRoutePointView, TrainingSeriesComparison,
         TrainingSeriesSummary, TrainingSessionSport, TrainingSourceProviderView,
+        TrainingSportClassification,
     };
     use fitfreed_domain::{
         ReportBlock, ReportDateRange, ReportDefinition, ReportOrigin, ReportQuestion,
@@ -1857,6 +1955,46 @@ mod tests {
         assert!(!html.contains("Maximum heart rate"));
         assert!(!html.contains("148 bpm"));
         assert!(!html.contains("172 bpm"));
+    }
+
+    #[test]
+    fn renders_localized_and_authored_sport_identities_with_semantic_icons() {
+        let mut family_report = report(ReportLocale::EsEs, false);
+        family_report.session.as_mut().expect("session").sport = TrainingSessionSport {
+            sport_ref: Some(
+                "sport-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef".to_owned(),
+            ),
+            state: TrainingSportState::Classified,
+            classification: Some(TrainingSportClassification {
+                canonical_family: Some("water-sport".to_owned()),
+                display_label: None,
+                authorship: Some("user".to_owned()),
+                revision: 1,
+            }),
+        };
+        let family_html =
+            render_report(&family_report, &ReportExportCancellation::new()).expect("family report");
+        assert!(family_html.contains("href=\"#sport-icon-water-sport\""));
+        assert!(family_html.contains(">Deporte acuático<"));
+        assert!(!family_html.contains(">water-sport<"));
+
+        let mut authored_report = report(ReportLocale::EnUs, false);
+        authored_report.session.as_mut().expect("session").sport = TrainingSessionSport {
+            sport_ref: Some(
+                "sport-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef".to_owned(),
+            ),
+            state: TrainingSportState::Classified,
+            classification: Some(TrainingSportClassification {
+                canonical_family: None,
+                display_label: Some("River paddling".to_owned()),
+                authorship: Some("user".to_owned()),
+                revision: 1,
+            }),
+        };
+        let authored_html = render_report(&authored_report, &ReportExportCancellation::new())
+            .expect("authored report");
+        assert!(authored_html.contains("href=\"#sport-icon-custom\""));
+        assert!(authored_html.contains(">River paddling<"));
     }
 
     #[test]

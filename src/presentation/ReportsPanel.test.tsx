@@ -897,7 +897,9 @@ describe("ReportsPanel", () => {
     ));
     expect(await screen.findByText("Report saved in your local library.")).toBeVisible();
     expect(screen.getByRole("heading", { name: "Ridge progression", level: 3 })).toBeVisible();
-    expect(screen.getByText("Trail running")).toBeVisible();
+    const sportIdentity = screen.getByText("Trail running").closest("dd");
+    expect(sportIdentity).not.toBeNull();
+    expect(within(sportIdentity!).getByTestId("sport-family-icon")).toBeVisible();
     expect(screen.getByText("148 bpm")).toBeVisible();
 
     await user.click(screen.getByRole("button", { name: "Compose" }));
@@ -1364,7 +1366,7 @@ describe("ReportsPanel", () => {
       messages: catalogs["es-ES"],
     });
     expect(await screen.findByRole("heading", {
-      name: "Convierte los datos registrados en algo que puedas utilizar",
+      name: "Crea y exporta informes",
     })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Añadir Hallazgo principal" }));
     expect(screen.getByLabelText("Inicio del periodo de referencia")).toHaveValue("2026-08-16");

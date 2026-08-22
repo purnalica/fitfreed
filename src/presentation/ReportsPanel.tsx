@@ -7,6 +7,7 @@ import { commandErrorCode } from "./command-error";
 import { WorkspaceNavigation } from "./WorkspaceNavigation";
 import { restoreFocusAfterReveal } from "./focus-restoration";
 import { ProgressSubmitButton } from "./ProgressSubmitButton";
+import { SportFamilyIcon } from "./SportFamilyIcon";
 import { reportSourceTarget, type ReportSourceTarget } from "./report-navigation";
 import { routeSvgPoints } from "./route-svg";
 import type {
@@ -1153,7 +1154,16 @@ export function ReportsPanel({
             {resolved.session.maximumHeartRateBpm !== null && (
               <div><dt>{messages.training.maximumHeartRate}</dt><dd>{formatExactMetric(resolved.session.maximumHeartRateBpm, locale, copy.unavailable, messages.training.units.beatsPerMinute)}</dd></div>
             )}
-            <div><dt>{messages.training.trainingType}</dt><dd>{sportLabel(resolved.session.sport)}</dd></div>
+            <div>
+              <dt>{messages.training.trainingType}</dt>
+              <dd className="report-sport-identity">
+                <SportFamilyIcon
+                  family={resolved.session.sport.classification?.canonicalFamily ?? null}
+                  state={resolved.session.sport.state}
+                />
+                <span>{sportLabel(resolved.session.sport)}</span>
+              </dd>
+            </div>
           </dl>
         </article>
       );

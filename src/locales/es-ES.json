@@ -1461,8 +1461,8 @@
   },
   "reports": {
     "eyebrow": "Tus informes",
-    "heading": "Convierte los datos registrados en algo que puedas utilizar",
-    "intro": "Empieza con una pregunta, una comparación, una sesión de entrenamiento o una página en blanco. Combina evidencias locales con tu propia interpretación, revisa el límite y exporta un informe HTML autocontenido.",
+    "heading": "Crea y exporta informes",
+    "intro": "Empieza con una pregunta, una comparación, una sesión de entrenamiento o un informe en blanco. Añade tu interpretación, revisa exactamente qué se incluirá y exporta un archivo HTML autocontenido.",
     "workspaceNavigation": "Espacio de trabajo de informes",
     "workspaces": {
       "library": "Biblioteca",

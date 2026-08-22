@@ -1844,7 +1844,13 @@ export function TrainingSessionLibraryPanel({
           <h5>{interpolate(copy.exerciseHeading, {
             number: number.format(exercise.ordinal + 1),
           })}</h5>
-          <span>{trainingSportTitle(exercise.sport, detailUnknownSportRefs)}</span>
+          <span className="training-exercise-sport-identity">
+            <SportFamilyIcon
+              family={sportFamily(exercise.sport)}
+              state={exercise.sport.state}
+            />
+            <span>{trainingSportTitle(exercise.sport, detailUnknownSportRefs)}</span>
+          </span>
         </header>
         <dl role="group" aria-label={interpolate(copy.exerciseMeasurements, {
           number: number.format(exercise.ordinal + 1),
@@ -2619,7 +2625,13 @@ export function TrainingSessionLibraryPanel({
         >
           <div className="training-detail-heading">
             <div>
-              <p className="eyebrow">{sessionSportTitle(selected)}</p>
+              <div className="training-detail-identity">
+                <SportFamilyIcon
+                  family={sportFamily(selected.sport)}
+                  state={selected.sport.state}
+                />
+                <p className="eyebrow">{sessionSportTitle(selected)}</p>
+              </div>
               <h3
                 id="training-session-detail-heading"
                 ref={detailHeadingRef}

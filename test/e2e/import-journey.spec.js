@@ -41,6 +41,18 @@ async function waitForNotice(fragment, timeout = 10_000) {
   );
 }
 
+async function selectNativeOption(select, value) {
+  await browser.execute((element, nextValue) => {
+    const setter = Object.getOwnPropertyDescriptor(
+      HTMLSelectElement.prototype,
+      "value",
+    )?.set;
+    if (!setter) throw new Error("native select value setter is unavailable");
+    setter.call(element, nextValue);
+    element.dispatchEvent(new Event("change", { bubbles: true }));
+  }, select, value);
+}
+
 async function expectDocumentFocus(selector, timeoutMsg) {
   await browser.waitUntil(
     () => browser.execute(
@@ -598,15 +610,19 @@ async function saveContextSportClassification(catalog, currentTitle, family, lab
   await expect(editor.$("label[for$='-label']")).toHaveText(
     catalog.training.sports.displayLabel,
   );
-  await editor.$("select").selectByAttribute("value", family);
+  const familySelect = await editor.$("select");
+  await selectNativeOption(familySelect, family);
+  await expect(familySelect).toHaveValue(family);
   const input = await editor.$("input");
   await input.clearValue();
   await input.setValue(label);
+  await expect(familySelect).toHaveValue(family);
   await editor.$("button[type='submit']").click();
   await browser.waitUntil(
     async () => (await item.$("strong").getText()) === label,
     { timeout: 10_000, timeoutMsg: `context sport classification was not saved as ${label}` },
   );
+  await expect(item).toHaveAttribute("data-sport-family", family);
   await browser.waitUntil(
     async () => {
       const sessionSports = await $$(".training-session-results .training-session-sport");
@@ -630,15 +646,19 @@ async function saveSportClassification(catalog, currentTitle, family, label) {
   await expect(editor.$("label[for$='-label']")).toHaveText(
     catalog.training.sports.displayLabel,
   );
-  await editor.$("select").selectByAttribute("value", family);
+  const familySelect = await editor.$("select");
+  await selectNativeOption(familySelect, family);
+  await expect(familySelect).toHaveValue(family);
   const input = await editor.$("input");
   await input.clearValue();
   await input.setValue(label);
+  await expect(familySelect).toHaveValue(family);
   await editor.$("button[type='submit']").click();
   await browser.waitUntil(
     async () => (await card.$("h3").getText()) === label,
     { timeout: 10_000, timeoutMsg: `sport classification was not saved as ${label}` },
   );
+  await expect(card).toHaveAttribute("data-sport-family", family);
   await waitForNotice(catalog.training.sports.saved);
 }
 
@@ -1203,6 +1223,8 @@ describe("packaged FitFreed import journey", () => {
     const recentSessionLabel = await recentSession.getAttribute("aria-label");
     await recentSession.click();
     await $("#training-session-detail-heading").waitForDisplayed({ timeout: 10_000 });
+    await expect($(".training-detail-identity .sport-family-icon")).toBeDisplayed();
+    expect(await $(".training-detail-identity .eyebrow").getText()).not.toBe("");
     await returnToLibraryHome(english);
     await browser.waitUntil(
       () => browser.execute(
@@ -1712,6 +1734,7 @@ describe("packaged FitFreed import journey", () => {
       expect.stringContaining("Held the intended effort and finished the final climb with control."),
     );
     await expect($(".report-preview")).toHaveText(expect.stringContaining("Trail running"));
+    await expect($(".report-sport-identity .sport-family-icon")).toBeDisplayed();
     await expect($(".report-preview")).toHaveText(
       expect.stringContaining(english.reports.analysis.blocks["training-finding"].heading),
     );
@@ -1788,6 +1811,9 @@ describe("packaged FitFreed import journey", () => {
     );
     const exportedReport = fs.readFileSync(reportOutput, "utf8");
     expect(exportedReport).toContain('data-fitfreed-report-version="4"');
+    expect(exportedReport).toContain('id="sport-icon-running"');
+    expect(exportedReport).toContain('href="#sport-icon-running"');
+    expect(exportedReport).toContain(">Trail running<");
     expect(exportedReport).toContain(
       "Held the intended effort and finished the final climb with control.",
     );
@@ -3319,6 +3345,9 @@ describe("packaged FitFreed import journey", () => {
       spanish.training.sessionLibrary.structureHeading,
     );
     expect(await $$("#training-detail-structure > .training-exercise")).toHaveLength(1);
+    expect(await $$(
+      "#training-detail-structure > .training-exercise .training-exercise-sport-identity .sport-family-icon",
+    )).toHaveLength(1);
     const restartedSegmentation = await $(".training-segmentation");
     const restartedCriteria = await restartedSegmentation.$$(".training-segment-criterion");
     expect(restartedCriteria).toHaveLength(2);

@@ -23,6 +23,9 @@ when that source is still available.
   privacy review, and explicit file-destination request. Switching stages preserves the mounted draft and
   resolved candidate but removes every inactive stage from visual and assistive-technology exposure.
 - A replaceable outer adapter renders one resolved report into deterministic self-contained HTML and atomically promotes the completed file.
+- Session sport identity uses the same canonical provider-neutral SVG sprite as the application. The adapter
+  embeds that local sprite, chooses a semantic family or state symbol, and renders either the escaped authored
+  label or the report locale's family label; technical family codes never become report copy.
 
 ## Definition and resolved output
 
