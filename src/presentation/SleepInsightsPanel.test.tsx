@@ -231,6 +231,44 @@ function renderPanel(overrides: {
 }
 
 describe("SleepInsightsPanel", () => {
+  it("leads with a human sleep answer before period controls and exact nights", async () => {
+    mocks.invoke.mockResolvedValue(overview());
+    const user = userEvent.setup();
+    renderPanel();
+
+    const answer = await screen.findByRole("region", { name: "Sleep pattern answer" });
+    const heading = within(answer).getByRole("heading", { name: "2 sleep histories shown" });
+    expect(heading).toBeVisible();
+    await waitFor(() => expect(heading).toHaveFocus());
+    expect(within(answer).getByRole("heading", {
+      name: "Recorded sleep is available for 2 of 3 nights",
+    })).toBeVisible();
+    expect(within(answer).getByRole("heading", {
+      name: "Recorded sleep is available for 1 of 3 nights",
+    })).toBeVisible();
+    expect(within(answer).getAllByText("Average recorded sleep: 7 h 15 min"))
+      .toHaveLength(2);
+
+    const controls = screen.getByText("Change sleep period").closest("details");
+    expect(controls).not.toHaveAttribute("open");
+    expect(answer.compareDocumentPosition(controls as Node) & Node.DOCUMENT_POSITION_FOLLOWING)
+      .toBeTruthy();
+
+    const exact = within(answer).getAllByText("Review measurements and exact nights");
+    expect(exact).toHaveLength(2);
+    expect(within(answer).getByRole("table", { name: "Sleep origin 1 exact nights" }))
+      .not.toBeVisible();
+    await user.click(exact[0]);
+    expect(within(answer).getByRole("table", { name: "Sleep origin 1 exact nights" }))
+      .toBeVisible();
+    const detailButtons = within(answer).getAllByRole("button", {
+      name: /View sleep details for/,
+    });
+    expect(detailButtons.slice(0, 2).every((button) => button.closest("details")?.open))
+      .toBe(true);
+    expect(detailButtons[2].closest("details")).not.toHaveAttribute("open");
+  });
+
   it("announces the exact latest-window operation without replacing the current history", async () => {
     let requestCount = 0;
     let completeReset: (value: SleepOverview) => void = () => undefined;
@@ -397,21 +435,23 @@ describe("SleepInsightsPanel", () => {
       baselineRange: { from: "2026-03-01", through: "2026-03-03" },
       comparisonRange: { from: "2026-03-28", through: "2026-03-30" },
     });
-    const result = await within(sleep).findByRole("region", { name: "Sleep period comparison" });
+    const result = await within(sleep).findByRole("region", { name: "Sleep period answer" });
     await waitFor(() => expect(within(result).getByRole("heading", {
-      name: "Sleep period comparison",
+      name: "Average recorded sleep was 15 min longer",
     })).toHaveFocus());
+    await user.click(within(result).getByText("Review exact values"));
     expect(within(result).getByText("+15 min")).toBeVisible();
     expect(within(result).getByText("−5 min")).toBeVisible();
     expect(within(result).getByText("-50 pp")).toBeVisible();
     await user.click(within(workspaceNavigation).getByRole("button", { name: "Nights" }));
     expect(within(sleep).queryByRole("region", {
-      name: "Sleep period comparison",
+      name: "Sleep period answer",
     })).not.toBeInTheDocument();
     await user.click(comparisonWorkspace);
-    expect(within(sleep).getByRole("region", { name: "Sleep period comparison" })).toBeVisible();
+    expect(within(sleep).getByRole("region", { name: "Sleep period answer" })).toBeVisible();
     await user.click(within(result).getByRole("button", { name: "Clear sleep comparison" }));
-    expect(within(sleep).queryByRole("region", { name: "Sleep period comparison" })).not.toBeInTheDocument();
+    expect(within(sleep).queryByRole("region", { name: "Sleep period answer" }))
+      .not.toBeInTheDocument();
   });
 
   it("opens the exact authoritative night requested by the longitudinal dashboard", async () => {
@@ -510,7 +550,9 @@ describe("SleepInsightsPanel", () => {
     }));
     const comparisonForm = within(sleep).getByRole("form", { name: "Compare sleep periods" });
     await user.click(within(comparisonForm).getByRole("button", { name: "Compare sleep periods" }));
-    const comparisonRegion = await within(sleep).findByRole("region", { name: "Sleep period comparison" });
+    const comparisonRegion = await within(sleep).findByRole("region", {
+      name: "Sleep period answer",
+    });
     await user.clear(within(comparisonForm).getByLabelText("Baseline period start"));
     await user.type(within(comparisonForm).getByLabelText("Baseline period start"), "2026-03-30");
     await user.clear(within(comparisonForm).getByLabelText("Baseline period end"));

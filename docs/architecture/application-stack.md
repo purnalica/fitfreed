@@ -57,6 +57,16 @@ periods, presents the application-owned duration change and coverage per origin 
 period editing, exact values, and report creation as deliberate actions. It neither recalculates aggregates
 nor converts missing distance, energy, or heart-rate evidence into zero.
 
+Sleep and nightly recovery use the same Answer Canvas hierarchy for both their latest-period and
+comparison workspaces. React formats application-owned counts, averages, and comparison-minus-baseline
+changes into factual conclusions, keeps each origin separate, and makes the existing per-night
+relationship the primary evidence. Range controls, complete measurement coverage, exact-night tables,
+and source-derived physiological fields follow as deliberate disclosures. A successful range or
+comparison query focuses the new answer; a contextual comparison failure retains the previous answer and
+selected periods and offers an in-place retry. Presentation never interprets sleep scores or recovery
+intervals as health, readiness, improvement, or decline. Missing nights and unavailable measurements
+remain distinct from zero, and opening an exact night continues through the existing typed detail command.
+
 Reports uses the same current-location semantics for a separate staged workflow. Library owns saved definitions and new starts, Compose owns the complete ordered editor and its evidence tools, and Preview owns resolved output plus mutually exclusive stale-evidence or export review. The mounted draft and resolved candidate survive temporary stage changes, while a successful save and a saved-report selection lead to Preview. The stage never becomes durable report data; only the existing versioned definition and its application-owned evidence reference cross the transport and persistence boundaries.
 
 Settings has a presentation-owned category location. **Appearance & language** owns the atomic preference editor and representative preview; **Updates** owns maintenance status and actions without competing visually with those preferences. Moving between categories preserves an unsaved preview, while leaving Settings still discards it and reapplies the complete saved set. The update component remains mounted when its category or Settings itself is hidden, so launch and periodic discovery retain one lifecycle and do not restart merely because the person navigates. Category location never enters the preference DTO or SQLite row.

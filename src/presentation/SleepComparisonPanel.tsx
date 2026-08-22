@@ -43,6 +43,8 @@ export function SleepComparisonPanel({
   const [comparisonRange, setComparisonRange] = useState(initialRange);
   const [comparison, setComparison] = useState<SleepComparison>();
   const [loading, setLoading] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [controlsOpen, setControlsOpen] = useState(true);
   const validation = useInvalidForm(onError);
   const { resultHeadingRef, requestResultFocus } = useResultFocus<HTMLHeadingElement>(
     comparison !== undefined,
@@ -60,12 +62,81 @@ export function SleepComparisonPanel({
 
   function updateBaseline(field: keyof SleepDateRange, value: string) {
     validation.edit();
+    setLoadFailed(false);
     setBaselineRange((current) => ({ ...current, [field]: value }));
   }
 
   function updateComparison(field: keyof SleepDateRange, value: string) {
     validation.edit();
+    setLoadFailed(false);
     setComparisonRange((current) => ({ ...current, [field]: value }));
+  }
+
+  function humanDuration(value: string): string {
+    const exact = BigInt(value);
+    const absolute = exact < 0n ? -exact : exact;
+    if (absolute === 0n) return copy.zeroDuration;
+    if (absolute < 60_000n) return copy.lessThanMinute;
+    const totalMinutes = (absolute + 30_000n) / 60_000n;
+    const hours = totalMinutes / 60n;
+    const minutes = totalMinutes % 60n;
+    const parts: string[] = [];
+    if (hours > 0n) parts.push(`${number.format(hours)} ${messages.sleep.durationUnits.hours}`);
+    if (minutes > 0n) {
+      parts.push(`${number.format(minutes)} ${messages.sleep.durationUnits.minutes}`);
+    }
+    return parts.join(" ");
+  }
+
+  function durationConclusion(series: SleepComparison["series"][number]): string {
+    if (series.baseline.observedNights === 0 && series.comparison.observedNights === 0) {
+      return copy.answerNoNights;
+    }
+    if (series.averageAsleepMillisecondsChange === null) return copy.answerUnavailable;
+    const change = BigInt(series.averageAsleepMillisecondsChange);
+    if (change === 0n) return copy.answerUnchanged;
+    const value = humanDuration(change.toString());
+    return (change > 0n ? copy.answerHigher : copy.answerLower).replace("{value}", value);
+  }
+
+  function observedEvidence(series: SleepComparison["series"][number]): string {
+    const count = (value: number) => copy.recordedNights[value === 1 ? "one" : "other"]
+      .replace("{count}", number.format(value));
+    return copy.observedEvidence
+      .replace("{baseline}", count(series.baseline.observedNights))
+      .replace("{comparison}", count(series.comparison.observedNights));
+  }
+
+  function missingEvidence(series: SleepComparison["series"][number]): string {
+    return copy.missingEvidence
+      .replace("{baseline}", number.format(series.baseline.missingNights))
+      .replace("{comparison}", number.format(series.comparison.missingNights));
+  }
+
+  async function loadComparison(initiatingElement: HTMLElement | null) {
+    validation.accept();
+    setLoading(true);
+    setLoadFailed(false);
+    onError(undefined);
+    try {
+      const result = await invoke<SleepComparison>("query_sleep_comparison", {
+        baselineRange,
+        comparisonRange,
+      });
+      setComparison(result);
+      setControlsOpen(false);
+      requestResultFocus(initiatingElement);
+    } catch (reason) {
+      const code = commandErrorCode(reason);
+      if (code === "invalid-sleep-range") {
+        validation.reject("invalid-sleep-comparison");
+        setControlsOpen(true);
+      } else {
+        setLoadFailed(true);
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function runComparison(event: FormEvent<HTMLFormElement>) {
@@ -77,29 +148,10 @@ export function SleepComparisonPanel({
       validation.reject("invalid-sleep-comparison");
       return;
     }
-    validation.accept();
-    setLoading(true);
-    onError(undefined);
     const initiatingElement = document.activeElement instanceof HTMLElement
       ? document.activeElement
       : null;
-    try {
-      const result = await invoke<SleepComparison>("query_sleep_comparison", {
-        baselineRange,
-        comparisonRange,
-      });
-      setComparison(result);
-      requestResultFocus(initiatingElement);
-    } catch (reason) {
-      const code = commandErrorCode(reason);
-      if (code === "invalid-sleep-range") {
-        validation.reject("invalid-sleep-comparison");
-      } else {
-        onError(code);
-      }
-    } finally {
-      setLoading(false);
-    }
+    await loadComparison(initiatingElement);
   }
 
   function rangeLabel(range: SleepDateRange | null): string {
@@ -167,52 +219,55 @@ export function SleepComparisonPanel({
 
   return (
     <div className="sleep-comparison">
-      <div>
-        <h2 id="sleep-comparison-form-heading">{copy.heading}</h2>
-        <p>{copy.intro}</p>
-      </div>
-      <form
-        aria-labelledby="sleep-comparison-form-heading"
-        aria-busy={loading}
-        onSubmit={(event) => void runComparison(event)}
-      >
-        {inputs.map(([label, value, update]) => (
-          <label key={label}>
-            <span>{label}</span>
-            <input
-              type="date"
-              min={availableRange.from}
-              max={availableRange.through}
-              value={value}
-              aria-invalid={validation.invalid || undefined}
-              aria-describedby={validation.errorElementId}
-              onChange={(event) => update(event.target.value)}
-              disabled={loading}
-              required
-            />
-          </label>
-        ))}
-        <ProgressSubmitButton
-          loading={loading}
-          actionLabel={copy.compare}
-          progressLabel={copy.comparing}
-        />
-      </form>
-
+      {loading && !comparison && (
+        <p className="answer-loading" role="status" aria-live="polite">{copy.comparing}</p>
+      )}
+      {loadFailed && (
+        <section className="answer-retry" aria-label={copy.retryLabel}>
+          <p>{copy.loadFailed}</p>
+          <button
+            type="button"
+            className="secondary"
+            disabled={loading}
+            onClick={(event) => void loadComparison(event.currentTarget)}
+          >
+            {copy.retry}
+          </button>
+        </section>
+      )}
       {comparison && (
-        <section className="sleep-comparison-result" aria-labelledby="sleep-comparison-heading">
+        <section
+          className="sleep-comparison-result answer-canvas"
+          aria-label={copy.answerLabel}
+        >
           <div className="sleep-comparison-result-heading">
             <div>
               <h3 ref={resultHeadingRef} id="sleep-comparison-heading" tabIndex={-1}>
-                {copy.resultHeading}
+                {comparison.series.length === 0
+                  ? copy.empty
+                  : comparison.series.length === 1
+                    ? durationConclusion(comparison.series[0])
+                    : copy.answerMultiple.replace(
+                      "{count}",
+                      number.format(comparison.series.length),
+                    )}
               </h3>
-              <p>{copy.coverageCaution}</p>
+              <p>
+                {rangeLabel(comparison.baselineRange)} · {rangeLabel(comparison.comparisonRange)}
+              </p>
             </div>
-            <button type="button" className="secondary" onClick={() => setComparison(undefined)}>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => {
+                setComparison(undefined);
+                setControlsOpen(true);
+              }}
+            >
               {copy.clear}
             </button>
           </div>
-          {comparison.series.length === 0 ? <p>{copy.empty}</p> : comparison.series.map((series, index) => {
+          {comparison.series.map((series, index) => {
             const durations = [
               BigInt(series.baseline.averageAsleepMilliseconds ?? "0"),
               BigInt(series.comparison.averageAsleepMilliseconds ?? "0"),
@@ -221,7 +276,10 @@ export function SleepComparisonPanel({
             return (
               <section className="sleep-comparison-series" key={series.seriesRef}>
                 {comparison.series.length > 1 && (
-                  <h4>{messages.sleep.series} {number.format(index + 1)}</h4>
+                  <div className="answer-series-heading">
+                    <p>{messages.sleep.series} {number.format(index + 1)}</p>
+                    <h4>{durationConclusion(series)}</h4>
+                  </div>
                 )}
                 <div className="comparison-bars" aria-hidden="true">
                   {[
@@ -238,34 +296,79 @@ export function SleepComparisonPanel({
                     );
                   })}
                 </div>
-                <div className="sleep-table-scroll" tabIndex={0} aria-label={copy.resultHeading}>
-                  <table>
-                    <caption className="sr-only">{copy.resultHeading}</caption>
-                    <thead>
-                      <tr>
-                        <th scope="col">{copy.metric}</th>
-                        <th scope="col">{copy.baseline}<span>{rangeLabel(comparison.baselineRange)}</span></th>
-                        <th scope="col">{copy.comparison}<span>{rangeLabel(comparison.comparisonRange)}</span></th>
-                        <th scope="col">{copy.change}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows(series.baseline, series.comparison, series).map(([metric, baseline, current, change]) => (
-                        <tr key={metric}>
-                          <th scope="row">{metric}</th>
-                          <td>{baseline}</td>
-                          <td>{current}</td>
-                          <td>{change}</td>
+                <p className="answer-evidence">{observedEvidence(series)}</p>
+                <p className="answer-coverage">{missingEvidence(series)}</p>
+                <details className="answer-exact-values">
+                  <summary>{copy.exactValues}</summary>
+                  <p>{copy.coverageCaution}</p>
+                  <div className="sleep-table-scroll" tabIndex={0}>
+                    <table aria-label={copy.resultHeading}>
+                      <caption className="sr-only">{copy.resultHeading}</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">{copy.metric}</th>
+                          <th scope="col">{copy.baseline}<span>{rangeLabel(comparison.baselineRange)}</span></th>
+                          <th scope="col">{copy.comparison}<span>{rangeLabel(comparison.comparisonRange)}</span></th>
+                          <th scope="col">{copy.change}</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {rows(series.baseline, series.comparison, series).map(([metric, baseline, current, change]) => (
+                          <tr key={metric}>
+                            <th scope="row">{metric}</th>
+                            <td>{baseline}</td>
+                            <td>{current}</td>
+                            <td>{change}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
               </section>
             );
           })}
         </section>
       )}
+      <details
+        className="answer-controls"
+        open={controlsOpen}
+        onToggle={(event) => setControlsOpen(event.currentTarget.open)}
+      >
+        <summary>{comparison ? copy.changePeriods : copy.heading}</summary>
+        <div>
+          <h2 id="sleep-comparison-form-heading">{copy.heading}</h2>
+          <p>{copy.intro}</p>
+        </div>
+        <form
+          className="sleep-comparison-form"
+          aria-labelledby="sleep-comparison-form-heading"
+          aria-busy={loading}
+          onSubmit={(event) => void runComparison(event)}
+        >
+          {inputs.map(([label, value, update]) => (
+            <label key={label}>
+              <span>{label}</span>
+              <input
+                type="date"
+                min={availableRange.from}
+                max={availableRange.through}
+                value={value}
+                aria-invalid={validation.invalid || undefined}
+                aria-describedby={validation.errorElementId}
+                onChange={(event) => update(event.target.value)}
+                disabled={loading}
+                required
+              />
+            </label>
+          ))}
+          <ProgressSubmitButton
+            loading={loading}
+            actionLabel={copy.compare}
+            progressLabel={copy.comparing}
+          />
+        </form>
+      </details>
     </div>
   );
 }

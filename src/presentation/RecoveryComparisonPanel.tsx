@@ -37,6 +37,8 @@ export function RecoveryComparisonPanel({
   const [comparisonRange, setComparisonRange] = useState(initialRange);
   const [comparison, setComparison] = useState<RecoveryComparison>();
   const [loading, setLoading] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [controlsOpen, setControlsOpen] = useState(true);
   const validation = useInvalidForm(onError);
   const { resultHeadingRef, requestResultFocus } = useResultFocus<HTMLHeadingElement>(
     comparison !== undefined,
@@ -54,12 +56,72 @@ export function RecoveryComparisonPanel({
 
   function updateBaseline(field: keyof RecoveryDateRange, value: string) {
     validation.edit();
+    setLoadFailed(false);
     setBaselineRange((current) => ({ ...current, [field]: value }));
   }
 
   function updateComparison(field: keyof RecoveryDateRange, value: string) {
     validation.edit();
+    setLoadFailed(false);
     setComparisonRange((current) => ({ ...current, [field]: value }));
+  }
+
+  function intervalConclusion(series: RecoveryComparison["series"][number]): string {
+    if (series.baseline.observedNights === 0 && series.comparison.observedNights === 0) {
+      return copy.answerNoNights;
+    }
+    if (series.averageBeatToBeatIntervalMillisecondsChange === null) {
+      return copy.answerUnavailable;
+    }
+    const change = BigInt(series.averageBeatToBeatIntervalMillisecondsChange);
+    if (change === 0n) return copy.answerUnchanged;
+    const absolute = change < 0n ? -change : change;
+    const value = formatRecoveryMilliseconds(
+      absolute.toString(),
+      locale,
+      messages.unavailable,
+    );
+    return (change > 0n ? copy.answerHigher : copy.answerLower).replace("{value}", value);
+  }
+
+  function observedEvidence(series: RecoveryComparison["series"][number]): string {
+    const count = (value: number) => copy.recordedNights[value === 1 ? "one" : "other"]
+      .replace("{count}", number.format(value));
+    return copy.observedEvidence
+      .replace("{baseline}", count(series.baseline.observedNights))
+      .replace("{comparison}", count(series.comparison.observedNights));
+  }
+
+  function missingEvidence(series: RecoveryComparison["series"][number]): string {
+    return copy.missingEvidence
+      .replace("{baseline}", number.format(series.baseline.missingNights))
+      .replace("{comparison}", number.format(series.comparison.missingNights));
+  }
+
+  async function loadComparison(initiatingElement: HTMLElement | null) {
+    validation.accept();
+    setLoading(true);
+    setLoadFailed(false);
+    onError(undefined);
+    try {
+      const result = await invoke<RecoveryComparison>("query_recovery_comparison", {
+        baselineRange,
+        comparisonRange,
+      });
+      setComparison(result);
+      setControlsOpen(false);
+      requestResultFocus(initiatingElement);
+    } catch (reason) {
+      const code = commandErrorCode(reason);
+      if (code === "invalid-recovery-range") {
+        validation.reject("invalid-recovery-comparison");
+        setControlsOpen(true);
+      } else {
+        setLoadFailed(true);
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function runComparison(event: FormEvent<HTMLFormElement>) {
@@ -72,28 +134,10 @@ export function RecoveryComparisonPanel({
       return;
     }
     validation.accept();
-    setLoading(true);
-    onError(undefined);
     const initiatingElement = document.activeElement instanceof HTMLElement
       ? document.activeElement
       : null;
-    try {
-      const result = await invoke<RecoveryComparison>("query_recovery_comparison", {
-        baselineRange,
-        comparisonRange,
-      });
-      setComparison(result);
-      requestResultFocus(initiatingElement);
-    } catch (reason) {
-      const code = commandErrorCode(reason);
-      if (code === "invalid-recovery-range") {
-        validation.reject("invalid-recovery-comparison");
-      } else {
-        onError(code);
-      }
-    } finally {
-      setLoading(false);
-    }
+    await loadComparison(initiatingElement);
   }
 
   function rangeLabel(range: RecoveryDateRange | null): string {
@@ -167,55 +211,55 @@ export function RecoveryComparisonPanel({
 
   return (
     <div className="recovery-comparison">
-      <div>
-        <h2 id="recovery-comparison-form-heading">{copy.heading}</h2>
-        <p>{copy.intro}</p>
-      </div>
-      <form
-        aria-labelledby="recovery-comparison-form-heading"
-        aria-busy={loading}
-        onSubmit={(event) => void runComparison(event)}
-      >
-        {inputs.map(([label, value, update]) => (
-          <label key={label}>
-            <span>{label}</span>
-            <input
-              type="date"
-              min={availableRange.from}
-              max={availableRange.through}
-              value={value}
-              aria-invalid={validation.invalid || undefined}
-              aria-describedby={validation.errorElementId}
-              onChange={(event) => update(event.target.value)}
-              disabled={loading}
-              required
-            />
-          </label>
-        ))}
-        <ProgressSubmitButton
-          loading={loading}
-          actionLabel={copy.compare}
-          progressLabel={copy.comparing}
-        />
-      </form>
-
+      {loading && !comparison && (
+        <p className="answer-loading" role="status" aria-live="polite">{copy.comparing}</p>
+      )}
+      {loadFailed && (
+        <section className="answer-retry" aria-label={copy.retryLabel}>
+          <p>{copy.loadFailed}</p>
+          <button
+            type="button"
+            className="secondary"
+            disabled={loading}
+            onClick={(event) => void loadComparison(event.currentTarget)}
+          >
+            {copy.retry}
+          </button>
+        </section>
+      )}
       {comparison && (
         <section
-          className="recovery-comparison-result"
-          aria-labelledby="recovery-comparison-heading"
+          className="recovery-comparison-result answer-canvas"
+          aria-label={copy.answerLabel}
         >
           <div className="recovery-comparison-result-heading">
             <div>
               <h3 ref={resultHeadingRef} id="recovery-comparison-heading" tabIndex={-1}>
-                {copy.resultHeading}
+                {comparison.series.length === 0
+                  ? copy.empty
+                  : comparison.series.length === 1
+                    ? intervalConclusion(comparison.series[0])
+                    : copy.answerMultiple.replace(
+                      "{count}",
+                      number.format(comparison.series.length),
+                    )}
               </h3>
-              <p>{copy.coverageCaution}</p>
+              <p>
+                {rangeLabel(comparison.baselineRange)} · {rangeLabel(comparison.comparisonRange)}
+              </p>
             </div>
-            <button type="button" className="secondary" onClick={() => setComparison(undefined)}>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => {
+                setComparison(undefined);
+                setControlsOpen(true);
+              }}
+            >
               {copy.clear}
             </button>
           </div>
-          {comparison.series.length === 0 ? <p>{copy.empty}</p> : comparison.series.map((series, index) => {
+          {comparison.series.map((series, index) => {
             const intervals = [
               BigInt(series.baseline.averageBeatToBeatIntervalMilliseconds ?? "0"),
               BigInt(series.comparison.averageBeatToBeatIntervalMilliseconds ?? "0"),
@@ -227,7 +271,10 @@ export function RecoveryComparisonPanel({
             return (
               <section className="recovery-comparison-series" key={series.seriesRef}>
                 {comparison.series.length > 1 && (
-                  <h4>{messages.recovery.series} {number.format(index + 1)}</h4>
+                  <div className="answer-series-heading">
+                    <p>{messages.recovery.series} {number.format(index + 1)}</p>
+                    <h4>{intervalConclusion(series)}</h4>
+                  </div>
                 )}
                 <div className="comparison-bars" aria-hidden="true">
                   {[
@@ -248,36 +295,81 @@ export function RecoveryComparisonPanel({
                     </div>
                   ))}
                 </div>
-                <div className="recovery-table-scroll" tabIndex={0} aria-label={copy.resultHeading}>
-                  <table>
-                    <caption className="sr-only">{copy.resultHeading}</caption>
-                    <thead>
-                      <tr>
-                        <th scope="col">{copy.metric}</th>
-                        <th scope="col">{copy.baseline}<span>{rangeLabel(comparison.baselineRange)}</span></th>
-                        <th scope="col">{copy.comparison}<span>{rangeLabel(comparison.comparisonRange)}</span></th>
-                        <th scope="col">{copy.change}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows(series.baseline, series.comparison, series).map(
-                        ([metric, baseline, current, change]) => (
-                          <tr key={metric}>
-                            <th scope="row">{metric}</th>
-                            <td>{baseline}</td>
-                            <td>{current}</td>
-                            <td>{change}</td>
-                          </tr>
-                        ),
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                <p className="answer-evidence">{observedEvidence(series)}</p>
+                <p className="answer-coverage">{missingEvidence(series)}</p>
+                <details className="answer-exact-values">
+                  <summary>{copy.exactValues}</summary>
+                  <p>{copy.coverageCaution}</p>
+                  <div className="recovery-table-scroll" tabIndex={0}>
+                    <table aria-label={copy.resultHeading}>
+                      <caption className="sr-only">{copy.resultHeading}</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">{copy.metric}</th>
+                          <th scope="col">{copy.baseline}<span>{rangeLabel(comparison.baselineRange)}</span></th>
+                          <th scope="col">{copy.comparison}<span>{rangeLabel(comparison.comparisonRange)}</span></th>
+                          <th scope="col">{copy.change}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows(series.baseline, series.comparison, series).map(
+                          ([metric, baseline, current, change]) => (
+                            <tr key={metric}>
+                              <th scope="row">{metric}</th>
+                              <td>{baseline}</td>
+                              <td>{current}</td>
+                              <td>{change}</td>
+                            </tr>
+                          ),
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
               </section>
             );
           })}
         </section>
       )}
+      <details
+        className="answer-controls"
+        open={controlsOpen}
+        onToggle={(event) => setControlsOpen(event.currentTarget.open)}
+      >
+        <summary>{comparison ? copy.changePeriods : copy.heading}</summary>
+        <div>
+          <h2 id="recovery-comparison-form-heading">{copy.heading}</h2>
+          <p>{copy.intro}</p>
+        </div>
+        <form
+          className="recovery-comparison-form"
+          aria-labelledby="recovery-comparison-form-heading"
+          aria-busy={loading}
+          onSubmit={(event) => void runComparison(event)}
+        >
+          {inputs.map(([label, value, update]) => (
+            <label key={label}>
+              <span>{label}</span>
+              <input
+                type="date"
+                min={availableRange.from}
+                max={availableRange.through}
+                value={value}
+                aria-invalid={validation.invalid || undefined}
+                aria-describedby={validation.errorElementId}
+                onChange={(event) => update(event.target.value)}
+                disabled={loading}
+                required
+              />
+            </label>
+          ))}
+          <ProgressSubmitButton
+            loading={loading}
+            actionLabel={copy.compare}
+            progressLabel={copy.comparing}
+          />
+        </form>
+      </details>
     </div>
   );
 }

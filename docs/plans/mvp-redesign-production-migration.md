@@ -3,7 +3,7 @@
 ## Status and authority
 
 Authorized for autonomous execution as of 2026-08-21. X4-P0 through X5-R3 and X5-R4.1 through
-X5-R4.2 are complete locally; X5-R4.3 is next.
+X5-R4.3 are complete locally; X5-R4.4 is next.
 The X5-R1 product entrance is live; exact hosted verification of its CI resource optimizer remains
 pending synchronization of the workflow-changing commit. The product owner accepted the X3
 direction and its amendments on 2026-08-21. This
@@ -206,7 +206,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R2.2 | Complete locally — exact packaged gates passed 2026-08-22 | Sources leads with acquisition, a protected active task, and a calm exact outcome |
 | X5-R2.3 | Complete locally — exact packaged gates passed 2026-08-22 | Durable language, appearance, zoom, and update settings form one coherent workspace |
 | X5-R3 | Complete locally — exact packaged and dense-history gates passed 2026-08-22 | Import ends in recognizable personal value |
-| X5-R4 | In progress — R4.1–R4.2 complete locally 2026-08-22 | Existing health and aligned-history questions read as answers |
+| X5-R4 | In progress — R4.1–R4.3 complete locally 2026-08-22 | Existing health and aligned-history questions read as answers |
 | X5-R5 | Pending | A remembered session is findable and sports are recognizable |
 | X5-R6 | Pending | A routed workout is investigated through a dominant synchronized map |
 | X5-R7 | Pending | Every session composition reflects its actual evidence |
@@ -364,9 +364,9 @@ precision, missing-data, and navigation guidance; architecture ownership and pre
 R4 is delivered as five independently usable vertical increments. Each increment retains the current
 exact-data route and leaves the application coherent if the following increment has not landed.
 
-**Status:** R4.1 and R4.2 passed their focused, full fast, packaged functional, packaged performance,
-and actual wide and 200%-zoom macOS visual gates on 2026-08-22. R4.3 is next; R4 as a whole remains
-open.
+**Status:** R4.1 through R4.3 passed their focused, full fast, packaged functional, packaged
+performance, and actual wide and 200%-zoom macOS visual gates on 2026-08-22. R4.4 is next; R4 as a
+whole remains open.
 
 | Increment | User-visible outcome | Required implementation and evidence |
 |---|---|---|
@@ -375,6 +375,26 @@ open.
 | R4.3 — Sleep and recovery answers | The latest supported sleep and recovery patterns lead with human-scale results and useful visual relationships; exact nights and physiological evidence remain deliberate disclosures. | Recompose the existing overview and comparison use cases without medical interpretation. Preserve exact-night navigation, missing nights, source-specific recovery boundaries, meaningful ranges, locale precision, loading/failure retry, and keyboard behavior. |
 | R4.4 — Aligned-history answer | The cross-domain question opens a bounded aligned-history canvas whose visual relationship is primary and whose exact day and domain links remain reachable. | Preserve independent availability, origin separation, cross-domain day navigation, range/comparison modes, and the explicit non-causality boundary. Test partial combinations, multiple origins, exact day detail, destination return, and high zoom. |
 | R4.5 — Coherence gate | All supported Home questions use the same answer grammar and restore the exact originating Home state while ordinary History remains recognizable and independently navigable. | Complete shared presentation semantics, remove superseded control-first paths, run both locales/themes, 100%–200% zoom, reduced motion, accessibility, packaged functional and performance suites, privacy checks, documentation checks, and an actual wide/compact macOS visual audit before recording R4 complete. |
+
+R4.3 is implemented in two coherent checkpoints without weakening its joint acceptance boundary:
+
+1. **R4.3a — Sleep answer:** the latest selected sleep period leads with observed-night coverage,
+   human-scale recorded duration, and the existing per-night visual. Range controls, complete summary
+   coverage, the exact night table, and physiological or source-derived detail become deliberate
+   disclosures. The comparison leads with the recorded-duration change, observed-night evidence, and
+   a proportional visual; editing and exact values follow the answer. Missing nights remain visible
+   and exact-night navigation retains focus restoration.
+2. **R4.3b — Recovery answer and joint gate:** the latest selected recovery period leads with recorded-
+   interval coverage and its existing per-night relationship without assigning wellness meaning.
+   Exact shared intervals and source-specific assessment, baseline, and guidance remain deliberate
+   disclosures. The comparison leads with the factual beat-to-beat interval change and explicit
+   coverage, never a better/worse interpretation. This checkpoint closes R4.3 only after both domains
+   pass localized loading, empty, partial, multi-origin, detail, comparison, failure/retry, keyboard,
+   high-zoom, packaged, performance, privacy, and documentation gates together.
+
+Neither checkpoint changes an Insights calculation or merges origins. Presentation may round a primary
+duration or interval for reading, but the exact application values and comparison-minus-baseline changes
+remain available unchanged.
 
 For every increment, the red test must describe the user consequence before presentation code changes.
 An Answer Canvas may format an existing application result and choose a visual hierarchy; it must not

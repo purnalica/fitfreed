@@ -472,7 +472,7 @@ async function applySleepRange(from, through) {
     const started = window.performance.now();
     document.querySelector(".sleep-filter button[type='submit']").click();
     function observeResult() {
-      const rows = document.querySelectorAll(".sleep-history-grid table tbody tr");
+      const rows = document.querySelectorAll(".sleep-exact-evidence table tbody tr");
       const renderedFirstDate = rows[0]?.querySelector("time")?.getAttribute("datetime");
       if (rows.length === expected.expectedRows && renderedFirstDate === expected.expectedFirstDate) {
         document.documentElement.getBoundingClientRect();
@@ -546,7 +546,7 @@ async function compareSleepRanges(ranges) {
 
 async function openSleepDetail(sleepDate) {
   const result = await browser.executeAsync((expectedDate, done) => {
-    const row = Array.from(document.querySelectorAll(".sleep-history-grid table tbody tr"))
+    const row = Array.from(document.querySelectorAll(".sleep-exact-evidence table tbody tr"))
       .find((candidate) => candidate.querySelector("time")?.getAttribute("datetime") === expectedDate);
     const button = row?.querySelector("button");
     if (!button) {
@@ -605,7 +605,7 @@ async function applyRecoveryRange(from, through) {
     const started = window.performance.now();
     document.querySelector(".recovery-filter button[type='submit']").click();
     function observeResult() {
-      const rows = document.querySelectorAll(".recovery-history-grid table tbody tr");
+      const rows = document.querySelectorAll(".recovery-exact-evidence table tbody tr");
       const renderedFirstDate = rows[0]?.querySelector("time")?.getAttribute("datetime");
       if (rows.length === expected.expectedRows && renderedFirstDate === expected.expectedFirstDate) {
         document.documentElement.getBoundingClientRect();
@@ -679,7 +679,7 @@ async function compareRecoveryRanges(ranges) {
 
 async function openRecoveryDetail(recoveryDate) {
   const result = await browser.executeAsync((expectedDate, done) => {
-    const row = Array.from(document.querySelectorAll(".recovery-history-grid table tbody tr"))
+    const row = Array.from(document.querySelectorAll(".recovery-exact-evidence table tbody tr"))
       .find((candidate) => candidate.querySelector("time")?.getAttribute("datetime") === expectedDate);
     const button = row?.querySelector("button");
     if (!button) {

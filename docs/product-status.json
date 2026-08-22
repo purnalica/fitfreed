@@ -27,6 +27,8 @@
         "Selectable same-role signal alignment with exact sample paths",
         "Composable session and route reports with privacy-reviewed self-contained HTML export",
         "Result-first training-period answers with human-scale visuals, exact values, coverage, and report handoff",
+        "Result-first sleep-period answers with recorded-night coverage, human-scale visuals, exact evidence, and night detail",
+        "Result-first recovery-period answers with factual interval relationships, source boundaries, exact evidence, and no medical interpretation",
         "Question-led, exploration-led, session-led, and blank report starts with durable authored results",
         "Deliberate stale-report refresh through an exact current-evidence review",
         "Origin-aware navigation between saved reports and their exact session or comparison source"
@@ -41,7 +43,8 @@
       "label": "Work in progress",
       "title": "Experience production migration",
       "items": [
-        "Accepted History Desk structure with activity and training-period Answer Canvases",
+        "Accepted History Desk structure with activity, training-period, sleep, and recovery Answer Canvases",
+        "Bounded aligned-history answers with independent availability and an explicit non-causality boundary",
         "Map-led outdoor session investigation with synchronized recorded evidence",
         "Result-first reports, human-scale presentation, and visible data exit"
       ],

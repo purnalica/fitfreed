@@ -26,6 +26,7 @@ import type {
   SleepPhaseSummary,
 } from "./sleep-insights";
 import { useInvalidForm } from "./useInvalidForm";
+import { useResultFocus } from "./useResultFocus";
 
 interface SleepInsightsPanelProps {
   locale: Locale;
@@ -58,8 +59,10 @@ export function SleepInsightsPanel({
   const [detail, setDetail] = useState<SleepPeriodDetail>();
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [workspace, setWorkspace] = useState<SleepWorkspace>("history");
+  const [historyControlsOpen, setHistoryControlsOpen] = useState(false);
   const rangeValidation = useInvalidForm(onError);
   const detailRequest = useRef(0);
+  const initialAnswerPending = useRef(true);
   const overviewHeadingRef = useRef<HTMLHeadingElement>(null);
   const detailHeadingRef = useRef<HTMLHeadingElement>(null);
   const detailOriginRef = useRef<HTMLButtonElement | null>(null);
@@ -68,13 +71,21 @@ export function SleepInsightsPanel({
     () => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }),
     [locale],
   );
+  const { resultHeadingRef: answerHeadingRef, requestResultFocus } = useResultFocus<HTMLHeadingElement>(
+    overview !== undefined && workspace === "history" && selectedNight === undefined,
+  );
   const copy = messages.sleep;
 
   function acceptOverview(result: SleepOverview) {
+    const focusInitialAnswer =
+      initialAnswerPending.current && result.series.length > 0 && result.selectedRange !== null;
+    initialAnswerPending.current = false;
     setOverview(result);
     setRangeFrom(result.selectedRange?.from ?? "");
     setRangeThrough(result.selectedRange?.through ?? "");
+    setHistoryControlsOpen(false);
     clearDetail();
+    if (focusInitialAnswer) requestResultFocus();
   }
 
   async function refresh(requestedRange: SleepDateRange | null = null) {
@@ -135,8 +146,12 @@ export function SleepInsightsPanel({
     rangeValidation.accept();
     setRangeOperation("apply");
     onError(undefined);
+    const initiatingElement = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
     try {
       await refresh({ from: rangeFrom, through: rangeThrough });
+      requestResultFocus(initiatingElement);
     } catch (reason) {
       onError(commandErrorCode(reason));
     } finally {
@@ -148,8 +163,12 @@ export function SleepInsightsPanel({
     rangeValidation.accept();
     setRangeOperation("reset");
     onError(undefined);
+    const initiatingElement = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
     try {
       await refresh();
+      requestResultFocus(initiatingElement);
     } catch (reason) {
       onError(commandErrorCode(reason));
     } finally {
@@ -217,6 +236,27 @@ export function SleepInsightsPanel({
     return `${number.format(available)} ${copy.of} ${number.format(total)} ${copy.nights}`;
   }
 
+  function observationConclusion(observed: number, total: number): string {
+    if (observed === 0) return copy.answerNone;
+    return copy.answerObserved
+      .replace("{observed}", number.format(observed))
+      .replace("{total}", number.format(total));
+  }
+
+  function averageEvidence(value: string | null): string {
+    return copy.answerAverage.replace(
+      "{value}",
+      formatSleepDuration(value, locale, copy.durationUnits, messages.unavailable),
+    );
+  }
+
+  function exactNightsLabel(seriesIndex: number): string {
+    return copy.exactNightsLabel.replace(
+      "{origin}",
+      `${copy.series} ${number.format(seriesIndex + 1)}`,
+    );
+  }
+
   function goalMet(asleep: string, goal: string | null): string {
     if (goal === null) return messages.unavailable;
     return BigInt(asleep) >= BigInt(goal) ? copy.yes : copy.no;
@@ -262,137 +302,214 @@ export function SleepInsightsPanel({
             className="explorer-history-workspace"
             hidden={workspace !== "history" || selectedNight !== undefined}
           >
-          {overview.availableRange && overview.selectedRange && (
-            <form
-              className="sleep-filter"
-              aria-labelledby="sleep-filter-heading"
-              aria-busy={loadingRange}
-              onSubmit={(event) => void applyRange(event)}
-            >
-              <div>
-                <h2 id="sleep-filter-heading">{copy.filterHeading}</h2>
-                <p>{copy.rangeHelp}</p>
-              </div>
-              <label>
-                <span>{copy.from}</span>
-                <input
-                  type="date"
-                  min={overview.availableRange.from}
-                  max={overview.availableRange.through}
-                  value={rangeFrom}
-                  aria-invalid={rangeValidation.invalid || undefined}
-                  aria-describedby={rangeValidation.errorElementId}
-                  onChange={(event) => {
-                    rangeValidation.edit();
-                    setRangeFrom(event.target.value);
-                  }}
-                  disabled={loadingRange}
-                  required
-                />
-              </label>
-              <label>
-                <span>{copy.through}</span>
-                <input
-                  type="date"
-                  min={overview.availableRange.from}
-                  max={overview.availableRange.through}
-                  value={rangeThrough}
-                  aria-invalid={rangeValidation.invalid || undefined}
-                  aria-describedby={rangeValidation.errorElementId}
-                  onChange={(event) => {
-                    rangeValidation.edit();
-                    setRangeThrough(event.target.value);
-                  }}
-                  disabled={loadingRange}
-                  required
-                />
-              </label>
-              <RangeFilterActions
-                className="sleep-filter-actions"
-                operation={rangeOperation}
-                applyLabel={copy.applyRange}
-                applyingLabel={copy.applyingRange}
-                resetLabel={copy.latestWindow}
-                resettingLabel={copy.loadingLatestWindow}
-                navigationLabel={copy.loadingDetail}
-                onReset={() => void resetRange()}
-              />
-            </form>
-          )}
           {overview.selectedRange && (
-            <p className="sleep-range">
-              <strong>{copy.selectedRange}:</strong> {rangeLabel(overview.selectedRange)}
-              {overview.availableRange && (
-                <span>{" · "}<strong>{copy.availableRange}:</strong> {rangeLabel(overview.availableRange)}</span>
-              )}
-            </p>
-          )}
-          {overview.series.map((series, seriesIndex) => (
-            <section className="sleep-series" key={series.seriesRef}>
-              {overview.series.length > 1 && <h2>{copy.series} {number.format(seriesIndex + 1)}</h2>}
-              <ul className="sleep-summary" aria-label={copy.summaryLabel}>
-                <li><strong>{number.format(series.summary.observedNights)}</strong><span>{copy.observedNights} · {coverage(series.summary.observedNights, series.summary.calendarDays)}</span></li>
-                <li><strong>{formatSleepDuration(series.summary.averageAsleepMilliseconds, locale, copy.durationUnits, messages.unavailable)}</strong><span>{copy.averageAsleep} · {coverage(series.summary.observedNights, series.summary.calendarDays)}</span></li>
-                <li><strong>{formatDecimal(series.summary.averageEfficiencyPercent, locale, messages.unavailable, "%")}</strong><span>{copy.averageEfficiency} · {coverage(series.summary.observedNights, series.summary.calendarDays)}</span></li>
-                <li><strong>{formatDecimal(series.summary.averageOverallScore, locale, messages.unavailable)}</strong><span>{copy.averageScore} · {coverage(series.summary.scoreNightCount, series.summary.observedNights)}</span></li>
-                <li><strong>{series.summary.goalNightCount === 0 ? messages.unavailable : `${number.format(series.summary.goalMetNightCount)} / ${number.format(series.summary.goalNightCount)}`}</strong><span>{copy.goalMet}</span></li>
-                <li><strong>{coverage(series.summary.phaseNightCount, series.summary.observedNights)}</strong><span>{copy.phaseCoverage}</span></li>
-                <li><strong>{coverage(series.summary.stageTimelineNightCount, series.summary.observedNights)}</strong><span>{copy.timelineCoverage}</span></li>
-                <li><strong>{coverage(series.summary.powerStatusNightCount, series.summary.observedNights)}</strong><span>{copy.powerCoverage} · {number.format(series.summary.powerLossNightCount)} {copy.powerLoss}</span></li>
-              </ul>
-              {series.summary.observedNights === 0 ? (
-                <p className="notice">{copy.emptyRange}</p>
-              ) : (
-                <div className="sleep-history-grid">
-                  <figure>
-                    <figcaption>{copy.visual}</figcaption>
-                    <ol className="sleep-chart" aria-hidden="true">
-                      {series.days.map((day) => (
-                        <li key={day.sleepDate} className={day.availability === "missing" ? "missing" : undefined}>
-                          <time dateTime={day.sleepDate}>{date.format(sleepLocalDate(day.sleepDate))}</time>
-                          {day.period === null ? (
-                            <><span className="sleep-track missing-track" /><strong>{copy.missing}</strong></>
-                          ) : (
-                            <>
-                              <span className="sleep-track" style={{ width: percentageWidth(day.period.spanMilliseconds, maximumSpan) }}>
-                                <span className="sleep-asleep" style={{ width: percentageWidth(day.period.asleepMilliseconds, BigInt(day.period.spanMilliseconds)) }} />
-                                <span className="sleep-interruption" style={{ width: percentageWidth(day.period.interruptionMilliseconds, BigInt(day.period.spanMilliseconds)) }} />
-                              </span>
-                              <strong>{formatSleepDuration(day.period.asleepMilliseconds, locale, copy.durationUnits, messages.unavailable)}</strong>
-                            </>
-                          )}
-                        </li>
-                      ))}
-                    </ol>
-                    <ul className="sleep-legend" aria-hidden="true">
-                      <li><span className="sleep-asleep" />{copy.asleep}</li>
-                      <li><span className="sleep-interruption" />{copy.interruptions}</li>
-                      <li><span className="missing-swatch" />{copy.missing}</li>
-                    </ul>
-                  </figure>
-                  <div className="sleep-table-scroll" tabIndex={0} aria-label={copy.nightsTable}>
-                    <table>
-                      <caption className="sr-only">{copy.nightsTable}</caption>
-                      <thead><tr><th scope="col">{copy.sleepDate}</th><th scope="col">{copy.asleep}</th><th scope="col">{copy.efficiency}</th><th scope="col">{copy.score}</th><th scope="col"><span className="sr-only">{copy.details}</span></th></tr></thead>
-                      <tbody>
-                        {series.days.map((day) => <SleepDayRow
-                          key={day.sleepDate}
-                          day={day}
-                          locale={locale}
-                          messages={messages}
-                          dateLabel={date.format(sleepLocalDate(day.sleepDate))}
-                          onOpen={(origin) => void openDetail(
-                            { seriesRef: series.seriesRef, sleepDate: day.sleepDate },
-                            origin,
-                          )}
-                        />)}
-                      </tbody>
-                    </table>
-                  </div>
+            <section className="sleep-answer answer-canvas" aria-label={copy.answerLabel}>
+              <header className="sleep-answer-heading">
+                <div>
+                  <h2 ref={answerHeadingRef} tabIndex={-1}>
+                    {overview.series.length === 1
+                      ? observationConclusion(
+                        overview.series[0].summary.observedNights,
+                        overview.series[0].summary.calendarDays,
+                      )
+                      : copy.answerMultiple.replace(
+                        "{count}",
+                        number.format(overview.series.length),
+                      )}
+                  </h2>
+                  <p>{rangeLabel(overview.selectedRange)}</p>
                 </div>
-              )}
+              </header>
+              {overview.series.map((series, seriesIndex) => {
+                const originLabel = `${copy.series} ${number.format(seriesIndex + 1)}`;
+                return (
+                  <section className="sleep-series" key={series.seriesRef}>
+                    {overview.series.length > 1 && (
+                      <div className="answer-series-heading">
+                        <p>{originLabel}</p>
+                        <h3>
+                          {observationConclusion(
+                            series.summary.observedNights,
+                            series.summary.calendarDays,
+                          )}
+                        </h3>
+                      </div>
+                    )}
+                    <p className="answer-evidence">
+                      {averageEvidence(series.summary.averageAsleepMilliseconds)}
+                    </p>
+                    {series.summary.observedNights === 0 ? (
+                      <p className="notice">{copy.emptyRange}</p>
+                    ) : (
+                      <figure className="sleep-answer-visual">
+                        <figcaption>{copy.visual}</figcaption>
+                        <ol className="sleep-chart" aria-hidden="true">
+                          {series.days.map((day) => (
+                            <li
+                              key={day.sleepDate}
+                              className={day.availability === "missing" ? "missing" : undefined}
+                            >
+                              <time dateTime={day.sleepDate}>
+                                {date.format(sleepLocalDate(day.sleepDate))}
+                              </time>
+                              {day.period === null ? (
+                                <>
+                                  <span className="sleep-track missing-track" />
+                                  <strong>{copy.missing}</strong>
+                                </>
+                              ) : (
+                                <>
+                                  <span
+                                    className="sleep-track"
+                                    style={{
+                                      width: percentageWidth(
+                                        day.period.spanMilliseconds,
+                                        maximumSpan,
+                                      ),
+                                    }}
+                                  >
+                                    <span
+                                      className="sleep-asleep"
+                                      style={{
+                                        width: percentageWidth(
+                                          day.period.asleepMilliseconds,
+                                          BigInt(day.period.spanMilliseconds),
+                                        ),
+                                      }}
+                                    />
+                                    <span
+                                      className="sleep-interruption"
+                                      style={{
+                                        width: percentageWidth(
+                                          day.period.interruptionMilliseconds,
+                                          BigInt(day.period.spanMilliseconds),
+                                        ),
+                                      }}
+                                    />
+                                  </span>
+                                  <strong>
+                                    {formatSleepDuration(
+                                      day.period.asleepMilliseconds,
+                                      locale,
+                                      copy.durationUnits,
+                                      messages.unavailable,
+                                    )}
+                                  </strong>
+                                </>
+                              )}
+                            </li>
+                          ))}
+                        </ol>
+                        <ul className="sleep-legend" aria-hidden="true">
+                          <li><span className="sleep-asleep" />{copy.asleep}</li>
+                          <li><span className="sleep-interruption" />{copy.interruptions}</li>
+                          <li><span className="missing-swatch" />{copy.missing}</li>
+                        </ul>
+                      </figure>
+                    )}
+                    <details className="answer-exact-values sleep-exact-evidence">
+                      <summary>{copy.answerExact}</summary>
+                      <p>{copy.answerExactIntro}</p>
+                      <ul className="sleep-summary" aria-label={copy.summaryLabel}>
+                        <li><strong>{number.format(series.summary.observedNights)}</strong><span>{copy.observedNights} · {coverage(series.summary.observedNights, series.summary.calendarDays)}</span></li>
+                        <li><strong>{formatSleepDuration(series.summary.averageAsleepMilliseconds, locale, copy.durationUnits, messages.unavailable)}</strong><span>{copy.averageAsleep} · {coverage(series.summary.observedNights, series.summary.calendarDays)}</span></li>
+                        <li><strong>{formatDecimal(series.summary.averageEfficiencyPercent, locale, messages.unavailable, "%")}</strong><span>{copy.averageEfficiency} · {coverage(series.summary.observedNights, series.summary.calendarDays)}</span></li>
+                        <li><strong>{formatDecimal(series.summary.averageOverallScore, locale, messages.unavailable)}</strong><span>{copy.averageScore} · {coverage(series.summary.scoreNightCount, series.summary.observedNights)}</span></li>
+                        <li><strong>{series.summary.goalNightCount === 0 ? messages.unavailable : `${number.format(series.summary.goalMetNightCount)} / ${number.format(series.summary.goalNightCount)}`}</strong><span>{copy.goalMet}</span></li>
+                        <li><strong>{coverage(series.summary.phaseNightCount, series.summary.observedNights)}</strong><span>{copy.phaseCoverage}</span></li>
+                        <li><strong>{coverage(series.summary.stageTimelineNightCount, series.summary.observedNights)}</strong><span>{copy.timelineCoverage}</span></li>
+                        <li><strong>{coverage(series.summary.powerStatusNightCount, series.summary.observedNights)}</strong><span>{copy.powerCoverage} · {number.format(series.summary.powerLossNightCount)} {copy.powerLoss}</span></li>
+                      </ul>
+                      <div className="sleep-table-scroll" tabIndex={0}>
+                        <table aria-label={exactNightsLabel(seriesIndex)}>
+                          <caption className="sr-only">{exactNightsLabel(seriesIndex)}</caption>
+                          <thead><tr><th scope="col">{copy.sleepDate}</th><th scope="col">{copy.asleep}</th><th scope="col">{copy.efficiency}</th><th scope="col">{copy.score}</th><th scope="col"><span className="sr-only">{copy.details}</span></th></tr></thead>
+                          <tbody>
+                            {series.days.map((day) => <SleepDayRow
+                              key={day.sleepDate}
+                              day={day}
+                              locale={locale}
+                              messages={messages}
+                              dateLabel={date.format(sleepLocalDate(day.sleepDate))}
+                              onOpen={(origin) => void openDetail(
+                                { seriesRef: series.seriesRef, sleepDate: day.sleepDate },
+                                origin,
+                              )}
+                            />)}
+                          </tbody>
+                        </table>
+                      </div>
+                    </details>
+                  </section>
+                );
+              })}
             </section>
-          ))}
+          )}
+          {overview.availableRange && overview.selectedRange && (
+            <details
+              className="answer-controls"
+              open={historyControlsOpen}
+              onToggle={(event) => setHistoryControlsOpen(event.currentTarget.open)}
+            >
+              <summary>{copy.changePeriod}</summary>
+              <form
+                className="sleep-filter"
+                aria-labelledby="sleep-filter-heading"
+                aria-busy={loadingRange}
+                onSubmit={(event) => void applyRange(event)}
+              >
+                <div>
+                  <h2 id="sleep-filter-heading">{copy.filterHeading}</h2>
+                  <p>{copy.rangeHelp}</p>
+                  <p><strong>{copy.availableRange}:</strong> {rangeLabel(overview.availableRange)}</p>
+                </div>
+                <label>
+                  <span>{copy.from}</span>
+                  <input
+                    type="date"
+                    min={overview.availableRange.from}
+                    max={overview.availableRange.through}
+                    value={rangeFrom}
+                    aria-invalid={rangeValidation.invalid || undefined}
+                    aria-describedby={rangeValidation.errorElementId}
+                    onChange={(event) => {
+                      rangeValidation.edit();
+                      setRangeFrom(event.target.value);
+                    }}
+                    disabled={loadingRange}
+                    required
+                  />
+                </label>
+                <label>
+                  <span>{copy.through}</span>
+                  <input
+                    type="date"
+                    min={overview.availableRange.from}
+                    max={overview.availableRange.through}
+                    value={rangeThrough}
+                    aria-invalid={rangeValidation.invalid || undefined}
+                    aria-describedby={rangeValidation.errorElementId}
+                    onChange={(event) => {
+                      rangeValidation.edit();
+                      setRangeThrough(event.target.value);
+                    }}
+                    disabled={loadingRange}
+                    required
+                  />
+                </label>
+                <RangeFilterActions
+                  className="sleep-filter-actions"
+                  operation={rangeOperation}
+                  applyLabel={copy.applyRange}
+                  applyingLabel={copy.applyingRange}
+                  resetLabel={copy.latestWindow}
+                  resettingLabel={copy.loadingLatestWindow}
+                  navigationLabel={copy.loadingDetail}
+                  onReset={() => void resetRange()}
+                />
+              </form>
+            </details>
+          )}
           </div>
           <div className="explorer-detail-workspace" hidden={workspace !== "history"}>
           {selectedNight && (

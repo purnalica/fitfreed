@@ -607,7 +607,34 @@ async function expectTrainingComparison(expectedRows) {
   }
 }
 
+async function openDisclosure(selector) {
+  const disclosure = await $(selector);
+  await disclosure.waitForExist({ timeout: 10_000 });
+  if ((await disclosure.getAttribute("open")) === null) {
+    await disclosure.$("summary").click();
+  }
+  await browser.waitUntil(async () => (await disclosure.getAttribute("open")) !== null, {
+    timeout: 10_000,
+    timeoutMsg: `${selector} did not open`,
+  });
+}
+
+async function openDisclosures(selector) {
+  const disclosures = await $$(selector);
+  expect(disclosures.length).toBeGreaterThan(0);
+  for (const disclosure of disclosures) {
+    if ((await disclosure.getAttribute("open")) === null) {
+      await disclosure.$("summary").click();
+    }
+    await browser.waitUntil(async () => (await disclosure.getAttribute("open")) !== null, {
+      timeout: 10_000,
+      timeoutMsg: `${selector} did not open`,
+    });
+  }
+}
+
 async function setSleepRange(from, through) {
+  await openDisclosure(".sleep-insights .explorer-history-workspace > .answer-controls");
   const values = [from, through];
   await browser.execute((nextValues) => {
     const inputs = document.querySelectorAll(".sleep-filter input[type='date']");
@@ -634,6 +661,7 @@ async function setSleepComparisonRanges(
   comparisonFrom,
   comparisonThrough,
 ) {
+  await openDisclosure(".sleep-comparison > .answer-controls");
   const values = [baselineFrom, baselineThrough, comparisonFrom, comparisonThrough];
   await browser.execute((nextValues) => {
     const inputs = document.querySelectorAll(".sleep-comparison input[type='date']");
@@ -655,7 +683,8 @@ async function setSleepComparisonRanges(
 }
 
 async function expectSleepRows(expectedRows) {
-  const selector = ".sleep-history-grid table tbody tr";
+  await openDisclosures(".sleep-answer .sleep-exact-evidence");
+  const selector = ".sleep-exact-evidence table tbody tr";
   await browser.waitUntil(async () => (await $$(selector)).length === expectedRows.length, {
     timeout: 10_000,
     timeoutMsg: `sleep history did not contain ${expectedRows.length} rows`,
@@ -679,6 +708,7 @@ async function expectSleepSummary(expectedItems) {
 }
 
 async function expectSleepComparison(expectedRows) {
+  await openDisclosures(".sleep-comparison-result .answer-exact-values");
   const rows = await $$(".sleep-comparison-result table tbody tr");
   expect(rows).toHaveLength(expectedRows.length);
   for (let index = 0; index < expectedRows.length; index += 1) {
@@ -690,6 +720,7 @@ async function expectSleepComparison(expectedRows) {
 }
 
 async function setRecoveryRange(from, through) {
+  await openDisclosure(".recovery-insights .explorer-history-workspace > .answer-controls");
   const values = [from, through];
   await browser.execute((nextValues) => {
     const inputs = document.querySelectorAll(".recovery-filter input[type='date']");
@@ -716,6 +747,7 @@ async function setRecoveryComparisonRanges(
   comparisonFrom,
   comparisonThrough,
 ) {
+  await openDisclosure(".recovery-comparison > .answer-controls");
   const values = [baselineFrom, baselineThrough, comparisonFrom, comparisonThrough];
   await browser.execute((nextValues) => {
     const inputs = document.querySelectorAll(".recovery-comparison input[type='date']");
@@ -737,7 +769,8 @@ async function setRecoveryComparisonRanges(
 }
 
 async function expectRecoveryRows(expectedRows) {
-  const selector = ".recovery-history-grid table tbody tr";
+  await openDisclosures(".recovery-answer .recovery-exact-evidence");
+  const selector = ".recovery-exact-evidence table tbody tr";
   await browser.waitUntil(async () => (await $$(selector)).length === expectedRows.length, {
     timeout: 10_000,
     timeoutMsg: `recovery history did not contain ${expectedRows.length} rows`,
@@ -761,6 +794,7 @@ async function expectRecoverySummary(expectedItems) {
 }
 
 async function expectRecoveryComparison(expectedRows) {
+  await openDisclosures(".recovery-comparison-result .answer-exact-values");
   const rows = await $$(".recovery-comparison-result table tbody tr");
   expect(rows).toHaveLength(expectedRows.length);
   for (let index = 0; index < expectedRows.length; index += 1) {
@@ -2565,7 +2599,10 @@ describe("packaged FitFreed import journey", () => {
       "2026-01-06",
     );
     await $(".sleep-comparison button[type='submit']").click();
-    await expectComparisonHeading("#sleep-comparison-heading", "Sleep period comparison");
+    await expectComparisonHeading(
+      "#sleep-comparison-heading",
+      "Average recorded sleep was unchanged",
+    );
     await expectSleepComparison([
       ["Observed nights", "1", "1", "0"],
       ["Missing nights", "0", "0", "0"],
@@ -2589,7 +2626,10 @@ describe("packaged FitFreed import journey", () => {
     await expect($("[role='alert']")).toHaveText(
       "Choose ordered sleep comparison periods inside the available history, up to 366 nights each.",
     );
-    await expectComparisonHeading("#sleep-comparison-heading", "Sleep period comparison");
+    await expectComparisonHeading(
+      "#sleep-comparison-heading",
+      "Average recorded sleep was unchanged",
+    );
 
     await openHomeQuestion(
       english,
@@ -2623,7 +2663,10 @@ describe("packaged FitFreed import journey", () => {
       "2026-01-06",
     );
     await $(".recovery-comparison button[type='submit']").click();
-    await expectComparisonHeading("#recovery-comparison-heading", "Recovery period comparison");
+    await expectComparisonHeading(
+      "#recovery-comparison-heading",
+      "Average recorded beat-to-beat interval was unchanged",
+    );
     await expectRecoveryComparison([
       ["Observed nights", "1", "1", "0"],
       ["Missing nights", "0", "0", "0"],
@@ -2648,7 +2691,10 @@ describe("packaged FitFreed import journey", () => {
     await expect($("[role='alert']")).toHaveText(
       "Choose ordered recovery comparison periods inside the available history, up to 366 nights each.",
     );
-    await expectComparisonHeading("#recovery-comparison-heading", "Recovery period comparison");
+    await expectComparisonHeading(
+      "#recovery-comparison-heading",
+      "Average recorded beat-to-beat interval was unchanged",
+    );
 
     await openHomeQuestion(
       english,
@@ -2967,7 +3013,7 @@ describe("packaged FitFreed import journey", () => {
     await $(".sleep-comparison button[type='submit']").click();
     await expectComparisonHeading(
       "#sleep-comparison-heading",
-      spanish.sleep.comparison.resultHeading,
+      spanish.sleep.comparison.answerUnchanged,
     );
     await openDomainWorkspace(spanish, "sleep", "history");
     await $(`button[aria-label="${spanish.sleep.viewDetails} ${spanishSleepDate}"]`).click();
@@ -3011,7 +3057,7 @@ describe("packaged FitFreed import journey", () => {
     await $(".recovery-comparison button[type='submit']").click();
     await expectComparisonHeading(
       "#recovery-comparison-heading",
-      spanish.recovery.comparison.resultHeading,
+      spanish.recovery.comparison.answerUnchanged,
     );
     await openDomainWorkspace(spanish, "recovery", "history");
     await $(`button[aria-label="${spanish.recovery.viewDetails} ${spanishRecoveryDate}"]`).click();

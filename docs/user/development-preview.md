@@ -76,14 +76,40 @@ and confirm that the same result and focus are restored. Open a saved comparison
 that its exact periods run without an intermediate form, then return to that report. Finally clear the
 disposable result and confirm that no canonical history changes.
 For each of the following activity, sleep, recovery, and aligned-history journeys, use the explicit history and **Compare periods** workspace choices. Confirm that only the current view is visible and exposed to assistive technology, the current choice is announced, and temporarily switching away and back preserves entered comparison periods and the last valid result. Opening exact detail must select history and replace discovery until its close action restores the originating control.
-15. Select **Back to Home**, choose **What patterns are visible in my sleep?**, and verify observed and missing nights, time asleep, efficiency, score, goal, phase, stage-timeline, and recording-status coverage. Missing means no canonical primary period for that origin and date; it never means zero sleep.
-16. Apply and reset a sleep range. Confirm that the visual composition and exact table agree, optional measurements remain explicitly unavailable, and opaque origin references never appear.
+15. Select **Back to Home**, choose **What patterns are visible in my sleep?**, and confirm that the
+selected-period answer appears before its controls. It must state recorded-night coverage, show average
+recorded sleep at a human scale, and make the per-night asleep, interruption, and missing relationship
+primary. Open **Review measurements and exact nights** to verify efficiency, score, goal, phase,
+stage-timeline, recording-status coverage, and the exact night table. Missing means no canonical primary
+period for that origin and date; it never means zero sleep.
+16. Open **Change sleep period**, enter real dates, and apply and reset the range. Confirm that a
+successful query collapses the controls and focuses the new answer, while the visual and exact table agree.
+Optional measurements remain explicitly unavailable, multiple origins retain separate answers, and opaque
+origin references never appear.
 17. Open each available night. Verify offset-bearing local boundaries, declared durations and interruption counts, efficiency, continuity, goal, rating, cycles, recording status, phase composition, exact stage-transition table, and every available score component. Close the detail and confirm it is disposable.
-18. Compare two sleep periods. Verify observed and missing nights, average durations, efficiency, score, goal attainment, measurement coverage guidance, and comparison-minus-baseline changes. Invalid input must preserve the previous valid result; clear the result afterward.
-19. Select **Back to Home**, choose **What patterns are visible in my recovery?**, and verify observed and missing nights; average beat-to-beat, HRV RMSSD, and breathing intervals; and separate assessment, baseline, and guidance coverage. Missing means no canonical recovery summary for that origin and date; it never means zero recovery.
-20. Apply and reset a recovery range. Confirm that the interval visual and exact table agree, missing measurements remain explicitly unavailable, and opaque origin references never appear.
+18. Compare two sleep periods. Confirm that the recorded-duration conclusion, proportional relationship,
+and observed and missing-night evidence precede both the period controls and **Review exact values**.
+Verify average durations, efficiency, score, goal attainment, measurement coverage guidance, and unchanged
+comparison-minus-baseline values in that disclosure. Invalid input and a contextual query failure must
+preserve the previous valid answer and selected periods; retry the failure and clear the result afterward.
+19. Select **Back to Home**, choose **What patterns are visible in my recovery?**, and confirm that the
+selected-period answer appears before its controls. It must state recorded-night coverage, show the average
+recorded beat-to-beat interval, and make the per-night interval and missing relationship primary. Open
+**Review measurements and exact nights** to verify HRV RMSSD and breathing intervals, exact nights, and
+separate assessment, baseline, and guidance coverage. Missing means no canonical recovery summary for that
+origin and date; it never means zero recovery.
+20. Open **Change recovery period**, enter real dates, and apply and reset the range. Confirm that a
+successful query collapses the controls and focuses the new answer, while the interval visual and exact
+table agree. Missing measurements remain explicitly unavailable, multiple origins retain separate answers,
+and opaque origin references never appear.
 21. Open each available recovery night. Verify the exact shared measurements and the complete source scheme, assessment values, baseline values, and guidance. Confirm that the interface identifies this context as source-specific and does not present it as FitFreed medical advice; close the detail afterward.
-22. Compare two recovery periods. Verify observed and missing nights, all three interval averages, source-component coverage, comparison-minus-baseline changes, and the explicit missing-data caution. Invalid input must preserve the previous valid result; clear the result afterward.
+22. Compare two recovery periods. Confirm that the factual beat-to-beat interval conclusion,
+proportional relationship, and observed and missing-night evidence precede both the period controls and
+**Review exact values**. Verify all three interval averages, source-component coverage, unchanged
+comparison-minus-baseline values, and the explicit missing-data caution in that disclosure. No conclusion
+may claim improved or worsened health, recovery, or readiness. Invalid input and a contextual query failure
+must preserve the previous valid answer and selected periods; retry the failure and clear the result
+afterward.
 23. Select **Back to Home**, choose **How do training, activity, sleep, and recovery align?**, and confirm that one global range spans every canonical date represented by activity, local training starts, sleep, or recovery. Verify the four summary cards, coverage denominators, aligned visual lanes, and exact table. A missing activity, sleep, or recovery observation must not appear as zero, while a date with no training session must show an exact zero count and duration.
 24. Apply and reset the shared range. Reverse the dates and confirm that the application preserves the current result while reporting an error. If more than one source exists, confirm that each appears as a separate ordinal history and that no opaque source reference is visible.
 25. Open aligned day detail for dates with different coverage. Verify every exact activity, training, sleep, and recovery value and follow each available link. Confirm that the authoritative explorer selects the same date, that sleep and recovery open their exact available detail, and that returning to the latest window restores the complete domain view. Confirm the notice states that co-occurrence does not establish cause, diagnosis, readiness, or advice; then close the detail.

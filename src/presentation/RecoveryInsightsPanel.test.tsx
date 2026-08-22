@@ -193,6 +193,39 @@ function renderPanel(overrides: {
 }
 
 describe("RecoveryInsightsPanel", () => {
+  it("leads with a human recovery answer before period controls and exact nights", async () => {
+    mocks.invoke.mockResolvedValue(overview());
+    renderPanel();
+
+    const recovery = await screen.findByRole("region", { name: "Nightly recovery" });
+    const answer = within(recovery).getByRole("region", { name: "Recovery pattern answer" });
+    const heading = within(answer).getByRole("heading", { name: "2 recovery histories shown" });
+    expect(heading).toBeVisible();
+    await waitFor(() => expect(heading).toHaveFocus());
+    expect(within(answer).getAllByRole("heading", {
+      name: "Recovery intervals are recorded for 2 of 3 nights",
+    })).toHaveLength(1);
+    expect(within(answer).getByRole("heading", {
+      name: "Recovery intervals are recorded for 1 of 3 nights",
+    })).toBeVisible();
+    expect(within(answer).getAllByText(
+      "Average recorded beat-to-beat interval: 905 ms",
+    )).toHaveLength(2);
+
+    const exact = within(answer).getAllByText("Review measurements and exact nights")[0]
+      .closest("details");
+    expect(exact).not.toHaveAttribute("open");
+    expect(within(answer).getByRole("table", {
+      name: "Exact recovery nights for Recovery origin 1",
+    }))
+      .not.toBeVisible();
+
+    const controls = within(recovery).getByText("Change recovery period").closest("details");
+    expect(answer.compareDocumentPosition(controls as Node) & Node.DOCUMENT_POSITION_FOLLOWING)
+      .toBeTruthy();
+    expect(controls).not.toHaveAttribute("open");
+  });
+
   it("announces the exact latest-window operation without replacing the current history", async () => {
     let requestCount = 0;
     let completeReset: (value: RecoveryOverview) => void = () => undefined;
@@ -321,6 +354,9 @@ describe("RecoveryInsightsPanel", () => {
     renderPanel({ onError });
 
     const region = screen.getByRole("region", { name: "Nightly recovery" });
+    await user.click((await within(region).findAllByText(
+      "Review measurements and exact nights",
+    ))[0]);
     expect((await within(region).findAllByText("905 ms"))[0]).toBeVisible();
     expect(within(region).getAllByText("42 ms").length).toBeGreaterThan(0);
     expect(within(region).getByText("Recovery origin 2")).toBeVisible();
@@ -367,6 +403,9 @@ describe("RecoveryInsightsPanel", () => {
       requestedRange: { from: "2026-03-30", through: "2026-03-30" },
     }));
     expect((await within(region).findAllByText("Mar 30, 2026"))[0]).toBeVisible();
+    await waitFor(() => expect(within(region).getByRole("heading", {
+      name: "2 recovery histories shown",
+    })).toHaveFocus());
 
     await user.click(within(region).getByRole("button", { name: "Latest 30-day window" }));
     await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith("query_recovery_overview", {
@@ -456,26 +495,27 @@ describe("RecoveryInsightsPanel", () => {
     await user.type(baselineThrough, "2026-03-03");
     await user.click(within(region).getByRole("button", { name: "Compare recovery periods" }));
     const result = await within(region).findByRole("region", {
-      name: "Recovery period comparison",
+      name: "Recovery period answer",
     });
     await waitFor(() => expect(within(result).getByRole("heading", {
-      name: "Recovery period comparison",
+      name: "Average recorded beat-to-beat interval was 25 ms longer",
     })).toHaveFocus());
+    await user.click(within(result).getByText("Review exact values"));
     expect(within(result).getByText("+25 ms")).toBeVisible();
     expect(within(result).getByText("-50 ms")).toBeVisible();
     expect(within(result).getAllByText("Not available").length).toBeGreaterThan(0);
     expect(within(result).getByText(/no medical meaning is inferred/)).toBeVisible();
     await user.click(within(workspaceNavigation).getByRole("button", { name: "Nights" }));
     expect(within(region).queryByRole("region", {
-      name: "Recovery period comparison",
+      name: "Recovery period answer",
     })).not.toBeInTheDocument();
     await user.click(comparisonWorkspace);
     expect(within(region).getByRole("region", {
-      name: "Recovery period comparison",
+      name: "Recovery period answer",
     })).toBeVisible();
     await user.click(within(result).getByRole("button", { name: "Clear recovery comparison" }));
     expect(within(region).queryByRole("region", {
-      name: "Recovery period comparison",
+      name: "Recovery period answer",
     })).not.toBeInTheDocument();
   });
 
@@ -516,7 +556,11 @@ describe("RecoveryInsightsPanel", () => {
     const user = userEvent.setup();
     const view = renderPanel({ locale: "es-ES" });
     const region = screen.getByRole("region", { name: "Recuperación nocturna" });
+    await user.click(await within(region).findByText("Cambiar el periodo de recuperación"));
     expect(await within(region).findByText("Explorar un periodo de recuperación")).toBeVisible();
+    await user.click((await within(region).findAllByText(
+      "Revisar mediciones y noches exactas",
+    ))[0]);
     await user.click(within(region).getAllByRole("button", {
       name: "Ver detalles de recuperación del 28 mar 2026",
     })[0]);
