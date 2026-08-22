@@ -198,6 +198,31 @@ for (const deliberateMapInteraction of [
 if (!trainingSessionLibrary.includes("<TrainingRouteWorkbench")) {
   throw new Error("a route-bearing session story must expose the route workbench before deep detail");
 }
+for (const workbench of [
+  ["TrainingSignalWorkbench", "training-signal-workbench"],
+  ["TrainingStructureWorkbench", "training-structure-workbench"],
+  ["TrainingZoneWorkbench", "training-zone-workbench"],
+]) {
+  const [component, selector] = workbench;
+  if (!trainingSessionLibrary.includes(`<${component}`)) {
+    throw new Error(`evidence-adaptive session detail must compose ${component}`);
+  }
+  requireRule(
+    stylesheet,
+    `.${selector}`,
+    [
+      /display:\s*grid/,
+      /scroll-margin-block-start:\s*var\(--shell-reveal-offset\)/,
+    ],
+    `${component} as a responsive in-page reveal`,
+  );
+  for (const zoom of ["175", "200"]) {
+    if (!stylesheet.includes(`:root[data-content-zoom="${zoom}"] .${selector}-heading`)
+      || !stylesheet.includes(`:root[data-content-zoom="${zoom}"] .${selector} dl`)) {
+      throw new Error(`${component} must reflow its heading and summary at ${zoom}% content zoom`);
+    }
+  }
+}
 const leafletConsumers = sourceFiles(path.join(repositoryRoot, "src")).filter((sourcePath) => (
   /(?:from\s+["']leaflet["']|import\s+["']leaflet\/dist\/leaflet\.css["'])/.test(
     readFileSync(sourcePath, "utf8"),
@@ -341,6 +366,29 @@ const compactNavigation = balancedBlock(
   "@media (max-width: 1080px)",
   "App.css must define the compact navigation boundary",
 );
+const mobileWorkspace = balancedBlock(
+  stylesheet,
+  "@media (max-width: 680px)",
+  "App.css must define the mobile workspace boundary",
+);
+for (const selector of [
+  "training-signal-workbench",
+  "training-structure-workbench",
+  "training-zone-workbench",
+]) {
+  requireRule(
+    mobileWorkspace,
+    `.${selector} dl`,
+    [/grid-template-columns:\s*1fr/],
+    `${selector} summary without horizontal continuation`,
+  );
+  requireRule(
+    mobileWorkspace,
+    `.${selector} footer`,
+    [/flex-direction:\s*column/],
+    `${selector} actions below their evidence at compact width`,
+  );
+}
 requireRule(
   stylesheet,
   ":root",
@@ -517,5 +565,5 @@ for (const [selector, token] of contrastContracts) {
 }
 
 process.stdout.write(
-  `${JSON.stringify({ motionDeclarations: motionDeclarations.length, reducedMotionBoundary: true, darkContrastOverrides: contrastContracts.size, labelledAdaptiveNavigation: true, broadWorkspace: true, progressiveTrainingWorkspace: true, progressiveDomainWorkspaces: true, stagedReportWorkspace: true, secondarySources: true, categorizedSettings: true, initialWindow: `${mainWindow.width}x${mainWindow.height}` })}\n`,
+  `${JSON.stringify({ motionDeclarations: motionDeclarations.length, reducedMotionBoundary: true, darkContrastOverrides: contrastContracts.size, labelledAdaptiveNavigation: true, broadWorkspace: true, progressiveTrainingWorkspace: true, evidenceAdaptiveSession: true, progressiveDomainWorkspaces: true, stagedReportWorkspace: true, secondarySources: true, categorizedSettings: true, initialWindow: `${mainWindow.width}x${mainWindow.height}` })}\n`,
 );

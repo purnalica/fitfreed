@@ -2656,6 +2656,50 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(zoneGroup).toHaveTextContent("Not recorded");
   });
 
+  it("localizes evidence-adaptive zone composition as one complete Spanish journey", async () => {
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "query_session_story") {
+        const query = arguments_.query as { sessionRef: string; snapshotRef: string };
+        return Promise.resolve(zoneOnlyTrainingStory(query.sessionRef, query.snapshotRef));
+      }
+      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+      if (workspaceResult) return workspaceResult;
+      if (command === "query_training_sports") return Promise.resolve(sports);
+      if (command === "query_training_sessions") {
+        return Promise.resolve(page([newest], 0, 1, null));
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    renderPanel(vi.fn(), { locale: "es-ES", messages: catalogs["es-ES"] });
+
+    const region = await screen.findByRole("region", {
+      name: "Encontrar una sesión de entrenamiento",
+    });
+    await user.click(within(region).getByRole("button", {
+      name: /Ver detalles de la sesión/,
+    }));
+    const workbench = await within(region).findByRole("region", {
+      name: "Área de trabajo de las zonas registradas",
+    });
+    expect(within(workbench).getByRole("heading", {
+      name: "Explorar las zonas registradas de frecuencia cardíaca",
+    })).toBeVisible();
+    expect(workbench).toHaveTextContent("1 de 2 zonas");
+    expect(workbench).toHaveTextContent("Distribución agregada, no una línea temporal");
+    expect(within(workbench).getByRole("combobox", {
+      name: "Grupo de zonas visible",
+    })).toBeVisible();
+
+    await user.click(within(workbench).getByRole("button", {
+      name: "Explorar las zonas registradas exactas",
+    }));
+    const exactHeading = await within(region).findByRole("heading", {
+      name: "Frecuencia cardíaca · grupo 1",
+    });
+    await waitFor(() => expect(exactHeading).toHaveFocus());
+  });
+
   it("announces a search without renaming its action or hiding the current results", async () => {
     let resolveSearch!: (value: TrainingSessionSearchPage) => void;
     const pendingSearch = new Promise<TrainingSessionSearchPage>((resolve) => {

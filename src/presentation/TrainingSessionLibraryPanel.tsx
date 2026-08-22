@@ -42,6 +42,10 @@ import type {
 } from "./training-session-route";
 import { routeSvgPoints } from "./route-svg";
 import type { SessionStory, SessionStoryExercise } from "./session-story";
+import {
+  type SessionDetailSection,
+  sessionStoryLayout,
+} from "./session-story-layout";
 import type {
   TrainingSignalKind,
   TrainingSignalSamplesResult,
@@ -116,59 +120,6 @@ type AppliedRefinement =
   };
 
 type SessionView = "chronology" | "calendar";
-type DetailSection = "overview" | "structure" | "signals" | "routes" | "provenance";
-
-function availableDetailSections(story: SessionStory | undefined): DetailSection[] {
-  if (!story) return ["overview", "structure", "signals", "routes", "provenance"];
-  const hasSignalsOrZones = story.exercises.some((exercise) => (
-    exercise.primary.evidence.signalSeriesCount > 0
-      || exercise.primary.evidence.unsupportedSignalSeriesCount > 0
-      || exercise.transition.evidence.signalSeriesCount > 0
-      || exercise.transition.evidence.unsupportedSignalSeriesCount > 0
-      || exercise.evidence.zoneGroupCount > 0
-      || exercise.evidence.unsupportedZoneGroupCount > 0
-  ));
-  const hasRoutes = story.exercises.some((exercise) => (
-    exercise.primary.route !== null || exercise.transition.route !== null
-  ));
-  return [
-    "overview",
-    "structure",
-    ...(hasSignalsOrZones ? ["signals" as const] : []),
-    ...(hasRoutes ? ["routes" as const] : []),
-    "provenance",
-  ];
-}
-
-function hasVisualRoute(story: SessionStory): boolean {
-  return story.exercises.some((exercise) => (
-    (exercise.primary.route?.visualPoints.length ?? 0) > 0
-      || (exercise.transition.route?.visualPoints.length ?? 0) > 0
-  ));
-}
-
-function hasVisualSignal(story: SessionStory): boolean {
-  return story.exercises.some((exercise) => (
-    (["primary", "transition"] as const).some((role) => (
-      exercise[role].eligibleOverlays.some((overlay) => (
-        exercise[role].signals.some((signal) => (
-          signal.signalRef === overlay.signalRef && signal.availableSampleCount > 0
-        ))
-      ))
-    ))
-  ));
-}
-
-function hasRecordedStructure(story: SessionStory): boolean {
-  return story.exercises.some((exercise) => exercise.structure !== null);
-}
-
-function hasVisualZones(story: SessionStory): boolean {
-  return story.exercises.some((exercise) => (
-    exercise.zones?.groups.some((group) => (group.zones?.length ?? 0) > 0) ?? false
-  ));
-}
-
 function emptyDraft(initialDate?: string): SearchDraft {
   return {
     from: initialDate ?? "",
@@ -320,7 +271,7 @@ export function TrainingSessionLibraryPanel({
   const [failed, setFailed] = useState(false);
   const [status, setStatus] = useState<string>();
   const [selected, setSelected] = useState<TrainingSessionSearchItem>();
-  const [detailSection, setDetailSection] = useState<DetailSection>("overview");
+  const [detailSection, setDetailSection] = useState<SessionDetailSection>("overview");
   const [detailStory, setDetailStory] = useState<SessionStory>();
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailFailed, setDetailFailed] = useState(false);
@@ -404,10 +355,11 @@ export function TrainingSessionLibraryPanel({
   const handledCreateReportFocusRequest = useRef<number | undefined>(undefined);
   const copy = messages.training.sessionLibrary;
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
-  const detailSections = useMemo(
-    () => availableDetailSections(detailStory),
+  const detailLayout = useMemo(
+    () => sessionStoryLayout(detailStory),
     [detailStory],
   );
+  const detailSections = detailLayout.sections;
   const calendarDate = useMemo(() => new Intl.DateTimeFormat(locale, {
     dateStyle: "long",
     timeZone: "UTC",
@@ -2793,14 +2745,16 @@ export function TrainingSessionLibraryPanel({
           </div>
           {detailStory && (
             <>
-              <TrainingRouteWorkbench
-                story={detailStory}
-                locale={locale}
-                messages={messages}
-                onOpenExactRoute={openExactRoutePointFromWorkbench}
-                onOpenExactSignal={openExactSignalSamplesFromWorkbench}
-              />
-              {!hasVisualRoute(detailStory) && (
+              {detailLayout.leadingEvidence === "route" && (
+                <TrainingRouteWorkbench
+                  story={detailStory}
+                  locale={locale}
+                  messages={messages}
+                  onOpenExactRoute={openExactRoutePointFromWorkbench}
+                  onOpenExactSignal={openExactSignalSamplesFromWorkbench}
+                />
+              )}
+              {detailLayout.leadingEvidence === "signal" && (
                 <TrainingSignalWorkbench
                   story={detailStory}
                   locale={locale}
@@ -2808,9 +2762,7 @@ export function TrainingSessionLibraryPanel({
                   onOpenExactSignal={openExactSignalSamplesFromWorkbench}
                 />
               )}
-              {!hasVisualRoute(detailStory)
-                && !hasVisualSignal(detailStory)
-                && hasRecordedStructure(detailStory) && (
+              {detailLayout.leadingEvidence === "structure" && (
                 <TrainingStructureWorkbench
                   story={detailStory}
                   locale={locale}
@@ -2821,10 +2773,7 @@ export function TrainingSessionLibraryPanel({
                   onOpenStructure={openStructureFromWorkbench}
                 />
               )}
-              {!hasVisualRoute(detailStory)
-                && !hasVisualSignal(detailStory)
-                && !hasRecordedStructure(detailStory)
-                && hasVisualZones(detailStory) && (
+              {detailLayout.leadingEvidence === "zones" && (
                 <TrainingZoneWorkbench
                   story={detailStory}
                   locale={locale}

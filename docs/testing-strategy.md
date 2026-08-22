@@ -44,7 +44,7 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Localization catalogs, placeholders, plural rules, and fallback.
 - Versioned source-acquisition guide validation, adapter ownership, exact locale selection, and least-privilege official-link capabilities.
 - Application-shell structure, semantic sidebar ownership, broad desktop workspace, compact navigation rail, and initial-window presentation contracts.
-- Training workspace and session-detail navigation, semantic current-location state, and enforced progressive-disclosure boundaries.
+- Training workspace and session-detail navigation, semantic current-location state, enforced progressive-disclosure boundaries, and the single route → signal → structure → zone evidence-layout matrix for complete, partial, unsupported-only, and summary-only stories.
 - Shared activity, sleep, recovery, and aligned-history workspace navigation, current-location state, exact-detail replacement, and progressive-disclosure boundaries.
 - Report Library, Compose, Preview, stale-evidence review, and export-review boundaries, including preserved mounted drafts and inaccessible inactive stages.
 - Value-first empty startup before Sources, plus one persistently mounted Settings workspace with distinct preference and update categories, a concrete preference preview, and one continuous update lifecycle.
@@ -70,6 +70,7 @@ Automated testing is the primary source of evidence that the product behaves cor
 - A packaged 20,001-point route aligned with four 20,001-slot signals, including bounded local rendering, a non-empty exact overlay, alternating first/last selection synchronized across map and lanes, truthful source-ordinal labels, overlay changes, and focused retrieval of the exact final source row under explicit interaction budgets.
 - Full-history training discovery with combined filters, deterministic sorting, coherent forward and backward pagination, source-separated calendar traversal, two-through-four-session comparison, exact chronology or calendar return, complete application-process restart restoration, library-change recovery, exact results, and lightweight detail.
 - Explicit traversal among Sessions, Sports, and Compare periods and among every session evidence section, proving that hidden views are inaccessible while their disposable state survives temporary navigation.
+- Evidence-adaptive session leadership for routed, signal-only, structure-only, zone-only, and summary-only sessions, including exact-detail focus, missing-versus-zero aggregates, both locales, compact width, 200% zoom, and restart.
 - Explicit traversal between history and comparison in every other explorer, including preserved comparison input and results, exact-detail return, cross-explorer entry, and inaccessible hidden views.
 - Explicit traversal among report Library, Compose, and Preview, including preserved drafts, saved-report selection, independent review replacement, complete block manipulation, source return, and export.
 - Explicit traversal between Appearance & language and Updates, including a concrete localized session preview, visual appearance choices, a preserved and explicitly discardable unsaved draft, hidden inactive content, visible installed version, continuous update discovery, save, reset, restart, and discard-on-exit behavior.

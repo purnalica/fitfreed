@@ -228,6 +228,13 @@ recorded zero. The exact bounds and aggregate values already carried by Session 
 An action reveals and focuses the selected exact group in Signals and zones; it does not turn bands into
 elapsed boundaries, join groups, or reinterpret source zones as personal segments.
 
+`sessionStoryLayout` is the presentation SSOT for this evidence hierarchy and its capability-adaptive detail
+navigation. It returns one leading-evidence kind and one ordered section list from the coherent Session Story;
+workbench rendering and navigation consume that same result. A route may remain an exact-detail capability
+while lacking bounded points to lead visually, and unsupported signal or zone counts may retain their detail
+destination without becoming fabricated visual evidence. Loading deliberately exposes the complete stable
+navigation shape until the accepted story resolves; the resolved layout then removes unsupported destinations.
+
 Detail navigation is capability-adaptive after the story arrives. Routes are present only when a composed
 exercise has a route object, and Signals and zones only when a composed exercise has supported or unsupported
 signal or zone evidence. Structure and segments remains available even without source structure because

@@ -1125,6 +1125,26 @@ lane passed 156 automation, 281 React, 2 vendored-updater, 213 host, 159 applica
 together with architecture, contracts, workflows, documentation, product surfaces, localization, site,
 production TypeScript build, and Rust formatting gates.
 
+### R7.5 evidence-adaptive behavior matrix — 2026-08-22
+
+`sessionStoryLayout` is now the single presentation decision for both the leading evidence and the available
+detail destinations. It distinguishes a route object from drawable bounded route points, supported signal
+detail from an eligible visual series, source structure from personal segmentation, supported zone bands from
+unsupported-group counts, and loading from a resolved summary-only story. The session panel consumes that one
+decision instead of independently repeating capability predicates around each workbench and navigation item.
+
+The pure matrix proves route → signal → structure → zone priority, signal fallback when an exact route has no
+bounded visual points, unsupported-only detail without a fabricated leading visual, summary-only destination
+removal, and the complete loading navigation. Integrated journeys retain full outdoor and partial signal
+coverage, add structure-only and multi-group zone-only composition, distinguish missing aggregates from zero,
+exercise exact focus paths, and execute the zone journey in both `en-US` and `es-ES`. Static UI contracts now
+require every non-route workbench to reflow its heading and summary at 175% and 200% zoom and to stack summaries
+and actions without horizontal continuation at compact width. Packaged geometry, keyboard/accessibility, and
+process-restart evidence remain the final R7 gate. The complete fast contributor lane passed 156 automation,
+290 React, 2 vendored-updater, 213 host, 159 application, and 33 domain tests together with architecture,
+contracts, workflows, documentation, product surfaces, localization, site, production TypeScript build, and
+Rust formatting gates.
+
 ## X5-R8 — Add personal ranges and integrate segmentation
 
 **User outcome:** a person can name and revisit a contiguous part of one session and can apply reusable
