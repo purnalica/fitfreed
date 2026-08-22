@@ -91,7 +91,7 @@ increment must verify the named lower layers again before changing its surface.
 | Outdoor session investigation | Independent structure, route, signal, zone, segmentation, and provenance queries | One revision-coherent session-story projection and synchronized route/signal interaction | Application composition, then presentation |
 | Partial and non-routed sessions | Explicit unavailable, absent, empty, populated, unsupported, and gap states | Evidence-dependent page composition rather than empty visual placeholders | Application projection and presentation |
 | Reusable segmentation | Versioned `SegmentCriterion`, commands, SQLite persistence, and derived sections | Integration into the map-led workbench without merging source and authored identity | Presentation |
-| Session-owned ranges | No domain aggregate or persistence | Stable range identity, ordered boundaries, revision, persistence, summary query, and exact evidence | Domain, application, persistence |
+| Session-owned ranges | Version-2 exercise-owned domain aggregate, application transitions, SQLite schema 26, and desktop transport | Revision-coherent Range Summary, production interaction, and reusable-criteria integration | Application composition, then presentation |
 | Result-first reports | Versioned definitions, typed blocks, multi-origin resolution, staleness, refresh, persistence, privacy review, and deterministic HTML export | Meaningful library projection, report deletion, optional narrative invariant, accepted result-first composition | Domain, application, persistence, presentation |
 | Public entrance | Generated localized Pages artifact, automatic locale selection, manual locale control, and truthful product-status source | Accepted sincere product narrative and new visual hierarchy | Product surfaces |
 
@@ -211,7 +211,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R5 | Complete locally — R5.4, R5.5, and real-process restart gates passed 2026-08-22 | A remembered session is findable and sports are recognizable |
 | X5-R6 | Complete locally — R6.1 through R6.5 passed exact packaged, adaptive visual, and dense-route gates on 2026-08-22 | A routed workout is investigated through a dominant synchronized map |
 | X5-R7 | Complete locally — R7.1 through R7.6 passed the exact fast, functional, restart, adaptive, accessibility, visual, and performance gates on 2026-08-22 | Every session composition reflects its actual evidence |
-| X5-R8 | In progress — R8.1 through R8.3 domain, application, persistence, and transport complete locally on 2026-08-22 | Personal ranges and reusable criteria work end to end |
+| X5-R8 | In progress — R8.1 through R8.3 complete locally; the R8.4 exercise-ownership correction passed the full fast gate on 2026-08-22 and Range Summary is next | Personal ranges and reusable criteria work end to end |
 | X5-R9 | Pending | Reports open as results and leave FitFreed safely |
 | X5-R10 | Pending | The complete release-shaped product is coherent and documented |
 | X6 | Pending | Independent audit has no unresolved material finding |
@@ -1287,6 +1287,38 @@ contract, workflow, documentation, site, i18n, and UI-contract checks. Workspace
 Rust formatting, and diff whitespace checks also pass. The revision-coherent Range Summary, production range
 interaction, criteria integration, packaged E2E/accessibility/performance evidence, and alpha UX review remain
 open under R8.
+
+### R8.4 exercise-ownership correction and Range Summary — in progress
+
+The accepted range concept defines one range inside one exercise and requires route, signal, source-structure,
+gap, and exact-boundary evidence to share that exercise's elapsed coordinate. R8.1 through R8.3 instead stored
+only session ownership and session-relative boundaries. The canonical session duration is deliberately
+independent of wall-clock timestamps, while route offsets are relative to route start and regular signal
+offsets belong to an exercise role. Consequently, session ownership alone cannot prove the transformation
+needed by Range Summary; subtracting local timestamps or assuming that every exercise starts with the session
+would invent a clock relationship.
+
+R8.4 therefore corrects the unfinished Alpha contract before adding presentation. Current authored ranges must
+carry an opaque exercise owner and exercise-relative elapsed boundaries. Any version-25 row created through
+the lower-layer command before production UI existed is retained as an explicitly review-required legacy
+session-coordinate range; it is never guessed onto an exercise or discarded. Explicit review can anchor that
+legacy object to one current exercise, while an already anchored range cannot be reassigned silently. The
+additive migration, application transitions, transport schemas, canonical documentation, and reimport
+reconciliation must be corrected and verified before the revision-coherent Range Summary is implemented.
+
+The exercise-ownership correction is complete locally. Canonical range version 2, read-model version 2, and
+SQLite schema 26 now define one exercise-relative current range, immutable established exercise ownership,
+and explicit anchoring of preserved legacy evidence. The atomic schema-25 migration retains every authored
+field and optimistic revision while changing only the unverifiable owner and review state; interruption leaves
+the complete version-25 representation intact. Query and mutation contexts carry a bounded current exercise
+catalogue, and domain, application, persistence, removal, reimport, and desktop transport all validate the
+same ownership contract.
+
+The complete fast gate passes 156 tooling tests, 290 React tests, two vendored-updater tests, 217 host tests,
+170 application tests, 44 domain tests, and two private-acceptance tests. Strict workspace Clippy, Rust
+formatting, architecture, contract, migration, compatibility, documentation, localization, site, workflow,
+and UI checks also pass. Range Summary remains the active R8.4 work; production range interaction, criteria
+integration, packaged E2E/accessibility/performance evidence, and the Alpha UX review remain open under R8.
 
 ## X5-R9 — Make reports result-first and portable
 

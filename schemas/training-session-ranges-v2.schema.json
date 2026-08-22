@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-ranges-v2.schema.json",
+  "title": "FitFreed training-session ranges version 2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["snapshotRef", "sessionRef", "sessionDurationMilliseconds", "evidenceRevision", "exercises", "ranges"],
+  "properties": {
+    "snapshotRef": { "$ref": "#/$defs/snapshotRef" },
+    "sessionRef": { "$ref": "#/$defs/sessionRef" },
+    "sessionDurationMilliseconds": { "$ref": "#/$defs/elapsedMilliseconds" },
+    "evidenceRevision": { "$ref": "#/$defs/evidenceRevision" },
+    "exercises": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": { "$ref": "#/$defs/exercise" }
+    },
+    "ranges": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": { "$ref": "#/$defs/range" }
+    }
+  },
+  "$defs": {
+    "snapshotRef": { "type": "string", "pattern": "^training-snapshot-[0-9a-f]{64}$" },
+    "sessionRef": { "type": "string", "pattern": "^session-[0-9a-f]{64}$" },
+    "exerciseRef": { "type": "string", "pattern": "^exercise-[0-9a-f]{64}$" },
+    "rangeRef": { "type": "string", "pattern": "^range-[0-9a-f]{64}$" },
+    "evidenceRevision": { "type": "string", "pattern": "^range-evidence-[0-9a-f]{64}$" },
+    "elapsedMilliseconds": { "type": "string", "pattern": "^(0|[1-9][0-9]*)$" },
+    "positiveMilliseconds": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+    "exercise": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exerciseRef", "ordinal", "durationMilliseconds"],
+      "properties": {
+        "exerciseRef": { "$ref": "#/$defs/exerciseRef" },
+        "ordinal": { "type": "integer", "minimum": 0 },
+        "durationMilliseconds": { "$ref": "#/$defs/elapsedMilliseconds" }
+      }
+    },
+    "range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rangeRef", "exerciseRef", "title", "startedAtElapsedMilliseconds", "endedAtElapsedMilliseconds", "evidenceRevision", "authorship", "state", "revision"],
+      "properties": {
+        "rangeRef": { "$ref": "#/$defs/rangeRef" },
+        "exerciseRef": {
+          "oneOf": [
+            { "$ref": "#/$defs/exerciseRef" },
+            { "type": "null" }
+          ]
+        },
+        "title": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "startedAtElapsedMilliseconds": { "$ref": "#/$defs/elapsedMilliseconds" },
+        "endedAtElapsedMilliseconds": { "$ref": "#/$defs/positiveMilliseconds" },
+        "evidenceRevision": { "$ref": "#/$defs/evidenceRevision" },
+        "authorship": { "const": "user" },
+        "state": { "enum": ["current", "review-required"] },
+        "revision": { "type": "integer", "minimum": 1 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "exerciseRef": { "type": "null" } }, "required": ["exerciseRef"] },
+          "then": { "properties": { "state": { "const": "review-required" } } }
+        },
+        {
+          "if": { "properties": { "state": { "const": "current" } }, "required": ["state"] },
+          "then": { "properties": { "exerciseRef": { "$ref": "#/$defs/exerciseRef" } } }
+        }
+      ]
+    }
+  }
+}

@@ -2,6 +2,7 @@ use std::{error::Error, fmt};
 
 const RANGE_ID_PREFIX: &str = "range-";
 const SESSION_REF_PREFIX: &str = "session-";
+const EXERCISE_REF_PREFIX: &str = "exercise-";
 const EVIDENCE_REVISION_PREFIX: &str = "range-evidence-";
 const ID_HEX_CHARACTERS: usize = 64;
 const MAX_TITLE_CHARACTERS: usize = 80;
@@ -59,6 +60,7 @@ pub enum TrainingSessionRangeEvidenceCompatibility {
 pub struct TrainingSessionRange {
     range_id: String,
     session_ref: String,
+    exercise_ref: Option<String>,
     title: String,
     started_at_elapsed_milliseconds: i64,
     ended_at_elapsed_milliseconds: i64,
@@ -73,23 +75,25 @@ impl TrainingSessionRange {
     pub fn create(
         range_id: impl Into<String>,
         session_ref: impl Into<String>,
+        exercise_ref: impl Into<String>,
         title: &str,
         started_at_elapsed_milliseconds: i64,
         ended_at_elapsed_milliseconds: i64,
-        session_duration_milliseconds: i64,
+        exercise_duration_milliseconds: i64,
         evidence_revision: impl Into<String>,
     ) -> Result<Self, TrainingSessionRangeError> {
-        validate_session_duration(session_duration_milliseconds)?;
+        validate_exercise_duration(exercise_duration_milliseconds)?;
         validate_boundaries(
             started_at_elapsed_milliseconds,
             ended_at_elapsed_milliseconds,
         )?;
-        if ended_at_elapsed_milliseconds > session_duration_milliseconds {
-            return Err(TrainingSessionRangeError::OutsideSession);
+        if ended_at_elapsed_milliseconds > exercise_duration_milliseconds {
+            return Err(TrainingSessionRangeError::OutsideExercise);
         }
         Self::restore(
             range_id,
             session_ref,
+            Some(exercise_ref.into()),
             normalize_title(title)?,
             started_at_elapsed_milliseconds,
             ended_at_elapsed_milliseconds,
@@ -104,6 +108,7 @@ impl TrainingSessionRange {
     pub fn restore(
         range_id: impl Into<String>,
         session_ref: impl Into<String>,
+        exercise_ref: Option<String>,
         title: impl Into<String>,
         started_at_elapsed_milliseconds: i64,
         ended_at_elapsed_milliseconds: i64,
@@ -120,6 +125,15 @@ impl TrainingSessionRange {
             .map_err(|()| TrainingSessionRangeError::InvalidIdentifier)?;
         validate_capability(&session_ref, SESSION_REF_PREFIX)
             .map_err(|()| TrainingSessionRangeError::InvalidSessionReference)?;
+        if exercise_ref
+            .as_deref()
+            .is_some_and(|value| validate_capability(value, EXERCISE_REF_PREFIX).is_err())
+        {
+            return Err(TrainingSessionRangeError::InvalidExerciseReference);
+        }
+        if exercise_ref.is_none() && state == TrainingSessionRangeState::Current {
+            return Err(TrainingSessionRangeError::UnanchoredCurrentRange);
+        }
         validate_title(&title)?;
         if title.trim() != title {
             return Err(TrainingSessionRangeError::NonCanonicalTitle);
@@ -136,6 +150,7 @@ impl TrainingSessionRange {
         Ok(Self {
             range_id,
             session_ref,
+            exercise_ref,
             title,
             started_at_elapsed_milliseconds,
             ended_at_elapsed_milliseconds,
@@ -152,6 +167,10 @@ impl TrainingSessionRange {
 
     pub fn session_ref(&self) -> &str {
         &self.session_ref
+    }
+
+    pub fn exercise_ref(&self) -> Option<&str> {
+        self.exercise_ref.as_deref()
     }
 
     pub fn title(&self) -> &str {
@@ -196,22 +215,33 @@ pub fn rename_training_session_range(
 
 pub fn adjust_training_session_range(
     existing: &TrainingSessionRange,
+    exercise_ref: &str,
     started_at_elapsed_milliseconds: i64,
     ended_at_elapsed_milliseconds: i64,
-    session_duration_milliseconds: i64,
+    exercise_duration_milliseconds: i64,
     evidence_revision: &str,
 ) -> Result<TrainingSessionRange, TrainingSessionRangeError> {
-    validate_session_duration(session_duration_milliseconds)?;
+    validate_capability(exercise_ref, EXERCISE_REF_PREFIX)
+        .map_err(|()| TrainingSessionRangeError::InvalidExerciseReference)?;
+    if existing
+        .exercise_ref
+        .as_deref()
+        .is_some_and(|existing_ref| existing_ref != exercise_ref)
+    {
+        return Err(TrainingSessionRangeError::ExerciseOwnerChanged);
+    }
+    validate_exercise_duration(exercise_duration_milliseconds)?;
     validate_boundaries(
         started_at_elapsed_milliseconds,
         ended_at_elapsed_milliseconds,
     )?;
-    if ended_at_elapsed_milliseconds > session_duration_milliseconds {
-        return Err(TrainingSessionRangeError::OutsideSession);
+    if ended_at_elapsed_milliseconds > exercise_duration_milliseconds {
+        return Err(TrainingSessionRangeError::OutsideExercise);
     }
     validate_capability(evidence_revision, EVIDENCE_REVISION_PREFIX)
         .map_err(|()| TrainingSessionRangeError::InvalidEvidenceRevision)?;
-    if existing.started_at_elapsed_milliseconds == started_at_elapsed_milliseconds
+    if existing.exercise_ref.as_deref() == Some(exercise_ref)
+        && existing.started_at_elapsed_milliseconds == started_at_elapsed_milliseconds
         && existing.ended_at_elapsed_milliseconds == ended_at_elapsed_milliseconds
         && existing.evidence_revision == evidence_revision
         && existing.state == TrainingSessionRangeState::Current
@@ -219,6 +249,7 @@ pub fn adjust_training_session_range(
         return Ok(existing.clone());
     }
     revise(existing, |revised| {
+        revised.exercise_ref = Some(exercise_ref.to_owned());
         revised.started_at_elapsed_milliseconds = started_at_elapsed_milliseconds;
         revised.ended_at_elapsed_milliseconds = ended_at_elapsed_milliseconds;
         revised.evidence_revision = evidence_revision.to_owned();
@@ -228,15 +259,16 @@ pub fn adjust_training_session_range(
 
 pub fn reconcile_training_session_range(
     existing: &TrainingSessionRange,
-    session_duration_milliseconds: Option<i64>,
+    exercise_duration_milliseconds: Option<i64>,
     evidence_revision: &str,
     compatibility: TrainingSessionRangeEvidenceCompatibility,
 ) -> Result<TrainingSessionRange, TrainingSessionRangeError> {
     validate_capability(evidence_revision, EVIDENCE_REVISION_PREFIX)
         .map_err(|()| TrainingSessionRangeError::InvalidEvidenceRevision)?;
-    let boundaries_remain_valid = session_duration_milliseconds
-        .filter(|duration| *duration >= 0)
-        .is_some_and(|duration| existing.ended_at_elapsed_milliseconds <= duration);
+    let boundaries_remain_valid = existing.exercise_ref.is_some()
+        && exercise_duration_milliseconds
+            .filter(|duration| *duration >= 0)
+            .is_some_and(|duration| existing.ended_at_elapsed_milliseconds <= duration);
     let state = if existing.state == TrainingSessionRangeState::Current
         && compatibility == TrainingSessionRangeEvidenceCompatibility::Compatible
         && boundaries_remain_valid
@@ -258,6 +290,7 @@ pub fn reconcile_training_session_range(
 pub struct RemovedTrainingSessionRange {
     range_id: String,
     session_ref: String,
+    exercise_ref: Option<String>,
     expected_revision: u64,
 }
 
@@ -268,6 +301,10 @@ impl RemovedTrainingSessionRange {
 
     pub fn session_ref(&self) -> &str {
         &self.session_ref
+    }
+
+    pub fn exercise_ref(&self) -> Option<&str> {
+        self.exercise_ref.as_deref()
     }
 
     pub const fn expected_revision(&self) -> u64 {
@@ -284,6 +321,7 @@ pub fn remove_training_session_range(
     Ok(RemovedTrainingSessionRange {
         range_id: existing.range_id.clone(),
         session_ref: existing.session_ref.clone(),
+        exercise_ref: existing.exercise_ref.clone(),
         expected_revision: existing.revision,
     })
 }
@@ -341,9 +379,9 @@ fn validate_boundaries(started: i64, ended: i64) -> Result<(), TrainingSessionRa
     Ok(())
 }
 
-fn validate_session_duration(duration: i64) -> Result<(), TrainingSessionRangeError> {
+fn validate_exercise_duration(duration: i64) -> Result<(), TrainingSessionRangeError> {
     if duration < 0 {
-        return Err(TrainingSessionRangeError::InvalidSessionDuration);
+        return Err(TrainingSessionRangeError::InvalidExerciseDuration);
     }
     Ok(())
 }
@@ -352,13 +390,16 @@ fn validate_session_duration(duration: i64) -> Result<(), TrainingSessionRangeEr
 pub enum TrainingSessionRangeError {
     InvalidIdentifier,
     InvalidSessionReference,
+    InvalidExerciseReference,
+    ExerciseOwnerChanged,
+    UnanchoredCurrentRange,
     EmptyTitle,
     TitleTooLong,
     ControlCharacterInTitle,
     NonCanonicalTitle,
     InvalidBoundaries,
-    OutsideSession,
-    InvalidSessionDuration,
+    OutsideExercise,
+    InvalidExerciseDuration,
     InvalidEvidenceRevision,
     ZeroRevision,
     RevisionOverflow,
@@ -369,6 +410,11 @@ impl fmt::Display for TrainingSessionRangeError {
         let message = match self {
             Self::InvalidIdentifier => "training-session range identifier is invalid",
             Self::InvalidSessionReference => "training-session range owner is invalid",
+            Self::InvalidExerciseReference => "training-session range exercise owner is invalid",
+            Self::ExerciseOwnerChanged => "training-session range exercise owner changed",
+            Self::UnanchoredCurrentRange => {
+                "training-session range without an exercise owner must require review"
+            }
             Self::EmptyTitle => "training-session range title is empty",
             Self::TitleTooLong => "training-session range title exceeds 80 characters",
             Self::ControlCharacterInTitle => {
@@ -378,8 +424,8 @@ impl fmt::Display for TrainingSessionRangeError {
             Self::InvalidBoundaries => {
                 "training-session range boundaries are negative, equal, or reversed"
             }
-            Self::OutsideSession => "training-session range ends outside the session",
-            Self::InvalidSessionDuration => "training-session range session duration is negative",
+            Self::OutsideExercise => "training-session range ends outside the exercise",
+            Self::InvalidExerciseDuration => "training-session range exercise duration is negative",
             Self::InvalidEvidenceRevision => "training-session range evidence revision is invalid",
             Self::ZeroRevision => "training-session range revision is zero",
             Self::RevisionOverflow => "training-session range revision overflowed",

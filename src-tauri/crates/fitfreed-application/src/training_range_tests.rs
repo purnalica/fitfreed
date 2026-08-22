@@ -2,7 +2,8 @@ use std::cell::{Cell, RefCell};
 
 use fitfreed_domain::{
     reconcile_training_session_range as reconcile_range, RemovedTrainingSessionRange,
-    TrainingSessionRange, TrainingSessionRangeEvidenceCompatibility, TrainingSessionRangeState,
+    TrainingSessionRange, TrainingSessionRangeAuthorship,
+    TrainingSessionRangeEvidenceCompatibility, TrainingSessionRangeState,
 };
 
 use super::{
@@ -10,8 +11,8 @@ use super::{
     remove_training_session_range, rename_training_session_range,
     AdjustTrainingSessionRangeRequest, ApplicationError, CreateTrainingSessionRangeRequest,
     PersistedTrainingSessionRanges, RemoveTrainingSessionRangeRequest,
-    RenameTrainingSessionRangeRequest, TrainingSessionRangePort, TrainingSessionRangePortError,
-    TrainingSessionRangesQuery,
+    RenameTrainingSessionRangeRequest, TrainingSessionRangeExerciseContext,
+    TrainingSessionRangePort, TrainingSessionRangePortError, TrainingSessionRangesQuery,
 };
 
 const SNAPSHOT_REF: &str = concat!(
@@ -20,6 +21,10 @@ const SNAPSHOT_REF: &str = concat!(
 );
 const SESSION_REF: &str =
     "session-2222222222222222222222222222222222222222222222222222222222222222";
+const EXERCISE_REF: &str =
+    "exercise-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const OTHER_EXERCISE_REF: &str =
+    "exercise-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 const EVIDENCE_REVISION: &str = concat!(
     "range-evidence-",
     "3333333333333333333333333333333333333333333333333333333333333333"
@@ -33,6 +38,7 @@ fn range(index: usize, title: &str, started: i64, ended: i64) -> TrainingSession
     TrainingSessionRange::create(
         range_id(index),
         SESSION_REF,
+        EXERCISE_REF,
         title,
         started,
         ended,
@@ -57,6 +63,11 @@ impl ControlledPort {
                 session_ref: SESSION_REF.to_owned(),
                 session_duration_milliseconds: 600_000,
                 evidence_revision: EVIDENCE_REVISION.to_owned(),
+                exercises: vec![TrainingSessionRangeExerciseContext {
+                    exercise_ref: EXERCISE_REF.to_owned(),
+                    ordinal: 0,
+                    duration_milliseconds: 600_000,
+                }],
                 ranges,
             }),
             next_range_id: range_id(99),
@@ -171,6 +182,8 @@ fn lists_bounded_ranges_in_elapsed_order_with_current_evidence() {
     assert_eq!(result.session_ref, SESSION_REF);
     assert_eq!(result.session_duration_milliseconds, 600_000);
     assert_eq!(result.evidence_revision, EVIDENCE_REVISION);
+    assert_eq!(result.exercises.len(), 1);
+    assert_eq!(result.exercises[0].exercise_ref, EXERCISE_REF);
     assert_eq!(
         result
             .ranges
@@ -190,6 +203,7 @@ fn creates_and_returns_a_named_range_against_the_current_session_revision() {
         CreateTrainingSessionRangeRequest {
             session_ref: SESSION_REF.to_owned(),
             snapshot_ref: SNAPSHOT_REF.to_owned(),
+            exercise_ref: EXERCISE_REF.to_owned(),
             title: "  Riverside effort  ".to_owned(),
             started_at_elapsed_milliseconds: 60_000,
             ended_at_elapsed_milliseconds: 180_000,
@@ -199,6 +213,7 @@ fn creates_and_returns_a_named_range_against_the_current_session_revision() {
 
     assert_eq!(result.ranges.len(), 1);
     assert_eq!(result.ranges[0].range_id(), range_id(99));
+    assert_eq!(result.ranges[0].exercise_ref(), Some(EXERCISE_REF));
     assert_eq!(result.ranges[0].title(), "Riverside effort");
     assert_eq!(result.ranges[0].evidence_revision(), EVIDENCE_REVISION);
 }
@@ -267,6 +282,7 @@ fn adjusts_current_boundaries_and_completes_review_against_current_evidence() {
             snapshot_ref: SNAPSHOT_REF.to_owned(),
             range_ref: range_id(1),
             expected_revision: 2,
+            exercise_ref: EXERCISE_REF.to_owned(),
             started_at_elapsed_milliseconds: 30_000,
             ended_at_elapsed_milliseconds: 150_000,
         },
@@ -276,6 +292,81 @@ fn adjusts_current_boundaries_and_completes_review_against_current_evidence() {
     assert_eq!(result.ranges[0].state(), TrainingSessionRangeState::Current);
     assert_eq!(result.ranges[0].started_at_elapsed_milliseconds(), 30_000);
     assert_eq!(result.ranges[0].revision(), 3);
+}
+
+#[test]
+fn anchors_a_preserved_legacy_range_only_through_explicit_review() {
+    let legacy = TrainingSessionRange::restore(
+        range_id(1),
+        SESSION_REF,
+        None,
+        "Legacy selection",
+        60_000,
+        180_000,
+        EVIDENCE_REVISION,
+        TrainingSessionRangeAuthorship::User,
+        TrainingSessionRangeState::ReviewRequired,
+        2,
+    )
+    .expect("legacy range");
+    let port = ControlledPort::new(vec![legacy]);
+
+    let result = adjust_training_session_range(
+        &port,
+        AdjustTrainingSessionRangeRequest {
+            session_ref: SESSION_REF.to_owned(),
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+            range_ref: range_id(1),
+            expected_revision: 2,
+            exercise_ref: EXERCISE_REF.to_owned(),
+            started_at_elapsed_milliseconds: 30_000,
+            ended_at_elapsed_milliseconds: 150_000,
+        },
+    )
+    .expect("anchored range");
+
+    assert_eq!(result.ranges[0].exercise_ref(), Some(EXERCISE_REF));
+    assert_eq!(result.ranges[0].state(), TrainingSessionRangeState::Current);
+    assert_eq!(result.ranges[0].revision(), 3);
+}
+
+#[test]
+fn rejects_an_unknown_or_changed_exercise_owner_without_mutation() {
+    let port = ControlledPort::new(vec![range(1, "Opening", 0, 120_000)]);
+    port.persisted
+        .borrow_mut()
+        .exercises
+        .push(TrainingSessionRangeExerciseContext {
+            exercise_ref: OTHER_EXERCISE_REF.to_owned(),
+            ordinal: 1,
+            duration_milliseconds: 600_000,
+        });
+
+    for exercise_ref in [
+        OTHER_EXERCISE_REF.to_owned(),
+        format!("exercise-{}", "c".repeat(64)),
+    ] {
+        assert!(matches!(
+            adjust_training_session_range(
+                &port,
+                AdjustTrainingSessionRangeRequest {
+                    session_ref: SESSION_REF.to_owned(),
+                    snapshot_ref: SNAPSHOT_REF.to_owned(),
+                    range_ref: range_id(1),
+                    expected_revision: 1,
+                    exercise_ref,
+                    started_at_elapsed_milliseconds: 30_000,
+                    ended_at_elapsed_milliseconds: 150_000,
+                },
+            ),
+            Err(ApplicationError::InvalidTrainingSessionRange(_))
+                | Err(ApplicationError::TrainingSessionRangeNotFound)
+        ));
+    }
+    assert_eq!(
+        port.persisted.borrow().ranges[0],
+        range(1, "Opening", 0, 120_000)
+    );
 }
 
 #[test]
@@ -320,6 +411,29 @@ fn rejects_malformed_stale_foreign_and_unbounded_results() {
     port.persisted.borrow_mut().ranges = (0..1_001)
         .map(|index| range(index + 1, "Overlap", 0, 1))
         .collect();
+    assert!(matches!(
+        query_training_session_ranges(&port, query()),
+        Err(ApplicationError::TrainingSessionRangeQuery(_))
+    ));
+}
+
+#[test]
+fn rejects_duplicate_or_missing_exercise_context_for_current_ranges() {
+    let port = ControlledPort::new(vec![range(1, "Opening", 0, 120_000)]);
+    port.persisted
+        .borrow_mut()
+        .exercises
+        .push(TrainingSessionRangeExerciseContext {
+            exercise_ref: OTHER_EXERCISE_REF.to_owned(),
+            ordinal: 0,
+            duration_milliseconds: 600_000,
+        });
+    assert!(matches!(
+        query_training_session_ranges(&port, query()),
+        Err(ApplicationError::TrainingSessionRangeQuery(_))
+    ));
+
+    port.persisted.borrow_mut().exercises.clear();
     assert!(matches!(
         query_training_session_ranges(&port, query()),
         Err(ApplicationError::TrainingSessionRangeQuery(_))
@@ -385,6 +499,7 @@ fn rejects_invalid_capabilities_revisions_titles_and_boundaries_before_mutation(
             CreateTrainingSessionRangeRequest {
                 session_ref: "invalid".to_owned(),
                 snapshot_ref: SNAPSHOT_REF.to_owned(),
+                exercise_ref: EXERCISE_REF.to_owned(),
                 title: "Selection".to_owned(),
                 started_at_elapsed_milliseconds: 0,
                 ended_at_elapsed_milliseconds: 1,
@@ -413,6 +528,7 @@ fn rejects_invalid_capabilities_revisions_titles_and_boundaries_before_mutation(
                 snapshot_ref: SNAPSHOT_REF.to_owned(),
                 range_ref: range_id(1),
                 expected_revision: 1,
+                exercise_ref: EXERCISE_REF.to_owned(),
                 started_at_elapsed_milliseconds: 200_000,
                 ended_at_elapsed_milliseconds: 100_000,
             },

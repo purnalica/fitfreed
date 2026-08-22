@@ -2,6 +2,10 @@
 
 ## Status and authority
 
+This immutable document records the preceding session-coordinate contract. The current normative contract is
+[training-session range version 2](training-session-range-v2.md), which adds exercise ownership and preserves
+version-1 objects explicitly for review rather than inferring a coordinate transformation.
+
 This is the normative provider-neutral contract for a person's named, contiguous selection inside one
 training session. A `TrainingSessionRange` is local user-authored evidence. It does not modify imported
 session facts, become a provider lap, or replace a reusable

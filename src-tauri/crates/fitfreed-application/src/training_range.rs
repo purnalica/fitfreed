@@ -11,9 +11,11 @@ use crate::{training_detail::valid_ref, ApplicationError};
 
 const SNAPSHOT_PREFIX: &str = "training-snapshot-";
 const SESSION_PREFIX: &str = "session-";
+const EXERCISE_PREFIX: &str = "exercise-";
 const RANGE_PREFIX: &str = "range-";
 const EVIDENCE_REVISION_PREFIX: &str = "range-evidence-";
 const MAX_SESSION_RANGES: usize = 1_000;
+const MAX_SESSION_RANGE_EXERCISES: usize = 1_000;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TrainingSessionRangesQuery {
@@ -27,7 +29,15 @@ pub struct PersistedTrainingSessionRanges {
     pub session_ref: String,
     pub session_duration_milliseconds: i64,
     pub evidence_revision: String,
+    pub exercises: Vec<TrainingSessionRangeExerciseContext>,
     pub ranges: Vec<TrainingSessionRange>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TrainingSessionRangeExerciseContext {
+    pub exercise_ref: String,
+    pub ordinal: usize,
+    pub duration_milliseconds: i64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -36,6 +46,7 @@ pub struct TrainingSessionRangesResult {
     pub session_ref: String,
     pub session_duration_milliseconds: i64,
     pub evidence_revision: String,
+    pub exercises: Vec<TrainingSessionRangeExerciseContext>,
     pub ranges: Vec<TrainingSessionRange>,
 }
 
@@ -85,6 +96,7 @@ pub trait TrainingSessionRangePort {
 pub struct CreateTrainingSessionRangeRequest {
     pub session_ref: String,
     pub snapshot_ref: String,
+    pub exercise_ref: String,
     pub title: String,
     pub started_at_elapsed_milliseconds: i64,
     pub ended_at_elapsed_milliseconds: i64,
@@ -105,6 +117,7 @@ pub struct AdjustTrainingSessionRangeRequest {
     pub snapshot_ref: String,
     pub range_ref: String,
     pub expected_revision: u64,
+    pub exercise_ref: String,
     pub started_at_elapsed_milliseconds: i64,
     pub ended_at_elapsed_milliseconds: i64,
 }
@@ -133,17 +146,20 @@ pub fn create_training_session_range(
     request: CreateTrainingSessionRangeRequest,
 ) -> Result<TrainingSessionRangesResult, ApplicationError> {
     let query = mutation_query(&request.session_ref, &request.snapshot_ref, None, None)?;
+    validate_exercise_ref(&request.exercise_ref)?;
     let current = load_context(port, &query)?;
+    let exercise = find_exercise(&current, &request.exercise_ref)?;
     let range_id = port
         .new_training_session_range_id()
         .map_err(map_update_error)?;
     let range = TrainingSessionRange::create(
         range_id,
         &request.session_ref,
+        &request.exercise_ref,
         &request.title,
         request.started_at_elapsed_milliseconds,
         request.ended_at_elapsed_milliseconds,
-        current.session_duration_milliseconds,
+        exercise.duration_milliseconds,
         &current.evidence_revision,
     )
     .map_err(invalid_range)?;
@@ -186,13 +202,16 @@ pub fn adjust_training_session_range(
         Some(&request.range_ref),
         Some(request.expected_revision),
     )?;
+    validate_exercise_ref(&request.exercise_ref)?;
     let current = load_context(port, &query)?;
     let existing = find_expected_range(&current, &request.range_ref, request.expected_revision)?;
+    let exercise = find_exercise(&current, &request.exercise_ref)?;
     let revised = adjust_range(
         existing,
+        &request.exercise_ref,
         request.started_at_elapsed_milliseconds,
         request.ended_at_elapsed_milliseconds,
-        current.session_duration_milliseconds,
+        exercise.duration_milliseconds,
         &current.evidence_revision,
     )
     .map_err(invalid_range)?;
@@ -305,6 +324,7 @@ fn build_result(
         session_ref: persisted.session_ref,
         session_duration_milliseconds: persisted.session_duration_milliseconds,
         evidence_revision: persisted.evidence_revision,
+        exercises: persisted.exercises,
         ranges: persisted.ranges,
     })
 }
@@ -341,6 +361,24 @@ fn mutation_query(
     Ok(query)
 }
 
+fn validate_exercise_ref(exercise_ref: &str) -> Result<(), ApplicationError> {
+    if !valid_ref(exercise_ref, EXERCISE_PREFIX) {
+        return invalid("range exercise reference is invalid");
+    }
+    Ok(())
+}
+
+fn find_exercise<'a>(
+    persisted: &'a PersistedTrainingSessionRanges,
+    exercise_ref: &str,
+) -> Result<&'a TrainingSessionRangeExerciseContext, ApplicationError> {
+    persisted
+        .exercises
+        .iter()
+        .find(|exercise| exercise.exercise_ref == exercise_ref)
+        .ok_or(ApplicationError::TrainingSessionRangeNotFound)
+}
+
 fn validate_persisted(
     query: &TrainingSessionRangesQuery,
     persisted: &PersistedTrainingSessionRanges,
@@ -356,17 +394,37 @@ fn validate_persisted(
     }
     if persisted.session_duration_milliseconds < 0
         || !valid_ref(&persisted.evidence_revision, EVIDENCE_REVISION_PREFIX)
+        || persisted.exercises.len() > MAX_SESSION_RANGE_EXERCISES
         || persisted.ranges.len() > MAX_SESSION_RANGES
     {
         return query_failed("range context is invalid or exceeds its bound");
     }
+    let mut exercise_refs = BTreeSet::new();
+    let mut exercise_ordinals = BTreeSet::new();
+    for exercise in &persisted.exercises {
+        if !valid_ref(&exercise.exercise_ref, EXERCISE_PREFIX)
+            || !exercise_refs.insert(exercise.exercise_ref.as_str())
+            || !exercise_ordinals.insert(exercise.ordinal)
+            || exercise.duration_milliseconds < 0
+        {
+            return query_failed("range exercise context is invalid");
+        }
+    }
     let mut identities = BTreeSet::new();
     for range in &persisted.ranges {
+        let exercise_duration = range.exercise_ref().and_then(|range_exercise_ref| {
+            persisted
+                .exercises
+                .iter()
+                .find(|exercise| exercise.exercise_ref == range_exercise_ref)
+                .map(|exercise| exercise.duration_milliseconds)
+        });
         if range.session_ref() != persisted.session_ref
             || range.evidence_revision() != persisted.evidence_revision
             || !identities.insert(range.range_id())
             || (range.state() == TrainingSessionRangeState::Current
-                && range.ended_at_elapsed_milliseconds() > persisted.session_duration_milliseconds)
+                && !exercise_duration
+                    .is_some_and(|duration| range.ended_at_elapsed_milliseconds() <= duration))
         {
             return query_failed("range result is inconsistent with current session evidence");
         }

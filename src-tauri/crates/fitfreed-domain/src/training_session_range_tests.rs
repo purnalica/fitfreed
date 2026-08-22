@@ -8,6 +8,10 @@ use super::{
 const RANGE_ID: &str = "range-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 const SESSION_REF: &str =
     "session-1111111111111111111111111111111111111111111111111111111111111111";
+const EXERCISE_REF: &str =
+    "exercise-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const OTHER_EXERCISE_REF: &str =
+    "exercise-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 const EVIDENCE_REVISION: &str = concat!(
     "range-evidence-",
     "2222222222222222222222222222222222222222222222222222222222222222"
@@ -21,6 +25,7 @@ fn range() -> TrainingSessionRange {
     TrainingSessionRange::create(
         RANGE_ID,
         SESSION_REF,
+        EXERCISE_REF,
         "  Riverside effort  ",
         60_000,
         180_000,
@@ -31,11 +36,12 @@ fn range() -> TrainingSessionRange {
 }
 
 #[test]
-fn creates_a_session_owned_user_range() {
+fn creates_an_exercise_owned_user_range() {
     let range = range();
 
     assert_eq!(range.range_id(), RANGE_ID);
     assert_eq!(range.session_ref(), SESSION_REF);
+    assert_eq!(range.exercise_ref(), Some(EXERCISE_REF));
     assert_eq!(range.title(), "Riverside effort");
     assert_eq!(range.started_at_elapsed_milliseconds(), 60_000);
     assert_eq!(range.ended_at_elapsed_milliseconds(), 180_000);
@@ -56,17 +62,29 @@ fn renames_and_adjusts_with_one_revision_per_effective_authored_change() {
     assert_eq!(renamed.title(), "Strong finish");
     assert_eq!(renamed.revision(), 2);
 
-    let adjusted =
-        adjust_training_session_range(&renamed, 90_000, 240_000, 300_000, EVIDENCE_REVISION)
-            .expect("adjusted range");
+    let adjusted = adjust_training_session_range(
+        &renamed,
+        EXERCISE_REF,
+        90_000,
+        240_000,
+        300_000,
+        EVIDENCE_REVISION,
+    )
+    .expect("adjusted range");
     assert_eq!(adjusted.started_at_elapsed_milliseconds(), 90_000);
     assert_eq!(adjusted.ended_at_elapsed_milliseconds(), 240_000);
     assert_eq!(adjusted.state(), TrainingSessionRangeState::Current);
     assert_eq!(adjusted.revision(), 3);
 
-    let unchanged =
-        adjust_training_session_range(&adjusted, 90_000, 240_000, 300_000, EVIDENCE_REVISION)
-            .expect("unchanged adjustment");
+    let unchanged = adjust_training_session_range(
+        &adjusted,
+        EXERCISE_REF,
+        90_000,
+        240_000,
+        300_000,
+        EVIDENCE_REVISION,
+    )
+    .expect("unchanged adjustment");
     assert_eq!(unchanged, adjusted);
 }
 
@@ -157,6 +175,7 @@ fn adjustment_against_current_evidence_completes_review() {
 
     let reviewed = adjust_training_session_range(
         &review_required,
+        EXERCISE_REF,
         30_000,
         120_000,
         300_000,
@@ -174,6 +193,7 @@ fn removal_is_an_explicit_revision_bound_domain_decision() {
 
     assert_eq!(removed.range_id(), RANGE_ID);
     assert_eq!(removed.session_ref(), SESSION_REF);
+    assert_eq!(removed.exercise_ref(), Some(EXERCISE_REF));
     assert_eq!(removed.expected_revision(), 1);
 }
 
@@ -183,6 +203,7 @@ fn rejects_invalid_identity_title_boundaries_and_restore_state() {
         TrainingSessionRange::create(
             "range-not-a-capability",
             SESSION_REF,
+            EXERCISE_REF,
             "Warm-up",
             0,
             1,
@@ -192,16 +213,27 @@ fn rejects_invalid_identity_title_boundaries_and_restore_state() {
         TrainingSessionRange::create(
             RANGE_ID,
             "session-not-a-capability",
+            EXERCISE_REF,
             "Warm-up",
             0,
             1,
             10,
             EVIDENCE_REVISION,
         ),
-        TrainingSessionRange::create(RANGE_ID, SESSION_REF, "   ", 0, 1, 10, EVIDENCE_REVISION),
         TrainingSessionRange::create(
             RANGE_ID,
             SESSION_REF,
+            EXERCISE_REF,
+            "   ",
+            0,
+            1,
+            10,
+            EVIDENCE_REVISION,
+        ),
+        TrainingSessionRange::create(
+            RANGE_ID,
+            SESSION_REF,
+            EXERCISE_REF,
             "Warm-up",
             10,
             10,
@@ -211,6 +243,7 @@ fn rejects_invalid_identity_title_boundaries_and_restore_state() {
         TrainingSessionRange::create(
             RANGE_ID,
             SESSION_REF,
+            EXERCISE_REF,
             "Warm-up",
             -1,
             1,
@@ -220,6 +253,7 @@ fn rejects_invalid_identity_title_boundaries_and_restore_state() {
         TrainingSessionRange::create(
             RANGE_ID,
             SESSION_REF,
+            EXERCISE_REF,
             "Warm-up",
             0,
             11,
@@ -229,11 +263,22 @@ fn rejects_invalid_identity_title_boundaries_and_restore_state() {
         TrainingSessionRange::create(
             RANGE_ID,
             SESSION_REF,
+            EXERCISE_REF,
             "Warm-up",
             0,
             1,
             10,
             "range-evidence-invalid",
+        ),
+        TrainingSessionRange::create(
+            RANGE_ID,
+            SESSION_REF,
+            "exercise-not-a-capability",
+            "Warm-up",
+            0,
+            1,
+            10,
+            EVIDENCE_REVISION,
         ),
     ];
     assert!(cases.into_iter().all(|result| result.is_err()));
@@ -242,6 +287,7 @@ fn rejects_invalid_identity_title_boundaries_and_restore_state() {
         TrainingSessionRange::restore(
             RANGE_ID,
             SESSION_REF,
+            Some(EXERCISE_REF.to_owned()),
             " Warm-up ",
             0,
             1,
@@ -256,6 +302,7 @@ fn rejects_invalid_identity_title_boundaries_and_restore_state() {
         TrainingSessionRange::restore(
             RANGE_ID,
             SESSION_REF,
+            Some(EXERCISE_REF.to_owned()),
             "Warm-up",
             0,
             1,
@@ -273,11 +320,92 @@ fn rejects_invalid_adjustments_without_changing_the_range() {
     let original = range();
 
     for result in [
-        adjust_training_session_range(&original, 180_000, 60_000, 300_000, EVIDENCE_REVISION),
-        adjust_training_session_range(&original, 0, 310_000, 300_000, EVIDENCE_REVISION),
-        adjust_training_session_range(&original, 0, 10_000, 300_000, "range-evidence-invalid"),
+        adjust_training_session_range(
+            &original,
+            EXERCISE_REF,
+            180_000,
+            60_000,
+            300_000,
+            EVIDENCE_REVISION,
+        ),
+        adjust_training_session_range(
+            &original,
+            EXERCISE_REF,
+            0,
+            310_000,
+            300_000,
+            EVIDENCE_REVISION,
+        ),
+        adjust_training_session_range(
+            &original,
+            EXERCISE_REF,
+            0,
+            10_000,
+            300_000,
+            "range-evidence-invalid",
+        ),
+        adjust_training_session_range(
+            &original,
+            OTHER_EXERCISE_REF,
+            0,
+            10_000,
+            300_000,
+            EVIDENCE_REVISION,
+        ),
     ] {
         assert!(result.is_err());
     }
     assert_eq!(original, range());
+}
+
+#[test]
+fn preserves_a_legacy_session_coordinate_until_explicit_exercise_review() {
+    let legacy = TrainingSessionRange::restore(
+        RANGE_ID,
+        SESSION_REF,
+        None,
+        "Legacy selection",
+        60_000,
+        180_000,
+        EVIDENCE_REVISION,
+        TrainingSessionRangeAuthorship::User,
+        TrainingSessionRangeState::ReviewRequired,
+        2,
+    )
+    .expect("preserved legacy range");
+
+    assert_eq!(legacy.exercise_ref(), None);
+    let reviewed = adjust_training_session_range(
+        &legacy,
+        EXERCISE_REF,
+        30_000,
+        120_000,
+        300_000,
+        NEXT_EVIDENCE_REVISION,
+    )
+    .expect("explicitly anchored range");
+
+    assert_eq!(reviewed.exercise_ref(), Some(EXERCISE_REF));
+    assert_eq!(reviewed.started_at_elapsed_milliseconds(), 30_000);
+    assert_eq!(reviewed.state(), TrainingSessionRangeState::Current);
+    assert_eq!(reviewed.revision(), 3);
+}
+
+#[test]
+fn rejects_a_current_range_without_an_exercise_owner() {
+    assert_eq!(
+        TrainingSessionRange::restore(
+            RANGE_ID,
+            SESSION_REF,
+            None,
+            "Unanchored",
+            0,
+            1,
+            EVIDENCE_REVISION,
+            TrainingSessionRangeAuthorship::User,
+            TrainingSessionRangeState::Current,
+            1,
+        ),
+        Err(TrainingSessionRangeError::UnanchoredCurrentRange)
+    );
 }

@@ -814,11 +814,12 @@ for (const [schemaPath, validValue, invalidValue] of segmentationCommandContract
 }
 
 const trainingSessionRangeCanonicalPath =
-  "docs/data-formats/canonical/training-session-range.md";
+  "docs/data-formats/canonical/training-session-range-v2.md";
 const trainingSessionRangeCanonical = read(trainingSessionRangeCanonicalPath);
 for (const value of [
   "rangeRef",
   "sessionRef",
+  "exerciseRef",
   "title",
   "startedAtElapsedMilliseconds",
   "endedAtElapsedMilliseconds",
@@ -834,7 +835,7 @@ for (const value of [
 }
 
 const trainingSessionRangeReadModelPath =
-  "docs/data-formats/insights/training-session-range-v1.md";
+  "docs/data-formats/insights/training-session-range-v2.md";
 const trainingSessionRangeReadModel = read(trainingSessionRangeReadModelPath);
 for (const value of [
   "query_training_session_ranges",
@@ -846,6 +847,9 @@ for (const value of [
   "sessionRef",
   "sessionDurationMilliseconds",
   "evidenceRevision",
+  "exercises",
+  "exerciseRef",
+  "durationMilliseconds",
   "ranges",
   "rangeRef",
   "title",
@@ -860,6 +864,7 @@ for (const value of [
 
 const syntheticTrainingSessionRange = {
   rangeRef: `range-${"c".repeat(64)}`,
+  exerciseRef: `exercise-${"e".repeat(64)}`,
   title: "Bridge to bend",
   startedAtElapsedMilliseconds: "1000",
   endedAtElapsedMilliseconds: "2000",
@@ -873,9 +878,16 @@ const syntheticTrainingSessionRanges = {
   sessionRef: `session-${"b".repeat(64)}`,
   sessionDurationMilliseconds: "600000",
   evidenceRevision: syntheticTrainingSessionRange.evidenceRevision,
+  exercises: [
+    {
+      exerciseRef: syntheticTrainingSessionRange.exerciseRef,
+      ordinal: 0,
+      durationMilliseconds: "300000",
+    },
+  ],
   ranges: [syntheticTrainingSessionRange],
 };
-const trainingSessionRangesSchemaPath = "schemas/training-session-ranges-v1.schema.json";
+const trainingSessionRangesSchemaPath = "schemas/training-session-ranges-v2.schema.json";
 const validateTrainingSessionRanges = ajv.compile(
   JSON.parse(read(trainingSessionRangesSchemaPath)),
 );
@@ -898,10 +910,33 @@ for (const invalidRanges of [
     ...syntheticTrainingSessionRanges,
     evidenceRevision: "range-evidence-private",
   },
+  {
+    ...syntheticTrainingSessionRanges,
+    ranges: [{ ...syntheticTrainingSessionRange, exerciseRef: null }],
+  },
+  {
+    ...syntheticTrainingSessionRanges,
+    exercises: [{ ...syntheticTrainingSessionRanges.exercises[0], exerciseRef: "exercise-private" }],
+  },
 ]) {
   if (validateTrainingSessionRanges(invalidRanges)) {
     throw new Error(`${trainingSessionRangesSchemaPath} accepted an invalid result`);
   }
+}
+const legacyTrainingSessionRanges = {
+  ...syntheticTrainingSessionRanges,
+  ranges: [
+    {
+      ...syntheticTrainingSessionRange,
+      exerciseRef: null,
+      state: "review-required",
+    },
+  ],
+};
+if (!validateTrainingSessionRanges(legacyTrainingSessionRanges)) {
+  throw new Error(
+    `${trainingSessionRangesSchemaPath} rejected preserved legacy evidence: ${ajv.errorsText(validateTrainingSessionRanges.errors)}`,
+  );
 }
 
 const trainingSessionRangeCommandContracts = [
@@ -918,10 +953,11 @@ const trainingSessionRangeCommandContracts = [
     },
   ],
   [
-    "schemas/training-session-range-create-v1.schema.json",
+    "schemas/training-session-range-create-v2.schema.json",
     {
       sessionRef: syntheticTrainingSessionRanges.sessionRef,
       snapshotRef: syntheticTrainingSessionRanges.snapshotRef,
+      exerciseRef: syntheticTrainingSessionRange.exerciseRef,
       title: syntheticTrainingSessionRange.title,
       startedAtElapsedMilliseconds: syntheticTrainingSessionRange.startedAtElapsedMilliseconds,
       endedAtElapsedMilliseconds: syntheticTrainingSessionRange.endedAtElapsedMilliseconds,
@@ -929,6 +965,7 @@ const trainingSessionRangeCommandContracts = [
     {
       sessionRef: syntheticTrainingSessionRanges.sessionRef,
       snapshotRef: syntheticTrainingSessionRanges.snapshotRef,
+      exerciseRef: "exercise-private",
       title: syntheticTrainingSessionRange.title,
       startedAtElapsedMilliseconds: "00",
       endedAtElapsedMilliseconds: syntheticTrainingSessionRange.endedAtElapsedMilliseconds,
@@ -952,12 +989,13 @@ const trainingSessionRangeCommandContracts = [
     },
   ],
   [
-    "schemas/training-session-range-adjust-v1.schema.json",
+    "schemas/training-session-range-adjust-v2.schema.json",
     {
       sessionRef: syntheticTrainingSessionRanges.sessionRef,
       snapshotRef: syntheticTrainingSessionRanges.snapshotRef,
       rangeRef: syntheticTrainingSessionRange.rangeRef,
       expectedRevision: syntheticTrainingSessionRange.revision,
+      exerciseRef: syntheticTrainingSessionRange.exerciseRef,
       startedAtElapsedMilliseconds: "1500",
       endedAtElapsedMilliseconds: "2500",
     },
@@ -966,6 +1004,7 @@ const trainingSessionRangeCommandContracts = [
       snapshotRef: syntheticTrainingSessionRanges.snapshotRef,
       rangeRef: syntheticTrainingSessionRange.rangeRef,
       expectedRevision: syntheticTrainingSessionRange.revision,
+      exerciseRef: syntheticTrainingSessionRange.exerciseRef,
       startedAtElapsedMilliseconds: "1500",
       endedAtElapsedMilliseconds: "0",
     },

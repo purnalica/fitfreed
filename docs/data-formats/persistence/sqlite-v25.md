@@ -2,6 +2,10 @@
 
 ## Status and migration
 
+This immutable document records the preceding session-coordinate storage contract. The current schema is
+[SQLite version 26](sqlite-v26.md), which preserves every version-25 range as unanchored review evidence and
+requires exercise ownership for current ranges.
+
 Schema version 25 applies `0025_training_session_ranges.sql` atomically after version 24. It adds durable
 user-authored ranges without rewriting imported sessions, source structure, routes, signals, zones,
 segmentation criteria, reports, or existing application state. Versions 1 through 25 remain direct supported

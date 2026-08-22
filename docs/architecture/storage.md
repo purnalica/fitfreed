@@ -4,7 +4,7 @@
 
 Current architecture after [ADR 0002](decisions/0002-select-sqlite-storage.md). SQLite is the only storage engine in the application and the authoritative local-library format. It does not replace the documented portable FitFreed data contract.
 
-The current implemented schema and compatibility boundary are documented in the [SQLite version 25 persistence specification](../data-formats/persistence/sqlite-v25.md). It preserves the complete provider-neutral fitness library through version 8, authenticated-update state from version 9, application preferences from version 10, a resumable exploration destination from version 11, user-authored sport classifications from version 12, coherent full-history training discovery evidence from version 13, the disposable training-discovery workspace from version 14, mapped training exercises, laps, and pauses from version 15, primary and transition route assessments with exact points from version 16, regular temporal training signals with exact unavailable slots from version 17, reusable personal segmentation criteria from version 18, provider-recorded training-zone assessments from version 19, durable versioned report definitions from version 20, composable route-report intent from version 21, user-selected training-period report queries from version 22, question-, exploration-, session-, and blank-origin reports from version 23, compact exact-signal storage from version 24, and durable user-authored training-session ranges from version 25. Earlier specifications remain immutable migration history.
+The current implemented schema and compatibility boundary are documented in the [SQLite version 26 persistence specification](../data-formats/persistence/sqlite-v26.md). It preserves the complete provider-neutral fitness library through version 8, authenticated-update state from version 9, application preferences from version 10, a resumable exploration destination from version 11, user-authored sport classifications from version 12, coherent full-history training discovery evidence from version 13, the disposable training-discovery workspace from version 14, mapped training exercises, laps, and pauses from version 15, primary and transition route assessments with exact points from version 16, regular temporal training signals with exact unavailable slots from version 17, reusable personal segmentation criteria from version 18, provider-recorded training-zone assessments from version 19, durable versioned report definitions from version 20, composable route-report intent from version 21, user-selected training-period report queries from version 22, question-, exploration-, session-, and blank-origin reports from version 23, compact exact-signal storage from version 24, durable user-authored training-session ranges from version 25, and exercise-owned range coordinates with lossless legacy preservation from version 26. Earlier specifications remain immutable migration history.
 
 ## Ownership
 
@@ -114,6 +114,14 @@ keeping provider laps and reusable segmentation criteria separate. Create, edit,
 evidence reconciliation are atomic. Equivalent evidence leaves revisions stable; strict enrichment rebases
 compatible current boundaries, while amendment retains them for explicit review rather than clamping or
 redirecting the person's interpretation. Subsequent enrichment cannot clear that review requirement.
+
+Schema version 26 corrects current range ownership to one imported exercise and interprets current boundaries
+only on that exercise's elapsed coordinate. It retains every schema-25 object as an unanchored,
+review-required legacy session-coordinate row because session duration, exercise duration, route offsets,
+signal intervals, and local timestamps do not prove a lossless transformation. Explicit adjustment can anchor
+that retained object to one current exercise with a complete validated replacement pair. Once established,
+exercise ownership cannot change. Import reconciliation preserves a missing or shortened exercise for review
+rather than selecting another exercise, clamping boundaries, or deleting authored meaning.
 
 New origin and evidence rows become durable only inside the same visibility transaction as canonical history and operation completion. Existing development origins migrate as unverified origins without invented evidence. Exact-repeat lookup may inherit an origin only from a completed operation whose correlation state is verified; an old package fingerprint alone cannot authorize subject resolution.
 

@@ -2,6 +2,11 @@
 
 ## Purpose and commands
 
+This immutable document records the preceding session-coordinate transport. The current boundary is
+[training-session range read model version 2](training-session-range-v2.md). Version 2 requires explicit
+exercise ownership for create and adjust, returns exercise context, and preserves version-1 objects as
+unanchored review evidence.
+
 This provider-neutral boundary persists and reopens a person's named contiguous selections within one
 training session. It exposes authored range state independently from provider laps, reusable segmentation
 criteria, and disposable derived sections.

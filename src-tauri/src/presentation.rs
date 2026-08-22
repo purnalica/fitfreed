@@ -48,22 +48,23 @@ use fitfreed_application::{
     TrainingSegmentCriterionDirection, TrainingSegmentCriterionMutationRequest,
     TrainingSeriesComparison, TrainingSeriesSummary, TrainingSessionCalendar,
     TrainingSessionCalendarDay, TrainingSessionCalendarRequest, TrainingSessionProvenanceQuery,
-    TrainingSessionProvenanceResult, TrainingSessionRangesQuery, TrainingSessionRangesResult,
-    TrainingSessionRouteQuery, TrainingSessionRoutesResult, TrainingSessionRoutesView,
-    TrainingSessionSearchItem, TrainingSessionSearchPage, TrainingSessionSearchRequest,
-    TrainingSessionSearchSummary, TrainingSessionSegmentationQuery,
-    TrainingSessionSegmentationResult, TrainingSessionSelection, TrainingSessionSelectionRequest,
-    TrainingSessionSignalsQuery, TrainingSessionSignalsResult, TrainingSessionSignalsView,
-    TrainingSessionSort, TrainingSessionSport, TrainingSessionStructureQuery,
-    TrainingSessionStructureResult, TrainingSessionZonesQuery, TrainingSessionZonesResult,
-    TrainingSessionZonesView, TrainingSignalCollectionView, TrainingSignalKindView,
-    TrainingSignalRoleView, TrainingSignalSampleView, TrainingSignalSamplesQuery,
-    TrainingSignalSeriesOverview, TrainingSignalUnitView, TrainingSignalVisualSampleView,
-    TrainingSourceProviderView, TrainingSport, TrainingSportClassification, TrainingSportCoverage,
-    TrainingSportState, TrainingSportsOverview, TrainingStructure, TrainingZoneCollectionView,
-    TrainingZoneGroupView, TrainingZoneKindView, TrainingZoneUnitView, TrainingZoneView,
-    UpdateCheckOutcome, UpdateCheckStatus, UpdateComposedSessionReportRequest, UpdateError,
-    UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind, UpdateReleaseSummary, UpdateReportRequest,
+    TrainingSessionProvenanceResult, TrainingSessionRangeExerciseContext,
+    TrainingSessionRangesQuery, TrainingSessionRangesResult, TrainingSessionRouteQuery,
+    TrainingSessionRoutesResult, TrainingSessionRoutesView, TrainingSessionSearchItem,
+    TrainingSessionSearchPage, TrainingSessionSearchRequest, TrainingSessionSearchSummary,
+    TrainingSessionSegmentationQuery, TrainingSessionSegmentationResult, TrainingSessionSelection,
+    TrainingSessionSelectionRequest, TrainingSessionSignalsQuery, TrainingSessionSignalsResult,
+    TrainingSessionSignalsView, TrainingSessionSort, TrainingSessionSport,
+    TrainingSessionStructureQuery, TrainingSessionStructureResult, TrainingSessionZonesQuery,
+    TrainingSessionZonesResult, TrainingSessionZonesView, TrainingSignalCollectionView,
+    TrainingSignalKindView, TrainingSignalRoleView, TrainingSignalSampleView,
+    TrainingSignalSamplesQuery, TrainingSignalSeriesOverview, TrainingSignalUnitView,
+    TrainingSignalVisualSampleView, TrainingSourceProviderView, TrainingSport,
+    TrainingSportClassification, TrainingSportCoverage, TrainingSportState, TrainingSportsOverview,
+    TrainingStructure, TrainingZoneCollectionView, TrainingZoneGroupView, TrainingZoneKindView,
+    TrainingZoneUnitView, TrainingZoneView, UpdateCheckOutcome, UpdateCheckStatus,
+    UpdateComposedSessionReportRequest, UpdateError, UpdateRecoveryOutcome,
+    UpdateRecoveryOutcomeKind, UpdateReleaseSummary, UpdateReportRequest,
     UpdateSessionReportRequest, UpdateTrainingSegmentCriterionRequest, UpdateTrustFailure,
     UpdateWithdrawalReason, UpdateWithdrawalSummary,
 };
@@ -1229,6 +1230,7 @@ fn parse_training_session_range_i64(value: &str) -> Result<i64, CommandErrorDto>
 pub struct CreateTrainingSessionRangeRequestDto {
     session_ref: String,
     snapshot_ref: String,
+    exercise_ref: String,
     title: String,
     started_at_elapsed_milliseconds: String,
     ended_at_elapsed_milliseconds: String,
@@ -1241,6 +1243,7 @@ impl TryFrom<CreateTrainingSessionRangeRequestDto> for CreateTrainingSessionRang
         Ok(Self {
             session_ref: request.session_ref,
             snapshot_ref: request.snapshot_ref,
+            exercise_ref: request.exercise_ref,
             title: request.title,
             started_at_elapsed_milliseconds: parse_training_session_range_i64(
                 &request.started_at_elapsed_milliseconds,
@@ -1281,6 +1284,7 @@ pub struct AdjustTrainingSessionRangeRequestDto {
     snapshot_ref: String,
     range_ref: String,
     expected_revision: u64,
+    exercise_ref: String,
     started_at_elapsed_milliseconds: String,
     ended_at_elapsed_milliseconds: String,
 }
@@ -1294,6 +1298,7 @@ impl TryFrom<AdjustTrainingSessionRangeRequestDto> for AdjustTrainingSessionRang
             snapshot_ref: request.snapshot_ref,
             range_ref: request.range_ref,
             expected_revision: request.expected_revision,
+            exercise_ref: request.exercise_ref,
             started_at_elapsed_milliseconds: parse_training_session_range_i64(
                 &request.started_at_elapsed_milliseconds,
             )?,
@@ -4190,6 +4195,7 @@ impl From<TrainingSessionSegmentationResult> for TrainingSessionSegmentationResu
 #[serde(rename_all = "camelCase")]
 pub struct TrainingSessionRangeDto {
     range_ref: String,
+    exercise_ref: Option<String>,
     title: String,
     started_at_elapsed_milliseconds: String,
     ended_at_elapsed_milliseconds: String,
@@ -4210,6 +4216,7 @@ impl From<TrainingSessionRange> for TrainingSessionRangeDto {
         };
         Self {
             range_ref: range.range_id().to_owned(),
+            exercise_ref: range.exercise_ref().map(str::to_owned),
             title: range.title().to_owned(),
             started_at_elapsed_milliseconds: range.started_at_elapsed_milliseconds().to_string(),
             ended_at_elapsed_milliseconds: range.ended_at_elapsed_milliseconds().to_string(),
@@ -4223,11 +4230,30 @@ impl From<TrainingSessionRange> for TrainingSessionRangeDto {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct TrainingSessionRangeExerciseContextDto {
+    exercise_ref: String,
+    ordinal: usize,
+    duration_milliseconds: String,
+}
+
+impl From<TrainingSessionRangeExerciseContext> for TrainingSessionRangeExerciseContextDto {
+    fn from(exercise: TrainingSessionRangeExerciseContext) -> Self {
+        Self {
+            exercise_ref: exercise.exercise_ref,
+            ordinal: exercise.ordinal,
+            duration_milliseconds: exercise.duration_milliseconds.to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TrainingSessionRangesResultDto {
     snapshot_ref: String,
     session_ref: String,
     session_duration_milliseconds: String,
     evidence_revision: String,
+    exercises: Vec<TrainingSessionRangeExerciseContextDto>,
     ranges: Vec<TrainingSessionRangeDto>,
 }
 
@@ -4238,6 +4264,7 @@ impl From<TrainingSessionRangesResult> for TrainingSessionRangesResultDto {
             session_ref: result.session_ref,
             session_duration_milliseconds: result.session_duration_milliseconds.to_string(),
             evidence_revision: result.evidence_revision,
+            exercises: result.exercises.into_iter().map(Into::into).collect(),
             ranges: result.ranges.into_iter().map(Into::into).collect(),
         }
     }
@@ -7551,6 +7578,8 @@ mod tests {
                     "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
                 "snapshotRef":
                     "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "exerciseRef":
+                    "exercise-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
                 "title": "Bridge to bend",
                 "startedAtElapsedMilliseconds": "0",
                 "endedAtElapsedMilliseconds": "9223372036854775807"
@@ -7560,6 +7589,10 @@ mod tests {
             .expect("personal range create request");
         assert_eq!(create.started_at_elapsed_milliseconds, 0);
         assert_eq!(create.ended_at_elapsed_milliseconds, i64::MAX);
+        assert_eq!(
+            create.exercise_ref,
+            "exercise-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        );
 
         let rename_input: RenameTrainingSessionRangeRequestDto =
             serde_json::from_value(serde_json::json!({
@@ -7586,6 +7619,8 @@ mod tests {
                 "rangeRef":
                     "range-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
                 "expectedRevision": 3,
+                "exerciseRef":
+                    "exercise-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
                 "startedAtElapsedMilliseconds": "10",
                 "endedAtElapsedMilliseconds": "20"
             }))
@@ -7618,6 +7653,8 @@ mod tests {
                             "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
                         "snapshotRef":
                             "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        "exerciseRef":
+                            "exercise-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
                         "title": "Invalid boundary",
                         "startedAtElapsedMilliseconds": "00",
                         "endedAtElapsedMilliseconds": "1"
@@ -7636,6 +7673,8 @@ mod tests {
                 "rangeRef":
                     "range-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
                 "expectedRevision": 2,
+                "exerciseRef":
+                    "exercise-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
                 "startedAtElapsedMilliseconds": "10",
                 "endedAtElapsedMilliseconds": "20",
                 "sourceLapId": "must-not-cross-the-boundary"
@@ -7646,6 +7685,10 @@ mod tests {
         let range = TrainingSessionRange::restore(
             "range-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
             "session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            Some(
+                "exercise-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                    .to_owned(),
+            ),
             "Bridge to bend",
             i64::MAX - 2,
             i64::MAX,
@@ -7665,11 +7708,26 @@ mod tests {
             evidence_revision:
                 "range-evidence-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
                     .to_owned(),
+            exercises: vec![TrainingSessionRangeExerciseContext {
+                exercise_ref:
+                    "exercise-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                        .to_owned(),
+                ordinal: 0,
+                duration_milliseconds: i64::MAX,
+            }],
             ranges: vec![range],
         };
         let json = serde_json::to_value(TrainingSessionRangesResultDto::from(result))
             .expect("personal range result JSON");
         assert_eq!(json["sessionDurationMilliseconds"], i64::MAX.to_string());
+        assert_eq!(
+            json["exercises"][0]["durationMilliseconds"],
+            i64::MAX.to_string()
+        );
+        assert_eq!(
+            json["ranges"][0]["exerciseRef"],
+            "exercise-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        );
         assert_eq!(
             json["ranges"][0]["startedAtElapsedMilliseconds"],
             (i64::MAX - 2).to_string()
