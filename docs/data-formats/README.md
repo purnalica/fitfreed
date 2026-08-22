@@ -68,6 +68,7 @@ Directories are created with their first real contract; empty specifications are
 - [Canonical training-session signal](canonical/training-session-signal.md)
 - [Canonical training-session zone](canonical/training-session-zone.md)
 - [Canonical segment criterion](canonical/segment-criterion.md)
+- [Canonical training-session range](canonical/training-session-range.md)
 - [Canonical report definition version 1](canonical/report-definition.md)
 - [Canonical report definition version 2](canonical/report-definition-v2.md)
 - [Canonical report definition version 3](canonical/report-definition-v3.md)

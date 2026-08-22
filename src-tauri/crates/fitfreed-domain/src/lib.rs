@@ -29,6 +29,17 @@ pub use segment_criterion::{
 #[cfg(test)]
 mod segment_criterion_tests;
 
+mod training_session_range;
+pub use training_session_range::{
+    adjust_training_session_range, reconcile_training_session_range, remove_training_session_range,
+    rename_training_session_range, RemovedTrainingSessionRange, TrainingSessionRange,
+    TrainingSessionRangeAuthorship, TrainingSessionRangeError,
+    TrainingSessionRangeEvidenceCompatibility, TrainingSessionRangeState,
+};
+
+#[cfg(test)]
+mod training_session_range_tests;
+
 mod training_session;
 pub use training_session::{
     decide_training_session_record_reconciliation, TrainingExercise,

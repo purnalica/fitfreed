@@ -4,7 +4,7 @@
 
 A Training Session is one provider-neutral observation of a recorded workout from one verified source subject. Its aggregate summary supports trustworthy longitudinal history, while evaluated detail can expose source exercises, manual and automatic laps, pauses, recorded routes, and supported temporal signals without changing aggregate meaning.
 
-The complete normative contracts live in [canonical training-session summary version 1](../data-formats/canonical/training-session.md), [canonical training-session structure version 1](../data-formats/canonical/training-session-structure.md), [canonical training-session route version 1](../data-formats/canonical/training-session-route.md), [canonical training-session signal version 1](../data-formats/canonical/training-session-signal.md), and [canonical segment criterion version 1](../data-formats/canonical/segment-criterion.md). This document explains the domain boundary rather than repeating those specifications.
+The complete normative contracts live in [canonical training-session summary version 1](../data-formats/canonical/training-session.md), [canonical training-session structure version 1](../data-formats/canonical/training-session-structure.md), [canonical training-session route version 1](../data-formats/canonical/training-session-route.md), [canonical training-session signal version 1](../data-formats/canonical/training-session-signal.md), [canonical segment criterion version 1](../data-formats/canonical/segment-criterion.md), and [canonical training-session range version 1](../data-formats/canonical/training-session-range.md). This document explains the domain boundary rather than repeating those specifications.
 
 ## Aggregate boundary
 
@@ -37,6 +37,12 @@ FitFreed-derived views over current canonical measurements, not imported facts, 
 than stored as session children. Reimport retains a criterion and its application only while the same source
 exercise identity remains; FitFreed never silently retargets it. Import does not grant authority to export,
 synchronize, or expose either the criterion or the selected physiological evidence.
+
+Personal session ranges are separate local aggregates referencing one imported session. They preserve the
+person's exact named elapsed boundaries and never become source laps or reusable criteria. Compatible
+elapsed-evidence enrichment can retain those boundaries; an amendment, missing session, or shortened duration
+preserves the authored object in a review-required state instead of moving it silently. Import does not grant
+authority to export, synchronize, or expose a range or the evidence selected by it.
 
 Zones, notes, comments, device identifiers, physical snapshots, RR samples, and unsupported signal types
 remain excluded from the current mapping. Those fields may remain in the user's original archive. Source

@@ -326,6 +326,13 @@ private evidence as a public diagnostic.
 
 ## Personal segmentation boundary
 
+The [canonical training-session range](../data-formats/canonical/training-session-range.md) is a durable,
+session-owned named selection on one session-relative elapsed coordinate. It is independent from source
+laps, reusable criteria, and disposable derived segments even when their boundaries coincide. Its optimistic
+revision covers both authored edits and evidence reconciliation. Compatible strict enrichment retains exact
+boundaries; incompatible or missing elapsed evidence preserves them in a review-required state and never
+redirects the range to a different session.
+
 The [canonical segment criterion](../data-formats/canonical/segment-criterion.md) is reusable user-authored
 evidence with stable local identity, optimistic revision, and one versioned rule. Its ordered exercise
 application is independent from source laps, phases, routes, and signals. Editing a reused definition affects

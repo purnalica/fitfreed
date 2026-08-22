@@ -211,7 +211,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R5 | Complete locally — R5.4, R5.5, and real-process restart gates passed 2026-08-22 | A remembered session is findable and sports are recognizable |
 | X5-R6 | Complete locally — R6.1 through R6.5 passed exact packaged, adaptive visual, and dense-route gates on 2026-08-22 | A routed workout is investigated through a dominant synchronized map |
 | X5-R7 | Complete locally — R7.1 through R7.6 passed the exact fast, functional, restart, adaptive, accessibility, visual, and performance gates on 2026-08-22 | Every session composition reflects its actual evidence |
-| X5-R8 | Pending | Personal ranges and reusable criteria work end to end |
+| X5-R8 | In progress — R8.1 domain contract complete locally on 2026-08-22 | Personal ranges and reusable criteria work end to end |
 | X5-R9 | Pending | Reports open as results and leave FitFreed safely |
 | X5-R10 | Pending | The complete release-shaped product is coherent and documented |
 | X6 | Pending | Independent audit has no unresolved material finding |
@@ -1219,6 +1219,28 @@ locale/theme/zoom; accessibility; dense-session performance and migration recove
 
 **Alpha evidence:** a separate density, discoverability, and boundary-selection review records findings
 without weakening correctness or delaying unrelated accepted work.
+
+### R8.1 personal-range domain contract — 2026-08-22
+
+`TrainingSessionRange` is now a distinct session-owned aggregate rather than a special case of a reusable
+criterion or source lap. It retains stable local range and owning-session capabilities, a normalized
+non-blank title, ordered session-relative elapsed boundaries, explicit user authorship, the accepted elapsed-
+evidence revision, current or review-required state, and an optimistic aggregate revision. Create, rename,
+adjust, evidence reconciliation, and revision-bound removal are explicit domain transitions. Duplicate names
+and overlapping ranges remain valid because neither title nor geometry is identity.
+
+Compatible strict enrichment can rebase unchanged exact boundaries to a new evidence revision. An
+incompatible amendment, missing owner, or shortened duration preserves the authored title and numeric
+boundaries in review-required state instead of clamping or redirecting them. Explicit adjustment against
+current evidence completes review, including when the person deliberately retains the same values. Every
+effective authored or reconciliation transition advances the revision exactly once; repeated equivalent
+state is idempotent.
+
+The canonical range, architecture, domain, and format-index sources document session elapsed coordinates,
+separation from source and derived evidence, concurrency, reimport, deletion, privacy, and future portability.
+Eight focused domain tests, the complete 41-test domain suite, strict domain Clippy, formatting, and public
+documentation checks pass. Application commands, persistence, the revision-coherent Range Summary, and
+production interaction remain open under R8.
 
 ## X5-R9 — Make reports result-first and portable
 
