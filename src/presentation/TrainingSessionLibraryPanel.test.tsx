@@ -559,6 +559,44 @@ beforeEach(() => {
 });
 
 describe("TrainingSessionLibraryPanel", () => {
+  it("opens on recognizable sports and session results while refinements stay secondary", async () => {
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+      if (workspaceResult) return workspaceResult;
+      if (command === "query_training_sports") return Promise.resolve(sports);
+      if (command === "query_training_sessions") {
+        return Promise.resolve(page([newest, second], 0, 26, 25));
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    renderPanel();
+
+    const region = await screen.findByRole("region", { name: "Find a training session" });
+    const sportSummary = within(region).getByRole("region", { name: "Sports in this history" });
+    expect(within(sportSummary).getByText("Trail running")).toBeVisible();
+    expect(within(sportSummary).getByText("Unknown sport 1")).toBeVisible();
+    expect(within(sportSummary).getAllByTestId("sport-family-icon")).toHaveLength(2);
+
+    const resultList = within(region).getByRole("list", { name: "Training sessions" });
+    const resultArticles = within(resultList).getAllByRole("article");
+    expect(resultArticles).toHaveLength(2);
+    expect(within(resultArticles[0]).getByText("Trail running")).toBeVisible();
+    expect(within(resultArticles[0]).getByTestId("sport-family-icon")).toBeVisible();
+
+    const refinements = within(region).getByRole("group", { name: "Refine sessions" });
+    expect(refinements).not.toHaveAttribute("open");
+    expect(within(refinements).getByRole("form", { name: "Filter sessions", hidden: true }))
+      .not.toBeVisible();
+    expect(within(region).getByRole("group", { name: "Result summary" }))
+      .not.toHaveAttribute("open");
+
+    await user.click(within(refinements).getByText("Refine sessions"));
+    expect(refinements).toHaveAttribute("open");
+    expect(within(refinements).getByRole("form", { name: "Filter sessions" })).toBeVisible();
+  });
+
   it("opens and focuses an exact session reached from a report", async () => {
     mocks.invoke.mockImplementation((command, arguments_) => {
       const workspaceResult = emptyWorkspaceCommand(command, arguments_);
@@ -640,6 +678,8 @@ describe("TrainingSessionLibraryPanel", () => {
     const comparison = within(region).getByRole("region", { name: "Session comparison" });
     expect(comparison).toHaveTextContent("2 sessions selected");
     expect(within(comparison).getByRole("table")).toHaveTextContent("10,000.5 m");
+    expect(within(comparison).getAllByTestId("sport-family-icon")).toHaveLength(2);
+    expect(within(comparison).getAllByText("Trail running")).toHaveLength(2);
     await user.click(within(comparison).getByRole("button", { name: "Clear comparison" }));
     expect(within(region).queryByRole("region", { name: "Session comparison" }))
       .not.toBeInTheDocument();

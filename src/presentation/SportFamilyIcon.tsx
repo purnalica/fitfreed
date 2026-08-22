@@ -1,10 +1,11 @@
-import type { SportFamily } from "./training-sports";
+import type { SportFamily, TrainingSportState } from "./training-sports";
 
 interface SportFamilyIconProps {
   family: SportFamily | null;
+  state?: TrainingSportState;
 }
 
-export function SportFamilyIcon({ family }: SportFamilyIconProps) {
+export function SportFamilyIcon({ family, state = "unknown" }: SportFamilyIconProps) {
   return (
     <svg
       className="sport-family-icon"
@@ -86,10 +87,18 @@ export function SportFamilyIcon({ family }: SportFamilyIconProps) {
           <path d="M10 16h12M16 10v12" />
         </>
       )}
-      {family === null && (
+      {family === null && state === "unknown" && (
         <>
           <circle cx="16" cy="16" r="12" />
-          <path d="M12.5 12a3.8 3.8 0 1 1 5.4 3.5c-1.9.8-1.9 2-1.9 3M16 23.5h.01" />
+          <path d="m8 19 4-5 4 3 4-6 4 3" />
+          <circle cx="8" cy="19" r="1" />
+          <circle cx="24" cy="14" r="1" />
+        </>
+      )}
+      {family === null && state === "unavailable" && (
+        <>
+          <circle cx="16" cy="16" r="12" />
+          <path d="m8 24 16-16M10 16h12" />
         </>
       )}
     </svg>

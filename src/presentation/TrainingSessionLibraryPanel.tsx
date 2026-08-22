@@ -5,6 +5,7 @@ import { type catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
 import { restoreFocusAfterReveal } from "./focus-restoration";
 import { ProgressSubmitButton } from "./ProgressSubmitButton";
+import { SportFamilyIcon } from "./SportFamilyIcon";
 import type { SessionReportOrigin } from "./session-report";
 import {
   formatDistance,
@@ -44,7 +45,7 @@ import type {
   TrainingSignalVisualSample,
 } from "./training-session-signal";
 import type { TrainingSessionZonesResult } from "./training-session-zone";
-import type { TrainingSport, TrainingSportsOverview } from "./training-sports";
+import type { SportFamily, TrainingSport, TrainingSportsOverview } from "./training-sports";
 import { TrainingCrossSignalPanel } from "./TrainingCrossSignalPanel";
 import { TrainingSegmentationPanel } from "./TrainingSegmentationPanel";
 import { TrainingSessionProvenancePanel } from "./TrainingSessionProvenancePanel";
@@ -880,6 +881,12 @@ export function TrainingSessionLibraryPanel({
     return trainingSportTitle(session.sport);
   }
 
+  function sportFamily(
+    sport: TrainingSport | TrainingSessionSport,
+  ): SportFamily | null {
+    return sport.classification?.canonicalFamily ?? null;
+  }
+
   function lapRows(laps: TrainingLapStructure[] | null, heading: string) {
     return (
       <section className="training-structure-collection">
@@ -1465,13 +1472,50 @@ export function TrainingSessionLibraryPanel({
       aria-busy={loading}
     >
       <div className="training-session-discovery" hidden={selected !== undefined}>
-      <header>
+        <header className="training-session-library-heading">
         <h2 id="training-session-library-heading" ref={libraryHeadingRef} tabIndex={-1}>
           {copy.heading}
         </h2>
-        <p>{copy.intro}</p>
-      </header>
-      <form
+        <p className="sr-only">{copy.intro}</p>
+        </header>
+        {sports && sports.sports.length > 0 && (
+          <section
+          className="training-history-sports"
+          role="region"
+          aria-label={copy.sportSummaryHeading}
+        >
+          <h3>{copy.sportSummaryHeading}</h3>
+          <ul>
+            {sports.sports.map((sport, index) => (
+              <li
+                key={sport.sportRef ?? `unavailable-${index}`}
+                data-state={sport.state}
+                data-sport-family={sportFamily(sport) ?? sport.state}
+              >
+                <SportFamilyIcon family={sportFamily(sport)} state={sport.state} />
+                <span>
+                  <strong>{sportTitle(sport)}</strong>
+                  <small>
+                    {number.format(sport.coverage.sessionCount)} {sessionUnit(
+                      sport.coverage.sessionCount,
+                    )}
+                  </small>
+                </span>
+              </li>
+            ))}
+          </ul>
+          </section>
+        )}
+        <div className="training-session-tools">
+          <details
+        className="training-session-refinements"
+        aria-label={copy.refine}
+          >
+            <summary>
+              <span>{copy.refine}</span>
+              <small className="sr-only">{copy.refineHelp}</small>
+            </summary>
+            <form
         className="training-session-search"
         aria-labelledby="training-session-filter-heading"
         aria-busy={loading}
@@ -1584,10 +1628,11 @@ export function TrainingSessionLibraryPanel({
             progressLabel={copy.applying}
           />
         </div>
-      </form>
+            </form>
+          </details>
 
-      {page?.availableRange && (
-        <fieldset className="training-session-view-switch">
+          {page?.availableRange && (
+            <fieldset className="training-session-view-switch">
           <legend>{copy.viewLabel}</legend>
           <label>
             <input
@@ -1607,8 +1652,9 @@ export function TrainingSessionLibraryPanel({
             />
             <span>{copy.calendar}</span>
           </label>
-        </fieldset>
-      )}
+            </fieldset>
+          )}
+        </div>
 
       {status && <p className="notice" role="status">{status}</p>}
       {loading && !page ? (
@@ -1694,82 +1740,6 @@ export function TrainingSessionLibraryPanel({
               {!calendarLoading && calendar?.days.length === 0 && <p>{copy.calendarEmpty}</p>}
             </section>
           )}
-          <div className="training-session-summaries">
-            {page.summaries.map((summary) => {
-              const sourceLabel = interpolate(copy.source, {
-                index: number.format(summary.sourceIndex),
-              });
-              const summaryLabel = page.summaries.length === 1
-                ? messages.training.summaryLabel
-                : `${messages.training.summaryLabel} · ${sourceLabel}`;
-              return (
-                <section key={summary.sourceIndex}>
-                  {page.summaries.length > 1 && <h3>{sourceLabel}</h3>}
-                  <ul className="training-summary" aria-label={summaryLabel}>
-                    <li>
-                      <strong>
-                        {number.format(summary.sessionCount)} {summary.sessionCount === 1
-                          ? messages.training.sessionUnit.one
-                          : messages.training.sessionUnit.other}
-                      </strong>
-                      <span>{messages.training.sessionCount}</span>
-                    </li>
-                    <li>
-                      <strong>
-                        {number.format(summary.trainingDays)} {summary.trainingDays === 1
-                          ? messages.training.trainingDayUnit.one
-                          : messages.training.trainingDayUnit.other}
-                      </strong>
-                      <span>{messages.training.trainingDays}</span>
-                    </li>
-                    <li>
-                      <strong>{formatDuration(
-                        summary.totalDurationMilliseconds,
-                        locale,
-                        messages.training.durationUnits,
-                      )}</strong>
-                      <span>{messages.training.totalDuration}</span>
-                    </li>
-                    <li>
-                      <strong>{formatDistance(
-                        summary.totalDistanceMeters,
-                        locale,
-                        messages.unavailable,
-                        messages.training.units.meters,
-                      )}</strong>
-                      <span>
-                        {messages.training.totalDistance} · {coverageLabel(
-                          summary.distanceSessionCount,
-                          summary.sessionCount,
-                        )}
-                      </span>
-                    </li>
-                    <li>
-                      <strong>{formatExactMetric(
-                        summary.totalEnergyKilocalories,
-                        locale,
-                        messages.unavailable,
-                        messages.training.units.kilocalories,
-                      )}</strong>
-                      <span>
-                        {messages.training.totalEnergy} · {coverageLabel(
-                          summary.energySessionCount,
-                          summary.sessionCount,
-                        )}
-                      </span>
-                    </li>
-                    <li>
-                      <strong>{coverageLabel(
-                        summary.heartRateSessionCount,
-                        summary.sessionCount,
-                      )}</strong>
-                      <span>{messages.training.heartRateCoverage}</span>
-                    </li>
-                  </ul>
-                </section>
-              );
-            })}
-          </div>
           <p className="training-session-result-count" aria-live="polite">
             {interpolate(copy.results, {
               from: number.format(resultFrom),
@@ -1777,18 +1747,24 @@ export function TrainingSessionLibraryPanel({
               total: number.format(page.totalCount),
             })}
           </p>
-          <ol className="training-session-results">
+          <ol className="training-session-results" aria-label={copy.resultList}>
             {page.sessions.map((session) => (
               <li key={session.sessionRef}>
                 <article>
                   <header>
-                    <div>
+                    <div className="training-session-result-identity">
+                      <SportFamilyIcon
+                        family={sportFamily(session.sport)}
+                        state={session.sport.state}
+                      />
+                      <div>
                       <p className="training-session-sport">{sessionSportTitle(session)}</p>
                       <h3>
                         <time dateTime={session.startedAtLocal}>
                           {formatTrainingDateTime(session.startedAtLocal, locale)}
                         </time>
                       </h3>
+                      </div>
                     </div>
                     <span>{interpolate(copy.source, {
                       index: number.format(session.sourceIndex),
@@ -1901,6 +1877,88 @@ export function TrainingSessionLibraryPanel({
               {copy.next}
             </button>
           </nav>
+          <details
+            className="training-session-result-summary"
+            aria-label={copy.resultSummary}
+          >
+            <summary>{copy.resultSummary}</summary>
+            <div className="training-session-summaries">
+              {page.summaries.map((summary) => {
+                const sourceLabel = interpolate(copy.source, {
+                  index: number.format(summary.sourceIndex),
+                });
+                const summaryLabel = page.summaries.length === 1
+                  ? messages.training.summaryLabel
+                  : `${messages.training.summaryLabel} · ${sourceLabel}`;
+                return (
+                  <section key={summary.sourceIndex}>
+                    {page.summaries.length > 1 && <h3>{sourceLabel}</h3>}
+                    <ul className="training-summary" aria-label={summaryLabel}>
+                      <li>
+                        <strong>
+                          {number.format(summary.sessionCount)} {summary.sessionCount === 1
+                            ? messages.training.sessionUnit.one
+                            : messages.training.sessionUnit.other}
+                        </strong>
+                        <span>{messages.training.sessionCount}</span>
+                      </li>
+                      <li>
+                        <strong>
+                          {number.format(summary.trainingDays)} {summary.trainingDays === 1
+                            ? messages.training.trainingDayUnit.one
+                            : messages.training.trainingDayUnit.other}
+                        </strong>
+                        <span>{messages.training.trainingDays}</span>
+                      </li>
+                      <li>
+                        <strong>{formatDuration(
+                          summary.totalDurationMilliseconds,
+                          locale,
+                          messages.training.durationUnits,
+                        )}</strong>
+                        <span>{messages.training.totalDuration}</span>
+                      </li>
+                      <li>
+                        <strong>{formatDistance(
+                          summary.totalDistanceMeters,
+                          locale,
+                          messages.unavailable,
+                          messages.training.units.meters,
+                        )}</strong>
+                        <span>
+                          {messages.training.totalDistance} · {coverageLabel(
+                            summary.distanceSessionCount,
+                            summary.sessionCount,
+                          )}
+                        </span>
+                      </li>
+                      <li>
+                        <strong>{formatExactMetric(
+                          summary.totalEnergyKilocalories,
+                          locale,
+                          messages.unavailable,
+                          messages.training.units.kilocalories,
+                        )}</strong>
+                        <span>
+                          {messages.training.totalEnergy} · {coverageLabel(
+                            summary.energySessionCount,
+                            summary.sessionCount,
+                          )}
+                        </span>
+                      </li>
+                      <li>
+                        <strong>{coverageLabel(
+                          summary.heartRateSessionCount,
+                          summary.sessionCount,
+                        )}</strong>
+                        <span>{messages.training.heartRateCoverage}</span>
+                      </li>
+                    </ul>
+                  </section>
+                );
+              })}
+            </div>
+          </details>
           {comparison.length > 0 && (
             <section
               className="training-session-comparison"
@@ -1928,7 +1986,19 @@ export function TrainingSessionLibraryPanel({
                         <th scope="col">{copy.comparisonSession}</th>
                         {comparison.map((session) => (
                           <th scope="col" key={session.sessionRef}>
-                            {formatTrainingDateTime(session.startedAtLocal, locale)}
+                            <span className="training-session-comparison-identity">
+                              <SportFamilyIcon
+                                family={sportFamily(session.sport)}
+                                state={session.sport.state}
+                              />
+                              <span>
+                                <strong>{sessionSportTitle(session)}</strong>
+                                <small>{formatTrainingDateTime(
+                                  session.startedAtLocal,
+                                  locale,
+                                )}</small>
+                              </span>
+                            </span>
                           </th>
                         ))}
                       </tr>

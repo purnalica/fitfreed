@@ -84,6 +84,29 @@ beforeEach(() => {
 });
 
 describe("TrainingSportsPanel", () => {
+  it("uses one explicit sport identity system for classified, unknown, and unavailable evidence", async () => {
+    mocks.invoke.mockResolvedValueOnce(overview());
+
+    render(
+      <TrainingSportsPanel
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        refreshToken={0}
+        onError={vi.fn()}
+      />,
+    );
+
+    const list = await screen.findByRole("list");
+    const cards = within(list).getAllByRole("listitem");
+    expect(cards).toHaveLength(3);
+    cards.forEach((card) => {
+      expect(within(card).getByTestId("sport-family-icon")).toBeVisible();
+    });
+    expect(cards[0]).toHaveAttribute("data-sport-family", "running");
+    expect(cards[1]).toHaveAttribute("data-sport-family", "unknown");
+    expect(cards[2]).toHaveAttribute("data-sport-family", "unavailable");
+  });
+
   it("explores every detected state and authors, amends, and resets a classification", async () => {
     let current = overview();
     mocks.invoke.mockImplementation((command, arguments_) => {

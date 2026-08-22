@@ -42,7 +42,10 @@ key and therefore performs no update request or installation.
 The independently generated synthetic journey covers both first-run acquisition paths, result-led Home
 exploration, exact recent-session entry and return, range filtering, exact aligned day detail, navigation to authoritative explorers, two-period
 comparison, mapping-aware reimport, cumulative import, and restart. Training separates Sessions, Sports,
-and Compare periods without losing a temporary view when moving among them. Session detail progressively
+and Compare periods without losing a temporary view when moving among them. Sessions opens on a compact
+provider-neutral sport index and the actual chronology; refinements and complete-result aggregates remain
+available through explicit disclosures instead of displacing the first session. The same semantic icon and
+visible label identify a sport in the index, results, comparisons, and classification management. Session detail progressively
 opens Overview, Structure and segments, Signals and zones, Routes, and Source history. It distinguishes
 unevaluated, absent, empty, and populated exercise/lap/pause, route, signal, and recorded-zone states. Primary and transition
 routes render as bounded local SVG traces with no external location request, while exact paginated tables retain

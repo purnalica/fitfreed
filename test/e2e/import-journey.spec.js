@@ -377,6 +377,9 @@ async function expectHistory(expectedRows) {
 }
 
 async function expectFilterRange(selector, from, through) {
+  if (selector === ".training-session-search") {
+    await openDisclosure(".training-session-refinements");
+  }
   await browser.waitUntil(async () => {
     const inputs = await $$(`${selector} input[type='date']`);
     if (inputs.length !== 2) return false;
@@ -399,6 +402,7 @@ async function expectActivitySummary(expectedItems) {
 }
 
 async function setTrainingRange(from, through) {
+  await openDisclosure(".training-session-refinements");
   const values = [from, through];
   await browser.execute((nextValues) => {
     const inputs = document.querySelectorAll(".training-session-search input[type='date']");
@@ -544,6 +548,7 @@ async function expectTrainingRows(expectedRows) {
 }
 
 async function expectTrainingSummary(expectedItems) {
+  await openDisclosure(".training-session-result-summary");
   const items = await $$(".training-summary li");
   expect(items).toHaveLength(expectedItems.length);
   for (let index = 0; index < expectedItems.length; index += 1) {
@@ -1292,6 +1297,7 @@ describe("packaged FitFreed import journey", () => {
     const trainingSessionSports = await $$(".training-session-results .training-session-sport");
     expect(trainingSessionSports).toHaveLength(2);
     await expect(trainingSessionSports[1]).toHaveText("Trail running");
+    await openDisclosure(".training-session-refinements");
     const trainingTextFilter = await $(".training-session-text-filter input");
     await trainingTextFilter.waitForEnabled({ timeout: 10_000 });
     await trainingTextFilter.setValue("trail");

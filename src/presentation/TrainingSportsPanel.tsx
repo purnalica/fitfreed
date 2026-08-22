@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { type catalogs, type Locale } from "../locales/catalogs";
 import { commandErrorCode } from "./command-error";
 import { ProgressSubmitButton } from "./ProgressSubmitButton";
+import { SportFamilyIcon } from "./SportFamilyIcon";
 import { formatDuration } from "./training-format";
 import {
   sportFamilies,
@@ -211,21 +212,31 @@ export function TrainingSportsPanel({
               plural.select(sport.coverage.sessionCount) === "one" ? "one" : "other"
             ];
             return (
-              <li key={sport.sportRef ?? `unavailable-${index}`} data-state={sport.state}>
+              <li
+                key={sport.sportRef ?? `unavailable-${index}`}
+                data-state={sport.state}
+                data-sport-family={sport.classification?.canonicalFamily ?? sport.state}
+              >
                 <div className="training-sport-card-heading">
-                  <div>
-                    <h3>{title}</h3>
-                    <p>
-                      {overview.originCount > 1 && (
-                        <span>{interpolate(copy.source, {
-                          index: number.format(sport.sourceIndex),
-                        })} · </span>
-                      )}
-                      {interpolate(copy.period, {
-                        from: date.format(localDate(sport.firstLocalDate)),
-                        through: date.format(localDate(sport.lastLocalDate)),
-                      })}
-                    </p>
+                  <div className="training-sport-identity">
+                    <SportFamilyIcon
+                      family={sport.classification?.canonicalFamily ?? null}
+                      state={sport.state}
+                    />
+                    <div>
+                      <h3>{title}</h3>
+                      <p>
+                        {overview.originCount > 1 && (
+                          <span>{interpolate(copy.source, {
+                            index: number.format(sport.sourceIndex),
+                          })} · </span>
+                        )}
+                        {interpolate(copy.period, {
+                          from: date.format(localDate(sport.firstLocalDate)),
+                          through: date.format(localDate(sport.lastLocalDate)),
+                        })}
+                      </p>
+                    </div>
                   </div>
                   {sport.state !== "unavailable" && !editing && (
                     <button

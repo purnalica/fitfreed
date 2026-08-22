@@ -2,8 +2,8 @@
 
 ## Status and authority
 
-Authorized for autonomous execution as of 2026-08-21. X4-P0 through X5-R4 are complete locally;
-X5-R5 is next.
+Authorized for autonomous execution as of 2026-08-21. X4-P0 through X5-R4 and X5-R5.1 are complete
+locally; X5-R5.2 is next.
 The X5-R1 product entrance is live; exact hosted verification of its CI resource optimizer remains
 pending synchronization of the workflow-changing commit. The product owner accepted the X3
 direction and its amendments on 2026-08-21. This
@@ -207,7 +207,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R2.3 | Complete locally — exact packaged gates passed 2026-08-22 | Durable language, appearance, zoom, and update settings form one coherent workspace |
 | X5-R3 | Complete locally — exact packaged and dense-history gates passed 2026-08-22 | Import ends in recognizable personal value |
 | X5-R4 | Complete locally — exact packaged and exhaustive adaptive gates passed 2026-08-22 | Existing health and aligned-history questions read as answers |
-| X5-R5 | Pending | A remembered session is findable and sports are recognizable |
+| X5-R5 | In progress — R5.1 complete locally 2026-08-22 | A remembered session is findable and sports are recognizable |
 | X5-R6 | Pending | A routed workout is investigated through a dominant synchronized map |
 | X5-R7 | Pending | Every session composition reflects its actual evidence |
 | X5-R8 | Pending | Personal ranges and reusable criteria work end to end |
@@ -486,6 +486,75 @@ imprecise text and can understand the result set without provider terminology.
 
 **Lower-layer precondition:** verify search, calendar, selection, workspace, sport discovery, sport
 classification, and optimistic persistence commands before replacing the UI.
+
+The precondition is satisfied by the existing application ports and validated DTOs. Session discovery
+already owns canonical date bounds, stable sorting, bounded pagination, measurement and sport filters,
+imprecise text, immutable snapshot continuity, calendar projection, a four-session comparison selection,
+and a versioned persisted workspace. Sport discovery already owns provider-neutral evidence grouping,
+unknown and unavailable states, authored family and label validation, revision-checked persistence, and
+conflict detection. Tauri commands are transport adapters over those use cases, and SQLite remains the
+authoritative local implementation. R5 therefore changes composition and presentation without
+recalculating discovery or classification facts in React.
+
+### R5.1 — Establish the recognizable History Desk
+
+Deliver a functional default History surface whose first viewport contains real sessions and recognizable
+sport identity rather than a filter form. Keep chronology, calendar, pagination, comparison selection,
+session opening, and persisted workspace behavior operational. Add the same semantic sport icon and
+visible label to sport summaries, session results, comparison headings, and the dedicated classification
+workspace; unknown and unavailable sport remain explicit states rather than invented identities. Move
+refinements behind a clearly named secondary disclosure without changing their query contract.
+
+The increment is complete only when focused React journeys prove initial results, all existing History
+actions, exact return focus, keyboard operation, both locales, and narrow layouts. A visual self-review
+must reject clipped identity, a controls-first first viewport, placeholder symbols, or loss of comparison
+and calendar power before the increment is offered for review.
+
+R5.1 verification on 2026-08-22 covered 19 focused History and sport-presentation journeys and the
+complete fast suite of 226 React, 2 vendored-updater, 211 host, 147 application, and 33 domain tests.
+The packaged macOS journey passed archive selection, outcomes, cancellation, cumulative reimport, both
+locales, maximum zoom, History filters and summaries, reports, accessibility, restart, and durable state
+in 1 minute 20 seconds. Its isolated two-year performance campaign retained every accepted budget; the
+slowest History interaction p95 was 33 ms and the bounded signal overview p95 was 63 ms.
+
+The first actual WebKit visual pass rejected the implementation because the first session began below a
+728 px viewport. The causal composition was the accumulated shell introduction, duplicated History
+introduction, separately stacked control rows, and aggregate summary before results—not the filter
+disclosure alone. The corrected hierarchy keeps sport identity and sessions before optional detail,
+places refinements and view controls together, and moves the aggregate result summary after the session
+list. A repeated light, dark, wide, compact, and real 175% zoom matrix retained visible session evidence,
+labelled navigation, zero page-level horizontal overflow, and zero Axe violations. Repository-content,
+complete reachable-history secret, formatting, documentation, localization, site, product-surface, and
+diff checks passed without versioning local evidence.
+
+### R5.2 — Make every refinement legible and reversible
+
+Present sport, date, measurement, text, and sorting as structured, domain-backed controls. Show the
+applied query independently from the editable draft, with a localized chip for every active refinement,
+individual removal, clear-all, and exact result count. Keep text complementary to structured choices.
+An empty result names the active query, confirms that the library was not changed, and offers a direct
+clear action. Preserve stable sort, pagination reset, calendar bounds, selection, and snapshot recovery
+for every individual and combined refinement.
+
+The increment is complete only after realistic multi-sport tests enter and apply every field, remove each
+kind of refinement, reload persisted state, exercise every sort, navigate both result views and multiple
+pages, recover from stale snapshots, and prove the same behavior in both locales with no accessibility or
+horizontal-overflow regression from 100% through 200% zoom.
+
+### R5.3 — Classify in context and close the identity system
+
+Place one restrained classification task beside an unresolved sport where it is encountered, while the
+full sport workspace remains the management surface. Both entry points use the same application command,
+family vocabulary, label rules, optimistic revision, conflict recovery, and saved overview; there is no
+second editor contract. Saving updates Home, History, filters, session identity, reports, and both sport
+surfaces. Cancel restores the prior presentation, reset returns to an explicit unknown state, and restart
+or reimport preserves the authored classification.
+
+The increment closes with an icon-and-label coherence audit across every product surface and every state,
+origin-aware navigation tests from Home, chronology, calendar, comparison, and reports, the full fast and
+packaged suites, dense-history performance, both locales and appearances, 100%–200% zoom, Axe, repository
+content, privacy, documentation, and an actual macOS visual matrix. R5 remains incomplete if any surface
+uses a placeholder, provider terminology, a divergent classification editor, or an inexact return target.
 
 **Production work:**
 

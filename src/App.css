@@ -216,8 +216,8 @@ button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visibl
 .library-home-empty-possibilities li > .sport-family-icon { width: 42px; height: 42px; padding: 8px; color: var(--accent-deep); background: color-mix(in srgb, var(--surface) 75%, transparent); border-radius: 50%; stroke: currentcolor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; fill: none; }
 .library-home-empty-possibilities h3 { margin: 1px 0 4px; font-size: .98rem; }
 .library-home-empty-possibilities li p { margin: 0; color: var(--ink-soft); font-size: .82rem; line-height: 1.4; }
-.explorer-return { margin-bottom: 18px; }
-.explorer-return button { min-height: 40px; padding: 7px 12px; }
+.explorer-return { margin-bottom: 8px; }
+.explorer-return button { min-height: 34px; padding: 5px 9px; font-size: .8rem; }
 .explorer-return .progress-submit-status { display: inline-block; margin-left: 10px; }
 .sources-heading { max-width: 780px; margin-bottom: 28px; }
 .sources-heading > p:not(.eyebrow) { max-width: 680px; color: var(--ink-soft); font-size: 1.02rem; }
@@ -465,11 +465,11 @@ th:last-child, td:last-child { text-align: right; }
 .activity-comparison-series thead th:not(:first-child), .activity-comparison-series td { text-align: right; }
 .activity-comparison-series thead span { display: block; margin-top: 4px; color: var(--muted); font-size: .7rem; font-weight: 500; }
 .activity-comparison-series tbody th { text-align: left; }
-.training-insights { display: grid; gap: 22px; }
-.training-workspace-heading { max-width: 900px; padding-top: 16px; }
-.training-workspace-heading .eyebrow { margin: 0 0 9px; }
-.training-workspace-heading h1 { max-width: 14ch; margin: 0; font-size: clamp(2.5rem, 5vw, 4.8rem); line-height: .95; letter-spacing: -.06em; }
-.training-workspace-heading > p:last-child { max-width: 68ch; margin: 16px 0 0; color: var(--ink-soft); font-size: 1.04rem; line-height: 1.55; }
+.training-insights { display: grid; gap: 12px; }
+.training-workspace-heading { max-width: 980px; padding-top: 2px; }
+.training-workspace-heading .eyebrow { margin: 0 0 5px; }
+.training-workspace-heading h1 { max-width: 18ch; margin: 0; font-size: clamp(2rem, 3.5vw, 3.1rem); line-height: .98; letter-spacing: -.05em; }
+.training-workspace-heading > p:last-child { max-width: 76ch; margin: 8px 0 0; color: var(--ink-soft); font-size: .9rem; line-height: 1.4; }
 .training-workspace-navigation, .training-detail-navigation { display: flex; gap: 7px; max-width: 100%; padding: 5px; overflow-x: auto; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 14px; }
 .training-workspace-navigation { width: fit-content; }
 .training-workspace-navigation button, .training-detail-navigation button { flex: 0 0 auto; min-height: 42px; padding: 9px 15px; color: var(--muted); background: transparent; border-color: transparent; border-radius: 10px; white-space: nowrap; }
@@ -478,10 +478,34 @@ th:last-child, td:last-child { text-align: right; }
 .training-workspace-panel { min-width: 0; }
 .training-workspace-panel > .training-sports { margin-top: 0; }
 .training-workspace-panel > .training-comparison { margin-top: 0; padding: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 14px 40px rgb(21 29 44 / 7%); }
-.training-session-library { margin: 0 0 32px; padding: 26px; background: var(--surface); border: 1px solid var(--line); border-radius: 22px; box-shadow: 0 14px 40px rgb(21 29 44 / 7%); }
-.training-session-discovery > header h2 { margin: 0 0 5px; font-size: 1.7rem; letter-spacing: -.035em; }
-.training-session-discovery > header p { max-width: 72ch; margin: 0; color: var(--muted); }
-.training-session-search { display: grid; gap: 16px; margin-top: 22px; padding: 18px; background: var(--paper); border: 1px solid var(--line); border-radius: 15px; }
+.training-session-library { margin: 0 0 24px; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 14px 40px rgb(21 29 44 / 7%); }
+.training-session-library-heading h2 { margin: 0; font-size: 1.15rem; letter-spacing: -.02em; }
+.training-history-sports { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; margin-top: 11px; }
+.training-history-sports h3 { margin: 0; color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; }
+.training-history-sports ul { display: flex; gap: 9px; max-width: 100%; margin: 0; padding: 0 0 3px; overflow-x: auto; list-style: none; }
+.training-history-sports li { display: flex; flex: 0 0 auto; align-items: center; gap: 8px; min-width: 160px; padding: 7px 10px; background: var(--paper); border: 1px solid var(--line); border-radius: 11px; }
+.training-history-sports .sport-family-icon,
+.training-session-result-identity .sport-family-icon,
+.training-sport-identity .sport-family-icon { flex: 0 0 36px; width: 36px; height: 36px; padding: 7px; color: var(--accent-deep); background: var(--accent-soft); border-radius: 50%; stroke: currentcolor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+.training-history-sports li[data-state="unknown"] .sport-family-icon,
+.training-sport-list > li[data-state="unknown"] .sport-family-icon { color: var(--ink-soft); background: var(--warning-soft); }
+.training-history-sports li[data-state="unavailable"] .sport-family-icon,
+.training-sport-list > li[data-state="unavailable"] .sport-family-icon { color: var(--muted); background: var(--surface-soft); }
+.training-history-sports strong, .training-history-sports small { display: block; max-width: 17ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.training-history-sports strong { font-size: .86rem; }
+.training-history-sports small { margin-top: 2px; color: var(--muted); font-size: .7rem; }
+.training-session-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 11px; }
+.training-session-refinements,
+.training-session-result-summary { margin-top: 0; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; }
+.training-session-refinements { min-width: min(280px, 100%); }
+.training-session-refinements > summary,
+.training-session-result-summary > summary { padding: 9px 12px; color: var(--accent-deep); cursor: pointer; font-size: .82rem; font-weight: 750; }
+.training-session-refinements > summary span,
+.training-session-refinements > summary small { display: block; margin-left: 4px; }
+.training-session-refinements[open] > summary,
+.training-session-result-summary[open] > summary { border-bottom: 1px solid var(--line); }
+.training-session-refinements[open] { flex: 1 1 100%; }
+.training-session-search { display: grid; gap: 16px; margin: 0; padding: 18px; }
 .training-session-search h3 { margin: 0; font-size: 1rem; }
 .training-session-search-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; align-items: start; }
 .training-session-search-fields label { display: grid; gap: 5px; min-width: 0; }
@@ -494,11 +518,11 @@ th:last-child, td:last-child { text-align: right; }
 .training-session-filter-options label { display: inline-flex; gap: 7px; align-items: center; font-size: .84rem; }
 .training-session-filter-options input { width: auto; }
 .training-session-search-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
-.training-session-view-switch { display: inline-flex; gap: 5px; margin: 18px 0 0; padding: 4px; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 12px; }
+.training-session-view-switch { display: inline-flex; gap: 5px; margin: 0; padding: 3px; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 11px; }
 .training-session-view-switch legend { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .training-session-view-switch label { position: relative; cursor: pointer; }
 .training-session-view-switch input { position: absolute; opacity: 0; pointer-events: none; }
-.training-session-view-switch span { min-height: 40px; margin: 0; padding: 10px 14px; color: var(--muted); border-radius: 8px; }
+.training-session-view-switch span { min-height: 36px; margin: 0; padding: 8px 12px; color: var(--muted); border-radius: 8px; font-size: .82rem; }
 .training-session-view-switch input:checked + span { color: var(--surface); background: var(--accent-deep); }
 .training-session-view-switch input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: 3px; }
 .training-calendar { margin-top: 22px; padding: 18px; background: var(--paper); border: 1px solid var(--line); border-radius: 15px; }
@@ -516,20 +540,22 @@ th:last-child, td:last-child { text-align: right; }
 .training-calendar-grid li > button small { overflow: hidden; color: var(--muted); font-size: .6rem; text-overflow: ellipsis; white-space: nowrap; }
 .training-calendar > p { margin: 14px 0 0; color: var(--muted); text-align: center; }
 .training-sessions-unavailable { color: var(--danger-ink); }
-.training-session-summaries { display: grid; gap: 18px; margin-top: 22px; }
+.training-session-summaries { display: grid; gap: 18px; padding: 16px; }
 .training-session-summaries h3 { margin: 0 0 10px; font-size: .92rem; }
 .training-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
 .training-summary li { min-width: 0; padding: 14px; background: var(--accent-soft); border-radius: 10px; }
 .training-summary strong, .training-summary span { display: block; overflow-wrap: anywhere; }
 .training-summary strong { margin-bottom: 5px; font-size: 1.18rem; font-variant-numeric: tabular-nums; }
 .training-summary span { color: var(--ink-soft); font-size: .76rem; }
-.training-session-result-count { margin: 22px 0 12px; color: var(--muted); font-size: .84rem; font-weight: 700; }
+.training-session-result-count { margin: 13px 0 8px; color: var(--muted); font-size: .8rem; font-weight: 700; }
 .training-session-results { container: training-session-results / inline-size; display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
 .training-session-results > li { min-width: 0; }
-.training-session-results article { display: grid; grid-template-columns: minmax(180px, .8fr) minmax(360px, 1.55fr) minmax(160px, auto); gap: 20px; align-items: center; height: 100%; padding: 16px 18px; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; }
+.training-session-results article { display: grid; grid-template-columns: minmax(180px, .8fr) minmax(360px, 1.55fr) minmax(160px, auto); gap: 16px; align-items: center; height: 100%; padding: 12px 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 13px; }
 .training-session-results article > header { display: flex; justify-content: space-between; gap: 14px; align-items: start; }
 .training-session-results article > header h3 { margin: 3px 0 0; font-size: 1.05rem; }
 .training-session-results article > header > span { flex: 0 0 auto; padding: 5px 8px; color: var(--accent-deep); background: var(--accent-soft); border-radius: 999px; font-size: .7rem; font-weight: 750; }
+.training-session-result-identity, .training-sport-identity { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.training-session-result-identity > div, .training-sport-identity > div { min-width: 0; }
 .training-session-sport { margin: 0; color: var(--muted); font-size: .76rem; font-weight: 750; }
 .training-session-results dl { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0; }
 .training-session-results dl > div { min-width: 0; padding-top: 8px; border-top: 1px solid var(--line); }
@@ -551,6 +577,7 @@ th:last-child, td:last-child { text-align: right; }
 }
 .training-session-pagination { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; margin-top: 18px; }
 .training-session-pagination span { color: var(--muted); font-size: .8rem; text-align: center; }
+.training-session-result-summary { margin-top: 12px; }
 .training-session-comparison { margin-top: 24px; padding: 20px; background: var(--paper); border: 1px solid var(--line); border-radius: 15px; }
 .training-session-comparison > header { display: flex; justify-content: space-between; gap: 18px; align-items: start; }
 .training-session-comparison h3 { margin: 0 0 5px; }
@@ -560,6 +587,11 @@ th:last-child, td:last-child { text-align: right; }
 .training-session-comparison table { min-width: 620px; padding: 14px; table-layout: fixed; }
 .training-session-comparison th, .training-session-comparison td { overflow-wrap: anywhere; }
 .training-session-comparison th:not(:first-child), .training-session-comparison td { text-align: right; }
+.training-session-comparison-identity { display: flex; align-items: center; justify-content: flex-end; gap: 7px; }
+.training-session-comparison-identity .sport-family-icon { flex: 0 0 30px; width: 30px; height: 30px; padding: 5px; color: var(--accent-deep); background: var(--accent-soft); border-radius: 50%; stroke: currentcolor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+.training-session-comparison-identity > span { min-width: 0; }
+.training-session-comparison-identity strong, .training-session-comparison-identity small { display: block; }
+.training-session-comparison-identity small { margin-top: 2px; color: var(--muted); font-size: .65rem; font-weight: 500; }
 .training-sports { margin: 22px 0 32px; padding: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 14px 40px rgb(21 29 44 / 7%); }
 .training-sports-heading { display: flex; align-items: start; justify-content: space-between; gap: 24px; }
 .training-sports-heading h2 { margin-bottom: 5px; }
@@ -571,6 +603,7 @@ th:last-child, td:last-child { text-align: right; }
 .training-sport-list > li[data-state="unknown"] { border-top-color: var(--warning); }
 .training-sport-list > li[data-state="unavailable"] { border-top-color: var(--muted); }
 .training-sport-card-heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
+.training-sport-identity { align-items: start; }
 .training-sport-card-heading h3 { margin: 0 0 5px; font-size: 1.12rem; overflow-wrap: anywhere; }
 .training-sport-card-heading p { margin: 0; color: var(--muted); font-size: .76rem; }
 .training-sport-card-heading button { flex: 0 0 auto; min-height: 38px; padding: 7px 10px; font-size: .76rem; }

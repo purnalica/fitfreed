@@ -74,6 +74,17 @@ periods. Switching views hides rather than unmounts their presentation boundarie
 not discard filters, calendar position, classification editor state, comparison input, or a selected session.
 This presentation state is disposable; only the versioned discovery workspace described above is durable.
 
+The Sessions view composes that existing discovery contract as a History Desk. Its default viewport presents
+the provider-neutral sport groups and actual chronological session results before query controls. Each sport
+and session combines visible localized text with the same semantic family icon; unknown and unavailable
+evidence use distinct explicit symbols and labels rather than a provider value or placeholder. Date, sport,
+measurement, personal-label text, and sorting controls remain one complete form behind **Refine sessions**.
+The aggregate summary remains calculated over the complete filtered set, but follows the paginated result
+list behind **Result summary** so numeric coverage does not displace the sessions a person came to find.
+Chronology, calendar, comparison selection, pagination, and workspace restoration retain their application
+contracts. `TrainingSessionLibraryPanel` owns this composition, `TrainingSportsPanel` owns full classification
+management, and `SportFamilyIcon` is the single presentation primitive for sport identity.
+
 An open session replaces discovery content inside Sessions and provides five explicit evidence sections:
 Overview, Structure and segments, Signals and zones, Routes, and Source history. Only one section is visible
 and exposed to assistive technology at a time. Every lower-layer query retains its existing independent error
