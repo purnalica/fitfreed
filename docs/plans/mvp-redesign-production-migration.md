@@ -209,7 +209,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R3 | Complete locally — R3.1 and R3.2 exact packaged gates passed 2026-08-22 | Import ends in recognizable personal value |
 | X5-R4 | Complete locally — exact packaged and exhaustive adaptive gates passed 2026-08-22 | Existing health and aligned-history questions read as answers |
 | X5-R5 | Complete locally — R5.4, R5.5, and real-process restart gates passed 2026-08-22 | A remembered session is findable and sports are recognizable |
-| X5-R6 | In progress — R6.1/R6.2 complete; production reader cut-over exact packaged gates passed 2026-08-22 | A routed workout is investigated through a dominant synchronized map |
+| X5-R6 | In progress — R6.1/R6.2 and the first production workbench slice implemented; exact committed-source package gate pending | A routed workout is investigated through a dominant synchronized map |
 | X5-R7 | Pending | Every session composition reflects its actual evidence |
 | X5-R8 | Pending | Personal ranges and reusable criteria work end to end |
 | X5-R9 | Pending | Reports open as results and leave FitFreed safely |
@@ -928,6 +928,32 @@ checks passed. The exact committed-source macOS campaign passed the complete fun
 process restart, accessibility checks, and the packaged insight-performance suite. R6 remains open for the
 dominant Leaflet route workbench and its synchronized interaction, adaptive-layout, privacy, and visual
 falsification gates.
+
+### R6.3 implementation checkpoint — 2026-08-22
+
+The production session story now leads with a full-width local vector route workbench whenever bounded
+recorded geometry exists and renders no map when it does not. One presentation-owned model preserves exact
+source coordinates and ordinals while unwrapping anti-meridian viewport geometry, keeps primary and
+transition roles separate, derives sparse direction markers, selects bounded points, transforms supported
+display metrics without changing their exact source value, and leaves missing or discontinuous overlay
+evidence unconnected. A replaceable Leaflet adapter owns only local projection, SVG vectors, pan, zoom, fit,
+scale, pointer hit testing, resize, and disposal; package and architecture contracts pin its reviewed versions
+and reject tiles, remote URLs, location services, popups, transport access, or Leaflet types outside that
+adapter.
+
+The responsive surface gives the map a laptop-bounded majority region, offers named zoom/reset and reversible
+focused-view controls, preserves focus on initial session entry, restores the initiating control on button or
+`Escape` exit, and keeps a native recorded-position control, selected elapsed/value strip, non-color overlay
+range, source-aware exact actions, and local-privacy statement attached to the same story. A route action opens
+the existing paginated Routes evidence and a metric action opens its exact Signals source, moving focus and
+the visible workspace to the requested result without adding a second reader. Unit and component tests,
+translation and architecture contracts, dependency audit, production
+build, and the complete contributor fast lane pass. A preliminary packaged campaign passed the complete
+functional journey, real application-process restart, and insight-performance budgets; because the final
+source revision is not yet committed, this checkpoint does not treat that run as acceptance evidence. R6
+remains open for exact committed-source packaged evidence, synchronized full-width signal lanes and exact-row
+selection, remaining locale/theme/zoom/accessibility visual matrices, dense-session interaction evidence, and
+the personal/source range workbench integration already assigned to R8.
 
 ## X5-R7 — Make session composition evidence-adaptive
 

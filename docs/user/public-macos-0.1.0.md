@@ -82,7 +82,7 @@ The [Polar Flow compatibility reference](../data-formats/providers/polar-flow.md
 Version 0.1.0 provides provider-neutral views for:
 
 - daily activity overview, range, exact day detail, and period comparison;
-- complete-history training sport discovery and user classification, combined filters, chronology, source-separated calendar navigation, multi-session comparison, exact session summary, exercise/lap/pause structure, bounded local primary and transition route traces, paginated exact route points, gap-aware supported signal charts, paginated exact signal samples, recorded zones, reusable user-authored segmentation, and source provenance;
+- complete-history training sport discovery and user classification, combined filters, chronology, source-separated calendar navigation, multi-session comparison, exact session summary, exercise/lap/pause structure, an [interactive local primary/transition route workbench](session-routes.md), paginated exact route points, gap-aware supported signal charts, paginated exact signal samples, recorded zones, reusable user-authored segmentation, and source provenance;
 - primary sleep overview, range, phases, timeline, score detail, and period comparison;
 - dated nightly recovery overview, range, exact source-context detail, and period comparison; and
 - one longitudinal dashboard with a shared range, aligned day synopsis, navigation, and period comparison; and

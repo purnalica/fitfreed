@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import AxeBuilder from "@axe-core/webdriverio";
+import { Key } from "webdriverio";
 
 import { e2eApplicationBinary } from "../../scripts/e2e-paths.mjs";
 import {
@@ -1526,6 +1527,147 @@ describe("packaged FitFreed import journey", () => {
     await expectTrainingRows([[enJan4Card, "1 h", "10 km", "600 kcal", "142 bpm"]]);
     await $(".training-session-results button.secondary").click();
     await expect($("#training-session-detail-heading")).toHaveText("Session summary");
+    const routeWorkbench = await $(".training-route-workbench");
+    await routeWorkbench.waitForDisplayed({ timeout: 10_000 });
+    await routeWorkbench.$(".fitfreed-route-track").waitForDisplayed({ timeout: 10_000 });
+    const routeWorkbenchLayout = await browser.execute(() => {
+      const workbench = document.querySelector(".training-route-workbench").getBoundingClientRect();
+      const map = document.querySelector(".training-route-map-frame").getBoundingClientRect();
+      return {
+        directionTransforms: [...document.querySelectorAll(
+          ".fitfreed-route-direction span",
+        )].map((direction) => getComputedStyle(direction).transform),
+        mapBackgroundImage: getComputedStyle(
+          document.querySelector(".training-route-map"),
+        ).backgroundImage,
+        mapHeight: map.height,
+        mapWidth: map.width,
+        viewportHeight: document.documentElement.clientHeight,
+        workbenchWidth: workbench.width,
+      };
+    });
+    expect(routeWorkbenchLayout.mapWidth / routeWorkbenchLayout.workbenchWidth)
+      .toBeGreaterThan(0.94);
+    expect(routeWorkbenchLayout.mapHeight / routeWorkbenchLayout.viewportHeight)
+      .toBeGreaterThan(0.38);
+    expect(routeWorkbenchLayout.mapHeight / routeWorkbenchLayout.viewportHeight)
+      .toBeLessThan(0.68);
+    expect(routeWorkbenchLayout.mapBackgroundImage).toContain("linear-gradient");
+    expect(routeWorkbenchLayout.directionTransforms).toHaveLength(4);
+    expect(routeWorkbenchLayout.directionTransforms.every(
+      (transform) => transform !== "none" && transform !== "matrix(1, 0, 0, 1, 0, 0)",
+    )).toBe(true);
+    expect(await routeWorkbench.$$(".leaflet-tile, img")).toHaveLength(0);
+    expect(await routeWorkbench.$$(".fitfreed-route-direction")).toHaveLength(4);
+    expect(await routeWorkbench.$$(".fitfreed-route-start")).toHaveLength(1);
+    expect(await routeWorkbench.$$(".fitfreed-route-finish")).toHaveLength(1);
+    await expect(routeWorkbench).toHaveText(expect.stringContaining("Point 1 of 5"));
+    const routePosition = await routeWorkbench.$('input[type="range"]');
+    await expect(routePosition).toHaveAttribute("max", "4");
+    await routePosition.addValue(Key.ArrowRight);
+    const keyboardPointIndex = Number(await routePosition.getValue());
+    expect(keyboardPointIndex).toBeGreaterThan(0);
+    expect(keyboardPointIndex).toBeLessThanOrEqual(4);
+    await expect(routeWorkbench).toHaveText(expect.stringContaining(
+      `Point ${keyboardPointIndex + 1} of 5`,
+    ));
+    await browser.execute(() => {
+      const path = document.querySelector(".training-route-workbench .fitfreed-route-track");
+      const point = path.getPointAtLength(path.getTotalLength());
+      const screenPoint = new DOMPoint(point.x, point.y).matrixTransform(path.getScreenCTM());
+      path.dispatchEvent(new MouseEvent("click", {
+        bubbles: true,
+        clientX: screenPoint.x,
+        clientY: screenPoint.y,
+      }));
+    });
+    await expect(routeWorkbench).toHaveText(expect.stringContaining("Point 5 of 5"));
+    const routeMap = await routeWorkbench.$(".training-route-map");
+    const routePathBeforeKeyboardPan = await routeWorkbench.$(
+      ".fitfreed-route-track",
+    ).getAttribute("d");
+    await routeMap.click();
+    await routeMap.addValue(Key.ArrowRight);
+    await browser.waitUntil(
+      async () => await routeWorkbench.$(".fitfreed-route-track").getAttribute("d")
+        !== routePathBeforeKeyboardPan,
+      { timeout: 10_000, timeoutMsg: "the focused local route did not respond to keyboard pan" },
+    );
+    await routeWorkbench.$(
+      `aria/${english.training.sessionLibrary.routeWorkbench.completeTrack}`,
+    ).click();
+    const routeSelectors = await routeWorkbench.$$(".training-route-workbench-controls select");
+    expect(routeSelectors).toHaveLength(2);
+    const trackDisplay = routeSelectors[1];
+    let paceOption;
+    for (const option of await trackDisplay.$$("option")) {
+      if (await option.getText() === "Pace") {
+        paceOption = option;
+        break;
+      }
+    }
+    expect(paceOption).toBeDefined();
+    await selectNativeOption(trackDisplay, await paceOption.getAttribute("value"));
+    await expect(routeWorkbench).toHaveText(expect.stringContaining("Pace on the recorded track"));
+    await expect(routeWorkbench).toHaveText(expect.stringContaining("min/km"));
+    const routePathBeforeZoom = await routeWorkbench.$(".fitfreed-route-track").getAttribute("d");
+    await routeWorkbench.$(`aria/${english.training.sessionLibrary.routeWorkbench.zoomIn}`).click();
+    await browser.waitUntil(
+      async () => await routeWorkbench.$(".fitfreed-route-track").getAttribute("d")
+        !== routePathBeforeZoom,
+      { timeout: 10_000, timeoutMsg: "the local route did not respond to zoom" },
+    );
+    await routeWorkbench.$(
+      `aria/${english.training.sessionLibrary.routeWorkbench.completeTrack}`,
+    ).click();
+    const focusMap = await routeWorkbench.$(
+      `aria/${english.training.sessionLibrary.routeWorkbench.focusMap}`,
+    );
+    await focusMap.click();
+    await expect(routeWorkbench).toHaveAttribute("data-focused", "true");
+    await expect(routeWorkbench).toHaveAttribute("role", "dialog");
+    await expect(routeWorkbench).toHaveAttribute("aria-modal", "true");
+    expect(await browser.execute(
+      () => document.querySelector(".app-sidebar").hasAttribute("inert"),
+    )).toBe(true);
+    await expect(routeWorkbench.$(
+      `aria/${english.training.sessionLibrary.routeWorkbench.returnToSession}`,
+    )).toBeFocused();
+    await browser.keys([Key.Escape]);
+    await expect(routeWorkbench).toHaveAttribute("data-focused", "false");
+    await expect(routeWorkbench).toHaveAttribute("role", "region");
+    expect(await browser.execute(
+      () => document.querySelector(".app-sidebar").hasAttribute("inert"),
+    )).toBe(false);
+    await expect(focusMap).toBeFocused();
+    const exactOverlayLabel = english.training.sessionLibrary.routeWorkbench.exactOverlaySignal
+      .replace("{metric}", "Pace")
+      .replace("{signal}", "Speed");
+    await focusMap.click();
+    await expect(routeWorkbench).toHaveAttribute("data-focused", "true");
+    await routeWorkbench.$(`aria/${exactOverlayLabel}`).click();
+    await expect(routeWorkbench).toHaveAttribute("data-focused", "false");
+    const exactSignalHeading = await $(".training-signal-exact h6");
+    await exactSignalHeading.waitForDisplayed({ timeout: 10_000 });
+    await expect(exactSignalHeading).toBeFocused();
+    const visibleRoute = routeSelectors[0];
+    await selectNativeOption(visibleRoute, "0:transition");
+    await expect(routeWorkbench).toHaveText(expect.stringContaining("Point 1 of 2"));
+    await selectNativeOption(visibleRoute, "0:primary");
+    await expect(routeWorkbench).toHaveText(expect.stringContaining("Point 1 of 5"));
+    await routeWorkbench.$(
+      `aria/${english.training.sessionLibrary.routeWorkbench.exactRoute}`,
+    ).click();
+    await browser.waitUntil(
+      async () => (await $(".training-route:first-of-type").$$(
+        ".training-route-exact tbody tr",
+      )).length === 5,
+      { timeout: 10_000, timeoutMsg: "workbench exact route evidence was not displayed" },
+    );
+    await expect($(".training-route:first-of-type .training-route-exact h6")).toBeFocused();
+    await expect($(".training-detail-navigation button[aria-current='page']"))
+      .toHaveText(english.training.sessionLibrary.detailSections.routes);
+    await $(".training-route:first-of-type button").click();
     await openTrainingDetailSection(english, "structure");
     await expect($("#training-structure-heading")).toHaveText(
       english.training.sessionLibrary.structureHeading,

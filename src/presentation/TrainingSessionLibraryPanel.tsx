@@ -58,8 +58,10 @@ import type {
 import { TrainingCrossSignalPanel } from "./TrainingCrossSignalPanel";
 import { TrainingSegmentationPanel } from "./TrainingSegmentationPanel";
 import { TrainingSessionProvenancePanel } from "./TrainingSessionProvenancePanel";
+import { TrainingRouteWorkbench } from "./TrainingRouteWorkbench";
 import { TrainingSessionZonesPanel } from "./TrainingSessionZonesPanel";
 import { useInvalidForm } from "./useInvalidForm";
+import { useResultFocus } from "./useResultFocus";
 
 const PAGE_SIZE = 25;
 const ROUTE_VISUAL_POINT_LIMIT = 400;
@@ -304,6 +306,18 @@ export function TrainingSessionLibraryPanel({
   const [exactSignalLoading, setExactSignalLoading] = useState(false);
   const [exactSignalFailed, setExactSignalFailed] = useState(false);
   const exactSignalRequestSequence = useRef(0);
+  const {
+    resultHeadingRef: exactRouteHeadingRef,
+    requestResultFocus: requestExactRouteFocus,
+  } = useResultFocus<HTMLHeadingElement>(
+    detailSection === "routes" && exactRouteRef !== undefined,
+  );
+  const {
+    resultHeadingRef: exactSignalHeadingRef,
+    requestResultFocus: requestExactSignalFocus,
+  } = useResultFocus<HTMLHeadingElement>(
+    detailSection === "signals" && exactSignalRef !== undefined,
+  );
   const [detailOrigin, setDetailOrigin] = useState<SessionView>("chronology");
   const [comparison, setComparison] = useState<TrainingSessionSearchItem[]>([]);
   const dateRangeValidation = useInvalidForm(onError);
@@ -1263,7 +1277,7 @@ export function TrainingSessionLibraryPanel({
     }
   }
 
-  function toggleExactRoutePoints(routeRef: string) {
+  function toggleExactRoutePoints(routeRef: string, initiatingElement: HTMLButtonElement) {
     if (exactRouteRef === routeRef) {
       exactRequestSequence.current += 1;
       setExactRouteRef(undefined);
@@ -1272,6 +1286,18 @@ export function TrainingSessionLibraryPanel({
       setExactRouteFailed(false);
       return;
     }
+    requestExactRouteFocus(initiatingElement);
+    setExactRoutePoints(undefined);
+    void loadExactRoutePoints(routeRef, 0);
+  }
+
+  function openExactRoutePoints(routeRef: string, initiatingElement: HTMLButtonElement) {
+    requestExactRouteFocus(initiatingElement);
+    setDetailSection("routes");
+    if (exactRouteRef === routeRef && exactRouteLoading) return;
+    if (exactRouteRef === routeRef
+      && exactRoutePoints?.routeRef === routeRef
+      && !exactRouteFailed) return;
     setExactRoutePoints(undefined);
     void loadExactRoutePoints(routeRef, 0);
   }
@@ -1337,7 +1363,7 @@ export function TrainingSessionLibraryPanel({
           className="secondary"
           aria-expanded={exactOpen}
           aria-controls={`${headingId}-exact`}
-          onClick={() => toggleExactRoutePoints(route.routeRef)}
+          onClick={(event) => toggleExactRoutePoints(route.routeRef, event.currentTarget)}
         >
           {exactOpen ? copy.hideExactRoutePoints : copy.viewExactRoutePoints}
         </button>
@@ -1349,7 +1375,7 @@ export function TrainingSessionLibraryPanel({
             aria-label={copy.exactRouteHeading}
             aria-busy={exactRouteLoading}
           >
-            <h6>{copy.exactRouteHeading}</h6>
+            <h6 ref={exactRouteHeadingRef} tabIndex={-1}>{copy.exactRouteHeading}</h6>
             {exactRouteLoading && <p role="status">{copy.exactRouteLoading}</p>}
             {exactRouteFailed && <p className="error" role="alert">{copy.exactRouteFailed}</p>}
             {exactRoutePoints && exactRoutePoints.routeRef === route.routeRef && (
@@ -1463,7 +1489,7 @@ export function TrainingSessionLibraryPanel({
     }
   }
 
-  function toggleExactSignalSamples(signalRef: string) {
+  function toggleExactSignalSamples(signalRef: string, initiatingElement: HTMLButtonElement) {
     if (exactSignalRef === signalRef) {
       exactSignalRequestSequence.current += 1;
       setExactSignalRef(undefined);
@@ -1472,17 +1498,30 @@ export function TrainingSessionLibraryPanel({
       setExactSignalFailed(false);
       return;
     }
+    requestExactSignalFocus(initiatingElement);
     setExactSignalSamples(undefined);
     void loadExactSignalSamples(signalRef, 0);
   }
 
-  function openExactSignalSamples(signalRef: string) {
+  function openExactSignalSamples(
+    signalRef: string,
+    initiatingElement?: HTMLButtonElement,
+  ) {
+    if (initiatingElement) requestExactSignalFocus(initiatingElement);
     if (exactSignalRef === signalRef && exactSignalLoading) return;
     if (exactSignalRef === signalRef
       && exactSignalSamples?.signalRef === signalRef
       && !exactSignalFailed) return;
     setExactSignalSamples(undefined);
     void loadExactSignalSamples(signalRef, 0);
+  }
+
+  function openExactSignalSamplesFromWorkbench(
+    signalRef: string,
+    initiatingElement: HTMLButtonElement,
+  ) {
+    setDetailSection("signals");
+    openExactSignalSamples(signalRef, initiatingElement);
   }
 
   function signalKindLabel(kind: TrainingSignalKind): string {
@@ -1550,7 +1589,7 @@ export function TrainingSessionLibraryPanel({
           className="secondary"
           aria-expanded={exactOpen}
           aria-controls={`${headingId}-exact`}
-          onClick={() => toggleExactSignalSamples(signal.signalRef)}
+          onClick={(event) => toggleExactSignalSamples(signal.signalRef, event.currentTarget)}
         >
           {interpolate(
             exactOpen ? copy.hideExactSignalSamples : copy.viewExactSignalSamples,
@@ -1565,7 +1604,7 @@ export function TrainingSessionLibraryPanel({
             aria-label={exactHeading}
             aria-busy={exactSignalLoading}
           >
-            <h6>{exactHeading}</h6>
+            <h6 ref={exactSignalHeadingRef} tabIndex={-1}>{exactHeading}</h6>
             {exactSignalLoading && <p role="status">{copy.exactSignalLoading}</p>}
             {exactSignalFailed && (
               <div className="error" role="alert">
@@ -2589,6 +2628,17 @@ export function TrainingSessionLibraryPanel({
               </button>
             </div>
           </div>
+          <div className="training-detail-query-status" aria-live="polite">
+            {detailLoading && <p role="status">{copy.storyLoading}</p>}
+            {detailFailed && <p className="error" role="alert">{copy.storyFailed}</p>}
+          </div>
+          {detailStory && <TrainingRouteWorkbench
+            story={detailStory}
+            locale={locale}
+            messages={messages}
+            onOpenExactRoute={openExactRoutePoints}
+            onOpenExactSignal={openExactSignalSamplesFromWorkbench}
+          />}
           <nav className="training-detail-navigation" aria-label={copy.detailNavigation}>
             {detailSections.map((section) => (
               <button
@@ -2602,10 +2652,6 @@ export function TrainingSessionLibraryPanel({
               </button>
             ))}
           </nav>
-          <div className="training-detail-query-status" aria-live="polite">
-            {detailLoading && <p role="status">{copy.storyLoading}</p>}
-            {detailFailed && <p className="error" role="alert">{copy.storyFailed}</p>}
-          </div>
           <section
             id="training-detail-overview"
             className="training-detail-section training-detail-overview"

@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -56,6 +56,24 @@ const libraryHomePanel = readFileSync(path.join(
   "presentation",
   "LibraryHomePanel.tsx",
 ), "utf8");
+const routeWorkbenchPath = path.join(
+  repositoryRoot,
+  "src",
+  "presentation",
+  "TrainingRouteWorkbench.tsx",
+);
+const routeWorkbench = readFileSync(routeWorkbenchPath, "utf8");
+const leafletAdapterPath = path.join(
+  repositoryRoot,
+  "src",
+  "presentation",
+  "leaflet-route-adapter.ts",
+);
+const leafletAdapter = readFileSync(leafletAdapterPath, "utf8");
+const packageManifest = JSON.parse(readFileSync(
+  path.join(repositoryRoot, "package.json"),
+  "utf8",
+));
 const tauriConfiguration = JSON.parse(readFileSync(
   path.join(repositoryRoot, "src-tauri", "tauri.conf.json"),
   "utf8",
@@ -83,6 +101,16 @@ function requireRule(source, selector, declarations, contract) {
       throw new Error(`${selector} must preserve ${contract}`);
     }
   }
+}
+
+function sourceFiles(directory) {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const candidate = path.join(directory, entry.name);
+    if (entry.isDirectory()) return sourceFiles(candidate);
+    return /\.[cm]?[jt]sx?$/.test(entry.name) && statSync(candidate).isFile()
+      ? [candidate]
+      : [];
+  });
 }
 
 if (/\bfallback=\{null\}/.test(application)) {
@@ -137,6 +165,81 @@ for (const workspace of ["sessions", "sports", "comparison"]) {
 }
 if (!trainingSessionLibrary.includes("aria-label={copy.detailNavigation}")) {
   throw new Error("Training session detail must expose its section navigation");
+}
+if (packageManifest.dependencies?.leaflet !== "1.9.4"
+  || packageManifest.devDependencies?.["@types/leaflet"] !== "1.9.22") {
+  throw new Error("the local route viewport must use the reviewed exact Leaflet versions");
+}
+if (!routeWorkbench.includes('void import("./leaflet-route-adapter")')) {
+  throw new Error("the route workbench must lazy-load its replaceable Leaflet adapter");
+}
+for (const focusedMapAccessibility of [
+  'role={focused ? "dialog" : "region"}',
+  "aria-modal={focused ? true : undefined}",
+  'sibling.setAttribute("inert", "")',
+  'document.body.style.overflow = "hidden"',
+]) {
+  if (!routeWorkbench.includes(focusedMapAccessibility)) {
+    throw new Error(`the focused route workspace must isolate the modal map: ${focusedMapAccessibility}`);
+  }
+}
+for (const deliberateMapInteraction of [
+  "scrollWheelZoom: false",
+  'map.on("focus", enableDeliberateWheelZoom)',
+  'map.on("blur", disableIncidentalWheelZoom)',
+]) {
+  if (!leafletAdapter.includes(deliberateMapInteraction)) {
+    throw new Error(`the route viewport must preserve deliberate scroll interaction: ${deliberateMapInteraction}`);
+  }
+}
+if (!trainingSessionLibrary.includes("<TrainingRouteWorkbench")) {
+  throw new Error("a route-bearing session story must expose the route workbench before deep detail");
+}
+const leafletConsumers = sourceFiles(path.join(repositoryRoot, "src")).filter((sourcePath) => (
+  /(?:from\s+["']leaflet["']|import\s+["']leaflet\/dist\/leaflet\.css["'])/.test(
+    readFileSync(sourcePath, "utf8"),
+  )
+));
+if (leafletConsumers.length !== 1 || leafletConsumers[0] !== leafletAdapterPath) {
+  throw new Error("Leaflet imports and types must remain confined to the presentation adapter");
+}
+for (const forbidden of [
+  /\btileLayer\b/,
+  /\bTileLayer\b/,
+  /\bgeolocation\b/i,
+  /\bgeocoder\b/i,
+  /\.locate\s*\(/,
+  /https?:\/\//,
+  /@tauri-apps/,
+  /\binvoke\s*\(/,
+  /\.bindPopup\s*\(/,
+  /html:\s*["']</,
+]) {
+  if (forbidden.test(leafletAdapter)) {
+    throw new Error(`the local vector-only route adapter violates ${forbidden}`);
+  }
+}
+requireRule(
+  stylesheet,
+  ".training-route-map-frame",
+  [
+    /height:\s*clamp\(320px,\s*48vh,\s*540px\)/,
+    /overflow:\s*hidden/,
+  ],
+  "a dominant but laptop-bounded route viewport",
+);
+requireRule(
+  stylesheet,
+  '.training-route-workbench[data-focused="true"]',
+  [/position:\s*fixed/, /inset:\s*12px/],
+  "a reversible focused map workspace",
+);
+for (const zoom of ["175", "200"]) {
+  if (!stylesheet.includes(
+    `:root[data-content-zoom="${zoom}"] .training-route-map-frame`,
+  )) {
+    throw new Error(`the route workbench must bound its map explicitly at ${zoom}% content zoom`);
+  }
 }
 requireRule(
   stylesheet,

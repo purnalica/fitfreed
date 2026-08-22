@@ -14,7 +14,7 @@ interface TrainingCrossSignalPanelProps {
   series: TrainingSignalSeriesOverview[];
   locale: Locale;
   messages: (typeof catalogs)["en-US"];
-  onOpenExact: (signalRef: string) => void;
+  onOpenExact: (signalRef: string, initiatingElement: HTMLButtonElement) => void;
 }
 
 interface SignalLane {
@@ -224,7 +224,7 @@ export function TrainingCrossSignalPanel({
               <button
                 type="button"
                 className="secondary"
-                onClick={() => onOpenExact(lane.signal.signalRef)}
+                onClick={(event) => onOpenExact(lane.signal.signalRef, event.currentTarget)}
               >{interpolate(copy.crossSignalExact, { series: lane.label })}</button>
             </article>
           );

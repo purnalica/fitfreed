@@ -8,6 +8,7 @@ FitFreed does not have a supported public release yet. The implemented applicati
 
 - Read the [development preview guide](user/development-preview.md) for the complete runnable journey.
 - Read [session reports](user/reports.md) for creation, durable editing, privacy review, stale-source handling, and local HTML export.
+- Read [recorded session routes](user/session-routes.md) for local map controls, synchronized evidence, exact source paths, privacy, and current limits.
 - Read [private development packages](user/private-development-packages.md) before handling unsigned package evidence.
 - Read the [private alpha candidate guide](user/private-alpha-candidate.md) for the version-matched 0.1.0 user journey and the gates that keep it inactive.
 - Read the [public macOS 0.1.0 guide](user/public-macos-0.1.0.md) for the future verified download, installation, import, update, recovery, privacy, and removal journey.

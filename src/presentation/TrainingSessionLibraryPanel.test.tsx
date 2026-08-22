@@ -31,8 +31,23 @@ import type {
 } from "./training-sports";
 
 const mocks = vi.hoisted(() => ({ invoke: vi.fn() }));
+const routeViewport = vi.hoisted(() => ({
+  create: vi.fn(),
+  controller: {
+    updateSelection: vi.fn(),
+    updateOverlay: vi.fn(),
+    zoomIn: vi.fn(),
+    zoomOut: vi.fn(),
+    fitTrack: vi.fn(),
+    invalidateSize: vi.fn(),
+    destroy: vi.fn(),
+  },
+}));
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: mocks.invoke }));
+vi.mock("./leaflet-route-adapter", () => ({
+  createLocalRouteViewport: routeViewport.create,
+}));
 
 const snapshotRef = `training-snapshot-${"a".repeat(64)}`;
 
@@ -672,6 +687,8 @@ afterEach(cleanup);
 
 beforeEach(() => {
   mocks.invoke.mockReset();
+  Object.values(routeViewport.controller).forEach((mock) => mock.mockReset());
+  routeViewport.create.mockReset().mockResolvedValue(routeViewport.controller);
 });
 
 describe("TrainingSessionLibraryPanel", () => {
@@ -1826,14 +1843,23 @@ describe("TrainingSessionLibraryPanel", () => {
       "query_training_session_signals",
       "query_training_session_zones",
     ].includes(command))).toBe(false);
+    const detailNavigation = within(detail!).getByRole("navigation", {
+      name: "Session detail",
+    });
+    const workbench = await within(detail!).findByRole("region", {
+      name: "Recorded route workbench",
+    });
+    expect(within(workbench).getByRole("region", { name: "Recorded route map" }))
+      .toBeVisible();
+    expect(within(workbench).getByText("Point 1 of 101")).toBeVisible();
+    expect(within(workbench).getByText("Heart rate on the recorded track")).toBeVisible();
+    expect(workbench.compareDocumentPosition(detailNavigation))
+      .toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(detail).toHaveTextContent("10,000.5 m");
     expect(detail).toHaveTextContent("650 kcal");
     expect(detail).toHaveTextContent("145 bpm");
     expect(detail).toHaveTextContent("175 bpm");
     expect(detail).toHaveTextContent("UTC+02:00");
-    const detailNavigation = within(detail!).getByRole("navigation", {
-      name: "Session detail",
-    });
     expect(within(detailNavigation).getByRole("button", { name: "Overview" }))
       .toHaveAttribute("aria-current", "page");
     expect(within(region).queryByRole("form", { name: "Filter sessions" }))
@@ -1859,7 +1885,11 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(within(firstExercise!).getByRole("heading", { name: "Automatic laps" })).toBeVisible();
     expect(within(firstExercise!).getByRole("heading", { name: "Pauses" })).toBeVisible();
 
-    await user.click(within(detailNavigation).getByRole("button", { name: "Routes" }));
+    await user.click(within(workbench).getByRole("button", {
+      name: "Inspect exact recorded route points",
+    }));
+    expect(within(detailNavigation).getByRole("button", { name: "Routes" }))
+      .toHaveAttribute("aria-current", "page");
     const routeExercise = within(detail!).getByRole("heading", { name: "Exercise 1" })
       .closest("article");
     expect(routeExercise).not.toBeNull();
@@ -1869,12 +1899,12 @@ describe("TrainingSessionLibraryPanel", () => {
       name: /Primary route with 101 recorded points/,
     })).toBeVisible();
     expect(routeExercise).toHaveTextContent("Route geometry stays on this device");
-    await user.click(within(routeExercise!).getByRole("button", {
-      name: "Inspect exact recorded points",
-    }));
     const exactRegion = await within(routeExercise!).findByRole("region", {
       name: "Exact recorded route points",
     });
+    await waitFor(() => expect(within(exactRegion).getByRole("heading", {
+      name: "Exact recorded route points",
+    })).toHaveFocus());
     expect(within(exactRegion).getAllByRole("row")).toHaveLength(101);
     expect(exactRegion).toHaveTextContent("40");
     expect(exactRegion).toHaveTextContent("-3");
@@ -1889,9 +1919,11 @@ describe("TrainingSessionLibraryPanel", () => {
       name: "Exact recorded route points",
     })).not.toBeInTheDocument();
 
-    await user.click(within(detailNavigation).getByRole("button", {
-      name: "Signals and zones",
+    await user.click(within(workbench).getByRole("button", {
+      name: "Inspect exact Heart rate samples",
     }));
+    expect(within(detailNavigation).getByRole("button", { name: "Signals and zones" }))
+      .toHaveAttribute("aria-current", "page");
     const signalExercise = within(detail!).getByRole("heading", { name: "Exercise 1" })
       .closest("article");
     expect(signalExercise).not.toBeNull();
@@ -1910,12 +1942,25 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(within(crossSignal).getAllByRole("checkbox", { checked: true })).toHaveLength(2);
     expect(within(crossSignal).getAllByRole("img")).toHaveLength(2);
     expect(crossSignal).toHaveTextContent("Elapsed time 0–10 min");
+    const workbenchExactSignal = await within(signalExercise!).findByRole("region", {
+      name: "Exact Heart rate samples",
+    });
+    await waitFor(() => expect(within(workbenchExactSignal).getByRole("heading", {
+      name: "Exact Heart rate samples",
+    })).toHaveFocus());
+    expect(workbenchExactSignal).toHaveTextContent("Samples 1–100 of 601");
+    await user.click(within(signalExercise!).getByRole("button", {
+      name: "Hide exact Heart rate samples",
+    }));
     await user.click(within(crossSignal).getByRole("button", {
       name: "Open exact samples for Speed · series 2",
     }));
     const exactSpeedRegion = await within(signalExercise!).findByRole("region", {
       name: "Exact Speed samples",
     });
+    await waitFor(() => expect(within(exactSpeedRegion).getByRole("heading", {
+      name: "Exact Speed samples",
+    })).toHaveFocus());
     expect(exactSpeedRegion).toHaveTextContent("10 km/h");
     expect(mocks.invoke).toHaveBeenCalledWith("query_training_signal_samples", {
       query: {

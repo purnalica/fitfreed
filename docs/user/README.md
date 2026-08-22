@@ -62,9 +62,11 @@ Applied refinements remain visible after the editor closes, report the exact res
 one at a time or cleared together. An empty refined result confirms that the imported history has not changed
 and provides a direct reset. Session detail progressively
 opens Overview, Structure and segments, Signals and zones, Routes, and Source history. It distinguishes
-unevaluated, absent, empty, and populated exercise/lap/pause, route, signal, and recorded-zone states. Primary and transition
-routes render as bounded local SVG traces with no external location request, while exact paginated tables retain
-every recorded coordinate. Supported exercise and transition signals render as gap-aware bounded charts with
+unevaluated, absent, empty, and populated exercise/lap/pause, route, signal, and recorded-zone states. A routed
+session leads with the [interactive local route workbench](session-routes.md): primary and transition routes remain
+separate while pan, zoom, fit, focused view, recorded-position traversal, sport-aware measurement overlays, a
+structured value alternative, and direct exact-evidence paths stay synchronized without an external location
+request. Exact paginated tables retain every recorded coordinate. Supported exercise and transition signals render as gap-aware bounded charts with
 paginated access to every original sample. When one role has enough recorded evidence, two through four
 signals can also be selected as independently scaled lanes over one stable elapsed-time axis; every lane
 retains a direct path to its exact samples, and the view neither bridges gaps nor implies causation.
@@ -82,6 +84,9 @@ origin-correlation, coverage, and reimport predicates; that single evaluation do
 compatibility or open the public boundary.
 
 The [development preview guide](development-preview.md) is the primary end-to-end application walkthrough. It identifies the documented compatibility shape, synthetic runnable steps, expected detailed and longitudinal range, detail, navigation, and comparison behavior, and missing product capabilities.
+
+The [recorded-session route guide](session-routes.md) explains route roles, map and keyboard controls,
+selected-position evidence, overlays, exact source paths, local privacy, and the current workbench limits.
 
 The [report guide](reports.md) explains the implemented question-, exploration-, session-, and blank-start
 journeys; distinct Library, Compose, and Preview stages; user-selected training-period findings and exact

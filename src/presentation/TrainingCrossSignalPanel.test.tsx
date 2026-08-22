@@ -115,7 +115,10 @@ describe("TrainingCrossSignalPanel", () => {
     await user.click(screen.getByRole("button", {
       name: "Open exact samples for Speed · series 2",
     }));
-    expect(onOpenExact).toHaveBeenCalledWith(series[1].signalRef);
+    expect(onOpenExact).toHaveBeenCalledWith(
+      series[1].signalRef,
+      expect.any(HTMLButtonElement),
+    );
   });
 
   it("stays absent without two visible series and resets for new evidence", async () => {
