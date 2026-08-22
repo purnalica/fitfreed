@@ -2849,7 +2849,7 @@ describe("packaged FitFreed import journey", () => {
     expect(trainingDetailButtons).toHaveLength(3);
     await trainingDetailButtons[2].click();
     await expect($("#training-session-detail-heading")).toHaveText("Session summary");
-    const trainingDetailValues = await $$(`dl[aria-label="${english.training.sessionLibrary.summaryMeasurements}"] dd`);
+    const trainingDetailValues = await $$(`[role="group"][aria-label="${english.training.sessionLibrary.summaryMeasurements}"] dl dd`);
     const expectedTrainingDetail = [
       "Carrera de montaña",
       enJan4Start,
@@ -2883,7 +2883,7 @@ describe("packaged FitFreed import journey", () => {
       ["0 of 1", "Sessions with heart rate"],
     ]);
     await $('button[aria-label^="View session details for"]').click();
-    const unavailableTrainingDetail = await $$(`dl[aria-label="${english.training.sessionLibrary.summaryMeasurements}"] dd`);
+    const unavailableTrainingDetail = await $$(`[role="group"][aria-label="${english.training.sessionLibrary.summaryMeasurements}"] dl dd`);
     await expect(unavailableTrainingDetail[5]).toHaveText("Not recorded");
     await expect(unavailableTrainingDetail[0]).toHaveText("Sport not recorded");
     await expect(unavailableTrainingDetail[9]).toHaveText("0");
@@ -3411,7 +3411,7 @@ describe("packaged FitFreed import journey", () => {
     await expect(spanishProvenance).toHaveText(expect.stringContaining("Polar Flow"));
     await $('button[aria-controls="training-session-provenance"]').click();
     await openTrainingDetailSection(spanish, "overview");
-    const spanishTrainingDetailValues = await $$(`dl[aria-label="${spanish.training.sessionLibrary.summaryMeasurements}"] dd`);
+    const spanishTrainingDetailValues = await $$(`[role="group"][aria-label="${spanish.training.sessionLibrary.summaryMeasurements}"] dl dd`);
     await expect(spanishTrainingDetailValues[5]).toHaveText("10.500 m");
     await expect(spanishTrainingDetailValues[7]).toHaveText("142 ppm");
     await expect(spanishTrainingDetailValues[0]).toHaveText("Carrera de montaña");
