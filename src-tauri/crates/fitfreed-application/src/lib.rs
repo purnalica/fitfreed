@@ -132,6 +132,16 @@ pub use training_segmentation::{
     TrainingSessionSegmentationResult, UpdateTrainingSegmentCriterionRequest,
 };
 
+mod training_range;
+pub use training_range::{
+    adjust_training_session_range, create_training_session_range, query_training_session_ranges,
+    remove_training_session_range, rename_training_session_range,
+    AdjustTrainingSessionRangeRequest, CreateTrainingSessionRangeRequest,
+    PersistedTrainingSessionRanges, RemoveTrainingSessionRangeRequest,
+    RenameTrainingSessionRangeRequest, TrainingSessionRangePort, TrainingSessionRangePortError,
+    TrainingSessionRangesQuery, TrainingSessionRangesResult,
+};
+
 #[cfg(test)]
 mod training_discovery_tests;
 
@@ -155,6 +165,9 @@ mod training_provenance_tests;
 
 #[cfg(test)]
 mod training_segmentation_tests;
+
+#[cfg(test)]
+mod training_range_tests;
 
 #[cfg(test)]
 mod sport_discovery_tests;
@@ -1461,6 +1474,18 @@ pub enum ApplicationError {
     TrainingSegmentationQuery(String),
     #[error("training segmentation update failed: {0}")]
     TrainingSegmentationUpdate(String),
+    #[error("invalid training-session range: {0}")]
+    InvalidTrainingSessionRange(&'static str),
+    #[error("training-session range was not found")]
+    TrainingSessionRangeNotFound,
+    #[error("training-session range changed while it was being edited")]
+    TrainingSessionRangeConflict,
+    #[error("training-session ranges changed while they were being read")]
+    TrainingSessionRangesChanged,
+    #[error("training-session range query failed: {0}")]
+    TrainingSessionRangeQuery(String),
+    #[error("training-session range update failed: {0}")]
+    TrainingSessionRangeUpdate(String),
     #[error("invalid report definition: {0}")]
     InvalidReportDefinition(String),
     #[error("report definition was not found")]

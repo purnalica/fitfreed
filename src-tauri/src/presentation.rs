@@ -647,6 +647,12 @@ impl From<ApplicationError> for CommandErrorDto {
             ApplicationError::TrainingSegmentationChanged => "training-segmentation-changed",
             ApplicationError::TrainingSegmentationQuery(_)
             | ApplicationError::TrainingSegmentationUpdate(_) => "training-segmentation-failed",
+            ApplicationError::InvalidTrainingSessionRange(_) => "invalid-training-session-range",
+            ApplicationError::TrainingSessionRangeNotFound => "training-session-range-not-found",
+            ApplicationError::TrainingSessionRangeConflict => "training-session-range-conflict",
+            ApplicationError::TrainingSessionRangesChanged => "training-session-ranges-changed",
+            ApplicationError::TrainingSessionRangeQuery(_)
+            | ApplicationError::TrainingSessionRangeUpdate(_) => "training-session-range-failed",
             ApplicationError::InvalidReportDefinition(_) => "invalid-report-definition",
             ApplicationError::ReportNotFound => "report-not-found",
             ApplicationError::ReportDefinitionConflict => "report-definition-conflict",
@@ -7303,6 +7309,26 @@ mod tests {
             (
                 ApplicationError::TrainingSegmentationQuery("failed".to_owned()),
                 "training-segmentation-failed",
+            ),
+            (
+                ApplicationError::InvalidTrainingSessionRange("invalid"),
+                "invalid-training-session-range",
+            ),
+            (
+                ApplicationError::TrainingSessionRangeNotFound,
+                "training-session-range-not-found",
+            ),
+            (
+                ApplicationError::TrainingSessionRangeConflict,
+                "training-session-range-conflict",
+            ),
+            (
+                ApplicationError::TrainingSessionRangesChanged,
+                "training-session-ranges-changed",
+            ),
+            (
+                ApplicationError::TrainingSessionRangeUpdate("failed".to_owned()),
+                "training-session-range-failed",
             ),
         ] {
             assert_eq!(

@@ -211,7 +211,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R5 | Complete locally — R5.4, R5.5, and real-process restart gates passed 2026-08-22 | A remembered session is findable and sports are recognizable |
 | X5-R6 | Complete locally — R6.1 through R6.5 passed exact packaged, adaptive visual, and dense-route gates on 2026-08-22 | A routed workout is investigated through a dominant synchronized map |
 | X5-R7 | Complete locally — R7.1 through R7.6 passed the exact fast, functional, restart, adaptive, accessibility, visual, and performance gates on 2026-08-22 | Every session composition reflects its actual evidence |
-| X5-R8 | In progress — R8.1 domain contract complete locally on 2026-08-22 | Personal ranges and reusable criteria work end to end |
+| X5-R8 | In progress — R8.1 and R8.2 domain/application contracts complete locally on 2026-08-22 | Personal ranges and reusable criteria work end to end |
 | X5-R9 | Pending | Reports open as results and leave FitFreed safely |
 | X5-R10 | Pending | The complete release-shaped product is coherent and documented |
 | X6 | Pending | Independent audit has no unresolved material finding |
@@ -1241,6 +1241,22 @@ separation from source and derived evidence, concurrency, reimport, deletion, pr
 Eight focused domain tests, the complete 41-test domain suite, strict domain Clippy, formatting, and public
 documentation checks pass. Application commands, persistence, the revision-coherent Range Summary, and
 production interaction remain open under R8.
+
+### R8.2 personal-range application transitions — 2026-08-22
+
+The application now owns bounded query plus create, rename, adjust, and remove use cases over a dedicated
+`TrainingSessionRangePort`. Every mutation validates opaque session, snapshot, range, and optimistic-revision
+inputs before writing. It resolves the current session duration and elapsed-evidence revision through the
+port, delegates meaning to the domain transition, and accepts only a complete committed context returned by
+the same persistence operation. An idempotent rename or adjustment performs no write.
+
+The returned collection is bounded to 1,000 ranges, rejects duplicate or foreign identities and mismatched
+evidence revisions, permits an out-of-duration boundary only while its aggregate is review-required, and is
+ordered deterministically by elapsed start, end, title, and identity. Stale source snapshots, missing ranges,
+optimistic conflicts, invalid requests, query failures, and update failures have separate application and
+desktop error codes. Eight focused application behaviors, the complete 167-test application suite, strict
+application Clippy, architecture checks, and host transport compilation pass. SQLite persistence, import-time
+evidence reconciliation, JSON transport shapes, and the Range Summary remain open.
 
 ## X5-R9 — Make reports result-first and portable
 

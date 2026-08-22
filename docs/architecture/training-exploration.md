@@ -333,6 +333,13 @@ revision covers both authored edits and evidence reconciliation. Compatible stri
 boundaries; incompatible or missing elapsed evidence preserves them in a review-required state and never
 redirects the range to a different session.
 
+The application range boundary lists at most 1,000 aggregates for one opaque session and one coherent
+training-discovery snapshot, ordered by elapsed start, end, title, and identity. Create, rename, adjust, and
+remove require that snapshot; edits and removal also require the expected aggregate revision. Every port
+mutation returns its complete committed range context from the same transaction, so presentation never
+constructs success by combining a write with a later unrelated query. Invalid context, stale source evidence,
+missing identity, optimistic conflict, and local-storage failure remain distinct application outcomes.
+
 The [canonical segment criterion](../data-formats/canonical/segment-criterion.md) is reusable user-authored
 evidence with stable local identity, optimistic revision, and one versioned rule. Its ordered exercise
 application is independent from source laps, phases, routes, and signals. Editing a reused definition affects
