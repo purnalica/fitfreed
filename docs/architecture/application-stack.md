@@ -38,6 +38,17 @@ Startup chooses a destination from canonical state. An empty library opens a val
 
 Activity, sleep, nightly recovery, and aligned history share a presentation-owned workspace hierarchy. Each has an explicit history view and period-comparison view with one localized current location; exact day or night detail replaces history discovery inside the history view. Switching views hides rather than unmounts their presentation boundaries, so an intentional temporary visit preserves entered periods and a valid comparison result. Opening an exact detail always selects history, while closing it restores the originating control or the stable explorer heading. This disposable state never enters a domain, application, transport, or persistence contract. Hidden views are removed from visual and assistive-technology exposure, and all authoritative queries, missing-data distinctions, source separation, and cross-explorer navigation remain unchanged.
 
+The daily-activity Home question enters the comparison workspace as an Answer Canvas. React chooses
+the latest two adjacent equal calendar periods, capped at 30 days each, and submits both unchanged to
+the existing activity-comparison command. The application result remains the sole source for totals,
+averages, changes, coverage, missing observations, and origin separation. Presentation formats that
+result as one plain conclusion and proportional relationship per origin, then discloses exact values
+and editable periods deliberately. Fewer than two calendar days produce a presentation-owned
+insufficient-history state and no comparison command. Contextual retrieval failure keeps the selected
+periods and offers an in-place retry; it does not replace the failure with a global alert. Successful
+comparison focus aligns the result heading below persistent compact navigation, including at high
+content zoom, so the visible result rather than the preceding controls owns the viewport.
+
 Reports uses the same current-location semantics for a separate staged workflow. Library owns saved definitions and new starts, Compose owns the complete ordered editor and its evidence tools, and Preview owns resolved output plus mutually exclusive stale-evidence or export review. The mounted draft and resolved candidate survive temporary stage changes, while a successful save and a saved-report selection lead to Preview. The stage never becomes durable report data; only the existing versioned definition and its application-owned evidence reference cross the transport and persistence boundaries.
 
 Settings has a presentation-owned category location. **Appearance & language** owns the atomic preference editor and representative preview; **Updates** owns maintenance status and actions without competing visually with those preferences. Moving between categories preserves an unsaved preview, while leaving Settings still discards it and reapplies the complete saved set. The update component remains mounted when its category or Settings itself is hidden, so launch and periodic discovery retain one lifecycle and do not restart merely because the person navigates. Category location never enters the preference DTO or SQLite row.

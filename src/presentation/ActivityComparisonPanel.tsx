@@ -1,4 +1,4 @@
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
 import { catalogs, type Locale } from "../locales/catalogs";
@@ -18,6 +18,7 @@ interface ActivityComparisonPanelProps {
   locale: Locale;
   messages: (typeof catalogs)["en-US"];
   onError: (code: string | undefined) => void;
+  answerRequestId?: number;
 }
 
 function localDate(value: string): Date {
@@ -34,17 +35,59 @@ function rangeIsValid(range: ActivityDateRange, available: ActivityDateRange): b
   return inclusiveDays <= 366;
 }
 
+interface ActivityComparisonRanges {
+  baseline: ActivityDateRange;
+  comparison: ActivityDateRange;
+}
+
+function addDays(value: string, days: number): string {
+  const result = localDate(value);
+  result.setUTCDate(result.getUTCDate() + days);
+  return result.toISOString().slice(0, 10);
+}
+
+function inclusiveDays(range: ActivityDateRange): number {
+  return Math.floor(
+    (localDate(range.through).getTime() - localDate(range.from).getTime()) / 86_400_000,
+  ) + 1;
+}
+
+export function latestEqualActivityPeriods(
+  availableRange: ActivityDateRange,
+): ActivityComparisonRanges | null {
+  const periodDays = Math.min(30, Math.floor(inclusiveDays(availableRange) / 2));
+  if (periodDays < 1) return null;
+  const comparisonThrough = availableRange.through;
+  const comparisonFrom = addDays(comparisonThrough, -(periodDays - 1));
+  const baselineThrough = addDays(comparisonFrom, -1);
+  const baselineFrom = addDays(baselineThrough, -(periodDays - 1));
+  return {
+    baseline: { from: baselineFrom, through: baselineThrough },
+    comparison: { from: comparisonFrom, through: comparisonThrough },
+  };
+}
+
 export function ActivityComparisonPanel({
   availableRange,
   initialRange,
   locale,
   messages,
   onError,
+  answerRequestId,
 }: ActivityComparisonPanelProps) {
-  const [baselineRange, setBaselineRange] = useState(initialRange);
-  const [comparisonRange, setComparisonRange] = useState(initialRange);
+  const initialPeriods = latestEqualActivityPeriods(availableRange);
+  const [baselineRange, setBaselineRange] = useState(
+    initialPeriods?.baseline ?? initialRange,
+  );
+  const [comparisonRange, setComparisonRange] = useState(
+    initialPeriods?.comparison ?? initialRange,
+  );
   const [comparison, setComparison] = useState<ActivityComparison>();
   const [loading, setLoading] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [insufficientHistory, setInsufficientHistory] = useState(false);
+  const [controlsOpen, setControlsOpen] = useState(answerRequestId === undefined);
+  const handledAnswerRequestId = useRef<number | undefined>(undefined);
   const validation = useInvalidForm(onError);
   const { resultHeadingRef, requestResultFocus } = useResultFocus<HTMLHeadingElement>(
     comparison !== undefined,
@@ -54,10 +97,60 @@ export function ActivityComparisonPanel({
     () => new Intl.NumberFormat(locale, { signDisplay: "always" }),
     [locale],
   );
+  const plural = useMemo(() => new Intl.PluralRules(locale), [locale]);
   const date = useMemo(
     () => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }),
     [locale],
   );
+
+  async function loadComparison(
+    baseline: ActivityDateRange,
+    current: ActivityDateRange,
+    initiatingElement: HTMLElement | null,
+  ) {
+    setLoading(true);
+    setLoadFailed(false);
+    onError(undefined);
+    try {
+      const result = await invoke<ActivityComparison>("query_activity_comparison", {
+        baselineRange: baseline,
+        comparisonRange: current,
+      });
+      setComparison(result);
+      requestResultFocus(initiatingElement);
+    } catch (reason) {
+      const code = commandErrorCode(reason);
+      if (code === "invalid-activity-range") {
+        validation.reject("invalid-activity-comparison");
+      } else {
+        setLoadFailed(true);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (
+      answerRequestId === undefined
+      || handledAnswerRequestId.current === answerRequestId
+    ) return;
+    handledAnswerRequestId.current = answerRequestId;
+    const periods = latestEqualActivityPeriods(availableRange);
+    if (!periods) {
+      setInsufficientHistory(true);
+      setControlsOpen(true);
+      return;
+    }
+    setInsufficientHistory(false);
+    setBaselineRange(periods.baseline);
+    setComparisonRange(periods.comparison);
+    setControlsOpen(false);
+    const initiatingElement = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    void loadComparison(periods.baseline, periods.comparison, initiatingElement);
+  }, [answerRequestId, availableRange.from, availableRange.through]);
 
   async function runComparison(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -69,28 +162,10 @@ export function ActivityComparisonPanel({
       return;
     }
     validation.accept();
-    setLoading(true);
-    onError(undefined);
     const initiatingElement = document.activeElement instanceof HTMLElement
       ? document.activeElement
       : null;
-    try {
-      const result = await invoke<ActivityComparison>("query_activity_comparison", {
-        baselineRange,
-        comparisonRange,
-      });
-      setComparison(result);
-      requestResultFocus(initiatingElement);
-    } catch (reason) {
-      const code = commandErrorCode(reason);
-      if (code === "invalid-activity-range") {
-        validation.reject("invalid-activity-comparison");
-      } else {
-        onError(code);
-      }
-    } finally {
-      setLoading(false);
-    }
+    await loadComparison(baselineRange, comparisonRange, initiatingElement);
   }
 
   function updateBaseline(field: keyof ActivityDateRange, value: string) {
@@ -127,6 +202,28 @@ export function ActivityComparisonPanel({
     if (value === null || maximum === 0n) return "0%";
     const basisPoints = (BigInt(value) * 10_000n) / maximum;
     return `${Number(basisPoints) / 100}%`;
+  }
+
+  function conclusion(series: ActivityComparison["series"][number]): string {
+    if (series.averageStepChange === null) return copy.answerUnavailable;
+    const change = BigInt(series.averageStepChange);
+    if (change === 0n) return copy.answerUnchanged;
+    const value = number.format(change < 0n ? -change : change);
+    return (change > 0n ? copy.answerHigher : copy.answerLower).replace("{value}", value);
+  }
+
+  function coverageStatement(series: ActivityComparison["series"][number]): string {
+    const baseline = series.baseline.availableStepDays;
+    const current = series.comparison.availableStepDays;
+    if (baseline === current) {
+      return copy.coverageEqual[plural.select(baseline) === "one" ? "one" : "other"]
+        .replace("{count}", number.format(baseline));
+    }
+    return copy.coverageDifferent
+      .replace("{baseline}", number.format(baseline))
+      .replace("{baselineUnit}", copy.coverageDay[plural.select(baseline) === "one" ? "one" : "other"])
+      .replace("{comparison}", number.format(current))
+      .replace("{comparisonUnit}", copy.coverageDay[plural.select(current) === "one" ? "one" : "other"]);
   }
 
   function summaryRows(
@@ -195,48 +292,57 @@ export function ActivityComparisonPanel({
 
   return (
     <div className="activity-comparison">
-      <div>
-        <h2 id="activity-comparison-form-heading">{copy.heading}</h2>
-        <p>{copy.intro}</p>
-      </div>
-      <form
-        aria-labelledby="activity-comparison-form-heading"
-        aria-busy={loading}
-        onSubmit={(event) => void runComparison(event)}
-      >
-        {rangeInputs.map(({ label, value, update }) => (
-          <label key={label}>
-            <span>{label}</span>
-            <input
-              type="date"
-              min={availableRange.from}
-              max={availableRange.through}
-              value={value}
-              aria-invalid={validation.invalid || undefined}
-              aria-describedby={validation.errorElementId}
-              onChange={(event) => update(event.target.value)}
-              disabled={loading}
-              required
-            />
-          </label>
-        ))}
-        <ProgressSubmitButton
-          loading={loading}
-          actionLabel={copy.compare}
-          progressLabel={copy.comparing}
-        />
-      </form>
-
+      {loading && !comparison && (
+        <p className="answer-loading" role="status" aria-live="polite">{copy.comparing}</p>
+      )}
+      {loadFailed && (
+        <section className="answer-retry" aria-label={copy.retryLabel}>
+          <p>{copy.loadFailed}</p>
+          <button
+            type="button"
+            className="secondary"
+            disabled={loading}
+            onClick={(event) => void loadComparison(
+              baselineRange,
+              comparisonRange,
+              event.currentTarget,
+            )}
+          >
+            {copy.retry}
+          </button>
+        </section>
+      )}
+      {insufficientHistory && (
+        <section className="answer-insufficient" aria-label={copy.insufficientLabel}>
+          <h3>{copy.insufficientHeading}</h3>
+          <p>{copy.insufficientBody}</p>
+        </section>
+      )}
       {comparison && (
-        <section className="activity-comparison-result" aria-labelledby="activity-comparison-heading">
+        <section
+          className="activity-comparison-result answer-canvas"
+          aria-label={copy.answerLabel}
+        >
           <div className="activity-comparison-result-heading">
             <div>
               <h3 ref={resultHeadingRef} id="activity-comparison-heading" tabIndex={-1}>
-                {copy.resultHeading}
+                {comparison.series.length === 1
+                  ? conclusion(comparison.series[0])
+                  : copy.answerMultiple.replace(
+                    "{count}",
+                    number.format(comparison.series.length),
+                  )}
               </h3>
-              <p>{copy.coverageCaution}</p>
+              <p>{rangeLabel(comparison.baselineRange)} · {rangeLabel(comparison.comparisonRange)}</p>
             </div>
-            <button type="button" className="secondary" onClick={() => setComparison(undefined)}>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => {
+                setComparison(undefined);
+                setControlsOpen(true);
+              }}
+            >
               {copy.clear}
             </button>
           </div>
@@ -253,7 +359,12 @@ export function ActivityComparisonPanel({
             );
             return (
               <section className="activity-comparison-series" key={series.seriesRef}>
-                <h4>{messages.activity.series} {number.format(index + 1)}</h4>
+                {comparison.series.length > 1 && (
+                  <div className="answer-series-heading">
+                    <p>{messages.activity.series} {number.format(index + 1)}</p>
+                    <h4>{conclusion(series)}</h4>
+                  </div>
+                )}
                 <div className="comparison-bars" aria-hidden="true">
                   {[
                     [copy.baseline, series.baseline.totalStepCount],
@@ -273,32 +384,76 @@ export function ActivityComparisonPanel({
                     </div>
                   ))}
                 </div>
-                <table>
-                  <caption className="sr-only">{copy.resultHeading}</caption>
-                  <thead>
-                    <tr>
-                      <th scope="col">{copy.metric}</th>
-                      <th scope="col">{copy.baseline}<span>{rangeLabel(comparison.baselineRange)}</span></th>
-                      <th scope="col">{copy.comparison}<span>{rangeLabel(comparison.comparisonRange)}</span></th>
-                      <th scope="col">{copy.change}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map(([metric, baseline, current, change]) => (
-                      <tr key={metric}>
-                        <th scope="row">{metric}</th>
-                        <td>{baseline}</td>
-                        <td>{current}</td>
-                        <td>{change}</td>
+                <p className="answer-evidence">{coverageStatement(series)}</p>
+                <details className="answer-exact-values">
+                  <summary>{copy.exactValues}</summary>
+                  <p>{copy.coverageCaution}</p>
+                  <table>
+                    <caption className="sr-only">{copy.resultHeading}</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">{copy.metric}</th>
+                        <th scope="col">{copy.baseline}<span>{rangeLabel(comparison.baselineRange)}</span></th>
+                        <th scope="col">{copy.comparison}<span>{rangeLabel(comparison.comparisonRange)}</span></th>
+                        <th scope="col">{copy.change}</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {rows.map(([metric, baseline, current, change]) => (
+                        <tr key={metric}>
+                          <th scope="row">{metric}</th>
+                          <td>{baseline}</td>
+                          <td>{current}</td>
+                          <td>{change}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </details>
               </section>
             );
           })}
         </section>
       )}
+      <details
+        className="answer-controls"
+        open={controlsOpen}
+        onToggle={(event) => setControlsOpen(event.currentTarget.open)}
+      >
+        <summary>{comparison ? copy.changePeriods : copy.heading}</summary>
+        <div>
+          <h2 id="activity-comparison-form-heading">{copy.heading}</h2>
+          <p>{copy.intro}</p>
+        </div>
+        <form
+          className="activity-comparison-form"
+          aria-labelledby="activity-comparison-form-heading"
+          aria-busy={loading}
+          onSubmit={(event) => void runComparison(event)}
+        >
+          {rangeInputs.map(({ label, value, update }) => (
+            <label key={label}>
+              <span>{label}</span>
+              <input
+                type="date"
+                min={availableRange.from}
+                max={availableRange.through}
+                value={value}
+                aria-invalid={validation.invalid || undefined}
+                aria-describedby={validation.errorElementId}
+                onChange={(event) => update(event.target.value)}
+                disabled={loading}
+                required
+              />
+            </label>
+          ))}
+          <ProgressSubmitButton
+            loading={loading}
+            actionLabel={copy.compare}
+            progressLabel={copy.comparing}
+          />
+        </form>
+      </details>
     </div>
   );
 }

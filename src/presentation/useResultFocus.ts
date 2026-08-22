@@ -21,6 +21,7 @@ export function useResultFocus<T extends HTMLElement>(visible: boolean): ResultF
     return restoreFocusAfterReveal(
       resultHeadingRef.current,
       initiatingElementRef.current,
+      { align: "start" },
     );
   }, [requestId, visible]);
 

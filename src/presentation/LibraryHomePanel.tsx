@@ -6,6 +6,7 @@ import type {
   LibraryDomainCoverage,
   LibraryHome,
   LibraryHomeMessages,
+  LibraryQuestion,
   LibraryHomeRecentSession,
   LibraryHomeSportSummary,
   RecentTrainingComparisonHighlight,
@@ -21,6 +22,7 @@ interface LibraryHomePanelProps {
   focusTarget?: string;
   pendingDestination?: ExploreDestination;
   onExplore: (destination: ExploreDestination, focusTarget?: string) => void;
+  onOpenQuestion?: (question: LibraryQuestion) => void;
   onOpenComparison: (comparison: RecentTrainingComparisonHighlight) => void;
   onOpenSession: (session: LibraryHomeRecentSession) => void;
   onOpenSources: () => void;
@@ -48,6 +50,10 @@ export function LibraryHomePanel({
   focusTarget,
   pendingDestination,
   onExplore,
+  onOpenQuestion = (question) => onExplore(
+    question.destination,
+    `question:${question.kind}`,
+  ),
   onOpenComparison,
   onOpenSession,
   onOpenSources,
@@ -415,7 +421,7 @@ export function LibraryHomePanel({
                   type="button"
                   ref={registerFocusTarget(`question:${question.kind}`)}
                   disabled={pendingDestination !== undefined}
-                  onClick={() => onExplore(question.destination, `question:${question.kind}`)}
+                  onClick={() => onOpenQuestion(question)}
                 >
                   <span aria-hidden="true">{number.format(index + 1).padStart(2, "0")}</span>
                   <strong>{messages.questions[question.kind]}</strong>

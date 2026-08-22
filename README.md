@@ -68,7 +68,7 @@ is governed independently by the [current ledger](docs/testing/public-release-re
 <li>Explicit supported, ignored, and unrecognized coverage</li>
 <li>Safe exact and cumulative reimport</li>
 <li>Provider-neutral SQLite history for activity, training summaries, structure, routes, signals, sleep, and recovery</li>
-<li>Bounded visual comparison and longitudinal context</li>
+<li>Immediate coverage-aware daily activity answers, bounded visual comparisons, and longitudinal context</li>
 <li>User-authored sport classification and complete-history session search</li>
 <li>Chronology, source-separated calendar discovery, session comparison, and restart restoration</li>
 <li>Recorded exercise, mixed-sport, source-lap, automatic-lap, and pause inspection</li>

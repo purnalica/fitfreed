@@ -51,6 +51,25 @@ describe("restoreFocusAfterReveal", () => {
     expect(target).toHaveFocus();
   });
 
+  it("aligns a result with the start of its visible workspace when requested", () => {
+    vi.useFakeTimers();
+    const initiatingControl = document.createElement("button");
+    const target = document.createElement("h2");
+    target.tabIndex = -1;
+    target.scrollIntoView = vi.fn();
+    document.body.append(initiatingControl, target);
+    initiatingControl.focus();
+
+    restoreFocusAfterReveal(target, initiatingControl, { align: "start" });
+    vi.advanceTimersByTime(0);
+
+    expect(target).toHaveFocus();
+    expect(target.scrollIntoView).toHaveBeenCalledWith({
+      block: "start",
+      inline: "nearest",
+    });
+  });
+
   it("cancels pending restoration when its owner is removed", () => {
     vi.useFakeTimers();
     const target = document.createElement("button");

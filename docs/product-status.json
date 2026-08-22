@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-08-21",
+  "updated": "2026-08-22",
   "statuses": [
     {
       "key": "available",
@@ -11,7 +11,7 @@
         "Explicit supported, ignored, and unrecognized coverage",
         "Safe exact and cumulative reimport",
         "Provider-neutral SQLite history for activity, training summaries, structure, routes, signals, sleep, and recovery",
-        "Bounded visual comparison and longitudinal context",
+        "Immediate coverage-aware daily activity answers, bounded visual comparisons, and longitudinal context",
         "User-authored sport classification and complete-history session search",
         "Chronology, source-separated calendar discovery, session comparison, and restart restoration",
         "Recorded exercise, mixed-sport, source-lap, automatic-lap, and pause inspection",
@@ -19,7 +19,7 @@
         "Gap-aware supported signal charts with paginated exact samples",
         "Exact recorded heart-rate, speed, and power zones with applicable aggregates",
         "Reusable personal segment criteria with exact locally derived session views",
-                "Result-led Library Home with complete span, current sport identities, recent exact sessions, conservative comparison or historical fallback, and precise post-import outcomes",
+        "Result-led Library Home with complete span, current sport identities, recent exact sessions, conservative comparison or historical fallback, and precise post-import outcomes",
         "Persistent navigation, offline export guidance, and allowlisted official links",
         "Durable language, appearance, and content zoom settings",
         "en-US and es-ES, packaging, update recovery, and release-shaped tests",

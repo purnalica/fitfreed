@@ -141,6 +141,26 @@ async function expectSettingsControlsWithinInitialViewport() {
   expect(state.hasHorizontalOverflow).toBe(false);
 }
 
+async function expectResultBelowCompactNavigation(selector) {
+  const layout = await browser.execute((targetSelector) => {
+    const root = document.documentElement;
+    const navigation = document.querySelector(".app-sidebar").getBoundingClientRect();
+    const target = document.querySelector(targetSelector).getBoundingClientRect();
+    return {
+      documentWidth: root.scrollWidth,
+      navigationBottom: navigation.bottom,
+      targetBottom: target.bottom,
+      targetTop: target.top,
+      viewportHeight: root.clientHeight,
+      viewportWidth: root.clientWidth,
+    };
+  }, selector);
+  expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
+  expect(layout.targetTop).toBeGreaterThanOrEqual(layout.navigationBottom);
+  expect(layout.targetTop).toBeLessThanOrEqual(layout.navigationBottom + 120);
+  expect(layout.targetBottom).toBeLessThanOrEqual(layout.viewportHeight);
+}
+
 async function expectLibraryHome(catalog) {
   await expect($(".library-home h1")).toHaveText(catalog.home.title);
   const summaryFacts = await $$(".library-home-summary strong");
@@ -241,6 +261,10 @@ async function setActivityRange(from, through) {
 }
 
 async function setComparisonRanges(baselineFrom, baselineThrough, comparisonFrom, comparisonThrough) {
+  const controls = await $(".activity-comparison .answer-controls");
+  if ((await controls.getAttribute("open")) === null) {
+    await controls.$("summary").click();
+  }
   const values = [baselineFrom, baselineThrough, comparisonFrom, comparisonThrough];
   await browser.execute((nextValues) => {
     const inputs = document.querySelectorAll(".activity-comparison input[type='date']");
@@ -2261,6 +2285,14 @@ describe("packaged FitFreed import journey", () => {
       "review-activity-steps",
       "#activity-heading",
     );
+    await expectComparisonHeading(
+      "#activity-comparison-heading",
+      "Average daily steps were 1,100 higher",
+    );
+    await expect($(".activity-comparison .answer-evidence")).toHaveText(
+      "1 day with a step total in each period",
+    );
+    await openDomainWorkspace(english, "activity", "history");
     await setActivityRange("2026-01-02", "2026-01-04");
     await $("aria/Apply range").click();
     await expectHistory([
@@ -2322,7 +2354,11 @@ describe("packaged FitFreed import journey", () => {
     await openDomainWorkspace(english, "activity", "comparison");
     await setComparisonRanges("2026-01-01", "2026-01-02", "2026-01-04", "2026-01-05");
     await $(".activity-comparison button[type='submit']").click();
-    await expectComparisonHeading("#activity-comparison-heading", "Period comparison");
+    await expectComparisonHeading(
+      "#activity-comparison-heading",
+      "Average daily steps were 1,650 higher",
+    );
+    await $(".activity-comparison-result .answer-exact-values summary").click();
     const comparisonRows = await $$(".activity-comparison-result table tbody tr");
     expect(comparisonRows).toHaveLength(5);
     const expectedComparison = [
@@ -2687,6 +2723,12 @@ describe("packaged FitFreed import journey", () => {
       "review-activity-steps",
       "#activity-heading",
     );
+    await expectComparisonHeading(
+      "#activity-comparison-heading",
+      spanish.activity.comparison.answerHigher.replace("{value}", "1100"),
+    );
+    await expectResultBelowCompactNavigation("#activity-comparison-heading");
+    await openDomainWorkspace(spanish, "activity", "history");
     await expectHistory([
       [formatLocalDate("es-ES", "2026-01-01"), "3100", spanish.activity.available],
       [formatLocalDate("es-ES", "2026-01-02"), "4200", spanish.activity.available],
@@ -2707,7 +2749,7 @@ describe("packaged FitFreed import journey", () => {
     await $(".activity-comparison button[type='submit']").click();
     await expectComparisonHeading(
       "#activity-comparison-heading",
-      spanish.activity.comparison.resultHeading,
+      spanish.activity.comparison.answerHigher.replace("{value}", "1650"),
     );
     await $(".activity-comparison-result button.secondary").click();
     await openHomeQuestion(

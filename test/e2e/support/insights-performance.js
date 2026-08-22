@@ -198,11 +198,17 @@ async function compareActivityRanges(ranges) {
         + ".activity-comparison-result table tbody tr:first-child td",
       );
       if (cells.length === 4 && cells[1].textContent === expected.expectedBaselineTotal) {
-        document.documentElement.getBoundingClientRect();
-        setTimeout(() => done({
-          duration: window.performance.now() - started,
-          error: null,
-        }));
+        const exactValues = document.querySelector(
+          ".activity-comparison-result .answer-exact-values",
+        );
+        exactValues.open = true;
+        requestAnimationFrame(() => {
+          exactValues.querySelector("table").getBoundingClientRect();
+          setTimeout(() => done({
+            duration: window.performance.now() - started,
+            error: null,
+          }));
+        });
         return;
       }
       if (window.performance.now() - started > 5_000) {
@@ -898,6 +904,9 @@ export async function runInsightsPerformanceJourney({
   await waitForRecoveryCoverage();
   reportPhase("activity");
   await openHomeQuestion("review-activity-steps", "#activity-heading");
+  await $("#activity-comparison-heading").waitForDisplayed({ timeout: 10_000 });
+  await $(".workspace-navigation button[data-workspace='history']").click();
+  await $(".activity-filter").waitForDisplayed({ timeout: 10_000 });
 
   const commonRanges = [
     ["2025-01-01", "2025-01-30"],
@@ -956,6 +965,8 @@ export async function runInsightsPerformanceJourney({
       comparisonThrough: "2024-05-29",
     },
   ];
+  await $(".workspace-navigation button[data-workspace='comparison']").click();
+  await $(".activity-comparison").waitForDisplayed({ timeout: 10_000 });
   await measureAlternating(warmUpRuns, comparisonRanges, compareActivityRanges);
   const commonComparisonTimings = await measureAlternating(
     20,

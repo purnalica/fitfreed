@@ -435,6 +435,10 @@ async function enterExploration(
   user: ReturnType<typeof userEvent.setup>,
   destination: keyof typeof questionForDestination,
 ) {
+  if (destination === "activity") {
+    await user.click(await screen.findByRole("button", { name: "History" }));
+    return;
+  }
   await user.click(await screen.findByRole("button", {
     name: questionForDestination[destination].label,
   }));
@@ -2801,6 +2805,62 @@ describe("FitFreed import interface", () => {
       .getAllByRole("row")).toHaveLength(6);
   });
 
+  it("opens the Home activity question as an immediate equal-period answer and restores its origin", async () => {
+    offerExploration("activity");
+    const overview = activityOverview([
+      { localDate: "2026-01-01", stepCount: "1000", availability: "available" },
+      { localDate: "2026-01-02", stepCount: "1000", availability: "available" },
+      { localDate: "2026-01-03", stepCount: "2000", availability: "available" },
+      { localDate: "2026-01-04", stepCount: "3000", availability: "available" },
+    ]);
+    const comparison = activityComparison(
+      overview.series[0].days.slice(0, 2),
+      overview.series[0].days.slice(2, 4),
+    );
+    comparison.availableRange = overview.availableRange;
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "query_activity_overview") return Promise.resolve(overview);
+      if (command === "query_activity_comparison") return Promise.resolve(comparison);
+      if (command === "query_latest_import_outcome") return Promise.resolve(null);
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+
+    const origin = await screen.findByRole("button", {
+      name: "How has my daily activity changed?",
+    });
+    await user.click(origin);
+
+    const workspaceNavigation = await screen.findByRole("navigation", {
+      name: "Activity workspace",
+    });
+    expect(within(workspaceNavigation).getByRole("button", { name: "Compare periods" }))
+      .toHaveAttribute("aria-current", "page");
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
+      "query_activity_comparison",
+      {
+        baselineRange: { from: "2026-01-01", through: "2026-01-02" },
+        comparisonRange: { from: "2026-01-03", through: "2026-01-04" },
+      },
+    ));
+    const answer = screen.getByRole("region", { name: "Daily activity answer" });
+    await waitFor(() => expect(within(answer).getByRole("heading", {
+      name: "Average daily steps were 1,500 higher",
+    })).toHaveFocus());
+    expect(within(answer).getByText("2 days with step totals in each period"))
+      .toBeVisible();
+    const exactValues = within(answer).getByText("Review exact values").closest("details");
+    expect(exactValues).not.toHaveAttribute("open");
+    expect(within(answer).getByRole("table", { name: "Period comparison" }))
+      .not.toBeVisible();
+    await user.click(within(answer).getByText("Review exact values"));
+    expect(within(answer).getByRole("table", { name: "Period comparison" })).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Back to Home" }));
+    await waitFor(() => expect(origin).toHaveFocus());
+  });
+
   it("compares two entered periods with exact changes and visible coverage", async () => {
     offerExploration("activity");
     const overview = activityOverview([
@@ -2856,10 +2916,12 @@ describe("FitFreed import interface", () => {
         comparisonRange: { from: "2026-01-04", through: "2026-01-05" },
       },
     ));
-    const result = screen.getByRole("region", { name: "Period comparison" });
+    const result = screen.getByRole("region", { name: "Daily activity answer" });
     await waitFor(() => expect(within(result).getByRole("heading", {
-      name: "Period comparison",
+      name: "Average daily steps were 1,000 higher",
     })).toHaveFocus());
+    expect(within(result).getByText("2 days with step totals in each period")).toBeVisible();
+    await user.click(within(result).getByText("Review exact values"));
     expect(within(result).getByText(
       "Changes use only days with step totals. Review both periods’ coverage.",
     )).toBeVisible();
@@ -2876,9 +2938,9 @@ describe("FitFreed import interface", () => {
     });
     await user.click(historyWorkspace);
     expect(historyWorkspace).toHaveAttribute("aria-current", "page");
-    expect(screen.queryByRole("region", { name: "Period comparison" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Daily activity answer" })).not.toBeInTheDocument();
     await user.click(comparisonWorkspace);
-    expect(screen.getByRole("region", { name: "Period comparison" })).toBeVisible();
+    expect(screen.getByRole("region", { name: "Daily activity answer" })).toBeVisible();
 
     const comparisonQueryCount = mocks.invoke.mock.calls.filter(
       ([command]) => command === "query_activity_comparison",
@@ -2896,10 +2958,10 @@ describe("FitFreed import interface", () => {
     expect(mocks.invoke.mock.calls.filter(
       ([command]) => command === "query_activity_comparison",
     )).toHaveLength(comparisonQueryCount);
-    expect(screen.getByRole("region", { name: "Period comparison" })).toBeVisible();
+    expect(screen.getByRole("region", { name: "Daily activity answer" })).toBeVisible();
 
     await user.click(screen.getByRole("button", { name: "Clear comparison" }));
-    expect(screen.queryByRole("region", { name: "Period comparison" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Daily activity answer" })).not.toBeInTheDocument();
   });
 
   it("keeps import disabled after a cancelled picker and enables it for a selected ZIP", async () => {

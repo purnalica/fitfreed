@@ -40,6 +40,7 @@ import type {
   ExploreDestination,
   LibraryHome,
   LibraryHomeRecentSession,
+  LibraryQuestion,
   RecentTrainingComparisonHighlight,
 } from "./presentation/library-home";
 import { LibraryHomePanel } from "./presentation/LibraryHomePanel";
@@ -197,6 +198,7 @@ function App() {
   const [rangeOperation, setRangeOperation] = useState<RangeOperation>();
   const [selectedActivityDate, setSelectedActivityDate] = useState<string>();
   const [activityWorkspace, setActivityWorkspace] = useState<ActivityWorkspace>("history");
+  const [activityAnswerRequestId, setActivityAnswerRequestId] = useState<number>();
   const activityHeadingRef = useRef<HTMLHeadingElement>(null);
   const activityDetailHeadingRef = useRef<HTMLHeadingElement>(null);
   const activityDetailOriginRef = useRef<HTMLButtonElement | null>(null);
@@ -621,6 +623,14 @@ function App() {
     } finally {
       setHomeNavigationOperation(undefined);
     }
+  }
+
+  async function openHomeQuestion(question: LibraryQuestion) {
+    if (question.kind === "review-activity-steps") {
+      setActivityWorkspace("comparison");
+      setActivityAnswerRequestId((current) => (current ?? 0) + 1);
+    }
+    await openHomeExploration(question.destination, `question:${question.kind}`);
   }
 
   async function openHomeTrainingSession(session: LibraryHomeRecentSession) {
@@ -1141,6 +1151,7 @@ function App() {
             destination,
             focusTarget,
           )}
+          onOpenQuestion={(question) => void openHomeQuestion(question)}
           onOpenComparison={(comparison) => void openHomeTrainingComparison(comparison)}
           onOpenSession={(session) => void openHomeTrainingSession(session)}
           onOpenSources={openSources}
@@ -1470,6 +1481,7 @@ function App() {
                   locale={locale}
                   messages={messages}
                   onError={setErrorCode}
+                  answerRequestId={activityAnswerRequestId}
                 />
               </Suspense>
             )}

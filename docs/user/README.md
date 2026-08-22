@@ -14,7 +14,11 @@ FitFreed never handles provider credentials or requests and downloads an export 
 populated library opens a result-led Home with the complete usable period, training-session and sport-profile
 counts, current provider-neutral sport identities, recent exact sessions, and either an equal-period recent comparison or
 an honest historical fallback. Supported questions and detailed source coverage remain available without
-competing with that personal context. A successful import returns there with its exact canonical effect; an
+competing with that personal context. The daily-activity question opens an immediate answer over the latest
+adjacent equal periods, up to 30 days each. It leads with the change in average daily steps and the evidence
+coverage; period controls, exact values, missing observations, and each independent source remain available
+on request. With fewer than two calendar days, it explains why no change can be calculated and keeps daily
+history available. A successful import returns there with its exact canonical effect; an
 unchanged or repeated import never claims that the library grew. Opening a Home session, comparison, question,
 or resumable exploration retains its exact return origin; a later launch safely restores the last supported
 exploration destination or returns to Home. Activity, training, sleep, recovery, and longitudinal views load

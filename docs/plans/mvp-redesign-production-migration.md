@@ -2,7 +2,8 @@
 
 ## Status and authority
 
-Authorized for autonomous execution as of 2026-08-21. X4-P0 through X5-R3 are complete locally; X5-R4 is next.
+Authorized for autonomous execution as of 2026-08-21. X4-P0 through X5-R3 and X5-R4.1 are complete
+locally; X5-R4.2 is next.
 The X5-R1 product entrance is live; exact hosted verification of its CI resource optimizer remains
 pending synchronization of the workflow-changing commit. The product owner accepted the X3
 direction and its amendments on 2026-08-21. This
@@ -205,7 +206,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R2.2 | Complete locally — exact packaged gates passed 2026-08-22 | Sources leads with acquisition, a protected active task, and a calm exact outcome |
 | X5-R2.3 | Complete locally — exact packaged gates passed 2026-08-22 | Durable language, appearance, zoom, and update settings form one coherent workspace |
 | X5-R3 | Complete locally — exact packaged and dense-history gates passed 2026-08-22 | Import ends in recognizable personal value |
-| X5-R4 | Pending | Existing health and aligned-history questions read as answers |
+| X5-R4 | In progress — R4.1 complete locally 2026-08-22 | Existing health and aligned-history questions read as answers |
 | X5-R5 | Pending | A remembered session is findable and sports are recognizable |
 | X5-R6 | Pending | A routed workout is investigated through a dominant synchronized map |
 | X5-R7 | Pending | Every session composition reflects its actual evidence |
@@ -357,6 +358,28 @@ zoom, reduced motion, exact visual parity, and dense-history performance.
 
 **Documentation:** Insights contracts only if their fields change; user exploration, interpretation,
 precision, missing-data, and navigation guidance; architecture ownership and presentation tests.
+
+### R4 delivery increments
+
+R4 is delivered as five independently usable vertical increments. Each increment retains the current
+exact-data route and leaves the application coherent if the following increment has not landed.
+
+**Status:** R4.1 passed its focused, full fast, packaged functional, packaged performance, and actual
+wide and 200%-zoom macOS visual gates on 2026-08-22. R4.2 is next; R4 as a whole remains open.
+
+| Increment | User-visible outcome | Required implementation and evidence |
+|---|---|---|
+| R4.1 — Activity answer | The Home question about changing daily activity opens an immediate equal-period answer. A plain conclusion and proportional relationship lead; period controls and exact metrics remain available on request. | Reuse the activity comparison use case without presentation-owned aggregation; add direct question navigation, result-first composition, meaningful default periods, coverage disclosure, exact-table disclosure, focus/return restoration, component tests, both locales, responsive review, and the affected packaged journey. |
+| R4.2 — Training-period answer | A Home training comparison opens on its exact accepted periods and reads as an answer rather than a form followed by a table. | Preserve report creation, exact comparison evidence, multiple origins, no-distance and no-energy states, period editing, origin focus, and existing report-return behavior. Test direct Home entry, manual comparison, report handoff, return, and dense-history performance. |
+| R4.3 — Sleep and recovery answers | The latest supported sleep and recovery patterns lead with human-scale results and useful visual relationships; exact nights and physiological evidence remain deliberate disclosures. | Recompose the existing overview and comparison use cases without medical interpretation. Preserve exact-night navigation, missing nights, source-specific recovery boundaries, meaningful ranges, locale precision, loading/failure retry, and keyboard behavior. |
+| R4.4 — Aligned-history answer | The cross-domain question opens a bounded aligned-history canvas whose visual relationship is primary and whose exact day and domain links remain reachable. | Preserve independent availability, origin separation, cross-domain day navigation, range/comparison modes, and the explicit non-causality boundary. Test partial combinations, multiple origins, exact day detail, destination return, and high zoom. |
+| R4.5 — Coherence gate | All supported Home questions use the same answer grammar and restore the exact originating Home state while ordinary History remains recognizable and independently navigable. | Complete shared presentation semantics, remove superseded control-first paths, run both locales/themes, 100%–200% zoom, reduced motion, accessibility, packaged functional and performance suites, privacy checks, documentation checks, and an actual wide/compact macOS visual audit before recording R4 complete. |
+
+For every increment, the red test must describe the user consequence before presentation code changes.
+An Answer Canvas may format an existing application result and choose a visual hierarchy; it must not
+recalculate domain aggregates, combine origins, infer causality, classify physiological meaning, or
+silently replace unavailable evidence. If a supported plain conclusion cannot be expressed from the
+existing result, extend the application contract and its schema first.
 
 ## X5-R5 — Make History recognizable and searchable
 
