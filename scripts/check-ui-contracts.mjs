@@ -211,6 +211,23 @@ requireRule(
   [/width:\s*min\(1600px,\s*calc\(100%\s*-\s*56px\)\)/],
   "the broad desktop workspace",
 );
+for (const [selector, maximum] of [
+  [".sources-heading h1", "3rem"],
+  [".explorer-workspace-heading h1", "3.25rem"],
+  [".training-workspace-heading h1", "2.8rem"],
+  [".reports-hero h1", "3rem"],
+  [".settings-heading h1", "3rem"],
+]) {
+  const source = selector === ".settings-heading h1"
+    ? stylesheet.slice(stylesheet.lastIndexOf(selector))
+    : stylesheet;
+  requireRule(
+    source,
+    selector,
+    [new RegExp(`font-size:\\s*clamp\\([^;]+,\\s*${maximum.replace(".", "\\.")}\\)`)],
+    "a restrained application-workspace heading scale",
+  );
+}
 requireRule(
   stylesheet,
   "[hidden]",

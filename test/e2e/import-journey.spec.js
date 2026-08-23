@@ -186,20 +186,30 @@ async function expectFirstRunActionsBeforePreview() {
 }
 
 async function expectSettingsControlsWithinInitialViewport() {
+  await browser.execute(() => {
+    const scroller = document.scrollingElement ?? document.documentElement;
+    scroller.scrollTop = 0;
+  });
+  await browser.waitUntil(
+    () => browser.execute(
+      () => (document.scrollingElement ?? document.documentElement).scrollTop === 0,
+    ),
+    { timeout: 10_000, timeoutMsg: "Settings did not return to its initial viewport" },
+  );
   const state = await browser.execute(() => {
     const form = document.querySelector(".settings-form").getBoundingClientRect();
     const heading = document.querySelector(".settings-heading").getBoundingClientRect();
     const root = document.documentElement;
     return {
-      headingDocumentTop: heading.top + window.scrollY,
-      formDocumentTop: form.top + window.scrollY,
+      headingViewportTop: heading.top,
+      formViewportTop: form.top,
       viewportHeight: root.clientHeight,
       hasHorizontalOverflow: root.scrollWidth > root.clientWidth,
     };
   });
-  expect(state.headingDocumentTop).toBeGreaterThanOrEqual(0);
-  expect(state.formDocumentTop).toBeGreaterThan(state.headingDocumentTop);
-  expect(state.formDocumentTop).toBeLessThan(state.viewportHeight);
+  expect(state.headingViewportTop).toBeGreaterThanOrEqual(0);
+  expect(state.formViewportTop).toBeGreaterThan(state.headingViewportTop);
+  expect(state.formViewportTop).toBeLessThan(state.viewportHeight);
   expect(state.hasHorizontalOverflow).toBe(false);
 }
 
@@ -1205,7 +1215,7 @@ describe("packaged FitFreed import journey", () => {
       .toHaveAttribute("aria-current", "page");
     recordJourneyPhase("source-acquisition-and-import");
     await $(`aria/${english.home.emptyGuideAction}`).click();
-    await expect($(".sources-home h1")).toHaveText("Bring your fitness history home");
+    await expect($(".sources-home h1")).toHaveText("Import your fitness history");
     await expect($("aria/Import selected package")).toBeDisabled();
     const openerMock = await browser.tauri.mock("plugin:opener|open_url");
     await expect($("#source-guide-heading")).toHaveText(
@@ -1215,6 +1225,10 @@ describe("packaged FitFreed import journey", () => {
     await expect($("#source-acquisition-guide")).toHaveText(
       expect.stringContaining("available to download for two weeks"),
     );
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r10-source-workspace-en-wide.png",
+    ));
     await $("aria/Open official account page").click();
     await $("aria/Open official instructions").click();
     await browser.waitUntil(async () => {
@@ -1264,6 +1278,11 @@ describe("packaged FitFreed import journey", () => {
     await expect($(".settings-preview")).toHaveText(
       expect.stringContaining(english.settings.previewDistance),
     );
+    await expectSettingsControlsWithinInitialViewport();
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r10-settings-workspace-en-wide.png",
+    ));
     await $("input[name='appearance'][value='dark']").click();
     await expect($(".settings-status")).toHaveText(english.settings.unsaved);
     await $(`aria/${english.settings.discard}`).click();
@@ -1563,6 +1582,11 @@ describe("packaged FitFreed import journey", () => {
       ["600 kcal", "Recorded energy · 1 of 2"],
       ["1 of 2", "Sessions with heart rate"],
     ]);
+    await browser.execute(() => window.scrollTo({ top: 0, behavior: "instant" }));
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r10-training-workspace-en-wide.png",
+    ));
     const trainingSessionSports = await $$(".training-session-results .training-session-sport");
     expect(trainingSessionSports).toHaveLength(2);
     await expect(trainingSessionSports[1]).toHaveText("Trail running");

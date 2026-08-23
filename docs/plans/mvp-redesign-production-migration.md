@@ -1807,10 +1807,24 @@ that appears only after the asynchronous search. The test now waits for that res
 every draft, applied-filter, removal, focus, and persistence assertion. This is test determinism work; no
 production delay or bypass was added.
 
-The slice passes all 332 React tests, the production build, localization parity, live-presentation inventory,
-UI contracts, strict Rust linting, and Rust formatting. A rebuilt packaged application passed the complete
-functional journey, separate real-process restart, complete and partial adaptive-session scenarios, and the
-isolated two-year performance campaign. The slowest common-interaction p95 was 38 ms, the slowest maximum-range
+The third correction slice separates the product entrance from ordinary application work. First-run Home keeps
+the visual impact needed to explain an unfamiliar local product, while Sources, History, Reports, and Settings
+use a restrained task-workspace heading scale that leaves useful controls and results in the initial viewport.
+The Sources heading now names the operation directly instead of using campaign language. An automated style
+contract prevents these workspace headings from returning to promotional scale without an explicit contract
+change.
+
+Packaged visual review also exposed a false-positive Settings viewport assertion. It measured document
+coordinates even when the workspace correctly restored a prior scroll position, so an off-screen heading could
+still satisfy a check described as the initial viewport. The evidence helper now establishes the top of the
+workspace and measures viewport coordinates before accepting the form placement. Separate scroll-restoration
+coverage continues to protect the person's position when returning to a previously visited workspace.
+
+The preceding answer-hierarchy slice passes all 332 React tests, the production build, localization parity,
+live-presentation inventory, UI contracts, strict Rust linting, and Rust formatting. A rebuilt packaged
+application passed the complete functional journey, separate real-process restart, complete and partial
+adaptive-session scenarios, and the isolated two-year performance campaign. The slowest common-interaction p95
+was 38 ms, the slowest maximum-range
 p95 was 125 ms, and the route workbench p95 was 76 ms; each remains inside its accepted budget. R10.2 continues
 with the remaining cross-workspace hierarchy, state, adaptive-layout, accessibility, privacy, and visual audit;
 this evidence does not mark the work item complete.

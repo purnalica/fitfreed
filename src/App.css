@@ -228,7 +228,8 @@ button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visibl
 .explorer-return { margin-bottom: 8px; }
 .explorer-return button { min-height: 34px; padding: 5px 9px; font-size: .8rem; }
 .explorer-return .progress-submit-status { display: inline-block; margin-left: 10px; }
-.sources-heading { max-width: 780px; margin-bottom: 28px; }
+.sources-heading { max-width: 780px; margin-bottom: 24px; }
+.sources-heading h1 { max-width: 22ch; font-size: clamp(2rem, 3.2vw, 3rem); }
 .sources-heading > p:not(.eyebrow) { max-width: 680px; color: var(--ink-soft); font-size: 1.02rem; }
 .sources-local-note { margin-top: 18px; padding-left: 16px; border-left: 3px solid var(--success); }
 .sources-panel-active .sources-heading, .sources-panel-result .sources-heading { margin-bottom: 18px; }
@@ -365,7 +366,7 @@ section[aria-labelledby="activity-heading"],
 .longitudinal-insights { display: grid; gap: 22px; margin-top: 0; padding-top: 0; border-top: 0; }
 .explorer-workspace-heading { max-width: 900px; padding-top: 16px; }
 .explorer-workspace-heading .eyebrow { margin: 0 0 9px; }
-.explorer-workspace-heading h1 { max-width: 15ch; margin: 0; font-size: clamp(2.5rem, 5vw, 4.8rem); line-height: .95; letter-spacing: -.06em; }
+.explorer-workspace-heading h1 { max-width: 15ch; margin: 0; font-size: clamp(2.15rem, 3.6vw, 3.25rem); line-height: .98; letter-spacing: -.05em; }
 .explorer-workspace-heading > p:last-child { max-width: 68ch; margin: 16px 0 0; color: var(--ink-soft); font-size: 1.04rem; line-height: 1.55; }
 .workspace-navigation { display: flex; gap: 7px; width: fit-content; max-width: 100%; padding: 5px; overflow-x: auto; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 14px; }
 .workspace-navigation button { flex: 0 0 auto; min-height: 42px; padding: 9px 15px; color: var(--muted); background: transparent; border-color: transparent; border-radius: 10px; white-space: nowrap; }
@@ -477,7 +478,7 @@ th:last-child, td:last-child { text-align: right; }
 .training-insights { display: grid; gap: 12px; }
 .training-workspace-heading { max-width: 980px; padding-top: 2px; }
 .training-workspace-heading .eyebrow { margin: 0 0 5px; }
-.training-workspace-heading h1 { max-width: 18ch; margin: 0; font-size: clamp(2rem, 3.5vw, 3.1rem); line-height: .98; letter-spacing: -.05em; }
+.training-workspace-heading h1 { max-width: 18ch; margin: 0; font-size: clamp(1.95rem, 3.1vw, 2.8rem); line-height: .98; letter-spacing: -.05em; }
 .training-workspace-heading > p:last-child { max-width: 76ch; margin: 8px 0 0; color: var(--ink-soft); font-size: .9rem; line-height: 1.4; }
 .training-workspace-navigation, .training-detail-navigation { display: flex; gap: 7px; max-width: 100%; padding: 5px; overflow-x: auto; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 14px; }
 .training-workspace-navigation { width: fit-content; }
@@ -1423,7 +1424,7 @@ th:last-child, td:last-child { text-align: right; }
 .longitudinal-comparison-series tbody th { text-align: left; }
 .reports-panel { display: grid; gap: 22px; }
 .reports-hero { max-width: 850px; padding: 22px 0 4px; }
-.reports-hero h1 { max-width: 20ch; font-size: clamp(2rem, 4vw, 3.25rem); }
+.reports-hero h1 { max-width: 20ch; font-size: clamp(2rem, 3.4vw, 3rem); }
 .reports-hero > p:last-child { max-width: 68ch; color: var(--ink-soft); font-size: 1.05rem; }
 .reports-panel > button.secondary { justify-self: start; }
 .reports-layout { display: grid; grid-template-columns: minmax(230px, .7fr) minmax(0, 1.8fr); gap: 22px; align-items: start; }
@@ -2020,7 +2021,7 @@ button.danger-action { color: var(--danger-ink); background: var(--danger-soft);
 
 .settings-panel { display: grid; gap: 22px; max-width: 1240px; }
 .settings-heading { max-width: 760px; margin-bottom: 2px; }
-.settings-heading h1 { max-width: 18ch; font-size: clamp(2.2rem, 4vw, 3.6rem); }
+.settings-heading h1 { max-width: 18ch; font-size: clamp(2rem, 3.2vw, 3rem); }
 .settings-heading > p:last-child { max-width: 68ch; color: var(--muted); }
 .settings-layout { display: grid; grid-template-columns: minmax(500px, 1.18fr) minmax(320px, .82fr); gap: 24px; align-items: start; }
 .settings-updates-workspace { max-width: 980px; }

@@ -953,7 +953,7 @@ function emptyLibrary(initialLocale: "en-US" | "es-ES" | null = "en-US") {
 async function chooseArchive(user: ReturnType<typeof userEvent.setup>, path: string) {
   if (!screen.queryByRole("button", { name: "Choose ZIP package" })) {
     await user.click(await screen.findByRole("button", { name: "Sources" }));
-    await screen.findByRole("heading", { name: "Bring your fitness history home" });
+    await screen.findByRole("heading", { name: "Import your fitness history" });
   }
   mocks.open.mockResolvedValue(path);
   await user.click(await screen.findByRole("button", { name: "Choose ZIP package" }));
@@ -1002,7 +1002,7 @@ describe("FitFreed import interface", () => {
 
     mocks.open.mockResolvedValue("/synthetic/first-export.zip");
     await user.click(screen.getByRole("button", { name: "Choose an export ZIP" }));
-    expect(await screen.findByRole("heading", { name: "Bring your fitness history home" }))
+    expect(await screen.findByRole("heading", { name: "Import your fitness history" }))
       .toBeVisible();
     expect(mocks.open).toHaveBeenCalledOnce();
     expect(screen.getByText("first-export.zip")).toBeVisible();
@@ -1622,7 +1622,7 @@ describe("FitFreed import interface", () => {
       .toBeVisible();
     await user.click(screen.getByRole("button", { name: "How to obtain one" }));
     expect(await screen.findByRole("heading", {
-      name: "Bring your fitness history home",
+      name: "Import your fitness history",
     })).toBeVisible();
     expect(screen.getByRole("heading", { name: "I have the ZIP" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "I need the ZIP" })).toBeVisible();
@@ -3304,7 +3304,7 @@ describe("FitFreed import interface", () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(await screen.findByRole("button", { name: "Sources" }));
-    await screen.findByRole("heading", { name: "Bring your fitness history home" });
+    await screen.findByRole("heading", { name: "Import your fitness history" });
 
     mocks.open.mockResolvedValue(null);
     const choose = screen.getByRole("button", { name: "Choose ZIP package" });
@@ -3372,7 +3372,7 @@ describe("FitFreed import interface", () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(await screen.findByRole("button", { name: "Sources" }));
-    await screen.findByRole("heading", { name: "Bring your fitness history home" });
+    await screen.findByRole("heading", { name: "Import your fitness history" });
     await chooseArchive(user, "/synthetic/large.zip");
 
     await user.click(screen.getByRole("button", { name: "Import selected package" }));
@@ -3522,7 +3522,7 @@ describe("FitFreed import interface", () => {
     const user = userEvent.setup();
     const view = render(<App />);
     await user.click(await screen.findByRole("button", { name: "Sources" }));
-    await screen.findByRole("heading", { name: "Bring your fitness history home" });
+    await screen.findByRole("heading", { name: "Import your fitness history" });
 
     await chooseArchive(user, "/synthetic/invalid.zip");
     await user.click(screen.getByRole("button", { name: "Import selected package" }));

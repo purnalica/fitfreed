@@ -185,7 +185,7 @@
   },
   "sources": {
     "eyebrow": "Tus orígenes",
-    "title": "Trae a casa tu historial deportivo",
+    "title": "Importa tu historial deportivo",
     "intro": "Empieza con el ZIP original de la exportación. FitFreed lo valida, traduce los registros compatibles a una biblioteca local independiente y no modifica el archivo de origen.",
     "localOnly": "El ZIP y el historial construido a partir de él permanecen en este dispositivo. FitFreed no los sube ni solicita las credenciales del proveedor.",
     "operationProblemTitle": "No se ha podido completar la acción del origen",
