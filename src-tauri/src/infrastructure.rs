@@ -31,24 +31,25 @@ use zip::ZipArchive;
 #[cfg(test)]
 use fitfreed_application::{
     adjust_training_session_range, apply_training_segment_criterion, clear_exploration_workspace,
-    create_training_segment_criterion, create_training_session_range,
+    create_training_segment_criterion, create_training_session_range, list_report_library,
     move_training_segment_criterion, query_default_recovery_overview, query_default_sleep_overview,
     query_default_training_overview, query_library_home, query_longitudinal_overview,
     query_recovery_detail, query_training_route_points, query_training_session_provenance,
     query_training_session_range_summary, query_training_session_ranges,
     query_training_session_routes, query_training_session_segmentation,
     query_training_session_signals, query_training_session_structure, query_training_session_zones,
-    query_training_signal_samples, query_training_sports, remove_training_segment_criterion,
-    remove_training_session_range, rename_training_session_range, save_exploration_workspace,
-    save_training_sport_classification, update_training_segment_criterion,
-    AdjustTrainingSessionRangeRequest, AppearancePreference, ApplicationError,
-    CreateTrainingSegmentCriterionRequest, CreateTrainingSessionRangeRequest, LibraryDomain,
-    LibraryHomeDateRange, LibraryHomeHighlight, LibraryHomeRequest, LibraryQuestion,
+    query_training_sessions as build_training_session_search, query_training_signal_samples,
+    query_training_sports, remove_training_segment_criterion, remove_training_session_range,
+    rename_training_session_range, save_exploration_workspace, save_training_sport_classification,
+    update_training_segment_criterion, AdjustTrainingSessionRangeRequest, AppearancePreference,
+    ApplicationError, CreateTrainingSegmentCriterionRequest, CreateTrainingSessionRangeRequest,
+    LibraryDomain, LibraryHomeDateRange, LibraryHomeHighlight, LibraryHomeRequest, LibraryQuestion,
     LibraryQuestionKind, LocalePreference, MoveTrainingSegmentCriterionRequest,
-    RemoveTrainingSessionRangeRequest, RenameTrainingSessionRangeRequest,
-    SaveSportClassificationRequest, SegmentApplicabilityView, SportClassificationSaveOutcome,
-    TrainingRangeBoundaryEvidenceState, TrainingRangeSummaryCoverageState,
-    TrainingSegmentCriterionMutationRequest, UpdateTrainingSegmentCriterionRequest,
+    RemoveTrainingSessionRangeRequest, RenameTrainingSessionRangeRequest, ReportLibraryMetricValue,
+    ReportLibraryRequest, ReportLibraryResult, SaveSportClassificationRequest,
+    SegmentApplicabilityView, SportClassificationSaveOutcome, TrainingRangeBoundaryEvidenceState,
+    TrainingRangeSummaryCoverageState, TrainingSegmentCriterionMutationRequest,
+    UpdateTrainingSegmentCriterionRequest,
 };
 use fitfreed_application::{
     ActivityDateRange, ActivityLibraryPort, ApplicationPreferences, ApplicationPreferencesPort,
@@ -14920,6 +14921,93 @@ mod tests {
                     .get::<_, i64>(0))
                 .expect("imported activity count"),
             1
+        );
+    }
+
+    #[test]
+    fn projects_a_persisted_report_from_current_indexed_training_evidence() {
+        let harness = Harness::new();
+        let archive = harness.archive(
+            "report-library.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-report-library-claim"}"#,
+                ),
+                (
+                    "training-session_2026-01-02T10-30-00_42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                        "identifier":{"id":"synthetic-report-session"},
+                        "created":"2026-01-02T12:00:00.000",
+                        "modified":"2026-01-02T12:05:00.000",
+                        "startTime":"2026-01-02T10:30:00",
+                        "stopTime":"2026-01-02T11:30:00",
+                        "durationMillis":3600000,
+                        "distanceMeters":10000.5,
+                        "hrAvg":145,
+                        "hrMax":178,
+                        "sport":{"id":"synthetic-report-sport"}
+                    }"#,
+                ),
+            ],
+        );
+        import_polar_archive(&harness.database(), &archive).expect("training import");
+        let training = SqliteTrainingLibrary::new(harness.database());
+        let session_page = build_training_session_search(
+            &training,
+            TrainingSessionSearchRequest {
+                from: None,
+                through: None,
+                sport_refs: Vec::new(),
+                required_measurements: Vec::new(),
+                text: None,
+                sort: TrainingSessionSort::StartedDescending,
+                offset: 0,
+                limit: 1,
+                snapshot_ref: None,
+            },
+        )
+        .expect("training session page");
+        let session = session_page.sessions.first().expect("training session");
+        let definition = ReportDefinition::compose_report(
+            format!("report-{}", "9".repeat(64)),
+            "Recorded distance",
+            ReportLocale::EnUs,
+            &session_page.snapshot_ref,
+            ReportOrigin::Session {
+                session_ref: session.session_ref.clone(),
+            },
+            vec![ReportBlock::session_evidence(
+                format!("report-block-{}", "8".repeat(64)),
+                &session.session_ref,
+                true,
+            )
+            .expect("session block")],
+        )
+        .expect("factual report definition");
+        let reports = SqliteReportLibrary::new(harness.database());
+        reports
+            .create_report_definition(&definition)
+            .expect("persist report");
+
+        let library = list_report_library(
+            &reports,
+            &training,
+            &training,
+            ReportLibraryRequest {
+                offset: 0,
+                limit: 12,
+            },
+        )
+        .expect("result-first library");
+
+        assert_eq!(library.total_count, 1);
+        assert_eq!(
+            library.items[0].result,
+            Some(ReportLibraryResult::Session {
+                metric: ReportTrainingMetric::Distance,
+                value: ReportLibraryMetricValue::Decimal(10_000.5),
+            })
         );
     }
 

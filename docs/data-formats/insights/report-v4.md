@@ -12,7 +12,8 @@ as compatibility adapters.
 | edit | [`report-update-v4`](../../../schemas/report-update-v4.schema.json) | portable version-4 definition |
 | refresh | [`report-refresh-v1`](../../../schemas/report-refresh-v1.schema.json) | preserved definition with the reviewed evidence revision |
 | remove | [`report-remove-v1`](../../../schemas/report-remove-v1.schema.json) | [`removed-report-v1`](../../../schemas/removed-report-v1.schema.json) |
-| list | none | unchanged bounded version-1 report list |
+| result library | [`report-library-query-v1`](../../../schemas/report-library-query-v1.schema.json) | [`report-library-v1`](../../../schemas/report-library-v1.schema.json) |
+| compatibility list | none | unchanged bounded version-1 report list |
 | load | valid `reportRef` | preserved version-1, version-2, version-3, or version-4 definition |
 | resolve | valid `reportRef` | [`report-resolution-v4`](../../../schemas/report-resolution-v4.schema.json) |
 | export | [`report-export-v4`](../../../schemas/report-export-v4.schema.json) | unchanged version-1 receipt |
@@ -33,6 +34,27 @@ Creation never accepts `blockRef`; update accepts an owned `blockRef` so semanti
 Optimistic concurrency uses `expectedRevision`. A failed mutation leaves the prior definition unchanged.
 Removal uses the same exact revision boundary, removes owned blocks atomically, and leaves imported evidence
 and every other report unchanged.
+
+## Bounded result-first library
+
+The result library pages 1–24 items from at most 1,000 saved definitions. Each item contains its stable
+identity, title, locale, revision, subject, relevant session date or comparison periods, one recognizable
+`result` metric, evidence state, and a definition-derived sensitivity summary. It contains no narrative,
+route geometry, exact signal sample, source package identity, or complete provenance history.
+
+A session item resolves only its indexed current session selection. Its one result is recorded distance when
+available and duration otherwise. A comparison item uses the first authored finding or chart metric, falling
+back to session count, and resolves that metric through the existing authoritative training-comparison query.
+It preserves each source separately, returns at most four ordered source results, and names the number omitted;
+it never combines providers. Identical comparison queries within one page reuse one result. The complete
+route, provenance, block, and export paths are not invoked merely to render the library.
+
+`evidenceState` is `current` when the result resolves against the saved library revision, `stale` when the
+same authorized subject resolves against a newer revision, `unavailable` when current evidence cannot resolve,
+and `authored-only` for a retained blank-origin report with no imported evidence. Unavailable items remain in
+the page with no invented result; an authored comparison retains its saved periods, while an unavailable
+session has no invented date. The page is retried once if the library changes during composition; a second
+change fails the whole query rather than returning mixed revisions.
 
 ## Deliberate refresh
 

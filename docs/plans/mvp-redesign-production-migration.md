@@ -1652,12 +1652,15 @@ R9 proceeds in six independently usable slices:
 No slice may resolve every saved report through the complete export path merely to render the library. The
 bounded projection must obtain only the evidence needed for recognition and current-state disclosure.
 
-**Execution state:** slice 1 is complete locally. Version-4 factual definitions accept no authored narrative,
-while versions 1–3 retain their historical contract. Removal now crosses domain authorization, application
-orchestration, optimistic SQLite persistence, desktop transport, machine-readable schemas, and normative
-documentation. Focused stale-removal and persistence evidence passed, followed by the complete fast gate:
-156 tooling tests, 319 React tests, 2 vendored-updater tests, 221 desktop-host tests, 194 application tests,
-48 domain tests, and 2 private-example tests. Slice 2 is next.
+**Execution state:** slices 1 and 2 are complete locally. Version-4 factual definitions accept no authored
+narrative, while versions 1–3 retain their historical contract. Removal crosses domain authorization,
+application orchestration, optimistic SQLite persistence, desktop transport, machine-readable schemas, and
+normative documentation. The new result-first library pages up to 24 definitions, resolves one session or comparison
+metric, preserves up to four sources without merging them, caches identical page queries, identifies current,
+stale, unavailable, and authored-only evidence, and avoids route, signal, provenance, and export work.
+Synthetic and real-SQLite integration evidence passed, followed by the complete fast gate: 156 tooling tests,
+319 React tests, 2 vendored-updater tests, 223 desktop-host tests, 199 application tests, 48 domain tests, and
+2 private-example tests. Slice 3 is next.
 
 ## X5-R10 — Harden the complete product journey
 

@@ -60,6 +60,12 @@ replaces itself with either stale-evidence review or export privacy review; it n
 the editor. This hierarchy is disposable presentation state and does not enter a definition, application DTO,
 or persistence row.
 
+The result-first library projection is separate from complete report resolution. It pages at most 24 of the
+1,000 bounded definitions, resolves only an indexed session selection or one authoritative comparison metric,
+reuses identical comparison queries within the page, and caps visible per-source results without merging them.
+It derives sensitivity from saved authority and never loads route geometry, exact signals, complete provenance,
+or export output. One bounded retry prevents a library revision change from producing mixed evidence.
+
 ## Origin-aware navigation
 
 Report navigation has two deliberately different lifetimes. Starting a report from a mounted session or

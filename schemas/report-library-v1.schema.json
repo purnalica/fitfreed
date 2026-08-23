@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/report-library-v1.schema.json",
+  "title": "FitFreed result-first report library version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["items", "totalCount", "offset", "limit", "nextOffset"],
+  "properties": {
+    "items": {
+      "type": "array",
+      "maxItems": 24,
+      "items": { "$ref": "#/$defs/item" }
+    },
+    "totalCount": { "type": "integer", "minimum": 0, "maximum": 1000 },
+    "offset": { "type": "integer", "minimum": 0, "maximum": 1000 },
+    "limit": { "type": "integer", "minimum": 1, "maximum": 24 },
+    "nextOffset": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "integer", "minimum": 1, "maximum": 1000 }
+      ]
+    }
+  },
+  "$defs": {
+    "item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reportRef", "title", "locale", "sourceSnapshotRef", "revision", "evidenceState",
+        "subject", "period", "result", "sensitivity"
+      ],
+      "properties": {
+        "reportRef": { "$ref": "report-definition-v4.schema.json#/$defs/reportRef" },
+        "title": { "$ref": "report-definition-v4.schema.json#/properties/title" },
+        "locale": { "$ref": "report-definition-v4.schema.json#/properties/locale" },
+        "sourceSnapshotRef": { "$ref": "report-definition-v4.schema.json#/$defs/snapshotRef" },
+        "revision": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+        "evidenceState": { "enum": ["current", "stale", "unavailable", "authored-only"] },
+        "subject": { "$ref": "#/$defs/subject" },
+        "period": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/sessionPeriod" },
+            { "$ref": "#/$defs/comparisonPeriod" }
+          ]
+        },
+        "result": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/sessionResult" },
+            { "$ref": "#/$defs/comparisonResult" }
+          ]
+        },
+        "sensitivity": { "$ref": "#/$defs/sensitivity" }
+      }
+    },
+    "subject": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "sport"],
+          "properties": {
+            "kind": { "const": "session" },
+            "sport": { "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-search-v1.schema.json#/$defs/sport" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": { "kind": { "const": "training-comparison" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": { "kind": { "const": "authored-note" } }
+        }
+      ]
+    },
+    "sessionPeriod": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "startedAtLocal"],
+      "properties": {
+        "kind": { "const": "session" },
+        "startedAtLocal": { "$ref": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-search-v1.schema.json#/$defs/localDateTime" }
+      }
+    },
+    "comparisonPeriod": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "baselineRange", "comparisonRange"],
+      "properties": {
+        "kind": { "const": "training-comparison" },
+        "baselineRange": { "$ref": "report-definition-v3.schema.json#/$defs/dateRange" },
+        "comparisonRange": { "$ref": "report-definition-v3.schema.json#/$defs/dateRange" }
+      }
+    },
+    "metricValue": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": { "const": "integer" },
+            "value": { "type": "string", "pattern": "^-?(0|[1-9][0-9]*)$" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": { "const": "decimal" },
+            "value": { "type": "number" }
+          }
+        }
+      ]
+    },
+    "optionalMetricValue": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/metricValue" }
+      ]
+    },
+    "sessionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "metric", "value"],
+      "properties": {
+        "kind": { "const": "session" },
+        "metric": { "enum": ["duration", "distance"] },
+        "value": { "$ref": "#/$defs/metricValue" }
+      }
+    },
+    "comparisonSeries": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceIndex", "baselineValue", "comparisonValue", "change"],
+      "properties": {
+        "sourceIndex": { "type": "integer", "minimum": 1, "maximum": 4 },
+        "baselineValue": { "$ref": "#/$defs/optionalMetricValue" },
+        "comparisonValue": { "$ref": "#/$defs/optionalMetricValue" },
+        "change": { "$ref": "#/$defs/optionalMetricValue" }
+      }
+    },
+    "comparisonResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "metric", "series", "omittedSourceCount"],
+      "properties": {
+        "kind": { "const": "training-comparison" },
+        "metric": { "$ref": "report-definition-v3.schema.json#/$defs/trainingMetric" },
+        "series": {
+          "type": "array",
+          "maxItems": 4,
+          "items": { "$ref": "#/$defs/comparisonSeries" }
+        },
+        "omittedSourceCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "sensitivity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "includesPhysiologicalContext", "preciseLocationBlockCount",
+        "minimumEndpointRedactionMeters"
+      ],
+      "properties": {
+        "includesPhysiologicalContext": { "type": "boolean" },
+        "preciseLocationBlockCount": { "type": "integer", "minimum": 0, "maximum": 31 },
+        "minimumEndpointRedactionMeters": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "integer", "minimum": 0, "maximum": 5000 }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -30,6 +30,7 @@ use fitfreed_application::{
     create_training_session_range as create_training_session_range_through_port,
     dismiss_update as persist_update_dismissal, export_report as export_report_through_port,
     export_session_report as export_session_report_through_port,
+    list_report_library as list_report_library_through_port,
     list_reports as list_reports_through_port,
     load_application_preferences as load_preferences_from_port,
     load_report_definition as load_report_definition_through_port,
@@ -97,8 +98,9 @@ use presentation::{
     PreparedReportStartDto, RecoveryComparisonDto, RecoveryDateRangeDto, RecoveryNightDetailDto,
     RecoveryOverviewDto, RefreshReportRequestDto, RemoveReportRequestDto,
     RemoveTrainingSessionRangeRequestDto, RemovedReportDto, RenameTrainingSessionRangeRequestDto,
-    ReportDefinitionDto, ReportExportReceiptDto, ReportExportRequestDto, ReportListDto,
-    ReportStartDto, ResolvedReportDto, ResolvedSessionReportDto, SaveSportClassificationRequestDto,
+    ReportDefinitionDto, ReportExportReceiptDto, ReportExportRequestDto, ReportLibraryPageDto,
+    ReportLibraryRequestDto, ReportListDto, ReportStartDto, ResolvedReportDto,
+    ResolvedSessionReportDto, SaveSportClassificationRequestDto,
     SavedTrainingSportClassificationDto, SessionReportExportRequestDto, SessionStoryDto,
     SessionStoryQueryDto, SleepComparisonDto, SleepDateRangeDto, SleepOverviewDto,
     SleepPeriodDetailDto, SourceAcquisitionGuideDto, TrainingComparisonDto, TrainingDateRangeDto,
@@ -926,6 +928,22 @@ fn list_reports(app: AppHandle) -> Result<ReportListDto, CommandErrorDto> {
     list_reports_through_port(&SqliteReportLibrary::new(path))
         .map(Into::into)
         .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn list_report_library(
+    app: AppHandle,
+    request: ReportLibraryRequestDto,
+) -> Result<ReportLibraryPageDto, CommandErrorDto> {
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    list_report_library_through_port(
+        &SqliteReportLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path.clone()),
+        &SqliteTrainingLibrary::new(path),
+        request.into(),
+    )
+    .map(Into::into)
+    .map_err(CommandErrorDto::from)
 }
 
 #[tauri::command]
@@ -2046,6 +2064,7 @@ pub fn run() {
             update_session_report,
             update_composed_session_report,
             list_reports,
+            list_report_library,
             load_report_definition,
             resolve_report,
             resolve_session_report,

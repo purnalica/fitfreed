@@ -21,19 +21,22 @@ use fitfreed_domain::{
 mod reporting;
 pub use reporting::{
     create_composed_session_report, create_report, create_session_report, export_report,
-    export_session_report, list_reports, load_report_definition, prepare_report_start,
-    refresh_report, remove_report, resolve_report, resolve_session_report,
+    export_session_report, list_report_library, list_reports, load_report_definition,
+    prepare_report_start, refresh_report, remove_report, resolve_report, resolve_session_report,
     update_composed_session_report, update_report, update_session_report, AuthorizedReportExport,
     AuthorizedSessionReportExport, CreateComposedSessionReportRequest, CreateReportRequest,
     CreateSessionReportRequest, PreparedReportStart, RefreshReportRequest, RemoveReportRequest,
     RemovedReport, ReportBlockDraft, ReportBlockDraftContent, ReportDefinitionPort,
     ReportDefinitionPortError, ReportEvidenceProvenance, ReportExportCancellation,
     ReportExportPort, ReportExportPortError, ReportExportReceipt, ReportExportRequest,
-    ReportLimitation, ReportResolutionStatus, ReportRouteEvidence, ReportRouteExportChoice,
-    ReportSensitiveContent, ReportSensitiveContentKind, ReportSessionEvidence, ReportStart,
-    ReportSummary, ResolvedReport, ResolvedSessionReport, SessionReportBlockDraft,
-    SessionReportBlockDraftContent, SessionReportExportRequest, UpdateComposedSessionReportRequest,
-    UpdateReportRequest, UpdateSessionReportRequest,
+    ReportLibraryComparisonSeries, ReportLibraryEvidenceState, ReportLibraryItem,
+    ReportLibraryMetricValue, ReportLibraryPage, ReportLibraryPeriod, ReportLibraryRequest,
+    ReportLibraryResult, ReportLibrarySensitivity, ReportLibrarySubject, ReportLimitation,
+    ReportResolutionStatus, ReportRouteEvidence, ReportRouteExportChoice, ReportSensitiveContent,
+    ReportSensitiveContentKind, ReportSessionEvidence, ReportStart, ReportSummary, ResolvedReport,
+    ResolvedSessionReport, SessionReportBlockDraft, SessionReportBlockDraftContent,
+    SessionReportExportRequest, UpdateComposedSessionReportRequest, UpdateReportRequest,
+    UpdateSessionReportRequest,
 };
 
 #[cfg(test)]

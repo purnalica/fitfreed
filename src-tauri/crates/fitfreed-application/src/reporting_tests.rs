@@ -127,6 +127,8 @@ struct StubTrainingPort {
     snapshot_ref: String,
 }
 
+struct MissingTrainingPort;
+
 struct NoComparisonPort;
 
 impl TrainingLibraryPort for NoComparisonPort {
@@ -260,6 +262,31 @@ impl TrainingSessionDiscoveryPort for StubTrainingPort {
             snapshot_ref: self.snapshot_ref.clone(),
             sessions: vec![session()],
         })
+    }
+}
+
+impl TrainingSessionDiscoveryPort for MissingTrainingPort {
+    fn query_training_sessions(
+        &self,
+        _request: &TrainingSessionSearchRequest,
+    ) -> Result<PersistedTrainingSessionSearchPage, TrainingSessionDiscoveryPortError> {
+        unreachable!("report library resolves exact sessions")
+    }
+
+    fn query_training_calendar(
+        &self,
+        _request: &TrainingSessionCalendarRequest,
+    ) -> Result<PersistedTrainingSessionCalendar, TrainingSessionDiscoveryPortError> {
+        unreachable!("report library resolves exact sessions")
+    }
+
+    fn query_training_session_selection(
+        &self,
+        _request: &TrainingSessionSelectionRequest,
+    ) -> Result<PersistedTrainingSessionSelection, TrainingSessionDiscoveryPortError> {
+        Err(TrainingSessionDiscoveryPortError::Failure(
+            "session is unavailable".to_owned(),
+        ))
     }
 }
 
@@ -1123,6 +1150,281 @@ fn creates_lists_and_loads_a_session_report_after_exact_evidence_resolution() {
             .report_ref(),
         REPORT_REF
     );
+}
+
+#[test]
+fn projects_one_bounded_session_result_without_resolving_routes_or_provenance() {
+    let reports = MemoryReportPort::default();
+    let mut request = composition();
+    request.blocks[0].content = SessionReportBlockDraftContent::SessionEvidence {
+        include_physiological_context: true,
+    };
+    create_composed_session_report(
+        &reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &NoComparisonPort,
+        request,
+    )
+    .expect("session report");
+
+    let library = list_report_library(
+        &reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &AnalyticalTrainingPort::current(),
+        ReportLibraryRequest {
+            offset: 0,
+            limit: 12,
+        },
+    )
+    .expect("report library");
+
+    assert_eq!(library.total_count, 1);
+    assert_eq!(library.next_offset, None);
+    assert_eq!(
+        library.items[0].evidence_state,
+        ReportLibraryEvidenceState::Current
+    );
+    assert!(matches!(
+        library.items[0].subject,
+        ReportLibrarySubject::Session { .. }
+    ));
+    assert_eq!(
+        library.items[0].period,
+        Some(ReportLibraryPeriod::Session {
+            started_at_local: "2026-08-18T07:30:00.000".to_owned(),
+        })
+    );
+    assert_eq!(
+        library.items[0].result,
+        Some(ReportLibraryResult::Session {
+            metric: ReportTrainingMetric::Distance,
+            value: ReportLibraryMetricValue::Decimal(10_000.0),
+        })
+    );
+    assert_eq!(
+        library.items[0].sensitivity,
+        ReportLibrarySensitivity {
+            includes_physiological_context: true,
+            precise_location_block_count: 1,
+            minimum_endpoint_redaction_meters: Some(200),
+        }
+    );
+}
+
+#[test]
+fn projects_one_authored_comparison_metric_per_source_and_reuses_its_query() {
+    let reports = MemoryReportPort::default();
+    let training = AnalyticalTrainingPort::current();
+    let query = ReportTrainingComparisonQuery::new(
+        ReportDateRange::new("2026-01-01", "2026-01-31").expect("baseline range"),
+        ReportDateRange::new("2026-02-01", "2026-02-28").expect("comparison range"),
+    );
+    let created = create_report(
+        &reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &StubRoutePort,
+        &training,
+        CreateReportRequest {
+            title: "Winter training comparison".to_owned(),
+            locale: ReportLocale::EnUs,
+            source_snapshot_ref: SNAPSHOT_REF.to_owned(),
+            origin: ReportOrigin::Exploration {
+                query: query.clone(),
+            },
+            blocks: analytical_drafts(&query),
+        },
+    )
+    .expect("comparison report");
+    let second = ReportDefinition::compose_report(
+        "report-1111111111111111111111111111111111111111111111111111111111111111",
+        "Winter training comparison — saved view",
+        ReportLocale::EnUs,
+        SNAPSHOT_REF,
+        ReportOrigin::Exploration {
+            query: query.clone(),
+        },
+        created.blocks().to_vec(),
+    )
+    .expect("second comparison report");
+    reports
+        .create_report_definition(&second)
+        .expect("stored second report");
+    training.queries.lock().expect("creation queries").clear();
+
+    let library = list_report_library(
+        &reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &training,
+        ReportLibraryRequest {
+            offset: 0,
+            limit: 12,
+        },
+    )
+    .expect("comparison library");
+
+    assert_eq!(library.items.len(), 2);
+    assert_eq!(
+        library.items[0].evidence_state,
+        ReportLibraryEvidenceState::Current
+    );
+    assert_eq!(
+        library.items[0].subject,
+        ReportLibrarySubject::TrainingComparison
+    );
+    assert_eq!(
+        library.items[0].period,
+        Some(ReportLibraryPeriod::TrainingComparison {
+            baseline_range: query.baseline_range().clone(),
+            comparison_range: query.comparison_range().clone(),
+        })
+    );
+    assert_eq!(
+        library.items[0].result,
+        Some(ReportLibraryResult::TrainingComparison {
+            metric: ReportTrainingMetric::SessionCount,
+            series: vec![ReportLibraryComparisonSeries {
+                source_index: 1,
+                baseline_value: Some(ReportLibraryMetricValue::Integer(1)),
+                comparison_value: Some(ReportLibraryMetricValue::Integer(2)),
+                change: Some(ReportLibraryMetricValue::Integer(1)),
+            }],
+            omitted_source_count: 0,
+        })
+    );
+    assert_eq!(
+        training.queries.lock().expect("library queries").len(),
+        2,
+        "one library result resolves one baseline and one comparison range"
+    );
+}
+
+#[test]
+fn distinguishes_stale_and_unavailable_session_library_evidence() {
+    let reports = MemoryReportPort::default();
+    created_report(&reports);
+
+    let stale = list_report_library(
+        &reports,
+        &StubTrainingPort {
+            snapshot_ref: CHANGED_SNAPSHOT_REF.to_owned(),
+        },
+        &AnalyticalTrainingPort {
+            snapshot_ref: CHANGED_SNAPSHOT_REF.to_owned(),
+            queries: Mutex::new(Vec::new()),
+        },
+        ReportLibraryRequest {
+            offset: 0,
+            limit: 12,
+        },
+    )
+    .expect("stale report library");
+    assert_eq!(
+        stale.items[0].evidence_state,
+        ReportLibraryEvidenceState::Stale
+    );
+    assert!(stale.items[0].result.is_some());
+
+    let unavailable = list_report_library(
+        &reports,
+        &MissingTrainingPort,
+        &AnalyticalTrainingPort::current(),
+        ReportLibraryRequest {
+            offset: 0,
+            limit: 12,
+        },
+    )
+    .expect("unavailable report library");
+    assert_eq!(
+        unavailable.items[0].evidence_state,
+        ReportLibraryEvidenceState::Unavailable
+    );
+    assert_eq!(unavailable.items[0].result, None);
+}
+
+#[test]
+fn retries_one_library_snapshot_change_without_returning_mixed_report_results() {
+    let reports = MemoryReportPort::default();
+    created_report(&reports);
+    let snapshots = SequencedSnapshotPort {
+        snapshots: Mutex::new(vec![
+            SNAPSHOT_REF.to_owned(),
+            CHANGED_SNAPSHOT_REF.to_owned(),
+            CHANGED_SNAPSHOT_REF.to_owned(),
+        ]),
+    };
+
+    let library = list_report_library(
+        &reports,
+        &StubTrainingPort {
+            snapshot_ref: CHANGED_SNAPSHOT_REF.to_owned(),
+        },
+        &snapshots,
+        ReportLibraryRequest {
+            offset: 0,
+            limit: 12,
+        },
+    )
+    .expect("retried report library");
+
+    assert_eq!(
+        library.items[0].evidence_state,
+        ReportLibraryEvidenceState::Stale
+    );
+    assert!(snapshots
+        .snapshots
+        .lock()
+        .expect("snapshot sequence")
+        .is_empty());
+}
+
+#[test]
+fn keeps_legacy_authored_only_reports_recognizable_without_inventing_evidence() {
+    let reports = MemoryReportPort::default();
+    let definition = ReportDefinition::compose_report(
+        REPORT_REF,
+        "Reusable notes",
+        ReportLocale::EnUs,
+        SNAPSHOT_REF,
+        ReportOrigin::Blank,
+        vec![
+            ReportBlock::narrative(NARRATIVE_BLOCK_REF, "My own interpretation.")
+                .expect("narrative"),
+        ],
+    )
+    .expect("authored-only report");
+    reports
+        .create_report_definition(&definition)
+        .expect("stored report");
+
+    let library = list_report_library(
+        &reports,
+        &StubTrainingPort {
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+        },
+        &NoComparisonPort,
+        ReportLibraryRequest {
+            offset: 0,
+            limit: 12,
+        },
+    )
+    .expect("authored-only library");
+
+    assert_eq!(
+        library.items[0].evidence_state,
+        ReportLibraryEvidenceState::AuthoredOnly
+    );
+    assert_eq!(library.items[0].subject, ReportLibrarySubject::AuthoredNote);
+    assert_eq!(library.items[0].period, None);
+    assert_eq!(library.items[0].result, None);
 }
 
 #[test]

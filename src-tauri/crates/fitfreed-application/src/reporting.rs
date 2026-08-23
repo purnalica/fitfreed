@@ -28,6 +28,8 @@ use crate::{
 const REPORT_PREFIX: &str = "report-";
 const IDENTIFIER_HEX_CHARACTERS: usize = 64;
 const MAX_REPORTS: usize = 1_000;
+const MAX_REPORT_LIBRARY_PAGE_SIZE: usize = 24;
+const MAX_REPORT_LIBRARY_RESULT_SOURCES: usize = 4;
 const MAX_REPORT_ROUTE_VISUAL_POINTS: usize = 500;
 const EARTH_RADIUS_METERS: f64 = 6_371_008.8;
 
@@ -204,6 +206,95 @@ pub struct ReportSummary {
     pub locale: ReportLocale,
     pub source_snapshot_ref: String,
     pub revision: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReportLibraryRequest {
+    pub offset: usize,
+    pub limit: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReportLibraryEvidenceState {
+    Current,
+    Stale,
+    Unavailable,
+    AuthoredOnly,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ReportLibrarySubject {
+    Session { sport: TrainingSessionSport },
+    TrainingComparison,
+    AuthoredNote,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ReportLibraryPeriod {
+    Session {
+        started_at_local: String,
+    },
+    TrainingComparison {
+        baseline_range: ReportDateRange,
+        comparison_range: ReportDateRange,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ReportLibraryMetricValue {
+    Integer(i128),
+    Decimal(f64),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ReportLibraryComparisonSeries {
+    pub source_index: usize,
+    pub baseline_value: Option<ReportLibraryMetricValue>,
+    pub comparison_value: Option<ReportLibraryMetricValue>,
+    pub change: Option<ReportLibraryMetricValue>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ReportLibraryResult {
+    Session {
+        metric: ReportTrainingMetric,
+        value: ReportLibraryMetricValue,
+    },
+    TrainingComparison {
+        metric: ReportTrainingMetric,
+        series: Vec<ReportLibraryComparisonSeries>,
+        omitted_source_count: usize,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReportLibrarySensitivity {
+    pub includes_physiological_context: bool,
+    pub precise_location_block_count: usize,
+    pub minimum_endpoint_redaction_meters: Option<u32>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ReportLibraryItem {
+    pub report_ref: String,
+    pub title: String,
+    pub locale: ReportLocale,
+    pub source_snapshot_ref: String,
+    pub revision: u64,
+    pub evidence_state: ReportLibraryEvidenceState,
+    pub subject: ReportLibrarySubject,
+    pub period: Option<ReportLibraryPeriod>,
+    pub result: Option<ReportLibraryResult>,
+    pub sensitivity: ReportLibrarySensitivity,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ReportLibraryPage {
+    pub items: Vec<ReportLibraryItem>,
+    pub total_count: usize,
+    pub offset: usize,
+    pub limit: usize,
+    pub next_offset: Option<usize>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -803,6 +894,229 @@ pub fn list_reports(
             revision: definition.revision(),
         })
         .collect())
+}
+
+pub fn list_report_library(
+    report_port: &dyn ReportDefinitionPort,
+    training_port: &dyn TrainingSessionDiscoveryPort,
+    comparison_port: &dyn TrainingLibraryPort,
+    request: ReportLibraryRequest,
+) -> Result<ReportLibraryPage, ApplicationError> {
+    if request.limit == 0
+        || request.limit > MAX_REPORT_LIBRARY_PAGE_SIZE
+        || request.offset > MAX_REPORTS
+    {
+        return Err(ApplicationError::InvalidReportDefinition(
+            "report library page is invalid".to_owned(),
+        ));
+    }
+    for attempt in 0..2 {
+        match list_report_library_once(report_port, training_port, comparison_port, &request) {
+            Err(ApplicationError::ReportSourceChanged) if attempt == 0 => continue,
+            result => return result,
+        }
+    }
+    unreachable!("bounded report library retry must return")
+}
+
+fn list_report_library_once(
+    report_port: &dyn ReportDefinitionPort,
+    training_port: &dyn TrainingSessionDiscoveryPort,
+    comparison_port: &dyn TrainingLibraryPort,
+    request: &ReportLibraryRequest,
+) -> Result<ReportLibraryPage, ApplicationError> {
+    let definitions = report_port
+        .list_report_definitions()
+        .map_err(map_definition_query_error)?;
+    if definitions.len() > MAX_REPORTS {
+        return Err(ApplicationError::ReportDefinitionQuery(
+            "report list exceeds the supported bound".to_owned(),
+        ));
+    }
+    let total_count = definitions.len();
+    if request.offset > total_count {
+        return Err(ApplicationError::InvalidReportDefinition(
+            "report library offset exceeds its result".to_owned(),
+        ));
+    }
+    let through = request
+        .offset
+        .checked_add(request.limit)
+        .unwrap_or(total_count)
+        .min(total_count);
+    let definitions = &definitions[request.offset..through];
+    let requires_evidence = definitions.iter().any(report_requires_library_evidence);
+    let current_snapshot_ref = if requires_evidence {
+        comparison_port
+            .training_snapshot_ref()
+            .map_err(ApplicationError::ReportDefinitionQuery)?
+    } else {
+        None
+    };
+    let mut comparison_cache = BTreeMap::new();
+    let items = definitions
+        .iter()
+        .map(|definition| {
+            report_library_item(
+                training_port,
+                comparison_port,
+                definition,
+                current_snapshot_ref.as_deref(),
+                &mut comparison_cache,
+            )
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    if let Some(expected) = current_snapshot_ref.as_deref() {
+        ensure_training_snapshot(comparison_port, expected)?;
+    }
+    let next_offset = (through < total_count).then_some(through);
+    Ok(ReportLibraryPage {
+        items,
+        total_count,
+        offset: request.offset,
+        limit: request.limit,
+        next_offset,
+    })
+}
+
+fn report_requires_library_evidence(definition: &ReportDefinition) -> bool {
+    matches!(definition.origin(), ReportOrigin::Session { .. })
+        || report_training_comparison_query(definition).is_some()
+}
+
+fn report_library_item(
+    training_port: &dyn TrainingSessionDiscoveryPort,
+    comparison_port: &dyn TrainingLibraryPort,
+    definition: &ReportDefinition,
+    current_snapshot_ref: Option<&str>,
+    comparison_cache: &mut BTreeMap<String, TrainingComparison>,
+) -> Result<ReportLibraryItem, ApplicationError> {
+    let sensitivity = report_library_sensitivity(definition);
+    let base = |evidence_state, subject, period, result| ReportLibraryItem {
+        report_ref: definition.report_ref().to_owned(),
+        title: definition.title().to_owned(),
+        locale: definition.locale(),
+        source_snapshot_ref: definition.source_snapshot_ref().to_owned(),
+        revision: definition.revision(),
+        evidence_state,
+        subject,
+        period,
+        result,
+        sensitivity: sensitivity.clone(),
+    };
+    if let ReportOrigin::Session { session_ref } = definition.origin() {
+        let Some(current_snapshot_ref) = current_snapshot_ref else {
+            return Ok(base(
+                ReportLibraryEvidenceState::Unavailable,
+                ReportLibrarySubject::Session {
+                    sport: unavailable_report_sport(),
+                },
+                None,
+                None,
+            ));
+        };
+        let selection = match resolve_exact_session(
+            training_port,
+            session_ref,
+            Some(current_snapshot_ref.to_owned()),
+        ) {
+            Ok(selection) => selection,
+            Err(ApplicationError::ReportEvidenceUnavailable) => {
+                return Ok(base(
+                    ReportLibraryEvidenceState::Unavailable,
+                    ReportLibrarySubject::Session {
+                        sport: unavailable_report_sport(),
+                    },
+                    None,
+                    None,
+                ));
+            }
+            Err(error) => return Err(error),
+        };
+        let session = selection
+            .sessions
+            .into_iter()
+            .next()
+            .ok_or(ApplicationError::ReportEvidenceUnavailable)?;
+        let result = if let Some(distance_meters) = session.distance_meters {
+            ReportLibraryResult::Session {
+                metric: ReportTrainingMetric::Distance,
+                value: ReportLibraryMetricValue::Decimal(distance_meters),
+            }
+        } else {
+            ReportLibraryResult::Session {
+                metric: ReportTrainingMetric::Duration,
+                value: ReportLibraryMetricValue::Integer(i128::from(session.duration_milliseconds)),
+            }
+        };
+        return Ok(base(
+            report_library_evidence_state(definition, current_snapshot_ref),
+            ReportLibrarySubject::Session {
+                sport: session.sport,
+            },
+            Some(ReportLibraryPeriod::Session {
+                started_at_local: session.started_at_local,
+            }),
+            Some(result),
+        ));
+    }
+    let Some(query) = report_training_comparison_query(definition) else {
+        return Ok(base(
+            ReportLibraryEvidenceState::AuthoredOnly,
+            ReportLibrarySubject::AuthoredNote,
+            None,
+            None,
+        ));
+    };
+    let period = Some(ReportLibraryPeriod::TrainingComparison {
+        baseline_range: query.baseline_range().clone(),
+        comparison_range: query.comparison_range().clone(),
+    });
+    let Some(current_snapshot_ref) = current_snapshot_ref else {
+        return Ok(base(
+            ReportLibraryEvidenceState::Unavailable,
+            ReportLibrarySubject::TrainingComparison,
+            period,
+            None,
+        ));
+    };
+    let cache_key = report_library_comparison_cache_key(query);
+    let comparison = if let Some(comparison) = comparison_cache.get(&cache_key) {
+        comparison.clone()
+    } else {
+        match resolve_report_training_comparison(
+            comparison_port,
+            definition,
+            current_snapshot_ref,
+            None,
+        ) {
+            Ok(Some(comparison)) => {
+                comparison_cache.insert(cache_key, comparison.clone());
+                comparison
+            }
+            Ok(None) | Err(ApplicationError::ReportEvidenceUnavailable) => {
+                return Ok(base(
+                    ReportLibraryEvidenceState::Unavailable,
+                    ReportLibrarySubject::TrainingComparison,
+                    period,
+                    None,
+                ));
+            }
+            Err(error) => return Err(error),
+        }
+    };
+    let metric = report_library_comparison_metric(definition);
+    let (series, omitted_source_count) = report_library_comparison_series(&comparison, metric)?;
+    Ok(base(
+        report_library_evidence_state(definition, current_snapshot_ref),
+        ReportLibrarySubject::TrainingComparison,
+        period,
+        Some(ReportLibraryResult::TrainingComparison {
+            metric,
+            series,
+            omitted_source_count,
+        }),
+    ))
 }
 
 pub fn remove_report(
@@ -1795,6 +2109,185 @@ fn report_training_comparison_query(
             | ReportBlockContent::Route { .. }
             | ReportBlockContent::Narrative { .. } => None,
         })
+}
+
+fn report_library_evidence_state(
+    definition: &ReportDefinition,
+    current_snapshot_ref: &str,
+) -> ReportLibraryEvidenceState {
+    if definition.source_snapshot_ref() == current_snapshot_ref {
+        ReportLibraryEvidenceState::Current
+    } else {
+        ReportLibraryEvidenceState::Stale
+    }
+}
+
+fn unavailable_report_sport() -> TrainingSessionSport {
+    TrainingSessionSport {
+        sport_ref: None,
+        state: TrainingSportState::Unavailable,
+        classification: None,
+    }
+}
+
+fn report_library_sensitivity(definition: &ReportDefinition) -> ReportLibrarySensitivity {
+    let mut includes_physiological_context = false;
+    let mut precise_location_block_count = 0;
+    let mut minimum_endpoint_redaction_meters: Option<u32> = None;
+    for block in definition.blocks() {
+        match block.content() {
+            ReportBlockContent::SessionEvidence {
+                include_physiological_context,
+                ..
+            } => {
+                includes_physiological_context = *include_physiological_context;
+            }
+            ReportBlockContent::Route {
+                endpoint_redaction_meters,
+                ..
+            } => {
+                precise_location_block_count += 1;
+                minimum_endpoint_redaction_meters = Some(
+                    minimum_endpoint_redaction_meters
+                        .map_or(*endpoint_redaction_meters, |minimum| {
+                            minimum.min(*endpoint_redaction_meters)
+                        }),
+                );
+            }
+            ReportBlockContent::Narrative { .. }
+            | ReportBlockContent::TrainingFinding { .. }
+            | ReportBlockContent::TrainingComparison { .. }
+            | ReportBlockContent::TrainingChart { .. }
+            | ReportBlockContent::TrainingExactTable { .. }
+            | ReportBlockContent::TrainingCoverage { .. } => {}
+        }
+    }
+    ReportLibrarySensitivity {
+        includes_physiological_context,
+        precise_location_block_count,
+        minimum_endpoint_redaction_meters,
+    }
+}
+
+fn report_library_comparison_cache_key(query: &ReportTrainingComparisonQuery) -> String {
+    format!(
+        "{}:{}:{}:{}",
+        query.baseline_range().from(),
+        query.baseline_range().through(),
+        query.comparison_range().from(),
+        query.comparison_range().through(),
+    )
+}
+
+fn report_library_comparison_metric(definition: &ReportDefinition) -> ReportTrainingMetric {
+    definition
+        .blocks()
+        .iter()
+        .find_map(|block| match block.content() {
+            ReportBlockContent::TrainingFinding { metric, .. }
+            | ReportBlockContent::TrainingChart { metric, .. } => Some(*metric),
+            ReportBlockContent::SessionEvidence { .. }
+            | ReportBlockContent::Route { .. }
+            | ReportBlockContent::Narrative { .. }
+            | ReportBlockContent::TrainingComparison { .. }
+            | ReportBlockContent::TrainingExactTable { .. }
+            | ReportBlockContent::TrainingCoverage { .. } => None,
+        })
+        .unwrap_or(ReportTrainingMetric::SessionCount)
+}
+
+fn report_library_comparison_series(
+    comparison: &TrainingComparison,
+    metric: ReportTrainingMetric,
+) -> Result<(Vec<ReportLibraryComparisonSeries>, usize), ApplicationError> {
+    let source_count = comparison.series.len();
+    let series = comparison
+        .series
+        .iter()
+        .take(MAX_REPORT_LIBRARY_RESULT_SOURCES)
+        .enumerate()
+        .map(|(index, source)| {
+            let (baseline_value, comparison_value, change) = match metric {
+                ReportTrainingMetric::SessionCount => (
+                    Some(ReportLibraryMetricValue::Integer(report_library_count(
+                        source.baseline.session_count,
+                    )?)),
+                    Some(ReportLibraryMetricValue::Integer(report_library_count(
+                        source.comparison.session_count,
+                    )?)),
+                    Some(ReportLibraryMetricValue::Integer(
+                        source.session_count_change,
+                    )),
+                ),
+                ReportTrainingMetric::TrainingDays => (
+                    Some(ReportLibraryMetricValue::Integer(report_library_count(
+                        source.baseline.training_days,
+                    )?)),
+                    Some(ReportLibraryMetricValue::Integer(report_library_count(
+                        source.comparison.training_days,
+                    )?)),
+                    Some(ReportLibraryMetricValue::Integer(
+                        source.training_day_change,
+                    )),
+                ),
+                ReportTrainingMetric::Duration => (
+                    Some(ReportLibraryMetricValue::Integer(
+                        source.baseline.total_duration_milliseconds,
+                    )),
+                    Some(ReportLibraryMetricValue::Integer(
+                        source.comparison.total_duration_milliseconds,
+                    )),
+                    Some(ReportLibraryMetricValue::Integer(
+                        source.duration_milliseconds_change,
+                    )),
+                ),
+                ReportTrainingMetric::Distance => (
+                    source
+                        .baseline
+                        .total_distance_meters
+                        .map(ReportLibraryMetricValue::Decimal),
+                    source
+                        .comparison
+                        .total_distance_meters
+                        .map(ReportLibraryMetricValue::Decimal),
+                    source
+                        .distance_meters_change
+                        .map(ReportLibraryMetricValue::Decimal),
+                ),
+                ReportTrainingMetric::Energy => (
+                    source
+                        .baseline
+                        .total_energy_kilocalories
+                        .map(ReportLibraryMetricValue::Integer),
+                    source
+                        .comparison
+                        .total_energy_kilocalories
+                        .map(ReportLibraryMetricValue::Integer),
+                    source
+                        .energy_kilocalories_change
+                        .map(ReportLibraryMetricValue::Integer),
+                ),
+            };
+            Ok(ReportLibraryComparisonSeries {
+                source_index: index + 1,
+                baseline_value,
+                comparison_value,
+                change,
+            })
+        })
+        .collect::<Result<Vec<_>, ApplicationError>>()?;
+    Ok((
+        series,
+        source_count.saturating_sub(MAX_REPORT_LIBRARY_RESULT_SOURCES),
+    ))
+}
+
+fn report_library_count(value: usize) -> Result<i128, ApplicationError> {
+    i128::try_from(value).map_err(|_| {
+        ApplicationError::ReportDefinitionQuery(
+            "report library count exceeds the supported range".to_owned(),
+        )
+    })
 }
 
 fn report_session_ref(definition: &ReportDefinition) -> Result<&str, ApplicationError> {

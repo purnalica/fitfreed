@@ -27,7 +27,10 @@ use fitfreed_application::{
     RecoveryNightDetail, RecoveryNightInsight, RecoveryOverview, RecoverySeriesComparison,
     RecoverySeriesOverview, RecoverySeriesSummary, RefreshReportRequest, RemoveReportRequest,
     RemoveTrainingSessionRangeRequest, RemovedReport, RenameTrainingSessionRangeRequest,
-    ReportEvidenceProvenance, ReportExportReceipt, ReportExportRequest, ReportLimitation,
+    ReportEvidenceProvenance, ReportExportReceipt, ReportExportRequest,
+    ReportLibraryComparisonSeries, ReportLibraryEvidenceState, ReportLibraryItem,
+    ReportLibraryMetricValue, ReportLibraryPage, ReportLibraryPeriod, ReportLibraryRequest,
+    ReportLibraryResult, ReportLibrarySensitivity, ReportLibrarySubject, ReportLimitation,
     ReportResolutionStatus, ReportRouteEvidence, ReportRouteExportChoice, ReportSensitiveContent,
     ReportSensitiveContentKind, ReportSessionEvidence, ReportStart, ReportSummary, ResolvedReport,
     ResolvedSessionReport, SaveSportClassificationRequest, SavedTrainingSportClassification,
@@ -3745,6 +3748,222 @@ impl From<Vec<ReportSummary>> for ReportListDto {
     fn from(reports: Vec<ReportSummary>) -> Self {
         Self {
             reports: reports.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ReportLibraryRequestDto {
+    offset: usize,
+    limit: usize,
+}
+
+impl From<ReportLibraryRequestDto> for ReportLibraryRequest {
+    fn from(request: ReportLibraryRequestDto) -> Self {
+        Self {
+            offset: request.offset,
+            limit: request.limit,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(tag = "kind", rename_all = "kebab-case")]
+enum ReportLibrarySubjectDto {
+    Session { sport: TrainingSessionSportDto },
+    TrainingComparison,
+    AuthoredNote,
+}
+
+impl From<ReportLibrarySubject> for ReportLibrarySubjectDto {
+    fn from(subject: ReportLibrarySubject) -> Self {
+        match subject {
+            ReportLibrarySubject::Session { sport } => Self::Session {
+                sport: sport.into(),
+            },
+            ReportLibrarySubject::TrainingComparison => Self::TrainingComparison,
+            ReportLibrarySubject::AuthoredNote => Self::AuthoredNote,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(tag = "kind", rename_all = "kebab-case")]
+enum ReportLibraryPeriodDto {
+    Session {
+        started_at_local: String,
+    },
+    TrainingComparison {
+        baseline_range: ReportDateRangeDto,
+        comparison_range: ReportDateRangeDto,
+    },
+}
+
+impl From<ReportLibraryPeriod> for ReportLibraryPeriodDto {
+    fn from(period: ReportLibraryPeriod) -> Self {
+        match period {
+            ReportLibraryPeriod::Session { started_at_local } => Self::Session { started_at_local },
+            ReportLibraryPeriod::TrainingComparison {
+                baseline_range,
+                comparison_range,
+            } => Self::TrainingComparison {
+                baseline_range: (&baseline_range).into(),
+                comparison_range: (&comparison_range).into(),
+            },
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(tag = "kind", rename_all = "kebab-case")]
+enum ReportLibraryMetricValueDto {
+    Integer { value: String },
+    Decimal { value: f64 },
+}
+
+impl From<ReportLibraryMetricValue> for ReportLibraryMetricValueDto {
+    fn from(value: ReportLibraryMetricValue) -> Self {
+        match value {
+            ReportLibraryMetricValue::Integer(value) => Self::Integer {
+                value: value.to_string(),
+            },
+            ReportLibraryMetricValue::Decimal(value) => Self::Decimal { value },
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ReportLibraryComparisonSeriesDto {
+    source_index: usize,
+    baseline_value: Option<ReportLibraryMetricValueDto>,
+    comparison_value: Option<ReportLibraryMetricValueDto>,
+    change: Option<ReportLibraryMetricValueDto>,
+}
+
+impl From<ReportLibraryComparisonSeries> for ReportLibraryComparisonSeriesDto {
+    fn from(series: ReportLibraryComparisonSeries) -> Self {
+        Self {
+            source_index: series.source_index,
+            baseline_value: series.baseline_value.map(Into::into),
+            comparison_value: series.comparison_value.map(Into::into),
+            change: series.change.map(Into::into),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(tag = "kind", rename_all = "kebab-case")]
+enum ReportLibraryResultDto {
+    Session {
+        metric: &'static str,
+        value: ReportLibraryMetricValueDto,
+    },
+    TrainingComparison {
+        metric: &'static str,
+        series: Vec<ReportLibraryComparisonSeriesDto>,
+        omitted_source_count: usize,
+    },
+}
+
+impl From<ReportLibraryResult> for ReportLibraryResultDto {
+    fn from(result: ReportLibraryResult) -> Self {
+        match result {
+            ReportLibraryResult::Session { metric, value } => Self::Session {
+                metric: metric.code(),
+                value: value.into(),
+            },
+            ReportLibraryResult::TrainingComparison {
+                metric,
+                series,
+                omitted_source_count,
+            } => Self::TrainingComparison {
+                metric: metric.code(),
+                series: series.into_iter().map(Into::into).collect(),
+                omitted_source_count,
+            },
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ReportLibrarySensitivityDto {
+    includes_physiological_context: bool,
+    precise_location_block_count: usize,
+    minimum_endpoint_redaction_meters: Option<u32>,
+}
+
+impl From<ReportLibrarySensitivity> for ReportLibrarySensitivityDto {
+    fn from(sensitivity: ReportLibrarySensitivity) -> Self {
+        Self {
+            includes_physiological_context: sensitivity.includes_physiological_context,
+            precise_location_block_count: sensitivity.precise_location_block_count,
+            minimum_endpoint_redaction_meters: sensitivity.minimum_endpoint_redaction_meters,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ReportLibraryItemDto {
+    report_ref: String,
+    title: String,
+    locale: &'static str,
+    source_snapshot_ref: String,
+    revision: String,
+    evidence_state: &'static str,
+    subject: ReportLibrarySubjectDto,
+    period: Option<ReportLibraryPeriodDto>,
+    result: Option<ReportLibraryResultDto>,
+    sensitivity: ReportLibrarySensitivityDto,
+}
+
+impl From<ReportLibraryItem> for ReportLibraryItemDto {
+    fn from(item: ReportLibraryItem) -> Self {
+        Self {
+            report_ref: item.report_ref,
+            title: item.title,
+            locale: item.locale.code(),
+            source_snapshot_ref: item.source_snapshot_ref,
+            revision: item.revision.to_string(),
+            evidence_state: report_library_evidence_state_code(item.evidence_state),
+            subject: item.subject.into(),
+            period: item.period.map(Into::into),
+            result: item.result.map(Into::into),
+            sensitivity: item.sensitivity.into(),
+        }
+    }
+}
+
+fn report_library_evidence_state_code(state: ReportLibraryEvidenceState) -> &'static str {
+    match state {
+        ReportLibraryEvidenceState::Current => "current",
+        ReportLibraryEvidenceState::Stale => "stale",
+        ReportLibraryEvidenceState::Unavailable => "unavailable",
+        ReportLibraryEvidenceState::AuthoredOnly => "authored-only",
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReportLibraryPageDto {
+    items: Vec<ReportLibraryItemDto>,
+    total_count: usize,
+    offset: usize,
+    limit: usize,
+    next_offset: Option<usize>,
+}
+
+impl From<ReportLibraryPage> for ReportLibraryPageDto {
+    fn from(page: ReportLibraryPage) -> Self {
+        Self {
+            items: page.items.into_iter().map(Into::into).collect(),
+            total_count: page.total_count,
+            offset: page.offset,
+            limit: page.limit,
+            next_offset: page.next_offset,
         }
     }
 }
@@ -9113,6 +9332,75 @@ mod tests {
             ))
             .is_err()
         );
+    }
+
+    #[test]
+    fn serializes_the_result_first_report_library_without_precision_loss() {
+        let request: ReportLibraryRequestDto = from_value(json!({
+            "offset": 0,
+            "limit": 12
+        }))
+        .expect("report library request");
+        let request = ReportLibraryRequest::from(request);
+        assert_eq!(request.offset, 0);
+        assert_eq!(request.limit, 12);
+        assert!(from_value::<ReportLibraryRequestDto>(json!({
+            "offset": 0,
+            "limit": 12,
+            "provider": "must-not-cross-the-boundary"
+        }))
+        .is_err());
+
+        let page = ReportLibraryPage {
+            items: vec![ReportLibraryItem {
+                report_ref:
+                    "report-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                        .to_owned(),
+                title: "Morning evidence".to_owned(),
+                locale: ReportLocale::EnUs,
+                source_snapshot_ref:
+                    "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                        .to_owned(),
+                revision: 2,
+                evidence_state: ReportLibraryEvidenceState::Current,
+                subject: ReportLibrarySubject::Session {
+                    sport: TrainingSessionSport {
+                        sport_ref: None,
+                        state: TrainingSportState::Unavailable,
+                        classification: None,
+                    },
+                },
+                period: Some(ReportLibraryPeriod::Session {
+                    started_at_local: "2026-08-18T07:30:00.000".to_owned(),
+                }),
+                result: Some(ReportLibraryResult::Session {
+                    metric: ReportTrainingMetric::Duration,
+                    value: ReportLibraryMetricValue::Integer(i128::MAX),
+                }),
+                sensitivity: ReportLibrarySensitivity {
+                    includes_physiological_context: true,
+                    precise_location_block_count: 1,
+                    minimum_endpoint_redaction_meters: Some(200),
+                },
+            }],
+            total_count: 1,
+            offset: 0,
+            limit: 12,
+            next_offset: None,
+        };
+        let value = to_value(ReportLibraryPageDto::from(page)).expect("report library response");
+        assert_eq!(value["items"][0]["evidenceState"], "current");
+        assert_eq!(value["items"][0]["subject"]["kind"], "session");
+        assert_eq!(value["items"][0]["result"]["metric"], "duration");
+        assert_eq!(
+            value["items"][0]["result"]["value"]["value"],
+            i128::MAX.to_string()
+        );
+        assert_eq!(
+            value["items"][0]["sensitivity"]["preciseLocationBlockCount"],
+            1
+        );
+        assert_eq!(value["nextOffset"], json!(null));
     }
 
     #[test]

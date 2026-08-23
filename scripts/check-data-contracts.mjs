@@ -5944,6 +5944,8 @@ const reportUpdateV4SchemaPath = "schemas/report-update-v4.schema.json";
 const reportRefreshSchemaPath = "schemas/report-refresh-v1.schema.json";
 const reportRemoveSchemaPath = "schemas/report-remove-v1.schema.json";
 const removedReportSchemaPath = "schemas/removed-report-v1.schema.json";
+const reportLibraryQuerySchemaPath = "schemas/report-library-query-v1.schema.json";
+const reportLibrarySchemaPath = "schemas/report-library-v1.schema.json";
 const reportResolutionV4SchemaPath = "schemas/report-resolution-v4.schema.json";
 const reportExportV4SchemaPath = "schemas/report-export-v4.schema.json";
 const sessionReportCreateSchemaPath = "schemas/session-report-create-v1.schema.json";
@@ -6012,6 +6014,7 @@ for (const [documentPath, fields] of [
   [reportV4Path, [
     "prepared-report-start-v1", "expectedRevision", "trainingComparison",
     "library-snapshot", "authored-only", "report-source-changed", "report-refresh-v1",
+    "report-library-query-v1", "evidenceState", "result",
   ]],
   [reportHtmlV4Path, [
     "text/html", "data-fitfreed-report-version", "library-snapshot", "authored-only", "<data>",
@@ -6058,6 +6061,8 @@ const validateReportUpdateV4 = compileReportSchema(reportUpdateV4SchemaPath);
 const validateReportRefresh = compileReportSchema(reportRefreshSchemaPath);
 const validateReportRemove = compileReportSchema(reportRemoveSchemaPath);
 const validateRemovedReport = compileReportSchema(removedReportSchemaPath);
+const validateReportLibraryQuery = compileReportSchema(reportLibraryQuerySchemaPath);
+const validateReportLibrary = compileReportSchema(reportLibrarySchemaPath);
 const validateReportList = compileReportSchema(reportListSchemaPath);
 const validateSessionReportResolution = compileReportSchema(sessionReportResolutionSchemaPath);
 const validateSessionReportResolutionV2 = compileReportSchema(sessionReportResolutionV2SchemaPath);
@@ -6660,6 +6665,80 @@ if (validateRemovedReport({ ...syntheticRemovedReport, revision: "0" })) {
   throw new Error(`${removedReportSchemaPath} accepted an invalid removal result`);
 }
 
+const syntheticReportLibraryQuery = { offset: 0, limit: 12 };
+assertReportContract(
+  validateReportLibraryQuery,
+  reportLibraryQuerySchemaPath,
+  syntheticReportLibraryQuery,
+);
+for (const invalidLibraryQuery of [
+  { offset: 0, limit: 25 },
+  { ...syntheticReportLibraryQuery, provider: "must-not-cross-the-boundary" },
+]) {
+  if (validateReportLibraryQuery(invalidLibraryQuery)) {
+    throw new Error(`${reportLibraryQuerySchemaPath} accepted an invalid query`);
+  }
+}
+
+const syntheticReportLibrary = {
+  items: [{
+    reportRef: reportRefDigest,
+    title: syntheticReportDefinition.title,
+    locale: syntheticReportDefinition.locale,
+    sourceSnapshotRef: snapshotRefDigest,
+    revision: "1",
+    evidenceState: "current",
+    subject: {
+      kind: "session",
+      sport: structuredClone(syntheticTrainingSessionSearch.sessions[0].sport),
+    },
+    period: {
+      kind: "session",
+      startedAtLocal: syntheticTrainingSessionSearch.sessions[0].startedAtLocal,
+    },
+    result: {
+      kind: "session",
+      metric: "distance",
+      value: { kind: "decimal", value: 10_000 },
+    },
+    sensitivity: {
+      includesPhysiologicalContext: true,
+      preciseLocationBlockCount: 1,
+      minimumEndpointRedactionMeters: 200,
+    },
+  }],
+  totalCount: 1,
+  offset: 0,
+  limit: 12,
+  nextOffset: null,
+};
+assertReportContract(validateReportLibrary, reportLibrarySchemaPath, syntheticReportLibrary);
+assertReportContract(
+  validateReportLibrary,
+  reportLibrarySchemaPath,
+  {
+    ...structuredClone(syntheticReportLibrary),
+    items: [{
+      ...structuredClone(syntheticReportLibrary.items[0]),
+      evidenceState: "authored-only",
+      subject: { kind: "authored-note" },
+      period: null,
+      result: null,
+      sensitivity: {
+        includesPhysiologicalContext: false,
+        preciseLocationBlockCount: 0,
+        minimumEndpointRedactionMeters: null,
+      },
+    }],
+  },
+);
+if (validateReportLibrary({
+  ...structuredClone(syntheticReportLibrary),
+  items: [{ ...structuredClone(syntheticReportLibrary.items[0]), narrative: "private" }],
+})) {
+  throw new Error(`${reportLibrarySchemaPath} accepted unbounded authored content`);
+}
+
 const syntheticQuestionResolutionV4 = {
   definition: syntheticQuestionDefinitionV4,
   resolvedSnapshotRef: snapshotRefDigest,
@@ -6906,6 +6985,8 @@ process.stdout.write(
       reportRefreshSchemaPath,
       reportRemoveSchemaPath,
       removedReportSchemaPath,
+      reportLibraryQuerySchemaPath,
+      reportLibrarySchemaPath,
       sessionReportCreateSchemaPath,
       sessionReportCreateV2SchemaPath,
       sessionReportCreateV3SchemaPath,
