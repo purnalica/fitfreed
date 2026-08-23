@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { transformSessionStoryValue } from "./session-story-metric";
+import {
+  formatSessionStoryMetricValue,
+  transformSessionStoryValue,
+} from "./session-story-metric";
 
 describe("transformSessionStoryValue", () => {
   it("preserves identity values and missing source values", () => {
@@ -21,5 +24,16 @@ describe("transformSessionStoryValue", () => {
       "kilometers-per-hour-to-minutes-per-kilometer",
       -1,
     )).toBeNull();
+  });
+});
+
+describe("formatSessionStoryMetricValue", () => {
+  it("formats pace as clock-like minutes and other measurements at useful precision", () => {
+    expect(formatSessionStoryMetricValue("pace", 4.999, "en-US", "min/km"))
+      .toBe("5:00 min/km");
+    expect(formatSessionStoryMetricValue("heart-rate", 142.6, "en-US", "bpm"))
+      .toBe("143 bpm");
+    expect(formatSessionStoryMetricValue("temperature", 18.45, "es-ES", "°C"))
+      .toBe("18,5 °C");
   });
 });

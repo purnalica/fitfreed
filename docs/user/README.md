@@ -72,14 +72,17 @@ signals can also be selected as independently scaled lanes over one stable elaps
 retains a direct path to its exact samples, and the view neither bridges gaps nor implies causation.
 When a session has useful recorded signals but no drawable route, FitFreed gives the application-ranked
 measurement the leading visual region instead of reserving an empty map. The displayed sport-aware metric,
-coverage, interval, source identity, and gaps remain connected to the exact source-series action. A compact
+coverage, interval, source identity, and gaps remain connected to the exact source-series action. Its sample
+position and personal-range controls use only that regular signal's own exact elapsed coordinate; a typed
+boundary outside the bounded chart stays exact and is never snapped or aligned to a route by equal offsets. A compact
 evidence account states once what the session contains; deeper sections remain for requested detail rather
 than repeating general absence notices.
 Personal ranges have a dedicated [session-range guide](session-ranges.md). A person can create, reopen, rename,
 adjust, review after reimport, and remove a session-owned range on one explicit exercise, route, or measurement
 timeline. The result leads with a concise revision-coherent summary and reveals exact boundary quality, source
 overlap, gaps, and limitations only on request. Established ownership never moves silently between independent
-clocks; synchronized map, signal-lane, structure, and exact-evidence handles remain active MVP work.
+clocks; route-map and independent-signal handles are available, while source-structure and exact-evidence
+entry points remain active MVP work.
 When a session has recorded exercise structure but neither a route nor a supported visual signal, recorded
 duration and source or automatic laps take that leading region. Pause counts are visible there, while their
 recorded local timestamps remain in structural detail because FitFreed does not infer an elapsed position that

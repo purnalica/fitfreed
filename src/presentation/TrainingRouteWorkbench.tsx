@@ -14,6 +14,7 @@ import type {
   LocalRouteViewportRangeSelection,
 } from "./route-viewport";
 import type { SessionStory, SessionStoryMetric, SessionStoryRole } from "./session-story";
+import { formatSessionStoryMetricValue } from "./session-story-metric";
 import {
   elapsedEditorValue,
   parseElapsedEditorValue,
@@ -126,27 +127,13 @@ function defaultOverlayRef(choice: RouteChoice): string | null {
   )?.signalRef ?? null;
 }
 
-function pace(value: number, locale: Locale): string {
-  const minutes = Math.floor(value);
-  const seconds = Math.round((value - minutes) * 60);
-  const normalizedMinutes = seconds === 60 ? minutes + 1 : minutes;
-  const normalizedSeconds = seconds === 60 ? 0 : seconds;
-  return `${new Intl.NumberFormat(locale).format(normalizedMinutes)}:${normalizedSeconds
-    .toString().padStart(2, "0")} min/km`;
-}
-
 function metricValue(
   metric: SessionStoryMetric,
   value: number,
   locale: Locale,
   units: Record<SessionStoryMetric, string>,
 ): string {
-  if (metric === "pace") return pace(value, locale);
-  const formatted = new Intl.NumberFormat(locale, {
-    maximumFractionDigits: metric === "heart-rate" || metric === "cadence"
-      || metric === "stroke-rate" || metric === "power" ? 0 : 1,
-  }).format(value);
-  return `${formatted} ${units[metric]}`;
+  return formatSessionStoryMetricValue(metric, value, locale, units[metric]);
 }
 
 function routeChoiceLabel(
@@ -460,6 +447,7 @@ export function TrainingRouteWorkbench({
             <span>{copy.savedRange}</span>
             <select
               value={selectedRouteRange?.rangeRef ?? ""}
+              disabled={rangeInteraction.busy || rangeInteraction.editor !== undefined}
               onChange={(event) => rangeInteraction.selectRange(event.target.value)}
             >
               <option value="">{copy.chooseSavedRange}</option>
@@ -483,7 +471,7 @@ export function TrainingRouteWorkbench({
               <button
                 type="button"
                 className="secondary"
-                disabled={rangeInteraction.busy}
+                disabled={rangeInteraction.busy || editorElsewhere}
                 onClick={() => {
                   setActiveRangeBoundary("end");
                   rangeInteraction.openAdjustEditor(selectedRouteRange, "route");
@@ -611,7 +599,11 @@ export function TrainingRouteWorkbench({
         <div className="training-route-workbench-controls">
           <label>
             <span>{copy.visibleRoute}</span>
-            <select value={choice.key} onChange={(event) => selectChoice(event.target.value)}>
+            <select
+              value={choice.key}
+              disabled={rangeInteraction?.editor !== undefined}
+              onChange={(event) => selectChoice(event.target.value)}
+            >
               {choices.map((candidate) => (
                 <option key={candidate.key} value={candidate.key}>{routeChoiceLabel(
                   candidate,

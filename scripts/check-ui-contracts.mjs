@@ -87,6 +87,12 @@ const routeWorkbenchPath = path.join(
   "TrainingRouteWorkbench.tsx",
 );
 const routeWorkbench = readFileSync(routeWorkbenchPath, "utf8");
+const signalWorkbench = readFileSync(path.join(
+  repositoryRoot,
+  "src",
+  "presentation",
+  "TrainingSignalWorkbench.tsx",
+), "utf8");
 const leafletAdapterPath = path.join(
   repositoryRoot,
   "src",
@@ -287,7 +293,12 @@ for (const rangeCommand of [
     throw new Error(`the session range controller must retain its complete command path: ${rangeCommand}`);
   }
 }
-for (const parallelRangeTask of [trainingRanges, trainingRangeEditor, routeWorkbench]) {
+for (const parallelRangeTask of [
+  trainingRanges,
+  trainingRangeEditor,
+  routeWorkbench,
+  signalWorkbench,
+]) {
   if (parallelRangeTask.includes('@tauri-apps/api/core')) {
     throw new Error("a range representation must not issue a command outside the session controller");
   }
@@ -303,9 +314,33 @@ for (const sharedRangeInteraction of [
     throw new Error(`the route range workspace must preserve ${sharedRangeInteraction}`);
   }
 }
+for (const sharedSignalRangeInteraction of [
+  "useOptionalTrainingRangeInteraction",
+  '<TrainingRangeEditor surface="signal"',
+  'openCreateEditor("signal"',
+  "sampleIndexAtExactElapsed",
+  'scope === "signal-elapsed"',
+]) {
+  if (!signalWorkbench.includes(sharedSignalRangeInteraction)) {
+    throw new Error(`the signal range workspace must preserve ${sharedSignalRangeInteraction}`);
+  }
+}
+for (const [representation, source] of [
+  ["route", routeWorkbench],
+  ["signal", signalWorkbench],
+]) {
+  for (const contextLock of [
+    "disabled={rangeInteraction?.editor !== undefined}",
+    "disabled={rangeInteraction.busy || rangeInteraction.editor !== undefined}",
+  ]) {
+    if (!source.includes(contextLock)) {
+      throw new Error(`${representation} range editing must retain its single-draft context lock`);
+    }
+  }
+}
 if (!trainingRanges.includes("<TrainingRangeEditor")
   || !trainingRangeEditor.includes("useTrainingRangeInteraction")) {
-  throw new Error("the range library and route workbench must compose one shared editor");
+  throw new Error("the range library and evidence workbenches must compose one shared editor");
 }
 for (const exactRangeRule of [
   "BigInt(value)",
@@ -332,12 +367,21 @@ requireRule(
   [/display:\s*grid/, /grid-template-columns:\s*minmax\(0,\s*3fr\)\s+minmax\(240px,\s*1fr\)/],
   "a map-dominant wide route-range workspace",
 );
+requireRule(
+  stylesheet,
+  '.training-signal-range-layout[data-has-range="true"]',
+  [/display:\s*grid/, /grid-template-columns:\s*minmax\(0,\s*3fr\)\s+minmax\(240px,\s*1fr\)/],
+  "a chart-dominant wide signal-range workspace",
+);
 for (const zoom of ["175", "200"]) {
   if (!stylesheet.includes(`:root[data-content-zoom="${zoom}"] .training-range-workspace`)) {
     throw new Error(`personal-range work must stack at ${zoom}% content zoom`);
   }
   if (!stylesheet.includes(`:root[data-content-zoom="${zoom}"] .training-route-range-layout`)) {
     throw new Error(`route-range work must stack at ${zoom}% content zoom`);
+  }
+  if (!stylesheet.includes(`:root[data-content-zoom="${zoom}"] .training-signal-range-layout`)) {
+    throw new Error(`signal-range work must stack at ${zoom}% content zoom`);
   }
 }
 for (const workbench of [

@@ -211,7 +211,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R5 | Complete locally — R5.4, R5.5, and real-process restart gates passed 2026-08-22 | A remembered session is findable and sports are recognizable |
 | X5-R6 | Complete locally — R6.1 through R6.5 passed exact packaged, adaptive visual, and dense-route gates on 2026-08-22; R8.4 subsequently removed unproven route-signal alignment | A routed workout is investigated through a dominant local map without invented relationships |
 | X5-R7 | Complete locally — R7.1 through R7.6 passed the exact fast, functional, restart, adaptive, accessibility, visual, and performance gates on 2026-08-22 | Every session composition reflects its actual evidence |
-| X5-R8 | In progress — R8.1 through R8.5 and R8.6 slices 1–2 complete locally; the shared range controller/editor and exact route-map interaction passed functional, restart, adaptive, accessibility, visual, and performance gates on 2026-08-23; signal, structure, exact-evidence, and final Alpha integration remain active | Personal ranges and reusable criteria work end to end |
+| X5-R8 | In progress — R8.1 through R8.5 and R8.6 slices 1–3 complete locally; independent-signal interaction passed functional, restart/reimport, adaptive, accessibility, visual, and performance gates on 2026-08-23; structure, exact-evidence, and final Alpha integration follow | Personal ranges and reusable criteria work end to end |
 | X5-R9 | Pending | Reports open as results and leave FitFreed safely |
 | X5-R10 | Pending | The complete release-shaped product is coherent and documented |
 | X6 | Pending | Independent audit has no unresolved material finding |
@@ -1488,6 +1488,34 @@ show the stacked map and inspector. The accepted evidence now covers saved and e
 internally scrollable wide inspector, map and inspector stacking, English wide geometry, Spanish dark 200%
 geometry, and unobstructed placement below sticky navigation. Slices 3 through 5 and the complete final R8.6
 gate remain open; this checkpoint does not claim signal, structure, or exact-evidence interaction.
+
+Slice 3 is complete locally. The same controller and editor now compose beside the leading independent signal
+chart. The recorded-position control, exact start/end controls, plot selection, saved-range choice, adjustment,
+cancel, and exact-sample handoff all retain the selected regular signal's own elapsed coordinate. Typed
+boundaries absent from the bounded visual projection remain exact and unmarked. Equal route or other-signal
+offsets are never consulted.
+
+The complete fast gate passed 156 tooling tests, 312 React tests, two vendored-updater tests, 220 all-feature
+host tests, 192 application tests, 46 domain tests, and two private-acceptance examples, together with the
+production build, strict Clippy, Rust formatting, architecture, contracts, documentation, localization,
+workflow, site, UI-contract, and diff gates. The exact packaged executable passed the complete functional
+journey in 2 minutes 51.7 seconds, general new-process recovery in 990 milliseconds, adaptive-session
+composition in 6 seconds, independent-signal range recovery in a second new process in 697 milliseconds, and
+the isolated two-year performance campaign in 3 minutes 6.7 seconds. Signal overview measured 339 milliseconds
+at p95, fourth-series selection 6 milliseconds, exact signal pagination 207 milliseconds, independent-signal
+reveal 21 milliseconds, route-workbench opening 76 milliseconds, and route selection 2 milliseconds, all below
+their accepted budgets.
+
+Independent visual review covers the editor and saved states in English at wide geometry, and the chart plus
+stacked inspector in Spanish, dark appearance, compact geometry, and 200% content zoom. The first compact
+capture was rejected because it proved only adaptive navigation rather than the signal task itself. The
+corrected packaged evidence scrolls both the chart and inspector below sticky navigation, asserts that neither
+is obstructed or creates horizontal overflow, and retains zero Axe violations. Slices 4 and 5 and the complete
+final R8.6 gate remain open; this checkpoint does not claim structure or exact-evidence interaction.
+
+Final self-review also rejected allowing the visible signal, visible route, or saved-range selectors to replace
+or hide the sole shared draft. These context selectors now remain visibly locked while an edit is active and
+become available again after save or cancellation; focused component and packaged tests cover both transitions.
 
 ## X5-R9 — Make reports result-first and portable
 

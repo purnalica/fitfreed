@@ -29,4 +29,30 @@ describe("TrainingSignalPlot", () => {
     const [, lastY] = segment!.getAttribute("points")!.split(" ")[1].split(",").map(Number);
     expect(lastY).toBeLessThan(firstY);
   });
+
+  it("projects only exact selected and range sample ordinals", () => {
+    render(<TrainingSignalPlot
+      samples={[0, 1, 2, 3].map((ordinal) => ({
+        ordinal,
+        elapsedMilliseconds: String(ordinal * 1000),
+        value: 140 + ordinal,
+        gapBefore: false,
+      }))}
+      summary="Recorded heart rate"
+      sampleCount={4}
+      emptyMessage="Empty"
+      noRecordedValuesMessage="Unavailable"
+      selectedSampleOrdinal={2}
+      rangeSelection={{
+        startedAtSampleOrdinal: 1,
+        endedAtSampleOrdinal: 3,
+      }}
+    />);
+
+    const chart = screen.getByRole("img", { name: "Recorded heart rate" });
+    expect(chart.querySelectorAll(".training-signal-range-band")).toHaveLength(1);
+    expect(chart.querySelectorAll(".training-signal-range-start")).toHaveLength(1);
+    expect(chart.querySelectorAll(".training-signal-range-end")).toHaveLength(1);
+    expect(chart.querySelectorAll(".training-signal-selected-sample")).toHaveLength(1);
+  });
 });

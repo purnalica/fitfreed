@@ -211,10 +211,11 @@ Presentation applies one evidence-adaptive hierarchy to that application-owned c
 bounded route points receives the local route workbench. When no route can be drawn, the first
 application-ranked supported signal receives a full-width signal workbench instead; presentation uses the
 overlay's declared metric and value transform, preserves the bounded source gaps, and keeps the source series
-as the exact-evidence path. Route lanes and the independent signal workbench share
-`transformSessionStoryValue`, so a sport-aware speed-to-pace choice cannot acquire different semantics in the
-two renderers. A session-level evidence account aggregates only the exact counts already present in Session
-Story; it does not reinterpret absent containers or repeat a missing-data warning in every section.
+as the exact-evidence path. Route lanes and the independent signal workbench share the value transform and
+metric formatter in `session-story-metric.ts`, so a sport-aware speed-to-pace choice cannot acquire different
+semantics or precision in the two renderers. A session-level evidence account aggregates only the exact counts
+already present in Session Story; it does not reinterpret absent containers or repeat a missing-data warning in
+every section.
 
 When neither route nor supported visual signal exists, a composed exercise with recorded structure receives
 the leading visual region. Its duration track and source- or automatic-lap bars use only validated recorded
@@ -384,8 +385,19 @@ click moves only the boundary explicitly selected in the inspector. The renderer
 point indexes for the start and end markers. A typed elapsed value without an exact point in the bounded
 projection remains unmarked rather than being snapped or inferred. The wide layout reserves approximately three
 quarters of the workspace for the map and one quarter for the shared inspector, then stacks the inspector below
-the map at compact width or high content zoom. Other representations must compose this controller and editor in
-the same way; they cannot issue a parallel command or infer a relationship between independent clocks.
+the map at compact width or high content zoom.
+
+`TrainingSignalWorkbench` composes the same controller and editor for one regular signal's own elapsed
+coordinate. Its selected-sample control and two boundary controls traverse exact bounded visual samples with
+pointer or keyboard, while its plot receives only exact sample ordinals for the selection line, boundary lines,
+and range band. A typed boundary that is not one of those returned visual samples remains unmarked. The chart
+keeps approximately three quarters of the wide workspace and stacks above its inspector at compact width or
+high content zoom. The exact-sample action retains the selected source ordinal and focuses its containing table
+row. While either representation owns the active draft, its evidence and saved-range selectors remain locked so
+the single editor cannot silently change or lose its coordinate context. None of these interactions aligns the
+signal with route offsets or another signal. Other representations
+must compose the controller and editor in the same way; they cannot issue a parallel command or infer a
+relationship between independent clocks.
 
 The [canonical segment criterion](../data-formats/canonical/segment-criterion.md) is reusable user-authored
 evidence with stable local identity, optimistic revision, and one versioned rule. Its ordered exercise

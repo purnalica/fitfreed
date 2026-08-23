@@ -2514,8 +2514,9 @@ describe("TrainingSessionLibraryPanel", () => {
     const exact = await within(signalExercise!).findByRole("region", {
       name: "Exact Speed samples",
     });
-    await waitFor(() => expect(within(exact).getByRole("heading", {
-      name: "Exact Speed samples",
+    expect(within(exact).getByRole("heading", { name: "Exact Speed samples" })).toBeVisible();
+    await waitFor(() => expect(within(exact).getByRole("row", {
+      name: /Selected measurement/,
     })).toHaveFocus());
     expect(exact).toHaveTextContent("Not recorded");
     expect(mocks.invoke).toHaveBeenCalledWith("query_training_signal_samples", {

@@ -283,9 +283,12 @@ describe("TrainingRouteWorkbench", () => {
       </TrainingRangeInteractionProvider>,
     );
 
+    const visibleRoute = screen.getByRole("combobox", { name: "Visible route" });
+    expect(visibleRoute).toBeEnabled();
     await user.click(await screen.findByRole("button", {
       name: "Create a range from this point",
     }));
+    expect(visibleRoute).toBeDisabled();
     expect(screen.queryByRole("combobox", { name: "Timeline" })).not.toBeInTheDocument();
     expect(screen.getByLabelText("Start")).toHaveValue("0:00:00");
     expect(screen.getByLabelText("End")).toHaveValue("0:00:01");
@@ -327,6 +330,7 @@ describe("TrainingRouteWorkbench", () => {
       },
     });
     expect(await screen.findByText("Range saved.")).toBeVisible();
+    expect(visibleRoute).toBeEnabled();
     expect(screen.getByText("Riverside effort")).toBeVisible();
   });
 

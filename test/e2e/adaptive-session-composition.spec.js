@@ -3,6 +3,7 @@ import path from "node:path";
 
 import AxeBuilder from "@axe-core/webdriverio";
 
+import { e2eApplicationBinary } from "../../scripts/e2e-paths.mjs";
 import {
   goToHome,
   openHomeQuestion,
@@ -12,6 +13,7 @@ import {
   selectArchive,
   selectLocale,
 } from "./support/application-actions.js";
+import { recordRestartProcessIdentity } from "./support/application-process.js";
 
 const english = JSON.parse(
   fs.readFileSync(new URL("../../src/locales/en-US.json", import.meta.url), "utf8"),
@@ -20,6 +22,7 @@ const spanish = JSON.parse(
   fs.readFileSync(new URL("../../src/locales/es-ES.json", import.meta.url), "utf8"),
 );
 const fixtureDirectory = process.env.FITFREED_E2E_FIXTURE_DIRECTORY;
+const restartIdentityPath = process.env.FITFREED_E2E_RESTART_IDENTITY_PATH;
 const evidenceDirectory = path.resolve(".artifacts/e2e/evidence");
 
 async function waitForNotice(fragment) {
@@ -169,6 +172,18 @@ async function expectFocusedRevealGeometry(selector) {
   }
 }
 
+async function revealBelowCompactNavigation(selector) {
+  await browser.execute((targetSelector) => {
+    const root = document.documentElement;
+    const navigation = document.querySelector(".app-sidebar").getBoundingClientRect();
+    const target = document.querySelector(targetSelector);
+    target.scrollIntoView({ block: "start", inline: "nearest" });
+    if (navigation.width >= root.clientWidth - 1) {
+      window.scrollBy(0, -(navigation.bottom + 12));
+    }
+  }, selector);
+}
+
 describe("packaged evidence-adaptive session composition", () => {
   it("foregrounds the strongest recorded evidence without losing exact detail", async () => {
     if (fixtureDirectory === undefined) {
@@ -221,9 +236,92 @@ describe("packaged evidence-adaptive session composition", () => {
       expect.stringContaining("temperature"),
     );
     await selectNativeOption(signalSelector, await signalOptions[0].getAttribute("value"));
+    const signalPosition = await signalWorkbench.$(
+      ".training-signal-position-control input[type='range']",
+    );
+    await browser.execute((element) => {
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+      setter.call(element, "1");
+      element.dispatchEvent(new Event("input", { bubbles: true }));
+      element.dispatchEvent(new Event("change", { bubbles: true }));
+    }, signalPosition);
+    await expect(signalPosition).toHaveAttribute(
+      "aria-valuetext",
+      expect.stringContaining("Sample 2 of 5"),
+    );
+    const signalRangeCopy = english.training.sessionLibrary.signalWorkbench;
+    const rangeCopy = english.training.sessionLibrary.ranges;
+    const signalRangeLayout = await browser.execute(() => {
+      const workbench = document.querySelector(".training-signal-workbench").getBoundingClientRect();
+      const layout = document.querySelector(".training-signal-range-layout").getBoundingClientRect();
+      const visual = document.querySelector(".training-signal-visual").getBoundingClientRect();
+      const inspector = document.querySelector(
+        ".training-signal-range-inspector",
+      ).getBoundingClientRect();
+      return {
+        inspectorLeft: inspector.left,
+        inspectorWidth: inspector.width,
+        layoutWidth: layout.width,
+        visualRight: visual.right,
+        visualWidth: visual.width,
+        workbenchWidth: workbench.width,
+      };
+    });
+    expect(signalRangeLayout.visualWidth / signalRangeLayout.layoutWidth)
+      .toBeGreaterThan(0.7);
+    expect(signalRangeLayout.visualWidth / signalRangeLayout.layoutWidth)
+      .toBeLessThan(0.78);
+    expect(signalRangeLayout.inspectorLeft).toBeGreaterThan(signalRangeLayout.visualRight);
+    expect(signalRangeLayout.inspectorWidth / signalRangeLayout.layoutWidth)
+      .toBeGreaterThan(0.2);
+    expect(signalRangeLayout.visualWidth / signalRangeLayout.workbenchWidth)
+      .toBeGreaterThan(0.65);
+    await signalWorkbench.$(`aria/${signalRangeCopy.createRangeHere}`).click();
+    await expect(signalSelector).toBeDisabled();
+    const signalRangeEditor = await signalWorkbench.$(".training-range-editor");
+    await signalRangeEditor.$(".training-range-editor-name input").setValue("Steady signal");
+    const signalRangeHandles = await signalWorkbench.$$(
+      ".training-signal-range-handles input[type='range']",
+    );
+    expect(signalRangeHandles).toHaveLength(2);
+    await browser.execute((element) => {
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+      setter.call(element, "3");
+      element.dispatchEvent(new Event("input", { bubbles: true }));
+      element.dispatchEvent(new Event("change", { bubbles: true }));
+    }, signalRangeHandles[1]);
+    await expect(signalRangeHandles[0]).toHaveAttribute(
+      "aria-valuetext",
+      expect.stringContaining("Sample 2 of 5"),
+    );
+    await expect(signalRangeHandles[1]).toHaveAttribute(
+      "aria-valuetext",
+      expect.stringContaining("Sample 4 of 5"),
+    );
+    const signalRangeEditorAccessibility = await new AxeBuilder({ client: browser })
+      .setLegacyMode()
+      .include(".training-signal-workbench")
+      .analyze();
+    expect(signalRangeEditorAccessibility.violations).toEqual([]);
     await browser.saveScreenshot(path.join(
       evidenceDirectory,
-      "r7-signal-workbench-en-wide.png",
+      "r8-signal-range-editor-en-wide.png",
+    ));
+    await signalRangeEditor.$(`aria/${rangeCopy.save}`).click();
+    await waitForNotice(rangeCopy.saved);
+    await expect(signalSelector).toBeEnabled();
+    await expect(signalWorkbench.$(".training-signal-saved-range strong"))
+      .toHaveText("Steady signal");
+    expect(await signalWorkbench.$$(".training-signal-range-start")).toHaveLength(1);
+    expect(await signalWorkbench.$$(".training-signal-range-end")).toHaveLength(1);
+    const signalRangeAccessibility = await new AxeBuilder({ client: browser })
+      .setLegacyMode()
+      .include(".training-signal-workbench")
+      .analyze();
+    expect(signalRangeAccessibility.violations).toEqual([]);
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r8-signal-range-en-wide.png",
     ));
     const exactSignal = await signalWorkbench.$("footer button");
     await exactSignal.click();
@@ -231,9 +329,36 @@ describe("packaged evidence-adaptive session composition", () => {
       .toHaveText(english.training.sessionLibrary.detailSections.signals);
     const exactSignalHeading = await $(".training-signal-exact h6");
     await exactSignalHeading.waitForDisplayed({ timeout: 10_000 });
-    await expect(exactSignalHeading).toBeFocused();
-    await expectFocusedRevealGeometry(".training-signal-exact h6");
+    await expect(exactSignalHeading).toBeDisplayed();
+    const selectedExactSignal = await $(".training-signal-exact .training-exact-selected-row");
+    await expect(selectedExactSignal).toBeFocused();
+    await expect(selectedExactSignal).toHaveText(
+      expect.stringContaining(english.training.sessionLibrary.selectedSignalEvidence),
+    );
+    await expectFocusedRevealGeometry(
+      ".training-signal-exact .training-exact-selected-row",
+    );
     expect(await $$(".training-signal-exact tbody tr")).not.toHaveLength(0);
+    await backToResults(english);
+
+    await goToHome("sources");
+    await $(`aria/${english.import}`).click();
+    await waitForNotice(english.home.postImportExactRepeat);
+    await openHomeQuestion(
+      english,
+      "explore-training-sessions",
+      ".training-insights",
+    );
+    await openTrainingWorkspace(english);
+    await openSessionByDate("Jan 10, 2026");
+    const reimportedSignalWorkbench = await $(".training-signal-workbench");
+    await reimportedSignalWorkbench.waitForDisplayed({ timeout: 10_000 });
+    await expect(reimportedSignalWorkbench.$(".training-signal-saved-range strong"))
+      .toHaveText("Steady signal");
+    expect(await reimportedSignalWorkbench.$$(".training-signal-range-start"))
+      .toHaveLength(1);
+    expect(await reimportedSignalWorkbench.$$(".training-signal-range-end"))
+      .toHaveLength(1);
     await backToResults(english);
 
     await openSessionByDate("Jan 11, 2026");
@@ -304,10 +429,35 @@ describe("packaged evidence-adaptive session composition", () => {
     await expect(spanishSignalWorkbench.$(".eyebrow")).toHaveText(
       spanish.training.sessionLibrary.signalWorkbench.eyebrow,
     );
+    await expect(spanishSignalWorkbench.$(".training-signal-saved-range strong"))
+      .toHaveText("Steady signal");
     await expectAdaptiveWorkbenchGeometry(".training-signal-workbench");
+    const compactSignalRangeLayout = await browser.execute(() => {
+      const root = document.documentElement;
+      const visual = document.querySelector(".training-signal-visual").getBoundingClientRect();
+      const inspector = document.querySelector(
+        ".training-signal-range-inspector",
+      ).getBoundingClientRect();
+      return {
+        hasHorizontalOverflow: root.scrollWidth > root.clientWidth,
+        inspectorTop: inspector.top,
+        visualBottom: visual.bottom,
+      };
+    });
+    expect(compactSignalRangeLayout.hasHorizontalOverflow).toBe(false);
+    expect(compactSignalRangeLayout.inspectorTop)
+      .toBeGreaterThanOrEqual(compactSignalRangeLayout.visualBottom);
+    await revealBelowCompactNavigation(".training-signal-visual");
+    await expectFocusedRevealGeometry(".training-signal-visual");
     await browser.saveScreenshot(path.join(
       evidenceDirectory,
-      "r7-signal-workbench-es-dark-compact-200.png",
+      "r8-signal-range-es-dark-compact-200.png",
+    ));
+    await revealBelowCompactNavigation(".training-signal-range-inspector");
+    await expectFocusedRevealGeometry(".training-signal-range-inspector");
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r8-signal-range-inspector-es-dark-compact-200.png",
     ));
     const exactSignalAction = await spanishSignalWorkbench.$("footer button");
     await browser.execute((element) => element.focus(), exactSignalAction);
@@ -315,11 +465,24 @@ describe("packaged evidence-adaptive session composition", () => {
     await exactSignalAction.click();
     const spanishExactHeading = await $(".training-signal-exact h6");
     await spanishExactHeading.waitForDisplayed({ timeout: 10_000 });
-    await expect(spanishExactHeading).toBeFocused();
-    await expectFocusedRevealGeometry(".training-signal-exact h6");
+    await expect(spanishExactHeading).toBeDisplayed();
+    const spanishSelectedExactSignal = await $(
+      ".training-signal-exact .training-exact-selected-row",
+    );
+    await expect(spanishSelectedExactSignal).toBeFocused();
+    await expectFocusedRevealGeometry(
+      ".training-signal-exact .training-exact-selected-row",
+    );
     const accessibility = await new AxeBuilder({ client: browser })
       .setLegacyMode()
       .analyze();
     expect(accessibility.violations).toEqual([]);
+    if (restartIdentityPath === undefined) {
+      throw new Error("adaptive restart identity path is required");
+    }
+    expect(recordRestartProcessIdentity(
+      restartIdentityPath,
+      e2eApplicationBinary,
+    )).toBeGreaterThan(0);
   });
 });

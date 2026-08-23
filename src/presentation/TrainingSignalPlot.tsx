@@ -7,6 +7,22 @@ interface TrainingSignalPlotProps {
   noRecordedValuesMessage: string;
   sampleCount: number;
   lowerValuesAtTop?: boolean;
+  selectedSampleOrdinal?: number | null;
+  rangeSelection?: TrainingSignalPlotRangeSelection | null;
+}
+
+export interface TrainingSignalPlotRangeSelection {
+  startedAtSampleOrdinal: number | null;
+  endedAtSampleOrdinal: number | null;
+}
+
+function sampleX(samples: TrainingSignalVisualSample[], ordinal: number | null): number | null {
+  if (ordinal === null || !samples.some((sample) => sample.ordinal === ordinal)) return null;
+  const ordinals = samples.map((sample) => sample.ordinal);
+  const minimumOrdinal = Math.min(...ordinals);
+  const maximumOrdinal = Math.max(...ordinals);
+  const ordinalSpan = maximumOrdinal - minimumOrdinal;
+  return ordinalSpan === 0 ? 320 : 36 + (ordinal - minimumOrdinal) / ordinalSpan * 568;
 }
 
 function signalSvgSegments(
@@ -52,6 +68,8 @@ export function TrainingSignalPlot({
   noRecordedValuesMessage,
   sampleCount,
   lowerValuesAtTop = false,
+  selectedSampleOrdinal = null,
+  rangeSelection = null,
 }: TrainingSignalPlotProps) {
   const segments = signalSvgSegments(samples, lowerValuesAtTop);
 
@@ -59,16 +77,62 @@ export function TrainingSignalPlot({
     return <p>{sampleCount === 0 ? emptyMessage : noRecordedValuesMessage}</p>;
   }
 
+  const selectedX = sampleX(samples, selectedSampleOrdinal);
+  const rangeStartX = sampleX(samples, rangeSelection?.startedAtSampleOrdinal ?? null);
+  const rangeEndX = sampleX(samples, rangeSelection?.endedAtSampleOrdinal ?? null);
+  const rangeLeft = rangeStartX !== null && rangeEndX !== null
+    ? Math.min(rangeStartX, rangeEndX)
+    : null;
+  const rangeWidth = rangeStartX !== null && rangeEndX !== null
+    ? Math.abs(rangeEndX - rangeStartX)
+    : null;
+
   return (
     <svg viewBox="0 0 640 280" role="img" aria-label={summary}>
       <title>{summary}</title>
       <rect x="1" y="1" width="638" height="278" rx="18" />
+      {rangeLeft !== null && rangeWidth !== null && (
+        <rect
+          className="training-signal-range-band"
+          x={rangeLeft}
+          y="2"
+          width={Math.max(rangeWidth, 2)}
+          height="276"
+        />
+      )}
       {segments.map((points, index) => points.includes(" ")
         ? <polyline key={index} points={points} />
         : (() => {
           const [cx, cy] = points.split(",");
           return <circle key={index} cx={cx} cy={cy} r="4" />;
         })())}
+      {rangeStartX !== null && (
+        <line
+          className="training-signal-range-start"
+          x1={rangeStartX}
+          x2={rangeStartX}
+          y1="2"
+          y2="278"
+        />
+      )}
+      {rangeEndX !== null && (
+        <line
+          className="training-signal-range-end"
+          x1={rangeEndX}
+          x2={rangeEndX}
+          y1="2"
+          y2="278"
+        />
+      )}
+      {selectedX !== null && (
+        <line
+          className="training-signal-selected-sample"
+          x1={selectedX}
+          x2={selectedX}
+          y1="2"
+          y2="278"
+        />
+      )}
     </svg>
   );
 }
