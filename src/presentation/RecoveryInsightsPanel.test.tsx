@@ -203,14 +203,12 @@ describe("RecoveryInsightsPanel", () => {
     expect(heading).toBeVisible();
     await waitFor(() => expect(heading).toHaveFocus());
     expect(within(answer).getAllByRole("heading", {
-      name: "Recovery intervals are recorded for 2 of 3 nights",
-    })).toHaveLength(1);
-    expect(within(answer).getByRole("heading", {
-      name: "Recovery intervals are recorded for 1 of 3 nights",
-    })).toBeVisible();
-    expect(within(answer).getAllByText(
-      "Average recorded beat-to-beat interval: 905 ms",
-    )).toHaveLength(2);
+      name: "Average recorded beat-to-beat interval: 905 ms",
+    })).toHaveLength(2);
+    expect(within(answer).getByText("Recovery intervals are recorded for 2 of 3 nights"))
+      .toBeVisible();
+    expect(within(answer).getByText("Recovery intervals are recorded for 1 of 3 nights"))
+      .toBeVisible();
 
     const exact = within(answer).getAllByText("Review measurements and exact nights")[0]
       .closest("details");
@@ -224,6 +222,20 @@ describe("RecoveryInsightsPanel", () => {
     expect(answer.compareDocumentPosition(controls as Node) & Node.DOCUMENT_POSITION_FOLLOWING)
       .toBeTruthy();
     expect(controls).not.toHaveAttribute("open");
+  });
+
+  it("makes the recorded recovery result primary when one history is present", async () => {
+    const result = overview();
+    result.series = result.series.slice(0, 1);
+    mocks.invoke.mockResolvedValue(result);
+    renderPanel();
+
+    const answer = await screen.findByRole("region", { name: "Recovery pattern answer" });
+    expect(within(answer).getByRole("heading", {
+      name: "Average recorded beat-to-beat interval: 905 ms",
+    })).toBeVisible();
+    expect(within(answer).getByText("Recovery intervals are recorded for 2 of 3 nights"))
+      .toBeVisible();
   });
 
   it("announces the exact latest-window operation without replacing the current history", async () => {

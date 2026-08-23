@@ -1543,7 +1543,9 @@ describe("TrainingSessionLibraryPanel", () => {
     renderPanel();
 
     const region = await screen.findByRole("region", { name: "Find a training session" });
-    const appliedQuery = within(region).getByRole("region", { name: "Applied refinements" });
+    const appliedQuery = await within(region).findByRole("region", {
+      name: "Applied refinements",
+    });
     expect(appliedQuery).toHaveTextContent("26 matching sessions");
     expect(appliedQuery).toHaveTextContent("All sessions · newest first");
 

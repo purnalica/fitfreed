@@ -25,6 +25,7 @@ import type {
   SleepOverview,
   SleepPeriodDetail,
   SleepPhaseSummary,
+  SleepSeriesSummary,
 } from "./sleep-insights";
 import { useInvalidForm } from "./useInvalidForm";
 import { useResultFocus } from "./useResultFocus";
@@ -246,6 +247,12 @@ export function SleepInsightsPanel({
     );
   }
 
+  function resultConclusion(summary: SleepSeriesSummary): string {
+    return summary.averageAsleepMilliseconds === null
+      ? observationConclusion(summary.observedNights, summary.calendarDays)
+      : averageEvidence(summary.averageAsleepMilliseconds);
+  }
+
   function exactNightsLabel(seriesIndex: number): string {
     return copy.exactNightsLabel.replace(
       "{origin}",
@@ -304,10 +311,7 @@ export function SleepInsightsPanel({
                 <div>
                   <h2 ref={answerHeadingRef} tabIndex={-1}>
                     {overview.series.length === 1
-                      ? observationConclusion(
-                        overview.series[0].summary.observedNights,
-                        overview.series[0].summary.calendarDays,
-                      )
+                      ? resultConclusion(overview.series[0].summary)
                       : copy.answerMultiple.replace(
                         "{count}",
                         number.format(overview.series.length),
@@ -323,17 +327,17 @@ export function SleepInsightsPanel({
                     {overview.series.length > 1 && (
                       <div className="answer-series-heading">
                         <p>{originLabel}</p>
-                        <h3>
-                          {observationConclusion(
-                            series.summary.observedNights,
-                            series.summary.calendarDays,
-                          )}
-                        </h3>
+                        <h3>{resultConclusion(series.summary)}</h3>
                       </div>
                     )}
-                    <p className="answer-evidence">
-                      {averageEvidence(series.summary.averageAsleepMilliseconds)}
-                    </p>
+                    {series.summary.averageAsleepMilliseconds !== null && (
+                      <p className="answer-evidence">
+                        {observationConclusion(
+                          series.summary.observedNights,
+                          series.summary.calendarDays,
+                        )}
+                      </p>
+                    )}
                     {series.summary.observedNights === 0 ? (
                       <p className="notice">{copy.emptyRange}</p>
                     ) : (

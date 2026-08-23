@@ -1794,11 +1794,26 @@ milliseconds; physiological interval measurements retain milliseconds because th
 The behavior is covered directly and through the affected report, route, session, source, import, comparison,
 and localized packaged journeys rather than by deleting prior assertions.
 
-The slice passes all 330 React tests, the production build, localization parity, live-presentation inventory,
-and UI contracts. A rebuilt packaged application passed the complete functional journey, separate real-process
-restart, complete and partial adaptive-session scenarios, and the isolated two-year performance campaign. R10.2
-continues with the remaining cross-workspace hierarchy, state, adaptive-layout, accessibility, privacy, and
-visual audit; this evidence does not mark the work item complete.
+The sleep and nightly-recovery answers now follow the accepted disclosure order. When one history is present,
+the primary conclusion is the recorded average that answers the user's question; observation coverage follows
+as supporting evidence. When several histories are present, their shared result identifies the number of
+histories and every series leads with its own recorded average. Coverage remains the fallback conclusion when
+no average can be calculated, so a missing result is not invented or duplicated. Home and History now describe
+provider-neutral recorded sport types instead of exposing the source-profile implementation concept.
+
+The full test run also exposed a latent synchronization race in the History refinement test introduced with
+the reversible-filter journey: it waited for the always-present library shell and immediately queried a result
+that appears only after the asynchronous search. The test now waits for that result boundary while retaining
+every draft, applied-filter, removal, focus, and persistence assertion. This is test determinism work; no
+production delay or bypass was added.
+
+The slice passes all 332 React tests, the production build, localization parity, live-presentation inventory,
+UI contracts, strict Rust linting, and Rust formatting. A rebuilt packaged application passed the complete
+functional journey, separate real-process restart, complete and partial adaptive-session scenarios, and the
+isolated two-year performance campaign. The slowest common-interaction p95 was 71 ms, the slowest maximum-range
+p95 was 395 ms, and the route workbench p95 was 76 ms; each remains inside its accepted budget. R10.2 continues
+with the remaining cross-workspace hierarchy, state, adaptive-layout, accessibility, privacy, and visual audit;
+this evidence does not mark the work item complete.
 
 ## X6 — Repeat the independent product-experience audit
 

@@ -86,8 +86,8 @@
       "other": "{count} training sessions"
     },
     "summarySports": {
-      "one": "{count} sport profile",
-      "other": "{count} sport profiles"
+      "one": "{count} recorded sport type",
+      "other": "{count} recorded sport types"
     },
     "sportsHeading": "Your sports",
     "sportsIntro": "The sports represented in your imported training history.",
@@ -115,12 +115,12 @@
       "other": "{count} sessions"
     },
     "sportProfiles": {
-      "one": "{count} source profile",
-      "other": "{count} source profiles"
+      "one": "{count} recorded sport type",
+      "other": "{count} recorded sport types"
     },
     "omittedSports": {
-      "one": "{count} additional sport profile",
-      "other": "{count} additional sport profiles"
+      "one": "{count} additional recorded sport type",
+      "other": "{count} additional recorded sport types"
     },
     "recentHeading": "Recent sessions",
     "recentIntro": "Open a session to inspect its recorded details.",

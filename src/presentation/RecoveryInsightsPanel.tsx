@@ -20,6 +20,7 @@ import type {
   RecoveryDayInsight,
   RecoveryNightDetail,
   RecoveryOverview,
+  RecoverySeriesSummary,
   SourceSpecificRecoveryAssessment,
 } from "./recovery-insights";
 import { useInvalidForm } from "./useInvalidForm";
@@ -249,6 +250,12 @@ export function RecoveryInsightsPanel({
     );
   }
 
+  function resultConclusion(summary: RecoverySeriesSummary): string {
+    return summary.averageBeatToBeatIntervalMilliseconds === null
+      ? observationConclusion(summary.observedNights, summary.calendarDays)
+      : averageEvidence(summary.averageBeatToBeatIntervalMilliseconds);
+  }
+
   function missingEvidence(count: number): string {
     return copy.answerMissing.replace("{count}", number.format(count));
   }
@@ -317,10 +324,7 @@ export function RecoveryInsightsPanel({
                 <div>
                   <h2 ref={answerHeadingRef} tabIndex={-1}>
                     {overview.series.length === 1
-                      ? observationConclusion(
-                        overview.series[0].summary.observedNights,
-                        overview.series[0].summary.calendarDays,
-                      )
+                      ? resultConclusion(overview.series[0].summary)
                       : copy.answerMultiple.replace(
                         "{count}",
                         number.format(overview.series.length),
@@ -336,17 +340,15 @@ export function RecoveryInsightsPanel({
                     {overview.series.length > 1 && (
                       <div className="answer-series-heading">
                         <p>{originLabel}</p>
-                        <h3>
-                          {observationConclusion(
-                            series.summary.observedNights,
-                            series.summary.calendarDays,
-                          )}
-                        </h3>
+                        <h3>{resultConclusion(series.summary)}</h3>
                       </div>
                     )}
-                    {series.summary.observedNights > 0 && (
+                    {series.summary.averageBeatToBeatIntervalMilliseconds !== null && (
                       <p className="answer-evidence">
-                        {averageEvidence(series.summary.averageBeatToBeatIntervalMilliseconds)}
+                        {observationConclusion(
+                          series.summary.observedNights,
+                          series.summary.calendarDays,
+                        )}
                       </p>
                     )}
                     <p className="answer-coverage">

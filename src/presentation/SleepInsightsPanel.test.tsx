@@ -240,14 +240,14 @@ describe("SleepInsightsPanel", () => {
     const heading = within(answer).getByRole("heading", { name: "2 sleep histories shown" });
     expect(heading).toBeVisible();
     await waitFor(() => expect(heading).toHaveFocus());
-    expect(within(answer).getByRole("heading", {
-      name: "Recorded sleep is available for 2 of 3 nights",
-    })).toBeVisible();
-    expect(within(answer).getByRole("heading", {
-      name: "Recorded sleep is available for 1 of 3 nights",
-    })).toBeVisible();
-    expect(within(answer).getAllByText("Average recorded sleep: 7 h 15 min"))
+    expect(within(answer).getAllByRole("heading", {
+      name: "Average recorded sleep: 7 h 15 min",
+    }))
       .toHaveLength(2);
+    expect(within(answer).getByText("Recorded sleep is available for 2 of 3 nights"))
+      .toBeVisible();
+    expect(within(answer).getByText("Recorded sleep is available for 1 of 3 nights"))
+      .toBeVisible();
 
     const controls = screen.getByText("Change sleep period").closest("details");
     expect(controls).not.toHaveAttribute("open");
@@ -267,6 +267,20 @@ describe("SleepInsightsPanel", () => {
     expect(detailButtons.slice(0, 2).every((button) => button.closest("details")?.open))
       .toBe(true);
     expect(detailButtons[2].closest("details")).not.toHaveAttribute("open");
+  });
+
+  it("makes the recorded sleep result primary when one history is present", async () => {
+    const result = overview();
+    result.series = result.series.slice(0, 1);
+    mocks.invoke.mockResolvedValue(result);
+    renderPanel();
+
+    const answer = await screen.findByRole("region", { name: "Sleep pattern answer" });
+    expect(within(answer).getByRole("heading", {
+      name: "Average recorded sleep: 7 h 15 min",
+    })).toBeVisible();
+    expect(within(answer).getByText("Recorded sleep is available for 2 of 3 nights"))
+      .toBeVisible();
   });
 
   it("announces the exact latest-window operation without replacing the current history", async () => {

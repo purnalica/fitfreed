@@ -86,8 +86,8 @@
       "other": "{count} sesiones de entrenamiento"
     },
     "summarySports": {
-      "one": "{count} perfil deportivo",
-      "other": "{count} perfiles deportivos"
+      "one": "{count} tipo de deporte registrado",
+      "other": "{count} tipos de deporte registrados"
     },
     "sportsHeading": "Tus deportes",
     "sportsIntro": "Los deportes representados en tu historial de entrenamiento importado.",
@@ -115,12 +115,12 @@
       "other": "{count} sesiones"
     },
     "sportProfiles": {
-      "one": "{count} perfil de origen",
-      "other": "{count} perfiles de origen"
+      "one": "{count} tipo de deporte registrado",
+      "other": "{count} tipos de deporte registrados"
     },
     "omittedSports": {
-      "one": "{count} perfil deportivo adicional",
-      "other": "{count} perfiles deportivos adicionales"
+      "one": "{count} tipo de deporte registrado adicional",
+      "other": "{count} tipos de deporte registrados adicionales"
     },
     "recentHeading": "Sesiones recientes",
     "recentIntro": "Abre una sesión para inspeccionar los detalles registrados.",

@@ -172,7 +172,7 @@ describe("LibraryHomePanel", () => {
 
     expect(screen.getByRole("heading", { name: "Your fitness history" })).toBeVisible();
     expect(screen.getByText("42 training sessions")).toBeVisible();
-    expect(screen.getByText("4 sport profiles")).toBeVisible();
+    expect(screen.getByText("4 recorded sport types")).toBeVisible();
     const sports = screen.getByRole("region", { name: "Your sports" });
     expect(within(sports).getByText("Road running")).toBeVisible();
     expect(within(sports).getByText("Kayaking")).toBeVisible();
