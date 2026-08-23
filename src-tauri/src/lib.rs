@@ -52,6 +52,7 @@ use fitfreed_application::{
     query_training_session_zones as build_training_session_zones,
     query_training_signal_samples as build_training_signal_samples,
     query_training_sports as build_training_sports, refresh_report as refresh_report_through_port,
+    remove_report as remove_report_through_port,
     remove_training_segment_criterion as remove_segment_criterion_through_port,
     remove_training_session_range as remove_training_session_range_through_port,
     rename_training_session_range as rename_training_session_range_through_port,
@@ -94,10 +95,10 @@ use presentation::{
     ImportReportDto, LibraryHomeDto, LibraryHomeRequestDto, LongitudinalComparisonDto,
     LongitudinalDateRangeDto, LongitudinalOverviewDto, MoveTrainingSegmentCriterionRequestDto,
     PreparedReportStartDto, RecoveryComparisonDto, RecoveryDateRangeDto, RecoveryNightDetailDto,
-    RecoveryOverviewDto, RefreshReportRequestDto, RemoveTrainingSessionRangeRequestDto,
-    RenameTrainingSessionRangeRequestDto, ReportDefinitionDto, ReportExportReceiptDto,
-    ReportExportRequestDto, ReportListDto, ReportStartDto, ResolvedReportDto,
-    ResolvedSessionReportDto, SaveSportClassificationRequestDto,
+    RecoveryOverviewDto, RefreshReportRequestDto, RemoveReportRequestDto,
+    RemoveTrainingSessionRangeRequestDto, RemovedReportDto, RenameTrainingSessionRangeRequestDto,
+    ReportDefinitionDto, ReportExportReceiptDto, ReportExportRequestDto, ReportListDto,
+    ReportStartDto, ResolvedReportDto, ResolvedSessionReportDto, SaveSportClassificationRequestDto,
     SavedTrainingSportClassificationDto, SessionReportExportRequestDto, SessionStoryDto,
     SessionStoryQueryDto, SleepComparisonDto, SleepDateRangeDto, SleepOverviewDto,
     SleepPeriodDetailDto, SourceAcquisitionGuideDto, TrainingComparisonDto, TrainingDateRangeDto,
@@ -841,6 +842,18 @@ fn refresh_report(
     )
     .map(Into::into)
     .map_err(CommandErrorDto::from)
+}
+
+#[tauri::command]
+fn remove_report(
+    app: AppHandle,
+    request: RemoveReportRequestDto,
+) -> Result<RemovedReportDto, CommandErrorDto> {
+    let request = request.try_into()?;
+    let path = database_path(&app).map_err(|_| CommandErrorDto::new("library-unavailable"))?;
+    remove_report_through_port(&SqliteReportLibrary::new(path), request)
+        .map(Into::into)
+        .map_err(CommandErrorDto::from)
 }
 
 #[tauri::command]
@@ -2027,6 +2040,7 @@ pub fn run() {
             create_report,
             update_report,
             refresh_report,
+            remove_report,
             create_session_report,
             create_composed_session_report,
             update_session_report,

@@ -208,6 +208,59 @@ fn composes_one_versioned_training_comparison_as_five_independent_views() {
 }
 
 #[test]
+fn composes_factual_version_four_reports_without_authored_narrative() {
+    let session = ReportDefinition::compose_session_report(
+        REPORT_REF,
+        "Morning evidence",
+        ReportLocale::EnUs,
+        SNAPSHOT_REF,
+        SESSION_REF,
+        vec![session_block(false)],
+    )
+    .expect("factual session report");
+    assert_eq!(session.blocks(), [session_block(false)]);
+
+    let query = comparison_query();
+    let comparison = ReportDefinition::compose_report(
+        REPORT_REF,
+        "Training comparison",
+        ReportLocale::EnUs,
+        SNAPSHOT_REF,
+        ReportOrigin::Question {
+            question: ReportQuestion::TrainingPeriodComparisonV1,
+        },
+        analytical_blocks(&query),
+    )
+    .expect("factual analytical report");
+    assert!(comparison
+        .blocks()
+        .iter()
+        .all(|block| !matches!(block.content(), ReportBlockContent::Narrative { .. })));
+}
+
+#[test]
+fn authorizes_only_revision_bound_removal_and_names_the_removed_report() {
+    let report = ReportDefinition::compose_session_report(
+        REPORT_REF,
+        "Morning evidence",
+        ReportLocale::EnUs,
+        SNAPSHOT_REF,
+        SESSION_REF,
+        vec![session_block(false)],
+    )
+    .expect("report");
+
+    let removed = authorize_report_removal(&report, 1).expect("removal decision");
+    assert_eq!(removed.report_ref(), REPORT_REF);
+    assert_eq!(removed.title(), "Morning evidence");
+    assert_eq!(removed.revision(), 1);
+    assert_eq!(
+        authorize_report_removal(&report, 2).expect_err("stale revision"),
+        ReportDefinitionError::RevisionConflict
+    );
+}
+
+#[test]
 fn composes_question_exploration_and_blank_origins_without_session_authority() {
     let query = comparison_query();
     let mut question_blocks = analytical_blocks(&query);
@@ -619,13 +672,13 @@ fn rejects_invalid_route_authority_and_incomplete_compositions() {
     assert_eq!(
         ReportDefinition::compose_session_report(
             REPORT_REF,
-            "Missing narrative",
+            "Missing session evidence",
             ReportLocale::EnUs,
             SNAPSHOT_REF,
             SESSION_REF,
-            vec![session_block(false), route_block(200)],
+            vec![route_block(200)],
         )
-        .expect_err("missing narrative"),
+        .expect_err("missing session evidence"),
         ReportDefinitionError::InvalidVersionFourComposition
     );
 }

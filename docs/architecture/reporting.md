@@ -15,8 +15,8 @@ when that source is still available.
 ## Ownership
 
 - The domain owns report identity, ordered typed blocks, authorship, compatibility, sensitivity choices, and definition invariants that are independent of a specific calculation or output technology.
-- The application owns preparation, creation, editing, resolution, stale detection, deliberate refresh,
-  preview composition, and export orchestration through explicit query and output ports.
+- The application owns preparation, creation, editing, revision-bound removal, resolution, stale detection,
+  deliberate refresh, preview composition, and export orchestration through explicit query and output ports.
 - Insights queries remain the authoritative calculation paths. Report resolution references them; it does not copy their rules or read database rows.
 - Persistence stores and migrates versioned definitions transactionally with the local library.
 - Presentation owns the staged Library, Compose, and Preview workspace, current-candidate refresh review,
@@ -33,9 +33,11 @@ when that source is still available.
 block followed by one narrative. Version 2 contains 2–32 semantic positions, requires exactly one session
 block and one narrative, and can include each authoritative route from the origin session once. Version 3
 adds the training-period block family. Version 4 separates stable origin intent from the evolving answer and
-accepts session, versioned-question, exact-exploration, and blank origins. Every block can be reordered;
-optional blocks can be added or removed. Existing identities are preserved through edits, and editing an
-earlier definition produces a version-4 successor without rewriting historical migration input.
+accepts session, versioned-question, exact-exploration, and blank origins. A version-4 definition may contain
+zero or one narrative block when supported evidence makes it factual; versions 1–3 retain their immutable
+narrative requirement. Every block can be reordered; optional blocks can be added or removed. Existing
+identities are preserved through edits, and editing an earlier definition produces a version-4 successor
+without rewriting historical migration input.
 
 ## Report starts
 
@@ -83,6 +85,12 @@ return state, and focus restoration.
 A route block stores only the origin session capability, route capability, and an authored 0–5,000-metre endpoint-redaction choice. The application verifies membership through `TrainingSessionRoutePort`, obtains exact points through the same authoritative route port, and performs two memory-bounded passes: total cumulative haversine distance followed by deterministic selection of recorded points inside the retained interval. Internal report processing requests at most 10,000 points per page; the separate interactive exact-point contract remains capped at 250. It neither interpolates coordinates nor reads route tables. At most 500 retained recorded points cross into the resolved report.
 
 A resolved preview or export is a time-bound projection. It records the definition version, source revision, locale, units, provenance, coverage, limitations, authorship, and resolution status. New imports or calculation changes can make a definition stale; comparison and refresh are deliberate use cases rather than automatic mutations.
+
+Report removal is deliberately revision-bound. The application reloads the definition, asks the domain to
+authorize removal of the exact reviewed revision, and performs one optimistic compare-and-remove operation.
+SQLite cascades only the report's owned blocks; imported history and every other report remain unchanged. A
+successful operation returns the removed report identity, title, and revision so presentation never invents
+the object named in confirmation or outcome copy.
 
 ## Deliberate refresh
 

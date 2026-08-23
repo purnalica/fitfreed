@@ -212,7 +212,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R6 | Complete locally — R6.1 through R6.5 passed exact packaged, adaptive visual, and dense-route gates on 2026-08-22; R8.4 subsequently removed unproven route-signal alignment | A routed workout is investigated through a dominant local map without invented relationships |
 | X5-R7 | Complete locally — R7.1 through R7.6 passed the exact fast, functional, restart, adaptive, accessibility, visual, and performance gates on 2026-08-22 | Every session composition reflects its actual evidence |
 | X5-R8 | Complete locally — R8.1 through R8.6 passed the final Alpha gate on 2026-08-23 | Personal ranges and reusable criteria work end to end |
-| X5-R9 | Next | Reports open as results and leave FitFreed safely |
+| X5-R9 | In progress — domain and lifecycle audit active | Reports open as results and leave FitFreed safely |
 | X5-R10 | Pending | The complete release-shaped product is coherent and documented |
 | X6 | Pending | Independent audit has no unresolved material finding |
 
@@ -1627,6 +1627,37 @@ format, user report lifecycle, privacy and export, deletion/recovery, test fixtu
 
 **Alpha evidence:** report hierarchy and composition receive a focused review; findings may refine the
 Alpha interaction without changing its durable identity or export guarantees implicitly.
+
+### R9 execution audit and slices — active
+
+The existing vertical already owns saved-definition resolution, a Preview workspace independent from
+Compose, stale-evidence review, contextual source return, per-export privacy reduction, deterministic
+self-contained HTML, cancellation, and atomic destination replacement. The audit found three structural gaps
+rather than a missing vertical: version 4 still requires narrative commentary, no optimistic removal command
+exists, and the bounded library projection exposes only title, locale, and revision instead of a recognizable
+result and evidence state.
+
+R9 proceeds in six independently usable slices:
+
+1. permit factual version-4 reports without mandatory commentary and add revision-bound removal through the
+   domain, application, persistence, transport, schemas, and contract documentation;
+2. introduce a bounded result-oriented library projection through authoritative resolution paths;
+3. replace the production library with result-first cards, remove the generic blank start from ordinary use,
+   and expose deliberate deletion;
+4. make commentary optional in Compose while preserving save, cancel, ordering, and result return;
+5. retain stale review, source return, privacy reduction, deterministic export, and independent output
+   inspection in the new hierarchy; and
+6. close locale, theme, zoom, keyboard, accessibility, restart, migration, performance, and visual evidence.
+
+No slice may resolve every saved report through the complete export path merely to render the library. The
+bounded projection must obtain only the evidence needed for recognition and current-state disclosure.
+
+**Execution state:** slice 1 is complete locally. Version-4 factual definitions accept no authored narrative,
+while versions 1–3 retain their historical contract. Removal now crosses domain authorization, application
+orchestration, optimistic SQLite persistence, desktop transport, machine-readable schemas, and normative
+documentation. Focused stale-removal and persistence evidence passed, followed by the complete fast gate:
+156 tooling tests, 319 React tests, 2 vendored-updater tests, 221 desktop-host tests, 194 application tests,
+48 domain tests, and 2 private-example tests. Slice 2 is next.
 
 ## X5-R10 — Harden the complete product journey
 

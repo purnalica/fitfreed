@@ -29,8 +29,9 @@ origin stores the stable question identity but not a transient suggested date ra
 
 ## Composition invariants
 
-Every definition has exactly one non-empty `narrative` block and 1–32 blocks in semantic order. At most
-one `session-evidence`, `training-finding`, `training-comparison`, `training-chart`,
+Every definition has zero or one non-empty `narrative` block and 1–32 blocks in semantic order. A factual
+title plus supported evidence is complete without authored commentary; when a narrative exists, its
+plain-text authorship and validation remain unchanged. At most one `session-evidence`, `training-finding`, `training-comparison`, `training-chart`,
 `training-exact-table`, or `training-coverage` block is allowed.
 
 Origin-specific invariants are:
@@ -65,3 +66,11 @@ The canonical library does not retain historical snapshots. FitFreed therefore d
 invent old numeric results for a before-and-after display. The current candidate, the preservation boundary,
 and this limitation are disclosed before confirmation. Missing evidence is reported, never replaced by stored
 results or silently accepted against a different snapshot. Import and reimport never trigger report refresh.
+
+## Removal
+
+Removal is an explicit aggregate decision bound to `reportRef` and the exact positive `revision` the person
+reviewed. A successful decision names that report and revision, then persistence removes its definition and
+owned blocks atomically. A missing or concurrently revised report is not substituted or partially removed.
+Imported history, other reports, exports already written outside the library, and source archives are outside
+the deletion boundary.

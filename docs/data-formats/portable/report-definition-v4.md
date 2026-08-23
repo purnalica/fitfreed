@@ -30,6 +30,9 @@ coherence, route uniqueness, matching session references, and global block ident
 - [`report-refresh-v1.schema.json`](../../../schemas/report-refresh-v1.schema.json) binds deliberate
   confirmation to the exact saved definition revision, saved snapshot, and candidate snapshot reviewed by
   the person.
+- [`report-remove-v1.schema.json`](../../../schemas/report-remove-v1.schema.json) binds deletion to an
+  exact report capability and optimistic revision; [`removed-report-v1.schema.json`](../../../schemas/removed-report-v1.schema.json)
+  names the object that was removed.
 - [`report-resolution-v4.schema.json`](../../../schemas/report-resolution-v4.schema.json) represents
   nullable session evidence and discriminated `provenance`.
 - [`report-export-v4.schema.json`](../../../schemas/report-export-v4.schema.json) retains the explicit
@@ -86,3 +89,7 @@ Refresh is a mutation boundary, not a portable historical-diff format. A success
 portable definition's title, locale, origin, provenance policy, authorship, block identities, semantic order,
 queries, metrics, and privacy choices; only `sourceSnapshotRef` and `revision` advance. The request contains
 opaque capabilities and is not retained as report content.
+
+Removal is likewise a library mutation rather than a tombstone inside the portable definition. Its receipt
+contains only the removed report capability, title, and revision. It contains no export path, provider identity,
+or imported-history capability.

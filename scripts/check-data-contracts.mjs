@@ -5942,6 +5942,8 @@ const preparedReportStartSchemaPath = "schemas/prepared-report-start-v1.schema.j
 const reportCreateV4SchemaPath = "schemas/report-create-v4.schema.json";
 const reportUpdateV4SchemaPath = "schemas/report-update-v4.schema.json";
 const reportRefreshSchemaPath = "schemas/report-refresh-v1.schema.json";
+const reportRemoveSchemaPath = "schemas/report-remove-v1.schema.json";
+const removedReportSchemaPath = "schemas/removed-report-v1.schema.json";
 const reportResolutionV4SchemaPath = "schemas/report-resolution-v4.schema.json";
 const reportExportV4SchemaPath = "schemas/report-export-v4.schema.json";
 const sessionReportCreateSchemaPath = "schemas/session-report-create-v1.schema.json";
@@ -6054,6 +6056,8 @@ const validateSessionReportUpdateV2 = compileReportSchema(sessionReportUpdateV2S
 const validateSessionReportUpdateV3 = compileReportSchema(sessionReportUpdateV3SchemaPath);
 const validateReportUpdateV4 = compileReportSchema(reportUpdateV4SchemaPath);
 const validateReportRefresh = compileReportSchema(reportRefreshSchemaPath);
+const validateReportRemove = compileReportSchema(reportRemoveSchemaPath);
+const validateRemovedReport = compileReportSchema(removedReportSchemaPath);
 const validateReportList = compileReportSchema(reportListSchemaPath);
 const validateSessionReportResolution = compileReportSchema(sessionReportResolutionSchemaPath);
 const validateSessionReportResolutionV2 = compileReportSchema(sessionReportResolutionV2SchemaPath);
@@ -6513,8 +6517,13 @@ const syntheticSessionDefinitionV4 = {
   ...structuredClone(syntheticReportDefinitionV3),
   definitionVersion: 4,
 };
+const syntheticFactualDefinitionV4 = {
+  ...structuredClone(syntheticSessionDefinitionV4),
+  blocks: syntheticSessionDefinitionV4.blocks.filter((block) => block.kind !== "narrative"),
+};
 for (const definition of [
   syntheticSessionDefinitionV4,
+  syntheticFactualDefinitionV4,
   syntheticQuestionDefinitionV4,
   syntheticExplorationDefinitionV4,
   syntheticBlankDefinitionV4,
@@ -6575,6 +6584,14 @@ const syntheticReportCreateV4 = {
   blocks: syntheticQuestionDefinitionV4.blocks.map(({ blockRef: _blockRef, ...block }) => block),
 };
 assertReportContract(validateReportCreateV4, reportCreateV4SchemaPath, syntheticReportCreateV4);
+assertReportContract(
+  validateReportCreateV4,
+  reportCreateV4SchemaPath,
+  {
+    ...structuredClone(syntheticReportCreateV4),
+    blocks: syntheticReportCreateV4.blocks.filter((block) => block.kind !== "narrative"),
+  },
+);
 if (validateReportCreateV4({
   ...structuredClone(syntheticReportCreateV4),
   blocks: [structuredClone(syntheticReportCreateV4.blocks.at(-1))],
@@ -6590,6 +6607,14 @@ const syntheticReportUpdateV4 = {
   blocks: structuredClone(syntheticQuestionDefinitionV4.blocks),
 };
 assertReportContract(validateReportUpdateV4, reportUpdateV4SchemaPath, syntheticReportUpdateV4);
+assertReportContract(
+  validateReportUpdateV4,
+  reportUpdateV4SchemaPath,
+  {
+    ...structuredClone(syntheticReportUpdateV4),
+    blocks: syntheticReportUpdateV4.blocks.filter((block) => block.kind !== "narrative"),
+  },
+);
 if (validateReportUpdateV4({ ...syntheticReportUpdateV4, expectedRevision: "01" })) {
   throw new Error(`${reportUpdateV4SchemaPath} accepted a non-canonical revision`);
 }
@@ -6609,6 +6634,30 @@ for (const invalidRefresh of [
   if (validateReportRefresh(invalidRefresh)) {
     throw new Error(`${reportRefreshSchemaPath} accepted an invalid refresh request`);
   }
+}
+
+const syntheticReportRemove = {
+  reportRef: reportRefDigest,
+  expectedRevision: "1",
+};
+assertReportContract(validateReportRemove, reportRemoveSchemaPath, syntheticReportRemove);
+for (const invalidRemoval of [
+  { ...syntheticReportRemove, expectedRevision: "01" },
+  { ...syntheticReportRemove, provider: "must-not-cross-the-boundary" },
+]) {
+  if (validateReportRemove(invalidRemoval)) {
+    throw new Error(`${reportRemoveSchemaPath} accepted an invalid removal request`);
+  }
+}
+
+const syntheticRemovedReport = {
+  reportRef: reportRefDigest,
+  title: syntheticReportDefinition.title,
+  revision: "1",
+};
+assertReportContract(validateRemovedReport, removedReportSchemaPath, syntheticRemovedReport);
+if (validateRemovedReport({ ...syntheticRemovedReport, revision: "0" })) {
+  throw new Error(`${removedReportSchemaPath} accepted an invalid removal result`);
 }
 
 const syntheticQuestionResolutionV4 = {
@@ -6855,6 +6904,8 @@ process.stdout.write(
       reportCreateV4SchemaPath,
       reportUpdateV4SchemaPath,
       reportRefreshSchemaPath,
+      reportRemoveSchemaPath,
+      removedReportSchemaPath,
       sessionReportCreateSchemaPath,
       sessionReportCreateV2SchemaPath,
       sessionReportCreateV3SchemaPath,

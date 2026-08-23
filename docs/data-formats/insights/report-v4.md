@@ -11,6 +11,7 @@ as compatibility adapters.
 | compose | [`report-create-v4`](../../../schemas/report-create-v4.schema.json) | [`report-definition-v4`](../../../schemas/report-definition-v4.schema.json) |
 | edit | [`report-update-v4`](../../../schemas/report-update-v4.schema.json) | portable version-4 definition |
 | refresh | [`report-refresh-v1`](../../../schemas/report-refresh-v1.schema.json) | preserved definition with the reviewed evidence revision |
+| remove | [`report-remove-v1`](../../../schemas/report-remove-v1.schema.json) | [`removed-report-v1`](../../../schemas/removed-report-v1.schema.json) |
 | list | none | unchanged bounded version-1 report list |
 | load | valid `reportRef` | preserved version-1, version-2, version-3, or version-4 definition |
 | resolve | valid `reportRef` | [`report-resolution-v4`](../../../schemas/report-resolution-v4.schema.json) |
@@ -23,12 +24,15 @@ question receives a conservative pair of adjacent recent periods derived from th
 range. An exploration retains its exact completed query after validation. A blank page receives an
 optional suggested query so evidence can be added before or after its first narrative-only save.
 
-Question and exploration starts initially select all five analytical views plus one empty narrative. Blank
-starts initially select only the narrative. Session starts retain the existing session-summary workflow.
+Question and exploration starts initially select all five analytical views and may offer an empty narrative
+draft. Session starts retain the existing session-summary workflow. Empty narrative drafts are not definitions:
+a save omits them, while non-empty authored commentary remains one ordered block.
 All starts use the same create, update, list, resolve, privacy-review, and export commands.
 
 Creation never accepts `blockRef`; update accepts an owned `blockRef` so semantic blocks retain identity.
 Optimistic concurrency uses `expectedRevision`. A failed mutation leaves the prior definition unchanged.
+Removal uses the same exact revision boundary, removes owned blocks atomically, and leaves imported evidence
+and every other report unchanged.
 
 ## Deliberate refresh
 

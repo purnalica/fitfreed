@@ -102,6 +102,25 @@ impl ReportDefinitionPort for MemoryReportPort {
         *existing = definition.clone();
         Ok(true)
     }
+
+    fn compare_and_remove_report_definition(
+        &self,
+        report_ref: &str,
+        expected_revision: u64,
+    ) -> Result<bool, ReportDefinitionPortError> {
+        let mut reports = self.reports.lock().expect("reports");
+        let Some(index) = reports
+            .iter()
+            .position(|report| report.report_ref() == report_ref)
+        else {
+            return Err(ReportDefinitionPortError::NotFound);
+        };
+        if reports[index].revision() != expected_revision {
+            return Ok(false);
+        }
+        reports.remove(index);
+        Ok(true)
+    }
 }
 
 struct StubTrainingPort {
@@ -1104,6 +1123,38 @@ fn creates_lists_and_loads_a_session_report_after_exact_evidence_resolution() {
             .report_ref(),
         REPORT_REF
     );
+}
+
+#[test]
+fn removes_only_the_exact_revision_bound_report_and_returns_its_identity() {
+    let port = MemoryReportPort::default();
+    created_report(&port);
+
+    assert!(matches!(
+        remove_report(
+            &port,
+            RemoveReportRequest {
+                report_ref: REPORT_REF.to_owned(),
+                expected_revision: 2,
+            },
+        ),
+        Err(ApplicationError::ReportDefinitionConflict)
+    ));
+    assert_eq!(list_reports(&port).expect("retained report").len(), 1);
+
+    let removed = remove_report(
+        &port,
+        RemoveReportRequest {
+            report_ref: REPORT_REF.to_owned(),
+            expected_revision: 1,
+        },
+    )
+    .expect("removed report");
+
+    assert_eq!(removed.report_ref, REPORT_REF);
+    assert_eq!(removed.title, "Morning progression");
+    assert_eq!(removed.revision, 1);
+    assert!(list_reports(&port).expect("empty report list").is_empty());
 }
 
 #[test]

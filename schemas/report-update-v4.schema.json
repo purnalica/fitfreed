@@ -16,7 +16,7 @@
       "maxItems": 32,
       "items": { "$ref": "#/$defs/updateBlock" },
       "contains": { "$ref": "session-report-update-v3.schema.json#/$defs/narrativeDraft" },
-      "minContains": 1,
+      "minContains": 0,
       "maxContains": 1
     }
   },

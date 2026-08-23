@@ -25,10 +25,10 @@ use fitfreed_application::{
     PersistedTrainingSignalSamples, PostImportReveal, PreferencesLoadStatus, PreparedReportStart,
     RecoveryComparison, RecoveryDateRange, RecoveryDayAvailability, RecoveryDayInsight,
     RecoveryNightDetail, RecoveryNightInsight, RecoveryOverview, RecoverySeriesComparison,
-    RecoverySeriesOverview, RecoverySeriesSummary, RefreshReportRequest,
-    RemoveTrainingSessionRangeRequest, RenameTrainingSessionRangeRequest, ReportEvidenceProvenance,
-    ReportExportReceipt, ReportExportRequest, ReportLimitation, ReportResolutionStatus,
-    ReportRouteEvidence, ReportRouteExportChoice, ReportSensitiveContent,
+    RecoverySeriesOverview, RecoverySeriesSummary, RefreshReportRequest, RemoveReportRequest,
+    RemoveTrainingSessionRangeRequest, RemovedReport, RenameTrainingSessionRangeRequest,
+    ReportEvidenceProvenance, ReportExportReceipt, ReportExportRequest, ReportLimitation,
+    ReportResolutionStatus, ReportRouteEvidence, ReportRouteExportChoice, ReportSensitiveContent,
     ReportSensitiveContentKind, ReportSessionEvidence, ReportStart, ReportSummary, ResolvedReport,
     ResolvedSessionReport, SaveSportClassificationRequest, SavedTrainingSportClassification,
     SegmentApplicabilityView, SegmentMeasurementView, SessionReportBlockDraft,
@@ -3439,6 +3439,45 @@ impl TryFrom<RefreshReportRequestDto> for RefreshReportRequest {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RemoveReportRequestDto {
+    report_ref: String,
+    expected_revision: String,
+}
+
+impl TryFrom<RemoveReportRequestDto> for RemoveReportRequest {
+    type Error = CommandErrorDto;
+
+    fn try_from(request: RemoveReportRequestDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            report_ref: request.report_ref,
+            expected_revision: parse_canonical_u64(
+                &request.expected_revision,
+                "invalid-report-definition",
+            )?,
+        })
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RemovedReportDto {
+    report_ref: String,
+    title: String,
+    revision: String,
+}
+
+impl From<RemovedReport> for RemovedReportDto {
+    fn from(report: RemovedReport) -> Self {
+        Self {
+            report_ref: report.report_ref,
+            title: report.title,
+            revision: report.revision.to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CreateSessionReportRequestDto {
     title: String,
     locale: String,
@@ -6167,7 +6206,7 @@ mod tests {
     use fitfreed_domain::{
         ArtifactClassification, ArtifactFamilyCoverage, ImportOperationState, ReportBlock,
     };
-    use serde_json::{from_value, json};
+    use serde_json::{from_value, json, to_value};
 
     use super::*;
 
@@ -9161,6 +9200,38 @@ mod tests {
             "provider": "must-not-cross-the-boundary"
         }))
         .is_err());
+
+        let removal: RemoveReportRequestDto = from_value(json!({
+            "reportRef":
+                "report-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "expectedRevision": "2"
+        }))
+        .expect("report removal request");
+        let removal = RemoveReportRequest::try_from(removal).expect("valid report removal");
+        assert_eq!(removal.expected_revision, 2);
+        assert!(from_value::<RemoveReportRequestDto>(json!({
+            "reportRef":
+                "report-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "expectedRevision": "2",
+            "provider": "must-not-cross-the-boundary"
+        }))
+        .is_err());
+        assert_eq!(
+            to_value(RemovedReportDto::from(RemovedReport {
+                report_ref:
+                    "report-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                        .to_owned(),
+                title: "Morning evidence".to_owned(),
+                revision: 2,
+            }))
+            .expect("removed report response"),
+            json!({
+                "reportRef":
+                    "report-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                "title": "Morning evidence",
+                "revision": "2"
+            })
+        );
 
         let export: SessionReportExportRequestDto =
             from_value(json!({

@@ -9,12 +9,12 @@ mod sport_classification_tests;
 
 mod report_definition;
 pub use report_definition::{
-    author_session_report, refresh_report_definition, revise_report, revise_session_report,
-    ReportAuthorship, ReportBlock, ReportBlockContent, ReportDateRange, ReportDefinition,
-    ReportDefinitionError, ReportLocale, ReportOrigin, ReportProvenancePolicy, ReportQuestion,
-    ReportTrainingComparisonQuery, ReportTrainingMetric, MAX_ROUTE_ENDPOINT_REDACTION_METERS,
-    REPORT_DEFINITION_VERSION, REPORT_DEFINITION_VERSION_V1, REPORT_DEFINITION_VERSION_V2,
-    REPORT_DEFINITION_VERSION_V3,
+    author_session_report, authorize_report_removal, refresh_report_definition, revise_report,
+    revise_session_report, RemovedReportDefinition, ReportAuthorship, ReportBlock,
+    ReportBlockContent, ReportDateRange, ReportDefinition, ReportDefinitionError, ReportLocale,
+    ReportOrigin, ReportProvenancePolicy, ReportQuestion, ReportTrainingComparisonQuery,
+    ReportTrainingMetric, MAX_ROUTE_ENDPOINT_REDACTION_METERS, REPORT_DEFINITION_VERSION,
+    REPORT_DEFINITION_VERSION_V1, REPORT_DEFINITION_VERSION_V2, REPORT_DEFINITION_VERSION_V3,
 };
 
 #[cfg(test)]

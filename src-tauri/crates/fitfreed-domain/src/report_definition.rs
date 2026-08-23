@@ -679,6 +679,41 @@ pub fn refresh_report_definition(
     )
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RemovedReportDefinition {
+    report_ref: String,
+    title: String,
+    revision: u64,
+}
+
+impl RemovedReportDefinition {
+    pub fn report_ref(&self) -> &str {
+        &self.report_ref
+    }
+
+    pub fn title(&self) -> &str {
+        &self.title
+    }
+
+    pub const fn revision(&self) -> u64 {
+        self.revision
+    }
+}
+
+pub fn authorize_report_removal(
+    existing: &ReportDefinition,
+    expected_revision: u64,
+) -> Result<RemovedReportDefinition, ReportDefinitionError> {
+    if existing.revision != expected_revision {
+        return Err(ReportDefinitionError::RevisionConflict);
+    }
+    Ok(RemovedReportDefinition {
+        report_ref: existing.report_ref.clone(),
+        title: existing.title.clone(),
+        revision: existing.revision,
+    })
+}
+
 fn validate_version_one_blocks(
     origin: &ReportOrigin,
     blocks: &[ReportBlock],
@@ -940,7 +975,7 @@ fn validate_version_four_blocks(
         }
         ReportOrigin::Blank => session_count == 0 && route_refs.is_empty(),
     };
-    if !valid_origin_shape || narrative_count != 1 {
+    if !valid_origin_shape || narrative_count > 1 {
         return Err(ReportDefinitionError::InvalidVersionFourComposition);
     }
     Ok(())
@@ -1123,6 +1158,7 @@ pub enum ReportDefinitionError {
     UnsupportedDefinitionVersion,
     ZeroRevision,
     RevisionOverflow,
+    RevisionConflict,
 }
 
 impl fmt::Display for ReportDefinitionError {
@@ -1171,6 +1207,7 @@ impl fmt::Display for ReportDefinitionError {
             Self::UnsupportedDefinitionVersion => "report definition version is unsupported",
             Self::ZeroRevision => "report revision is zero",
             Self::RevisionOverflow => "report revision overflowed",
+            Self::RevisionConflict => "report revision conflicts with the removal request",
         };
         formatter.write_str(message)
     }

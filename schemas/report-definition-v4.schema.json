@@ -26,7 +26,7 @@
       "allOf": [
         {
           "contains": { "$ref": "report-definition-v3.schema.json#/$defs/narrativeBlock" },
-          "minContains": 1,
+          "minContains": 0,
           "maxContains": 1
         },
         {

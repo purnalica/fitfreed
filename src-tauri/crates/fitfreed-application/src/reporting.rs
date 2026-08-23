@@ -7,10 +7,10 @@ use std::{
 
 use chrono::{Days, NaiveDate};
 use fitfreed_domain::{
-    author_session_report, refresh_report_definition, revise_report, revise_session_report,
-    ReportBlock, ReportBlockContent, ReportDateRange, ReportDefinition, ReportLocale, ReportOrigin,
-    ReportQuestion, ReportTrainingComparisonQuery, ReportTrainingMetric,
-    MAX_ROUTE_ENDPOINT_REDACTION_METERS,
+    author_session_report, authorize_report_removal, refresh_report_definition, revise_report,
+    revise_session_report, ReportBlock, ReportBlockContent, ReportDateRange, ReportDefinition,
+    ReportDefinitionError, ReportLocale, ReportOrigin, ReportQuestion,
+    ReportTrainingComparisonQuery, ReportTrainingMetric, MAX_ROUTE_ENDPOINT_REDACTION_METERS,
 };
 
 use crate::{
@@ -54,6 +54,11 @@ pub trait ReportDefinitionPort {
         &self,
         expected_revision: u64,
         definition: &ReportDefinition,
+    ) -> Result<bool, ReportDefinitionPortError>;
+    fn compare_and_remove_report_definition(
+        &self,
+        report_ref: &str,
+        expected_revision: u64,
     ) -> Result<bool, ReportDefinitionPortError>;
 }
 
@@ -159,6 +164,19 @@ pub struct RefreshReportRequest {
     pub expected_revision: u64,
     pub expected_source_snapshot_ref: String,
     pub expected_resolved_snapshot_ref: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RemoveReportRequest {
+    pub report_ref: String,
+    pub expected_revision: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RemovedReport {
+    pub report_ref: String,
+    pub title: String,
+    pub revision: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -785,6 +803,40 @@ pub fn list_reports(
             revision: definition.revision(),
         })
         .collect())
+}
+
+pub fn remove_report(
+    report_port: &dyn ReportDefinitionPort,
+    request: RemoveReportRequest,
+) -> Result<RemovedReport, ApplicationError> {
+    if !valid_ref(&request.report_ref, REPORT_PREFIX) || request.expected_revision == 0 {
+        return Err(ApplicationError::InvalidReportDefinition(
+            "report removal identity or revision is invalid".to_owned(),
+        ));
+    }
+    let existing = report_port
+        .load_report_definition(&request.report_ref)
+        .map_err(map_definition_query_error)?
+        .ok_or(ApplicationError::ReportNotFound)?;
+    let removal =
+        authorize_report_removal(&existing, request.expected_revision).map_err(|error| {
+            if error == ReportDefinitionError::RevisionConflict {
+                ApplicationError::ReportDefinitionConflict
+            } else {
+                invalid_definition(error)
+            }
+        })?;
+    let removed = report_port
+        .compare_and_remove_report_definition(removal.report_ref(), removal.revision())
+        .map_err(map_definition_update_error)?;
+    if !removed {
+        return Err(ApplicationError::ReportDefinitionConflict);
+    }
+    Ok(RemovedReport {
+        report_ref: removal.report_ref().to_owned(),
+        title: removal.title().to_owned(),
+        revision: removal.revision(),
+    })
 }
 
 pub fn resolve_session_report(

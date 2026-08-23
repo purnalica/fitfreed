@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/report-remove-v1.schema.json",
+  "title": "FitFreed report removal version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["reportRef", "expectedRevision"],
+  "properties": {
+    "reportRef": { "$ref": "report-definition-v4.schema.json#/$defs/reportRef" },
+    "expectedRevision": { "type": "string", "pattern": "^[1-9][0-9]*$" }
+  }
+}

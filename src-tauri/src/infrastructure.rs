@@ -13203,6 +13203,30 @@ impl ReportDefinitionPort for SqliteReportLibrary {
         transaction.commit().map_err(report_database_error)?;
         Ok(true)
     }
+
+    fn compare_and_remove_report_definition(
+        &self,
+        report_ref: &str,
+        expected_revision: u64,
+    ) -> StandardResult<bool, ReportDefinitionPortError> {
+        let expected_revision = i64::try_from(expected_revision).map_err(|_| {
+            ReportDefinitionPortError::Failure("expected report revision exceeds SQLite".to_owned())
+        })?;
+        let mut connection = open_report_connection(&self.database_path)?;
+        let transaction = connection.transaction().map_err(report_database_error)?;
+        let changed = transaction
+            .execute(
+                "DELETE FROM report_definition WHERE report_ref = ?1 AND revision = ?2",
+                params![report_ref, expected_revision],
+            )
+            .map_err(report_database_error)?;
+        if changed == 0 {
+            transaction.rollback().map_err(report_database_error)?;
+            return Ok(false);
+        }
+        transaction.commit().map_err(report_database_error)?;
+        Ok(true)
+    }
 }
 
 fn open_report_connection(
@@ -14847,6 +14871,55 @@ mod tests {
                 .load_report_definition(report.report_ref())
                 .expect("reopen report definition"),
             Some(edited)
+        );
+    }
+
+    #[test]
+    fn removes_only_one_revision_bound_report_without_changing_imported_history() {
+        let harness = Harness::new();
+        let archive = harness.archive(
+            "history.zip",
+            &[(
+                "activity-2026-08-18-11111111-2222-4333-8444-555555555555.json",
+                r#"{"date":"2026-08-18","summary":{"stepCount":4200}}"#,
+            )],
+        );
+        import_archive(&harness.database(), &archive, "polar:synthetic").expect("history import");
+        let library = SqliteReportLibrary::new(harness.database());
+        let removed = persisted_report_definition_with_seed('1', "Remove me");
+        let retained = persisted_report_definition_with_seed('2', "Retain me");
+        library
+            .create_report_definition(&removed)
+            .expect("first report");
+        library
+            .create_report_definition(&retained)
+            .expect("second report");
+
+        assert!(!library
+            .compare_and_remove_report_definition(removed.report_ref(), 2)
+            .expect("reject stale removal"));
+        assert!(library
+            .compare_and_remove_report_definition(removed.report_ref(), 1)
+            .expect("remove exact report"));
+        assert_eq!(
+            library
+                .load_report_definition(removed.report_ref())
+                .expect("removed lookup"),
+            None
+        );
+        assert_eq!(
+            library
+                .load_report_definition(retained.report_ref())
+                .expect("retained lookup"),
+            Some(retained)
+        );
+        let connection = Connection::open(harness.database()).expect("library database");
+        assert_eq!(
+            connection
+                .query_row("SELECT COUNT(*) FROM daily_activity", [], |row| row
+                    .get::<_, i64>(0))
+                .expect("imported activity count"),
+            1
         );
     }
 

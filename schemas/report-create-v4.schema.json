@@ -18,7 +18,7 @@
       "allOf": [
         {
           "contains": { "$ref": "session-report-create-v3.schema.json#/$defs/narrativeDraft" },
-          "minContains": 1,
+          "minContains": 0,
           "maxContains": 1
         },
         {
