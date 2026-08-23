@@ -1824,10 +1824,19 @@ The preceding answer-hierarchy slice passes all 332 React tests, the production 
 live-presentation inventory, UI contracts, strict Rust linting, and Rust formatting. A rebuilt packaged
 application passed the complete functional journey, separate real-process restart, complete and partial
 adaptive-session scenarios, and the isolated two-year performance campaign. The slowest common-interaction p95
-was 38 ms, the slowest maximum-range
-p95 was 125 ms, and the route workbench p95 was 76 ms; each remains inside its accepted budget. R10.2 continues
+was 38 ms, the slowest maximum-range p95 was 125 ms, and the route workbench p95 was 76 ms; each remains inside
+its accepted budget. R10.2 continues
 with the remaining cross-workspace hierarchy, state, adaptive-layout, accessibility, privacy, and visual audit;
 this evidence does not mark the work item complete.
+
+The clean workspace-hierarchy revision `47729d4` passes the complete fast lane, production build, strict Rust
+linting, Rust formatting, localization parity, live-presentation inventory, and UI contracts. Its rebuilt
+package passes the 2-minute-6-second functional journey, real-process restart, complete and partial adaptive
+session scenarios, and the isolated two-year performance campaign. The slowest common-interaction p95 was
+86 ms, the slowest maximum-range p95 was 419 ms, and the route-workbench p95 was 79 ms; each remains inside
+its accepted budget. Falsification review accepted the Sources, Settings, and training History captures
+after the corrected Settings initial-viewport evidence placed its heading and controls on screen. R10.2 remains
+open for the state, adaptive-layout, accessibility, privacy, and visual checks not covered by this slice.
 
 ## X6 — Repeat the independent product-experience audit
 
