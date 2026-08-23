@@ -62,16 +62,23 @@ The application contains the complete localized import, coverage, exploration, u
 
 ## Import and reimport
 
-If the export is not available yet, open **Sources** and choose **Show me how**. The bundled localized guide identifies the provider-controlled request and delivery steps, its verification date, expected archive, known constraints, and troubleshooting. Official account and instruction pages open explicitly in the default browser; FitFreed never receives provider credentials, requests the export, monitors its preparation, or downloads it.
+Empty-library Home offers both direct starts. Choose **How to obtain one** to open Sources with the bundled
+localized guide already revealed, or use **Choose an export ZIP** when the original archive is available.
+Sources also retains **Show me how**, which opens the bundled localized guide for later use. The guide
+identifies the provider-controlled request and delivery steps, its verification date, expected archive, known
+constraints, and troubleshooting. Official
+account and instruction pages open explicitly in the default browser; FitFreed never receives provider
+credentials, requests the export, monitors its preparation, or downloads it.
 
 Choose the original ZIP itself. Do not unpack it, repack it, rename its members, or edit its JSON files.
 
 1. Choose the ZIP package and start the import.
-2. Keep FitFreed open while package assessment, mapping, reconciliation, and committing progress is displayed.
-3. Review the terminal outcome and all five coverage categories: supported, unsupported, deliberately ignored, unrecognized, and invalid.
-4. Review every family reason and next action. Recognized does not mean imported.
+2. Keep FitFreed open while it checks prior import, ZIP safety, supported records, and final library visibility.
+3. Review the terminal consequence for the existing library before opening technical detail.
+4. Open incorporation and coverage detail to inspect all five categories—supported, unsupported, deliberately
+   ignored, unrecognized, and invalid—plus every family reason and next action. Recognized does not mean imported.
 
-Cancellation before the final atomic visibility boundary leaves no partial canonical history. A request made after committing starts waits for that boundary to finish.
+Cancellation before the final atomic visibility boundary leaves no partial canonical history. A request made after finalization starts waits for that boundary to finish.
 
 An exact reimport does not duplicate canonical history. Prior evidence is reused only while the provider, importer, mapping, coverage, and source-subject contracts still agree. The same bytes are reassessed after a relevant contract changes. A later export is reconciled by each observation's logical identity: new facts are added, equivalent facts are preserved, documented revisions can amend prior facts, and incompatible alternatives remain explicit conflicts rather than being selected by ZIP order.
 
@@ -82,7 +89,13 @@ The [Polar Flow compatibility reference](../data-formats/providers/polar-flow.md
 Version 0.1.0 provides provider-neutral views for:
 
 - daily activity overview, range, exact day detail, and period comparison;
-- complete-history training sport discovery and user classification, combined filters, chronology, source-separated calendar navigation, multi-session comparison, exact session summary, exercise/lap/pause structure, an [interactive local primary/transition route workbench](session-routes.md) with synchronized full-width measurement lanes and selected-row exact evidence, paginated exact route points, gap-aware supported signal charts, paginated exact signal samples, recorded zones, reusable user-authored segmentation, and source provenance;
+- complete-history training sport discovery and user classification, combined filters, chronology,
+  source-separated calendar navigation, multi-session comparison, exact session summary, exercise/lap/pause
+  structure, an [interactive local primary/transition route workbench](session-routes.md) with map navigation,
+  recorded-position traversal, personal ranges, and selected-row exact route evidence, paginated exact route
+  points, independent gap-aware supported signal charts, paginated exact signal samples, recorded zones,
+  reusable user-authored segmentation, and source provenance. Route overlays and attached signal lanes appear
+  only when an importer certifies an exact recorded relationship; the current Polar Flow mapping supplies none;
 - primary sleep overview, range, phases, timeline, score detail, and period comparison;
 - dated nightly recovery overview, range, exact source-context detail, and period comparison; and
 - one longitudinal dashboard with a shared range, aligned day synopsis, navigation, and period comparison; and

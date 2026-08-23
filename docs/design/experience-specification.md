@@ -106,7 +106,7 @@ Source evidence remains unchanged and the classification survives navigation and
 
 A session opens as a focused workout story, not an appendix beneath a list. Its heading gives sport,
 date, duration, distance where applicable, and evidence availability at a glance. A complete outdoor
-session composes source structure, a geographically recognizable map of the recorded GPS track, pace
+session composes source structure, a geographically proportioned local map of the recorded GPS track, pace
 or equivalent sport-specific signal, heart rate, zones, and relevant annotations. It places them on one
 elapsed-time context only when recorded evidence establishes that relationship; otherwise their clocks remain
 independent. The map is evidence rather than decoration: it distinguishes
@@ -127,7 +127,7 @@ table provide equivalent non-map exploration.
 The accepted structural candidate is a map-led workbench, not a map card beside a chart. After a
 compact session identity and summary band, a route-bearing session gives the complete full-width map
 the majority of the primary exploration viewport. It is the largest page region and keeps route
-shape, direction, endpoints, selected position, gaps, scale, and geographic context legible. The map
+shape, direction, endpoints, selected position, gaps, orientation, scale, and local coordinate context legible. The map
 can enter a focused or full-screen state and return without losing its selection, overlay, range, or
 origin context.
 

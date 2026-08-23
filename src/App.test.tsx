@@ -2294,7 +2294,7 @@ describe("FitFreed import interface", () => {
     await chooseArchive(user, "/synthetic/unavailable-library.zip");
     expect(screen.getByRole("button", { name: "Import selected package" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Settings" }));
-    expect(screen.getByLabelText("Interface language")).toBeDisabled();
+    expect(await screen.findByLabelText("Interface language")).toBeDisabled();
     expect(mocks.interactiveShellInvoke).not.toHaveBeenCalled();
     expect(mocks.preferencesInvoke).toHaveBeenCalledTimes(1);
     expect(mocks.invoke).not.toHaveBeenCalled();

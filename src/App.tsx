@@ -11,7 +11,13 @@ import { Channel, invoke } from "@tauri-apps/api/core";
 import "./App.css";
 import { chooseZipArchive } from "./infrastructure/archive-picker";
 import { openOfficialSourceLink } from "./infrastructure/official-source-link";
-import { catalogs, type Locale } from "./locales/catalogs";
+import type { Locale } from "./locales/catalogs";
+import {
+  defaultCatalog,
+  loadedRuntimeCatalog,
+  loadRuntimeCatalog,
+  type RuntimeCatalog,
+} from "./locales/runtime-catalogs";
 import type {
   ActivityDateRange,
   ActivityDayAvailability,
@@ -28,10 +34,7 @@ import {
   type ApplicationPreferences,
   type ApplicationPreferencesLoad,
 } from "./presentation/application-preferences";
-import {
-  SettingsPanel,
-  type SettingsWorkspace,
-} from "./presentation/SettingsPanel";
+import type { SettingsWorkspace } from "./presentation/SettingsPanel";
 import {
   ApplicationShell,
   type ApplicationHome,
@@ -45,12 +48,7 @@ import type {
 } from "./presentation/library-home";
 import { LibraryHomePanel } from "./presentation/LibraryHomePanel";
 import type { SourceAcquisitionGuide } from "./presentation/source-acquisition";
-import { SourcesPanel } from "./presentation/SourcesPanel";
-import {
-  ImportOutcomePanel,
-  type ImportOutcome,
-  type ImportReport,
-} from "./presentation/ImportOutcomePanel";
+import type { ImportOutcome, ImportReport } from "./presentation/ImportOutcomePanel";
 import type { ReportSourceTarget } from "./presentation/report-navigation";
 import type { ReportStartOrigin } from "./presentation/session-report";
 import { LoadingSurface } from "./presentation/LoadingSurface";
@@ -68,6 +66,21 @@ const INTERACTIVE_SHELL_FRAME_TIMEOUT_MILLISECONDS = 1_000;
 const ActivityComparisonPanel = lazy(() =>
   import("./presentation/ActivityComparisonPanel").then((module) => ({
     default: module.ActivityComparisonPanel,
+  }))
+);
+const SettingsPanel = lazy(() =>
+  import("./presentation/SettingsPanel").then((module) => ({
+    default: module.SettingsPanel,
+  }))
+);
+const SourcesPanel = lazy(() =>
+  import("./presentation/SourcesPanel").then((module) => ({
+    default: module.SourcesPanel,
+  }))
+);
+const ImportOutcomePanel = lazy(() =>
+  import("./presentation/ImportOutcomePanel").then((module) => ({
+    default: module.ImportOutcomePanel,
   }))
 );
 const TrainingInsightsPanel = lazy(() =>
@@ -155,9 +168,11 @@ function applicationScroller() {
 
 function App() {
   const [locale, setLocale] = useState<Locale>(systemLocale);
+  const [messages, setMessages] = useState<RuntimeCatalog>(defaultCatalog);
   const [localeReady, setLocaleReady] = useState(false);
   const [libraryReady, setLibraryReady] = useState(false);
   const localeReadyMilliseconds = useRef(0);
+  const localeCatalogRequest = useRef(0);
   const [applicationReady, setApplicationReady] = useState(false);
   const [savedPreferences, setSavedPreferences] = useState<ApplicationPreferences>(() => ({
     version: 1,
@@ -236,7 +251,6 @@ function App() {
   const [errorCode, setErrorCode] = useState<string>();
   const [sourceErrorCode, setSourceErrorCode] = useState<string>();
   const activityRangeValidation = useInvalidForm(setErrorCode);
-  const messages = catalogs[locale];
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const date = useMemo(
     () => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }),
@@ -347,25 +361,36 @@ function App() {
         const loaded = await invoke<ApplicationPreferencesLoad>("load_preferences", {
           defaultLocale,
         });
+        const catalog = await loadRuntimeCatalog(loaded.preferences.locale);
         if (active) {
           applyApplicationPreferences(loaded.preferences);
           setSavedPreferences(loaded.preferences);
           setLocale(loaded.preferences.locale);
+          setMessages(catalog);
           setPreferencesRecovered(loaded.status === "recovered");
           setLibraryReady(true);
         }
       } catch (reason) {
         if (active) {
           const code = commandErrorCode(reason);
+          let fallbackLocale = defaultLocale;
+          let fallbackCatalog: RuntimeCatalog;
+          try {
+            fallbackCatalog = await loadRuntimeCatalog(fallbackLocale);
+          } catch {
+            fallbackLocale = "en-US";
+            fallbackCatalog = defaultCatalog;
+          }
           const defaults: ApplicationPreferences = {
             version: 1,
-            locale: defaultLocale,
+            locale: fallbackLocale,
             appearance: "system",
             contentZoomPercent: 100,
           };
           applyApplicationPreferences(defaults);
           setSavedPreferences(defaults);
-          setLocale(defaultLocale);
+          setLocale(fallbackLocale);
+          setMessages(fallbackCatalog);
           if (code === "preference-update-failed") setLibraryReady(true);
           setErrorCode(
             code === "preference-update-failed"
@@ -477,10 +502,38 @@ function App() {
     }
   }
 
+  function restoreSavedPreferencesPreview() {
+    localeCatalogRequest.current += 1;
+    applyApplicationPreferences(savedPreferences);
+    const catalog = loadedRuntimeCatalog(savedPreferences.locale);
+    if (catalog) {
+      setLocale(savedPreferences.locale);
+      setMessages(catalog);
+    } else {
+      const requestId = localeCatalogRequest.current;
+      void loadRuntimeCatalog(savedPreferences.locale).then((loaded) => {
+        if (localeCatalogRequest.current !== requestId) return;
+        setLocale(savedPreferences.locale);
+        setMessages(loaded);
+      }).catch(() => setErrorCode("preference-initialization-failed"));
+    }
+    setPreferencesSavedNotice(false);
+  }
+
   function previewPreferences(preferences: ApplicationPreferences) {
     applyApplicationPreferences(preferences);
-    setLocale(preferences.locale);
     setPreferencesSavedNotice(false);
+    localeCatalogRequest.current += 1;
+    const requestId = localeCatalogRequest.current;
+    void loadRuntimeCatalog(preferences.locale).then((catalog) => {
+      if (localeCatalogRequest.current !== requestId) return;
+      setLocale(preferences.locale);
+      setMessages(catalog);
+    }).catch(() => {
+      if (localeCatalogRequest.current === requestId) {
+        setErrorCode("preference-initialization-failed");
+      }
+    });
   }
 
   function beginHomeNavigation() {
@@ -523,9 +576,7 @@ function App() {
   }
 
   function openExplore() {
-    applyApplicationPreferences(savedPreferences);
-    setLocale(savedPreferences.locale);
-    setPreferencesSavedNotice(false);
+    restoreSavedPreferencesPreview();
     setPreferencesEditorRevision((current) => current + 1);
     if (exploreDestination) {
       navigateHome("explore");
@@ -541,9 +592,7 @@ function App() {
   }
 
   function openLibraryHome() {
-    applyApplicationPreferences(savedPreferences);
-    setLocale(savedPreferences.locale);
-    setPreferencesSavedNotice(false);
+    restoreSavedPreferencesPreview();
     setPreferencesEditorRevision((current) => current + 1);
     navigateHome("home");
   }
@@ -569,9 +618,7 @@ function App() {
   }
 
   function openSources(scrollMode: ApplicationHomeScrollMode = "restore") {
-    applyApplicationPreferences(savedPreferences);
-    setLocale(savedPreferences.locale);
-    setPreferencesSavedNotice(false);
+    restoreSavedPreferencesPreview();
     setPreferencesEditorRevision((current) => current + 1);
     navigateHome("sources", scrollMode);
   }
@@ -582,9 +629,7 @@ function App() {
   }
 
   function openReports() {
-    applyApplicationPreferences(savedPreferences);
-    setLocale(savedPreferences.locale);
-    setPreferencesSavedNotice(false);
+    restoreSavedPreferencesPreview();
     setPreferencesEditorRevision((current) => current + 1);
     setReportOrigin(undefined);
     setReportReturnRef(undefined);
@@ -782,16 +827,21 @@ function App() {
           contentZoomPercent: preferences.contentZoomPercent,
         },
       });
+      const catalog = await loadRuntimeCatalog(saved.locale);
+      localeCatalogRequest.current += 1;
       applyApplicationPreferences(saved);
       setSavedPreferences(saved);
       setLocale(saved.locale);
+      setMessages(catalog);
       setPreferencesSavedNotice(true);
       setPreferencesRecovered(false);
       setPreferencesEditorRevision((current) => current + 1);
       setUpdateLocaleRefreshToken((current) => current + 1);
     } catch (reason) {
+      localeCatalogRequest.current += 1;
       applyApplicationPreferences(previous);
       setLocale(previous.locale);
+      setMessages(loadedRuntimeCatalog(previous.locale) ?? defaultCatalog);
       setPreferencesEditorRevision((current) => current + 1);
       setErrorCode(commandErrorCode(reason));
     } finally {
@@ -807,16 +857,21 @@ function App() {
       const reset = await invoke<ApplicationPreferencesLoad>("reset_preferences", {
         defaultLocale: systemLocale(),
       });
+      const catalog = await loadRuntimeCatalog(reset.preferences.locale);
+      localeCatalogRequest.current += 1;
       applyApplicationPreferences(reset.preferences);
       setSavedPreferences(reset.preferences);
       setLocale(reset.preferences.locale);
+      setMessages(catalog);
       setPreferencesSavedNotice(true);
       setPreferencesRecovered(false);
       setPreferencesEditorRevision((current) => current + 1);
       setUpdateLocaleRefreshToken((current) => current + 1);
     } catch (reason) {
+      localeCatalogRequest.current += 1;
       applyApplicationPreferences(previous);
       setLocale(previous.locale);
+      setMessages(loadedRuntimeCatalog(previous.locale) ?? defaultCatalog);
       setPreferencesEditorRevision((current) => current + 1);
       setErrorCode(commandErrorCode(reason));
     } finally {
@@ -1082,86 +1137,94 @@ function App() {
           </section>
         )}
         <div className="settings-home" hidden={activeHome !== "settings"}>
-          <SettingsPanel
-            savedPreferences={savedPreferences}
-            messages={messages.settings}
-            workspace={settingsWorkspace}
-            disabled={!libraryReady || updateInstalling}
-            operation={preferencesOperation}
-            savedNotice={preferencesSavedNotice}
-            editorRevision={preferencesEditorRevision}
-            onWorkspaceChange={setSettingsWorkspace}
-            onPreview={previewPreferences}
-            onSave={savePreferences}
-            onReset={resetPreferences}
-            updatePanel={applicationReady && (
-              <Suspense fallback={<LoadingSurface message={messages.shell.loading} />}>
-                <UpdatePanel
-                  locale={locale}
-                  messages={messages.updates}
-                  errors={errorMessages}
-                  ready
-                  refreshToken={updateLocaleRefreshToken}
-                  installationBlocked={busy}
-                  onInstallationStateChange={setUpdateInstalling}
-                />
-              </Suspense>
-            )}
-          />
+          {(applicationReady || activeHome === "settings") && (
+            <Suspense fallback={<LoadingSurface message={messages.shell.loading} />}>
+              <SettingsPanel
+                savedPreferences={savedPreferences}
+                messages={messages.settings}
+                workspace={settingsWorkspace}
+                disabled={!libraryReady || updateInstalling}
+                operation={preferencesOperation}
+                savedNotice={preferencesSavedNotice}
+                editorRevision={preferencesEditorRevision}
+                onWorkspaceChange={setSettingsWorkspace}
+                onPreview={previewPreferences}
+                onSave={savePreferences}
+                onReset={resetPreferences}
+                updatePanel={applicationReady && (
+                  <Suspense fallback={<LoadingSurface message={messages.shell.loading} />}>
+                    <UpdatePanel
+                      locale={locale}
+                      messages={messages.updates}
+                      errors={errorMessages}
+                      ready
+                      refreshToken={updateLocaleRefreshToken}
+                      installationBlocked={busy}
+                      onInstallationStateChange={setUpdateInstalling}
+                    />
+                  </Suspense>
+                )}
+              />
+            </Suspense>
+          )}
         </div>
         <div className="sources-home" hidden={activeHome !== "sources"}>
-          <SourcesPanel
-            locale={locale}
-            messages={messages.sources}
-            importMessages={{
-              choose: messages.choose,
-              choosing: messages.choosing,
-              import: messages.import,
-              noPackage: messages.noPackage,
-              importing: messages.importing,
-              cancel: messages.cancel,
-              cancelling: messages.cancelling,
-            }}
-            guide={sourceGuides?.find((guide) => guide.sourceId === "polar-flow")}
-            guideLoading={sourceGuides === undefined}
-            guideRequestId={sourceGuideRequestId}
-            mode={busy ? "active" : outcome ? "result" : "ready"}
-            progressLabel={progress ? messages.phases[progress.phase] : messages.importing}
-            progressValue={progressValue}
-            errorMessage={sourceErrorCode
-              ? errorMessages[sourceErrorCode] ?? messages.errors.unexpected
-              : undefined}
-            archivePath={archivePath}
-            importReady={libraryReady}
-            busy={busy}
-            cancellable={progress?.cancellable ?? false}
-            updateInstalling={updateInstalling}
-            cancelRequested={cancelRequested}
-            onChooseArchive={chooseArchive}
-            onArchiveError={() => setSourceErrorCode("archive-picker-failed")}
-            onImport={runImport}
-            onCancel={cancelImport}
-            onOpenOfficialLink={openSourceLink}
-            onLinkError={() => setSourceErrorCode("official-source-link-failed")}
-          >
-            {progress?.phase === "cancelled" && !busy && outcome?.state !== "cancelled" && (
-              <p className="notice" role="status" aria-live="polite">{messages.cancelled}</p>
-            )}
-            {outcome && (
-              <ImportOutcomePanel
+          {(applicationReady || activeHome === "sources") && (
+            <Suspense fallback={<LoadingSurface message={messages.shell.loading} />}>
+              <SourcesPanel
                 locale={locale}
-                messages={messages.outcome}
-                outcome={outcome}
-                terminalMessage={outcome.state === "rejected" || outcome.state === "failed"
-                  ? errorMessages[outcome.terminalCode ?? "unexpected"]
-                    ?? messages.errors.unexpected
+                messages={messages.sources}
+                importMessages={{
+                  choose: messages.choose,
+                  choosing: messages.choosing,
+                  import: messages.import,
+                  noPackage: messages.noPackage,
+                  importing: messages.importing,
+                  cancel: messages.cancel,
+                  cancelling: messages.cancelling,
+                }}
+                guide={sourceGuides?.find((guide) => guide.sourceId === "polar-flow")}
+                guideLoading={sourceGuides === undefined}
+                guideRequestId={sourceGuideRequestId}
+                mode={busy ? "active" : outcome ? "result" : "ready"}
+                progressLabel={progress ? messages.phases[progress.phase] : messages.importing}
+                progressValue={progressValue}
+                errorMessage={sourceErrorCode
+                  ? errorMessages[sourceErrorCode] ?? messages.errors.unexpected
                   : undefined}
-                onOpenHome={() => navigateHome("home", "start")}
-                onChooseAnother={chooseArchive}
+                archivePath={archivePath}
+                importReady={libraryReady}
+                busy={busy}
+                cancellable={progress?.cancellable ?? false}
+                updateInstalling={updateInstalling}
+                cancelRequested={cancelRequested}
+                onChooseArchive={chooseArchive}
                 onArchiveError={() => setSourceErrorCode("archive-picker-failed")}
-              />
-            )}
-          </SourcesPanel>
+                onImport={runImport}
+                onCancel={cancelImport}
+                onOpenOfficialLink={openSourceLink}
+                onLinkError={() => setSourceErrorCode("official-source-link-failed")}
+              >
+                {progress?.phase === "cancelled" && !busy && outcome?.state !== "cancelled" && (
+                  <p className="notice" role="status" aria-live="polite">{messages.cancelled}</p>
+                )}
+                {outcome && (
+                  <ImportOutcomePanel
+                    locale={locale}
+                    messages={messages.outcome}
+                    outcome={outcome}
+                    terminalMessage={outcome.state === "rejected" || outcome.state === "failed"
+                      ? errorMessages[outcome.terminalCode ?? "unexpected"]
+                        ?? messages.errors.unexpected
+                      : undefined}
+                    onOpenHome={() => navigateHome("home", "start")}
+                    onChooseAnother={chooseArchive}
+                    onArchiveError={() => setSourceErrorCode("archive-picker-failed")}
+                  />
+                )}
+              </SourcesPanel>
+            </Suspense>
+          )}
         </div>
         <div className="reports-home" hidden={activeHome !== "reports"}>
           {applicationReady && activeHome === "reports" && (

@@ -56,7 +56,7 @@ The Milestone 0 closure plan is [`plans/milestone-0.md`](plans/milestone-0.md). 
 - No unresolved decision prevents the MVP from being described as a complete user journey.
 - The MVP has measurable acceptance criteria and explicit exclusions.
 - The selected architecture and technology can satisfy the verified data volume, cross-platform distribution, UX, DX, localization, privacy, and OSS constraints.
-- Technology spikes demonstrate a credible path to the budgets in `quality-targets.md` on the reference Mac profile.
+- Technology spikes demonstrate a credible path to the budgets in `quality-targets.md` on a reproducibly characterized maintained macOS environment.
 - The MVP execution plan is small enough to review and detailed enough to implement incrementally.
 - Required implementation authority is recorded, and every unresolved human gate before autonomous execution is closed or explicitly deferred beyond the MVP.
 - The selected name and public narrative communicate practical data freedom accurately without claiming that the product provides legal compliance or that the GDPR mandates a specific export package.

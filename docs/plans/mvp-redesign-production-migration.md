@@ -5,10 +5,33 @@
 Authorized for autonomous execution as of 2026-08-21. The independent R5 checkpoint audit completed on
 2026-08-22 and reopened X5-R3 and X5-R5 before X5-R6. Its immutable findings are recorded in the
 [R5 checkpoint audit](../research/mvp-redesign-r5-checkpoint-audit.md).
-The X5-R1 product entrance is live; exact hosted verification of its CI resource optimizer remains
-pending synchronization of the workflow-changing commit. The product owner accepted the X3
-direction and its amendments on 2026-08-21. This
+The X5-R1 product entrance is live and its CI resource policy is covered by the current hosted
+portable checks. The product owner accepted the X3 direction and its amendments on 2026-08-21. This
 document is the single implementation-facing plan for X4 and X5 of the systemic MVP redesign.
+
+### Current execution snapshot
+
+Updated 2026-08-23. X4-P0 and X5-R1 through X5-R9 are complete. X5-R10.2, the whole-product
+presentation and current-documentation audit, is in progress. Its corrected portable quality checks
+have passed locally and on GitHub. The exact packaged macOS campaign stopped at its cold-launch gate:
+the hosted 100-process measurement reported a 2,609-millisecond p95 against the non-negotiable
+2,500-millisecond budget. Historical comparison found the same hosted image, operating system, and virtual
+hardware class and no proportional source-size regression; the dominant variable phase was WebView setup
+through renderer start. The product nevertheless lacked sufficient headroom because its initial renderer graph
+carried both complete locale catalogs and presentation modules that ordinary Home startup did not need. A TDD
+correction now retains English as the deterministic fallback, loads the selected non-default catalog before the
+localized shell, and defers Sources, Settings, and import-outcome modules without weakening an explicit early
+navigation choice. The main production JavaScript bundle fell from 491,694 to 351,590 bytes, while all 339 React
+tests and the complete fast lane pass locally. A clean packaged cold-launch campaign is the next gate; the failed
+unchanged revision will not be rerun as a substitute for diagnosis. The remaining sequence is to verify that
+correction locally and in the hosted campaign, close the automatable R10 evidence, run the X6 independent
+product-experience audit, and present the exact candidate for the final human usability and accessibility
+gate. No routine human intervention is expected before that gate unless an external service or physical
+accessibility check creates a genuine blocker.
+
+The [increment status](#increment-status) gives the one-line phase view. The
+[R10.2 evidence matrix](#r102-evidence-matrix) records what has been verified and what remains, and
+[X6](#x6--repeat-the-independent-product-experience-audit) defines the final independent audit.
 
 The [MVP experience specification](../design/experience-specification.md) owns screen, interaction,
 state, navigation, adaptive, localization, and accessibility behavior. The
@@ -54,8 +77,9 @@ boundary is verified.
 - Structured full-history discovery, sport identity, classification, filters, chronology, and
   comparison.
 - Evidence-dependent session stories, including a dominant interactive local route workbench,
-  synchronized recorded signals, source structure, zones, provenance, exact alternatives, partial
-  sessions, and non-routed sessions.
+  conditionally synchronized evidence only when an exact recorded relationship exists, independently
+  explorable regular signals otherwise, source structure, zones, provenance, exact alternatives,
+  partial sessions, and non-routed sessions.
 - Reusable personal segmentation and session-owned, user-named contiguous ranges.
 - Result-first report library, contextual creation, composition, deliberate refresh, privacy review,
   deterministic self-contained HTML export, and deletion.
@@ -88,7 +112,7 @@ increment must verify the named lower layers again before changing its surface.
 | Recognizable Home | Library Home v1 coverage, questions, post-import reveal, resumable destination | Recent recognizable sessions and sports, one bounded answer, and honest historical fallback | Application composition |
 | Contextual answers | Four authoritative Insights models and longitudinal composition | Accepted Answer Canvas hierarchy and origin restoration | Presentation |
 | Full-history discovery | Search, selectors, sorting, calendar, comparison selection, durable workspace, and sport classification | Results-first composition, coherent icons, structured refinements, and accepted navigation | Presentation |
-| Outdoor session investigation | Independent structure, route, signal, zone, segmentation, and provenance queries | One revision-coherent session-story projection and synchronized route/signal interaction | Application composition, then presentation |
+| Outdoor session investigation | Independent structure, route, signal, zone, segmentation, and provenance queries | One revision-coherent session-story projection with conditional exact-recorded route/signal interaction and explicit separation otherwise | Application composition, then presentation |
 | Partial and non-routed sessions | Explicit unavailable, absent, empty, populated, unsupported, and gap states | Evidence-dependent page composition rather than empty visual placeholders | Application projection and presentation |
 | Reusable segmentation | Versioned `SegmentCriterion`, commands, SQLite persistence, and derived sections | Integration into the map-led workbench without merging source and authored identity | Presentation |
 | Session-owned ranges | Version-2 exercise-owned domain aggregate, application transitions, SQLite schema 26, and desktop transport | Revision-coherent Range Summary, production interaction, and reusable-criteria integration | Application composition, then presentation |
@@ -202,7 +226,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | Increment | Status | Functional checkpoint |
 |---|---|---|
 | X4-P0 | Complete — 2026-08-21 | Accepted X3 contract, exhaustive production plan, traceable roadmap |
-| X5-R1 | Local implementation complete; optimizer hosted verification pending | A truthful visitor can understand and follow the product |
+| X5-R1 | Complete — current hosted portable checks cover the product entrance and CI resource policy | A truthful visitor can understand and follow the product |
 | X5-R2.1 | Complete locally — exact packaged gates passed 2026-08-22 | A new person can orient and act through the labelled shell and first-run Home |
 | X5-R2.2 | Complete locally — exact packaged gates passed 2026-08-22 | Sources leads with acquisition, a protected active task, and a calm exact outcome |
 | X5-R2.3 | Complete locally — exact packaged gates passed 2026-08-22 | Durable language, appearance, zoom, and update settings form one coherent workspace |
@@ -213,7 +237,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R7 | Complete locally — R7.1 through R7.6 passed the exact fast, functional, restart, adaptive, accessibility, visual, and performance gates on 2026-08-22 | Every session composition reflects its actual evidence |
 | X5-R8 | Complete locally — R8.1 through R8.6 passed the final Alpha gate on 2026-08-23 | Personal ranges and reusable criteria work end to end |
 | X5-R9 | Complete locally — all six slices passed fast, packaged, restart, accessibility, visual, migration, and performance gates on 2026-08-23 | Reports open as results and leave FitFreed safely |
-| X5-R10 | In progress — R10.1 live-surface inventory complete locally 2026-08-23 | The complete release-shaped product is coherent and documented |
+| X5-R10 | In progress — R10.1 complete; R10.2 documentation and portable checks are green; the diagnosed cold-launch correction awaits clean packaged local and hosted evidence as of 2026-08-23 | The complete release-shaped product is coherent and documented |
 | X6 | Pending | Independent audit has no unresolved material finding |
 
 ## X4-P0 — Freeze the executable contract
@@ -1957,6 +1981,43 @@ Current user journeys, training and reporting architecture, data-format contract
 support boundaries, and conditional release procedures agree with that status; closed plans, ADRs, and
 historical audits retain their original evidence.
 
+A second current-document pass then challenged task instructions and evidence descriptions rather than only
+milestone status. It corrected first-run evaluation to begin from both direct Home actions, made the candidate
+protocol exercise map navigation, independent signals, personal ranges, result-first report reopening,
+deliberate composition, refresh, deletion, keyboard focus, and VoiceOver alternatives, and removed unsupported
+route-to-signal synchronization from both candidate guides. The performance guide now describes the actual
+20,001-point unavailable-alignment campaign, including recorded-track selection, source-ordinal focus, and
+independent-signal reveal instead of superseded overlays and attached lanes. Requirements and the redesign
+direction now reserve shared cursors and propagation for application-certified exact relationships while
+retaining deliberate independent exploration. The contributor index identifies Milestone 3 as the later public
+distribution sequence, and versioned execution guidance no longer publishes a workstation-specific SSH agent.
+The requirements source now identifies itself as the living normative contract and no longer lists the resolved
+macOS platform, accessibility, or release-architecture boundaries as open decisions. These corrections follow
+current production contracts and executable test sources. The roadmap also retains the accepted environment-
+qualified performance policy rather than referring to an unavailable fixed workstation profile; closed
+checkpoint evidence remains unchanged.
+
+Visual review also resolved an ambiguity between the map requirement and the accepted privacy boundary. The
+MVP map promises geographically proportioned local geometry, direction, scale, bounds, gaps, and selection on a
+neutral coordinate surface; it does not promise streets, terrain, place names, or external tiles. This is the
+implemented and previously accepted local-first boundary, not a removal of recorded route investigation. The
+current route guide now also reflects completed personal-range entry from independent signals, source structure,
+and exact evidence instead of presenting that R8 behavior as future work.
+
+The exact hosted package for `ee8c856` then failed the 100-process cold-launch gate at 2,609 milliseconds p95
+against the unchanged 2,500-millisecond budget. Earlier accepted revisions on the same runner image, operating
+system, and hardware class ranged from 1,633 to 2,338 milliseconds p95, while the runtime change since the most
+recent accepted baseline added only 319 CSS bytes and reduced the main JavaScript bundle by 80 bytes. Phase
+evidence places the variation primarily between host setup and renderer start, so the single hosted result does
+not prove a feature-level regression. It does prove that the current startup graph lacks enough tail headroom.
+Rather than rerunning unchanged code or changing the budget, the correction removes work from the real production
+boundary: the main JavaScript bundle is now 351,590 bytes instead of 491,694 bytes, the selected Spanish catalog
+loads as its own cached module before a Spanish shell can become interactive, and ordinary Home startup defers
+Sources, Settings, and import-outcome presentation modules. Explicit early navigation still reaches those
+destinations, failed preference recovery still blocks unsafe work, and locale save, preview, reset, restart, and
+fallback behavior remains covered. Focused TDD and the complete local fast lane pass with 339 React tests; clean
+packaged local and hosted measurements remain required before this correction becomes accepted evidence.
+
 #### R10.2 evidence matrix
 
 | Concern | Current evidence | Remaining gate |
@@ -1968,7 +2029,7 @@ historical audits retain their original evidence.
 | Responsive layout, locale, appearance, zoom, contrast, and reduced motion | English/light and Spanish/dark matrices cover wide, compact, 100%, 175%, and 200% presentation; the exact package rejects page overflow, obstruction, and result-measurement splits. Static and component contracts protect reduced motion. | Repeat scaling, contrast, and reduced-motion observation during candidate manual evaluation. |
 | Assistive technology | Packaged Axe runs cover Sources, session detail and ranges, every answer canvas, Reports Library, Compose, Preview, refresh, and export review; semantic alternatives and focus are asserted. | Manual VoiceOver in English and Spanish remains an explicit human candidate gate. |
 | Privacy and data exit | Exact packaged export review proves per-export physiology omission, endpoint reduction, no latitude, longitude, script, or network reference, atomic cancellation, and self-contained HTML; repository and secret scans pass. | Apply the privacy-safe manual protocol to the exact candidate without retaining personal evidence. |
-| Performance and lifecycle | `c783def` passes functional, real-process restart, adaptive-session, and two-year performance campaigns inside every accepted budget. | Run the complete install, update, migration, forced-recovery, removal, bundle, memory, and hosted campaign once for the final executable fingerprint. |
+| Performance and lifecycle | `c783def` passes functional, real-process restart, adaptive-session, and two-year performance campaigns inside every accepted budget. The later exact package for `ee8c856` failed cold launch at 2,609 ms p95; the diagnosed startup-graph correction reduces the main JavaScript bundle by 140,104 bytes and passes the complete local fast lane. | Verify the correction with a clean local cold-launch campaign, then run the complete install, update, migration, forced-recovery, removal, bundle, memory, and hosted campaign once for the corrected executable fingerprint. |
 | User, contributor, architecture, format, translation, testing, support, and readiness documentation | The current-document audit aligns the accepted specification, redesign plan, roadmap, contributor index, readiness ledger, current user journeys, thematic architecture, data-contract index, localization, support, and conditional release guidance. Eleven canonical sources now have automated stale-status checks. | Replace pending hosted evidence with the coherent correction result and carry any later R10 or X6 finding into its canonical owner. |
 
 ## X6 — Repeat the independent product-experience audit

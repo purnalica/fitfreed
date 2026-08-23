@@ -42,7 +42,7 @@ FitFreed does not have a supported public release yet. The implemented applicati
 - [MVP redesign production migration](plans/mvp-redesign-production-migration.md) is the canonical implementation and evidence status for that contract.
 - [Public product status](product-status.json) is the canonical available, active, and later capability snapshot rendered into the README and product page.
 - [Implemented Milestone 2 plan](plans/milestone-2.md) defines the MVP capability sequence and evidence.
-- [Active Milestone 3 plan](plans/milestone-3.md) defines the public macOS distribution sequence and evidence.
+- [Later Milestone 3 plan](plans/milestone-3.md) defines the public macOS distribution sequence and evidence after the active redesign migration.
 - [Architecture decision records](architecture/decisions/README.md) preserve durable structural decisions.
 - [Release delivery architecture](architecture/release-delivery.md) separates private evidence preparation from publication authority and defines the composed product-site and update-channel deployment.
 - [Training exploration architecture](architecture/training-exploration.md) defines attributed session evidence, user criteria, classification, bounded series, and route privacy.

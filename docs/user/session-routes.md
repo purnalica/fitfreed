@@ -97,9 +97,9 @@ remain on the device. Update checks are a separate application capability and ne
 facts.
 
 The current workbench deliberately has a neutral coordinate context rather than a street or terrain map.
-Personal route-range editing is available, while direct range interaction on independent signal views,
-source structure, and exact-evidence tables remains active MVP work. Existing signal views and personal
-segmentation criteria remain available in their current detail sections while that integration is completed.
+Personal route-range editing and direct range entry from independent signal views, source structure, and exact
+route or signal evidence are available through the same session-owned range controller. Each entry retains its
+own application-established coordinate; an equal offset never makes independent evidence synchronized.
 
 Never attach a screenshot, coordinate table, route, export, library, or diagnostic containing personal
 history to a public issue. Use a synthetic package and follow the repository security and support

@@ -33,7 +33,10 @@ Exact participant hardware and operating-system details may be retained only in 
 1. Complete the profile-matched DMG drag-copy installation without a development toolchain, terminal, global security change, or unverified replacement. A public candidate must open through the ordinary Developer ID and Gatekeeper path with no launch exception.
 2. Launch the exact installed application and confirm version 0.1.0.
 3. Verify that the initial locale follows a supported operating-system preference or falls back to English, then switch between English (United States) and Spanish (Spain).
-4. Quit and reopen FitFreed. Confirm the explicit locale persists and the empty library returns to the understandable Sources start.
+4. Quit and reopen FitFreed. Confirm the explicit locale persists and the empty-library Home returns with
+   both direct starts: choosing an existing ZIP and learning how to obtain one. Confirm that Sources becomes
+   current only after either acquisition action is selected and that returning to Home preserves no false
+   import result.
 5. Import the authorized synthetic package, choose one Home question, quit, and reopen. Confirm that the populated library restores only that valid exploration destination. Return explicitly to Home, restart, and confirm that no explorer is resumed.
 6. Remove only the application and confirm the separate library remains. Reinstall the same candidate and confirm it reopens that library through Home or its valid saved destination.
 
@@ -43,13 +46,26 @@ Any checksum, mount, copy, launch, version, locale-persistence, application-remo
 
 Enable the macOS setting that permits keyboard focus on all controls. Starting from a fresh launch:
 
-1. Traverse every header, Home question, source-coverage link, return-to-Home action, language, package-selection, import, update, filter, reset, comparison, detail, report-authoring, privacy-review, export, close, table-scroll, and acknowledgement control in both forward and reverse order.
+1. Traverse the five persistent workspace destinations and every Home question, source-coverage link,
+   return-to-Home action, language, package-selection, import, update, filter, reset, comparison, session-section,
+   route, range, report-authoring, privacy-review, export, close, table-scroll, and acknowledgement control in
+   both forward and reverse order.
 2. Confirm a visible focus indicator, logical focus order, localized accessible name, and expected enabled or disabled state at each stop.
 3. Operate every included action using the keyboard. Native file selection must support selection and cancellation without trapping focus.
 4. Enter valid and invalid values in every date field. Confirm errors are associated with the relevant control and that invalid input preserves the last valid result.
-5. Open every offered Home question and confirm only its explorer enters the navigation order. Open and close every detail view, follow each longitudinal navigation target, return to its source workspace, scroll every wide exact table, and clear every disposable comparison result.
+5. Open every offered Home question and confirm only its explorer enters the navigation order. Open and close
+   every detail view, follow each longitudinal navigation target, return to its source workspace, scroll every
+   wide exact table, and clear every disposable comparison result. In a routed session, operate map pan, zoom,
+   complete-track reset, focus mode, recorded-position traversal, exact-point entry, every available session
+   section, and personal-range boundaries without a pointer. Confirm that route and regular signal selection
+   stay independent when the source provides no exact relationship.
 6. Start and cancel an import before the visibility boundary. Confirm focus remains usable while progress changes and returns to a meaningful control after the terminal outcome.
-7. Start a report from a session and operate every title, narrative, block, range, metric, add, remove, reorder, save, review, destination, cancel, export, source-return, and report-return control. Confirm revealed review and result headings receive focus and each close, cancellation, or contextual return restores the correct initiating control.
+7. Start a report from a session and operate every title, optional commentary, block, period, metric, add,
+   remove, reorder, save, preview, privacy review, destination, cancel, export, source-return, and report-return
+   control. Reopen the saved report into its result rather than its editor, enter composition deliberately,
+   cancel back to the unchanged result, and exercise deletion and its cancellation. Confirm revealed review
+   and result headings receive focus and each close, cancellation, or contextual return restores the correct
+   initiating control.
 8. Confirm no component creates a keyboard trap, requires pointer-only operation, loses focus into hidden content, or changes history from a navigation-only action.
 
 ## VoiceOver session
@@ -60,7 +76,10 @@ Run VoiceOver against English and Spanish at least once each:
 2. Confirm controls expose their name, role, state, current value, invalid state, and busy state. Repeated detail actions must include the date or session context.
 3. Start a valid import and confirm phase progress and the terminal result are announced without continuously repeating unchanged content.
 4. Trigger invalid input and an invalid synthetic archive. Confirm the failure and recovery action are announced without exposing a source locator or personal value.
-5. Inspect every summary and exact table. Decorative bars, timelines, and aligned lanes must not duplicate noisy content; the exact alternative must preserve every value, unit, missing state, and origin separation.
+5. Inspect every summary, sport icon label, local route map, chart, range, and exact table. Decorative geometry
+   must not duplicate noisy content; the structured or tabular alternative must preserve every value, unit,
+   missing state, route-point identity, and origin separation. No announcement may imply route-to-signal
+   synchronization when the source supplies no exact relationship.
 6. Change locale and confirm new interface text, dates, durations, numbers, coverage reasons, and update messages are announced in the selected language.
 7. Reopen the application and confirm that only the valid saved explorer, or Home after an explicit return, and any update-recovery notice enter the navigation order predictably.
 8. Create and reopen a report. Confirm the ordered composer, authored content, source context, stale state, privacy review, export progress, cancellation, completion, and contextual navigation are announced once and that each report visual has an equivalent exact table.
@@ -70,7 +89,10 @@ Missing names, incorrect roles or states, unannounced errors, inaccessible exact
 ## Scaling, appearance, and contrast session
 
 1. Test the minimum supported window and the evaluator's normal full-screen size at default text and 200% root text size.
-2. Complete Home, import, every question entry and return, every explorer, filter, detail, comparison, longitudinal navigation, report composition, privacy and stale-evidence review, local export, the Settings update panel, and terminal outcome at 200%.
+2. Complete Home, both first-run acquisition paths, import, every question entry and return, every explorer,
+   filter, session section, route workbench, personal range, comparison, longitudinal navigation, Reports
+   Library, deliberate composition, result Preview, privacy and stale-evidence review, local export, the
+   Settings update panel, and every terminal outcome at 200%.
 3. Confirm there is no page-level horizontal overflow, clipped control, overlapping text, hidden error, or unreachable action. Labeled exact-table containers may scroll horizontally.
 4. Repeat the primary journey in light and dark operating-system appearance and with increased contrast where available.
 5. Confirm text, focus, controls, states, charts, and table values remain perceivable. Supported, ignored, unavailable, missing, invalid, comparison direction, and selected state must never depend on color alone.
@@ -83,13 +105,33 @@ Record a contrast failure only after identifying the exact foreground, backgroun
 The participant performs the complete journey without coaching; the evaluator may ask the participant to describe expectations but does not explain controls before first use.
 
 1. Install and launch FitFreed, choose a language, and identify what data stays local.
-2. Use the bundled source guide to explain how to obtain a provider export, what leaves FitFreed for the default browser, and why provider credentials never enter the application. Then select a compatible real ZIP, understand the progress phases, and explain whether cancellation is currently safe.
+2. From empty-library Home, identify both direct starts and choose the bundled source guide. Explain how to
+   obtain a provider export, what leaves FitFreed for the default browser, and why provider credentials never
+   enter the application. Return to Home, use the direct ZIP action, select an authorized compatible archive,
+   understand the progress phases, and explain whether cancellation is currently safe.
 3. From the post-import Home reveal, interpret the usable period, available domains, one safe next question, and the terminal canonical effect without first reviewing source diagnostics. Then find all five source-coverage totals, at least one family reason, and its next action.
-4. Use the Home questions to find an exact daily activity value, training session, sleep period, and recovery night; distinguish missing, unavailable, and zero. In Training, classify an unknown sport, combine meaningful history filters, use chronology and calendar, compare multiple sessions, and inspect recorded structure, route, signal, zone, and provenance evidence. Where source phases are absent, create, edit, reorder, reuse, and remove user-authored segment criteria without mistaking them for provider facts.
+4. Use the Home questions to find an exact daily activity value, training session, sleep period, and recovery
+   night; distinguish missing, unavailable, and zero. In Training, classify an unknown sport, combine meaningful
+   history filters, use chronology and calendar, compare multiple sessions, and open one routed and one partial
+   session as focused stories. Investigate the dominant local map through pan, zoom, fit, focus mode,
+   recorded-position traversal, range selection, and exact route points; inspect independent signals, recorded
+   structure, zones, and provenance without inferring unsupported alignment. Create, reopen, rename, adjust,
+   review, and remove a personal range on an explicit timeline. Where source phases are absent, create, edit,
+   reorder, reuse, and remove user-authored segment criteria without mistaking either authored construct for
+   provider facts.
 5. Apply and reset a range in each explorer, open and close detail, and complete a two-period comparison.
 6. Use the longitudinal view to inspect one aligned day, navigate to an authoritative explorer, return to the shared range, and explain the non-causality notice.
 7. Reimport the same ZIP and explain why history did not duplicate. Import a later authorized export when available and explain the cumulative outcome.
-8. From a training session, create a report with an authored title and narrative; add, remove, and reorder analytical and route views; choose valid periods and metrics; and explain the preview's source separation, exact alternatives, missing evidence, and limitations. Save and reopen it, review included and excluded sensitive content, export a local self-contained HTML file, cancel a second export without replacing the first, and navigate to the exact source and back. After a source-changing reimport, explain why export is blocked, review the candidate evidence, refresh explicitly, and confirm authorship remains unchanged.
+8. From a training session, create a report with an authored title and optional commentary; add, remove, and
+   reorder analytical and route views; choose valid periods and metrics; and explain the Preview result's
+   source separation, exact alternatives, missing evidence, and limitations. Save it, return to the Reports
+   Library, recognize its subject and primary result without opening an editor, then reopen it directly into
+   Preview. Enter composition deliberately, cancel once without changing the result, edit and save once, review
+   included and excluded sensitive content, export a local self-contained HTML file, cancel a second export
+   without replacing the first, and navigate to the exact source and back. After a source-changing reimport,
+   explain why export is blocked, review the candidate evidence, refresh explicitly, and confirm authorship
+   remains unchanged. Delete a disposable synthetic report only after verifying that cancellation preserves it
+   and that successful removal changes no imported history.
 9. Leave one explorer active, quit and reopen FitFreed, and confirm that exact explorer and the locale return without loading unrelated explorers. Return to Home, restart, confirm the exploration is no longer resumed, and find the application version and explicit update check in Settings.
 10. Explain the difference between removing the application and deleting the library, where the library lives, why the original ZIP must be preserved, and what backup capability is absent.
 11. Encounter one controlled invalid package or recoverable failure and identify the safe next action without editing the library or exposing diagnostics.

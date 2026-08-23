@@ -135,7 +135,7 @@ No hypothesis becomes accepted merely because a mockup looks plausible. Results 
 
 **Task:** grasp the session at a glance → for a routed session, enter a map-dominant workbench and understand the complete route before inspecting a point or section → correlate the selected geography with elapsed or distance-aligned signals → inspect relevant structure, zones, or signals → select or author segmentation when useful → reach exact evidence or provenance deliberately.
 
-**Success:** the person does not assemble a story from unrelated long sections; the map is unmistakably the primary evidence for a routed session and its shape, direction, endpoints, current selection, and geographic context are legible without opening a secondary view; missing laps, routes, or samples alter the composition honestly; structure and signals share an understandable time context; exact values remain accessible.
+**Success:** the person does not assemble a story from unrelated long sections; the map is unmistakably the primary evidence for a routed session and its shape, direction, endpoints, current selection, orientation, scale, and local coordinate context are legible without opening a secondary view; missing laps, routes, or samples alter the composition honestly; structure and signals share an understandable time context only where their recorded relationship supports it; exact values remain accessible.
 
 ### J4 — Make an anonymous sport recognizable
 
@@ -448,7 +448,7 @@ it may defer capability, but it may not replace the accepted destination with an
 Comparable products supply useful interaction evidence, not a layout to copy:
 
 - [Garmin Connect GPS track overlays](https://support.garmin.com/en-US/?faq=TldUa5u9Mj67FFw4usMcX7&productID=73207&tab=topics)
-  place pace or speed, heart rate, elevation, and power directly in geographic context and choose a
+  place pace or speed, heart rate, elevation, and power directly against route geometry when an exact recorded relationship exists and choose a
   sport-appropriate default overlay.
 - [Strava activity analysis](https://support.strava.com/en-us/articles/15401886-ride-activity-pages)
   links cursor and range selections across performance charts, instantaneous values, route
@@ -470,7 +470,7 @@ assumptions.
 
 | Direction | Structure | Strength | Material risk |
 |---|---|---|---|
-| Map-led canvas | Compact session identity, full-width dominant map, attached selection strip, then synchronized signal lanes and structure | Best route recognition, strongest geographic hierarchy, natural full-screen path, and clean progressive depth | Requires disciplined compact summary and a persistent selection contract so signals do not feel detached below the map |
+| Map-led canvas | Compact session identity, full-width dominant map, attached selection strip, then conditionally related lanes or an independent signal destination and structure | Best route recognition, strongest geographic hierarchy, natural full-screen path, and clean progressive depth | Requires disciplined compact summary and explicit relationship authority so nearby signals do not imply unsupported synchronization |
 | Dominant split workbench | Map receives roughly two thirds of a wide workspace; a persistent signal inspector receives the remainder | Keeps geography and several signals simultaneously visible for advanced inspection | Still sacrifices route area, becomes fragile at content zoom, and can turn the first view into an analysis console |
 | Signal-led analysis | Large stacked plots lead; the map follows or appears as a synchronized secondary region | Strong temporal and range analysis when performance is the only question | Repeats the rejected hierarchy for route-motivated users and makes place, shape, direction, and repeated geography harder to understand |
 
@@ -482,17 +482,18 @@ to enlarge the existing map card.
 
 On a wide route-bearing session, a compact identity and summary band gives way immediately to one
 full-width map workbench. The map is the largest region on the screen and occupies the majority of the
-primary exploration viewport. Its route, endpoints, direction, selected point, geographic labels,
-scale, and gaps remain legible. A full-screen or focused-map action is part of the ordinary route task,
+primary exploration viewport. Its route, endpoints, direction, selected point, orientation, scale, and gaps
+remain legible. A full-screen or focused-map action is part of the ordinary route task,
 not an expert setting.
 
-The workbench provides a recorded-track view and supported metric overlays such as pace or speed,
-heart rate, elevation, cadence, stroke rate, temperature, or power. Overlay color always has a legend
-and a non-color encoding or structured alternative. A compact strip attached to the map reports the
-selected elapsed time or distance and the available sport-specific values without covering important
-geometry. Signals and structure follow as full-width aligned lanes with the same cursor and range;
-they deepen the map rather than competing with it. Exact points and provenance remain deliberate
-disclosures.
+The workbench provides a recorded-track view and, only when an importer supplies an exact recorded
+relationship, supported metric overlays such as pace or speed, heart rate, elevation, cadence, stroke rate,
+temperature, or power. Overlay color always has a legend and a non-color encoding or structured alternative.
+A compact strip attached to the map reports the selected elapsed time or distance and the available related
+sport-specific values without covering important geometry. Exactly related signals may follow as full-width
+lanes with the same cursor and range. Regular signals without that authority remain independently explorable
+in a deliberate full-width destination; visual proximity never presents them as synchronized. Structure,
+exact points, and provenance remain deliberate disclosures.
 
 Range creation and editing keeps the route visible. On a wide screen, an inspector occupies roughly
 one quarter of the workbench while the map retains the remaining area and updates both boundaries in
@@ -634,10 +635,11 @@ remain visible and its summary never fills them silently.
 
 Map selection follows route order. On a loop or retraced line, spatially coincident candidate points
 must expose elapsed or distance context so the person can choose the intended occurrence. The second
-boundary must be later than the first; dragging either handle updates the map, all signal lanes,
-structure, summary, and exact evidence together. Selecting a source lap or saved user range fits and
-highlights that route extent while leaving the complete route visible as context. Whole-route reset
-restores the prior point or range selection rather than erasing it.
+boundary must be later than the first; dragging either handle updates the map, structure, summary, exact
+evidence, and only those signal lanes whose shared coordinate is explicitly established. Independent signal
+views retain their own clocks and may offer a range starting point only through an application-owned coordinate.
+Selecting a source lap or saved user range fits and highlights that route extent while leaving the complete
+route visible as context. Whole-route reset restores the prior point or range selection rather than erasing it.
 
 This model is deliberately distinct from a segment criterion. A criterion is a reusable rule and may
 derive a partition or several disjoint sections from compatible evidence. A session range is one

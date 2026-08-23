@@ -38,12 +38,17 @@ Installation must not require a development toolchain. If the supplied procedure
 
 Keep every original Polar Flow export unchanged and outside FitFreed. Select the ZIP itself; do not unpack, rename members, edit JSON, or construct a replacement package from extracted files.
 
+Empty-library Home offers a direct ZIP action and a direct route to the bundled acquisition guide. Either
+action continues in Sources without making source management the first screen a participant must discover.
+
 1. Choose the ZIP package.
 2. Review the selected package state and start the import.
-3. Keep FitFreed open while assessment, mapping, reconciliation, and committing progress is shown.
-4. Cancellation is safe before the final atomic visibility boundary. A request made after committing begins waits for that boundary to finish.
-5. Review the terminal outcome and all five coverage categories: supported, unsupported, deliberately ignored, unrecognized, and invalid.
-6. Review each family reason and next action. Recognition is not the same as support, and an invalid supported family rejects the package without exposing partial canonical changes.
+3. Keep FitFreed open while it checks prior import, ZIP safety, supported records, and final library visibility.
+4. Cancellation is safe before the final atomic visibility boundary. A request made after finalization begins waits for that boundary to finish.
+5. Review the terminal consequence for the existing library before opening technical detail.
+6. Open incorporation and coverage detail to inspect all five categories—supported, unsupported, deliberately
+   ignored, unrecognized, and invalid—plus every family reason and next action. Recognition is not the same as
+   support, and an invalid supported family rejects the package without exposing partial canonical changes.
 
 An exact reimport does not duplicate canonical history. Fast reuse is allowed only when the previous import completed with full coverage and the provider, importer, mapping, and source-subject evidence contracts still match. The same ZIP is reassessed after one of those compatibility contracts changes. A later or different ZIP is reconciled by the logical identity of each supported observation, so new facts can be added, equivalent facts preserved, documented revisions amended, and incompatible facts retained as conflicts rather than selected by archive order.
 
@@ -52,17 +57,31 @@ An exact reimport does not duplicate canonical history. Fast reuse is allowed on
 Version 0.1.0 provides:
 
 - daily-activity overview, range, exact day detail, and period comparison;
-- complete-history training-session search with date, sport, authored-label, and measurement filters, stable pagination and sorting, exact session summary, exercise/lap/pause structure, an [interactive local primary/transition route workbench](session-routes.md) with synchronized full-width measurement lanes and selected-row exact evidence, paginated exact route points, gap-aware supported signal charts, paginated exact signal samples, and period comparison;
+- complete-history training-session search with date, sport, authored-label, and measurement filters, stable
+  pagination and sorting, exact session summary, exercise/lap/pause structure, an
+  [interactive local primary/transition route workbench](session-routes.md) with map navigation,
+  recorded-position traversal, personal ranges, and selected-row exact route evidence, paginated exact route
+  points, independent gap-aware supported signal charts, paginated exact signal samples, recorded zones,
+  source provenance, reusable user-authored segmentation, and period comparison. Route overlays and attached
+  signal lanes appear only when an importer certifies an exact recorded relationship; the current Polar Flow
+  mapping supplies none;
 - primary-sleep overview, range, phases, timeline and score detail, and period comparison;
 - dated nightly-recovery overview, range, exact source-context detail, and period comparison; and
 - one provider-neutral longitudinal dashboard with a shared range, aligned exact day synopsis, navigation, and period comparison; and
-- durable session-origin reports that combine recorded evidence, optional user commentary, optional protected
-  route shapes, and user-selected training-period findings, comparisons, accessible charts, exact tables, and
-  coverage in a privacy-reviewed self-contained HTML export.
+- durable question-, exploration-, session-, and blank-origin reports that open as readable results and combine
+  applicable recorded evidence, optional user commentary, optional protected route shapes, user-selected
+  training-period findings, comparisons, accessible charts, exact tables, and coverage in a privacy-reviewed
+  self-contained HTML export. Reports remain locked after their source changes until deliberate refresh reviews
+  and accepts one exact current candidate.
 
 Every visual has exact values or a table alternative. Missing and unavailable observations do not become zero. Histories from different opaque origins remain separate. The longitudinal view reports recorded co-occurrence only; it does not infer causation, readiness, diagnosis, or advice.
 
-Report starts from a question, exploration, or blank canvas, deliberate report refresh, PDF and spreadsheet output, external route maps, provider-defined zones, unsupported training-signal types, undated recovery samples, additional providers, portable normalized export, and user-controlled backup and restore are not included. Consult the [report guide](reports.md) for the implemented authoring boundary and the [Polar Flow compatibility reference](../data-formats/providers/polar-flow.md) for the exact evaluated families and shapes.
+Native PDF and spreadsheet output, free-form report layout, exact-sample and lap report blocks, external route
+maps, unsupported provider-defined zone kinds, unsupported training-signal types, undated recovery samples,
+additional providers, portable normalized export, and user-controlled backup and restore are not included.
+Consult the [report guide](reports.md) for the implemented start, result, authoring, refresh, navigation,
+privacy-review, and HTML-export boundary and the [Polar Flow compatibility reference](../data-formats/providers/polar-flow.md)
+for the exact evaluated families and shapes.
 
 ## Local data and privacy
 
