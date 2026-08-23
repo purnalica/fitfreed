@@ -2953,6 +2953,10 @@ describe("packaged FitFreed import journey", () => {
     );
     await goToHome("reports");
     await openReportWorkspace(spanish, "library");
+    await $(".report-list > li").waitForDisplayed({
+      timeout: 10_000,
+      timeoutMsg: "the saved report result did not load before compact layout evaluation",
+    });
     await browser.execute(() => {
       const library = document.querySelector(".report-library");
       const navigation = document.querySelector(".app-sidebar");

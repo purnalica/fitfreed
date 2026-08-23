@@ -30,7 +30,12 @@ boundaries. Its functional E2E then exposed a separate real reveal defect: focus
 relied on WebKit's implicit scroll and could leave that heading above the viewport. A failing component contract
 now reproduces the missing explicit scroll, and the shared report transitions align newly revealed headings and
 outcomes deliberately. The complete local instrumented package now passes the functional, restart, adaptive-session,
-and two-year performance journeys; exact clean hosted verification is the remaining correction gate. The remaining
+and two-year performance journeys. Hosted revision `bb7298c` passed the corrected cold-launch, scale, dense-history,
+Insights, recovery-preparation, and installation gates and crossed the former export-review failure. It then exposed
+a separate evidence race in the compact 200% Reports Library check: the stable Library container was positioned
+before its asynchronous saved result arrived, so the later card growth invalidated the viewport measurement. The
+unchanged useful-result assertion now waits for that observable result before positioning and measuring it, and the
+complete local packaged campaign passes. Exact clean hosted verification is the remaining correction gate. The remaining
 sequence is to close the automatable R10 evidence, run the X6 independent
 product-experience audit, and present the exact candidate for the final human usability and accessibility
 gate. No routine human intervention is expected before that gate unless an external service or physical
@@ -244,7 +249,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R7 | Complete locally — R7.1 through R7.6 passed the exact fast, functional, restart, adaptive, accessibility, visual, and performance gates on 2026-08-22 | Every session composition reflects its actual evidence |
 | X5-R8 | Complete locally — R8.1 through R8.6 passed the final Alpha gate on 2026-08-23 | Personal ranges and reusable criteria work end to end |
 | X5-R9 | Complete locally — all six slices passed fast, packaged, restart, accessibility, visual, migration, and performance gates on 2026-08-23 | Reports open as results and leave FitFreed safely |
-| X5-R10 | In progress — R10.1 complete; R10.2 documentation and portable checks are green; the diagnosed cold-launch correction awaits clean packaged local and hosted evidence as of 2026-08-23 | The complete release-shaped product is coherent and documented |
+| X5-R10 | In progress — R10.1 complete; R10.2 portable, cold-launch, scale, dense-history, Insights, recovery-preparation, and installation gates are green; the corrected compact report-result synchronization awaits exact hosted verification as of 2026-08-23 | The complete release-shaped product is coherent and documented |
 | X6 | Pending | Independent audit has no unresolved material finding |
 
 ## X4-P0 — Freeze the executable contract
@@ -2033,7 +2038,15 @@ which is not a deterministic reveal contract. A new component assertion fails ag
 only when report Preview, refresh, privacy, deletion, cancellation, refresh outcome, export outcome, and removal
 transitions explicitly align their revealed target. The focused 23-test report suite passes; full and packaged
 verification pass locally with all 339 React tests and the complete functional, restart, adaptive-session, and
-two-year performance journeys. Exact clean hosted verification remains required before the correction becomes
+two-year performance journeys. Hosted revision `bb7298c` passes the corrected cold launch, full-scale import, dense
+history, Insights, update-recovery preparation, and installation boundaries. Its functional journey crosses the
+formerly failing export review and then rejects the Spanish dark compact 200% Reports Library because the useful
+result is outside the measured viewport. The retained screenshot and test history identify a synchronization defect
+in the evidence sequence rather than a removed visual requirement: the always-present Library container was scrolled
+before `list_report_library` rendered its first result, and the later page growth moved that card below the intended
+position. The test still requires at least 60% of the useful card to be visible, but now waits for the observable
+saved result before arranging and measuring the visual state. The complete local packaged campaign passes that exact
+boundary and all subsequent journeys. Exact clean hosted verification remains required before the correction becomes
 accepted evidence.
 
 #### R10.2 evidence matrix
@@ -2043,11 +2056,11 @@ accepted evidence.
 | Public purpose and truthfulness | Generated README and bilingual site now match current implemented capability; exact Pages and repository-safety workflows pass for `6561148`. | Reopen only if later R10 corrections change a public claim. |
 | Terminology, hierarchy, dates, units, precision, icons, visuals, and disclosure | Seven correction slices, complete live-surface inventory, 337 React tests, static contracts, exact `c783def` package, and reviewed cross-workspace synthetic captures. | X6 must challenge the result without implementation context. |
 | Empty, active, completed, repeated, cumulative, rejected, cancelled, failed, partial, stale, and recovery states | Packaged journeys cover first run, active import, success, repeat, extension, rejection, cancellation, partial sessions, stale reports and ranges, and update recovery; focused presentation tests protect recoverable import failure. | Repeat installation, update, recovery, and removal against the final exact executable fingerprint. |
-| Navigation, return, restart, and focus | Packaged process restart, workspace restoration, contextual return, cancellation return, and all six session-section focus and geometry contracts pass. The `fd908ea` hosted journey exposed a report review whose heading had focus but remained above the viewport; a focused TDD correction makes report reveals explicitly aligned, and the complete local instrumented journey passes beyond that boundary. | Repeat the complete clean hosted journey for the corrected report reveal, then complete the all-controls manual keyboard traversal on the exact candidate. |
-| Responsive layout, locale, appearance, zoom, contrast, and reduced motion | English/light and Spanish/dark matrices cover wide, compact, 100%, 175%, and 200% presentation; the exact package rejects page overflow, obstruction, and result-measurement splits. Static and component contracts protect reduced motion. | Repeat scaling, contrast, and reduced-motion observation during candidate manual evaluation. |
+| Navigation, return, restart, and focus | Packaged process restart, workspace restoration, contextual return, cancellation return, and all six session-section focus and geometry contracts pass. The `fd908ea` hosted journey exposed a report review whose heading had focus but remained above the viewport; a focused TDD correction makes report reveals explicitly aligned. Hosted `bb7298c` crosses that former boundary, and the complete local instrumented journey passes every later transition. | Complete the clean hosted journey, then the all-controls manual keyboard traversal on the exact candidate. |
+| Responsive layout, locale, appearance, zoom, contrast, and reduced motion | English/light and Spanish/dark matrices cover wide, compact, 100%, 175%, and 200% presentation; the exact package rejects page overflow, obstruction, and result-measurement splits. The `bb7298c` hosted failure exposed an evidence race that positioned the compact Reports Library before its result arrived; the unchanged useful-result geometry contract now waits at the result boundary and passes locally. Static and component contracts protect reduced motion. | Verify the corrected synchronization in the clean hosted journey, then repeat scaling, contrast, and reduced-motion observation during candidate manual evaluation. |
 | Assistive technology | Packaged Axe runs cover Sources, session detail and ranges, every answer canvas, Reports Library, Compose, Preview, refresh, and export review; semantic alternatives and focus are asserted. | Manual VoiceOver in English and Spanish remains an explicit human candidate gate. |
 | Privacy and data exit | Exact packaged export review proves per-export physiology omission, endpoint reduction, no latitude, longitude, script, or network reference, atomic cancellation, and self-contained HTML; repository and secret scans pass. | Apply the privacy-safe manual protocol to the exact candidate without retaining personal evidence. |
-| Performance and lifecycle | `c783def` passes functional, real-process restart, adaptive-session, and two-year performance campaigns inside every accepted budget. The later exact package for `ee8c856` failed cold launch at 2,609 ms p95; the diagnosed startup-graph correction reduces the main JavaScript bundle by 140,104 bytes. Revision `fd908ea` passes 100 clean local Apple Silicon launches at 445 ms p95 and 100 hosted launches at 1,910 ms p95, then passes full-scale import, dense history, Insights, update-recovery preparation, and installation boundaries. | Repeat the complete hosted campaign for the report-reveal correction, including the previously unexecuted packaged update replacement and evidence marker. |
+| Performance and lifecycle | `c783def` passes functional, real-process restart, adaptive-session, and two-year performance campaigns inside every accepted budget. The later exact package for `ee8c856` failed cold launch at 2,609 ms p95; the diagnosed startup-graph correction reduces the main JavaScript bundle by 140,104 bytes. Revision `fd908ea` passes 100 clean local Apple Silicon launches at 445 ms p95 and 100 hosted launches at 1,910 ms p95. Hosted `bb7298c` repeats cold launch, full-scale import, dense history, Insights, update-recovery preparation, and installation boundaries successfully. | Complete the hosted functional campaign, packaged update replacement, and evidence marker for the synchronized report-result check. |
 | User, contributor, architecture, format, translation, testing, support, and readiness documentation | The current-document audit aligns the accepted specification, redesign plan, roadmap, contributor index, readiness ledger, current user journeys, thematic architecture, data-contract index, localization, support, and conditional release guidance. Eleven canonical sources now have automated stale-status checks. | Replace pending hosted evidence with the coherent correction result and carry any later R10 or X6 finding into its canonical owner. |
 
 ## X6 — Repeat the independent product-experience audit
