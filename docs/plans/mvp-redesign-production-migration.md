@@ -22,9 +22,16 @@ carried both complete locale catalogs and presentation modules that ordinary Hom
 correction now retains English as the deterministic fallback, loads the selected non-default catalog before the
 localized shell, and defers Sources, Settings, and import-outcome modules without weakening an explicit early
 navigation choice. The main production JavaScript bundle fell from 491,694 to 351,590 bytes, while all 339 React
-tests and the complete fast lane pass locally. A clean packaged cold-launch campaign is the next gate; the failed
-unchanged revision will not be rerun as a substitute for diagnosis. The remaining sequence is to verify that
-correction locally and in the hosted campaign, close the automatable R10 evidence, run the X6 independent
+tests and the complete fast lane pass locally. The clean local Apple Silicon campaign for `fd908ea` passed all
+100 fresh processes at 445 milliseconds p95 against the unchanged 2,500-millisecond budget. The failed unchanged
+revision was not rerun as a substitute for diagnosis. The corrected hosted package passed cold launch at 1,910
+milliseconds p95, plus full-scale import, dense history, Insights, update-recovery preparation, and installation
+boundaries. Its functional E2E then exposed a separate real reveal defect: focusing the export-review heading
+relied on WebKit's implicit scroll and could leave that heading above the viewport. A failing component contract
+now reproduces the missing explicit scroll, and the shared report transitions align newly revealed headings and
+outcomes deliberately. The complete local instrumented package now passes the functional, restart, adaptive-session,
+and two-year performance journeys; exact clean hosted verification is the remaining correction gate. The remaining
+sequence is to close the automatable R10 evidence, run the X6 independent
 product-experience audit, and present the exact candidate for the final human usability and accessibility
 gate. No routine human intervention is expected before that gate unless an external service or physical
 accessibility check creates a genuine blocker.
@@ -2015,8 +2022,19 @@ boundary: the main JavaScript bundle is now 351,590 bytes instead of 491,694 byt
 loads as its own cached module before a Spanish shell can become interactive, and ordinary Home startup defers
 Sources, Settings, and import-outcome presentation modules. Explicit early navigation still reaches those
 destinations, failed preference recovery still blocks unsafe work, and locale save, preview, reset, restart, and
-fallback behavior remains covered. Focused TDD and the complete local fast lane pass with 339 React tests; clean
-packaged local and hosted measurements remain required before this correction becomes accepted evidence.
+fallback behavior remains covered. Focused TDD and the complete local fast lane pass with 339 React tests. The
+clean local Apple Silicon package for `fd908ea` passes all 100 measured fresh processes at 445 milliseconds p95
+against the unchanged 2,500-millisecond budget. The matching hosted package passes at 1,910 milliseconds p95,
+then passes full-scale import, dense history, Insights, update-recovery preparation, and installation boundaries.
+The subsequent functional E2E correctly rejected its export review because keyboard focus reached the review
+heading while WebKit left that heading above the viewport. Root-cause history traces the focus contract to
+`36d080e` and the explicit visibility gate to `af60a49`: the implementation relied on implicit focus scrolling,
+which is not a deterministic reveal contract. A new component assertion fails against that behavior and passes
+only when report Preview, refresh, privacy, deletion, cancellation, refresh outcome, export outcome, and removal
+transitions explicitly align their revealed target. The focused 23-test report suite passes; full and packaged
+verification pass locally with all 339 React tests and the complete functional, restart, adaptive-session, and
+two-year performance journeys. Exact clean hosted verification remains required before the correction becomes
+accepted evidence.
 
 #### R10.2 evidence matrix
 
@@ -2025,11 +2043,11 @@ packaged local and hosted measurements remain required before this correction be
 | Public purpose and truthfulness | Generated README and bilingual site now match current implemented capability; exact Pages and repository-safety workflows pass for `6561148`. | Reopen only if later R10 corrections change a public claim. |
 | Terminology, hierarchy, dates, units, precision, icons, visuals, and disclosure | Seven correction slices, complete live-surface inventory, 337 React tests, static contracts, exact `c783def` package, and reviewed cross-workspace synthetic captures. | X6 must challenge the result without implementation context. |
 | Empty, active, completed, repeated, cumulative, rejected, cancelled, failed, partial, stale, and recovery states | Packaged journeys cover first run, active import, success, repeat, extension, rejection, cancellation, partial sessions, stale reports and ranges, and update recovery; focused presentation tests protect recoverable import failure. | Repeat installation, update, recovery, and removal against the final exact executable fingerprint. |
-| Navigation, return, restart, and focus | Packaged process restart, workspace restoration, contextual return, cancellation return, review reveal, and all six session-section focus and geometry contracts pass. | Complete the all-controls manual keyboard traversal on the exact candidate. |
+| Navigation, return, restart, and focus | Packaged process restart, workspace restoration, contextual return, cancellation return, and all six session-section focus and geometry contracts pass. The `fd908ea` hosted journey exposed a report review whose heading had focus but remained above the viewport; a focused TDD correction makes report reveals explicitly aligned, and the complete local instrumented journey passes beyond that boundary. | Repeat the complete clean hosted journey for the corrected report reveal, then complete the all-controls manual keyboard traversal on the exact candidate. |
 | Responsive layout, locale, appearance, zoom, contrast, and reduced motion | English/light and Spanish/dark matrices cover wide, compact, 100%, 175%, and 200% presentation; the exact package rejects page overflow, obstruction, and result-measurement splits. Static and component contracts protect reduced motion. | Repeat scaling, contrast, and reduced-motion observation during candidate manual evaluation. |
 | Assistive technology | Packaged Axe runs cover Sources, session detail and ranges, every answer canvas, Reports Library, Compose, Preview, refresh, and export review; semantic alternatives and focus are asserted. | Manual VoiceOver in English and Spanish remains an explicit human candidate gate. |
 | Privacy and data exit | Exact packaged export review proves per-export physiology omission, endpoint reduction, no latitude, longitude, script, or network reference, atomic cancellation, and self-contained HTML; repository and secret scans pass. | Apply the privacy-safe manual protocol to the exact candidate without retaining personal evidence. |
-| Performance and lifecycle | `c783def` passes functional, real-process restart, adaptive-session, and two-year performance campaigns inside every accepted budget. The later exact package for `ee8c856` failed cold launch at 2,609 ms p95; the diagnosed startup-graph correction reduces the main JavaScript bundle by 140,104 bytes and passes the complete local fast lane. | Verify the correction with a clean local cold-launch campaign, then run the complete install, update, migration, forced-recovery, removal, bundle, memory, and hosted campaign once for the corrected executable fingerprint. |
+| Performance and lifecycle | `c783def` passes functional, real-process restart, adaptive-session, and two-year performance campaigns inside every accepted budget. The later exact package for `ee8c856` failed cold launch at 2,609 ms p95; the diagnosed startup-graph correction reduces the main JavaScript bundle by 140,104 bytes. Revision `fd908ea` passes 100 clean local Apple Silicon launches at 445 ms p95 and 100 hosted launches at 1,910 ms p95, then passes full-scale import, dense history, Insights, update-recovery preparation, and installation boundaries. | Repeat the complete hosted campaign for the report-reveal correction, including the previously unexecuted packaged update replacement and evidence marker. |
 | User, contributor, architecture, format, translation, testing, support, and readiness documentation | The current-document audit aligns the accepted specification, redesign plan, roadmap, contributor index, readiness ledger, current user journeys, thematic architecture, data-contract index, localization, support, and conditional release guidance. Eleven canonical sources now have automated stale-status checks. | Replace pending hosted evidence with the coherent correction result and carry any later R10 or X6 finding into its canonical owner. |
 
 ## X6 — Repeat the independent product-experience audit

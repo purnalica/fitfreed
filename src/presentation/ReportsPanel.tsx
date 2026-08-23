@@ -461,7 +461,11 @@ export function ReportsPanel({
 
   useEffect(() => {
     if (resolved?.definition.reportRef !== openReportRef) return;
-    return restoreFocusAfterReveal(requestedReportHeadingRef.current);
+    return restoreFocusAfterReveal(
+      requestedReportHeadingRef.current,
+      null,
+      { align: "start" },
+    );
   }, [openReportRef, openReportRequestId, resolved?.definition.reportRef]);
 
   useEffect(() => {
@@ -469,6 +473,7 @@ export function ReportsPanel({
     return restoreFocusAfterReveal(
       refreshReviewHeadingRef.current,
       refreshReviewOriginRef.current,
+      { align: "start" },
     );
   }, [refreshReviewOpen]);
 
@@ -477,6 +482,7 @@ export function ReportsPanel({
     return restoreFocusAfterReveal(
       privacyReviewHeadingRef.current,
       privacyReviewOriginRef.current,
+      { align: "start" },
     );
   }, [privacyReviewOpen]);
 
@@ -485,12 +491,17 @@ export function ReportsPanel({
     return restoreFocusAfterReveal(
       deleteReviewHeadingRef.current,
       deleteReviewOriginRef.current,
+      { align: "start" },
     );
   }, [deleteReviewOpen]);
 
   useEffect(() => {
     if (!removedNotice) return;
-    return restoreFocusAfterReveal(libraryHeadingRef.current);
+    return restoreFocusAfterReveal(
+      libraryHeadingRef.current,
+      null,
+      { align: "start" },
+    );
   }, [removedNotice]);
 
   useEffect(() => {
@@ -500,6 +511,7 @@ export function ReportsPanel({
     return restoreFocusAfterReveal(
       target === "preview" ? requestedReportHeadingRef.current : libraryHeadingRef.current,
       compositionCancelOriginRef.current,
+      { align: "start" },
     );
   }, [workspace]);
 
@@ -508,6 +520,7 @@ export function ReportsPanel({
     return restoreFocusAfterReveal(
       refreshedNoticeRef.current,
       refreshOutcomeOriginRef.current,
+      { align: "start" },
     );
   }, [refreshedNotice]);
 
@@ -516,6 +529,7 @@ export function ReportsPanel({
     return restoreFocusAfterReveal(
       exportedNoticeRef.current,
       exportOutcomeOriginRef.current,
+      { align: "start" },
     );
   }, [exportedBytes]);
 

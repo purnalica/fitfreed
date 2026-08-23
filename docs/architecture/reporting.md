@@ -71,6 +71,11 @@ the selected report, reloads the bounded Library, and focuses its heading; an op
 resolves the latest definition without announcing removal. This hierarchy is disposable presentation state
 and does not enter a definition, application DTO, or persistence row.
 
+Every transition that replaces the visible report result explicitly focuses and start-aligns its Preview,
+review, Library, or outcome target within the application workspace. It uses the shared responsive reveal
+offset and never relies on a WebView's implicit focus scrolling, so a focused heading cannot remain above
+persistent navigation or outside the viewport.
+
 The result-first library projection is separate from complete report resolution. It pages at most 24 of the
 1,000 bounded definitions, resolves only an indexed session selection or one authoritative comparison metric,
 reuses identical comparison queries within the page, and caps visible per-source results without merging them.

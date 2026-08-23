@@ -18,6 +18,10 @@ const mocks = vi.hoisted(() => ({
   invoke: vi.fn(),
   save: vi.fn(),
 }));
+const originalScrollIntoViewDescriptor = Object.getOwnPropertyDescriptor(
+  HTMLElement.prototype,
+  "scrollIntoView",
+);
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: mocks.invoke }));
 vi.mock("@tauri-apps/plugin-dialog", () => ({ save: mocks.save }));
@@ -512,7 +516,18 @@ beforeEach(() => {
   mocks.save.mockReset();
 });
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  if (originalScrollIntoViewDescriptor) {
+    Object.defineProperty(
+      HTMLElement.prototype,
+      "scrollIntoView",
+      originalScrollIntoViewDescriptor,
+    );
+  } else {
+    Reflect.deleteProperty(HTMLElement.prototype, "scrollIntoView");
+  }
+});
 
 describe("ReportsPanel", () => {
   it("opens factual result cards without exposing technical report metadata", async () => {
@@ -1517,6 +1532,11 @@ describe("ReportsPanel", () => {
 
   it("reviews the complete privacy boundary and exports a reduced self-contained report", async () => {
     const user = userEvent.setup();
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scrollIntoView,
+    });
     const saved = definition();
     mocks.save.mockResolvedValue("/private/output/ridge-progression.html");
     mocks.invoke.mockImplementation((command) => {
@@ -1533,12 +1553,18 @@ describe("ReportsPanel", () => {
 
     renderPanel({ origin: undefined, originRequestId: 0 });
     await user.click(await screen.findByRole("button", { name: /Ridge progression/ }));
+    await screen.findByRole("region", { name: "Report preview" });
+    scrollIntoView.mockClear();
     await user.click(await screen.findByRole("button", { name: "Review and export" }));
 
     const review = screen.getByRole("region", { name: "Review the export" });
     await waitFor(() => expect(within(review).getByRole("heading", {
       name: "Review the export",
     })).toHaveFocus());
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      block: "start",
+      inline: "nearest",
+    });
     expect(within(review).getByText(/Exact training samples are excluded/)).toBeVisible();
     expect(within(review).getByText(/written only to the location you choose/)).toBeVisible();
     await user.click(within(review).getByRole("checkbox", {
