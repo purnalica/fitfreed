@@ -1810,8 +1810,8 @@ production delay or bypass was added.
 The slice passes all 332 React tests, the production build, localization parity, live-presentation inventory,
 UI contracts, strict Rust linting, and Rust formatting. A rebuilt packaged application passed the complete
 functional journey, separate real-process restart, complete and partial adaptive-session scenarios, and the
-isolated two-year performance campaign. The slowest common-interaction p95 was 71 ms, the slowest maximum-range
-p95 was 395 ms, and the route workbench p95 was 76 ms; each remains inside its accepted budget. R10.2 continues
+isolated two-year performance campaign. The slowest common-interaction p95 was 38 ms, the slowest maximum-range
+p95 was 125 ms, and the route workbench p95 was 76 ms; each remains inside its accepted budget. R10.2 continues
 with the remaining cross-workspace hierarchy, state, adaptive-layout, accessibility, privacy, and visual audit;
 this evidence does not mark the work item complete.
 
