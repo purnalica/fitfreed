@@ -1880,6 +1880,15 @@ each value to its unit. Sleep and recovery contracts cover the shared behavior, 
 rejects a result measurement spanning more than one rendered line. A rebuilt package containing that correction
 remains the next gate, so R10.2 is still open.
 
+The clean measurement revision `cd91496` passes the complete 3-minute-11-second functional journey, real-process
+restart, complete and partial adaptive-session scenarios, and the isolated two-year performance campaign. The
+slowest common-interaction p95 was 116 ms, the slowest maximum-range p95 was 523 ms, and route-workbench opening
+remained 75 ms; each is inside its accepted budget. Automated layout evidence confirms one rendered line for the
+localized sleep and recovery measurement parameters. Manual review accepts the corrected sleep capture: its
+headline now wraps before the complete `7 h 30 min` value rather than isolating `min`, while the result, period,
+coverage, visual explanation, and exact-detail disclosure remain in the initial viewport. R10.2 remains open for
+the remaining adaptive-layout, state, keyboard, assistive-technology, privacy, and cross-workspace visual checks.
+
 ## X6 — Repeat the independent product-experience audit
 
 The audit starts from a clean first run and does not use milestone status, prototype familiarity, test
