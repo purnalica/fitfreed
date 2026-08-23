@@ -39,17 +39,24 @@ export interface LocalRouteViewportOverlay {
   segments: RouteOverlaySegment[];
 }
 
+export interface LocalRouteViewportRangeSelection {
+  startedAtPointIndex: number | null;
+  endedAtPointIndex: number | null;
+}
+
 export interface LocalRouteViewportOptions {
   points: RouteWorkbenchPoint[];
   directionMarkers: RouteDirectionMarker[];
   selectedPointIndex: number;
   overlay: LocalRouteViewportOverlay | null;
+  rangeSelection: LocalRouteViewportRangeSelection | null;
   onSelectPoint: (pointIndex: number) => void;
 }
 
 export interface LocalRouteViewport {
   updateSelection: (pointIndex: number) => void;
   updateOverlay: (overlay: LocalRouteViewportOverlay | null) => void;
+  updateRangeSelection: (selection: LocalRouteViewportRangeSelection | null) => void;
   zoomIn: () => void;
   zoomOut: () => void;
   fitTrack: () => void;

@@ -4,14 +4,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { catalogs } from "../locales/catalogs";
 import type { SessionStory } from "./session-story";
+import type { TrainingSessionRange, TrainingSessionRangesResult } from "./training-session-range";
+import { TrainingRangeInteractionProvider } from "./TrainingRangeInteractionProvider";
 import { TrainingRouteWorkbench } from "./TrainingRouteWorkbench";
 
+const commands = vi.hoisted(() => ({ invoke: vi.fn() }));
 const viewport = vi.hoisted(() => ({
   create: vi.fn(),
   selectPoint: undefined as ((pointIndex: number) => void) | undefined,
   controller: {
     updateSelection: vi.fn(),
     updateOverlay: vi.fn(),
+    updateRangeSelection: vi.fn(),
     zoomIn: vi.fn(),
     zoomOut: vi.fn(),
     fitTrack: vi.fn(),
@@ -20,6 +24,7 @@ const viewport = vi.hoisted(() => ({
   },
 }));
 
+vi.mock("@tauri-apps/api/core", () => ({ invoke: commands.invoke }));
 vi.mock("./leaflet-route-adapter", () => ({
   createLocalRouteViewport: viewport.create,
 }));
@@ -206,6 +211,7 @@ function story(withElapsed = true): SessionStory {
 }
 
 beforeEach(() => {
+  commands.invoke.mockReset();
   viewport.selectPoint = undefined;
   Object.values(viewport.controller).forEach((mock) => mock.mockReset());
   viewport.create.mockReset().mockImplementation((_element, options) => {
@@ -217,6 +223,192 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("TrainingRouteWorkbench", () => {
+  it("authors an exact route range with pointer and keyboard-operable boundary handles", async () => {
+    const currentStory = story();
+    const exerciseRef = currentStory.exercises[0].exerciseRef;
+    const routeRef = currentStory.exercises[0].primary.route!.routeRef;
+    const sessionRef = currentStory.session.sessionRef;
+    const snapshotRef = currentStory.snapshotRef;
+    const savedRange: TrainingSessionRange = {
+      rangeRef: `range-${"7".repeat(64)}`,
+      exerciseRef,
+      coordinate: { scope: "route-elapsed", routeRef },
+      title: "Riverside effort",
+      startedAtElapsedMilliseconds: "1000",
+      endedAtElapsedMilliseconds: "2000",
+      evidenceRevision: `range-evidence-${"8".repeat(64)}`,
+      authorship: "user",
+      state: "current",
+      revision: 1,
+    };
+    const context = (ranges: TrainingSessionRange[]): TrainingSessionRangesResult => ({
+      snapshotRef,
+      sessionRef,
+      sessionDurationMilliseconds: currentStory.session.durationMilliseconds,
+      evidenceRevision: savedRange.evidenceRevision,
+      exercises: [{
+        exerciseRef,
+        ordinal: 0,
+        coordinates: [{
+          coordinate: { scope: "route-elapsed", routeRef },
+          maximumElapsedMilliseconds: "2000",
+        }],
+      }],
+      ranges,
+    });
+    commands.invoke.mockImplementation((command) => {
+      if (command === "query_training_session_ranges") return Promise.resolve(context([]));
+      if (command === "create_training_session_range") return Promise.resolve(context([savedRange]));
+      if (command === "query_training_session_range_summary") return new Promise(() => undefined);
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+    const user = userEvent.setup();
+
+    render(
+      <TrainingRangeInteractionProvider
+        sessionRef={sessionRef}
+        snapshotRef={snapshotRef}
+        story={currentStory}
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        onError={vi.fn()}
+      >
+        <TrainingRouteWorkbench
+          story={currentStory}
+          locale="en-US"
+          messages={catalogs["en-US"]}
+          onOpenExactRoute={vi.fn()}
+          onOpenExactSignal={vi.fn()}
+        />
+      </TrainingRangeInteractionProvider>,
+    );
+
+    await user.click(await screen.findByRole("button", {
+      name: "Create a range from this point",
+    }));
+    expect(screen.queryByRole("combobox", { name: "Timeline" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Start")).toHaveValue("0:00:00");
+    expect(screen.getByLabelText("End")).toHaveValue("0:00:01");
+    expect(viewport.controller.updateRangeSelection).toHaveBeenLastCalledWith({
+      startedAtPointIndex: 0,
+      endedAtPointIndex: 1,
+    });
+
+    const startHandle = screen.getByRole("slider", { name: "Range start on route" });
+    const endHandle = screen.getByRole("slider", { name: "Range end on route" });
+    expect(startHandle).toHaveAttribute("aria-valuetext", "Point 1 of 3 · 0 ms");
+    endHandle.focus();
+    fireEvent.change(endHandle, { target: { value: "2" } });
+    expect(screen.getByLabelText("End")).toHaveValue("0:00:02");
+    expect(viewport.controller.updateRangeSelection).toHaveBeenLastCalledWith({
+      startedAtPointIndex: 0,
+      endedAtPointIndex: 2,
+    });
+
+    await user.click(screen.getByRole("button", { name: "Move range start" }));
+    await act(async () => viewport.selectPoint?.(1));
+    expect(screen.getByLabelText("Start")).toHaveValue("0:00:01");
+    expect(screen.getByRole("button", { name: "Move range start" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    await user.type(screen.getByLabelText("Range name"), "Riverside effort");
+    await user.click(screen.getByRole("button", { name: "Save range" }));
+    expect(commands.invoke).toHaveBeenCalledWith("create_training_session_range", {
+      request: {
+        sessionRef,
+        snapshotRef,
+        exerciseRef,
+        coordinate: { scope: "route-elapsed", routeRef },
+        title: "Riverside effort",
+        startedAtElapsedMilliseconds: "1000",
+        endedAtElapsedMilliseconds: "2000",
+      },
+    });
+    expect(await screen.findByText("Range saved.")).toBeVisible();
+    expect(screen.getByText("Riverside effort")).toBeVisible();
+  });
+
+  it("offers the only saved range for this route when another coordinate is selected", async () => {
+    const currentStory = story();
+    const exerciseRef = currentStory.exercises[0].exerciseRef;
+    const routeRef = currentStory.exercises[0].primary.route!.routeRef;
+    const rangeEvidenceRevision = `range-evidence-${"8".repeat(64)}`;
+    const exerciseRange: TrainingSessionRange = {
+      rangeRef: `range-${"6".repeat(64)}`,
+      exerciseRef,
+      coordinate: { scope: "exercise-elapsed" },
+      title: "Warm-up",
+      startedAtElapsedMilliseconds: "0",
+      endedAtElapsedMilliseconds: "1000",
+      evidenceRevision: rangeEvidenceRevision,
+      authorship: "user",
+      state: "current",
+      revision: 1,
+    };
+    const routeRange: TrainingSessionRange = {
+      ...exerciseRange,
+      rangeRef: `range-${"7".repeat(64)}`,
+      coordinate: { scope: "route-elapsed", routeRef },
+      title: "Riverside effort",
+      startedAtElapsedMilliseconds: "1000",
+      endedAtElapsedMilliseconds: "2000",
+    };
+    commands.invoke.mockImplementation((command) => {
+      if (command === "query_training_session_ranges") return Promise.resolve({
+        snapshotRef: currentStory.snapshotRef,
+        sessionRef: currentStory.session.sessionRef,
+        sessionDurationMilliseconds: currentStory.session.durationMilliseconds,
+        evidenceRevision: rangeEvidenceRevision,
+        exercises: [{
+          exerciseRef,
+          ordinal: 0,
+          coordinates: [{
+            coordinate: { scope: "exercise-elapsed" },
+            maximumElapsedMilliseconds: "3600000",
+          }, {
+            coordinate: { scope: "route-elapsed", routeRef },
+            maximumElapsedMilliseconds: "2000",
+          }],
+        }],
+        ranges: [exerciseRange, routeRange],
+      } satisfies TrainingSessionRangesResult);
+      if (command === "query_training_session_range_summary") return new Promise(() => undefined);
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+    const user = userEvent.setup();
+
+    render(
+      <TrainingRangeInteractionProvider
+        sessionRef={currentStory.session.sessionRef}
+        snapshotRef={currentStory.snapshotRef}
+        story={currentStory}
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        onError={vi.fn()}
+      >
+        <TrainingRouteWorkbench
+          story={currentStory}
+          locale="en-US"
+          messages={catalogs["en-US"]}
+          onOpenExactRoute={vi.fn()}
+          onOpenExactSignal={vi.fn()}
+        />
+      </TrainingRangeInteractionProvider>,
+    );
+
+    const savedRange = await screen.findByRole("combobox", { name: "Saved range" });
+    expect(savedRange).toHaveValue("");
+    await user.selectOptions(savedRange, routeRange.rangeRef);
+
+    expect(screen.getByText("Riverside effort")).toBeVisible();
+    expect(viewport.controller.updateRangeSelection).toHaveBeenLastCalledWith({
+      startedAtPointIndex: 1,
+      endedAtPointIndex: 2,
+    });
+  });
+
   it("names projected positions by their exact source ordinal in a dense route", async () => {
     const denseStory = story();
     const role = denseStory.exercises[0].primary;

@@ -6,6 +6,7 @@ import {
   type LocalRouteViewport,
   type LocalRouteViewportOptions,
   type LocalRouteViewportOverlay,
+  type LocalRouteViewportRangeSelection,
 } from "./route-viewport";
 
 const SINGLE_POINT_ZOOM = 16;
@@ -98,6 +99,7 @@ export async function createLocalRouteViewport(
     radius: 9,
   }).addTo(map);
   let overlayLayer: L.LayerGroup | undefined;
+  let rangeLayer: L.LayerGroup | undefined;
 
   function fitTrack() {
     if (latLngs.length === 1) {
@@ -129,6 +131,41 @@ export async function createLocalRouteViewport(
     selection.bringToFront();
   }
 
+  function updateRangeSelection(rangeSelection: LocalRouteViewportRangeSelection | null) {
+    if (rangeLayer) {
+      rangeLayer.removeFrom(map);
+      rangeLayer = undefined;
+    }
+    if (!rangeSelection) return;
+    const layers: L.Layer[] = [];
+    const startedAt = rangeSelection.startedAtPointIndex;
+    const endedAt = rangeSelection.endedAtPointIndex;
+    if (startedAt !== null && endedAt !== null) {
+      const from = Math.min(startedAt, endedAt);
+      const through = Math.max(startedAt, endedAt);
+      layers.push(L.polyline(latLngs.slice(from, through + 1), {
+        className: "fitfreed-route-range-track",
+        interactive: false,
+      }));
+    }
+    if (startedAt !== null) {
+      layers.push(L.circleMarker(latLngs[startedAt], {
+        className: "fitfreed-route-range-start",
+        interactive: false,
+        radius: 10,
+      }));
+    }
+    if (endedAt !== null) {
+      layers.push(L.circleMarker(latLngs[endedAt], {
+        className: "fitfreed-route-range-end",
+        interactive: false,
+        radius: 10,
+      }));
+    }
+    if (layers.length > 0) rangeLayer = L.layerGroup(layers).addTo(map);
+    selection.bringToFront();
+  }
+
   function selectNearest(event: L.LeafletMouseEvent) {
     const eventPoint = map.latLngToLayerPoint(event.latlng);
     let selectedIndex = 0;
@@ -146,6 +183,7 @@ export async function createLocalRouteViewport(
   track.on("click", selectNearest);
   fitTrack();
   updateOverlay(options.overlay);
+  updateRangeSelection(options.rangeSelection);
 
   return {
     updateSelection(pointIndex) {
@@ -153,6 +191,7 @@ export async function createLocalRouteViewport(
       selection.setLatLng(routeLatLng(point)).bringToFront();
     },
     updateOverlay,
+    updateRangeSelection,
     zoomIn() {
       map.zoomIn(1, { animate: false });
     },

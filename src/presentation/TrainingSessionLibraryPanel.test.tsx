@@ -45,6 +45,7 @@ const routeViewport = vi.hoisted(() => ({
   controller: {
     updateSelection: vi.fn(),
     updateOverlay: vi.fn(),
+    updateRangeSelection: vi.fn(),
     zoomIn: vi.fn(),
     zoomOut: vi.fn(),
     fitTrack: vi.fn(),

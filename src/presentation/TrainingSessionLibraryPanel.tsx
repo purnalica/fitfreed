@@ -63,6 +63,7 @@ import { TrainingSegmentationPanel } from "./TrainingSegmentationPanel";
 import { TrainingSessionEvidenceSummary } from "./TrainingSessionEvidenceSummary";
 import { TrainingSessionProvenancePanel } from "./TrainingSessionProvenancePanel";
 import { TrainingRouteWorkbench } from "./TrainingRouteWorkbench";
+import { TrainingRangeInteractionProvider } from "./TrainingRangeInteractionProvider";
 import { TrainingRangesPanel } from "./TrainingRangesPanel";
 import { TrainingSignalPlot } from "./TrainingSignalPlot";
 import { TrainingSignalWorkbench } from "./TrainingSignalWorkbench";
@@ -2720,6 +2721,15 @@ export function TrainingSessionLibraryPanel({
           aria-labelledby="training-session-detail-heading"
           aria-busy={detailLoading}
         >
+          <TrainingRangeInteractionProvider
+            key={selected.sessionRef}
+            sessionRef={selected.sessionRef}
+            snapshotRef={page?.snapshotRef ?? ""}
+            story={detailStory}
+            locale={locale}
+            messages={messages}
+            onError={onError}
+          >
           <div className="training-detail-heading">
             <div>
               <div className="training-detail-identity">
@@ -2854,12 +2864,8 @@ export function TrainingSessionLibraryPanel({
           >
             {page && detailStory && (
               <TrainingRangesPanel
-                sessionRef={selected.sessionRef}
-                snapshotRef={page.snapshotRef}
-                story={detailStory}
                 locale={locale}
                 messages={messages}
-                onError={onError}
               />
             )}
           </section>
@@ -2990,6 +2996,7 @@ export function TrainingSessionLibraryPanel({
               />
             )}
           </section>
+          </TrainingRangeInteractionProvider>
         </section>
       )}
     </section>

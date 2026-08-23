@@ -39,6 +39,27 @@ does not interpolate it. When a displayed measurement is transformed from anothe
 exact-evidence action names both meanings—for example, pace derived for display from recorded speed
 samples.
 
+## Keep part of a route
+
+The map and **Your selection** inspector share the same personal-range state used by the **Personal ranges**
+destination. Choose a timed route point and use **Create a range from this point**. The map remains visible
+while the shared editor opens beside it on a wide window and below it at compact width or high content zoom.
+
+Choose **Move range start** or **Move range end**, then click the recorded line to place that boundary on the
+selected recorded point when that point has an exact elapsed value. An untimed point moves the exploration
+cursor but does not become a range boundary. The separate **Range start on route** and **Range end on route**
+controls expose the exact timed points to pointer and keyboard input. The highlighted line and two map markers
+are projections of the shared draft; editing the elapsed fields directly never causes the map to guess a
+nearest point. If an exact boundary is outside the bounded map projection, the saved value remains intact and
+the inspector says why no marker is shown.
+
+Saving creates the same session-owned object visible under **Personal ranges**. A saved range on the visible
+route can be reopened with **Adjust on the map**. If a range on another coordinate is currently selected,
+**Saved range** offers the ranges belonging to this visible route rather than hiding the only match. Route
+changes, cancellation, conflicts, and reimport review continue through the one range controller; the workbench
+does not own a second draft or persistence path. A point without recorded elapsed time cannot become a
+boundary, and equal offsets on an independent signal never synchronize that signal with the map.
+
 ## Compare measurements along the route
 
 Recorded measurements appear below the map only when an importer explicitly aligns them with route positions.
@@ -76,9 +97,9 @@ remain on the device. Update checks are a separate application capability and ne
 facts.
 
 The current workbench deliberately has a neutral coordinate context rather than a street or terrain map.
-Personal range editing inside the map and source-attributed range exploration remain active MVP work. The
-existing signal views and personal segmentation criteria remain available in their current detail sections
-while that integration is completed.
+Personal route-range editing is available, while direct range interaction on independent signal views,
+source structure, and exact-evidence tables remains active MVP work. Existing signal views and personal
+segmentation criteria remain available in their current detail sections while that integration is completed.
 
 Never attach a screenshot, coordinate table, route, export, library, or diagnostic containing personal
 history to a public issue. Use a synthetic package and follow the repository security and support

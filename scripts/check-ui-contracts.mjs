@@ -32,6 +32,18 @@ const trainingRanges = readFileSync(path.join(
   "presentation",
   "TrainingRangesPanel.tsx",
 ), "utf8");
+const trainingRangeInteraction = readFileSync(path.join(
+  repositoryRoot,
+  "src",
+  "presentation",
+  "TrainingRangeInteractionProvider.tsx",
+), "utf8");
+const trainingRangeEditor = readFileSync(path.join(
+  repositoryRoot,
+  "src",
+  "presentation",
+  "TrainingRangeEditor.tsx",
+), "utf8");
 const trainingRangeEditorModel = readFileSync(path.join(
   repositoryRoot,
   "src",
@@ -259,8 +271,9 @@ for (const deliberateMapInteraction of [
 if (!trainingSessionLibrary.includes("<TrainingRouteWorkbench")) {
   throw new Error("a route-bearing session story must expose the route workbench before deep detail");
 }
-if (!trainingSessionLibrary.includes("<TrainingRangesPanel")) {
-  throw new Error("session detail must compose the one production personal-range boundary");
+if (!trainingSessionLibrary.includes("<TrainingRangeInteractionProvider")
+  || !trainingSessionLibrary.includes("<TrainingRangesPanel")) {
+  throw new Error("session detail must compose one range controller around every range representation");
 }
 for (const rangeCommand of [
   "query_training_session_ranges",
@@ -270,9 +283,29 @@ for (const rangeCommand of [
   "adjust_training_session_range",
   "remove_training_session_range",
 ]) {
-  if (!trainingRanges.includes(`"${rangeCommand}"`)) {
-    throw new Error(`the personal-range task must retain its complete command path: ${rangeCommand}`);
+  if (!trainingRangeInteraction.includes(`"${rangeCommand}"`)) {
+    throw new Error(`the session range controller must retain its complete command path: ${rangeCommand}`);
   }
+}
+for (const parallelRangeTask of [trainingRanges, trainingRangeEditor, routeWorkbench]) {
+  if (parallelRangeTask.includes('@tauri-apps/api/core')) {
+    throw new Error("a range representation must not issue a command outside the session controller");
+  }
+}
+for (const sharedRangeInteraction of [
+  "useOptionalTrainingRangeInteraction",
+  '<TrainingRangeEditor surface="route"',
+  'openCreateEditor("route"',
+  "pointIndexAtExactElapsed",
+  "updateRangeSelection",
+]) {
+  if (!routeWorkbench.includes(sharedRangeInteraction)) {
+    throw new Error(`the route range workspace must preserve ${sharedRangeInteraction}`);
+  }
+}
+if (!trainingRanges.includes("<TrainingRangeEditor")
+  || !trainingRangeEditor.includes("useTrainingRangeInteraction")) {
+  throw new Error("the range library and route workbench must compose one shared editor");
 }
 for (const exactRangeRule of [
   "BigInt(value)",
@@ -293,9 +326,18 @@ requireRule(
   [/display:\s*grid/, /grid-template-columns:\s*minmax\(210px,\s*280px\)\s+minmax\(0,\s*1fr\)/],
   "a readable wide personal-range library and result",
 );
+requireRule(
+  stylesheet,
+  '.training-route-range-layout[data-has-range="true"]',
+  [/display:\s*grid/, /grid-template-columns:\s*minmax\(0,\s*3fr\)\s+minmax\(240px,\s*1fr\)/],
+  "a map-dominant wide route-range workspace",
+);
 for (const zoom of ["175", "200"]) {
   if (!stylesheet.includes(`:root[data-content-zoom="${zoom}"] .training-range-workspace`)) {
     throw new Error(`personal-range work must stack at ${zoom}% content zoom`);
+  }
+  if (!stylesheet.includes(`:root[data-content-zoom="${zoom}"] .training-route-range-layout`)) {
+    throw new Error(`route-range work must stack at ${zoom}% content zoom`);
   }
 }
 for (const workbench of [

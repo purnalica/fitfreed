@@ -1605,7 +1605,13 @@ describe("packaged FitFreed import journey", () => {
     await expectRevealOutsideApplicationNavigation(".training-route-map-frame");
     const routeWorkbenchLayout = await browser.execute(() => {
       const workbench = document.querySelector(".training-route-workbench").getBoundingClientRect();
+      const rangeLayout = document.querySelector(
+        ".training-route-range-layout",
+      ).getBoundingClientRect();
       const map = document.querySelector(".training-route-map-frame").getBoundingClientRect();
+      const rangeInspector = document.querySelector(
+        ".training-route-range-inspector",
+      ).getBoundingClientRect();
       return {
         directionTransforms: [...document.querySelectorAll(
           ".fitfreed-route-direction span",
@@ -1614,13 +1620,25 @@ describe("packaged FitFreed import journey", () => {
           document.querySelector(".training-route-map"),
         ).backgroundImage,
         mapHeight: map.height,
+        mapRight: map.right,
         mapWidth: map.width,
+        rangeInspectorLeft: rangeInspector.left,
+        rangeInspectorWidth: rangeInspector.width,
+        rangeLayoutWidth: rangeLayout.width,
         viewportHeight: document.documentElement.clientHeight,
         workbenchWidth: workbench.width,
       };
     });
+    expect(routeWorkbenchLayout.mapWidth / routeWorkbenchLayout.rangeLayoutWidth)
+      .toBeGreaterThan(0.7);
+    expect(routeWorkbenchLayout.mapWidth / routeWorkbenchLayout.rangeLayoutWidth)
+      .toBeLessThan(0.78);
+    expect(routeWorkbenchLayout.rangeInspectorLeft)
+      .toBeGreaterThan(routeWorkbenchLayout.mapRight);
+    expect(routeWorkbenchLayout.rangeInspectorWidth / routeWorkbenchLayout.rangeLayoutWidth)
+      .toBeGreaterThan(0.2);
     expect(routeWorkbenchLayout.mapWidth / routeWorkbenchLayout.workbenchWidth)
-      .toBeGreaterThan(0.94);
+      .toBeGreaterThan(0.65);
     expect(routeWorkbenchLayout.mapHeight / routeWorkbenchLayout.viewportHeight)
       .toBeGreaterThan(0.38);
     expect(routeWorkbenchLayout.mapHeight / routeWorkbenchLayout.viewportHeight)
@@ -1637,6 +1655,81 @@ describe("packaged FitFreed import journey", () => {
     expect(await routeWorkbench.$$(".training-route-signal-lanes")).toHaveLength(0);
     expect(await routeWorkbench.$$(".training-route-overlay-legend")).toHaveLength(0);
     await expect(routeWorkbench).toHaveText(expect.stringContaining("Point 1 of 5"));
+
+    const rangeCopy = english.training.sessionLibrary.ranges;
+    await openTrainingDetailSection(english, "ranges");
+    const initialPersonalRanges = await $(".training-ranges");
+    await expect(initialPersonalRanges.$("h3")).toHaveText(rangeCopy.heading);
+    await expect(initialPersonalRanges).toHaveText(expect.stringContaining(rangeCopy.empty));
+    await initialPersonalRanges.$(`aria/${rangeCopy.create}`).click();
+    await initialPersonalRanges.$(`aria/${rangeCopy.cancel}`).click();
+    await expect(initialPersonalRanges).toHaveText(expect.stringContaining(rangeCopy.empty));
+
+    const routeRangeCopy = english.training.sessionLibrary.routeWorkbench;
+    await routeWorkbench.$(`aria/${routeRangeCopy.createRangeHere}`).click();
+    const routeRangeEditor = await routeWorkbench.$(".training-range-editor");
+    await routeRangeEditor.$(".training-range-editor-name input").setValue("Ridge middle");
+    const routeRangeHandles = await routeWorkbench.$$(
+      ".training-route-range-handles input[type='range']",
+    );
+    expect(routeRangeHandles).toHaveLength(2);
+    await browser.execute((start, end) => {
+      const setValue = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      ).set;
+      setValue.call(start, "1");
+      start.dispatchEvent(new Event("input", { bubbles: true }));
+      start.dispatchEvent(new Event("change", { bubbles: true }));
+      setValue.call(end, "3");
+      end.dispatchEvent(new Event("input", { bubbles: true }));
+      end.dispatchEvent(new Event("change", { bubbles: true }));
+    }, routeRangeHandles[0], routeRangeHandles[1]);
+    await expect(routeRangeHandles[0]).toHaveAttribute(
+      "aria-valuetext",
+      expect.stringContaining("Point 2 of 5"),
+    );
+    await expect(routeRangeHandles[1]).toHaveAttribute(
+      "aria-valuetext",
+      expect.stringContaining("Point 4 of 5"),
+    );
+    const routeRangeEditorAccessibility = await new AxeBuilder({ client: browser })
+      .setLegacyMode()
+      .include(".training-route-workbench")
+      .analyze();
+    expect(routeRangeEditorAccessibility.violations).toEqual([]);
+    await browser.execute(() => {
+      document.querySelector(".training-route-range-inspector").scrollTop = 0;
+    });
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r8-route-range-editor-en-wide.png",
+    ));
+    await browser.execute(() => {
+      const inspector = document.querySelector(".training-route-range-inspector");
+      inspector.scrollTop = inspector.scrollHeight;
+    });
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r8-route-range-editor-actions-en-wide.png",
+    ));
+    await routeRangeEditor.$(`aria/${rangeCopy.save}`).click();
+    await waitForNotice(rangeCopy.saved);
+    await expect(routeWorkbench.$(".training-route-saved-range strong")).toHaveText(
+      "Ridge middle",
+    );
+    expect(await routeWorkbench.$$(".fitfreed-route-range-start")).toHaveLength(1);
+    expect(await routeWorkbench.$$(".fitfreed-route-range-end")).toHaveLength(1);
+    const routeRangeAccessibility = await new AxeBuilder({ client: browser })
+      .setLegacyMode()
+      .include(".training-route-workbench")
+      .analyze();
+    expect(routeRangeAccessibility.violations).toEqual([]);
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r8-route-range-en-wide.png",
+    ));
+
     const routePosition = await routeWorkbench.$('input[type="range"]');
     await expect(routePosition).toHaveAttribute("max", "4");
     await routePosition.addValue(Key.ArrowRight);
@@ -1716,8 +1809,16 @@ describe("packaged FitFreed import journey", () => {
     const visibleRoute = routeSelectors[0];
     await selectNativeOption(visibleRoute, "0:transition");
     await expect(routeWorkbench).toHaveText(expect.stringContaining("Point 1 of 2"));
+    expect(await routeWorkbench.$$(".fitfreed-route-range-start, .fitfreed-route-range-end"))
+      .toHaveLength(0);
     await selectNativeOption(visibleRoute, "0:primary");
     await expect(routeWorkbench).toHaveText(expect.stringContaining("Point 1 of 5"));
+    await browser.waitUntil(
+      async () => (await routeWorkbench.$$(
+        ".fitfreed-route-range-start, .fitfreed-route-range-end",
+      )).length === 2,
+      { timeout: 10_000, timeoutMsg: "saved route-range markers were not restored" },
+    );
     await browser.execute(() => {
       const position = document.querySelector(
         ".training-route-position-control input[type='range']",
@@ -1919,14 +2020,21 @@ describe("packaged FitFreed import journey", () => {
     await $('button[aria-controls="training-session-provenance"]').click();
     expect(await $$(".training-provenance")).toHaveLength(0);
 
-    const rangeCopy = english.training.sessionLibrary.ranges;
     await openTrainingDetailSection(english, "ranges");
     const personalRanges = await $(".training-ranges");
     await expect(personalRanges.$("h3")).toHaveText(rangeCopy.heading);
-    await expect(personalRanges).toHaveText(expect.stringContaining(rangeCopy.empty));
+    const firstRangeInspector = await personalRanges.$(".training-range-inspector");
+    await expect(firstRangeInspector.$("h4")).toHaveText("Ridge middle");
+    await firstRangeInspector.$(".training-range-result-summary").waitForDisplayed({
+      timeout: 10_000,
+    });
+    await expect(firstRangeInspector.$(".training-range-result-summary"))
+      .toHaveText(expect.stringContaining("30 min"));
+    await expectPersonalRangeGeometry(false);
+
     await personalRanges.$(`aria/${rangeCopy.create}`).click();
     await personalRanges.$(`aria/${rangeCopy.cancel}`).click();
-    await expect(personalRanges).toHaveText(expect.stringContaining(rangeCopy.empty));
+    await expect(firstRangeInspector.$("h4")).toHaveText("Ridge middle");
 
     await personalRanges.$(`aria/${rangeCopy.create}`).click();
     const firstRangeEditor = await personalRanges.$(".training-range-editor");
@@ -1947,17 +2055,8 @@ describe("packaged FitFreed import journey", () => {
       .include(".training-ranges")
       .analyze();
     expect(invalidRangeAccessibility.violations).toEqual([]);
-    await firstRangeBoundaries[1].setValue("0:45:00");
-    await firstRangeEditor.$(`aria/${rangeCopy.save}`).click();
-    await waitForNotice(rangeCopy.saved);
-    const firstRangeInspector = await personalRanges.$(".training-range-inspector");
+    await firstRangeEditor.$(`aria/${rangeCopy.cancel}`).click();
     await expect(firstRangeInspector.$("h4")).toHaveText("Ridge middle");
-    await firstRangeInspector.$(".training-range-result-summary").waitForDisplayed({
-      timeout: 10_000,
-    });
-    await expect(firstRangeInspector.$(".training-range-result-summary"))
-      .toHaveText(expect.stringContaining("30 min"));
-    await expectPersonalRangeGeometry(false);
     await firstRangeInspector.$(".training-range-evidence-details summary").click();
     await expect(firstRangeInspector).toHaveText(
       expect.stringContaining(rangeCopy.coverageHeading),
@@ -3425,6 +3524,81 @@ describe("packaged FitFreed import journey", () => {
     await expect($("#training-session-detail-heading")).toHaveText(
       spanish.training.sessionLibrary.detailHeading,
     );
+    const localizedRouteWorkbench = await $(".training-route-workbench");
+    await localizedRouteWorkbench.$(".fitfreed-route-track").waitForDisplayed({ timeout: 10_000 });
+    await expect(localizedRouteWorkbench.$(".training-route-range-inspector h4")).toHaveText(
+      spanish.training.sessionLibrary.routeWorkbench.rangeHeading,
+    );
+    const compactRouteRangeGeometry = await browser.execute(() => {
+      const root = document.documentElement;
+      const map = document.querySelector(".training-route-map-frame").getBoundingClientRect();
+      const inspector = document.querySelector(
+        ".training-route-range-inspector",
+      ).getBoundingClientRect();
+      return {
+        hasHorizontalOverflow: root.scrollWidth > root.clientWidth,
+        inspectorTop: inspector.top,
+        inspectorWidth: inspector.width,
+        mapBottom: map.bottom,
+        mapWidth: map.width,
+      };
+    });
+    expect(compactRouteRangeGeometry.hasHorizontalOverflow).toBe(false);
+    expect(compactRouteRangeGeometry.inspectorTop)
+      .toBeGreaterThanOrEqual(compactRouteRangeGeometry.mapBottom);
+    expect(Math.abs(
+      compactRouteRangeGeometry.inspectorWidth - compactRouteRangeGeometry.mapWidth,
+    )).toBeLessThanOrEqual(2);
+    await browser.execute(() => document.querySelector(
+      ".training-route-map-frame",
+    ).scrollIntoView({ block: "center" }));
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r8-route-range-es-dark-compact-200.png",
+    ));
+    await browser.execute(() => document.querySelector(
+      ".training-route-range-inspector",
+    ).scrollIntoView({ block: "center" }));
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r8-route-range-es-dark-compact-200-inspector.png",
+    ));
+    await localizedRouteWorkbench.$(`aria/${
+      spanish.training.sessionLibrary.routeWorkbench.adjustRange
+    }`).click();
+    const localizedRouteRangeEditor = await localizedRouteWorkbench.$(
+      ".training-range-editor",
+    );
+    await localizedRouteRangeEditor.waitForDisplayed();
+    expect(await localizedRouteWorkbench.$$(
+      '.training-route-range-handles input[type="range"]',
+    )).toHaveLength(2);
+    await browser.execute(() => {
+      document.querySelector(".training-route-range-inspector")
+        .scrollIntoView({ block: "start" });
+      const navigationHeight = document.querySelector(".app-sidebar")
+        .getBoundingClientRect().height;
+      window.scrollBy(0, -navigationHeight - 16);
+    });
+    const compactRouteRangeEditorAccessibility = await new AxeBuilder({ client: browser })
+      .setLegacyMode()
+      .include(".training-route-workbench")
+      .analyze();
+    expect(compactRouteRangeEditorAccessibility.violations).toEqual([]);
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r8-route-range-editor-es-dark-compact-200.png",
+    ));
+    await browser.execute(() => document.querySelector(
+      ".training-route-range-inspector .training-range-editor-actions",
+    ).scrollIntoView({ block: "end" }));
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r8-route-range-editor-actions-es-dark-compact-200.png",
+    ));
+    await localizedRouteRangeEditor.$(`aria/${
+      spanish.training.sessionLibrary.ranges.cancel
+    }`).click();
     await openTrainingDetailSection(spanish, "structure");
     await expect($("#training-structure-heading")).toHaveText(
       spanish.training.sessionLibrary.structureHeading,

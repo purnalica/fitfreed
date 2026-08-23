@@ -211,7 +211,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R5 | Complete locally — R5.4, R5.5, and real-process restart gates passed 2026-08-22 | A remembered session is findable and sports are recognizable |
 | X5-R6 | Complete locally — R6.1 through R6.5 passed exact packaged, adaptive visual, and dense-route gates on 2026-08-22; R8.4 subsequently removed unproven route-signal alignment | A routed workout is investigated through a dominant local map without invented relationships |
 | X5-R7 | Complete locally — R7.1 through R7.6 passed the exact fast, functional, restart, adaptive, accessibility, visual, and performance gates on 2026-08-22 | Every session composition reflects its actual evidence |
-| X5-R8 | In progress — R8.1 through R8.5 complete locally; exact-coordinate Range Summary and the production range library/editor passed final functional, restart, adaptive, accessibility, visual, and performance gates on 2026-08-23; R8.6 interaction integration is active | Personal ranges and reusable criteria work end to end |
+| X5-R8 | In progress — R8.1 through R8.5 and R8.6 slices 1–2 complete locally; the shared range controller/editor and exact route-map interaction passed functional, restart, adaptive, accessibility, visual, and performance gates on 2026-08-23; signal, structure, exact-evidence, and final Alpha integration remain active | Personal ranges and reusable criteria work end to end |
 | X5-R9 | Pending | Reports open as results and leave FitFreed safely |
 | X5-R10 | Pending | The complete release-shaped product is coherent and documented |
 | X6 | Pending | Independent audit has no unresolved material finding |
@@ -1445,6 +1445,49 @@ retain the route during naming and adjustment, and use an in-workbench inspector
 stacked task mode at compact width or high zoom. R8.5 does not simulate cross-representation alignment or add
 parallel range state; the atomic range context and editor draft remain the single production interaction
 model consumed by R8.6.
+
+### R8.6 cross-representation range interaction — active
+
+R8.6 proceeds as five independently demonstrable slices while preserving one range state and one command path:
+
+1. Lift the R8.5 query, selection, draft, mutation, and conflict lifecycle into a session-owned controller that
+   can compose more than one representation without duplicating persistence or mounted state.
+2. Add pointer and keyboard route-range handles on the exact selected route coordinate. The map remains dominant
+   and visible beside the shared inspector at wide geometry, then stacks above it at compact width or high zoom.
+3. Add equivalent range selection to a regular signal's own elapsed coordinate. It remains in the signal
+   workbench unless an importer supplies an exact route relationship; equal offsets never synchronize it to a map.
+4. Add source-structure and exact-evidence boundary entry points only where their recorded coordinate is explicit.
+   Source laps remain attributed evidence, and an authored range remains a separate object even when boundaries
+   or titles overlap.
+5. Close duplicate-name, overlap, invalid/gapped/unavailable, cancellation, restart/reimport, locale, theme,
+   keyboard, assistive-technology, responsive, dense-session performance, and Alpha UX review evidence together.
+
+Each slice must remain usable after its own commit. A representation may request or adjust the controller's
+temporary boundaries, but only the controller may create, rename, adjust, remove, reload, or resolve a saved
+range. Direct representation integration must not introduce a second editor, an inferred coordinate transform,
+or a presentation-owned copy of durable range state.
+
+Slices 1 and 2 are complete locally. The session detail now owns one range controller and one reusable form;
+the dominant route workbench requests and adjusts that draft through exact timed route points, projects only
+exactly represented boundaries, retains approximately three quarters of a wide workspace for the map, and stacks
+the inspector at compact width or high zoom. A saved range for the visible route remains explicitly selectable
+even when the shared controller currently points at another coordinate; route changes never redirect it.
+
+The independently usable route slice passes 156 tooling tests, 308 React tests, two vendored-updater tests,
+220 all-feature host tests, 192 application tests, 46 domain tests, and two private-acceptance examples, together
+with the production build, strict Clippy, Rust formatting, architecture, data-contract, documentation,
+localization, workflow, site, UI-contract, and diff gates. The exact packaged executable passed the complete
+functional journey in 2 minutes 45.4 seconds, a new-process restart in 1 second, adaptive-session composition in
+3.9 seconds, and the isolated two-year performance campaign in 3 minutes 26.4 seconds. Route-workbench opening
+was 76 milliseconds at p95 and route selection was 2 milliseconds at p95, below their respective 1,000- and
+100-millisecond budgets. The final evidence-refined functional journey passed in 2 minutes 48 seconds.
+
+Independent visual review rejected a 63.75% map allocation caused by a fixed inspector minimum, a sole visible-
+route range that disappeared while another coordinate was selected, and compact evidence that did not actually
+show the stacked map and inspector. The accepted evidence now covers saved and editing states, both ends of the
+internally scrollable wide inspector, map and inspector stacking, English wide geometry, Spanish dark 200%
+geometry, and unobstructed placement below sticky navigation. Slices 3 through 5 and the complete final R8.6
+gate remain open; this checkpoint does not claim signal, structure, or exact-evidence interaction.
 
 ## X5-R9 — Make reports result-first and portable
 

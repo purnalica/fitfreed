@@ -6,9 +6,9 @@ This guide describes the personal-range library and editor implemented in the cu
 supported public binary is available yet. Use only independently generated synthetic data until the
 version-matched release guidance explicitly opens a real-export boundary.
 
-Personal ranges are an Alpha experience. Their ownership, persistence, exact-coordinate, reimport, and summary
-contracts are implemented; direct boundary handles on the route map, signal lanes, source structure, and exact
-evidence remain active MVP work.
+Personal ranges are an Alpha experience. Their ownership, persistence, exact-coordinate, reimport, summary,
+and route-map boundary contracts are implemented; direct boundary controls on independent signal views,
+source structure, and exact evidence remain active MVP work.
 
 ## Open personal ranges
 
@@ -39,6 +39,11 @@ range. A zero-length timeline is not offered for creation.
 Save creates one user-authored object without modifying the imported session, its laps, route, or measurements.
 Overlapping ranges and duplicate names are valid because the range identity is independent from its title or
 position. Cancel creates nothing.
+
+When a route is the session's leading evidence, the map offers the same creation task beside the recorded
+track. Its two boundary controls visit only exact timed route points, and a map click moves the boundary chosen
+in the inspector. The map and **Personal ranges** destination compose one draft and one command lifecycle, so a
+range saved or adjusted in either place is immediately the same durable object in the other.
 
 ## Rename, adjust, and remove
 
@@ -78,9 +83,9 @@ Range queries, edits, summaries, and persistence stay inside the local applicati
 geocoding, account, provider-API, or other external request. Update checks are a separate application capability
 and never receive imported facts.
 
-The current editor is a dedicated session-detail task. The accepted next increment connects the same draft and
-saved selection to the dominant route map, compatible signal lanes, source structure, and exact evidence without
-creating a second range state or inventing cross-clock alignment.
+The editor is a shared session-detail task. The route map now composes it directly; the remaining MVP work
+connects the same draft and saved selection to independent signal views, source structure, and exact evidence
+without creating another range state or inventing cross-clock alignment.
 
 Never attach a screenshot, coordinate table, route, export, library, or diagnostic containing personal history to
 a public issue. Use a synthetic package and follow the repository security and support boundaries.

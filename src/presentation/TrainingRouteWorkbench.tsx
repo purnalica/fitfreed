@@ -9,8 +9,17 @@ import {
   type RouteWorkbenchOverlay,
   type RouteWorkbenchOverlayValue,
 } from "./route-workbench-model";
-import type { LocalRouteViewport } from "./route-viewport";
+import type {
+  LocalRouteViewport,
+  LocalRouteViewportRangeSelection,
+} from "./route-viewport";
 import type { SessionStory, SessionStoryMetric, SessionStoryRole } from "./session-story";
+import {
+  elapsedEditorValue,
+  parseElapsedEditorValue,
+} from "./training-range-editor-model";
+import { TrainingRangeEditor } from "./TrainingRangeEditor";
+import { useOptionalTrainingRangeInteraction } from "./TrainingRangeInteractionProvider";
 import { TrainingRouteSignalLanes } from "./TrainingRouteSignalLanes";
 import { formatDuration } from "./training-format";
 
@@ -34,6 +43,7 @@ interface TrainingRouteWorkbenchProps {
 
 interface RouteChoice {
   key: string;
+  exerciseRef: string;
   exerciseOrdinal: number;
   roleName: StoryRole;
   role: SessionStoryRole;
@@ -54,6 +64,7 @@ function routeChoices(story: SessionStory): RouteChoice[] {
       const model = buildRouteWorkbenchModel(role);
       return model ? [{
         key: `${exercise.ordinal}:${roleName}`,
+        exerciseRef: exercise.exerciseRef,
         exerciseOrdinal: exercise.ordinal,
         roleName,
         role,
@@ -61,6 +72,52 @@ function routeChoices(story: SessionStory): RouteChoice[] {
       }] : [];
     },
   ));
+}
+
+function distinctElapsedPointIndexes(model: RouteWorkbenchModel): number[] {
+  const elapsed = new Set<string>();
+  return model.elapsedPointIndexes.filter((pointIndex) => {
+    const value = model.points[pointIndex].source.elapsedMilliseconds!;
+    if (elapsed.has(value)) return false;
+    elapsed.add(value);
+    return true;
+  });
+}
+
+function pointIndexAtExactElapsed(
+  model: RouteWorkbenchModel,
+  elapsedMilliseconds: string | undefined,
+): number | null {
+  if (elapsedMilliseconds === undefined) return null;
+  return model.elapsedPointIndexes.find(
+    (pointIndex) => model.points[pointIndex].source.elapsedMilliseconds === elapsedMilliseconds,
+  ) ?? null;
+}
+
+function routeDraftBounds(
+  model: RouteWorkbenchModel,
+  selectedPointIndex: number,
+): { startedAtElapsedMilliseconds: string; endedAtElapsedMilliseconds: string } | null {
+  const selected = model.points[selectedPointIndex]?.source.elapsedMilliseconds;
+  if (selected === null || selected === undefined) return null;
+  const indexes = distinctElapsedPointIndexes(model);
+  const selectedElapsed = BigInt(selected);
+  const following = indexes.find((pointIndex) => (
+    BigInt(model.points[pointIndex].source.elapsedMilliseconds!) > selectedElapsed
+  ));
+  if (following !== undefined) {
+    return {
+      startedAtElapsedMilliseconds: selected,
+      endedAtElapsedMilliseconds: model.points[following].source.elapsedMilliseconds!,
+    };
+  }
+  const preceding = [...indexes].reverse().find((pointIndex) => (
+    BigInt(model.points[pointIndex].source.elapsedMilliseconds!) < selectedElapsed
+  ));
+  return preceding === undefined ? null : {
+    startedAtElapsedMilliseconds: model.points[preceding].source.elapsedMilliseconds!,
+    endedAtElapsedMilliseconds: selected,
+  };
 }
 
 function defaultOverlayRef(choice: RouteChoice): string | null {
@@ -119,11 +176,13 @@ export function TrainingRouteWorkbench({
   onOpenExactRoute,
   onOpenExactSignal,
 }: TrainingRouteWorkbenchProps) {
+  const rangeInteraction = useOptionalTrainingRangeInteraction();
   const choices = useMemo(() => routeChoices(story), [story]);
   const choiceSignature = choices.map((choice) => choice.key).join("|");
   const [choiceKey, setChoiceKey] = useState(() => choices[0]?.key ?? "");
   const choice = choices.find((candidate) => candidate.key === choiceKey) ?? choices[0];
   const [selectedPointIndex, setSelectedPointIndex] = useState(0);
+  const [activeRangeBoundary, setActiveRangeBoundary] = useState<"start" | "end">("end");
   const [selectedOverlayRef, setSelectedOverlayRef] = useState<string | null>(
     () => choice ? defaultOverlayRef(choice) : null,
   );
@@ -139,16 +198,47 @@ export function TrainingRouteWorkbench({
   const focusButtonRef = useRef<HTMLButtonElement>(null);
   const returnButtonRef = useRef<HTMLButtonElement>(null);
   const focusTransitionRequested = useRef(false);
+  const mapSelectionHandlerRef = useRef<(pointIndex: number) => void>(setSelectedPointIndex);
   const copy = messages.training.sessionLibrary.routeWorkbench;
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const singleExercise = choices.every(
     (candidate) => candidate.exerciseOrdinal === choices[0]?.exerciseOrdinal,
   );
+  const routeEditor = choice && rangeInteraction?.editor?.surface === "route"
+    && rangeInteraction.editor.exerciseRef === choice.exerciseRef
+    && rangeInteraction.editor.coordinate?.scope === "route-elapsed"
+    && rangeInteraction.editor.coordinate.routeRef === choice.model.routeRef
+    ? rangeInteraction.editor
+    : undefined;
+  const routeRanges = choice ? rangeInteraction?.result?.ranges.filter((range) => (
+    range.exerciseRef === choice.exerciseRef
+    && range.coordinate.scope === "route-elapsed"
+    && range.coordinate.routeRef === choice.model.routeRef
+  )) ?? [] : [];
+  const selectedRouteRange = routeRanges.find(
+    (range) => range.rangeRef === rangeInteraction?.selectedRange?.rangeRef,
+  );
+  const rangeStartedAt = routeEditor
+    ? parseElapsedEditorValue(routeEditor.startedAt)
+    : selectedRouteRange?.startedAtElapsedMilliseconds;
+  const rangeEndedAt = routeEditor
+    ? parseElapsedEditorValue(routeEditor.endedAt)
+    : selectedRouteRange?.endedAtElapsedMilliseconds;
+  const rangeSelection: LocalRouteViewportRangeSelection | null = choice
+    && (rangeStartedAt !== undefined || rangeEndedAt !== undefined)
+    ? {
+        startedAtPointIndex: pointIndexAtExactElapsed(choice.model, rangeStartedAt),
+        endedAtPointIndex: pointIndexAtExactElapsed(choice.model, rangeEndedAt),
+      }
+    : null;
+  const latestRangeSelection = useRef(rangeSelection);
+  latestRangeSelection.current = rangeSelection;
 
   useEffect(() => {
     const first = choices[0];
     setChoiceKey(first?.key ?? "");
     setSelectedPointIndex(0);
+    setActiveRangeBoundary("end");
     setSelectedOverlayRef(first ? defaultOverlayRef(first) : null);
   }, [choiceSignature]);
 
@@ -180,7 +270,8 @@ export function TrainingRouteWorkbench({
           Math.min(choice.model.points.length - 1, selectedPointIndex),
         ),
         overlay: overlayForViewport(choice.model, selectedOverlayRef),
-        onSelectPoint: (pointIndex) => setSelectedPointIndex(pointIndex),
+        rangeSelection,
+        onSelectPoint: (pointIndex) => mapSelectionHandlerRef.current(pointIndex),
       }))
       .then((viewport) => {
         if (!active) {
@@ -196,6 +287,7 @@ export function TrainingRouteWorkbench({
           choice.model,
           latestSelectedOverlayRef.current,
         ));
+        viewport.updateRangeSelection(latestRangeSelection.current);
         setViewportState("ready");
       })
       .catch(() => {
@@ -217,6 +309,15 @@ export function TrainingRouteWorkbench({
     if (!choice) return;
     viewportRef.current?.updateOverlay(overlayForViewport(choice.model, selectedOverlayRef));
   }, [choice?.key, selectedOverlayRef, story.snapshotRef]);
+
+  useEffect(() => {
+    viewportRef.current?.updateRangeSelection(rangeSelection);
+  }, [
+    choice?.key,
+    rangeSelection?.startedAtPointIndex,
+    rangeSelection?.endedAtPointIndex,
+    story.snapshotRef,
+  ]);
 
   useEffect(() => {
     if (!focused || !workbenchRef.current) return;
@@ -280,6 +381,198 @@ export function TrainingRouteWorkbench({
   const selectedOverlay = choice.model.overlays.find(
     (overlay) => overlay.signalRef === selectedOverlayRef,
   );
+  const elapsedPointIndexes = distinctElapsedPointIndexes(choice.model);
+  const draftBounds = routeDraftBounds(choice.model, selectedPointIndex);
+  const routeCoordinateAvailable = rangeInteraction?.editableChoices.some((exercise) => (
+    exercise.exerciseRef === choice.exerciseRef
+    && exercise.coordinates.some((coordinate) => (
+      coordinate.coordinate.scope === "route-elapsed"
+      && coordinate.coordinate.routeRef === choice.model.routeRef
+    ))
+  )) ?? false;
+  const startedAtHandle = rangeSelection?.startedAtPointIndex === null
+    || rangeSelection?.startedAtPointIndex === undefined
+    ? -1
+    : elapsedPointIndexes.indexOf(rangeSelection.startedAtPointIndex);
+  const endedAtHandle = rangeSelection?.endedAtPointIndex === null
+    || rangeSelection?.endedAtPointIndex === undefined
+    ? -1
+    : elapsedPointIndexes.indexOf(rangeSelection.endedAtPointIndex);
+
+  function routePointValue(pointIndex: number): string {
+    const point = choice.model.points[pointIndex];
+    const position = interpolate(copy.pointPosition, {
+      point: number.format(point.source.ordinal + 1),
+      total: number.format(choice.model.sourcePointCount),
+    });
+    const elapsed = point.source.elapsedMilliseconds === null
+      ? copy.elapsedUnavailable
+      : formatDuration(point.source.elapsedMilliseconds, locale, messages.training.durationUnits);
+    return `${position} · ${elapsed}`;
+  }
+
+  function updateRouteBoundary(boundary: "start" | "end", pointIndex: number) {
+    const elapsed = choice.model.points[pointIndex]?.source.elapsedMilliseconds;
+    if (!routeEditor || elapsed === null || elapsed === undefined) return;
+    rangeInteraction?.updateEditor(boundary === "start"
+      ? { startedAt: elapsedEditorValue(elapsed) }
+      : { endedAt: elapsedEditorValue(elapsed) });
+  }
+
+  mapSelectionHandlerRef.current = (pointIndex) => {
+    setSelectedPointIndex(pointIndex);
+    updateRouteBoundary(activeRangeBoundary, pointIndex);
+  };
+
+  function openRouteRange() {
+    if (!rangeInteraction || !draftBounds) return;
+    setActiveRangeBoundary("end");
+    rangeInteraction.openCreateEditor("route", {
+      exerciseRef: choice.exerciseRef,
+      coordinate: { scope: "route-elapsed", routeRef: choice.model.routeRef },
+      ...draftBounds,
+    });
+  }
+
+  function routeRangeWorkspace() {
+    if (!rangeInteraction) return null;
+    const editorElsewhere = rangeInteraction.editor !== undefined && routeEditor === undefined;
+    const currentElapsedMissing = selection.point.source.elapsedMilliseconds === null;
+    return (
+      <aside className="training-route-range-inspector" aria-label={copy.rangeRegion}>
+        <header>
+          <p className="eyebrow">{copy.rangeEyebrow}</p>
+          <h4>{copy.rangeHeading}</h4>
+          <p>{copy.rangeIntroduction}</p>
+        </header>
+        {rangeInteraction.loading && <p role="status">{copy.rangeLoading}</p>}
+        {rangeInteraction.failed && !rangeInteraction.loading && (
+          <div className="training-route-range-failed">
+            <p>{copy.rangeFailed}</p>
+            <button type="button" className="secondary" onClick={() => void rangeInteraction.reload()}>
+              {copy.rangeRetry}
+            </button>
+          </div>
+        )}
+        {!rangeInteraction.loading && !rangeInteraction.failed
+          && (routeRanges.length > 1 || (routeRanges.length === 1 && !selectedRouteRange)) && (
+          <label className="training-route-saved-range-choice">
+            <span>{copy.savedRange}</span>
+            <select
+              value={selectedRouteRange?.rangeRef ?? ""}
+              onChange={(event) => rangeInteraction.selectRange(event.target.value)}
+            >
+              <option value="">{copy.chooseSavedRange}</option>
+              {routeRanges.map((range) => (
+                <option key={range.rangeRef} value={range.rangeRef}>{range.title}</option>
+              ))}
+            </select>
+          </label>
+        )}
+        {!routeEditor && selectedRouteRange && (
+          <div className="training-route-saved-range">
+            <span>{copy.visibleSavedRange}</span>
+            <strong>{selectedRouteRange.title}</strong>
+            <small>{formatDuration(
+              (BigInt(selectedRouteRange.endedAtElapsedMilliseconds)
+                - BigInt(selectedRouteRange.startedAtElapsedMilliseconds)).toString(),
+              locale,
+              messages.training.durationUnits,
+            )}</small>
+            {rangeInteraction.mayAdjust(selectedRouteRange) && (
+              <button
+                type="button"
+                className="secondary"
+                disabled={rangeInteraction.busy}
+                onClick={() => {
+                  setActiveRangeBoundary("end");
+                  rangeInteraction.openAdjustEditor(selectedRouteRange, "route");
+                }}
+              >{copy.adjustRange}</button>
+            )}
+          </div>
+        )}
+        {!routeEditor && !rangeInteraction.loading && !rangeInteraction.failed && (
+          <>
+            <button
+              type="button"
+              disabled={rangeInteraction.busy || editorElsewhere || !routeCoordinateAvailable
+                || draftBounds === null}
+              onClick={openRouteRange}
+            >{copy.createRangeHere}</button>
+            {currentElapsedMissing && <p className="training-route-range-note">
+              {copy.pointWithoutElapsed}
+            </p>}
+            {editorElsewhere && <p className="training-route-range-note">{copy.finishCurrentEdit}</p>}
+            {!routeCoordinateAvailable && !rangeInteraction.loading && (
+              <p className="training-route-range-note">{copy.rangeUnavailable}</p>
+            )}
+          </>
+        )}
+        {routeEditor && (
+          <>
+            <div className="training-route-range-handles">
+              <div role="group" aria-label={copy.movingBoundary}>
+                <button
+                  type="button"
+                  className="secondary"
+                  aria-pressed={activeRangeBoundary === "start"}
+                  onClick={() => setActiveRangeBoundary("start")}
+                >{copy.moveRangeStart}</button>
+                <button
+                  type="button"
+                  className="secondary"
+                  aria-pressed={activeRangeBoundary === "end"}
+                  onClick={() => setActiveRangeBoundary("end")}
+                >{copy.moveRangeEnd}</button>
+              </div>
+              <p>{copy.rangeHandleInstructions}</p>
+              {startedAtHandle >= 0 ? (
+                <label>
+                  <span>{copy.rangeStartHandle}</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max={elapsedPointIndexes.length - 1}
+                    step="1"
+                    value={startedAtHandle}
+                    aria-valuetext={routePointValue(elapsedPointIndexes[startedAtHandle])}
+                    onFocus={() => setActiveRangeBoundary("start")}
+                    onChange={(event) => updateRouteBoundary(
+                      "start",
+                      elapsedPointIndexes[Number(event.target.value)],
+                    )}
+                  />
+                </label>
+              ) : <p className="training-route-range-note">{copy.startOutsideProjection}</p>}
+              {endedAtHandle >= 0 ? (
+                <label>
+                  <span>{copy.rangeEndHandle}</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max={elapsedPointIndexes.length - 1}
+                    step="1"
+                    value={endedAtHandle}
+                    aria-valuetext={routePointValue(elapsedPointIndexes[endedAtHandle])}
+                    onFocus={() => setActiveRangeBoundary("end")}
+                    onChange={(event) => updateRouteBoundary(
+                      "end",
+                      elapsedPointIndexes[Number(event.target.value)],
+                    )}
+                  />
+                </label>
+              ) : <p className="training-route-range-note">{copy.endOutsideProjection}</p>}
+            </div>
+            <TrainingRangeEditor surface="route" messages={messages} lockCoordinate />
+          </>
+        )}
+        {rangeInteraction.status && <p className="training-route-range-status" role="status">
+          {rangeInteraction.status}
+        </p>}
+      </aside>
+    );
+  }
 
   function selectChoice(nextKey: string) {
     const next = choices.find((candidate) => candidate.key === nextKey);
@@ -345,7 +638,11 @@ export function TrainingRouteWorkbench({
           </label>
         </div>
       </header>
-      <div className="training-route-map-frame">
+      <div
+        className="training-route-range-layout"
+        data-has-range={rangeInteraction ? "true" : "false"}
+      >
+        <div className="training-route-map-frame">
         <div className="training-route-map-tools" aria-label={copy.mapControls}>
           <button type="button" onClick={() => viewportRef.current?.zoomIn()}>{copy.zoomIn}</button>
           <button type="button" onClick={() => viewportRef.current?.zoomOut()}>{copy.zoomOut}</button>
@@ -377,6 +674,8 @@ export function TrainingRouteWorkbench({
         {viewportState === "failed" && <p className="training-route-map-status error" role="alert">
           {copy.failed}
         </p>}
+        </div>
+        {routeRangeWorkspace()}
       </div>
       <div className="training-route-selection" aria-live="polite">
         <div>

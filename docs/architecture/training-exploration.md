@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production persists provider-neutral session summaries, mapped exercise/lap/pause structure, primary and transition routes with exact points, supported exercise and transition signals with exact samples, supported recorded zones with exact aggregates, user-authored sport classifications, session-owned personal ranges, reusable segment criteria, and a disposable discovery workspace. Full-history search, chronology, calendar projection, comparison selection, restart restoration, structural detail, bounded local route traces, exact route pagination, gap-aware bounded signal charts, exact signal pagination, recorded-zone inspection, personal-range lifecycle and summary, user-authored segmentation, and on-demand session provenance are implemented. Direct range manipulation across the map, signal lanes, source structure, and exact evidence remains active MVP work. E4 is complete in the [MVP experience delivery plan](../plans/mvp-experience-delivery.md); the [public-release readiness ledger](../testing/public-release-readiness.md) owns current exact-source acceptance evidence.
+Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production persists provider-neutral session summaries, mapped exercise/lap/pause structure, primary and transition routes with exact points, supported exercise and transition signals with exact samples, supported recorded zones with exact aggregates, user-authored sport classifications, session-owned personal ranges, reusable segment criteria, and a disposable discovery workspace. Full-history search, chronology, calendar projection, comparison selection, restart restoration, structural detail, bounded local route traces, exact route pagination, gap-aware bounded signal charts, exact signal pagination, recorded-zone inspection, personal-range lifecycle, summary, and route-map manipulation, user-authored segmentation, and on-demand session provenance are implemented. Direct range manipulation across independent signal views, source structure, and exact evidence remains active MVP work. E4 is complete in the [MVP experience delivery plan](../plans/mvp-experience-delivery.md); the [public-release readiness ledger](../testing/public-release-readiness.md) owns current exact-source acceptance evidence.
 
 ## Ownership
 
@@ -366,16 +366,26 @@ its authored owner and coordinate are never redirected or discarded. Returned bo
 intervals are bounded while their complete counts remain explicit, so dense evidence is processed without
 creating an unbounded response.
 
-`TrainingRangesPanel` is the one production presentation boundary for the personal-range library, local draft,
-mutation progress, conflict recovery, guarded removal, and selected summary. It receives only the complete
-application range context and `SessionStory` labels; opaque capabilities remain command values and never become
-visible labels. Exact elapsed input is parsed and formatted with `BigInt`, coordinate choices come only from the
-returned application context, and an established owner and coordinate remain locked. The component may retain an
-unsaved draft across a failed or conflicting command, but it never treats mounted state as persistence: opening or
+`TrainingRangeInteractionProvider` is the one production presentation controller for the session-owned range
+query, durable selection, local draft, mutation progress, conflict recovery, guarded removal, and selected
+summary. `TrainingRangesPanel` composes the library and result inspector, while `TrainingRangeEditor` is the one
+form composed by both the library and the route workbench. They receive only the complete application range
+context and `SessionStory` labels; opaque capabilities remain command values and never become visible labels.
+Exact elapsed input is parsed and formatted with `BigInt`, coordinate choices come only from the returned
+application context, and an established owner and coordinate remain locked. The controller may retain an unsaved
+draft across a failed or conflicting command, but it never treats mounted state as persistence: opening or
 restarting the session always queries the durable range context and exact selected revision again. Selecting a
-saved range uses the shared result-focus boundary so the inspector receives focus and scrolls into view in the
-stacked compact or high-zoom layout. R8.6 will
-compose this same state with map, signal, and structure controls rather than creating a parallel editor.
+saved range uses the shared result-focus boundary so the library inspector receives focus and scrolls into view
+in the stacked compact or high-zoom layout.
+
+`TrainingRouteWorkbench` can request a route-coordinate draft and project its exact boundaries onto the bounded
+returned route points. Two native range controls provide pointer and keyboard traversal of timed points; a track
+click moves only the boundary explicitly selected in the inspector. The renderer port receives nullable exact
+point indexes for the start and end markers. A typed elapsed value without an exact point in the bounded
+projection remains unmarked rather than being snapped or inferred. The wide layout reserves approximately three
+quarters of the workspace for the map and one quarter for the shared inspector, then stacks the inspector below
+the map at compact width or high content zoom. Other representations must compose this controller and editor in
+the same way; they cannot issue a parallel command or infer a relationship between independent clocks.
 
 The [canonical segment criterion](../data-formats/canonical/segment-criterion.md) is reusable user-authored
 evidence with stable local identity, optimistic revision, and one versioned rule. Its ordered exercise

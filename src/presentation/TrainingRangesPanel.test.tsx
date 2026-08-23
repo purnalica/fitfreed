@@ -9,6 +9,7 @@ import type {
   TrainingSessionRangesResult,
   TrainingSessionRangeSummary,
 } from "./training-session-range";
+import { TrainingRangeInteractionProvider } from "./TrainingRangeInteractionProvider";
 import { TrainingRangesPanel } from "./TrainingRangesPanel";
 
 const mocks = vi.hoisted(() => ({ invoke: vi.fn() }));
@@ -19,6 +20,7 @@ const snapshotRef = `training-snapshot-${"a".repeat(64)}`;
 const sessionRef = `session-${"b".repeat(64)}`;
 const exerciseRef = `exercise-${"c".repeat(64)}`;
 const routeRef = `route-${"d".repeat(64)}`;
+const routeCoordinateKey = `route-elapsed:${routeRef}`;
 const signalRef = `signal-${"e".repeat(64)}`;
 const evidenceRevision = `range-evidence-${"f".repeat(64)}`;
 const firstRangeRef = `range-${"1".repeat(64)}`;
@@ -189,14 +191,19 @@ function renderPanel(
   return {
     onError,
     ...render(
-      <TrainingRangesPanel
+      <TrainingRangeInteractionProvider
         sessionRef={sessionRef}
         snapshotRef={snapshotRef}
         story={story}
         locale={locale}
         messages={catalogs[locale]}
         onError={onError}
-      />,
+      >
+        <TrainingRangesPanel
+          locale={locale}
+          messages={catalogs[locale]}
+        />
+      </TrainingRangeInteractionProvider>,
     ),
   };
 }
@@ -229,7 +236,7 @@ describe("TrainingRangesPanel", () => {
     expect(screen.getByText("No personal ranges yet.")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Create a range" }));
     expect(screen.getByLabelText("Exercise")).toHaveDisplayValue("Canal run · exercise 1");
-    await user.selectOptions(screen.getByLabelText("Timeline"), "coordinate-1");
+    await user.selectOptions(screen.getByLabelText("Timeline"), routeCoordinateKey);
     await user.type(screen.getByLabelText("Range name"), "Canal bridge");
     await user.clear(screen.getByLabelText("Start"));
     await user.type(screen.getByLabelText("Start"), "0:00:30");
@@ -427,7 +434,7 @@ describe("TrainingRangesPanel", () => {
     await screen.findByRole("heading", { name: "Preserved finish" });
     await user.click(screen.getByRole("button", { name: "Review boundaries" }));
     expect(screen.getByLabelText("Exercise")).toBeVisible();
-    await user.selectOptions(screen.getByLabelText("Timeline"), "coordinate-1");
+    await user.selectOptions(screen.getByLabelText("Timeline"), routeCoordinateKey);
     await user.clear(screen.getByLabelText("Start"));
     await user.type(screen.getByLabelText("Start"), "0:01:00");
     await user.clear(screen.getByLabelText("End"));
