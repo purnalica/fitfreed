@@ -165,4 +165,48 @@ describe("ImportOutcomePanel", () => {
     await user.click(screen.getByText("View incorporation and coverage details"));
     expect(screen.getByRole("list", { name: "Package coverage" })).toBeVisible();
   });
+
+  it("presents a recoverable import failure without alarming or hiding the safe next action", async () => {
+    const user = userEvent.setup();
+    const onChooseAnother = vi.fn().mockResolvedValue(undefined);
+    render(
+      <ImportOutcomePanel
+        locale="en-US"
+        messages={catalogs["en-US"].outcome}
+        outcome={{
+          ...completedOutcome,
+          state: "failed",
+          canonicalHistoryChanged: false,
+          coverageComplete: false,
+          report: {
+            ...completedOutcome.report,
+            newObservations: 0,
+            enrichedObservations: 0,
+            amendedObservations: 0,
+          },
+          terminalCode: "import-failed",
+        }}
+        terminalMessage="The local operation stopped before changing the library."
+        onOpenHome={vi.fn()}
+        onChooseAnother={onChooseAnother}
+      />,
+    );
+
+    const result = screen.getByRole("region", {
+      name: "The import could not be completed",
+    });
+    expect(result).toHaveTextContent("Your existing library was not changed");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Go to Home" })).not.toBeInTheDocument();
+    expect(screen.getByText("Why the import stopped").closest("details"))
+      .not.toHaveAttribute("open");
+    expect(screen.getByText("The local operation stopped before changing the library."))
+      .not.toBeVisible();
+
+    await user.click(screen.getByText("Why the import stopped"));
+    expect(screen.getByText("The local operation stopped before changing the library."))
+      .toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Choose another ZIP" }));
+    expect(onChooseAnother).toHaveBeenCalledOnce();
+  });
 });

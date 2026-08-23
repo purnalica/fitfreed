@@ -1915,13 +1915,35 @@ experience from release readiness, describes the remaining whole-product validat
 shows only route-point evidence that the application supports. A product-page contract rejects both stale future-
 direction language and any renewed route-to-signal claim. Generated English and Spanish status surfaces remain
 owned by `docs/product-status.json`; no download or release claim has been introduced. Product-surface equality,
-localization, accessibility, publication, and composed Pages tests pass. Exact site publication and the remaining
-R10.2 evidence matrix are still pending.
+localization, accessibility, publication, and composed Pages tests pass. The exact
+[Product site workflow run](https://github.com/purnalica/fitfreed/actions/runs/32643545241) deployed revision
+`6561148`, verified every public byte, and direct English and Spanish requests return the new implemented-
+experience boundary. The matching repository-safety workflow also passes.
 
 Rendered-page review accepts the updated English wide entrance and Spanish narrow entrance: the release boundary,
 implemented-capability label, explanatory copy, five workspace labels, and dominant route surface remain readable
 without visible clipping or truncation. These ignored synthetic captures are inspection aids, not publication
 artifacts or release evidence.
+
+The state review adds the missing presentation contract for a recoverable import failure. It preserves the previous
+library, avoids an alert role, withholds Home because no new result exists, keeps the technical reason collapsed,
+and retains a direct archive-selection action. The focused component suite passes all completed, repeated, rejected,
+and failed outcome cases. This is regression coverage of existing production behavior, not a new failure path or a
+substitute for final packaged failure evaluation.
+
+#### R10.2 evidence matrix
+
+| Concern | Current evidence | Remaining gate |
+|---|---|---|
+| Public purpose and truthfulness | Generated README and bilingual site now match current implemented capability; exact Pages and repository-safety workflows pass for `6561148`. | Reopen only if later R10 corrections change a public claim. |
+| Terminology, hierarchy, dates, units, precision, icons, visuals, and disclosure | Seven correction slices, complete live-surface inventory, 336 React tests, static contracts, exact `c783def` package, and reviewed cross-workspace synthetic captures. | X6 must challenge the result without implementation context. |
+| Empty, active, completed, repeated, cumulative, rejected, cancelled, failed, partial, stale, and recovery states | Packaged journeys cover first run, active import, success, repeat, extension, rejection, cancellation, partial sessions, stale reports and ranges, and update recovery; focused presentation tests protect recoverable import failure. | Repeat installation, update, recovery, and removal against the final exact executable fingerprint. |
+| Navigation, return, restart, and focus | Packaged process restart, workspace restoration, contextual return, cancellation return, review reveal, and all six session-section focus and geometry contracts pass. | Complete the all-controls manual keyboard traversal on the exact candidate. |
+| Responsive layout, locale, appearance, zoom, contrast, and reduced motion | English/light and Spanish/dark matrices cover wide, compact, 100%, 175%, and 200% presentation; the exact package rejects page overflow, obstruction, and result-measurement splits. Static and component contracts protect reduced motion. | Repeat scaling, contrast, and reduced-motion observation during candidate manual evaluation. |
+| Assistive technology | Packaged Axe runs cover Sources, session detail and ranges, every answer canvas, Reports Library, Compose, Preview, refresh, and export review; semantic alternatives and focus are asserted. | Manual VoiceOver in English and Spanish remains an explicit human candidate gate. |
+| Privacy and data exit | Exact packaged export review proves per-export physiology omission, endpoint reduction, no latitude, longitude, script, or network reference, atomic cancellation, and self-contained HTML; repository and secret scans pass. | Apply the privacy-safe manual protocol to the exact candidate without retaining personal evidence. |
+| Performance and lifecycle | `c783def` passes functional, real-process restart, adaptive-session, and two-year performance campaigns inside every accepted budget. | Run the complete install, update, migration, forced-recovery, removal, bundle, memory, and hosted campaign once for the final executable fingerprint. |
+| User, contributor, architecture, format, translation, testing, support, and readiness documentation | README, product site, canonical product status, session-navigation architecture, experience specification, and testing strategy reflect the current implementation. | Audit and update the remaining version-matched current documents and readiness ledger before closing R10. |
 
 ## X6 — Repeat the independent product-experience audit
 
@@ -1933,7 +1955,8 @@ knowledge, or implementation intent as evidence. It evaluates:
 3. safe compatibility, import, repeat, extension, and recovery;
 4. time to the first evidence-backed personally recognizable result;
 5. remembered-session discovery and origin-aware return;
-6. outdoor route investigation, signal synchronization, exact evidence, and partial-session honesty;
+6. outdoor route investigation, separate signal inspection, exact evidence, relationship boundaries, and
+   partial-session honesty;
 7. personal range and criterion control;
 8. report result, edit, refresh, deletion, and independent export;
 9. settings, localization, appearance, zoom, keyboard, assistive technology, responsive layout, and
