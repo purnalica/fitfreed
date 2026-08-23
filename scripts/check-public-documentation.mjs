@@ -136,9 +136,9 @@ const supportingDocumentEvidence = Object.freeze({
 });
 
 const requiredCatalogKeys = Object.freeze([
-  "language",
-  "localeEnglish",
-  "localeSpanish",
+  "settings.language",
+  "settings.localeEnglish",
+  "settings.localeSpanish",
   "updates.heading",
   "updates.checkNow",
   "updates.releaseNotes",

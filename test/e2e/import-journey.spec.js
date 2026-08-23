@@ -3025,8 +3025,6 @@ describe("packaged FitFreed import journey", () => {
           ".recovery-insights",
           ".recovery-filter",
           ".recovery-summary",
-          ".recovery-history-grid",
-          ".recovery-history-grid figure",
           ".recovery-table-scroll",
           ".recovery-comparison",
           ".recovery-comparison form",

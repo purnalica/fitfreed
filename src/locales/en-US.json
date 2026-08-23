@@ -1,10 +1,4 @@
 {
-  "title": "Your fitness history belongs to you",
-  "intro": "Import a compatible Polar Flow data export and explore a provider-neutral history that stays on this computer.",
-  "importHeading": "Import",
-  "language": "Language",
-  "localeEnglish": "English (US)",
-  "localeSpanish": "Spanish (Spain)",
   "choose": "Choose ZIP package",
   "choosing": "Opening ZIP chooser…",
   "import": "Import selected package",
@@ -21,12 +15,9 @@
     "completed": "Import completed",
     "cancelled": "Import cancelled"
   },
-  "history": "Daily activity history",
-  "empty": "No imported daily activity yet.",
   "date": "Local date",
   "steps": "Steps",
   "unavailable": "Not available",
-  "visual": "Visual step comparison",
   "shell": {
     "navigation": "Application",
     "sidebar": "Primary application navigation",
@@ -183,18 +174,6 @@
         "detail": "Sessions, timing, and source structure"
       }
     },
-    "answerEyebrow": "A useful place to begin",
-    "answerTrainingHeading": {
-      "one": "{count} recent training session is ready to inspect",
-      "other": "{count} recent training sessions are ready to inspect"
-    },
-    "answerTrainingIntro": "Your independent library spans {range}. Open the sessions behind this answer or choose another supported question.",
-    "answerHistoryHeading": "Your independent history spans {range}",
-    "answerQuestionCount": {
-      "one": "FitFreed found {count} evidence-backed question it can answer without inventing missing data.",
-      "other": "FitFreed found {count} evidence-backed questions it can answer without inventing missing data."
-    },
-    "answerAction": "Explore this answer",
     "postImportHeadingChanged": "Import complete",
     "postImportHeadingUnchanged": "Import complete",
     "postImportHeadingExactRepeat": "Already in your library",
@@ -340,19 +319,7 @@
       "sports": "Sports",
       "comparison": "Compare periods"
     },
-    "loading": "Loading training history…",
-    "unavailable": "Training history could not be loaded.",
-    "empty": "No imported training sessions yet.",
-    "selectedRange": "Selected period",
-    "availableRange": "Available history",
     "rangeSeparator": "to",
-    "filterHeading": "Explore a training period",
-    "from": "From",
-    "through": "Through",
-    "applyRange": "Apply training period",
-    "applyingRange": "Applying training period…",
-    "latestWindow": "Latest 30-day window",
-    "rangeHelp": "Choose up to 366 inclusive days inside the available training history.",
     "series": "Training origin",
     "summaryLabel": "Training summary",
     "sessionCount": "Sessions",
@@ -372,24 +339,15 @@
       "other": "training days"
     },
     "of": "of",
-    "emptyRange": "No training sessions start inside this period.",
-    "visual": "Session duration in the selected period",
-    "sessionsTable": "Training sessions",
     "startedAt": "Local start",
     "stoppedAt": "Local end",
     "duration": "Duration",
     "distance": "Distance",
     "energy": "Energy",
-    "details": "Details",
-    "viewDetails": "View training details for",
-    "detailHeading": "Training detail",
-    "closeDetail": "Close training detail",
     "utcOffset": "UTC offset at start",
     "averageHeartRate": "Average heart rate",
     "maximumHeartRate": "Maximum heart rate",
     "trainingType": "Training type",
-    "recordedType": "Recorded training type",
-    "unknownType": "Training type not available",
     "exerciseCount": "Declared exercises",
     "sessionLibrary": {
       "heading": "Find a training session",
@@ -1834,9 +1792,7 @@
       "rejected": "Rejected",
       "cancelled": "Cancelled",
       "failed": "Failed"
-    },
-    "rejectedSummary": "Import rejected; no history was changed.",
-    "failedSummary": "Import failed; no partial history was published."
+    }
   },
   "reports": {
     "eyebrow": "Your reports",
@@ -2170,7 +2126,6 @@
     "published": "Published {date}",
     "installNotice": "FitFreed preserves the current application and library before replacing the application. It then restarts and verifies the update automatically.",
     "install": "Install and restart",
-    "installing": "Installing…",
     "installingVersion": "Installing version {version}…",
     "dismiss": "Ignore this version",
     "dismissing": "Ignoring this version…",

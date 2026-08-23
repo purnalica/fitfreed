@@ -669,7 +669,6 @@ th:last-child, td:last-child { text-align: right; }
 .training-table-scroll { min-width: 0; max-width: 100%; overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 15px; }
 .training-table-scroll:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 .training-table-scroll table { min-width: 0; padding: 16px; background: transparent; border: 0; border-radius: 0; table-layout: fixed; }
-.training-history-grid th, .training-history-grid td { min-width: 0; overflow-wrap: anywhere; }
 .training-detail { padding: 4px 2px 8px; }
 .training-detail-heading { display: flex; justify-content: space-between; gap: 18px; align-items: start; }
 .training-detail-identity { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
@@ -729,7 +728,6 @@ th:last-child, td:last-child { text-align: right; }
 .training-route-visual svg { display: block; width: 100%; min-height: 180px; max-height: 340px; }
 .training-route-visual rect { fill: var(--surface-soft); stroke: var(--line); }
 .training-route-visual polyline { fill: none; stroke: var(--accent); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-.training-route-transition .training-route-visual polyline { stroke-dasharray: 10 8; }
 .training-route-start { fill: var(--surface); stroke: var(--accent); stroke-width: 4; vector-effect: non-scaling-stroke; }
 .training-route-end,
 .training-route-single { fill: var(--accent); stroke: var(--surface); stroke-width: 3; vector-effect: non-scaling-stroke; }
@@ -1040,7 +1038,6 @@ th:last-child, td:last-child { text-align: right; }
 .training-signal-visual svg { display: block; width: 100%; min-height: 170px; max-height: 300px; }
 .training-signal-visual rect { fill: var(--surface-soft); stroke: var(--line); }
 .training-signal-visual polyline { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-.training-signal-transition .training-signal-visual polyline { stroke-dasharray: 8 7; }
 .training-signal-visual circle { fill: var(--accent); stroke: var(--surface); stroke-width: 2; vector-effect: non-scaling-stroke; }
 .training-signal-visual > p { color: var(--muted); }
 .training-signal dl { margin: 12px 0; }
@@ -1224,7 +1221,6 @@ th:last-child, td:last-child { text-align: right; }
 .sleep-summary strong, .sleep-summary span { display: block; overflow-wrap: anywhere; }
 .sleep-summary strong { margin-bottom: 5px; font-size: 1.18rem; font-variant-numeric: tabular-nums; }
 .sleep-summary span { color: var(--ink-soft); font-size: .76rem; }
-.sleep-history-grid { display: grid; grid-template-columns: minmax(260px, .9fr) minmax(0, 1.5fr); gap: 26px; align-items: start; }
 .sleep-chart { display: grid; gap: 13px; margin: 0; padding: 0; list-style: none; }
 .sleep-chart li { display: grid; grid-template-columns: minmax(98px, auto) minmax(110px, 1fr) auto; gap: 10px; align-items: center; font-size: .84rem; }
 .sleep-chart strong { text-align: right; font-variant-numeric: tabular-nums; }
@@ -1300,7 +1296,6 @@ th:last-child, td:last-child { text-align: right; }
 .recovery-summary strong, .recovery-summary span { display: block; overflow-wrap: anywhere; }
 .recovery-summary strong { margin-bottom: 5px; font-size: 1.18rem; font-variant-numeric: tabular-nums; }
 .recovery-summary span { color: var(--ink-soft); font-size: .76rem; }
-.recovery-history-grid { display: grid; grid-template-columns: minmax(260px, .9fr) minmax(0, 1.5fr); gap: 26px; align-items: start; }
 .recovery-chart { display: grid; gap: 13px; margin: 0; padding: 0; list-style: none; }
 .recovery-chart li { display: grid; grid-template-columns: minmax(98px, auto) minmax(110px, 1fr) auto; gap: 10px; align-items: center; font-size: .84rem; }
 .recovery-chart strong { text-align: right; font-variant-numeric: tabular-nums; }
@@ -1644,9 +1639,7 @@ button.danger-action { color: var(--danger-ink); background: var(--danger-soft);
   .training-session-evidence-empty { grid-column: 1; }
   .training-route-selection { grid-template-columns: 1fr; }
   .training-route-selection dl { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
-  .sleep-history-grid { grid-template-columns: 1fr; }
   .sleep-detail-metrics { grid-template-columns: 1fr; }
-  .recovery-history-grid { grid-template-columns: 1fr; }
   .recovery-detail-metrics { grid-template-columns: 1fr; }
   .recovery-guidance { grid-template-columns: 1fr; }
   .longitudinal-lanes { grid-template-columns: repeat(2, minmax(105px, 1fr)); }

@@ -141,6 +141,10 @@ jobs:
         if: steps.decision.outputs.full-verification == 'true'
         run: npm run check:i18n
 
+      - name: Verify live presentation inventory
+        if: steps.decision.outputs.full-verification == 'true'
+        run: npm run check:presentation-inventory
+
       - name: Verify presentation contracts
         if: steps.decision.outputs.full-verification == 'true'
         run: npm run check:ui-contracts

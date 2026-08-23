@@ -1,10 +1,4 @@
 {
-  "title": "Tu historial deportivo te pertenece",
-  "intro": "Importa una exportación de datos compatible de Polar Flow y explora un historial independiente del proveedor que permanece en este ordenador.",
-  "importHeading": "Importación",
-  "language": "Idioma",
-  "localeEnglish": "Inglés (Estados Unidos)",
-  "localeSpanish": "Español (España)",
   "choose": "Elegir paquete ZIP",
   "choosing": "Abriendo el selector de ZIP…",
   "import": "Importar el paquete seleccionado",
@@ -21,12 +15,9 @@
     "completed": "Importación completada",
     "cancelled": "Importación cancelada"
   },
-  "history": "Historial de actividad diaria",
-  "empty": "Todavía no hay actividad diaria importada.",
   "date": "Fecha local",
   "steps": "Pasos",
   "unavailable": "No disponible",
-  "visual": "Comparación visual de pasos",
   "shell": {
     "navigation": "Aplicación",
     "sidebar": "Navegación principal de la aplicación",
@@ -183,18 +174,6 @@
         "detail": "Sesiones, tiempos y estructura del origen"
       }
     },
-    "answerEyebrow": "Un punto de partida útil",
-    "answerTrainingHeading": {
-      "one": "Hay {count} sesión de entrenamiento reciente preparada para su inspección",
-      "other": "Hay {count} sesiones de entrenamiento recientes preparadas para su inspección"
-    },
-    "answerTrainingIntro": "Tu biblioteca independiente abarca {range}. Abre las sesiones que sustentan esta respuesta o elige otra pregunta compatible.",
-    "answerHistoryHeading": "Tu historial independiente abarca {range}",
-    "answerQuestionCount": {
-      "one": "FitFreed ha encontrado {count} pregunta respaldada por indicios que puede responder sin inventar los datos ausentes.",
-      "other": "FitFreed ha encontrado {count} preguntas respaldadas por indicios que puede responder sin inventar los datos ausentes."
-    },
-    "answerAction": "Explorar esta respuesta",
     "postImportHeadingChanged": "Importación completada",
     "postImportHeadingUnchanged": "Importación completada",
     "postImportHeadingExactRepeat": "Ya estaba en tu biblioteca",
@@ -340,19 +319,7 @@
       "sports": "Deportes",
       "comparison": "Comparar periodos"
     },
-    "loading": "Cargando el historial de entrenamientos…",
-    "unavailable": "No se ha podido cargar el historial de entrenamientos.",
-    "empty": "Todavía no hay sesiones de entrenamiento importadas.",
-    "selectedRange": "Periodo seleccionado",
-    "availableRange": "Historial disponible",
     "rangeSeparator": "a",
-    "filterHeading": "Explorar un periodo de entrenamiento",
-    "from": "Desde",
-    "through": "Hasta",
-    "applyRange": "Aplicar periodo de entrenamiento",
-    "applyingRange": "Aplicando periodo de entrenamiento…",
-    "latestWindow": "Última ventana de 30 días",
-    "rangeHelp": "Elige hasta 366 días, ambos inclusive, dentro del historial de entrenamientos disponible.",
     "series": "Origen de entrenamiento",
     "summaryLabel": "Resumen de entrenamientos",
     "sessionCount": "Sesiones",
@@ -372,24 +339,15 @@
       "other": "días de entrenamiento"
     },
     "of": "de",
-    "emptyRange": "No comienza ninguna sesión de entrenamiento dentro de este periodo.",
-    "visual": "Duración de las sesiones en el periodo seleccionado",
-    "sessionsTable": "Sesiones de entrenamiento",
     "startedAt": "Inicio local",
     "stoppedAt": "Fin local",
     "duration": "Duración",
     "distance": "Distancia",
     "energy": "Energía",
-    "details": "Detalles",
-    "viewDetails": "Ver detalles del entrenamiento del",
-    "detailHeading": "Detalle del entrenamiento",
-    "closeDetail": "Cerrar detalle del entrenamiento",
     "utcOffset": "Desfase UTC al inicio",
     "averageHeartRate": "Frecuencia cardíaca media",
     "maximumHeartRate": "Frecuencia cardíaca máxima",
     "trainingType": "Tipo de entrenamiento",
-    "recordedType": "Tipo de entrenamiento registrado",
-    "unknownType": "Tipo de entrenamiento no disponible",
     "exerciseCount": "Ejercicios declarados",
     "sessionLibrary": {
       "heading": "Encontrar una sesión de entrenamiento",
@@ -1834,9 +1792,7 @@
       "rejected": "Rechazada",
       "cancelled": "Cancelada",
       "failed": "Fallida"
-    },
-    "rejectedSummary": "Importación rechazada; no se ha modificado el historial.",
-    "failedSummary": "La importación ha fallado; no se ha publicado ningún historial parcial."
+    }
   },
   "reports": {
     "eyebrow": "Tus informes",
@@ -2170,7 +2126,6 @@
     "published": "Publicada el {date}",
     "installNotice": "FitFreed conserva la aplicación y la biblioteca actuales antes de reemplazar la aplicación. Después se reinicia y verifica la actualización automáticamente.",
     "install": "Instalar y reiniciar",
-    "installing": "Instalando…",
     "installingVersion": "Instalando la versión {version}…",
     "dismiss": "Ignorar esta versión",
     "dismissing": "Ignorando esta versión…",

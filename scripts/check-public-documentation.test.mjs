@@ -44,6 +44,7 @@ test("rejects version drift and an incomplete public operations procedure", () =
 test("rejects missing locale guidance and distribution state in reviewed notes", () => {
   const candidate = bundle();
   delete candidate.catalogs["es-ES"].updates.recovery;
+  delete candidate.catalogs["es-ES"].settings.localeSpanish;
   delete candidate.policy.update.releaseNotes["es-ES"];
   candidate.reviewedReleaseNotes = candidate.reviewedReleaseNotes.replace(
     "FitFreed 0.1.0 supports Apple Silicon",
@@ -55,6 +56,7 @@ test("rejects missing locale guidance and distribution state in reviewed notes",
     (error) => {
       assert.match(error.message, /policy locales must be exactly: en-US, es-ES/);
       assert.match(error.message, /es-ES catalog is missing public guidance: updates\.recovery\.updated/);
+      assert.match(error.message, /es-ES catalog is missing public guidance: settings\.localeSpanish/);
       assert.match(error.message, /generated public-release state/);
       return true;
     },

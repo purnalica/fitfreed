@@ -213,7 +213,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R7 | Complete locally — R7.1 through R7.6 passed the exact fast, functional, restart, adaptive, accessibility, visual, and performance gates on 2026-08-22 | Every session composition reflects its actual evidence |
 | X5-R8 | Complete locally — R8.1 through R8.6 passed the final Alpha gate on 2026-08-23 | Personal ranges and reusable criteria work end to end |
 | X5-R9 | Complete locally — all six slices passed fast, packaged, restart, accessibility, visual, migration, and performance gates on 2026-08-23 | Reports open as results and leave FitFreed safely |
-| X5-R10 | Pending | The complete release-shaped product is coherent and documented |
+| X5-R10 | In progress — R10.1 live-surface inventory complete locally 2026-08-23 | The complete release-shaped product is coherent and documented |
 | X6 | Pending | Independent audit has no unresolved material finding |
 
 ## X4-P0 — Freeze the executable contract
@@ -1745,6 +1745,38 @@ existing library through installation, restart, update simulation, migration, an
 keyboard and VoiceOver evidence, all responsive/locale/theme/zoom matrices, performance budgets,
 repository privacy and content gates, hosted campaign for the exact fingerprint, and a coherent source
 revision handed to the independent audit.
+
+### R10.1 live-surface inventory — complete locally 2026-08-23
+
+The production graph contains 88 reachable presentation entries from `src/main.tsx`; no component or route
+module is orphaned. The five stable shell destinations and their activity, training, sleep, recovery,
+aligned-history, report, source, and settings substates remain owned by their typed navigation contracts.
+The automated inventory also accounts for all 567 CSS classes, 1,921 matching English and Spanish locale
+messages, 101 automation scripts including 38 automatic script-test roots, and all nine packaged-test and
+support files. Generated class families, SVG sprite ownership, Leaflet classes, typed dynamic dictionaries,
+and contextual message interfaces are modeled as explicit consumers.
+
+The incoming-reference review identified and removed five selectors belonging only to replaced history,
+route, and signal compositions; 41 messages belonging only to the original import screen, superseded Home
+answer, old training browser, old import summary, and unused update progress; and the fixed allowlist plus
+script whose sole purpose was the already-completed first repository publication. Current repository-content,
+secret-history, metadata, workflow, release, and publication gates retain the live safety responsibilities.
+The compact overflow diagnostic now names only current recovery surfaces. A repository-wide reference search
+returns no remaining consumer of the removed artifacts.
+
+`npm run check:presentation-inventory` now fails on an unreachable production module, unconsumed locale key,
+unowned CSS class, unreferenced automation script, or unregistered packaged-test file. It is part of the fast
+lane and the portable CI quality job. Focused checker tests distinguish live imports, generated and external
+class ownership, and exact versus dynamic locale consumption. R10.2 begins the cross-workspace language,
+hierarchy, evidence, adaptive, and recovery audit against this clean live surface.
+
+The complete fast lane passed 159 automation, 328 React, two vendored-updater, 224 host, 199 application,
+and 48 domain tests. Rust formatting, strict Clippy, the production build, documentation, localization,
+workflow, UI-contract, repository-content, and diff checks also passed. The rebuilt packaged macOS campaign
+passed the functional journey, real process restart, adaptive complete and partial session compositions, and
+the isolated two-year performance scenario. Every measured interaction stayed within its accepted budget;
+the slowest common-interaction p95 was 37 ms, the slowest maximum-range p95 was 128 ms, and the route
+workbench p95 was 75 ms.
 
 ## X6 — Repeat the independent product-experience audit
 
