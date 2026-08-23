@@ -363,27 +363,29 @@ async function measureTrainingSignalOverview() {
       return;
     }
     const started = window.performance.now();
-    let expandedToMaximum = false;
+    let signalsOpened = false;
     detailButton.click();
     function observeResult() {
+      const signalSectionButton = document.querySelector(
+        ".training-detail-navigation button[aria-controls='training-detail-signals']",
+      );
+      if (signalSectionButton && !signalsOpened) {
+        signalsOpened = true;
+        signalSectionButton.click();
+      }
+      const signalSection = document.querySelector("#training-detail-signals");
       const charts = Array.from(document.querySelectorAll(".training-signal svg"));
       const choices = document.querySelectorAll(
         ".training-cross-signal-selection input[type='checkbox']",
       );
       const crossSignalLanes = document.querySelectorAll(".training-cross-signal-lanes svg");
       if (
-        charts.length === 4
+        signalsOpened
+        && signalSection && !signalSection.hasAttribute("hidden")
+        && charts.length === 4
         && choices.length === 4
         && crossSignalLanes.length === 3
-        && !expandedToMaximum
-      ) {
-        expandedToMaximum = true;
-        choices[3].click();
-      }
-      if (
-        charts.length === 4
         && charts.every((chart) => chart.getAttribute("aria-label")?.includes("20,001 samples"))
-        && crossSignalLanes.length === 4
       ) {
         document.documentElement.getBoundingClientRect();
         setTimeout(() => done({
@@ -393,7 +395,25 @@ async function measureTrainingSignalOverview() {
         return;
       }
       if (window.performance.now() - started > 5_000) {
-        done({ duration: null, error: "bounded training signal overview was not rendered" });
+        done({
+          duration: null,
+          error: `bounded training signal overview was not rendered: ${JSON.stringify({
+            signalsOpened,
+            signalSectionVisible: Boolean(
+              signalSection && !signalSection.hasAttribute("hidden"),
+            ),
+            charts: charts.length,
+            chartLabels: charts.map((chart) => chart.getAttribute("aria-label")),
+            choices: choices.length,
+            choiceStates: Array.from(choices).map((choice) => ({
+              checked: choice.checked,
+              disabled: choice.disabled,
+              label: choice.parentElement?.textContent,
+            })),
+            selectedChoices: Array.from(choices).filter((choice) => choice.checked).length,
+            crossSignalLanes: crossSignalLanes.length,
+          })}`,
+        });
         return;
       }
       setTimeout(observeResult, 16);
@@ -401,16 +421,73 @@ async function measureTrainingSignalOverview() {
     setTimeout(observeResult, 16);
   });
   if (result.error) throw new Error(result.error);
+  const choices = await $$(
+    ".training-cross-signal-selection input[type='checkbox']",
+  );
+  expect(choices).toHaveLength(4);
+  await expect(choices[3]).toBeEnabled();
+  await browser.execute(() => {
+    const target = document.querySelectorAll(
+      ".training-cross-signal-selection input[type='checkbox']",
+    )[3];
+    globalThis.__fitfreedMaximumSignalSelection = null;
+    target.addEventListener("click", () => {
+      const started = window.performance.now();
+      function observeSelection() {
+        const lanes = document.querySelectorAll(".training-cross-signal-lanes svg");
+        const checked = document.querySelectorAll(
+          ".training-cross-signal-selection input[type='checkbox']:checked",
+        );
+        if (lanes.length === 4 && checked.length === 4) {
+          document.documentElement.getBoundingClientRect();
+          setTimeout(() => {
+            globalThis.__fitfreedMaximumSignalSelection = {
+              duration: window.performance.now() - started,
+              error: null,
+            };
+          });
+          return;
+        }
+        if (window.performance.now() - started > 5_000) {
+          globalThis.__fitfreedMaximumSignalSelection = {
+            duration: null,
+            error: "maximum training signal selection was not rendered",
+          };
+          return;
+        }
+        setTimeout(observeSelection, 16);
+      }
+      setTimeout(observeSelection, 0);
+    }, { capture: true, once: true });
+  });
+  await choices[3].click();
+  await browser.waitUntil(
+    () => browser.execute(() => globalThis.__fitfreedMaximumSignalSelection !== null),
+    { timeout: 5_000, timeoutMsg: "maximum training signal selection was not rendered" },
+  );
+  const maximumSelection = await browser.execute(() => {
+    const measurement = globalThis.__fitfreedMaximumSignalSelection;
+    delete globalThis.__fitfreedMaximumSignalSelection;
+    return measurement;
+  });
+  if (maximumSelection.error) throw new Error(maximumSelection.error);
   await $(`aria/${english.training.sessionLibrary.closeDetail}`).click();
   await browser.waitUntil(
     async () => (await $$(".training-detail")).length === 0,
     { timeout: 5_000, timeoutMsg: "training signal detail did not close" },
   );
-  return result.duration;
+  return {
+    overviewDuration: result.duration,
+    maximumSelectionDuration: maximumSelection.duration,
+  };
 }
 
 async function measureTrainingSignalExactPage() {
   await $('.training-session-results button[aria-label^="View session details"]').click();
+  await $(
+    ".training-detail-navigation button[aria-controls='training-detail-signals']",
+  ).click();
+  await $("#training-detail-signals").waitForDisplayed({ timeout: 5_000 });
   await browser.waitUntil(
     async () => (await $$(".training-signal button[aria-expanded]")).length === 4,
     { timeout: 5_000, timeoutMsg: "training signal exact-sample action was not available" },
@@ -475,13 +552,17 @@ async function measureTrainingRouteWorkbenchOpen() {
       const overlays = document.querySelectorAll(
         ".training-route-map .fitfreed-route-overlay",
       );
+      const trackDisplayOptions = document.querySelectorAll(
+        ".training-route-workbench-controls label:nth-child(2) select option",
+      );
       if (
         route?.getAttribute("d")
         && position?.getAttribute("max") === "399"
         && position.getAttribute("aria-valuetext")?.startsWith("Point 1 of 20,001 ·")
-        && lanes.length === 3
-        && laneChoices.length === 4
-        && overlays.length > 0
+        && lanes.length === 0
+        && laneChoices.length === 0
+        && overlays.length === 0
+        && trackDisplayOptions.length === 1
       ) {
         document.querySelector(".training-route-map-frame").getBoundingClientRect();
         setTimeout(() => done({
@@ -512,9 +593,14 @@ async function openDenseTrainingRouteWorkbench() {
   await $(".training-route-workbench .fitfreed-route-track").waitForDisplayed({
     timeout: 10_000,
   });
-  await browser.waitUntil(
-    async () => (await $$(".training-route-signal-lane-chart")).length === 3,
-    { timeout: 5_000, timeoutMsg: "dense route signal lanes did not render" },
+  expect(await $$(".training-route-signal-lane-chart")).toHaveLength(0);
+  expect(await $$(".training-route-map .fitfreed-route-overlay")).toHaveLength(0);
+  const trackDisplayOptions = await $$(
+    ".training-route-workbench-controls label:nth-child(2) select option",
+  );
+  expect(trackDisplayOptions).toHaveLength(1);
+  await expect(trackDisplayOptions[0]).toHaveText(
+    english.training.sessionLibrary.routeWorkbench.recordedTrack,
   );
 }
 
@@ -546,16 +632,11 @@ async function measureTrainingRouteSelection(scenario) {
       const updatedMarker = document.querySelector(
         ".training-route-map .fitfreed-route-selection",
       )?.getAttribute("d");
-      const lanes = Array.from(document.querySelectorAll(
-        ".training-route-signal-lane-chart",
-      ));
       if (
         selectedPosition === expected.label
         && updatedMarker
         && updatedMarker !== previousMarker
-        && lanes.length === 3
-        && lanes.every((lane) => lane.getAttribute("aria-valuetext")
-          ?.startsWith(`${expected.label} ·`))
+        && document.querySelectorAll(".training-route-signal-lane-chart").length === 0
       ) {
         document.querySelector(".training-route-map-frame").getBoundingClientRect();
         setTimeout(() => done({
@@ -576,33 +657,24 @@ async function measureTrainingRouteSelection(scenario) {
   return result.duration;
 }
 
-async function measureTrainingRouteOverlay(optionIndex) {
-  const result = await browser.executeAsync((targetIndex, done) => {
-    const display = document.querySelectorAll(
-      ".training-route-workbench-controls select",
-    )[1];
-    const option = display?.options[targetIndex];
-    if (!display || !option) {
-      done({ duration: null, error: "dense route overlay choice was not available" });
+async function measureTrainingRouteIndependentSignalReveal() {
+  const result = await browser.executeAsync((labels, done) => {
+    const buttons = Array.from(document.querySelectorAll(".training-detail-navigation button"));
+    const signals = buttons.find((button) => button.textContent === labels.signals);
+    if (!signals) {
+      done({ duration: null, error: "independent signal section was not available" });
       return;
     }
-    const expectedHeading = `${option.textContent} on the recorded track`;
-    const setValue = Object.getOwnPropertyDescriptor(
-      window.HTMLSelectElement.prototype,
-      "value",
-    ).set;
     const started = window.performance.now();
-    setValue.call(display, option.value);
-    display.dispatchEvent(new Event("change", { bubbles: true }));
+    signals.click();
     function observeResult() {
-      const heading = document.querySelector(
-        ".training-route-overlay-legend strong",
-      )?.textContent;
-      const overlays = document.querySelectorAll(
-        ".training-route-map .fitfreed-route-overlay",
-      );
-      if (display.value === option.value && heading === expectedHeading && overlays.length > 0) {
-        document.querySelector(".training-route-map-frame").getBoundingClientRect();
+      const section = document.querySelector("#training-detail-signals");
+      const series = section?.querySelectorAll(".training-signal");
+      const noInventedAlignment = document.querySelectorAll(
+        ".training-route-signal-lane-chart, .training-route-map .fitfreed-route-overlay",
+      ).length === 0;
+      if (!section?.hasAttribute("hidden") && series?.length === 4 && noInventedAlignment) {
+        section.getBoundingClientRect();
         setTimeout(() => done({
           duration: window.performance.now() - started,
           error: null,
@@ -610,14 +682,23 @@ async function measureTrainingRouteOverlay(optionIndex) {
         return;
       }
       if (window.performance.now() - started > 5_000) {
-        done({ duration: null, error: "dense route overlay did not update" });
+        done({ duration: null, error: "independent signal section did not open" });
         return;
       }
       setTimeout(observeResult, 16);
     }
     setTimeout(observeResult, 0);
-  }, optionIndex);
+  }, {
+    signals: english.training.sessionLibrary.detailSections.signals,
+  });
   if (result.error) throw new Error(result.error);
+  const overview = english.training.sessionLibrary.detailSections.overview;
+  for (const button of await $$(".training-detail-navigation button")) {
+    if (await button.getText() !== overview) continue;
+    await button.click();
+    await expect(button).toHaveAttribute("aria-current", "page");
+    break;
+  }
   return result.duration;
 }
 
@@ -1285,12 +1366,15 @@ export async function runInsightsPerformanceJourney({
     routeSelectionScenarios,
     measureTrainingRouteSelection,
   );
-  const routeOverlayScenarios = [2, 1];
-  await measureAlternating(warmUpRuns, routeOverlayScenarios, measureTrainingRouteOverlay);
-  const trainingRouteOverlayTimings = await measureAlternating(
+  await measureAlternating(
+    warmUpRuns,
+    [null],
+    measureTrainingRouteIndependentSignalReveal,
+  );
+  const trainingRouteIndependentSignalRevealTimings = await measureAlternating(
     7,
-    routeOverlayScenarios,
-    measureTrainingRouteOverlay,
+    [null],
+    measureTrainingRouteIndependentSignalReveal,
   );
   await expectDenseRouteExactEndpoint();
   await $(`aria/${english.training.sessionLibrary.closeDetail}`).click();
@@ -1300,10 +1384,16 @@ export async function runInsightsPerformanceJourney({
   );
   reportPhase("training-signals");
   await measureAlternating(warmUpRuns, [null], measureTrainingSignalOverview);
-  const trainingSignalOverviewTimings = await measureAlternating(
+  const trainingSignalMeasurements = await measureAlternating(
     7,
     [null],
     measureTrainingSignalOverview,
+  );
+  const trainingSignalOverviewTimings = trainingSignalMeasurements.map(
+    (measurement) => measurement.overviewDuration,
+  );
+  const trainingSignalMaximumSelectionTimings = trainingSignalMeasurements.map(
+    (measurement) => measurement.maximumSelectionDuration,
   );
   await measureAlternating(warmUpRuns, [null], measureTrainingSignalExactPage);
   const trainingSignalExactPageTimings = await measureAlternating(
@@ -1431,8 +1521,15 @@ export async function runInsightsPerformanceJourney({
       calendarNavigation: measurementEvidence(trainingCalendarTimings, 500),
       routeWorkbenchOpen: measurementEvidence(trainingRouteWorkbenchOpenTimings, 1_000),
       routeSelection: measurementEvidence(trainingRouteSelectionTimings, 100),
-      routeOverlay: measurementEvidence(trainingRouteOverlayTimings, 250),
+      independentSignalReveal: measurementEvidence(
+        trainingRouteIndependentSignalRevealTimings,
+        250,
+      ),
       signalOverview: measurementEvidence(trainingSignalOverviewTimings, 1_000),
+      signalMaximumSelection: measurementEvidence(
+        trainingSignalMaximumSelectionTimings,
+        250,
+      ),
       signalExactPage: measurementEvidence(trainingSignalExactPageTimings, 500),
     },
     sleep: {

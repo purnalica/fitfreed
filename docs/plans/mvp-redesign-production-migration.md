@@ -209,9 +209,9 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R3 | Complete locally — R3.1 and R3.2 exact packaged gates passed 2026-08-22 | Import ends in recognizable personal value |
 | X5-R4 | Complete locally — exact packaged and exhaustive adaptive gates passed 2026-08-22 | Existing health and aligned-history questions read as answers |
 | X5-R5 | Complete locally — R5.4, R5.5, and real-process restart gates passed 2026-08-22 | A remembered session is findable and sports are recognizable |
-| X5-R6 | Complete locally — R6.1 through R6.5 passed exact packaged, adaptive visual, and dense-route gates on 2026-08-22 | A routed workout is investigated through a dominant synchronized map |
+| X5-R6 | Complete locally — R6.1 through R6.5 passed exact packaged, adaptive visual, and dense-route gates on 2026-08-22; R8.4 subsequently removed unproven route-signal alignment | A routed workout is investigated through a dominant local map without invented relationships |
 | X5-R7 | Complete locally — R7.1 through R7.6 passed the exact fast, functional, restart, adaptive, accessibility, visual, and performance gates on 2026-08-22 | Every session composition reflects its actual evidence |
-| X5-R8 | In progress — R8.1 through R8.3 complete locally; R8.4 corrected unproven alignment, enforces explicit coordinates, and has a verified revision-coherent Range Summary; production range interaction is active | Personal ranges and reusable criteria work end to end |
+| X5-R8 | In progress — R8.1 through R8.5 complete locally; exact-coordinate Range Summary and the production range library/editor passed final functional, restart, adaptive, accessibility, visual, and performance gates on 2026-08-23; R8.6 interaction integration is active | Personal ranges and reusable criteria work end to end |
 | X5-R9 | Pending | Reports open as results and leave FitFreed safely |
 | X5-R10 | Pending | The complete release-shaped product is coherent and documented |
 | X6 | Pending | Independent audit has no unresolved material finding |
@@ -1289,7 +1289,7 @@ Rust formatting, and diff whitespace checks also pass. The revision-coherent Ran
 interaction, criteria integration, packaged E2E/accessibility/performance evidence, and alpha UX review remain
 open under R8.
 
-### R8.4 exercise-ownership correction and Range Summary — in progress
+### R8.4 exercise-ownership correction and Range Summary — complete 2026-08-23
 
 The accepted range concept defines one range inside one exercise and requires route, signal, source-structure,
 gap, and exact-boundary evidence to share that exercise's elapsed coordinate. R8.1 through R8.3 instead stored
@@ -1402,9 +1402,49 @@ serialization, exact signed-64-bit strings, public provider attribution, cross-o
 private-identifier exclusions are machine checked. The complete fast gate passes 156 tooling tests, 291 React
 tests, two vendored-updater tests, 220 all-feature host tests, 192 application tests, 46 domain tests, and two
 private-acceptance tests. Strict workspace Clippy, Rust formatting, architecture, contracts, documentation,
-localization, site, workflow, and UI checks also pass. Production interaction for creating, selecting,
-reviewing, adjusting, renaming, removing, and reopening ranges is the next R8.4 slice; reusable-criterion
-integration, packaged evidence, and the Alpha UX review remain open under R8.
+localization, site, workflow, and UI checks also pass. R8.5 owns the complete production interaction for
+creating, selecting, reviewing, adjusting, renaming, removing, and reopening ranges; reusable-criterion and
+cross-surface boundary integration, plus the final Alpha UX review, remain open under R8.
+
+### R8.5 production range library and editor — complete locally 2026-08-23
+
+The independently usable increment adds a dedicated personal-ranges task inside session detail. It queries the
+complete revision-bound range context, presents current and review-required authored ranges without exposing
+opaque capabilities, resolves the selected Range Summary, and supports create, reopen, rename, adjust, cancel,
+and guarded remove operations through the existing atomic commands. Exercise and coordinate choices come only
+from the returned context; exact millisecond values remain decimal text internally while people edit localized
+elapsed values with ordered, in-extent validation. The concise result uses human-scale duration, distance,
+direction, and measurement values before a closed exact-evidence disclosure. Empty, loading, unavailable,
+stale, conflicting, failed, multiple-range, restart, reimport-review, keyboard, focus, and compact/zoom states
+belong to the increment rather than deferred error decoration.
+
+The final packaged campaign passed the complete import journey in 2 minutes 41.3 seconds, new-process restart in
+989 milliseconds, and evidence-adaptive composition in 3.9 seconds. It creates, validates, reopens, renames, adjusts,
+reviews after reimport, cancels and confirms removal, preserves one range through restart, scans accessibility,
+and asserts English wide plus Spanish dark compact 200% geometry without horizontal overflow. The isolated two-year
+dense campaign passed in 3 minutes 16.9 seconds: route-workbench open p95 was 84 milliseconds, route selection
+1 millisecond, deliberate independent-signal reveal 21 milliseconds, four-series signal overview 323
+milliseconds, deliberate fourth-series selection 7 milliseconds, and exact signal pagination 200 milliseconds,
+all below their accepted budgets. The complete fast
+gate passes 156 tooling tests, 306 React tests, two vendored-updater tests, 220 all-feature host tests, 192
+application tests, 46 domain tests, and two private-acceptance tests. Visual review rejected source-scale distance,
+fractional summary noise, incorrect singular evidence copy, and clipped high-zoom result context before accepting
+the final evidence.
+
+An earlier performance campaign exposed that the runner added WebDriver transport and polling time for deliberate
+fourth-lane selection to the independently measured signal-overview opening. The final evidence separates the two
+user interactions, and the selection timer begins at the actual captured click inside the WebView.
+
+Subsequent self-review rejected an existing-but-zero-extent coordinate as an adjustable timeline and bounded
+elapsed-field input before `BigInt` parsing. The application rebuilt from those exact inputs passed the complete
+fast and packaged campaigns recorded above.
+
+R8.6 will then make the same draft and selected range controllable from the dominant route map, regular-signal
+lanes, and source structure. It will add synchronized adjustable handles only within one proven coordinate,
+retain the route during naming and adjustment, and use an in-workbench inspector at wide geometry plus a
+stacked task mode at compact width or high zoom. R8.5 does not simulate cross-representation alignment or add
+parallel range state; the atomic range context and editor draft remain the single production interaction
+model consumed by R8.6.
 
 ## X5-R9 — Make reports result-first and portable
 

@@ -2,6 +2,7 @@ import type { SessionStory } from "./session-story";
 
 export type SessionDetailSection =
   | "overview"
+  | "ranges"
   | "structure"
   | "signals"
   | "routes"
@@ -64,7 +65,7 @@ export function sessionStoryLayout(story: SessionStory | undefined): SessionStor
   if (!story) {
     return {
       leadingEvidence: null,
-      sections: ["overview", "structure", "signals", "routes", "provenance"],
+      sections: ["overview", "ranges", "structure", "signals", "routes", "provenance"],
     };
   }
 
@@ -78,6 +79,7 @@ export function sessionStoryLayout(story: SessionStory | undefined): SessionStor
     leadingEvidence,
     sections: [
       "overview",
+      "ranges",
       "structure",
       ...(hasSignalOrZoneDetail(story) ? ["signals" as const] : []),
       ...(hasRouteDetail(story) ? ["routes" as const] : []),

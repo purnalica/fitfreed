@@ -96,6 +96,11 @@ describe("packaged FitFreed application-process restart", () => {
     expect(criteria).toHaveLength(2);
     await expect(criteria[0].$("h6")).toHaveText("Race plan");
     await expect(criteria[1].$("h6")).toHaveText("Quarter-hour blocks");
+    await openTrainingDetailSection("ranges");
+    await expect($(".training-range-inspector h4")).toHaveText("Ridge effort");
+    await expect($(".training-range-inspector")).toHaveText(
+      expect.stringContaining(spanish.training.sessionLibrary.ranges.current),
+    );
 
     await goToHome("reports");
     await expect($(".reports-hero h1")).toHaveText(spanish.reports.heading);

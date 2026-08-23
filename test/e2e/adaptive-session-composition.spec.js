@@ -207,6 +207,7 @@ describe("packaged evidence-adaptive session composition", () => {
     for (const button of signalNavigation) signalNavigationLabels.push(await button.getText());
     expect(signalNavigationLabels).toEqual([
       english.training.sessionLibrary.detailSections.overview,
+      english.training.sessionLibrary.detailSections.ranges,
       english.training.sessionLibrary.detailSections.structure,
       english.training.sessionLibrary.detailSections.signals,
       english.training.sessionLibrary.detailSections.provenance,

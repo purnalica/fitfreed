@@ -13,15 +13,17 @@ workbench before the deeper detail sections only when that session contains reco
 does not reserve an empty map for an indoor or otherwise non-routed session.
 
 The initial view fits the complete selected route. **Visible route** keeps each exercise's primary and
-transition geometry separate; changing it never joins the two tracks. **Track display** selects the
-recorded line or one supported measurement aligned to it. The default follows the session's
-sport-specific primary evidence when that measurement was recorded.
+transition geometry separate; changing it never joins the two tracks. **Track display** offers only
+relationships that an importer has explicitly certified. The current Polar Flow mapping does not establish
+a shared route-and-signal clock, so its sole choice is **Recorded track**; FitFreed does not infer an overlay
+from equal offsets, similar sample counts, or visual proximity.
 
 ## Investigate one position
 
 - Click the recorded line to select its nearest returned evidence point.
 - Use **Recorded position** with a pointer or keyboard to traverse every returned route point. The map
-  marker, elapsed time, altitude, and available measurement values move together.
+  marker, elapsed time, and altitude move together. A measurement value moves with them only when an importer
+  supplied an exact recorded relationship.
 - Use **Zoom in**, **Zoom out**, and **Show the complete track** without changing the selected evidence.
 - Choose **Focus the map** for a larger workspace. **Return to the session** or `Escape` restores the
   ordinary session view and the focus action without discarding the route, overlay, or selected point.
@@ -39,7 +41,8 @@ samples.
 
 ## Compare measurements along the route
 
-Recorded measurements that align with route positions appear as full-width lanes below the map. Every lane
+Recorded measurements appear below the map only when an importer explicitly aligns them with route positions.
+Every such lane
 keeps its own named scale and source identity; their cursor is the same recorded position used by the map,
 value strip, and position control. Click or tap a lane to choose the closest recorded route position on its
 elapsed axis. When the lane has keyboard focus, use Left and Right to move between recorded positions or Home
@@ -50,17 +53,18 @@ measurements** lets you show up to four while keeping at least one. A line stops
 value or source gap. The displayed ranges and selected values are structured text as well as graphics, and
 an unaligned point remains explicitly unavailable.
 
-If the route has no recorded elapsed time at any point, FitFreed does not pretend that its positions can be
-synchronized with signal time. The map remains available and the independent signal charts remain in session
-detail, but the attached synchronized lanes are absent.
+The current Polar Flow importer does not provide the required route-and-signal relationship, even when both
+sides contain elapsed values. Its map therefore remains available and its regular signal charts remain in
+**Signals and zones**, while attached synchronized lanes and measurement overlays are absent. A route with no
+recorded elapsed time has the same fail-closed result.
 
 ## Inspect exact evidence
 
 **Inspect exact recorded route points** opens the existing Routes section at the page containing the selected
-map point, marks its exact source row, and moves focus and the visible workspace to that row. Each measurement
-lane offers the corresponding action for its source series. When that route position has an aligned source
-sample, FitFreed opens its containing Signals and zones page and focuses the exact sample row. If no sample
-aligns there, the source series still opens without pretending that a corresponding row exists. These paths
+map point, marks its exact source row, and moves focus and the visible workspace to that row. A conditionally
+available measurement lane offers the corresponding action for its source series only when an exact recorded
+relationship exists. Independent regular signals remain available through **Signals and zones** without
+pretending that one of their rows corresponds to the selected map point. These paths
 retain source ordinals, coordinates, elapsed times, units, unavailable values, and gaps; the map and lanes are
 not replacements for exact evidence.
 

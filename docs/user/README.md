@@ -61,12 +61,12 @@ control when it still exists.
 Applied refinements remain visible after the editor closes, report the exact result count, and can be removed
 one at a time or cleared together. An empty refined result confirms that the imported history has not changed
 and provides a direct reset. Session detail progressively
-opens Overview, Structure and segments, Signals and zones, Routes, and Source history. It distinguishes
+opens Overview, Personal ranges, Structure and segments, Signals and zones, Routes, and Source history. It distinguishes
 unevaluated, absent, empty, and populated exercise/lap/pause, route, signal, and recorded-zone states. A routed
 session leads with the [interactive local route workbench](session-routes.md): primary and transition routes remain
 separate while pan, zoom, fit, focused view, recorded-position traversal, sport-aware measurement overlays, a
-structured value alternative, full-width elapsed measurement lanes, and direct exact-evidence paths stay synchronized without an external location
-request. A selected position opens and focuses its containing exact route or aligned signal row. Exact paginated tables retain every recorded coordinate. Supported exercise and transition signals render as gap-aware bounded charts with
+structured value alternative, conditional elapsed measurement lanes, and direct exact-evidence paths remain local without an external location
+request. Overlays and attached lanes appear only when an importer supplies an exact recorded relationship. The current Polar Flow mapping supplies none, so its route and regular signals remain deliberately independent. A selected position opens and focuses its containing exact route row; independent signals retain their own exact-sample paths. Exact paginated tables retain every recorded coordinate. Supported exercise and transition signals render as gap-aware bounded charts with
 paginated access to every original sample. When one role has enough recorded evidence, two through four
 signals can also be selected as independently scaled lanes over one stable elapsed-time axis; every lane
 retains a direct path to its exact samples, and the view neither bridges gaps nor implies causation.
@@ -75,6 +75,11 @@ measurement the leading visual region instead of reserving an empty map. The dis
 coverage, interval, source identity, and gaps remain connected to the exact source-series action. A compact
 evidence account states once what the session contains; deeper sections remain for requested detail rather
 than repeating general absence notices.
+Personal ranges have a dedicated [session-range guide](session-ranges.md). A person can create, reopen, rename,
+adjust, review after reimport, and remove a session-owned range on one explicit exercise, route, or measurement
+timeline. The result leads with a concise revision-coherent summary and reveals exact boundary quality, source
+overlap, gaps, and limitations only on request. Established ownership never moves silently between independent
+clocks; synchronized map, signal-lane, structure, and exact-evidence handles remain active MVP work.
 When a session has recorded exercise structure but neither a route nor a supported visual signal, recorded
 duration and source or automatic laps take that leading region. Pause counts are visible there, while their
 recorded local timestamps remain in structural detail because FitFreed does not infer an elapsed position that
@@ -102,6 +107,10 @@ The [development preview guide](development-preview.md) is the primary end-to-en
 
 The [recorded-session route guide](session-routes.md) explains route roles, map and keyboard controls,
 selected-position evidence, overlays, exact source paths, local privacy, and the current workbench limits.
+
+The [personal session-range guide](session-ranges.md) explains exact timeline selection, creation, durable
+editing, reimport review, evidence summaries, separation from source laps and reusable criteria, and current
+map-integration limits.
 
 The [report guide](reports.md) explains the implemented question-, exploration-, session-, and blank-start
 journeys; distinct Library, Compose, and Preview stages; user-selected training-period findings and exact

@@ -63,6 +63,7 @@ import { TrainingSegmentationPanel } from "./TrainingSegmentationPanel";
 import { TrainingSessionEvidenceSummary } from "./TrainingSessionEvidenceSummary";
 import { TrainingSessionProvenancePanel } from "./TrainingSessionProvenancePanel";
 import { TrainingRouteWorkbench } from "./TrainingRouteWorkbench";
+import { TrainingRangesPanel } from "./TrainingRangesPanel";
 import { TrainingSignalPlot } from "./TrainingSignalPlot";
 import { TrainingSignalWorkbench } from "./TrainingSignalWorkbench";
 import { TrainingStructureWorkbench } from "./TrainingStructureWorkbench";
@@ -2844,6 +2845,23 @@ export function TrainingSessionLibraryPanel({
                 <div><dt>{messages.training.exerciseCount}</dt><dd>{selected.exerciseCount === null ? copy.metricUnavailable : number.format(selected.exerciseCount)}</dd></div>
               </dl>
             </div>
+          </section>
+          <section
+            id="training-detail-ranges"
+            className="training-detail-section"
+            aria-label={copy.detailSections.ranges}
+            hidden={detailSection !== "ranges"}
+          >
+            {page && detailStory && (
+              <TrainingRangesPanel
+                sessionRef={selected.sessionRef}
+                snapshotRef={page.snapshotRef}
+                story={detailStory}
+                locale={locale}
+                messages={messages}
+                onError={onError}
+              />
+            )}
           </section>
           <section
             id="training-detail-structure"

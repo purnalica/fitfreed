@@ -205,7 +205,7 @@ describe("sessionStoryLayout", () => {
   it("keeps the loading navigation complete until the story establishes capabilities", () => {
     expect(sessionStoryLayout(undefined)).toEqual({
       leadingEvidence: null,
-      sections: ["overview", "structure", "signals", "routes", "provenance"],
+      sections: ["overview", "ranges", "structure", "signals", "routes", "provenance"],
     });
   });
 
@@ -221,21 +221,21 @@ describe("sessionStoryLayout", () => {
   it("keeps exact route detail when an empty bounded route cannot lead", () => {
     expect(sessionStoryLayout(story({ route: "empty", signal: "visual" }))).toEqual({
       leadingEvidence: "signal",
-      sections: ["overview", "structure", "signals", "routes", "provenance"],
+      sections: ["overview", "ranges", "structure", "signals", "routes", "provenance"],
     });
   });
 
   it("offers unsupported evidence detail without fabricating a leading visual", () => {
     expect(sessionStoryLayout(story({ signal: "unsupported", zones: "unsupported" }))).toEqual({
       leadingEvidence: null,
-      sections: ["overview", "structure", "signals", "provenance"],
+      sections: ["overview", "ranges", "structure", "signals", "provenance"],
     });
   });
 
   it("removes unsupported destinations from a summary-only session", () => {
     expect(sessionStoryLayout(story())).toEqual({
       leadingEvidence: null,
-      sections: ["overview", "structure", "provenance"],
+      sections: ["overview", "ranges", "structure", "provenance"],
     });
   });
 });

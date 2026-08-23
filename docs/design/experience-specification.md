@@ -103,17 +103,20 @@ Source evidence remains unchanged and the classification survives navigation and
 
 A session opens as a focused workout story, not an appendix beneath a list. Its heading gives sport,
 date, duration, distance where applicable, and evidence availability at a glance. A complete outdoor
-session aligns source structure, a geographically recognizable map of the recorded GPS track, pace
-or equivalent sport-specific signal, heart rate, zones, and relevant annotations on one
-understandable elapsed-time context. The map is evidence rather than decoration: it distinguishes
+session composes source structure, a geographically recognizable map of the recorded GPS track, pace
+or equivalent sport-specific signal, heart rate, zones, and relevant annotations. It places them on one
+elapsed-time context only when recorded evidence establishes that relationship; otherwise their clocks remain
+independent. The map is evidence rather than decoration: it distinguishes
 recorded and missing geometry, relates route position to elapsed evidence when supported, performs no
 hidden external request, and has a structured distance/coordinate alternative. Exact samples and
 provenance remain closed until requested.
 
-The map supports pan and zoom without losing the complete-track reset. Track traversal and the
-aligned signal lanes share one selected elapsed instant. Pointer hover, click, keyboard traversal, or
-an exact-evidence row highlights the corresponding map position and every available signal value;
-moving through a signal highlights the mapped point when geometry exists for that instant. The
+The map supports pan and zoom without losing the complete-track reset. When the evidence contract certifies
+an exact recorded relationship, track traversal and attached signal lanes share one selected elapsed instant.
+Pointer hover, click, keyboard traversal, or an exact-evidence row then highlights the corresponding map
+position and every related signal value; moving through a signal highlights the mapped point when geometry
+exists for that recorded instant. Without that authority the route and regular signals remain independently
+explorable. The
 selection names elapsed time and recorded values, never inferred replacements. Missing route or signal
 samples break the applicable link visibly. A keyboard-operable elapsed-position control and the exact
 table provide equivalent non-map exploration.
@@ -125,12 +128,12 @@ shape, direction, endpoints, selected position, gaps, scale, and geographic cont
 can enter a focused or full-screen state and return without losing its selection, overlay, range, or
 origin context.
 
-The workbench can project supported sport-specific evidence directly onto the recorded track, with a
-legend and an accessible non-color alternative. Pace is primary for running; speed and
+The workbench can project supported sport-specific evidence directly onto the recorded track only through an
+explicit recorded relationship, with a legend and an accessible non-color alternative. Pace is primary for running; speed and
 stroke-related evidence are primary for paddling when recorded; speed, cadence, or power apply to
 cycling when recorded; and elevation, heart rate, temperature, or other supported signals remain
 available according to the session. An attached selection strip reports the current elapsed time or
-distance and recorded values without covering important geometry. Full-width aligned signal lanes,
+distance and recorded values without covering important geometry. Conditionally available full-width signal lanes,
 sections, and exact evidence follow the map and share its cursor and selected range; they deepen the
 geographic story rather than competing with it. Labels, units, lanes, sections, and useful defaults
 change with the canonical sport family and available evidence while the interaction grammar remains
@@ -138,8 +141,8 @@ stable.
 
 The map also owns contiguous range investigation. Attributed source ranges appear as selectable route
 and timeline extents with their original names and boundaries. A person can create a range by choosing
-its start and end on the route, an aligned signal lane, a structure row, or exact evidence; both
-handles remain adjustable from every synchronized representation. Before save, the workbench shows a
+its start and end on the route, a signal lane, a structure row, or exact evidence; both handles remain
+adjustable only across representations whose shared coordinate is explicitly proven. Before save, the workbench shows a
 clearly temporary selection and its supported summary. Save requires a non-blank name and creates a
 user-authored session range without changing source structure. Saved ranges can be reopened, renamed,
 adjusted, or removed; source and user ranges use visible authorship independent of color. Each range
@@ -325,8 +328,9 @@ Production migration therefore requires these lower-layer changes before their d
    form a factual document;
 6. a session-owned user-range aggregate with stable identity, ordered elapsed boundaries, title,
    revision, commands, persistence, and overlap support; and
-7. an application-owned range-summary query that aligns route, signals, gaps, source attribution, and
-   exact boundary evidence under one evidence revision.
+7. an application-owned range-summary query that resolves the selected exact exercise, route, or signal
+   coordinate with its gaps, source attribution, and boundary evidence under one evidence revision while
+   keeping independent clocks unaligned.
 
 Existing sport classification, user segmentation, source evidence, report resolution, deliberate
 refresh, privacy authorization, and deterministic HTML export contracts remain authoritative. The
@@ -337,7 +341,7 @@ optional elapsed time, plus separate elapsed signal series for heart rate, speed
 cadence, temperature, and power. The canonical sport model also provides a provider-neutral water
 sport family suitable for an authored paddling label. These are necessary evidence, but separate route
 and signal queries are not a presentation join contract. The composed session-story read model must
-align compatible evidence revisions and elapsed timestamps, retain gaps, and project the
+align only explicitly compatible recorded evidence revisions and elapsed timestamps, retain gaps, and project the
 sport-specific labels and units before the production interface offers synchronized tracking. No
 component may correlate repository results independently.
 
@@ -354,7 +358,7 @@ The product owner accepted X3 on 2026-08-21 after reviewing the candidate agains
 1. makes the product purpose and first useful action understandable without explanation;
 2. makes sports and sessions recognizable and a remembered session findable;
 3. makes the map unmistakably dominant in a route-bearing session and genuinely investigable through
-   full-track and focused states, sport-specific overlays, synchronized signals, attributed source
+   full-track and focused states, conditional sport-specific overlays and synchronized signals, attributed source
    ranges, saved user-named ranges, sections, exact points, and an equivalent keyboard path, while
    explaining a partial session without hiding depth or inventing evidence;
 4. gives reports a predictable identity and lifecycle distinct from exploration and data exit;

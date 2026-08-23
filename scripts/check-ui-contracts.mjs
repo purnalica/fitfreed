@@ -26,6 +26,18 @@ const trainingSessionLibrary = readFileSync(path.join(
   "presentation",
   "TrainingSessionLibraryPanel.tsx",
 ), "utf8");
+const trainingRanges = readFileSync(path.join(
+  repositoryRoot,
+  "src",
+  "presentation",
+  "TrainingRangesPanel.tsx",
+), "utf8");
+const trainingRangeEditorModel = readFileSync(path.join(
+  repositoryRoot,
+  "src",
+  "presentation",
+  "training-range-editor-model.ts",
+), "utf8");
 const workspaceNavigation = readFileSync(path.join(
   repositoryRoot,
   "src",
@@ -246,6 +258,45 @@ for (const deliberateMapInteraction of [
 }
 if (!trainingSessionLibrary.includes("<TrainingRouteWorkbench")) {
   throw new Error("a route-bearing session story must expose the route workbench before deep detail");
+}
+if (!trainingSessionLibrary.includes("<TrainingRangesPanel")) {
+  throw new Error("session detail must compose the one production personal-range boundary");
+}
+for (const rangeCommand of [
+  "query_training_session_ranges",
+  "query_training_session_range_summary",
+  "create_training_session_range",
+  "rename_training_session_range",
+  "adjust_training_session_range",
+  "remove_training_session_range",
+]) {
+  if (!trainingRanges.includes(`"${rangeCommand}"`)) {
+    throw new Error(`the personal-range task must retain its complete command path: ${rangeCommand}`);
+  }
+}
+for (const exactRangeRule of [
+  "BigInt(value)",
+  "BigInt(started)",
+  "findEstablishedCoordinate",
+  "legacy-session-elapsed",
+]) {
+  if (!trainingRangeEditorModel.includes(exactRangeRule)) {
+    throw new Error(`the personal-range editor must preserve ${exactRangeRule}`);
+  }
+}
+if (/\bNumber\s*\(/.test(trainingRangeEditorModel)) {
+  throw new Error("personal-range elapsed editing must not cross JavaScript Number");
+}
+requireRule(
+  stylesheet,
+  ".training-range-workspace",
+  [/display:\s*grid/, /grid-template-columns:\s*minmax\(210px,\s*280px\)\s+minmax\(0,\s*1fr\)/],
+  "a readable wide personal-range library and result",
+);
+for (const zoom of ["175", "200"]) {
+  if (!stylesheet.includes(`:root[data-content-zoom="${zoom}"] .training-range-workspace`)) {
+    throw new Error(`personal-range work must stack at ${zoom}% content zoom`);
+  }
 }
 for (const workbench of [
   ["TrainingSignalWorkbench", "training-signal-workbench"],
@@ -614,5 +665,5 @@ for (const [selector, token] of contrastContracts) {
 }
 
 process.stdout.write(
-  `${JSON.stringify({ motionDeclarations: motionDeclarations.length, reducedMotionBoundary: true, darkContrastOverrides: contrastContracts.size, labelledAdaptiveNavigation: true, broadWorkspace: true, progressiveTrainingWorkspace: true, evidenceAdaptiveSession: true, progressiveDomainWorkspaces: true, stagedReportWorkspace: true, secondarySources: true, categorizedSettings: true, initialWindow: `${mainWindow.width}x${mainWindow.height}` })}\n`,
+  `${JSON.stringify({ motionDeclarations: motionDeclarations.length, reducedMotionBoundary: true, darkContrastOverrides: contrastContracts.size, labelledAdaptiveNavigation: true, broadWorkspace: true, progressiveTrainingWorkspace: true, evidenceAdaptiveSession: true, personalRanges: true, progressiveDomainWorkspaces: true, stagedReportWorkspace: true, secondarySources: true, categorizedSettings: true, initialWindow: `${mainWindow.width}x${mainWindow.height}` })}\n`,
 );

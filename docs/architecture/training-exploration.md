@@ -2,11 +2,11 @@
 
 ## Status
 
-Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production persists provider-neutral session summaries, mapped exercise/lap/pause structure, primary and transition routes with exact points, supported exercise and transition signals with exact samples, supported recorded zones with exact aggregates, user-authored sport classifications and reusable segment criteria, and a disposable discovery workspace. Full-history search, chronology, calendar projection, comparison selection, restart restoration, structural detail, bounded local route traces, exact route pagination, gap-aware bounded and aligned signal charts, exact signal pagination, recorded-zone inspection, user-authored segmentation, and on-demand session provenance are implemented. E4 is complete in the [MVP experience delivery plan](../plans/mvp-experience-delivery.md); the [public-release readiness ledger](../testing/public-release-readiness.md) owns current exact-source acceptance evidence.
+Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production persists provider-neutral session summaries, mapped exercise/lap/pause structure, primary and transition routes with exact points, supported exercise and transition signals with exact samples, supported recorded zones with exact aggregates, user-authored sport classifications, session-owned personal ranges, reusable segment criteria, and a disposable discovery workspace. Full-history search, chronology, calendar projection, comparison selection, restart restoration, structural detail, bounded local route traces, exact route pagination, gap-aware bounded signal charts, exact signal pagination, recorded-zone inspection, personal-range lifecycle and summary, user-authored segmentation, and on-demand session provenance are implemented. Direct range manipulation across the map, signal lanes, source structure, and exact evidence remains active MVP work. E4 is complete in the [MVP experience delivery plan](../plans/mvp-experience-delivery.md); the [public-release readiness ledger](../testing/public-release-readiness.md) owns current exact-source acceptance evidence.
 
 ## Ownership
 
-- The domain owns provider-neutral session, exercise, lap, pause, zone, route, numeric-series, sport-classification, and segment-criterion identities and invariants.
+- The domain owns provider-neutral session, exercise, lap, pause, zone, route, numeric-series, sport-classification, personal-range, and segment-criterion identities and invariants.
 - Source Translation owns Polar Flow decoding, enumeration and unit interpretation, source identity, mapping versions, and anti-corruption mapping into typed canonical evidence.
 - The application owns discovery, classification, criterion evaluation, bounded session-detail queries, downsampled views, exact pagination, coverage, and provenance use cases.
 - Persistence owns atomic canonical storage, indexes, mapping-aware reconciliation, and bounded projections. It does not invent sport meaning, align unknown series, or evaluate presentation rules.
@@ -18,7 +18,7 @@ One canonical session can expose three non-interchangeable layers:
 
 1. Source evidence: exercises, source laps, automatic laps, pauses, zones, routes, and supported series mapped from a provider artifact.
 2. FitFreed-derived evidence: downsampled visual projections and deterministic segments produced by a versioned calculation.
-3. User-authored evidence: sport classification and reusable segment criteria with explicit authorship and revision.
+3. User-authored evidence: sport classification, session-owned personal ranges, and reusable segment criteria with explicit authorship and revision.
 
 Every read model retains layer attribution and provenance. Reimport or recalculation may enrich or regenerate the applicable layer but cannot rewrite another layer silently.
 
@@ -144,8 +144,8 @@ also leaves its edited draft open for recovery. A successful form submission clo
 focus to the applied-query count; removal and clear actions restore focus there when their initiating control
 disappears. An empty refined result is a result state with direct recovery, not an empty-library state.
 
-An open session replaces discovery content inside Sessions and provides five explicit evidence sections:
-Overview, Structure and segments, Signals and zones, Routes, and Source history. Only one section is visible
+An open session replaces discovery content inside Sessions and provides six explicit evidence sections:
+Overview, Personal ranges, Structure and segments, Signals and zones, Routes, and Source history. Only one section is visible
 and exposed to assistive technology at a time. Every lower-layer query retains its existing independent error
 boundary, exact-evidence path, and snapshot binding. The hierarchy changes disclosure, not evidence loading,
 identity, attribution, or availability semantics. The return action restores the exact chronology or calendar
@@ -265,31 +265,29 @@ names. It leaves ordinary DOM keys unchanged and maps only the standard WebDrive
 that the embedded macOS automation driver exposes literally. Timeline and viewport mappings consume the
 normalized names; feature components contain no driver branch, environment switch, or synthetic event path.
 
-Route workbench, map, and synchronized-lane reveals use the application shell's single responsive
-reveal offset. The offset follows the persistent desktop, compact, and 175%–200% navigation geometry,
-so programmatic or keyboard-driven scrolling places the requested evidence below the navigation instead
-of hiding its heading or controls. Presentation contracts and packaged geometry assertions cover the
-same token; individual route components do not carry independent fixed offsets.
+Route workbench, map, and deliberate reveals into independent signal, structure, and exact-evidence detail
+use the application shell's single responsive reveal offset. The offset follows the persistent desktop,
+compact, and 175%–200% navigation geometry, so programmatic or keyboard-driven scrolling places the requested
+evidence below the navigation instead of hiding its heading or controls. Presentation contracts and packaged
+geometry assertions cover the same token; individual route components do not carry independent fixed offsets.
 
-`TrainingRouteSignalLanes` is the semantic, renderer-independent timeline attached to that viewport. It pairs
-each selected role's bounded signal series with its application-composed `eligibleOverlay` by the validated
-signal capability. The complete bounded series supplies lane geometry and source gaps; the overlay's exact
-route-point and signal-sample ordinal matches supply only the selected value, map overlay, and exact-row path.
-This prevents differing endpoint-preserving route and signal projections from erasing legitimate lane
-evidence while still forbidding proximity joins. Each lane retains the transformed display metric, source
-signal identity, recorded elapsed time, null value, and gap marker already present in the coherent
-`SessionStory`. Up to four full-width lanes share the longest recorded elapsed value in the role and route.
-Their common selected route point can move from the map, the native
-position control, a lane pointer position, or a lane's Left, Right, Home, and End keys. A missing route elapsed
-time leaves the lane cursor unavailable rather than creating a timestamp, while a null or `gapBefore` sample
-splits the visible path. Presentation neither resamples nor launches an independent signal query to construct
-a lane. When the route contains no elapsed evidence at all, no synchronized lane workspace is rendered; the
-independent bounded signal views remain available in deliberate detail.
+`TrainingRouteSignalLanes` is a conditional semantic timeline, not an assumed accompaniment to a route. It can
+pair a role's bounded route and signal evidence only through `exact-recorded` application overlays that name
+the exact route-point and signal-sample relationship. The current Polar Flow mapping returns no such overlays,
+so production renders the recorded route alone and keeps its regular signals in the independent Signals and
+zones destination. Equal offsets, cardinality, or visual proximity never activate the component.
+
+When a future importer supplies that authority, the complete bounded series may provide lane geometry and
+source gaps while exact overlay matches provide selected values and exact-row paths. Each lane then retains the
+transformed metric, source identity, recorded elapsed time, null value, and gap marker from the coherent
+`SessionStory`; presentation still neither resamples nor launches an independent query. Missing route elapsed
+time or an unavailable alignment omits the synchronized lane workspace rather than creating a cursor or join.
 
 The selected bounded point remains a capability for exact disclosure, not exact evidence itself. The route
-action uses its retained source point ordinal to request the containing exact page. A lane action does the
-same with the retained signal-sample ordinal when that point has an aligned source sample. The existing exact
-query validates the page and contiguous ordinals; presentation marks, scrolls to, and focuses that exact row.
+action uses its retained source point ordinal to request the containing exact page. A conditional lane action
+can do the same with an aligned signal-sample ordinal only when the application supplied an exact relationship.
+The existing exact query validates the page and contiguous ordinals; presentation marks, scrolls to, and
+focuses that exact row.
 The visible position and accessible value name that source ordinal against the route's complete exact point
 count, while the native range control retains only bounded visual indexes as its internal mechanics. A dense
 20,001-point route therefore names its last projected point as point 20,001 of 20,001, not point 400 of 400.
@@ -367,6 +365,17 @@ A review-required range whose exercise or coordinate disappeared remains queryab
 its authored owner and coordinate are never redirected or discarded. Returned boundary matches and missing
 intervals are bounded while their complete counts remain explicit, so dense evidence is processed without
 creating an unbounded response.
+
+`TrainingRangesPanel` is the one production presentation boundary for the personal-range library, local draft,
+mutation progress, conflict recovery, guarded removal, and selected summary. It receives only the complete
+application range context and `SessionStory` labels; opaque capabilities remain command values and never become
+visible labels. Exact elapsed input is parsed and formatted with `BigInt`, coordinate choices come only from the
+returned application context, and an established owner and coordinate remain locked. The component may retain an
+unsaved draft across a failed or conflicting command, but it never treats mounted state as persistence: opening or
+restarting the session always queries the durable range context and exact selected revision again. Selecting a
+saved range uses the shared result-focus boundary so the inspector receives focus and scrolls into view in the
+stacked compact or high-zoom layout. R8.6 will
+compose this same state with map, signal, and structure controls rather than creating a parallel editor.
 
 The [canonical segment criterion](../data-formats/canonical/segment-criterion.md) is reusable user-authored
 evidence with stable local identity, optimistic revision, and one versioned rule. Its ordered exercise

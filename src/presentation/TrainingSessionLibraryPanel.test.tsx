@@ -16,6 +16,7 @@ import type {
   TrainingSessionStructureResult,
 } from "./training-session-detail";
 import type { SessionStory } from "./session-story";
+import type { TrainingSessionRangesResult } from "./training-session-range";
 import type {
   TrainingRoutePointsResult,
   TrainingRouteOverview,
@@ -97,6 +98,26 @@ function emptyWorkspaceCommand(command: string, arguments_: unknown) {
   if (command === "query_training_session_provenance") {
     const query = (arguments_ as { query: { sessionRef: string } }).query;
     return Promise.resolve(trainingProvenance(query.sessionRef));
+  }
+  if (command === "query_training_session_ranges") {
+    const query = (arguments_ as { query: { sessionRef: string; snapshotRef: string } }).query;
+    const story = trainingStory(query.sessionRef, query.snapshotRef);
+    const ranges: TrainingSessionRangesResult = {
+      snapshotRef: query.snapshotRef,
+      sessionRef: query.sessionRef,
+      sessionDurationMilliseconds: story.session.durationMilliseconds,
+      evidenceRevision: `range-evidence-${"8".repeat(64)}`,
+      exercises: story.exercises.map((exercise) => ({
+        exerciseRef: exercise.exerciseRef,
+        ordinal: exercise.ordinal,
+        coordinates: [{
+          coordinate: { scope: "exercise-elapsed" },
+          maximumElapsedMilliseconds: exercise.structure?.durationMilliseconds ?? "0",
+        }],
+      })),
+      ranges: [],
+    };
+    return Promise.resolve(ranges);
   }
   return undefined;
 }
@@ -2165,6 +2186,15 @@ describe("TrainingSessionLibraryPanel", () => {
       .not.toBeInTheDocument();
     expect(within(detail!).queryByRole("heading", { name: "Recorded structure" }))
       .not.toBeInTheDocument();
+
+    await user.click(within(detailNavigation).getByRole("button", {
+      name: "Personal ranges",
+    }));
+    expect(await within(detail!).findByRole("heading", { name: "Your ranges" })).toBeVisible();
+    expect(within(detail!).getByText("No personal ranges yet.")).toBeVisible();
+    expect(mocks.invoke).toHaveBeenCalledWith("query_training_session_ranges", {
+      query: { sessionRef: newest.sessionRef, snapshotRef },
+    });
 
     await user.click(within(detailNavigation).getByRole("button", {
       name: "Structure and segments",
