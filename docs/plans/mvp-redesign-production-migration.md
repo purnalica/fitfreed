@@ -1899,7 +1899,12 @@ section behind desktop or compact navigation, and the static presentation contra
 destinations to the same behavior. The complete fast lane passes 159 automation, 335 React, two vendored-updater,
 224 host, 199 application, and 48 domain tests together with production build, strict Rust linting, Rust formatting,
 documentation, localization, live-presentation inventory, UI contracts, repository-content inspection, and secret
-scanning. A clean-revision packaged journey and capture review remain the next gate; R10.2 is not complete.
+scanning. Clean revision `c783def` passes the 3-minute-42-second functional journey, real-process restart, complete
+and partial adaptive-session scenarios, and the isolated two-year performance campaign. The slowest common
+interaction p95 was 98 ms, the slowest maximum-range p95 was 482 ms, and route-workbench opening remained 78 ms;
+all are inside their accepted budgets. The localized maximum-zoom section transitions retain focus, reject
+horizontal overflow, and place every selected region below persistent navigation. R10.2 remains open for the
+uncovered state, keyboard, assistive-technology, privacy, and remaining cross-workspace visual checks.
 
 ## X6 — Repeat the independent product-experience audit
 
