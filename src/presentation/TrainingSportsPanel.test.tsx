@@ -124,6 +124,12 @@ describe("TrainingSportsPanel", () => {
     expect(cards[0]).toHaveAttribute("data-sport-family", "running");
     expect(cards[1]).toHaveAttribute("data-sport-family", "unknown");
     expect(cards[2]).toHaveAttribute("data-sport-family", "unavailable");
+    expect(cards[1]).toHaveTextContent(
+      "The source says these sessions belong to a sport, but does not provide a trustworthy name.",
+    );
+    expect(cards[2]).toHaveTextContent(
+      "These sessions do not name a sport in the source, so FitFreed cannot classify them.",
+    );
   });
 
   it("explores every detected state and authors, amends, and resets a classification", async () => {

@@ -299,6 +299,9 @@ describe("SleepInsightsPanel", () => {
     const user = userEvent.setup();
     renderPanel();
     const region = screen.getByRole("region", { name: "Sleep history" });
+    expect(within(region).getByText(
+      "Explore recorded nights, open their sleep details, or compare two periods without treating missing nights as zero sleep.",
+    )).toBeVisible();
     const form = await within(region).findByRole("form", { name: "Explore a sleep period" });
 
     await user.click(within(form).getByRole("button", { name: "Latest 30-day window" }));

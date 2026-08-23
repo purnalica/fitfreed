@@ -1820,6 +1820,21 @@ still satisfy a check described as the initial viewport. The evidence helper now
 workspace and measures viewport coordinates before accepting the form placement. Separate scroll-restoration
 coverage continues to protect the person's position when returning to a previously visited workspace.
 
+The fourth correction slice treats cancellation and rejection as ordinary, recoverable import outcomes instead
+of alarming failures. In both locales, the result, its consequence for the existing library, and the next safe
+action fit in the initial viewport. A rejected archive presents no red alert and keeps the compatibility reason
+collapsed until the person deliberately requests it; cancellation states plainly that no history changed. The
+functional journey still opens and verifies the exact reason, so progressive disclosure does not weaken the
+diagnostic contract.
+
+The same slice removes implementation vocabulary from ordinary decisions without diluting deliberate exact and
+provenance views. Repeat imports now explain future source-support improvements rather than mapping mechanics;
+unclassified sports describe what the source did or did not name; route reports describe the remembered route
+and endpoint hiding rather than opaque references; and report refresh describes earlier imported history rather
+than canonical snapshots. Home, first-run preview, sleep orientation, and the session overview now lead with
+recorded data, answers, and useful detail. Technical mapping, reconciliation, and evidence terminology remains
+available where a person explicitly inspects source coverage, provenance, exact ranges, or report reproducibility.
+
 The preceding answer-hierarchy slice passes all 332 React tests, the production build, localization parity,
 live-presentation inventory, UI contracts, strict Rust linting, and Rust formatting. A rebuilt packaged
 application passed the complete functional journey, separate real-process restart, complete and partial

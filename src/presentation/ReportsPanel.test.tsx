@@ -1596,6 +1596,9 @@ describe("ReportsPanel", () => {
     });
 
     renderPanel();
+    expect(await screen.findByText(
+      "Routes stay local. A report remembers which recorded route to use and how much to hide at its endpoints.",
+    )).toBeVisible();
     await user.click(await screen.findByRole("button", { name: /Add Primary route/ }));
     const redaction = screen.getByLabelText("Remove from each route endpoint (metres)");
     expect(redaction).toHaveValue(200);
@@ -1978,7 +1981,9 @@ describe("ReportsPanel", () => {
     await waitFor(() => expect(within(refreshReview).getByRole("heading", {
       name: "Revisa las evidencias actuales de la biblioteca",
     })).toHaveFocus());
-    expect(within(refreshReview).getByText(/no conserva copias históricas/)).toBeVisible();
+    expect(within(refreshReview).getByText(
+      /no conserva versiones anteriores del historial importado/,
+    )).toBeVisible();
     expect(within(refreshReview).getByText(
       "El título, los comentarios opcionales y el idioma del informe",
     )).toBeVisible();

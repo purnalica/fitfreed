@@ -114,7 +114,9 @@ describe("ImportOutcomePanel", () => {
       name: "This archive is already accounted for",
     });
     expect(result).toHaveTextContent("Nothing was duplicated");
-    expect(result).toHaveTextContent("a later FitFreed mapping can reassess the same ZIP");
+    expect(result).toHaveTextContent(
+      "Keep the ZIP: a later FitFreed version can check it again when source support improves",
+    );
     expect(result).not.toHaveTextContent("7 new observations");
   });
 

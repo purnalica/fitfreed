@@ -242,6 +242,9 @@ describe("LibraryHomePanel", () => {
 
     expect(screen.getByRole("heading", { name: "What do you want to understand?" }))
       .toBeVisible();
+    expect(screen.getByText(
+      "Choose a question to open an answer based on your recorded data.",
+    )).toBeVisible();
     for (const question of populatedHome().questions) {
       await user.click(screen.getByRole("button", { name: messages.questions[question.kind] }));
     }
@@ -338,7 +341,7 @@ describe("LibraryHomePanel", () => {
       />,
     );
     expect(screen.getByRole("region", { name: "Your local history" }))
-      .toHaveTextContent("Latest available evidence: Aug 16, 2026");
+      .toHaveTextContent("Latest recorded date: Aug 16, 2026");
   });
 
   it("makes a valid saved exploration resumable", async () => {
@@ -518,11 +521,16 @@ describe("LibraryHomePanel", () => {
       .toBeVisible();
     const preview = screen.getByRole("region", { name: "One local history, across your sports" });
     expect(preview).toHaveTextContent("Illustrative preview — your history appears after import");
+    expect(preview).toHaveTextContent(
+      "The available views adapt to the data recorded in your export.",
+    );
     expect(within(preview).getAllByRole("listitem")).toHaveLength(4);
     expect(within(preview).getByRole("listitem", { name: /Running/ }))
       .toHaveAttribute("data-sport-family", "running");
     expect(within(preview).getByRole("listitem", { name: /Water sport/ }))
       .toHaveAttribute("data-sport-family", "water-sport");
+    expect(within(preview).getByRole("listitem", { name: /Water sport/ }))
+      .toHaveTextContent("Recorded tracks and point-by-point data");
     expect(within(preview).getAllByTestId("sport-family-icon")).toHaveLength(4);
 
     await user.click(screen.getByRole("button", { name: "Choose an export ZIP" }));

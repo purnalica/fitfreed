@@ -2572,6 +2572,10 @@ describe("TrainingSessionLibraryPanel", () => {
     })).not.toBeInTheDocument();
 
     const evidence = within(detail).getByRole("region", { name: "Session evidence" });
+    expect(evidence).toHaveTextContent("Recorded detail");
+    expect(evidence).toHaveTextContent(
+      "A concise account of what FitFreed can currently present.",
+    );
     expect(evidence).toHaveTextContent("1 exercise");
     expect(evidence).toHaveTextContent("1 signal series");
     expect(evidence).toHaveTextContent("2 samples without a recorded value");

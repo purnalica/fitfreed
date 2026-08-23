@@ -39,7 +39,7 @@
     "availablePeriod": "Available period",
     "rangeSeparator": "–",
     "questionsHeading": "What do you want to understand?",
-    "questionsIntro": "Choose a question to open the evidence behind it.",
+    "questionsIntro": "Choose a question to open an answer based on your recorded data.",
     "questions": {
       "explore-training-sessions": "Explore my training sessions",
       "align-history": "How do training, activity, sleep, and recovery align?",
@@ -147,7 +147,7 @@
     "historicalOpen": "Explore training history",
     "libraryHistoryEyebrow": "Available on this device",
     "libraryHistoryHeading": "Your local history",
-    "libraryHistoryIntro": "Latest available evidence: {date}. Open a supported question to inspect it.",
+    "libraryHistoryIntro": "Latest recorded date: {date}. Choose a question to explore what is available.",
     "emptyHeading": "Explore your fitness export on this device",
     "emptyIntro": "Choose an original export ZIP to build a local history of sessions, routes, signals, comparisons, and reports.",
     "emptyLocalBoundary": "No account. No upload. The archive and library stay on this device.",
@@ -155,7 +155,7 @@
     "emptyGuideAction": "How to obtain one",
     "emptyPreviewEyebrow": "Illustrative preview — your history appears after import",
     "emptyPreviewHeading": "One local history, across your sports",
-    "emptyPreviewNote": "The available views adapt to the evidence recorded in your export.",
+    "emptyPreviewNote": "The available views adapt to the data recorded in your export.",
     "emptyPreviewSports": {
       "running": {
         "label": "Running",
@@ -167,7 +167,7 @@
       },
       "water-sport": {
         "label": "Water sport",
-        "detail": "Recorded tracks and point-by-point evidence"
+        "detail": "Recorded tracks and point-by-point data"
       },
       "strength": {
         "label": "Strength",
@@ -600,15 +600,15 @@
           "unaligned-signal-evidence": "Other measurements use different recorded timelines and are not synchronized here."
         }
       },
-      "detailOverviewIntro": "Begin with the exact recorded summary, then inspect only the evidence layer you need.",
+      "detailOverviewIntro": "Start with the recorded summary, then open the detail you need.",
       "detailSignalsIntro": "Recorded temporal series and aggregate zones remain separate, exact, and explicit about missing evidence.",
       "detailRoutesIntro": "Route geometry is rendered locally and exact coordinates appear only when you deliberately reveal them.",
       "detailProvenanceIntro": "Open the source history on demand to inspect attribution, interpretation versions, and reconciliation decisions.",
       "evidenceSummary": {
         "regionLabel": "Session evidence",
-        "eyebrow": "Evidence account",
+        "eyebrow": "Recorded detail",
         "heading": "What this session contains",
-        "introduction": "A concise account of the evidence FitFreed can currently present. Detailed values remain available in their relevant views.",
+        "introduction": "A concise account of what FitFreed can currently present. Detailed values remain available in the relevant views.",
         "exercises": {
           "one": "{count} exercise",
           "other": "{count} exercises"
@@ -649,7 +649,7 @@
           "one": "{count} recorded zone group not shown here",
           "other": "{count} recorded zone groups not shown here"
         },
-        "noDetailedEvidence": "No detailed route, signal, source-structure, or zone evidence is represented in this session."
+        "noDetailedEvidence": "This session contains no detailed route, signal, source-structure, or zone data."
       },
       "summaryMeasurements": "Session summary measurements",
       "structureHeading": "Recorded structure",
@@ -1115,8 +1115,8 @@
       "unknown": "Unknown sport {index}",
       "notRecorded": "Sport not recorded",
       "classifiedByYou": "Named by you",
-      "unknownExplanation": "The source contains a sport reference, but no trustworthy name is available.",
-      "notRecordedExplanation": "These sessions contain no source sport reference, so FitFreed cannot classify them.",
+      "unknownExplanation": "The source says these sessions belong to a sport, but does not provide a trustworthy name.",
+      "notRecordedExplanation": "These sessions do not name a sport in the source, so FitFreed cannot classify them.",
       "sessions": {
         "one": "{count} session",
         "other": "{count} sessions"
@@ -1213,7 +1213,7 @@
   "sleep": {
     "heading": "Sleep history",
     "workspaceEyebrow": "Your nights over time",
-    "workspaceIntro": "Explore recorded nights, open their exact sleep evidence, or compare two periods without treating missing nights as zero sleep.",
+    "workspaceIntro": "Explore recorded nights, open their sleep details, or compare two periods without treating missing nights as zero sleep.",
     "workspaceNavigation": "Sleep workspace",
     "workspaces": {
       "history": "Nights",
@@ -1591,7 +1591,7 @@
     "reviewedHeading": "The archive was checked",
     "reviewedConsequence": "The archive was processed successfully, but it did not change your current library.",
     "repeatHeading": "This archive is already accounted for",
-    "repeatConsequence": "Nothing was duplicated. If support for the source evolves, a later FitFreed mapping can reassess the same ZIP.",
+    "repeatConsequence": "Nothing was duplicated. Keep the ZIP: a later FitFreed version can check it again when source support improves.",
     "rejectedHeading": "This archive was not imported",
     "rejectedConsequence": "Your existing library was not changed. Choose another ZIP or inspect the exact reason and coverage.",
     "failedHeading": "The import could not be completed",
@@ -1880,9 +1880,9 @@
     "endpointRedactionHelp": "FitFreed removes at least this recorded distance independently from the start and finish. The saved default is 200 m.",
     "zeroRedactionWarning": "Zero removes no distance from the recorded start or finish. Use it only when revealing both route endpoints through the shape is safe.",
     "addRouteHeading": "Add recorded route evidence",
-    "addRouteIntro": "Routes stay local. Adding one stores only its opaque reference and your endpoint-redaction choice.",
+    "addRouteIntro": "Routes stay local. A report remembers which recorded route to use and how much to hide at its endpoints.",
     "routesLoading": "Finding routes recorded for this session…",
-    "routesFailed": "Routes could not be resolved from this library snapshot. Existing report content is unchanged.",
+    "routesFailed": "Routes could not be read from the current library. Existing report content is unchanged.",
     "noRoutes": "This session has no route evidence available for a report.",
     "allRoutesAdded": "Every available route is already in this report.",
     "addRoute": "Add {route} · {count} points",
@@ -1974,7 +1974,7 @@
       "savedBody": "The report still points to the library revision you previously reviewed.",
       "candidateHeading": "Current candidate revision",
       "candidateBody": "The preview above uses the latest compatible evidence available in this local library.",
-      "historicalBoundary": "FitFreed does not retain historical copies of canonical data, so it cannot reconstruct or invent old numeric values for a before-and-after comparison.",
+      "historicalBoundary": "FitFreed does not keep earlier versions of imported history, so it cannot reconstruct or invent old numeric values for a before-and-after comparison.",
       "preservedHeading": "Stays exactly as authored",
       "preserved": {
         "authorship": "Report title, optional commentary, and language",
@@ -1985,7 +1985,7 @@
       "updated": {
         "evidence": "Recorded and calculated evidence in the preview",
         "context": "Evidence attribution, coverage, and missing-data notices",
-        "revision": "The reviewed library reference and report revision"
+        "revision": "The reviewed library version and report revision"
       },
       "confirmation": "Confirm only if the candidate preview represents the evidence you want this report to use. Importing data never performs this action automatically.",
       "confirm": "Use this evidence revision",

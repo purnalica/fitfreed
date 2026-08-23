@@ -213,6 +213,32 @@ async function expectSettingsControlsWithinInitialViewport() {
   expect(state.hasHorizontalOverflow).toBe(false);
 }
 
+async function expectImportOutcomeWithinInitialViewport(expectedHeading) {
+  await browser.execute(() => {
+    const scroller = document.scrollingElement ?? document.documentElement;
+    scroller.scrollTop = 0;
+  });
+  const heading = await $("#outcome-heading");
+  await expect(heading).toHaveText(expectedHeading);
+  const state = await browser.execute(() => {
+    const root = document.documentElement;
+    const heading = document.querySelector("#outcome-heading").getBoundingClientRect();
+    const consequence = document.querySelector(".outcome-consequence").getBoundingClientRect();
+    const actions = document.querySelector(".outcome-actions").getBoundingClientRect();
+    return {
+      headingTop: heading.top,
+      consequenceTop: consequence.top,
+      actionsBottom: actions.bottom,
+      viewportHeight: root.clientHeight,
+      hasHorizontalOverflow: root.scrollWidth > root.clientWidth,
+    };
+  });
+  expect(state.headingTop).toBeGreaterThanOrEqual(0);
+  expect(state.consequenceTop).toBeGreaterThan(state.headingTop);
+  expect(state.actionsBottom).toBeLessThanOrEqual(state.viewportHeight);
+  expect(state.hasHorizontalOverflow).toBe(false);
+}
+
 async function expectResultBelowCompactNavigation(selector) {
   const layout = await browser.execute((targetSelector) => {
     const root = document.documentElement;
@@ -1351,12 +1377,23 @@ describe("packaged FitFreed import journey", () => {
     await $(`aria/${spanish.import}`).waitForEnabled({ timeout: 5_000 });
     expect(Date.now() - cancellationStartedAt).toBeLessThanOrEqual(5_000);
     expect(await $$(".history-grid table tbody tr")).toHaveLength(0);
+    await expectImportOutcomeWithinInitialViewport(spanish.outcome.cancelledHeading);
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r10-import-cancelled-es-wide.png",
+    ));
 
     await selectLocale("en-US", "sources");
     await selectArchive(dialogMock, path.join(fixtureDirectory, "invalid.zip"), english.choose);
     await $("aria/Import selected package").click();
     expect(await $$('[role="alert"]')).toHaveLength(0);
-    await expect($("#outcome-heading")).toHaveText(english.outcome.rejectedHeading);
+    await expectImportOutcomeWithinInitialViewport(english.outcome.rejectedHeading);
+    await expect($(".outcome-terminal-detail")).not.toHaveAttribute("open");
+    await expect($(".outcome-terminal-detail p")).not.toBeDisplayed();
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r10-import-rejected-en-wide.png",
+    ));
     await openOutcomeDisclosure(".outcome-terminal-detail");
     await expect($(".outcome-terminal-detail")).toHaveText(
       expect.stringContaining("contains recognized data that FitFreed cannot validate"),

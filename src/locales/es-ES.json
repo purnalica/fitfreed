@@ -39,7 +39,7 @@
     "availablePeriod": "Periodo disponible",
     "rangeSeparator": "–",
     "questionsHeading": "¿Qué quieres comprender?",
-    "questionsIntro": "Elige una pregunta para abrir los indicios que la sustentan.",
+    "questionsIntro": "Elige una pregunta para obtener una respuesta basada en tus datos registrados.",
     "questions": {
       "explore-training-sessions": "Explorar mis sesiones de entrenamiento",
       "align-history": "¿Cómo se relacionan mi entrenamiento, actividad, sueño y recuperación?",
@@ -147,7 +147,7 @@
     "historicalOpen": "Explorar el historial de entrenamiento",
     "libraryHistoryEyebrow": "Disponible en este dispositivo",
     "libraryHistoryHeading": "Tu historial local",
-    "libraryHistoryIntro": "Último indicio disponible: {date}. Abre una pregunta compatible para inspeccionarlo.",
+    "libraryHistoryIntro": "Última fecha registrada: {date}. Elige una pregunta para explorar lo que hay disponible.",
     "emptyHeading": "Explora tu exportación deportiva en este dispositivo",
     "emptyIntro": "Elige un ZIP de exportación original para crear un historial local de sesiones, rutas, señales, comparaciones e informes.",
     "emptyLocalBoundary": "Sin cuenta. Sin subir datos. El archivo y la biblioteca permanecen en este dispositivo.",
@@ -155,7 +155,7 @@
     "emptyGuideAction": "Cómo obtener uno",
     "emptyPreviewEyebrow": "Vista ilustrativa: tu historial aparecerá tras la importación",
     "emptyPreviewHeading": "Un historial local para todos tus deportes",
-    "emptyPreviewNote": "Las vistas disponibles se adaptan a los indicios registrados en tu exportación.",
+    "emptyPreviewNote": "Las vistas disponibles se adaptan a los datos registrados en tu exportación.",
     "emptyPreviewSports": {
       "running": {
         "label": "Carrera",
@@ -167,7 +167,7 @@
       },
       "water-sport": {
         "label": "Deporte acuático",
-        "detail": "Recorridos registrados e indicios punto por punto"
+        "detail": "Recorridos registrados y datos punto a punto"
       },
       "strength": {
         "label": "Fuerza",
@@ -600,15 +600,15 @@
           "unaligned-signal-evidence": "Otras mediciones usan líneas temporales registradas distintas y no se sincronizan aquí."
         }
       },
-      "detailOverviewIntro": "Empieza por el resumen registrado exacto y consulta después solo la capa de indicios que necesites.",
+      "detailOverviewIntro": "Empieza por el resumen registrado y abre después el detalle que necesites.",
       "detailSignalsIntro": "Las series temporales registradas y las zonas agregadas permanecen separadas, exactas y explícitas sobre los indicios ausentes.",
       "detailRoutesIntro": "La geometría de las rutas se representa localmente y las coordenadas exactas solo aparecen cuando decides mostrarlas.",
       "detailProvenanceIntro": "Abre el historial del origen cuando lo necesites para consultar la atribución, las versiones de interpretación y las decisiones de conciliación.",
       "evidenceSummary": {
         "regionLabel": "Evidencias de la sesión",
-        "eyebrow": "Inventario de evidencias",
+        "eyebrow": "Detalle registrado",
         "heading": "Qué contiene esta sesión",
-        "introduction": "Un inventario conciso de las evidencias que FitFreed puede presentar actualmente. Los valores detallados siguen disponibles en sus vistas correspondientes.",
+        "introduction": "Un resumen conciso de lo que FitFreed puede presentar actualmente. Los valores detallados siguen disponibles en sus vistas correspondientes.",
         "exercises": {
           "one": "{count} ejercicio",
           "other": "{count} ejercicios"
@@ -649,7 +649,7 @@
           "one": "{count} grupo de zonas registrado no mostrado aquí",
           "other": "{count} grupos de zonas registrados no mostrados aquí"
         },
-        "noDetailedEvidence": "Esta sesión no contiene evidencias detalladas de rutas, señales, estructura de origen ni zonas."
+        "noDetailedEvidence": "Esta sesión no contiene datos detallados de rutas, señales, estructura procedente del origen ni zonas."
       },
       "summaryMeasurements": "Mediciones del resumen de la sesión",
       "structureHeading": "Estructura registrada",
@@ -1115,8 +1115,8 @@
       "unknown": "Deporte desconocido {index}",
       "notRecorded": "Deporte no registrado",
       "classifiedByYou": "Nombrado por ti",
-      "unknownExplanation": "El origen contiene una referencia de deporte, pero no hay disponible un nombre fiable.",
-      "notRecordedExplanation": "Estas sesiones no contienen ninguna referencia de deporte de origen, por lo que FitFreed no puede clasificarlas.",
+      "unknownExplanation": "El origen indica que estas sesiones pertenecen a un deporte, pero no proporciona un nombre fiable.",
+      "notRecordedExplanation": "Estas sesiones no nombran ningún deporte en el origen, por lo que FitFreed no puede clasificarlas.",
       "sessions": {
         "one": "{count} sesión",
         "other": "{count} sesiones"
@@ -1213,7 +1213,7 @@
   "sleep": {
     "heading": "Historial del sueño",
     "workspaceEyebrow": "Tus noches a lo largo del tiempo",
-    "workspaceIntro": "Explora las noches registradas, abre sus indicios exactos de sueño o compara dos periodos sin considerar las noches ausentes como sueño cero.",
+    "workspaceIntro": "Explora las noches registradas, abre sus detalles de sueño o compara dos periodos sin tratar como cero las noches ausentes.",
     "workspaceNavigation": "Espacio de trabajo de sueño",
     "workspaces": {
       "history": "Noches",
@@ -1591,7 +1591,7 @@
     "reviewedHeading": "El archivo se ha comprobado",
     "reviewedConsequence": "El archivo se ha procesado correctamente, pero no ha modificado tu biblioteca actual.",
     "repeatHeading": "Este archivo ya está incorporado",
-    "repeatConsequence": "No se ha duplicado nada. Si evoluciona la compatibilidad con el origen, una correspondencia posterior de FitFreed podrá reevaluar el mismo ZIP.",
+    "repeatConsequence": "No se ha duplicado nada. Conserva el ZIP: una versión posterior de FitFreed podrá volver a comprobarlo cuando mejore la compatibilidad con el origen.",
     "rejectedHeading": "Este archivo no se ha importado",
     "rejectedConsequence": "Tu biblioteca existente no se ha modificado. Elige otro ZIP o consulta el motivo y la cobertura exactos.",
     "failedHeading": "La importación no se ha podido completar",
@@ -1880,9 +1880,9 @@
     "endpointRedactionHelp": "FitFreed elimina como mínimo esta distancia registrada tanto del inicio como del final. El valor guardado predeterminado es 200 m.",
     "zeroRedactionWarning": "El valor cero no elimina distancia del inicio ni del final registrados. Úsalo solo cuando sea seguro revelar ambos extremos mediante la forma de la ruta.",
     "addRouteHeading": "Añadir evidencias de ruta registradas",
-    "addRouteIntro": "Las rutas permanecen en local. Al añadir una solo se guarda su referencia opaca y tu elección de recorte de extremos.",
+    "addRouteIntro": "Las rutas permanecen en local. El informe recuerda qué ruta registrada debe usar y cuánto ocultar en sus extremos.",
     "routesLoading": "Buscando las rutas registradas en esta sesión…",
-    "routesFailed": "No se han podido resolver las rutas de esta revisión de la biblioteca. El contenido existente del informe no ha cambiado.",
+    "routesFailed": "No se han podido leer las rutas de la biblioteca actual. El contenido existente del informe no ha cambiado.",
     "noRoutes": "Esta sesión no contiene evidencias de ruta disponibles para un informe.",
     "allRoutesAdded": "Todas las rutas disponibles ya están incluidas en este informe.",
     "addRoute": "Añadir {route} · {count} puntos",
@@ -1974,7 +1974,7 @@
       "savedBody": "El informe todavía apunta a la revisión de la biblioteca que revisaste anteriormente.",
       "candidateHeading": "Revisión propuesta actual",
       "candidateBody": "La vista previa anterior utiliza las evidencias compatibles más recientes de esta biblioteca local.",
-      "historicalBoundary": "FitFreed no conserva copias históricas de los datos canónicos, por lo que no puede reconstruir ni inventar valores numéricos anteriores para una comparación entre el antes y el después.",
+      "historicalBoundary": "FitFreed no conserva versiones anteriores del historial importado, por lo que no puede reconstruir ni inventar valores numéricos antiguos para comparar el antes y el después.",
       "preservedHeading": "Se conserva exactamente como lo escribiste",
       "preserved": {
         "authorship": "El título, los comentarios opcionales y el idioma del informe",
@@ -1985,7 +1985,7 @@
       "updated": {
         "evidence": "Las evidencias registradas y calculadas de la vista previa",
         "context": "La atribución, la cobertura y los avisos sobre datos ausentes",
-        "revision": "La referencia de la biblioteca revisada y la revisión del informe"
+        "revision": "La versión revisada de la biblioteca y la revisión del informe"
       },
       "confirmation": "Confirma solo si la vista previa propuesta representa las evidencias que quieres utilizar en este informe. La importación de datos nunca realiza esta acción automáticamente.",
       "confirm": "Utilizar esta revisión de evidencias",
