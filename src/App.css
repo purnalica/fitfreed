@@ -467,6 +467,7 @@ th:last-child, td:last-child { text-align: right; }
 .comparison-bars > div { display: grid; grid-template-columns: minmax(90px, auto) minmax(120px, 1fr) minmax(90px, auto); gap: 12px; align-items: center; }
 .comparison-bars strong { text-align: right; font-variant-numeric: tabular-nums; }
 .answer-evidence { margin: 0; color: var(--ink-soft); font-size: .88rem; font-weight: 700; }
+.answer-measurement { white-space: nowrap; }
 .answer-coverage { margin: 6px 0 0; color: var(--muted); font-size: .84rem; }
 .answer-actions { display: flex; flex: 0 0 auto; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
 .answer-exact-values { margin-top: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }

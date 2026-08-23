@@ -241,6 +241,12 @@ for (const selector of [
 }
 requireRule(
   stylesheet,
+  ".answer-measurement",
+  [/white-space:\s*nowrap/],
+  "a result measurement that never isolates its unit from its value",
+);
+requireRule(
+  stylesheet,
   "[hidden]",
   [/display:\s*none\s*!important/],
   "semantic progressive disclosure",

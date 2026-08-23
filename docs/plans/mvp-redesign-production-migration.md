@@ -1870,10 +1870,15 @@ truncates recorded or user-authored sport identities: names wrap at ordinary wid
 zoom, and a session whose source records no sport uses the same concise identity as History. The packaged
 journey now captures all six principal populated workspaces plus Spanish dark Home at compact navigation and
 200% content zoom. Each capture boundary rejects horizontal overflow, content hidden beneath compact navigation,
-and Axe violations before retaining visual evidence. The complete fast lane passes 159 automation, 333 React,
+and Axe violations before retaining visual evidence. The complete fast lane passes 159 automation, 335 React,
 two vendored-updater, 224 host, 199 application, and 48 domain tests; the production build, strict Rust linting,
 Rust formatting, documentation, localization, live-presentation inventory, and UI contracts also pass. Exact
-packaged evidence remains the next gate, so R10.2 is still open.
+package revision `6e9e358` passed the functional, restart, adaptive-session, and performance campaigns, but
+manual capture review rejected its sleep answer because the final duration unit wrapped onto an isolated line.
+The follow-up correction renders localized measurement parameters in their translated position while binding
+each value to its unit. Sleep and recovery contracts cover the shared behavior, and the packaged journey now
+rejects a result measurement spanning more than one rendered line. A rebuilt package containing that correction
+remains the next gate, so R10.2 is still open.
 
 ## X6 — Repeat the independent product-experience audit
 

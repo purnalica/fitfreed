@@ -267,6 +267,14 @@ async function captureR10WorkspaceEvidence(fileName, selector) {
   await browser.saveScreenshot(path.join(evidenceDirectory, fileName));
 }
 
+async function expectAnswerMeasurementOnOneLine(selector) {
+  const lineCount = await browser.execute((measurementSelector) => {
+    const measurement = document.querySelector(measurementSelector);
+    return measurement === null ? 0 : measurement.getClientRects().length;
+  }, selector);
+  expect(lineCount).toBe(1);
+}
+
 async function expectResultBelowCompactNavigation(selector) {
   const layout = await browser.execute((targetSelector) => {
     const root = document.documentElement;
@@ -2688,6 +2696,9 @@ describe("packaged FitFreed import journey", () => {
       ["1 of 1 nights", "Nights with a stage timeline"],
       ["1 of 1 nights", "Nights with recording status · 0 ended after power loss"],
     ]);
+    await expectAnswerMeasurementOnOneLine(
+      ".sleep-answer-heading .answer-measurement",
+    );
     await captureR10WorkspaceEvidence("r10-sleep-en-wide.png", ".sleep-insights");
     await openHomeQuestion(
       english,
@@ -2707,6 +2718,9 @@ describe("packaged FitFreed import journey", () => {
       ["1 of 1 nights", "Nights with source guidance"],
       ["0", "Missing nights"],
     ]);
+    await expectAnswerMeasurementOnOneLine(
+      ".recovery-answer-heading .answer-measurement",
+    );
     await captureR10WorkspaceEvidence("r10-recovery-en-wide.png", ".recovery-insights");
     await openHomeQuestion(
       english,

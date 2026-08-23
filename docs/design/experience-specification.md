@@ -50,7 +50,8 @@ The default view must not become a numeric inventory. Dates, durations, quantiti
 use the person's locale and a human scale. Exact source values remain reachable. Sport identity uses
 text plus a coherent provider-neutral family icon across every surface; placeholder glyphs and color
 alone are not accepted final identifiers. Missing evidence changes the composition instead of leaving
-empty charts or inventing zero values.
+empty charts or inventing zero values. A result heading may wrap around a complete localized
+measurement, but it never isolates the unit from its value on another line.
 
 Severity follows consequence. A failed or rejected operation first states what happened to the
 existing library or saved document, then offers one safe next action. Technical detail is optional,

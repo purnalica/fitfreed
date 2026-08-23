@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
 import { catalogs, type Locale } from "../locales/catalogs";
@@ -6,6 +6,7 @@ import { commandErrorCode } from "./command-error";
 import { WorkspaceNavigation } from "./WorkspaceNavigation";
 import type { ExplorerNavigationRequest } from "./explorer-navigation";
 import { restoreFocusAfterReveal } from "./focus-restoration";
+import { LocalizedMeasurement } from "./LocalizedMeasurement";
 import { RangeFilterActions, type RangeOperation } from "./RangeFilterActions";
 import { SleepComparisonPanel } from "./SleepComparisonPanel";
 import { submissionOrigin } from "./submission-origin";
@@ -240,14 +241,16 @@ export function SleepInsightsPanel({
       .replace("{total}", number.format(total));
   }
 
-  function averageEvidence(value: string | null): string {
-    return copy.answerAverage.replace(
-      "{value}",
-      formatSleepDuration(value, locale, copy.durationUnits, messages.unavailable),
+  function averageEvidence(value: string | null): ReactNode {
+    return (
+      <LocalizedMeasurement
+        message={copy.answerAverage}
+        value={formatSleepDuration(value, locale, copy.durationUnits, messages.unavailable)}
+      />
     );
   }
 
-  function resultConclusion(summary: SleepSeriesSummary): string {
+  function resultConclusion(summary: SleepSeriesSummary): ReactNode {
     return summary.averageAsleepMilliseconds === null
       ? observationConclusion(summary.observedNights, summary.calendarDays)
       : averageEvidence(summary.averageAsleepMilliseconds);

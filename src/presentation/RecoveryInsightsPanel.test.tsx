@@ -202,9 +202,14 @@ describe("RecoveryInsightsPanel", () => {
     const heading = within(answer).getByRole("heading", { name: "2 recovery histories shown" });
     expect(heading).toBeVisible();
     await waitFor(() => expect(heading).toHaveFocus());
-    expect(within(answer).getAllByRole("heading", {
+    const resultHeadings = within(answer).getAllByRole("heading", {
       name: "Average recorded beat-to-beat interval: 905 ms",
-    })).toHaveLength(2);
+    });
+    expect(resultHeadings).toHaveLength(2);
+    for (const resultHeading of resultHeadings) {
+      expect(within(resultHeading).getByText("905 ms"))
+        .toHaveClass("answer-measurement");
+    }
     expect(within(answer).getByText("Recovery intervals are recorded for 2 of 3 nights"))
       .toBeVisible();
     expect(within(answer).getByText("Recovery intervals are recorded for 1 of 3 nights"))

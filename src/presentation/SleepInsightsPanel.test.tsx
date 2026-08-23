@@ -240,10 +240,14 @@ describe("SleepInsightsPanel", () => {
     const heading = within(answer).getByRole("heading", { name: "2 sleep histories shown" });
     expect(heading).toBeVisible();
     await waitFor(() => expect(heading).toHaveFocus());
-    expect(within(answer).getAllByRole("heading", {
+    const resultHeadings = within(answer).getAllByRole("heading", {
       name: "Average recorded sleep: 7 h 15 min",
-    }))
-      .toHaveLength(2);
+    });
+    expect(resultHeadings).toHaveLength(2);
+    for (const resultHeading of resultHeadings) {
+      expect(within(resultHeading).getByText("7 h 15 min"))
+        .toHaveClass("answer-measurement");
+    }
     expect(within(answer).getByText("Recorded sleep is available for 2 of 3 nights"))
       .toBeVisible();
     expect(within(answer).getByText("Recorded sleep is available for 1 of 3 nights"))
