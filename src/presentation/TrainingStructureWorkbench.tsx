@@ -4,7 +4,7 @@ import { type catalogs, type Locale } from "../locales/catalogs";
 import type { SessionStory, SessionStoryExercise } from "./session-story";
 import { SportFamilyIcon } from "./SportFamilyIcon";
 import { parseElapsedEditorValue } from "./training-range-editor-model";
-import { formatDistance, formatDuration } from "./training-format";
+import { formatDuration, formatSessionCardDistance } from "./training-format";
 import { TrainingRangeEvidenceEditor } from "./TrainingRangeEvidenceEditor";
 import {
   type TrainingRangeEvidenceEntry,
@@ -69,12 +69,13 @@ export function TrainingStructureWorkbench({
     locale,
     messages.training.durationUnits,
   );
-  const distance = formatDistance(
-    structure.distanceMeters,
-    locale,
-    sessionCopy.metricUnavailable,
-    messages.training.units.meters,
-  );
+  const distance = structure.distanceMeters === null
+    ? sessionCopy.metricUnavailable
+    : formatSessionCardDistance(
+        structure.distanceMeters,
+        locale,
+        messages.training.units,
+      );
   const count = (value: number, unit: { one: string; other: string }) => (
     `${number.format(value)} ${value === 1 ? unit.one : unit.other}`
   );

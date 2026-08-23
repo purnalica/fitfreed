@@ -4,6 +4,10 @@ import { type catalogs, type Locale } from "../locales/catalogs";
 import {
   elapsedEditorValue,
 } from "./training-range-editor-model";
+import {
+  duplicateTrainingRangeTitleCounts,
+  formatTrainingRangeTiming,
+} from "./training-range-choice";
 import { formatDuration, formatSessionCardDistance } from "./training-format";
 import type {
   TrainingRangeBoundaryState,
@@ -68,6 +72,21 @@ export function TrainingRangesPanel({
     maximumFractionDigits: 0,
   }), [locale]);
   const integer = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const duplicateTitleCounts = useMemo(
+    () => duplicateTrainingRangeTitleCounts(result?.ranges ?? []),
+    [result?.ranges],
+  );
+
+  function rangeChoiceLabel(range: TrainingSessionRange): string {
+    if ((duplicateTitleCounts.get(range.title) ?? 0) < 2) {
+      return interpolate(copy.open, { title: range.title });
+    }
+    return interpolate(copy.openWithTiming, {
+      title: range.title,
+      start: elapsedEditorValue(range.startedAtElapsedMilliseconds),
+      end: elapsedEditorValue(range.endedAtElapsedMilliseconds),
+    });
+  }
 
   function boundaryStatement(position: "start" | "end", state: TrainingRangeBoundaryState) {
     if (position === "start") {
@@ -393,7 +412,7 @@ export function TrainingRangesPanel({
               <li key={range.rangeRef}>
                 <button
                   type="button"
-                  aria-label={interpolate(copy.open, { title: range.title })}
+                  aria-label={rangeChoiceLabel(range)}
                   aria-current={range.rangeRef === selectedRange?.rangeRef ? "page" : undefined}
                   onClick={(event) => {
                     selectRange(range.rangeRef);
@@ -402,6 +421,7 @@ export function TrainingRangesPanel({
                 >
                   <strong>{range.title}</strong>
                   <span>{rangeCoordinateLabel(range)}</span>
+                  <span>{formatTrainingRangeTiming(range)}</span>
                   <small>{range.state === "current" ? copy.current : copy.reviewRequired}</small>
                 </button>
               </li>

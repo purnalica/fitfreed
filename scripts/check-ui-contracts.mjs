@@ -68,6 +68,12 @@ const trainingStructureWorkbench = readFileSync(path.join(
   "presentation",
   "TrainingStructureWorkbench.tsx",
 ), "utf8");
+const keyboardKey = readFileSync(path.join(
+  repositoryRoot,
+  "src",
+  "presentation",
+  "keyboard-key.ts",
+), "utf8");
 const workspaceNavigation = readFileSync(path.join(
   repositoryRoot,
   "src",
@@ -342,6 +348,24 @@ for (const sharedSignalRangeInteraction of [
   if (!signalWorkbench.includes(sharedSignalRangeInteraction)) {
     throw new Error(`the signal range workspace must preserve ${sharedSignalRangeInteraction}`);
   }
+}
+if (!keyboardKey.includes("steppedInputValueForKey")
+  || !routeWorkbench.includes("steppedInputValueForKey")
+  || !signalWorkbench.includes("steppedInputValueForKey")) {
+  throw new Error("route and signal range handles must retain one explicit keyboard boundary");
+}
+for (const duplicateRangeIdentity of [
+  "duplicateTitleCounts",
+  "openWithTiming",
+  "formatTrainingRangeTiming(range)",
+]) {
+  if (!trainingRanges.includes(duplicateRangeIdentity)) {
+    throw new Error(`duplicate personal-range names must remain distinguishable: ${duplicateRangeIdentity}`);
+  }
+}
+if (!routeWorkbench.includes("formatTrainingRangeChoice(range)")
+  || !signalWorkbench.includes("formatTrainingRangeChoice(range)")) {
+  throw new Error("workbench range selectors must distinguish equal authored titles by exact boundaries");
 }
 for (const [representation, source] of [
   ["route", routeWorkbench],

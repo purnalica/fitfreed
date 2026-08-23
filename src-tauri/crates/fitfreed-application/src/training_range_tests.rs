@@ -265,6 +265,33 @@ fn creates_and_returns_a_named_range_against_the_current_session_revision() {
 }
 
 #[test]
+fn keeps_duplicate_titles_and_overlapping_boundaries_as_distinct_authored_ranges() {
+    let existing = range(1, "Riverside effort", 60_000, 180_000);
+    let port = ControlledPort::new(vec![existing.clone()]);
+
+    let result = create_training_session_range(
+        &port,
+        CreateTrainingSessionRangeRequest {
+            session_ref: SESSION_REF.to_owned(),
+            snapshot_ref: SNAPSHOT_REF.to_owned(),
+            exercise_ref: EXERCISE_REF.to_owned(),
+            coordinate: TrainingSessionRangeCoordinate::exercise_elapsed(),
+            title: "Riverside effort".to_owned(),
+            started_at_elapsed_milliseconds: 120_000,
+            ended_at_elapsed_milliseconds: 240_000,
+        },
+    )
+    .expect("overlapping range with a duplicate title");
+
+    assert_eq!(result.ranges.len(), 2);
+    assert_eq!(result.ranges[0], existing);
+    assert_eq!(result.ranges[1].range_id(), range_id(99));
+    assert_eq!(result.ranges[1].title(), "Riverside effort");
+    assert_eq!(result.ranges[1].started_at_elapsed_milliseconds(), 120_000);
+    assert_eq!(result.ranges[1].ended_at_elapsed_milliseconds(), 240_000);
+}
+
+#[test]
 fn validates_boundaries_against_the_selected_coordinate_not_exercise_duration() {
     let port = ControlledPort::new(Vec::new());
     let route_coordinate =

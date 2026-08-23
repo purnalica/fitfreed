@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { type catalogs, type Locale } from "../locales/catalogs";
+import { steppedInputValueForKey } from "./keyboard-key";
 import {
   buildRouteWorkbenchModel,
   routeOverlaySegments,
@@ -19,6 +20,7 @@ import {
   elapsedEditorValue,
   parseElapsedEditorValue,
 } from "./training-range-editor-model";
+import { formatTrainingRangeChoice } from "./training-range-choice";
 import { TrainingRangeEditor } from "./TrainingRangeEditor";
 import { useOptionalTrainingRangeInteraction } from "./TrainingRangeInteractionProvider";
 import { TrainingRouteSignalLanes } from "./TrainingRouteSignalLanes";
@@ -452,7 +454,9 @@ export function TrainingRouteWorkbench({
             >
               <option value="">{copy.chooseSavedRange}</option>
               {routeRanges.map((range) => (
-                <option key={range.rangeRef} value={range.rangeRef}>{range.title}</option>
+                <option key={range.rangeRef} value={range.rangeRef}>
+                  {formatTrainingRangeChoice(range)}
+                </option>
               ))}
             </select>
           </label>
@@ -526,6 +530,17 @@ export function TrainingRouteWorkbench({
                     value={startedAtHandle}
                     aria-valuetext={routePointValue(elapsedPointIndexes[startedAtHandle])}
                     onFocus={() => setActiveRangeBoundary("start")}
+                    onKeyDown={(event) => {
+                      const next = steppedInputValueForKey(
+                        event.key,
+                        startedAtHandle,
+                        0,
+                        elapsedPointIndexes.length - 1,
+                      );
+                      if (next === null) return;
+                      event.preventDefault();
+                      updateRouteBoundary("start", elapsedPointIndexes[next]);
+                    }}
                     onChange={(event) => updateRouteBoundary(
                       "start",
                       elapsedPointIndexes[Number(event.target.value)],
@@ -544,6 +559,17 @@ export function TrainingRouteWorkbench({
                     value={endedAtHandle}
                     aria-valuetext={routePointValue(elapsedPointIndexes[endedAtHandle])}
                     onFocus={() => setActiveRangeBoundary("end")}
+                    onKeyDown={(event) => {
+                      const next = steppedInputValueForKey(
+                        event.key,
+                        endedAtHandle,
+                        0,
+                        elapsedPointIndexes.length - 1,
+                      );
+                      if (next === null) return;
+                      event.preventDefault();
+                      updateRouteBoundary("end", elapsedPointIndexes[next]);
+                    }}
                     onChange={(event) => updateRouteBoundary(
                       "end",
                       elapsedPointIndexes[Number(event.target.value)],

@@ -301,7 +301,7 @@ describe("TrainingRouteWorkbench", () => {
     const endHandle = screen.getByRole("slider", { name: "Range end on route" });
     expect(startHandle).toHaveAttribute("aria-valuetext", "Point 1 of 3 · 0 ms");
     endHandle.focus();
-    fireEvent.change(endHandle, { target: { value: "2" } });
+    await user.keyboard("{ArrowRight}");
     expect(screen.getByLabelText("End")).toHaveValue("0:00:02");
     expect(viewport.controller.updateRangeSelection).toHaveBeenLastCalledWith({
       startedAtPointIndex: 0,
@@ -404,6 +404,9 @@ describe("TrainingRouteWorkbench", () => {
 
     const savedRange = await screen.findByRole("combobox", { name: "Saved range" });
     expect(savedRange).toHaveValue("");
+    expect(screen.getByRole("option", {
+      name: "Riverside effort · 0:00:01–0:00:02",
+    })).toBeVisible();
     await user.selectOptions(savedRange, routeRange.rangeRef);
 
     expect(screen.getByText("Riverside effort")).toBeVisible();

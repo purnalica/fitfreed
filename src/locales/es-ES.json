@@ -501,6 +501,7 @@
         "noEditableTimeline": "Esta sesión no tiene una línea temporal registrada lo bastante larga como para contener un rango.",
         "listLabel": "Rangos personales guardados",
         "open": "Abrir {title}",
+        "openWithTiming": "Abrir {title}, de {start} a {end}",
         "createdByYou": "Creado por ti",
         "current": "Actual",
         "reviewRequired": "Revisión necesaria",

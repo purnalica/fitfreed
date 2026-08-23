@@ -10,3 +10,25 @@ const webdriverSpecialKeys = new Map([
 export function normalizeKeyboardKey(key: string): string {
   return webdriverSpecialKeys.get(key) ?? key;
 }
+
+export function steppedInputValueForKey(
+  key: string,
+  current: number,
+  minimum: number,
+  maximum: number,
+): number | null {
+  switch (normalizeKeyboardKey(key)) {
+    case "ArrowLeft":
+    case "ArrowDown":
+      return Math.max(minimum, current - 1);
+    case "ArrowRight":
+    case "ArrowUp":
+      return Math.min(maximum, current + 1);
+    case "Home":
+      return minimum;
+    case "End":
+      return maximum;
+    default:
+      return null;
+  }
+}

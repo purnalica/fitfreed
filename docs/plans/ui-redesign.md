@@ -615,9 +615,10 @@ Range identity and authorship are explicit:
 
 - a source range references the imported manual lap, automatic lap, phase, or other supported source
   structure, retains its provider provenance and original title when present, and is immutable;
-- a user range has its own stable identity, non-blank authored title, exact start and end offsets,
-  revision, and session/exercise ownership; it can overlap or nest another range because it expresses
-  an observation rather than a partition; and
+- a user range has its own stable identity, non-blank but deliberately non-unique authored title, exact start
+  and end offsets, revision, and session/exercise ownership; it can overlap or nest another range because it
+  expresses an observation rather than a partition, and choices with equal titles expose their exact boundaries
+  rather than imposing a naming rule; and
 - a temporary range selection has no durable identity and is discarded unless deliberately saved.
 
 If a source structure has no title, presentation supplies a localized descriptive label such as

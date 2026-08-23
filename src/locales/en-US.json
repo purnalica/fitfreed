@@ -501,6 +501,7 @@
         "noEditableTimeline": "This session has no recorded timeline long enough to contain a range.",
         "listLabel": "Saved personal ranges",
         "open": "Open {title}",
+        "openWithTiming": "Open {title}, {start} to {end}",
         "createdByYou": "Created by you",
         "current": "Current",
         "reviewRequired": "Review required",

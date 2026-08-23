@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { type catalogs, type Locale } from "../locales/catalogs";
+import { steppedInputValueForKey } from "./keyboard-key";
 import type {
   SessionStory,
   SessionStoryMetric,
@@ -14,6 +15,7 @@ import {
   elapsedEditorValue,
   parseElapsedEditorValue,
 } from "./training-range-editor-model";
+import { formatTrainingRangeChoice } from "./training-range-choice";
 import { TrainingRangeEditor } from "./TrainingRangeEditor";
 import { useOptionalTrainingRangeInteraction } from "./TrainingRangeInteractionProvider";
 import { formatDuration } from "./training-format";
@@ -298,7 +300,9 @@ export function TrainingSignalWorkbench({
             >
               <option value="">{copy.chooseSavedRange}</option>
               {signalRanges.map((range) => (
-                <option key={range.rangeRef} value={range.rangeRef}>{range.title}</option>
+                <option key={range.rangeRef} value={range.rangeRef}>
+                  {formatTrainingRangeChoice(range)}
+                </option>
               ))}
             </select>
           </label>
@@ -351,6 +355,17 @@ export function TrainingSignalWorkbench({
                     step="1"
                     value={startedAtHandle}
                     aria-valuetext={sampleControlValue(elapsedSampleIndexes[startedAtHandle])}
+                    onKeyDown={(event) => {
+                      const next = steppedInputValueForKey(
+                        event.key,
+                        startedAtHandle,
+                        0,
+                        elapsedSampleIndexes.length - 1,
+                      );
+                      if (next === null) return;
+                      event.preventDefault();
+                      updateSignalBoundary("start", elapsedSampleIndexes[next]);
+                    }}
                     onChange={(event) => updateSignalBoundary(
                       "start",
                       elapsedSampleIndexes[Number(event.target.value)],
@@ -368,6 +383,17 @@ export function TrainingSignalWorkbench({
                     step="1"
                     value={endedAtHandle}
                     aria-valuetext={sampleControlValue(elapsedSampleIndexes[endedAtHandle])}
+                    onKeyDown={(event) => {
+                      const next = steppedInputValueForKey(
+                        event.key,
+                        endedAtHandle,
+                        0,
+                        elapsedSampleIndexes.length - 1,
+                      );
+                      if (next === null) return;
+                      event.preventDefault();
+                      updateSignalBoundary("end", elapsedSampleIndexes[next]);
+                    }}
                     onChange={(event) => updateSignalBoundary(
                       "end",
                       elapsedSampleIndexes[Number(event.target.value)],

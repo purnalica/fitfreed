@@ -2636,7 +2636,7 @@ describe("TrainingSessionLibraryPanel", () => {
     const visualBars = structureVisual.querySelectorAll(".training-structure-workbench-track i");
     expect(visualBars).toHaveLength(2);
     expect(visualBars[1]).toHaveStyle({ left: "0%", width: "50%" });
-    expect(workbench).toHaveTextContent("10,000.5 m");
+    expect(workbench).toHaveTextContent("10 km");
     expect(workbench).toHaveTextContent("1 source lap");
     expect(workbench).toHaveTextContent("1 pause");
     expect(within(detail).queryByRole("region", {

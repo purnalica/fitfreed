@@ -1693,6 +1693,21 @@ describe("packaged FitFreed import journey", () => {
       "aria-valuetext",
       expect.stringContaining("Point 4 of 5"),
     );
+    await browser.execute((end) => end.focus(), routeRangeHandles[1]);
+    await browser.keys([Key.ArrowLeft]);
+    await expect(routeRangeHandles[1]).toHaveAttribute(
+      "aria-valuetext",
+      expect.stringContaining("Point 3 of 5"),
+    );
+    const movedRouteRangeHandles = await routeWorkbench.$$(
+      ".training-route-range-handles input[type='range']",
+    );
+    await browser.execute((end) => end.focus(), movedRouteRangeHandles[1]);
+    await browser.keys([Key.ArrowRight]);
+    await expect(movedRouteRangeHandles[1]).toHaveAttribute(
+      "aria-valuetext",
+      expect.stringContaining("Point 4 of 5"),
+    );
     const routeRangeEditorAccessibility = await new AxeBuilder({ client: browser })
       .setLegacyMode()
       .include(".training-route-workbench")

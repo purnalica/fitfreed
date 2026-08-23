@@ -97,6 +97,21 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("TrainingStructureWorkbench", () => {
+  it("presents overview distance at a human scale", () => {
+    render(
+      <TrainingStructureWorkbench
+        story={structureStory()}
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        exerciseLabel={() => "Intervals"}
+        onOpenStructure={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("2 km")).toBeVisible();
+    expect(screen.queryByText("2000 m")).not.toBeInTheDocument();
+  });
+
   it("starts a distinct personal range from exact source-lap boundaries", async () => {
     const story = structureStory();
     const user = userEvent.setup();

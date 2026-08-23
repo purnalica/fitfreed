@@ -240,7 +240,8 @@ describe("TrainingSignalWorkbench", () => {
     const startHandle = screen.getByRole("slider", { name: "Range start on signal" });
     const endHandle = screen.getByRole("slider", { name: "Range end on signal" });
     expect(startHandle).toHaveAttribute("aria-valuetext", "Sample 2 of 4 · 1 s");
-    fireEvent.change(endHandle, { target: { value: "3" } });
+    endHandle.focus();
+    await user.keyboard("{ArrowRight}");
     expect(screen.getByLabelText("End")).toHaveValue("0:00:03");
     expect(document.querySelectorAll(".training-signal-range-start")).toHaveLength(1);
     expect(document.querySelectorAll(".training-signal-range-end")).toHaveLength(1);
@@ -345,6 +346,12 @@ describe("TrainingSignalWorkbench", () => {
     );
 
     const savedRange = await screen.findByRole("combobox", { name: "Saved range" });
+    expect(screen.getByRole("option", {
+      name: "Warm-up pulse · 0:00:00–0:00:02",
+    })).toBeVisible();
+    expect(screen.getByRole("option", {
+      name: "Steady pulse · 0:00:01–0:00:03",
+    })).toBeVisible();
     await user.selectOptions(savedRange, secondRange.rangeRef);
     expect(document.querySelector(".training-signal-saved-range strong"))
       .toHaveTextContent("Steady pulse");

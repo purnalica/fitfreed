@@ -211,8 +211,8 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R5 | Complete locally — R5.4, R5.5, and real-process restart gates passed 2026-08-22 | A remembered session is findable and sports are recognizable |
 | X5-R6 | Complete locally — R6.1 through R6.5 passed exact packaged, adaptive visual, and dense-route gates on 2026-08-22; R8.4 subsequently removed unproven route-signal alignment | A routed workout is investigated through a dominant local map without invented relationships |
 | X5-R7 | Complete locally — R7.1 through R7.6 passed the exact fast, functional, restart, adaptive, accessibility, visual, and performance gates on 2026-08-22 | Every session composition reflects its actual evidence |
-| X5-R8 | In progress — R8.1 through R8.5 and R8.6 slices 1–4 complete locally; final Alpha integration is next | Personal ranges and reusable criteria work end to end |
-| X5-R9 | Pending | Reports open as results and leave FitFreed safely |
+| X5-R8 | Complete locally — R8.1 through R8.6 passed the final Alpha gate on 2026-08-23 | Personal ranges and reusable criteria work end to end |
+| X5-R9 | Next | Reports open as results and leave FitFreed safely |
 | X5-R10 | Pending | The complete release-shaped product is coherent and documented |
 | X6 | Pending | Independent audit has no unresolved material finding |
 
@@ -1446,7 +1446,7 @@ stacked task mode at compact width or high zoom. R8.5 does not simulate cross-re
 parallel range state; the atomic range context and editor draft remain the single production interaction
 model consumed by R8.6.
 
-### R8.6 cross-representation range interaction — active
+### R8.6 cross-representation range interaction — complete locally
 
 R8.6 proceeds as five independently demonstrable slices while preserving one range state and one command path:
 
@@ -1548,7 +1548,39 @@ Full regression exposed and corrected two structural assumptions rather than wea
 source laps are now identified by their visible collection identity instead of their former first-child position.
 An exact result can no longer win a focus race after an explicit range-editor action: the shared focus policy gives
 that action priority only until the new heading receives focus, then again preserves any later user movement.
-Slice 5 and the complete final R8.6 Alpha gate remain open.
+At the slice 4 checkpoint, slice 5 and the complete final R8.6 Alpha gate remained open.
+
+Slice 5 and the complete R8.6 Alpha gate are complete locally. The final audit found that equal authored titles
+were legal but not distinguishable in every choice, and that route and signal component tests used value-change
+events while claiming keyboard evidence. Every saved-range choice now exposes its exact coordinate boundaries;
+duplicate-title action names include those boundaries, so titles remain labels rather than identity. Route and
+signal controls use one bounded Arrow, Home, and End stepping policy. Component tests send real key presses, and
+the packaged journey sends those keys to the active native range control in the application process.
+
+The closed acceptance matrix retains overlapping and duplicate-titled authored ranges as distinct aggregates;
+covers invalid, equal, reversed, gapped, unavailable, and out-of-extent evidence; and exercises save,
+cancellation, adjustment, removal, conflict, restart, exact reimport, review-required recovery, both locales,
+dark appearance, compact layout, 200% content zoom, pointer and keyboard use, and exact-evidence entry. Axe
+reports no violations in the packaged journey. Application and component tests own exhaustive boundary cases;
+the packaged campaign owns the integrated lifecycle rather than duplicating every lower-layer permutation.
+
+The final complete fast gate passed 156 tooling tests, 319 React tests, two vendored-updater tests, 220 all-
+feature host tests, 193 application tests, 46 domain tests, and two private-acceptance examples. The production
+build, strict Clippy, Rust formatting, architecture, data, release, update, workflow, product-surface,
+documentation, site, localization, UI-contract, syntax, and diff gates pass. The exact packaged executable
+passed the complete functional journey in 3 minutes 1.8 seconds, general new-process recovery in 1 second,
+adaptive-session composition in 7.6 seconds, exact range recovery through a second process after reimport in
+1.2 seconds, and the isolated two-year performance campaign in 3 minutes 25.2 seconds. Route-workbench opening
+measured 76 milliseconds at p95, route selection 2 milliseconds, independent-signal reveal 22 milliseconds,
+signal overview 312 milliseconds, fourth-series selection 8 milliseconds, and exact signal pagination 229
+milliseconds, all below their accepted budgets.
+
+Independent visual review accepted the range library, route editor, signal editor, source-structure picker, and
+exact-evidence entry in English wide and Spanish dark compact 200% states without horizontal overflow or sticky-
+navigation obstruction. It rejected raw metre-scale summary output discovered in the compact structure capture;
+the corrected summary now uses the same localized human-scale distance policy as other scannable session
+surfaces while exact detail remains unchanged. No material Alpha range finding remains open. X5-R9 is the next
+production increment.
 
 ## X5-R9 — Make reports result-first and portable
 

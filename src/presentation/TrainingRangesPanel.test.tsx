@@ -332,6 +332,55 @@ describe("TrainingRangesPanel", () => {
     expect(document.body).not.toHaveTextContent("route-");
   });
 
+  it("distinguishes duplicate titles and overlapping ranges by their exact boundaries", async () => {
+    const first = range({ title: "Repeated effort" });
+    const second = range({
+      rangeRef: secondRangeRef,
+      title: "Repeated effort",
+      startedAtElapsedMilliseconds: "120000",
+      endedAtElapsedMilliseconds: "240000",
+      revision: 1,
+    });
+    mocks.invoke.mockImplementation((command, input) => {
+      if (command === "query_training_session_ranges") {
+        return Promise.resolve(result([first, second]));
+      }
+      if (command === "query_training_session_range_summary") {
+        return Promise.resolve(summary(
+          input.query.rangeRef === firstRangeRef ? first : second,
+        ));
+      }
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+    const user = userEvent.setup();
+
+    renderPanel();
+
+    const firstChoice = await screen.findByRole("button", {
+      name: "Open Repeated effort, 0:01:00 to 0:03:00",
+    });
+    const secondChoice = screen.getByRole("button", {
+      name: "Open Repeated effort, 0:02:00 to 0:04:00",
+    });
+    expect(within(firstChoice).getByText("0:01:00–0:03:00")).toBeVisible();
+    expect(within(secondChoice).getByText("0:02:00–0:04:00")).toBeVisible();
+
+    await user.click(secondChoice);
+
+    expect(secondChoice).toHaveAttribute("aria-current", "page");
+    await waitFor(() => expect(mocks.invoke).toHaveBeenLastCalledWith(
+      "query_training_session_range_summary",
+      {
+        query: {
+          sessionRef,
+          snapshotRef,
+          rangeRef: secondRangeRef,
+          expectedRangeRevision: 1,
+        },
+      },
+    ));
+  });
+
   it("renames and adjusts an established range without offering silent reassignment", async () => {
     let current = range();
     mocks.invoke.mockImplementation((command) => {

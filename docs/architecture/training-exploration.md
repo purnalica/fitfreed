@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production persists provider-neutral session summaries, mapped exercise/lap/pause structure, primary and transition routes with exact points, supported exercise and transition signals with exact samples, supported recorded zones with exact aggregates, user-authored sport classifications, session-owned personal ranges, reusable segment criteria, and a disposable discovery workspace. Full-history search, chronology, calendar projection, comparison selection, restart restoration, structural detail, bounded local route traces, exact route pagination, gap-aware bounded signal charts, exact signal pagination, recorded-zone inspection, personal-range lifecycle, summary, route-map and independent-signal manipulation, source-structure and exact-evidence range entry, user-authored segmentation, and on-demand session provenance are implemented. Final personal-range Alpha integration remains active MVP work. E4 is complete in the [MVP experience delivery plan](../plans/mvp-experience-delivery.md); the [public-release readiness ledger](../testing/public-release-readiness.md) owns current exact-source acceptance evidence.
+Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production persists provider-neutral session summaries, mapped exercise/lap/pause structure, primary and transition routes with exact points, supported exercise and transition signals with exact samples, supported recorded zones with exact aggregates, user-authored sport classifications, session-owned personal ranges, reusable segment criteria, and a disposable discovery workspace. Full-history search, chronology, calendar projection, comparison selection, restart restoration, structural detail, bounded local route traces, exact route pagination, gap-aware bounded signal charts, exact signal pagination, recorded-zone inspection, personal-range lifecycle, summary, cross-representation interaction, source-structure and exact-evidence range entry, user-authored segmentation, and on-demand session provenance are implemented. The personal-range Alpha acceptance matrix is complete locally. E4 is complete in the [MVP experience delivery plan](../plans/mvp-experience-delivery.md); the [public-release readiness ledger](../testing/public-release-readiness.md) owns current exact-source acceptance evidence.
 
 ## Ownership
 
@@ -370,8 +370,11 @@ creating an unbounded response.
 `TrainingRangeInteractionProvider` is the one production presentation controller for the session-owned range
 query, durable selection, local draft, mutation progress, conflict recovery, guarded removal, and selected
 summary. `TrainingRangesPanel` composes the library and result inspector, while `TrainingRangeEditor` is the one
-form composed by both the library and the route workbench. They receive only the complete application range
-context and `SessionStory` labels; opaque capabilities remain command values and never become visible labels.
+form composed by the library, route, independent-signal, source-structure, and exact-evidence entry points. The
+library exposes exact boundaries on every choice and adds them to the accessible action name when authored
+titles collide; title equality never substitutes for stable range identity. These components receive only the
+complete application range context and `SessionStory` labels; opaque capabilities remain command values and
+never become visible labels.
 Exact elapsed input is parsed and formatted with `BigInt`, coordinate choices come only from the returned
 application context, and an established owner and coordinate remain locked. The controller may retain an unsaved
 draft across a failed or conflicting command, but it never treats mounted state as persistence: opening or
@@ -380,7 +383,8 @@ saved range uses the shared result-focus boundary so the library inspector recei
 in the stacked compact or high-zoom layout.
 
 `TrainingRouteWorkbench` can request a route-coordinate draft and project its exact boundaries onto the bounded
-returned route points. Two native range controls provide pointer and keyboard traversal of timed points; a track
+returned route points. Two range controls provide pointer and explicit bounded keyboard traversal of timed
+points through the shared `steppedInputValueForKey` policy; a track
 click moves only the boundary explicitly selected in the inspector. The renderer port receives nullable exact
 point indexes for the start and end markers. A typed elapsed value without an exact point in the bounded
 projection remains unmarked rather than being snapped or inferred. The wide layout reserves approximately three
@@ -389,7 +393,7 @@ the map at compact width or high content zoom.
 
 `TrainingSignalWorkbench` composes the same controller and editor for one regular signal's own elapsed
 coordinate. Its selected-sample control and two boundary controls traverse exact bounded visual samples with
-pointer or keyboard, while its plot receives only exact sample ordinals for the selection line, boundary lines,
+pointer or the same explicit keyboard policy, while its plot receives only exact sample ordinals for the selection line, boundary lines,
 and range band. A typed boundary that is not one of those returned visual samples remains unmarked. The chart
 keeps approximately three quarters of the wide workspace and stacks above its inspector at compact width or
 high content zoom. The exact-sample action retains the selected source ordinal and focuses its containing table

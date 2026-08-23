@@ -7,8 +7,8 @@ supported public binary is available yet. Use only independently generated synth
 version-matched release guidance explicitly opens a real-export boundary.
 
 Personal ranges are an Alpha experience. Their ownership, persistence, exact-coordinate, reimport, summary,
-route-map, independent-signal, source-structure, and exact-evidence boundary contracts are implemented. The
-complete Alpha integration and acceptance campaign remain active MVP work.
+route-map, independent-signal, source-structure, exact-evidence boundary, cross-representation interaction, and
+acceptance contracts are implemented and pass locally. Public release evidence remains a separate release gate.
 
 ## Open personal ranges
 
@@ -20,8 +20,9 @@ The initial view lists saved ranges. Opening one leads with its name, exact time
 distance or measurement where supported, and evidence coverage. **Evidence and limits** then reveals boundary
 quality, complete measurement detail, overlapping source laps on the same exact timeline, and every calculation
 that remains unavailable. Selecting a saved range moves keyboard focus to that result and, in the stacked compact
-or high-zoom layout, scrolls it into view below the range list. Opaque storage, provider, session, exercise, route,
-signal, and range identifiers never become labels.
+or high-zoom layout, scrolls it into view below the range list. Every list choice shows its exact start and end;
+when two ranges share a name, those boundaries also distinguish their accessible action names. Opaque storage,
+provider, session, exercise, route, signal, and range identifiers never become labels.
 
 ## Create a range
 
@@ -51,7 +52,8 @@ value is missing but whose elapsed position was recorded. Creating from that pos
 exact visible elapsed sample, or the preceding one when the position is the last sample. The two boundary
 controls move only through exact samples represented in the bounded chart. A boundary typed into the shared
 editor remains exact and unmarked when that particular sample is outside the bounded projection; FitFreed does
-not snap it to a nearby sample.
+not snap it to a nearby sample. The route and signal boundary controls support arrow, Home, and End keys through
+the same bounded behavior used by their pointer interaction.
 
 Each regular signal retains its own recorded elapsed coordinate. Equal elapsed numbers do not synchronize the
 range with a route or another signal. Opening exact samples from the chart reveals and focuses the currently
