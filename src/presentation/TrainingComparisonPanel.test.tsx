@@ -130,7 +130,7 @@ describe("TrainingComparisonPanel", () => {
   it("runs and focuses the exact comparison reached from a report", async () => {
     mocks.invoke.mockResolvedValue(result);
 
-    render(
+    const rendered = render(
       <TrainingComparisonPanel
         availableRange={{ from: "2025-01-01", through: "2026-08-18" }}
         initialRange={{ from: "2026-07-20", through: "2026-08-18" }}
@@ -170,6 +170,29 @@ describe("TrainingComparisonPanel", () => {
       .not.toHaveAttribute("open");
     expect(within(answer).getByRole("table", { name: "Training period comparison" }))
       .not.toBeVisible();
+
+    screen.getByRole("button", { name: "Clear comparison" }).focus();
+    rendered.rerender(
+      <TrainingComparisonPanel
+        availableRange={{ from: "2025-01-01", through: "2026-08-18" }}
+        initialRange={{ from: "2026-07-20", through: "2026-08-18" }}
+        initialQuery={{
+          question: "training-period-comparison",
+          questionVersion: 1,
+          baselineRange: { from: "2026-01-01", through: "2026-01-31" },
+          comparisonRange: { from: "2026-07-01", through: "2026-07-31" },
+        }}
+        navigationRequestId={4}
+        createReportFocusRequestId={1}
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        onCreateReport={vi.fn()}
+        onError={vi.fn()}
+      />,
+    );
+    await waitFor(() => expect(screen.getByRole("button", {
+      name: "Turn this comparison into a report",
+    })).toHaveFocus());
   });
 
   it("leads with the answer while preserving optional-measurement evidence and report creation", async () => {

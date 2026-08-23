@@ -311,6 +311,8 @@ export function ReportsPanel({
   const commentaryFieldRef = useRef<HTMLTextAreaElement>(null);
   const addCommentaryRef = useRef<HTMLButtonElement>(null);
   const commentaryFocusRequestRef = useRef<"field" | "add" | undefined>(undefined);
+  const compositionCancelTargetRef = useRef<"library" | "preview" | undefined>(undefined);
+  const compositionCancelOriginRef = useRef<HTMLElement>(null);
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const commentaryPresent = editor?.blocks.some((block) => block.kind === "narrative") ?? false;
 
@@ -492,6 +494,16 @@ export function ReportsPanel({
   }, [removedNotice]);
 
   useEffect(() => {
+    const target = compositionCancelTargetRef.current;
+    if (!target || workspace !== target) return;
+    compositionCancelTargetRef.current = undefined;
+    return restoreFocusAfterReveal(
+      target === "preview" ? requestedReportHeadingRef.current : libraryHeadingRef.current,
+      compositionCancelOriginRef.current,
+    );
+  }, [workspace]);
+
+  useEffect(() => {
     if (!refreshedNotice) return;
     return restoreFocusAfterReveal(
       refreshedNoticeRef.current,
@@ -583,6 +595,26 @@ export function ReportsPanel({
     const report = await resolveReport(reportRef);
     if (!report) setWorkspace("library");
     return report;
+  }
+
+  function cancelComposition(initiatingElement: HTMLElement) {
+    compositionCancelOriginRef.current = initiatingElement;
+    setLocalError(undefined);
+    setSavedNotice(false);
+    setRefreshedNotice(false);
+    if (resolved) {
+      setEditor(editorFromDefinition(resolved.definition));
+      compositionCancelTargetRef.current = "preview";
+      setWorkspace("preview");
+      return;
+    }
+    setEditor(undefined);
+    if (origin) {
+      onReturnToOrigin(null);
+      return;
+    }
+    compositionCancelTargetRef.current = "library";
+    setWorkspace("library");
   }
 
   function beginDeleteReview(originElement: HTMLElement) {
@@ -2056,6 +2088,14 @@ export function ReportsPanel({
                   actionLabel={saveActionLabel}
                   progressLabel={copy.saving}
                 />
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={editingLocked}
+                  onClick={(event) => cancelComposition(event.currentTarget)}
+                >
+                  {copy.cancelComposition}
+                </button>
               </div>
             </form>
           )}
@@ -2092,7 +2132,7 @@ export function ReportsPanel({
                   <h2
                     id="report-preview-heading"
                     ref={requestedReportHeadingRef}
-                    tabIndex={openReportRef ? -1 : undefined}
+                    tabIndex={-1}
                   >
                     {copy.previewHeading}
                   </h2>

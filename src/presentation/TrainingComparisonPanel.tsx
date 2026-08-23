@@ -194,7 +194,9 @@ export function TrainingComparisonPanel({
       || !comparison
     ) return;
     handledCreateReportFocusRequest.current = createReportFocusRequestId;
-    return restoreFocusAfterReveal(createReportButtonRef.current);
+    return restoreFocusAfterReveal(createReportButtonRef.current, null, {
+      forceInitialFocus: true,
+    });
   }, [comparison, createReportFocusRequestId]);
 
   async function runComparison(event: FormEvent<HTMLFormElement>) {

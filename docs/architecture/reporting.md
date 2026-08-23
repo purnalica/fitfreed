@@ -61,7 +61,12 @@ a successful save or a saved-report selection enters **Preview**. The full order
 editor remains mounted while Library or Preview is active, so moving between stages does not discard title,
 narrative, periods, measurements, privacy choices, or block order. Preview is independently inspectable and
 replaces itself with stale-evidence review, export privacy review, or deletion confirmation; it never stacks
-these decisions below the editor. Cancelling deletion restores Preview and focus. A successful removal clears
+these decisions below the editor. **Cancel composition** is a distinct state transition rather than another
+stage switch: for a saved definition it reconstructs the editor from the resolved reviewed revision, opens
+Preview, and focuses the result heading; for an unsaved contextual start it clears the draft and returns
+through the exact source-navigation contract; for a Library-owned start it clears the draft, opens Library,
+and focuses the Library heading. None of those paths invokes a report write. Cancelling deletion restores
+Preview and focus. A successful removal clears
 the selected report, reloads the bounded Library, and focuses its heading; an optimistic conflict reloads and
 resolves the latest definition without announcing removal. This hierarchy is disposable presentation state
 and does not enter a definition, application DTO, or persistence row.

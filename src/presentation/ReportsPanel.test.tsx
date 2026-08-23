@@ -782,6 +782,97 @@ describe("ReportsPanel", () => {
     );
   });
 
+  it("cancels a saved edit from the keyboard and restores the reviewed definition", async () => {
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "list_report_library") {
+        return Promise.resolve(reportLibraryPage([sessionLibraryItem()]));
+      }
+      if (command === "resolve_report") return Promise.resolve(resolution());
+      if (command === "query_training_session_routes") {
+        return Promise.resolve(routeQueryResult());
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    renderPanel({ origin: undefined, originRequestId: 0 });
+    const card = await screen.findByRole("button", { name: "Open Ridge progression" });
+    card.focus();
+    await user.keyboard("{Enter}");
+    const edit = await screen.findByRole("button", { name: "Edit composition" });
+    edit.focus();
+    await user.keyboard("{Enter}");
+    await user.clear(screen.getByLabelText("Report title"));
+    await user.type(screen.getByLabelText("Report title"), "Unsaved replacement");
+    const cancel = screen.getByRole("button", { name: "Cancel composition" });
+    cancel.focus();
+    await user.keyboard("{Enter}");
+
+    const previewHeading = screen.getByRole("heading", { name: "Report preview" });
+    await waitFor(() => expect(previewHeading).toHaveFocus());
+    expect(screen.getByRole("heading", { name: "Ridge progression", level: 3 })).toBeVisible();
+    expect(screen.queryByText("Unsaved replacement")).not.toBeInTheDocument();
+    expect(mocks.invoke).not.toHaveBeenCalledWith("update_report", expect.anything());
+
+    edit.focus();
+    await user.keyboard("{Enter}");
+    expect(screen.getByLabelText("Report title")).toHaveValue("Ridge progression");
+  });
+
+  it("cancels a new contextual composition and returns to its exact source", async () => {
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage([]));
+      if (command === "query_training_session_routes") return Promise.resolve(routeQueryResult());
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    const callbacks = renderPanel();
+    const title = await screen.findByLabelText("Report title");
+    await user.clear(title);
+    await user.type(title, "Unsaved contextual report");
+    const cancel = screen.getByRole("button", { name: "Cancel composition" });
+    cancel.focus();
+    await user.keyboard("{Enter}");
+
+    expect(callbacks.onReturnToOrigin).toHaveBeenCalledOnce();
+    expect(callbacks.onReturnToOrigin).toHaveBeenCalledWith(null);
+    expect(mocks.invoke).not.toHaveBeenCalledWith("create_report", expect.anything());
+  });
+
+  it("cancels a new library composition without creating a report", async () => {
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage([]));
+      if (command === "prepare_report_start") return Promise.resolve({
+        sourceSnapshotRef: snapshotRef,
+        origin: {
+          kind: "question",
+          question: "training-period-comparison",
+          questionVersion: 1,
+        },
+        suggestedQuery: comparisonQuery,
+      });
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    renderPanel({ origin: undefined, originRequestId: 0 });
+    await user.click(await screen.findByRole("button", {
+      name: "Compare recent training periods",
+    }));
+    await user.clear(screen.getByLabelText("Report title"));
+    await user.type(screen.getByLabelText("Report title"), "Unsaved library report");
+    const cancel = screen.getByRole("button", { name: "Cancel composition" });
+    cancel.focus();
+    await user.keyboard("{Enter}");
+
+    const libraryHeading = screen.getByRole("heading", { name: "Saved reports" });
+    await waitFor(() => expect(libraryHeading).toHaveFocus());
+    expect(screen.getByText("No reports have been saved yet.")).toBeVisible();
+    expect(screen.queryByText("Unsaved library report")).not.toBeInTheDocument();
+    expect(mocks.invoke).not.toHaveBeenCalledWith("create_report", expect.anything());
+  });
+
   it("returns to the library without exposing a prior report when selection fails", async () => {
     mocks.invoke.mockImplementation((command) => {
       if (command === "list_report_library") return Promise.resolve(reportLibraryPage([

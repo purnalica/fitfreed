@@ -2214,7 +2214,18 @@ describe("packaged FitFreed import journey", () => {
         === "Race plan",
       { timeout: 10_000, timeoutMsg: "the criterion order was not updated" },
     );
-    await $(`aria/${english.training.sessionLibrary.createReport}`).click();
+    const createSessionReport = await $(`aria/${english.training.sessionLibrary.createReport}`);
+    await createSessionReport.click();
+    await expect($(".reports-hero h1")).toHaveText(english.reports.heading);
+    const cancelNewComposition = await $(`aria/${english.reports.cancelComposition}`);
+    await cancelNewComposition.click();
+    await expect($("#training-session-detail-heading")).toHaveText("Session summary");
+    await expectElementFocus(
+      createSessionReport,
+      "cancelling a contextual report did not restore its exact source action",
+    );
+    expect(await $$(".report-editor")).toHaveLength(0);
+    await createSessionReport.click();
     await expect($(".reports-hero h1")).toHaveText(english.reports.heading);
     const reportTitle = await $('.report-editor input[maxlength="120"]');
     await reportTitle.clearValue();
@@ -2301,6 +2312,57 @@ describe("packaged FitFreed import journey", () => {
       titleBeforeEvidence: true,
       evidenceBeforeActions: true,
     });
+    await browser.execute(() => {
+      document.querySelector(".report-preview").scrollIntoView({
+        block: "start",
+        inline: "nearest",
+      });
+    });
+    const wideReportPreviewGeometry = await browser.execute(() => {
+      const root = document.documentElement;
+      const preview = document.querySelector(".report-preview").getBoundingClientRect();
+      const title = document.querySelector(".report-preview-title").getBoundingClientRect();
+      const primaryEvidence = document.querySelector(".report-preview > article")
+        .getBoundingClientRect();
+      const actions = document.querySelector(".report-preview-actions").getBoundingClientRect();
+      return {
+        hasHorizontalOverflow: root.scrollWidth > root.clientWidth,
+        titleInsidePreview: title.left >= preview.left && title.right <= preview.right,
+        evidenceInsidePreview:
+          primaryEvidence.left >= preview.left && primaryEvidence.right <= preview.right,
+        titleBeforeEvidence: title.bottom <= primaryEvidence.top,
+        evidenceBeforeActions: primaryEvidence.bottom <= actions.top,
+        resultBeginsInViewport: primaryEvidence.top < window.innerHeight,
+      };
+    });
+    expect(wideReportPreviewGeometry).toEqual({
+      hasHorizontalOverflow: false,
+      titleInsidePreview: true,
+      evidenceInsidePreview: true,
+      titleBeforeEvidence: true,
+      evidenceBeforeActions: true,
+      resultBeginsInViewport: true,
+    });
+    const wideReportPreviewAccessibility = await new AxeBuilder({ client: browser })
+      .setLegacyMode()
+      .include(".reports-panel")
+      .analyze();
+    expect(wideReportPreviewAccessibility.violations).toEqual([]);
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r9-report-preview-en-wide.png",
+    ));
+    const editSavedComposition = await $(`aria/${english.reports.editComposition}`);
+    await editSavedComposition.click();
+    await reportTitle.clearValue();
+    await reportTitle.setValue("Discarded report title");
+    const cancelSavedComposition = await $(`aria/${english.reports.cancelComposition}`);
+    await cancelSavedComposition.click();
+    await expect($(".report-preview h3")).toHaveText("Synthetic ridge progression");
+    await expectDocumentFocus(
+      "#report-preview-heading",
+      "cancelling a saved composition did not focus its restored result",
+    );
     await openReportWorkspace(english, "library");
     expect(await $$(".report-list > li")).toHaveLength(1);
     const wideReportLibraryGeometry = await browser.execute(() => {
@@ -2343,7 +2405,8 @@ describe("packaged FitFreed import journey", () => {
       "#report-privacy-heading",
       "opening the export review did not focus its heading",
     );
-    await privacyReview.$(`aria/${english.reports.closeReview}`).click();
+    const closeExportReview = await privacyReview.$(`aria/${english.reports.closeReview}`);
+    await closeExportReview.click();
     await expectElementFocus(
       reviewExport,
       "closing the export review did not restore its initiating action",
@@ -2366,6 +2429,32 @@ describe("packaged FitFreed import journey", () => {
     await expect(privacyReview).toHaveText(
       expect.stringContaining(english.reports.narrativeIncluded),
     );
+    const wideExportReviewGeometry = await browser.execute(() => {
+      const root = document.documentElement;
+      const review = document.querySelector(".report-privacy-review").getBoundingClientRect();
+      const heading = document.querySelector("#report-privacy-heading").getBoundingClientRect();
+      return {
+        hasHorizontalOverflow: root.scrollWidth > root.clientWidth,
+        headingInsideReview: heading.left >= review.left && heading.right <= review.right,
+        headingVisible: heading.top >= 0 && heading.top < window.innerHeight,
+        reviewInsideWorkspace: review.right <= root.clientWidth,
+      };
+    });
+    expect(wideExportReviewGeometry).toEqual({
+      hasHorizontalOverflow: false,
+      headingInsideReview: true,
+      headingVisible: true,
+      reviewInsideWorkspace: true,
+    });
+    const wideExportReviewAccessibility = await new AxeBuilder({ client: browser })
+      .setLegacyMode()
+      .include(".reports-panel")
+      .analyze();
+    expect(wideExportReviewAccessibility.violations).toEqual([]);
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r9-report-export-review-en-wide.png",
+    ));
     const exportHeartRate = await privacyReview.$$('input[type="checkbox"]')[0];
     await expect(exportHeartRate).toBeChecked();
     await exportHeartRate.click();
@@ -4191,6 +4280,14 @@ describe("packaged FitFreed import journey", () => {
       .setLegacyMode()
       .analyze();
     expect(refreshAccessibility.violations).toEqual([]);
+    await expectRevealOutsideApplicationNavigation(".report-refresh-review");
+    expect(await browser.execute(() => (
+      document.documentElement.scrollWidth <= document.documentElement.clientWidth
+    ))).toBe(true);
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r9-report-refresh-review-es-dark-200.png",
+    ));
     await refreshReview.$(`aria/${spanish.reports.refresh.keepSaved}`).click();
     expect(await $$(".report-refresh-review")).toHaveLength(0);
     await expectDocumentFocus(
@@ -4235,6 +4332,41 @@ describe("packaged FitFreed import journey", () => {
       "r9-report-compose-factual-es-dark-200.png",
     ));
     await openReportWorkspace(spanish, "preview");
+    await expectRevealOutsideApplicationNavigation(".report-preview");
+    const compactReportPreviewGeometry = await browser.execute(() => {
+      const root = document.documentElement;
+      const preview = document.querySelector(".report-preview").getBoundingClientRect();
+      const title = document.querySelector(".report-preview-title").getBoundingClientRect();
+      const primaryEvidence = document.querySelector(".report-preview > article")
+        .getBoundingClientRect();
+      const actions = document.querySelector(".report-preview-actions").getBoundingClientRect();
+      return {
+        hasHorizontalOverflow: root.scrollWidth > root.clientWidth,
+        titleInsidePreview: title.left >= preview.left && title.right <= preview.right,
+        evidenceInsidePreview:
+          primaryEvidence.left >= preview.left && primaryEvidence.right <= preview.right,
+        titleBeforeEvidence: title.bottom <= primaryEvidence.top,
+        evidenceBeforeActions: primaryEvidence.bottom <= actions.top,
+        resultBeginsInViewport: primaryEvidence.top < window.innerHeight,
+      };
+    });
+    expect(compactReportPreviewGeometry).toEqual({
+      hasHorizontalOverflow: false,
+      titleInsidePreview: true,
+      evidenceInsidePreview: true,
+      titleBeforeEvidence: true,
+      evidenceBeforeActions: true,
+      resultBeginsInViewport: true,
+    });
+    const compactReportPreviewAccessibility = await new AxeBuilder({ client: browser })
+      .setLegacyMode()
+      .include(".reports-panel")
+      .analyze();
+    expect(compactReportPreviewAccessibility.violations).toEqual([]);
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r9-report-preview-es-dark-200.png",
+    ));
 
     await $(`aria/${spanish.reports.reviewExport}`).click();
     const refreshedPrivacyReview = await $(".report-privacy-review");
@@ -4251,6 +4383,19 @@ describe("packaged FitFreed import journey", () => {
     await expect(refreshedPrivacyReview).not.toHaveText(
       expect.stringContaining(spanish.reports.narrativeIncluded),
     );
+    await expectRevealOutsideApplicationNavigation(".report-privacy-review");
+    expect(await browser.execute(() => (
+      document.documentElement.scrollWidth <= document.documentElement.clientWidth
+    ))).toBe(true);
+    const compactExportReviewAccessibility = await new AxeBuilder({ client: browser })
+      .setLegacyMode()
+      .include(".reports-panel")
+      .analyze();
+    expect(compactExportReviewAccessibility.violations).toEqual([]);
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r9-report-export-review-es-dark-200.png",
+    ));
     await saveDialogMock.mockReturnValue(refreshedReportOutput);
     await saveDialogMock.update();
     const refreshedSaveCallCount = saveDialogMock.mock.calls.length;

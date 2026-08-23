@@ -116,8 +116,13 @@ route, a 300-sample bounded signal overview, a 250-sample exact signal page, and
 retrieval of the complete bounded recorded-zone collection against one coherent snapshot. It also
 recalculates personal segmentation by streaming the complete 100,000-slot series, preserving source gaps and
 the 250-segment output bound. These paths include the concrete SQLite adapter and application validation.
-The report-resolution path uses the 2-second complex-visualization budget; the other detailed training paths
-use the common-interaction budget.
+The same generated library contains a complete 24-item report page. The report-library gate reads that bounded
+page through SQLite and the application projection, resolves only the recognition evidence required by each
+card, and exercises reuse of identical comparison queries. It also exports the maximum route report through
+the complete application authorization and resolution path, deterministic HTML renderer, private staging
+file, synchronization, and atomic destination replacement. Report-library p95 uses the 500-millisecond common
+interaction budget. Complete self-contained HTML export and maximum-route resolution use the 2-second
+complex-visualization budget; the other detailed training paths use the common-interaction budget.
 
 Each interaction has 10 warm-up executions and 100 measured executions. Durations are sorted and p95 uses zero-based index `ceil((n - 1) * 0.95)`. Default and common interactions must remain within 500 ms p95; maximum-range interactions must remain within the 2-second complex-visualization budget. The local output reports application version, source revision, host profile, free storage, generated scale, database size, run policy, median, p95, maximum, budget result, and peak process memory. Public documentation follows the same minimized evidence boundary as the other benchmarks.
 

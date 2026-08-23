@@ -10,29 +10,33 @@ use std::{ffi::CString, mem::MaybeUninit, os::unix::ffi::OsStrExt};
 
 use chrono::{Duration as ChronoDuration, NaiveDate};
 use fitfreed_application::{
-    create_composed_session_report, query_activity_comparison, query_activity_overview,
-    query_longitudinal_comparison, query_longitudinal_overview, query_recovery_comparison,
-    query_recovery_detail, query_recovery_overview, query_sleep_comparison, query_sleep_detail,
-    query_sleep_overview, query_training_comparison, query_training_overview,
-    query_training_route_points, query_training_session_calendar,
-    query_training_session_provenance, query_training_session_routes,
-    query_training_session_segmentation, query_training_session_selection,
-    query_training_session_signals, query_training_session_structure, query_training_session_zones,
-    query_training_sessions, query_training_signal_samples, resolve_session_report,
-    ActivityDateRange, CreateComposedSessionReportRequest, LongitudinalDateRange,
-    RecoveryDateRange, SessionReportBlockDraft, SessionReportBlockDraftContent, SleepDateRange,
-    TrainingDateRange, TrainingRoutePointsQuery, TrainingSessionCalendarRequest,
+    create_composed_session_report, create_report, export_report, list_report_library,
+    query_activity_comparison, query_activity_overview, query_longitudinal_comparison,
+    query_longitudinal_overview, query_recovery_comparison, query_recovery_detail,
+    query_recovery_overview, query_sleep_comparison, query_sleep_detail, query_sleep_overview,
+    query_training_comparison, query_training_overview, query_training_route_points,
+    query_training_session_calendar, query_training_session_provenance,
+    query_training_session_routes, query_training_session_segmentation,
+    query_training_session_selection, query_training_session_signals,
+    query_training_session_structure, query_training_session_zones, query_training_sessions,
+    query_training_signal_samples, resolve_session_report, ActivityDateRange,
+    CreateComposedSessionReportRequest, CreateReportRequest, LongitudinalDateRange,
+    RecoveryDateRange, ReportExportCancellation, ReportExportRequest, ReportLibraryRequest,
+    ReportRouteExportChoice, SessionReportBlockDraft, SessionReportBlockDraftContent,
+    SleepDateRange, TrainingDateRange, TrainingRoutePointsQuery, TrainingSessionCalendarRequest,
     TrainingSessionProvenanceQuery, TrainingSessionRouteQuery, TrainingSessionSearchRequest,
     TrainingSessionSegmentationQuery, TrainingSessionSelectionRequest, TrainingSessionSignalsQuery,
     TrainingSessionSort, TrainingSessionStructureQuery, TrainingSessionZonesQuery,
     TrainingSignalSamplesQuery,
 };
 use fitfreed_domain::{
-    ReportDateRange, ReportLocale, ReportTrainingComparisonQuery, ReportTrainingMetric,
+    ReportBlockContent, ReportDateRange, ReportLocale, ReportOrigin, ReportQuestion,
+    ReportTrainingComparisonQuery, ReportTrainingMetric,
 };
 use fitfreed_lib::infrastructure::{
-    query_activity_between, SqliteActivityLibrary, SqliteLongitudinalLibrary,
-    SqliteRecoveryLibrary, SqliteReportLibrary, SqliteSleepLibrary, SqliteTrainingLibrary,
+    query_activity_between, SelfContainedHtmlReportExporter, SqliteActivityLibrary,
+    SqliteLongitudinalLibrary, SqliteRecoveryLibrary, SqliteReportLibrary, SqliteSleepLibrary,
+    SqliteTrainingLibrary,
 };
 use rusqlite::{params, Connection};
 use serde_json::{json, Value};
@@ -411,7 +415,7 @@ fn main() {
                 SessionReportBlockDraft {
                     block_ref: None,
                     content: SessionReportBlockDraftContent::TrainingCoverage {
-                        query: comparison_query,
+                        query: comparison_query.clone(),
                     },
                 },
                 SessionReportBlockDraft {
@@ -455,6 +459,108 @@ fn main() {
         .expect("comparison report evidence")
         .series
         .len()
+    });
+    for index in 0..22 {
+        create_report(
+            &report_library,
+            &training_library,
+            &training_library,
+            &training_library,
+            CreateReportRequest {
+                title: format!("Synthetic library report {}", index + 1),
+                locale: ReportLocale::EnUs,
+                source_snapshot_ref: training_discovery_page.snapshot_ref.clone(),
+                origin: ReportOrigin::Question {
+                    question: ReportQuestion::TrainingPeriodComparisonV1,
+                },
+                blocks: vec![SessionReportBlockDraft {
+                    block_ref: None,
+                    content: SessionReportBlockDraftContent::TrainingFinding {
+                        query: comparison_query.clone(),
+                        metric: ReportTrainingMetric::Duration,
+                    },
+                }],
+            },
+        )
+        .expect("create generated report-library item");
+    }
+    let report_library_request = ReportLibraryRequest {
+        offset: 0,
+        limit: 24,
+    };
+    let report_library_setup = list_report_library(
+        &report_library,
+        &training_library,
+        &training_library,
+        report_library_request.clone(),
+    )
+    .expect("maximum report-library setup");
+    assert_eq!(report_library_setup.total_count, 24);
+    assert_eq!(report_library_setup.items.len(), 24);
+    let report_library_page = measure(24, || {
+        list_report_library(
+            &report_library,
+            &training_library,
+            &training_library,
+            report_library_request.clone(),
+        )
+        .expect("maximum report-library page")
+        .items
+        .len()
+    });
+    let route_choice = route_report
+        .blocks()
+        .iter()
+        .find_map(|block| match block.content() {
+            ReportBlockContent::Route {
+                endpoint_redaction_meters,
+                ..
+            } => Some(ReportRouteExportChoice {
+                block_ref: block.block_ref().to_owned(),
+                include_geometry: true,
+                endpoint_redaction_meters: *endpoint_redaction_meters,
+            }),
+            _ => None,
+        })
+        .expect("generated route report choice");
+    let report_export_request = ReportExportRequest {
+        report_ref: route_report.report_ref().to_owned(),
+        expected_revision: route_report.revision(),
+        expected_source_snapshot_ref: route_report.source_snapshot_ref().to_owned(),
+        include_physiological_context: true,
+        route_choices: vec![route_choice],
+        destination: directory.path().join("maximum-route-report.html"),
+    };
+    let report_export_setup = export_report(
+        &report_library,
+        &training_library,
+        &training_library,
+        &training_library,
+        &training_library,
+        &SelfContainedHtmlReportExporter,
+        report_export_request.clone(),
+        &ReportExportCancellation::new(),
+    )
+    .expect("maximum self-contained report export setup");
+    let expected_export_bytes =
+        usize::try_from(report_export_setup.byte_count).expect("report byte count fits usize");
+    assert!(expected_export_bytes > 0);
+    let report_html_export = measure(expected_export_bytes, || {
+        usize::try_from(
+            export_report(
+                &report_library,
+                &training_library,
+                &training_library,
+                &training_library,
+                &training_library,
+                &SelfContainedHtmlReportExporter,
+                report_export_request.clone(),
+                &ReportExportCancellation::new(),
+            )
+            .expect("maximum self-contained report export")
+            .byte_count,
+        )
+        .expect("report byte count fits usize")
     });
     let training_signal_request = TrainingSessionSignalsQuery {
         session_ref: training_discovery_page.sessions[0].session_ref.clone(),
@@ -803,6 +909,16 @@ fn main() {
             COMMON_BUDGET_MILLISECONDS,
         ),
         (
+            "report.libraryPage",
+            &report_library_page,
+            COMMON_BUDGET_MILLISECONDS,
+        ),
+        (
+            "report.selfContainedHtmlExport",
+            &report_html_export,
+            COMPLEX_BUDGET_MILLISECONDS,
+        ),
+        (
             "training.signalOverview",
             &training_signal_overview,
             COMMON_BUDGET_MILLISECONDS,
@@ -956,7 +1072,7 @@ fn main() {
                 "warmUpRunsPerInteraction": WARM_UP_RUNS,
                 "measuredRunsPerInteraction": MEASURED_RUNS,
                 "percentile": "sorted zero-based index ceil((n - 1) * 0.95)",
-                "scope": "SQLite adapter plus application read model",
+                "scope": "SQLite adapter plus application read model; report export also includes deterministic HTML and atomic local output",
             },
             "measurements": {
                 "activity": {
@@ -1038,6 +1154,16 @@ fn main() {
                     "segmentation": measurement_json(
                         &training_segmentation,
                         COMMON_BUDGET_MILLISECONDS,
+                    ),
+                },
+                "report": {
+                    "libraryPage": measurement_json(
+                        &report_library_page,
+                        COMMON_BUDGET_MILLISECONDS,
+                    ),
+                    "selfContainedHtmlExport": measurement_json(
+                        &report_html_export,
+                        COMPLEX_BUDGET_MILLISECONDS,
                     ),
                 },
                 "sleep": {

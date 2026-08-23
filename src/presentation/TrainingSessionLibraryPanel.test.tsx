@@ -1018,7 +1018,7 @@ function renderPanel(
 ) {
   const onAvailableRange = vi.fn();
   const onCreateReport = vi.fn();
-  render(
+  const rendered = render(
     <TrainingSessionLibraryPanel
       locale="en-US"
       messages={catalogs["en-US"]}
@@ -1029,7 +1029,7 @@ function renderPanel(
       {...properties}
     />,
   );
-  return { onAvailableRange, onCreateReport, onError };
+  return { onAvailableRange, onCreateReport, onError, ...rendered };
 }
 
 afterEach(cleanup);
@@ -1867,7 +1867,7 @@ describe("TrainingSessionLibraryPanel", () => {
       throw new Error(`Unexpected command: ${command}`);
     });
 
-    renderPanel(vi.fn(), {
+    const rendered = renderPanel(vi.fn(), {
       initialDate: "2026-08-18",
       initialSessionRef: newest.sessionRef,
       navigationRequestId: 7,
@@ -1886,6 +1886,25 @@ describe("TrainingSessionLibraryPanel", () => {
       "save_training_discovery_workspace",
       { workspace: expect.objectContaining({ openSessionRef: newest.sessionRef }) },
     ));
+
+    within(detail).getByRole("button", { name: "Back to session results" }).focus();
+    rendered.rerender(
+      <TrainingSessionLibraryPanel
+        locale="en-US"
+        messages={catalogs["en-US"]}
+        refreshToken={0}
+        initialDate="2026-08-18"
+        initialSessionRef={newest.sessionRef}
+        navigationRequestId={7}
+        createReportFocusRequestId={1}
+        onAvailableRange={vi.fn()}
+        onCreateReport={vi.fn()}
+        onError={vi.fn()}
+      />,
+    );
+    await waitFor(() => expect(within(detail).getByRole("button", {
+      name: "Build a report from this session",
+    })).toHaveFocus());
   });
 
   it("switches chronology and calendar, selects comparisons, and returns to the exact calendar origin", async () => {

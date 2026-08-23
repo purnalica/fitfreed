@@ -23,6 +23,9 @@ The report workspace has three explicit locations. **Library** contains saved re
 **Compose** contains the ordered editor, and **Preview** shows the resolved saved output. Temporarily moving
 between available locations preserves the current draft. A successful save opens Preview; use **Edit
 composition** or **Compose** to continue editing, and return to Library to choose another saved report.
+Stage navigation deliberately preserves a draft. Use **Cancel composition** when the draft must be discarded:
+a new report returns to the session or comparison that started it, or to Library when it began there, and
+creates nothing.
 
 Each Library card leads with a recognizable current result rather than implementation metadata. Depending
 on its subject, it shows the recorded sport and date or the comparison periods, one human-scale metric, the
@@ -73,7 +76,8 @@ inspect the saved revision and change the definition.
 Edit the title, optional commentary, applicable heart-rate choice, route selection, endpoint protection, analytical
 views, periods, measurements, or block order and select **Save changes**. FitFreed reruns the shared
 comparison before saving. Concurrent edits are rejected instead of overwriting a newer revision. Import and
-reimport never rewrite authored report rows.
+reimport never rewrite authored report rows. Select **Cancel composition** to discard every unsaved edit,
+restore the exact reviewed definition, and return to its result without writing a new revision.
 
 To remove a saved report, open it in Preview and select **Delete report**. The confirmation replaces Preview,
 names the exact report, and offers an explicit cancel action. Confirming removes only the reviewed report

@@ -1995,6 +1995,7 @@
     "saving": "Saving…",
     "save": "Save changes",
     "create": "Save report",
+    "cancelComposition": "Cancel composition",
     "reviewExport": "Review and export",
     "editComposition": "Edit composition",
     "saved": "Report saved in your local library.",

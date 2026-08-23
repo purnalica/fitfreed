@@ -212,7 +212,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R6 | Complete locally — R6.1 through R6.5 passed exact packaged, adaptive visual, and dense-route gates on 2026-08-22; R8.4 subsequently removed unproven route-signal alignment | A routed workout is investigated through a dominant local map without invented relationships |
 | X5-R7 | Complete locally — R7.1 through R7.6 passed the exact fast, functional, restart, adaptive, accessibility, visual, and performance gates on 2026-08-22 | Every session composition reflects its actual evidence |
 | X5-R8 | Complete locally — R8.1 through R8.6 passed the final Alpha gate on 2026-08-23 | Personal ranges and reusable criteria work end to end |
-| X5-R9 | In progress — domain and lifecycle audit active | Reports open as results and leave FitFreed safely |
+| X5-R9 | Complete locally — all six slices passed fast, packaged, restart, accessibility, visual, migration, and performance gates on 2026-08-23 | Reports open as results and leave FitFreed safely |
 | X5-R10 | Pending | The complete release-shaped product is coherent and documented |
 | X6 | Pending | Independent audit has no unresolved material finding |
 
@@ -1628,7 +1628,7 @@ format, user report lifecycle, privacy and export, deletion/recovery, test fixtu
 **Alpha evidence:** report hierarchy and composition receive a focused review; findings may refine the
 Alpha interaction without changing its durable identity or export guarantees implicitly.
 
-### R9 execution audit and slices — active
+### R9 execution audit and slices — complete
 
 The existing vertical already owns saved-definition resolution, a Preview workspace independent from
 Compose, stale-evidence review, contextual source return, per-export privacy reduction, deterministic
@@ -1691,6 +1691,29 @@ The exact packaged functional journey passed with independent inspection of expo
 the prior destination after cancellation. One initial performance campaign recorded a single longitudinal
 outlier; no production or measurement file on that causal path had changed, and the unchanged isolated scenario
 then passed every accepted budget. Slice 6 is next.
+
+Slice 6 and R9 are complete locally. The final audit found and closed one lifecycle omission: changing report
+locations preserved a draft as intended, but there was no explicit way to cancel it. **Cancel composition** now
+restores the exact reviewed definition and Preview for a saved report, returns an unsaved contextual start to
+its exact session or comparison, or returns a Library-owned start to Library; every path restores a meaningful
+focus target and performs no report write. Component tests activate saved and new cancellation from the
+keyboard. Cross-workspace focus requests now deliberately override a control left active in the workspace being
+hidden, for both session and comparison return paths.
+
+The bounded benchmark now owns a full 24-report Library page, including reused comparison evidence, and a
+complete maximum-route HTML export through application authorization, deterministic rendering, private staging,
+synchronization, and atomic replacement. Their p95 measurements remain below the accepted 500-millisecond and
+2-second budgets. Migration evidence covers every declared schema through version 27, including lossless report
+migration, and separate packaged processes restore report definitions and the complete user state.
+
+The final complete fast gate passed 156 tooling tests, 328 React tests, two vendored-updater tests, 224 desktop-
+host tests, 199 application tests, 48 domain tests, and two private-example tests. Strict Rust formatting and
+Clippy also pass. The rebuilt packaged application passed the 4-minute-31.4-second functional journey, the
+separate process-restart journey, both adaptive-session journeys, and the isolated two-year performance campaign
+inside every accepted budget. Axe, hierarchy, overflow, focus-return, and reveal assertions cover Library,
+Preview, evidence review, and export review across English and Spanish, light and dark appearance, ordinary
+zoom, and compact 200% zoom. Independent review accepted nine report captures after rejecting and correcting a
+sticky-navigation obstruction in the review surfaces. No material R9 finding remains open. X5-R10 is next.
 
 ## X5-R10 — Harden the complete product journey
 

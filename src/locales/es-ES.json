@@ -1995,6 +1995,7 @@
     "saving": "Guardando…",
     "save": "Guardar cambios",
     "create": "Guardar informe",
+    "cancelComposition": "Cancelar composición",
     "reviewExport": "Revisar y exportar",
     "editComposition": "Editar composición",
     "saved": "El informe se ha guardado en tu biblioteca local.",

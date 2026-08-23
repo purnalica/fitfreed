@@ -668,7 +668,9 @@ export function TrainingSessionLibraryPanel({
       || !selected
     ) return;
     handledCreateReportFocusRequest.current = createReportFocusRequestId;
-    return restoreFocusAfterReveal(createReportButtonRef.current);
+    return restoreFocusAfterReveal(createReportButtonRef.current, null, {
+      forceInitialFocus: true,
+    });
   }, [createReportFocusRequestId, selected]);
 
   useEffect(() => {
