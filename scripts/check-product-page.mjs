@@ -32,7 +32,15 @@ assert.doesNotMatch(
 );
 assert.doesNotMatch(sourceDocument.body.textContent, /!/u, "product-page copy must not manufacture excitement");
 assert.match(sourceDocument.querySelector("h1")?.textContent ?? "", /fitness history.*platform that recorded it/isu);
-assert.match(sourceDocument.querySelector(".product-direction-label")?.textContent ?? "", /Product direction.*illustrative data/isu);
+assert.match(
+  sourceDocument.querySelector(".product-demonstration-label")?.textContent ?? "",
+  /Current source experience.*illustrative data/isu,
+);
+assert.doesNotMatch(
+  sourceDocument.body.textContent,
+  /not yet the current production presentation|accepted design work.*not yet/iu,
+  "implemented presentation must not be described as a future direction",
+);
 assert.deepEqual(
   [...sourceDocument.querySelectorAll(".product-shell-navigation span")].map(({ textContent }) => textContent.trim()),
   ["Home", "History", "Reports", "Sources", "Settings"],
@@ -45,6 +53,17 @@ assert.deepEqual(
 );
 assert.ok(sourceDocument.querySelector("figure.route-evidence figcaption"));
 assert.match(sourceDocument.querySelector("figure.route-evidence figcaption")?.textContent ?? "", /recorded route.*local/isu);
+assert.match(sourceDocument.querySelector(".route-selection-summary")?.textContent ?? "", /Point.*Elapsed time.*Recorded distance.*Altitude/isu);
+assert.doesNotMatch(
+  sourceDocument.querySelector(".route-selection-summary")?.textContent ?? "",
+  /Pace|Heart rate/iu,
+  "the product illustration must not invent route-to-signal synchronization",
+);
+assert.doesNotMatch(
+  sourceDocument.querySelector('[data-i18n="status.available.items.routeTraces"]')?.textContent ?? "",
+  /synchronized/iu,
+  "the route capability claim must not imply unsupported route-to-signal synchronization",
+);
 assert.equal(sourceDocument.querySelectorAll("details[data-status]").length, 3);
 assert.ok(sourceDocument.querySelector('details[data-status="active"][open]'));
 assert.equal(

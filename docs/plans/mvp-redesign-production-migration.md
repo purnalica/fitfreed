@@ -1906,6 +1906,23 @@ all are inside their accepted budgets. The localized maximum-zoom section transi
 horizontal overflow, and place every selected region below persistent navigation. R10.2 remains open for the
 uncovered state, keyboard, assistive-technology, privacy, and remaining cross-workspace visual checks.
 
+The seventh correction slice extends the truthfulness audit to the public entrance. The product site, README,
+and canonical product-status model still described the accepted experience as a future presentation migration
+after the map-led session workbench, personal ranges, and result-first reports had entered the current source.
+The illustrative route also implied pace and heart-rate synchronization at a selected map point even though R8
+deliberately removed that unsupported relationship. The public explanation now distinguishes implemented source
+experience from release readiness, describes the remaining whole-product validation and independent audit, and
+shows only route-point evidence that the application supports. A product-page contract rejects both stale future-
+direction language and any renewed route-to-signal claim. Generated English and Spanish status surfaces remain
+owned by `docs/product-status.json`; no download or release claim has been introduced. Product-surface equality,
+localization, accessibility, publication, and composed Pages tests pass. Exact site publication and the remaining
+R10.2 evidence matrix are still pending.
+
+Rendered-page review accepts the updated English wide entrance and Spanish narrow entrance: the release boundary,
+implemented-capability label, explanatory copy, five workspace labels, and dominant route surface remain readable
+without visible clipping or truncation. These ignored synthetic captures are inspection aids, not publication
+artifacts or release evidence.
+
 ## X6 — Repeat the independent product-experience audit
 
 The audit starts from a clean first run and does not use milestone status, prototype familiarity, test

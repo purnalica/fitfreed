@@ -60,17 +60,17 @@
           </div>
           <div class="availability-note">
             <strong data-i18n="hero.availabilityTitle">No supported download yet</strong>
-            <span data-i18n="hero.availabilityBody">The macOS engineering baseline exists; the accepted experience migration is in progress.</span>
+            <span data-i18n="hero.availabilityBody">The macOS application implements the MVP experience in source; the exact release candidate has not yet passed final acceptance.</span>
           </div>
         </div>
 
-        <div class="product-direction">
-          <div class="product-direction-heading">
+        <div class="product-demonstration">
+          <div class="product-demonstration-heading">
             <div>
-              <p class="product-direction-label" data-i18n="hero.directionLabel">Product direction — illustrative data, not a screenshot</p>
-              <h2 data-i18n="hero.directionTitle">A recorded route stays connected to the session evidence around it.</h2>
+              <p class="product-demonstration-label" data-i18n="hero.demonstrationLabel">Current source experience — illustrative data, not a screenshot</p>
+              <h2 data-i18n="hero.demonstrationTitle">Explore a recorded route without sending precise location elsewhere.</h2>
             </div>
-            <p data-i18n="hero.directionStatus">Map-led synchronization is accepted design work and is not yet the current production presentation.</p>
+            <p data-i18n="hero.demonstrationStatus">The map-led workbench, exact route points, and separate signal inspection are implemented in the current source.</p>
           </div>
 
           <div class="product-window">
@@ -121,7 +121,7 @@
                       <h4 data-i18n="hero.map.title">Recorded route</h4>
                       <p data-i18n="hero.map.summary">Complete track · 2,418 ordered GPS points · no recorded gaps</p>
                     </div>
-                    <span data-i18n="hero.map.overlay">Overlay: pace</span>
+                    <span data-i18n="hero.map.overlay">Track: recorded route</span>
                   </div>
                   <div class="route-evidence-map">
                     <svg viewBox="0 0 1000 500" role="img" aria-label="Illustrative recorded route with start, finish, direction, and selected point" data-i18n-aria-label="hero.map.label">
@@ -138,12 +138,12 @@
                     </svg>
                   </div>
                   <div class="route-selection-summary">
-                    <strong data-i18n="hero.map.selectionTime">28:40 · 6.1 km</strong>
-                    <span data-i18n="hero.map.selectionPace">Pace 4:38 /km</span>
-                    <span data-i18n="hero.map.selectionHeart">Heart rate 151 bpm</span>
+                    <strong data-i18n="hero.map.selectionPoint">Point 1,209 of 2,418</strong>
+                    <span data-i18n="hero.map.selectionTime">Elapsed time 28:40</span>
+                    <span data-i18n="hero.map.selectionDistance">Recorded distance 6.1 km</span>
                     <span data-i18n="hero.map.selectionAltitude">Altitude 76 m</span>
                   </div>
-                  <figcaption data-i18n="hero.map.caption">Illustrative recorded route. Precise location stays local; exact evidence remains available separately.</figcaption>
+                  <figcaption data-i18n="hero.map.caption">Illustrative recorded route based on current source behavior. Precise location stays local; exact evidence remains available separately.</figcaption>
                 </figure>
               </div>
             </div>
@@ -155,23 +155,23 @@
         <div class="section-heading">
           <p class="eyebrow" data-i18n="product.eyebrow">What the application is for</p>
           <h2 id="product-heading" data-i18n="product.title">Find a session. Understand what was recorded. Keep the result.</h2>
-          <p data-i18n="product.intro">The source already implements the underlying capabilities. The active migration is making their order, density, and visual explanation match these tasks.</p>
+          <p data-i18n="product.intro">The current source implements these tasks. Whole-product validation and an independent experience review remain before release-candidate acceptance.</p>
         </div>
         <div class="story-grid">
           <article data-product-story="find">
-            <span class="story-state" data-i18n="product.find.state">Implemented in source</span>
+            <span class="story-state" data-i18n="product.find.state">Implemented in current source</span>
             <div class="story-number" aria-hidden="true" data-i18n-static>01</div>
             <h3 data-i18n="product.find.title">Find the part of the history that matters.</h3>
             <p data-i18n="product.find.body">Browse the complete history by sport, date, available evidence, authored label, or imprecise text. Return from detail to the same filters and position.</p>
           </article>
           <article data-product-story="understand">
-            <span class="story-state active" data-i18n="product.understand.state">Implemented evidence · presentation in progress</span>
+            <span class="story-state active" data-i18n="product.understand.state">Implemented in current source</span>
             <div class="story-number" aria-hidden="true" data-i18n-static>02</div>
             <h3 data-i18n="product.understand.title">Investigate a session without losing the evidence.</h3>
-            <p data-i18n="product.understand.body">Inspect recorded structure, route points, signals, zones, gaps, exact values, and provenance. The accepted map-led workbench is the active presentation migration.</p>
+            <p data-i18n="product.understand.body">Inspect recorded structure, route points, signals, zones, gaps, exact values, provenance, and personal ranges. Relationships appear only when the recorded evidence supports them.</p>
           </article>
           <article data-product-story="keep">
-            <span class="story-state alpha" data-i18n="product.keep.state">Implemented in source · Alpha UX</span>
+            <span class="story-state alpha" data-i18n="product.keep.state">Implemented in current source · Alpha interaction</span>
             <div class="story-number" aria-hidden="true" data-i18n-static>03</div>
             <h3 data-i18n="product.keep.title">Save and export a result, not just a screenshot.</h3>
             <p data-i18n="product.keep.body">Create a reproducible report from supported evidence, review sensitive content, and export one self-contained HTML document.</p>
@@ -242,7 +242,7 @@
       <section class="status" id="status" aria-labelledby="status-heading">
         <div class="section-heading compact">
           <p class="eyebrow" data-i18n="status.eyebrow">Project status</p>
-          <h2 id="status-heading" data-i18n="status.title">Current source, active migration, and later scope.</h2>
+          <h2 id="status-heading" data-i18n="status.title">Current source, pre-release hardening, and later scope.</h2>
           <p data-i18n="status.disclaimer">The sections below separate code that exists from accepted work in progress and later ideas. There is no supported public download yet.</p>
         </div>
         <div class="status-columns">
@@ -262,7 +262,7 @@
               <li data-i18n="status.available.items.sportClassification">User-authored sport classification and complete-history session search</li>
               <li data-i18n="status.available.items.historyDiscovery">Chronology, source-separated calendar discovery, session comparison, and restart restoration</li>
               <li data-i18n="status.available.items.sessionStructure">Recorded exercise, mixed-sport, source-lap, automatic-lap, and pause inspection</li>
-              <li data-i18n="status.available.items.routeTraces">Interactive local primary and transition route workbench with synchronized full-width measurement lanes and selected-row exact evidence</li>
+              <li data-i18n="status.available.items.routeTraces">Interactive local primary and transition route workbench with route-point selection, local map navigation, and exact route evidence</li>
               <li data-i18n="status.available.items.signalCharts">Gap-aware supported signal charts with paginated exact samples</li>
               <li data-i18n="status.available.items.recordedZones">Exact recorded heart-rate, speed, and power zones with applicable aggregates</li>
               <li data-i18n="status.available.items.personalSegments">Reusable personal segment criteria with exact locally derived session views</li>
@@ -288,12 +288,12 @@
           <details data-status="active" open>
             <summary>
               <span data-i18n="status.active.label">Work in progress</span>
-              <h3 data-i18n="status.active.title">Experience production migration</h3>
+              <h3 data-i18n="status.active.title">MVP release preparation and independent audit</h3>
             </summary>
             <div class="status-detail">
               <ul>
-              <li data-i18n="status.active.items.outdoorSessionWorkbench">Map-led outdoor session investigation with synchronized recorded evidence</li>
-              <li data-i18n="status.active.items.resultFirstReports">Result-first reports, human-scale presentation, and visible data exit</li>
+              <li data-i18n="status.active.items.wholeProductHardening">Whole-product presentation, documentation, installation, update, and recovery validation</li>
+              <li data-i18n="status.active.items.independentAudit">Independent pre-release product-experience audit</li>
               </ul>
               <a href="../docs/plans/mvp-redesign-production-migration.md" data-i18n="status.active.source">Active production migration plan →</a>
             </div>

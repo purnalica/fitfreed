@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "updated": "2026-08-22",
+  "updated": "2026-08-23",
   "statuses": [
     {
       "key": "available",
@@ -15,7 +15,7 @@
         { "key": "sportClassification", "text": "User-authored sport classification and complete-history session search" },
         { "key": "historyDiscovery", "text": "Chronology, source-separated calendar discovery, session comparison, and restart restoration" },
         { "key": "sessionStructure", "text": "Recorded exercise, mixed-sport, source-lap, automatic-lap, and pause inspection" },
-        { "key": "routeTraces", "text": "Interactive local primary and transition route workbench with synchronized full-width measurement lanes and selected-row exact evidence" },
+        { "key": "routeTraces", "text": "Interactive local primary and transition route workbench with route-point selection, local map navigation, and exact route evidence" },
         { "key": "signalCharts", "text": "Gap-aware supported signal charts with paginated exact samples" },
         { "key": "recordedZones", "text": "Exact recorded heart-rate, speed, and power zones with applicable aggregates" },
         { "key": "personalSegments", "text": "Reusable personal segment criteria with exact locally derived session views" },
@@ -43,10 +43,10 @@
     {
       "key": "active",
       "label": "Work in progress",
-      "title": "Experience production migration",
+      "title": "MVP release preparation and independent audit",
       "items": [
-        { "key": "outdoorSessionWorkbench", "text": "Map-led outdoor session investigation with synchronized recorded evidence" },
-        { "key": "resultFirstReports", "text": "Result-first reports, human-scale presentation, and visible data exit" }
+        { "key": "wholeProductHardening", "text": "Whole-product presentation, documentation, installation, update, and recovery validation" },
+        { "key": "independentAudit", "text": "Independent pre-release product-experience audit" }
       ],
       "source": {
         "label": "Active production migration plan",

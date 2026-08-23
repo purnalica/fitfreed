@@ -33,9 +33,10 @@ billboard-scale promises, manufactured urgency, promotional superlatives and cal
 suggest an unavailable release are not. Progressive disclosure keeps the full account accessible
 without turning the first viewport into either a campaign or a warning ledger.
 
-The product-direction illustration must preserve five visible workspace labels and a dominant route
-surface. It is evidence of the accepted direction, not evidence that production already matches it.
-The current migration status therefore stays next to the illustration. Header and footer lockups use
+The current-source illustration must preserve five visible workspace labels and a dominant route
+surface. It depicts only implemented capability with independently invented data; it is not a literal
+application screenshot. The release-readiness boundary therefore stays next to the illustration.
+Header and footer lockups use
 the project-owned light and dark brand variants; contrast is reviewed in a real browser rather than
 inferred from the source SVG alone.
 

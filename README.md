@@ -12,8 +12,8 @@ results outside the platform that recorded them.
 [Evaluate the current source](docs/user/development-preview.md) · [Contribute](CONTRIBUTING.md)
 
 > **No supported release is available yet.** The current source contains the tested macOS engineering
-> baseline and implemented MVP capability, while the accepted systemic experience redesign is being
-> migrated incrementally and exact-candidate acceptance remains future work. Real
+> baseline and the implemented MVP experience; whole-product hardening, the independent experience
+> audit, and exact-candidate acceptance remain in progress. Real
 > personal exports remain outside the public-evaluation boundary until an exact release candidate
 > passes its privacy, installation, update, and usability gates.
 
@@ -51,9 +51,9 @@ Compose evidence and your own words into a saved, reproducible report. Review ho
 change it, inspect sensitive location or physiological content, and export an independently useful
 artifact under your control.
 
-The underlying sports, session-evidence, navigation, and report capabilities are implemented in the
-current source. Their production presentation does not yet conform to the accepted direction; that
-migration is tracked in the [active delivery plan](docs/plans/mvp-redesign-production-migration.md).
+The sports, session-evidence, map-led route, navigation, personal-range, and result-first report
+experiences are implemented in the current source. Whole-product hardening and the independent audit
+are tracked in the [active delivery plan](docs/plans/mvp-redesign-production-migration.md).
 The evidence boundary remains explicit in the
 [experience assessment](docs/research/mvp-experience-boundary-assessment.md), while release readiness
 is governed independently by the [current ledger](docs/testing/public-release-readiness.md).
@@ -72,7 +72,7 @@ is governed independently by the [current ledger](docs/testing/public-release-re
 <li>User-authored sport classification and complete-history session search</li>
 <li>Chronology, source-separated calendar discovery, session comparison, and restart restoration</li>
 <li>Recorded exercise, mixed-sport, source-lap, automatic-lap, and pause inspection</li>
-<li>Interactive local primary and transition route workbench with synchronized full-width measurement lanes and selected-row exact evidence</li>
+<li>Interactive local primary and transition route workbench with route-point selection, local map navigation, and exact route evidence</li>
 <li>Gap-aware supported signal charts with paginated exact samples</li>
 <li>Exact recorded heart-rate, speed, and power zones with applicable aggregates</li>
 <li>Reusable personal segment criteria with exact locally derived session views</li>
@@ -96,10 +96,10 @@ is governed independently by the [current ledger](docs/testing/public-release-re
 </details>
 
 <details data-status="active" open>
-<summary><strong>Work in progress — Experience production migration</strong></summary>
+<summary><strong>Work in progress — MVP release preparation and independent audit</strong></summary>
 <ul>
-<li>Map-led outdoor session investigation with synchronized recorded evidence</li>
-<li>Result-first reports, human-scale presentation, and visible data exit</li>
+<li>Whole-product presentation, documentation, installation, update, and recovery validation</li>
+<li>Independent pre-release product-experience audit</li>
 </ul>
 <p><a href="docs/plans/mvp-redesign-production-migration.md">Active production migration plan →</a></p>
 </details>
