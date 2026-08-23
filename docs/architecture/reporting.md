@@ -75,6 +75,13 @@ Presentation renders the subject, human date or period, primary result, evidence
 as the card hierarchy. Stable references and revisions remain transport capabilities rather than visible card
 copy. Selecting a card performs complete resolution only for that report and opens Preview rather than Compose.
 
+Evidence-backed starts do not create an empty narrative block. Compose exposes one secondary **Add
+commentary** action, focuses the resulting field, and keeps the authored block in the same ordering controls
+as evidence. It allows removal only when supported evidence remains; this preserves a legacy narrative-only
+blank report until evidence is deliberately added. Submission trims commentary and omits an empty draft, so
+presentation never turns an untouched field into authorship. Successful save still resolves the exact saved
+definition and moves to Preview.
+
 ## Origin-aware navigation
 
 Report navigation has two deliberately different lifetimes. Starting a report from a mounted session or
@@ -139,6 +146,10 @@ revisions.
 The first normative output is a self-contained semantic HTML document with embedded styles and graphics, no script, and no external request. Export is local, cancellable across paginated resolution and staged output, deterministic for the same resolved input, and atomic. Failure or cancellation leaves no file that can be mistaken for a completed report.
 
 Sensitive-content review is an application decision before rendering. Review can remove physiological context allowed by the saved definition, omit each route, or increase its endpoint redaction. It cannot add excluded physiology, introduce another route, or reduce the saved location protection. Exact choices are bound to block identities before the adapter runs.
+
+The review always lists the report title and lists authored commentary only when the resolved definition has
+that block. This disclosure mirrors the generated content; a factual report cannot claim an interpretation
+that the user never supplied.
 
 Version-2 through version-4 HTML render selected route blocks as normalized local SVG shapes in definition
 order. Version-3 and version-4 analytical blocks use exact visible tables and CSS-only bars from one

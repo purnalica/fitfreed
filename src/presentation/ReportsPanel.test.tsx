@@ -122,6 +122,19 @@ function resolution(value = definition()): ResolvedSessionReport {
   };
 }
 
+function factualSessionDefinition(): ReportDefinition {
+  return {
+    ...definition(),
+    definitionVersion: 4,
+    title: "Recorded ridge evidence",
+    blocks: definition().blocks.filter((block) => block.kind !== "narrative"),
+  };
+}
+
+function factualSessionResolution(): ResolvedSessionReport {
+  return resolution(factualSessionDefinition());
+}
+
 const recordedRoute = {
   routeRef,
   kind: "primary" as const,
@@ -311,6 +324,21 @@ function questionResolution(): ResolvedReport {
     provenance: { kind: "library-snapshot" },
     sensitiveContents: [],
     limitations: [],
+  };
+}
+
+function factualQuestionDefinition(revision = "1"): ReportDefinition {
+  return {
+    ...questionDefinition(),
+    revision,
+    blocks: questionDefinition().blocks.filter((block) => block.kind !== "narrative"),
+  };
+}
+
+function factualQuestionResolution(revision = "1"): ResolvedReport {
+  return {
+    ...questionResolution(),
+    definition: factualQuestionDefinition(revision),
   };
 }
 
@@ -731,8 +759,9 @@ describe("ReportsPanel", () => {
       .toHaveAttribute("aria-current", "page");
     await user.clear(screen.getByLabelText("Report title"));
     await user.type(screen.getByLabelText("Report title"), "A preserved draft");
+    await user.click(screen.getByRole("button", { name: "Add commentary" }));
     await user.type(
-      screen.getByLabelText(/^Your interpretation/),
+      screen.getByLabelText(/^Your commentary/),
       "This remains local while the workspace changes.",
     );
 
@@ -742,7 +771,7 @@ describe("ReportsPanel", () => {
 
     await user.click(within(navigation).getByRole("button", { name: "Compose" }));
     expect(screen.getByLabelText("Report title")).toHaveValue("A preserved draft");
-    expect(screen.getByLabelText(/^Your interpretation/)).toHaveValue(
+    expect(screen.getByLabelText(/^Your commentary/)).toHaveValue(
       "This remains local while the workspace changes.",
     );
   });
@@ -789,8 +818,9 @@ describe("ReportsPanel", () => {
     const user = userEvent.setup();
 
     renderPanel();
+    await user.click(await screen.findByRole("button", { name: "Add commentary" }));
     await user.type(
-      await screen.findByLabelText(/^Your interpretation/),
+      await screen.findByLabelText(/^Your commentary/),
       "Held the intended effort on every climb.",
     );
     await user.click(screen.getByRole("button", { name: "Save report" }));
@@ -803,7 +833,7 @@ describe("ReportsPanel", () => {
     expect(editor).toHaveAttribute("aria-busy", "true");
     expect(within(editor).getByRole("button", { name: "Save report" })).toBeDisabled();
     expect(within(editor).getByRole("status")).toHaveTextContent("Saving…");
-    expect(within(editor).getByLabelText(/^Your interpretation/)).toHaveValue(
+    expect(within(editor).getByLabelText(/^Your commentary/)).toHaveValue(
       "Held the intended effort on every climb.",
     );
 
@@ -857,8 +887,9 @@ describe("ReportsPanel", () => {
     );
     expect(screen.getByLabelText("Baseline starts")).toHaveValue("2026-01-01");
     expect(screen.getAllByRole("button", { name: "Remove block" })).toHaveLength(5);
+    await user.click(screen.getByRole("button", { name: "Add commentary" }));
     await user.type(
-      screen.getByLabelText(/^Your interpretation/),
+      screen.getByLabelText(/^Your commentary/),
       "Volume rose while the recorded evidence became more complete.",
     );
     await user.click(screen.getByRole("button", { name: "Save report" }));
@@ -915,6 +946,141 @@ describe("ReportsPanel", () => {
     }));
   });
 
+  it("saves factual evidence without commentary and omits an empty commentary edit", async () => {
+    const user = userEvent.setup();
+    let revision = "1";
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage(
+        revision === "1" ? [] : [libraryItemFromDefinition(factualQuestionDefinition(revision))],
+      ));
+      if (command === "prepare_report_start") return Promise.resolve({
+        sourceSnapshotRef: snapshotRef,
+        origin: {
+          kind: "question",
+          question: "training-period-comparison",
+          questionVersion: 1,
+        },
+        suggestedQuery: comparisonQuery,
+      });
+      if (command === "create_report") {
+        return Promise.resolve(factualQuestionDefinition());
+      }
+      if (command === "update_report") {
+        revision = "2";
+        return Promise.resolve(factualQuestionDefinition(revision));
+      }
+      if (command === "resolve_report") {
+        return Promise.resolve(factualQuestionResolution(revision));
+      }
+      throw new Error(`Unexpected command: ${command} ${JSON.stringify(arguments_)}`);
+    });
+
+    renderPanel({ origin: undefined, originRequestId: 0 });
+    await user.click(await screen.findByRole("button", {
+      name: "Compare recent training periods",
+    }));
+
+    expect(screen.getByRole("heading", { name: "Compose report" })).toBeVisible();
+    expect(screen.queryByLabelText(/^Your commentary/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add commentary" })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Save report" }));
+
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith("create_report", {
+      request: {
+        title: "How has my recent training changed?",
+        locale: "en-US",
+        sourceSnapshotRef: snapshotRef,
+        origin: {
+          kind: "question",
+          question: "training-period-comparison",
+          questionVersion: 1,
+        },
+        blocks: [
+          { kind: "training-finding", query: comparisonQuery, metric: "session-count" },
+          { kind: "training-comparison", query: comparisonQuery },
+          { kind: "training-chart", query: comparisonQuery, metric: "duration" },
+          { kind: "training-exact-table", query: comparisonQuery },
+          { kind: "training-coverage", query: comparisonQuery },
+        ],
+      },
+    }));
+    const preview = await screen.findByRole("region", { name: "Report preview" });
+    expect(within(preview).queryByRole("heading", { name: "Your commentary" }))
+      .not.toBeInTheDocument();
+
+    await user.click(within(preview).getByRole("button", { name: "Review and export" }));
+    const privacyReview = screen.getByRole("region", { name: "Review the export" });
+    expect(within(privacyReview).getByText("Your report title")).toBeVisible();
+    expect(within(privacyReview).queryByText("Your optional commentary")).not.toBeInTheDocument();
+    await user.click(within(privacyReview).getByRole("button", { name: "Back to report" }));
+
+    await user.click(screen.getByRole("button", { name: "Compose" }));
+    const addCommentary = screen.getByRole("button", { name: "Add commentary" });
+    await user.click(addCommentary);
+    let commentary = screen.getByLabelText(/^Your commentary/);
+    await waitFor(() => expect(commentary).toHaveFocus());
+    await user.type(commentary, "Temporary explanation");
+    await user.click(screen.getByRole("button", { name: "Move Your commentary earlier" }));
+    await user.click(screen.getByRole("button", { name: "Remove commentary" }));
+    const restoredAddCommentary = screen.getByRole("button", { name: "Add commentary" });
+    await waitFor(() => expect(restoredAddCommentary).toHaveFocus());
+    expect(screen.queryByLabelText(/^Your commentary/)).not.toBeInTheDocument();
+
+    await user.click(restoredAddCommentary);
+    commentary = screen.getByLabelText(/^Your commentary/);
+    await waitFor(() => expect(commentary).toHaveFocus());
+    await user.type(commentary, "   ");
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith("update_report", {
+      request: {
+        reportRef,
+        expectedRevision: "1",
+        title: "How has my recent training changed?",
+        locale: "en-US",
+        blocks: factualQuestionDefinition().blocks,
+      },
+    }));
+  });
+
+  it("creates a factual session report without manufacturing authored commentary", async () => {
+    const user = userEvent.setup();
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage([]));
+      if (command === "query_training_session_routes") {
+        return Promise.resolve({ snapshotRef, sessionRef, routes: { exercises: [] } });
+      }
+      if (command === "create_report") return Promise.resolve(factualSessionDefinition());
+      if (command === "resolve_report") return Promise.resolve(factualSessionResolution());
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    renderPanel();
+    expect(await screen.findByRole("button", { name: "Add commentary" })).toBeVisible();
+    expect(screen.queryByLabelText(/^Your commentary/)).not.toBeInTheDocument();
+    await user.clear(screen.getByLabelText("Report title"));
+    await user.type(screen.getByLabelText("Report title"), "Recorded ridge evidence");
+    await user.click(screen.getByRole("button", { name: "Save report" }));
+
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith("create_report", {
+      request: {
+        title: "Recorded ridge evidence",
+        locale: "en-US",
+        sourceSnapshotRef: snapshotRef,
+        origin: { kind: "session", sessionRef },
+        blocks: [{
+          kind: "session-evidence",
+          includePhysiologicalContext: true,
+        }],
+      },
+    }));
+    const preview = await screen.findByRole("region", { name: "Report preview" });
+    expect(within(preview).getByRole("heading", { name: "Recorded ridge evidence" }))
+      .toBeVisible();
+    expect(within(preview).queryByRole("heading", { name: "Your commentary" }))
+      .not.toBeInTheDocument();
+  });
+
   it("opens an older authored report and adds evidence without changing its blank origin", async () => {
     const user = userEvent.setup();
     let revision = "1";
@@ -945,12 +1111,36 @@ describe("ReportsPanel", () => {
     expect(mocks.invoke).not.toHaveBeenCalledWith("create_report", expect.anything());
     await user.click(screen.getByRole("button", { name: "Compose" }));
     expect(screen.getByLabelText("Report title")).toHaveValue("My training notes");
-    expect(screen.getByLabelText(/^Your interpretation/)).toHaveValue(
+    expect(screen.getByLabelText(/^Your commentary/)).toHaveValue(
       "A note that starts with my own interpretation.",
     );
+    expect(screen.getByLabelText(/^Your commentary/)).toBeRequired();
+    expect(screen.queryByRole("button", { name: "Remove commentary" }))
+      .not.toBeInTheDocument();
+    expect(screen.getByText(/needs commentary until supported evidence is added/)).toBeVisible();
     expect(screen.queryByLabelText("Baseline starts")).not.toBeInTheDocument();
+    await user.clear(screen.getByLabelText(/^Your commentary/));
+    await user.type(screen.getByLabelText(/^Your commentary/), " ");
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    const legacyDefinitionError = await screen.findByRole("alert");
+    expect(legacyDefinitionError).toHaveTextContent(
+      "Add a title and keep supported evidence or commentary before saving the report.",
+    );
+    expect(screen.getByLabelText(/^Your commentary/)).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText(/^Your commentary/)).toHaveAttribute(
+      "aria-describedby",
+      expect.stringContaining("report-editor-error"),
+    );
+    expect(mocks.invoke).not.toHaveBeenCalledWith("update_report", expect.anything());
+    await user.clear(screen.getByLabelText(/^Your commentary/));
+    await user.type(
+      screen.getByLabelText(/^Your commentary/),
+      "A note that starts with my own interpretation.",
+    );
     await user.click(screen.getByRole("button", { name: "Add Key finding" }));
     expect(screen.getByLabelText("Baseline starts")).toHaveValue("2026-01-01");
+    expect(screen.getByLabelText(/^Your commentary/)).not.toBeRequired();
+    expect(screen.getByRole("button", { name: "Remove commentary" })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Save changes" }));
     await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith("update_report", {
       request: {
@@ -1117,18 +1307,17 @@ describe("ReportsPanel", () => {
     await user.clear(screen.getByLabelText("Report title"));
     await user.click(screen.getByRole("button", { name: "Save report" }));
     expect(screen.getByLabelText("Report title")).toBeInvalid();
-    expect(screen.getByLabelText(/^Your interpretation/)).toBeInvalid();
+    expect(screen.queryByLabelText(/^Your commentary/)).not.toBeInTheDocument();
     expect(mocks.invoke).not.toHaveBeenCalledWith(
       "create_report",
       expect.anything(),
     );
 
     await user.type(screen.getByLabelText("Report title"), " ");
-    await user.type(screen.getByLabelText(/^Your interpretation/), " ");
     await user.click(screen.getByRole("button", { name: "Save report" }));
     const definitionError = await screen.findByRole("alert");
     expect(definitionError).toHaveTextContent(
-      "Add a title and an interpretation before saving the report.",
+      "Add a title and keep supported evidence or commentary before saving the report.",
     );
     expect(definitionError).toHaveAttribute("id", "report-editor-error");
     expect(screen.getByLabelText("Report title")).toHaveAttribute("aria-invalid", "true");
@@ -1136,15 +1325,11 @@ describe("ReportsPanel", () => {
       "aria-describedby",
       "report-editor-error",
     );
-    expect(screen.getByLabelText(/^Your interpretation/)).toHaveAttribute("aria-invalid", "true");
-    expect(screen.getByLabelText(/^Your interpretation/)).toHaveAttribute(
-      "aria-describedby",
-      expect.stringContaining("report-editor-error"),
-    );
 
     await user.type(screen.getByLabelText("Report title"), "Ridge progression");
+    await user.click(screen.getByRole("button", { name: "Add commentary" }));
     await user.type(
-      screen.getByLabelText(/^Your interpretation/),
+      screen.getByLabelText(/^Your commentary/),
       "Held the intended effort on every climb.",
     );
     await user.click(screen.getByRole("button", { name: "Save report" }));
@@ -1181,9 +1366,9 @@ describe("ReportsPanel", () => {
     await user.click(screen.getByRole("button", { name: "Compose" }));
     await user.clear(screen.getByLabelText("Report title"));
     await user.type(screen.getByLabelText("Report title"), "Ridge progression review");
-    await user.clear(screen.getByLabelText(/^Your interpretation/));
+    await user.clear(screen.getByLabelText(/^Your commentary/));
     await user.type(
-      screen.getByLabelText(/^Your interpretation/),
+      screen.getByLabelText(/^Your commentary/),
       "Held the intended effort and finished with control.",
     );
     await user.click(screen.getByRole("button", { name: "Save changes" }));
@@ -1332,8 +1517,9 @@ describe("ReportsPanel", () => {
     await user.click(screen.getByRole("button", { name: /Move Primary route .* earlier/ }));
     await user.clear(screen.getByLabelText("Report title"));
     await user.type(screen.getByLabelText("Report title"), "Ridge progression");
+    await user.click(screen.getByRole("button", { name: "Add commentary" }));
     await user.type(
-      screen.getByLabelText(/^Your interpretation/),
+      screen.getByLabelText(/^Your commentary/),
       "Held the intended effort on every climb.",
     );
     await user.click(screen.getByRole("button", { name: "Save report" }));
@@ -1458,8 +1644,9 @@ describe("ReportsPanel", () => {
     expect(metrics[1]).toHaveValue("distance");
     await user.clear(screen.getByLabelText("Report title"));
     await user.type(screen.getByLabelText("Report title"), "Winter training comparison");
+    await user.click(screen.getByRole("button", { name: "Add commentary" }));
     await user.type(
-      screen.getByLabelText(/^Your interpretation/),
+      screen.getByLabelText(/^Your commentary/),
       "Volume increased while measurement coverage also improved.",
     );
 
@@ -1496,15 +1683,15 @@ describe("ReportsPanel", () => {
           origin: { kind: "session", sessionRef },
           blocks: [
             { kind: "session-evidence", includePhysiologicalContext: true },
-            {
-              kind: "narrative",
-              body: "Volume increased while measurement coverage also improved.",
-            },
             { kind: "training-finding", query: comparisonQuery, metric: "energy" },
             { kind: "training-comparison", query: comparisonQuery },
             { kind: "training-chart", query: comparisonQuery, metric: "distance" },
             { kind: "training-exact-table", query: comparisonQuery },
             { kind: "training-coverage", query: comparisonQuery },
+            {
+              kind: "narrative",
+              body: "Volume increased while measurement coverage also improved.",
+            },
           ],
         },
       },
@@ -1624,7 +1811,8 @@ describe("ReportsPanel", () => {
     expect(screen.getByLabelText("Inicio del periodo de referencia")).toHaveValue("2026-08-16");
     expect(screen.getByLabelText("Medición")).toHaveValue("session-count");
     expect(screen.getByText(/una única comparación versionada y compartida/)).toBeVisible();
-    await user.type(screen.getByLabelText(/^Tu interpretación/), "Una sesión sostenida y controlada.");
+    await user.click(screen.getByRole("button", { name: "Añadir comentarios" }));
+    await user.type(screen.getByLabelText(/^Tus comentarios/), "Una sesión sostenida y controlada.");
     await user.click(screen.getByRole("button", { name: "Guardar informe" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "FitFreed no ha podido guardar el informe",
@@ -1692,7 +1880,7 @@ describe("ReportsPanel", () => {
     })).toHaveFocus());
     expect(within(refreshReview).getByText(/no conserva copias históricas/)).toBeVisible();
     expect(within(refreshReview).getByText(
-      "El título, la interpretación y el idioma del informe",
+      "El título, los comentarios opcionales y el idioma del informe",
     )).toBeVisible();
     expect(within(refreshReview).getByText(
       "Las evidencias registradas y calculadas de la vista previa",
@@ -1733,7 +1921,7 @@ describe("ReportsPanel", () => {
     await user.click(screen.getByRole("button", { name: "Componer" }));
     expect(screen.getByText("Revisión 2")).toBeVisible();
     expect(screen.getByLabelText("Título del informe")).toHaveValue("Sesión sostenida");
-    expect(screen.getByLabelText(/^Tu interpretación/)).toHaveValue(
+    expect(screen.getByLabelText(/^Tus comentarios/)).toHaveValue(
       "Held the intended effort on every climb.",
     );
   });

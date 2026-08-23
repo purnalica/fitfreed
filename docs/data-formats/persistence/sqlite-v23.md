@@ -64,9 +64,9 @@ The version-23 block table preserves the version-22 analytical model:
 | `metric` | TEXT | yes | Finding and chart only: `session-count`, `training-days`, `duration`, `distance`, or `energy`. |
 
 SQLite checks reject mixed variant fields, invalid dates, reversed or excessive ranges, and invalid metric
-or question codes. Domain reconstruction additionally enforces one narrative, compatible origin and block
-families, shared analytical query parameters, unique analytical kinds, session consistency, route
-uniqueness, and global block identity.
+or question codes. Domain reconstruction additionally enforces zero or one narrative for version 4 and the
+historical single narrative for versions 1 through 3, compatible origin and block families, shared analytical
+query parameters, unique analytical kinds, session consistency, route uniqueness, and global block identity.
 
 ## Data and privacy boundary
 

@@ -11,7 +11,8 @@ a compact secondary action beside **Reload** so the first useful result stays in
 expands the same start with enough guidance to create the first report:
 
 - **Compare recent training periods** prepares two bounded adjacent periods from the current local library,
-  selects the five analytical views, and asks for your interpretation.
+  selects the five analytical views, and lets the calculated evidence stand on its own. Add commentary only
+  when your own words improve the report.
 
 Reports can also begin from a completed training-period comparison or a specific training session. These
 contextual starts retain the exact evidence that prompted the report instead of asking you to recreate it.
@@ -38,16 +39,24 @@ The fourth start is a specific training session:
 
 1. Open **Explore**, choose **Explore my training sessions**, and find a session through chronology, calendar, or the available filters.
 2. Open **Session summary** and select **Build a report from this session**. FitFreed carries the exact session and training-library snapshot into Reports; it does not copy a value from the visible page.
-3. Give the report a title and write your interpretation. This narrative is attributed to you and remains visibly separate from measurements recorded in the fitness library.
+3. Give the report a title. The selected recorded or calculated evidence is sufficient for a factual report.
+   Use **Add commentary** only when your own explanation adds useful context. Commentary is attributed to you
+   and remains visibly separate from evidence.
 4. Decide whether the saved session block may include recorded average and maximum heart rate. The choice is unavailable when the session has no such evidence.
 5. When routes are available, add any route you want to use. The initial endpoint protection removes 200 metres independently from the start and finish. A zero value removes no distance from either recorded endpoint and therefore requires an explicit choice; preview and export still use bounded normalized shapes rather than exact route samples.
 6. Under **Add an answer from your training history**, add any combination of **Key finding**, **Period comparison**, **Comparison chart**, **Exact values**, and **Coverage and missing data**. Each view can occur once.
 7. Set the baseline and comparison dates. Both periods are inclusive, may overlap, and may contain at most 366 days. Every selected analytical view uses these same periods. Choose the measurement for the finding and chart independently.
-8. Move any block up or down to define the report order. The session summary and narrative are required; route and analytical blocks can be added and removed.
-9. Select **Save report**. The action keeps that name and the editor remains visible but busy while localized progress is announced. FitFreed validates the session, routes, and analytical periods against the exact current training snapshot before storing the definition under **Saved reports**, then opens the independent Preview. It survives restart and reimport independently from the provider ZIP.
+8. Move any block up or down to define the report order. The session summary is required for a session report;
+   route, analytical, and commentary blocks can be added or removed when the remaining composition still has
+   supported evidence. An older authored-only report keeps its commentary until evidence is added.
+9. Select **Save report**. Empty commentary is omitted rather than stored as authored content. The action keeps
+   its name and the editor remains visible but busy while localized progress is announced. FitFreed validates
+   the session, routes, and analytical periods against the exact current training snapshot before storing the
+   definition under **Saved reports**, then opens the independent Preview. It survives restart and reimport
+   independently from the provider ZIP.
 
-New reports use definition version 4. Every report has exactly one plain-text narrative and may contain at
-most one of each analytical view. Session-origin reports additionally require one session-evidence block and
+New reports use definition version 4. Every report may have zero or one plain-text commentary block and may
+contain at most one of each analytical view. Session-origin reports additionally require one session-evidence block and
 may contain distinct routes. Question and exploration origins require analytical evidence. Blank reports may
 remain narrative-only or gain analytical evidence later without changing how they began. Versions 1–3 remain
 readable and become version 4 only when edited. Lap or exact-sample blocks, native
@@ -57,10 +66,10 @@ PDF, spreadsheet output, and free-form layout are not yet available.
 
 Open **Reports** from the application navigation and select a saved report in **Library**. FitFreed resolves
 only the evidence selected by its definition through the current authoritative library and opens **Preview**
-with your narrative, applicable recorded or calculated evidence, coverage limitations, and provenance. Use
+with any optional commentary, applicable recorded or calculated evidence, coverage limitations, and provenance. Use
 **Edit composition** to inspect the saved revision and change the definition.
 
-Edit the title, narrative, applicable heart-rate choice, route selection, endpoint protection, analytical
+Edit the title, optional commentary, applicable heart-rate choice, route selection, endpoint protection, analytical
 views, periods, measurements, or block order and select **Save changes**. FitFreed reruns the shared
 comparison before saving. Concurrent edits are rejected instead of overwriting a newer revision. Import and
 reimport never rewrite authored report rows.
@@ -80,7 +89,7 @@ To decide whether the report should use that candidate:
 1. Select **Review evidence refresh**.
 2. Inspect the complete candidate preview and the disclosed boundary. FitFreed does not retain historical
    canonical snapshots, so it cannot reconstruct or invent old numeric values for a before-and-after view.
-3. Verify what remains unchanged: title, interpretation, language, origin, periods, block identities and
+3. Verify what remains unchanged: title, optional commentary, language, origin, periods, block identities and
    order, selected measurements, and privacy choices.
 4. Select **Keep saved version** to make no change, or **Use this evidence revision** to confirm the exact
    candidate you reviewed.

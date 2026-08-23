@@ -96,9 +96,7 @@ fn render_report(
             | ReportBlockContent::TrainingExactTable { .. }
             | ReportBlockContent::TrainingCoverage { .. } => None,
         })
-        .ok_or_else(|| {
-            ReportExportPortError::Failure("report narrative block is unavailable".to_owned())
-        })?;
+        .unwrap_or(0);
     let mut html = String::with_capacity(8_192 + narrative_length);
     html.push_str("<!doctype html><html lang=\"");
     html.push_str(report.definition.locale().code());
@@ -1479,7 +1477,7 @@ static EN_US: Labels = Labels {
     transition_route: "Transition route",
     recorded_points: "recorded points",
     metres: "m",
-    interpretation: "My interpretation",
+    interpretation: "User commentary",
     user_authored: "User-authored text",
     training_finding: "Training finding",
     training_comparison: "Training period comparison",
@@ -1580,7 +1578,7 @@ static ES_ES: Labels = Labels {
     transition_route: "Ruta de transición",
     recorded_points: "puntos registrados",
     metres: "m",
-    interpretation: "Mi interpretación",
+    interpretation: "Comentarios de la persona usuaria",
     user_authored: "Texto escrito por el usuario",
     training_finding: "Conclusión sobre los entrenamientos",
     training_comparison: "Comparación de periodos de entrenamiento",
@@ -1940,6 +1938,10 @@ mod tests {
             assert!(html.contains("data-unit=\"m\""));
             assert!(html.contains("data-unit=\"bpm\""));
             assert!(html.contains("polar-flow-training-session@6"));
+            assert!(html.contains(match locale {
+                ReportLocale::EnUs => "User commentary",
+                ReportLocale::EsEs => "Comentarios de la persona usuaria",
+            }));
         }
     }
 
@@ -2009,11 +2011,11 @@ mod tests {
         assert!(
             html.find(">Route</h2>").expect("route section")
                 < html
-                    .find(">My interpretation</h2>")
+                    .find(">User commentary</h2>")
                     .expect("narrative section")
         );
         assert!(
-            html.find(">My interpretation</h2>")
+            html.find(">User commentary</h2>")
                 .expect("narrative section")
                 < html
                     .find(">Session evidence</h2>")
@@ -2086,6 +2088,35 @@ mod tests {
         assert!(!question.contains("Session evidence"));
         assert!(!question.contains("Polar Flow"));
         assert!(!question.contains("polar-flow-training-session"));
+    }
+
+    #[test]
+    fn renders_a_factual_question_report_without_manufacturing_authored_commentary() {
+        let mut factual = question_report();
+        let blocks = factual
+            .definition
+            .blocks()
+            .iter()
+            .filter(|block| !matches!(block.content(), ReportBlockContent::Narrative { .. }))
+            .cloned()
+            .collect();
+        factual.definition = ReportDefinition::compose_report(
+            factual.definition.report_ref(),
+            factual.definition.title(),
+            factual.definition.locale(),
+            factual.definition.source_snapshot_ref(),
+            factual.definition.origin().clone(),
+            blocks,
+        )
+        .expect("factual question report definition");
+
+        let html = render_report(&factual, &ReportExportCancellation::new())
+            .expect("factual question report");
+
+        assert!(html.contains("How has my recent training changed?"));
+        assert!(html.contains("Training finding"));
+        assert!(!html.contains("User commentary"));
+        assert!(!html.contains("class=\"narrative\""));
     }
 
     #[test]

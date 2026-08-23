@@ -17,6 +17,11 @@ version-3 block shapes. It enforces individual shapes, cardinalities, and the se
 boundary. The application additionally enforces valid date spans, shared analytical queries, origin/query
 coherence, route uniqueness, matching session references, and global block identity.
 
+A version-4 composition contains zero or one `narrative` block. Supported session or analytical evidence can
+form a complete factual report without one. A non-empty narrative remains attributed user commentary in its
+exact semantic position; an empty draft is omitted before composition rather than persisted as authorship.
+Versions 1 through 3 retain their historical requirement for exactly one narrative.
+
 ## Related boundary schemas
 
 - [`report-start-v1.schema.json`](../../../schemas/report-start-v1.schema.json) describes question,

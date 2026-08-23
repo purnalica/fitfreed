@@ -164,6 +164,16 @@ function comparisonQuery(blocks: SessionReportBlockDraft[]): ReportTrainingCompa
   return blocks.find(isAnalyticalBlock)?.query;
 }
 
+function hasSupportedEvidence(
+  origin: ReportOrigin,
+  blocks: SessionReportBlockDraft[],
+): boolean {
+  if (origin.kind === "session") {
+    return blocks.some((block) => block.kind === "session-evidence");
+  }
+  return blocks.some(isAnalyticalBlock);
+}
+
 function formatReportRange(range: TrainingDateRange, locale: Locale): string {
   const formatter = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" });
   const format = (value: string) => formatter.format(new Date(`${value}T00:00:00Z`));
@@ -298,7 +308,22 @@ export function ReportsPanel({
   const exportOutcomeOriginRef = useRef<HTMLElement>(null);
   const interruptedExportControlRef = useRef<HTMLElement>(null);
   const exportedNoticeRef = useRef<HTMLParagraphElement>(null);
+  const commentaryFieldRef = useRef<HTMLTextAreaElement>(null);
+  const addCommentaryRef = useRef<HTMLButtonElement>(null);
+  const commentaryFocusRequestRef = useRef<"field" | "add" | undefined>(undefined);
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const commentaryPresent = editor?.blocks.some((block) => block.kind === "narrative") ?? false;
+
+  useEffect(() => {
+    const target = commentaryFocusRequestRef.current;
+    if (!target) return;
+    commentaryFocusRequestRef.current = undefined;
+    return restoreFocusAfterReveal(
+      target === "field" ? commentaryFieldRef.current : addCommentaryRef.current,
+      undefined,
+      { align: "start", forceInitialFocus: true },
+    );
+  }, [commentaryPresent]);
 
   async function loadReportPage(offset: number, append: boolean) {
     if (append) setListLoadingMore(true);
@@ -354,10 +379,7 @@ export function ReportsPanel({
       if (prepared.origin.kind === "blank") {
         blocks = [{ kind: "narrative", body: "" }];
       } else if (prepared.suggestedQuery) {
-        blocks = [
-          ...analyticalDrafts(prepared.suggestedQuery),
-          { kind: "narrative", body: "" },
-        ];
+        blocks = analyticalDrafts(prepared.suggestedQuery);
       } else {
         throw new Error("invalid-report-definition");
       }
@@ -408,7 +430,6 @@ export function ReportsPanel({
               origin.session.averageHeartRateBpm !== null
               || origin.session.maximumHeartRateBpm !== null,
           },
-          { kind: "narrative", body: "" },
         ],
       });
       resetTransientReportState();
@@ -678,6 +699,26 @@ export function ReportsPanel({
       : current);
   }
 
+  function addCommentary() {
+    commentaryFocusRequestRef.current = "field";
+    setEditor((current) => {
+      if (!current || current.blocks.some((block) => block.kind === "narrative")) {
+        return current;
+      }
+      return {
+        ...current,
+        blocks: [...current.blocks, { kind: "narrative", body: "" }],
+      };
+    });
+  }
+
+  function removeCommentary(index: number) {
+    commentaryFocusRequestRef.current = "add";
+    setEditor((current) => current
+      ? { ...current, blocks: current.blocks.filter((_block, blockIndex) => blockIndex !== index) }
+      : current);
+  }
+
   function updateComparisonQuery(query: ReportTrainingComparisonQuery) {
     setEditor((current) => current
       ? {
@@ -737,10 +778,13 @@ export function ReportsPanel({
     event.preventDefault();
     if (!editor) return;
     const title = editor.title.trim();
-    const blocks = editor.blocks.map((block) => block.kind === "narrative"
-      ? { ...block, body: block.body.trim() }
-      : block);
-    if (!title || !blocks.some((block) => block.kind === "narrative" && block.body)) {
+    const blocks = editor.blocks.flatMap((block): SessionReportBlockDraft[] => {
+      if (block.kind !== "narrative") return [block];
+      const body = block.body.trim();
+      return body ? [{ ...block, body }] : [];
+    });
+    const hasCommentary = blocks.some((block) => block.kind === "narrative");
+    if (!title || (!hasSupportedEvidence(editor.origin, blocks) && !hasCommentary)) {
       setLocalError("invalid-report-definition");
       return;
     }
@@ -1448,6 +1492,9 @@ export function ReportsPanel({
   const definitionInvalid = localError === "invalid-report-definition";
   const comparisonRangeInvalid = localError === "invalid-report-comparison-range";
   const editingLocked = disabled || saving || refreshing || resolved?.status === "stale";
+  const commentaryCanBeRemoved = editor
+    ? hasSupportedEvidence(editor.origin, editor.blocks)
+    : false;
   const creating = saveOperation === "create"
     || (saveOperation === undefined && !editor?.reportRef);
   const saveActionLabel = creating ? copy.create : copy.save;
@@ -1726,6 +1773,16 @@ export function ReportsPanel({
                                 {copy.analysis.removeBlock}
                               </button>
                             )}
+                            {block.kind === "narrative" && commentaryCanBeRemoved && (
+                              <button
+                                type="button"
+                                className="secondary danger-action"
+                                onClick={() => removeCommentary(index)}
+                                disabled={editingLocked}
+                              >
+                                {copy.commentary.remove}
+                              </button>
+                            )}
                           </div>
                         </div>
                         {block.kind === "session-evidence" && (
@@ -1751,15 +1808,20 @@ export function ReportsPanel({
                           <div className="report-field">
                             <label htmlFor={`report-narrative-${index}`}>{copy.narrativeLabel}</label>
                             <textarea
+                              ref={commentaryFieldRef}
                               id={`report-narrative-${index}`}
-                              aria-invalid={(definitionInvalid && !block.body.trim()) || undefined}
-                              aria-describedby={definitionInvalid && !block.body.trim()
+                              aria-invalid={(definitionInvalid
+                                && !commentaryCanBeRemoved
+                                && !block.body.trim()) || undefined}
+                              aria-describedby={definitionInvalid
+                                && !commentaryCanBeRemoved
+                                && !block.body.trim()
                                 ? `report-narrative-help-${index} report-editor-error`
                                 : `report-narrative-help-${index}`}
                               value={block.body}
                               maxLength={10_000}
                               rows={8}
-                              required
+                              required={!commentaryCanBeRemoved}
                               disabled={editingLocked}
                               onChange={(event) => {
                                 if (definitionInvalid) setLocalError(undefined);
@@ -1769,7 +1831,11 @@ export function ReportsPanel({
                                 });
                               }}
                             />
-                            <small id={`report-narrative-help-${index}`}>{copy.narrativeHelp}</small>
+                            <small id={`report-narrative-help-${index}`}>
+                              {commentaryCanBeRemoved
+                                ? copy.narrativeHelp
+                                : copy.narrativeRequiredHelp}
+                            </small>
                           </div>
                         )}
                         {block.kind === "route" && (
@@ -1826,6 +1892,26 @@ export function ReportsPanel({
               </section>
 
               <div className="report-composer-tools">
+                {!commentaryPresent && (
+                  <section
+                    className="report-commentary-picker"
+                    aria-labelledby="report-add-commentary-heading"
+                  >
+                    <div>
+                      <h3 id="report-add-commentary-heading">{copy.commentary.heading}</h3>
+                      <p>{copy.commentary.intro}</p>
+                    </div>
+                    <button
+                      ref={addCommentaryRef}
+                      type="button"
+                      className="secondary"
+                      disabled={editingLocked}
+                      onClick={addCommentary}
+                    >
+                      {copy.commentary.add}
+                    </button>
+                  </section>
+                )}
                 {editor.sessionRef && (
                   <section className="report-route-picker" aria-labelledby="report-add-route-heading">
                     <h3 id="report-add-route-heading">{copy.addRouteHeading}</h3>
@@ -2207,7 +2293,9 @@ export function ReportsPanel({
               <ul>
                 {resolved.session && <li>{copy.sessionSummaryIncluded}</li>}
                 {resolved.trainingComparison && <li>{copy.analysisExportIncluded}</li>}
-                <li>{copy.narrativeIncluded}</li>
+                <li>{copy.titleIncluded}</li>
+                {resolved.definition.blocks.some((block) => block.kind === "narrative")
+                  && <li>{copy.narrativeIncluded}</li>}
                 <li>{copy.provenanceIncluded}</li>
                 <li>{copy.exactSamplesExcluded}</li>
               </ul>

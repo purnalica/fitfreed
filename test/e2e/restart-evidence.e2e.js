@@ -113,11 +113,7 @@ describe("packaged FitFreed application-process restart", () => {
       expect.stringContaining("Synthetic ridge progression"),
     );
     await reports[0].click();
-    await expect($(".report-preview")).toHaveText(
-      expect.stringContaining(
-        "The recorded duration decreased; the reason remains my interpretation.",
-      ),
-    );
+    expect(await $$(".report-preview .report-narrative")).toHaveLength(0);
 
     const removeAction = await $(`aria/${spanish.reports.delete.action}`);
     await removeAction.click();

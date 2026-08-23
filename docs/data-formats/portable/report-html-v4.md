@@ -8,11 +8,15 @@ active-content prohibition, privacy review, atomic replacement, and cancellation
 
 The same renderer accepts all four version-4 origins:
 
-- session reports may include reviewed session, physiology, route, analytical, and narrative sections;
-- question and exploration reports include selected analytical and narrative sections without inventing a
-  session;
-- evidence-bearing blank reports include analytical and narrative sections; and
+- session reports may include reviewed session, physiology, route, analytical, and optional commentary sections;
+- question and exploration reports include selected analytical and optional commentary sections without
+  inventing a session;
+- evidence-bearing blank reports include analytical and optional commentary sections; and
 - narrative-only blank reports include authored content without inventing imported evidence.
+
+The report title is always present. A version-4 definition with no narrative emits no authored-commentary
+section and makes no claim that the user supplied an interpretation. The export review therefore names the
+title independently and lists commentary only when that block is included.
 
 ## Provenance boundary
 

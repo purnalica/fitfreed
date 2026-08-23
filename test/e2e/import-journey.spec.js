@@ -2219,6 +2219,7 @@ describe("packaged FitFreed import journey", () => {
     const reportTitle = await $('.report-editor input[maxlength="120"]');
     await reportTitle.clearValue();
     await reportTitle.setValue("Synthetic ridge progression");
+    await $(`aria/${english.reports.commentary.add}`).click();
     await $('.report-editor textarea').setValue(
       "Held the intended effort and finished the final climb with control.",
     );
@@ -2339,6 +2340,12 @@ describe("packaged FitFreed import journey", () => {
     );
     await expect(privacyReview).toHaveText(
       expect.stringContaining(english.reports.analysisExportIncluded),
+    );
+    await expect(privacyReview).toHaveText(
+      expect.stringContaining(english.reports.titleIncluded),
+    );
+    await expect(privacyReview).toHaveText(
+      expect.stringContaining(english.reports.narrativeIncluded),
     );
     const exportHeartRate = await privacyReview.$$('input[type="checkbox"]')[0];
     await expect(exportHeartRate).toBeChecked();
@@ -3265,17 +3272,45 @@ describe("packaged FitFreed import journey", () => {
     const comparisonReportTitle = await $('.report-editor input[maxlength="120"]');
     await comparisonReportTitle.clearValue();
     await comparisonReportTitle.setValue("Synthetic comparison answer");
-    await $(".report-editor textarea").setValue(
-      "The recorded duration decreased; the reason remains my interpretation.",
+    expect(await $$(".report-editor textarea")).toHaveLength(0);
+    const addComparisonCommentary = await $(`aria/${english.reports.commentary.add}`);
+    await expect(addComparisonCommentary).toBeDisplayed();
+    await expectRevealOutsideApplicationNavigation(".report-commentary-picker");
+    const factualComposeAccessibility = await new AxeBuilder({ client: browser })
+      .setLegacyMode()
+      .include(".reports-panel")
+      .analyze();
+    expect(factualComposeAccessibility.violations).toEqual([]);
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r9-report-compose-factual-en-dark-200.png",
+    ));
+
+    await addComparisonCommentary.click();
+    const temporaryCommentary = await $(".report-editor textarea");
+    await expectElementFocus(
+      temporaryCommentary,
+      "adding optional commentary did not focus its editor",
+    );
+    await temporaryCommentary.setValue("Temporary commentary that will not be saved.");
+    const commentaryEditor = await $(".report-block-editor:has(textarea)");
+    await expect(commentaryEditor.$(".report-block-order")).toHaveText("6");
+    await commentaryEditor.$(`aria/${english.reports.moveEarlier.replace(
+      "{block}",
+      english.reports.narrativeLabel,
+    )}`).click();
+    const movedCommentaryEditor = await $(".report-block-editor:has(textarea)");
+    await expect(movedCommentaryEditor.$(".report-block-order")).toHaveText("5");
+    await movedCommentaryEditor.$(`aria/${english.reports.commentary.remove}`).click();
+    expect(await $$(".report-editor textarea")).toHaveLength(0);
+    await expectElementFocus(
+      await $(`aria/${english.reports.commentary.add}`),
+      "removing optional commentary did not restore focus to its add action",
     );
     await $('.report-editor button[type="submit"]').click();
     await waitForNotice(english.reports.saved);
     await expect($(".report-preview h3")).toHaveText("Synthetic comparison answer");
-    await expect($(".report-preview")).toHaveText(
-      expect.stringContaining(
-        "The recorded duration decreased; the reason remains my interpretation.",
-      ),
-    );
+    expect(await $$(".report-preview .report-narrative")).toHaveLength(0);
     await expect($(".report-preview")).not.toHaveText(expect.stringContaining("Polar Flow"));
     expect(await $$(".report-list > li")).toHaveLength(2);
     await $(`aria/${english.reports.backToComparison}`).click();
@@ -4097,11 +4132,7 @@ describe("packaged FitFreed import journey", () => {
     );
     await sessionRestoredReports[0].click();
     await expect($(".report-preview h3")).toHaveText("Synthetic comparison answer");
-    await expect($(".report-preview")).toHaveText(
-      expect.stringContaining(
-        "The recorded duration decreased; the reason remains my interpretation.",
-      ),
-    );
+    expect(await $$(".report-preview .report-narrative")).toHaveLength(0);
 
     await goToHome("sources");
     await selectArchive(
@@ -4170,9 +4201,18 @@ describe("packaged FitFreed import journey", () => {
     await expect($('.report-editor input[maxlength="120"]')).toHaveValue(
       "Synthetic comparison answer",
     );
-    await expect($(".report-editor textarea")).toHaveValue(
-      "The recorded duration decreased; the reason remains my interpretation.",
-    );
+    expect(await $$(".report-editor textarea")).toHaveLength(0);
+    await expect($(`aria/${spanish.reports.commentary.add}`)).toBeDisplayed();
+    await expectRevealOutsideApplicationNavigation(".report-commentary-picker");
+    const restoredFactualComposeAccessibility = await new AxeBuilder({ client: browser })
+      .setLegacyMode()
+      .include(".reports-panel")
+      .analyze();
+    expect(restoredFactualComposeAccessibility.violations).toEqual([]);
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r9-report-compose-factual-es-dark-200.png",
+    ));
     await openReportWorkspace(spanish, "preview");
 
     await $(`aria/${spanish.reports.reviewExport}`).click();
@@ -4183,6 +4223,12 @@ describe("packaged FitFreed import journey", () => {
     );
     await expect(refreshedPrivacyReview).toHaveText(
       expect.stringContaining(spanish.reports.analysisExportIncluded),
+    );
+    await expect(refreshedPrivacyReview).toHaveText(
+      expect.stringContaining(spanish.reports.titleIncluded),
+    );
+    await expect(refreshedPrivacyReview).not.toHaveText(
+      expect.stringContaining(spanish.reports.narrativeIncluded),
     );
     await saveDialogMock.mockReturnValue(refreshedReportOutput);
     await saveDialogMock.update();
@@ -4204,7 +4250,7 @@ describe("packaged FitFreed import journey", () => {
     const refreshedExport = fs.readFileSync(refreshedReportOutput, "utf8");
     expect(refreshedExport).toContain('data-fitfreed-report-version="4"');
     expect(refreshedExport).toContain("Synthetic comparison answer");
-    expect(refreshedExport).toContain(
+    expect(refreshedExport).not.toContain(
       "The recorded duration decreased; the reason remains my interpretation.",
     );
     expect(refreshedExport).not.toContain("Polar Flow");

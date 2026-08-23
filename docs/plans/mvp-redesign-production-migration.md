@@ -1666,12 +1666,21 @@ action once saved results exist. Visual falsification rejected an earlier compos
 start before saved results at 200% zoom; the corrected hierarchy keeps a useful portion of the first result in
 view.
 
-The complete fast gate passed 156 tooling tests, 323 React tests, 2 vendored-updater tests, 223 desktop-host
-tests, 199 application tests, 48 domain tests, and 2 private-example tests. Strict formatting, Clippy, the
-production build, localized contract checks, and the exact rebuilt packaged macOS journey passed. That journey
-covered English wide and Spanish dark 200% Library geometry, automated accessibility, deletion through a new
-process, adaptive session composition, and restart. The dense two-year packaged campaign remained inside every
-accepted budget. Slice 4 is next.
+Slice 4 is complete locally. Evidence-backed starts now begin without an empty authored block. Compose exposes
+deliberate optional commentary, preserves block ordering and drafts across stage changes, focuses add and remove
+transitions outside compact navigation, omits empty drafts, protects legacy authored-only reports until evidence
+exists, and resolves successful saves into Preview. Privacy review and deterministic HTML expose the title always
+and commentary only when present. Factual reports survive restart, explicit evidence refresh, source return, and
+export without manufacturing authorship. The packaged gate exposed and closed two cross-surface defects: compact
+navigation reveal lacked report scroll margins, and the HTML renderer still assumed a narrative block solely for
+buffer sizing.
+
+The updated complete fast gate passed 156 tooling tests, 325 React tests, 2 vendored-updater tests, 224
+desktop-host tests, 199 application tests, 48 domain tests, and 2 private-example tests. Strict formatting,
+Clippy, the production build, localized contract checks, and the exact rebuilt packaged macOS journey passed. That
+journey covered the main import and exploration flow, process restart, adaptive report composition, and the dense
+two-year performance campaign inside every accepted budget. English and Spanish dark-theme evidence at 200% zoom
+showed no horizontal overflow, clipped controls, or content covered by compact navigation. Slice 5 is next.
 
 ## X5-R10 — Harden the complete product journey
 

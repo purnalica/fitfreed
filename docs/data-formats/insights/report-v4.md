@@ -25,9 +25,10 @@ question receives a conservative pair of adjacent recent periods derived from th
 range. An exploration retains its exact completed query after validation. A blank page receives an
 optional suggested query so evidence can be added before or after its first narrative-only save.
 
-Question and exploration starts initially select all five analytical views and may offer an empty narrative
-draft. Session starts retain the existing session-summary workflow. Empty narrative drafts are not definitions:
-a save omits them, while non-empty authored commentary remains one ordered block.
+Question and exploration starts initially select all five analytical views. Session starts retain the existing
+session-summary workflow. Presentation offers commentary as a deliberate optional addition instead of
+manufacturing an empty authored block. Empty commentary drafts are not definitions: a save omits them, while
+non-empty authored commentary remains one ordered block.
 All starts use the same create, update, list, resolve, privacy-review, and export commands.
 
 Creation never accepts `blockRef`; update accepts an owned `blockRef` so semantic blocks retain identity.
