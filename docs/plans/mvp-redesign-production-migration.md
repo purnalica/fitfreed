@@ -1889,6 +1889,18 @@ headline now wraps before the complete `7 h 30 min` value rather than isolating 
 coverage, visual explanation, and exact-detail disclosure remain in the initial viewport. R10.2 remains open for
 the remaining adaptive-layout, state, keyboard, assistive-technology, privacy, and cross-workspace visual checks.
 
+The sixth correction slice follows a presentation failure found while reviewing the complete current screenshot
+set rather than accepting successful overflow and Axe checks as sufficient. Selecting a different section inside
+a long session detail could replace content outside the visible area; at compact 200% zoom, the retained scroll
+position left the session heading partly behind persistent navigation without revealing the newly selected
+section. Every session-detail navigation action now focuses its selected region and aligns it through the shared
+responsive reveal offset. Component tests preserve both focus and scrolling, packaged geometry rejects a selected
+section behind desktop or compact navigation, and the static presentation contract binds all six section
+destinations to the same behavior. The complete fast lane passes 159 automation, 335 React, two vendored-updater,
+224 host, 199 application, and 48 domain tests together with production build, strict Rust linting, Rust formatting,
+documentation, localization, live-presentation inventory, UI contracts, repository-content inspection, and secret
+scanning. A clean-revision packaged journey and capture review remain the next gate; R10.2 is not complete.
+
 ## X6 — Repeat the independent product-experience audit
 
 The audit starts from a clean first run and does not use milestone status, prototype familiarity, test

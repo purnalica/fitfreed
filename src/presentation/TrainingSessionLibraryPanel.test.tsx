@@ -2237,20 +2237,36 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(within(detail!).queryByRole("heading", { name: "Recorded structure" }))
       .not.toBeInTheDocument();
 
+    const rangesSection = detail!.querySelector<HTMLElement>("#training-detail-ranges");
+    expect(rangesSection).not.toBeNull();
+    rangesSection!.scrollIntoView = vi.fn();
     await user.click(within(detailNavigation).getByRole("button", {
       name: "Personal ranges",
     }));
     expect(await within(detail!).findByRole("heading", { name: "Your ranges" })).toBeVisible();
+    await waitFor(() => expect(rangesSection).toHaveFocus());
+    expect(rangesSection!.scrollIntoView).toHaveBeenCalledWith({
+      block: "start",
+      inline: "nearest",
+    });
     expect(within(detail!).getByText("No personal ranges yet.")).toBeVisible();
     expect(mocks.invoke).toHaveBeenCalledWith("query_training_session_ranges", {
       query: { sessionRef: newest.sessionRef, snapshotRef },
     });
 
+    const structureSection = detail!.querySelector<HTMLElement>("#training-detail-structure");
+    expect(structureSection).not.toBeNull();
+    structureSection!.scrollIntoView = vi.fn();
     await user.click(within(detailNavigation).getByRole("button", {
       name: "Structure and segments",
     }));
     expect(await within(detail!).findByRole("heading", { name: "Recorded structure" }))
       .toBeVisible();
+    await waitFor(() => expect(structureSection).toHaveFocus());
+    expect(structureSection!.scrollIntoView).toHaveBeenCalledWith({
+      block: "start",
+      inline: "nearest",
+    });
     const firstExercise = within(detail!).getByRole("heading", { name: "Exercise 1" })
       .closest("article");
     expect(firstExercise).not.toBeNull();

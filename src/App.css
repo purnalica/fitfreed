@@ -698,7 +698,7 @@ th:last-child, td:last-child { text-align: right; }
 .training-detail-navigation { width: 100%; margin-top: 24px; }
 .training-detail-query-status:not(:empty) { display: grid; gap: 8px; margin-top: 14px; }
 .training-detail-query-status p { margin: 0; }
-.training-detail-section { margin-top: 18px; padding: 24px; background: var(--paper); border: 1px solid var(--line); border-radius: 18px; }
+.training-detail-section { margin-top: 18px; padding: 24px; background: var(--paper); border: 1px solid var(--line); border-radius: 18px; scroll-margin-block-start: var(--shell-reveal-offset); }
 .training-detail-section > p:first-child, .training-detail-section-intro { max-width: 72ch; margin: 0 0 18px; color: var(--muted); line-height: 1.55; }
 .training-detail dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 24px; margin: 18px 0 0; }
 .training-detail dl div { display: grid; grid-template-columns: minmax(110px, auto) minmax(0, 1fr); gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); }

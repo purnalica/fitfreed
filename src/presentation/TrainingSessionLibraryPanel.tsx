@@ -317,6 +317,10 @@ export function TrainingSessionLibraryPanel({
     requestResultFocus: requestStructureFocus,
   } = useResultFocus<HTMLHeadingElement>(detailSection === "structure");
   const {
+    resultHeadingRef: detailSectionFocusRef,
+    requestResultFocus: requestDetailSectionFocus,
+  } = useResultFocus<HTMLElement>(true);
+  const {
     resultHeadingRef: zoneDetailHeadingRef,
     requestResultFocus: requestZoneDetailFocus,
   } = useResultFocus<HTMLHeadingElement>(
@@ -1035,6 +1039,14 @@ export function TrainingSessionLibraryPanel({
   function openStructureFromWorkbench(initiatingElement: HTMLButtonElement) {
     requestStructureFocus(initiatingElement);
     setDetailSection("structure");
+  }
+
+  function openDetailSection(
+    section: SessionDetailSection,
+    initiatingElement: HTMLButtonElement,
+  ) {
+    requestDetailSectionFocus(initiatingElement);
+    setDetailSection(section);
   }
 
   function openZonesFromWorkbench(
@@ -2926,7 +2938,7 @@ export function TrainingSessionLibraryPanel({
                 type="button"
                 aria-current={detailSection === section ? "page" : undefined}
                 aria-controls={`training-detail-${section}`}
-                onClick={() => setDetailSection(section)}
+                onClick={(event) => openDetailSection(section, event.currentTarget)}
               >
                 {copy.detailSections[section]}
               </button>
@@ -2934,9 +2946,11 @@ export function TrainingSessionLibraryPanel({
           </nav>
           <section
             id="training-detail-overview"
+            ref={detailSection === "overview" ? detailSectionFocusRef : undefined}
             className="training-detail-section training-detail-overview"
             aria-label={copy.detailSections.overview}
             hidden={detailSection !== "overview"}
+            tabIndex={-1}
           >
             <h3 className="sr-only">{copy.detailSections.overview}</h3>
             <p>{copy.detailOverviewIntro}</p>
@@ -2957,9 +2971,11 @@ export function TrainingSessionLibraryPanel({
           </section>
           <section
             id="training-detail-ranges"
+            ref={detailSection === "ranges" ? detailSectionFocusRef : undefined}
             className="training-detail-section"
             aria-label={copy.detailSections.ranges}
             hidden={detailSection !== "ranges"}
+            tabIndex={-1}
           >
             {page && detailStory && (
               <TrainingRangesPanel
@@ -2970,9 +2986,11 @@ export function TrainingSessionLibraryPanel({
           </section>
           <section
             id="training-detail-structure"
+            ref={detailSection === "structure" ? detailSectionFocusRef : undefined}
             className="training-detail-section training-structure"
             aria-labelledby="training-structure-heading"
             hidden={detailSection !== "structure"}
+            tabIndex={-1}
           >
             <h3
               id="training-structure-heading"
@@ -3047,9 +3065,11 @@ export function TrainingSessionLibraryPanel({
           {detailSections.includes("signals") && (
             <section
               id="training-detail-signals"
+              ref={detailSection === "signals" ? detailSectionFocusRef : undefined}
               className="training-detail-section"
               aria-label={copy.detailSections.signals}
               hidden={detailSection !== "signals"}
+              tabIndex={-1}
             >
               <h3 className="sr-only">{copy.detailSections.signals}</h3>
               <p className="training-detail-section-intro">{copy.detailSignalsIntro}</p>
@@ -3071,9 +3091,11 @@ export function TrainingSessionLibraryPanel({
           {detailSections.includes("routes") && (
             <section
               id="training-detail-routes"
+              ref={detailSection === "routes" ? detailSectionFocusRef : undefined}
               className="training-detail-section"
               aria-label={copy.detailSections.routes}
               hidden={detailSection !== "routes"}
+              tabIndex={-1}
             >
               <h3 className="sr-only">{copy.detailSections.routes}</h3>
               <p className="training-detail-section-intro">{copy.detailRoutesIntro}</p>
@@ -3090,9 +3112,11 @@ export function TrainingSessionLibraryPanel({
           )}
           <section
             id="training-detail-provenance"
+            ref={detailSection === "provenance" ? detailSectionFocusRef : undefined}
             className="training-detail-section"
             aria-label={copy.detailSections.provenance}
             hidden={detailSection !== "provenance"}
+            tabIndex={-1}
           >
             <h3 className="sr-only">{copy.detailSections.provenance}</h3>
             <p className="training-detail-section-intro">{copy.detailProvenanceIntro}</p>

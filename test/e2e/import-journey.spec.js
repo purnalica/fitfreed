@@ -709,7 +709,27 @@ async function openTrainingDetailSection(catalog, section) {
   if (!target) throw new Error(`Training detail section was not available: ${expected}`);
   await target.click();
   await expect(target).toHaveAttribute("aria-current", "page");
-  await $(`#training-detail-${section}`).waitForDisplayed({ timeout: 10_000 });
+  const revealedSection = await $(`#training-detail-${section}`);
+  await revealedSection.waitForDisplayed({ timeout: 10_000 });
+  await expect(revealedSection).toBeFocused();
+  const geometry = await browser.execute((selector) => {
+    const navigation = document.querySelector(".app-sidebar").getBoundingClientRect();
+    const revealed = document.querySelector(selector).getBoundingClientRect();
+    return {
+      compact: navigation.width >= document.documentElement.clientWidth - 1,
+      navigationBottom: navigation.bottom,
+      navigationRight: navigation.right,
+      revealedLeft: revealed.left,
+      revealedTop: revealed.top,
+      viewportHeight: document.documentElement.clientHeight,
+    };
+  }, `#training-detail-${section}`);
+  if (geometry.compact) {
+    expect(geometry.revealedTop).toBeGreaterThanOrEqual(geometry.navigationBottom - 1);
+  } else {
+    expect(geometry.revealedLeft).toBeGreaterThanOrEqual(geometry.navigationRight - 1);
+  }
+  expect(geometry.revealedTop).toBeLessThan(geometry.viewportHeight);
 }
 
 async function openDomainWorkspace(catalog, domain, workspace) {

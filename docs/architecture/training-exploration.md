@@ -272,6 +272,12 @@ compact, and 175%–200% navigation geometry, so programmatic or keyboard-driven
 evidence below the navigation instead of hiding its heading or controls. Presentation contracts and packaged
 geometry assertions cover the same token; individual route components do not carry independent fixed offsets.
 
+The session-detail navigation applies that same boundary to every Overview, Personal ranges, Structure and
+segments, Signals and zones, Routes, and Source history transition. Each selection focuses its newly revealed
+region and aligns it below persistent application navigation. The transition is presentation-owned because all
+of the sections consume the already loaded coherent session story; it issues no substitute query and changes no
+persisted exploration state merely to repair viewport position.
+
 `TrainingRouteSignalLanes` is a conditional semantic timeline, not an assumed accompaniment to a route. It can
 pair a role's bounded route and signal evidence only through `exact-recorded` application overlays that name
 the exact route-point and signal-sample relationship. The current Polar Flow mapping returns no such overlays,

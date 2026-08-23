@@ -307,7 +307,9 @@ The contract applies to wide macOS desktop and compact windows, not only a singl
 - Every visual explanation has a programmatic title, textual conclusion, units, coverage, and an
   exact tabular or structured alternative appropriate to its evidence.
 - Keyboard order follows the task hierarchy. Focus moves to the new primary heading after workspace
-  or detail navigation and returns to the invoking control when a focused task closes.
+  or detail navigation and returns to the invoking control when a focused task closes. Choosing a
+  session-detail section reveals and focuses that section below persistent application navigation;
+  changing sections must never leave the newly selected content outside the viewport.
 - Status messages use live regions without stealing focus. Errors are associated with their fields;
   disabled choices state the missing prerequisite.
 

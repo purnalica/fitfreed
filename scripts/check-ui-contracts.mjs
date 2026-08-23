@@ -286,6 +286,27 @@ requireRule(
   [/scroll-margin-block-start:\s*var\(--shell-reveal-offset\)/],
   "revealed training evidence below persistent navigation",
 );
+requireRule(
+  stylesheet,
+  ".training-detail-section",
+  [/scroll-margin-block-start:\s*var\(--shell-reveal-offset\)/],
+  "selected session sections below persistent navigation",
+);
+for (const detailNavigationContract of [
+  "requestDetailSectionFocus(initiatingElement)",
+  "onClick={(event) => openDetailSection(section, event.currentTarget)}",
+]) {
+  if (!trainingSessionLibrary.includes(detailNavigationContract)) {
+    throw new Error(`training detail navigation must reveal its selected section: ${detailNavigationContract}`);
+  }
+}
+for (const section of ["overview", "ranges", "structure", "signals", "routes", "provenance"]) {
+  if (!trainingSessionLibrary.includes(
+    `ref={detailSection === "${section}" ? detailSectionFocusRef : undefined}`,
+  )) {
+    throw new Error(`training detail navigation must focus its ${section} section`);
+  }
+}
 for (const resultFocusTarget of [
   "exactRouteHeadingRef",
   "exactSignalHeadingRef",
