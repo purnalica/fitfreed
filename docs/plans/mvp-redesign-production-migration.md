@@ -1853,6 +1853,17 @@ its accepted budget. Falsification review accepted the Sources, Settings, and tr
 after the corrected Settings initial-viewport evidence placed its heading and controls on screen. R10.2 remains
 open for the state, adaptive-layout, accessibility, privacy, and visual checks not covered by this slice.
 
+The clean state-and-language revision `db6a8c1` passes the same complete fast lane, production build, strict
+Rust linting, Rust formatting, localization parity, live-presentation inventory, UI contracts, repository-content
+gate, and secret scan. Its rebuilt package passes the 2-minute-47-second functional journey, real-process
+restart, complete and partial adaptive-session scenarios, and the isolated two-year performance campaign. The
+slowest common-interaction p95 was 74 ms, the slowest maximum-range p95 was 441 ms, and the route-workbench p95
+was 78 ms; each remains inside its accepted budget. Exact English rejection and Spanish cancellation captures
+confirm the calm state hierarchy and collapsed diagnostic details. Current session-range evidence also confirms
+human-scale zero duration, the simplified overview introduction, and useful summary content before exact values.
+R10.2 remains open for the adaptive-layout, accessibility, privacy, and remaining visual checks not covered by
+this slice.
+
 ## X6 — Repeat the independent product-experience audit
 
 The audit starts from a clean first run and does not use milestone status, prototype familiarity, test
