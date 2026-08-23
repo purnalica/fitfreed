@@ -20,7 +20,7 @@ FitFreed does not have a supported public release yet. The implemented applicati
 ### Contributing
 
 - Start with the [contributor setup](development/getting-started.md).
-- Follow the active [Milestone 3 public-release execution plan](plans/milestone-3.md) for increment boundaries and acceptance gates.
+- Follow the active [MVP redesign production migration](plans/mvp-redesign-production-migration.md) for current increment and acceptance status. The [Milestone 3 public-release plan](plans/milestone-3.md) remains the later distribution sequence.
 - Use [private release preparation](development/release-preparation.md) for clean-revision package and installation evidence.
 - Use [public macOS release](development/public-release.md) for the inactive trust boundary, protected preflight, and future publication path.
 - Use [public release operations](development/public-release-operations.md) for candidate evaluation, promotion, partial-publication recovery, withdrawal, key rotation, and incidents.
@@ -38,7 +38,8 @@ FitFreed does not have a supported public release yet. The implemented applicati
 - [Requirements](requirements.md) define confirmed scope and acceptance.
 - [Roadmap](roadmap.md) defines outcome order and milestone boundaries.
 - [UI and UX redesign plan](plans/ui-redesign.md) defines the active experience model, design method, functional-growth freeze, review artifacts, and implementation gates.
-- [MVP experience specification](design/experience-specification.md) defines the X3 review candidate for screens, interactions, navigation, states, localization, adaptation, and accessibility.
+- [MVP experience specification](design/experience-specification.md) defines the accepted production contract for screens, interactions, navigation, states, localization, adaptation, and accessibility.
+- [MVP redesign production migration](plans/mvp-redesign-production-migration.md) is the canonical implementation and evidence status for that contract.
 - [Public product status](product-status.json) is the canonical available, active, and later capability snapshot rendered into the README and product page.
 - [Implemented Milestone 2 plan](plans/milestone-2.md) defines the MVP capability sequence and evidence.
 - [Active Milestone 3 plan](plans/milestone-3.md) defines the public macOS distribution sequence and evidence.

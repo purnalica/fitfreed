@@ -1691,7 +1691,7 @@ describe("TrainingSessionLibraryPanel", () => {
     renderPanel();
 
     const region = await screen.findByRole("region", { name: "Find a training session" });
-    await user.click(within(region).getByRole("radio", { name: "Calendar" }));
+    await user.click(await within(region).findByRole("radio", { name: "Calendar" }));
     expect(await within(region).findByRole("heading", { name: "August 2026" })).toBeVisible();
     const refinements = within(region).getByRole("group", { name: "Refine sessions" });
     await user.click(within(refinements).getByText("Refine sessions"));
@@ -2116,7 +2116,7 @@ describe("TrainingSessionLibraryPanel", () => {
     });
   });
 
-  it("filters real fields, paginates a stable snapshot, and opens and closes exact summary detail", async () => {
+  it("filters real fields against a stable snapshot", async () => {
     mocks.invoke.mockImplementation((command, arguments_) => {
       const workspaceResult = emptyWorkspaceCommand(command, arguments_);
       if (workspaceResult) return workspaceResult;
@@ -2185,9 +2185,27 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(filteredSummary).toHaveTextContent("1 session");
     expect(filteredSummary).toHaveTextContent("1 training day");
     expect(filteredSummary).toHaveTextContent("1 h");
+    expect(onError).toHaveBeenCalledWith(undefined);
+  });
+
+  it("paginates a stable snapshot and opens and closes exact summary detail", async () => {
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+      if (workspaceResult) return workspaceResult;
+      if (command === "query_training_sports") return Promise.resolve(sports);
+      if (command === "query_training_sessions") {
+        const request = arguments_.request as TrainingSessionSearchRequest;
+        if (request.offset === 25) return Promise.resolve(page([oldest], 25, 26, null));
+        return Promise.resolve(page([newest, second], 0, 26, 25));
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    const { onError } = renderPanel();
+    const region = await screen.findByRole("region", { name: "Find a training session" });
 
     const detailOrigin = within(region).getByRole("button", {
-      name: /View session details for/,
+      name: "View session details for Aug 18, 2026, 7:30 AM",
     });
     await user.click(detailOrigin);
     const detail = within(region).getByRole("heading", { name: "Session summary" })

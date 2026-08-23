@@ -7,7 +7,10 @@ function documentationPaths(releaseVersion) {
     readme: "README.md",
     storage: "docs/architecture/storage.md",
     releaseDelivery: "docs/architecture/release-delivery.md",
+    experienceSpecification: "docs/design/experience-specification.md",
     upgradeMatrix: "docs/data-formats/release/upgrade-matrix-v1.md",
+    redesignPlan: "docs/plans/ui-redesign.md",
+    roadmap: "docs/roadmap.md",
     developmentPreview: "docs/user/development-preview.md",
     publicGuide: `docs/user/public-macos-${releaseVersion}.md`,
     readiness: "docs/testing/public-release-readiness.md",
@@ -115,7 +118,32 @@ export function validateCurrentDocumentation({
     "development preview still presents completed E4 work as open",
   );
 
+  rejectPattern(
+    errors,
+    sources[paths.experienceSpecification],
+    /does not describe the current production presentation/i,
+    "experience specification still disclaims production implementation",
+  );
+  rejectPattern(
+    errors,
+    sources[paths.redesignPlan],
+    /X4 derives[^.]*before X5 changes (?:the )?(?:ordinary )?production/i,
+    "redesign plan still presents X5 implementation as future",
+  );
+  rejectPattern(
+    errors,
+    sources[paths.roadmap],
+    /X5 is migrating the public entrance and ordinary application/i,
+    "roadmap still presents the implemented X5 increments as future",
+  );
+
   const readiness = sources[paths.readiness];
+  rejectPattern(
+    errors,
+    readiness,
+    /PX-01 and PX-02 still require correction/i,
+    "readiness ledger still reports the pre-migration audit state",
+  );
   rejectPattern(
     errors,
     readiness,

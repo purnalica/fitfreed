@@ -1931,19 +1931,45 @@ and retains a direct archive-selection action. The focused component suite passe
 and failed outcome cases. This is regression coverage of existing production behavior, not a new failure path or a
 substitute for final packaged failure evaluation.
 
+The [hosted quality run for `6561148`](https://github.com/purnalica/fitfreed/actions/runs/32643545150)
+then exposed a five-second timeout in a History presentation test. History investigation found that the test had
+accumulated filtering, summary, exact session detail, personal ranges, source structure, route and signal evidence,
+zones, provenance, focus return, and pagination across successive increments. The section-reveal assertions added
+by `c783def` moved this already monolithic scenario just beyond the hosted per-test limit; increasing that limit or
+removing an assertion would preserve the cause. Filtering and stable-snapshot detail are now separate behavioral
+scenarios, with every prior assertion retained and the detail scenario selecting its intended session explicitly.
+Its longest scenario takes approximately 1.2 seconds locally. The same full-suite run also revealed that the empty
+calendar recovery scenario waited only for the permanently mounted library shell before requesting an asynchronously
+loaded view control. It now waits for that observable control boundary. The focused scenarios and all 337 React tests
+pass locally without retries, disabled validation, or a larger timeout. Hosted evidence for the corrected revision
+remains required before this correction is accepted.
+
+The current-document audit found that the accepted experience specification still disclaimed production
+implementation, the redesign plan and roadmap still described X5 delivery as future work, the contributor
+index pointed first to the paused release sequence, and the public-readiness ledger still reported the audit
+state that preceded the systemic replacement. Their canonical status now distinguishes implemented R1–R9
+capability, active R10 hardening, pending X6 acceptance, and unavailable public distribution. The ledger also
+records the observed remote boundary rather than the obsolete setup plan: verified Actions-backed HTTPS Pages
+is live, while the protected macOS release environment, independent release reviewer, immutable-release
+setting, production trust, and candidate authority remain open. The automated current-document checker now
+covers eleven canonical sources and rejects a regression to any of the three superseded redesign states.
+Current user journeys, training and reporting architecture, data-format contracts, localization guidance,
+support boundaries, and conditional release procedures agree with that status; closed plans, ADRs, and
+historical audits retain their original evidence.
+
 #### R10.2 evidence matrix
 
 | Concern | Current evidence | Remaining gate |
 |---|---|---|
 | Public purpose and truthfulness | Generated README and bilingual site now match current implemented capability; exact Pages and repository-safety workflows pass for `6561148`. | Reopen only if later R10 corrections change a public claim. |
-| Terminology, hierarchy, dates, units, precision, icons, visuals, and disclosure | Seven correction slices, complete live-surface inventory, 336 React tests, static contracts, exact `c783def` package, and reviewed cross-workspace synthetic captures. | X6 must challenge the result without implementation context. |
+| Terminology, hierarchy, dates, units, precision, icons, visuals, and disclosure | Seven correction slices, complete live-surface inventory, 337 React tests, static contracts, exact `c783def` package, and reviewed cross-workspace synthetic captures. | X6 must challenge the result without implementation context. |
 | Empty, active, completed, repeated, cumulative, rejected, cancelled, failed, partial, stale, and recovery states | Packaged journeys cover first run, active import, success, repeat, extension, rejection, cancellation, partial sessions, stale reports and ranges, and update recovery; focused presentation tests protect recoverable import failure. | Repeat installation, update, recovery, and removal against the final exact executable fingerprint. |
 | Navigation, return, restart, and focus | Packaged process restart, workspace restoration, contextual return, cancellation return, review reveal, and all six session-section focus and geometry contracts pass. | Complete the all-controls manual keyboard traversal on the exact candidate. |
 | Responsive layout, locale, appearance, zoom, contrast, and reduced motion | English/light and Spanish/dark matrices cover wide, compact, 100%, 175%, and 200% presentation; the exact package rejects page overflow, obstruction, and result-measurement splits. Static and component contracts protect reduced motion. | Repeat scaling, contrast, and reduced-motion observation during candidate manual evaluation. |
 | Assistive technology | Packaged Axe runs cover Sources, session detail and ranges, every answer canvas, Reports Library, Compose, Preview, refresh, and export review; semantic alternatives and focus are asserted. | Manual VoiceOver in English and Spanish remains an explicit human candidate gate. |
 | Privacy and data exit | Exact packaged export review proves per-export physiology omission, endpoint reduction, no latitude, longitude, script, or network reference, atomic cancellation, and self-contained HTML; repository and secret scans pass. | Apply the privacy-safe manual protocol to the exact candidate without retaining personal evidence. |
 | Performance and lifecycle | `c783def` passes functional, real-process restart, adaptive-session, and two-year performance campaigns inside every accepted budget. | Run the complete install, update, migration, forced-recovery, removal, bundle, memory, and hosted campaign once for the final executable fingerprint. |
-| User, contributor, architecture, format, translation, testing, support, and readiness documentation | README, product site, canonical product status, session-navigation architecture, experience specification, and testing strategy reflect the current implementation. | Audit and update the remaining version-matched current documents and readiness ledger before closing R10. |
+| User, contributor, architecture, format, translation, testing, support, and readiness documentation | The current-document audit aligns the accepted specification, redesign plan, roadmap, contributor index, readiness ledger, current user journeys, thematic architecture, data-contract index, localization, support, and conditional release guidance. Eleven canonical sources now have automated stale-status checks. | Replace pending hosted evidence with the coherent correction result and carry any later R10 or X6 finding into its canonical owner. |
 
 ## X6 — Repeat the independent product-experience audit
 

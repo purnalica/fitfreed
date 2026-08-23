@@ -2,10 +2,12 @@
 
 ## Status and authority
 
-**Accepted X3 contract as of 2026-08-21.** This document is the single source of truth for the
-screen, interaction, navigation, state, responsive, localization, and accessibility contract of the
-systemic MVP experience redesign. It does not describe the current production presentation and does
-not authorize claims that missing application contracts already exist.
+**Accepted X3 contract as of 2026-08-21; implemented through X5-R9.** This document is the single
+source of truth for the screen, interaction, navigation, state, responsive, localization, and
+accessibility contract of the systemic MVP experience redesign. The production application now
+implements its R1 through R9 vertical slices. The whole-product R10 hardening and renewed X6
+independent acceptance remain in progress, so implementation does not by itself authorize a release
+claim or a claim that a conditional evidence relationship exists.
 
 The [requirements](../requirements.md#product-experience-contract) own normative product behavior.
 The [redesign plan](../plans/ui-redesign.md) owns rationale, journeys, feasibility analysis, and
@@ -320,7 +322,7 @@ and own unsaved drafts until a command is invoked. It must not join repositories
 conclusions, classify provider evidence, calculate report staleness, mutate imported samples, or
 pretend persistence by retaining a mounted component.
 
-Production migration therefore requires these lower-layer changes before their dependent UI:
+The production migration introduced these lower-layer contracts before their dependent UI:
 
 1. a bounded Home result or recognizable-fallback read model;
 2. an application-owned composed session-story read model over existing attributed queries;
@@ -339,14 +341,15 @@ Existing sport classification, user segmentation, source evidence, report resolu
 refresh, privacy authorization, and deterministic HTML export contracts remain authoritative. The
 production UI must consume them through their application ports rather than reproducing their rules.
 
-The current application contracts already expose exact route points with coordinates, altitude, and
+The application contracts expose exact route points with coordinates, altitude, and
 optional elapsed time, plus separate elapsed signal series for heart rate, speed, distance, altitude,
 cadence, temperature, and power. The canonical sport model also provides a provider-neutral water
 sport family suitable for an authored paddling label. These are necessary evidence, but separate route
-and signal queries are not a presentation join contract. The composed session-story read model must
-align only explicitly compatible recorded evidence revisions and elapsed timestamps, retain gaps, and project the
-sport-specific labels and units before the production interface offers synchronized tracking. No
-component may correlate repository results independently.
+and signal queries are not a presentation join contract. The current production composition therefore
+keeps route traversal and regular signal inspection independent. A future composed session-story read
+model may align only explicitly compatible recorded evidence revisions and elapsed timestamps, retain
+gaps, and project the sport-specific labels and units before the interface offers synchronized
+tracking. No component may correlate repository results independently.
 
 ## X3 acceptance evidence
 
@@ -374,5 +377,7 @@ integrity contracts are accepted, while their interaction hierarchy, density, an
 open to substantial revision. Compact navigation always retains a visible text label beside every
 workspace icon; tooltips or accessible names alone do not satisfy the contract.
 
-X4 derives production vertical increments from this accepted version; screenshots or prototype code
-never become a parallel implementation source.
+X4 derived production vertical increments from this accepted version. X5-R1 through X5-R9 now
+implement those increments in the production application; X5-R10 audits the complete result before
+X6 repeats independent experience acceptance. Screenshots and prototype code never become a parallel
+implementation source.

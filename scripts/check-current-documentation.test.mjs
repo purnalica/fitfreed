@@ -22,7 +22,42 @@ test("accepts current documentation derived from the release compatibility sourc
       releaseVersion: "0.1.0",
       currentLibrarySchemaVersion: 27,
       supportedLibrarySchemaVersions: Array.from({ length: 27 }, (_, index) => index + 1),
-      checkedDocuments: 8,
+      checkedDocuments: 11,
+    },
+  );
+});
+
+test("rejects pre-migration status across current experience documents", () => {
+  const candidate = structuredClone(loadCurrentDocumentation(repositoryRoot));
+  candidate.sources["docs/design/experience-specification.md"] = replaceRequired(
+    candidate.sources["docs/design/experience-specification.md"],
+    "The production application now\nimplements its R1 through R9 vertical slices.",
+    "It does not describe the current production presentation.",
+  );
+  candidate.sources["docs/plans/ui-redesign.md"] = replaceRequired(
+    candidate.sources["docs/plans/ui-redesign.md"],
+    "X5-R1 through X5-R9 are implemented in production",
+    "X4 derives the incremental production migration before X5 changes production",
+  );
+  candidate.sources["docs/roadmap.md"] = replaceRequired(
+    candidate.sources["docs/roadmap.md"],
+    "X5-R1 through X5-R9 are implemented in the ordinary application",
+    "X5 is migrating the public entrance and ordinary application",
+  );
+  candidate.sources["docs/testing/public-release-readiness.md"] = replaceRequired(
+    candidate.sources["docs/testing/public-release-readiness.md"],
+    "X5-R1 through X5-R9 implement the accepted replacement experience",
+    "PX-01 and PX-02 still require correction",
+  );
+
+  assert.throws(
+    () => validateCurrentDocumentation(candidate),
+    (error) => {
+      assert.match(error.message, /experience specification still disclaims production/);
+      assert.match(error.message, /redesign plan still presents X5 implementation as future/);
+      assert.match(error.message, /roadmap still presents the implemented X5 increments as future/);
+      assert.match(error.message, /readiness ledger still reports the pre-migration audit state/);
+      return true;
     },
   );
 });
@@ -41,7 +76,7 @@ test("rejects stale storage, report, and release-readiness claims together", () 
   );
   candidate.sources["docs/testing/public-release-readiness.md"] = replaceRequired(
     candidate.sources["docs/testing/public-release-readiness.md"],
-    "E1 through E5 implement the Home, discovery, deep-session, sport-classification, report, refresh, and source-navigation behavior",
+    "X5-R1 through X5-R9 implement the accepted replacement experience",
     "The accepted E1–E6 experience scope is not implemented",
   );
 
