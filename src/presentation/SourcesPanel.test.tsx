@@ -411,7 +411,7 @@ describe("SourcesPanel", () => {
     );
 
     const activeImport = screen.getByRole("region", {
-      name: "Importing and reconciling…",
+      name: "Importing into your local library…",
     });
     expect(activeImport).toHaveAttribute("aria-busy", "true");
     expect(screen.queryByRole("button", { name: "Import selected package" }))
@@ -445,7 +445,7 @@ describe("SourcesPanel", () => {
     );
     expect(screen.getByRole("button", { name: "Cancel import" })).toBeDisabled();
     expect(within(screen.getByRole("region", {
-      name: "Importing and reconciling…",
+      name: "Importing into your local library…",
     })).getByRole("status")).toHaveTextContent("Cancelling…");
 
     view.rerender(

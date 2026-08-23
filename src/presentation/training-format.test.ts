@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  formatDuration,
   formatSessionCardDate,
   formatSessionCardDateTime,
   formatSessionCardDistance,
   formatSessionCardDuration,
   formatSessionCardTime,
+  formatTrainingDateTime,
 } from "./training-format";
 
 const units = {
@@ -16,6 +18,26 @@ const units = {
 };
 
 describe("human-scale training-session formatting", () => {
+  it("shows only recorded clock precision in detailed date-time labels", () => {
+    expect(formatTrainingDateTime("2026-08-18T07:30:00", "en-US")).toBe(
+      "Aug 18, 2026, 7:30 AM",
+    );
+    expect(formatTrainingDateTime("2026-08-18T07:30:47", "en-US")).toBe(
+      "Aug 18, 2026, 7:30:47 AM",
+    );
+    expect(formatTrainingDateTime("2026-08-18T07:30:47.000", "en-US")).toBe(
+      "Aug 18, 2026, 7:30:47 AM",
+    );
+    expect(formatTrainingDateTime("2026-08-18T07:30:47.123", "en-US")).toBe(
+      "Aug 18, 2026, 7:30:47.123\u202fAM",
+    );
+  });
+
+  it("uses seconds as the human-scale zero for an exact elapsed duration", () => {
+    expect(formatDuration("0", "en-US", units)).toBe("0 s");
+    expect(formatDuration("1", "en-US", units)).toBe("1 ms");
+  });
+
   it("removes source precision that does not help identify an ordinary session", () => {
     const value = "2026-08-18T07:30:47.123";
 

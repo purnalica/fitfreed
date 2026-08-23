@@ -1393,7 +1393,7 @@ describe("ReportsPanel", () => {
 
     const callbacks = renderPanel();
     expect(await screen.findByLabelText("Report title")).toHaveValue(
-      "Training session · Aug 16, 2026, 8:30:00.000 AM",
+      "Training session · Aug 16, 2026, 8:30 AM",
     );
     await user.click(screen.getByRole("button", { name: "Library" }));
     expect(screen.getByText(

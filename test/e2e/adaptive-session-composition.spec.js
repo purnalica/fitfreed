@@ -491,7 +491,7 @@ describe("packaged evidence-adaptive session composition", () => {
       timeoutMsg: "recorded zone groups were not displayed",
     });
     await expect($(".training-zone-unsupported")).toHaveText(
-      expect.stringContaining("1 unsupported source zone group"),
+      expect.stringContaining("1 recorded zone group is not shown in this view"),
     );
     const zoneGroup = await $(".training-zone-group:first-of-type");
     const zoneDistribution = await zoneGroup.$(".training-zone-distribution");

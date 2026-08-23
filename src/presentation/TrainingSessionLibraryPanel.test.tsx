@@ -1880,7 +1880,7 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(detailIdentity).not.toBeNull();
     expect(within(detailIdentity!).getByTestId("sport-family-icon")).toBeVisible();
     expect(within(detailIdentity!).getByText("Trail running")).toBeVisible();
-    expect(within(detail).getAllByText("Aug 18, 2026, 7:30:00 AM")[0]).toBeVisible();
+    expect(within(detail).getAllByText("Aug 18, 2026, 7:30 AM")[0]).toBeVisible();
     expect(mocks.invoke).not.toHaveBeenCalledWith("load_training_discovery_workspace");
     await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith(
       "save_training_discovery_workspace",
@@ -2387,7 +2387,7 @@ describe("TrainingSessionLibraryPanel", () => {
     await user.click(within(signalExercise!).getByRole("button", {
       name: "Hide exact Speed samples",
     }));
-    expect(signalExercise).toHaveTextContent("1 unsupported source series was preserved as an explicit count");
+    expect(signalExercise).toHaveTextContent("1 recorded signal series is not shown in this view");
     await user.click(within(signalExercise!).getByRole("button", {
       name: "Inspect exact Heart rate samples",
     }));
@@ -2438,7 +2438,7 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(zones).toHaveTextContent("15 min");
     expect(zones).toHaveTextContent("Not recorded");
     expect(zones).toHaveTextContent(
-      "1 unsupported source zone group was preserved as an explicit count.",
+      "1 recorded zone group is not shown in this view. It remains in the original ZIP.",
     );
     expect(mocks.invoke.mock.calls.filter(
       ([command]) => command === "query_training_session_provenance",
@@ -2573,7 +2573,7 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(evidence).toHaveTextContent("1 exercise");
     expect(evidence).toHaveTextContent("1 signal series");
     expect(evidence).toHaveTextContent("2 samples without a recorded value");
-    expect(evidence).toHaveTextContent("1 unsupported source series");
+    expect(evidence).toHaveTextContent("1 recorded series not shown here");
 
     const detailNavigation = within(detail).getByRole("navigation", {
       name: "Session detail",
@@ -2779,7 +2779,7 @@ describe("TrainingSessionLibraryPanel", () => {
 
     const evidence = within(detail).getByRole("region", { name: "Session evidence" });
     expect(evidence).toHaveTextContent("4 recorded zones");
-    expect(evidence).toHaveTextContent("1 unsupported source zone group");
+    expect(evidence).toHaveTextContent("1 recorded zone group not shown here");
     const navigation = within(detail).getByRole("navigation", { name: "Session detail" });
     expect(within(navigation).getByRole("button", { name: "Signals and zones" }))
       .toBeVisible();

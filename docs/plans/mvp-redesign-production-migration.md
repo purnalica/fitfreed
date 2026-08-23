@@ -1778,6 +1778,28 @@ the isolated two-year performance scenario. Every measured interaction stayed wi
 the slowest common-interaction p95 was 37 ms, the slowest maximum-range p95 was 128 ms, and the route
 workbench p95 was 75 ms.
 
+### R10.2 whole-product presentation audit — in progress 2026-08-23
+
+The first correction slice removes implementation language from ordinary import progress, History orientation,
+and unsupported session-evidence notices. Import coverage still exposes every classified file and exact
+incorporation count on deliberate request, while its visible terminology now describes files, usable history,
+and records rather than artifacts, reconciliation, or canonical state. A limitation in a detailed signal or
+zone view now states what that view does not show and confirms that the original ZIP retains it; it is no longer
+presented as an alarm or as an internal support-status announcement.
+
+The shared training formatter now exposes only meaningful recorded clock precision. Zero seconds and zero-only
+fractional digits are omitted from session and report labels, while non-zero seconds and fractional digits remain
+visible in exact evidence. An exact zero elapsed duration is shown at a human seconds scale rather than as zero
+milliseconds; physiological interval measurements retain milliseconds because that is their meaningful unit.
+The behavior is covered directly and through the affected report, route, session, source, import, comparison,
+and localized packaged journeys rather than by deleting prior assertions.
+
+The slice passes all 330 React tests, the production build, localization parity, live-presentation inventory,
+and UI contracts. A rebuilt packaged application passed the complete functional journey, separate real-process
+restart, complete and partial adaptive-session scenarios, and the isolated two-year performance campaign. R10.2
+continues with the remaining cross-workspace hierarchy, state, adaptive-layout, accessibility, privacy, and
+visual audit; this evidence does not mark the work item complete.
+
 ## X6 — Repeat the independent product-experience audit
 
 The audit starts from a clean first run and does not use milestone status, prototype familiarity, test

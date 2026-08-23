@@ -76,7 +76,7 @@ describe("ImportOutcomePanel", () => {
     expect(within(coverage).getByRole("row", {
       name: /Training sessions Supported 9 Reason: Session summaries/,
     })).toBeVisible();
-    expect(result).toHaveTextContent("12 recognized artifacts");
+    expect(result).toHaveTextContent("12 recognized data files");
     expect(result).toHaveTextContent("2 equivalent observations");
     expect(result).toHaveTextContent("1 preserved observation");
     expect(result).toHaveTextContent("polar-flow@1");

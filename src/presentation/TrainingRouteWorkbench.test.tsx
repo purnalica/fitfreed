@@ -299,7 +299,7 @@ describe("TrainingRouteWorkbench", () => {
 
     const startHandle = screen.getByRole("slider", { name: "Range start on route" });
     const endHandle = screen.getByRole("slider", { name: "Range end on route" });
-    expect(startHandle).toHaveAttribute("aria-valuetext", "Point 1 of 3 · 0 ms");
+    expect(startHandle).toHaveAttribute("aria-valuetext", "Point 1 of 3 · 0 s");
     endHandle.focus();
     await user.keyboard("{ArrowRight}");
     expect(screen.getByLabelText("End")).toHaveValue("0:00:02");
@@ -475,7 +475,7 @@ describe("TrainingRouteWorkbench", () => {
     await screen.findByText("Point 1 of 3");
     expect(viewport.create).toHaveBeenCalledTimes(1);
     expect(map).toHaveAttribute("tabindex", "0");
-    expect(workbench).toHaveTextContent("0 ms");
+    expect(workbench).toHaveTextContent("0 s");
     expect(workbench).toHaveTextContent("5:00 min/km");
     const signalLanes = within(workbench).getByRole("region", {
       name: "Recorded measurements along the route",
@@ -486,13 +486,13 @@ describe("TrainingRouteWorkbench", () => {
     expect(paceLane).toHaveAttribute("aria-valuenow", "1");
     expect(paceLane).toHaveAttribute(
       "aria-valuetext",
-      "Point 1 of 3 · 0 ms · 5:00 min/km",
+      "Point 1 of 3 · 0 s · 5:00 min/km",
     );
     expect(paceLane.querySelectorAll("polyline")).toHaveLength(1);
     expect(paceLane.querySelectorAll(".training-route-signal-cursor")).toHaveLength(1);
 
     const position = within(workbench).getByRole("slider", { name: "Recorded position" });
-    expect(position).toHaveAttribute("aria-valuetext", "Point 1 of 3 · 0 ms");
+    expect(position).toHaveAttribute("aria-valuetext", "Point 1 of 3 · 0 s");
     position.focus();
     fireEvent.change(position, { target: { value: "1" } });
     expect(await screen.findByText("Point 2 of 3")).toBeVisible();

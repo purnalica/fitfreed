@@ -15,13 +15,16 @@ export function trainingLocalDateTime(value: string): Date {
 }
 
 export function formatTrainingDateTime(value: string, locale: string): string {
+  const time = value.match(/T\d{2}:\d{2}:(\d{2})(?:\.(\d+))?/);
+  const fractional = time?.[2];
+  const hasFractionalPrecision = fractional !== undefined && /[1-9]/.test(fractional);
+  const hasSecondPrecision = time === null || time[1] !== "00" || hasFractionalPrecision;
   const dateTime = new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
-    timeStyle: "medium",
+    timeStyle: hasSecondPrecision ? "medium" : "short",
     timeZone: "UTC",
   });
-  const fractional = value.split(".")[1];
-  if (!fractional) return dateTime.format(trainingLocalDateTime(value));
+  if (!hasFractionalPrecision) return dateTime.format(trainingLocalDateTime(value));
   const decimal = new Intl.NumberFormat(locale)
     .formatToParts(1.1)
     .find((part) => part.type === "decimal")?.value ?? ".";
@@ -110,9 +113,10 @@ export function formatDuration(
   if (hours > 0n) parts.push(`${number.format(hours)} ${units.hours}`);
   if (minutes > 0n) parts.push(`${number.format(minutes)} ${units.minutes}`);
   if (seconds > 0n) parts.push(`${number.format(seconds)} ${units.seconds}`);
-  if (milliseconds > 0n || parts.length === 0) {
+  if (milliseconds > 0n) {
     parts.push(`${number.format(milliseconds)} ${units.milliseconds}`);
   }
+  if (parts.length === 0) parts.push(`${number.format(0)} ${units.seconds}`);
   const sign = negative ? "−" : showSign && exact > 0n ? "+" : "";
   return `${sign}${parts.join(" ")}`;
 }

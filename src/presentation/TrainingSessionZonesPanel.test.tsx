@@ -92,7 +92,7 @@ describe("TrainingSessionZonesPanel", () => {
     expect(panel).toHaveTextContent("180–219 W");
     expect(panel).toHaveTextContent("42.5");
     expect(panel).toHaveTextContent(
-      "1 unsupported source zone group was preserved as an explicit count.",
+      "1 recorded zone group is not shown in this view. It remains in the original ZIP.",
     );
     expect(panel).not.toHaveTextContent("zone-");
     expect(panel).not.toHaveTextContent("exercise-");

@@ -3,15 +3,15 @@
   "choosing": "Opening ZIP chooser…",
   "import": "Import selected package",
   "noPackage": "No package selected",
-  "importing": "Importing and reconciling…",
+  "importing": "Importing into your local library…",
   "cancel": "Cancel import",
   "cancelling": "Cancelling…",
   "cancelled": "Import cancelled; no history was changed.",
   "phases": {
-    "fingerprinting": "Fingerprinting package",
-    "validating": "Validating package safety",
-    "importing": "Importing and reconciling artifacts",
-    "committing": "Publishing the complete import",
+    "fingerprinting": "Checking whether this ZIP was imported before",
+    "validating": "Checking ZIP safety",
+    "importing": "Adding supported records to your library",
+    "committing": "Finalizing the updated library",
     "completed": "Import completed",
     "cancelled": "Import cancelled"
   },
@@ -312,7 +312,7 @@
   "training": {
     "heading": "Training history",
     "workspaceEyebrow": "Your sports history",
-    "workspaceIntro": "Find an exact session, name the sports in your library, or compare two periods without flattening distinct evidence into one generic score.",
+    "workspaceIntro": "Browse your sessions, name unclassified sports, or compare two periods.",
     "workspaceNavigation": "Training workspace",
     "workspaces": {
       "sessions": "Sessions",
@@ -642,12 +642,12 @@
           "other": "{count} recorded zones"
         },
         "unsupportedSignalSeries": {
-          "one": "{count} unsupported source series",
-          "other": "{count} unsupported source series"
+          "one": "{count} recorded series not shown here",
+          "other": "{count} recorded series not shown here"
         },
         "unsupportedZoneGroups": {
-          "one": "{count} unsupported source zone group",
-          "other": "{count} unsupported source zone groups"
+          "one": "{count} recorded zone group not shown here",
+          "other": "{count} recorded zone groups not shown here"
         },
         "noDetailedEvidence": "No detailed route, signal, source-structure, or zone evidence is represented in this session."
       },
@@ -780,7 +780,7 @@
         "regionLabel": "Recorded signal workbench",
         "eyebrow": "Recorded measurement",
         "heading": "Explore recorded {metric}",
-        "introduction": "The most relevant available measurement takes the visual lead when this session has no recorded route. Source gaps remain visible.",
+        "introduction": "This session has no recorded route, so its strongest available measurement is shown first. Missing samples remain visible as gaps.",
         "visibleSignal": "Visible measurement",
         "choice": "{metric} · exercise {exercise} · {role}",
         "primaryRole": "exercise measurements",
@@ -933,8 +933,8 @@
       "signalEmpty": "The signal series contains no samples.",
       "signalNoRecordedValues": "The signal series contains samples, but none has a recorded value.",
       "unsupportedSignalSeries": {
-        "one": "{count} unsupported source series was preserved as an explicit count.",
-        "other": "{count} unsupported source series were preserved as an explicit count."
+        "one": "{count} recorded signal series is not shown in this view. It remains in the original ZIP.",
+        "other": "{count} recorded signal series are not shown in this view. They remain in the original ZIP."
       },
       "viewExactSignalSamples": "Inspect exact {kind} samples",
       "hideExactSignalSamples": "Hide exact {kind} samples",
@@ -984,8 +984,8 @@
       "zoneNotRecorded": "Not recorded",
       "zoneNotApplicable": "Not applicable",
       "unsupportedZoneGroups": {
-        "one": "{count} unsupported source zone group was preserved as an explicit count.",
-        "other": "{count} unsupported source zone groups were preserved as an explicit count."
+        "one": "{count} recorded zone group is not shown in this view. It remains in the original ZIP.",
+        "other": "{count} recorded zone groups are not shown in this view. They remain in the original ZIP."
       },
       "provenanceAction": "How did this session get here?",
       "provenanceHide": "Hide session provenance",
@@ -1606,8 +1606,8 @@
     "incorporationHeading": "Information incorporated into the library",
     "incorporationCounts": {
       "recognized": {
-        "one": "{count} recognized artifact",
-        "other": "{count} recognized artifacts"
+        "one": "{count} recognized data file",
+        "other": "{count} recognized data files"
       },
       "created": {
         "one": "{count} new observation",
@@ -1640,15 +1640,15 @@
     "historyEffect": "History effect",
     "sourceAdapterVersion": "Source reader version",
     "mappingVersion": "Library mapping version",
-    "historyChanged": "Canonical history changed",
-    "historyUnchanged": "Canonical history unchanged",
+    "historyChanged": "Usable history changed",
+    "historyUnchanged": "Usable history unchanged",
     "coverageHeading": "Package coverage",
     "artifactsClassified": {
-      "one": "artifact classified",
-      "other": "artifacts classified"
+      "one": "file classified",
+      "other": "files classified"
     },
-    "coverageComplete": "Every package artifact was classified.",
-    "coverageIncomplete": "Coverage is incomplete because processing stopped before every artifact was classified.",
+    "coverageComplete": "Every file in the ZIP was classified.",
+    "coverageIncomplete": "Coverage is incomplete because processing stopped before every file in the ZIP was classified.",
     "supported": "Supported",
     "unsupported": "Unsupported",
     "ignored": "Deliberately ignored",
@@ -1657,7 +1657,7 @@
     "familyCoverageHeading": "Coverage by data family",
     "familyColumn": "Data family",
     "classificationColumn": "Status",
-    "artifactCountColumn": "Artifacts",
+    "artifactCountColumn": "Files",
     "explanationColumn": "Explanation",
     "reasonLabel": "Reason",
     "nextActionLabel": "Next action",

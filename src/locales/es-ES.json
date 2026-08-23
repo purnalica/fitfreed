@@ -3,15 +3,15 @@
   "choosing": "Abriendo el selector de ZIP…",
   "import": "Importar el paquete seleccionado",
   "noPackage": "No hay ningún paquete seleccionado",
-  "importing": "Importando y conciliando…",
+  "importing": "Importando en tu biblioteca local…",
   "cancel": "Cancelar importación",
   "cancelling": "Cancelando…",
   "cancelled": "Importación cancelada; no se ha modificado el historial.",
   "phases": {
-    "fingerprinting": "Calculando la huella del paquete",
-    "validating": "Validando la seguridad del paquete",
-    "importing": "Importando y conciliando artefactos",
-    "committing": "Publicando la importación completa",
+    "fingerprinting": "Comprobando si este ZIP ya se había importado",
+    "validating": "Comprobando la seguridad del ZIP",
+    "importing": "Incorporando a tu biblioteca los registros compatibles",
+    "committing": "Finalizando la biblioteca actualizada",
     "completed": "Importación completada",
     "cancelled": "Importación cancelada"
   },
@@ -312,7 +312,7 @@
   "training": {
     "heading": "Historial de entrenamientos",
     "workspaceEyebrow": "Tu historial deportivo",
-    "workspaceIntro": "Encuentra una sesión exacta, pon nombre a los deportes de tu biblioteca o compara dos periodos sin reducir indicios distintos a una puntuación genérica.",
+    "workspaceIntro": "Explora tus sesiones, pon nombre a los deportes sin clasificar o compara dos periodos.",
     "workspaceNavigation": "Espacio de trabajo de entrenamiento",
     "workspaces": {
       "sessions": "Sesiones",
@@ -642,12 +642,12 @@
           "other": "{count} zonas registradas"
         },
         "unsupportedSignalSeries": {
-          "one": "{count} serie de origen no compatible",
-          "other": "{count} series de origen no compatibles"
+          "one": "{count} serie registrada no mostrada aquí",
+          "other": "{count} series registradas no mostradas aquí"
         },
         "unsupportedZoneGroups": {
-          "one": "{count} grupo de zonas de origen no compatible",
-          "other": "{count} grupos de zonas de origen no compatibles"
+          "one": "{count} grupo de zonas registrado no mostrado aquí",
+          "other": "{count} grupos de zonas registrados no mostrados aquí"
         },
         "noDetailedEvidence": "Esta sesión no contiene evidencias detalladas de rutas, señales, estructura de origen ni zonas."
       },
@@ -780,7 +780,7 @@
         "regionLabel": "Área de trabajo de señales registradas",
         "eyebrow": "Medición registrada",
         "heading": "Explorar {metric}",
-        "introduction": "La medición disponible más relevante adquiere el protagonismo visual cuando esta sesión no tiene una ruta registrada. Los huecos del origen permanecen visibles.",
+        "introduction": "Esta sesión no tiene una ruta registrada, por lo que se muestra primero su medición disponible más relevante. Las muestras ausentes permanecen visibles como huecos.",
         "visibleSignal": "Medición visible",
         "choice": "{metric} · ejercicio {exercise} · {role}",
         "primaryRole": "mediciones del ejercicio",
@@ -933,8 +933,8 @@
       "signalEmpty": "La serie de señales no contiene muestras.",
       "signalNoRecordedValues": "La serie contiene muestras, pero ninguna tiene un valor registrado.",
       "unsupportedSignalSeries": {
-        "one": "Se ha conservado {count} serie de origen no compatible como recuento explícito.",
-        "other": "Se han conservado {count} series de origen no compatibles como recuento explícito."
+        "one": "Esta vista no muestra {count} serie de señales registrada. Permanece en el ZIP original.",
+        "other": "Esta vista no muestra {count} series de señales registradas. Permanecen en el ZIP original."
       },
       "viewExactSignalSamples": "Consultar las muestras exactas de {kind}",
       "hideExactSignalSamples": "Ocultar las muestras exactas de {kind}",
@@ -984,8 +984,8 @@
       "zoneNotRecorded": "No registrado",
       "zoneNotApplicable": "No aplicable",
       "unsupportedZoneGroups": {
-        "one": "Se ha conservado {count} grupo de zonas de origen no compatible como recuento explícito.",
-        "other": "Se han conservado {count} grupos de zonas de origen no compatibles como recuento explícito."
+        "one": "Esta vista no muestra {count} grupo de zonas registrado. Permanece en el ZIP original.",
+        "other": "Esta vista no muestra {count} grupos de zonas registrados. Permanecen en el ZIP original."
       },
       "provenanceAction": "¿Cómo llegó esta sesión hasta aquí?",
       "provenanceHide": "Ocultar la procedencia de la sesión",
@@ -1606,8 +1606,8 @@
     "incorporationHeading": "Información incorporada a la biblioteca",
     "incorporationCounts": {
       "recognized": {
-        "one": "{count} artefacto reconocido",
-        "other": "{count} artefactos reconocidos"
+        "one": "{count} archivo de datos reconocido",
+        "other": "{count} archivos de datos reconocidos"
       },
       "created": {
         "one": "{count} observación nueva",
@@ -1640,15 +1640,15 @@
     "historyEffect": "Efecto sobre el historial",
     "sourceAdapterVersion": "Versión del lector del origen",
     "mappingVersion": "Versión de correspondencia de la biblioteca",
-    "historyChanged": "El historial canónico ha cambiado",
-    "historyUnchanged": "El historial canónico no ha cambiado",
+    "historyChanged": "El historial utilizable ha cambiado",
+    "historyUnchanged": "El historial utilizable no ha cambiado",
     "coverageHeading": "Cobertura del paquete",
     "artifactsClassified": {
-      "one": "artefacto clasificado",
-      "other": "artefactos clasificados"
+      "one": "archivo clasificado",
+      "other": "archivos clasificados"
     },
-    "coverageComplete": "Todos los artefactos del paquete han sido clasificados.",
-    "coverageIncomplete": "La cobertura está incompleta porque el procesamiento se detuvo antes de clasificar todos los artefactos.",
+    "coverageComplete": "Todos los archivos del ZIP han sido clasificados.",
+    "coverageIncomplete": "La cobertura está incompleta porque el procesamiento se detuvo antes de clasificar todos los archivos del ZIP.",
     "supported": "Compatibles",
     "unsupported": "No compatibles",
     "ignored": "Ignorados deliberadamente",
@@ -1657,7 +1657,7 @@
     "familyCoverageHeading": "Cobertura por familia de datos",
     "familyColumn": "Familia de datos",
     "classificationColumn": "Estado",
-    "artifactCountColumn": "Elementos",
+    "artifactCountColumn": "Archivos",
     "explanationColumn": "Explicación",
     "reasonLabel": "Motivo",
     "nextActionLabel": "Siguiente acción",

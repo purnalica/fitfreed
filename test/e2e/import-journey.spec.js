@@ -449,10 +449,22 @@ function formatLocalDate(locale, value) {
 }
 
 async function formatBrowserTrainingLocalDateTime(locale, value) {
-  return browser.execute(({ requestedLocale, localDateTime }) => new Intl.DateTimeFormat(
-    requestedLocale,
-    { dateStyle: "medium", timeStyle: "medium", timeZone: "UTC" },
-  ).format(new Date(`${localDateTime}Z`)), {
+  return browser.execute(({ requestedLocale, localDateTime }) => {
+    const recordedTime = localDateTime.match(/T\d{2}:\d{2}:(\d{2})(?:\.(\d+))?/);
+    const hasFractionalPrecision = recordedTime?.[2] !== undefined
+      && /[1-9]/.test(recordedTime[2]);
+    const hasSecondPrecision = recordedTime === null
+      || recordedTime[1] !== "00"
+      || hasFractionalPrecision;
+    return new Intl.DateTimeFormat(
+      requestedLocale,
+      {
+        dateStyle: "medium",
+        timeStyle: hasSecondPrecision ? "medium" : "short",
+        timeZone: "UTC",
+      },
+    ).format(new Date(`${localDateTime}Z`));
+  }, {
     requestedLocale: locale,
     localDateTime: value,
   });
@@ -1991,7 +2003,7 @@ describe("packaged FitFreed import journey", () => {
     await recordedSignals[1].$("button").click();
     expect(await recordedSignals[1].$$(".training-signal-exact")).toHaveLength(0);
     await expect($(".training-signal-unsupported")).toHaveText(
-      expect.stringContaining("1 unsupported source series"),
+      expect.stringContaining("1 recorded signal series is not shown in this view"),
     );
     const exactSignalToggle = await recordedSignals[0].$("button");
     await exactSignalToggle.click();
@@ -2035,7 +2047,7 @@ describe("packaged FitFreed import journey", () => {
     await expect(recordedZoneGroups[1]).toHaveText(expect.stringContaining("2,500.5 m"));
     await expect(recordedZoneGroups[2]).toHaveText(expect.stringContaining("42.5"));
     await expect($(".training-zone-unsupported")).toHaveText(
-      expect.stringContaining("1 unsupported source zone group"),
+      expect.stringContaining("1 recorded zone group is not shown in this view"),
     );
     await expect($(".training-exercise-zones")).not.toHaveText(
       expect.stringContaining("ZONE_TYPE_"),
@@ -2613,12 +2625,12 @@ describe("packaged FitFreed import journey", () => {
       ["900 ms", "Average beat-to-beat interval · 1 of 6 dates"],
     ]);
     await expectLongitudinalRows([
-      ["Jan 1, 2026", "3,100", "0 ms", "Missing", "Missing"],
-      ["Jan 2, 2026", "4,200", "0 ms", "Missing", "Missing"],
-      ["Jan 3, 2026", "Observation available; step total unavailable", "0 ms", "Missing", "Missing"],
+      ["Jan 1, 2026", "3,100", "0 s", "Missing", "Missing"],
+      ["Jan 2, 2026", "4,200", "0 s", "Missing", "Missing"],
+      ["Jan 3, 2026", "Observation available; step total unavailable", "0 s", "Missing", "Missing"],
       ["Jan 4, 2026", "No observation", "1 h", "Missing", "Missing"],
       ["Jan 5, 2026", "No observation", "30 min", "Missing", "Missing"],
-      ["Jan 6, 2026", "No observation", "0 ms", "7 h 30 min", "900 ms"],
+      ["Jan 6, 2026", "No observation", "0 s", "7 h 30 min", "900 ms"],
     ]);
     await $('button[aria-label="View aligned details for Jan 6, 2026"]').click();
     await expect($("#longitudinal-detail-heading")).toHaveText("Aligned day detail");
@@ -2627,7 +2639,7 @@ describe("packaged FitFreed import journey", () => {
       "No observation",
       "Not available",
       "0",
-      "0 ms",
+      "0 s",
       "Available",
       "7 h 30 min",
       "Available",
@@ -3160,9 +3172,9 @@ describe("packaged FitFreed import journey", () => {
       ["900 ms", "Average beat-to-beat interval · 1 of 6 dates"],
     ]);
     await expectLongitudinalRows([
-      ["Jan 1, 2026", "3,100", "0 ms", "Missing", "Missing"],
-      ["Jan 2, 2026", "4,200", "0 ms", "Missing", "Missing"],
-      ["Jan 3, 2026", "Observation available; step total unavailable", "0 ms", "Missing", "Missing"],
+      ["Jan 1, 2026", "3,100", "0 s", "Missing", "Missing"],
+      ["Jan 2, 2026", "4,200", "0 s", "Missing", "Missing"],
+      ["Jan 3, 2026", "Observation available; step total unavailable", "0 s", "Missing", "Missing"],
       ["Jan 4, 2026", "No observation", "1 h", "Missing", "Missing"],
       ["Jan 5, 2026", "5,300", "30 min", "Missing", "Missing"],
       ["Jan 6, 2026", "No observation", "45 min", "7 h 30 min", "900 ms"],
@@ -3484,8 +3496,8 @@ describe("packaged FitFreed import journey", () => {
     await expectSleepComparison([
       ["Observed nights", "1", "1", "0"],
       ["Missing nights", "0", "0", "0"],
-      ["Average time asleep", "7 h 30 min", "7 h 30 min", "0 ms"],
-      ["Average interruption time", "30 min", "30 min", "0 ms"],
+      ["Average time asleep", "7 h 30 min", "7 h 30 min", "0 s"],
+      ["Average interruption time", "30 min", "30 min", "0 s"],
       ["Average efficiency", "93.8%", "93.8%", "0 pp"],
       ["Average sleep score", "82", "82", "0"],
       ["Sleep goal met", "0%", "0%", "0 pp"],
@@ -3608,9 +3620,9 @@ describe("packaged FitFreed import journey", () => {
     ]);
     await $(".longitudinal-filter button.secondary").click();
     await expectLongitudinalRows([
-      ["Jan 1, 2026", "3,100", "0 ms", "Missing", "Missing"],
-      ["Jan 2, 2026", "4,200", "0 ms", "Missing", "Missing"],
-      ["Jan 3, 2026", "Observation available; step total unavailable", "0 ms", "Missing", "Missing"],
+      ["Jan 1, 2026", "3,100", "0 s", "Missing", "Missing"],
+      ["Jan 2, 2026", "4,200", "0 s", "Missing", "Missing"],
+      ["Jan 3, 2026", "Observation available; step total unavailable", "0 s", "Missing", "Missing"],
       ["Jan 4, 2026", "No observation", "1 h", "Missing", "Missing"],
       ["Jan 5, 2026", "5,300", "30 min", "Missing", "Missing"],
       ["Jan 6, 2026", "No observation", "45 min", "7 h 30 min", "900 ms"],
@@ -3630,8 +3642,8 @@ describe("packaged FitFreed import journey", () => {
     );
     await expectLongitudinalComparison([
       ["Total steps", "Not available", "Not available", "Not available"],
-      ["Training duration", "45 min", "45 min", "0 ms"],
-      ["Average asleep duration", "7 h 30 min", "7 h 30 min", "0 ms"],
+      ["Training duration", "45 min", "45 min", "0 s"],
+      ["Average asleep duration", "7 h 30 min", "7 h 30 min", "0 s"],
       ["Average beat-to-beat interval", "900 ms", "900 ms", "0 ms"],
     ]);
     await setLongitudinalComparisonRanges(
@@ -3756,9 +3768,9 @@ describe("packaged FitFreed import journey", () => {
       ["900 ms", `${spanish.longitudinal.averageRecovery} · 1 ${spanish.longitudinal.of} 6 ${spanish.longitudinal.days}`],
     ]);
     await expectLongitudinalRows([
-      [formatLocalDate("es-ES", "2026-01-01"), "3100", "0 ms", spanish.longitudinal.missing, spanish.longitudinal.missing],
-      [formatLocalDate("es-ES", "2026-01-02"), "4200", "0 ms", spanish.longitudinal.missing, spanish.longitudinal.missing],
-      [formatLocalDate("es-ES", "2026-01-03"), spanish.activity.unavailable, "0 ms", spanish.longitudinal.missing, spanish.longitudinal.missing],
+      [formatLocalDate("es-ES", "2026-01-01"), "3100", "0 s", spanish.longitudinal.missing, spanish.longitudinal.missing],
+      [formatLocalDate("es-ES", "2026-01-02"), "4200", "0 s", spanish.longitudinal.missing, spanish.longitudinal.missing],
+      [formatLocalDate("es-ES", "2026-01-03"), spanish.activity.unavailable, "0 s", spanish.longitudinal.missing, spanish.longitudinal.missing],
       [formatLocalDate("es-ES", "2026-01-04"), spanish.activity.missing, "1 h", spanish.longitudinal.missing, spanish.longitudinal.missing],
       [formatLocalDate("es-ES", "2026-01-05"), "5300", "30 min", spanish.longitudinal.missing, spanish.longitudinal.missing],
       [formatLocalDate("es-ES", "2026-01-06"), spanish.activity.missing, "45 min", "7 h 30 min", "900 ms"],

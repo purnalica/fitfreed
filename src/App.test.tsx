@@ -3376,7 +3376,7 @@ describe("FitFreed import interface", () => {
     await chooseArchive(user, "/synthetic/large.zip");
 
     await user.click(screen.getByRole("button", { name: "Import selected package" }));
-    expect(await screen.findByRole("progressbar", { name: "Importing and reconciling artifacts" })).toBeVisible();
+    expect(await screen.findByRole("progressbar", { name: "Adding supported records to your library" })).toBeVisible();
     expect(screen.queryByRole("button", { name: "Choose ZIP package" }))
       .not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancel import" })).toBeVisible();
@@ -3567,7 +3567,7 @@ describe("FitFreed import interface", () => {
     });
     await user.click(screen.getByRole("button", { name: "Sources" }));
     await user.click(screen.getByText("View incorporation and coverage details"));
-    expect(screen.getByText("Every package artifact was classified.")).toBeVisible();
+    expect(screen.getByText("Every file in the ZIP was classified.")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "History" }));
     expect(await screen.findByRole("heading", { name: "Daily activity overview" })).toBeVisible();
     const rows = await screen.findAllByRole("row");
