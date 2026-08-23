@@ -225,6 +225,36 @@ describe("LibraryHomePanel", () => {
     expect(onOpenSportClassification).toHaveBeenCalledWith("sport-local-unknown-b");
   });
 
+  it("uses the same concise identity when a session does not record a sport", () => {
+    const home = populatedHome();
+    const unavailableSession = {
+      ...home.training!.recentSessions[0],
+      sportRef: null,
+      sportState: "unavailable" as const,
+      canonicalFamily: null,
+      displayLabel: null,
+    };
+    render(
+      <LibraryHomePanel
+        home={{
+          ...home,
+          training: {
+            ...home.training!,
+            recentSessions: [unavailableSession],
+          },
+        }}
+        locale="en-US"
+        messages={messages}
+        onExplore={vi.fn()}
+        onOpenComparison={vi.fn()}
+        onOpenSession={vi.fn()}
+        onOpenSources={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /Open Sport not recorded/ })).toBeVisible();
+  });
+
   it("offers every evidence-backed question and opens its exact destination", async () => {
     const user = userEvent.setup();
     const onExplore = vi.fn();

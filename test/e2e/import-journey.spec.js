@@ -239,6 +239,34 @@ async function expectImportOutcomeWithinInitialViewport(expectedHeading) {
   expect(state.hasHorizontalOverflow).toBe(false);
 }
 
+async function captureR10WorkspaceEvidence(fileName, selector) {
+  const workspace = await $(selector);
+  await workspace.waitForDisplayed({ timeout: 10_000 });
+  await browser.execute(() => window.scrollTo({ top: 0, behavior: "instant" }));
+  const layout = await browser.execute((targetSelector) => {
+    const root = document.documentElement;
+    const target = document.querySelector(targetSelector).getBoundingClientRect();
+    const navigation = document.querySelector(".app-sidebar").getBoundingClientRect();
+    const compactNavigation = navigation.width >= root.clientWidth - 1;
+    return {
+      hasHorizontalOverflow: root.scrollWidth > root.clientWidth,
+      targetInsideViewportWidth: target.left >= 0 && target.right <= root.clientWidth,
+      targetBelowCompactNavigation: !compactNavigation || target.top >= navigation.bottom - 1,
+    };
+  }, selector);
+  expect(layout).toEqual({
+    hasHorizontalOverflow: false,
+    targetInsideViewportWidth: true,
+    targetBelowCompactNavigation: true,
+  });
+  const accessibility = await new AxeBuilder({ client: browser })
+    .setLegacyMode()
+    .include(selector)
+    .analyze();
+  expect(accessibility.violations).toEqual([]);
+  await browser.saveScreenshot(path.join(evidenceDirectory, fileName));
+}
+
 async function expectResultBelowCompactNavigation(selector) {
   const layout = await browser.execute((targetSelector) => {
     const root = document.documentElement;
@@ -1546,6 +1574,10 @@ describe("packaged FitFreed import journey", () => {
       ["1", "Observed days without a step total"],
       ["0", "Days with no observation"],
     ]);
+    await captureR10WorkspaceEvidence(
+      "r10-activity-en-wide.png",
+      "section[aria-labelledby='activity-heading']",
+    );
     const enJan4Start = await formatBrowserTrainingLocalDateTime(
       "en-US",
       "2026-01-04T06:15:00",
@@ -1594,6 +1626,7 @@ describe("packaged FitFreed import journey", () => {
     await goToHome("home");
     await expect($(".library-home-sports")).toHaveText(expect.stringContaining("Trail running"));
     await expect($(".library-home-recent")).toHaveText(expect.stringContaining("Trail running"));
+    await captureR10WorkspaceEvidence("r10-home-en-wide.png", ".library-home");
     await goToHome("explore");
     await openTrainingWorkspace(english, "sports");
     expect(await $$(".training-sport-list > li")).toHaveLength(2);
@@ -1619,11 +1652,10 @@ describe("packaged FitFreed import journey", () => {
       ["600 kcal", "Recorded energy · 1 of 2"],
       ["1 of 2", "Sessions with heart rate"],
     ]);
-    await browser.execute(() => window.scrollTo({ top: 0, behavior: "instant" }));
-    await browser.saveScreenshot(path.join(
-      evidenceDirectory,
+    await captureR10WorkspaceEvidence(
       "r10-training-workspace-en-wide.png",
-    ));
+      ".training-insights",
+    );
     const trainingSessionSports = await $$(".training-session-results .training-session-sport");
     expect(trainingSessionSports).toHaveLength(2);
     await expect(trainingSessionSports[1]).toHaveText("Trail running");
@@ -2656,6 +2688,7 @@ describe("packaged FitFreed import journey", () => {
       ["1 of 1 nights", "Nights with a stage timeline"],
       ["1 of 1 nights", "Nights with recording status · 0 ended after power loss"],
     ]);
+    await captureR10WorkspaceEvidence("r10-sleep-en-wide.png", ".sleep-insights");
     await openHomeQuestion(
       english,
       "review-recovery-patterns",
@@ -2674,6 +2707,7 @@ describe("packaged FitFreed import journey", () => {
       ["1 of 1 nights", "Nights with source guidance"],
       ["0", "Missing nights"],
     ]);
+    await captureR10WorkspaceEvidence("r10-recovery-en-wide.png", ".recovery-insights");
     await openHomeQuestion(
       english,
       "align-history",
@@ -2693,6 +2727,10 @@ describe("packaged FitFreed import journey", () => {
       ["Jan 5, 2026", "No observation", "30 min", "Missing", "Missing"],
       ["Jan 6, 2026", "No observation", "0 s", "7 h 30 min", "900 ms"],
     ]);
+    await captureR10WorkspaceEvidence(
+      "r10-aligned-history-en-wide.png",
+      ".longitudinal-insights",
+    );
     await $('button[aria-label="View aligned details for Jan 6, 2026"]').click();
     await expect($("#longitudinal-detail-heading")).toHaveText("Aligned day detail");
     const longitudinalDetailValues = await $$(".longitudinal-detail-grid dd");
@@ -2874,7 +2912,11 @@ describe("packaged FitFreed import journey", () => {
 
     recordJourneyPhase("localized-maximum-zoom");
     await selectLocale("es-ES");
-    await setAppearanceAndZoom("dark", 200, true);
+    await setAppearanceAndZoom("dark", 200, true, "home");
+    await captureR10WorkspaceEvidence(
+      "r10-home-es-dark-compact-200.png",
+      ".library-home",
+    );
     await goToHome("reports");
     await openReportWorkspace(spanish, "library");
     await browser.execute(() => {

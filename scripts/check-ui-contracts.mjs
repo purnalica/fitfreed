@@ -213,7 +213,7 @@ requireRule(
 );
 for (const [selector, maximum] of [
   [".sources-heading h1", "3rem"],
-  [".explorer-workspace-heading h1", "3.25rem"],
+  [".explorer-workspace-heading h1", "2.8rem"],
   [".training-workspace-heading h1", "2.8rem"],
   [".reports-hero h1", "3rem"],
   [".settings-heading h1", "3rem"],
@@ -226,6 +226,17 @@ for (const [selector, maximum] of [
     selector,
     [new RegExp(`font-size:\\s*clamp\\([^;]+,\\s*${maximum.replace(".", "\\.")}\\)`)],
     "a restrained application-workspace heading scale",
+  );
+}
+for (const selector of [
+  ".library-home-sports li > div strong",
+  ".library-home-recent-identity > strong",
+]) {
+  requireRule(
+    stylesheet,
+    selector,
+    [/white-space:\s*normal/, /overflow-wrap:\s*anywhere/],
+    "fully readable recorded and user-authored sport names",
   );
 }
 requireRule(

@@ -107,7 +107,7 @@
     },
     "sportUnknown": "Deporte sin clasificar",
     "sportUnknownIndexed": "Deporte sin clasificar {index}",
-    "sportUnavailable": "Deporte no disponible en el origen",
+    "sportUnavailable": "Deporte no registrado",
     "classifySport": "Poner nombre a este deporte",
     "classifySportAccessible": "Poner nombre a {sport}",
     "sportSessions": {

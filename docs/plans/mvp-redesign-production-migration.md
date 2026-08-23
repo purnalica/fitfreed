@@ -1864,6 +1864,17 @@ human-scale zero duration, the simplified overview introduction, and useful summ
 R10.2 remains open for the adaptive-layout, accessibility, privacy, and remaining visual checks not covered by
 this slice.
 
+The fifth correction slice applies the same restrained task-workspace hierarchy to activity, sleep, recovery,
+and aligned-history exploration that already governs training, Sources, Reports, and Settings. Home no longer
+truncates recorded or user-authored sport identities: names wrap at ordinary widths as well as enlarged content
+zoom, and a session whose source records no sport uses the same concise identity as History. The packaged
+journey now captures all six principal populated workspaces plus Spanish dark Home at compact navigation and
+200% content zoom. Each capture boundary rejects horizontal overflow, content hidden beneath compact navigation,
+and Axe violations before retaining visual evidence. The complete fast lane passes 159 automation, 333 React,
+two vendored-updater, 224 host, 199 application, and 48 domain tests; the production build, strict Rust linting,
+Rust formatting, documentation, localization, live-presentation inventory, and UI contracts also pass. Exact
+packaged evidence remains the next gate, so R10.2 is still open.
+
 ## X6 — Repeat the independent product-experience audit
 
 The audit starts from a clean first run and does not use milestone status, prototype familiarity, test
