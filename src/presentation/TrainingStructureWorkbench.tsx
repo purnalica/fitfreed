@@ -3,7 +3,14 @@ import { useEffect, useMemo, useState } from "react";
 import { type catalogs, type Locale } from "../locales/catalogs";
 import type { SessionStory, SessionStoryExercise } from "./session-story";
 import { SportFamilyIcon } from "./SportFamilyIcon";
+import { parseElapsedEditorValue } from "./training-range-editor-model";
 import { formatDistance, formatDuration } from "./training-format";
+import { TrainingRangeEvidenceEditor } from "./TrainingRangeEvidenceEditor";
+import {
+  type TrainingRangeEvidenceEntry,
+  TrainingRangeEvidencePicker,
+} from "./TrainingRangeEvidencePicker";
+import { useOptionalTrainingRangeInteraction } from "./TrainingRangeInteractionProvider";
 import type { TrainingLapStructure } from "./training-session-detail";
 
 interface TrainingStructureWorkbenchProps {
@@ -34,6 +41,7 @@ export function TrainingStructureWorkbench({
   exerciseLabel,
   onOpenStructure,
 }: TrainingStructureWorkbenchProps) {
+  const rangeInteraction = useOptionalTrainingRangeInteraction();
   const exercises = useMemo(
     () => story.exercises.filter((exercise) => exercise.structure !== null),
     [story],
@@ -81,6 +89,48 @@ export function TrainingStructureWorkbench({
     duration,
   });
   const totalDuration = BigInt(structure.durationMilliseconds);
+  const exerciseCoordinate = { scope: "exercise-elapsed" as const };
+  const rangeEntries: TrainingRangeEvidenceEntry[] = totalDuration > 0n ? [{
+    key: "exercise",
+    label: copy.completeExercise,
+    startedAtElapsedMilliseconds: "0",
+    endedAtElapsedMilliseconds: structure.durationMilliseconds,
+  }, ...manualLaps.map((lap) => ({
+    key: `source-lap-${lap.ordinal}`,
+    label: interpolate(copy.sourceLapChoice, { number: number.format(lap.ordinal + 1) }),
+    startedAtElapsedMilliseconds: lap.splitTimeMilliseconds,
+    endedAtElapsedMilliseconds: (
+      BigInt(lap.splitTimeMilliseconds) + BigInt(lap.durationMilliseconds)
+    ).toString(),
+  })), ...automaticLaps.map((lap) => ({
+    key: `automatic-lap-${lap.ordinal}`,
+    label: interpolate(copy.automaticLapChoice, { number: number.format(lap.ordinal + 1) }),
+    startedAtElapsedMilliseconds: lap.splitTimeMilliseconds,
+    endedAtElapsedMilliseconds: (
+      BigInt(lap.splitTimeMilliseconds) + BigInt(lap.durationMilliseconds)
+    ).toString(),
+  }))].filter((entry) => (
+    BigInt(entry.startedAtElapsedMilliseconds) >= 0n
+    && BigInt(entry.startedAtElapsedMilliseconds) < BigInt(entry.endedAtElapsedMilliseconds)
+    && BigInt(entry.endedAtElapsedMilliseconds) <= totalDuration
+  )) : [];
+  const structureEditor = rangeInteraction?.editor?.exerciseRef === exercise.exerciseRef
+    && rangeInteraction.editor.coordinate?.scope === "exercise-elapsed"
+    ? rangeInteraction.editor
+    : undefined;
+  const selectedStructureRange = rangeInteraction?.selectedRange?.exerciseRef === exercise.exerciseRef
+    && rangeInteraction.selectedRange.coordinate.scope === "exercise-elapsed"
+    ? rangeInteraction.selectedRange
+    : undefined;
+  const rangeStartedAt = structureEditor
+    ? parseElapsedEditorValue(structureEditor.startedAt)
+    : selectedStructureRange?.startedAtElapsedMilliseconds;
+  const rangeEndedAt = structureEditor
+    ? parseElapsedEditorValue(structureEditor.endedAt)
+    : selectedStructureRange?.endedAtElapsedMilliseconds;
+  const visiblePersonalRange = rangeStartedAt !== undefined && rangeEndedAt !== undefined
+    && BigInt(rangeStartedAt) >= 0n && BigInt(rangeStartedAt) < BigInt(rangeEndedAt)
+    && BigInt(rangeEndedAt) <= totalDuration;
 
   function timelineRow(
     label: string,
@@ -126,7 +176,11 @@ export function TrainingStructureWorkbench({
         {exercises.length > 1 && (
           <label>
             <span>{copy.visibleExercise}</span>
-            <select value={exercise.exerciseRef} onChange={(event) => setExerciseRef(event.target.value)}>
+            <select
+              value={exercise.exerciseRef}
+              disabled={rangeInteraction?.editor !== undefined}
+              onChange={(event) => setExerciseRef(event.target.value)}
+            >
               {exercises.map((candidate) => <option
                 key={candidate.exerciseRef}
                 value={candidate.exerciseRef}
@@ -159,11 +213,32 @@ export function TrainingStructureWorkbench({
           <span>{copy.exerciseDuration}</span>
           <span className="training-structure-workbench-track training-structure-workbench-duration">
             <i />
+            {visiblePersonalRange && (
+              <i
+                className="training-structure-personal-range"
+                style={{
+                  left: `${percentage(BigInt(rangeStartedAt), totalDuration)}%`,
+                  width: `${percentage(BigInt(rangeEndedAt), totalDuration)
+                    - percentage(BigInt(rangeStartedAt), totalDuration)}%`,
+                }}
+              />
+            )}
           </span>
         </div>
         {timelineRow(sessionCopy.manualLaps, "source", manualLaps)}
         {timelineRow(sessionCopy.automaticLaps, "automatic", automaticLaps)}
       </div>
+      <TrainingRangeEvidencePicker
+        surface="structure"
+        exerciseRef={exercise.exerciseRef}
+        coordinate={exerciseCoordinate}
+        entries={rangeEntries}
+        selectionLabel={copy.rangeSelection}
+        meaning={copy.rangeMeaning}
+        locale={locale}
+        messages={messages}
+      />
+      <TrainingRangeEvidenceEditor surface="structure" messages={messages} />
       <div role="group" aria-label={copy.measurements}>
         <dl>
           <div><dt>{messages.training.duration}</dt><dd>{duration}</dd></div>

@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production persists provider-neutral session summaries, mapped exercise/lap/pause structure, primary and transition routes with exact points, supported exercise and transition signals with exact samples, supported recorded zones with exact aggregates, user-authored sport classifications, session-owned personal ranges, reusable segment criteria, and a disposable discovery workspace. Full-history search, chronology, calendar projection, comparison selection, restart restoration, structural detail, bounded local route traces, exact route pagination, gap-aware bounded signal charts, exact signal pagination, recorded-zone inspection, personal-range lifecycle, summary, and route-map manipulation, user-authored segmentation, and on-demand session provenance are implemented. Direct range manipulation across independent signal views, source structure, and exact evidence remains active MVP work. E4 is complete in the [MVP experience delivery plan](../plans/mvp-experience-delivery.md); the [public-release readiness ledger](../testing/public-release-readiness.md) owns current exact-source acceptance evidence.
+Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-attributed-evidence.md). Production persists provider-neutral session summaries, mapped exercise/lap/pause structure, primary and transition routes with exact points, supported exercise and transition signals with exact samples, supported recorded zones with exact aggregates, user-authored sport classifications, session-owned personal ranges, reusable segment criteria, and a disposable discovery workspace. Full-history search, chronology, calendar projection, comparison selection, restart restoration, structural detail, bounded local route traces, exact route pagination, gap-aware bounded signal charts, exact signal pagination, recorded-zone inspection, personal-range lifecycle, summary, route-map and independent-signal manipulation, source-structure and exact-evidence range entry, user-authored segmentation, and on-demand session provenance are implemented. Final personal-range Alpha integration remains active MVP work. E4 is complete in the [MVP experience delivery plan](../plans/mvp-experience-delivery.md); the [public-release readiness ledger](../testing/public-release-readiness.md) owns current exact-source acceptance evidence.
 
 ## Ownership
 
@@ -395,9 +395,19 @@ keeps approximately three quarters of the wide workspace and stacks above its in
 high content zoom. The exact-sample action retains the selected source ordinal and focuses its containing table
 row. While either representation owns the active draft, its evidence and saved-range selectors remain locked so
 the single editor cannot silently change or lose its coordinate context. None of these interactions aligns the
-signal with route offsets or another signal. Other representations
-must compose the controller and editor in the same way; they cannot issue a parallel command or infer a
-relationship between independent clocks.
+signal with route offsets or another signal.
+
+`TrainingRangeEvidencePicker` is the reusable entry boundary for source structure and paginated exact evidence.
+It consumes only coordinates returned by the application range context and sends an explicit preset to the
+shared controller; it owns no command, persistence, or durable draft. `TrainingStructureWorkbench` and detailed
+structure derive interval presets only from recorded exercise duration plus valid source- or automatic-lap split
+and duration pairs. The source interval remains independently rendered and attributed after the draft opens.
+Exact route pages omit points without elapsed evidence, exact signal pages retain their returned elapsed values,
+and both construct a provisional interval from adjacent entries on the current page. While the exact-coordinate
+draft is active, either boundary can be replaced with the selected exact entry. The one session-level
+`TrainingRangeEvidenceEditor` appears before detail navigation and uses the shared reveal/focus boundary; tables
+do not mount another editor or add an action to every row. Page order is never treated as a coordinate when an
+elapsed value is absent, and no entry point infers a relationship between independent clocks.
 
 The [canonical segment criterion](../data-formats/canonical/segment-criterion.md) is reusable user-authored
 evidence with stable local identity, optimistic revision, and one versioned rule. Its ordered exercise

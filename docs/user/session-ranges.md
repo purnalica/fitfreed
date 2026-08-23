@@ -7,8 +7,8 @@ supported public binary is available yet. Use only independently generated synth
 version-matched release guidance explicitly opens a real-export boundary.
 
 Personal ranges are an Alpha experience. Their ownership, persistence, exact-coordinate, reimport, summary,
-route-map, and independent-signal boundary contracts are implemented; direct boundary controls on source
-structure and exact evidence remain active MVP work.
+route-map, independent-signal, source-structure, and exact-evidence boundary contracts are implemented. The
+complete Alpha integration and acceptance campaign remain active MVP work.
 
 ## Open personal ranges
 
@@ -57,6 +57,18 @@ Each regular signal retains its own recorded elapsed coordinate. Equal elapsed n
 range with a route or another signal. Opening exact samples from the chart reveals and focuses the currently
 selected source sample, while the saved range remains the same object available under **Personal ranges**.
 
+Recorded structure offers the complete exercise, each source lap, and each automatic lap as explicit interval
+choices when their recorded elapsed boundaries are valid. Choosing one copies those boundaries into a new,
+unnamed personal draft; the imported interval, title, and attribution remain unchanged and visible.
+
+The paginated exact route and measurement tables offer one compact selector rather than an action in every row.
+Choosing a timed point or sample uses it and the following timed entry as a new draft's boundaries, or the
+preceding entry when it is the last available position. While that draft is open, another selected entry can
+replace either boundary deliberately. An entry without an explicit recorded elapsed position is never offered,
+and FitFreed does not derive a boundary from coordinates, table order, or an independent clock. The shared editor
+appears before detail navigation, receives focus, and scrolls into view; the selected exact row remains recorded
+evidence below it.
+
 ## Rename, adjust, and remove
 
 **Rename** changes only the authored title. **Adjust boundaries** keeps an established range on its original
@@ -95,9 +107,8 @@ Range queries, edits, summaries, and persistence stay inside the local applicati
 geocoding, account, provider-API, or other external request. Update checks are a separate application capability
 and never receive imported facts.
 
-The editor is a shared session-detail task. The route map and independent signal workbench now compose it
-directly; the remaining MVP work connects the same draft and saved selection to source structure and exact
-evidence without creating another range state or inventing cross-clock alignment.
+The editor is one shared session-detail task composed by the route map, independent signal workbench, source
+structure, and exact-evidence tables. None creates another range state or invents cross-clock alignment.
 
 Never attach a screenshot, coordinate table, route, export, library, or diagnostic containing personal history to
 a public issue. Use a synthetic package and follow the repository security and support boundaries.

@@ -1849,6 +1849,27 @@ describe("packaged FitFreed import journey", () => {
     await expect(selectedRouteRow).toHaveText(expect.stringContaining("5"));
     await expect($(".training-detail-navigation button[aria-current='page']"))
       .toHaveText(english.training.sessionLibrary.detailSections.routes);
+    const exactRoutePicker = await $(
+      ".training-route:first-of-type .training-route-exact .training-range-evidence-picker",
+    );
+    await exactRoutePicker.$(`aria/${rangeCopy.createFromEvidence}`).click();
+    const exactRouteEditor = await $(
+      ".training-range-evidence-editor .training-range-editor",
+    );
+    await expect(exactRouteEditor.$("h4")).toBeFocused();
+    const exactRouteBoundaries = await exactRouteEditor.$$(
+      ".training-range-editor-boundaries input",
+    );
+    await expect(exactRouteBoundaries[0]).toHaveValue("0:45:00");
+    await expect(exactRouteBoundaries[1]).toHaveValue("1:00:00");
+    expect(await exactRouteEditor.$$(`select[aria-label="${rangeCopy.timeline}"]`))
+      .toHaveLength(0);
+    await expectRevealOutsideApplicationNavigation(".training-range-evidence-editor h4");
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r8-exact-route-range-editor-en-wide.png",
+    ));
+    await exactRouteEditor.$(`aria/${rangeCopy.cancel}`).click();
     await $(".training-route:first-of-type button").click();
     await openTrainingDetailSection(english, "structure");
     await expect($("#training-structure-heading")).toHaveText(
@@ -3605,9 +3626,18 @@ describe("packaged FitFreed import journey", () => {
     );
     const spanishExercise = await $("#training-detail-structure > .training-exercise");
     await expect(spanishExercise.$(".training-exercise-heading")).toHaveText("Ejercicio 1");
-    const spanishSourceLapCells = await spanishExercise.$$(
-      ".training-structure-collection:first-of-type tbody tr:first-child th, .training-structure-collection:first-of-type tbody tr:first-child td",
+    const spanishStructureCollections = await spanishExercise.$$(
+      ".training-structure-collection",
     );
+    let spanishSourceLapCells = [];
+    for (const collection of spanishStructureCollections) {
+      if (await collection.$("h5").getText()
+        !== spanish.training.sessionLibrary.manualLaps) continue;
+      spanishSourceLapCells = await collection.$$(
+        "tbody tr:first-child th, tbody tr:first-child td",
+      );
+      break;
+    }
     expect(spanishSourceLapCells).toHaveLength(4);
     await expect(spanishSourceLapCells[3]).toHaveText("5250 m");
     await openTrainingDetailSection(spanish, "routes");

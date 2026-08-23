@@ -63,6 +63,11 @@ import { TrainingSegmentationPanel } from "./TrainingSegmentationPanel";
 import { TrainingSessionEvidenceSummary } from "./TrainingSessionEvidenceSummary";
 import { TrainingSessionProvenancePanel } from "./TrainingSessionProvenancePanel";
 import { TrainingRouteWorkbench } from "./TrainingRouteWorkbench";
+import { TrainingRangeEvidenceEditor } from "./TrainingRangeEvidenceEditor";
+import {
+  type TrainingRangeEvidenceEntry,
+  TrainingRangeEvidencePicker,
+} from "./TrainingRangeEvidencePicker";
 import { TrainingRangeInteractionProvider } from "./TrainingRangeInteractionProvider";
 import { TrainingRangesPanel } from "./TrainingRangesPanel";
 import { TrainingSignalPlot } from "./TrainingSignalPlot";
@@ -1298,6 +1303,36 @@ export function TrainingSessionLibraryPanel({
     );
   }
 
+  function sourceRangeEntries(exercise: TrainingExerciseStructure): TrainingRangeEvidenceEntry[] {
+    const maximum = BigInt(exercise.durationMilliseconds);
+    return [
+      ...(exercise.manualLaps ?? []).map((lap) => ({
+        key: `source-lap-${lap.ordinal}`,
+        label: interpolate(copy.structureWorkbench.sourceLapChoice, {
+          number: number.format(lap.ordinal + 1),
+        }),
+        startedAtElapsedMilliseconds: lap.splitTimeMilliseconds,
+        endedAtElapsedMilliseconds: (
+          BigInt(lap.splitTimeMilliseconds) + BigInt(lap.durationMilliseconds)
+        ).toString(),
+      })),
+      ...(exercise.automaticLaps ?? []).map((lap) => ({
+        key: `automatic-lap-${lap.ordinal}`,
+        label: interpolate(copy.structureWorkbench.automaticLapChoice, {
+          number: number.format(lap.ordinal + 1),
+        }),
+        startedAtElapsedMilliseconds: lap.splitTimeMilliseconds,
+        endedAtElapsedMilliseconds: (
+          BigInt(lap.splitTimeMilliseconds) + BigInt(lap.durationMilliseconds)
+        ).toString(),
+      })),
+    ].filter((entry) => (
+      BigInt(entry.startedAtElapsedMilliseconds) >= 0n
+      && BigInt(entry.startedAtElapsedMilliseconds) < BigInt(entry.endedAtElapsedMilliseconds)
+      && BigInt(entry.endedAtElapsedMilliseconds) <= maximum
+    ));
+  }
+
   async function loadExactRoutePoints(routeRef: string, offset: number) {
     if (!selected || !page) return;
     const sequence = exactRequestSequence.current + 1;
@@ -1357,7 +1392,11 @@ export function TrainingSessionLibraryPanel({
     void loadExactRoutePoints(routeRef, offset);
   }
 
-  function routeCard(route: TrainingRouteOverview, exerciseOrdinal: number) {
+  function routeCard(
+    route: TrainingRouteOverview,
+    exerciseRef: string,
+    exerciseOrdinal: number,
+  ) {
     const kind = route.kind === "primary" ? copy.primaryRoute : copy.transitionRoute;
     const summary = interpolate(copy.routeVisualSummary, {
       kind,
@@ -1381,6 +1420,18 @@ export function TrainingSessionLibraryPanel({
         through: number.format(pageThrough),
         total: number.format(exactRoutePoints.pointCount),
       }) : undefined;
+    const exactRangeEntries: TrainingRangeEvidenceEntry[] = exactRoutePoints?.routeRef
+      === route.routeRef
+      ? exactRoutePoints.points.flatMap((point) => point.elapsedMilliseconds === null ? [] : [{
+        key: `point-${point.ordinal}`,
+        label: `${copy.routePointNumber} ${number.format(point.ordinal + 1)}`,
+        startedAtElapsedMilliseconds: point.elapsedMilliseconds,
+        endedAtElapsedMilliseconds: point.elapsedMilliseconds,
+      }])
+      : [];
+    const selectedExactEntry = exactRouteTarget?.sourceRef === route.routeRef
+      ? `point-${exactRouteTarget.ordinal}`
+      : undefined;
     const headingId = `training-route-${exerciseOrdinal}-${route.kind}`;
     return (
       <article className={`training-route training-route-${route.kind}`} key={route.routeRef}>
@@ -1442,6 +1493,17 @@ export function TrainingSessionLibraryPanel({
             {exactRoutePoints && exactRoutePoints.routeRef === route.routeRef && (
               <>
                 <p aria-live="polite">{pageStatus}</p>
+                <TrainingRangeEvidencePicker
+                  surface="exact"
+                  exerciseRef={exerciseRef}
+                  coordinate={{ scope: "route-elapsed", routeRef: route.routeRef }}
+                  entries={exactRangeEntries}
+                  selectedEntryKey={selectedExactEntry}
+                  selectionLabel={copy.exactRouteRangeSelection}
+                  meaning={copy.exactRouteRangeMeaning}
+                  locale={locale}
+                  messages={messages}
+                />
                 <div className="training-table-scroll" tabIndex={0}>
                   <table>
                     <thead><tr>
@@ -1531,7 +1593,7 @@ export function TrainingSessionLibraryPanel({
         <p>{copy.routeIntro}</p>
         {routes.length === 0
           ? <p>{copy.routesProvidedEmpty}</p>
-          : routes.map((route) => routeCard(route, exerciseOrdinal))}
+          : routes.map((route) => routeCard(route, exerciseRef, exerciseOrdinal))}
       </section>
     );
   }
@@ -1620,7 +1682,11 @@ export function TrainingSessionLibraryPanel({
     return copy.signalKinds[kind];
   }
 
-  function signalSeriesCard(signal: TrainingSignalSeriesOverview, exerciseOrdinal: number) {
+  function signalSeriesCard(
+    signal: TrainingSignalSeriesOverview,
+    exerciseRef: string,
+    exerciseOrdinal: number,
+  ) {
     const kind = signalKindLabel(signal.kind);
     const unit = copy.signalUnits[signal.unit];
     const exactOpen = exactSignalRef === signal.signalRef;
@@ -1646,6 +1712,18 @@ export function TrainingSessionLibraryPanel({
         through: number.format(pageThrough),
         total: number.format(exactSignalSamples.sampleCount),
       }) : undefined;
+    const exactRangeEntries: TrainingRangeEvidenceEntry[] = exactSignalSamples?.signalRef
+      === signal.signalRef
+      ? exactSignalSamples.samples.map((sample) => ({
+        key: `sample-${sample.ordinal}`,
+        label: `${copy.signalSampleNumber} ${number.format(sample.ordinal + 1)}`,
+        startedAtElapsedMilliseconds: sample.elapsedMilliseconds,
+        endedAtElapsedMilliseconds: sample.elapsedMilliseconds,
+      }))
+      : [];
+    const selectedExactEntry = exactSignalTarget?.sourceRef === signal.signalRef
+      ? `sample-${exactSignalTarget.ordinal}`
+      : undefined;
     const headingId = `training-signal-${exerciseOrdinal}-${signal.role}-${signal.ordinal}`;
     const exactHeading = interpolate(copy.exactSignalHeading, { kind });
     return (
@@ -1714,6 +1792,17 @@ export function TrainingSessionLibraryPanel({
             {exactSignalSamples?.signalRef === signal.signalRef && (
               <>
                 <p aria-live="polite">{pageStatus}</p>
+                <TrainingRangeEvidencePicker
+                  surface="exact"
+                  exerciseRef={exerciseRef}
+                  coordinate={{ scope: "signal-elapsed", signalRef: signal.signalRef }}
+                  entries={exactRangeEntries}
+                  selectedEntryKey={selectedExactEntry}
+                  selectionLabel={copy.exactSignalRangeSelection}
+                  meaning={copy.exactSignalRangeMeaning}
+                  locale={locale}
+                  messages={messages}
+                />
                 <div className="training-table-scroll" tabIndex={0}>
                   <table>
                     <thead><tr>
@@ -1791,6 +1880,7 @@ export function TrainingSessionLibraryPanel({
     heading: string,
     series: TrainingSignalSeriesOverview[] | null,
     unsupportedCount: number,
+    exerciseRef: string,
     exerciseOrdinal: number,
   ) {
     return (
@@ -1807,7 +1897,11 @@ export function TrainingSessionLibraryPanel({
                   messages={messages}
                   onOpenExact={openExactSignalSamples}
                 />
-                {series.map((signal) => signalSeriesCard(signal, exerciseOrdinal))}
+                {series.map((signal) => signalSeriesCard(
+                  signal,
+                  exerciseRef,
+                  exerciseOrdinal,
+                ))}
               </>
             )}
         {unsupportedSignalSeries(unsupportedCount)}
@@ -1836,12 +1930,14 @@ export function TrainingSessionLibraryPanel({
           copy.primarySignals,
           assessed.signals.primary,
           assessed.signals.unsupportedPrimarySeriesCount,
+          exerciseRef,
           exerciseOrdinal,
         )}
         {signalCollection(
           copy.transitionSignals,
           assessed.signals.transition,
           assessed.signals.unsupportedTransitionSeriesCount,
+          exerciseRef,
           exerciseOrdinal,
         )}
       </section>
@@ -2818,6 +2914,7 @@ export function TrainingSessionLibraryPanel({
                 locale={locale}
                 messages={messages}
               />
+              <TrainingRangeEvidenceEditor surface="exact" messages={messages} />
             </>
           )}
           <nav className="training-detail-navigation" aria-label={copy.detailNavigation}>
@@ -2894,6 +2991,16 @@ export function TrainingSessionLibraryPanel({
             {detailStory?.structure?.exercises?.map((exercise) => (
               <article className="training-exercise" key={exercise.exerciseRef}>
                 {exerciseSummary(exercise)}
+                <TrainingRangeEvidencePicker
+                  surface="exact"
+                  exerciseRef={exercise.exerciseRef}
+                  coordinate={{ scope: "exercise-elapsed" }}
+                  entries={sourceRangeEntries(exercise)}
+                  selectionLabel={copy.sourceRangeSelection}
+                  meaning={copy.sourceRangeMeaning}
+                  locale={locale}
+                  messages={messages}
+                />
                 {lapRows(exercise.manualLaps, copy.manualLaps)}
                 {lapRows(exercise.automaticLaps, copy.automaticLaps)}
                 <section className="training-structure-collection">

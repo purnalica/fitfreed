@@ -3,6 +3,7 @@ const FOCUS_SETTLING_MILLISECONDS = 50;
 
 interface RevealFocusOptions {
   align?: "nearest" | "start";
+  forceInitialFocus?: boolean;
 }
 
 export function restoreFocusAfterReveal(
@@ -12,6 +13,7 @@ export function restoreFocusAfterReveal(
 ): () => void {
   if (!element) return () => undefined;
   let cancelled = false;
+  let focusEstablished = false;
   let attemptCount = 0;
   let timer: number | undefined;
 
@@ -24,6 +26,7 @@ export function restoreFocusAfterReveal(
       && activeElement !== document.body
       && activeElement !== document.documentElement
       && activeElement !== null
+      && (focusEstablished || !options.forceInitialFocus)
     ) {
       cancelled = true;
       return;
@@ -39,6 +42,7 @@ export function restoreFocusAfterReveal(
         element.focus();
       }
     }
+    if (document.activeElement === element) focusEstablished = true;
     if (attemptCount < MAXIMUM_FOCUS_ATTEMPTS) {
       timer = window.setTimeout(attempt, FOCUS_SETTLING_MILLISECONDS);
     }

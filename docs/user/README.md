@@ -81,8 +81,9 @@ Personal ranges have a dedicated [session-range guide](session-ranges.md). A per
 adjust, review after reimport, and remove a session-owned range on one explicit exercise, route, or measurement
 timeline. The result leads with a concise revision-coherent summary and reveals exact boundary quality, source
 overlap, gaps, and limitations only on request. Established ownership never moves silently between independent
-clocks; route-map and independent-signal handles are available, while source-structure and exact-evidence
-entry points remain active MVP work.
+clocks. Route-map and independent-signal handles are available; valid source laps and automatic laps can seed a
+separate personal draft, and timed exact route points or signal samples can supply deliberate boundaries without
+changing imported evidence.
 When a session has recorded exercise structure but neither a route nor a supported visual signal, recorded
 duration and source or automatic laps take that leading region. Pause counts are visible there, while their
 recorded local timestamps remain in structural detail because FitFreed does not infer an elapsed position that

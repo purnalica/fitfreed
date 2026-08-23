@@ -112,9 +112,37 @@ function emptyWorkspaceCommand(command: string, arguments_: unknown) {
         exerciseRef: exercise.exerciseRef,
         ordinal: exercise.ordinal,
         coordinates: [{
-          coordinate: { scope: "exercise-elapsed" },
+          coordinate: { scope: "exercise-elapsed" as const },
           maximumElapsedMilliseconds: exercise.structure?.durationMilliseconds ?? "0",
-        }],
+        }, ...([exercise.primary, exercise.transition] as const).flatMap((role) => {
+          const routeCoordinate = role.exactRoute && role.route
+            ? [{
+              coordinate: {
+                scope: "route-elapsed" as const,
+                routeRef: role.exactRoute.routeRef,
+              },
+              maximumElapsedMilliseconds: role.route.visualPoints
+                .flatMap((point) => point.elapsedMilliseconds ?? [])
+                .at(-1) ?? "0",
+            }]
+            : [];
+          const signalCoordinates = role.exactSignals.flatMap((exactSignal) => {
+            const signal = role.signals.find(
+              (candidate) => candidate.signalRef === exactSignal.signalRef,
+            );
+            return signal ? [{
+              coordinate: {
+                scope: "signal-elapsed" as const,
+                signalRef: signal.signalRef,
+              },
+              maximumElapsedMilliseconds: (
+                BigInt(Math.max(0, signal.sampleCount - 1))
+                * BigInt(signal.intervalMilliseconds)
+              ).toString(),
+            }] : [];
+          });
+          return [...routeCoordinate, ...signalCoordinates];
+        })],
       })),
       ranges: [],
     };
@@ -2247,6 +2275,26 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(exactRegion).toHaveTextContent("-3");
     await user.click(within(exactRegion).getByRole("button", { name: "Previous route points" }));
     expect(await within(exactRegion).findByText("Points 1–100 of 101")).toBeVisible();
+    const exactRouteEvidence = within(exactRegion).getByRole("combobox", {
+      name: "Exact recorded point",
+    });
+    await user.selectOptions(exactRouteEvidence, "point-1");
+    await user.click(within(exactRegion).getByRole("button", {
+      name: "Create a personal range",
+    }));
+    const routeRangeEditor = within(detail!).getByRole("form", {
+      name: "Create a personal range",
+    });
+    await waitFor(() => expect(within(routeRangeEditor).getByRole("heading", {
+      name: "Create a personal range",
+    })).toHaveFocus());
+    expect(within(routeRangeEditor).getByLabelText("Start")).toHaveValue("0:00:01");
+    expect(within(routeRangeEditor).getByLabelText("End")).toHaveValue("0:00:02");
+    expect(within(routeRangeEditor).queryByRole("combobox", { name: "Timeline" }))
+      .not.toBeInTheDocument();
+    expect(within(exactRegion).getByRole("rowheader", { name: "2" }).closest("tr"))
+      .toBeVisible();
+    await user.click(within(routeRangeEditor).getByRole("button", { name: "Cancel" }));
     await user.click(within(routeExercise!).getByRole("button", {
       name: "Hide exact recorded points",
     }));
@@ -2329,6 +2377,26 @@ describe("TrainingSessionLibraryPanel", () => {
     });
     expect(within(exactSignalRegion).getAllByRole("row")).toHaveLength(101);
     expect(exactSignalRegion).toHaveTextContent("Not recorded");
+    const exactSignalEvidence = within(exactSignalRegion).getByRole("combobox", {
+      name: "Exact recorded sample",
+    });
+    await user.selectOptions(exactSignalEvidence, "sample-1");
+    await user.click(within(exactSignalRegion).getByRole("button", {
+      name: "Create a personal range",
+    }));
+    const signalRangeEditor = within(detail!).getByRole("form", {
+      name: "Create a personal range",
+    });
+    await waitFor(() => expect(within(signalRangeEditor).getByRole("heading", {
+      name: "Create a personal range",
+    })).toHaveFocus());
+    expect(within(signalRangeEditor).getByLabelText("Start")).toHaveValue("0:00:01");
+    expect(within(signalRangeEditor).getByLabelText("End")).toHaveValue("0:00:02");
+    expect(within(signalRangeEditor).queryByRole("combobox", { name: "Timeline" }))
+      .not.toBeInTheDocument();
+    expect(within(exactSignalRegion).getByRole("rowheader", { name: "2" }).closest("tr"))
+      .toBeVisible();
+    await user.click(within(signalRangeEditor).getByRole("button", { name: "Cancel" }));
     await user.click(within(exactSignalRegion).getByRole("button", {
       name: "Next signal samples",
     }));
@@ -2595,6 +2663,25 @@ describe("TrainingSessionLibraryPanel", () => {
       name: "Recorded structure",
     });
     await waitFor(() => expect(structureHeading).toHaveFocus());
+    expect(within(detail).getByRole("heading", { name: "Source laps" })).toBeVisible();
+    const sourceInterval = within(detail).getByRole("combobox", {
+      name: "Source interval for personal range",
+    });
+    await user.selectOptions(sourceInterval, "source-lap-0");
+    const sourceRangePicker = within(detail).getByRole("region", {
+      name: "Source interval for personal range",
+    });
+    await user.click(within(sourceRangePicker).getByRole("button", {
+      name: "Create a personal range",
+    }));
+    const sourceRangeEditor = within(detail).getByRole("form", {
+      name: "Create a personal range",
+    });
+    await waitFor(() => expect(within(sourceRangeEditor).getByRole("heading", {
+      name: "Create a personal range",
+    })).toHaveFocus());
+    expect(within(sourceRangeEditor).getByLabelText("Start")).toHaveValue("0:00:00");
+    expect(within(sourceRangeEditor).getByLabelText("End")).toHaveValue("0:30:00");
     expect(within(detail).getByRole("heading", { name: "Source laps" })).toBeVisible();
     expect(await within(detail).findByRole("heading", {
       name: "Your session segments",

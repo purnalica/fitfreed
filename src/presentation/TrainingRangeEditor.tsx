@@ -1,4 +1,4 @@
-import { type FormEvent } from "react";
+import { type FormEvent, type Ref } from "react";
 
 import { type catalogs } from "../locales/catalogs";
 import {
@@ -18,6 +18,7 @@ interface TrainingRangeEditorProps {
   surface: TrainingRangeEditorSurface;
   messages: (typeof catalogs)["en-US"];
   lockCoordinate?: boolean;
+  headingRef?: Ref<HTMLHeadingElement>;
   onSaved?: () => void;
 }
 
@@ -32,6 +33,7 @@ export function TrainingRangeEditor({
   surface,
   messages,
   lockCoordinate = false,
+  headingRef,
   onSaved,
 }: TrainingRangeEditorProps) {
   const {
@@ -89,8 +91,8 @@ export function TrainingRangeEditor({
       onSubmit={submit}
     >
       {editor.mode === "create"
-        ? <h4 id={headingId}>{heading}</h4>
-        : <h5 id={headingId}>{heading}</h5>}
+        ? <h4 ref={headingRef} id={headingId} tabIndex={-1}>{heading}</h4>
+        : <h5 ref={headingRef} id={headingId} tabIndex={-1}>{heading}</h5>}
       {showCoordinateChoice && (
         <div className="training-range-editor-coordinate">
           <label>

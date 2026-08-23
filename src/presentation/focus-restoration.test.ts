@@ -51,6 +51,25 @@ describe("restoreFocusAfterReveal", () => {
     expect(target).toHaveFocus();
   });
 
+  it("establishes explicit-action focus before respecting later user movement", () => {
+    vi.useFakeTimers();
+    const settlingResult = document.createElement("h2");
+    settlingResult.tabIndex = -1;
+    const target = document.createElement("h2");
+    target.tabIndex = -1;
+    const alternative = document.createElement("button");
+    document.body.append(settlingResult, target, alternative);
+    settlingResult.focus();
+
+    restoreFocusAfterReveal(target, null, { forceInitialFocus: true });
+    vi.advanceTimersByTime(0);
+    expect(target).toHaveFocus();
+
+    alternative.focus();
+    vi.advanceTimersByTime(500);
+    expect(alternative).toHaveFocus();
+  });
+
   it("aligns a result with the start of its visible workspace when requested", () => {
     vi.useFakeTimers();
     const initiatingControl = document.createElement("button");

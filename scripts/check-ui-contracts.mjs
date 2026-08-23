@@ -50,6 +50,24 @@ const trainingRangeEditorModel = readFileSync(path.join(
   "presentation",
   "training-range-editor-model.ts",
 ), "utf8");
+const trainingRangeEvidencePicker = readFileSync(path.join(
+  repositoryRoot,
+  "src",
+  "presentation",
+  "TrainingRangeEvidencePicker.tsx",
+), "utf8");
+const trainingRangeEvidenceEditor = readFileSync(path.join(
+  repositoryRoot,
+  "src",
+  "presentation",
+  "TrainingRangeEvidenceEditor.tsx",
+), "utf8");
+const trainingStructureWorkbench = readFileSync(path.join(
+  repositoryRoot,
+  "src",
+  "presentation",
+  "TrainingStructureWorkbench.tsx",
+), "utf8");
 const workspaceNavigation = readFileSync(path.join(
   repositoryRoot,
   "src",
@@ -355,6 +373,28 @@ for (const exactRangeRule of [
 if (/\bNumber\s*\(/.test(trainingRangeEditorModel)) {
   throw new Error("personal-range elapsed editing must not cross JavaScript Number");
 }
+for (const evidenceBoundaryContract of [
+  [trainingRangeEvidencePicker, "useOptionalTrainingRangeInteraction"],
+  [trainingRangeEvidencePicker, "openCreateEditor("],
+  [trainingRangeEvidencePicker, "startedAtElapsedMilliseconds"],
+  [trainingRangeEvidencePicker, "endedAtElapsedMilliseconds"],
+  [trainingRangeEvidenceEditor, "restoreFocusAfterReveal"],
+  [trainingRangeEvidenceEditor, "forceInitialFocus: true"],
+  [trainingStructureWorkbench, 'scope: "exercise-elapsed"'],
+  [trainingSessionLibrary, 'scope: "route-elapsed"'],
+  [trainingSessionLibrary, 'scope: "signal-elapsed"'],
+  [trainingSessionLibrary, '<TrainingRangeEvidenceEditor surface="exact"'],
+]) {
+  const [source, contract] = evidenceBoundaryContract;
+  if (!source.includes(contract)) {
+    throw new Error(`exact evidence must remain a personal-range entry point: ${contract}`);
+  }
+}
+if (trainingRangeEvidencePicker.includes("@tauri-apps/api/core")
+  || trainingRangeEvidenceEditor.includes("@tauri-apps/api/core")
+  || trainingStructureWorkbench.includes("@tauri-apps/api/core")) {
+  throw new Error("evidence boundary entry points must use the shared range controller");
+}
 requireRule(
   stylesheet,
   ".training-range-workspace",
@@ -373,6 +413,12 @@ requireRule(
   [/display:\s*grid/, /grid-template-columns:\s*minmax\(0,\s*3fr\)\s+minmax\(240px,\s*1fr\)/],
   "a chart-dominant wide signal-range workspace",
 );
+requireRule(
+  stylesheet,
+  ".training-range-evidence-picker",
+  [/display:\s*grid/, /grid-template-columns:/],
+  "a compact exact-evidence boundary picker",
+);
 for (const zoom of ["175", "200"]) {
   if (!stylesheet.includes(`:root[data-content-zoom="${zoom}"] .training-range-workspace`)) {
     throw new Error(`personal-range work must stack at ${zoom}% content zoom`);
@@ -382,6 +428,9 @@ for (const zoom of ["175", "200"]) {
   }
   if (!stylesheet.includes(`:root[data-content-zoom="${zoom}"] .training-signal-range-layout`)) {
     throw new Error(`signal-range work must stack at ${zoom}% content zoom`);
+  }
+  if (!stylesheet.includes(`:root[data-content-zoom="${zoom}"] .training-range-evidence-picker`)) {
+    throw new Error(`exact-evidence boundary picking must stack at ${zoom}% content zoom`);
   }
 }
 for (const workbench of [

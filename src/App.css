@@ -925,6 +925,7 @@ th:last-child, td:last-child { text-align: right; }
 .training-structure-workbench-track { position: relative; display: block; min-width: 0; height: 34px; overflow: hidden; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 8px; }
 .training-structure-workbench-track i { position: absolute; top: 5px; bottom: 5px; display: block; min-width: 2px; background: var(--accent); border: 1px solid color-mix(in srgb, var(--accent-deep) 65%, transparent); border-radius: 5px; }
 .training-structure-workbench-duration i { inset: 5px; background: color-mix(in srgb, var(--accent) 42%, var(--surface)); border-style: dashed; }
+.training-structure-workbench-duration .training-structure-personal-range { top: 2px; right: auto; bottom: 2px; z-index: 1; background: color-mix(in srgb, var(--accent-deep) 72%, transparent); border: 2px solid var(--accent-deep); border-style: solid; }
 .training-structure-workbench-automatic i { background: color-mix(in srgb, var(--accent-deep) 72%, var(--surface)); border-style: dashed; }
 .training-structure-workbench dl { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 0; }
 .training-structure-workbench dl div { display: block; min-width: 0; padding: 10px 12px; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 10px; }
@@ -932,6 +933,18 @@ th:last-child, td:last-child { text-align: right; }
 .training-structure-workbench footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; }
 .training-structure-workbench footer p { max-width: 72ch; margin: 0; color: var(--muted); font-size: .76rem; line-height: 1.45; }
 .training-structure-workbench footer button { min-height: 38px; padding: 7px 11px; font-size: .76rem; }
+.training-range-evidence-picker { display: grid; grid-template-columns: minmax(180px, .7fr) minmax(140px, .45fr) minmax(240px, 1fr) auto; gap: 10px 16px; align-items: end; min-width: 0; padding: 12px 14px; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 12px; }
+.training-range-evidence-picker label { display: grid; min-width: 0; gap: 5px; }
+.training-range-evidence-picker label > span { color: var(--muted); font-size: .72rem; font-weight: 800; }
+.training-range-evidence-picker select { width: 100%; min-width: 0; height: max(42px, 1.5em); }
+.training-range-evidence-picker-selection { display: grid; gap: 2px; min-width: 0; margin: 0; }
+.training-range-evidence-picker-selection strong { overflow-wrap: anywhere; font-size: .82rem; }
+.training-range-evidence-picker-selection span { color: var(--ink-soft); font-size: .74rem; font-variant-numeric: tabular-nums; }
+.training-range-evidence-picker-meaning, .training-range-evidence-picker-note { min-width: 0; margin: 0; color: var(--muted); font-size: .72rem; line-height: 1.45; }
+.training-range-evidence-picker > button, .training-range-evidence-picker-actions button { min-height: 38px; padding: 7px 11px; font-size: .74rem; }
+.training-range-evidence-picker-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+.training-range-evidence-editor h4, .training-range-evidence-editor h5 { scroll-margin-block-start: var(--shell-reveal-offset); }
+.training-range-evidence-editor .training-range-editor { margin-top: 14px; }
 .training-zone-workbench { display: grid; gap: 14px; margin-top: 18px; padding: clamp(14px, 1.8vw, 22px); background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow-soft); scroll-margin-block-start: var(--shell-reveal-offset); }
 .training-zone-workbench-heading { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(280px, .5fr); gap: 18px 28px; align-items: end; }
 .training-zone-workbench-heading-single { grid-template-columns: minmax(0, 1fr); }
@@ -1585,6 +1598,8 @@ th:last-child, td:last-child { text-align: right; }
   .training-detail dl { grid-template-columns: 1fr; }
   .training-route-workbench-heading { grid-template-columns: 1fr; align-items: start; }
   .training-signal-workbench-heading, .training-structure-workbench-heading, .training-zone-workbench-heading, .training-session-evidence-summary { grid-template-columns: 1fr; align-items: start; }
+  .training-range-evidence-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+  .training-range-evidence-picker-meaning { align-self: center; }
   .training-structure-workbench dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .training-session-evidence-empty { grid-column: 1; }
   .training-route-selection { grid-template-columns: 1fr; }
@@ -1688,6 +1703,10 @@ th:last-child, td:last-child { text-align: right; }
 :root[data-content-zoom="200"] .training-zone-workbench-row > span:last-child { grid-column: 2; text-align: left; }
 :root[data-content-zoom="175"] .training-session-evidence-empty,
 :root[data-content-zoom="200"] .training-session-evidence-empty { grid-column: 1; }
+:root[data-content-zoom="175"] .training-range-evidence-picker,
+:root[data-content-zoom="200"] .training-range-evidence-picker { grid-template-columns: 1fr; align-items: stretch; }
+:root[data-content-zoom="175"] .training-range-evidence-picker > button,
+:root[data-content-zoom="200"] .training-range-evidence-picker > button { width: 100%; }
 :root[data-content-zoom="175"] .training-route-map-frame,
 :root[data-content-zoom="200"] .training-route-map-frame { height: clamp(300px, 42vh, 470px); }
 :root[data-content-zoom="175"] .training-route-selection,
@@ -1854,6 +1873,8 @@ th:last-child, td:last-child { text-align: right; }
   .training-signal-workbench footer { align-items: stretch; flex-direction: column; }
   .training-signal-workbench footer button { width: 100%; }
   .training-structure-workbench { padding: 12px; border-radius: 15px; }
+  .training-range-evidence-picker { grid-template-columns: 1fr; align-items: stretch; padding: 11px; }
+  .training-range-evidence-picker > button { width: 100%; }
   .training-structure-workbench-row { grid-template-columns: 1fr; gap: 5px; }
   .training-structure-workbench dl { grid-template-columns: 1fr; }
   .training-structure-workbench footer { align-items: stretch; flex-direction: column; }

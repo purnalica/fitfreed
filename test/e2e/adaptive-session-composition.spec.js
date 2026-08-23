@@ -339,6 +339,37 @@ describe("packaged evidence-adaptive session composition", () => {
       ".training-signal-exact .training-exact-selected-row",
     );
     expect(await $$(".training-signal-exact tbody tr")).not.toHaveLength(0);
+    const exactSignalPicker = await $(
+      ".training-signal-exact .training-range-evidence-picker",
+    );
+    await revealBelowCompactNavigation(
+      ".training-signal-exact .training-range-evidence-picker",
+    );
+    await expectFocusedRevealGeometry(
+      ".training-signal-exact .training-range-evidence-picker",
+    );
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r8-exact-signal-range-picker-en-wide.png",
+    ));
+    await exactSignalPicker.$(`aria/${rangeCopy.createFromEvidence}`).click();
+    const exactSignalEditor = await $(
+      ".training-range-evidence-editor .training-range-editor",
+    );
+    await expect(exactSignalEditor.$("h4")).toBeFocused();
+    const exactSignalBoundaries = await exactSignalEditor.$$(
+      ".training-range-editor-boundaries input",
+    );
+    await expect(exactSignalBoundaries[0]).toHaveValue("0:15:00");
+    await expect(exactSignalBoundaries[1]).toHaveValue("0:30:00");
+    expect(await exactSignalEditor.$$(`select[aria-label="${rangeCopy.timeline}"]`))
+      .toHaveLength(0);
+    await expectFocusedRevealGeometry(".training-range-evidence-editor h4");
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r8-exact-signal-range-editor-en-wide.png",
+    ));
+    await exactSignalEditor.$(`aria/${rangeCopy.cancel}`).click();
     await backToResults(english);
 
     await goToHome("sources");
@@ -375,17 +406,80 @@ describe("packaged evidence-adaptive session composition", () => {
     expect(await $$(".training-signal-workbench, .training-route-workbench, .training-zone-workbench"))
       .toHaveLength(0);
     await expectAdaptiveWorkbenchGeometry(".training-structure-workbench");
+    const structureRangePicker = await structureWorkbench.$(
+      ".training-range-evidence-picker",
+    );
+    const structureRangeSelector = await structureRangePicker.$("select");
+    const structureRangeOptions = await structureRangeSelector.$$("option");
+    expect(structureRangeOptions).toHaveLength(3);
+    await selectNativeOption(
+      structureRangeSelector,
+      await structureRangeOptions[1].getAttribute("value"),
+    );
+    await structureRangePicker.$(`aria/${rangeCopy.createFromEvidence}`).click();
+    const structureRangeEditor = await structureWorkbench.$(".training-range-editor");
+    await expect(structureRangeEditor.$("h4")).toBeFocused();
+    const structureRangeBoundaries = await structureRangeEditor.$$(
+      ".training-range-editor-boundaries input",
+    );
+    await expect(structureRangeBoundaries[0]).toHaveValue("0:00:00");
+    await expect(structureRangeBoundaries[1]).toHaveValue("0:15:00");
+    await structureRangeEditor.$(".training-range-editor-name input")
+      .setValue("First source lap");
+    const structureRangeAccessibility = await new AxeBuilder({ client: browser })
+      .setLegacyMode()
+      .include(".training-structure-workbench")
+      .analyze();
+    expect(structureRangeAccessibility.violations).toEqual([]);
     await browser.saveScreenshot(path.join(
       evidenceDirectory,
-      "r7-structure-workbench-en-wide.png",
+      "r8-structure-range-editor-en-wide.png",
+    ));
+    await structureRangeEditor.$(`aria/${rangeCopy.save}`).click();
+    await waitForNotice(rangeCopy.saved);
+    expect(await structureWorkbench.$$(".training-structure-personal-range"))
+      .toHaveLength(1);
+    expect(await structureWorkbench.$$(
+      ".training-structure-workbench-source .training-structure-workbench-track i",
+    )).toHaveLength(2);
+    await revealBelowCompactNavigation(".training-structure-workbench-visual");
+    await expectFocusedRevealGeometry(".training-structure-workbench-visual");
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r8-structure-range-en-wide.png",
     ));
     const openStructure = await structureWorkbench.$("footer button");
     await openStructure.click();
     const structureHeading = await $("#training-structure-heading");
     await expect(structureHeading).toBeFocused();
     await expectFocusedRevealGeometry("#training-structure-heading");
-    expect(await $$("#training-detail-structure .training-structure-collection:first-of-type tbody tr"))
-      .toHaveLength(2);
+    const structureCollections = await $$(
+      "#training-detail-structure .training-structure-collection",
+    );
+    let sourceLapRows = [];
+    for (const collection of structureCollections) {
+      if (await collection.$("h5").getText() !== english.training.sessionLibrary.manualLaps) {
+        continue;
+      }
+      sourceLapRows = await collection.$$("tbody tr");
+      break;
+    }
+    expect(sourceLapRows).toHaveLength(2);
+    const sourceEvidencePicker = await $(
+      "#training-detail-structure .training-range-evidence-picker",
+    );
+    await sourceEvidencePicker.$(`aria/${rangeCopy.createFromEvidence}`).click();
+    const sourceEvidenceEditor = await $(
+      ".training-range-evidence-editor .training-range-editor",
+    );
+    await expect(sourceEvidenceEditor.$("h4")).toBeFocused();
+    const sourceEvidenceBoundaries = await sourceEvidenceEditor.$$(
+      ".training-range-editor-boundaries input",
+    );
+    await expect(sourceEvidenceBoundaries[0]).toHaveValue("0:00:00");
+    await expect(sourceEvidenceBoundaries[1]).toHaveValue("0:15:00");
+    await expectFocusedRevealGeometry(".training-range-evidence-editor h4");
+    await sourceEvidenceEditor.$(`aria/${rangeCopy.cancel}`).click();
     await backToResults(english);
 
     await openSessionByDate("Jan 12, 2026");
@@ -477,6 +571,33 @@ describe("packaged evidence-adaptive session composition", () => {
       .setLegacyMode()
       .analyze();
     expect(accessibility.violations).toEqual([]);
+    await backToResults(spanish);
+    await openSessionByDate("11 ene 2026");
+    const spanishStructureWorkbench = await $(".training-structure-workbench");
+    await spanishStructureWorkbench.waitForDisplayed({ timeout: 10_000 });
+    expect(await spanishStructureWorkbench.$$(".training-structure-personal-range"))
+      .toHaveLength(1);
+    await revealBelowCompactNavigation(".training-structure-workbench-visual");
+    await expectFocusedRevealGeometry(".training-structure-workbench-visual");
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r8-structure-range-visual-es-dark-compact-200.png",
+    ));
+    await revealBelowCompactNavigation(
+      ".training-structure-workbench .training-range-evidence-picker",
+    );
+    await expectFocusedRevealGeometry(
+      ".training-structure-workbench .training-range-evidence-picker",
+    );
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r8-structure-range-picker-es-dark-compact-200.png",
+    ));
+    const compactStructureAccessibility = await new AxeBuilder({ client: browser })
+      .setLegacyMode()
+      .include(".training-structure-workbench")
+      .analyze();
+    expect(compactStructureAccessibility.violations).toEqual([]);
     if (restartIdentityPath === undefined) {
       throw new Error("adaptive restart identity path is required");
     }

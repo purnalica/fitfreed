@@ -211,7 +211,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R5 | Complete locally — R5.4, R5.5, and real-process restart gates passed 2026-08-22 | A remembered session is findable and sports are recognizable |
 | X5-R6 | Complete locally — R6.1 through R6.5 passed exact packaged, adaptive visual, and dense-route gates on 2026-08-22; R8.4 subsequently removed unproven route-signal alignment | A routed workout is investigated through a dominant local map without invented relationships |
 | X5-R7 | Complete locally — R7.1 through R7.6 passed the exact fast, functional, restart, adaptive, accessibility, visual, and performance gates on 2026-08-22 | Every session composition reflects its actual evidence |
-| X5-R8 | In progress — R8.1 through R8.5 and R8.6 slices 1–3 complete locally; independent-signal interaction passed functional, restart/reimport, adaptive, accessibility, visual, and performance gates on 2026-08-23; structure, exact-evidence, and final Alpha integration follow | Personal ranges and reusable criteria work end to end |
+| X5-R8 | In progress — R8.1 through R8.5 and R8.6 slices 1–4 complete locally; final Alpha integration is next | Personal ranges and reusable criteria work end to end |
 | X5-R9 | Pending | Reports open as results and leave FitFreed safely |
 | X5-R10 | Pending | The complete release-shaped product is coherent and documented |
 | X6 | Pending | Independent audit has no unresolved material finding |
@@ -1516,6 +1516,39 @@ final R8.6 gate remain open; this checkpoint does not claim structure or exact-e
 Final self-review also rejected allowing the visible signal, visible route, or saved-range selectors to replace
 or hide the sole shared draft. These context selectors now remain visibly locked while an edit is active and
 become available again after save or cancellation; focused component and packaged tests cover both transitions.
+
+Slice 4 is complete locally. Valid complete-
+exercise, source-lap, and automatic-lap intervals can seed the same unnamed exercise-coordinate draft without
+renaming, modifying, or hiding the attributed source evidence. Paginated exact route and signal disclosures
+offer one compact native selector for entries with explicit elapsed evidence. A selected point or sample seeds
+adjacent exact boundaries, and an active same-coordinate draft can deliberately reuse another selected entry as
+either boundary. Points without elapsed evidence are excluded rather than assigned a position from table order.
+One exact-evidence editor is composed before session-detail navigation, receives focus and scrolls into view, and
+uses the controller's coordinate authority; no table, picker, or workbench owns another command path or durable
+draft.
+
+The final complete fast gate passed 156 tooling tests, 316 React tests, two vendored-updater tests, 220 all-
+feature host tests, 192 application tests, 46 domain tests, and two private-acceptance examples. The production
+build, strict Clippy, Rust formatting, architecture, contract, documentation, localization, workflow, site, UI-
+contract, and diff gates pass. The exact packaged executable passed the complete functional journey in 3 minutes
+17 seconds, general new-process recovery in 1 second, adaptive-session composition in 7.5 seconds, exact range
+recovery through a second process after reimport in 1.2 seconds, and the isolated two-year performance campaign
+in 3 minutes 38.4 seconds. Route-workbench opening measured 75 milliseconds at p95, route selection 1
+millisecond, independent-signal reveal 24 milliseconds, signal overview 296 milliseconds, fourth-series
+selection 8 milliseconds, and exact signal pagination 234 milliseconds, all below their accepted budgets.
+
+Independent visual review covers the exact-sample selector, selected recorded row, and separate range action;
+the source-structure timeline with attributed laps and an overlapping personal band; and the stacked selector in
+Spanish, dark appearance, compact geometry, and 200% content zoom. The first exact-sample capture was rejected
+because scrolling to the selected row hid the new entry point. The first compact structure capture was rejected
+because it proved navigation rather than the range task. The corrected evidence explicitly reveals each target,
+asserts unobstructed geometry and no horizontal overflow, and retains zero Axe violations.
+
+Full regression exposed and corrected two structural assumptions rather than weakening their tests. Recorded
+source laps are now identified by their visible collection identity instead of their former first-child position.
+An exact result can no longer win a focus race after an explicit range-editor action: the shared focus policy gives
+that action priority only until the new heading receives focus, then again preserves any later user movement.
+Slice 5 and the complete final R8.6 Alpha gate remain open.
 
 ## X5-R9 — Make reports result-first and portable
 

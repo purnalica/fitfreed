@@ -90,5 +90,23 @@ describe("packaged independent-signal range restart", () => {
     await expect(inspector).toHaveText(
       expect.stringContaining(spanish.training.sessionLibrary.ranges.current),
     );
+
+    await $(`aria/${spanish.training.sessionLibrary.closeDetail}`).click();
+    await $(".training-session-results").waitForDisplayed({ timeout: 10_000 });
+    await openSessionByDate("11 ene 2026");
+    const structureWorkbench = await $(".training-structure-workbench");
+    await structureWorkbench.waitForDisplayed({ timeout: 10_000 });
+    expect(await structureWorkbench.$$(".training-structure-personal-range"))
+      .toHaveLength(1);
+    expect(await structureWorkbench.$$(
+      ".training-structure-workbench-source .training-structure-workbench-track i",
+    )).toHaveLength(2);
+    await openPersonalRanges();
+    const structureInspector = await $(".training-range-inspector");
+    await structureInspector.waitForDisplayed({ timeout: 10_000 });
+    await expect(structureInspector.$("h4")).toHaveText("First source lap");
+    await expect(structureInspector).toHaveText(
+      expect.stringContaining(spanish.training.sessionLibrary.ranges.current),
+    );
   });
 });
