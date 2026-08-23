@@ -52,19 +52,28 @@ Blank origins may remain narrative-only or gain analytical blocks later. Reopeni
 definition prepares a suggestion only when the current snapshot still equals its saved snapshot. No start
 path stores a provider object, copied calculation, or presentation-only workspace state.
 
-Reports opens on **Library**, where saved definitions and question or blank starts have one conceptual home.
-A start enters **Compose**; a successful save or a saved-report selection enters **Preview**. The full ordered
+Reports opens on a result-first **Library**, where saved definitions and the supported question start have one
+conceptual home. When saved results exist, presentation keeps the question start as one compact secondary
+action in the Library heading; only an empty Library expands its orientation. Session and exploration starts enter from the exact evidence already being viewed. The
+application compatibility path can still prepare a blank origin, but ordinary presentation does not expose a
+generic blank start; persisted blank-origin reports remain readable and editable. A start enters **Compose**;
+a successful save or a saved-report selection enters **Preview**. The full ordered
 editor remains mounted while Library or Preview is active, so moving between stages does not discard title,
 narrative, periods, measurements, privacy choices, or block order. Preview is independently inspectable and
-replaces itself with either stale-evidence review or export privacy review; it never stacks both reviews below
-the editor. This hierarchy is disposable presentation state and does not enter a definition, application DTO,
-or persistence row.
+replaces itself with stale-evidence review, export privacy review, or deletion confirmation; it never stacks
+these decisions below the editor. Cancelling deletion restores Preview and focus. A successful removal clears
+the selected report, reloads the bounded Library, and focuses its heading; an optimistic conflict reloads and
+resolves the latest definition without announcing removal. This hierarchy is disposable presentation state
+and does not enter a definition, application DTO, or persistence row.
 
 The result-first library projection is separate from complete report resolution. It pages at most 24 of the
 1,000 bounded definitions, resolves only an indexed session selection or one authoritative comparison metric,
 reuses identical comparison queries within the page, and caps visible per-source results without merging them.
 It derives sensitivity from saved authority and never loads route geometry, exact signals, complete provenance,
 or export output. One bounded retry prevents a library revision change from producing mixed evidence.
+Presentation renders the subject, human date or period, primary result, evidence state, and sensitivity summary
+as the card hierarchy. Stable references and revisions remain transport capabilities rather than visible card
+copy. Selecting a card performs complete resolution only for that report and opens Preview rather than Compose.
 
 ## Origin-aware navigation
 

@@ -592,9 +592,11 @@ for (const boundary of [
   "<WorkspaceNavigation",
   'hidden={workspace !== "library"}',
   'hidden={workspace !== "compose"}',
-  'hidden={workspace !== "preview" || refreshReviewOpen || privacyReviewOpen}',
+  'hidden={workspace !== "preview"\n                || refreshReviewOpen\n                || privacyReviewOpen\n                || deleteReviewOpen}',
   'setWorkspace("preview")',
   'className="report-composer-tools"',
+  'className="report-delete-review"',
+  'role="dialog"',
 ]) {
   if (!reportsPanel.includes(boundary)) {
     throw new Error(`Reports must preserve the staged workspace boundary: ${boundary}`);

@@ -20,7 +20,7 @@ as compatibility adapters.
 
 ## Starting and composing
 
-Preparing a `question`, `exploration`, or `blank` start binds it to one current local-library snapshot. A
+Preparing a `question`, `exploration`, or compatibility `blank` start binds it to one current local-library snapshot. A
 question receives a conservative pair of adjacent recent periods derived from the available training
 range. An exploration retains its exact completed query after validation. A blank page receives an
 optional suggested query so evidence can be added before or after its first narrative-only save.
@@ -89,9 +89,13 @@ partial definition or mixed-revision result.
 
 ## User-visible workflow
 
-The report library offers question and blank starts. A completed training comparison offers an exploration
-start with contextual return navigation. A session detail offers the session start. Saved reports can be
-reopened independently of their origin, edited, resolved against their authorized snapshot, privacy
+The ordinary report library offers the question start and result-first cards. With saved results, the start is
+a compact secondary action and the cards remain the first useful content; an empty library expands the same
+start with orientation. It does not expose a generic blank start, although retained blank-origin definitions remain readable and editable through the same
+compatibility contracts. A completed training comparison offers an exploration start with contextual return
+navigation. A session detail offers the session start. Selecting a library card resolves that report and opens
+its result rather than its editor. Saved reports can be reopened independently of their origin, edited,
+revision-bound removed without changing imported history, resolved against their authorized snapshot, privacy
 reviewed, and exported as self-contained HTML.
 
 The preview identifies recorded data, FitFreed calculations, and user-authored interpretation separately.

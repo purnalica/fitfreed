@@ -7,6 +7,8 @@ import { catalogs } from "../locales/catalogs";
 import { ReportsPanel } from "./ReportsPanel";
 import type {
   ReportDefinition,
+  ReportLibraryItem,
+  ReportLibraryPage,
   ResolvedReport,
   ResolvedSessionReport,
   SessionReportOrigin,
@@ -355,6 +357,112 @@ function blankResolution(revision = "1", analytical = false): ResolvedReport {
   };
 }
 
+function sessionLibraryItem(overrides: Partial<ReportLibraryItem> = {}): ReportLibraryItem {
+  return {
+    reportRef,
+    title: "Ridge progression",
+    locale: "en-US",
+    sourceSnapshotRef: snapshotRef,
+    revision: "1",
+    evidenceState: "current",
+    subject: { kind: "session", sport: origin.session.sport },
+    period: {
+      kind: "session",
+      startedAtLocal: origin.session.startedAtLocal,
+    },
+    result: {
+      kind: "session",
+      metric: "distance",
+      value: { kind: "decimal", value: 10250.5 },
+    },
+    sensitivity: {
+      includesPhysiologicalContext: true,
+      preciseLocationBlockCount: 1,
+      minimumEndpointRedactionMeters: 200,
+    },
+    ...overrides,
+  };
+}
+
+function reportLibraryPage(
+  items: ReportLibraryItem[],
+  nextOffset: number | null = null,
+): ReportLibraryPage {
+  return {
+    items,
+    totalCount: nextOffset === null ? items.length : items.length + 1,
+    offset: 0,
+    limit: 12,
+    nextOffset,
+  };
+}
+
+function libraryItemFromDefinition(value: ReportDefinition): ReportLibraryItem {
+  if (value.origin.kind === "session") {
+    return sessionLibraryItem({
+      reportRef: value.reportRef,
+      title: value.title,
+      locale: value.locale,
+      sourceSnapshotRef: value.sourceSnapshotRef,
+      revision: value.revision,
+    });
+  }
+  const analytical = value.blocks.find(isAnalyticalTestBlock);
+  if (analytical) {
+    return sessionLibraryItem({
+      reportRef: value.reportRef,
+      title: value.title,
+      locale: value.locale,
+      sourceSnapshotRef: value.sourceSnapshotRef,
+      revision: value.revision,
+      subject: { kind: "training-comparison" },
+      period: {
+        kind: "training-comparison",
+        baselineRange: analytical.query.baselineRange,
+        comparisonRange: analytical.query.comparisonRange,
+      },
+      result: {
+        kind: "training-comparison",
+        metric: "session-count",
+        series: [{
+          sourceIndex: 1,
+          baselineValue: { kind: "integer", value: "5" },
+          comparisonValue: { kind: "integer", value: "8" },
+          change: { kind: "integer", value: "3" },
+        }],
+        omittedSourceCount: 0,
+      },
+      sensitivity: {
+        includesPhysiologicalContext: false,
+        preciseLocationBlockCount: 0,
+        minimumEndpointRedactionMeters: null,
+      },
+    });
+  }
+  return sessionLibraryItem({
+    reportRef: value.reportRef,
+    title: value.title,
+    locale: value.locale,
+    sourceSnapshotRef: value.sourceSnapshotRef,
+    revision: value.revision,
+    evidenceState: "authored-only",
+    subject: { kind: "authored-note" },
+    period: null,
+    result: null,
+    sensitivity: {
+      includesPhysiologicalContext: false,
+      preciseLocationBlockCount: 0,
+      minimumEndpointRedactionMeters: null,
+    },
+  });
+}
+
+function isAnalyticalTestBlock(
+  block: ReportDefinition["blocks"][number],
+): block is Extract<ReportDefinition["blocks"][number], { query: unknown }> {
+  return "query" in block;
+}
+
 function renderPanel(properties: Partial<ComponentProps<typeof ReportsPanel>> = {}) {
   const onReturnToOrigin = vi.fn();
   render(
@@ -379,12 +487,226 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("ReportsPanel", () => {
+  it("opens factual result cards without exposing technical report metadata", async () => {
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "list_report_library") {
+        expect(arguments_).toEqual({ request: { offset: 0, limit: 12 } });
+        return Promise.resolve(reportLibraryPage([sessionLibraryItem()]));
+      }
+      if (command === "resolve_report") return Promise.resolve(resolution());
+      if (command === "query_training_session_routes") {
+        return Promise.resolve(routeQueryResult());
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    renderPanel({ origin: undefined, originRequestId: 0 });
+
+    const reportCard = await screen.findByRole("button", { name: /Open Ridge progression/ });
+    expect(within(reportCard).getByText("Trail running")).toBeVisible();
+    expect(within(reportCard).getByText("Aug 16, 2026")).toBeVisible();
+    expect(within(reportCard).getByText("10.25 km")).toBeVisible();
+    expect(within(reportCard).getByText("Current evidence")).toBeVisible();
+    expect(within(reportCard).getByText("Heart rate included")).toBeVisible();
+    expect(within(reportCard).getByText("Recorded route · 200 m endpoint privacy")).toBeVisible();
+    expect(reportCard).not.toHaveTextContent("training-snapshot-");
+    expect(reportCard).not.toHaveTextContent("revision 1");
+    expect(screen.queryByRole("button", { name: "Start a blank report" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "New comparison" })).toBeVisible();
+    expect(screen.queryByRole("heading", {
+      name: "What do you want to understand or explain?",
+    })).not.toBeInTheDocument();
+    expect(document.querySelector(".report-library-start")).not.toBeInTheDocument();
+
+    await user.click(reportCard);
+    expect(await screen.findByRole("heading", { name: "Ridge progression", level: 3 }))
+      .toBeVisible();
+    expect(document.querySelector("form.report-editor")).not.toBeVisible();
+  });
+
+  it("keeps comparison sources separate and pages every evidence state", async () => {
+    const comparisonItem = sessionLibraryItem({
+      reportRef: `report-${digest("a")}`,
+      title: "Winter volume",
+      subject: { kind: "training-comparison" },
+      period: {
+        kind: "training-comparison",
+        baselineRange: comparisonQuery.baselineRange,
+        comparisonRange: comparisonQuery.comparisonRange,
+      },
+      result: {
+        kind: "training-comparison",
+        metric: "duration",
+        series: [
+          {
+            sourceIndex: 1,
+            baselineValue: { kind: "integer", value: "18000000" },
+            comparisonValue: { kind: "integer", value: "28800000" },
+            change: { kind: "integer", value: "10800000" },
+          },
+          {
+            sourceIndex: 2,
+            baselineValue: { kind: "integer", value: "3600000" },
+            comparisonValue: null,
+            change: null,
+          },
+        ],
+        omittedSourceCount: 1,
+      },
+      sensitivity: {
+        includesPhysiologicalContext: false,
+        preciseLocationBlockCount: 0,
+        minimumEndpointRedactionMeters: null,
+      },
+    });
+    const staleItem = sessionLibraryItem({
+      reportRef: `report-${digest("b")}`,
+      title: "Earlier session",
+      evidenceState: "stale",
+    });
+    const unavailableItem = sessionLibraryItem({
+      reportRef: `report-${digest("c")}`,
+      title: "Missing session",
+      evidenceState: "unavailable",
+      result: null,
+    });
+    const authoredItem = libraryItemFromDefinition({
+      ...blankDefinition(),
+      reportRef: `report-${digest("d")}`,
+      title: "Coach notes",
+    });
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command !== "list_report_library") throw new Error(`Unexpected command: ${command}`);
+      if (arguments_.request.offset === 0) {
+        return Promise.resolve({
+          items: [comparisonItem, staleItem, unavailableItem],
+          totalCount: 4,
+          offset: 0,
+          limit: 12,
+          nextOffset: 3,
+        });
+      }
+      expect(arguments_).toEqual({ request: { offset: 3, limit: 12 } });
+      return Promise.resolve({
+        items: [authoredItem],
+        totalCount: 4,
+        offset: 3,
+        limit: 12,
+        nextOffset: null,
+      });
+    });
+    const user = userEvent.setup();
+
+    renderPanel({ origin: undefined, originRequestId: 0 });
+
+    const comparisonCard = await screen.findByRole("button", { name: "Open Winter volume" });
+    expect(within(comparisonCard).getByText("Imported source 1")).toBeVisible();
+    expect(within(comparisonCard).getByText("Imported source 2")).toBeVisible();
+    expect(within(comparisonCard).getByText("5 h → 8 h · change 3 h")).toBeVisible();
+    expect(within(comparisonCard).getByText(/1 additional source is/)).toBeVisible();
+    expect(within(comparisonCard).getByText(/Jan 1, 2026/)).toBeVisible();
+    expect(screen.getByText("Source changed")).toBeVisible();
+    expect(screen.getByText("Evidence unavailable")).toBeVisible();
+    expect(screen.getByText("Showing 3 of 4")).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Show more reports" }));
+
+    expect(await screen.findByRole("button", { name: "Open Coach notes" })).toBeVisible();
+    expect(screen.getByText("Authored only")).toBeVisible();
+    expect(screen.getByText("Showing 4 of 4")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Show more reports" })).not.toBeInTheDocument();
+  });
+
+  it("requires confirmation before removing the exact report and returns focus to the library", async () => {
+    let removed = false;
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "list_report_library") {
+        return Promise.resolve(reportLibraryPage(removed ? [] : [sessionLibraryItem()]));
+      }
+      if (command === "resolve_report") return Promise.resolve(resolution());
+      if (command === "query_training_session_routes") {
+        return Promise.resolve(routeQueryResult());
+      }
+      if (command === "remove_report") {
+        expect(arguments_).toEqual({
+          request: { reportRef, expectedRevision: "1" },
+        });
+        removed = true;
+        return Promise.resolve({ reportRef, title: "Ridge progression", revision: "1" });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    renderPanel({ origin: undefined, originRequestId: 0 });
+    await user.click(await screen.findByRole("button", { name: /Open Ridge progression/ }));
+    const removeAction = await screen.findByRole("button", { name: "Remove report" });
+
+    await user.click(removeAction);
+    const review = screen.getByRole("dialog", { name: "Remove Ridge progression?" });
+    expect(within(review).getByText(/imported history and other reports stay unchanged/i))
+      .toBeVisible();
+    await user.click(within(review).getByRole("button", { name: "Keep report" }));
+    expect(mocks.invoke).not.toHaveBeenCalledWith("remove_report", expect.anything());
+    expect(removeAction).toHaveFocus();
+
+    await user.click(removeAction);
+    await user.click(within(screen.getByRole("dialog", { name: "Remove Ridge progression?" }))
+      .getByRole("button", { name: "Remove Ridge progression" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Ridge progression was removed. Imported history was not changed.",
+    );
+    expect(screen.queryByRole("button", { name: /Open Ridge progression/ }))
+      .not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Saved reports" })).toHaveFocus();
+  });
+
+  it("keeps a concurrently changed report and reloads it after removal conflicts", async () => {
+    let revision = "1";
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "list_report_library") {
+        return Promise.resolve(reportLibraryPage([
+          sessionLibraryItem({ revision }),
+        ]));
+      }
+      if (command === "resolve_report") return Promise.resolve(resolution(definition(revision)));
+      if (command === "query_training_session_routes") {
+        return Promise.resolve(routeQueryResult());
+      }
+      if (command === "remove_report") {
+        revision = "2";
+        return Promise.reject({ code: "report-definition-conflict" });
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+
+    renderPanel({ origin: undefined, originRequestId: 0 });
+    await user.click(await screen.findByRole("button", { name: "Open Ridge progression" }));
+    await user.click(await screen.findByRole("button", { name: "Remove report" }));
+    await user.click(screen.getByRole("button", { name: "Remove Ridge progression" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "This report changed while it was open",
+    );
+    expect(screen.getByRole("heading", { name: "Ridge progression", level: 3 })).toBeVisible();
+    expect(screen.getByText("Definition revision").nextElementSibling).toHaveTextContent("2");
+    expect(screen.queryByText(/was removed/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Remove report" })).toHaveFocus();
+  });
+
   it("separates the report library, composition, and preview without discarding a draft", async () => {
     mocks.invoke.mockImplementation((command) => {
-      if (command === "list_reports") return Promise.resolve({ reports: [] });
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage([]));
       if (command === "prepare_report_start") return Promise.resolve({
         sourceSnapshotRef: snapshotRef,
-        origin: { kind: "blank" },
+        origin: {
+          kind: "question",
+          question: "training-period-comparison",
+          questionVersion: 1,
+        },
         suggestedQuery: comparisonQuery,
       });
       throw new Error(`Unexpected command: ${command}`);
@@ -397,8 +719,14 @@ describe("ReportsPanel", () => {
       .toHaveAttribute("aria-current", "page");
     expect(within(navigation).getByRole("button", { name: "Compose" })).toBeDisabled();
     expect(within(navigation).getByRole("button", { name: "Preview" })).toBeDisabled();
+    expect(await screen.findByRole("heading", {
+      name: "What do you want to understand or explain?",
+    })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "New comparison" })).not.toBeInTheDocument();
 
-    await user.click(await screen.findByRole("button", { name: "Start a blank report" }));
+    await user.click(await screen.findByRole("button", {
+      name: "Compare recent training periods",
+    }));
     expect(within(navigation).getByRole("button", { name: "Compose" }))
       .toHaveAttribute("aria-current", "page");
     await user.clear(screen.getByLabelText("Report title"));
@@ -421,13 +749,9 @@ describe("ReportsPanel", () => {
 
   it("returns to the library without exposing a prior report when selection fails", async () => {
     mocks.invoke.mockImplementation((command) => {
-      if (command === "list_reports") return Promise.resolve({ reports: [{
-        reportRef,
-        title: "Unavailable report",
-        locale: "en-US",
-        sourceSnapshotRef: snapshotRef,
-        revision: "1",
-      }] });
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage([
+        sessionLibraryItem({ title: "Unavailable report", evidenceState: "unavailable" }),
+      ]));
       if (command === "resolve_report") {
         return Promise.reject({ code: "report-definition-query-failed" });
       }
@@ -452,7 +776,7 @@ describe("ReportsPanel", () => {
   it("keeps the create action and draft visible while the saved report is resolved", async () => {
     let resolveSavedReport: (value: ResolvedReport) => void = () => undefined;
     mocks.invoke.mockImplementation((command) => {
-      if (command === "list_reports") return Promise.resolve({ reports: [] });
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage([]));
       if (command === "query_training_session_routes") return Promise.resolve(routeQueryResult());
       if (command === "create_report") return Promise.resolve(definition());
       if (command === "resolve_report") {
@@ -493,15 +817,9 @@ describe("ReportsPanel", () => {
     let saved = false;
     mocks.save.mockResolvedValue("/private/output/question-report.html");
     mocks.invoke.mockImplementation((command, arguments_) => {
-      if (command === "list_reports") return Promise.resolve({ reports: saved
-        ? [{
-            reportRef,
-            title: questionDefinition().title,
-            locale: "en-US",
-            sourceSnapshotRef: snapshotRef,
-            revision: "1",
-          }]
-        : [] });
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage(
+        saved ? [libraryItemFromDefinition(questionDefinition())] : [],
+      ));
       if (command === "prepare_report_start") return Promise.resolve({
         sourceSnapshotRef: snapshotRef,
         origin: {
@@ -597,28 +915,18 @@ describe("ReportsPanel", () => {
     }));
   });
 
-  it("starts blank, persists authored content, and later adds evidence without changing origin", async () => {
+  it("opens an older authored report and adds evidence without changing its blank origin", async () => {
     const user = userEvent.setup();
-    let revision = "0";
+    let revision = "1";
     mocks.invoke.mockImplementation((command, arguments_) => {
-      if (command === "list_reports") return Promise.resolve({ reports: revision === "0"
-        ? []
-        : [{
-            reportRef,
-            title: "My training notes",
-            locale: "en-US",
-            sourceSnapshotRef: snapshotRef,
-            revision,
-          }] });
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage([
+        libraryItemFromDefinition(blankDefinition(revision, revision === "2")),
+      ]));
       if (command === "prepare_report_start") return Promise.resolve({
         sourceSnapshotRef: snapshotRef,
         origin: { kind: "blank" },
         suggestedQuery: comparisonQuery,
       });
-      if (command === "create_report") {
-        revision = "1";
-        return Promise.resolve(blankDefinition());
-      }
       if (command === "update_report") {
         revision = "2";
         return Promise.resolve(blankDefinition("2", true));
@@ -630,33 +938,17 @@ describe("ReportsPanel", () => {
     });
 
     renderPanel({ origin: undefined, originRequestId: 0 });
-    await user.click(await screen.findByRole("button", { name: "Start a blank report" }));
-    expect(screen.getByLabelText("Report title")).toHaveValue("Untitled report");
-    expect(screen.queryByLabelText("Baseline starts")).not.toBeInTheDocument();
-    await user.clear(screen.getByLabelText("Report title"));
-    await user.type(screen.getByLabelText("Report title"), "My training notes");
-    await user.type(
-      screen.getByLabelText(/^Your interpretation/),
-      "A note that starts with my own interpretation.",
-    );
-    await user.click(screen.getByRole("button", { name: "Save report" }));
-
-    await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith("create_report", {
-      request: {
-        title: "My training notes",
-        locale: "en-US",
-        sourceSnapshotRef: snapshotRef,
-        origin: { kind: "blank" },
-        blocks: [{
-          kind: "narrative",
-          body: "A note that starts with my own interpretation.",
-        }],
-      },
-    }));
+    await user.click(await screen.findByRole("button", { name: "Open My training notes" }));
     expect(await screen.findByText(
       "User-authored content; no imported evidence selected",
     )).toBeInTheDocument();
+    expect(mocks.invoke).not.toHaveBeenCalledWith("create_report", expect.anything());
     await user.click(screen.getByRole("button", { name: "Compose" }));
+    expect(screen.getByLabelText("Report title")).toHaveValue("My training notes");
+    expect(screen.getByLabelText(/^Your interpretation/)).toHaveValue(
+      "A note that starts with my own interpretation.",
+    );
+    expect(screen.queryByLabelText("Baseline starts")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Add Key finding" }));
     expect(screen.getByLabelText("Baseline starts")).toHaveValue("2026-01-01");
     await user.click(screen.getByRole("button", { name: "Save changes" }));
@@ -684,7 +976,7 @@ describe("ReportsPanel", () => {
   it("carries an exact exploration query into a report and returns to that comparison", async () => {
     const user = userEvent.setup();
     mocks.invoke.mockImplementation((command) => {
-      if (command === "list_reports") return Promise.resolve({ reports: [] });
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage([]));
       if (command === "prepare_report_start") return Promise.resolve({
         sourceSnapshotRef: snapshotRef,
         origin: { kind: "exploration", query: comparisonQuery },
@@ -728,29 +1020,20 @@ describe("ReportsPanel", () => {
       definition: { ...blankResolution().definition, reportRef: blankReportRef },
     };
     mocks.invoke.mockImplementation((command, arguments_) => {
-      if (command === "list_reports") return Promise.resolve({ reports: [
-        {
-          reportRef: sessionReportRef,
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage([
+        libraryItemFromDefinition({
+          ...sessionResolution.definition,
           title: "Session report",
-          locale: "en-US",
-          sourceSnapshotRef: snapshotRef,
-          revision: "1",
-        },
-        {
-          reportRef: explorationReportRef,
+        }),
+        libraryItemFromDefinition({
+          ...explorationResolution.definition,
           title: "Comparison report",
-          locale: "en-US",
-          sourceSnapshotRef: snapshotRef,
-          revision: "1",
-        },
-        {
-          reportRef: blankReportRef,
+        }),
+        libraryItemFromDefinition({
+          ...authoredResolution.definition,
           title: "Blank report",
-          locale: "en-US",
-          sourceSnapshotRef: snapshotRef,
-          revision: "1",
-        },
-      ] });
+        }),
+      ]));
       if (command === "resolve_report") {
         const selected = arguments_.reportRef;
         if (selected === sessionReportRef) return Promise.resolve(sessionResolution);
@@ -799,18 +1082,10 @@ describe("ReportsPanel", () => {
     const user = userEvent.setup();
     let saved: ReportDefinition | undefined;
     mocks.invoke.mockImplementation((command, arguments_) => {
-      if (command === "list_reports") {
-        return Promise.resolve({
-          reports: saved
-            ? [{
-                reportRef: saved.reportRef,
-                title: saved.title,
-                locale: saved.locale,
-                sourceSnapshotRef: saved.sourceSnapshotRef,
-                revision: saved.revision,
-              }]
-            : [],
-        });
+      if (command === "list_report_library") {
+        return Promise.resolve(reportLibraryPage(
+          saved ? [libraryItemFromDefinition(saved)] : [],
+        ));
       }
       if (command === "query_training_session_routes") {
         return Promise.resolve({ snapshotRef, sessionRef, routes: { exercises: [] } });
@@ -835,7 +1110,7 @@ describe("ReportsPanel", () => {
     );
     await user.click(screen.getByRole("button", { name: "Library" }));
     expect(screen.getByText(
-      "No reports have been saved yet. Start with a question or a blank page below.",
+      "No reports have been saved yet.",
     )).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Compose" }));
 
@@ -897,7 +1172,8 @@ describe("ReportsPanel", () => {
     ));
     expect(await screen.findByText("Report saved in your local library.")).toBeVisible();
     expect(screen.getByRole("heading", { name: "Ridge progression", level: 3 })).toBeVisible();
-    const sportIdentity = screen.getByText("Trail running").closest("dd");
+    const preview = screen.getByRole("region", { name: "Report preview" });
+    const sportIdentity = within(preview).getByText("Trail running").closest("dd");
     expect(sportIdentity).not.toBeNull();
     expect(within(sportIdentity!).getByTestId("sport-family-icon")).toBeVisible();
     expect(screen.getByText("148 bpm")).toBeVisible();
@@ -938,7 +1214,8 @@ describe("ReportsPanel", () => {
     expect(await screen.findByText("Revision 2")).toBeVisible();
 
     await user.click(screen.getByRole("button", { name: "Library" }));
-    const savedReports = screen.getByRole("heading", { name: "Saved reports" }).closest("aside");
+    const savedReports = screen.getByRole("heading", { name: "Saved reports" })
+      .closest(".report-library") as HTMLElement | null;
     expect(savedReports).not.toBeNull();
     const priorResolutions = mocks.invoke.mock.calls.filter(
       ([command]) => command === "resolve_report",
@@ -961,14 +1238,8 @@ describe("ReportsPanel", () => {
     const saved = definition();
     mocks.save.mockResolvedValue("/private/output/ridge-progression.html");
     mocks.invoke.mockImplementation((command) => {
-      if (command === "list_reports") {
-        return Promise.resolve({ reports: [{
-          reportRef,
-          title: saved.title,
-          locale: saved.locale,
-          sourceSnapshotRef: snapshotRef,
-          revision: saved.revision,
-        }] });
+      if (command === "list_report_library") {
+        return Promise.resolve(reportLibraryPage([libraryItemFromDefinition(saved)]));
       }
       if (command === "resolve_report") return Promise.resolve(resolution(saved));
       if (command === "query_training_session_routes") {
@@ -1021,15 +1292,9 @@ describe("ReportsPanel", () => {
     let saved: ReportDefinition | undefined;
     mocks.save.mockResolvedValue("/private/output/routed-report.html");
     mocks.invoke.mockImplementation((command) => {
-      if (command === "list_reports") return Promise.resolve({ reports: saved
-        ? [{
-            reportRef,
-            title: saved.title,
-            locale: saved.locale,
-            sourceSnapshotRef: snapshotRef,
-            revision: saved.revision,
-          }]
-        : [] });
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage(
+        saved ? [libraryItemFromDefinition(saved)] : [],
+      ));
       if (command === "query_training_session_routes") return Promise.resolve(routeQueryResult());
       if (command === "create_report") {
         saved = routedDefinition(0);
@@ -1146,15 +1411,9 @@ describe("ReportsPanel", () => {
     const user = userEvent.setup();
     let saved: ReportDefinition | undefined;
     mocks.invoke.mockImplementation((command) => {
-      if (command === "list_reports") return Promise.resolve({ reports: saved
-        ? [{
-            reportRef,
-            title: saved.title,
-            locale: saved.locale,
-            sourceSnapshotRef: snapshotRef,
-            revision: saved.revision,
-          }]
-        : [] });
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage(
+        saved ? [libraryItemFromDefinition(saved)] : [],
+      ));
       if (command === "query_training_session_routes") {
         return Promise.resolve({ snapshotRef, sessionRef, routes: { exercises: [] } });
       }
@@ -1271,7 +1530,8 @@ describe("ReportsPanel", () => {
     await waitFor(() => expect(reviewOrigin).toHaveFocus());
 
     await user.click(screen.getByRole("button", { name: "Library" }));
-    const savedReports = screen.getByRole("heading", { name: "Saved reports" }).closest("aside");
+    const savedReports = screen.getByRole("heading", { name: "Saved reports" })
+      .closest(".report-library") as HTMLElement | null;
     await user.click(within(savedReports!).getByRole("button", {
       name: /Winter training comparison/,
     }));
@@ -1286,22 +1546,14 @@ describe("ReportsPanel", () => {
     let rejectExport: ((reason: unknown) => void) | undefined;
     mocks.save.mockResolvedValue("/private/output/cancelled.html");
     mocks.invoke.mockImplementation((command) => {
-      if (command === "list_reports") return Promise.resolve({ reports: [
-        {
-          reportRef,
-          title: "Ridge progression",
-          locale: "en-US",
-          sourceSnapshotRef: snapshotRef,
-          revision: "1",
-        },
-        {
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage([
+        sessionLibraryItem(),
+        sessionLibraryItem({
           reportRef: `report-${digest("7")}`,
           title: "Recovery run",
-          locale: "en-US",
-          sourceSnapshotRef: snapshotRef,
           revision: "3",
-        },
-      ] });
+        }),
+      ]));
       if (command === "resolve_report") return Promise.resolve(resolution());
       if (command === "query_training_session_routes") {
         return Promise.resolve({ snapshotRef, sessionRef, routes: { exercises: [] } });
@@ -1350,7 +1602,7 @@ describe("ReportsPanel", () => {
       status: "stale" as const,
     };
     mocks.invoke.mockImplementation((command) => {
-      if (command === "list_reports") return Promise.resolve({ reports: [] });
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage([]));
       if (command === "resolve_report") return Promise.resolve(stale);
       if (command === "query_training_session_routes") {
         return Promise.resolve({ snapshotRef, sessionRef, routes: { exercises: [] } });
@@ -1392,13 +1644,15 @@ describe("ReportsPanel", () => {
       revision: "2",
     };
     mocks.invoke.mockImplementation((command) => {
-      if (command === "list_reports") return Promise.resolve({ reports: [{
-        reportRef,
-        title: "Sesión sostenida",
-        locale: "es-ES",
-        sourceSnapshotRef: refreshed ? changedSnapshotRef : snapshotRef,
-        revision: refreshed ? "2" : "1",
-      }] });
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage([
+        sessionLibraryItem({
+          title: "Sesión sostenida",
+          locale: "es-ES",
+          sourceSnapshotRef: refreshed ? changedSnapshotRef : snapshotRef,
+          revision: refreshed ? "2" : "1",
+          evidenceState: refreshed ? "current" : "stale",
+        }),
+      ]));
       if (command === "resolve_report") return Promise.resolve(refreshed
         ? {
             ...stale,
@@ -1473,7 +1727,8 @@ describe("ReportsPanel", () => {
     const refreshedNotice = await screen.findByText(/utiliza ahora la revisión de evidencias/);
     expect(refreshedNotice).toBeVisible();
     await waitFor(() => expect(refreshedNotice).toHaveFocus());
-    expect(screen.getByText("Actual")).toBeVisible();
+    const spanishPreview = screen.getByRole("region", { name: "Vista previa del informe" });
+    expect(within(spanishPreview).getByText("Evidencias actuales")).toBeVisible();
     expect(screen.getByRole("button", { name: "Revisar y exportar" })).toBeEnabled();
     await user.click(screen.getByRole("button", { name: "Componer" }));
     expect(screen.getByText("Revisión 2")).toBeVisible();
@@ -1492,13 +1747,9 @@ describe("ReportsPanel", () => {
       status: "stale" as const,
     };
     mocks.invoke.mockImplementation((command) => {
-      if (command === "list_reports") return Promise.resolve({ reports: [{
-        reportRef,
-        title: stale.definition.title,
-        locale: "en-US",
-        sourceSnapshotRef: snapshotRef,
-        revision: "1",
-      }] });
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage([
+        sessionLibraryItem({ evidenceState: "stale" }),
+      ]));
       if (command === "resolve_report") return Promise.resolve(stale);
       if (command === "query_training_session_routes") {
         return Promise.resolve({ snapshotRef, sessionRef, routes: { exercises: [] } });
@@ -1535,7 +1786,8 @@ describe("ReportsPanel", () => {
       .not.toBeInTheDocument();
     expect(screen.getByLabelText("Report title")).toHaveValue("Ridge progression");
     await user.click(within(review).getByRole("button", { name: "Keep saved version" }));
-    expect(screen.getByText("Source changed")).toBeVisible();
+    const preview = screen.getByRole("region", { name: "Report preview" });
+    expect(within(preview).getByText("Source changed")).toBeVisible();
     expect(screen.getByRole("button", { name: "Review and export" })).toBeDisabled();
   });
 });

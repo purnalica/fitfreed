@@ -3789,7 +3789,11 @@ impl From<ReportLibrarySubject> for ReportLibrarySubjectDto {
 }
 
 #[derive(Debug, Serialize)]
-#[serde(tag = "kind", rename_all = "kebab-case")]
+#[serde(
+    tag = "kind",
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase"
+)]
 enum ReportLibraryPeriodDto {
     Session {
         started_at_local: String,
@@ -3854,7 +3858,11 @@ impl From<ReportLibraryComparisonSeries> for ReportLibraryComparisonSeriesDto {
 }
 
 #[derive(Debug, Serialize)]
-#[serde(tag = "kind", rename_all = "kebab-case")]
+#[serde(
+    tag = "kind",
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase"
+)]
 enum ReportLibraryResultDto {
     Session {
         metric: &'static str,
@@ -9391,6 +9399,13 @@ mod tests {
         let value = to_value(ReportLibraryPageDto::from(page)).expect("report library response");
         assert_eq!(value["items"][0]["evidenceState"], "current");
         assert_eq!(value["items"][0]["subject"]["kind"], "session");
+        assert_eq!(
+            value["items"][0]["period"]["startedAtLocal"],
+            "2026-08-18T07:30:00.000"
+        );
+        assert!(value["items"][0]["period"]
+            .get("started_at_local")
+            .is_none());
         assert_eq!(value["items"][0]["result"]["metric"], "duration");
         assert_eq!(
             value["items"][0]["result"]["value"]["value"],
@@ -9401,6 +9416,17 @@ mod tests {
             1
         );
         assert_eq!(value["nextOffset"], json!(null));
+
+        let comparison = to_value(ReportLibraryResultDto::from(
+            ReportLibraryResult::TrainingComparison {
+                metric: ReportTrainingMetric::Distance,
+                series: Vec::new(),
+                omitted_source_count: 2,
+            },
+        ))
+        .expect("comparison report library result");
+        assert_eq!(comparison["omittedSourceCount"], 2);
+        assert!(comparison.get("omitted_source_count").is_none());
     }
 
     #[test]

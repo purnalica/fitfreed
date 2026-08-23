@@ -1841,7 +1841,7 @@
   "reports": {
     "eyebrow": "Tus informes",
     "heading": "Crea y exporta informes",
-    "intro": "Empieza con una pregunta, una comparación, una sesión de entrenamiento o un informe en blanco. Añade tu interpretación, revisa exactamente qué se incluirá y exporta un archivo HTML autocontenido.",
+    "intro": "Los informes guardados se abren mostrando sus resultados. Crea uno desde una sesión o comparación, revisa sus evidencias y exporta un archivo HTML autocontenido cuando lo decidas.",
     "workspaceNavigation": "Espacio de trabajo de informes",
     "workspaces": {
       "library": "Biblioteca",
@@ -1856,17 +1856,40 @@
     "savedHeading": "Informes guardados",
     "reload": "Actualizar",
     "loading": "Cargando los informes guardados…",
-    "empty": "Todavía no hay informes guardados. Empieza abajo con una pregunta o una página en blanco.",
-    "savedMetadata": "{locale} · revisión {revision}",
+    "empty": "Todavía no hay informes guardados.",
+    "library": {
+      "count": "Se muestran {shown} de {total}",
+      "newComparison": "Nueva comparación",
+      "open": "Abrir {title}",
+      "trainingComparison": "Comparación de periodos de entrenamiento",
+      "authoredNote": "Informe escrito",
+      "comparisonPeriod": "{baseline} comparado con {comparison}",
+      "source": "Origen importado {number}",
+      "comparisonValues": "{baseline} → {comparison} · cambio {change}",
+      "omittedSourceOne": "Hay {count} origen adicional disponible en el informe.",
+      "omittedSourceMany": "Hay {count} orígenes adicionales disponibles en el informe.",
+      "resultUnavailable": "Las evidencias guardadas no están disponibles en la biblioteca actual.",
+      "authoredOnlyResult": "Este informe contiene texto propio sin evidencias importadas.",
+      "valueUnavailable": "No disponible",
+      "metricUnits": {
+        "sessions": { "one": "sesión", "other": "sesiones" },
+        "days": { "one": "día de entrenamiento", "other": "días de entrenamiento" }
+      },
+      "sensitivity": "Evidencias sensibles incluidas",
+      "physiologyIncluded": "Frecuencia cardíaca incluida",
+      "locationIncluded": "Ubicación registrada · {count} rutas sin privacidad de extremos",
+      "locationPrivacyOne": "Ruta registrada · {meters} m de privacidad en los extremos",
+      "locationPrivacyMany": "Ubicación registrada · {count} rutas · al menos {meters} m de privacidad en los extremos",
+      "showMore": "Mostrar más informes",
+      "loadingMore": "Cargando más informes…"
+    },
     "chooseHeading": "¿Qué quieres comprender o explicar?",
-    "chooseBody": "Deja que FitFreed prepare una pregunta útil sobre tu historial de entrenamientos o empieza con tu propia estructura y añade evidencias cuando aporten valor.",
+    "chooseBody": "Empieza aquí una comparación o crea un informe desde la sesión o comparación que ya estás explorando para que sus evidencias queden seleccionadas.",
     "startQuestion": "Comparar periodos de entrenamiento recientes",
-    "startBlank": "Empezar un informe en blanco",
     "resolving": "Contrastando el informe con la biblioteca actual…",
     "defaultTitle": "Sesión de entrenamiento · {date}",
     "questionDefaultTitle": "¿Cómo ha cambiado mi entrenamiento reciente?",
     "explorationDefaultTitle": "Comparación de periodos de entrenamiento",
-    "blankDefaultTitle": "Informe sin título",
     "editingEyebrow": "Definición guardada",
     "creatingEyebrow": "Informe nuevo",
     "editHeading": "Editar informe",
@@ -1972,8 +1995,10 @@
     "previewEyebrow": "Vista previa del informe guardado",
     "previewHeading": "Vista previa del informe",
     "status": {
-      "current": "Actual",
-      "stale": "El origen ha cambiado"
+      "current": "Evidencias actuales",
+      "stale": "El origen ha cambiado",
+      "unavailable": "Evidencias no disponibles",
+      "authored-only": "Solo contenido propio"
     },
     "stale": "La biblioteca de entrenamientos cambió después de guardar esta definición. La vista previa muestra la propuesta actual; la edición y la exportación permanecen bloqueadas hasta que revises el cambio.",
     "refresh": {
@@ -2055,6 +2080,17 @@
     "chooseDestination": "Elegir destino y exportar",
     "cancelExport": "Cancelar exportación",
     "closeReview": "Volver al informe",
+    "delete": {
+      "action": "Eliminar informe",
+      "eyebrow": "Eliminación de un informe guardado",
+      "heading": "¿Eliminar {title}?",
+      "intro": "Esta acción elimina la definición guardada del informe de esta biblioteca local.",
+      "boundary": "El historial importado y los demás informes no cambian. Este informe no se puede recuperar después de confirmar.",
+      "confirm": "Eliminar {title}",
+      "cancel": "Conservar informe",
+      "removing": "Eliminando informe…",
+      "removed": "Se ha eliminado {title}. El historial importado no ha cambiado."
+    },
     "errors": {
       "invalid-report-definition": "Añade un título y una interpretación antes de guardar el informe.",
       "invalid-report-comparison-range": "Elige fechas reales y ordenadas, con un máximo de 366 días, para ambos periodos de comparación.",

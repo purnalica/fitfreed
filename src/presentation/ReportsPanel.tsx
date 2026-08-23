@@ -15,13 +15,15 @@ import type {
   ReportBlock,
   ReportDefinition,
   ReportExportReceipt,
-  ReportList,
+  ReportLibraryItem,
+  ReportLibraryMetricValue,
+  ReportLibraryPage,
   ReportOrigin,
+  RemovedReport,
   RefreshReportRequest,
   ReportRouteEvidence,
   ReportStart,
   ReportStartOrigin,
-  ReportSummary,
   ReportTrainingComparisonQuery,
   ReportTrainingMetric,
   ResolvedReport,
@@ -33,6 +35,9 @@ import {
   formatDistance,
   formatDuration,
   formatExactMetric,
+  formatSessionCardDate,
+  formatSessionCardDistance,
+  formatSessionCardDuration,
   formatTrainingDateTime,
 } from "./training-format";
 import type {
@@ -47,6 +52,7 @@ import type {
 import type { TrainingSessionSport } from "./training-session-search";
 
 const REPORT_ROUTE_VISUAL_POINT_LIMIT = 400;
+const REPORT_LIBRARY_PAGE_SIZE = 12;
 const DEFAULT_ROUTE_REDACTION_METERS = 200;
 const MAX_ROUTE_REDACTION_METERS = 5000;
 
@@ -250,9 +256,12 @@ export function ReportsPanel({
   onReturnToOrigin,
 }: ReportsPanelProps) {
   const copy = messages.reports;
-  const [reports, setReports] = useState<ReportSummary[]>([]);
+  const [reports, setReports] = useState<ReportLibraryItem[]>([]);
+  const [reportCount, setReportCount] = useState(0);
+  const [nextReportOffset, setNextReportOffset] = useState<number | null>(null);
   const [workspace, setWorkspace] = useState<ReportWorkspace>("library");
   const [listLoading, setListLoading] = useState(true);
+  const [listLoadingMore, setListLoadingMore] = useState(false);
   const [listFailed, setListFailed] = useState(false);
   const [editor, setEditor] = useState<EditorState>();
   const [resolved, setResolved] = useState<ResolvedReport>();
@@ -267,6 +276,12 @@ export function ReportsPanel({
   const [refreshedNotice, setRefreshedNotice] = useState(false);
   const [refreshReviewOpen, setRefreshReviewOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [deleteReviewOpen, setDeleteReviewOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [removedNotice, setRemovedNotice] = useState<string>();
+  const libraryHeadingRef = useRef<HTMLHeadingElement>(null);
+  const deleteReviewHeadingRef = useRef<HTMLHeadingElement>(null);
+  const deleteReviewOriginRef = useRef<HTMLElement>(null);
   const requestedReportHeadingRef = useRef<HTMLHeadingElement>(null);
   const refreshReviewHeadingRef = useRef<HTMLHeadingElement>(null);
   const refreshReviewOriginRef = useRef<HTMLElement>(null);
@@ -285,17 +300,32 @@ export function ReportsPanel({
   const exportedNoticeRef = useRef<HTMLParagraphElement>(null);
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
 
-  async function refreshList() {
-    setListLoading(true);
+  async function loadReportPage(offset: number, append: boolean) {
+    if (append) setListLoadingMore(true);
+    else setListLoading(true);
     setListFailed(false);
     try {
-      const result = await invoke<ReportList>("list_reports");
-      setReports(result.reports);
+      const result = await invoke<ReportLibraryPage>("list_report_library", {
+        request: { offset, limit: REPORT_LIBRARY_PAGE_SIZE },
+      });
+      setReports((current) => append ? [...current, ...result.items] : result.items);
+      setReportCount(result.totalCount);
+      setNextReportOffset(result.nextOffset);
     } catch {
       setListFailed(true);
     } finally {
-      setListLoading(false);
+      if (append) setListLoadingMore(false);
+      else setListLoading(false);
     }
+  }
+
+  async function refreshList() {
+    await loadReportPage(0, false);
+  }
+
+  async function loadMoreReports() {
+    if (nextReportOffset === null || listLoadingMore) return;
+    await loadReportPage(nextReportOffset, true);
   }
 
   useEffect(() => {
@@ -308,8 +338,10 @@ export function ReportsPanel({
     setSavedNotice(false);
     setRefreshedNotice(false);
     setRefreshReviewOpen(false);
+    setDeleteReviewOpen(false);
     setPrivacyReviewOpen(false);
     setExportedBytes(undefined);
+    setRemovedNotice(undefined);
   }
 
   async function beginPreparedReport(start: ReportStart, title: string) {
@@ -344,6 +376,17 @@ export function ReportsPanel({
     } finally {
       setResolving(false);
     }
+  }
+
+  function beginTrainingComparisonReport() {
+    void beginPreparedReport(
+      {
+        kind: "question",
+        question: "training-period-comparison",
+        questionVersion: 1,
+      },
+      copy.questionDefaultTitle,
+    );
   }
 
   useEffect(() => {
@@ -413,6 +456,19 @@ export function ReportsPanel({
       privacyReviewOriginRef.current,
     );
   }, [privacyReviewOpen]);
+
+  useEffect(() => {
+    if (!deleteReviewOpen) return;
+    return restoreFocusAfterReveal(
+      deleteReviewHeadingRef.current,
+      deleteReviewOriginRef.current,
+    );
+  }, [deleteReviewOpen]);
+
+  useEffect(() => {
+    if (!removedNotice) return;
+    return restoreFocusAfterReveal(libraryHeadingRef.current);
+  }, [removedNotice]);
 
   useEffect(() => {
     if (!refreshedNotice) return;
@@ -498,6 +554,7 @@ export function ReportsPanel({
 
   async function openReport(reportRef: string) {
     setWorkspace("preview");
+    setRemovedNotice(undefined);
     setSavedNotice(false);
     setRefreshedNotice(false);
     setEditor(undefined);
@@ -505,6 +562,48 @@ export function ReportsPanel({
     const report = await resolveReport(reportRef);
     if (!report) setWorkspace("library");
     return report;
+  }
+
+  function beginDeleteReview(originElement: HTMLElement) {
+    if (!resolved) return;
+    deleteReviewOriginRef.current = originElement;
+    setLocalError(undefined);
+    setDeleteReviewOpen(true);
+  }
+
+  function closeDeleteReview(initiatingElement: HTMLElement) {
+    setDeleteReviewOpen(false);
+    restoreFocusAfterReveal(deleteReviewOriginRef.current, initiatingElement);
+  }
+
+  async function confirmDeleteReport() {
+    if (!resolved) return;
+    const { reportRef, revision } = resolved.definition;
+    setDeleting(true);
+    setLocalError(undefined);
+    try {
+      const removed = await invoke<RemovedReport>("remove_report", {
+        request: { reportRef, expectedRevision: revision },
+      });
+      setDeleteReviewOpen(false);
+      setResolved(undefined);
+      setEditor(undefined);
+      setWorkspace("library");
+      await refreshList();
+      setRemovedNotice(interpolate(copy.delete.removed, { title: removed.title }));
+    } catch (reason) {
+      const code = commandErrorCode(reason);
+      setDeleteReviewOpen(false);
+      if (code === "report-definition-conflict") {
+        await refreshList();
+        const current = await resolveReport(reportRef);
+        setWorkspace(current ? "preview" : "library");
+      }
+      setLocalError(code);
+      restoreFocusAfterReveal(deleteReviewOriginRef.current);
+    } finally {
+      setDeleting(false);
+    }
   }
 
   function beginRefreshReview(origin: HTMLElement) {
@@ -787,6 +886,143 @@ export function ReportsPanel({
       return messages.training.sports.families[sport.classification.canonicalFamily];
     }
     return sport.state === "unknown" ? copy.sportUnclassified : copy.sportUnavailable;
+  }
+
+  function countWithUnit(
+    value: string,
+    units: { one: string; other: string },
+  ): string {
+    const exact = BigInt(value);
+    return `${number.format(exact)} ${exact === 1n || exact === -1n ? units.one : units.other}`;
+  }
+
+  function formatLibraryMetric(
+    value: ReportLibraryMetricValue | null,
+    metric: ReportTrainingMetric,
+  ): string {
+    if (value === null) return copy.library.valueUnavailable;
+    const numeric = value.kind === "integer" ? Number(value.value) : value.value;
+    switch (metric) {
+      case "session-count":
+        return value.kind === "integer"
+          ? countWithUnit(value.value, copy.library.metricUnits.sessions)
+          : `${number.format(numeric)} ${copy.library.metricUnits.sessions.other}`;
+      case "training-days":
+        return value.kind === "integer"
+          ? countWithUnit(value.value, copy.library.metricUnits.days)
+          : `${number.format(numeric)} ${copy.library.metricUnits.days.other}`;
+      case "duration":
+        return formatSessionCardDuration(
+          Math.round(numeric).toString(),
+          locale,
+          messages.training.durationUnits,
+        );
+      case "distance":
+        return numeric < 0
+          ? `−${formatSessionCardDistance(-numeric, locale, messages.training.units)}`
+          : formatSessionCardDistance(numeric, locale, messages.training.units);
+      case "energy":
+        return `${number.format(numeric)} ${messages.training.units.kilocalories}`;
+    }
+  }
+
+  function libraryPeriod(report: ReportLibraryItem): string | null {
+    if (report.period?.kind === "session") {
+      return formatSessionCardDate(report.period.startedAtLocal, locale);
+    }
+    if (report.period?.kind === "training-comparison") {
+      return interpolate(copy.library.comparisonPeriod, {
+        baseline: formatReportRange(report.period.baselineRange, locale),
+        comparison: formatReportRange(report.period.comparisonRange, locale),
+      });
+    }
+    return null;
+  }
+
+  function renderLibraryResult(report: ReportLibraryItem) {
+    if (report.result?.kind === "session") {
+      return (
+        <div className="report-library-primary-result">
+          <span>{copy.analysis.metrics[report.result.metric]}</span>
+          <strong>{formatLibraryMetric(report.result.value, report.result.metric)}</strong>
+        </div>
+      );
+    }
+    if (report.result?.kind === "training-comparison") {
+      const result = report.result;
+      return (
+        <div className="report-library-comparison-result">
+          <p>{copy.analysis.metrics[result.metric]}</p>
+          <dl>
+            {result.series.map((series) => (
+              <div key={series.sourceIndex}>
+                <dt>{interpolate(copy.library.source, {
+                  number: number.format(series.sourceIndex),
+                })}</dt>
+                <dd>
+                  <strong>{formatLibraryMetric(
+                    series.comparisonValue,
+                    result.metric,
+                  )}</strong>
+                  <span>{interpolate(copy.library.comparisonValues, {
+                    baseline: formatLibraryMetric(
+                      series.baselineValue,
+                      result.metric,
+                    ),
+                    comparison: formatLibraryMetric(
+                      series.comparisonValue,
+                      result.metric,
+                    ),
+                    change: formatLibraryMetric(series.change, result.metric),
+                  })}</span>
+                </dd>
+              </div>
+            ))}
+          </dl>
+          {result.omittedSourceCount > 0 && (
+            <small>{interpolate(
+              result.omittedSourceCount === 1
+                ? copy.library.omittedSourceOne
+                : copy.library.omittedSourceMany,
+              {
+                count: number.format(result.omittedSourceCount),
+              },
+            )}</small>
+          )}
+        </div>
+      );
+    }
+    return (
+      <p className="report-library-result-unavailable">
+        {report.evidenceState === "authored-only"
+          ? copy.library.authoredOnlyResult
+          : copy.library.resultUnavailable}
+      </p>
+    );
+  }
+
+  function renderLibrarySensitivity(report: ReportLibraryItem) {
+    const labels: string[] = [];
+    if (report.sensitivity.includesPhysiologicalContext) {
+      labels.push(copy.library.physiologyIncluded);
+    }
+    if (report.sensitivity.preciseLocationBlockCount > 0) {
+      const count = report.sensitivity.preciseLocationBlockCount;
+      const meters = report.sensitivity.minimumEndpointRedactionMeters;
+      labels.push(meters === null
+        ? interpolate(copy.library.locationIncluded, { count: number.format(count) })
+        : interpolate(
+            count === 1
+              ? copy.library.locationPrivacyOne
+              : copy.library.locationPrivacyMany,
+            { count: number.format(count), meters: number.format(meters) },
+          ));
+    }
+    return labels.length === 0 ? null : (
+      <ul className="report-library-sensitivity" aria-label={copy.library.sensitivity}>
+        {labels.map((label) => <li key={label}>{label}</li>)}
+      </ul>
+    );
   }
 
   function routeLabel(route: Pick<TrainingRouteOverview, "kind" | "startedAtLocal">): string {
@@ -1261,21 +1497,45 @@ export function ReportsPanel({
       />
 
       <div className={`reports-layout reports-layout-${workspace}`}>
-        <aside
+        <section
           className="report-library"
           aria-labelledby="saved-reports-heading"
           hidden={workspace !== "library"}
         >
           <div className="report-section-heading">
-            <h2 id="saved-reports-heading">{copy.savedHeading}</h2>
-            <button
-              type="button"
-              className="secondary"
-              onClick={() => void refreshList()}
-              disabled={listLoading}
-            >
-              {copy.reload}
-            </button>
+            <div>
+              <h2 id="saved-reports-heading" ref={libraryHeadingRef} tabIndex={-1}>
+                {copy.savedHeading}
+              </h2>
+              {!listLoading && !listFailed && reportCount > 0 && (
+                <p className="report-library-count" aria-live="polite">
+                  {interpolate(copy.library.count, {
+                    shown: number.format(reports.length),
+                    total: number.format(reportCount),
+                  })}
+                </p>
+              )}
+            </div>
+            <div className="report-library-heading-actions">
+              {!listLoading && !listFailed && reports.length > 0 && (
+                <button
+                  type="button"
+                  className="secondary report-library-new-comparison"
+                  disabled={disabled}
+                  onClick={beginTrainingComparisonReport}
+                >
+                  {copy.library.newComparison}
+                </button>
+              )}
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => void refreshList()}
+                disabled={listLoading}
+              >
+                {copy.reload}
+              </button>
+            </div>
           </div>
           {listLoading && <p role="status">{copy.loading}</p>}
           {listFailed && (
@@ -1283,63 +1543,91 @@ export function ReportsPanel({
               {copy.errors["report-definition-query-failed"]}
             </p>
           )}
-          {!listLoading && !listFailed && reports.length === 0 && <p>{copy.empty}</p>}
+          {!listLoading && !listFailed && reports.length === 0 && (
+            <section className="report-empty-editor report-library-start">
+              <div>
+                <h2>{copy.chooseHeading}</h2>
+                <p>{copy.empty}</p>
+                <p>{copy.chooseBody}</p>
+              </div>
+              <div className="report-start-actions">
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={beginTrainingComparisonReport}
+                >
+                  {copy.startQuestion}
+                </button>
+              </div>
+            </section>
+          )}
+          {removedNotice && <p className="notice" role="status">{removedNotice}</p>}
           {reports.length > 0 && (
             <ul className="report-list">
               {reports.map((report) => (
                 <li key={report.reportRef}>
                   <button
                     type="button"
+                    aria-label={interpolate(copy.library.open, { title: report.title })}
                     aria-current={resolved?.definition.reportRef === report.reportRef
                       ? "page"
                       : undefined}
                     onClick={() => void openReport(report.reportRef)}
                     disabled={resolving}
                   >
-                    <strong>{report.title}</strong>
-                    <span>{interpolate(copy.savedMetadata, {
-                      locale: report.locale,
-                      revision: report.revision,
-                    })}</span>
+                    <span className="report-library-card-heading">
+                      <strong>{report.title}</strong>
+                      <span className={`report-status report-status-${report.evidenceState}`}>
+                        {copy.status[report.evidenceState]}
+                      </span>
+                    </span>
+                    <span className="report-library-subject">
+                      {report.subject.kind === "session" && (
+                        <>
+                          <SportFamilyIcon
+                            family={report.subject.sport.classification?.canonicalFamily ?? null}
+                            state={report.subject.sport.state}
+                          />
+                          <span>{sportLabel(report.subject.sport)}</span>
+                        </>
+                      )}
+                      {report.subject.kind === "training-comparison"
+                        && <span>{copy.library.trainingComparison}</span>}
+                      {report.subject.kind === "authored-note"
+                        && <span>{copy.library.authoredNote}</span>}
+                    </span>
+                    {report.period?.kind === "session"
+                      ? (
+                        <time
+                          className="report-library-period"
+                          dateTime={report.period.startedAtLocal}
+                        >
+                          {libraryPeriod(report)}
+                        </time>
+                      )
+                      : libraryPeriod(report) && (
+                        <span className="report-library-period">{libraryPeriod(report)}</span>
+                      )}
+                    {renderLibraryResult(report)}
+                    {renderLibrarySensitivity(report)}
                   </button>
                 </li>
               ))}
             </ul>
           )}
-        </aside>
+          {nextReportOffset !== null && (
+            <button
+              type="button"
+              className="secondary report-library-more"
+              disabled={listLoadingMore}
+              onClick={() => void loadMoreReports()}
+            >
+              {listLoadingMore ? copy.library.loadingMore : copy.library.showMore}
+            </button>
+          )}
+        </section>
 
         <div className="report-workspace">
-          <section className="report-empty-editor" hidden={workspace !== "library"}>
-            <h2>{copy.chooseHeading}</h2>
-            <p>{copy.chooseBody}</p>
-            <div className="report-start-actions">
-                <button
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => void beginPreparedReport(
-                    {
-                      kind: "question",
-                      question: "training-period-comparison",
-                      questionVersion: 1,
-                    },
-                    copy.questionDefaultTitle,
-                  )}
-                >
-                  {copy.startQuestion}
-                </button>
-                <button
-                  type="button"
-                  className="secondary"
-                  disabled={disabled}
-                  onClick={() => void beginPreparedReport(
-                    { kind: "blank" },
-                    copy.blankDefaultTitle,
-                  )}
-                >
-                  {copy.startBlank}
-                </button>
-            </div>
-          </section>
           {resolving && !saving && <p role="status">{copy.resolving}</p>}
           {editor && (
             <form
@@ -1707,7 +1995,10 @@ export function ReportsPanel({
             <section
               className="report-preview"
               aria-labelledby="report-preview-heading"
-              hidden={workspace !== "preview" || refreshReviewOpen || privacyReviewOpen}
+              hidden={workspace !== "preview"
+                || refreshReviewOpen
+                || privacyReviewOpen
+                || deleteReviewOpen}
             >
               <div className="report-section-heading">
                 <div>
@@ -1751,6 +2042,14 @@ export function ReportsPanel({
                 >
                   {copy.reviewExport}
                 </button>
+                <button
+                  type="button"
+                  className="secondary danger-action"
+                  disabled={disabled || deleting}
+                  onClick={(event) => beginDeleteReview(event.currentTarget)}
+                >
+                  {copy.delete.action}
+                </button>
               </div>
               <h3 className="report-preview-title">{resolved.definition.title}</h3>
               {resolved.definition.blocks.map(renderPreviewBlock)}
@@ -1785,6 +2084,49 @@ export function ReportsPanel({
                   <div><dt>{copy.definitionRevision}</dt><dd>{resolved.definition.revision}</dd></div>
                 </dl>
               </details>
+            </section>
+          )}
+
+          {workspace === "preview" && deleteReviewOpen && resolved && (
+            <section
+              className="report-delete-review"
+              role="dialog"
+              aria-labelledby="report-delete-heading"
+              aria-busy={deleting}
+            >
+              <p className="eyebrow">{copy.delete.eyebrow}</p>
+              <h2
+                id="report-delete-heading"
+                ref={deleteReviewHeadingRef}
+                tabIndex={-1}
+              >
+                {interpolate(copy.delete.heading, { title: resolved.definition.title })}
+              </h2>
+              <p>{copy.delete.intro}</p>
+              <p className="report-delete-boundary">{copy.delete.boundary}</p>
+              <div className="report-actions">
+                <button
+                  type="button"
+                  className="danger-action"
+                  disabled={deleting}
+                  onClick={() => void confirmDeleteReport()}
+                >
+                  {interpolate(copy.delete.confirm, { title: resolved.definition.title })}
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={deleting}
+                  onClick={(event) => closeDeleteReview(event.currentTarget)}
+                >
+                  {copy.delete.cancel}
+                </button>
+                {deleting && (
+                  <span className="progress-submit-status" role="status" aria-live="polite">
+                    {copy.delete.removing}
+                  </span>
+                )}
+              </div>
             </section>
           )}
 

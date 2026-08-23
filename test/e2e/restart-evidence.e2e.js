@@ -119,6 +119,35 @@ describe("packaged FitFreed application-process restart", () => {
       ),
     );
 
+    const removeAction = await $(`aria/${spanish.reports.delete.action}`);
+    await removeAction.click();
+    let removalReview = await $(".report-delete-review");
+    await expect(removalReview).toHaveText(
+      expect.stringContaining(spanish.reports.delete.boundary),
+    );
+    await removalReview.$(`aria/${spanish.reports.delete.cancel}`).click();
+    await expect(removeAction).toBeFocused();
+
+    await removeAction.click();
+    removalReview = await $(".report-delete-review");
+    await removalReview.$(`aria/${spanish.reports.delete.confirm.replace(
+      "{title}",
+      "Synthetic comparison answer",
+    )}`).click();
+    await expect($(".report-library [role='status']")).toHaveText(
+      spanish.reports.delete.removed.replace("{title}", "Synthetic comparison answer"),
+    );
+    const remainingReports = await $$(".report-list button");
+    expect(remainingReports).toHaveLength(1);
+    await expect(remainingReports[0]).toHaveText(
+      expect.stringContaining("Synthetic ridge progression"),
+    );
+
+    await goToHome("explore");
+    await expect($("#training-session-detail-heading")).toHaveText(
+      spanish.training.sessionLibrary.detailHeading,
+    );
+
     await goToHome("sources");
     await expect($("#outcome-heading")).toHaveText(spanish.outcome.changedHeading);
   });

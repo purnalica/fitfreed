@@ -5,6 +5,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { catalogs } from "./locales/catalogs";
 import type { ApplicationPreferencesLoad } from "./presentation/application-preferences";
+import type {
+  ReportLibraryItem,
+  ReportLibraryPage,
+  ReportTrainingComparisonQuery,
+} from "./presentation/session-report";
 import type { SessionStory } from "./presentation/session-story";
 import type { TrainingSessionSearchPage } from "./presentation/training-session-search";
 import type { TrainingSportsOverview } from "./presentation/training-sports";
@@ -208,6 +213,49 @@ function trainingSessionSearchPage(
 
 function emptyTrainingSessionSearchPage(): TrainingSessionSearchPage {
   return trainingSessionSearchPage([], null);
+}
+
+function reportLibraryPage(items: ReportLibraryItem[] = []): ReportLibraryPage {
+  return {
+    items,
+    totalCount: items.length,
+    offset: 0,
+    limit: 12,
+    nextOffset: null,
+  };
+}
+
+function comparisonReportLibraryItem(
+  reportRef: string,
+  title: string,
+  sourceSnapshotRef: string,
+  query: ReportTrainingComparisonQuery,
+): ReportLibraryItem {
+  return {
+    reportRef,
+    title,
+    locale: "en-US",
+    sourceSnapshotRef,
+    revision: "1",
+    evidenceState: "current",
+    subject: { kind: "training-comparison" },
+    period: {
+      kind: "training-comparison",
+      baselineRange: query.baselineRange,
+      comparisonRange: query.comparisonRange,
+    },
+    result: {
+      kind: "training-comparison",
+      metric: "session-count",
+      series: [],
+      omittedSourceCount: 0,
+    },
+    sensitivity: {
+      includesPhysiologicalContext: false,
+      preciseLocationBlockCount: 0,
+      minimumEndpointRedactionMeters: null,
+    },
+  };
 }
 
 function testSessionStory(
@@ -825,7 +873,7 @@ beforeEach(() => {
     if (command === "query_latest_import_outcome") {
       return Promise.resolve(null);
     }
-    if (command === "list_reports") return Promise.resolve({ reports: [] });
+    if (command === "list_report_library") return Promise.resolve(reportLibraryPage());
     throw new Error(`Unexpected command: ${command}`);
   });
   mocks.updateInvoke.mockImplementation((command) => {
@@ -894,7 +942,7 @@ function emptyLibrary(initialLocale: "en-US" | "es-ES" | null = "en-US") {
   mocks.invoke.mockImplementation((command) => {
     if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
     if (command === "query_latest_import_outcome") return Promise.resolve(null);
-    if (command === "list_reports") return Promise.resolve({ reports: [] });
+    if (command === "list_report_library") return Promise.resolve(reportLibraryPage());
     throw new Error(`Unexpected command: ${command}`);
   });
   return {
@@ -1832,13 +1880,15 @@ describe("FitFreed import interface", () => {
     await waitFor(() => expect(mocks.homeInvoke).toHaveBeenCalledWith("query_library_home", {
       request: { afterImportOperationRef: null },
     }));
-    expect(mocks.invoke).not.toHaveBeenCalledWith("list_reports", undefined);
+    expect(mocks.invoke).not.toHaveBeenCalledWith("list_report_library", expect.anything());
 
     await user.click(screen.getByRole("button", { name: "Reports" }));
     expect(await screen.findByRole("heading", {
       name: "Create and export reports",
     })).toBeVisible();
-    expect(mocks.invoke.mock.calls.filter(([command]) => command === "list_reports")).toHaveLength(1);
+    expect(mocks.invoke.mock.calls.filter(
+      ([command]) => command === "list_report_library",
+    )).toHaveLength(1);
     await act(async () => resolveLibraryHome(emptyLibraryHome()));
     expect(screen.getByRole("button", { name: "Reports" })).toHaveAttribute(
       "aria-current",
@@ -1851,7 +1901,7 @@ describe("FitFreed import interface", () => {
     })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Reports" }));
     await waitFor(() => expect(
-      mocks.invoke.mock.calls.filter(([command]) => command === "list_reports"),
+      mocks.invoke.mock.calls.filter(([command]) => command === "list_report_library"),
     ).toHaveLength(2));
   });
 
@@ -1862,7 +1912,7 @@ describe("FitFreed import interface", () => {
         return Promise.resolve(emptyActivityOverview());
       }
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
-      if (command === "list_reports") {
+      if (command === "list_report_library") {
         return Promise.reject({ code: "report-definition-query-failed" });
       }
       throw new Error(`Unexpected command: ${command}`);
@@ -1899,13 +1949,9 @@ describe("FitFreed import interface", () => {
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
-      if (command === "list_reports") return Promise.resolve({ reports: [{
-        reportRef,
-        title: "Winter review",
-        locale: "en-US",
-        sourceSnapshotRef: snapshotRef,
-        revision: "1",
-      }] });
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage([
+        comparisonReportLibraryItem(reportRef, "Winter review", snapshotRef, query),
+      ]));
       if (command === "resolve_report") return Promise.resolve({
         definition: {
           reportRef,
@@ -2910,7 +2956,7 @@ describe("FitFreed import interface", () => {
         return requestCount === 1 ? Promise.resolve(current) : pendingReset;
       }
       if (command === "query_latest_import_outcome") return Promise.resolve(null);
-      if (command === "list_reports") return Promise.resolve({ reports: [] });
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage());
       throw new Error(`Unexpected command: ${command}`);
     });
     const user = userEvent.setup();
@@ -3816,7 +3862,7 @@ describe("FitFreed import interface", () => {
         ));
       }
       if (command === "query_training_comparison") return Promise.resolve(comparisonResult);
-      if (command === "list_reports") return Promise.resolve({ reports: [] });
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage());
       if (command === "prepare_report_start") return Promise.resolve({
         sourceSnapshotRef: "snapshot-current",
         origin: {

@@ -1652,15 +1652,26 @@ R9 proceeds in six independently usable slices:
 No slice may resolve every saved report through the complete export path merely to render the library. The
 bounded projection must obtain only the evidence needed for recognition and current-state disclosure.
 
-**Execution state:** slices 1 and 2 are complete locally. Version-4 factual definitions accept no authored
+**Execution state:** slices 1 through 3 are complete locally. Version-4 factual definitions accept no authored
 narrative, while versions 1–3 retain their historical contract. Removal crosses domain authorization,
 application orchestration, optimistic SQLite persistence, desktop transport, machine-readable schemas, and
 normative documentation. The new result-first library pages up to 24 definitions, resolves one session or comparison
 metric, preserves up to four sources without merging them, caches identical page queries, identifies current,
 stale, unavailable, and authored-only evidence, and avoids route, signal, provenance, and export work.
-Synthetic and real-SQLite integration evidence passed, followed by the complete fast gate: 156 tooling tests,
-319 React tests, 2 vendored-updater tests, 223 desktop-host tests, 199 application tests, 48 domain tests, and
-2 private-example tests. Slice 3 is next.
+Production now renders those facts as human-scale cards without visible references or revisions, opens a
+saved card in Preview rather than Compose, removes the generic blank start, and offers revision-bound deletion
+with cancellation, exact conflict recovery, focus restoration, and no imported-history mutation. The
+supported comparison start remains expanded only for an empty Library and becomes one compact secondary
+action once saved results exist. Visual falsification rejected an earlier composition that placed its expanded
+start before saved results at 200% zoom; the corrected hierarchy keeps a useful portion of the first result in
+view.
+
+The complete fast gate passed 156 tooling tests, 323 React tests, 2 vendored-updater tests, 223 desktop-host
+tests, 199 application tests, 48 domain tests, and 2 private-example tests. Strict formatting, Clippy, the
+production build, localized contract checks, and the exact rebuilt packaged macOS journey passed. That journey
+covered English wide and Spanish dark 200% Library geometry, automated accessibility, deletion through a new
+process, adaptive session composition, and restart. The dense two-year packaged campaign remained inside every
+accepted budget. Slice 4 is next.
 
 ## X5-R10 — Harden the complete product journey
 

@@ -1841,7 +1841,7 @@
   "reports": {
     "eyebrow": "Your reports",
     "heading": "Create and export reports",
-    "intro": "Start with a question, a comparison, a training session, or a blank report. Add your interpretation, review exactly what will be included, and export a self-contained HTML file.",
+    "intro": "Saved reports open as results. Create one from a training session or comparison, review its evidence, and export a self-contained HTML file when you choose.",
     "workspaceNavigation": "Report workspace",
     "workspaces": {
       "library": "Library",
@@ -1856,17 +1856,40 @@
     "savedHeading": "Saved reports",
     "reload": "Reload",
     "loading": "Loading saved reports…",
-    "empty": "No reports have been saved yet. Start with a question or a blank page below.",
-    "savedMetadata": "{locale} · revision {revision}",
+    "empty": "No reports have been saved yet.",
+    "library": {
+      "count": "Showing {shown} of {total}",
+      "newComparison": "New comparison",
+      "open": "Open {title}",
+      "trainingComparison": "Training-period comparison",
+      "authoredNote": "Authored report",
+      "comparisonPeriod": "{baseline} compared with {comparison}",
+      "source": "Imported source {number}",
+      "comparisonValues": "{baseline} → {comparison} · change {change}",
+      "omittedSourceOne": "{count} additional source is available in the report.",
+      "omittedSourceMany": "{count} additional sources are available in the report.",
+      "resultUnavailable": "The saved evidence is not available in the current library.",
+      "authoredOnlyResult": "This report contains authored content without imported evidence.",
+      "valueUnavailable": "Not available",
+      "metricUnits": {
+        "sessions": { "one": "session", "other": "sessions" },
+        "days": { "one": "training day", "other": "training days" }
+      },
+      "sensitivity": "Included sensitive evidence",
+      "physiologyIncluded": "Heart rate included",
+      "locationIncluded": "Recorded location · {count} routes without endpoint privacy",
+      "locationPrivacyOne": "Recorded route · {meters} m endpoint privacy",
+      "locationPrivacyMany": "Recorded location · {count} routes · at least {meters} m endpoint privacy",
+      "showMore": "Show more reports",
+      "loadingMore": "Loading more reports…"
+    },
     "chooseHeading": "What do you want to understand or explain?",
-    "chooseBody": "Let FitFreed prepare a useful training-history question, or begin with your own structure and add evidence when it helps.",
+    "chooseBody": "Start a comparison here, or create a report from the session or comparison you are already exploring so its evidence is selected for you.",
     "startQuestion": "Compare recent training periods",
-    "startBlank": "Start a blank report",
     "resolving": "Resolving the report against the current library…",
     "defaultTitle": "Training session · {date}",
     "questionDefaultTitle": "How has my recent training changed?",
     "explorationDefaultTitle": "Training period comparison",
-    "blankDefaultTitle": "Untitled report",
     "editingEyebrow": "Saved definition",
     "creatingEyebrow": "New report",
     "editHeading": "Edit report",
@@ -1972,8 +1995,10 @@
     "previewEyebrow": "Saved report preview",
     "previewHeading": "Report preview",
     "status": {
-      "current": "Current",
-      "stale": "Source changed"
+      "current": "Current evidence",
+      "stale": "Source changed",
+      "unavailable": "Evidence unavailable",
+      "authored-only": "Authored only"
     },
     "stale": "The training library changed after this definition was saved. The preview shows the current candidate, while editing and export remain locked until you review the change.",
     "refresh": {
@@ -2055,6 +2080,17 @@
     "chooseDestination": "Choose destination and export",
     "cancelExport": "Cancel export",
     "closeReview": "Back to report",
+    "delete": {
+      "action": "Remove report",
+      "eyebrow": "Saved report removal",
+      "heading": "Remove {title}?",
+      "intro": "This removes the saved report definition from this local library.",
+      "boundary": "Imported history and other reports stay unchanged. This report cannot be recovered after confirmation.",
+      "confirm": "Remove {title}",
+      "cancel": "Keep report",
+      "removing": "Removing report…",
+      "removed": "{title} was removed. Imported history was not changed."
+    },
     "errors": {
       "invalid-report-definition": "Add a title and an interpretation before saving the report.",
       "invalid-report-comparison-range": "Choose real, ordered dates of no more than 366 days for both comparison periods.",

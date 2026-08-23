@@ -1,4 +1,4 @@
-import type { TrainingSessionSearchItem } from "./training-session-search";
+import type { TrainingSessionSearchItem, TrainingSessionSport } from "./training-session-search";
 import type { TrainingProvenanceCurrent } from "./training-session-provenance";
 import type { TrainingRouteKind, TrainingRoutePoint } from "./training-session-route";
 import type { TrainingComparison, TrainingDateRange } from "./training-insights";
@@ -142,6 +142,77 @@ export interface ReportSummary {
 
 export interface ReportList {
   reports: ReportSummary[];
+}
+
+export type ReportLibraryEvidenceState =
+  | "current"
+  | "stale"
+  | "unavailable"
+  | "authored-only";
+
+export type ReportLibraryMetricValue =
+  | { kind: "integer"; value: string }
+  | { kind: "decimal"; value: number };
+
+export type ReportLibrarySubject =
+  | { kind: "session"; sport: TrainingSessionSport }
+  | { kind: "training-comparison" }
+  | { kind: "authored-note" };
+
+export type ReportLibraryPeriod =
+  | { kind: "session"; startedAtLocal: string }
+  | {
+      kind: "training-comparison";
+      baselineRange: TrainingDateRange;
+      comparisonRange: TrainingDateRange;
+    };
+
+export interface ReportLibraryComparisonSeries {
+  sourceIndex: number;
+  baselineValue: ReportLibraryMetricValue | null;
+  comparisonValue: ReportLibraryMetricValue | null;
+  change: ReportLibraryMetricValue | null;
+}
+
+export type ReportLibraryResult =
+  | {
+      kind: "session";
+      metric: "duration" | "distance";
+      value: ReportLibraryMetricValue;
+    }
+  | {
+      kind: "training-comparison";
+      metric: ReportTrainingMetric;
+      series: ReportLibraryComparisonSeries[];
+      omittedSourceCount: number;
+    };
+
+export interface ReportLibrarySensitivity {
+  includesPhysiologicalContext: boolean;
+  preciseLocationBlockCount: number;
+  minimumEndpointRedactionMeters: number | null;
+}
+
+export interface ReportLibraryItem extends ReportSummary {
+  evidenceState: ReportLibraryEvidenceState;
+  subject: ReportLibrarySubject;
+  period: ReportLibraryPeriod | null;
+  result: ReportLibraryResult | null;
+  sensitivity: ReportLibrarySensitivity;
+}
+
+export interface ReportLibraryPage {
+  items: ReportLibraryItem[];
+  totalCount: number;
+  offset: number;
+  limit: number;
+  nextOffset: number | null;
+}
+
+export interface RemovedReport {
+  reportRef: string;
+  title: string;
+  revision: string;
 }
 
 export interface RefreshReportRequest {

@@ -82,6 +82,13 @@ async function expectDocumentFocus(selector, timeoutMsg) {
   );
 }
 
+async function expectElementFocus(element, timeoutMsg) {
+  await browser.waitUntil(
+    () => element.isFocused(),
+    { timeout: 10_000, timeoutMsg },
+  );
+}
+
 async function expectFocusedStatus(fragment, timeoutMsg) {
   await browser.waitUntil(
     () => browser.execute((expected) => (
@@ -2276,6 +2283,37 @@ describe("packaged FitFreed import journey", () => {
     expect(await $$(".report-analysis-table")).toHaveLength(3);
     await openReportWorkspace(english, "library");
     expect(await $$(".report-list > li")).toHaveLength(1);
+    const wideReportLibraryGeometry = await browser.execute(() => {
+      const root = document.documentElement;
+      const library = document.querySelector(".report-library").getBoundingClientRect();
+      const creation = document.querySelector(".report-library-new-comparison")
+        .getBoundingClientRect();
+      const list = document.querySelector(".report-list").getBoundingClientRect();
+      const card = document.querySelector(".report-list > li").getBoundingClientRect();
+      return {
+        hasHorizontalOverflow: root.scrollWidth > root.clientWidth,
+        hasExpandedStart: document.querySelector(".report-library-start") !== null,
+        compactCreationBeforeResults: creation.bottom <= list.top,
+        resultBeginsInViewport: card.top < window.innerHeight,
+        cardInsideLibrary: card.left >= library.left && card.right <= library.right,
+      };
+    });
+    expect(wideReportLibraryGeometry).toEqual({
+      hasHorizontalOverflow: false,
+      hasExpandedStart: false,
+      compactCreationBeforeResults: true,
+      resultBeginsInViewport: true,
+      cardInsideLibrary: true,
+    });
+    const wideReportLibraryAccessibility = await new AxeBuilder({ client: browser })
+      .setLegacyMode()
+      .include(".reports-panel")
+      .analyze();
+    expect(wideReportLibraryAccessibility.violations).toEqual([]);
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r9-report-library-en-wide.png",
+    ));
     await openReportWorkspace(english, "preview");
 
     const reviewExport = await $(`aria/${english.reports.reviewExport}`);
@@ -2286,8 +2324,8 @@ describe("packaged FitFreed import journey", () => {
       "opening the export review did not focus its heading",
     );
     await privacyReview.$(`aria/${english.reports.closeReview}`).click();
-    await expectDocumentFocus(
-      ".report-preview-actions button:last-child",
+    await expectElementFocus(
+      reviewExport,
       "closing the export review did not restore its initiating action",
     );
     await reviewExport.click();
@@ -2400,8 +2438,8 @@ describe("packaged FitFreed import journey", () => {
         .every((status) => !status.textContent?.includes(exportedFragment))
     ), "Self-contained HTML exported")).toBe(true);
     await cancellationReview.$(`aria/${english.reports.closeReview}`).click();
-    await expectDocumentFocus(
-      ".report-preview-actions button:last-child",
+    await expectElementFocus(
+      reviewExport,
       "leaving the cancelled export review did not restore its initiating action",
     );
     await $(`aria/${english.reports.backToSession}`).click();
@@ -2649,6 +2687,55 @@ describe("packaged FitFreed import journey", () => {
     recordJourneyPhase("localized-maximum-zoom");
     await selectLocale("es-ES");
     await setAppearanceAndZoom("dark", 200, true);
+    await goToHome("reports");
+    await openReportWorkspace(spanish, "library");
+    await browser.execute(() => {
+      const library = document.querySelector(".report-library");
+      const navigation = document.querySelector(".app-sidebar");
+      library.scrollIntoView({ block: "start", inline: "nearest" });
+      window.scrollBy(0, -navigation.getBoundingClientRect().height - 16);
+    });
+    const compactReportLibraryGeometry = await browser.execute(() => {
+      const root = document.documentElement;
+      const library = document.querySelector(".report-library").getBoundingClientRect();
+      const navigation = document.querySelector(".app-sidebar").getBoundingClientRect();
+      const creation = document.querySelector(".report-library-new-comparison")
+        .getBoundingClientRect();
+      const list = document.querySelector(".report-list").getBoundingClientRect();
+      const card = document.querySelector(".report-list > li").getBoundingClientRect();
+      const visibleCardHeight = Math.max(
+        0,
+        Math.min(card.bottom, window.innerHeight) - Math.max(card.top, navigation.bottom),
+      );
+      return {
+        hasHorizontalOverflow: root.scrollWidth > root.clientWidth,
+        libraryBelowNavigation: library.top >= navigation.bottom - 1,
+        hasExpandedStart: document.querySelector(".report-library-start") !== null,
+        compactCreationBeforeResults: creation.bottom <= list.top,
+        usefulResultVisible: visibleCardHeight >= Math.min(
+          card.height,
+          window.innerHeight - navigation.bottom,
+        ) * 0.6,
+        cardInsideLibrary: card.left >= library.left && card.right <= library.right,
+      };
+    });
+    expect(compactReportLibraryGeometry).toEqual({
+      hasHorizontalOverflow: false,
+      libraryBelowNavigation: true,
+      hasExpandedStart: false,
+      compactCreationBeforeResults: true,
+      usefulResultVisible: true,
+      cardInsideLibrary: true,
+    });
+    const compactReportLibraryAccessibility = await new AxeBuilder({ client: browser })
+      .setLegacyMode()
+      .include(".reports-panel")
+      .analyze();
+    expect(compactReportLibraryAccessibility.violations).toEqual([]);
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "r9-report-library-es-dark-200.png",
+    ));
     await goToHome("sources");
     await expect($("#outcome-heading")).toHaveText(spanish.outcome.changedHeading);
     await openOutcomeDisclosure(".outcome-coverage-detail");

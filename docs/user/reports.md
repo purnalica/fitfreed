@@ -6,17 +6,28 @@ This guide describes the implemented report vertical in development builds. It d
 
 ## Choose how to start
 
-Open **Reports** to see saved reports and two direct starts:
+Open **Reports** to see saved results. When the Library already contains reports, **New comparison** remains
+a compact secondary action beside **Reload** so the first useful result stays in view. An empty Library
+expands the same start with enough guidance to create the first report:
 
 - **Compare recent training periods** prepares two bounded adjacent periods from the current local library,
   selects the five analytical views, and asks for your interpretation.
-- **Start a blank report** begins with only a title and your interpretation. You can add comparison evidence
-  before saving or after reopening it.
 
-The report workspace has three explicit locations. **Library** contains saved reports and new starts,
+Reports can also begin from a completed training-period comparison or a specific training session. These
+contextual starts retain the exact evidence that prompted the report instead of asking you to recreate it.
+The ordinary interface does not offer a generic blank start. Existing blank-origin reports remain readable
+and editable so an application update never discards authored work.
+
+The report workspace has three explicit locations. **Library** contains saved results and the contextual start,
 **Compose** contains the ordered editor, and **Preview** shows the resolved saved output. Temporarily moving
 between available locations preserves the current draft. A successful save opens Preview; use **Edit
 composition** or **Compose** to continue editing, and return to Library to choose another saved report.
+
+Each Library card leads with a recognizable current result rather than implementation metadata. Depending
+on its subject, it shows the recorded sport and date or the comparison periods, one human-scale metric, the
+evidence state, and a concise sensitivity summary. Results from different imported sources remain visibly
+separate. **Show more reports** requests the next bounded page without resolving complete routes, signals,
+provenance, or export output merely to draw the Library. Selecting a card opens Preview, never Compose.
 
 A completed **Training period comparison** leads with its plain answer and keeps exact values behind an
 explicit review action. **Turn this comparison into a report** retains the exact periods that produced that
@@ -54,6 +65,12 @@ views, periods, measurements, or block order and select **Save changes**. FitFre
 comparison before saving. Concurrent edits are rejected instead of overwriting a newer revision. Import and
 reimport never rewrite authored report rows.
 
+To remove a saved report, open it in Preview and select **Delete report**. The confirmation replaces Preview,
+names the exact report, and offers an explicit cancel action. Confirming removes only the reviewed report
+revision and its owned composition; imported fitness history and every other report remain unchanged. If the
+report changed after it was opened, FitFreed keeps the newest revision, reloads it, and asks you to review it
+instead of claiming that anything was removed.
+
 If the training snapshot changed after the report was saved, the report is marked **Source changed**. The
 complete preview shows the current compatible candidate, while editing and export remain locked. Import and
 reimport never retarget the report automatically.
@@ -85,8 +102,9 @@ you resubmit an editing form. Use **Back to report** to reopen the same saved re
 opened session, comparison result, or report heading so the location change is explicit without requiring a
 pointer.
 
-A narrative-only blank report has no source action because it began from authored content. If referenced
-evidence is unavailable, FitFreed also omits the action instead of substituting a different session or query.
+An existing narrative-only blank-origin report has no source action because it began from authored content.
+If referenced evidence is unavailable, FitFreed also omits the action instead of substituting a different
+session or query.
 When a report is being created directly from a session or comparison, **Back to the session** or **Back to
 the comparison** returns to the already-mounted workspace and its initiating control; that temporary return
 path is not persisted in the report.
