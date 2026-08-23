@@ -1703,14 +1703,16 @@ hidden, for both session and comparison return paths.
 The bounded benchmark now owns a full 24-report Library page, including reused comparison evidence, and a
 complete maximum-route HTML export through application authorization, deterministic rendering, private staging,
 synchronization, and atomic replacement. Their p95 measurements remain below the accepted 500-millisecond and
-2-second budgets. Migration evidence covers every declared schema through version 27, including lossless report
-migration, and separate packaged processes restore report definitions and the complete user state.
+2-second budgets. On the clean executable-input revision `af60a49`, the maximum page measured 33.888
+milliseconds p95 and the complete export 741.638 milliseconds p95. Migration evidence covers every declared
+schema through version 27, including lossless report migration, and separate packaged processes restore report
+definitions and the complete user state.
 
 The final complete fast gate passed 156 tooling tests, 328 React tests, two vendored-updater tests, 224 desktop-
 host tests, 199 application tests, 48 domain tests, and two private-example tests. Strict Rust formatting and
-Clippy also pass. The rebuilt packaged application passed the 4-minute-31.4-second functional journey, the
-separate process-restart journey, both adaptive-session journeys, and the isolated two-year performance campaign
-inside every accepted budget. Axe, hierarchy, overflow, focus-return, and reveal assertions cover Library,
+Clippy also pass. The clean executable-input revision `af60a49` passed the 3-minute-6-second functional journey,
+the separate process-restart journey, both adaptive-session journeys, and the 3-minute-4.6-second isolated
+two-year performance campaign inside every accepted budget. Axe, hierarchy, overflow, focus-return, and reveal assertions cover Library,
 Preview, evidence review, and export review across English and Spanish, light and dark appearance, ordinary
 zoom, and compact 200% zoom. Independent review accepted nine report captures after rejecting and correcting a
 sticky-navigation obstruction in the review surfaces. No material R9 finding remains open. X5-R10 is next.
