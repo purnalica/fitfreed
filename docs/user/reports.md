@@ -66,8 +66,9 @@ PDF, spreadsheet output, and free-form layout are not yet available.
 
 Open **Reports** from the application navigation and select a saved report in **Library**. FitFreed resolves
 only the evidence selected by its definition through the current authoritative library and opens **Preview**
-with any optional commentary, applicable recorded or calculated evidence, coverage limitations, and provenance. Use
-**Edit composition** to inspect the saved revision and change the definition.
+with any optional commentary, applicable recorded or calculated evidence, coverage limitations, and provenance.
+The title and first ordered result appear before the secondary report actions. Use **Edit composition** to
+inspect the saved revision and change the definition.
 
 Edit the title, optional commentary, applicable heart-rate choice, route selection, endpoint protection, analytical
 views, periods, measurements, or block order and select **Save changes**. FitFreed reruns the shared
@@ -81,8 +82,8 @@ report changed after it was opened, FitFreed keeps the newest revision, reloads 
 instead of claiming that anything was removed.
 
 If the training snapshot changed after the report was saved, the report is marked **Source changed**. The
-complete preview shows the current compatible candidate, while editing and export remain locked. Import and
-reimport never retarget the report automatically.
+complete preview shows the current compatible candidate, while **Edit composition**, **Compose**, and export
+remain locked. Import and reimport never retarget the report automatically.
 
 To decide whether the report should use that candidate:
 
@@ -123,8 +124,8 @@ path is not persisted in the report.
 1. Open a current saved report in **Preview** and select **Review and export**. The review temporarily
    replaces the preview rather than appearing beneath the editor.
 2. Read the complete content boundary. It includes only the applicable recorded session summary, selected
-comparison totals, findings, chart shapes, exact tables, coverage notices, your title and narrative, source
-attribution, definition metadata, and reviewed route shapes. Exact training samples remain excluded.
+comparison totals, findings, chart shapes, exact tables, coverage notices, your title, any optional commentary,
+source attribution, definition metadata, and reviewed route shapes. Exact training samples remain excluded.
 3. For a session report whose definition permits heart-rate context, decide whether this individual export
 should retain it. Review may remove sensitive content but cannot add content excluded by the definition.
 4. Review every available route independently. You may omit its geometry or increase endpoint protection for

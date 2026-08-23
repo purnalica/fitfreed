@@ -62,8 +62,8 @@ change fails the whole query rather than returning mixed revisions.
 A stale resolution is a candidate calculated from the current library, not an implicit mutation and not a
 historical value comparison. The library does not retain prior canonical snapshots, so FitFreed never
 invents a numeric before-state after source facts have evolved. Review instead identifies the saved and
-candidate source revisions, shows the complete candidate preview, and states that title, narrative, origin,
-queries, block identity, order, presentation choices, and sensitivity choices remain unchanged.
+candidate source revisions, shows the complete candidate preview, and states that title, optional commentary,
+origin, queries, block identity, order, presentation choices, and sensitivity choices remain unchanged.
 
 Refresh requires the exact saved definition revision, saved source snapshot, and candidate snapshot that the
 person reviewed. The application resolves the complete candidate again, rejects a current, changed,

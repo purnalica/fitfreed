@@ -1532,7 +1532,7 @@ export function ReportsPanel({
           {
             workspace: "compose",
             label: copy.workspaces.compose,
-            disabled: !editor,
+            disabled: !editor || resolved?.status === "stale",
           },
           {
             workspace: "preview",
@@ -2113,10 +2113,13 @@ export function ReportsPanel({
                   </button>
                 </div>
               )}
+              <h3 className="report-preview-title">{resolved.definition.title}</h3>
+              {resolved.definition.blocks.slice(0, 1).map(renderPreviewBlock)}
               <div className="report-preview-actions">
                 <button
                   type="button"
                   className="secondary"
+                  disabled={disabled || resolved.status !== "current"}
                   onClick={() => setWorkspace("compose")}
                 >
                   {copy.editComposition}
@@ -2137,8 +2140,7 @@ export function ReportsPanel({
                   {copy.delete.action}
                 </button>
               </div>
-              <h3 className="report-preview-title">{resolved.definition.title}</h3>
-              {resolved.definition.blocks.map(renderPreviewBlock)}
+              {resolved.definition.blocks.slice(1).map(renderPreviewBlock)}
               <article>
                 <h3>{copy.coverageHeading}</h3>
                 {resolved.limitations.length === 0

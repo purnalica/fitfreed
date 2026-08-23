@@ -1682,6 +1682,16 @@ journey covered the main import and exploration flow, process restart, adaptive 
 two-year performance campaign inside every accepted budget. English and Spanish dark-theme evidence at 200% zoom
 showed no horizontal overflow, clipped controls, or content covered by compact navigation. Slice 5 is next.
 
+Slice 5 is complete locally. Preview now leads with the report title and its first ordered result before the
+secondary action rail. A stale definition disables both direct editing and the Compose location, so neither
+path can bypass deliberate candidate review. The audit traced stale review, exact source navigation and return,
+per-export physiology and route reduction, authority non-escalation, deterministic self-contained output, and
+atomic cancellation or failure through their domain, application, adapter, presentation, and packaged evidence.
+The exact packaged functional journey passed with independent inspection of exported HTML and preservation of
+the prior destination after cancellation. One initial performance campaign recorded a single longitudinal
+outlier; no production or measurement file on that causal path had changed, and the unchanged isolated scenario
+then passed every accepted budget. Slice 6 is next.
+
 ## X5-R10 — Harden the complete product journey
 
 **User outcome:** the entire release-shaped application feels like one serious product and preserves the

@@ -548,8 +548,14 @@ describe("ReportsPanel", () => {
     expect(document.querySelector(".report-library-start")).not.toBeInTheDocument();
 
     await user.click(reportCard);
-    expect(await screen.findByRole("heading", { name: "Ridge progression", level: 3 }))
-      .toBeVisible();
+    const title = await screen.findByRole("heading", { name: "Ridge progression", level: 3 });
+    expect(title).toBeVisible();
+    const primaryEvidence = screen.getByRole("heading", { name: "Session summary" });
+    const edit = screen.getByRole("button", { name: "Edit composition" });
+    expect(title.compareDocumentPosition(primaryEvidence) & Node.DOCUMENT_POSITION_FOLLOWING)
+      .toBeTruthy();
+    expect(primaryEvidence.compareDocumentPosition(edit) & Node.DOCUMENT_POSITION_FOLLOWING)
+      .toBeTruthy();
     expect(document.querySelector("form.report-editor")).not.toBeVisible();
   });
 
@@ -1865,6 +1871,9 @@ describe("ReportsPanel", () => {
     await user.click(await screen.findByRole("button", { name: /Sesión sostenida/ }));
     expect(await screen.findByText(/La biblioteca de entrenamientos cambió/)).toBeVisible();
     expect(screen.getByRole("button", { name: "Revisar y exportar" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Componer" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Editar composición" })).toBeDisabled();
+    expect(document.querySelector("form.report-editor")).not.toBeVisible();
     expect(screen.getByLabelText("Título del informe")).toBeDisabled();
     expect(mocks.save).not.toHaveBeenCalled();
 

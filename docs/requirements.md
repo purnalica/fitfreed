@@ -106,7 +106,13 @@ Saved reports will retain a documented, versioned, reproducible definition rathe
 
 The ordinary report journey is result-first. Opening a saved report, or starting one from a question, exploration, or session, will show a useful rendered result before exposing composition mechanics. Editing is a deliberate secondary mode, and returning from it restores the report result without placing that result below the editor or a long report list. Blank composition and advanced block controls remain available without becoming the default path for people who only need to review, refresh, or export a result.
 
-The first report will be an ordered evidence document with finding, comparison, session, chart, exact-table, coverage-and-limitation, and narrative blocks, plus a route block when route evidence is available. Its normative export will be deterministic self-contained HTML with embedded styles and graphics, semantic headings and tables, no scripts or external requests, declared locale and units, and explicit provenance, coverage, limitations, authorship, definition version, and source revision. Native PDF, formulas, arbitrary queries, free-form layout, shared templates, scheduled generation, and plug-in blocks are outside the MVP.
+The first report will be an ordered evidence document with finding, comparison, session, chart, exact-table,
+coverage-and-limitation, and optional commentary blocks, plus a route block when route evidence is available.
+Its normative export will be deterministic self-contained HTML with embedded styles and graphics, semantic
+headings and tables, no scripts or external requests, declared locale and units, and explicit provenance,
+coverage, limitations, authorship when present, definition version, and source revision. Native PDF, formulas,
+arbitrary queries, free-form layout, shared templates, scheduled generation, and plug-in blocks are outside the
+MVP.
 
 ### FR-006 — Visualization
 

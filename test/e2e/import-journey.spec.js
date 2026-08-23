@@ -2282,6 +2282,25 @@ describe("packaged FitFreed import journey", () => {
     );
     await expect($(".report-analysis-bars")).toBeDisplayed();
     expect(await $$(".report-analysis-table")).toHaveLength(3);
+    const previewHierarchy = await browser.execute(() => {
+      const title = document.querySelector(".report-preview-title");
+      const primaryEvidence = document.querySelector(".report-preview > article");
+      const actions = document.querySelector(".report-preview-actions");
+      return {
+        titleBeforeEvidence: Boolean(
+          title?.compareDocumentPosition(primaryEvidence)
+            & Node.DOCUMENT_POSITION_FOLLOWING,
+        ),
+        evidenceBeforeActions: Boolean(
+          primaryEvidence?.compareDocumentPosition(actions)
+            & Node.DOCUMENT_POSITION_FOLLOWING,
+        ),
+      };
+    });
+    expect(previewHierarchy).toEqual({
+      titleBeforeEvidence: true,
+      evidenceBeforeActions: true,
+    });
     await openReportWorkspace(english, "library");
     expect(await $$(".report-list > li")).toHaveLength(1);
     const wideReportLibraryGeometry = await browser.execute(() => {
@@ -4180,6 +4199,8 @@ describe("packaged FitFreed import journey", () => {
     );
     await expect($(".report-status-stale")).toHaveText(spanish.reports.status.stale);
     await expect($(`aria/${spanish.reports.reviewExport}`)).toBeDisabled();
+    await expect($(`aria/${spanish.reports.workspaces.compose}`)).toBeDisabled();
+    await expect($(`aria/${spanish.reports.editComposition}`)).toBeDisabled();
 
     await refreshAction.click();
     await expectDocumentFocus(

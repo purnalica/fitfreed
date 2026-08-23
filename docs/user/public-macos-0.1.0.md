@@ -86,7 +86,11 @@ Version 0.1.0 provides provider-neutral views for:
 - primary sleep overview, range, phases, timeline, score detail, and period comparison;
 - dated nightly recovery overview, range, exact source-context detail, and period comparison; and
 - one longitudinal dashboard with a shared range, aligned day synopsis, navigation, and period comparison; and
-- durable question-, exploration-, session-, and blank-start reports that combine user narrative with applicable recorded evidence, optional protected route shapes, and user-selected training-period findings, comparisons, accessible charts, exact tables, and coverage in a privacy-reviewed self-contained HTML export. Reports remain locked after their source changes until a deliberate evidence refresh reviews and accepts one exact current candidate.
+- durable question-, exploration-, session-, and blank-start reports that combine applicable recorded
+  evidence, optional user commentary, optional protected route shapes, and user-selected training-period findings,
+  comparisons, accessible charts, exact tables, and coverage in a privacy-reviewed self-contained HTML export.
+  Reports remain locked after their source changes until a deliberate evidence refresh reviews and accepts one
+  exact current candidate.
 
 Every visual has exact values or a table alternative. Missing and unavailable observations do not become zero. Histories from different opaque origins stay separate. Aligned observations establish recorded co-occurrence only; FitFreed does not infer causation, readiness, diagnosis, or advice.
 

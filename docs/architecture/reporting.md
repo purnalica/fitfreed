@@ -82,6 +82,11 @@ blank report until evidence is deliberately added. Submission trims commentary a
 presentation never turns an untouched field into authorship. Successful save still resolves the exact saved
 definition and moves to Preview.
 
+Preview leads with the authored title and first ordered evidence or commentary block before its secondary
+action rail. When evidence is stale, both the direct edit action and the Compose workspace location remain
+disabled until the exact candidate has been reviewed and accepted; a disabled form is never presented as an
+alternative route around that boundary.
+
 ## Origin-aware navigation
 
 Report navigation has two deliberately different lifetimes. Starting a report from a mounted session or
