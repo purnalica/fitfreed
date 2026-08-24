@@ -6,6 +6,38 @@ This is the shared privacy-safe manual acceptance procedure for an exact FitFree
 
 Execution requires an authorized candidate, controlled participant, and one explicit distribution profile: the [private alpha candidate guide](../user/private-alpha-candidate.md) or the [public macOS guide](../user/public-macos-0.1.0.md). The evaluated bytes and installation trust behavior must match that profile. Until its gates close, the interaction procedure may be rehearsed only with independently generated synthetic packages and cannot be recorded as candidate acceptance.
 
+### X6 product-experience profile
+
+The interaction sections of this procedure are also the canonical human gate for the systemic MVP
+redesign. That gate occurs before Apple authority or a sealed public candidate exists and has a deliberately
+narrower claim:
+
+- it may accept or reopen the X6 product experience only;
+- it does not accept installation trust, update recovery, signing, notarization, a release candidate, or
+  public distribution; and
+- it does not remove or defer the later exact-candidate execution of this complete procedure.
+
+The X6 profile starts only after repository safety and the complete hosted campaign pass for the exact
+executable inputs handed to review. Build and launch the instrumented macOS application from that clean source
+against a dedicated ignored library:
+
+```sh
+npm run build:e2e
+mkdir -p .artifacts/manual-x6
+FITFREED_E2E_DATABASE_PATH="$PWD/.artifacts/manual-x6/fitfreed.sqlite" \
+  src-tauri/target/e2e/release/bundle/macos/FitFreed.app/Contents/MacOS/fitfreed
+```
+
+No WebDriver session is attached during this review, so archive selection uses the real native macOS sheet.
+The isolated library may receive the independently generated fixtures or an explicitly authorized personal
+export. A personal export never changes the privacy-safe recording boundary below.
+
+For X6, execute the first-run interaction from step 3 onward without the installation/removal claims, then
+complete the Keyboard, VoiceOver, Scaling/appearance/contrast, and Realistic usability sessions. Skip the
+Installation trust, application-removal/reinstallation, and Update/recovery claims; they remain exact-candidate
+gates. Record the outcome explicitly as **X6 product experience**, never as candidate or release acceptance.
+Any critical or major product-experience or accessibility finding reopens its owning redesign increment.
+
 ## Evaluation record
 
 Record only:
