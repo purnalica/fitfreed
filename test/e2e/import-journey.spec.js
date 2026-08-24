@@ -3494,10 +3494,27 @@ describe("packaged FitFreed import journey", () => {
       ["0 of 1", "Sessions with heart rate"],
     ]);
     await $('button[aria-label^="View session details for"]').click();
-    const unavailableTrainingDetail = await $$(`[role="group"][aria-label="${english.training.sessionLibrary.summaryMeasurements}"] dl dd`);
-    await expect(unavailableTrainingDetail[5]).toHaveText("Not recorded");
-    await expect(unavailableTrainingDetail[0]).toHaveText("Sport not recorded");
-    await expect(unavailableTrainingDetail[9]).toHaveText("0");
+    const partialTrainingSummary = await $(`[role="group"][aria-label="${english.training.sessionLibrary.summaryMeasurements}"]`);
+    const partialTrainingRows = await partialTrainingSummary.$$("dl > div");
+    const partialTrainingMeasurements = new Map();
+    for (const row of partialTrainingRows) {
+      partialTrainingMeasurements.set(
+        await row.$("dt").getText(),
+        await row.$("dd").getText(),
+      );
+    }
+    expect([...partialTrainingMeasurements.keys()]).toEqual([
+      english.training.trainingType,
+      english.training.startedAt,
+      english.training.stoppedAt,
+      english.training.utcOffset,
+      english.training.duration,
+      english.training.exerciseCount,
+    ]);
+    expect(partialTrainingMeasurements.get(english.training.trainingType))
+      .toBe("Sport not recorded");
+    expect(partialTrainingMeasurements.get(english.training.exerciseCount)).toBe("0");
+    expect(await partialTrainingSummary.getText()).not.toContain("Not recorded");
     await $("aria/Back to session results").click();
 
     await setTrainingRange("2026-01-06", "2026-01-05");

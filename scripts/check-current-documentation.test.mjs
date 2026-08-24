@@ -31,17 +31,17 @@ test("rejects pre-migration status across current experience documents", () => {
   const candidate = structuredClone(loadCurrentDocumentation(repositoryRoot));
   candidate.sources["docs/design/experience-specification.md"] = replaceRequired(
     candidate.sources["docs/design/experience-specification.md"],
-    "The production application now\nimplements its R1 through R9 vertical slices.",
+    "The production application now\nimplements its R1 through R10 vertical slices.",
     "It does not describe the current production presentation.",
   );
   candidate.sources["docs/plans/ui-redesign.md"] = replaceRequired(
     candidate.sources["docs/plans/ui-redesign.md"],
-    "X5-R1 through X5-R9 are implemented in production",
+    "X5-R1 through X5-R10 are implemented in production",
     "X4 derives the incremental production migration before X5 changes production",
   );
   candidate.sources["docs/roadmap.md"] = replaceRequired(
     candidate.sources["docs/roadmap.md"],
-    "X5-R1 through X5-R9 are implemented in the ordinary application",
+    "X5-R1 through X5-R10 are implemented in the ordinary application",
     "X5 is migrating the public entrance and ordinary application",
   );
   candidate.sources["docs/testing/public-release-readiness.md"] = replaceRequired(

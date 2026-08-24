@@ -2,12 +2,12 @@
 
 ## Status and authority
 
-**Accepted X3 contract as of 2026-08-21; implemented through X5-R9.** This document is the single
+**Accepted X3 contract as of 2026-08-21; implemented through X5-R10.** This document is the single
 source of truth for the screen, interaction, navigation, state, responsive, localization, and
 accessibility contract of the systemic MVP experience redesign. The production application now
-implements its R1 through R9 vertical slices. The whole-product R10 hardening and renewed X6
-independent acceptance remain in progress, so implementation does not by itself authorize a release
-claim or a claim that a conditional evidence relationship exists.
+implements its R1 through R10 vertical slices. The renewed X6 machine-assisted reaudit has no unresolved
+critical or major finding; exact hosted verification of its corrections and the final human gate remain
+pending. Implementation does not by itself authorize a release claim.
 
 The [requirements](../requirements.md#product-experience-contract) own normative product behavior.
 The [redesign plan](../plans/ui-redesign.md) owns rationale, journeys, feasibility analysis, and
@@ -377,7 +377,7 @@ integrity contracts are accepted, while their interaction hierarchy, density, an
 open to substantial revision. Compact navigation always retains a visible text label beside every
 workspace icon; tooltips or accessible names alone do not satisfy the contract.
 
-X4 derived production vertical increments from this accepted version. X5-R1 through X5-R9 now
-implement those increments in the production application; X5-R10 audits the complete result before
-X6 repeats independent experience acceptance. Screenshots and prototype code never become a parallel
-implementation source.
+X4 derived production vertical increments from this accepted version. X5-R1 through X5-R10 implement
+those increments in the production application. The renewed X6 machine-assisted audit challenges the
+complete result before exact hosted verification and final human acceptance. Screenshots and prototype
+code never become a parallel implementation source.

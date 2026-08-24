@@ -51,6 +51,7 @@ FitFreed does not have a supported public release yet. The implemented applicati
 - [MVP experience boundary assessment](research/mvp-experience-boundary-assessment.md) records the accepted report, deep-session, sport-classification, dependency, navigation, and public-communication evidence.
 - [MVP product-experience audit](research/mvp-product-experience-audit.md) records the release-blocking and material experience findings, preserved strengths, and product-owner disposition that triggered the active systemic redesign.
 - [MVP redesign R5 checkpoint audit](research/mvp-redesign-r5-checkpoint-audit.md) independently checks the implemented first-run-to-session journey, reopens contradicted increments, and separates current findings from planned R6–R9 work.
+- [MVP product-experience reaudit](research/mvp-product-experience-reaudit.md) records the renewed X6 machine-assisted result, corrections found during inspection, and the exact human evidence that remains.
 
 ## Documentation ownership
 
