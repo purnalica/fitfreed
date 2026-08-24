@@ -262,12 +262,12 @@ export function ImportOutcomePanel({
           </section>
 
           {outcome.artifactFamilies.length > 0 && (
-            <section aria-labelledby="family-coverage-heading">
+            <section>
               <h3 id="family-coverage-heading">{messages.familyCoverageHeading}</h3>
               <div
                 className="family-coverage-scroll"
                 role="region"
-                aria-label={messages.familyCoverageHeading}
+                aria-labelledby="family-coverage-heading"
                 tabIndex={0}
               >
                 <table className="family-coverage-table">

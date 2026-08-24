@@ -1520,6 +1520,50 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(card.querySelectorAll("dl > div")).toHaveLength(2);
   });
 
+  it("keeps unavailable measurements out of a partial session summary", async () => {
+    const partialSession: TrainingSessionSearchItem = {
+      ...second,
+      distanceMeters: null,
+      energyKilocalories: null,
+      averageHeartRateBpm: null,
+      maximumHeartRateBpm: null,
+      exerciseCount: 0,
+      sport: {
+        sportRef: null,
+        state: "unavailable",
+        classification: null,
+      },
+    };
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      const workspaceResult = emptyWorkspaceCommand(command, arguments_);
+      if (workspaceResult) return workspaceResult;
+      if (command === "query_training_sports") return Promise.resolve(sports);
+      if (command === "query_training_sessions") {
+        return Promise.resolve(page([partialSession], 0, 1, null));
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    renderPanel();
+
+    const region = await screen.findByRole("region", { name: "Find a training session" });
+    await user.click(within(region).getByRole("button", { name: /View session details for/ }));
+    const detail = within(region).getByRole("region", { name: "Session summary" });
+    const summary = within(detail).getByRole("group", {
+      name: "Session summary measurements",
+    });
+
+    expect(summary).toHaveTextContent("Sport not recorded");
+    expect(summary).toHaveTextContent("1 h");
+    expect(summary).toHaveTextContent("Declared exercises");
+    expect(summary).toHaveTextContent("0");
+    expect(summary).not.toHaveTextContent("Not recorded");
+    expect(within(summary).queryByText("Distance")).not.toBeInTheDocument();
+    expect(within(summary).queryByText("Energy")).not.toBeInTheDocument();
+    expect(within(summary).queryByText("Average heart rate")).not.toBeInTheDocument();
+    expect(within(summary).queryByText("Maximum heart rate")).not.toBeInTheDocument();
+  });
+
   it("keeps the applied query distinct from its draft and removes every refinement independently", async () => {
     mocks.invoke.mockImplementation((command, arguments_) => {
       const workspaceResult = emptyWorkspaceCommand(command, arguments_);

@@ -73,6 +73,8 @@ describe("ImportOutcomePanel", () => {
 
     await user.click(screen.getByText("View incorporation and coverage details"));
     const coverage = screen.getByRole("table", { name: "Coverage by data family" });
+    expect(screen.getAllByRole("region", { name: "Coverage by data family" }))
+      .toHaveLength(1);
     expect(within(coverage).getByRole("row", {
       name: /Training sessions Supported 9 Reason: Session summaries/,
     })).toBeVisible();

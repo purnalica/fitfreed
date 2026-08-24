@@ -2959,13 +2959,25 @@ export function TrainingSessionLibraryPanel({
                 <div><dt>{messages.training.trainingType}</dt><dd>{sessionSportTitle(selected)}</dd></div>
                 <div><dt>{messages.training.startedAt}</dt><dd>{formatTrainingDateTime(selected.startedAtLocal, locale)}</dd></div>
                 <div><dt>{messages.training.stoppedAt}</dt><dd>{formatTrainingDateTime(selected.stoppedAtLocal, locale)}</dd></div>
-                <div><dt>{messages.training.utcOffset}</dt><dd>{formatUtcOffset(selected.utcOffsetMinutes, copy.metricUnavailable)}</dd></div>
+                {selected.utcOffsetMinutes !== null && (
+                  <div><dt>{messages.training.utcOffset}</dt><dd>{formatUtcOffset(selected.utcOffsetMinutes, copy.metricUnavailable)}</dd></div>
+                )}
                 <div><dt>{messages.training.duration}</dt><dd>{formatDuration(selected.durationMilliseconds, locale, messages.training.durationUnits)}</dd></div>
-                <div><dt>{messages.training.distance}</dt><dd>{formatDistance(selected.distanceMeters, locale, copy.metricUnavailable, messages.training.units.meters)}</dd></div>
-                <div><dt>{messages.training.energy}</dt><dd>{formatExactMetric(selected.energyKilocalories, locale, copy.metricUnavailable, messages.training.units.kilocalories)}</dd></div>
-                <div><dt>{messages.training.averageHeartRate}</dt><dd>{formatExactMetric(selected.averageHeartRateBpm, locale, copy.metricUnavailable, messages.training.units.beatsPerMinute)}</dd></div>
-                <div><dt>{messages.training.maximumHeartRate}</dt><dd>{formatExactMetric(selected.maximumHeartRateBpm, locale, copy.metricUnavailable, messages.training.units.beatsPerMinute)}</dd></div>
-                <div><dt>{messages.training.exerciseCount}</dt><dd>{selected.exerciseCount === null ? copy.metricUnavailable : number.format(selected.exerciseCount)}</dd></div>
+                {selected.distanceMeters !== null && (
+                  <div><dt>{messages.training.distance}</dt><dd>{formatDistance(selected.distanceMeters, locale, copy.metricUnavailable, messages.training.units.meters)}</dd></div>
+                )}
+                {selected.energyKilocalories !== null && (
+                  <div><dt>{messages.training.energy}</dt><dd>{formatExactMetric(selected.energyKilocalories, locale, copy.metricUnavailable, messages.training.units.kilocalories)}</dd></div>
+                )}
+                {selected.averageHeartRateBpm !== null && (
+                  <div><dt>{messages.training.averageHeartRate}</dt><dd>{formatExactMetric(selected.averageHeartRateBpm, locale, copy.metricUnavailable, messages.training.units.beatsPerMinute)}</dd></div>
+                )}
+                {selected.maximumHeartRateBpm !== null && (
+                  <div><dt>{messages.training.maximumHeartRate}</dt><dd>{formatExactMetric(selected.maximumHeartRateBpm, locale, copy.metricUnavailable, messages.training.units.beatsPerMinute)}</dd></div>
+                )}
+                {selected.exerciseCount !== null && (
+                  <div><dt>{messages.training.exerciseCount}</dt><dd>{number.format(selected.exerciseCount)}</dd></div>
+                )}
               </dl>
             </div>
           </section>
