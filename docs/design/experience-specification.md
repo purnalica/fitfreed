@@ -6,8 +6,8 @@
 source of truth for the screen, interaction, navigation, state, responsive, localization, and
 accessibility contract of the systemic MVP experience redesign. The production application now
 implements its R1 through R10 vertical slices. The renewed X6 machine-assisted reaudit has no unresolved
-critical or major finding; exact hosted verification of its corrections and the final human gate remain
-pending. Implementation does not by itself authorize a release claim.
+critical or major finding, and exact repository safety and hosted verification pass for its corrections.
+The final human gate remains pending. Implementation does not by itself authorize a release claim.
 
 The [requirements](../requirements.md#product-experience-contract) own normative product behavior.
 The [redesign plan](../plans/ui-redesign.md) owns rationale, journeys, feasibility analysis, and
@@ -378,6 +378,6 @@ open to substantial revision. Compact navigation always retains a visible text l
 workspace icon; tooltips or accessible names alone do not satisfy the contract.
 
 X4 derived production vertical increments from this accepted version. X5-R1 through X5-R10 implement
-those increments in the production application. The renewed X6 machine-assisted audit challenges the
-complete result before exact hosted verification and final human acceptance. Screenshots and prototype
-code never become a parallel implementation source.
+those increments in the production application. The renewed X6 machine-assisted audit and exact hosted
+campaign challenge the complete result before final human acceptance. Screenshots and prototype code never
+become a parallel implementation source.

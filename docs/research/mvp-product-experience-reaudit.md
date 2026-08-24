@@ -16,11 +16,14 @@ coverage region; the other repeated unavailable measurements throughout a partia
 corrections have focused regression tests and passed the fresh packaged audit. They are recorded below
 rather than omitted from the verdict.
 
-This verdict does not complete product acceptance. The exact corrected source still needs its hosted
-campaign, and the documented human gate must still evaluate real native archive selection, complete
-keyboard use, VoiceOver in both locales, scaling, contrast, reduced motion, realistic comprehension, and
-the subjective desire to continue using the product. FitFreed 0.1.0 remains unavailable as a public
-application.
+This verdict does not complete product acceptance. Exact [repository-safety run
+`32743509862`](https://github.com/purnalica/fitfreed/actions/runs/32743509862) and [hosted campaign
+`32743509696`](https://github.com/purnalica/fitfreed/actions/runs/32743509696) pass for corrected source
+`246faed` and executable-input fingerprint
+`3e0c2eb1dddc33cd295c8b6b504650b32e392589d396b7f835f53dec4f68e9d8`. The documented human gate must
+still evaluate real native archive selection, complete keyboard use, VoiceOver in both locales, scaling,
+contrast, reduced motion, realistic comprehension, and the subjective desire to continue using the product.
+FitFreed 0.1.0 remains unavailable as a public application.
 
 ## Audit question
 
@@ -59,6 +62,12 @@ journey, real-process restart, adaptive-session journey, adaptive-session restar
 performance suite. The partial-session E2E assertion was adapted from fixed positional cells to the same
 semantic contract: absent measurements create no rows, recorded zero remains present, and the rest of the
 session summary retains its ordered meaning.
+
+The exact hosted campaign then passed the portable lane in 4 minutes and 27 seconds and the complete macOS
+lane in 1 hour, 3 minutes, and 27 seconds. It retained every product-performance budget and operation
+watchdog while exercising cold launch, full-scale import, dense History, two-year Insights, update recovery,
+installation boundaries, the complete functional package, native replacement, and rejected-candidate recovery.
+The immutable evidence job records the executable-input fingerprint above.
 
 This is independent from implementation claims, not an organizationally independent human study. The
 same development process constructed the audit harness. The final human gate therefore remains essential.
@@ -121,7 +130,7 @@ human finding reopens the owning increment. Acceptance of this machine-assisted 
 
 ## Disposition
 
-The machine-assisted X6 boundary passes and the candidate is eligible for exact hosted verification. Once
-that exact correction is green, the next authorized action is the final product-owner usability and
-accessibility gate. Public signing, notarization, release creation, updater authority, and download
-publication remain separate Milestone 3 decisions.
+The machine-assisted and exact hosted X6 boundaries pass. The next authorized action is the final product-owner
+usability and accessibility gate under the X6 product-experience profile of the manual procedure. Public signing,
+notarization, release creation, updater authority, exact-candidate acceptance, and download publication remain
+separate Milestone 3 decisions.
