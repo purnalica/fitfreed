@@ -1726,6 +1726,124 @@ describe("FitFreed import interface", () => {
     expect(screen.getByLabelText("Interface language")).toBeVisible();
   });
 
+  it("keeps a completed reimport newer than a deferred startup projection", async () => {
+    const previousProjection = populatedLibraryHome();
+    const startupHome = populatedLibraryHome({
+      libraryRevisionRef: "library-home-revision-before-reimport",
+      training: {
+        ...previousProjection.training,
+        sessionCount: 12,
+        sports: previousProjection.training.sports.map((sport) => ({
+          ...sport,
+          displayLabel: "Previous running",
+          sessionCount: 12,
+        })),
+      },
+      resumableExploration: { version: 1, destination: "training" },
+    });
+    const reimportedHome = populatedLibraryHome({
+      libraryRevisionRef: "library-home-revision-after-reimport",
+    });
+    const session: TestTrainingSession = {
+      sessionRef: `session-${"6".repeat(64)}`,
+      startedAtLocal: "2026-01-20T09:00:00",
+      stoppedAtLocal: "2026-01-20T10:00:00",
+      utcOffsetMinutes: 60,
+      durationMilliseconds: "3600000",
+      distanceMeters: 8000,
+      energyKilocalories: "500",
+      averageHeartRateBpm: "140",
+      maximumHeartRateBpm: "170",
+      sportRef: `sport-${"1".repeat(64)}`,
+      exerciseCount: 1,
+    };
+    let resolveTraining: (page: TrainingSessionSearchPage) => void = () => undefined;
+    const pendingTraining = new Promise<TrainingSessionSearchPage>((resolve) => {
+      resolveTraining = resolve;
+    });
+    let resolveStartupHome: (home: typeof startupHome) => void = () => undefined;
+    let homeQueryCount = 0;
+    mocks.homeInvoke.mockImplementation((command, arguments_) => {
+      if (command === "query_library_home") {
+        homeQueryCount += 1;
+        if (homeQueryCount === 1) {
+          return new Promise((resolve) => {
+            resolveStartupHome = resolve;
+          });
+        }
+        expect(arguments_).toEqual({
+          request: { afterImportOperationRef: "synthetic-operation" },
+        });
+        return Promise.resolve(reimportedHome);
+      }
+      if (command === "save_exploration_workspace") {
+        return Promise.resolve({ version: 1, destination: arguments_.destination });
+      }
+      if (command === "clear_exploration_workspace") return Promise.resolve(undefined);
+      if (command === "clear_training_discovery_workspace") return Promise.resolve(undefined);
+      throw new Error(`Unexpected Home command: ${command}`);
+    });
+    let latestOutcome: ReturnType<typeof importOutcome> | null = null;
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
+      if (command === "query_latest_import_outcome") return Promise.resolve(latestOutcome);
+      if (command === "import_archive") {
+        latestOutcome = importOutcome({
+          sourceAdapterVersion: "polar-flow-archive@11",
+          mappingVersion: "polar-flow-mapping-set@6",
+          report: {
+            ...importOutcome().report,
+            newObservations: 0,
+            enrichedObservations: 18,
+          },
+        });
+        arguments_.onProgress.onmessage({
+          phase: "completed",
+          completedArtifacts: 3,
+          totalArtifacts: 3,
+          completedBytes: 0,
+          totalBytes: null,
+          cancellable: false,
+        });
+        return Promise.resolve(latestOutcome.report);
+      }
+      if (command === "query_training_sessions") {
+        return pendingTraining;
+      }
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage());
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+
+    await waitFor(() => expect(homeQueryCount).toBe(1));
+    await user.click(screen.getByRole("button", { name: "Sources" }));
+    await chooseArchive(user, "/synthetic/export-from-older-mapping.zip");
+    await user.click(screen.getByRole("button", { name: "Import selected package" }));
+    await waitFor(() => expect(homeQueryCount).toBe(2));
+    expect(await screen.findByRole("region", { name: "Your sports" }))
+      .toHaveTextContent("Road running");
+
+    await act(async () => resolveStartupHome(startupHome));
+
+    await user.click(screen.getByRole("button", { name: "Home" }));
+    expect(screen.getByRole("region", { name: "Your sports" }))
+      .toHaveTextContent("Road running");
+    expect(screen.queryByText("Previous running")).not.toBeInTheDocument();
+    expect(mocks.invoke.mock.calls.filter(
+      ([command]) => command === "query_training_sessions",
+    )).toHaveLength(0);
+
+    await user.click(screen.getByRole("button", { name: "History" }));
+    const training = await screen.findByRole("region", { name: "Training history" });
+    expect(within(training).getByText("Searching your complete training history…"))
+      .toBeVisible();
+    await act(async () => resolveTraining(trainingSessionSearchPage([session])));
+    expect(await within(training).findByText("Jan 20, 2026")).toBeVisible();
+    expect(within(training).queryByText("Searching your complete training history…"))
+      .not.toBeInTheDocument();
+  });
+
   it("keeps History unavailable until deferred library recovery determines its destination", async () => {
     const home = populatedLibraryHome({
       resumableExploration: { version: 1, destination: "training" },

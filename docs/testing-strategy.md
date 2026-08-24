@@ -57,6 +57,7 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Shared activity, sleep, recovery, and aligned-history workspace navigation, current-location state, exact-detail replacement, and progressive-disclosure boundaries.
 - Report Library, Compose, Preview, stale-evidence review, and export-review boundaries, including preserved mounted drafts and inaccessible inactive stages.
 - Value-first empty startup before Sources, plus one persistently mounted Settings workspace with distinct preference and update categories, a concrete preference preview, and one continuous update lifecycle.
+- Ordered same-process Home publication across deferred startup, mapping-aware reimport, and sport-classification refreshes, including suppression of stale exploration destinations and a Sessions request that settles after deliberate entry.
 - Presentation motion declarations and the reduced-motion boundary.
 - Update metadata, signature validation, artifact selection, and migration coordination.
 - Protected release-workflow syntax, exact permissions, action pins, authority isolation, immutable publication, provenance, and direct Pages-byte convergence.

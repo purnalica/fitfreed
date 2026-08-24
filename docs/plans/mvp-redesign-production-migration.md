@@ -2019,6 +2019,41 @@ implemented and previously accepted local-first boundary, not a removal of recor
 current route guide now also reflects completed personal-range entry from independent signals, source structure,
 and exact evidence instead of presenting that R8 behavior as future work.
 
+#### Live reimport projection regression — open 2026-08-24
+
+Manual development-preview use exposed two post-import failures after a previously processed ZIP was reimported
+with a newer FitFreed build that supports more of its contents. Library Home did not present the newly incorporated
+history, and opening the Sessions workspace left an activity indicator visible indefinitely without session content.
+Restarting FitFreed made both the expanded Home projection and Sessions available, which proves that the new evidence
+was persisted and narrows the defect to same-process projection invalidation or presentation request lifecycle rather
+than import durability.
+
+This is an R10.2 release blocker. Diagnosis must reproduce the upgrade-shaped reimport with synthetic evidence,
+trace import completion through persisted projections and every renderer refresh boundary, identify the exact change
+that introduced each regression, and assess whether other Home questions or History workspaces share the same defect.
+Closure requires focused failing tests before production changes, successful reimport of newly supported evidence
+without duplicates, immediate same-process Home refresh, a Sessions request that always settles into content, an
+explicit empty result, or a recoverable failure, and packaged restart verification in both locales. A forced restart,
+timeout, cleared local library, or suppressed loading state is not an acceptable correction.
+
+The focused renderer reproduction holds the initial Home request, completes an upgrade-shaped reimport that enriches
+existing evidence, observes the new Home projection, and only then releases the older startup result. Before the
+correction, that late result replaced the post-import sports and restored the previous Training destination. Because
+Training mounts independently of the visible top-level workspace, the stale destination also started a Sessions
+request before the user deliberately opened History; a slow request therefore became the unexplained activity
+indicator reported in manual use. The persisted mapping-upgrade integration scenario already proves that identical
+source bytes are reassessed under the current adapter and mapping contracts, enrich structure, route, signal, and zone
+evidence atomically, preserve authored ranges, and retain one logical session.
+
+History identifies `cc0fccab` as the change that introduced unconditional publication by each completed Home request.
+The later navigation-revision guard protected the selected top-level workspace but not `libraryHome` or
+`exploreDestination`; `923b8c9` then added request ordering only to sport-classification projection refreshes. All Home
+query producers now participate in one request sequence. Only its most recent success can publish the Home projection
+or exploration destination, and a superseded failure cannot replace a newer successful state with an error. The
+focused regression and all 56 application-shell tests pass. The packaged same-process repeat, cumulative extension,
+settled Sessions, process restart, and both-locale evidence remains part of the exact R10 campaign before this blocker
+can close.
+
 The exact hosted package for `ee8c856` then failed the 100-process cold-launch gate at 2,609 milliseconds p95
 against the unchanged 2,500-millisecond budget. Earlier accepted revisions on the same runner image, operating
 system, and hardware class ranged from 1,633 to 2,338 milliseconds p95, while the runtime change since the most

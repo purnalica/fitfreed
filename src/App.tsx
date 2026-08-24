@@ -317,9 +317,18 @@ function App() {
     restoreWorkspace: boolean,
     navigationRevision = homeNavigationRevision.current,
   ) {
-    const home = await invoke<LibraryHome>("query_library_home", {
-      request: { afterImportOperationRef },
-    });
+    libraryHomeProjectionRequest.current += 1;
+    const requestId = libraryHomeProjectionRequest.current;
+    let home: LibraryHome;
+    try {
+      home = await invoke<LibraryHome>("query_library_home", {
+        request: { afterImportOperationRef },
+      });
+    } catch (reason) {
+      if (libraryHomeProjectionRequest.current === requestId) throw reason;
+      return undefined;
+    }
+    if (libraryHomeProjectionRequest.current !== requestId) return undefined;
     setLibraryHome(home);
     if (home.availableRange === null) {
       setExploreDestination(undefined);
