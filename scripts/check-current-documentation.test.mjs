@@ -46,7 +46,7 @@ test("rejects pre-migration status across current experience documents", () => {
   );
   candidate.sources["docs/testing/public-release-readiness.md"] = replaceRequired(
     candidate.sources["docs/testing/public-release-readiness.md"],
-    "X5-R1 through X5-R9 implement the accepted replacement experience",
+    "X5-R1 through X5-R10 implement and harden the accepted replacement experience",
     "PX-01 and PX-02 still require correction",
   );
 
@@ -76,7 +76,7 @@ test("rejects stale storage, report, and release-readiness claims together", () 
   );
   candidate.sources["docs/testing/public-release-readiness.md"] = replaceRequired(
     candidate.sources["docs/testing/public-release-readiness.md"],
-    "X5-R1 through X5-R9 implement the accepted replacement experience",
+    "X5-R1 through X5-R10 implement and harden the accepted replacement experience",
     "The accepted E1–E6 experience scope is not implemented",
   );
 

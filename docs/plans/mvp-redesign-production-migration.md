@@ -11,40 +11,15 @@ document is the single implementation-facing plan for X4 and X5 of the systemic 
 
 ### Current execution snapshot
 
-Updated 2026-08-24. X4-P0 and X5-R1 through X5-R9 are complete. X5-R10.2, the whole-product
-presentation and current-documentation audit, is in progress. Its corrected portable quality checks
-have passed locally and on GitHub. The exact packaged macOS campaign stopped at its cold-launch gate:
-the hosted 100-process measurement reported a 2,609-millisecond p95 against the non-negotiable
-2,500-millisecond budget. Historical comparison found the same hosted image, operating system, and virtual
-hardware class and no proportional source-size regression; the dominant variable phase was WebView setup
-through renderer start. The product nevertheless lacked sufficient headroom because its initial renderer graph
-carried both complete locale catalogs and presentation modules that ordinary Home startup did not need. A TDD
-correction now retains English as the deterministic fallback, loads the selected non-default catalog before the
-localized shell, and defers Sources, Settings, and import-outcome modules without weakening an explicit early
-navigation choice. The main production JavaScript bundle fell from 491,694 to 351,590 bytes, while all 339 React
-tests and the complete fast lane pass locally. The clean local Apple Silicon campaign for `fd908ea` passed all
-100 fresh processes at 445 milliseconds p95 against the unchanged 2,500-millisecond budget. The failed unchanged
-revision was not rerun as a substitute for diagnosis. The corrected hosted package passed cold launch at 1,910
-milliseconds p95, plus full-scale import, dense history, Insights, update-recovery preparation, and installation
-boundaries. Its functional E2E then exposed a separate real reveal defect: focusing the export-review heading
-relied on WebKit's implicit scroll and could leave that heading above the viewport. A failing component contract
-now reproduces the missing explicit scroll, and the shared report transitions align newly revealed headings and
-outcomes deliberately. The complete local instrumented package now passes the functional, restart, adaptive-session,
-and two-year performance journeys. Hosted revision `bb7298c` passed the corrected cold-launch, scale, dense-history,
-Insights, recovery-preparation, and installation gates and crossed the former export-review failure. It then exposed
-a compact 200% Reports Library failure. Waiting for the asynchronous result did not correct it: hosted revision
-`fbe01f6` failed at the same boundary. Exact 1280-by-720 local reproduction and history analysis found the cause in
-the evidence arrangement. The original result-first test manually offset the Library for persistent navigation;
-the later shared report-reveal correction added the same offset through `scroll-margin-block-start`, leaving both
-mechanisms active. A taller local viewport masked the duplicated 210-pixel separation. The unchanged useful-result
-assertion now waits for the result, fixes the accepted window geometry explicitly, and relies on the production
-reveal margin as its single positioning contract. Exact revision `90a15af` passes the complete local fast lane and
-the clean packaged functional, restart, adaptive-session, and two-year performance campaigns with the fixed
-1280-by-720 evidence window. Clean hosted verification remains required. The remaining
-sequence is to close the automatable R10 evidence, run the X6 independent
-product-experience audit, and present the exact candidate for the final human usability and accessibility
-gate. No routine human intervention is expected before that gate unless an external service or physical
-accessibility check creates a genuine blocker.
+Updated 2026-08-24. X4-P0 and X5-R1 through X5-R10 are complete. Exact hosted run
+[`32730636262`](https://github.com/purnalica/fitfreed/actions/runs/32730636262) passes the portable lane, every
+performance and lifecycle gate, the complete functional package, native replacement, deliberate candidate
+rejection, exact recovery, and the immutable evidence-marker job for executable-input fingerprint
+`29dd0dd0b8d63c4d62e57c989f33ae3e8c3ca5997cfa980f4cdf8dc60e85f3a0`. The macOS job completed in 55 minutes
+and 30 seconds; the bounded 75-minute campaign allowance was sufficient without changing any operation watchdog,
+product-performance budget, or acceptance criterion. X6 independent product-experience audit is next. No routine
+human intervention is expected until the final usability and accessibility gate unless the independent audit finds
+a material defect or an external service creates a genuine blocker.
 
 The [increment status](#increment-status) gives the one-line phase view. The
 [R10.2 evidence matrix](#r102-evidence-matrix) records what has been verified and what remains, and
@@ -254,7 +229,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R7 | Complete locally — R7.1 through R7.6 passed the exact fast, functional, restart, adaptive, accessibility, visual, and performance gates on 2026-08-22 | Every session composition reflects its actual evidence |
 | X5-R8 | Complete locally — R8.1 through R8.6 passed the final Alpha gate on 2026-08-23 | Personal ranges and reusable criteria work end to end |
 | X5-R9 | Complete locally — all six slices passed fast, packaged, restart, accessibility, visual, migration, and performance gates on 2026-08-23 | Reports open as results and leave FitFreed safely |
-| X5-R10 | In progress — R10.1 complete; R10.2 portable, cold-launch, scale, dense-history, Insights, recovery-preparation, and installation gates are green; the corrected compact report-result synchronization awaits exact hosted verification as of 2026-08-23 | The complete release-shaped product is coherent and documented |
+| X5-R10 | Complete — exact local and hosted gates passed 2026-08-24; executable-input evidence marker retained | The complete release-shaped product is coherent and documented |
 | X6 | Pending | Independent audit has no unresolved material finding |
 
 ## X4-P0 — Freeze the executable contract
@@ -1782,10 +1757,11 @@ existing library through installation, restart, update simulation, migration, an
    status. Remove stale claims only from current documents; historical closed plans remain unchanged.
 7. Run the mandatory pre-human falsification audit and close every critical or major internal finding.
 
-**Exit evidence:** complete local fast/full lanes as applicable, exact packaged E2E, Axe plus manual
-keyboard and VoiceOver evidence, all responsive/locale/theme/zoom matrices, performance budgets,
-repository privacy and content gates, hosted campaign for the exact fingerprint, and a coherent source
-revision handed to the independent audit.
+**Exit evidence:** complete local fast/full lanes as applicable, exact packaged E2E, Axe, automated
+keyboard traversal, prepared manual VoiceOver and visual-evaluation protocols, all automated
+responsive/locale/theme/zoom matrices, performance budgets, repository privacy and content gates, hosted
+campaign for the exact fingerprint, and a coherent source revision handed to the independent audit. Manual
+keyboard, VoiceOver, scaling, contrast, and realistic-use execution remains the final human gate after X6.
 
 ### R10.1 live-surface inventory — complete locally 2026-08-23
 
@@ -1988,8 +1964,8 @@ remains required before this correction is accepted.
 The current-document audit found that the accepted experience specification still disclaimed production
 implementation, the redesign plan and roadmap still described X5 delivery as future work, the contributor
 index pointed first to the paused release sequence, and the public-readiness ledger still reported the audit
-state that preceded the systemic replacement. Their canonical status now distinguishes implemented R1–R9
-capability, active R10 hardening, pending X6 acceptance, and unavailable public distribution. The ledger also
+state that preceded the systemic replacement. Their canonical status was corrected at that stage to distinguish
+implemented R1–R9 capability, active R10 hardening, pending X6 acceptance, and unavailable public distribution. The ledger also
 records the observed remote boundary rather than the obsolete setup plan: verified Actions-backed HTTPS Pages
 is live, while the protected macOS release environment, independent release reviewer, immutable-release
 setting, production trust, and candidate authority remain open. The automated current-document checker now
@@ -2121,19 +2097,27 @@ a product or scenario defect. The job allowance is now 75 minutes, retaining a b
 operation watchdog and product-performance budget remains unchanged. A workflow contract protects that allowance;
 one clean hosted campaign is still required before R10 acceptance.
 
+Exact hosted run [`32730636262`](https://github.com/purnalica/fitfreed/actions/runs/32730636262) for `80a4709`
+then passes repository safety, the 4-minute-18-second portable lane, every macOS performance and lifecycle gate,
+the 12-minute-41-second functional package, and the 9-minute-27-second replacement/recovery campaign. The macOS
+job completes successfully in 55 minutes and 30 seconds, and the final evidence job records executable-input
+fingerprint `29dd0dd0b8d63c4d62e57c989f33ae3e8c3ca5997cfa980f4cdf8dc60e85f3a0`. No failure artifact is produced.
+This closes the automatable R10 gate without changing a product budget, scenario watchdog, security validator, or
+acceptance assertion.
+
 #### R10.2 evidence matrix
 
 | Concern | Current evidence | Remaining gate |
 |---|---|---|
-| Public purpose and truthfulness | Generated README and bilingual site now match current implemented capability; exact Pages and repository-safety workflows pass for `6561148`. | Reopen only if later R10 corrections change a public claim. |
+| Public purpose and truthfulness | Generated README and bilingual site now match current implemented capability; exact Pages and repository-safety workflows pass for `6561148`. | Reopen only if X6 or a later correction changes a public claim. |
 | Terminology, hierarchy, dates, units, precision, icons, visuals, and disclosure | Seven correction slices, complete live-surface inventory, 337 React tests, static contracts, exact `c783def` package, and reviewed cross-workspace synthetic captures. | X6 must challenge the result without implementation context. |
-| Empty, active, completed, repeated, cumulative, rejected, cancelled, failed, partial, stale, and recovery states | Exact `90a15af` packaged journeys cover first run, active import, success, repeat, extension, rejection, cancellation, partial sessions, stale reports and ranges, settled same-process Sessions, both locales, and restart. Focused presentation tests protect recoverable import failure and ordered post-reimport Home publication. The corrected local synthetic update journey also proves successful replacement and deliberate rejection with restoration, terminal notice, acknowledgement, and cleanup. | Confirm the coherent correction in hosted CI, then repeat installation, update, recovery, and removal against the final candidate fingerprint. |
-| Navigation, return, restart, and focus | Packaged process restart, workspace restoration, contextual return, cancellation return, and all six session-section focus and geometry contracts pass. The `fd908ea` hosted journey exposed a report review whose heading had focus but remained above the viewport; a focused TDD correction makes report reveals explicitly aligned. Hosted `bb7298c` crosses that former boundary, and the complete local instrumented journey passes every later transition. | Complete the clean hosted journey, then the all-controls manual keyboard traversal on the exact candidate. |
-| Responsive layout, locale, appearance, zoom, contrast, and reduced motion | English/light and Spanish/dark matrices cover wide, compact, 100%, 175%, and 200% presentation; the exact package rejects page overflow, obstruction, and result-measurement splits. The `bb7298c` and `fbe01f6` hosted failures exposed a default-window masking defect in the compact Reports Library evidence: an obsolete manual navigation offset duplicated the later production reveal margin. The unchanged useful-result contract now fixes 1280 by 720 explicitly, waits at the result boundary, and uses the production margin as its single positioning source. Exact `90a15af` passes that local packaged boundary. Static and component contracts protect reduced motion. | Verify the deterministic correction in the clean hosted journey, then repeat scaling, contrast, and reduced-motion observation during candidate manual evaluation. |
+| Empty, active, completed, repeated, cumulative, rejected, cancelled, failed, partial, stale, and recovery states | Exact `90a15af` packaged journeys cover first run, active import, success, repeat, extension, rejection, cancellation, partial sessions, stale reports and ranges, settled same-process Sessions, both locales, and restart. Focused presentation tests protect recoverable import failure and ordered post-reimport Home publication. Hosted `80a4709` proves successful replacement and deliberate rejection with restoration, terminal notice, acknowledgement, cleanup, and an exact evidence marker. | X6 must challenge the complete result without implementation context; eventual sealed-candidate evidence remains a separate release gate. |
+| Navigation, return, restart, and focus | Packaged process restart, workspace restoration, contextual return, cancellation return, and all six session-section focus and geometry contracts pass. The `fd908ea` hosted journey exposed a report review whose heading had focus but remained above the viewport; a focused TDD correction makes report reveals explicitly aligned. Hosted `bb7298c` crosses that former boundary, the complete local instrumented journey passes every later transition, and hosted `80a4709` accepts the whole journey. | X6 must challenge navigation and return without implementation context; the all-controls manual keyboard traversal remains an exact-candidate human gate. |
+| Responsive layout, locale, appearance, zoom, contrast, and reduced motion | English/light and Spanish/dark matrices cover wide, compact, 100%, 175%, and 200% presentation; the exact package rejects page overflow, obstruction, and result-measurement splits. The `bb7298c` and `fbe01f6` hosted failures exposed a default-window masking defect in the compact Reports Library evidence: an obsolete manual navigation offset duplicated the later production reveal margin. The unchanged useful-result contract now fixes 1280 by 720 explicitly, waits at the result boundary, and uses the production margin as its single positioning source. Exact `90a15af` passes that local packaged boundary, and hosted `80a4709` accepts the deterministic correction. Static and component contracts protect reduced motion. | X6 must challenge adaptive presentation; scaling, contrast, and reduced-motion observation remains an exact-candidate human gate. |
 | Assistive technology | Packaged Axe runs cover Sources, session detail and ranges, every answer canvas, Reports Library, Compose, Preview, refresh, and export review; semantic alternatives and focus are asserted. | Manual VoiceOver in English and Spanish remains an explicit human candidate gate. |
 | Privacy and data exit | Exact packaged export review proves per-export physiology omission, endpoint reduction, no latitude, longitude, script, or network reference, atomic cancellation, and self-contained HTML; repository and secret scans pass. | Apply the privacy-safe manual protocol to the exact candidate without retaining personal evidence. |
-| Performance and lifecycle | `c783def` passes functional, real-process restart, adaptive-session, and two-year performance campaigns inside every accepted budget. The later exact package for `ee8c856` failed cold launch at 2,609 ms p95; the diagnosed startup-graph correction reduces the main JavaScript bundle by 140,104 bytes. Revision `fd908ea` passes 100 clean local Apple Silicon launches at 445 ms p95 and 100 hosted launches at 1,910 ms p95. Hosted `975c38b` passes cold launch, full-scale import, dense history, Insights, update-recovery preparation, installation boundaries, and the complete instrumented package before exposing the synthetic update-identity mismatch. The corrected full local replacement and recovery journey passes. Hosted `caa800c` then passes the first sixteen macOS stages before the unchanged 60-minute job limit cancels the healthy final campaign without an assertion failure; the measured campaign now has a bounded 75-minute orchestration allowance while every narrower watchdog and performance budget remains unchanged. | Complete hosted replacement and recovery for the coherent correction, then record its reusable executable-input evidence marker. |
-| User, contributor, architecture, format, translation, testing, support, and readiness documentation | The current-document audit aligns the accepted specification, redesign plan, roadmap, contributor index, readiness ledger, current user journeys, thematic architecture, data-contract index, localization, support, and conditional release guidance. Eleven canonical sources now have automated stale-status checks. | Replace pending hosted evidence with the coherent correction result and carry any later R10 or X6 finding into its canonical owner. |
+| Performance and lifecycle | `c783def` passes functional, real-process restart, adaptive-session, and two-year performance campaigns inside every accepted budget. The later exact package for `ee8c856` failed cold launch at 2,609 ms p95; the diagnosed startup-graph correction reduces the main JavaScript bundle by 140,104 bytes. Revision `fd908ea` passes 100 clean local Apple Silicon launches at 445 ms p95 and 100 hosted launches at 1,910 ms p95. Hosted `975c38b` passes cold launch, full-scale import, dense history, Insights, update-recovery preparation, installation boundaries, and the complete instrumented package before exposing the synthetic update-identity mismatch. The corrected full local replacement and recovery journey passes. Hosted `caa800c` then passes the first sixteen macOS stages before the unchanged 60-minute job limit cancels the healthy final campaign without an assertion failure. Hosted `80a4709` completes the same campaign in 55 minutes and 30 seconds, including successful replacement and recovery, with the bounded 75-minute orchestration allowance and every narrower watchdog and performance budget unchanged. | Retain this executable-input evidence through X6; repeat it for an eventual release-affecting correction or exact tag. |
+| User, contributor, architecture, format, translation, testing, support, and readiness documentation | The current-document audit aligns the accepted specification, redesign plan, roadmap, contributor index, readiness ledger, current user journeys, thematic architecture, data-contract index, localization, support, and conditional release guidance. Eleven canonical sources have automated stale-status checks, and the exact hosted result is recorded in the current plan and readiness ledger. | Carry any X6 finding into its canonical owner without duplicating a second status source. |
 
 ## X6 — Repeat the independent product-experience audit
 
