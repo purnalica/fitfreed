@@ -22,6 +22,7 @@ import addFormats from "ajv-formats";
 
 import {
   assertSyntheticUpdateBoundary,
+  createUpdateBuildConfiguration,
   createUpdateEnvelope,
   createUpdatePayload,
   updateTarget,
@@ -49,6 +50,9 @@ const generatedUpdaterSignature = `${generatedUpdaterPackage}.sig`;
 const candidatePackage = path.join(artifactRoot, "builds/candidate/FitFreed.app.tar.gz");
 const currentApplication = path.join(artifactRoot, "builds/current/FitFreed.app");
 const keyId = "synthetic-e2e-key";
+const productionIdentifier = JSON.parse(
+  readFileSync(path.join(repositoryRoot, "src-tauri/tauri.conf.json"), "utf8"),
+).identifier;
 
 function run(command, arguments_, options = {}) {
   const result = spawnSync(command, arguments_, {
@@ -191,19 +195,13 @@ function generateSigningKey() {
 }
 
 function buildApplication(version, createUpdaterArtifacts, publicKey) {
-  writeFileSync(generatedConfiguration, `${JSON.stringify({
+  const configuration = createUpdateBuildConfiguration({
     version,
-    bundle: {
-      targets: ["app"],
-      createUpdaterArtifacts,
-    },
-    plugins: {
-      updater: {
-        pubkey: publicKey,
-        endpoints: [],
-      },
-    },
-  }, null, 2)}\n`);
+    createUpdaterArtifacts,
+    publicKey,
+    productionIdentifier,
+  });
+  writeFileSync(generatedConfiguration, `${JSON.stringify(configuration, null, 2)}\n`);
   run("npm", [
     "run", "tauri", "--", "build",
     "--features", "e2e",

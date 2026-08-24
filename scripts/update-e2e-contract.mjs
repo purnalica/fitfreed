@@ -19,6 +19,31 @@ export function updateTarget(platform, architecture) {
   throw new Error(`Unsupported macOS architecture: ${architecture}`);
 }
 
+export function createUpdateBuildConfiguration({
+  version,
+  createUpdaterArtifacts,
+  publicKey,
+  productionIdentifier,
+}) {
+  if (typeof productionIdentifier !== "string" || productionIdentifier.trim() === "") {
+    throw new Error("The production application identifier is required");
+  }
+  return {
+    identifier: productionIdentifier,
+    version,
+    bundle: {
+      targets: ["app"],
+      createUpdaterArtifacts,
+    },
+    plugins: {
+      updater: {
+        pubkey: publicKey,
+        endpoints: [],
+      },
+    },
+  };
+}
+
 export function createUpdatePayload({
   contractSchemaVersion = 1,
   channel = "private-alpha",

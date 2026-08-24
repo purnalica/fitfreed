@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   assertSyntheticUpdateBoundary,
+  createUpdateBuildConfiguration,
   createUpdateEnvelope,
   createUpdatePayload,
   updateTarget,
@@ -24,6 +25,40 @@ test("maps the supported macOS architectures to update-channel targets", () => {
   assert.equal(updateTarget("darwin", "x64"), "darwin-x86_64");
   assert.throws(() => updateTarget("linux", "arm64"), /macOS/);
   assert.throws(() => updateTarget("darwin", "ia32"), /architecture/);
+});
+
+test("builds synthetic updates with the canonical production application identity", () => {
+  assert.deepEqual(
+    createUpdateBuildConfiguration({
+      version: "0.2.0",
+      createUpdaterArtifacts: true,
+      publicKey: "synthetic-public-key",
+      productionIdentifier: "org.fitfreed.desktop",
+    }),
+    {
+      identifier: "org.fitfreed.desktop",
+      version: "0.2.0",
+      bundle: {
+        targets: ["app"],
+        createUpdaterArtifacts: true,
+      },
+      plugins: {
+        updater: {
+          pubkey: "synthetic-public-key",
+          endpoints: [],
+        },
+      },
+    },
+  );
+  assert.throws(
+    () => createUpdateBuildConfiguration({
+      version: "0.2.0",
+      createUpdaterArtifacts: false,
+      publicKey: "synthetic-public-key",
+      productionIdentifier: "",
+    }),
+    /production application identifier/,
+  );
 });
 
 test("constructs exact signed payload and untrusted Tauri mirror documents", () => {
