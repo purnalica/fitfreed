@@ -2945,6 +2945,7 @@ describe("packaged FitFreed import journey", () => {
     await expect($("body")).not.toHaveText(expect.stringContaining("fixture-training-session"));
 
     recordJourneyPhase("localized-maximum-zoom");
+    await resizeApplication(1280, 720);
     await selectLocale("es-ES");
     await setAppearanceAndZoom("dark", 200, true, "home");
     await captureR10WorkspaceEvidence(
@@ -2959,9 +2960,7 @@ describe("packaged FitFreed import journey", () => {
     });
     await browser.execute(() => {
       const library = document.querySelector(".report-library");
-      const navigation = document.querySelector(".app-sidebar");
       library.scrollIntoView({ block: "start", inline: "nearest" });
-      window.scrollBy(0, -navigation.getBoundingClientRect().height - 16);
     });
     const compactReportLibraryGeometry = await browser.execute(() => {
       const root = document.documentElement;
@@ -2976,6 +2975,15 @@ describe("packaged FitFreed import journey", () => {
         Math.min(card.bottom, window.innerHeight) - Math.max(card.top, navigation.bottom),
       );
       return {
+        viewportHeight: window.innerHeight,
+        navigationBottom: navigation.bottom,
+        libraryTop: library.top,
+        creationBottom: creation.bottom,
+        listTop: list.top,
+        cardTop: card.top,
+        cardBottom: card.bottom,
+        cardHeight: card.height,
+        visibleCardHeight,
         hasHorizontalOverflow: root.scrollWidth > root.clientWidth,
         libraryBelowNavigation: library.top >= navigation.bottom - 1,
         hasExpandedStart: document.querySelector(".report-library-start") !== null,
@@ -2987,7 +2995,34 @@ describe("packaged FitFreed import journey", () => {
         cardInsideLibrary: card.left >= library.left && card.right <= library.right,
       };
     });
-    expect(compactReportLibraryGeometry).toEqual({
+    const {
+      viewportHeight,
+      navigationBottom,
+      libraryTop,
+      creationBottom,
+      listTop,
+      cardTop,
+      cardBottom,
+      cardHeight,
+      visibleCardHeight,
+      ...compactReportLibraryContract
+    } = compactReportLibraryGeometry;
+    if (!compactReportLibraryContract.usefulResultVisible) {
+      process.stderr.write(`${JSON.stringify({
+        reportLibraryGeometry: {
+          viewportHeight,
+          navigationBottom,
+          libraryTop,
+          creationBottom,
+          listTop,
+          cardTop,
+          cardBottom,
+          cardHeight,
+          visibleCardHeight,
+        },
+      })}\n`);
+    }
+    expect(compactReportLibraryContract).toEqual({
       hasHorizontalOverflow: false,
       libraryBelowNavigation: true,
       hasExpandedStart: false,

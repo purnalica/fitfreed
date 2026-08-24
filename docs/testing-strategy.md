@@ -79,6 +79,8 @@ Automated testing is the primary source of evidence that the product behaves cor
   workbench, map, independent-signal reveals, conditional exact-relationship lanes, and absence of page-level
   horizontal overflow at 100% and 200% content zoom. The packaged performance journey fixes a 1024-by-720
   logical window before its maximum-range 200% checks so layout evidence is independent of the host display size.
+  The packaged functional journey similarly fixes a 1280-by-720 logical window before its localized maximum-zoom
+  report-library check and uses the production reveal margin as the single persistent-navigation offset.
 - A packaged 20,001-point route accompanied by four independent 20,001-slot signals: the current unavailable-alignment contract requires bounded local route rendering without an invented overlay or attached signal lane, alternating first/last map selection, truthful source-ordinal labels, focused retrieval of the exact final route row, deliberate transition to the independent signal destination, four-lane cross-signal selection, and exact signal pagination under explicit interaction budgets.
 - Full-history training discovery with combined filters, deterministic sorting, coherent forward and backward pagination, source-separated calendar traversal, two-through-four-session comparison, exact chronology or calendar return, complete application-process restart restoration, library-change recovery, exact results, and lightweight detail.
 - Explicit traversal among Sessions, Sports, and Compare periods and among every session evidence section, proving that hidden views are inaccessible while their disposable state survives temporary navigation.

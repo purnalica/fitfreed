@@ -11,7 +11,7 @@ document is the single implementation-facing plan for X4 and X5 of the systemic 
 
 ### Current execution snapshot
 
-Updated 2026-08-23. X4-P0 and X5-R1 through X5-R9 are complete. X5-R10.2, the whole-product
+Updated 2026-08-24. X4-P0 and X5-R1 through X5-R9 are complete. X5-R10.2, the whole-product
 presentation and current-documentation audit, is in progress. Its corrected portable quality checks
 have passed locally and on GitHub. The exact packaged macOS campaign stopped at its cold-launch gate:
 the hosted 100-process measurement reported a 2,609-millisecond p95 against the non-negotiable
@@ -32,10 +32,13 @@ now reproduces the missing explicit scroll, and the shared report transitions al
 outcomes deliberately. The complete local instrumented package now passes the functional, restart, adaptive-session,
 and two-year performance journeys. Hosted revision `bb7298c` passed the corrected cold-launch, scale, dense-history,
 Insights, recovery-preparation, and installation gates and crossed the former export-review failure. It then exposed
-a separate evidence race in the compact 200% Reports Library check: the stable Library container was positioned
-before its asynchronous saved result arrived, so the later card growth invalidated the viewport measurement. The
-unchanged useful-result assertion now waits for that observable result before positioning and measuring it, and the
-complete local packaged campaign passes. Exact clean hosted verification is the remaining correction gate. The remaining
+a compact 200% Reports Library failure. Waiting for the asynchronous result did not correct it: hosted revision
+`fbe01f6` failed at the same boundary. Exact 1280-by-720 local reproduction and history analysis found the cause in
+the evidence arrangement. The original result-first test manually offset the Library for persistent navigation;
+the later shared report-reveal correction added the same offset through `scroll-margin-block-start`, leaving both
+mechanisms active. A taller local viewport masked the duplicated 210-pixel separation. The unchanged useful-result
+assertion now waits for the result, fixes the accepted window geometry explicitly, and relies on the production
+reveal margin as its single positioning contract. Complete local and hosted verification remain required. The remaining
 sequence is to close the automatable R10 evidence, run the X6 independent
 product-experience audit, and present the exact candidate for the final human usability and accessibility
 gate. No routine human intervention is expected before that gate unless an external service or physical
@@ -2041,13 +2044,14 @@ verification pass locally with all 339 React tests and the complete functional, 
 two-year performance journeys. Hosted revision `bb7298c` passes the corrected cold launch, full-scale import, dense
 history, Insights, update-recovery preparation, and installation boundaries. Its functional journey crosses the
 formerly failing export review and then rejects the Spanish dark compact 200% Reports Library because the useful
-result is outside the measured viewport. The retained screenshot and test history identify a synchronization defect
-in the evidence sequence rather than a removed visual requirement: the always-present Library container was scrolled
-before `list_report_library` rendered its first result, and the later page growth moved that card below the intended
-position. The test still requires at least 60% of the useful card to be visible, but now waits for the observable
-saved result before arranging and measuring the visual state. The complete local packaged campaign passes that exact
-boundary and all subsequent journeys. Exact clean hosted verification remains required before the correction becomes
-accepted evidence.
+result is outside the measured viewport. Revision `fbe01f6` added an explicit result boundary, passed the complete
+local package at the default requested window, and then failed identically in the hosted 1280-by-720 viewport. A
+local test fixed to the same 1280-by-720 window reproduces the hosted coordinates and failure. History traces the
+failure to two navigation offsets: `b3918ff` introduced a manual offset before report reveal margins existed, and
+`af60a49` later supplied the same persistent-navigation clearance through the shared production
+`scroll-margin-block-start`. The result wait remains valid, the 60% useful-result requirement is unchanged, and the
+deterministic test now uses that production reveal margin as the single source of positioning truth. Complete local
+and clean hosted verification remain required before this correction becomes accepted evidence.
 
 #### R10.2 evidence matrix
 
@@ -2057,7 +2061,7 @@ accepted evidence.
 | Terminology, hierarchy, dates, units, precision, icons, visuals, and disclosure | Seven correction slices, complete live-surface inventory, 337 React tests, static contracts, exact `c783def` package, and reviewed cross-workspace synthetic captures. | X6 must challenge the result without implementation context. |
 | Empty, active, completed, repeated, cumulative, rejected, cancelled, failed, partial, stale, and recovery states | Packaged journeys cover first run, active import, success, repeat, extension, rejection, cancellation, partial sessions, stale reports and ranges, and update recovery; focused presentation tests protect recoverable import failure. | Repeat installation, update, recovery, and removal against the final exact executable fingerprint. |
 | Navigation, return, restart, and focus | Packaged process restart, workspace restoration, contextual return, cancellation return, and all six session-section focus and geometry contracts pass. The `fd908ea` hosted journey exposed a report review whose heading had focus but remained above the viewport; a focused TDD correction makes report reveals explicitly aligned. Hosted `bb7298c` crosses that former boundary, and the complete local instrumented journey passes every later transition. | Complete the clean hosted journey, then the all-controls manual keyboard traversal on the exact candidate. |
-| Responsive layout, locale, appearance, zoom, contrast, and reduced motion | English/light and Spanish/dark matrices cover wide, compact, 100%, 175%, and 200% presentation; the exact package rejects page overflow, obstruction, and result-measurement splits. The `bb7298c` hosted failure exposed an evidence race that positioned the compact Reports Library before its result arrived; the unchanged useful-result geometry contract now waits at the result boundary and passes locally. Static and component contracts protect reduced motion. | Verify the corrected synchronization in the clean hosted journey, then repeat scaling, contrast, and reduced-motion observation during candidate manual evaluation. |
+| Responsive layout, locale, appearance, zoom, contrast, and reduced motion | English/light and Spanish/dark matrices cover wide, compact, 100%, 175%, and 200% presentation; the exact package rejects page overflow, obstruction, and result-measurement splits. The `bb7298c` and `fbe01f6` hosted failures exposed a default-window masking defect in the compact Reports Library evidence: an obsolete manual navigation offset duplicated the later production reveal margin. The unchanged useful-result contract now fixes 1280 by 720 explicitly, waits at the result boundary, and uses the production margin as its single positioning source. Static and component contracts protect reduced motion. | Verify the deterministic correction locally and in the clean hosted journey, then repeat scaling, contrast, and reduced-motion observation during candidate manual evaluation. |
 | Assistive technology | Packaged Axe runs cover Sources, session detail and ranges, every answer canvas, Reports Library, Compose, Preview, refresh, and export review; semantic alternatives and focus are asserted. | Manual VoiceOver in English and Spanish remains an explicit human candidate gate. |
 | Privacy and data exit | Exact packaged export review proves per-export physiology omission, endpoint reduction, no latitude, longitude, script, or network reference, atomic cancellation, and self-contained HTML; repository and secret scans pass. | Apply the privacy-safe manual protocol to the exact candidate without retaining personal evidence. |
 | Performance and lifecycle | `c783def` passes functional, real-process restart, adaptive-session, and two-year performance campaigns inside every accepted budget. The later exact package for `ee8c856` failed cold launch at 2,609 ms p95; the diagnosed startup-graph correction reduces the main JavaScript bundle by 140,104 bytes. Revision `fd908ea` passes 100 clean local Apple Silicon launches at 445 ms p95 and 100 hosted launches at 1,910 ms p95. Hosted `bb7298c` repeats cold launch, full-scale import, dense history, Insights, update-recovery preparation, and installation boundaries successfully. | Complete the hosted functional campaign, packaged update replacement, and evidence marker for the synchronized report-result check. |
