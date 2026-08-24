@@ -192,6 +192,9 @@ test("reuses a documentation-only result only with matching successful evidence"
 
 test("wires the fail-closed classifier into both hosted verification lanes", () => {
   const workflow = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
+  const packagedMacosJob = workflow.match(
+    /  packaged-macos-e2e:\n(?<body>[\s\S]*?)(?=\n  [a-z][\w-]+:\n)/,
+  )?.groups?.body;
 
   assert.match(workflow, /fetch-depth: 0/);
   assert.match(workflow, /id: impact/);
@@ -216,4 +219,5 @@ test("wires the fail-closed classifier into both hosted verification lanes", () 
   );
   assert.match(workflow, /needs: \[quality, packaged-macos-e2e\]/);
   assert.match(workflow, /uses: actions\/cache\/save@[0-9a-f]{40}/);
+  assert.match(packagedMacosJob ?? "", /^    timeout-minutes: 75$/m);
 });

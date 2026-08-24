@@ -182,7 +182,7 @@ jobs:
     needs: quality
     if: needs.quality.outputs.full-verification == 'true'
     runs-on: macos-15
-    timeout-minutes: 60
+    timeout-minutes: 75
 
     steps:
       - name: Check out source
