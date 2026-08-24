@@ -38,7 +38,9 @@ the evidence arrangement. The original result-first test manually offset the Lib
 the later shared report-reveal correction added the same offset through `scroll-margin-block-start`, leaving both
 mechanisms active. A taller local viewport masked the duplicated 210-pixel separation. The unchanged useful-result
 assertion now waits for the result, fixes the accepted window geometry explicitly, and relies on the production
-reveal margin as its single positioning contract. Complete local and hosted verification remain required. The remaining
+reveal margin as its single positioning contract. Exact revision `90a15af` passes the complete local fast lane and
+the clean packaged functional, restart, adaptive-session, and two-year performance campaigns with the fixed
+1280-by-720 evidence window. Clean hosted verification remains required. The remaining
 sequence is to close the automatable R10 evidence, run the X6 independent
 product-experience audit, and present the exact candidate for the final human usability and accessibility
 gate. No routine human intervention is expected before that gate unless an external service or physical
@@ -2051,8 +2053,8 @@ The later navigation-revision guard protected the selected top-level workspace b
 query producers now participate in one request sequence. Only its most recent success can publish the Home projection
 or exploration destination, and a superseded failure cannot replace a newer successful state with an error. The
 focused regression and all 56 application-shell tests pass. The packaged same-process repeat, cumulative extension,
-settled Sessions, process restart, and both-locale evidence remains part of the exact R10 campaign before this blocker
-can close.
+settled Sessions, process restart, and both-locale evidence also pass in the exact `90a15af` application. Hosted
+confirmation remains required before this blocker can close.
 
 The exact hosted package for `ee8c856` then failed the 100-process cold-launch gate at 2,609 milliseconds p95
 against the unchanged 2,500-millisecond budget. Earlier accepted revisions on the same runner image, operating
@@ -2086,7 +2088,9 @@ failure to two navigation offsets: `b3918ff` introduced a manual offset before r
 `af60a49` later supplied the same persistent-navigation clearance through the shared production
 `scroll-margin-block-start`. The result wait remains valid, the 60% useful-result requirement is unchanged, and the
 deterministic test now uses that production reveal margin as the single source of positioning truth. Complete local
-and clean hosted verification remain required before this correction becomes accepted evidence.
+verification passes for exact revision `90a15af`, including all 340 React tests and the packaged functional, restart,
+adaptive-session, and two-year performance journeys. Clean hosted verification remains required before this
+correction becomes accepted evidence.
 
 #### R10.2 evidence matrix
 
@@ -2094,9 +2098,9 @@ and clean hosted verification remain required before this correction becomes acc
 |---|---|---|
 | Public purpose and truthfulness | Generated README and bilingual site now match current implemented capability; exact Pages and repository-safety workflows pass for `6561148`. | Reopen only if later R10 corrections change a public claim. |
 | Terminology, hierarchy, dates, units, precision, icons, visuals, and disclosure | Seven correction slices, complete live-surface inventory, 337 React tests, static contracts, exact `c783def` package, and reviewed cross-workspace synthetic captures. | X6 must challenge the result without implementation context. |
-| Empty, active, completed, repeated, cumulative, rejected, cancelled, failed, partial, stale, and recovery states | Packaged journeys cover first run, active import, success, repeat, extension, rejection, cancellation, partial sessions, stale reports and ranges, and update recovery; focused presentation tests protect recoverable import failure. | Repeat installation, update, recovery, and removal against the final exact executable fingerprint. |
+| Empty, active, completed, repeated, cumulative, rejected, cancelled, failed, partial, stale, and recovery states | Exact `90a15af` packaged journeys cover first run, active import, success, repeat, extension, rejection, cancellation, partial sessions, stale reports and ranges, settled same-process Sessions, both locales, restart, and update recovery; focused presentation tests protect recoverable import failure and ordered post-reimport Home publication. | Confirm the exact executable in hosted CI, then repeat installation, update, recovery, and removal against the final candidate fingerprint. |
 | Navigation, return, restart, and focus | Packaged process restart, workspace restoration, contextual return, cancellation return, and all six session-section focus and geometry contracts pass. The `fd908ea` hosted journey exposed a report review whose heading had focus but remained above the viewport; a focused TDD correction makes report reveals explicitly aligned. Hosted `bb7298c` crosses that former boundary, and the complete local instrumented journey passes every later transition. | Complete the clean hosted journey, then the all-controls manual keyboard traversal on the exact candidate. |
-| Responsive layout, locale, appearance, zoom, contrast, and reduced motion | English/light and Spanish/dark matrices cover wide, compact, 100%, 175%, and 200% presentation; the exact package rejects page overflow, obstruction, and result-measurement splits. The `bb7298c` and `fbe01f6` hosted failures exposed a default-window masking defect in the compact Reports Library evidence: an obsolete manual navigation offset duplicated the later production reveal margin. The unchanged useful-result contract now fixes 1280 by 720 explicitly, waits at the result boundary, and uses the production margin as its single positioning source. Static and component contracts protect reduced motion. | Verify the deterministic correction locally and in the clean hosted journey, then repeat scaling, contrast, and reduced-motion observation during candidate manual evaluation. |
+| Responsive layout, locale, appearance, zoom, contrast, and reduced motion | English/light and Spanish/dark matrices cover wide, compact, 100%, 175%, and 200% presentation; the exact package rejects page overflow, obstruction, and result-measurement splits. The `bb7298c` and `fbe01f6` hosted failures exposed a default-window masking defect in the compact Reports Library evidence: an obsolete manual navigation offset duplicated the later production reveal margin. The unchanged useful-result contract now fixes 1280 by 720 explicitly, waits at the result boundary, and uses the production margin as its single positioning source. Exact `90a15af` passes that local packaged boundary. Static and component contracts protect reduced motion. | Verify the deterministic correction in the clean hosted journey, then repeat scaling, contrast, and reduced-motion observation during candidate manual evaluation. |
 | Assistive technology | Packaged Axe runs cover Sources, session detail and ranges, every answer canvas, Reports Library, Compose, Preview, refresh, and export review; semantic alternatives and focus are asserted. | Manual VoiceOver in English and Spanish remains an explicit human candidate gate. |
 | Privacy and data exit | Exact packaged export review proves per-export physiology omission, endpoint reduction, no latitude, longitude, script, or network reference, atomic cancellation, and self-contained HTML; repository and secret scans pass. | Apply the privacy-safe manual protocol to the exact candidate without retaining personal evidence. |
 | Performance and lifecycle | `c783def` passes functional, real-process restart, adaptive-session, and two-year performance campaigns inside every accepted budget. The later exact package for `ee8c856` failed cold launch at 2,609 ms p95; the diagnosed startup-graph correction reduces the main JavaScript bundle by 140,104 bytes. Revision `fd908ea` passes 100 clean local Apple Silicon launches at 445 ms p95 and 100 hosted launches at 1,910 ms p95. Hosted `bb7298c` repeats cold launch, full-scale import, dense history, Insights, update-recovery preparation, and installation boundaries successfully. | Complete the hosted functional campaign, packaged update replacement, and evidence marker for the synchronized report-result check. |
