@@ -20,6 +20,14 @@ personal observation enters this record. That build was later proven unsuitable 
 because its instrumented native-boundary commands do not provide the production dialogs and external-opening
 behavior. No observation from this invalid session is accepted as production-product evidence.
 
+Corrective source `31751b2ef9291fc23d7aa50e14a2ecfe46280c21` now passes exact
+[repository safety](https://github.com/purnalica/fitfreed/actions/runs/32904901418) and the complete
+[hosted campaign](https://github.com/purnalica/fitfreed/actions/runs/32904901151), including the native review package,
+cold launch, import, dense History, Insights, functional, restart, adaptive-session, installation, and update-recovery
+boundaries. The current [readiness ledger](../testing/public-release-readiness.md) owns the exact marker. This evidence
+makes the corrected native package eligible to restart the profile; it does not replace, reinterpret, or pass the
+rejected human session.
+
 This evaluation can accept or reopen the X6 product experience only. It cannot accept signing,
 notarization, installation trust, update recovery, a release candidate, or public distribution.
 

@@ -10,9 +10,9 @@ critical or major finding, and exact repository safety and hosted verification p
 The first human session was invalidated by an instrumented native boundary. Its revision-isolated production-native
 replacement and exact hosted campaign pass, but the restarted valid human gate rejects source `41ffad2` during the
 first-value journey. The implementation work defined by corrective increments X6-C1 through X6-C5 in the
-[production migration plan](../plans/mvp-redesign-production-migration.md) is complete locally; its remaining
-provider-catalogue, native-browser, exact-source, and repeated human gates must restore the accepted contract before
-release preparation resumes. Implementation does not by itself authorize a release claim.
+[production migration plan](../plans/mvp-redesign-production-migration.md) and exact hosted verification for corrected
+source `31751b2` are complete. The remaining provider-catalogue, native-browser, and repeated human gates must restore
+the accepted contract before release preparation resumes. Implementation does not by itself authorize a release claim.
 
 The [requirements](../requirements.md#product-experience-contract) own normative product behavior.
 The [redesign plan](../plans/ui-redesign.md) owns rationale, journeys, feasibility analysis, and

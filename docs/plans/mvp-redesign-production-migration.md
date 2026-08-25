@@ -45,8 +45,15 @@ preceding row. Exact route pagination now seeks from its contiguous source ordin
 index. A controlled local Apple Silicon comparison against unchanged source `23631be` reduced route-report resolution
 from 729.691 to 442.691 milliseconds p95, self-contained export from 735.299 to 447.263 milliseconds p95, and a deep
 exact page from 15.539 to 6.606 milliseconds p95. The complete fast, Rust lint, Rust format, packaged functional,
-restart, adaptive-session, and performance gates pass for the corrected tree. One clean exact hosted campaign for the
-committed correction remains mandatory; this local evidence does not replace it.
+restart, adaptive-session, and performance gates pass for the corrected tree. Correction `31751b2` then passed exact
+[repository safety `32904901418`](https://github.com/purnalica/fitfreed/actions/runs/32904901418) and the complete
+[hosted campaign `32904901151`](https://github.com/purnalica/fitfreed/actions/runs/32904901151). Hosted route-report
+resolution measured 766.714 milliseconds p95, self-contained export 698.089 milliseconds p95, and a deep exact page
+10.784 milliseconds p95. The portable job completed in 4 minutes and 23 seconds, the macOS job in 53 minutes and
+20 seconds, and the immutable marker records executable-input fingerprint
+`81de4cd9104612488f7eab6c84bfa95cb5a3afdb0a801b237f44cf6e77d4e793`. This closes the corrected exact-source
+automation gate without changing a product budget; the provider-catalogue, native-browser, and repeated human gates
+remain open.
 
 The [increment status](#increment-status) gives the one-line phase view. The
 [R10.2 evidence matrix](#r102-evidence-matrix) records what has been verified and what remains, and
@@ -258,11 +265,11 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R9 | Complete locally — all six slices passed fast, packaged, restart, accessibility, visual, migration, and performance gates on 2026-08-23 | Reports open as results and leave FitFreed safely |
 | X5-R10 | Complete — exact local and hosted gates passed 2026-08-24; executable-input evidence marker retained | The complete release-shaped product is coherent and documented |
 | X6 | Rejected for source `41ffad2` — native profile and exact hosted campaign pass, but the valid human session found one critical and several major product defects | Independent audit has no unresolved material finding |
-| X6-C1 | Human-gated — temporal meaning and the provider-neutral identity foundation are locally complete; real provider-catalogue acquisition remains unavailable | Sports are recognizable from trustworthy evidence and Home ranges state what they measure |
-| X6-C2 | Human-gated — owned native opening, local outcomes, and spatial transitions pass complete automation; real browser appearance remains unreviewed | Every successful or failed acquisition action produces a visible, reachable result |
-| X6-C3 | Complete locally — classification, real progress, primary recovery, watchdog, and packaged regression evidence pass; production-native human re-evaluation remains in the repeated X6 gate | Import recovery is calm and specific, and long work remains perceptibly active |
-| X6-C4 | Complete locally — shell, Home, History, and packaged navigation evidence passed 2026-08-25 | Prominent Home summaries open useful evidence and temporary restrictions explain themselves |
-| X6-C5 | Complete locally — role-based measure, form geometry, and packaged WebKit evidence passed 2026-08-25 | Text and forms use the desktop workspace coherently through 200% content zoom |
+| X6-C1 | Human-gated — temporal meaning and the provider-neutral identity foundation have exact hosted evidence; real provider-catalogue acquisition remains unavailable | Sports are recognizable from trustworthy evidence and Home ranges state what they measure |
+| X6-C2 | Human-gated — owned native opening, local outcomes, spatial transitions, and exact hosted evidence pass; real browser appearance remains unreviewed | Every successful or failed acquisition action produces a visible, reachable result |
+| X6-C3 | Complete — classification, real progress, primary recovery, watchdog, packaged regressions, and exact hosted evidence pass; production-native human re-evaluation remains in the repeated X6 gate | Import recovery is calm and specific, and long work remains perceptibly active |
+| X6-C4 | Complete — shell, Home, History, packaged navigation, and exact hosted evidence passed 2026-08-26 | Prominent Home summaries open useful evidence and temporary restrictions explain themselves |
+| X6-C5 | Complete — role-based measure, form geometry, packaged WebKit, and exact hosted evidence passed 2026-08-26 | Text and forms use the desktop workspace coherently through 200% content zoom |
 
 ## X4-P0 — Freeze the executable contract
 
@@ -2248,7 +2255,7 @@ unresolved values, keeps personal naming as an override, and states a date range
    enrichment, ambiguous/unknown behavior, and unavailable-only range boundaries. Finish with realistic multi-sport
    import, Home-to-History, filter, session, report/export, restart, and reimport journeys in both locales.
 
-**Execution state:** the temporal subincrement and provider-neutral sport-identity foundation are implemented locally
+**Execution state:** the temporal subincrement and provider-neutral sport-identity foundation are implemented
 through Library Home version 5, Training Sports version 2, Session Story version 4, report resolution version 5, and
 SQLite schema 28. Recorded evidence, usable measurement coverage, and the explicitly scoped primary range are
 separate contracts; activity days without step measurements no longer define usable history; training counts use the
@@ -2286,7 +2293,7 @@ obvious next action, including when the action begins from a scrolled result.
 4. Verify pointer, keyboard, focus, scroll geometry, compact navigation, both locales, 100%–200% zoom, reduced motion,
    cancellation, repeated action, and return from every acquisition state.
 
-**Execution state:** the correction is implemented locally through the provider-neutral application use case,
+**Execution state:** the correction is implemented through the provider-neutral application use case,
 typed desktop request and outcome, native infrastructure launcher, [ADR 0028](../architecture/decisions/0028-own-official-destination-opening-in-the-application.md),
 and the versioned [opening contract](../data-formats/guidance/official-source-link-opening-v1.md). React no longer
 holds arbitrary native URL authority. Each official action displays its exact destination and retains an accepted
