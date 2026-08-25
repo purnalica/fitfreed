@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/official-source-link-opening-v1.schema.json",
+  "title": "FitFreed official source link opening version 1",
+  "oneOf": [
+    { "$ref": "#/$defs/request" },
+    { "$ref": "#/$defs/outcome" }
+  ],
+  "$defs": {
+    "sourceId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+      "maxLength": 64
+    },
+    "purpose": {
+      "enum": ["account", "instructions"]
+    },
+    "locale": {
+      "enum": ["en-US", "es-ES"]
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceId", "purpose", "locale"],
+      "properties": {
+        "sourceId": { "$ref": "#/$defs/sourceId" },
+        "purpose": { "$ref": "#/$defs/purpose" },
+        "locale": { "$ref": "#/$defs/locale" }
+      }
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceId", "purpose", "url"],
+      "properties": {
+        "sourceId": { "$ref": "#/$defs/sourceId" },
+        "purpose": { "$ref": "#/$defs/purpose" },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://",
+          "maxLength": 2048
+        }
+      }
+    }
+  }
+}

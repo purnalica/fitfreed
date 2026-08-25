@@ -17,6 +17,15 @@ export async function openArchivePicker(dialogMock, selectedPath, chooseLabel) {
       filters: [{ name: "ZIP", extensions: ["zip"] }],
     },
   });
+  if (selectedPath === null) {
+    await browser.waitUntil(
+      () => browser.execute(
+        (label) => document.activeElement?.textContent?.trim() === label,
+        chooseLabel,
+      ),
+      { timeout: 10_000, timeoutMsg: "archive selection did not regain focus after cancellation" },
+    );
+  }
 }
 
 export async function selectArchive(dialogMock, archivePath, chooseLabel) {
@@ -24,6 +33,26 @@ export async function selectArchive(dialogMock, archivePath, chooseLabel) {
   const archiveName = archivePath.split(/[\\/]/).filter(Boolean).at(-1);
   await expect($(".path")).toHaveText(archiveName);
   await expect($("body")).not.toHaveText(expect.stringContaining(archivePath));
+  await browser.waitUntil(
+    () => browser.execute(() => {
+      const heading = document.querySelector(".source-path-import h2");
+      const archive = document.querySelector(".source-path-import .path")
+        ?.getBoundingClientRect();
+      const importAction = document.querySelector(".source-path-import button:not(.secondary)")
+        ?.getBoundingClientRect();
+      const navigation = document.querySelector(".app-sidebar")?.getBoundingClientRect();
+      const compact = navigation && navigation.width >= document.documentElement.clientWidth - 1;
+      const visibleTop = compact ? navigation.bottom : 0;
+      return document.activeElement === heading
+        && archive && importAction
+        && archive.top >= visibleTop - 1
+        && importAction.bottom <= document.documentElement.clientHeight + 1;
+    }),
+    {
+      timeout: 10_000,
+      timeoutMsg: "selected archive and import action were not revealed together",
+    },
+  );
 }
 
 export async function persistSettings() {

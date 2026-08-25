@@ -50,14 +50,27 @@ const importMessages = {
   cancelling: catalogs["en-US"].cancelling,
 };
 
-afterEach(cleanup);
+const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+
+afterEach(() => {
+  cleanup();
+  if (originalScrollIntoView) {
+    HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+  } else {
+    Reflect.deleteProperty(HTMLElement.prototype, "scrollIntoView");
+  }
+  vi.unstubAllGlobals();
+});
 
 describe("SourcesPanel", () => {
   it("exercises both first-run paths and every official destination", async () => {
     const user = userEvent.setup();
-    const onChooseArchive = vi.fn().mockResolvedValue(undefined);
+    const onChooseArchive = vi.fn().mockResolvedValue("/synthetic/export.zip");
     const onImport = vi.fn().mockResolvedValue(undefined);
-    const onOpenOfficialLink = vi.fn().mockResolvedValue(undefined);
+    const onOpenOfficialLink = vi.fn().mockImplementation(async (request, url) => ({
+      ...request,
+      url,
+    }));
 
     render(
       <SourcesPanel
@@ -77,7 +90,7 @@ describe("SourcesPanel", () => {
         onImport={onImport}
         onCancel={vi.fn()}
         onOpenOfficialLink={onOpenOfficialLink}
-        onLinkError={vi.fn()}
+        onLinkError={() => "Official destination failed"}
       />,
     );
 
@@ -100,13 +113,27 @@ describe("SourcesPanel", () => {
     await user.click(within(guideRegion).getByRole("button", {
       name: "Open official account page",
     }));
-    await user.click(within(guideRegion).getByRole("button", {
+    const instructionsAction = within(guideRegion).getByRole("button", {
       name: "Open official instructions",
-    }));
-    expect(onOpenOfficialLink).toHaveBeenNthCalledWith(1, "https://account.polar.com/");
+    });
+    instructionsAction.focus();
+    await user.keyboard("{Enter}");
+    expect(onOpenOfficialLink).toHaveBeenNthCalledWith(1, {
+      sourceId: "polar-flow",
+      purpose: "account",
+      locale: "en-US",
+    }, "https://account.polar.com/");
     expect(onOpenOfficialLink).toHaveBeenNthCalledWith(
       2,
+      {
+        sourceId: "polar-flow",
+        purpose: "instructions",
+        locale: "en-US",
+      },
       "https://support.polar.com/en/how-to-download-all-your-data-from-polar-flow",
+    );
+    expect(within(guideRegion).getByRole("status")).toHaveTextContent(
+      "The operating system accepted the request",
     );
   });
 
@@ -154,11 +181,11 @@ describe("SourcesPanel", () => {
     const user = userEvent.setup();
     let completeOpening: () => void = () => undefined;
     const onOpenOfficialLink = vi.fn()
-      .mockImplementationOnce(() => new Promise<void>((resolve) => {
-        completeOpening = resolve;
+      .mockImplementationOnce((request, url) => new Promise((resolve) => {
+        completeOpening = () => resolve({ ...request, url });
       }))
       .mockRejectedValueOnce(new Error("browser unavailable"));
-    const onLinkError = vi.fn();
+    const onLinkError = vi.fn().mockReturnValue("No default browser is available.");
 
     render(
       <SourcesPanel
@@ -205,10 +232,18 @@ describe("SourcesPanel", () => {
 
     act(() => completeOpening());
     await waitFor(() => expect(account).toBeEnabled());
-    expect(within(guideRegion).queryByRole("status")).not.toBeInTheDocument();
+    expect(within(guideRegion).getByRole("status")).toHaveTextContent(
+      "The operating system accepted the request",
+    );
 
     await user.click(instructions);
     await waitFor(() => expect(onLinkError).toHaveBeenCalledOnce());
+    const failure = within(guideRegion).getByRole("alert");
+    expect(failure).toHaveFocus();
+    expect(failure).toHaveTextContent("No default browser is available.");
+    expect(within(guideRegion).getByText(
+      "https://support.polar.com/en/how-to-download-all-your-data-from-polar-flow",
+    )).toBeVisible();
     expect(account).toBeEnabled();
     expect(instructions).toBeEnabled();
   });
@@ -383,6 +418,133 @@ describe("SourcesPanel", () => {
     await waitFor(() => expect(screen.getByRole("heading", {
       name: "How to obtain your Polar Flow export",
     })).toHaveFocus());
+  });
+
+  it("reveals guidance and selected archives with motion-aware focus transitions", async () => {
+    const scrollIntoView = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
+    const view = render(
+      <SourcesPanel
+        locale="en-US"
+        messages={catalogs["en-US"].sources}
+        importMessages={importMessages}
+        guide={guide}
+        guideLoading={false}
+        guideRequestId={0}
+        archiveSelectionRequestId={0}
+        archivePath={undefined}
+        importReady
+        busy={false}
+        cancellable={false}
+        updateInstalling={false}
+        cancelRequested={false}
+        onChooseArchive={vi.fn()}
+        onArchiveError={vi.fn()}
+        onImport={vi.fn()}
+        onCancel={vi.fn()}
+        onOpenOfficialLink={vi.fn()}
+        onLinkError={() => "Official destination failed"}
+      />,
+    );
+
+    view.rerender(
+      <SourcesPanel
+        locale="en-US"
+        messages={catalogs["en-US"].sources}
+        importMessages={importMessages}
+        guide={guide}
+        guideLoading={false}
+        guideRequestId={1}
+        archiveSelectionRequestId={0}
+        archivePath={undefined}
+        importReady
+        busy={false}
+        cancellable={false}
+        updateInstalling={false}
+        cancelRequested={false}
+        onChooseArchive={vi.fn()}
+        onArchiveError={vi.fn()}
+        onImport={vi.fn()}
+        onCancel={vi.fn()}
+        onOpenOfficialLink={vi.fn()}
+        onLinkError={() => "Official destination failed"}
+      />,
+    );
+    const guideHeading = await screen.findByRole("heading", {
+      name: "How to obtain your Polar Flow export",
+    });
+    expect(guideHeading).toHaveFocus();
+    expect(scrollIntoView).toHaveBeenLastCalledWith({
+      block: "center",
+      behavior: "smooth",
+    });
+
+    vi.mocked(window.matchMedia).mockReturnValue({ matches: true } as MediaQueryList);
+    view.rerender(
+      <SourcesPanel
+        locale="en-US"
+        messages={catalogs["en-US"].sources}
+        importMessages={importMessages}
+        guide={guide}
+        guideLoading={false}
+        guideRequestId={1}
+        archiveSelectionRequestId={1}
+        archivePath="/synthetic/new-export.zip"
+        importReady
+        busy={false}
+        cancellable={false}
+        updateInstalling={false}
+        cancelRequested={false}
+        onChooseArchive={vi.fn()}
+        onArchiveError={vi.fn()}
+        onImport={vi.fn()}
+        onCancel={vi.fn()}
+        onOpenOfficialLink={vi.fn()}
+        onLinkError={() => "Official destination failed"}
+      />,
+    );
+    const archiveHeading = screen.getByRole("heading", { name: "I have the ZIP" });
+    await waitFor(() => expect(archiveHeading).toHaveFocus());
+    expect(scrollIntoView).toHaveBeenLastCalledWith({
+      block: "center",
+      behavior: "auto",
+    });
+    expect(screen.getByText("new-export.zip")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Import selected package" })).toBeEnabled();
+  });
+
+  it("returns focus to archive selection when the native chooser is cancelled", async () => {
+    const user = userEvent.setup();
+    const onArchiveError = vi.fn();
+    render(
+      <SourcesPanel
+        locale="en-US"
+        messages={catalogs["en-US"].sources}
+        importMessages={importMessages}
+        guide={guide}
+        guideLoading={false}
+        archivePath={undefined}
+        importReady
+        busy={false}
+        cancellable={false}
+        updateInstalling={false}
+        cancelRequested={false}
+        onChooseArchive={vi.fn().mockResolvedValue(null)}
+        onArchiveError={onArchiveError}
+        onImport={vi.fn()}
+        onCancel={vi.fn()}
+        onOpenOfficialLink={vi.fn()}
+        onLinkError={() => "Official destination failed"}
+      />,
+    );
+
+    const choose = screen.getByRole("button", { name: "Choose ZIP package" });
+    await user.click(choose);
+
+    expect(choose).toHaveFocus();
+    expect(onArchiveError).not.toHaveBeenCalled();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("supports cancellation and blocks mutable source controls during an update", async () => {

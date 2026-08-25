@@ -1787,6 +1787,60 @@ for (const invalidGuide of [
     throw new Error(`${sourceAcquisitionGuideSchemaPath} accepted an invalid guide`);
   }
 }
+const officialSourceLinkOpeningPath =
+  "docs/data-formats/guidance/official-source-link-opening-v1.md";
+const officialSourceLinkOpening = read(officialSourceLinkOpeningPath);
+for (const field of [
+  "sourceId",
+  "purpose",
+  "locale",
+  "url",
+  "account",
+  "instructions",
+  "en-US",
+  "es-ES",
+  "invalid-official-source-link-request",
+  "official-source-link-unavailable",
+  "official-source-link-launcher-unavailable",
+]) {
+  requireMention(officialSourceLinkOpening, field, officialSourceLinkOpeningPath);
+}
+const officialSourceLinkOpeningSchemaPath =
+  "schemas/official-source-link-opening-v1.schema.json";
+const validateOfficialSourceLinkOpening = ajv.compile(
+  JSON.parse(read(officialSourceLinkOpeningSchemaPath)),
+);
+const syntheticOfficialSourceLinkRequest = {
+  sourceId: "synthetic-source",
+  purpose: "instructions",
+  locale: "es-ES",
+};
+const syntheticOfficialSourceLinkOutcome = {
+  sourceId: "synthetic-source",
+  purpose: "instructions",
+  url: "https://support.example.test/es/export",
+};
+for (const valid of [
+  syntheticOfficialSourceLinkRequest,
+  syntheticOfficialSourceLinkOutcome,
+]) {
+  if (!validateOfficialSourceLinkOpening(valid)) {
+    throw new Error(
+      `${officialSourceLinkOpeningSchemaPath} rejected its synthetic contract: ${ajv.errorsText(validateOfficialSourceLinkOpening.errors)}`,
+    );
+  }
+}
+for (const invalid of [
+  { ...syntheticOfficialSourceLinkRequest, purpose: "unknown" },
+  { ...syntheticOfficialSourceLinkRequest, locale: "fr-FR" },
+  { ...syntheticOfficialSourceLinkRequest, sourceId: "" },
+  { ...syntheticOfficialSourceLinkRequest, url: "https://example.test/" },
+  { ...syntheticOfficialSourceLinkOutcome, url: "http://support.example.test/export" },
+]) {
+  if (validateOfficialSourceLinkOpening(invalid)) {
+    throw new Error(`${officialSourceLinkOpeningSchemaPath} accepted invalid evidence`);
+  }
+}
 const validateActivityOverview = ajv.compile(activityOverviewSchema);
 const syntheticActivityOverview = {
   availableRange: { from: "2026-01-01", through: "2026-01-03" },

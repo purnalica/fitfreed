@@ -10,7 +10,10 @@ import {
 import { Channel, invoke } from "@tauri-apps/api/core";
 import "./App.css";
 import { chooseZipArchive } from "./infrastructure/archive-picker";
-import { openOfficialSourceLink } from "./infrastructure/official-source-link";
+import {
+  openOfficialSourceLink,
+  type OpenOfficialSourceLinkRequest,
+} from "./infrastructure/official-source-link";
 import type { Locale } from "./locales/catalogs";
 import {
   defaultCatalog,
@@ -205,6 +208,7 @@ function App() {
   const [exploreDestination, setExploreDestination] = useState<ExploreDestination>();
   const [updateLocaleRefreshToken, setUpdateLocaleRefreshToken] = useState(0);
   const [archivePath, setArchivePath] = useState<string>();
+  const [archiveSelectionRequestId, setArchiveSelectionRequestId] = useState(0);
   const [sourceGuides, setSourceGuides] = useState<SourceAcquisitionGuide[]>();
   const [sourceGuideRequestId, setSourceGuideRequestId] = useState(0);
   const [activityOverview, setActivityOverview] = useState<ActivityOverview>();
@@ -655,9 +659,9 @@ function App() {
     navigateHome("reports");
   }
 
-  async function openSourceLink(url: string) {
+  async function openSourceLink(request: OpenOfficialSourceLinkRequest, url: string) {
     setSourceErrorCode(undefined);
-    await openOfficialSourceLink(url);
+    return openOfficialSourceLink(request, url);
   }
 
   async function openExploration(destination: ExploreDestination): Promise<boolean> {
@@ -888,12 +892,15 @@ function App() {
     }
   }
 
-  async function chooseArchive() {
+  async function chooseArchive(): Promise<string | null> {
     setSourceErrorCode(undefined);
     const selected = await chooseZipArchive();
     if (typeof selected === "string") {
       setArchivePath(selected);
+      setArchiveSelectionRequestId((current) => current + 1);
+      return selected;
     }
+    return null;
   }
 
   async function chooseArchiveFromHome() {
@@ -1195,6 +1202,7 @@ function App() {
                 guide={sourceGuides?.find((guide) => guide.sourceId === "polar-flow")}
                 guideLoading={sourceGuides === undefined}
                 guideRequestId={sourceGuideRequestId}
+                archiveSelectionRequestId={archiveSelectionRequestId}
                 mode={busy ? "active" : outcome ? "result" : "ready"}
                 progressLabel={progress ? messages.phases[progress.phase] : messages.importing}
                 progressValue={progressValue}
@@ -1212,7 +1220,10 @@ function App() {
                 onImport={runImport}
                 onCancel={cancelImport}
                 onOpenOfficialLink={openSourceLink}
-                onLinkError={() => setSourceErrorCode("official-source-link-failed")}
+                onLinkError={(reason) => {
+                  const code = commandErrorCode(reason);
+                  return errorMessages[code] ?? messages.errors.unexpected;
+                }}
               >
                 {progress?.phase === "cancelled" && !busy && outcome?.state !== "cancelled" && (
                   <p className="notice" role="status" aria-live="polite">{messages.cancelled}</p>
@@ -1227,7 +1238,7 @@ function App() {
                         ?? messages.errors.unexpected
                       : undefined}
                     onOpenHome={() => navigateHome("home", "start")}
-                    onChooseAnother={chooseArchive}
+                    onChooseAnother={async () => { await chooseArchive(); }}
                     onArchiveError={() => setSourceErrorCode("archive-picker-failed")}
                   />
                 )}

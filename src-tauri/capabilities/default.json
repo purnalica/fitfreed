@@ -6,20 +6,6 @@
   "permissions": [
     "core:default",
     "dialog:allow-open",
-    "dialog:allow-save",
-    {
-      "identifier": "opener:allow-open-url",
-      "allow": [
-        {
-          "url": "https://account.polar.com/*"
-        },
-        {
-          "url": "https://support.polar.com/en/how-to-download-all-your-data-from-polar-flow"
-        },
-        {
-          "url": "https://support.polar.com/es/how-to-download-all-your-data-from-polar-flow"
-        }
-      ]
-    }
+    "dialog:allow-save"
   ]
 }

@@ -1299,7 +1299,7 @@ describe("packaged FitFreed import journey", () => {
     await $(`aria/${english.home.emptyGuideAction}`).click();
     await expect($(".sources-home h1")).toHaveText("Import your fitness history");
     await expect($("aria/Import selected package")).toBeDisabled();
-    const openerMock = await browser.tauri.mock("plugin:opener|open_url");
+    const openerMock = await browser.tauri.mock("fitfreed:official-source-link|open");
     await expect($("#source-guide-heading")).toHaveText(
       "How to obtain your Polar Flow export",
     );
@@ -1307,11 +1307,42 @@ describe("packaged FitFreed import journey", () => {
     await expect($("#source-acquisition-guide")).toHaveText(
       expect.stringContaining("available to download for two weeks"),
     );
+    await expectDocumentFocus(
+      "#source-guide-heading",
+      "source guidance did not receive focus after its Home action",
+    );
+    const guideReveal = await browser.execute(() => {
+      const heading = document.querySelector("#source-guide-heading").getBoundingClientRect();
+      return {
+        top: heading.top,
+        bottom: heading.bottom,
+        viewportHeight: document.documentElement.clientHeight,
+      };
+    });
+    expect(guideReveal.top).toBeGreaterThanOrEqual(0);
+    expect(guideReveal.bottom).toBeLessThanOrEqual(guideReveal.viewportHeight);
+    await expect($("#source-acquisition-guide")).toHaveText(
+      expect.stringContaining("https://account.polar.com/"),
+    );
+    await expect($("#source-acquisition-guide")).toHaveText(
+      expect.stringContaining(
+        "https://support.polar.com/en/how-to-download-all-your-data-from-polar-flow",
+      ),
+    );
     await browser.saveScreenshot(path.join(
       evidenceDirectory,
       "r10-source-workspace-en-wide.png",
     ));
     await $("aria/Open official account page").click();
+    await browser.execute(() => {
+      [...document.querySelectorAll("button")]
+        .find((button) => button.textContent?.trim() === "Open official instructions")
+        ?.focus();
+    });
+    await expectDocumentFocus(
+      ".source-official-action:nth-child(2) button",
+      "official instructions action did not receive keyboard focus",
+    );
     await $("aria/Open official instructions").click();
     await browser.waitUntil(async () => {
       await openerMock.update();
@@ -1321,6 +1352,7 @@ describe("packaged FitFreed import journey", () => {
       "https://account.polar.com/",
       "https://support.polar.com/en/how-to-download-all-your-data-from-polar-flow",
     ]);
+    await expect($(".source-link-accepted")).toHaveText(english.sources.openAccepted);
     const sourcesAccessibility = await new AxeBuilder({ client: browser })
       .setLegacyMode()
       .analyze();
@@ -1392,7 +1424,7 @@ describe("packaged FitFreed import journey", () => {
     await expect($(".sources-home h1")).toHaveText(spanish.sources.title);
     await expect($("#source-guide-heading")).toHaveText(spanish.sources.guideTitle);
     await expectSourceGuide(spanish);
-    const spanishOpenerMock = await browser.tauri.mock("plugin:opener|open_url");
+    const spanishOpenerMock = await browser.tauri.mock("fitfreed:official-source-link|open");
     await $("aria/Abrir las instrucciones oficiales").click();
     await browser.waitUntil(async () => {
       await spanishOpenerMock.update();
@@ -1401,6 +1433,7 @@ describe("packaged FitFreed import journey", () => {
     expect(spanishOpenerMock.mock.calls[0][0].url).toBe(
       "https://support.polar.com/es/how-to-download-all-your-data-from-polar-flow",
     );
+    await expect($(".source-link-accepted")).toHaveText(spanish.sources.openAccepted);
     await selectLocale("en-US", "home");
     await expect($(".library-home-empty h1")).toHaveText(english.home.emptyHeading);
 

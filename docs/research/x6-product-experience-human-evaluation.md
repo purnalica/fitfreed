@@ -27,7 +27,7 @@ notarization, installation trust, update recovery, a release candidate, or publi
 
 ### XH-01 — Acquisition actions produce no observable result
 
-- **Status:** open; major product defect reproduced in the valid native review build.
+- **Status:** correction implemented and fully automated; production-native human re-evaluation pending.
 - **Observed task:** obtain guidance from the empty-library `Import your fitness history` journey using a
   pointer.
 - **Observed behavior:** `Show me how` produced no visible transition. `Open official account page` and
@@ -44,6 +44,12 @@ notarization, installation trust, update recovery, a release candidate, or publi
 - **Disposition:** reopen X5-R2.2. Diagnose the in-application action and external actions independently before
   designing a correction; their shared failure surface does not establish a shared technical cause. Add regression
   evidence for navigation, native browser opening, and actionable failure behavior before repeating this journey.
+- **Correction evidence:** X6-C2 now reveals and focuses guidance, makes each official destination explicit and
+  copyable, and retains either a factual operating-system acceptance or a focused failure beside the initiating
+  action. [ADR 0028](../architecture/decisions/0028-own-official-destination-opening-in-the-application.md) replaces
+  arbitrary frontend URL opening with application-owned destination selection and a categorized native launcher
+  port. Component, contract, Rust, and packaged tests pass in both locales. Browser appearance remains unaccepted
+  until the revision-isolated production package is reviewed with the actual default browser.
 
 ### XH-02 — Instrumented application invalidated the native-boundary evaluation
 
@@ -80,7 +86,7 @@ notarization, installation trust, update recovery, a release candidate, or publi
 
 ### XH-04 — Archive reselection updates content outside the visible viewport
 
-- **Status:** open; major product-experience defect reproduced in the valid native review build.
+- **Status:** correction implemented and fully automated; production-native human re-evaluation pending.
 - **Observed task:** choose another ZIP while remaining in the import workspace after a prior result.
 - **Observed behavior:** native selection succeeds, but the selected archive appears in the upper `I have the ZIP`
   card while the viewport remains elsewhere. The participant discovered the changed state only by chance after
@@ -92,6 +98,11 @@ notarization, installation trust, update recovery, a release candidate, or publi
 - **Disposition:** reopen the owning X5-R2.1/X5-R3 transition. Investigate focus, scroll, and result-placement behavior
   together with XH-01 without assuming one implementation fix. Add browser-level regression evidence for selection
   from both the initial and post-result viewport positions.
+- **Correction evidence:** X6-C2 applies one maintained-navigation-aware focus-and-scroll transition after initial
+  and post-result selection, returns focus after cancellation, and recomposes Sources at 175% and 200% content zoom.
+  Packaged WebKit asserts that the selected archive and enabled import action are visible together after every
+  selection. The first complete run found a genuine 200%-zoom failure; the composition was corrected and the entire
+  packaged journey then passed. Human spatial-comprehension confirmation remains pending.
 
 ### XH-05 — Text wraps prematurely across otherwise wider content regions
 

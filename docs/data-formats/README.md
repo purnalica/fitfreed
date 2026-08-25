@@ -84,6 +84,7 @@ Directories are created with their first real contract; empty specifications are
 - [Polar Flow sleep mapping](mappings/polar-flow-sleep.md)
 - [Polar Flow nightly recovery mapping](mappings/polar-flow-nightly-recovery.md)
 - [Source acquisition guide version 1](guidance/source-acquisition-guide-v1.md)
+- [Official source link opening version 1](guidance/official-source-link-opening-v1.md)
 - [Daily activity overview read model version 1](insights/daily-activity-overview-v1.md)
 - [Daily activity overview read model version 2](insights/daily-activity-overview-v2.md)
 - [Daily activity comparison read model version 1](insights/daily-activity-comparison-v1.md)

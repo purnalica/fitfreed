@@ -15,13 +15,14 @@ use fitfreed_application::{
     LibraryHomeDateRange, LibraryHomeHighlight, LibraryHomePrimaryRange, LibraryHomeRangeScope,
     LibraryHomeRecentSession, LibraryHomeRequest, LibraryHomeSportSummary, LibraryHomeTraining,
     LibraryHomeTrainingComparison, LibraryHomeTrainingPeriod, LibraryMeasurement,
-    LibraryMeasurementCoverage, LibraryQuestion, LibraryQuestionKind,
+    LibraryMeasurementCoverage, LibraryQuestion, LibraryQuestionKind, LocalePreference,
     LongitudinalActivityComparison, LongitudinalActivityDay, LongitudinalComparison,
     LongitudinalDateRange, LongitudinalDayInsight, LongitudinalOverview,
     LongitudinalRecoveryComparison, LongitudinalRecoveryDay, LongitudinalSeriesComparison,
     LongitudinalSeriesOverview, LongitudinalSleepComparison, LongitudinalSleepDay,
     LongitudinalTrainingComparison, LongitudinalTrainingDay, ManualUpdateReason,
-    MoveTrainingSegmentCriterionRequest, OfficialSourceLink, OfficialSourceLinkPurpose,
+    MoveTrainingSegmentCriterionRequest, OfficialSourceLink, OfficialSourceLinkOpenError,
+    OfficialSourceLinkPurpose, OpenOfficialSourceLinkOutcome, OpenOfficialSourceLinkRequest,
     PersistedTrainingRangeSummaryExercise, PersistedTrainingRoutePoints,
     PersistedTrainingSignalSamples, PostImportReveal, PreferencesLoadStatus, PreparedReportStart,
     RecoveryComparison, RecoveryDateRange, RecoveryDayAvailability, RecoveryDayInsight,
@@ -192,6 +193,67 @@ impl From<SourceAcquisitionGuide> for SourceAcquisitionGuideDto {
             constraint_keys: guide.constraint_keys,
             troubleshooting_keys: guide.troubleshooting_keys,
             official_links: guide.official_links.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct OpenOfficialSourceLinkRequestDto {
+    source_id: String,
+    purpose: String,
+    locale: String,
+}
+
+impl TryFrom<OpenOfficialSourceLinkRequestDto> for OpenOfficialSourceLinkRequest {
+    type Error = CommandErrorDto;
+
+    fn try_from(request: OpenOfficialSourceLinkRequestDto) -> Result<Self, Self::Error> {
+        let purpose = match request.purpose.as_str() {
+            "account" => OfficialSourceLinkPurpose::Account,
+            "instructions" => OfficialSourceLinkPurpose::Instructions,
+            _ => return Err(CommandErrorDto::new("invalid-official-source-link-request")),
+        };
+        let locale = LocalePreference::from_code(&request.locale)
+            .ok_or_else(|| CommandErrorDto::new("invalid-official-source-link-request"))?;
+        if !is_lower_kebab_identifier(&request.source_id) {
+            return Err(CommandErrorDto::new("invalid-official-source-link-request"));
+        }
+        Ok(Self {
+            source_id: request.source_id,
+            purpose,
+            locale,
+        })
+    }
+}
+
+fn is_lower_kebab_identifier(value: &str) -> bool {
+    value.len() <= 64
+        && value.split('-').all(|segment| {
+            !segment.is_empty()
+                && segment
+                    .chars()
+                    .all(|character| character.is_ascii_lowercase() || character.is_ascii_digit())
+        })
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OpenOfficialSourceLinkOutcomeDto {
+    source_id: String,
+    purpose: &'static str,
+    url: String,
+}
+
+impl From<OpenOfficialSourceLinkOutcome> for OpenOfficialSourceLinkOutcomeDto {
+    fn from(outcome: OpenOfficialSourceLinkOutcome) -> Self {
+        Self {
+            source_id: outcome.source_id,
+            purpose: match outcome.purpose {
+                OfficialSourceLinkPurpose::Account => "account",
+                OfficialSourceLinkPurpose::Instructions => "instructions",
+            },
+            url: outcome.url,
         }
     }
 }
@@ -754,6 +816,20 @@ impl From<ApplicationError> for CommandErrorDto {
             ApplicationError::WorkspaceUpdate(_) => "exploration-workspace-update-failed",
             ApplicationError::OutcomeQuery(_) => "outcome-query-failed",
             ApplicationError::SourceAcquisitionGuideQuery(_) => "source-guide-query-failed",
+            ApplicationError::OfficialSourceLinkUnavailable => "official-source-link-unavailable",
+            ApplicationError::OfficialSourceLinkOpen(error) => match error {
+                OfficialSourceLinkOpenError::UnsupportedPlatform => {
+                    "official-source-link-unsupported"
+                }
+                OfficialSourceLinkOpenError::PermissionDenied => {
+                    "official-source-link-permission-denied"
+                }
+                OfficialSourceLinkOpenError::LauncherUnavailable => {
+                    "official-source-link-launcher-unavailable"
+                }
+                OfficialSourceLinkOpenError::OperatingSystem => "official-source-link-os-failed",
+                OfficialSourceLinkOpenError::Delegation => "official-source-link-delegation-failed",
+            },
             ApplicationError::PreferenceQuery(_) => "preference-query-failed",
             ApplicationError::PreferenceUpdate(_) => "preference-update-failed",
         };
@@ -6591,6 +6667,112 @@ mod tests {
                 ]
             })
         );
+    }
+
+    #[test]
+    fn validates_and_serializes_the_owned_official_destination_contract() {
+        let request: OpenOfficialSourceLinkRequestDto = serde_json::from_value(serde_json::json!({
+            "sourceId": "synthetic-source",
+            "purpose": "instructions",
+            "locale": "es-ES"
+        }))
+        .expect("official destination request");
+        let request = OpenOfficialSourceLinkRequest::try_from(request)
+            .expect("valid official destination request");
+        assert_eq!(request.source_id, "synthetic-source");
+        assert_eq!(request.purpose, OfficialSourceLinkPurpose::Instructions);
+        assert_eq!(request.locale, LocalePreference::EsEs);
+
+        assert_eq!(
+            serde_json::to_value(OpenOfficialSourceLinkOutcomeDto::from(
+                OpenOfficialSourceLinkOutcome {
+                    source_id: request.source_id,
+                    purpose: request.purpose,
+                    url: "https://support.example.test/es/export".to_owned(),
+                }
+            ))
+            .expect("official destination outcome"),
+            serde_json::json!({
+                "sourceId": "synthetic-source",
+                "purpose": "instructions",
+                "url": "https://support.example.test/es/export"
+            })
+        );
+
+        for invalid in [
+            serde_json::json!({
+                "sourceId": "synthetic-source",
+                "purpose": "unknown",
+                "locale": "en-US"
+            }),
+            serde_json::json!({
+                "sourceId": "synthetic-source",
+                "purpose": "account",
+                "locale": "fr-FR"
+            }),
+            serde_json::json!({
+                "sourceId": "",
+                "purpose": "account",
+                "locale": "en-US"
+            }),
+            serde_json::json!({
+                "sourceId": "Synthetic Source",
+                "purpose": "account",
+                "locale": "en-US"
+            }),
+        ] {
+            let request: OpenOfficialSourceLinkRequestDto =
+                serde_json::from_value(invalid).expect("syntactically valid request");
+            let error = OpenOfficialSourceLinkRequest::try_from(request)
+                .expect_err("invalid official destination request");
+            assert_eq!(
+                serde_json::to_value(error).expect("command error"),
+                serde_json::json!({ "code": "invalid-official-source-link-request" })
+            );
+        }
+    }
+
+    #[test]
+    fn maps_each_official_destination_failure_to_a_stable_public_code() {
+        for (error, code) in [
+            (
+                ApplicationError::OfficialSourceLinkUnavailable,
+                "official-source-link-unavailable",
+            ),
+            (
+                ApplicationError::OfficialSourceLinkOpen(
+                    OfficialSourceLinkOpenError::UnsupportedPlatform,
+                ),
+                "official-source-link-unsupported",
+            ),
+            (
+                ApplicationError::OfficialSourceLinkOpen(
+                    OfficialSourceLinkOpenError::PermissionDenied,
+                ),
+                "official-source-link-permission-denied",
+            ),
+            (
+                ApplicationError::OfficialSourceLinkOpen(
+                    OfficialSourceLinkOpenError::LauncherUnavailable,
+                ),
+                "official-source-link-launcher-unavailable",
+            ),
+            (
+                ApplicationError::OfficialSourceLinkOpen(
+                    OfficialSourceLinkOpenError::OperatingSystem,
+                ),
+                "official-source-link-os-failed",
+            ),
+            (
+                ApplicationError::OfficialSourceLinkOpen(OfficialSourceLinkOpenError::Delegation),
+                "official-source-link-delegation-failed",
+            ),
+        ] {
+            assert_eq!(
+                serde_json::to_value(CommandErrorDto::from(error)).expect("command error"),
+                serde_json::json!({ "code": code })
+            );
+        }
     }
 
     #[test]

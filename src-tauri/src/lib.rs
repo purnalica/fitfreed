@@ -35,6 +35,7 @@ use fitfreed_application::{
     load_application_preferences as load_preferences_from_port,
     load_report_definition as load_report_definition_through_port,
     move_training_segment_criterion as move_segment_criterion_through_port,
+    open_official_source_link as open_source_link_through_port,
     postpone_update as persist_update_postponement,
     prepare_report_start as prepare_report_start_through_port,
     query_library_home as build_library_home,
@@ -77,13 +78,13 @@ use infrastructure::{
     confirm_active_update_recovery, current_update_target, download_verified_update,
     install_verified_update, library_schema_version, maintain_update_recovery,
     recover_interrupted_imports, resolve_update_application_path, run_update_recovery_watchdog,
-    HttpsUpdateChannel, PolarFlowSourceAcquisitionGuides, SelfContainedHtmlReportExporter,
-    SqliteActivityLibrary, SqliteApplicationPreferences, SqliteImportOutcomeLibrary,
-    SqliteLibraryHome, SqliteLongitudinalLibrary, SqlitePolarFlowArchiveImporter,
-    SqliteRecoveryLibrary, SqliteReportLibrary, SqliteSleepLibrary, SqliteTrainingLibrary,
-    SqliteTrainingSports, SqliteUpdateState, UpdateInstallationError, UpdateInstallationRequest,
-    UpdatePackageError, UpdateRecoveryCandidateLease, UpdateRecoveryError,
-    UpdateRecoveryMaintenance, UPDATE_RECOVERY_CANDIDATE_ARGUMENT,
+    HttpsUpdateChannel, NativeOfficialSourceLinkOpener, PolarFlowSourceAcquisitionGuides,
+    SelfContainedHtmlReportExporter, SqliteActivityLibrary, SqliteApplicationPreferences,
+    SqliteImportOutcomeLibrary, SqliteLibraryHome, SqliteLongitudinalLibrary,
+    SqlitePolarFlowArchiveImporter, SqliteRecoveryLibrary, SqliteReportLibrary, SqliteSleepLibrary,
+    SqliteTrainingLibrary, SqliteTrainingSports, SqliteUpdateState, UpdateInstallationError,
+    UpdateInstallationRequest, UpdatePackageError, UpdateRecoveryCandidateLease,
+    UpdateRecoveryError, UpdateRecoveryMaintenance, UPDATE_RECOVERY_CANDIDATE_ARGUMENT,
     UPDATE_RECOVERY_WATCHDOG_ARGUMENT,
 };
 use presentation::{
@@ -95,16 +96,17 @@ use presentation::{
     ExplorationWorkspaceDto, ExploreDestinationInputDto, ImportOutcomeDto, ImportProgressDto,
     ImportReportDto, LibraryHomeDto, LibraryHomeRequestDto, LongitudinalComparisonDto,
     LongitudinalDateRangeDto, LongitudinalOverviewDto, MoveTrainingSegmentCriterionRequestDto,
-    PreparedReportStartDto, RecoveryComparisonDto, RecoveryDateRangeDto, RecoveryNightDetailDto,
-    RecoveryOverviewDto, RefreshReportRequestDto, RemoveReportRequestDto,
-    RemoveTrainingSessionRangeRequestDto, RemovedReportDto, RenameTrainingSessionRangeRequestDto,
-    ReportDefinitionDto, ReportExportReceiptDto, ReportExportRequestDto, ReportLibraryPageDto,
-    ReportLibraryRequestDto, ReportListDto, ReportStartDto, ResolvedReportDto,
-    ResolvedSessionReportDto, SaveSportClassificationRequestDto,
-    SavedTrainingSportClassificationDto, SessionReportExportRequestDto, SessionStoryDto,
-    SessionStoryQueryDto, SleepComparisonDto, SleepDateRangeDto, SleepOverviewDto,
-    SleepPeriodDetailDto, SourceAcquisitionGuideDto, TrainingComparisonDto, TrainingDateRangeDto,
-    TrainingDiscoveryWorkspaceDto, TrainingRoutePointsQueryDto, TrainingRoutePointsResultDto,
+    OpenOfficialSourceLinkOutcomeDto, OpenOfficialSourceLinkRequestDto, PreparedReportStartDto,
+    RecoveryComparisonDto, RecoveryDateRangeDto, RecoveryNightDetailDto, RecoveryOverviewDto,
+    RefreshReportRequestDto, RemoveReportRequestDto, RemoveTrainingSessionRangeRequestDto,
+    RemovedReportDto, RenameTrainingSessionRangeRequestDto, ReportDefinitionDto,
+    ReportExportReceiptDto, ReportExportRequestDto, ReportLibraryPageDto, ReportLibraryRequestDto,
+    ReportListDto, ReportStartDto, ResolvedReportDto, ResolvedSessionReportDto,
+    SaveSportClassificationRequestDto, SavedTrainingSportClassificationDto,
+    SessionReportExportRequestDto, SessionStoryDto, SessionStoryQueryDto, SleepComparisonDto,
+    SleepDateRangeDto, SleepOverviewDto, SleepPeriodDetailDto, SourceAcquisitionGuideDto,
+    TrainingComparisonDto, TrainingDateRangeDto, TrainingDiscoveryWorkspaceDto,
+    TrainingRoutePointsQueryDto, TrainingRoutePointsResultDto,
     TrainingSegmentCriterionMutationRequestDto, TrainingSessionCalendarDto,
     TrainingSessionCalendarRequestDto, TrainingSessionProvenanceQueryDto,
     TrainingSessionProvenanceResultDto, TrainingSessionRangeSummaryDto,
@@ -1227,6 +1229,19 @@ fn query_source_acquisition_guides() -> Result<Vec<SourceAcquisitionGuideDto>, C
         .map_err(CommandErrorDto::from)
 }
 
+#[tauri::command]
+fn open_official_source_link(
+    request: OpenOfficialSourceLinkRequestDto,
+) -> Result<OpenOfficialSourceLinkOutcomeDto, CommandErrorDto> {
+    open_source_link_through_port(
+        &PolarFlowSourceAcquisitionGuides,
+        &NativeOfficialSourceLinkOpener,
+        request.try_into()?,
+    )
+    .map(Into::into)
+    .map_err(CommandErrorDto::from)
+}
+
 fn supported_locale(code: &str) -> Result<LocalePreference, CommandErrorDto> {
     LocalePreference::from_code(code).ok_or_else(|| CommandErrorDto::new("invalid-locale"))
 }
@@ -1969,7 +1984,6 @@ pub fn run() {
     };
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build());
     #[cfg(feature = "e2e")]
     let builder = builder
@@ -2084,6 +2098,7 @@ pub fn run() {
             clear_exploration_workspace,
             query_latest_import_outcome,
             query_source_acquisition_guides,
+            open_official_source_link,
             load_preferences,
             save_preferences,
             reset_preferences,

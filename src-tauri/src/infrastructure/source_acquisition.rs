@@ -1,9 +1,33 @@
 use fitfreed_application::{
-    ExpectedSourceArchive, LocalePreference, OfficialSourceLink, OfficialSourceLinkPurpose,
-    SourceAcquisitionGuide, SourceAcquisitionGuidePort, SOURCE_ACQUISITION_GUIDE_SCHEMA_VERSION,
+    ExpectedSourceArchive, LocalePreference, OfficialSourceLink, OfficialSourceLinkOpenError,
+    OfficialSourceLinkOpenerPort, OfficialSourceLinkPurpose, SourceAcquisitionGuide,
+    SourceAcquisitionGuidePort, SOURCE_ACQUISITION_GUIDE_SCHEMA_VERSION,
 };
+use tauri_plugin_opener::Error as OpenerError;
 
 pub struct PolarFlowSourceAcquisitionGuides;
+
+pub struct NativeOfficialSourceLinkOpener;
+
+impl OfficialSourceLinkOpenerPort for NativeOfficialSourceLinkOpener {
+    fn open_official_source_link(&self, url: &str) -> Result<(), OfficialSourceLinkOpenError> {
+        tauri_plugin_opener::open_url(url, None::<&str>).map_err(classify_opener_error)
+    }
+}
+
+fn classify_opener_error(error: OpenerError) -> OfficialSourceLinkOpenError {
+    match error {
+        OpenerError::UnsupportedPlatform => OfficialSourceLinkOpenError::UnsupportedPlatform,
+        OpenerError::Io(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {
+            OfficialSourceLinkOpenError::PermissionDenied
+        }
+        OpenerError::Io(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            OfficialSourceLinkOpenError::LauncherUnavailable
+        }
+        OpenerError::Io(_) => OfficialSourceLinkOpenError::OperatingSystem,
+        _ => OfficialSourceLinkOpenError::Delegation,
+    }
+}
 
 impl SourceAcquisitionGuidePort for PolarFlowSourceAcquisitionGuides {
     fn source_acquisition_guides(&self) -> Result<Vec<SourceAcquisitionGuide>, String> {
@@ -59,6 +83,8 @@ impl SourceAcquisitionGuidePort for PolarFlowSourceAcquisitionGuides {
 
 #[cfg(test)]
 mod tests {
+    use std::io::{Error, ErrorKind};
+
     use fitfreed_application::{
         query_source_acquisition_guides, ExpectedSourceArchive, LocalePreference,
         OfficialSourceLinkPurpose,
@@ -120,5 +146,31 @@ mod tests {
                     && link.url == url
             }));
         }
+    }
+
+    #[test]
+    fn preserves_actionable_native_opener_failure_categories() {
+        assert_eq!(
+            classify_opener_error(OpenerError::UnsupportedPlatform),
+            OfficialSourceLinkOpenError::UnsupportedPlatform
+        );
+        assert_eq!(
+            classify_opener_error(OpenerError::Io(Error::from(ErrorKind::PermissionDenied))),
+            OfficialSourceLinkOpenError::PermissionDenied
+        );
+        assert_eq!(
+            classify_opener_error(OpenerError::Io(Error::from(ErrorKind::NotFound))),
+            OfficialSourceLinkOpenError::LauncherUnavailable
+        );
+        assert_eq!(
+            classify_opener_error(OpenerError::Io(Error::other("native failure"))),
+            OfficialSourceLinkOpenError::OperatingSystem
+        );
+        assert_eq!(
+            classify_opener_error(OpenerError::Json(
+                serde_json::from_str::<serde_json::Value>("{").expect_err("invalid JSON"),
+            )),
+            OfficialSourceLinkOpenError::Delegation
+        );
     }
 }

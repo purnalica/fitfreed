@@ -1,11 +1,30 @@
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { invoke } from "@tauri-apps/api/core";
 
-export async function openOfficialSourceLink(url: string) {
+import type { Locale } from "../locales/catalogs";
+import type { OfficialSourceLinkPurpose } from "../presentation/source-acquisition";
+
+export interface OpenOfficialSourceLinkRequest {
+  sourceId: string;
+  purpose: OfficialSourceLinkPurpose;
+  locale: Locale;
+}
+
+export interface OpenOfficialSourceLinkOutcome {
+  sourceId: string;
+  purpose: OfficialSourceLinkPurpose;
+  url: string;
+}
+
+export async function openOfficialSourceLink(
+  request: OpenOfficialSourceLinkRequest,
+  instrumentedUrl: string,
+): Promise<OpenOfficialSourceLinkOutcome> {
   if (import.meta.env.VITE_FITFREED_E2E === "true") {
     const { openInstrumentedOfficialSourceLink } = await import(
       "../testing/open-instrumented-official-source-link"
     );
-    return openInstrumentedOfficialSourceLink(url);
+    await openInstrumentedOfficialSourceLink(instrumentedUrl);
+    return { ...request, url: instrumentedUrl };
   }
-  return openUrl(url);
+  return invoke<OpenOfficialSourceLinkOutcome>("open_official_source_link", { request });
 }

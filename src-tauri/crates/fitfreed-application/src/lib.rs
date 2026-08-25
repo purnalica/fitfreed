@@ -237,9 +237,10 @@ pub use update_recovery::{
 };
 mod source_acquisition;
 pub use source_acquisition::{
-    query_source_acquisition_guides, ExpectedSourceArchive, OfficialSourceLink,
-    OfficialSourceLinkPurpose, SourceAcquisitionGuide, SourceAcquisitionGuidePort,
-    SOURCE_ACQUISITION_GUIDE_SCHEMA_VERSION,
+    open_official_source_link, query_source_acquisition_guides, ExpectedSourceArchive,
+    OfficialSourceLink, OfficialSourceLinkOpenError, OfficialSourceLinkOpenerPort,
+    OfficialSourceLinkPurpose, OpenOfficialSourceLinkOutcome, OpenOfficialSourceLinkRequest,
+    SourceAcquisitionGuide, SourceAcquisitionGuidePort, SOURCE_ACQUISITION_GUIDE_SCHEMA_VERSION,
 };
 
 #[cfg(test)]
@@ -1573,6 +1574,10 @@ pub enum ApplicationError {
     OutcomeQuery(String),
     #[error("source acquisition guide query failed: {0}")]
     SourceAcquisitionGuideQuery(String),
+    #[error("official source link is unavailable")]
+    OfficialSourceLinkUnavailable,
+    #[error("official source link could not be opened: {0}")]
+    OfficialSourceLinkOpen(OfficialSourceLinkOpenError),
     #[error("application preference query failed: {0}")]
     PreferenceQuery(String),
     #[error("application preference update failed: {0}")]

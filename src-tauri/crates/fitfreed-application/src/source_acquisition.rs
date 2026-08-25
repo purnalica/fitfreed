@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 
 use chrono::NaiveDate;
+use thiserror::Error;
 use url::Url;
 
 use crate::{ApplicationError, LocalePreference};
@@ -51,6 +52,38 @@ pub trait SourceAcquisitionGuidePort {
     fn source_acquisition_guides(&self) -> Result<Vec<SourceAcquisitionGuide>, String>;
 }
 
+#[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
+pub enum OfficialSourceLinkOpenError {
+    #[error("the platform does not support opening web destinations")]
+    UnsupportedPlatform,
+    #[error("the operating system denied the request")]
+    PermissionDenied,
+    #[error("the operating system has no available web destination handler")]
+    LauncherUnavailable,
+    #[error("the operating system could not complete the request")]
+    OperatingSystem,
+    #[error("the native destination adapter could not delegate the request")]
+    Delegation,
+}
+
+pub trait OfficialSourceLinkOpenerPort {
+    fn open_official_source_link(&self, url: &str) -> Result<(), OfficialSourceLinkOpenError>;
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OpenOfficialSourceLinkRequest {
+    pub source_id: String,
+    pub purpose: OfficialSourceLinkPurpose,
+    pub locale: LocalePreference,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OpenOfficialSourceLinkOutcome {
+    pub source_id: String,
+    pub purpose: OfficialSourceLinkPurpose,
+    pub url: String,
+}
+
 pub fn query_source_acquisition_guides(
     port: &impl SourceAcquisitionGuidePort,
 ) -> Result<Vec<SourceAcquisitionGuide>, ApplicationError> {
@@ -66,6 +99,38 @@ pub fn query_source_acquisition_guides(
     }
     guides.sort_by(|left, right| left.source_id.cmp(&right.source_id));
     Ok(guides)
+}
+
+pub fn open_official_source_link(
+    guide_port: &impl SourceAcquisitionGuidePort,
+    opener_port: &impl OfficialSourceLinkOpenerPort,
+    request: OpenOfficialSourceLinkRequest,
+) -> Result<OpenOfficialSourceLinkOutcome, ApplicationError> {
+    let guide = query_source_acquisition_guides(guide_port)?
+        .into_iter()
+        .find(|guide| guide.source_id == request.source_id)
+        .ok_or(ApplicationError::OfficialSourceLinkUnavailable)?;
+    let link = guide
+        .official_links
+        .iter()
+        .find(|link| link.purpose == request.purpose && link.locale == Some(request.locale))
+        .or_else(|| {
+            guide
+                .official_links
+                .iter()
+                .find(|link| link.purpose == request.purpose && link.locale.is_none())
+        })
+        .ok_or(ApplicationError::OfficialSourceLinkUnavailable)?;
+
+    opener_port
+        .open_official_source_link(&link.url)
+        .map_err(ApplicationError::OfficialSourceLinkOpen)?;
+
+    Ok(OpenOfficialSourceLinkOutcome {
+        source_id: guide.source_id,
+        purpose: request.purpose,
+        url: link.url.clone(),
+    })
 }
 
 fn validate_guide(guide: &SourceAcquisitionGuide) -> Result<(), ApplicationError> {
@@ -170,6 +235,8 @@ fn invalid_guide_error(reason: impl Into<String>) -> ApplicationError {
 
 #[cfg(test)]
 mod tests {
+    use std::cell::RefCell;
+
     use super::*;
 
     struct ControlledGuidePort {
@@ -179,6 +246,18 @@ mod tests {
     impl SourceAcquisitionGuidePort for ControlledGuidePort {
         fn source_acquisition_guides(&self) -> Result<Vec<SourceAcquisitionGuide>, String> {
             self.result.clone()
+        }
+    }
+
+    struct ControlledOpenerPort {
+        opened: RefCell<Vec<String>>,
+        result: Result<(), OfficialSourceLinkOpenError>,
+    }
+
+    impl OfficialSourceLinkOpenerPort for ControlledOpenerPort {
+        fn open_official_source_link(&self, url: &str) -> Result<(), OfficialSourceLinkOpenError> {
+            self.opened.borrow_mut().push(url.to_owned());
+            self.result
         }
     }
 
@@ -275,5 +354,133 @@ mod tests {
             }),
             Err(ApplicationError::SourceAcquisitionGuideQuery(_))
         ));
+    }
+
+    #[test]
+    fn opens_the_exact_localized_destination_selected_from_validated_guidance() {
+        let mut localized_guide = guide("synthetic-a");
+        localized_guide.official_links.push(OfficialSourceLink {
+            purpose: OfficialSourceLinkPurpose::Instructions,
+            locale: Some(LocalePreference::EsEs),
+            url: "https://support.example.test/es/export".to_owned(),
+        });
+        let opener = ControlledOpenerPort {
+            opened: RefCell::new(Vec::new()),
+            result: Ok(()),
+        };
+
+        let outcome = open_official_source_link(
+            &ControlledGuidePort {
+                result: Ok(vec![localized_guide]),
+            },
+            &opener,
+            OpenOfficialSourceLinkRequest {
+                source_id: "synthetic-a".to_owned(),
+                purpose: OfficialSourceLinkPurpose::Instructions,
+                locale: LocalePreference::EsEs,
+            },
+        )
+        .expect("official destination");
+
+        assert_eq!(outcome.source_id, "synthetic-a");
+        assert_eq!(outcome.purpose, OfficialSourceLinkPurpose::Instructions);
+        assert_eq!(outcome.url, "https://support.example.test/es/export");
+        assert_eq!(
+            opener.opened.into_inner(),
+            ["https://support.example.test/es/export"]
+        );
+    }
+
+    #[test]
+    fn falls_back_to_a_locale_neutral_destination() {
+        let opener = ControlledOpenerPort {
+            opened: RefCell::new(Vec::new()),
+            result: Ok(()),
+        };
+
+        let outcome = open_official_source_link(
+            &ControlledGuidePort {
+                result: Ok(vec![guide("synthetic-a")]),
+            },
+            &opener,
+            OpenOfficialSourceLinkRequest {
+                source_id: "synthetic-a".to_owned(),
+                purpose: OfficialSourceLinkPurpose::Account,
+                locale: LocalePreference::EsEs,
+            },
+        )
+        .expect("locale-neutral official destination");
+
+        assert_eq!(outcome.url, "https://account.example.test/");
+    }
+
+    #[test]
+    fn never_delegates_unknown_sources_or_missing_destinations() {
+        for request in [
+            OpenOfficialSourceLinkRequest {
+                source_id: "unknown".to_owned(),
+                purpose: OfficialSourceLinkPurpose::Account,
+                locale: LocalePreference::EnUs,
+            },
+            OpenOfficialSourceLinkRequest {
+                source_id: "synthetic-a".to_owned(),
+                purpose: OfficialSourceLinkPurpose::Account,
+                locale: LocalePreference::EnUs,
+            },
+        ] {
+            let mut available_guide = guide("synthetic-a");
+            if request.source_id == "synthetic-a" {
+                available_guide
+                    .official_links
+                    .retain(|link| link.purpose == OfficialSourceLinkPurpose::Instructions);
+            }
+            let opener = ControlledOpenerPort {
+                opened: RefCell::new(Vec::new()),
+                result: Ok(()),
+            };
+
+            assert!(matches!(
+                open_official_source_link(
+                    &ControlledGuidePort {
+                        result: Ok(vec![available_guide]),
+                    },
+                    &opener,
+                    request,
+                ),
+                Err(ApplicationError::OfficialSourceLinkUnavailable)
+            ));
+            assert!(opener.opened.into_inner().is_empty());
+        }
+    }
+
+    #[test]
+    fn preserves_the_native_failure_category() {
+        for error in [
+            OfficialSourceLinkOpenError::UnsupportedPlatform,
+            OfficialSourceLinkOpenError::PermissionDenied,
+            OfficialSourceLinkOpenError::LauncherUnavailable,
+            OfficialSourceLinkOpenError::OperatingSystem,
+            OfficialSourceLinkOpenError::Delegation,
+        ] {
+            let opener = ControlledOpenerPort {
+                opened: RefCell::new(Vec::new()),
+                result: Err(error),
+            };
+
+            assert!(matches!(
+                open_official_source_link(
+                    &ControlledGuidePort {
+                        result: Ok(vec![guide("synthetic-a")]),
+                    },
+                    &opener,
+                    OpenOfficialSourceLinkRequest {
+                        source_id: "synthetic-a".to_owned(),
+                        purpose: OfficialSourceLinkPurpose::Account,
+                        locale: LocalePreference::EnUs,
+                    },
+                ),
+                Err(ApplicationError::OfficialSourceLinkOpen(actual)) if actual == error
+            ));
+        }
     }
 }

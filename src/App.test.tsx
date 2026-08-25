@@ -737,7 +737,6 @@ const mocks = vi.hoisted(() => ({
   sportsInvoke: vi.fn(),
   open: vi.fn(),
   save: vi.fn(),
-  openUrl: vi.fn(),
   listen: vi.fn(),
 }));
 
@@ -762,6 +761,7 @@ vi.mock("@tauri-apps/api/core", () => ({
       : command.includes("update")
       ? mocks.updateInvoke(command, arguments_)
       : command === "query_source_acquisition_guides"
+        || command === "open_official_source_link"
       ? mocks.sourceInvoke(command, arguments_)
       : command === "query_training_sports"
         || command === "save_training_sport_classification"
@@ -784,10 +784,6 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   save: mocks.save,
 }));
 
-vi.mock("@tauri-apps/plugin-opener", () => ({
-  openUrl: mocks.openUrl,
-}));
-
 afterEach(() => {
   cleanup();
   (document.scrollingElement ?? document.documentElement).scrollTop = 0;
@@ -806,7 +802,6 @@ afterEach(() => {
   mocks.sportsInvoke.mockReset();
   mocks.open.mockReset();
   mocks.save.mockReset();
-  mocks.openUrl.mockReset();
   mocks.listen.mockReset();
 });
 
@@ -863,14 +858,32 @@ beforeEach(() => {
   mocks.recoveryInvoke.mockResolvedValue(emptyRecoveryOverview());
   mocks.longitudinalInvoke.mockResolvedValue(emptyLongitudinalOverview());
   mocks.sleepInvoke.mockResolvedValue(emptySleepOverview());
-  mocks.sourceInvoke.mockResolvedValue(sourceAcquisitionGuides());
+  mocks.sourceInvoke.mockImplementation((command, arguments_) => {
+    if (command === "query_source_acquisition_guides") {
+      return Promise.resolve(sourceAcquisitionGuides());
+    }
+    if (command === "open_official_source_link") {
+      const request = arguments_.request as {
+        sourceId: string;
+        purpose: "account" | "instructions";
+        locale: "en-US" | "es-ES";
+      };
+      const guide = sourceAcquisitionGuides()[0];
+      const link = guide.officialLinks.find((candidate) =>
+        candidate.purpose === request.purpose && candidate.locale === request.locale,
+      ) ?? guide.officialLinks.find((candidate) =>
+        candidate.purpose === request.purpose && candidate.locale === null,
+      );
+      return Promise.resolve({ ...request, url: link?.url });
+    }
+    throw new Error(`Unexpected source command: ${command}`);
+  });
   mocks.sportsInvoke.mockImplementation((command) => {
     if (command === "query_training_sports") {
       return Promise.resolve({ originCount: 0, sessionCount: 0, sports: [] });
     }
     throw new Error(`Unexpected sports command: ${command}`);
   });
-  mocks.openUrl.mockResolvedValue(undefined);
   mocks.invoke.mockImplementation((command) => {
     if (command === "query_activity_overview") {
       return Promise.resolve(emptyActivityOverview());
@@ -1648,8 +1661,18 @@ describe("FitFreed import interface", () => {
     await user.click(within(englishGuide).getByRole("button", {
       name: "Open official instructions",
     }));
-    expect(mocks.openUrl).toHaveBeenLastCalledWith(
-      "https://support.polar.com/en/how-to-download-all-your-data-from-polar-flow",
+    expect(mocks.sourceInvoke).toHaveBeenLastCalledWith(
+      "open_official_source_link",
+      {
+        request: {
+          sourceId: "polar-flow",
+          purpose: "instructions",
+          locale: "en-US",
+        },
+      },
+    );
+    expect(within(englishGuide).getByRole("status")).toHaveTextContent(
+      "The operating system accepted the request",
     );
 
     await user.click(screen.getByRole("button", { name: "Home" }));
@@ -1665,8 +1688,18 @@ describe("FitFreed import interface", () => {
     await user.click(within(spanishGuide).getByRole("button", {
       name: "Abrir las instrucciones oficiales",
     }));
-    expect(mocks.openUrl).toHaveBeenLastCalledWith(
-      "https://support.polar.com/es/how-to-download-all-your-data-from-polar-flow",
+    expect(mocks.sourceInvoke).toHaveBeenLastCalledWith(
+      "open_official_source_link",
+      {
+        request: {
+          sourceId: "polar-flow",
+          purpose: "instructions",
+          locale: "es-ES",
+        },
+      },
+    );
+    expect(within(spanishGuide).getByRole("status")).toHaveTextContent(
+      "El sistema operativo ha aceptado la solicitud",
     );
   });
 

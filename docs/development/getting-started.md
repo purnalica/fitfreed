@@ -117,8 +117,9 @@ GitHub Actions classifies every pull request and `main` revision through a close
 The instrumented build routes the archive picker, explicit official-link opener, and report-destination picker
 through WebdriverIO mocks because these operating-system surfaces cannot be driven reliably through the embedded
 macOS WebView. The E2E test verifies each complete invocation before observing its result and independently
-opens the generated report bytes. Normal development and production builds use Tauri's native dialogs and
-opener directly, and the production-bundle check rejects both Rust and presentation WebDriver markers.
+opens the generated report bytes. Normal development and production builds use Tauri's native dialogs and the
+application-owned official-destination command backed by the operating-system launcher. The production-bundle
+check rejects both Rust and presentation WebDriver markers.
 
 When E2E fails, the job retains only synthetic screenshots and tool logs for seven days. It never uploads generated libraries, applications, updater packages, recovery pairs, signing material, fixture paths, real exports, or personal values.
 

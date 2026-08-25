@@ -1,10 +1,15 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 
 import type { catalogs, Locale } from "../locales/catalogs";
 import {
   selectOfficialSourceLink,
+  type OfficialSourceLinkPurpose,
   type SourceAcquisitionGuide,
 } from "./source-acquisition";
+import type {
+  OpenOfficialSourceLinkOutcome,
+  OpenOfficialSourceLinkRequest,
+} from "../infrastructure/official-source-link";
 
 type SourcesMessages = (typeof catalogs)["en-US"]["sources"];
 
@@ -25,6 +30,7 @@ interface SourcesPanelProps {
   guide: SourceAcquisitionGuide | undefined;
   guideLoading: boolean;
   guideRequestId?: number;
+  archiveSelectionRequestId?: number;
   mode?: "ready" | "active" | "result";
   progressLabel?: string;
   progressValue?: number;
@@ -35,12 +41,15 @@ interface SourcesPanelProps {
   cancellable: boolean;
   updateInstalling: boolean;
   cancelRequested: boolean;
-  onChooseArchive: () => Promise<void>;
+  onChooseArchive: () => Promise<string | null>;
   onArchiveError: () => void;
   onImport: () => Promise<void>;
   onCancel: () => Promise<void>;
-  onOpenOfficialLink: (url: string) => Promise<void>;
-  onLinkError: () => void;
+  onOpenOfficialLink: (
+    request: OpenOfficialSourceLinkRequest,
+    url: string,
+  ) => Promise<OpenOfficialSourceLinkOutcome>;
+  onLinkError: (reason: unknown) => string;
   children?: ReactNode;
 }
 
@@ -51,6 +60,7 @@ export function SourcesPanel({
   guide,
   guideLoading,
   guideRequestId = 0,
+  archiveSelectionRequestId = 0,
   busy,
   mode = busy ? "active" : "ready",
   progressLabel,
@@ -72,11 +82,42 @@ export function SourcesPanel({
   const [guideVisible, setGuideVisible] = useState(false);
   const [archiveChoosing, setArchiveChoosing] = useState(false);
   const [linkOperation, setLinkOperation] = useState<"account" | "instructions">();
+  const [linkOutcome, setLinkOutcome] = useState<{
+    purpose: OfficialSourceLinkPurpose;
+    state: "accepted" | "failed";
+    url: string;
+    message?: string;
+  }>();
   const guideHeading = useRef<HTMLHeadingElement>(null);
+  const archiveContainer = useRef<HTMLElement>(null);
+  const archiveHeading = useRef<HTMLHeadingElement>(null);
+  const chooseArchiveButton = useRef<HTMLButtonElement>(null);
+  const linkFailure = useRef<HTMLDivElement>(null);
+
+  function reveal(target: HTMLElement | null, scrollTarget = target) {
+    if (!target) return;
+    const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+      ?? false;
+    scrollTarget?.scrollIntoView?.({
+      block: "center",
+      behavior: reducedMotion ? "auto" : "smooth",
+    });
+    target.focus({ preventScroll: true });
+  }
 
   useEffect(() => {
-    if (guideVisible && guide) guideHeading.current?.focus();
+    if (guideVisible && guide) reveal(guideHeading.current);
   }, [guide, guideRequestId, guideVisible]);
+
+  useEffect(() => {
+    if (archiveSelectionRequestId > 0) {
+      reveal(archiveHeading.current, archiveContainer.current);
+    }
+  }, [archiveSelectionRequestId]);
+
+  useEffect(() => {
+    if (linkOutcome?.state === "failed") reveal(linkFailure.current);
+  }, [linkOutcome]);
 
   useEffect(() => {
     if (guideRequestId > 0) setGuideVisible(true);
@@ -93,13 +134,24 @@ export function SourcesPanel({
   const troubleshooting = messages.troubleshooting as Record<string, string>;
   const archiveName = archivePath?.split(/[\\/]/).filter(Boolean).at(-1);
 
-  async function openLink(purpose: "account" | "instructions", url: string) {
+  async function openLink(purpose: OfficialSourceLinkPurpose, url: string) {
     if (linkOperation) return;
     setLinkOperation(purpose);
+    setLinkOutcome(undefined);
     try {
-      await onOpenOfficialLink(url);
-    } catch {
-      onLinkError();
+      const outcome = await onOpenOfficialLink({
+        sourceId: guide?.sourceId ?? "",
+        purpose,
+        locale,
+      }, url);
+      setLinkOutcome({ purpose, state: "accepted", url: outcome.url });
+    } catch (reason) {
+      setLinkOutcome({
+        purpose,
+        state: "failed",
+        url,
+        message: onLinkError(reason),
+      });
     } finally {
       setLinkOperation(undefined);
     }
@@ -109,9 +161,11 @@ export function SourcesPanel({
     if (archiveChoosing) return;
     setArchiveChoosing(true);
     try {
-      await onChooseArchive();
+      const selected = await onChooseArchive();
+      if (selected === null) chooseArchiveButton.current?.focus();
     } catch {
       onArchiveError();
+      chooseArchiveButton.current?.focus();
     } finally {
       setArchiveChoosing(false);
     }
@@ -129,13 +183,6 @@ export function SourcesPanel({
           </>
         )}
       </header>
-
-      {errorMessage && (
-        <section className="source-operation-error" role="alert">
-          <h2>{messages.operationProblemTitle}</h2>
-          <p>{errorMessage}</p>
-        </section>
-      )}
 
       {mode === "active" ? (
         <section
@@ -179,15 +226,23 @@ export function SourcesPanel({
 
           <div className="source-paths">
             <article
+              ref={archiveContainer}
               className="source-path source-path-import"
               aria-busy={busy || archiveChoosing}
             >
               <span aria-hidden="true">01</span>
-              <h2>{messages.haveArchiveTitle}</h2>
+              <h2 ref={archiveHeading} tabIndex={-1}>{messages.haveArchiveTitle}</h2>
               <p>{messages.haveArchiveBody}</p>
               <p className="path">{archiveName ?? importMessages.noPackage}</p>
+              {errorMessage && (
+                <section className="source-operation-error" role="alert">
+                  <h3>{messages.operationProblemTitle}</h3>
+                  <p>{errorMessage}</p>
+                </section>
+              )}
               <div className="source-path-actions">
                 <button
+                  ref={chooseArchiveButton}
                   type="button"
                   className="secondary"
                   onClick={() => void chooseArchive()}
@@ -312,33 +367,32 @@ export function SourcesPanel({
                   </ul>
                 </section>
 
-                <div
-                  className="source-official-actions"
-                  aria-busy={linkOperation !== undefined}
-                >
-                  <button
-                    type="button"
-                    className="secondary"
-                    disabled={!accountLink || linkOperation !== undefined}
-                    onClick={() => accountLink && void openLink("account", accountLink.url)}
-                  >
-                    {messages.openAccount}
-                  </button>
-                  <button
-                    type="button"
-                    className="secondary"
-                    disabled={!instructionsLink || linkOperation !== undefined}
-                    onClick={() => instructionsLink
-                      && void openLink("instructions", instructionsLink.url)}
-                  >
-                    {messages.openInstructions}
-                  </button>
-                  {linkOperation && (
-                    <span className="progress-submit-status" role="status" aria-live="polite">
-                      {linkOperation === "account"
-                        ? messages.openingAccount
-                        : messages.openingInstructions}
-                    </span>
+                <div className="source-official-actions" aria-busy={linkOperation !== undefined}>
+                  {accountLink && (
+                    <OfficialDestinationAction
+                      purpose="account"
+                      url={accountLink.url}
+                      buttonLabel={messages.openAccount}
+                      openingLabel={messages.openingAccount}
+                      messages={messages}
+                      operation={linkOperation}
+                      outcome={linkOutcome}
+                      failureRef={linkFailure}
+                      onOpen={openLink}
+                    />
+                  )}
+                  {instructionsLink && (
+                    <OfficialDestinationAction
+                      purpose="instructions"
+                      url={instructionsLink.url}
+                      buttonLabel={messages.openInstructions}
+                      openingLabel={messages.openingInstructions}
+                      messages={messages}
+                      operation={linkOperation}
+                      outcome={linkOutcome}
+                      failureRef={linkFailure}
+                      onOpen={openLink}
+                    />
                   )}
                 </div>
                 <p className="source-external-note">{messages.externalNotice}</p>
@@ -353,6 +407,75 @@ export function SourcesPanel({
 
           {mode === "ready" && children}
         </>
+      )}
+    </section>
+  );
+}
+
+interface OfficialDestinationActionProps {
+  purpose: OfficialSourceLinkPurpose;
+  url: string;
+  buttonLabel: string;
+  openingLabel: string;
+  messages: SourcesMessages;
+  operation: OfficialSourceLinkPurpose | undefined;
+  outcome: {
+    purpose: OfficialSourceLinkPurpose;
+    state: "accepted" | "failed";
+    url: string;
+    message?: string;
+  } | undefined;
+  failureRef: RefObject<HTMLDivElement | null>;
+  onOpen: (purpose: OfficialSourceLinkPurpose, url: string) => Promise<void>;
+}
+
+function OfficialDestinationAction({
+  purpose,
+  url,
+  buttonLabel,
+  openingLabel,
+  messages,
+  operation,
+  outcome,
+  failureRef,
+  onOpen,
+}: OfficialDestinationActionProps) {
+  const actionOutcome = outcome?.purpose === purpose ? outcome : undefined;
+  return (
+    <section className="source-official-action">
+      <button
+        type="button"
+        className="secondary"
+        disabled={operation !== undefined}
+        onClick={() => void onOpen(purpose, url)}
+      >
+        {buttonLabel}
+      </button>
+      <p className="source-official-destination">
+        <span>{messages.destinationLabel}</span>
+        <code>{url}</code>
+      </p>
+      {operation === purpose && (
+        <p className="progress-submit-status" role="status" aria-live="polite">
+          {openingLabel}
+        </p>
+      )}
+      {actionOutcome?.state === "accepted" && (
+        <p className="source-link-accepted" role="status" aria-live="polite">
+          {messages.openAccepted}
+        </p>
+      )}
+      {actionOutcome?.state === "failed" && (
+        <div
+          ref={failureRef}
+          className="source-link-failure"
+          role="alert"
+          tabIndex={-1}
+        >
+          <strong>{messages.openProblemTitle}</strong>
+          <p>{actionOutcome.message}</p>
+          <p>{messages.copyDestination}</p>
+        </div>
       )}
     </section>
   );

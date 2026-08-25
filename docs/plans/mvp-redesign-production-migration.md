@@ -245,7 +245,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R10 | Complete — exact local and hosted gates passed 2026-08-24; executable-input evidence marker retained | The complete release-shaped product is coherent and documented |
 | X6 | Rejected for source `41ffad2` — native profile and exact hosted campaign pass, but the valid human session found one critical and several major product defects | Independent audit has no unresolved material finding |
 | X6-C1 | Human-gated — temporal meaning and the provider-neutral identity foundation are locally complete; real provider-catalogue acquisition remains unavailable | Sports are recognizable from trustworthy evidence and Home ranges state what they measure |
-| X6-C2 | Planned — acquisition and spatial-continuity causes traced | Every successful or failed acquisition action produces a visible, reachable result |
+| X6-C2 | Human-gated — owned native opening, local outcomes, and spatial transitions pass complete automation; real browser appearance remains unreviewed | Every successful or failed acquisition action produces a visible, reachable result |
 | X6-C3 | Planned — archive classification and finalization causes traced | Import recovery is calm and specific, and long work remains perceptibly active |
 | X6-C4 | Planned — Home and navigation causes traced | Prominent Home summaries open useful evidence and temporary restrictions explain themselves |
 | X6-C5 | Planned — shared layout causes traced | Text and forms use the desktop workspace coherently through 200% content zoom |
@@ -2269,6 +2269,20 @@ obvious next action, including when the action begins from a scrolled result.
    useful for state permutations but cannot close native browser-opening acceptance.
 4. Verify pointer, keyboard, focus, scroll geometry, compact navigation, both locales, 100%–200% zoom, reduced motion,
    cancellation, repeated action, and return from every acquisition state.
+
+**Execution state:** the correction is implemented locally through the provider-neutral application use case,
+typed desktop request and outcome, native infrastructure launcher, [ADR 0028](../architecture/decisions/0028-own-official-destination-opening-in-the-application.md),
+and the versioned [opening contract](../data-formats/guidance/official-source-link-opening-v1.md). React no longer
+holds arbitrary native URL authority. Each official action displays its exact destination and retains an accepted
+result or a focused actionable failure beside the initiating control. Guide expansion and every successful initial
+or post-result archive selection perform a reduced-motion-aware focus-and-scroll transition; selection cancellation
+returns focus without a false result. High content zoom recomposes the source choices so the selected archive and
+import action remain in one viewport. The complete contributor lane, build, strict Rust lint and formatting gates,
+and the full packaged macOS journey pass, including both locales, compact navigation, 200% zoom, keyboard activation,
+selection cancellation, post-result reselection, exact destination instrumentation, restart, accessibility, and
+performance. The automated journey exposed and then closed one 200%-zoom viewport regression. X6-C2 cannot close
+until a revision-isolated production-native package confirms that both official destinations appear in the actual
+default browser; an accepted operating-system request alone is not that evidence.
 
 ### X6-C3 — Separate archive compatibility from safety and expose real work
 

@@ -41,7 +41,11 @@ Content keys use lower-case dot or hyphen separated identifiers. A key's localiz
 | `locale` | BCP 47 language tag or null | 1 | Locale-specific destination, or `null` when the destination is locale-independent. |
 | `url` | HTTPS URI | 1 | Exact official destination. Redirect behavior remains provider-controlled. |
 
-The adapter may supply one locale-independent account link and multiple localized instruction links. Presentation selects an exact locale match and otherwise exposes the available official instruction language explicitly; it never fabricates a translated URL. The Tauri capability independently allowlists the shipped destinations, so a valid contract alone cannot authorize an arbitrary URL.
+The adapter may supply one locale-independent account link and multiple localized instruction links. The
+application selects an exact locale match and then a locale-independent match for the same purpose; it never
+fabricates a translated URL. Presentation requests that selection through the closed
+[official source link opening version 1](official-source-link-opening-v1.md) contract, so a displayed guide URL
+alone cannot authorize an arbitrary native destination.
 
 ## Ordering, identity, and duplicate behavior
 

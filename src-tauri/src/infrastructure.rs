@@ -137,7 +137,7 @@ mod update_state;
 mod update_watchdog;
 
 pub use report_html::SelfContainedHtmlReportExporter;
-pub use source_acquisition::PolarFlowSourceAcquisitionGuides;
+pub use source_acquisition::{NativeOfficialSourceLinkOpener, PolarFlowSourceAcquisitionGuides};
 pub use update_channel::{current_update_target, HttpsUpdateChannel};
 pub use update_installation::{
     install_verified_update, UpdateInstallationError, UpdateInstallationRequest,
