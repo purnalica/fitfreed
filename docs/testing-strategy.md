@@ -44,6 +44,9 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Anti-corruption mapping from Polar Flow structures to domain inputs.
 - Database constraints, transactions, migrations, queries, rollback, and restart behavior.
 - Import fingerprints, provenance, overlap reconciliation, and retry behavior.
+- Package-identity, provider-compatibility, malformed-content, safety, and resource-limit classification with
+  complete member scanning; source-file and canonical-item progress; delayed-progress explanation; and
+  cancellation rollback before the atomic commit boundary.
 - Range-summary composition from real SQLite route, signal, source-lap, review-required, reimported, and stale
   revision evidence without moving calculation or cross-coordinate alignment into persistence.
 - Localization catalogs, placeholders, plural rules, and fallback.
@@ -110,7 +113,7 @@ Synthetic fixtures will be generated from the explicitly documented [`testing/sy
 - A long multi-session history with dense supported routes and signals, exact gaps, and a bounded current-schema storage envelope.
 - Exact duplicate archives and logically equivalent exports with different file identities.
 - Older and newer overlapping exports, amended entities, and deterministic conflicts.
-- Unknown file families, unknown fields, unsupported versions, malformed JSON, unsafe paths, decompression-limit violations, and interrupted streams.
+- Unrelated ZIPs, provider-shaped unsupported layouts and versions, unknown file families, unknown fields, malformed current content, unsafe paths, decompression-limit violations, and interrupted streams.
 - Empty, partial, and internally inconsistent exports.
 - Database baselines for every supported migration path.
 

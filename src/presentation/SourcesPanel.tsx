@@ -31,9 +31,12 @@ interface SourcesPanelProps {
   guideLoading: boolean;
   guideRequestId?: number;
   archiveSelectionRequestId?: number;
+  archivePickerRecoveryFocusRequestId?: number;
   mode?: "ready" | "active" | "result";
   progressLabel?: string;
   progressValue?: number;
+  progressDetail?: string;
+  progressKey?: string;
   errorMessage?: string;
   archivePath: string | undefined;
   importReady: boolean;
@@ -61,10 +64,13 @@ export function SourcesPanel({
   guideLoading,
   guideRequestId = 0,
   archiveSelectionRequestId = 0,
+  archivePickerRecoveryFocusRequestId = 0,
   busy,
   mode = busy ? "active" : "ready",
   progressLabel,
   progressValue,
+  progressDetail,
+  progressKey,
   errorMessage,
   archivePath,
   importReady,
@@ -88,6 +94,7 @@ export function SourcesPanel({
     url: string;
     message?: string;
   }>();
+  const [progressDelayed, setProgressDelayed] = useState(false);
   const guideHeading = useRef<HTMLHeadingElement>(null);
   const archiveContainer = useRef<HTMLElement>(null);
   const archiveHeading = useRef<HTMLHeadingElement>(null);
@@ -114,6 +121,22 @@ export function SourcesPanel({
       reveal(archiveHeading.current, archiveContainer.current);
     }
   }, [archiveSelectionRequestId]);
+
+  useEffect(() => {
+    if (archivePickerRecoveryFocusRequestId > 0) {
+      chooseArchiveButton.current?.focus();
+    }
+  }, [archivePickerRecoveryFocusRequestId]);
+
+  useEffect(() => {
+    if (mode !== "active" || cancelRequested) {
+      setProgressDelayed(false);
+      return undefined;
+    }
+    setProgressDelayed(false);
+    const timeout = window.setTimeout(() => setProgressDelayed(true), 15_000);
+    return () => window.clearTimeout(timeout);
+  }, [cancelRequested, mode, progressKey]);
 
   useEffect(() => {
     if (linkOutcome?.state === "failed") reveal(linkFailure.current);
@@ -198,11 +221,23 @@ export function SourcesPanel({
               {cancelRequested ? importMessages.cancelling : messages.activeWorking}
             </p>
           ) : (
-            <progress
-              max="100"
-              value={progressValue}
-              aria-label={progressLabel ?? importMessages.importing}
-            />
+            <>
+              <progress
+                max="100"
+                value={progressValue}
+                aria-label={progressLabel ?? importMessages.importing}
+              />
+              {progressDetail && (
+                <p className="source-progress-detail" role="status" aria-live="polite">
+                  {progressDetail}
+                </p>
+              )}
+            </>
+          )}
+          {progressDelayed && (
+            <p className="source-active-delayed" role="status" aria-live="polite">
+              {messages.activeDelayed}
+            </p>
           )}
           {cancellable && (
             <button

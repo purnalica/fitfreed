@@ -52,14 +52,19 @@ stateDiagram-v2
 The application reads the selected package without changing canonical history:
 
 1. establish the import-operation identity and local package handle;
-2. stream the package fingerprint and container inventory;
-3. enforce entry-path, link, compression, size, count, nesting, and resource limits;
-4. detect the source provider and applicable adapter version;
+2. stream the package fingerprint and validate central-directory integrity;
+3. inspect the member-name inventory to distinguish the current source grammar, provider-shaped but unsupported
+   evidence, and an unrecognized ZIP without decoding member content;
+4. scan every member against path, link, encryption, duplicate-name, compression, size, count, nesting, and
+   resource protections, giving genuine safety violations precedence over ordinary layout compatibility;
 5. classify artifacts and derive a package assessment;
 6. resolve a strong provider claim to an opaque observation origin under [ADR 0005](decisions/0005-use-library-scoped-source-subject-correlation.md); and
 7. persist enough non-personal operation metadata to explain rejection or resume policy.
 
 Assessment never trusts the filename extension, MIME declaration, archive paths, or compressed sizes alone.
+[ADR 0029](decisions/0029-separate-package-identity-compatibility-and-safety.md) keeps package identity,
+provider compatibility, current-content validity, and archive safety as separate outcomes. Provider-shaped
+inventory never authorizes extraction or weakens the complete member scan.
 
 ### 2. Planned
 
@@ -101,7 +106,10 @@ The visibility boundary atomically publishes:
 
 The implementation persists coverage under a non-terminal operation. Bounded activity, sleep, and dated nightly-recovery candidates are mapped before the visibility transaction; training candidates follow the two-pass manifest boundary and are remapped one at a time inside it. Split sleep artifacts are assembled only after both supported families validate. Dated recovery summaries deliberately exclude undated sample blobs that have no safe identity relationship. The visible switch is atomic. The desktop presents localized terminal summaries, family guidance, and provider-neutral activity, training, sleep, and recovery Insights. High-resolution training additions must retain this per-artifact memory bound and pass measured import and query budgets.
 
-Cancellation requested after committing begins is deferred until the atomic boundary resolves. The interface explains this brief non-cancellable phase.
+`Committing` begins only after every canonical reconciliation unit has completed inside the rollback-safe
+transaction. It exposes no item count or percentage because the remaining atomic database operation has no
+truthful bounded presentation unit. Cancellation requested after committing begins is deferred until the atomic
+boundary resolves. The interface explains this brief non-cancellable phase.
 
 ### 6. Recovering
 
@@ -111,7 +119,13 @@ Version 2 can prove the recovery result without guessing: canonical changes and 
 
 ## Progress and outcomes
 
-Progress is phase-aware. When total work is knowable, the application may report bounded artifact or byte progress; when it is not, it reports the active phase and completed work without displaying a false percentage.
+Progress is phase-aware and follows the normative
+[import-control transport](../data-formats/guidance/import-control-v1.md). Fingerprinting reports bytes;
+validation and mapping report source files; reconciliation reports actual canonical library items. Each bounded
+phase starts its own monotonic count. Committing is explicitly indeterminate and never inherits a completed source
+file count. If no authoritative progress changes for the presentation watchdog interval, the interface may explain
+that local work is taking longer than usual, but it cannot invent a duration or percentage, terminate the work, or
+change its persisted result.
 The Sources presentation replaces competing acquisition choices with one dominant operation surface,
 keeps cancellation explicit, and states that the existing library remains unchanged until commit. It
 announces immediate localized importing or cancellation-requested feedback while the detailed phase stream
@@ -131,8 +145,10 @@ Every terminal outcome includes:
 The family breakdown prioritizes invalid, unrecognized, unsupported, and deliberately ignored content before supported content. Presentation translates stable family, classification, and reason codes into an explanation and next action. Public diagnostics use opaque operation references and sanitized aggregates. Archive locators, source hashes, account evidence, and detailed local provenance remain protected as personal-library data.
 
 The terminal presentation separates three concerns. A consequence-led result states whether usable
-history changed; an optional reason disclosure explains a rejected or failed transaction; and one exact
-incorporation disclosure contains reconciliation counts and family coverage. Picker and official-link
+history changed; a rejected or failed transaction places its specific localized reason and safe next action in
+the primary result; and one exact incorporation disclosure contains reconciliation counts and family coverage.
+Wrong ZIP selection, malformed current content, an unsupported provider version, suspicious member structure,
+and an exceeded safety limit remain distinct. Picker and official-link
 failures are source-action errors outside the terminal import outcome, so a later source-action failure
 cannot rewrite or mislabel the persisted transaction result.
 

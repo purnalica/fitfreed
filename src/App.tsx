@@ -123,6 +123,7 @@ type ImportPhase =
   | "fingerprinting"
   | "validating"
   | "importing"
+  | "reconciling"
   | "committing"
   | "completed"
   | "cancelled";
@@ -209,6 +210,7 @@ function App() {
   const [updateLocaleRefreshToken, setUpdateLocaleRefreshToken] = useState(0);
   const [archivePath, setArchivePath] = useState<string>();
   const [archiveSelectionRequestId, setArchiveSelectionRequestId] = useState(0);
+  const [archivePickerRecoveryFocusRequestId, setArchivePickerRecoveryFocusRequestId] = useState(0);
   const [sourceGuides, setSourceGuides] = useState<SourceAcquisitionGuide[]>();
   const [sourceGuideRequestId, setSourceGuideRequestId] = useState(0);
   const [activityOverview, setActivityOverview] = useState<ActivityOverview>();
@@ -906,9 +908,13 @@ function App() {
   async function chooseArchiveFromHome() {
     openSources("start");
     try {
-      await chooseArchive();
+      const selected = await chooseArchive();
+      if (selected === null) {
+        setArchivePickerRecoveryFocusRequestId((current) => current + 1);
+      }
     } catch {
       setSourceErrorCode("archive-picker-failed");
+      setArchivePickerRecoveryFocusRequestId((current) => current + 1);
     }
   }
 
@@ -1009,6 +1015,23 @@ function App() {
     ? (progress.completedBytes / progress.totalBytes) * 100
     : undefined;
   const progressValue = artifactProgress ?? byteProgress;
+  const progressDetail = progress?.totalArtifacts !== null
+    && progress?.totalArtifacts !== undefined
+    ? (progress.phase === "reconciling"
+        ? messages.sources.progressItems
+        : messages.sources.progressFiles)
+      .replace("{completed}", number.format(progress.completedArtifacts))
+      .replace("{total}", number.format(progress.totalArtifacts))
+    : undefined;
+  const progressKey = progress
+    ? [
+        progress.phase,
+        progress.completedArtifacts,
+        progress.totalArtifacts ?? "unknown",
+        progress.completedBytes,
+        progress.totalBytes ?? "unknown",
+      ].join(":")
+    : "waiting-for-progress";
   const rangeLoading = rangeOperation !== undefined;
   const visibleErrorCode = errorCode;
   const errorMessages = messages.errors as Record<string, string>;
@@ -1203,9 +1226,12 @@ function App() {
                 guideLoading={sourceGuides === undefined}
                 guideRequestId={sourceGuideRequestId}
                 archiveSelectionRequestId={archiveSelectionRequestId}
+                archivePickerRecoveryFocusRequestId={archivePickerRecoveryFocusRequestId}
                 mode={busy ? "active" : outcome ? "result" : "ready"}
                 progressLabel={progress ? messages.phases[progress.phase] : messages.importing}
                 progressValue={progressValue}
+                progressDetail={progressDetail}
+                progressKey={progressKey}
                 errorMessage={sourceErrorCode
                   ? errorMessages[sourceErrorCode] ?? messages.errors.unexpected
                   : undefined}

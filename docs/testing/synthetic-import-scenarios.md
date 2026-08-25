@@ -51,7 +51,7 @@ Production-path fixtures include exactly one obvious non-address fictional accou
 | `SYN-017` | Unknown enumeration value | Compatibility behavior follows the field contract and preserves the distinction between unknown, absent, and invalid. |
 | `SYN-018` | Duplicate archive member name | The container is rejected before mapping because member selection would be ambiguous. |
 | `SYN-019` | Unsafe path or link | Absolute paths, traversal, links, and platform path variants cannot escape controlled package access. |
-| `SYN-020` | Resource-limit violation | Entry count, expanded size, per-entry size, nesting, or compression-ratio limits stop work predictably without partial state. |
+| `SYN-020` | Resource-limit violation | Entry count, expanded size, per-entry size, or compression-ratio limits stop work predictably without partial state. |
 | `SYN-021` | Cancellation by durable phase | Cancellation during assessment, staging, or reconciliation exposes no canonical changes and cleans or records staging according to policy. |
 | `SYN-022` | Process interruption by durable phase | Restart resolves assessment/staging safely and proves either complete commit or rollback for an interrupted visibility boundary. |
 | `SYN-023` | Artifact-order and batch-size permutations | Property-based permutations produce the same coverage, decisions, and canonical result; duplicate daily identities reject in either archive order instead of selecting a delivery-order winner. |
@@ -64,6 +64,7 @@ Production-path fixtures include exactly one obvious non-address fictional accou
 | `SYN-030` | Dated nightly recovery with unidentifiable samples | Minimal and complete dated summaries exercise independent optional groups, enrichment, preservation, conflict, duplicate rejection, migration, range querying, restart, and atomic interruption while the undated sample blob remains explicitly excluded and unjoined. |
 | `SYN-031` | Question-led library home and resumable exploration | Empty, partial, multi-domain, repeated, and extended libraries expose only answerable questions, derive post-import effects from the exact committed outcome, mount one selected explorer, and restore or clear one valid versioned destination across restart. |
 | `SYN-032` | Evidence-adaptive session composition | One isolated archive carries a signal-led session, a structure-led session, and a structured session with three supported zone kinds plus one unsupported group; the packaged application foregrounds the strongest usable evidence, preserves exact alternatives, and never invents an empty map or timeline. |
+| `SYN-033` | Package identity, compatibility, and safety separation | An ordinary unrelated nested ZIP is not described as dangerous; a nested or new-grammar provider export is unsupported; malformed current content is recognized; and traversal, links, duplicate names, encryption, and resource violations retain safety precedence without canonical changes. |
 
 ## Family contract matrix
 

@@ -45,6 +45,20 @@ Each source adapter owns:
 
 Source adapters do not own domain reconciliation, persistence policy, reports, or user-interface navigation beyond source-specific import guidance.
 
+### Package identity and protected input
+
+[ADR 0029](decisions/0029-separate-package-identity-compatibility-and-safety.md) separates provider evidence
+from archive protection. An adapter may classify a central-directory inventory as its current lexical grammar,
+provider-shaped but unsupported, or unrecognized. This classification does not open or extract content. The
+infrastructure boundary still scans every member for central-directory integrity, traversal, absolute paths,
+symbolic links, encryption, duplicate names, expanded-size and compression-ratio limits before mapping begins.
+
+Current lexical identity does not imply valid required content. A missing or malformed required claim is a
+malformed recognized export; ordinary nesting with provider evidence is an unsupported provider version;
+ordinary nesting without provider evidence is an unsupported input selection; and a genuine safety violation
+retains precedence in every category. Application transport exposes stable provider-neutral outcome codes while
+the adapter remains the sole owner of source-specific filename evidence.
+
 ### Provider-neutral core
 
 The domain and application layers own:

@@ -168,8 +168,8 @@ pub use update_watchdog::{
 
 use local_file::PrivateStagingFile;
 use polar_flow::{
-    assess_artifact, daily_activity_filename_date, training_session_filename_start,
-    SupportedArtifact,
+    assess_artifact, classify_package_identity, daily_activity_filename_date,
+    training_session_filename_start, PolarFlowPackageIdentity, SupportedArtifact,
 };
 use source_subject::{
     persist_source_subject, resolve_source_subject, SourceSubjectClaim, SourceSubjectResolution,
@@ -257,6 +257,12 @@ pub enum ImportError {
         reason: String,
         reason_code: &'static str,
     },
+    #[error("the ZIP is not a supported fitness-history export")]
+    NotSupportedExport,
+    #[error("the provider export version or layout is not supported")]
+    UnsupportedProviderVersion,
+    #[error("unsupported ordinary archive member layout: {0}")]
+    UnsupportedMemberLayout(String),
     #[error("unsafe archive member: {0}")]
     UnsafeMember(String),
     #[error("duplicate archive member: {0}")]
@@ -1046,14 +1052,40 @@ fn execute_import(
     validate_central_directory_names(archive_path)?;
     let mut archive = ZipArchive::new(file)?;
     let archive_entries = archive.len();
+    set_total_artifacts(connection, operation_id, archive_entries)?;
+    let mut archive_names = Vec::with_capacity(archive_entries);
+    for index in 0..archive_entries {
+        archive_names.push(archive.by_index(index)?.name().to_owned());
+    }
+    let package_identity = classify_package_identity(archive_names.iter().map(String::as_str));
     on_progress(ImportProgress::artifacts(
         ImportPhase::Validating,
         0,
         archive_entries,
     ));
-    let processable_artifacts = validate_archive(&mut archive, cancellation, on_progress)?;
+    let processable_artifacts = match validate_archive(&mut archive, cancellation, on_progress) {
+        Ok(processable_artifacts) => processable_artifacts,
+        Err(ImportError::UnsupportedMemberLayout(_)) => {
+            return Err(match package_identity {
+                PolarFlowPackageIdentity::Unrecognized => ImportError::NotSupportedExport,
+                PolarFlowPackageIdentity::Current
+                | PolarFlowPackageIdentity::UnsupportedVersion => {
+                    ImportError::UnsupportedProviderVersion
+                }
+            });
+        }
+        Err(error) => return Err(error),
+    };
     timings.archive_validation_milliseconds = milliseconds(validation_started.elapsed());
-    set_total_artifacts(connection, operation_id, archive_entries)?;
+    match package_identity {
+        PolarFlowPackageIdentity::Current => {}
+        PolarFlowPackageIdentity::UnsupportedVersion => {
+            return Err(ImportError::UnsupportedProviderVersion);
+        }
+        PolarFlowPackageIdentity::Unrecognized => {
+            return Err(ImportError::NotSupportedExport);
+        }
+    }
     let subject_resolution_started = Instant::now();
     let resolved_subject = if fixed_origin_id.is_none() {
         Some(resolve_polar_package_subject(
@@ -1400,16 +1432,15 @@ fn execute_import(
         ImportOperationState::Reconciling,
     )?;
     ensure_not_cancelled(cancellation)?;
-    transition_operation(
-        connection,
-        operation_id,
-        ImportOperationState::Reconciling,
-        ImportOperationState::Committing,
-    )?;
+    let reconciliation_units = mapped_artifacts.len()
+        + validated_training_artifacts.len()
+        + mapped_sleep_periods.len()
+        + mapped_nightly_recoveries.len();
+    let mut reconciled_units = 0_usize;
     on_progress(ImportProgress::artifacts(
-        ImportPhase::Committing,
-        processed_artifacts,
-        processable_artifacts,
+        ImportPhase::Reconciling,
+        reconciled_units,
+        reconciliation_units,
     ));
 
     let transaction_started = Instant::now();
@@ -1427,9 +1458,16 @@ fn execute_import(
         }
     }
     for (index, artifact) in mapped_artifacts.iter().enumerate() {
+        ensure_not_cancelled(cancellation)?;
         let reconciliation_started = Instant::now();
         reconcile(&transaction, operation_id, artifact, &mut report)?;
         timings.reconciliation_milliseconds += milliseconds(reconciliation_started.elapsed());
+        reconciled_units += 1;
+        on_progress(ImportProgress::artifacts(
+            ImportPhase::Reconciling,
+            reconciled_units,
+            reconciliation_units,
+        ));
         if interrupt_after == Some(index + 1) {
             return Err(ImportError::InjectedInterruption(index + 1));
         }
@@ -1458,6 +1496,12 @@ fn execute_import(
         let reconciliation_started = Instant::now();
         reconcile_training_session(&transaction, operation_id, &artifact, &mut report)?;
         timings.reconciliation_milliseconds += milliseconds(reconciliation_started.elapsed());
+        reconciled_units += 1;
+        on_progress(ImportProgress::artifacts(
+            ImportPhase::Reconciling,
+            reconciled_units,
+            reconciliation_units,
+        ));
         if interrupt_after == Some(mapped_artifacts.len() + training_index + 1) {
             return Err(ImportError::InjectedInterruption(
                 mapped_artifacts.len() + training_index + 1,
@@ -1465,9 +1509,16 @@ fn execute_import(
         }
     }
     for (sleep_index, period) in mapped_sleep_periods.iter().enumerate() {
+        ensure_not_cancelled(cancellation)?;
         let reconciliation_started = Instant::now();
         reconcile_sleep_period(&transaction, operation_id, period, &mut report)?;
         timings.reconciliation_milliseconds += milliseconds(reconciliation_started.elapsed());
+        reconciled_units += 1;
+        on_progress(ImportProgress::artifacts(
+            ImportPhase::Reconciling,
+            reconciled_units,
+            reconciliation_units,
+        ));
         if interrupt_after
             == Some(mapped_artifacts.len() + validated_training_artifacts.len() + sleep_index + 1)
         {
@@ -1477,9 +1528,16 @@ fn execute_import(
         }
     }
     for (recovery_index, recovery) in mapped_nightly_recoveries.iter().enumerate() {
+        ensure_not_cancelled(cancellation)?;
         let reconciliation_started = Instant::now();
         reconcile_nightly_recovery(&transaction, operation_id, recovery, &mut report)?;
         timings.reconciliation_milliseconds += milliseconds(reconciliation_started.elapsed());
+        reconciled_units += 1;
+        on_progress(ImportProgress::artifacts(
+            ImportPhase::Reconciling,
+            reconciled_units,
+            reconciliation_units,
+        ));
         if interrupt_after
             == Some(
                 mapped_artifacts.len()
@@ -1499,6 +1557,14 @@ fn execute_import(
         }
     }
 
+    ensure_not_cancelled(cancellation)?;
+    transition_operation(
+        &transaction,
+        operation_id,
+        ImportOperationState::Reconciling,
+        ImportOperationState::Committing,
+    )?;
+    on_progress(ImportProgress::phase(ImportPhase::Committing));
     let finalization_started = Instant::now();
     complete_operation(&transaction, operation_id, &report)?;
     transaction.commit()?;
@@ -8849,6 +8915,9 @@ fn persist_terminal_error(
         ImportError::InvalidContainer(_)
         | ImportError::Zip(_)
         | ImportError::InvalidArtifact { .. }
+        | ImportError::NotSupportedExport
+        | ImportError::UnsupportedProviderVersion
+        | ImportError::UnsupportedMemberLayout(_)
         | ImportError::UnsafeMember(_)
         | ImportError::DuplicateMember(_)
         | ImportError::ResourceLimit(_)
@@ -8905,10 +8974,17 @@ fn terminal_code(error: &ImportError) -> &'static str {
         ImportError::Io(_) => "archive-io-failure",
         ImportError::Zip(_) | ImportError::InvalidContainer(_) => "invalid-zip-container",
         ImportError::Database(_) => "database-failure",
-        ImportError::InvalidArtifact { .. } => "invalid-supported-artifact",
-        ImportError::UnsafeMember(_) => "unsafe-archive-member",
-        ImportError::DuplicateMember(_) => "duplicate-archive-member",
-        ImportError::ResourceLimit(_) => "archive-resource-limit",
+        ImportError::InvalidArtifact { .. } | ImportError::InvalidSourceSubjectClaim => {
+            "malformed-supported-export"
+        }
+        ImportError::NotSupportedExport => "not-supported-export",
+        ImportError::UnsupportedProviderVersion | ImportError::UnsupportedMemberLayout(_) => {
+            "unsupported-provider-version"
+        }
+        ImportError::UnsafeMember(_) | ImportError::DuplicateMember(_) => {
+            "suspicious-archive-layout"
+        }
+        ImportError::ResourceLimit(_) => "archive-safety-limit",
         ImportError::Cancelled => "user-cancelled",
         ImportError::UnsupportedSchemaVersion(_) => "unsupported-schema-version",
         ImportError::InvalidLibraryBackup(_) => "invalid-library-backup",
@@ -8925,7 +9001,6 @@ fn terminal_code(error: &ImportError) -> &'static str {
         ImportError::InvalidSleepLibrary(_) => "invalid-sleep-library",
         ImportError::InvalidNightlyRecoveryLibrary(_) => "invalid-nightly-recovery-library",
         ImportError::InvalidCorrelationKeyLength(_) => "invalid-library-correlation-state",
-        ImportError::InvalidSourceSubjectClaim => "invalid-source-subject-evidence",
         ImportError::SourceSubjectConflict => "source-subject-confirmation-required",
         ImportError::InvalidReconciliationDecision(_) => "invalid-reconciliation-decision",
     }
@@ -8947,19 +9022,23 @@ fn validate_archive(
     let mut total_size = 0_u64;
     let total_entries = archive.len();
     let mut processable_artifacts = 0;
+    let mut unsupported_member_layout = None;
     for index in 0..archive.len() {
         ensure_not_cancelled(cancellation)?;
         let member = archive.by_index(index)?;
         let name = member.name().to_owned();
         let path = Path::new(&name);
-        if member.is_dir()
-            || member.is_symlink()
+        if member.is_symlink()
             || member.encrypted()
             || path.is_absolute()
-            || path.components().count() != 1
             || member.enclosed_name().is_none()
         {
             return Err(ImportError::UnsafeMember(name));
+        }
+        if (member.is_dir() || path.components().count() != 1)
+            && unsupported_member_layout.is_none()
+        {
+            unsupported_member_layout = Some(name.clone());
         }
         if !names.insert(name.clone()) {
             return Err(ImportError::DuplicateMember(name));
@@ -8994,6 +9073,9 @@ fn validate_archive(
                 total_entries,
             ));
         }
+    }
+    if let Some(name) = unsupported_member_layout {
+        return Err(ImportError::UnsupportedMemberLayout(name));
     }
     Ok(processable_artifacts)
 }
@@ -19701,12 +19783,24 @@ mod tests {
 
         assert_eq!(report.recognized_artifacts, 2);
         assert_eq!(report.new_observations, 3);
+        let imported_artifacts = progress
+            .iter()
+            .rfind(|event| event.phase == ImportPhase::Importing)
+            .expect("artifact import progress");
+        assert_eq!(imported_artifacts.completed_artifacts, 2);
+        assert_eq!(imported_artifacts.total_artifacts, Some(2));
+        let reconciled_periods = progress
+            .iter()
+            .rfind(|event| event.phase == ImportPhase::Reconciling)
+            .expect("sleep reconciliation progress");
+        assert_eq!(reconciled_periods.completed_artifacts, 3);
+        assert_eq!(reconciled_periods.total_artifacts, Some(3));
         let committing = progress
             .iter()
             .find(|event| event.phase == ImportPhase::Committing)
-            .expect("committing progress");
-        assert_eq!(committing.completed_artifacts, 2);
-        assert_eq!(committing.total_artifacts, Some(2));
+            .expect("atomic commit progress");
+        assert_eq!(committing.total_artifacts, None);
+        assert!(!committing.cancellable);
         assert!(progress.iter().all(|event| {
             event
                 .total_artifacts
@@ -20925,7 +21019,7 @@ mod tests {
         assert!(!outcome.exact_repeat);
         assert_eq!(
             outcome.terminal_code,
-            Some("invalid-source-subject-evidence".to_owned())
+            Some("malformed-supported-export".to_owned())
         );
         assert_eq!(
             query_activity(&harness.database())
@@ -21004,7 +21098,7 @@ mod tests {
             assert_eq!(outcome.state, ImportOperationState::Rejected);
             assert_eq!(
                 outcome.terminal_code,
-                Some("invalid-source-subject-evidence".to_owned())
+                Some("malformed-supported-export".to_owned())
             );
         }
     }
@@ -21354,6 +21448,26 @@ mod tests {
                 && event.completed_artifacts == 2
                 && event.total_artifacts == Some(2)
         }));
+        let reconciliation = progress
+            .iter()
+            .filter(|event| event.phase == ImportPhase::Reconciling)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            reconciliation
+                .first()
+                .map(|event| (event.completed_artifacts, event.total_artifacts)),
+            Some((0, Some(2)))
+        );
+        assert_eq!(
+            reconciliation
+                .last()
+                .map(|event| (event.completed_artifacts, event.total_artifacts)),
+            Some((2, Some(2)))
+        );
+        assert!(reconciliation
+            .windows(2)
+            .all(|events| { events[0].completed_artifacts <= events[1].completed_artifacts }));
+        assert!(reconciliation.iter().all(|event| event.cancellable));
         let committing = progress
             .iter()
             .find(|event| event.phase == ImportPhase::Committing)
@@ -21371,6 +21485,60 @@ mod tests {
             query_activity(&harness.database()).expect("history").len(),
             2
         );
+    }
+
+    #[test]
+    fn reports_each_two_pass_training_reconciliation_unit_before_commit() {
+        let harness = Harness::new();
+        let archive = harness.archive(
+            "training-progress.zip",
+            &[
+                (
+                    "account-data-42-99999999-8888-4777-8666-555555555555.json",
+                    r#"{"username":"fixture-training-progress-claim"}"#,
+                ),
+                (
+                    "training-session_2026-01-04T06-15-00_42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                        "identifier":{"id":"fixture-progress-session-a"},
+                        "created":"2026-01-04T08:00:00.000",
+                        "modified":"2026-01-04T08:05:00.000",
+                        "startTime":"2026-01-04T06:15:00",
+                        "stopTime":"2026-01-04T07:15:00",
+                        "durationMillis":3600000
+                    }"#,
+                ),
+                (
+                    "training-session_2026-01-05T06-15-00_42-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    r#"{
+                        "identifier":{"id":"fixture-progress-session-b"},
+                        "created":"2026-01-05T08:00:00.000",
+                        "modified":"2026-01-05T08:05:00.000",
+                        "startTime":"2026-01-05T06:15:00",
+                        "stopTime":"2026-01-05T07:15:00",
+                        "durationMillis":3600000
+                    }"#,
+                ),
+            ],
+        );
+        let cancellation = AtomicBool::new(false);
+        let mut progress = Vec::new();
+
+        import_polar_archive_with_progress(&harness.database(), &archive, &cancellation, |event| {
+            progress.push(event)
+        })
+        .expect("training import with progress");
+
+        let reconciliation = progress
+            .iter()
+            .filter(|event| event.phase == ImportPhase::Reconciling)
+            .map(|event| event.completed_artifacts)
+            .collect::<Vec<_>>();
+        assert_eq!(reconciliation, vec![0, 1, 2]);
+        assert!(progress
+            .iter()
+            .find(|event| event.phase == ImportPhase::Committing)
+            .is_some_and(|event| !event.cancellable && event.total_artifacts.is_none()));
     }
 
     #[test]
@@ -21580,7 +21748,7 @@ mod tests {
                 |row| row.get::<_, String>(0),
             )
             .expect("interrupted state");
-        assert_eq!(interrupted_state, "committing");
+        assert_eq!(interrupted_state, "reconciling");
 
         assert_eq!(
             recover_interrupted_imports(&harness.database()).expect("startup recovery"),
@@ -21666,7 +21834,7 @@ mod tests {
                 2,
                 1,
                 1,
-                "invalid-supported-artifact".to_owned(),
+                "malformed-supported-export".to_owned(),
             )
         );
     }
@@ -21705,9 +21873,155 @@ mod tests {
             (
                 "rejected".to_owned(),
                 false,
-                "unsafe-archive-member".to_owned(),
+                "suspicious-archive-layout".to_owned(),
             )
         );
+    }
+
+    #[test]
+    fn classifies_an_ordinary_wrong_zip_without_calling_it_unsafe() {
+        let harness = Harness::new();
+        let archive = harness.archive(
+            "documents.zip",
+            &[
+                ("documents/", ""),
+                ("documents/readme.txt", "ordinary notes"),
+                ("backup.zip", "not an embedded export"),
+            ],
+        );
+
+        let error = import_polar_archive(&harness.database(), &archive)
+            .expect_err("unrelated ZIP is not a supported export");
+        assert!(matches!(error, ImportError::NotSupportedExport));
+        let outcome = query_latest_import_outcome(&harness.database())
+            .expect("outcome query")
+            .expect("rejected outcome");
+        assert_eq!(outcome.state, ImportOperationState::Rejected);
+        assert_eq!(
+            outcome.terminal_code,
+            Some("not-supported-export".to_owned())
+        );
+        assert!(!outcome.canonical_history_changed);
+    }
+
+    #[test]
+    fn gives_a_genuine_safety_violation_precedence_over_ordinary_nesting() {
+        let harness = Harness::new();
+        let archive = harness.archive(
+            "mixed-layout.zip",
+            &[
+                ("documents/readme.txt", "ordinary notes"),
+                ("../private.txt", "must never be extracted"),
+            ],
+        );
+
+        let error = import_polar_archive(&harness.database(), &archive)
+            .expect_err("path traversal remains a safety violation");
+        assert!(matches!(error, ImportError::UnsafeMember(_)));
+        let outcome = query_latest_import_outcome(&harness.database())
+            .expect("outcome query")
+            .expect("rejected outcome");
+        assert_eq!(
+            outcome.terminal_code,
+            Some("suspicious-archive-layout".to_owned())
+        );
+    }
+
+    #[test]
+    fn distinguishes_a_nested_provider_export_as_an_unsupported_version() {
+        let harness = Harness::new();
+        let archive = harness.archive(
+            "wrapped-export.zip",
+            &[
+                (
+                    "wrapped/account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-wrapped-claim"}"#,
+                ),
+                (
+                    "wrapped/activity-2026-01-01-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"date":"2026-01-01"}"#,
+                ),
+            ],
+        );
+
+        let error = import_polar_archive(&harness.database(), &archive)
+            .expect_err("nested provider version is unsupported");
+        assert!(matches!(error, ImportError::UnsupportedProviderVersion));
+        let outcome = query_latest_import_outcome(&harness.database())
+            .expect("outcome query")
+            .expect("rejected outcome");
+        assert_eq!(
+            outcome.terminal_code,
+            Some("unsupported-provider-version".to_owned())
+        );
+    }
+
+    #[test]
+    fn classifies_malformed_recognized_content_separately_from_an_unknown_zip() {
+        let harness = Harness::new();
+        let archive = harness.archive(
+            "malformed-export.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-malformed-claim"}"#,
+                ),
+                (
+                    "activity-2026-01-01-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"date":"not-a-date"}"#,
+                ),
+            ],
+        );
+
+        import_polar_archive(&harness.database(), &archive)
+            .expect_err("recognized malformed artifact");
+        let outcome = query_latest_import_outcome(&harness.database())
+            .expect("outcome query")
+            .expect("rejected outcome");
+        assert_eq!(
+            outcome.terminal_code,
+            Some("malformed-supported-export".to_owned())
+        );
+    }
+
+    #[test]
+    fn cancellation_during_counted_reconciliation_rolls_back_and_allows_retry() {
+        let harness = Harness::new();
+        let archive = harness.archive(
+            "reconciliation-cancel.zip",
+            &[
+                (
+                    "activity-2026-01-06-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"date":"2026-01-06","summary":{"stepCount":8300}}"#,
+                ),
+                (
+                    "activity-2026-01-07-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"date":"2026-01-07","summary":{"stepCount":9400}}"#,
+                ),
+            ],
+        );
+        let cancellation = AtomicBool::new(false);
+
+        let error = import_archive_with_progress(
+            &harness.database(),
+            &archive,
+            "polar:synthetic",
+            &cancellation,
+            |event| {
+                if event.phase == ImportPhase::Reconciling && event.completed_artifacts == 1 {
+                    cancellation.store(true, Ordering::Relaxed);
+                }
+            },
+        )
+        .expect_err("reconciliation cancellation");
+
+        assert!(matches!(error, ImportError::Cancelled));
+        assert!(query_activity(&harness.database())
+            .expect("rolled-back history")
+            .is_empty());
+        let retry = import_archive(&harness.database(), &archive, "polar:synthetic")
+            .expect("immediate retry");
+        assert_eq!(retry.new_observations, 2);
     }
 
     #[test]
@@ -21793,6 +22107,13 @@ mod tests {
         let error = import_archive(&harness.database(), &archive, "polar:synthetic")
             .expect_err("compression-ratio limit");
         assert!(matches!(error, ImportError::ResourceLimit(_)));
+        let outcome = query_latest_import_outcome(&harness.database())
+            .expect("outcome query")
+            .expect("rejected outcome");
+        assert_eq!(
+            outcome.terminal_code,
+            Some("archive-safety-limit".to_owned())
+        );
     }
 
     #[test]

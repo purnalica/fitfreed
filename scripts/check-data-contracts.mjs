@@ -1841,6 +1841,136 @@ for (const invalid of [
     throw new Error(`${officialSourceLinkOpeningSchemaPath} accepted invalid evidence`);
   }
 }
+const importControlPath = "docs/data-formats/guidance/import-control-v1.md";
+const importControl = read(importControlPath);
+for (const field of [
+  "phase",
+  "completedArtifacts",
+  "totalArtifacts",
+  "completedBytes",
+  "totalBytes",
+  "cancellable",
+  "reconciling",
+  "operationRef",
+  "state",
+  "sourceProvider",
+  "sourceAdapterVersion",
+  "mappingVersion",
+  "exactRepeat",
+  "coverageComplete",
+  "coverage",
+  "artifactFamilies",
+  "report",
+  "canonicalHistoryChanged",
+  "terminalCode",
+  "recoveryNote",
+  "not-supported-export",
+  "malformed-supported-export",
+  "unsupported-provider-version",
+  "suspicious-archive-layout",
+  "archive-safety-limit",
+]) {
+  requireMention(importControl, field, importControlPath);
+}
+const importProgressSchemaPath = "schemas/import-progress-v1.schema.json";
+const validateImportProgress = ajv.compile(JSON.parse(read(importProgressSchemaPath)));
+const syntheticImportProgress = {
+  phase: "reconciling",
+  completedArtifacts: 1,
+  totalArtifacts: 4,
+  completedBytes: 0,
+  totalBytes: null,
+  cancellable: true,
+};
+for (const valid of [
+  syntheticImportProgress,
+  {
+    phase: "fingerprinting",
+    completedArtifacts: 0,
+    totalArtifacts: null,
+    completedBytes: 1024,
+    totalBytes: 4096,
+    cancellable: true,
+  },
+  {
+    phase: "committing",
+    completedArtifacts: 0,
+    totalArtifacts: null,
+    completedBytes: 0,
+    totalBytes: null,
+    cancellable: false,
+  },
+]) {
+  if (!validateImportProgress(valid)) {
+    throw new Error(
+      `${importProgressSchemaPath} rejected synthetic progress: ${ajv.errorsText(validateImportProgress.errors)}`,
+    );
+  }
+}
+for (const invalid of [
+  { ...syntheticImportProgress, phase: "unknown" },
+  { ...syntheticImportProgress, cancellable: false },
+  { ...syntheticImportProgress, totalArtifacts: null },
+  { ...syntheticImportProgress, extra: true },
+]) {
+  if (validateImportProgress(invalid)) {
+    throw new Error(`${importProgressSchemaPath} accepted invalid evidence`);
+  }
+}
+const importOutcomeSchemaPath = "schemas/import-outcome-v1.schema.json";
+const validateImportOutcome = ajv.compile(JSON.parse(read(importOutcomeSchemaPath)));
+const syntheticImportOutcome = {
+  operationRef: "a".repeat(32),
+  state: "rejected",
+  sourceProvider: "polar-flow",
+  sourceAdapterVersion: "polar-flow-archive@11",
+  mappingVersion: "polar-flow-mapping-set@6",
+  exactRepeat: false,
+  coverageComplete: true,
+  coverage: {
+    total: 2,
+    supported: 1,
+    unsupported: 0,
+    deliberatelyIgnored: 0,
+    unrecognized: 0,
+    invalid: 1,
+  },
+  artifactFamilies: [{
+    familyCode: "polar-flow-daily-activity",
+    classification: "invalid",
+    reasonCode: "invalid-supported-artifact",
+    artifactCount: 1,
+  }],
+  report: {
+    exactRepeat: false,
+    recognizedArtifacts: 2,
+    newObservations: 0,
+    equivalentObservations: 0,
+    enrichedObservations: 0,
+    amendedObservations: 0,
+    preservedObservations: 0,
+    conflicts: 0,
+  },
+  canonicalHistoryChanged: false,
+  terminalCode: "malformed-supported-export",
+  recoveryNote: null,
+};
+if (!validateImportOutcome(syntheticImportOutcome)) {
+  throw new Error(
+    `${importOutcomeSchemaPath} rejected synthetic outcome: ${ajv.errorsText(validateImportOutcome.errors)}`,
+  );
+}
+for (const invalid of [
+  { ...syntheticImportOutcome, state: "assessing" },
+  { ...syntheticImportOutcome, operationRef: "private-path" },
+  { ...syntheticImportOutcome, canonicalHistoryChanged: "false" },
+  { ...syntheticImportOutcome, canonicalHistoryChanged: true },
+  { ...syntheticImportOutcome, extra: true },
+]) {
+  if (validateImportOutcome(invalid)) {
+    throw new Error(`${importOutcomeSchemaPath} accepted invalid evidence`);
+  }
+}
 const validateActivityOverview = ajv.compile(activityOverviewSchema);
 const syntheticActivityOverview = {
   availableRange: { from: "2026-01-01", through: "2026-01-03" },
@@ -7809,6 +7939,7 @@ process.stdout.write(
       reportExportV4SchemaPath,
       reportExportReceiptSchemaPath,
     ],
+    importControlSchemas: [importProgressSchemaPath, importOutcomeSchemaPath],
     canonicalFields: 64,
     mappingFields: 75,
   }) + "\n",

@@ -1438,7 +1438,12 @@ describe("packaged FitFreed import journey", () => {
     await expect($(".library-home-empty h1")).toHaveText(english.home.emptyHeading);
 
     const dialogMock = await browser.tauri.mock("plugin:dialog|open");
-    await openArchivePicker(dialogMock, null, english.home.emptyAction);
+    await openArchivePicker(
+      dialogMock,
+      null,
+      english.home.emptyAction,
+      english.choose,
+    );
     await expect($(".path")).toHaveText("No package selected");
     await expect($("aria/Import selected package")).toBeDisabled();
 
@@ -1473,20 +1478,35 @@ describe("packaged FitFreed import journey", () => {
     ));
 
     await selectLocale("en-US", "sources");
-    await selectArchive(dialogMock, path.join(fixtureDirectory, "invalid.zip"), english.choose);
+    await selectArchive(
+      dialogMock,
+      path.join(fixtureDirectory, "unrelated.zip"),
+      english.choose,
+    );
+    await $("aria/Import selected package").click();
+    await expectImportOutcomeWithinInitialViewport(english.outcome.rejectedHeading);
+    await expect($(".outcome-terminal-message")).toHaveText(
+      expect.stringContaining("could not identify this ZIP as a supported fitness-history export"),
+    );
+    await expect($(".outcome-panel")).not.toHaveText(
+      expect.stringContaining("unsafe file layout"),
+    );
+
+    await selectArchive(
+      dialogMock,
+      path.join(fixtureDirectory, "invalid.zip"),
+      english.outcome.chooseAnother,
+    );
     await $("aria/Import selected package").click();
     expect(await $$('[role="alert"]')).toHaveLength(0);
     await expectImportOutcomeWithinInitialViewport(english.outcome.rejectedHeading);
-    await expect($(".outcome-terminal-detail")).not.toHaveAttribute("open");
-    await expect($(".outcome-terminal-detail p")).not.toBeDisplayed();
+    await expect($(".outcome-terminal-message")).toHaveText(
+      expect.stringContaining("recognized this as a Polar Flow export"),
+    );
     await browser.saveScreenshot(path.join(
       evidenceDirectory,
       "r10-import-rejected-en-wide.png",
     ));
-    await openOutcomeDisclosure(".outcome-terminal-detail");
-    await expect($(".outcome-terminal-detail")).toHaveText(
-      expect.stringContaining("contains recognized data that FitFreed cannot validate"),
-    );
     await openOutcomeDisclosure(".outcome-coverage-detail");
     await expectCoverage([
       ["1", "Supported"],

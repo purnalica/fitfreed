@@ -246,7 +246,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X6 | Rejected for source `41ffad2` — native profile and exact hosted campaign pass, but the valid human session found one critical and several major product defects | Independent audit has no unresolved material finding |
 | X6-C1 | Human-gated — temporal meaning and the provider-neutral identity foundation are locally complete; real provider-catalogue acquisition remains unavailable | Sports are recognizable from trustworthy evidence and Home ranges state what they measure |
 | X6-C2 | Human-gated — owned native opening, local outcomes, and spatial transitions pass complete automation; real browser appearance remains unreviewed | Every successful or failed acquisition action produces a visible, reachable result |
-| X6-C3 | Planned — archive classification and finalization causes traced | Import recovery is calm and specific, and long work remains perceptibly active |
+| X6-C3 | Complete locally — classification, real progress, primary recovery, watchdog, and packaged regression evidence pass; production-native human re-evaluation remains in the repeated X6 gate | Import recovery is calm and specific, and long work remains perceptibly active |
 | X6-C4 | Planned — Home and navigation causes traced | Prominent Home summaries open useful evidence and temporary restrictions explain themselves |
 | X6-C5 | Planned — shared layout causes traced | Text and forms use the desktop workspace coherently through 200% content zoom |
 
@@ -2302,6 +2302,20 @@ continuing progress until one visible terminal result.
 4. Add a stall watchdog that changes the explanation without terminating or corrupting a valid long transaction. Test
    ordinary completion, slow completion, genuine command failure, cancellation before commit, immediate retry, exact
    repeat, extension, and process restart against one durable library.
+
+**Execution state:** the correction is implemented locally through package-inventory identity, an independent complete
+member-protection scan, stable compatibility and safety outcomes, and the versioned
+[import-control contract](../data-formats/guidance/import-control-v1.md) under
+[ADR 0029](../architecture/decisions/0029-separate-package-identity-compatibility-and-safety.md). Reconciliation now
+emits monotonic canonical-item progress and remains rollback-cancellable; commit begins only afterward and exposes no
+fabricated count. The primary result distinguishes an unrelated ZIP, malformed current content, an unsupported
+provider version, suspicious layout, and resource limits before optional coverage. An unchanged-progress watchdog
+changes only the explanation. The complete contributor lane, production build, strict Rust lint and formatting gates,
+and full packaged macOS journey pass across cancellation, immediate retry, unrelated and malformed input, successful
+import, exact repeat, cumulative extension, restart, both locales, accessibility, and 200% zoom. That campaign also
+exposed and closed a pre-existing race in first-run picker cancellation: after Home yields to Sources, focus now lands
+deterministically on the durable Sources chooser rather than depending on the unmounted initiating control. The
+repeated production-native X6 evaluation remains the human confirmation boundary.
 
 ### X6-C4 — Keep operation truth global and make Home lead somewhere
 

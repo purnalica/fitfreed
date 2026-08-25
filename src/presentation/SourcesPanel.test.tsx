@@ -678,6 +678,72 @@ describe("SourcesPanel", () => {
     expect(onCancel).toHaveBeenCalledOnce();
   });
 
+  it("changes the explanation when authoritative progress has not advanced", () => {
+    vi.useFakeTimers();
+    const view = render(
+      <SourcesPanel
+        locale="en-US"
+        messages={catalogs["en-US"].sources}
+        importMessages={importMessages}
+        guide={guide}
+        guideLoading={false}
+        mode="active"
+        progressLabel="Reconciling supported records"
+        progressValue={25}
+        progressDetail="1 of 4 library items"
+        progressKey="reconciling:1:4"
+        archivePath="/synthetic/export.zip"
+        importReady
+        busy
+        cancellable
+        updateInstalling={false}
+        cancelRequested={false}
+        onChooseArchive={vi.fn()}
+        onArchiveError={vi.fn()}
+        onImport={vi.fn()}
+        onCancel={vi.fn()}
+        onOpenOfficialLink={vi.fn()}
+        onLinkError={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("1 of 4 library items")).toBeVisible();
+    expect(screen.queryByText(catalogs["en-US"].sources.activeDelayed))
+      .not.toBeInTheDocument();
+    act(() => vi.advanceTimersByTime(15_000));
+    expect(screen.getByText(catalogs["en-US"].sources.activeDelayed)).toBeVisible();
+
+    view.rerender(
+      <SourcesPanel
+        locale="en-US"
+        messages={catalogs["en-US"].sources}
+        importMessages={importMessages}
+        guide={guide}
+        guideLoading={false}
+        mode="active"
+        progressLabel="Reconciling supported records"
+        progressValue={50}
+        progressDetail="2 of 4 library items"
+        progressKey="reconciling:2:4"
+        archivePath="/synthetic/export.zip"
+        importReady
+        busy
+        cancellable
+        updateInstalling={false}
+        cancelRequested={false}
+        onChooseArchive={vi.fn()}
+        onArchiveError={vi.fn()}
+        onImport={vi.fn()}
+        onCancel={vi.fn()}
+        onOpenOfficialLink={vi.fn()}
+        onLinkError={vi.fn()}
+      />,
+    );
+    expect(screen.queryByText(catalogs["en-US"].sources.activeDelayed))
+      .not.toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
   it("places the latest result before follow-up source actions and hides the local path", () => {
     render(
       <SourcesPanel

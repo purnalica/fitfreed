@@ -1,4 +1,9 @@
-export async function openArchivePicker(dialogMock, selectedPath, chooseLabel) {
+export async function openArchivePicker(
+  dialogMock,
+  selectedPath,
+  chooseLabel,
+  cancellationFocusLabel = chooseLabel,
+) {
   await dialogMock.mockReturnValue(selectedPath);
   await dialogMock.update();
   const expectedCallCount = dialogMock.mock.calls.length + 1;
@@ -21,7 +26,7 @@ export async function openArchivePicker(dialogMock, selectedPath, chooseLabel) {
     await browser.waitUntil(
       () => browser.execute(
         (label) => document.activeElement?.textContent?.trim() === label,
-        chooseLabel,
+        cancellationFocusLabel,
       ),
       { timeout: 10_000, timeoutMsg: "archive selection did not regain focus after cancellation" },
     );

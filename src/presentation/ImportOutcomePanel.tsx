@@ -165,6 +165,9 @@ export function ImportOutcomePanel({
         <p className="outcome-consequence" role="status" aria-live="polite">
           {consequence(messages, outcome)}
         </p>
+        {terminalMessage && outcome.state !== "completed" && (
+          <p className="outcome-terminal-message">{terminalMessage}</p>
+        )}
         {outcome.state === "completed" && !outcome.exactRepeat && visibleChanges.length > 0 && (
           <ul className="outcome-change-summary" aria-label={messages.incorporationHeading}>
             {visibleChanges.map(([key, value]) => (
@@ -192,13 +195,6 @@ export function ImportOutcomePanel({
           )}
         </div>
       </header>
-
-      {terminalMessage && outcome.state !== "completed" && (
-        <details className="outcome-disclosure outcome-terminal-detail">
-          <summary>{messages.terminalDetails}</summary>
-          <p>{terminalMessage}</p>
-        </details>
-      )}
 
       <details className="outcome-disclosure outcome-coverage-detail">
         <summary>{messages.details}</summary>

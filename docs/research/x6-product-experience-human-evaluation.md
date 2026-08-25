@@ -69,7 +69,7 @@ notarization, installation trust, update recovery, a release candidate, or publi
 
 ### XH-03 — Wrong archive produces a hidden, alarming, and unactionable explanation
 
-- **Status:** open; major product-experience defect reproduced in the valid native review build.
+- **Status:** correction implemented and fully automated; production-native human re-evaluation pending.
 - **Observed task:** recover after selecting a ZIP that is not the intended fitness-history export.
 - **Observed behavior:** the result gives visual priority to `This archive was not imported` without an immediately
   visible explanation. Expanding `Why the import stopped` reveals `The package contains an unsafe file layout. Keep
@@ -80,9 +80,12 @@ notarization, installation trust, update recovery, a release candidate, or publi
 - **Participant impact:** an ordinary selection mistake is presented as a potentially unsafe package, while the
   useful next action is unclear. The hierarchy and wording can create fear, imply a product or provider defect without
   sufficient evidence, and obstruct immediate recovery.
-- **Disposition:** reopen the owning X5-R3 result slice. Trace the exact archive rejection and presentation mapping
-  before changing copy or hierarchy. Add regression evidence that distinguishes wrong-source, malformed, unsafe, and
-  unsupported archives and keeps the primary recovery action visible.
+- **Disposition:** [ADR 0029](../architecture/decisions/0029-separate-package-identity-compatibility-and-safety.md)
+  now separates package identity, current-content validity, provider compatibility, safety, and resource limits. The
+  primary result contains the exact localized reason and safe next action; coverage remains secondary. Rust, transport,
+  React, and packaged tests distinguish ordinary unrelated, malformed current, nested provider-shaped, traversal,
+  duplicate, and resource-limit packages without exposing source locators or changing canonical history. Human tone,
+  hierarchy, and recovery comprehension remain pending in the repeated production-native profile.
 
 ### XH-04 — Archive reselection updates content outside the visible viewport
 
@@ -121,8 +124,8 @@ notarization, installation trust, update recovery, a release candidate, or publi
 
 ### XH-06 — Finalization provides no perceptible evidence of continuing work
 
-- **Status:** open; major product-experience finding reproduced in the valid native review build. Runtime completion
-  was later observed, so this is not evidence of a deadlock.
+- **Status:** correction implemented and fully automated; production-native human re-evaluation pending. Runtime
+  completion was observed in the rejected source, so the original finding was never evidence of a deadlock.
 - **Observed task:** wait for an import after it reaches `Finalizing the updated library`.
 - **Observed behavior:** the screen remains fixed on that phase without changing progress or other perceptible
   feedback, leaving the participant unable to tell whether FitFreed is working or blocked.
@@ -134,9 +137,12 @@ notarization, installation trust, update recovery, a release candidate, or publi
 - **Observed completion:** finalization eventually completed without restart and the previously unavailable History
   destination became active. This confirms functional progress but does not provide the person with perceptible
   evidence while waiting.
-- **Disposition:** trace the finalization phase and its progress contract, then add regression evidence for continuing
-  work, completion, and a genuine stall or failure. Do not invent percentage precision that the underlying operation
-  cannot supply.
+- **Disposition:** source-file mapping and canonical-item reconciliation now use separate monotonic bounded units;
+  reconciliation remains rollback-cancellable, and the indeterminate commit phase begins only after that work
+  completes. A delayed-progress watchdog explains continuing local work without terminating it, inventing a
+  percentage, or promising a duration. Unit, integration, transport, React, and packaged tests cover progress,
+  cancellation, retry, completion, failure, repeat, extension, and restart. Perceptibility and confidence remain
+  pending in the repeated production-native profile.
 
 ### XH-07 — History is unavailable during opaque finalization without an explanation
 

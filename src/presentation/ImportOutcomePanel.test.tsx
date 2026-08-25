@@ -122,7 +122,7 @@ describe("ImportOutcomePanel", () => {
     expect(result).not.toHaveTextContent("7 new observations");
   });
 
-  it("keeps a rejected import calm and reveals its reason and exact coverage deliberately", async () => {
+  it("keeps a rejected import calm and makes its reason and recovery action primary", async () => {
     const user = userEvent.setup();
     render(
       <ImportOutcomePanel
@@ -157,13 +157,13 @@ describe("ImportOutcomePanel", () => {
 
     const result = screen.getByRole("region", { name: "This archive was not imported" });
     expect(result).toHaveTextContent("Your existing library was not changed");
-    expect(screen.getByText("Why the import stopped").closest("details"))
-      .not.toHaveAttribute("open");
+    expect(result).toHaveTextContent(
+      "Recognized content failed validation; no history was changed.",
+    );
+    expect(screen.queryByText("Why the import stopped")).not.toBeInTheDocument();
     expect(screen.getByText("View incorporation and coverage details").closest("details"))
       .not.toHaveAttribute("open");
 
-    await user.click(screen.getByText("Why the import stopped"));
-    expect(result).toHaveTextContent("Recognized content failed validation");
     await user.click(screen.getByText("View incorporation and coverage details"));
     expect(screen.getByRole("list", { name: "Package coverage" })).toBeVisible();
   });
@@ -200,12 +200,6 @@ describe("ImportOutcomePanel", () => {
     expect(result).toHaveTextContent("Your existing library was not changed");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Go to Home" })).not.toBeInTheDocument();
-    expect(screen.getByText("Why the import stopped").closest("details"))
-      .not.toHaveAttribute("open");
-    expect(screen.getByText("The local operation stopped before changing the library."))
-      .not.toBeVisible();
-
-    await user.click(screen.getByText("Why the import stopped"));
     expect(screen.getByText("The local operation stopped before changing the library."))
       .toBeVisible();
     await user.click(screen.getByRole("button", { name: "Choose another ZIP" }));

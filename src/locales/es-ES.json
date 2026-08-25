@@ -11,6 +11,7 @@
     "fingerprinting": "Comprobando si este ZIP ya se había importado",
     "validating": "Comprobando la seguridad del ZIP",
     "importing": "Incorporando a tu biblioteca los registros compatibles",
+    "reconciling": "Conciliando los registros compatibles con tu biblioteca",
     "committing": "Finalizando la biblioteca actualizada",
     "completed": "Importación completada",
     "cancelled": "Importación cancelada"
@@ -204,6 +205,9 @@
     "activeEyebrow": "Importación en curso",
     "activeProtectedHistory": "Tu historial existente permanece sin cambios hasta que se confirme la importación completa.",
     "activeWorking": "FitFreed está procesando el archivo en este dispositivo…",
+    "activeDelayed": "Este paso está tardando más de lo habitual. FitFreed sigue trabajando en este dispositivo; tu biblioteca existente permanece disponible y sin cambios.",
+    "progressFiles": "{completed} de {total} archivos del ZIP comprobados",
+    "progressItems": "{completed} de {total} elementos de la biblioteca conciliados",
     "haveArchiveTitle": "Ya tengo el ZIP",
     "haveArchiveBody": "Elige el archivo original suministrado por el proveedor. Más adelante podrás volver a importarlo o cargar una exportación más reciente con seguridad.",
     "needArchiveTitle": "Necesito obtener el ZIP",
@@ -1621,7 +1625,6 @@
     "openHome": "Ir a Inicio",
     "chooseAnother": "Elegir otro ZIP",
     "choosingAnother": "Abriendo el selector de ZIP…",
-    "terminalDetails": "Por qué se detuvo la importación",
     "details": "Ver los detalles de incorporación y cobertura",
     "incorporationHeading": "Información incorporada a la biblioteca",
     "incorporationCounts": {
@@ -2198,6 +2201,11 @@
     }
   },
   "errors": {
+    "not-supported-export": "FitFreed no ha podido identificar este ZIP como una exportación de historial deportivo compatible. Elige el ZIP original exportado por Polar Flow o usa la guía de obtención.",
+    "malformed-supported-export": "FitFreed ha reconocido una exportación de Polar Flow, pero uno de los archivos necesarios está incompleto o presenta un formato incorrecto. Conserva el ZIP original e informa del problema de compatibilidad.",
+    "unsupported-provider-version": "FitFreed ha reconocido una exportación similar a las de Polar Flow, pero todavía no admite esta versión o estructura. Conserva el ZIP original e informa del problema de compatibilidad.",
+    "suspicious-archive-layout": "FitFreed se ha detenido antes de leer la exportación porque el ZIP contiene un patrón de rutas, enlaces, cifrado o nombres duplicados que no es seguro procesar. Obtén un ZIP original nuevo.",
+    "archive-safety-limit": "FitFreed se ha detenido porque el ZIP supera un límite de seguridad del procesamiento. Conserva el ZIP original e indica su tamaño aproximado para evaluar la compatibilidad sin reducir la protección.",
     "invalid-supported-artifact": "El paquete contiene datos reconocidos que FitFreed no puede validar. Conserva el ZIP original e informa del problema de compatibilidad; el historial no se ha modificado.",
     "invalid-source-subject-evidence": "FitFreed no puede determinar a qué cuenta del proveedor pertenece este paquete. Selecciona el ZIP original de la exportación completa; el historial no se ha modificado.",
     "source-subject-confirmation-required": "Este paquete contiene indicios de una cuenta distinta o modificada. FitFreed no lo combinará automáticamente con el historial existente. Conserva el ZIP hasta que estén disponibles la separación y la recuperación de cuentas; el historial existente se ha conservado.",

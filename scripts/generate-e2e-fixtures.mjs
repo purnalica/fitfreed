@@ -260,6 +260,10 @@ async function createArchive(name, entries) {
 }
 
 await mkdir(outputDirectory, { recursive: true });
+await createArchive("unrelated.zip", [
+  ["documents/readme.txt", "ordinary synthetic notes"],
+  ["backup.zip", "not an embedded fitness-history export"],
+]);
 await createArchive("invalid.zip", [
   [
     `account-data-42-${uuidC}.json`,

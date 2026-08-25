@@ -29,6 +29,38 @@ pub(super) struct ArtifactAssessment {
     pub supported_artifact: Option<SupportedArtifact>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum PolarFlowPackageIdentity {
+    Current,
+    UnsupportedVersion,
+    Unrecognized,
+}
+
+const PROVIDER_ARTIFACT_PREFIXES: &[&str] = &[
+    "247ohr_",
+    "account-data-",
+    "account-profile-",
+    "activity-",
+    "calendar-items-",
+    "favourite-targets-",
+    "fitness-test-results-",
+    "nightly_recovery_",
+    "nightly_recovery_blob_",
+    "orthostatic-test-result-",
+    "ppi_samples_",
+    "products-devices-",
+    "profile-picture-",
+    "programs-eventtrainingprograms-",
+    "programs-fitnesslevelsnapshots-",
+    "programs-generaltrainingprograms-",
+    "programs-personalevents-",
+    "sleep_result_",
+    "sleep_score_",
+    "sport-profiles-",
+    "training-session_",
+    "training-target-",
+];
+
 struct ArtifactRule {
     pattern: Regex,
     assessment: ArtifactAssessment,
@@ -241,6 +273,37 @@ pub(super) fn assess_artifact(name: &str) -> ArtifactAssessment {
         )
 }
 
+pub(super) fn classify_package_identity<I, S>(names: I) -> PolarFlowPackageIdentity
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    let mut exact_provider_artifacts = 0_usize;
+    let mut has_provider_evidence = false;
+
+    for name in names {
+        let name = name.as_ref();
+        let basename = name.rsplit('/').next().unwrap_or(name);
+        let assessment = assess_artifact(basename);
+        let provider_shaped = assessment.family.is_some()
+            || PROVIDER_ARTIFACT_PREFIXES
+                .iter()
+                .any(|prefix| basename.starts_with(prefix));
+        has_provider_evidence |= provider_shaped;
+        if name == basename && assessment.family.is_some() {
+            exact_provider_artifacts += 1;
+        }
+    }
+
+    if exact_provider_artifacts > 0 {
+        PolarFlowPackageIdentity::Current
+    } else if has_provider_evidence {
+        PolarFlowPackageIdentity::UnsupportedVersion
+    } else {
+        PolarFlowPackageIdentity::Unrecognized
+    }
+}
+
 pub(super) fn daily_activity_filename_date(name: &str) -> Option<&str> {
     name.strip_prefix("activity-")?.get(..DATE_LENGTH)
 }
@@ -430,5 +493,39 @@ mod tests {
                 "{name}",
             );
         }
+    }
+
+    #[test]
+    fn identifies_current_nested_and_unrelated_package_inventories_separately() {
+        let account = format!("account-data-42-{UUID_A}.json");
+        let activity = format!("activity-2026-01-02-{UUID_A}.json");
+
+        assert_eq!(
+            classify_package_identity([account.as_str(), activity.as_str()]),
+            PolarFlowPackageIdentity::Current
+        );
+        assert_eq!(
+            classify_package_identity([activity.as_str()]),
+            PolarFlowPackageIdentity::Current
+        );
+        assert_eq!(
+            classify_package_identity([
+                format!("wrapped/{account}").as_str(),
+                format!("wrapped/{activity}").as_str()
+            ],),
+            PolarFlowPackageIdentity::UnsupportedVersion
+        );
+        assert_eq!(
+            classify_package_identity(["documents/", "documents/readme.txt", "backup.zip"]),
+            PolarFlowPackageIdentity::Unrecognized
+        );
+    }
+
+    #[test]
+    fn treats_provider_shaped_new_filename_grammar_as_an_unsupported_version() {
+        assert_eq!(
+            classify_package_identity(["account-data-vNext.json", "training-session_vNext.json",],),
+            PolarFlowPackageIdentity::UnsupportedVersion
+        );
     }
 }

@@ -909,6 +909,7 @@ pub enum ImportPhase {
     Fingerprinting,
     Validating,
     Importing,
+    Reconciling,
     Committing,
     Completed,
     Cancelled,

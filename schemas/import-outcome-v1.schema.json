@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/import-outcome-v1.schema.json",
+  "title": "FitFreed import outcome version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "operationRef",
+    "state",
+    "sourceProvider",
+    "sourceAdapterVersion",
+    "mappingVersion",
+    "exactRepeat",
+    "coverageComplete",
+    "coverage",
+    "artifactFamilies",
+    "report",
+    "canonicalHistoryChanged",
+    "terminalCode",
+    "recoveryNote"
+  ],
+  "properties": {
+    "operationRef": { "type": "string", "pattern": "^[a-f0-9]{32}$" },
+    "state": { "enum": ["completed", "rejected", "cancelled", "failed"] },
+    "sourceProvider": { "$ref": "#/$defs/versionedIdentifierBase" },
+    "sourceAdapterVersion": { "$ref": "#/$defs/versionedIdentifier" },
+    "mappingVersion": { "$ref": "#/$defs/versionedIdentifier" },
+    "exactRepeat": { "type": "boolean" },
+    "coverageComplete": { "type": "boolean" },
+    "coverage": { "$ref": "#/$defs/coverage" },
+    "artifactFamilies": {
+      "type": "array",
+      "maxItems": 256,
+      "items": { "$ref": "#/$defs/artifactFamily" }
+    },
+    "report": { "$ref": "#/$defs/report" },
+    "canonicalHistoryChanged": { "type": "boolean" },
+    "terminalCode": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/versionedIdentifierBase" }
+      ]
+    },
+    "recoveryNote": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/versionedIdentifierBase" }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": ["state"],
+        "properties": {
+          "state": { "enum": ["rejected", "cancelled", "failed"] }
+        }
+      },
+      "then": {
+        "properties": {
+          "canonicalHistoryChanged": { "const": false }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "versionedIdentifierBase": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+      "maxLength": 96
+    },
+    "versionedIdentifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*@[1-9][0-9]*$",
+      "maxLength": 96
+    },
+    "count": { "type": "integer", "minimum": 0 },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "total",
+        "supported",
+        "unsupported",
+        "deliberatelyIgnored",
+        "unrecognized",
+        "invalid"
+      ],
+      "properties": {
+        "total": { "$ref": "#/$defs/count" },
+        "supported": { "$ref": "#/$defs/count" },
+        "unsupported": { "$ref": "#/$defs/count" },
+        "deliberatelyIgnored": { "$ref": "#/$defs/count" },
+        "unrecognized": { "$ref": "#/$defs/count" },
+        "invalid": { "$ref": "#/$defs/count" }
+      }
+    },
+    "artifactFamily": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["familyCode", "classification", "reasonCode", "artifactCount"],
+      "properties": {
+        "familyCode": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/versionedIdentifierBase" }
+          ]
+        },
+        "classification": {
+          "enum": [
+            "supported",
+            "unsupported",
+            "deliberately-ignored",
+            "unrecognized",
+            "invalid"
+          ]
+        },
+        "reasonCode": { "$ref": "#/$defs/versionedIdentifierBase" },
+        "artifactCount": { "$ref": "#/$defs/count" }
+      }
+    },
+    "report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exactRepeat",
+        "recognizedArtifacts",
+        "newObservations",
+        "equivalentObservations",
+        "enrichedObservations",
+        "amendedObservations",
+        "preservedObservations",
+        "conflicts"
+      ],
+      "properties": {
+        "exactRepeat": { "type": "boolean" },
+        "recognizedArtifacts": { "$ref": "#/$defs/count" },
+        "newObservations": { "$ref": "#/$defs/count" },
+        "equivalentObservations": { "$ref": "#/$defs/count" },
+        "enrichedObservations": { "$ref": "#/$defs/count" },
+        "amendedObservations": { "$ref": "#/$defs/count" },
+        "preservedObservations": { "$ref": "#/$defs/count" },
+        "conflicts": { "$ref": "#/$defs/count" }
+      }
+    }
+  }
+}

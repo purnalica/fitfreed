@@ -50,6 +50,13 @@ const coverageReasonCodes = [
   "duplicate-nightly-recovery-date",
   "invalid-source-subject-evidence",
 ];
+const currentImportTerminalCodes = [
+  "not-supported-export",
+  "malformed-supported-export",
+  "unsupported-provider-version",
+  "suspicious-archive-layout",
+  "archive-safety-limit",
+];
 
 for (const catalog of catalogs) {
   const keys = [...catalog.entries.keys()].sort();
@@ -71,6 +78,12 @@ for (const catalog of catalogs) {
       if (!catalog.entries.has(key)) {
         throw new Error(`${catalog.file} does not explain coverage reason ${reasonCode}`);
       }
+    }
+  }
+  for (const terminalCode of currentImportTerminalCodes) {
+    const key = `errors.${terminalCode}`;
+    if (!catalog.entries.has(key)) {
+      throw new Error(`${catalog.file} does not explain import outcome ${terminalCode}`);
     }
   }
 }

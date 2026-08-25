@@ -6556,6 +6556,7 @@ enum ImportPhaseDto {
     Fingerprinting,
     Validating,
     Importing,
+    Reconciling,
     Committing,
     Completed,
     Cancelled,
@@ -6567,6 +6568,7 @@ impl From<ImportPhase> for ImportPhaseDto {
             ImportPhase::Fingerprinting => Self::Fingerprinting,
             ImportPhase::Validating => Self::Validating,
             ImportPhase::Importing => Self::Importing,
+            ImportPhase::Reconciling => Self::Reconciling,
             ImportPhase::Committing => Self::Committing,
             ImportPhase::Completed => Self::Completed,
             ImportPhase::Cancelled => Self::Cancelled,
@@ -9455,6 +9457,43 @@ mod tests {
                     "artifactCount": 1
                 }
             ])
+        );
+    }
+
+    #[test]
+    fn serializes_counted_reconciliation_and_indeterminate_commit_progress() {
+        let reconciling = serde_json::to_value(ImportProgressDto::from(ImportProgress::artifacts(
+            ImportPhase::Reconciling,
+            2,
+            5,
+        )))
+        .expect("reconciliation progress JSON");
+        let committing = serde_json::to_value(ImportProgressDto::from(ImportProgress::phase(
+            ImportPhase::Committing,
+        )))
+        .expect("commit progress JSON");
+
+        assert_eq!(
+            reconciling,
+            serde_json::json!({
+                "phase": "reconciling",
+                "completedArtifacts": 2,
+                "totalArtifacts": 5,
+                "completedBytes": 0,
+                "totalBytes": null,
+                "cancellable": true
+            })
+        );
+        assert_eq!(
+            committing,
+            serde_json::json!({
+                "phase": "committing",
+                "completedArtifacts": 0,
+                "totalArtifacts": null,
+                "completedBytes": 0,
+                "totalBytes": null,
+                "cancellable": false
+            })
         );
     }
 

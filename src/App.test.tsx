@@ -1037,6 +1037,24 @@ describe("FitFreed import interface", () => {
     expect(home).toHaveAttribute("aria-current", "page");
   });
 
+  it("moves cancelled first-run archive selection to the durable Sources action", async () => {
+    emptyLibrary();
+    const user = userEvent.setup();
+    mocks.open.mockResolvedValue(null);
+    render(<App />);
+
+    await user.click(await screen.findByRole("button", { name: "Choose an export ZIP" }));
+
+    const choose = await screen.findByRole("button", { name: "Choose ZIP package" });
+    await waitFor(() => expect(choose).toHaveFocus());
+    expect(screen.getByText("No package selected")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Import selected package" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Sources" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
+
   it("preserves a distinct scroll position for each top-level workspace", async () => {
     emptyLibrary();
     const user = userEvent.setup();
@@ -2852,7 +2870,6 @@ describe("FitFreed import interface", () => {
     });
     expect(rejected).toHaveTextContent("Your existing library was not changed");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    await user.click(screen.getByText("Why the import stopped"));
     expect(rejected).toHaveTextContent(
       "FitFreed will not merge it with the existing history automatically",
     );
@@ -3627,7 +3644,7 @@ describe("FitFreed import interface", () => {
               conflicts: 0,
             },
             canonicalHistoryChanged: false,
-            terminalCode: "invalid-supported-artifact",
+            terminalCode: "malformed-supported-export",
           });
           return Promise.reject({ code: "import-failed" });
         }
@@ -3692,9 +3709,8 @@ describe("FitFreed import interface", () => {
     });
     expect(rejected).toHaveTextContent("Your existing library was not changed");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    await user.click(screen.getByText("Why the import stopped"));
     expect(rejected).toHaveTextContent(
-      "This package contains recognized data that FitFreed cannot validate. Keep the original ZIP and report the compatibility problem; no history was changed.",
+      "FitFreed recognized this as a Polar Flow export, but a required file is incomplete or malformed. Keep the original ZIP and report the compatibility problem.",
     );
     await user.click(screen.getByText("View incorporation and coverage details"));
     expect(screen.getByRole("heading", { name: "Package coverage" })).toBeVisible();
@@ -3710,7 +3726,7 @@ describe("FitFreed import interface", () => {
       "FitFreed could not open the ZIP chooser. Try again; no history was changed.",
     );
     expect(within(rejected).getByText(
-      "This package contains recognized data that FitFreed cannot validate. Keep the original ZIP and report the compatibility problem; no history was changed.",
+      "FitFreed recognized this as a Polar Flow export, but a required file is incomplete or malformed. Keep the original ZIP and report the compatibility problem.",
     )).toBeVisible();
 
     await chooseArchive(user, "/synthetic/valid.zip");

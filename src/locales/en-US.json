@@ -11,6 +11,7 @@
     "fingerprinting": "Checking whether this ZIP was imported before",
     "validating": "Checking ZIP safety",
     "importing": "Adding supported records to your library",
+    "reconciling": "Reconciling supported records with your library",
     "committing": "Finalizing the updated library",
     "completed": "Import completed",
     "cancelled": "Import cancelled"
@@ -204,6 +205,9 @@
     "activeEyebrow": "Import in progress",
     "activeProtectedHistory": "Your existing history remains unchanged until the complete import is committed.",
     "activeWorking": "FitFreed is working through the archive on this device…",
+    "activeDelayed": "This step is taking longer than usual. FitFreed is still working on this device; your existing library remains available and unchanged.",
+    "progressFiles": "{completed} of {total} ZIP files checked",
+    "progressItems": "{completed} of {total} library items reconciled",
     "haveArchiveTitle": "I have the ZIP",
     "haveArchiveBody": "Choose the original archive supplied by the provider. You can safely import a newer or repeated export later.",
     "needArchiveTitle": "I need the ZIP",
@@ -1621,7 +1625,6 @@
     "openHome": "Go to Home",
     "chooseAnother": "Choose another ZIP",
     "choosingAnother": "Opening ZIP chooser…",
-    "terminalDetails": "Why the import stopped",
     "details": "View incorporation and coverage details",
     "incorporationHeading": "Information incorporated into the library",
     "incorporationCounts": {
@@ -2198,6 +2201,11 @@
     }
   },
   "errors": {
+    "not-supported-export": "FitFreed could not identify this ZIP as a supported fitness-history export. Choose the original Polar Flow export ZIP, or use the acquisition guide to obtain one.",
+    "malformed-supported-export": "FitFreed recognized this as a Polar Flow export, but a required file is incomplete or malformed. Keep the original ZIP and report the compatibility problem.",
+    "unsupported-provider-version": "FitFreed recognized a Polar Flow-style export, but this version or layout is not supported yet. Keep the original ZIP and report the compatibility problem.",
+    "suspicious-archive-layout": "FitFreed stopped before reading the export because the ZIP contains a path, link, encryption, or duplicate-name pattern that is not safe to process. Obtain a fresh original export ZIP.",
+    "archive-safety-limit": "FitFreed stopped because the ZIP exceeds a processing safety limit. Keep the original ZIP and report its approximate size so support can be assessed without weakening protection.",
     "invalid-supported-artifact": "This package contains recognized data that FitFreed cannot validate. Keep the original ZIP and report the compatibility problem; no history was changed.",
     "invalid-source-subject-evidence": "FitFreed cannot establish which provider account this package belongs to. Choose the original complete export ZIP; no history was changed.",
     "source-subject-confirmation-required": "This package has different or changed account evidence. FitFreed will not merge it with the existing history automatically. Keep the ZIP until account separation and recovery are available; existing history was preserved.",

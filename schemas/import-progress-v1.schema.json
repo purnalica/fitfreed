@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fitfreed.org/schemas/import-progress-v1.schema.json",
+  "title": "FitFreed import progress version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "phase",
+    "completedArtifacts",
+    "totalArtifacts",
+    "completedBytes",
+    "totalBytes",
+    "cancellable"
+  ],
+  "properties": {
+    "phase": {
+      "enum": [
+        "fingerprinting",
+        "validating",
+        "importing",
+        "reconciling",
+        "committing",
+        "completed",
+        "cancelled"
+      ]
+    },
+    "completedArtifacts": { "type": "integer", "minimum": 0 },
+    "totalArtifacts": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "integer", "minimum": 0 }
+      ]
+    },
+    "completedBytes": { "type": "integer", "minimum": 0 },
+    "totalBytes": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "integer", "minimum": 0 }
+      ]
+    },
+    "cancellable": { "type": "boolean" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": ["phase"],
+        "properties": { "phase": { "const": "fingerprinting" } }
+      },
+      "then": {
+        "properties": {
+          "completedArtifacts": { "const": 0 },
+          "totalArtifacts": { "type": "null" },
+          "totalBytes": { "type": "integer", "minimum": 0 },
+          "cancellable": { "const": true }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["phase"],
+        "properties": {
+          "phase": { "enum": ["validating", "importing", "reconciling"] }
+        }
+      },
+      "then": {
+        "properties": {
+          "totalArtifacts": { "type": "integer", "minimum": 0 },
+          "completedBytes": { "const": 0 },
+          "totalBytes": { "type": "null" },
+          "cancellable": { "const": true }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["phase"],
+        "properties": { "phase": { "enum": ["committing", "cancelled"] } }
+      },
+      "then": {
+        "properties": {
+          "completedArtifacts": { "const": 0 },
+          "totalArtifacts": { "type": "null" },
+          "completedBytes": { "const": 0 },
+          "totalBytes": { "type": "null" },
+          "cancellable": { "const": false }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["phase"],
+        "properties": { "phase": { "const": "completed" } }
+      },
+      "then": {
+        "properties": {
+          "totalArtifacts": { "type": "integer", "minimum": 0 },
+          "completedBytes": { "const": 0 },
+          "totalBytes": { "type": "null" },
+          "cancellable": { "const": false }
+        }
+      }
+    }
+  ]
+}
