@@ -124,6 +124,9 @@ route, a 300-sample bounded signal overview, a 250-sample exact signal page, and
 retrieval of the complete bounded recorded-zone collection against one coherent snapshot. It also
 recalculates personal segmentation by streaming the complete 100,000-slot series, preserving source gaps and
 the 250-segment output bound. These paths include the concrete SQLite adapter and application validation.
+Exact route pages seek from the requested ordinal through the composite route-point index. The two endpoint-redaction
+passes remain memory-bounded, but repeated pages cannot use positional `OFFSET` scans that discard every preceding
+point again.
 The same generated library contains a complete 24-item report page. The report-library gate reads that bounded
 page through SQLite and the application projection, resolves only the recognition evidence required by each
 card, and exercises reuse of identical comparison queries. It also exports the maximum route report through

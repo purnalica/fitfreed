@@ -186,7 +186,9 @@ preserve unevaluated, absent, present-empty, and populated route states. The ove
 exact source points per route with the documented endpoint-preserving `source-ordinal-v1` algorithm; the
 exact query returns stable contiguous pages of at most 250 points. Primary and transition routes remain
 separate, point ordinals prove visual provenance, and no route query loads the complete geometry merely to
-draw its bounded trace.
+draw its bounded trace. SQLite starts every exact page at the requested ordinal through the composite route-point
+index; deep pagination and the two bounded-memory endpoint-redaction passes never discard an increasingly large
+prefix through positional `OFFSET` scans.
 
 The independent [training-session signal read models](../data-formats/insights/training-session-signal-v1.md)
 preserve unevaluated, absent, present-empty, populated, unsupported-series-count, and unavailable-sample

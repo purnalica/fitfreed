@@ -3080,8 +3080,9 @@ fn query_training_route_points_discovery(
                     elapsed_milliseconds
              FROM training_route_point
              WHERE origin_id = ?1 AND session_id = ?2 AND exercise_id = ?3 AND kind = ?4
+               AND ordinal >= ?5
              ORDER BY ordinal
-             LIMIT ?5 OFFSET ?6",
+             LIMIT ?6",
         )
         .map_err(training_route_failure)?;
     let rows = statement
@@ -3091,8 +3092,8 @@ fn query_training_route_points_discovery(
                 session_id,
                 exercise_id,
                 training_route_kind_code(kind),
-                limit,
-                offset
+                offset,
+                limit
             ],
             |row| {
                 Ok((
@@ -16741,6 +16742,26 @@ mod tests {
         );
         assert_eq!(exact.next_offset, Some(3));
         assert_eq!(exact.points[0].latitude_degrees, 40.01);
+        let final_exact = query_training_route_points(
+            &library,
+            TrainingRoutePointsQuery {
+                session_ref: session_ref.clone(),
+                route_ref: primary.route_ref.clone(),
+                snapshot_ref: Some(snapshot_ref.clone()),
+                offset: 4,
+                limit: 2,
+            },
+        )
+        .expect("final exact route page");
+        assert_eq!(
+            final_exact
+                .points
+                .iter()
+                .map(|point| point.ordinal)
+                .collect::<Vec<_>>(),
+            vec![4]
+        );
+        assert_eq!(final_exact.next_offset, None);
 
         let signals = query_training_session_signals(
             &library,

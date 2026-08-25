@@ -171,7 +171,7 @@ notarization, installation trust, update recovery, a release candidate, or publi
 
 ### XH-08 — Imported sport types remain entirely unrecognized
 
-- **Status:** open; critical functional and product-experience defect reproduced in the valid native review build.
+- **Status:** open; critical functional and product-experience defect now requires provider-catalogue authority.
 - **Observed task:** reach Home after importing a long, multi-sport history.
 - **Observed behavior:** Home reports no recognized sports even though the same screen reports multiple recorded sport
   types and the imported history is known to contain several distinct activities.
@@ -184,6 +184,16 @@ notarization, installation trust, update recovery, a release candidate, or publi
   canonical identity, classification, persistence, and Home projection before changing presentation. Establish the
   affected vocabulary with privacy-safe fixtures and add end-to-end regression evidence for recognized, ambiguous,
   unknown, and personally renamed sports.
+- **Root-cause and correction state:** Polar training records preserve opaque numeric sport references, while the
+  evaluated takeout's separate sport-profile artifact supplies names without an authoritative join to those references.
+  FitFreed now has a provider-neutral, versioned
+  [catalogue-evidence boundary](../data-formats/providers/provider-sport-catalogue-v1.md) and complete synthetic
+  regression coverage through import enrichment, precedence, persistence, Home, History, session, reports, export,
+  restart, and reimport.
+  Polar's official complete catalogue requires authenticated `sports:read` access, and no GPL-compatible redistribution
+  grant has been established. No real catalogue is therefore bundled and sport identity is not inferred from route or
+  measurement patterns. The finding remains open until authorized catalogue evidence or an explicitly reviewed
+  local-only acquisition path supplies trustworthy names to the implemented boundary.
 
 ### XH-09 — Home aggregates look actionable but do not lead to exploration
 
@@ -206,7 +216,7 @@ notarization, installation trust, update recovery, a release candidate, or publi
 
 ### XH-10 — The displayed history start boundary appears factually implausible
 
-- **Status:** open; potentially critical data-integrity finding requiring provenance diagnosis.
+- **Status:** correction implemented and fully automated; production-native participant validation pending.
 - **Observed task:** assess the overall imported-history date range on Home.
 - **Observed behavior:** the earliest displayed boundary falls exactly on the first day of a year and is strongly
   inconsistent with the participant's recollection of the fitness history.
@@ -218,6 +228,15 @@ notarization, installation trust, update recovery, a release candidate, or publi
   provider mapping through canonical persistence and Home composition, verify whether year-only or profile evidence
   can enter the range, and add provenance-focused regression fixtures. Keep the finding open until the participant can
   validate a corrected privacy-safe explanation in the product.
+- **Correction evidence:** [Library Home version 4](../data-formats/insights/library-home-v4.md) separates retained
+  `recordedRange`, measurement-backed `usableRange`, and visibly scoped `primaryRange`. An activity day contributes
+  to usable history only when its step measurement is present, including a recorded zero; missing measurements remain
+  source evidence without defining the leading range. Training sessions use their complete training range when training
+  is the primary Home evidence. A recorded-but-unusable library opens source review instead of first run. Application,
+  SQLite, transport, presentation,
+  localization, and packaged regressions cover unavailable-only boundaries and the visible range scope. The participant
+  still has to confirm that the corrected boundary and its meaning are credible without adding personal dates or values
+  to this record.
 
 ### XH-11 — Sport-classification controls are visibly misaligned
 

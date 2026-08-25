@@ -11,7 +11,7 @@ document is the single implementation-facing plan for X4 and X5 of the systemic 
 
 ### Current execution snapshot
 
-Updated 2026-08-25. X4-P0 and X5-R1 through X5-R10 retain their engineering evidence. The renewed X6 machine-assisted
+Updated 2026-08-26. X4-P0 and X5-R1 through X5-R10 retain their engineering evidence. The renewed X6 machine-assisted
 [product-experience reaudit](../research/mvp-product-experience-reaudit.md) has no unresolved critical or major
 finding after two TDD corrections. Exact [repository-safety run
 `32743509862`](https://github.com/purnalica/fitfreed/actions/runs/32743509862) and [hosted campaign
@@ -33,6 +33,20 @@ that source. It found one critical and several major defects before the broader 
 keyboard, VoiceOver, appearance, and reduced-motion coverage could begin. The findings contradict product-experience
 acceptance without invalidating lower-layer safety, performance, lifecycle, or data-preservation evidence. X6-C1
 through X6-C5 below now own the corrective loop; functional growth remains frozen.
+
+The first exact hosted campaign after those corrections reached every native product gate for source `23631be` before
+the Insights benchmark rejected self-contained maximum-route HTML export at 2,057.706 milliseconds p95 against the
+unchanged 2,000-millisecond budget. [Repository-safety run
+`32898559229`](https://github.com/purnalica/fitfreed/actions/runs/32898559229) passed; [hosted campaign
+`32898559348`](https://github.com/purnalica/fitfreed/actions/runs/32898559348) remains a failed result and created no
+executable evidence marker. Root-cause tracing found that both bounded-memory endpoint-redaction passes retrieved
+the 250,000-point route in 10,000-point pages through positional `OFFSET`; later pages repeatedly discarded every
+preceding row. Exact route pagination now seeks from its contiguous source ordinal through the existing composite
+index. A controlled local Apple Silicon comparison against unchanged source `23631be` reduced route-report resolution
+from 729.691 to 442.691 milliseconds p95, self-contained export from 735.299 to 447.263 milliseconds p95, and a deep
+exact page from 15.539 to 6.606 milliseconds p95. The complete fast, Rust lint, Rust format, packaged functional,
+restart, adaptive-session, and performance gates pass for the corrected tree. One clean exact hosted campaign for the
+committed correction remains mandatory; this local evidence does not replace it.
 
 The [increment status](#increment-status) gives the one-line phase view. The
 [R10.2 evidence matrix](#r102-evidence-matrix) records what has been verified and what remains, and
