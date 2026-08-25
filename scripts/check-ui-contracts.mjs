@@ -104,6 +104,12 @@ const libraryHomePanel = readFileSync(path.join(
   "presentation",
   "LibraryHomePanel.tsx",
 ), "utf8");
+const sportClassificationTask = readFileSync(path.join(
+  repositoryRoot,
+  "src",
+  "presentation",
+  "SportClassificationTask.tsx",
+), "utf8");
 const routeWorkbenchPath = path.join(
   repositoryRoot,
   "src",
@@ -211,6 +217,128 @@ requireRule(
   [/width:\s*min\(1600px,\s*calc\(100%\s*-\s*56px\)\)/],
   "the broad desktop workspace",
 );
+requireRule(
+  stylesheet,
+  ":root",
+  [/--measure-reading:\s*72ch/],
+  "one explicit reading-prose measure",
+);
+for (const selector of [
+  ".library-home-heading > p:not(.eyebrow)",
+  ".sources-heading > p:not(.eyebrow)",
+  ".explorer-workspace-heading > p:last-child",
+  ".training-workspace-heading > p:last-child",
+  ".reports-hero > p:last-child",
+  ".settings-heading > p:last-child",
+]) {
+  requireRule(
+    stylesheet,
+    selector,
+    [/max-width:\s*var\(--measure-reading\)/],
+    "the shared reading-prose measure",
+  );
+}
+for (const selector of [
+  ".library-home-reveal > p",
+  ".library-home-highlight-copy > p:last-child",
+  ".library-home-coverage-heading p",
+  ".source-operation-error",
+  ".source-active-operation h2 + p",
+  ".source-active-delayed",
+  ".source-path > p:not(.path)",
+  ".source-guide-heading > div > p:last-child",
+  ".outcome-consequence",
+  ".outcome-terminal-message",
+  ".outcome-terminal-detail p",
+  ".answer-insufficient p",
+  ".training-session-empty-result p",
+  ".training-sports-heading p",
+  ".training-detail-section > p:first-child",
+  ".training-route-workbench-heading h3 + p",
+  ".training-route-signal-lanes > header p",
+  ".training-signal-workbench-heading h3 + p",
+  ".training-signal-workbench footer p",
+  ".training-structure-workbench-heading h3 + p",
+  ".training-structure-workbench footer p",
+  ".training-zone-workbench-heading h3 + p",
+  ".training-zone-workbench footer p",
+  ".training-session-evidence-summary h3 + p",
+  ".training-cross-signal > header p",
+  ".training-provenance-disclosure > div p",
+  ".training-ranges-heading p",
+  ".report-empty-editor p",
+  ".settings-section-heading p",
+  ".settings-field > small",
+]) {
+  const block = balancedBlock(
+    stylesheet,
+    selector,
+    `${selector} must use its allocated composition width`,
+  );
+  if (/max-width\s*:/.test(block)) {
+    throw new Error(`${selector} must use its allocated composition width`);
+  }
+}
+for (const boundary of [
+  '"save_training_sport_classification"',
+  "expectedRevision: sport.classification.revision",
+  "onOverviewChange(result.overview)",
+  "onSaved(result)",
+  "onClick={onCancel}",
+  'void persist(null, null, "reset")',
+]) {
+  if (!sportClassificationTask.includes(boundary)) {
+    throw new Error(`sport classification must retain its application contract: ${boundary}`);
+  }
+}
+requireRule(
+  stylesheet,
+  ".training-sport-editor",
+  [
+    /align-items:\s*start/,
+    /scroll-margin-block-start:\s*var\(--shell-reveal-offset\)/,
+  ],
+  "aligned form regions independent of adjacent help and validation height",
+);
+requireRule(
+  stylesheet,
+  ".training-sport-editor-field",
+  [
+    /grid-row:\s*span\s+4/,
+    /grid-template-rows:\s*subgrid/,
+    /align-content:\s*start/,
+  ],
+  "labels and controls anchored to the start of each form region",
+);
+requireRule(
+  stylesheet,
+  ".training-sport-editor-actions",
+  [/grid-column:\s*1\s*\/\s*-1/],
+  "an action row spanning the supported grid without implicit columns",
+);
+requireRule(
+  stylesheet,
+  ".training-sport-editor-field :is(input, select)",
+  [
+    /height:\s*max\(44px,\s*calc\(1\.3em\s*\+\s*22px\)\)/,
+    /line-height:\s*1\.3/,
+  ],
+  "equal control geometry that scales with content zoom",
+);
+requireRule(
+  stylesheet,
+  ".training-sport-editor-field select {",
+  [/appearance:\s*none/, /background-image:/],
+  "a visible provider-neutral selector affordance after native geometry is normalized",
+);
+for (const zoom of ["150", "175", "200"]) {
+  requireRule(
+    stylesheet,
+    `:root[data-content-zoom="${zoom}"] .training-sport-editor`,
+    [/grid-template-columns:\s*1fr/],
+    `a single-column classification task at ${zoom}% content zoom`,
+  );
+}
 for (const [selector, maximum] of [
   [".sources-heading h1", "3rem"],
   [".explorer-workspace-heading h1", "2.8rem"],
@@ -731,7 +859,7 @@ requireRule(
 requireRule(
   compactNavigation,
   ":root",
-  [/--shell-reveal-offset:\s*120px/],
+  [/--shell-reveal-offset:\s*140px/],
   "the compact navigation reveal offset",
 );
 requireRule(
@@ -881,5 +1009,5 @@ for (const [selector, token] of contrastContracts) {
 }
 
 process.stdout.write(
-  `${JSON.stringify({ motionDeclarations: motionDeclarations.length, reducedMotionBoundary: true, darkContrastOverrides: contrastContracts.size, labelledAdaptiveNavigation: true, broadWorkspace: true, progressiveTrainingWorkspace: true, evidenceAdaptiveSession: true, personalRanges: true, progressiveDomainWorkspaces: true, stagedReportWorkspace: true, secondarySources: true, categorizedSettings: true, initialWindow: `${mainWindow.width}x${mainWindow.height}` })}\n`,
+  `${JSON.stringify({ motionDeclarations: motionDeclarations.length, reducedMotionBoundary: true, darkContrastOverrides: contrastContracts.size, labelledAdaptiveNavigation: true, broadWorkspace: true, roleBasedLineMeasure: true, alignedClassificationForm: true, progressiveTrainingWorkspace: true, evidenceAdaptiveSession: true, personalRanges: true, progressiveDomainWorkspaces: true, stagedReportWorkspace: true, secondarySources: true, categorizedSettings: true, initialWindow: `${mainWindow.width}x${mainWindow.height}` })}\n`,
 );

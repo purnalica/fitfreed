@@ -67,7 +67,7 @@ test("keeps packaged update fixtures outside both retained application targets",
 });
 
 test("gives the exhaustive functional journey a bounded campaign watchdog", () => {
-  assert.equal(defaultConfig.mochaOpts.timeout, 300_000);
+  assert.equal(defaultConfig.mochaOpts.timeout, 420_000);
   assert.deepEqual(defaultConfig.specs, ["./test/e2e/**/*.spec.js"]);
 });
 

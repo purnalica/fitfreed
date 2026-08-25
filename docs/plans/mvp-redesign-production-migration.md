@@ -248,7 +248,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X6-C2 | Human-gated — owned native opening, local outcomes, and spatial transitions pass complete automation; real browser appearance remains unreviewed | Every successful or failed acquisition action produces a visible, reachable result |
 | X6-C3 | Complete locally — classification, real progress, primary recovery, watchdog, and packaged regression evidence pass; production-native human re-evaluation remains in the repeated X6 gate | Import recovery is calm and specific, and long work remains perceptibly active |
 | X6-C4 | Complete locally — shell, Home, History, and packaged navigation evidence passed 2026-08-25 | Prominent Home summaries open useful evidence and temporary restrictions explain themselves |
-| X6-C5 | Planned — shared layout causes traced | Text and forms use the desktop workspace coherently through 200% content zoom |
+| X6-C5 | Complete locally — role-based measure, form geometry, and packaged WebKit evidence passed 2026-08-25 | Text and forms use the desktop workspace coherently through 200% content zoom |
 
 ## X4-P0 — Freeze the executable contract
 
@@ -2365,6 +2365,25 @@ one coherent rhythm at every maintained allocation and content zoom.
 3. Add rendered-geometry assertions and actual WebKit review at wide and compact allocation, both locales, light/dark,
    100%, 125%, 150%, 175%, and 200% zoom, long translated and authored values, validation, reduced motion, keyboard,
    Axe, and no page-level horizontal overflow. A self-review precedes any human handoff.
+
+**Execution state:** complete locally. Reading prose now uses one shared role-based measure, while task instruction,
+status, result, control help, and exact evidence use their allocated composition instead of inheriting arbitrary
+character limits. Structural bounds remain responsible only for page, inspector, overlay, and table geometry. Static
+contracts inventory these roles and prevent the removed constraints from returning.
+
+The sport-classification editor aligns label, control, help, validation, and action regions on shared grid rows at
+wide allocations. Its native selector and text input retain semantic controls with equal scaled height, and the
+composition becomes one column from 150% through 200% content zoom. The complete command, validation, optimistic
+revision conflict, save, reset, cancel, multi-item, persistence, reimport, and reload behavior remains covered by
+component and integration tests.
+
+Packaged WebKit exercises 40 geometry combinations across wide and compact allocations, both locales, light and dark
+appearance, and 100%, 125%, 150%, 175%, and 200% content zoom. It checks long translated and authored values,
+validation, keyboard focus order, Axe, navigation clearance, control alignment, and absence of page-level horizontal
+overflow. Representative wide and compact maximum-zoom evidence was visually reviewed. That review found the compact
+form could begin beneath the persistent navigation; the shared reveal offset and regression assertion were corrected
+before closure. Reduced-motion behavior remains enforced by the existing motion-policy contract and requires the
+system-setting observation in the repeated human profile.
 
 ### Corrective execution and repeat gate
 

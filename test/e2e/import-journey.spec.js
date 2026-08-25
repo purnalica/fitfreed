@@ -213,13 +213,18 @@ async function expectSettingsControlsWithinInitialViewport() {
   expect(state.hasHorizontalOverflow).toBe(false);
 }
 
-async function expectImportOutcomeWithinInitialViewport(expectedHeading) {
+async function expectImportOutcomeWithinInitialViewport(expectedHeading, expectedMessage) {
+  const heading = await $("#outcome-heading");
+  await expect(heading).toHaveText(expectedHeading);
+  if (expectedMessage) {
+    await expect($(".outcome-terminal-message")).toHaveText(
+      expect.stringContaining(expectedMessage),
+    );
+  }
   await browser.execute(() => {
     const scroller = document.scrollingElement ?? document.documentElement;
     scroller.scrollTop = 0;
   });
-  const heading = await $("#outcome-heading");
-  await expect(heading).toHaveText(expectedHeading);
   const state = await browser.execute(() => {
     const root = document.documentElement;
     const heading = document.querySelector("#outcome-heading").getBoundingClientRect();
@@ -265,6 +270,147 @@ async function captureR10WorkspaceEvidence(fileName, selector) {
     .analyze();
   expect(accessibility.violations).toEqual([]);
   await browser.saveScreenshot(path.join(evidenceDirectory, fileName));
+}
+
+async function expectSportClassificationComposition(expectedColumns) {
+  const geometry = await browser.execute(() => {
+    const root = document.documentElement;
+    const editor = document.querySelector(".training-history-sport-editor form");
+    const fields = [...editor.querySelectorAll(".training-sport-editor-field")];
+    const controls = fields.map((field) => field.querySelector("input, select"));
+    const labels = fields.map((field) => field.querySelector("label"));
+    const actionRegion = editor.querySelector(".training-sport-editor-actions");
+    const navigation = document.querySelector(".app-sidebar");
+    const editorBounds = editor.getBoundingClientRect();
+    const navigationBounds = navigation.getBoundingClientRect();
+    const fieldBounds = fields.map((field) => field.getBoundingClientRect());
+    const controlBounds = controls.map((control) => control.getBoundingClientRect());
+    const labelBounds = labels.map((label) => label.getBoundingClientRect());
+    const actionBounds = actionRegion.getBoundingClientRect();
+    const readingCopy = document.querySelector(".training-workspace-heading > p:last-child");
+    const help = editor.querySelector(".training-sport-editor-field small");
+    return {
+      columnDefinition: getComputedStyle(editor).gridTemplateColumns,
+      columns: getComputedStyle(editor).gridTemplateColumns.split(" ").length,
+      contentZoom: root.dataset.contentZoom,
+      editorTop: editorBounds.top,
+      navigationBottom: navigationBounds.bottom,
+      viewportWidth: root.clientWidth,
+      hasHorizontalOverflow: root.scrollWidth > root.clientWidth,
+      editorInsideWorkspace: editorBounds.left >= 0 && editorBounds.right <= root.clientWidth + 1,
+      editorOutsideNavigation: navigationBounds.width >= root.clientWidth - 1
+        ? editorBounds.top >= navigationBounds.bottom - 1
+        : editorBounds.left >= navigationBounds.right - 1,
+      fieldsInsideEditor: fieldBounds.every((field) => (
+        field.left >= editorBounds.left - 1 && field.right <= editorBounds.right + 1
+      )),
+      labelsAligned: Math.abs(labelBounds[0].top - labelBounds[1].top) <= 1,
+      controlsAligned: Math.abs(controlBounds[0].top - controlBounds[1].top) <= 1,
+      controlsEqualHeight: Math.abs(controlBounds[0].height - controlBounds[1].height) <= 1,
+      controlHeights: controlBounds.map((control) => control.height),
+      fieldsStacked: fieldBounds[1].top >= fieldBounds[0].bottom - 1,
+      actionsAfterFields: actionBounds.top >= Math.max(...fieldBounds.map((field) => field.bottom)) - 1,
+      actionsInsideEditor: actionBounds.left >= editorBounds.left - 1
+        && actionBounds.right <= editorBounds.right + 1,
+      readingCopyHasMeasure: getComputedStyle(readingCopy).maxWidth !== "none",
+      controlHelpUsesAllocation: getComputedStyle(help).maxWidth === "none",
+    };
+  });
+  if (!geometry.controlsEqualHeight || !geometry.editorOutsideNavigation) {
+    process.stderr.write(`${JSON.stringify({ sportClassificationGeometry: geometry })}\n`);
+  }
+  expect(geometry.hasHorizontalOverflow).toBe(false);
+  expect(geometry.editorInsideWorkspace).toBe(true);
+  expect(geometry.editorOutsideNavigation).toBe(true);
+  expect(geometry.fieldsInsideEditor).toBe(true);
+  expect(geometry.controlsEqualHeight).toBe(true);
+  expect(geometry.actionsAfterFields).toBe(true);
+  expect(geometry.actionsInsideEditor).toBe(true);
+  expect(geometry.readingCopyHasMeasure).toBe(true);
+  expect(geometry.controlHelpUsesAllocation).toBe(true);
+  expect(geometry.columns).toBe(expectedColumns);
+  if (expectedColumns === 2) {
+    expect(geometry.labelsAligned).toBe(true);
+    expect(geometry.controlsAligned).toBe(true);
+  } else {
+    expect(geometry.fieldsStacked).toBe(true);
+  }
+}
+
+async function exerciseSportClassificationComposition() {
+  const input = await $(".training-history-sport-editor input");
+  const longSportLabel = "Long distance river paddling with a deliberately descriptive personal sport name";
+  expect([...longSportLabel]).toHaveLength(80);
+  await input.clearValue();
+  await input.setValue(longSportLabel);
+
+  for (const [width, height, widthName] of [
+    [1280, 820, "wide"],
+    [720, 760, "compact"],
+  ]) {
+    await resizeApplication(width, height);
+    for (const [locale, catalog] of [["en-US", english], ["es-ES", spanish]]) {
+      await selectLocale(locale, "explore");
+      for (const appearance of ["light", "dark"]) {
+        for (const zoom of [100, 125, 150, 175, 200]) {
+          await setAppearanceAndZoom(appearance, zoom, true, "explore");
+          await browser.execute(() => {
+            document.querySelector(".training-history-sport-editor form")
+              .scrollIntoView({ block: "start", inline: "nearest" });
+          });
+          await expectSportClassificationComposition(zoom >= 150 ? 1 : 2);
+          if ((widthName === "wide" && locale === "en-US"
+              && appearance === "light" && zoom === 100)
+            || (widthName === "compact" && locale === "es-ES"
+              && appearance === "dark" && zoom === 200)) {
+            const accessibility = await new AxeBuilder({ client: browser })
+              .setLegacyMode()
+              .include(".training-history-sport-editor")
+              .analyze();
+            expect(accessibility.violations).toEqual([]);
+            await browser.saveScreenshot(path.join(
+              evidenceDirectory,
+              `x6-c5-sport-classification-${locale}-${appearance}-${widthName}-${zoom}.png`,
+            ));
+          }
+        }
+      }
+    }
+  }
+
+  await selectLocale("en-US", "explore");
+  await resetSettings("explore");
+  await resizeApplication(1280, 820);
+  await input.clearValue();
+  await input.setValue(`${longSportLabel}x`);
+  await expect(input).toHaveAttribute("aria-invalid", "true");
+  await expect($(".training-history-sport-editor [role='alert']"))
+    .toHaveText(english.training.sports.displayLabelTooLong);
+  await expectSportClassificationComposition(2);
+
+  const family = await $(".training-history-sport-editor select");
+  await browser.execute(() => {
+    document.querySelector(".training-history-sport-editor select").focus();
+  });
+  await expect(family).toBeFocused();
+  await input.clearValue();
+  await browser.execute(() => {
+    document.querySelector(".training-history-sport-editor input").focus();
+  });
+  await expect(input).toBeFocused();
+  await browser.keys("Discarded draft");
+  await expect(input).toHaveValue("Discarded draft");
+  const cancel = await $(".training-history-sport-editor .training-sport-editor-actions button");
+  await browser.execute(() => {
+    document.querySelector(".training-history-sport-editor .training-sport-editor-actions button")
+      .focus();
+  });
+  await expect(cancel).toBeFocused();
+  await cancel.click();
+  await browser.waitUntil(
+    async () => !(await $(".training-history-sport-editor form").isExisting()),
+    { timeout: 10_000, timeoutMsg: "keyboard cancellation did not close sport classification" },
+  );
 }
 
 async function expectAnswerMeasurementOnOneLine(selector) {
@@ -1536,7 +1682,10 @@ describe("packaged FitFreed import journey", () => {
       english.choose,
     );
     await $("aria/Import selected package").click();
-    await expectImportOutcomeWithinInitialViewport(english.outcome.rejectedHeading);
+    await expectImportOutcomeWithinInitialViewport(
+      english.outcome.rejectedHeading,
+      "could not identify this ZIP as a supported fitness-history export",
+    );
     await expect($(".outcome-terminal-message")).toHaveText(
       expect.stringContaining("could not identify this ZIP as a supported fitness-history export"),
     );
@@ -1551,7 +1700,10 @@ describe("packaged FitFreed import journey", () => {
     );
     await $("aria/Import selected package").click();
     expect(await $$('[role="alert"]')).toHaveLength(0);
-    await expectImportOutcomeWithinInitialViewport(english.outcome.rejectedHeading);
+    await expectImportOutcomeWithinInitialViewport(
+      english.outcome.rejectedHeading,
+      "recognized this as a Polar Flow export",
+    );
     await expect($(".outcome-terminal-message")).toHaveText(
       expect.stringContaining("recognized this as a Polar Flow export"),
     );
@@ -1740,9 +1892,7 @@ describe("packaged FitFreed import journey", () => {
     const contextualSport = await trainingHistorySportItem("Unknown sport 1");
     const contextualAction = await contextualSport.$("button");
     await contextualAction.click();
-    const contextualEditor = await $(".training-history-sport-editor form");
-    await contextualEditor.$("input").setValue("Discarded draft");
-    await contextualEditor.$(`aria/${english.training.sports.cancel}`).click();
+    await exerciseSportClassificationComposition();
     await browser.waitUntil(
       async () => browser.execute(
         () => document.activeElement

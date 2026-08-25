@@ -109,7 +109,7 @@ notarization, installation trust, update recovery, a release candidate, or publi
 
 ### XH-05 — Text wraps prematurely across otherwise wider content regions
 
-- **Status:** open; major systemic presentation finding in the valid native review build.
+- **Status:** correction implemented and fully automated; production-native human re-evaluation pending.
 - **Observed scope:** multiple screens and content types throughout the application.
 - **Observed behavior:** text frequently occupies several short lines even when its containing region has materially
   more horizontal space available.
@@ -121,6 +121,11 @@ notarization, installation trust, update recovery, a release candidate, or publi
 - **Disposition:** audit the complete typography and layout constraint system by content role and maintained viewport,
   including nested maximum widths and grid tracks. Correct the shared rules and add visual assertions at representative
   widths; do not remove every readable-line-length boundary indiscriminately.
+- **Correction evidence:** X6-C5 classifies live measures by content role, gives reading prose one shared bounded
+  measure, and lets task, status, result, help, and exact-evidence copy use its allocated composition. Static contracts
+  prevent the removed arbitrary constraints from returning. Packaged WebKit exercises wide and compact allocation,
+  both locales and appearances, and every supported zoom through 200% without page-level horizontal overflow. Human
+  reading rhythm and scanning confirmation remain pending.
 
 ### XH-06 — Finalization provides no perceptible evidence of continuing work
 
@@ -216,7 +221,7 @@ notarization, installation trust, update recovery, a release candidate, or publi
 
 ### XH-11 — Sport-classification controls are visibly misaligned
 
-- **Status:** open; major systemic form-composition finding in the valid native review build.
+- **Status:** correction implemented and fully automated; production-native human re-evaluation pending.
 - **Observed task:** classify and personally name an unknown sport.
 - **Observed behavior:** the broad-family selector and personal-name field start at different vertical positions, have
   inconsistent control geometry, and leave the action row visually detached. The imbalance remains obvious in the
@@ -228,6 +233,12 @@ notarization, installation trust, update recovery, a release candidate, or publi
 - **Disposition:** include the editor in the systemic layout and typography audit from XH-05. Verify backend-supported
   save and reload behavior before changing UI, then add visual, keyboard, validation, multi-item, persistence, and
   supported-zoom evidence for the complete form.
+- **Correction evidence:** X6-C5 aligns semantic label, control, help, validation, and action regions on shared rows,
+  gives the native selector and text input equal scaled height, and stacks the form from 150% through 200% zoom.
+  Component and integration tests retain validation, keyboard activation, conflict, save, reset, cancel, multi-item,
+  persistence, reimport, and reload behavior. Packaged WebKit checks 40 locale, appearance, zoom, and allocation
+  combinations; self-review found and corrected a compact persistent-navigation overlap before closure. Human form
+  comprehension and Full Keyboard Access confirmation remain pending.
 
 ## Passing observations
 

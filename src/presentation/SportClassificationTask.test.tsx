@@ -48,6 +48,35 @@ beforeEach(() => {
 });
 
 describe("SportClassificationTask", () => {
+  it("keeps the semantic field and action order available to keyboard navigation", async () => {
+    const user = userEvent.setup();
+    const onCancel = vi.fn();
+    render(
+      <SportClassificationTask
+        editorId="keyboard-sport"
+        sport={unknownSport}
+        title="Unknown sport 1"
+        messages={catalogs["en-US"].training.sports}
+        onCancel={onCancel}
+        onError={vi.fn()}
+        onOverviewChange={vi.fn()}
+        onSaved={vi.fn()}
+      />,
+    );
+
+    const family = screen.getByLabelText("Broad sport family");
+    const label = screen.getByLabelText("Your sport name");
+    const cancel = screen.getByRole("button", { name: "Cancel editing" });
+    family.focus();
+    expect(family).toHaveFocus();
+    await user.tab();
+    expect(label).toHaveFocus();
+    await user.tab();
+    expect(cancel).toHaveFocus();
+    await user.keyboard("{Enter}");
+    expect(onCancel).toHaveBeenCalledOnce();
+  });
+
   it("preserves the authored draft when a conflict reloads newer evidence and retries its revision", async () => {
     const concurrentSport: TrainingSport = {
       ...unknownSport,

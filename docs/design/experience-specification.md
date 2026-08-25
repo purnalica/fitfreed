@@ -9,9 +9,10 @@ implements its R1 through R10 vertical slices. The renewed X6 machine-assisted r
 critical or major finding, and exact repository safety and hosted verification pass for its product corrections.
 The first human session was invalidated by an instrumented native boundary. Its revision-isolated production-native
 replacement and exact hosted campaign pass, but the restarted valid human gate rejects source `41ffad2` during the
-first-value journey. Corrective increments X6-C1 through X6-C5 in the [production migration
-plan](../plans/mvp-redesign-production-migration.md) must restore the accepted contract before evaluation restarts.
-Implementation does not by itself authorize a release claim.
+first-value journey. The implementation work defined by corrective increments X6-C1 through X6-C5 in the
+[production migration plan](../plans/mvp-redesign-production-migration.md) is complete locally; its remaining
+provider-catalogue, native-browser, exact-source, and repeated human gates must restore the accepted contract before
+release preparation resumes. Implementation does not by itself authorize a release claim.
 
 The [requirements](../requirements.md#product-experience-contract) own normative product behavior.
 The [redesign plan](../plans/ui-redesign.md) owns rationale, journeys, feasibility analysis, and
@@ -294,6 +295,24 @@ association and new content are immediately perceivable.
 ## Adaptive and accessible behavior
 
 The contract applies to wide macOS desktop and compact windows, not only a single showcase size.
+
+Inline measure follows the role of the content rather than one blanket character limit:
+
+| Content role | Composition contract |
+|---|---|
+| Reading prose | Introductory prose uses the shared `72ch` reading measure, bounded again by its allocated region. |
+| Display heading | A deliberate character measure may shape a short heading; it is not inherited by adjacent explanation or controls. |
+| Task instruction, status, result, control help, and exact evidence | Uses the complete allocated region. A smaller bound requires a reviewed role-specific reason rather than a generic readability rule. |
+| Navigation and exact tabular geometry | Uses its component allocation; horizontal continuation is allowed only under the explicit evidence and alternative-access rules below. |
+| Structural region | Width bounds may control the geometry of a page section, map overlay, dialog, inspector, or table viewport, but do not impose a second text measure on its descendants. |
+
+Forms align semantic regions, not independent field boxes. At a supported side-by-side allocation,
+labels share a row, controls share a row and control height, help and validation occupy reserved rows,
+and actions span the form after every field. At 150% through 200% content zoom, or when the allocated
+width cannot preserve that rhythm, the classification task becomes one column without creating an
+implicit grid track. The existing application command, local validation, optimistic revision conflict,
+save, mark-as-unknown, cancel, multi-item, reimport, and reload contracts remain unchanged by this
+presentation rule.
 
 - At 100% content zoom, the wide shell uses its full horizontal workspace and may use coordinated
   side-by-side regions where they improve comparison or editing.
