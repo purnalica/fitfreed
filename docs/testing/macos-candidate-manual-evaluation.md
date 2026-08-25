@@ -17,9 +17,11 @@ narrower claim:
   public distribution; and
 - it does not remove or defer the later exact-candidate execution of this complete procedure.
 
-The X6 profile starts only after repository safety and the complete hosted campaign pass for the exact
-executable inputs handed to review. Build, inspect, and launch the revision-isolated native review application
-from that clean source:
+An exploratory X6 session may start after the complete local verification lane and native-bundle inspection pass
+for the exact clean source handed to review. Repository safety and the complete hosted campaign may continue in
+parallel, but X6 cannot be accepted until both pass for the same executable inputs. If hosted verification fails,
+the session cannot close X6 and any observation affected by that failure must be repeated after correction. Build,
+inspect, and launch the revision-isolated native review application from that clean source:
 
 ```sh
 npm run review:x6

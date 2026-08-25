@@ -7,9 +7,11 @@ source of truth for the screen, interaction, navigation, state, responsive, loca
 accessibility contract of the systemic MVP experience redesign. The production application now
 implements its R1 through R10 vertical slices. The renewed X6 machine-assisted reaudit has no unresolved
 critical or major finding, and exact repository safety and hosted verification pass for its product corrections.
-The first human session was invalidated by an instrumented native boundary; exact hosted verification of the
-revision-isolated native review profile and the restarted human gate remain pending. Implementation does not by
-itself authorize a release claim.
+The first human session was invalidated by an instrumented native boundary. Its revision-isolated production-native
+replacement and exact hosted campaign pass, but the restarted valid human gate rejects source `41ffad2` during the
+first-value journey. Corrective increments X6-C1 through X6-C5 in the [production migration
+plan](../plans/mvp-redesign-production-migration.md) must restore the accepted contract before evaluation restarts.
+Implementation does not by itself authorize a release claim.
 
 The [requirements](../requirements.md#product-experience-contract) own normative product behavior.
 The [redesign plan](../plans/ui-redesign.md) owns rationale, journeys, feasibility analysis, and

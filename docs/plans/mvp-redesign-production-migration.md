@@ -11,7 +11,7 @@ document is the single implementation-facing plan for X4 and X5 of the systemic 
 
 ### Current execution snapshot
 
-Updated 2026-08-24. X4-P0 and X5-R1 through X5-R10 are complete. The renewed X6 machine-assisted
+Updated 2026-08-25. X4-P0 and X5-R1 through X5-R10 retain their engineering evidence. The renewed X6 machine-assisted
 [product-experience reaudit](../research/mvp-product-experience-reaudit.md) has no unresolved critical or major
 finding after two TDD corrections. Exact [repository-safety run
 `32743509862`](https://github.com/purnalica/fitfreed/actions/runs/32743509862) and [hosted campaign
@@ -23,10 +23,16 @@ The portable job completed in 4 minutes and 27 seconds and the macOS job in 1 ho
 the bounded 75-minute allowance remained sufficient without changing an operation watchdog,
 product-performance budget, or acceptance criterion. The first human session then exposed an evaluation-process
 defect: the documented launch used the instrumented E2E application, whose mocked native boundaries make it
-invalid for archive-picker and external-link evaluation. The privacy-safe [human evaluation
-record](../research/x6-product-experience-human-evaluation.md) pauses that session. A revision-isolated review
-profile with production native adapters is implemented locally; exact hosted verification of this correction and
-a restarted human usability and accessibility gate are now required.
+invalid for archive-picker and external-link evaluation. A revision-isolated production-native profile corrected
+that boundary. Exact [repository-safety run
+`32827945310`](https://github.com/purnalica/fitfreed/actions/runs/32827945310) and [hosted campaign
+`32827945185`](https://github.com/purnalica/fitfreed/actions/runs/32827945185) pass for source `41ffad2`.
+
+The restarted valid [human evaluation](../research/x6-product-experience-human-evaluation.md) nevertheless rejects
+that source. It found one critical and several major defects before the broader History, session, report, Settings,
+keyboard, VoiceOver, appearance, and reduced-motion coverage could begin. The findings contradict product-experience
+acceptance without invalidating lower-layer safety, performance, lifecycle, or data-preservation evidence. X6-C1
+through X6-C5 below now own the corrective loop; functional growth remains frozen.
 
 The [increment status](#increment-status) gives the one-line phase view. The
 [R10.2 evidence matrix](#r102-evidence-matrix) records what has been verified and what remains, and
@@ -237,7 +243,12 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R8 | Complete locally — R8.1 through R8.6 passed the final Alpha gate on 2026-08-23 | Personal ranges and reusable criteria work end to end |
 | X5-R9 | Complete locally — all six slices passed fast, packaged, restart, accessibility, visual, migration, and performance gates on 2026-08-23 | Reports open as results and leave FitFreed safely |
 | X5-R10 | Complete — exact local and hosted gates passed 2026-08-24; executable-input evidence marker retained | The complete release-shaped product is coherent and documented |
-| X6 | Human review paused — XH-02 invalidated the instrumented review build; native isolated profile implemented locally, exact hosted revalidation and restarted human review pending | Independent audit has no unresolved material finding |
+| X6 | Rejected for source `41ffad2` — native profile and exact hosted campaign pass, but the valid human session found one critical and several major product defects | Independent audit has no unresolved material finding |
+| X6-C1 | Planned — data-identity diagnosis complete; provider-catalog acquisition boundary remains | Sports are recognizable from trustworthy evidence and Home ranges state what they measure |
+| X6-C2 | Planned — acquisition and spatial-continuity causes traced | Every successful or failed acquisition action produces a visible, reachable result |
+| X6-C3 | Planned — archive classification and finalization causes traced | Import recovery is calm and specific, and long work remains perceptibly active |
+| X6-C4 | Planned — Home and navigation causes traced | Prominent Home summaries open useful evidence and temporary restrictions explain themselves |
+| X6-C5 | Planned — shared layout causes traced | Text and forms use the desktop workspace coherently through 200% content zoom |
 
 ## X4-P0 — Freeze the executable contract
 
@@ -2167,17 +2178,142 @@ corrected source `246faed` and executable-input fingerprint
 keyboard use, VoiceOver in both locales, contrast, reduced motion, realistic comprehension, and desire to
 continue remain human evidence and are not inferred from Axe, screenshots, or hosted automation.
 
-### Human evaluation — paused 2026-08-25
+### Human evaluation — rejected 2026-08-25
 
-The first human session correctly stopped before import because the documented E2E application replaced the native
-archive picker and official-link opener with mock-only adapters. The session supplies no production-product verdict.
-Finding XH-02 in the [human evaluation record](../research/x6-product-experience-human-evaluation.md) owns the
-privacy-safe observation and invalidation.
+The first session stopped before import because the documented E2E application replaced production-native boundaries.
+Finding XH-02 in the [human evaluation record](../research/x6-product-experience-human-evaluation.md) owns that invalid
+session and the corrected review profile. The profile builds a revision-isolated application without the E2E feature,
+frontend test flag, WebDriver command routing, or production library identity. Its complete bundle scanner, local
+verification, repository-safety run, and hosted campaign pass for source `41ffad2`.
 
-The corrective profile builds a clean revision-isolated application without the E2E feature or frontend test flag,
-derives an application-data identity from the exact source revision, scans the complete bundle for test-routing
-markers, and is built and checked by the hosted macOS campaign. Human evaluation restarts from clean first use only
-after those exact gates pass.
+The restarted production-native session rejects that source independently of the green automation. Acquisition
+actions appear inert, wrong and successfully reselected archives lose their explanation or visible destination,
+finalization appears stationary, temporary History unavailability is unexplained, every imported sport remains
+unrecognized, prominent Home summaries are dead ends, the overall date boundary is not trustworthy, and shared text
+and form composition underuse the desktop workspace. Cancellation followed by immediate retry and finalization
+followed by navigation recovery do pass. The session stopped after Home because the critical and major findings already
+invalidate X6; later workspaces cannot repair a failed first-value journey.
+
+### Human-rejection causal disposition
+
+| Findings | Root cause established before correction | Owning increment |
+|---|---|---|
+| XH-08 | Training mapping preserves exact provider sport references, but sport discovery deliberately exposes them only as user-authored unknown classifications. The takeout does not contain the separately managed identifier-to-name catalogue; the current unsupported sport-profile artifact does not supply that join. The product therefore delegated basic recognition to the user by design. | X6-C1 |
+| XH-10 | Home combines the minimum and maximum dates of all domains. Activity persistence can retain a source day even when its supported measurement is unavailable, so a placeholder observation can define the prominent global boundary without explaining its domain or usability. | X6-C1 |
+| XH-01, XH-04 | In-application guidance and archive reselection change state below or above the retained viewport. Focus alone does not establish a visible spatial transition. External-link failures are reported in a distant operation-error region, and current tests replace rather than exercise the native opener. | X6-C2 |
+| XH-03 | Archive validation assigns the same unsafe-member result to directories, nested paths, links, encrypted members, absolute paths, and traversal. It performs this classification before establishing whether the ZIP resembles a supported export, while presentation hides the specific reason behind a closed disclosure. An ordinary wrong ZIP can therefore receive a security-shaped diagnosis. | X6-C3 |
+| XH-06, XH-07 | Import reports 100% when decode finishes, then performs reconciliation, a second training decode, persistence loops, and transaction commit without intermediate work units. Operation state is rendered only inside Sources, while shell destinations depend on the last completed Home projection and do not explain an active write boundary. | X6-C3 and X6-C4 |
+| XH-09 | Home renders session and sport aggregates as prominent compact badges using non-interactive elements. The visual affordance has no navigation contract even though matching History destinations already exist. | X6-C4 |
+| XH-05, XH-11 | Repeated fixed character measures and nested grid tracks apply reading-copy constraints to task copy and controls. The sport editor aligns two independently sized field blocks rather than shared label, control, help, and validation rows; its high-zoom rule collapses only at a narrow allocation, not when content zoom makes the two-column rhythm invalid. | X6-C5 |
+
+This table records causes, not implementation permission to weaken safety, evidence provenance, privacy, or
+accessibility. Each correction must change the owning contract and preserve every valid passing behavior.
+
+### X6-C1 — Restore trustworthy identity and temporal meaning
+
+**User outcome:** the first populated Home names sports from verifiable evidence, reserves unknown for genuinely
+unresolved values, keeps personal naming as an override, and states a date range whose included evidence is clear.
+
+1. Introduce a provider-catalogue evidence contract separate from user-authored classification. It records provider,
+   source identifier, provider name key, localized names when supplied, parent identifier, catalogue revision or
+   retrieval timestamp, and provenance. The domain remains provider-neutral: adapters translate catalogue entries to
+   versioned canonical suggestions, while a user-authored family or label always wins without erasing source evidence.
+2. Support exact recognized, ambiguous, unknown, and personally overridden states through domain, application,
+   persistence, transport, Home, History, session, report, filter, and export projections. Provider identifiers remain
+   opaque outside the adapter and are never displayed as names.
+3. Polar's official Dynamic API defines the required identifier, localized names, and parent relationship, but its
+   complete catalogue endpoint requires authenticated `sports:read` access and is not part of the evaluated takeout.
+   Before committing a bundled snapshot, establish its retrieval provenance, update procedure, redistribution basis,
+   and exact relationship to takeout `sport.id`. The limited official BLE SDK vocabulary may provide test evidence for
+   its explicitly named identifiers only; it cannot masquerade as the complete catalogue. A developer or product-owner
+   authentication step is a human gate only if no official redistributable source can be obtained autonomously.
+4. Replace one unexplained combined Home range with documented per-domain usable ranges and an honest overall
+   composition. A record with no available supported measurement may remain source evidence and coverage, but it cannot
+   silently define the primary usable-history boundary. Preserve exact source coverage in Sources.
+5. Start with failing lower-layer tests for catalogue provenance, precedence, persistence, reimport, mapping-version
+   enrichment, ambiguous/unknown behavior, and unavailable-only range boundaries. Finish with realistic multi-sport
+   import, Home-to-History, filter, session, report/export, restart, and reimport journeys in both locales.
+
+**Rejection conditions:** inferred sport from route or measurements; an unexplained value table; provider taxonomy in
+the canonical domain; user choices overwritten by catalogue refresh; an early date suppressed without retaining its
+source coverage; or a Home range whose included domains cannot be inspected.
+
+### X6-C2 — Make acquisition actions spatially and natively complete
+
+**User outcome:** guidance, official destinations, and native archive selection always end at a visible result and an
+obvious next action, including when the action begins from a scrolled result.
+
+1. Treat reveal as one focus-and-scroll transition with a maintained-navigation offset and reduced-motion behavior.
+   Apply it to `Show me how`, initial selection, and post-result reselection; keep the updated archive and import action
+   together in the resulting viewport.
+2. Keep official destinations explicit and external. Add a production-native opener boundary test that can distinguish
+   successful delegation from plugin, scope, process, or OS failure. A failure appears beside the initiating action,
+   receives focus without stealing it during success, states what did not open, and preserves a copyable destination.
+3. Exercise the actual Tauri production adapter in the revision-isolated package. Mocked component and E2E tests remain
+   useful for state permutations but cannot close native browser-opening acceptance.
+4. Verify pointer, keyboard, focus, scroll geometry, compact navigation, both locales, 100%–200% zoom, reduced motion,
+   cancellation, repeated action, and return from every acquisition state.
+
+### X6-C3 — Separate archive compatibility from safety and expose real work
+
+**User outcome:** choosing the wrong ZIP produces a calm, specific recovery path; choosing a supported export shows
+continuing progress until one visible terminal result.
+
+1. Establish package identity before assigning a user-facing compatibility category while retaining path traversal,
+   link, encryption, size, count, and extraction protections. Distinguish not-a-supported-export, malformed supported
+   artifact, unsupported provider version, suspicious member layout, and internal failure. A directory entry or nested
+   ordinary archive that contains no recognized export evidence is not described as a provider compatibility incident.
+2. Put the established reason and safest next action in the primary result. Diagnostic detail remains optional but may
+   not contain the only explanation. Selection, cancellation, retry, and library preservation remain explicit.
+3. Model reconciliation and persistence as real bounded work units. Emit monotonic progress while countable work is
+   performed, then use a factual indeterminate transaction-finalization state only for an uncountable atomic boundary.
+   Do not fabricate a percentage or promise a duration. Preserve the existing no-cancel boundary once commit becomes
+   externally visible.
+4. Add a stall watchdog that changes the explanation without terminating or corrupting a valid long transaction. Test
+   ordinary completion, slow completion, genuine command failure, cancellation before commit, immediate retry, exact
+   repeat, extension, and process restart against one durable library.
+
+### X6-C4 — Keep operation truth global and make Home lead somewhere
+
+**User outcome:** leaving Sources never hides an active import, temporarily unavailable destinations explain why, and
+the first prominent Home summaries open the corresponding evidence.
+
+1. Lift the active operation projection to the application shell. Home shows a restrained continuing-work status with
+   a route back to Sources; History exposes why it is temporarily unavailable and becomes usable immediately after a
+   successful projection refresh. Failed and cancelled operations cannot leave stale busy state.
+2. Make the session aggregate open unfiltered training History and the sport aggregate open the complete sport view or
+   sport refinement entry. Preserve exact origin, mounted filters, return focus, pointer and keyboard equivalence, and
+   direct-entry fallback. Any summary without a meaningful destination must lose control-like styling.
+3. Verify active, completed, failed, cancelled, retry, route-away, route-back, refresh-failure, and restart states, plus
+   every aggregate destination and exact return path.
+
+### X6-C5 — Recompose information by role and supported geometry
+
+**User outcome:** the application uses a desktop workspace without producing uncomfortably long prose, and forms keep
+one coherent rhythm at every maintained allocation and content zoom.
+
+1. Inventory every live maximum line measure and grid track by role: reading prose, task instruction, status, result,
+   control help, exact evidence, and navigation. Keep deliberate prose measures, but let task and status copy use the
+   width supplied by their composition unless a reviewed role-specific bound exists.
+2. Build forms from aligned label, control, help, validation, and action regions. The sport editor must preserve the
+   complete existing application command, validation, optimistic conflict, save/reset/cancel, multi-item, persistence,
+   reimport, and reload behavior; presentation work cannot create a second contract.
+3. Add rendered-geometry assertions and actual WebKit review at wide and compact allocation, both locales, light/dark,
+   100%, 125%, 150%, 175%, and 200% zoom, long translated and authored values, validation, reduced motion, keyboard,
+   Axe, and no page-level horizontal overflow. A self-review precedes any human handoff.
+
+### Corrective execution and repeat gate
+
+Execution is value-first: X6-C1 begins immediately, X6-C2 and X6-C3 follow as the first-run path, X6-C4 closes the
+activation loop, and X6-C5 audits the shared presentation after the corrected compositions exist. Each increment uses
+the standard lower-layer-first TDD order, updates its canonical contracts and user/developer documentation, passes its
+focused and complete applicable gates, and lands as a focused commit. Work that does not share runtime inputs may be
+prepared while a hosted campaign runs, but no evidence is attributed to a different source revision.
+
+After X6-C1 through X6-C5 pass, build a new revision-isolated production-native package and restart the complete X6
+profile from clean first use. The prior human findings are regression prompts, not the whole acceptance test. The
+broader History, outdoor and indoor session, range, report, export, Settings, localization, appearance, keyboard,
+VoiceOver, scaling, reduced-motion, factual tone, continued-use, and product-value coverage remains mandatory.
 
 ### Topics for the next UX evaluation
 
