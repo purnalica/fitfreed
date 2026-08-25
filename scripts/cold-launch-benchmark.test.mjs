@@ -29,9 +29,12 @@ test("binds a production build to its exact revision and clean-tree state", () =
 test("keeps ordinary builds unconfigured and admits public inputs only explicitly", () => {
   const inherited = {
     PATH: "/synthetic/bin",
+    FITFREED_E2E_DATABASE_PATH: "/private/e2e.sqlite",
     FITFREED_PUBLIC_UPDATE_CONTRACT: "inherited-contract",
     FITFREED_PUBLIC_UPDATE_ENDPOINT: "https://inherited.invalid/stable.json",
     FITFREED_PUBLIC_UPDATE_TRUST: '{"inherited":"trust"}',
+    TAURI_WEBDRIVER_PORT: "4444",
+    VITE_FITFREED_E2E: "true",
   };
   const identity = productionBuildIdentity(revision, "");
 

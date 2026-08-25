@@ -213,6 +213,11 @@ jobs:
           npm run format:check
           npm run lint:rust
 
+      - name: Build and verify the native X6 review package
+        run: |
+          npm run build:x6-review
+          npm run check:x6-review-bundle
+
       - name: Prepare the private development release evidence
         run: npm run prepare:development-release -- "$FITFREED_RELEASE_VERSION"
 

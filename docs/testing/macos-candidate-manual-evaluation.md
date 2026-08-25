@@ -18,19 +18,24 @@ narrower claim:
 - it does not remove or defer the later exact-candidate execution of this complete procedure.
 
 The X6 profile starts only after repository safety and the complete hosted campaign pass for the exact
-executable inputs handed to review. Build and launch the instrumented macOS application from that clean source
-against a dedicated ignored library:
+executable inputs handed to review. Build, inspect, and launch the revision-isolated native review application
+from that clean source:
 
 ```sh
-npm run build:e2e
-mkdir -p .artifacts/manual-x6
-FITFREED_E2E_DATABASE_PATH="$PWD/.artifacts/manual-x6/fitfreed.sqlite" \
-  src-tauri/target/e2e/release/bundle/macos/FitFreed.app/Contents/MacOS/fitfreed
+npm run review:x6
 ```
 
-No WebDriver session is attached during this review, so archive selection uses the real native macOS sheet.
-The isolated library may receive the independently generated fixtures or an explicitly authorized personal
-export. A personal export never changes the privacy-safe recording boundary below.
+This profile derives a distinct bundle identifier from the exact source revision, which gives the review its own
+application-data location without substituting the user home or enabling a database-path override. Its build has
+no E2E feature, frontend test routing, WebDriver capability, dialog mock, or opener mock. The mandatory bundle
+inspection scans the complete application for those markers before launch. Archive selection and external links
+therefore use the production native adapters. **Never use `build:e2e`, its generated application, or an E2E
+database override for human review.**
+
+The revision-isolated library may receive the independently generated fixtures or an explicitly authorized
+personal export. A personal export never changes the privacy-safe recording boundary below. After closing the
+application, `npm run launch:x6-review` reopens the already inspected build and its same isolated library while the
+source remains unchanged.
 
 For X6, execute the first-run interaction from step 3 onward without the installation/removal claims, then
 complete the Keyboard, VoiceOver, Scaling/appearance/contrast, and Realistic usability sessions. Skip the

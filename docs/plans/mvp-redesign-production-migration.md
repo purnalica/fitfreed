@@ -21,8 +21,12 @@ native replacement, deliberate candidate rejection, exact recovery, and the immu
 executable-input fingerprint `3e0c2eb1dddc33cd295c8b6b504650b32e392589d396b7f835f53dec4f68e9d8`.
 The portable job completed in 4 minutes and 27 seconds and the macOS job in 1 hour, 3 minutes, and 27 seconds;
 the bounded 75-minute allowance remained sufficient without changing an operation watchdog,
-product-performance budget, or acceptance criterion. The final human usability and accessibility gate is now
-the only remaining X6 acceptance boundary.
+product-performance budget, or acceptance criterion. The first human session then exposed an evaluation-process
+defect: the documented launch used the instrumented E2E application, whose mocked native boundaries make it
+invalid for archive-picker and external-link evaluation. The privacy-safe [human evaluation
+record](../research/x6-product-experience-human-evaluation.md) pauses that session. A revision-isolated review
+profile with production native adapters is implemented locally; exact hosted verification of this correction and
+a restarted human usability and accessibility gate are now required.
 
 The [increment status](#increment-status) gives the one-line phase view. The
 [R10.2 evidence matrix](#r102-evidence-matrix) records what has been verified and what remains, and
@@ -233,7 +237,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R8 | Complete locally — R8.1 through R8.6 passed the final Alpha gate on 2026-08-23 | Personal ranges and reusable criteria work end to end |
 | X5-R9 | Complete locally — all six slices passed fast, packaged, restart, accessibility, visual, migration, and performance gates on 2026-08-23 | Reports open as results and leave FitFreed safely |
 | X5-R10 | Complete — exact local and hosted gates passed 2026-08-24; executable-input evidence marker retained | The complete release-shaped product is coherent and documented |
-| X6 | Automatable boundary complete — no unresolved critical or major finding and exact hosted correction passed; final human review pending | Independent audit has no unresolved material finding |
+| X6 | Human review paused — XH-02 invalidated the instrumented review build; native isolated profile implemented locally, exact hosted revalidation and restarted human review pending | Independent audit has no unresolved material finding |
 
 ## X4-P0 — Freeze the executable contract
 
@@ -2162,6 +2166,18 @@ corrected source `246faed` and executable-input fingerprint
 `3e0c2eb1dddc33cd295c8b6b504650b32e392589d396b7f835f53dec4f68e9d8`. Native archive selection, full
 keyboard use, VoiceOver in both locales, contrast, reduced motion, realistic comprehension, and desire to
 continue remain human evidence and are not inferred from Axe, screenshots, or hosted automation.
+
+### Human evaluation — paused 2026-08-25
+
+The first human session correctly stopped before import because the documented E2E application replaced the native
+archive picker and official-link opener with mock-only adapters. The session supplies no production-product verdict.
+Finding XH-02 in the [human evaluation record](../research/x6-product-experience-human-evaluation.md) owns the
+privacy-safe observation and invalidation.
+
+The corrective profile builds a clean revision-isolated application without the E2E feature or frontend test flag,
+derives an application-data identity from the exact source revision, scans the complete bundle for test-routing
+markers, and is built and checked by the hosted macOS campaign. Human evaluation restarts from clean first use only
+after those exact gates pass.
 
 ### Topics for the next UX evaluation
 

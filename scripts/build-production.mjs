@@ -9,6 +9,11 @@ const publicUpdateBuildKeys = [
   "FITFREED_PUBLIC_UPDATE_ENDPOINT",
   "FITFREED_PUBLIC_UPDATE_TRUST",
 ];
+const testRoutingBuildKeys = [
+  "FITFREED_E2E_DATABASE_PATH",
+  "TAURI_WEBDRIVER_PORT",
+  "VITE_FITFREED_E2E",
+];
 
 export function productionBuildIdentity(revision, status) {
   if (!revisionPattern.test(revision)) throw new Error("invalid Git revision for production build");
@@ -25,6 +30,7 @@ export function productionBuildEnvironment(
 ) {
   const environment = { ...inheritedEnvironment };
   for (const key of publicUpdateBuildKeys) delete environment[key];
+  for (const key of testRoutingBuildKeys) delete environment[key];
   const suppliedKeys = Object.keys(publicUpdateEnvironment);
   if (
     suppliedKeys.some((key) => !publicUpdateBuildKeys.includes(key))

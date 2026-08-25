@@ -6,8 +6,10 @@
 source of truth for the screen, interaction, navigation, state, responsive, localization, and
 accessibility contract of the systemic MVP experience redesign. The production application now
 implements its R1 through R10 vertical slices. The renewed X6 machine-assisted reaudit has no unresolved
-critical or major finding, and exact repository safety and hosted verification pass for its corrections.
-The final human gate remains pending. Implementation does not by itself authorize a release claim.
+critical or major finding, and exact repository safety and hosted verification pass for its product corrections.
+The first human session was invalidated by an instrumented native boundary; exact hosted verification of the
+revision-isolated native review profile and the restarted human gate remain pending. Implementation does not by
+itself authorize a release claim.
 
 The [requirements](../requirements.md#product-experience-contract) own normative product behavior.
 The [redesign plan](../plans/ui-redesign.md) owns rationale, journeys, feasibility analysis, and

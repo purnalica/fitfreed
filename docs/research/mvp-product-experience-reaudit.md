@@ -130,7 +130,9 @@ human finding reopens the owning increment. Acceptance of this machine-assisted 
 
 ## Disposition
 
-The machine-assisted and exact hosted X6 boundaries pass. The next authorized action is the final product-owner
-usability and accessibility gate under the X6 product-experience profile of the manual procedure. Public signing,
-notarization, release creation, updater authority, exact-candidate acceptance, and download publication remain
-separate Milestone 3 decisions.
+The machine-assisted and exact hosted X6 boundaries pass. The first product-owner session was invalidated before
+import because its documented E2E application substituted mock-only native boundaries. The [human evaluation
+record](x6-product-experience-human-evaluation.md) preserves that finding without treating it as production-product
+evidence. The native revision-isolated profile must pass exact hosted verification before the human evaluation
+restarts. Public signing, notarization, release creation, updater authority, exact-candidate acceptance, and download
+publication remain separate Milestone 3 decisions.
