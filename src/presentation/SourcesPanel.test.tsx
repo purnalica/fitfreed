@@ -744,6 +744,50 @@ describe("SourcesPanel", () => {
     vi.useRealTimers();
   });
 
+  it("describes post-commit projection without reusing import progress", () => {
+    vi.useFakeTimers();
+    render(
+      <SourcesPanel
+        locale="en-US"
+        messages={catalogs["en-US"].sources}
+        importMessages={importMessages}
+        guide={guide}
+        guideLoading={false}
+        mode="active"
+        progressLabel="Refreshing Home and History"
+        progressKey="library-projection"
+        activeProtectionMessage="The imported library is committed."
+        activeWorkingMessage="Refreshing views from the updated library…"
+        activeDelayedMessage="The library is preserved while this refresh continues."
+        archivePath="/synthetic/export.zip"
+        importReady
+        busy
+        cancellable={false}
+        updateInstalling={false}
+        cancelRequested={false}
+        onChooseArchive={vi.fn()}
+        onArchiveError={vi.fn()}
+        onImport={vi.fn()}
+        onCancel={vi.fn()}
+        onOpenOfficialLink={vi.fn()}
+        onLinkError={vi.fn()}
+      />,
+    );
+
+    const projection = screen.getByRole("region", { name: "Refreshing Home and History" });
+    expect(projection).toHaveTextContent("The imported library is committed.");
+    expect(within(projection).getByRole("status")).toHaveTextContent(
+      "Refreshing views from the updated library…",
+    );
+    expect(within(projection).queryByRole("progressbar")).not.toBeInTheDocument();
+
+    act(() => vi.advanceTimersByTime(15_000));
+    expect(projection).toHaveTextContent(
+      "The library is preserved while this refresh continues.",
+    );
+    vi.useRealTimers();
+  });
+
   it("places the latest result before follow-up source actions and hides the local path", () => {
     render(
       <SourcesPanel

@@ -165,6 +165,12 @@ type HomeNavigationOperation =
   | { kind: "return" };
 
 type ApplicationHomeScrollMode = "restore" | "start";
+type LibraryHomeProjectionState = "loading" | "refreshing" | "ready" | "failed";
+
+interface LibraryHomeProjection {
+  state: LibraryHomeProjectionState;
+  afterImportOperationRef: string | null;
+}
 
 function applicationScroller() {
   return document.scrollingElement ?? document.documentElement;
@@ -202,6 +208,10 @@ function App() {
   const startupHomeNavigationRevision = useRef(homeNavigationRevision.current);
   const libraryHomeProjectionRequest = useRef(0);
   const [libraryHome, setLibraryHome] = useState<LibraryHome>();
+  const [libraryHomeProjection, setLibraryHomeProjection] = useState<LibraryHomeProjection>({
+    state: "loading",
+    afterImportOperationRef: null,
+  });
   const [libraryHomeFocusRequestId, setLibraryHomeFocusRequestId] = useState(0);
   const [libraryHomeFocusTarget, setLibraryHomeFocusTarget] = useState<string>();
   const [homeNavigationOperation, setHomeNavigationOperation]
@@ -318,24 +328,35 @@ function App() {
     return latest ?? undefined;
   }
 
-  async function refreshLibraryHome(
-    afterImportOperationRef: string | null,
-    restoreWorkspace: boolean,
-    navigationRevision = homeNavigationRevision.current,
-  ) {
+  async function loadLibraryHomeProjection(afterImportOperationRef: string | null) {
     libraryHomeProjectionRequest.current += 1;
     const requestId = libraryHomeProjectionRequest.current;
+    setLibraryHomeProjection({ state: "refreshing", afterImportOperationRef });
     let home: LibraryHome;
     try {
       home = await invoke<LibraryHome>("query_library_home", {
         request: { afterImportOperationRef },
       });
     } catch (reason) {
-      if (libraryHomeProjectionRequest.current === requestId) throw reason;
+      if (libraryHomeProjectionRequest.current === requestId) {
+        setLibraryHomeProjection({ state: "failed", afterImportOperationRef });
+        throw reason;
+      }
       return undefined;
     }
     if (libraryHomeProjectionRequest.current !== requestId) return undefined;
     setLibraryHome(home);
+    setLibraryHomeProjection({ state: "ready", afterImportOperationRef });
+    return home;
+  }
+
+  async function refreshLibraryHome(
+    afterImportOperationRef: string | null,
+    restoreWorkspace: boolean,
+    navigationRevision = homeNavigationRevision.current,
+  ) {
+    const home = await loadLibraryHomeProjection(afterImportOperationRef);
+    if (!home) return undefined;
     if (home.usableRange === null) {
       setExploreDestination(undefined);
       if (homeNavigationRevision.current === navigationRevision) {
@@ -354,18 +375,8 @@ function App() {
   }
 
   function refreshLibraryHomeProjection() {
-    libraryHomeProjectionRequest.current += 1;
-    const requestId = libraryHomeProjectionRequest.current;
     setErrorCode(undefined);
-    void invoke<LibraryHome>("query_library_home", {
-      request: { afterImportOperationRef: null },
-    }).then((home) => {
-      if (libraryHomeProjectionRequest.current === requestId) setLibraryHome(home);
-    }).catch((reason) => {
-      if (libraryHomeProjectionRequest.current === requestId) {
-        setErrorCode(commandErrorCode(reason));
-      }
-    });
+    void loadLibraryHomeProjection(null).catch(() => undefined);
   }
 
   useEffect(() => {
@@ -463,7 +474,7 @@ function App() {
   useEffect(() => {
     if (!applicationReady) return;
     refreshLibraryHome(null, true, startupHomeNavigationRevision.current)
-      .catch((reason) => setErrorCode(commandErrorCode(reason)));
+      .catch(() => undefined);
     refreshOutcome().catch((reason) => setSourceErrorCode(commandErrorCode(reason)));
     invoke<SourceAcquisitionGuide[]>("query_source_acquisition_guides")
       .then(setSourceGuides)
@@ -761,6 +772,39 @@ function App() {
     }
   }
 
+  async function openHomeTrainingWorkspace(workspace: "sessions" | "sports") {
+    if (homeNavigationOperation) return;
+    const focusTarget = `summary:${workspace}`;
+    setLibraryHomeFocusTarget(focusTarget);
+    setHomeNavigationOperation({ kind: "open", destination: "training" });
+    setReportReturnRef(undefined);
+    setReportReturnFocusRequest(undefined);
+    navigationSequence.current += 1;
+    const navigation = {
+      domain: "training" as const,
+      kind: workspace,
+      requestId: navigationSequence.current,
+    };
+    setExplorerNavigation(navigation);
+    try {
+      if (workspace === "sessions") {
+        await invoke("clear_training_discovery_workspace");
+      }
+      if (!(await openExploration("training"))) {
+        setExplorerNavigation((current) => current?.requestId === navigation.requestId
+          ? undefined
+          : current);
+      }
+    } catch (reason) {
+      setExplorerNavigation((current) => current?.requestId === navigation.requestId
+        ? undefined
+        : current);
+      setErrorCode(commandErrorCode(reason));
+    } finally {
+      setHomeNavigationOperation(undefined);
+    }
+  }
+
   async function openHomeTrainingComparison(highlight: RecentTrainingComparisonHighlight) {
     if (homeNavigationOperation) return;
     setLibraryHomeFocusTarget("highlight");
@@ -935,7 +979,7 @@ function App() {
       setRecoveryRefreshToken((current) => current + 1);
       setLongitudinalRefreshToken((current) => current + 1);
       const latest = await refreshOutcome();
-      await refreshLibraryHome(latest?.operationRef ?? null, false);
+      await refreshLibraryHome(latest?.operationRef ?? null, false).catch(() => undefined);
     } catch (reason) {
       const code = commandErrorCode(reason);
       if (code === "import-failed") {
@@ -965,6 +1009,12 @@ function App() {
       setCancelRequested(false);
       setSourceErrorCode(commandErrorCode(reason));
     }
+  }
+
+  function retryLibraryHomeProjection() {
+    setErrorCode(undefined);
+    void loadLibraryHomeProjection(libraryHomeProjection.afterImportOperationRef)
+      .catch(() => undefined);
   }
 
   function rangeIsValid(): boolean {
@@ -1032,6 +1082,47 @@ function App() {
         progress.totalBytes ?? "unknown",
       ].join(":")
     : "waiting-for-progress";
+  const historyUnavailable = !libraryHome || libraryHome.usableRange === null;
+  const refreshingCommittedLibrary = libraryHomeProjection.state === "refreshing"
+    && libraryHomeProjection.afterImportOperationRef !== null;
+  const projectingCommittedImport = busy
+    && progress?.phase === "completed"
+    && refreshingCommittedLibrary;
+  const historyRestriction = libraryHomeProjection.state === "failed"
+    ? libraryHomeProjection.afterImportOperationRef === null
+      ? {
+          message: messages.shell.historyLoadFailed,
+          actionLabel: messages.shell.historyLoadRetry,
+          onAction: retryLibraryHomeProjection,
+        }
+      : {
+          message: messages.shell.historyRefreshFailed,
+          actionLabel: messages.shell.historyRefreshRetry,
+          onAction: retryLibraryHomeProjection,
+        }
+    : refreshingCommittedLibrary
+      ? { message: messages.shell.historyRefreshing }
+      : busy && historyUnavailable
+        ? { message: messages.shell.historyImporting }
+        : libraryHomeProjection.state === "refreshing" && historyUnavailable
+          ? { message: messages.shell.historyLoading }
+          : historyUnavailable
+            ? { message: messages.shell.historyEmpty }
+            : undefined;
+  const shellImportOperation = busy && activeHome !== "sources"
+    ? {
+        label: messages.shell.activeImport,
+        detail: cancelRequested
+          ? messages.cancelling
+          : projectingCommittedImport
+            ? messages.sources.activeRefreshing
+            : progress
+              ? messages.phases[progress.phase]
+              : messages.importing,
+        actionLabel: messages.shell.viewImport,
+        onAction: () => openSources("start"),
+      }
+    : undefined;
   const rangeLoading = rangeOperation !== undefined;
   const visibleErrorCode = errorCode;
   const errorMessages = messages.errors as Record<string, string>;
@@ -1121,7 +1212,9 @@ function App() {
     <ApplicationShell
       activeHome={activeHome}
       messages={messages.shell}
-      exploreDisabled={!libraryHome || libraryHome.usableRange === null}
+      exploreDisabled={historyUnavailable}
+      exploreRestriction={historyRestriction}
+      activeOperation={shellImportOperation}
       onNavigate={navigateApplication}
     >
         <SportIconDefinitions />
@@ -1228,10 +1321,23 @@ function App() {
                 archiveSelectionRequestId={archiveSelectionRequestId}
                 archivePickerRecoveryFocusRequestId={archivePickerRecoveryFocusRequestId}
                 mode={busy ? "active" : outcome ? "result" : "ready"}
-                progressLabel={progress ? messages.phases[progress.phase] : messages.importing}
-                progressValue={progressValue}
-                progressDetail={progressDetail}
-                progressKey={progressKey}
+                progressLabel={projectingCommittedImport
+                  ? messages.sources.activeRefreshing
+                  : progress
+                    ? messages.phases[progress.phase]
+                    : messages.importing}
+                progressValue={projectingCommittedImport ? undefined : progressValue}
+                progressDetail={projectingCommittedImport ? undefined : progressDetail}
+                progressKey={projectingCommittedImport ? "library-projection" : progressKey}
+                activeProtectionMessage={projectingCommittedImport
+                  ? messages.sources.activeCommitted
+                  : undefined}
+                activeWorkingMessage={projectingCommittedImport
+                  ? messages.sources.activeRefreshing
+                  : undefined}
+                activeDelayedMessage={projectingCommittedImport
+                  ? messages.sources.activeRefreshDelayed
+                  : undefined}
                 errorMessage={sourceErrorCode
                   ? errorMessages[sourceErrorCode] ?? messages.errors.unexpected
                   : undefined}
@@ -1296,6 +1402,7 @@ function App() {
           messages={messages.home}
           focusRequestId={libraryHomeFocusRequestId}
           focusTarget={libraryHomeFocusTarget}
+          acquisitionActionsDisabled={busy}
           pendingDestination={homeNavigationOperation?.kind === "open"
             ? homeNavigationOperation.destination
             : undefined}
@@ -1306,6 +1413,8 @@ function App() {
           onOpenQuestion={(question) => void openHomeQuestion(question)}
           onOpenComparison={(comparison) => void openHomeTrainingComparison(comparison)}
           onOpenSession={(session) => void openHomeTrainingSession(session)}
+          onOpenTrainingSessions={() => void openHomeTrainingWorkspace("sessions")}
+          onOpenSports={() => void openHomeTrainingWorkspace("sports")}
           onOpenSportClassification={(sportRef) => void openHomeSportClassification(sportRef)}
           onOpenSources={openSources}
           onChooseArchive={() => void chooseArchiveFromHome()}

@@ -368,6 +368,37 @@ async function expectLibraryHome(catalog) {
   expect(await $$("#activity-heading, .training-insights, .sleep-insights, .recovery-insights, .longitudinal-insights")).toHaveLength(0);
 }
 
+async function expectHomeSummaryDestinations(catalog) {
+  const summaryActions = await $$(".library-home-summary-action");
+  expect(summaryActions).toHaveLength(2);
+
+  await summaryActions[0].click();
+  await $(".training-session-results").waitForDisplayed({ timeout: 10_000 });
+  await expect($(`aria/${catalog.training.workspaces.sessions}`))
+    .toHaveAttribute("aria-current", "page");
+  const completeHistoryQuery = await $(".training-session-applied-query");
+  await expect(completeHistoryQuery).toHaveAttribute("data-refined", "false");
+  await expect(completeHistoryQuery).toHaveText(
+    expect.stringContaining(catalog.training.sessionLibrary.defaultRefinements),
+  );
+  await returnToLibraryHome(catalog);
+  await expectDocumentFocus(
+    ".library-home-summary-action:first-of-type",
+    "Home did not restore the training-session summary origin",
+  );
+
+  const restoredSummaryActions = await $$(".library-home-summary-action");
+  await restoredSummaryActions[1].click();
+  await $(".training-sports").waitForDisplayed({ timeout: 10_000 });
+  await expect($(`aria/${catalog.training.workspaces.sports}`))
+    .toHaveAttribute("aria-current", "page");
+  await returnToLibraryHome(catalog);
+  await expectDocumentFocus(
+    ".library-home-summary-action:nth-of-type(2)",
+    "Home did not restore the sport-summary origin",
+  );
+}
+
 async function expectComparisonHeading(selector, expectedText) {
   const heading = await $(selector);
   await heading.waitForDisplayed({ timeout: 10_000 });
@@ -1453,6 +1484,27 @@ describe("packaged FitFreed import journey", () => {
     await $("#source-active-heading").waitForDisplayed({ timeout: 1_000 });
     expect(Date.now() - progressStartedAt).toBeLessThanOrEqual(1_000);
 
+    await goToHome("home");
+    const shellImport = await $(".shell-active-operation");
+    await shellImport.waitForDisplayed({ timeout: 1_000 });
+    await expect(shellImport).toHaveText(expect.stringContaining(english.shell.activeImport));
+    const restrictedHistory = await $(".app-sidebar nav button[data-home='explore']");
+    await expect(restrictedHistory).toBeDisabled();
+    await expect($(`aria/${english.home.emptyAction}`)).toBeDisabled();
+    await expect($(`aria/${english.home.emptyGuideAction}`)).toBeDisabled();
+    await expect(restrictedHistory).toHaveAttribute(
+      "aria-describedby",
+      "shell-explore-restriction",
+    );
+    await browser.saveScreenshot(path.join(
+      evidenceDirectory,
+      "x6-c4-import-active-home-en-wide.png",
+    ));
+    await shellImport.$("button").click();
+    await expect($(".app-sidebar nav button[data-home='sources']"))
+      .toHaveAttribute("aria-current", "page");
+    await $("#source-active-heading").waitForDisplayed({ timeout: 1_000 });
+
     await selectLocale("es-ES", "sources");
     await expect($(".sources-home h1")).toHaveText(spanish.sources.title);
     const cancel = await $("button.cancel");
@@ -1537,6 +1589,7 @@ describe("packaged FitFreed import journey", () => {
     await $("aria/Import selected package").click();
     await waitForNotice(english.home.postImportChanged);
     await expectLibraryHome(english);
+    await expectHomeSummaryDestinations(english);
     await expect($(".library-home-reveal")).toHaveText(
       expect.stringContaining(english.home.postImportChanged),
     );

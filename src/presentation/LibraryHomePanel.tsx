@@ -22,10 +22,13 @@ interface LibraryHomePanelProps {
   focusRequestId?: number;
   focusTarget?: string;
   pendingDestination?: ExploreDestination;
+  acquisitionActionsDisabled?: boolean;
   onExplore: (destination: ExploreDestination, focusTarget?: string) => void;
   onOpenQuestion?: (question: LibraryQuestion) => void;
   onOpenComparison: (comparison: RecentTrainingComparisonHighlight) => void;
   onOpenSession: (session: LibraryHomeRecentSession) => void;
+  onOpenTrainingSessions?: () => void;
+  onOpenSports?: () => void;
   onOpenSportClassification?: (sportRef: string) => void;
   onOpenSources: () => void;
   onChooseArchive?: () => void;
@@ -51,6 +54,7 @@ export function LibraryHomePanel({
   focusRequestId = 0,
   focusTarget,
   pendingDestination,
+  acquisitionActionsDisabled = false,
   onExplore,
   onOpenQuestion = (question) => onExplore(
     question.destination,
@@ -58,6 +62,8 @@ export function LibraryHomePanel({
   ),
   onOpenComparison,
   onOpenSession,
+  onOpenTrainingSessions = () => onExplore("training", "summary:sessions"),
+  onOpenSports = () => onExplore("training", "summary:sports"),
   onOpenSportClassification = () => undefined,
   onOpenSources,
   onChooseArchive = onOpenSources,
@@ -163,8 +169,19 @@ export function LibraryHomePanel({
           </h1>
           <p>{messages.emptyIntro}</p>
           <div className="library-home-empty-actions">
-            <button type="button" onClick={onChooseArchive}>{messages.emptyAction}</button>
-            <button type="button" className="secondary" onClick={onOpenSourceGuide}>
+            <button
+              type="button"
+              disabled={acquisitionActionsDisabled}
+              onClick={onChooseArchive}
+            >
+              {messages.emptyAction}
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              disabled={acquisitionActionsDisabled}
+              onClick={onOpenSourceGuide}
+            >
               {messages.emptyGuideAction}
             </button>
           </div>
@@ -208,7 +225,12 @@ export function LibraryHomePanel({
           <p>{messages.partialIntro}</p>
           <div className="library-home-empty-actions">
             <button type="button" onClick={onOpenSources}>{messages.partialAction}</button>
-            <button type="button" className="secondary" onClick={onChooseArchive}>
+            <button
+              type="button"
+              className="secondary"
+              disabled={acquisitionActionsDisabled}
+              onClick={onChooseArchive}
+            >
               {messages.emptyAction}
             </button>
           </div>
@@ -227,6 +249,12 @@ export function LibraryHomePanel({
     : home.postImport?.canonicalHistoryChanged
       ? messages.postImportHeadingChanged
       : messages.postImportHeadingUnchanged;
+  const sessionSummary = training
+    ? formatCount(training.sessionCount, messages.summarySessions)
+    : undefined;
+  const sportSummary = training
+    ? formatCount(training.sportProfileCount, messages.summarySports)
+    : undefined;
 
   return (
     <div className="library-home" aria-busy={pendingDestination !== undefined}>
@@ -237,8 +265,34 @@ export function LibraryHomePanel({
         <div className="library-home-summary" aria-label={`${rangeLabel}: ${range}`}>
           {training && (
             <>
-              <strong>{formatCount(training.sessionCount, messages.summarySessions)}</strong>
-              <strong>{formatCount(training.sportProfileCount, messages.summarySports)}</strong>
+              {training.sessionCount > 0 ? (
+                <button
+                  type="button"
+                  className="library-home-summary-action"
+                  ref={registerFocusTarget("summary:sessions")}
+                  disabled={pendingDestination !== undefined}
+                  onClick={onOpenTrainingSessions}
+                >
+                  <strong>{sessionSummary}</strong>
+                  <span aria-hidden="true">→</span>
+                </button>
+              ) : (
+                <strong>{sessionSummary}</strong>
+              )}
+              {training.sportProfileCount > 0 ? (
+                <button
+                  type="button"
+                  className="library-home-summary-action"
+                  ref={registerFocusTarget("summary:sports")}
+                  disabled={pendingDestination !== undefined}
+                  onClick={onOpenSports}
+                >
+                  <strong>{sportSummary}</strong>
+                  <span aria-hidden="true">→</span>
+                </button>
+              ) : (
+                <strong>{sportSummary}</strong>
+              )}
             </>
           )}
           <span><small>{rangeLabel}</small>{range}</span>

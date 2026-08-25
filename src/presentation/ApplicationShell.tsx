@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 
 import fitfreedIcon from "../../assets/brand/fitfreed-icon.svg";
 
@@ -22,6 +22,17 @@ interface ApplicationShellProps {
   activeHome: ApplicationHome;
   messages: ApplicationShellMessages;
   exploreDisabled: boolean;
+  exploreRestriction?: {
+    message: string;
+    actionLabel?: string;
+    onAction?: () => void;
+  };
+  activeOperation?: {
+    label: string;
+    detail: string;
+    actionLabel: string;
+    onAction: () => void;
+  };
   children: ReactNode;
   onNavigate: (destination: ApplicationHome) => void;
 }
@@ -56,6 +67,8 @@ export function ApplicationShell({
   activeHome,
   messages,
   exploreDisabled,
+  exploreRestriction,
+  activeOperation,
   children,
   onNavigate,
 }: ApplicationShellProps) {
@@ -77,18 +90,32 @@ export function ApplicationShell({
         <nav aria-label={messages.navigation}>
           <p className="shell-nav-group">{messages.exploreGroup}</p>
           {navigationItems.slice(0, 3).map(({ destination, icon }) => (
-            <button
-              key={destination}
-              type="button"
-              data-home={destination}
-              aria-label={labels[destination]}
-              aria-current={activeHome === destination ? "page" : undefined}
-              disabled={destination === "explore" && exploreDisabled}
-              onClick={() => onNavigate(destination)}
-            >
-              <NavigationIcon kind={icon} />
-              <span>{labels[destination]}</span>
-            </button>
+            <Fragment key={destination}>
+              <button
+                type="button"
+                data-home={destination}
+                aria-label={labels[destination]}
+                aria-current={activeHome === destination ? "page" : undefined}
+                aria-describedby={destination === "explore" && exploreRestriction
+                  ? "shell-explore-restriction"
+                  : undefined}
+                disabled={destination === "explore" && exploreDisabled}
+                onClick={() => onNavigate(destination)}
+              >
+                <NavigationIcon kind={icon} />
+                <span>{labels[destination]}</span>
+              </button>
+              {destination === "explore" && exploreRestriction && (
+                <div className="shell-nav-restriction">
+                  <span id="shell-explore-restriction">{exploreRestriction.message}</span>
+                  {exploreRestriction.actionLabel && exploreRestriction.onAction && (
+                    <button type="button" onClick={exploreRestriction.onAction}>
+                      {exploreRestriction.actionLabel}
+                    </button>
+                  )}
+                </div>
+              )}
+            </Fragment>
           ))}
           <p className="shell-nav-group shell-nav-library-group">{messages.libraryGroup}</p>
           {navigationItems.slice(3).map(({ destination, icon }) => (
@@ -114,6 +141,22 @@ export function ApplicationShell({
         </div>
       </aside>
       <div className="shell-workspace">
+        {activeOperation && (
+          <section
+            className="shell-active-operation"
+            role="status"
+            aria-label={activeOperation.label}
+            aria-live="polite"
+          >
+            <div>
+              <strong>{activeOperation.label}</strong>
+              <span>{activeOperation.detail}</span>
+            </div>
+            <button type="button" className="secondary" onClick={activeOperation.onAction}>
+              {activeOperation.actionLabel}
+            </button>
+          </section>
+        )}
         <main className="app-content">{children}</main>
       </div>
     </div>

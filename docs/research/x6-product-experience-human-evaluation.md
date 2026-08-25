@@ -146,7 +146,7 @@ notarization, installation trust, update recovery, a release candidate, or publi
 
 ### XH-07 — History is unavailable during opaque finalization without an explanation
 
-- **Status:** open; material product-experience finding under observation in the valid native review build.
+- **Status:** correction implemented and fully automated; production-native human re-evaluation pending.
 - **Observed task:** leave the apparently stationary finalization screen through the application navigation.
 - **Observed behavior:** `Home` can be selected, but `History` is not active while the import remains in
   `Finalizing the updated library`; the interface does not explain the disabled destination or provide a recovery
@@ -156,9 +156,13 @@ notarization, installation trust, update recovery, a release candidate, or publi
   broken, and the safe post-operation route becomes available promptly.
 - **Participant impact:** the person cannot inspect the library to determine whether import succeeded and receives no
   indication of whether to wait, cancel, retry, or close the application.
-- **Disposition:** trace the actual import lifecycle and navigation-disable contract together with XH-06. Preserve any
-  required write-safety exclusion, but expose its reason and recovery behavior; add regression evidence for busy,
-  completed, failed, cancelled, and stalled transitions.
+- **Disposition:** the application shell now owns the active-operation projection outside Sources and links back to
+  the active Sources surface from its beginning. History explains initial loading, first import, post-commit
+  projection, empty-library, and projection-failure states at the navigation control. A failed projection offers a
+  local retry without reimporting; success enables History immediately, while completion, failure, and cancellation
+  cannot leave stale busy state. Component, application integration, and complete packaged tests cover route-away,
+  route-back, active, completed, failed, cancelled, delayed, retry, and restart behavior. Perceptibility and confidence
+  remain pending in the repeated production-native profile.
 
 ### XH-08 — Imported sport types remain entirely unrecognized
 
@@ -178,7 +182,7 @@ notarization, installation trust, update recovery, a release candidate, or publi
 
 ### XH-09 — Home aggregates look actionable but do not lead to exploration
 
-- **Status:** open; major activation and navigation defect in the valid native review build.
+- **Status:** correction implemented and fully automated; production-native human re-evaluation pending.
 - **Observed task:** use the prominent Home summaries for imported training sessions and recorded sport types to begin
   exploring the library.
 - **Observed behavior:** the aggregate badges invite a click through their prominence and compact control-like shape,
@@ -188,9 +192,12 @@ notarization, installation trust, update recovery, a release candidate, or publi
   presenting dead-end quantities.
 - **Participant impact:** the first obvious exploration attempt fails silently and reinforces the impression that Home
   reports data without providing access to it.
-- **Disposition:** reopen the owning Home navigation slice. Define the evidence-backed destinations and focus return
-  for each actionable aggregate, or remove the misleading affordance where no useful destination exists. Add
-  pointer, keyboard, focus, and return-path evidence.
+- **Disposition:** positive session and sport totals are now explicit controls. The session total clears disposable
+  training refinements before opening the complete newest-first session history; the sport total opens the complete
+  sport-management view. Both use the existing durable training destination, preserve their exact Home origin, and
+  restore focus on return. Zero totals remain non-interactive facts. Component, application integration, and complete
+  packaged tests cover pointer and keyboard semantics, exact destinations, unfiltered-session state, and return focus.
+  Activation value remains pending in the repeated production-native profile.
 
 ### XH-10 — The displayed history start boundary appears factually implausible
 
@@ -237,8 +244,9 @@ notarization, installation trust, update recovery, a release candidate, or publi
 - **Observed task:** remain in the application after the apparently stationary finalization phase and observe
   navigation recovery.
 - **Observed behavior:** finalization completes and History becomes active without restarting the application.
-- **Boundary:** the runtime transition and navigation recovery pass. XH-06 and XH-07 retain the missing-feedback and
-  disabled-state explanation findings.
+- **Boundary:** the runtime transition and navigation recovery pass. X6-C3 and X6-C4 now supply the missing-progress,
+  continuing-operation, disabled-state explanation, and recovery behavior in automation; the repeated native profile
+  must establish that they are perceptible and trustworthy to a person.
 
 ## Interim human disposition
 

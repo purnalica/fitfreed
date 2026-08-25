@@ -1935,6 +1935,247 @@ describe("FitFreed import interface", () => {
     expect(explore).toHaveAttribute("aria-current", "page");
   });
 
+  it("describes an initial library projection failure without inventing an import", async () => {
+    emptyLibrary();
+    let homeQueryCount = 0;
+    mocks.homeInvoke.mockImplementation((command) => {
+      if (command === "query_library_home") {
+        homeQueryCount += 1;
+        return homeQueryCount === 1
+          ? Promise.reject({ code: "library-home-query-failed" })
+          : Promise.resolve(populatedLibraryHome());
+      }
+      if (command === "clear_exploration_workspace") return Promise.resolve(undefined);
+      if (command === "clear_training_discovery_workspace") return Promise.resolve(undefined);
+      throw new Error(`Unexpected Home command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+
+    const history = await screen.findByRole("button", { name: "History" });
+    await waitFor(() => expect(history).toHaveAccessibleDescription(
+      "Home and History could not load from the local library. Your library is preserved; try loading it again.",
+    ));
+    expect(screen.queryByText(/the import finished/i)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Retry library load" }));
+    await waitFor(() => expect(history).toBeEnabled());
+    expect(homeQueryCount).toBe(2);
+  });
+
+  it("opens both Home training aggregates and restores their exact initiating controls", async () => {
+    offerExploration("training");
+    const user = userEvent.setup();
+    render(<App />);
+
+    const sessions = await screen.findByRole("button", { name: "24 training sessions" });
+    await user.click(sessions);
+    expect(await screen.findByRole("button", { name: "Sessions" }))
+      .toHaveAttribute("aria-current", "page");
+    const clearCall = mocks.homeInvoke.mock.invocationCallOrder[
+      mocks.homeInvoke.mock.calls.findIndex(([command]) =>
+        command === "clear_training_discovery_workspace")
+    ];
+    const saveCall = mocks.homeInvoke.mock.invocationCallOrder[
+      mocks.homeInvoke.mock.calls.findIndex(([command]) =>
+        command === "save_exploration_workspace")
+    ];
+    expect(clearCall).toBeLessThan(saveCall);
+
+    await user.click(screen.getByRole("button", { name: "Back to Home" }));
+    await waitFor(() => expect(sessions).toHaveFocus());
+
+    const sports = screen.getByRole("button", { name: "1 recorded sport type" });
+    await user.click(sports);
+    expect(await screen.findByRole("button", { name: "Sports" }))
+      .toHaveAttribute("aria-current", "page");
+    await user.click(screen.getByRole("button", { name: "Back to Home" }));
+    await waitFor(() => expect(sports).toHaveFocus());
+  });
+
+  it("keeps an active import visible after leaving Sources and clears it after cancellation", async () => {
+    emptyLibrary();
+    let rejectImport: ((reason?: unknown) => void) | undefined;
+    let onProgress: { onmessage?: (message: unknown) => void } | undefined;
+    let latestOutcome: ReturnType<typeof importOutcome> | null = null;
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
+      if (command === "query_latest_import_outcome") return Promise.resolve(latestOutcome);
+      if (command === "import_archive") {
+        onProgress = arguments_.onProgress;
+        onProgress?.onmessage?.({
+          phase: "reconciling",
+          completedArtifacts: 2,
+          totalArtifacts: 8,
+          completedBytes: 0,
+          totalBytes: null,
+          cancellable: true,
+        });
+        return new Promise((_, reject) => {
+          rejectImport = reject;
+        });
+      }
+      if (command === "cancel_import") {
+        latestOutcome = importOutcome({
+          state: "cancelled",
+          coverageComplete: false,
+          canonicalHistoryChanged: false,
+          terminalCode: "user-cancelled",
+        });
+        onProgress?.onmessage?.({
+          phase: "cancelled",
+          completedArtifacts: 0,
+          totalArtifacts: null,
+          completedBytes: 0,
+          totalBytes: null,
+          cancellable: false,
+        });
+        rejectImport?.({ code: "import-failed" });
+        return Promise.resolve(true);
+      }
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage());
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    await chooseArchive(user, "/synthetic/active.zip");
+    await user.click(screen.getByRole("button", { name: "Import selected package" }));
+
+    const scrollingElement = document.scrollingElement ?? document.documentElement;
+    scrollingElement.scrollTop = 380;
+    await user.click(screen.getByRole("button", { name: "Home" }));
+    const operation = screen.getByRole("status", { name: "Import in progress" });
+    expect(operation).toHaveTextContent("Reconciling supported records with your library");
+    expect(screen.getByRole("button", { name: "Choose an export ZIP" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "How to obtain one" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "History" })).toHaveAccessibleDescription(
+      "History will become available when this first import and its library refresh finish.",
+    );
+    await user.click(within(operation).getByRole("button", {
+      name: "View import in Sources",
+    }));
+    expect(screen.getByRole("button", { name: "Sources" }))
+      .toHaveAttribute("aria-current", "page");
+    await waitFor(() => expect(scrollingElement.scrollTop).toBe(0));
+
+    await user.click(screen.getByRole("button", { name: "Cancel import" }));
+    expect(await screen.findByRole("region", {
+      name: "The import was cancelled",
+    })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Home" }));
+    expect(screen.queryByRole("status", { name: "Import in progress" }))
+      .not.toBeInTheDocument();
+  });
+
+  it("explains the completed-import refresh and enables History as soon as it resolves", async () => {
+    emptyLibrary();
+    const importedHome = populatedLibraryHome();
+    let homeQueryCount = 0;
+    let resolveImportedHome: (home: typeof importedHome) => void = () => undefined;
+    mocks.homeInvoke.mockImplementation((command) => {
+      if (command === "query_library_home") {
+        homeQueryCount += 1;
+        if (homeQueryCount === 1) return Promise.resolve(emptyLibraryHome());
+        return new Promise((resolve) => {
+          resolveImportedHome = resolve;
+        });
+      }
+      if (command === "clear_training_discovery_workspace") return Promise.resolve(undefined);
+      if (command === "clear_exploration_workspace") return Promise.resolve(undefined);
+      throw new Error(`Unexpected Home command: ${command}`);
+    });
+    const latestOutcome = importOutcome();
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
+      if (command === "query_latest_import_outcome") return Promise.resolve(latestOutcome);
+      if (command === "import_archive") {
+        arguments_.onProgress.onmessage({
+          phase: "completed",
+          completedArtifacts: 4,
+          totalArtifacts: 4,
+          completedBytes: 0,
+          totalBytes: null,
+          cancellable: false,
+        });
+        return Promise.resolve(latestOutcome.report);
+      }
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage());
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    await chooseArchive(user, "/synthetic/completed.zip");
+    await user.click(screen.getByRole("button", { name: "Import selected package" }));
+    await waitFor(() => expect(homeQueryCount).toBe(2));
+
+    await user.click(screen.getByRole("button", { name: "Home" }));
+    expect(screen.getByRole("status", { name: "Import in progress" }))
+      .toHaveTextContent("Refreshing Home and History from the updated library…");
+    const history = screen.getByRole("button", { name: "History" });
+    expect(history).toBeDisabled();
+    expect(history).toHaveAccessibleDescription(
+      "The import is complete. FitFreed is refreshing Home and History from the updated local library.",
+    );
+
+    await act(async () => resolveImportedHome(importedHome));
+    await waitFor(() => expect(history).toBeEnabled());
+    expect(screen.queryByRole("status", { name: "Import in progress" }))
+      .not.toBeInTheDocument();
+  });
+
+  it("owns a failed post-import refresh beside History and retries it without reimporting", async () => {
+    emptyLibrary();
+    const importedHome = populatedLibraryHome();
+    let homeQueryCount = 0;
+    mocks.homeInvoke.mockImplementation((command) => {
+      if (command === "query_library_home") {
+        homeQueryCount += 1;
+        if (homeQueryCount === 1) return Promise.resolve(emptyLibraryHome());
+        if (homeQueryCount === 2) return Promise.reject({ code: "library-home-query-failed" });
+        return Promise.resolve(importedHome);
+      }
+      if (command === "clear_training_discovery_workspace") return Promise.resolve(undefined);
+      if (command === "clear_exploration_workspace") return Promise.resolve(undefined);
+      throw new Error(`Unexpected Home command: ${command}`);
+    });
+    const latestOutcome = importOutcome();
+    let importCount = 0;
+    mocks.invoke.mockImplementation((command, arguments_) => {
+      if (command === "query_activity_overview") return Promise.resolve(emptyActivityOverview());
+      if (command === "query_latest_import_outcome") return Promise.resolve(latestOutcome);
+      if (command === "import_archive") {
+        importCount += 1;
+        arguments_.onProgress.onmessage({
+          phase: "completed",
+          completedArtifacts: 4,
+          totalArtifacts: 4,
+          completedBytes: 0,
+          totalBytes: null,
+          cancellable: false,
+        });
+        return Promise.resolve(latestOutcome.report);
+      }
+      if (command === "list_report_library") return Promise.resolve(reportLibraryPage());
+      throw new Error(`Unexpected command: ${command}`);
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    await chooseArchive(user, "/synthetic/refresh-failure.zip");
+    await user.click(screen.getByRole("button", { name: "Import selected package" }));
+    await waitFor(() => expect(homeQueryCount).toBe(2));
+    await user.click(screen.getByRole("button", { name: "Home" }));
+
+    const history = screen.getByRole("button", { name: "History" });
+    expect(history).toBeDisabled();
+    expect(history).toHaveAccessibleDescription(
+      "The import finished, but Home and History could not refresh. The local library is preserved; try loading it again.",
+    );
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Retry library refresh" }));
+    await waitFor(() => expect(history).toBeEnabled());
+    expect(importCount).toBe(1);
+    expect(homeQueryCount).toBe(3);
+  });
+
   it("previews, saves, restores, and resets every setting from the Settings home", async () => {
     emptyLibrary();
     const user = userEvent.setup();

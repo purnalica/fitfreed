@@ -149,8 +149,9 @@ Local and continuous-integration workflows will invoke the same underlying comma
 - The functional journey and its restart-verification continuation run as two separate packaged application processes against the same uniquely generated SQLite library. The first process records its exact identity only after durable state is ready; the second must have a different identity and recover that state through the normal startup path. Evidence-adaptive session composition runs in a third process with its own generated library and archive. The full-scale Insights campaign runs in a fourth process with another distinct generated library. A WebDriver session replacement or an environment-variable change inside an active process is neither restart nor isolation evidence.
 - Component coverage drives native keyboard activation through contextual-create and saved-edit cancellation
   and checks focus return to the exact source or restored result. The packaged journey crosses cancellation,
-  privacy review, and evidence review through the embedded driver's native activation command and checks focus
-  return to the exact source, result, or initiating action. It also runs Axe plus overflow and hierarchy
+  privacy review, and evidence review through the embedded driver's native activation command; leaves and returns
+  to a running import through the shell; opens complete Sessions and Sports evidence from positive Home aggregates;
+  and checks focus return to the exact source, result, summary, or initiating action. It also runs Axe plus overflow and hierarchy
   assertions on Library, Preview, refresh review, and export review in English and Spanish, light and dark
   appearance, and ordinary and 200% content zoom. The read-model benchmark separately enforces the maximum
   bounded report-library page and complete atomic self-contained HTML export budgets.

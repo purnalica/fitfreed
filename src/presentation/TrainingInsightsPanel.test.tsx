@@ -100,6 +100,36 @@ describe("TrainingInsightsPanel", () => {
     expect(screen.getByTestId("open-sport-ref")).toHaveTextContent("sport-local-unknown");
   });
 
+  it("honors explicit complete-session and complete-sport workspace requests", () => {
+    const common = {
+      locale: "en-US" as const,
+      messages: catalogs["en-US"],
+      refreshToken: 0,
+      onCreateReport: vi.fn(),
+      onError: vi.fn(),
+      onSportClassificationChange: vi.fn(),
+    };
+    const view = render(
+      <TrainingInsightsPanel
+        {...common}
+        navigationRequest={{ kind: "sports", requestId: 8 }}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Sports" }))
+      .toHaveAttribute("aria-current", "page");
+    expect(screen.getByTestId("open-sport-ref")).toHaveTextContent("none");
+
+    view.rerender(
+      <TrainingInsightsPanel
+        {...common}
+        navigationRequest={{ kind: "sessions", requestId: 9 }}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Sessions" }))
+      .toHaveAttribute("aria-current", "page");
+  });
+
   it("broadcasts each classification to both workspaces and the application owner", async () => {
     const onSportClassificationChange = vi.fn();
     const user = userEvent.setup();

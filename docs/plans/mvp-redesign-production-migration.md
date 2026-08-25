@@ -247,7 +247,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X6-C1 | Human-gated — temporal meaning and the provider-neutral identity foundation are locally complete; real provider-catalogue acquisition remains unavailable | Sports are recognizable from trustworthy evidence and Home ranges state what they measure |
 | X6-C2 | Human-gated — owned native opening, local outcomes, and spatial transitions pass complete automation; real browser appearance remains unreviewed | Every successful or failed acquisition action produces a visible, reachable result |
 | X6-C3 | Complete locally — classification, real progress, primary recovery, watchdog, and packaged regression evidence pass; production-native human re-evaluation remains in the repeated X6 gate | Import recovery is calm and specific, and long work remains perceptibly active |
-| X6-C4 | Planned — Home and navigation causes traced | Prominent Home summaries open useful evidence and temporary restrictions explain themselves |
+| X6-C4 | Complete locally — shell, Home, History, and packaged navigation evidence passed 2026-08-25 | Prominent Home summaries open useful evidence and temporary restrictions explain themselves |
 | X6-C5 | Planned — shared layout causes traced | Text and forms use the desktop workspace coherently through 200% content zoom |
 
 ## X4-P0 — Freeze the executable contract
@@ -2330,6 +2330,26 @@ the first prominent Home summaries open the corresponding evidence.
    direct-entry fallback. Any summary without a meaningful destination must lose control-like styling.
 3. Verify active, completed, failed, cancelled, retry, route-away, route-back, refresh-failure, and restart states, plus
    every aggregate destination and exact return path.
+
+**Execution state:** complete locally. `App` owns one active-import projection independently from the visible
+workspace. Outside Sources, a restrained shell status reports the authoritative phase and opens the active Sources
+surface from its beginning rather than restoring an obsolete scroll position. History retains its stable name and
+explains initial loading, first import, post-commit projection, empty-library, and projection-failure states beside
+the disabled destination; a failed post-commit projection offers a local retry that does not repeat the import, and
+a successful response enables History immediately. Home prevents a second source-acquisition action while the
+active import owns the operation. Sources stops presenting the completed import percentage while
+Home and History are being refreshed and instead names that distinct indeterminate projection operation. Completed,
+failed, and cancelled operations clear the shell status.
+
+Positive Home session and sport totals are explicit controls. Sessions clears the disposable training-discovery
+workspace before opening the complete newest-first session history; Sports opens the complete sport-management view.
+Both routes preserve the exact Home origin and restore focus on return, accept pointer and keyboard activation, and
+use the normal durable training destination for direct-entry recovery. Zero totals remain facts rather than controls.
+Component and application integration tests cover the state matrix, refresh retry without reimport, exact aggregate
+destinations, unfiltered-session semantics, failure cleanup, and focus restoration. The complete packaged macOS
+journey additionally covers route-away and route-back during a cancellable import, visible restriction ownership,
+both aggregate destinations, process restart, accessibility, both locales, maximum zoom, dense evidence, and
+performance budgets. Production-native human re-evaluation remains part of the repeated X6 gate.
 
 ### X6-C5 — Recompose information by role and supported geometry
 

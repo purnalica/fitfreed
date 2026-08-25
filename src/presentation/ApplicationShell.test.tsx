@@ -50,12 +50,19 @@ describe("ApplicationShell", () => {
     expect(screen.queryByRole("button", { name: /question/i })).not.toBeInTheDocument();
   });
 
-  it("keeps History named while explaining that it is not yet available", () => {
+  it("keeps History named and exposes the exact restriction with its recovery", async () => {
+    const user = userEvent.setup();
+    const retry = vi.fn();
     render(
       <ApplicationShell
         activeHome="home"
         messages={catalogs["es-ES"].shell}
         exploreDisabled
+        exploreRestriction={{
+          message: "El historial se habilitará cuando termine la actualización.",
+          actionLabel: "Reintentar actualización",
+          onAction: retry,
+        }}
         onNavigate={vi.fn()}
       >
         <p>Vacío</p>
@@ -65,5 +72,38 @@ describe("ApplicationShell", () => {
     const history = screen.getByRole("button", { name: "Historial" });
     expect(history).toBeDisabled();
     expect(history).toHaveTextContent("Historial");
+    expect(history).toHaveAccessibleDescription(
+      "El historial se habilitará cuando termine la actualización.",
+    );
+    await user.click(screen.getByRole("button", { name: "Reintentar actualización" }));
+    expect(retry).toHaveBeenCalledOnce();
+  });
+
+  it("keeps a shell-owned operation visible outside its detailed workspace", async () => {
+    const user = userEvent.setup();
+    const openOperation = vi.fn();
+    render(
+      <ApplicationShell
+        activeHome="home"
+        messages={catalogs["en-US"].shell}
+        exploreDisabled
+        activeOperation={{
+          label: "Import in progress",
+          detail: "Reconciling supported records with your library",
+          actionLabel: "View import in Sources",
+          onAction: openOperation,
+        }}
+        onNavigate={vi.fn()}
+      >
+        <h1>Home</h1>
+      </ApplicationShell>,
+    );
+
+    const operation = screen.getByRole("status", { name: "Import in progress" });
+    expect(operation).toHaveTextContent("Reconciling supported records with your library");
+    await user.click(within(operation).getByRole("button", {
+      name: "View import in Sources",
+    }));
+    expect(openOperation).toHaveBeenCalledOnce();
   });
 });

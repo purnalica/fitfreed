@@ -228,6 +228,8 @@ describe("LibraryHomePanel", () => {
     const user = userEvent.setup();
     const onOpenComparison = vi.fn();
     const onOpenSession = vi.fn();
+    const onOpenTrainingSessions = vi.fn();
+    const onOpenSports = vi.fn();
     render(
       <LibraryHomePanel
         home={populatedHome()}
@@ -236,13 +238,19 @@ describe("LibraryHomePanel", () => {
         onExplore={vi.fn()}
         onOpenComparison={onOpenComparison}
         onOpenSession={onOpenSession}
+        onOpenTrainingSessions={onOpenTrainingSessions}
+        onOpenSports={onOpenSports}
         onOpenSources={vi.fn()}
       />,
     );
 
     expect(screen.getByRole("heading", { name: "Your fitness history" })).toBeVisible();
-    expect(screen.getByText("42 training sessions")).toBeVisible();
-    expect(screen.getByText("4 recorded sport types")).toBeVisible();
+    const sessionSummary = screen.getByRole("button", { name: "42 training sessions" });
+    const sportSummary = screen.getByRole("button", { name: "4 recorded sport types" });
+    await user.click(sessionSummary);
+    await user.click(sportSummary);
+    expect(onOpenTrainingSessions).toHaveBeenCalledOnce();
+    expect(onOpenSports).toHaveBeenCalledOnce();
     expect(screen.getByText("Training history")).toBeVisible();
     expect(screen.getByLabelText(/Training history: Jan 2, 2024/)).toBeVisible();
     const sports = screen.getByRole("region", { name: "Your sports" });
@@ -269,6 +277,38 @@ describe("LibraryHomePanel", () => {
     expect(unknown).not.toHaveTextContent("km");
     await user.click(roadRun);
     expect(onOpenSession).toHaveBeenCalledWith(populatedHome().training?.recentSessions[0]);
+  });
+
+  it("does not style empty training summaries as destinations", () => {
+    const home = populatedHome();
+    home.training = {
+      ...home.training!,
+      sessionCount: 0,
+      sportProfileCount: 0,
+      sports: [],
+      recentSessions: [],
+    };
+
+    render(
+      <LibraryHomePanel
+        home={home}
+        locale="en-US"
+        messages={messages}
+        onExplore={vi.fn()}
+        onOpenComparison={vi.fn()}
+        onOpenSession={vi.fn()}
+        onOpenTrainingSessions={vi.fn()}
+        onOpenSports={vi.fn()}
+        onOpenSources={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("0 training sessions")).toBeVisible();
+    expect(screen.getByText("0 recorded sport types")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "0 training sessions" }))
+      .not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "0 recorded sport types" }))
+      .not.toBeInTheDocument();
   });
 
   it("keeps unresolved profiles distinct and opens the existing classification task exactly", async () => {
@@ -643,6 +683,40 @@ describe("LibraryHomePanel", () => {
     await user.click(screen.getByRole("button", { name: "How to obtain one" }));
     expect(onChooseArchive).toHaveBeenCalledOnce();
     expect(onOpenSourceGuide).toHaveBeenCalledOnce();
+  });
+
+  it("prevents a second archive selection while an import owns the operation", async () => {
+    const user = userEvent.setup();
+    const onChooseArchive = vi.fn();
+    render(
+      <LibraryHomePanel
+        home={{
+          ...populatedHome(),
+          recordedRange: null,
+          usableRange: null,
+          primaryRange: null,
+          training: null,
+          highlight: null,
+          questions: [],
+        }}
+        locale="en-US"
+        messages={messages}
+        acquisitionActionsDisabled
+        onExplore={vi.fn()}
+        onOpenComparison={vi.fn()}
+        onOpenSession={vi.fn()}
+        onOpenSources={vi.fn()}
+        onChooseArchive={onChooseArchive}
+      />,
+    );
+
+    const chooseArchive = screen.getByRole("button", { name: "Choose an export ZIP" });
+    const openGuide = screen.getByRole("button", { name: "How to obtain one" });
+    expect(chooseArchive).toBeDisabled();
+    expect(openGuide).toBeDisabled();
+    await user.click(chooseArchive);
+    await user.click(openGuide);
+    expect(onChooseArchive).not.toHaveBeenCalled();
   });
 
   it("distinguishes retained source evidence from a usable first-run library", async () => {

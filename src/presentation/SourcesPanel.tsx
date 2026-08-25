@@ -37,6 +37,9 @@ interface SourcesPanelProps {
   progressValue?: number;
   progressDetail?: string;
   progressKey?: string;
+  activeProtectionMessage?: string;
+  activeWorkingMessage?: string;
+  activeDelayedMessage?: string;
   errorMessage?: string;
   archivePath: string | undefined;
   importReady: boolean;
@@ -71,6 +74,9 @@ export function SourcesPanel({
   progressValue,
   progressDetail,
   progressKey,
+  activeProtectionMessage,
+  activeWorkingMessage,
+  activeDelayedMessage,
   errorMessage,
   archivePath,
   importReady,
@@ -215,10 +221,12 @@ export function SourcesPanel({
         >
           <p className="eyebrow">{messages.activeEyebrow}</p>
           <h2 id="source-active-heading">{progressLabel ?? importMessages.importing}</h2>
-          <p>{messages.activeProtectedHistory}</p>
+          <p>{activeProtectionMessage ?? messages.activeProtectedHistory}</p>
           {progressValue === undefined ? (
             <p className="source-active-working" role="status" aria-live="polite">
-              {cancelRequested ? importMessages.cancelling : messages.activeWorking}
+              {cancelRequested
+                ? importMessages.cancelling
+                : activeWorkingMessage ?? messages.activeWorking}
             </p>
           ) : (
             <>
@@ -236,7 +244,7 @@ export function SourcesPanel({
           )}
           {progressDelayed && (
             <p className="source-active-delayed" role="status" aria-live="polite">
-              {messages.activeDelayed}
+              {activeDelayedMessage ?? messages.activeDelayed}
             </p>
           )}
           {cancellable && (

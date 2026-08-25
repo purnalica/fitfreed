@@ -61,8 +61,20 @@ export function TrainingInsightsPanel({
     && navigationRequest.kind === "sport"
     ? navigationRequest
     : undefined;
+  const sessionWorkspaceNavigation = navigationRequest && "kind" in navigationRequest
+    && navigationRequest.kind === "sessions"
+    ? navigationRequest
+    : undefined;
+  const sportWorkspaceNavigation = navigationRequest && "kind" in navigationRequest
+    && navigationRequest.kind === "sports"
+    ? navigationRequest
+    : undefined;
   const [workspace, setWorkspace] = useState<TrainingWorkspace>(
-    comparisonNavigation ? "comparison" : sportNavigation ? "sports" : "sessions",
+    comparisonNavigation
+      ? "comparison"
+      : sportNavigation || sportWorkspaceNavigation
+        ? "sports"
+        : "sessions",
   );
   const initialDate = sessionNavigation?.localDate
     ?? (navigationRequest && !("kind" in navigationRequest)
@@ -70,11 +82,15 @@ export function TrainingInsightsPanel({
       : undefined);
 
   useEffect(() => {
-    if (sportNavigation) {
+    if (sportNavigation || sportWorkspaceNavigation) {
       setWorkspace("sports");
     } else if (comparisonNavigation || reportReturnFocusRequest?.kind === "comparison") {
       setWorkspace("comparison");
-    } else if (sessionNavigation || reportReturnFocusRequest?.kind === "session") {
+    } else if (
+      sessionNavigation
+      || sessionWorkspaceNavigation
+      || reportReturnFocusRequest?.kind === "session"
+    ) {
       setWorkspace("sessions");
     }
   }, [
@@ -82,7 +98,9 @@ export function TrainingInsightsPanel({
     reportReturnFocusRequest?.kind,
     reportReturnFocusRequest?.requestId,
     sessionNavigation?.requestId,
+    sessionWorkspaceNavigation?.requestId,
     sportNavigation?.requestId,
+    sportWorkspaceNavigation?.requestId,
   ]);
 
   const workspaces = ["sessions", "sports", "comparison"] as const;
