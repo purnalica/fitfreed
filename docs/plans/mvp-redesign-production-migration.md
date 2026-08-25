@@ -2246,9 +2246,11 @@ Rust lint and formatting gates, and packaged macOS journeys pass with independen
 evidence, including reimport, process restart, adaptive session composition, accessibility, and the unchanged
 performance budgets. Official-source review on 2026-08-25 confirmed that the complete Polar catalogue
 requires authenticated `sports:read` access and found no GPL-compatible redistribution grant; the official BLE SDK
-contains only four device-recording values and does not establish their equivalence to takeout identifiers. No real
-catalogue is bundled, so an ordinary Polar archive remains unknown unless the person supplies an override. X6-C1
-cannot close until retrieval authority and lawful redistribution or a reviewed local-only acquisition path exists.
+contains only four device-recording values and does not establish their equivalence to takeout identifiers. A second
+review of the public AccessLink v3 vocabulary found named `detailed_sport_info` values but no authoritative join to
+the numeric takeout identifiers. No real catalogue is bundled, so an ordinary Polar archive remains unknown unless
+the person supplies an override. X6-C1 cannot close until retrieval authority and lawful redistribution or a reviewed
+local-only acquisition path exists.
 
 **Rejection conditions:** inferred sport from route or measurements; an unexplained value table; provider taxonomy in
 the canonical domain; user choices overwritten by catalogue refresh; an early date suppressed without retaining its

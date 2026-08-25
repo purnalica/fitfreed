@@ -271,6 +271,15 @@ sites, commit an unauthenticated reconstruction, or bundle an API response until
 redistribution basis are recorded. This is a missing permission boundary, not a claim that redistribution is legally
 forbidden.
 
+Polar's public legacy [AccessLink v3 documentation](https://www.polar.com/accesslink-api/) publishes a broad
+`detailed_sport_info` string vocabulary and its display-name-to-FIT mapping. It does not publish the relationship
+between those strings and the numeric identifiers returned by the Dynamic API catalogue. The evaluated takeout
+training session carries only `sport.id`; its separate sport-profile settings carry a `sport` string but no catalogue
+identifier. Evaluated non-empty training-session `name` values do not match the sport-profile vocabulary and cannot
+act as a hidden join. Neither source therefore supplies an authoritative relationship. The public vocabulary can
+support compatibility research and independently authored fixtures, but it cannot resolve takeout identifiers in
+production.
+
 Polar's official BLE SDK exposes only the live/offline recording identifiers `0` unknown, `1` running, `2` cycling,
 and `16` other outdoor. The SDK does not establish that this limited device-recording enumeration is the complete
 Dynamic API catalogue or that each value has the same identity contract as takeout `sport.id`. Those values may test
