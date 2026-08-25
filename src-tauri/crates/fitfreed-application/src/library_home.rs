@@ -13,7 +13,7 @@ use super::{
     TrainingSportsPort,
 };
 
-const LIBRARY_HOME_VERSION: u32 = 3;
+const LIBRARY_HOME_VERSION: u32 = 4;
 const RECENT_SESSION_LIMIT: usize = 4;
 const SPORT_SUMMARY_LIMIT: usize = 6;
 const COMPARISON_PERIOD_DAYS: u64 = 7;
@@ -85,11 +85,27 @@ impl LibraryMeasurementCoverage {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LibraryDomainCoverage {
     pub domain: LibraryDomain,
-    pub available_range: Option<LibraryHomeDateRange>,
+    pub recorded_range: Option<LibraryHomeDateRange>,
+    pub usable_range: Option<LibraryHomeDateRange>,
     pub selected_range: Option<LibraryHomeDateRange>,
     pub origin_count: usize,
     pub observed_record_count: usize,
     pub measurements: Vec<LibraryMeasurementCoverage>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LibraryHomeRangeScope {
+    Training,
+    Activity,
+    Sleep,
+    Recovery,
+    Combined,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LibraryHomePrimaryRange {
+    pub scope: LibraryHomeRangeScope,
+    pub range: LibraryHomeDateRange,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -225,7 +241,9 @@ pub enum LibraryHomeHighlight {
 pub struct LibraryHome {
     pub version: u32,
     pub library_revision_ref: String,
-    pub available_range: Option<LibraryHomeDateRange>,
+    pub recorded_range: Option<LibraryHomeDateRange>,
+    pub usable_range: Option<LibraryHomeDateRange>,
+    pub primary_range: Option<LibraryHomePrimaryRange>,
     pub domains: Vec<LibraryDomainCoverage>,
     pub questions: Vec<LibraryQuestion>,
     pub training: Option<LibraryHomeTraining>,
@@ -248,8 +266,13 @@ pub trait LibraryHomeClockPort {
     fn current_local_date(&self) -> Result<String, String>;
 }
 
+pub trait LibraryHomeMeasurementRangePort {
+    fn activity_step_bounds(&self) -> Result<Option<super::ActivityDateRange>, String>;
+}
+
 pub trait LibraryHomePort:
     ActivityLibraryPort
+    + LibraryHomeMeasurementRangePort
     + TrainingLibraryPort
     + SleepLibraryPort
     + RecoveryLibraryPort
@@ -264,6 +287,7 @@ pub trait LibraryHomePort:
 
 impl<T> LibraryHomePort for T where
     T: ActivityLibraryPort
+        + LibraryHomeMeasurementRangePort
         + TrainingLibraryPort
         + SleepLibraryPort
         + RecoveryLibraryPort
@@ -324,20 +348,44 @@ where
     let sleep = query_sleep_overview(port, None)?;
     let recovery = query_recovery_overview(port, None)?;
 
-    let available_range = combined_range(&training, &activity, &sleep, &recovery);
     let training_bounds = training.available_range.clone();
+    let activity_step_bounds = port
+        .activity_step_bounds()
+        .map_err(ApplicationError::Query)?;
+    validate_activity_step_bounds(
+        activity.available_range.as_ref(),
+        activity_step_bounds.as_ref(),
+    )?;
+    let training_range = training.available_range.as_ref().map(training_home_range);
+    let activity_recorded_range = activity.available_range.as_ref().map(activity_home_range);
+    let activity_usable_range = activity_step_bounds.as_ref().map(activity_home_range);
+    let sleep_range = sleep.available_range.as_ref().map(sleep_home_range);
+    let recovery_range = recovery.available_range.as_ref().map(recovery_home_range);
+    let recorded_range = combined_range([
+        training_range.as_ref(),
+        activity_recorded_range.as_ref(),
+        sleep_range.as_ref(),
+        recovery_range.as_ref(),
+    ]);
+    let usable_range = combined_range([
+        training_range.as_ref(),
+        activity_usable_range.as_ref(),
+        sleep_range.as_ref(),
+        recovery_range.as_ref(),
+    ]);
     let domains = vec![
         training_coverage(training)?,
-        activity_coverage(activity)?,
+        activity_coverage(activity, activity_usable_range)?,
         sleep_coverage(sleep)?,
         recovery_coverage(recovery)?,
     ];
+    let primary_range = primary_range(&domains, usable_range.as_ref());
     let questions = available_questions(&domains);
     let current_local_date = current_local_date(port)?;
     let (training, highlight) = training_identity_and_highlight(
         port,
         training_bounds.as_ref(),
-        available_range.as_ref(),
+        usable_range.as_ref(),
         current_local_date,
     )?;
     let post_import = requested_import_reveal(port, request.after_import_operation_ref.as_deref())?;
@@ -346,7 +394,9 @@ where
     Ok(LibraryHome {
         version: LIBRARY_HOME_VERSION,
         library_revision_ref,
-        available_range,
+        recorded_range,
+        usable_range,
+        primary_range,
         domains,
         questions,
         training,
@@ -731,36 +781,16 @@ fn validate_request(request: &LibraryHomeRequest) -> Result<(), ApplicationError
     Ok(())
 }
 
-fn combined_range(
-    training: &TrainingOverview,
-    activity: &ActivityOverview,
-    sleep: &SleepOverview,
-    recovery: &RecoveryOverview,
-) -> Option<LibraryHomeDateRange> {
-    let ranges = [
-        training
-            .available_range
-            .as_ref()
-            .map(|range| (&range.from, &range.through)),
-        activity
-            .available_range
-            .as_ref()
-            .map(|range| (&range.from, &range.through)),
-        sleep
-            .available_range
-            .as_ref()
-            .map(|range| (&range.from, &range.through)),
-        recovery
-            .available_range
-            .as_ref()
-            .map(|range| (&range.from, &range.through)),
-    ];
+fn combined_range(ranges: [Option<&LibraryHomeDateRange>; 4]) -> Option<LibraryHomeDateRange> {
     let mut present = ranges.into_iter().flatten();
-    let (first_from, first_through) = present.next()?;
+    let first = present.next()?;
     let (from, through) = present.fold(
-        (first_from.as_str(), first_through.as_str()),
-        |(earliest, latest), (from, through)| {
-            (earliest.min(from.as_str()), latest.max(through.as_str()))
+        (first.from.as_str(), first.through.as_str()),
+        |(earliest, latest), range| {
+            (
+                earliest.min(range.from.as_str()),
+                latest.max(range.through.as_str()),
+            )
         },
     );
     Some(LibraryHomeDateRange {
@@ -769,9 +799,117 @@ fn combined_range(
     })
 }
 
+fn primary_range(
+    domains: &[LibraryDomainCoverage],
+    combined_usable_range: Option<&LibraryHomeDateRange>,
+) -> Option<LibraryHomePrimaryRange> {
+    let usable = domains
+        .iter()
+        .filter_map(|domain| {
+            domain
+                .usable_range
+                .as_ref()
+                .map(|range| (domain.domain, range))
+        })
+        .collect::<Vec<_>>();
+    if let Some((_, range)) = usable
+        .iter()
+        .find(|(domain, _)| *domain == LibraryDomain::Training)
+    {
+        return Some(LibraryHomePrimaryRange {
+            scope: LibraryHomeRangeScope::Training,
+            range: (*range).clone(),
+        });
+    }
+    if let [(domain, range)] = usable.as_slice() {
+        return Some(LibraryHomePrimaryRange {
+            scope: range_scope(*domain),
+            range: (*range).clone(),
+        });
+    }
+    combined_usable_range.map(|range| LibraryHomePrimaryRange {
+        scope: LibraryHomeRangeScope::Combined,
+        range: range.clone(),
+    })
+}
+
+const fn range_scope(domain: LibraryDomain) -> LibraryHomeRangeScope {
+    match domain {
+        LibraryDomain::Training => LibraryHomeRangeScope::Training,
+        LibraryDomain::Activity => LibraryHomeRangeScope::Activity,
+        LibraryDomain::Sleep => LibraryHomeRangeScope::Sleep,
+        LibraryDomain::Recovery => LibraryHomeRangeScope::Recovery,
+    }
+}
+
+fn training_home_range(range: &super::TrainingDateRange) -> LibraryHomeDateRange {
+    LibraryHomeDateRange {
+        from: range.from.clone(),
+        through: range.through.clone(),
+    }
+}
+
+fn activity_home_range(range: &super::ActivityDateRange) -> LibraryHomeDateRange {
+    LibraryHomeDateRange {
+        from: range.from.clone(),
+        through: range.through.clone(),
+    }
+}
+
+fn sleep_home_range(range: &super::SleepDateRange) -> LibraryHomeDateRange {
+    LibraryHomeDateRange {
+        from: range.from.clone(),
+        through: range.through.clone(),
+    }
+}
+
+fn recovery_home_range(range: &super::RecoveryDateRange) -> LibraryHomeDateRange {
+    LibraryHomeDateRange {
+        from: range.from.clone(),
+        through: range.through.clone(),
+    }
+}
+
+fn validate_activity_step_bounds(
+    recorded: Option<&super::ActivityDateRange>,
+    usable: Option<&super::ActivityDateRange>,
+) -> Result<(), ApplicationError> {
+    let Some(usable) = usable else {
+        return Ok(());
+    };
+    let Some(recorded) = recorded else {
+        return Err(ApplicationError::Query(
+            "activity step bounds exist without recorded activity".to_owned(),
+        ));
+    };
+    let usable_from = parse_home_date(&usable.from, "activity step start")?;
+    let usable_through = parse_home_date(&usable.through, "activity step end")?;
+    let recorded_from = parse_home_date(&recorded.from, "activity start")?;
+    let recorded_through = parse_home_date(&recorded.through, "activity end")?;
+    if usable_from > usable_through
+        || usable_from < recorded_from
+        || usable_through > recorded_through
+    {
+        return Err(ApplicationError::Query(
+            "activity step bounds exceed recorded activity".to_owned(),
+        ));
+    }
+    Ok(())
+}
+
+fn parse_home_date(value: &str, label: &str) -> Result<NaiveDate, ApplicationError> {
+    let date = NaiveDate::parse_from_str(value, "%Y-%m-%d")
+        .map_err(|_| ApplicationError::Query(format!("{label} is invalid")))?;
+    if date.format("%Y-%m-%d").to_string() != value {
+        return Err(ApplicationError::Query(format!("{label} is not canonical")));
+    }
+    Ok(date)
+}
+
 fn training_coverage(
     overview: TrainingOverview,
 ) -> Result<LibraryDomainCoverage, ApplicationError> {
+    let recorded_range = overview.available_range.as_ref().map(training_home_range);
     let observed = sum_counts(
         overview
             .series
@@ -803,14 +941,9 @@ fn training_coverage(
     coverage_is_bounded([distance, energy, heart_rate], observed, "training")?;
     Ok(LibraryDomainCoverage {
         domain: LibraryDomain::Training,
-        available_range: overview.available_range.map(|range| LibraryHomeDateRange {
-            from: range.from,
-            through: range.through,
-        }),
-        selected_range: overview.selected_range.map(|range| LibraryHomeDateRange {
-            from: range.from,
-            through: range.through,
-        }),
+        recorded_range: recorded_range.clone(),
+        usable_range: recorded_range,
+        selected_range: overview.selected_range.as_ref().map(training_home_range),
         origin_count: overview.series.len(),
         observed_record_count: observed,
         measurements: if observed > 0 {
@@ -844,6 +977,7 @@ fn training_coverage(
 
 fn activity_coverage(
     overview: ActivityOverview,
+    usable_range: Option<LibraryHomeDateRange>,
 ) -> Result<LibraryDomainCoverage, ApplicationError> {
     let observed = sum_counts(
         overview
@@ -862,14 +996,9 @@ fn activity_coverage(
     coverage_is_bounded([available], observed, "activity")?;
     Ok(LibraryDomainCoverage {
         domain: LibraryDomain::Activity,
-        available_range: overview.available_range.map(|range| LibraryHomeDateRange {
-            from: range.from,
-            through: range.through,
-        }),
-        selected_range: overview.selected_range.map(|range| LibraryHomeDateRange {
-            from: range.from,
-            through: range.through,
-        }),
+        recorded_range: overview.available_range.as_ref().map(activity_home_range),
+        usable_range: usable_range.clone(),
+        selected_range: usable_range,
         origin_count: overview.series.len(),
         observed_record_count: observed,
         measurements: if observed > 0 {
@@ -885,6 +1014,7 @@ fn activity_coverage(
 }
 
 fn sleep_coverage(overview: SleepOverview) -> Result<LibraryDomainCoverage, ApplicationError> {
+    let recorded_range = overview.available_range.as_ref().map(sleep_home_range);
     let observed = sleep_count(
         &overview,
         |summary| summary.observed_nights,
@@ -914,14 +1044,9 @@ fn sleep_coverage(overview: SleepOverview) -> Result<LibraryDomainCoverage, Appl
     coverage_is_bounded([phases, stages, scores, goals, power], observed, "sleep")?;
     Ok(LibraryDomainCoverage {
         domain: LibraryDomain::Sleep,
-        available_range: overview.available_range.map(|range| LibraryHomeDateRange {
-            from: range.from,
-            through: range.through,
-        }),
-        selected_range: overview.selected_range.map(|range| LibraryHomeDateRange {
-            from: range.from,
-            through: range.through,
-        }),
+        recorded_range: recorded_range.clone(),
+        usable_range: recorded_range,
+        selected_range: overview.selected_range.as_ref().map(sleep_home_range),
         origin_count: overview.series.len(),
         observed_record_count: observed,
         measurements: if observed > 0 {
@@ -971,6 +1096,7 @@ fn sleep_count(
 fn recovery_coverage(
     overview: RecoveryOverview,
 ) -> Result<LibraryDomainCoverage, ApplicationError> {
+    let recorded_range = overview.available_range.as_ref().map(recovery_home_range);
     let observed = recovery_count(
         &overview,
         |summary| summary.observed_nights,
@@ -1003,14 +1129,9 @@ fn recovery_coverage(
     )?;
     Ok(LibraryDomainCoverage {
         domain: LibraryDomain::Recovery,
-        available_range: overview.available_range.map(|range| LibraryHomeDateRange {
-            from: range.from,
-            through: range.through,
-        }),
-        selected_range: overview.selected_range.map(|range| LibraryHomeDateRange {
-            from: range.from,
-            through: range.through,
-        }),
+        recorded_range: recorded_range.clone(),
+        usable_range: recorded_range,
+        selected_range: overview.selected_range.as_ref().map(recovery_home_range),
         origin_count: overview.series.len(),
         observed_record_count: observed,
         measurements: if observed > 0 {

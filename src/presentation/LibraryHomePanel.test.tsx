@@ -10,13 +10,19 @@ const messages = catalogs["en-US"].home;
 
 function populatedHome(overrides: Partial<LibraryHome> = {}): LibraryHome {
   return {
-    version: 3,
+    version: 4,
     libraryRevisionRef: "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    availableRange: { from: "2024-01-02", through: "2026-08-17" },
+    recordedRange: { from: "2024-01-02", through: "2026-08-17" },
+    usableRange: { from: "2024-01-02", through: "2026-08-17" },
+    primaryRange: {
+      scope: "training",
+      range: { from: "2024-01-02", through: "2026-08-17" },
+    },
     domains: [
       {
         domain: "training",
-        availableRange: { from: "2024-01-02", through: "2026-08-17" },
+        recordedRange: { from: "2024-01-02", through: "2026-08-17" },
+        usableRange: { from: "2024-01-02", through: "2026-08-17" },
         selectedRange: { from: "2026-07-19", through: "2026-08-17" },
         originCount: 1,
         observedRecordCount: 42,
@@ -27,7 +33,8 @@ function populatedHome(overrides: Partial<LibraryHome> = {}): LibraryHome {
       },
       {
         domain: "activity",
-        availableRange: { from: "2024-01-02", through: "2026-08-17" },
+        recordedRange: { from: "2024-01-02", through: "2026-08-17" },
+        usableRange: { from: "2024-01-02", through: "2026-08-17" },
         selectedRange: { from: "2026-07-19", through: "2026-08-17" },
         originCount: 1,
         observedRecordCount: 30,
@@ -37,7 +44,8 @@ function populatedHome(overrides: Partial<LibraryHome> = {}): LibraryHome {
       },
       {
         domain: "sleep",
-        availableRange: { from: "2025-01-01", through: "2026-08-16" },
+        recordedRange: { from: "2025-01-01", through: "2026-08-16" },
+        usableRange: { from: "2025-01-01", through: "2026-08-16" },
         selectedRange: { from: "2026-07-18", through: "2026-08-16" },
         originCount: 1,
         observedRecordCount: 28,
@@ -47,7 +55,8 @@ function populatedHome(overrides: Partial<LibraryHome> = {}): LibraryHome {
       },
       {
         domain: "recovery",
-        availableRange: { from: "2025-01-01", through: "2026-08-16" },
+        recordedRange: { from: "2025-01-01", through: "2026-08-16" },
+        usableRange: { from: "2025-01-01", through: "2026-08-16" },
         selectedRange: { from: "2026-07-18", through: "2026-08-16" },
         originCount: 1,
         observedRecordCount: 12,
@@ -173,6 +182,8 @@ describe("LibraryHomePanel", () => {
     expect(screen.getByRole("heading", { name: "Your fitness history" })).toBeVisible();
     expect(screen.getByText("42 training sessions")).toBeVisible();
     expect(screen.getByText("4 recorded sport types")).toBeVisible();
+    expect(screen.getByText("Training history")).toBeVisible();
+    expect(screen.getByLabelText(/Training history: Jan 2, 2024/)).toBeVisible();
     const sports = screen.getByRole("region", { name: "Your sports" });
     expect(within(sports).getByText("Road running")).toBeVisible();
     expect(within(sports).getByText("Kayaking")).toBeVisible();
@@ -295,7 +306,8 @@ describe("LibraryHomePanel", () => {
         populatedHome().domains[0],
         {
           domain: "activity",
-          availableRange: null,
+          recordedRange: null,
+          usableRange: null,
           selectedRange: null,
           originCount: 0,
           observedRecordCount: 0,
@@ -517,12 +529,15 @@ describe("LibraryHomePanel", () => {
     render(
       <LibraryHomePanel
         home={{
-          version: 3,
+          version: 4,
           libraryRevisionRef: "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          availableRange: null,
+          recordedRange: null,
+          usableRange: null,
+          primaryRange: null,
           domains: ["training", "activity", "sleep", "recovery"].map((domain) => ({
             domain: domain as "training" | "activity" | "sleep" | "recovery",
-            availableRange: null,
+            recordedRange: null,
+            usableRange: null,
             selectedRange: null,
             originCount: 0,
             observedRecordCount: 0,
@@ -567,5 +582,48 @@ describe("LibraryHomePanel", () => {
     await user.click(screen.getByRole("button", { name: "How to obtain one" }));
     expect(onChooseArchive).toHaveBeenCalledOnce();
     expect(onOpenSourceGuide).toHaveBeenCalledOnce();
+  });
+
+  it("distinguishes retained source evidence from a usable first-run library", async () => {
+    const user = userEvent.setup();
+    const onOpenSources = vi.fn();
+    const onChooseArchive = vi.fn();
+    render(
+      <LibraryHomePanel
+        home={{
+          ...populatedHome(),
+          usableRange: null,
+          primaryRange: null,
+          training: null,
+          highlight: null,
+          questions: [],
+          domains: populatedHome().domains.map((domain) => ({
+            ...domain,
+            usableRange: null,
+            selectedRange: null,
+            measurements: domain.measurements.map((measurement) => ({
+              ...measurement,
+              availableRecords: 0,
+            })),
+          })),
+        }}
+        locale="en-US"
+        messages={messages}
+        onExplore={vi.fn()}
+        onOpenComparison={vi.fn()}
+        onOpenSession={vi.fn()}
+        onOpenSources={onOpenSources}
+        onChooseArchive={onChooseArchive}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Imported records need source review" }))
+      .toBeVisible();
+    expect(screen.queryByRole("heading", { name: "Explore your fitness export on this device" }))
+      .not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Review import coverage" }));
+    await user.click(screen.getByRole("button", { name: "Choose an export ZIP" }));
+    expect(onOpenSources).toHaveBeenCalledOnce();
+    expect(onChooseArchive).toHaveBeenCalledOnce();
   });
 });

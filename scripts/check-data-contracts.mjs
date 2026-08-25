@@ -5469,6 +5469,196 @@ for (const invalidHome of [
   }
 }
 
+const libraryHomeV4Path = "docs/data-formats/insights/library-home-v4.md";
+const libraryHomeV4 = read(libraryHomeV4Path);
+for (const field of [
+  "recordedRange",
+  "usableRange",
+  "primaryRange",
+  "primaryRange.scope",
+  "training",
+  "activity",
+  "sleep",
+  "recovery",
+  "combined",
+  "stepCount",
+]) {
+  requireMention(libraryHomeV4, field, libraryHomeV4Path);
+}
+
+const libraryHomeV4SchemaPath = "schemas/library-home-v4.schema.json";
+const libraryHomeV4Schema = JSON.parse(read(libraryHomeV4SchemaPath));
+const validateLibraryHomeV4Schema = ajv.compile(libraryHomeV4Schema);
+
+function libraryHomeV4FromV3(value) {
+  const next = structuredClone(value);
+  next.version = 4;
+  next.recordedRange = next.availableRange;
+  next.usableRange = next.availableRange;
+  delete next.availableRange;
+  for (const domain of next.domains) {
+    domain.recordedRange = domain.availableRange;
+    domain.usableRange = domain.availableRange;
+    delete domain.availableRange;
+  }
+  const trainingRange = next.domains[0].usableRange;
+  const usableDomains = next.domains.filter((domain) => domain.usableRange !== null);
+  next.primaryRange = next.usableRange === null
+    ? null
+    : trainingRange !== null
+      ? { scope: "training", range: trainingRange }
+      : usableDomains.length === 1
+        ? { scope: usableDomains[0].domain, range: usableDomains[0].usableRange }
+        : { scope: "combined", range: next.usableRange };
+  return next;
+}
+
+const syntheticLibraryHomeV4 = libraryHomeV4FromV3(syntheticLibraryHomeV3);
+const emptyLibraryHomeV4 = libraryHomeV4FromV3(emptyLibraryHomeV3);
+const recordedOnlyLibraryHomeV4 = structuredClone(emptyLibraryHomeV4);
+recordedOnlyLibraryHomeV4.recordedRange = { from: "2014-01-01", through: "2014-01-01" };
+recordedOnlyLibraryHomeV4.domains[1] = {
+  domain: "activity",
+  recordedRange: { from: "2014-01-01", through: "2014-01-01" },
+  usableRange: null,
+  selectedRange: null,
+  originCount: 1,
+  observedRecordCount: 1,
+  measurements: [measurement("activity-steps", 0, 1)],
+};
+
+function combinedHomeRange(domains, field) {
+  const ranges = domains.map((domain) => domain[field]).filter((range) => range !== null);
+  if (ranges.length === 0) return null;
+  return {
+    from: ranges.map((range) => range.from).reduce((left, right) => left < right ? left : right),
+    through: ranges
+      .map((range) => range.through)
+      .reduce((left, right) => left > right ? left : right),
+  };
+}
+
+function libraryHomeV4IsSemanticallyValid(value) {
+  if (!validateLibraryHomeV4Schema(value)) return false;
+  if (
+    JSON.stringify(value.recordedRange) !== JSON.stringify(combinedHomeRange(value.domains, "recordedRange"))
+    || JSON.stringify(value.usableRange) !== JSON.stringify(combinedHomeRange(value.domains, "usableRange"))
+  ) {
+    return false;
+  }
+  for (const domain of value.domains) {
+    if (
+      domain.recordedRange !== null
+      && (domain.recordedRange.from > domain.recordedRange.through
+        || domain.measurements.some((measurementEntry) => (
+          measurementEntry.observedRecords !== domain.observedRecordCount
+          || measurementEntry.availableRecords > measurementEntry.observedRecords
+        )))
+    ) {
+      return false;
+    }
+    if (domain.usableRange === null) {
+      if (
+        domain.selectedRange !== null
+        || domain.measurements.some((measurementEntry) => measurementEntry.availableRecords > 0)
+      ) {
+        return false;
+      }
+    } else if (
+      domain.selectedRange === null
+      || domain.usableRange.from < domain.recordedRange.from
+      || domain.usableRange.through > domain.recordedRange.through
+      || JSON.stringify(domain.selectedRange) !== JSON.stringify(domain.usableRange)
+    ) {
+      return false;
+    }
+    if (
+      domain.domain !== "activity"
+      && JSON.stringify(domain.recordedRange) !== JSON.stringify(domain.usableRange)
+    ) {
+      return false;
+    }
+  }
+  if (value.usableRange === null) {
+    return value.primaryRange === null
+      && value.questions.length === 0
+      && value.training === null
+      && value.highlight === null
+      && value.resumableExploration === null;
+  }
+  if (value.primaryRange === null) return false;
+  const usableDomains = value.domains.filter((domain) => domain.usableRange !== null);
+  const trainingRange = value.domains[0].usableRange;
+  const expectedPrimary = trainingRange !== null
+    ? { scope: "training", range: trainingRange }
+    : usableDomains.length === 1
+      ? { scope: usableDomains[0].domain, range: usableDomains[0].usableRange }
+      : { scope: "combined", range: value.usableRange };
+  if (JSON.stringify(value.primaryRange) !== JSON.stringify(expectedPrimary)) return false;
+
+  const legacy = structuredClone(value);
+  legacy.version = 3;
+  legacy.availableRange = legacy.usableRange;
+  delete legacy.recordedRange;
+  delete legacy.usableRange;
+  delete legacy.primaryRange;
+  legacy.domains = legacy.domains.map((domain) => domain.usableRange === null
+    ? unavailableDomain(domain.domain)
+    : {
+        ...domain,
+        availableRange: domain.usableRange,
+        selectedRange: domain.usableRange,
+        recordedRange: undefined,
+        usableRange: undefined,
+      });
+  for (const domain of legacy.domains) {
+    delete domain.recordedRange;
+    delete domain.usableRange;
+  }
+  return libraryHomeV3IsSemanticallyValid(legacy);
+}
+
+for (const home of [emptyLibraryHomeV4, recordedOnlyLibraryHomeV4, syntheticLibraryHomeV4]) {
+  if (!libraryHomeV4IsSemanticallyValid(home)) {
+    throw new Error(
+      libraryHomeV4SchemaPath
+        + " rejected a valid response: "
+        + ajv.errorsText(validateLibraryHomeV4Schema.errors),
+    );
+  }
+}
+for (const invalidHome of [
+  (() => {
+    const value = structuredClone(syntheticLibraryHomeV4);
+    value.version = 3;
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticLibraryHomeV4);
+    value.recordedRange.from = "2014-01-01";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(syntheticLibraryHomeV4);
+    value.primaryRange.scope = "combined";
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(recordedOnlyLibraryHomeV4);
+    value.primaryRange = { scope: "activity", range: value.recordedRange };
+    return value;
+  })(),
+  (() => {
+    const value = structuredClone(recordedOnlyLibraryHomeV4);
+    value.domains[1].measurements[0].availableRecords = 1;
+    return value;
+  })(),
+]) {
+  if (libraryHomeV4IsSemanticallyValid(invalidHome)) {
+    throw new Error(libraryHomeV4SchemaPath + " accepted an invalid response");
+  }
+}
+
 const updateChannelPath = "docs/data-formats/release/update-channel-v1.md";
 const updateChannel = read(updateChannelPath);
 for (const field of [
@@ -6962,6 +7152,7 @@ process.stdout.write(
       libraryHomeSchemaPath,
       libraryHomeV2SchemaPath,
       libraryHomeV3SchemaPath,
+      libraryHomeV4SchemaPath,
       explorationWorkspaceSaveSchemaPath,
     ],
     updateChannelSchemas: [

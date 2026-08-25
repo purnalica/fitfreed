@@ -12,11 +12,12 @@ use fitfreed_application::{
     ExpectedSourceArchive, ExplorationWorkspace, ExploreDestination, HistoricalTrainingHighlight,
     HistoricalTrainingReason, ImportPhase, ImportProgress, InvalidApplicationPreferences,
     LibraryDomain, LibraryDomainCoverage, LibraryHistoryHighlight, LibraryHome,
-    LibraryHomeDateRange, LibraryHomeHighlight, LibraryHomeRecentSession, LibraryHomeRequest,
-    LibraryHomeSportSummary, LibraryHomeTraining, LibraryHomeTrainingComparison,
-    LibraryHomeTrainingPeriod, LibraryMeasurement, LibraryMeasurementCoverage, LibraryQuestion,
-    LibraryQuestionKind, LongitudinalActivityComparison, LongitudinalActivityDay,
-    LongitudinalComparison, LongitudinalDateRange, LongitudinalDayInsight, LongitudinalOverview,
+    LibraryHomeDateRange, LibraryHomeHighlight, LibraryHomePrimaryRange, LibraryHomeRangeScope,
+    LibraryHomeRecentSession, LibraryHomeRequest, LibraryHomeSportSummary, LibraryHomeTraining,
+    LibraryHomeTrainingComparison, LibraryHomeTrainingPeriod, LibraryMeasurement,
+    LibraryMeasurementCoverage, LibraryQuestion, LibraryQuestionKind,
+    LongitudinalActivityComparison, LongitudinalActivityDay, LongitudinalComparison,
+    LongitudinalDateRange, LongitudinalDayInsight, LongitudinalOverview,
     LongitudinalRecoveryComparison, LongitudinalRecoveryDay, LongitudinalSeriesComparison,
     LongitudinalSeriesOverview, LongitudinalSleepComparison, LongitudinalSleepDay,
     LongitudinalTrainingComparison, LongitudinalTrainingDay, ManualUpdateReason,
@@ -247,7 +248,8 @@ impl From<LibraryMeasurementCoverage> for LibraryMeasurementCoverageDto {
 #[serde(rename_all = "camelCase")]
 pub struct LibraryDomainCoverageDto {
     domain: &'static str,
-    available_range: Option<LibraryHomeDateRangeDto>,
+    recorded_range: Option<LibraryHomeDateRangeDto>,
+    usable_range: Option<LibraryHomeDateRangeDto>,
     selected_range: Option<LibraryHomeDateRangeDto>,
     origin_count: usize,
     observed_record_count: usize,
@@ -258,11 +260,28 @@ impl From<LibraryDomainCoverage> for LibraryDomainCoverageDto {
     fn from(coverage: LibraryDomainCoverage) -> Self {
         Self {
             domain: library_domain(coverage.domain),
-            available_range: coverage.available_range.map(Into::into),
+            recorded_range: coverage.recorded_range.map(Into::into),
+            usable_range: coverage.usable_range.map(Into::into),
             selected_range: coverage.selected_range.map(Into::into),
             origin_count: coverage.origin_count,
             observed_record_count: coverage.observed_record_count,
             measurements: coverage.measurements.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryHomePrimaryRangeDto {
+    scope: &'static str,
+    range: LibraryHomeDateRangeDto,
+}
+
+impl From<LibraryHomePrimaryRange> for LibraryHomePrimaryRangeDto {
+    fn from(primary: LibraryHomePrimaryRange) -> Self {
+        Self {
+            scope: library_home_range_scope(primary.scope),
+            range: primary.range.into(),
         }
     }
 }
@@ -539,7 +558,9 @@ impl From<LibraryHomeHighlight> for LibraryHomeHighlightDto {
 pub struct LibraryHomeDto {
     version: u32,
     library_revision_ref: String,
-    available_range: Option<LibraryHomeDateRangeDto>,
+    recorded_range: Option<LibraryHomeDateRangeDto>,
+    usable_range: Option<LibraryHomeDateRangeDto>,
+    primary_range: Option<LibraryHomePrimaryRangeDto>,
     domains: Vec<LibraryDomainCoverageDto>,
     questions: Vec<LibraryQuestionDto>,
     training: Option<LibraryHomeTrainingDto>,
@@ -553,7 +574,9 @@ impl From<LibraryHome> for LibraryHomeDto {
         Self {
             version: home.version,
             library_revision_ref: home.library_revision_ref,
-            available_range: home.available_range.map(Into::into),
+            recorded_range: home.recorded_range.map(Into::into),
+            usable_range: home.usable_range.map(Into::into),
+            primary_range: home.primary_range.map(Into::into),
             domains: home.domains.into_iter().map(Into::into).collect(),
             questions: home.questions.into_iter().map(Into::into).collect(),
             training: home.training.map(Into::into),
@@ -570,6 +593,16 @@ fn library_domain(domain: LibraryDomain) -> &'static str {
         LibraryDomain::Activity => "activity",
         LibraryDomain::Sleep => "sleep",
         LibraryDomain::Recovery => "recovery",
+    }
+}
+
+fn library_home_range_scope(scope: LibraryHomeRangeScope) -> &'static str {
+    match scope {
+        LibraryHomeRangeScope::Training => "training",
+        LibraryHomeRangeScope::Activity => "activity",
+        LibraryHomeRangeScope::Sleep => "sleep",
+        LibraryHomeRangeScope::Recovery => "recovery",
+        LibraryHomeRangeScope::Combined => "combined",
     }
 }
 
@@ -9142,15 +9175,30 @@ mod tests {
     #[test]
     fn serializes_the_library_home_as_stable_provider_neutral_codes() {
         let home = LibraryHome {
-            version: 3,
+            version: 4,
             library_revision_ref: "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
-            available_range: Some(LibraryHomeDateRange {
+            recorded_range: Some(LibraryHomeDateRange {
                 from: "2025-12-31".to_owned(),
                 through: "2026-01-06".to_owned(),
             }),
+            usable_range: Some(LibraryHomeDateRange {
+                from: "2025-12-31".to_owned(),
+                through: "2026-01-06".to_owned(),
+            }),
+            primary_range: Some(LibraryHomePrimaryRange {
+                scope: LibraryHomeRangeScope::Training,
+                range: LibraryHomeDateRange {
+                    from: "2026-01-04".to_owned(),
+                    through: "2026-01-05".to_owned(),
+                },
+            }),
             domains: vec![LibraryDomainCoverage {
                 domain: LibraryDomain::Training,
-                available_range: Some(LibraryHomeDateRange {
+                recorded_range: Some(LibraryHomeDateRange {
+                    from: "2026-01-04".to_owned(),
+                    through: "2026-01-05".to_owned(),
+                }),
+                usable_range: Some(LibraryHomeDateRange {
                     from: "2026-01-04".to_owned(),
                     through: "2026-01-05".to_owned(),
                 }),
@@ -9237,12 +9285,18 @@ mod tests {
         assert_eq!(
             json,
             serde_json::json!({
-                "version": 3,
+                "version": 4,
                 "libraryRevisionRef": "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                "availableRange": { "from": "2025-12-31", "through": "2026-01-06" },
+                "recordedRange": { "from": "2025-12-31", "through": "2026-01-06" },
+                "usableRange": { "from": "2025-12-31", "through": "2026-01-06" },
+                "primaryRange": {
+                    "scope": "training",
+                    "range": { "from": "2026-01-04", "through": "2026-01-05" }
+                },
                 "domains": [{
                     "domain": "training",
-                    "availableRange": { "from": "2026-01-04", "through": "2026-01-05" },
+                    "recordedRange": { "from": "2026-01-04", "through": "2026-01-05" },
+                    "usableRange": { "from": "2026-01-04", "through": "2026-01-05" },
                     "selectedRange": { "from": "2026-01-04", "through": "2026-01-05" },
                     "originCount": 1,
                     "observedRecordCount": 2,

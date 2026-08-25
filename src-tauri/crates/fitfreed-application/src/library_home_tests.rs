@@ -15,6 +15,7 @@ use super::*;
 #[derive(Default)]
 struct ControlledLibraryHomePort {
     activity_bounds: Option<ActivityDateRange>,
+    activity_step_bounds: Option<ActivityDateRange>,
     activity_origins: Vec<String>,
     activities: Vec<DailyActivity>,
     training_bounds: Option<TrainingDateRange>,
@@ -56,6 +57,12 @@ impl ActivityLibraryPort for ControlledLibraryHomePort {
             .filter(|activity| in_range(&activity.local_date, &range.from, &range.through))
             .cloned()
             .collect())
+    }
+}
+
+impl LibraryHomeMeasurementRangePort for ControlledLibraryHomePort {
+    fn activity_step_bounds(&self) -> Result<Option<ActivityDateRange>, String> {
+        Ok(self.activity_step_bounds.clone())
     }
 }
 
@@ -649,6 +656,7 @@ fn snapshot_ref(digit: char) -> String {
 fn representative_port() -> ControlledLibraryHomePort {
     ControlledLibraryHomePort {
         activity_bounds: Some(activity_range("2026-01-01", "2026-01-03")),
+        activity_step_bounds: Some(activity_range("2026-01-01", "2026-01-01")),
         activity_origins: vec!["origin-a".to_owned(), "origin-b".to_owned()],
         activities: vec![
             DailyActivity {
@@ -698,10 +706,21 @@ fn composes_coverage_and_conservative_questions_from_authoritative_read_models()
     .expect("library home");
 
     assert_eq!(
-        home.available_range,
+        home.recorded_range,
         Some(LibraryHomeDateRange {
             from: "2026-01-01".to_owned(),
             through: "2026-01-06".to_owned(),
+        })
+    );
+    assert_eq!(home.usable_range, home.recorded_range);
+    assert_eq!(
+        home.primary_range,
+        Some(LibraryHomePrimaryRange {
+            scope: LibraryHomeRangeScope::Training,
+            range: LibraryHomeDateRange {
+                from: "2026-01-04".to_owned(),
+                through: "2026-01-05".to_owned(),
+            },
         })
     );
     assert_eq!(
@@ -791,11 +810,103 @@ fn composes_coverage_and_conservative_questions_from_authoritative_read_models()
 }
 
 #[test]
+fn excludes_unavailable_activity_boundaries_from_usable_history_without_losing_source_evidence() {
+    let port = ControlledLibraryHomePort {
+        activity_bounds: Some(activity_range("2014-01-01", "2026-01-03")),
+        activity_step_bounds: Some(activity_range("2026-01-02", "2026-01-02")),
+        activity_origins: vec!["origin-a".to_owned()],
+        activities: vec![DailyActivity {
+            origin_id: "origin-a".to_owned(),
+            local_date: "2026-01-02".to_owned(),
+            step_count: Some(3_100),
+        }],
+        training_bounds: Some(training_range("2020-02-03", "2026-01-05")),
+        training_origins: vec!["origin-a".to_owned()],
+        sessions: vec![training_session("session-a", "2026-01-05", true)],
+        current_local_date: Some("2026-01-10".to_owned()),
+        ..ControlledLibraryHomePort::default()
+    };
+
+    let home = query_library_home(&port, LibraryHomeRequest::default())
+        .expect("Home with source-only activity boundary");
+
+    assert_eq!(
+        home.recorded_range,
+        Some(LibraryHomeDateRange {
+            from: "2014-01-01".to_owned(),
+            through: "2026-01-05".to_owned(),
+        })
+    );
+    assert_eq!(
+        home.usable_range,
+        Some(LibraryHomeDateRange {
+            from: "2020-02-03".to_owned(),
+            through: "2026-01-05".to_owned(),
+        })
+    );
+    assert_eq!(
+        home.primary_range,
+        Some(LibraryHomePrimaryRange {
+            scope: LibraryHomeRangeScope::Training,
+            range: LibraryHomeDateRange {
+                from: "2020-02-03".to_owned(),
+                through: "2026-01-05".to_owned(),
+            },
+        })
+    );
+    assert_eq!(
+        home.domains[1].recorded_range,
+        Some(LibraryHomeDateRange {
+            from: "2014-01-01".to_owned(),
+            through: "2026-01-03".to_owned(),
+        })
+    );
+    assert_eq!(
+        home.domains[1].usable_range,
+        Some(LibraryHomeDateRange {
+            from: "2026-01-02".to_owned(),
+            through: "2026-01-02".to_owned(),
+        })
+    );
+}
+
+#[test]
+fn keeps_recorded_but_unusable_activity_out_of_the_first_run_and_question_boundaries() {
+    let port = ControlledLibraryHomePort {
+        activity_bounds: Some(activity_range("2014-01-01", "2014-01-01")),
+        activity_step_bounds: None,
+        activity_origins: vec!["origin-a".to_owned()],
+        activities: vec![DailyActivity {
+            origin_id: "origin-a".to_owned(),
+            local_date: "2014-01-01".to_owned(),
+            step_count: None,
+        }],
+        current_local_date: Some("2026-01-10".to_owned()),
+        ..ControlledLibraryHomePort::default()
+    };
+
+    let home = query_library_home(&port, LibraryHomeRequest::default())
+        .expect("recorded but unusable Home");
+
+    assert_eq!(
+        home.recorded_range,
+        Some(LibraryHomeDateRange {
+            from: "2014-01-01".to_owned(),
+            through: "2014-01-01".to_owned(),
+        })
+    );
+    assert_eq!(home.usable_range, None);
+    assert_eq!(home.primary_range, None);
+    assert_eq!(home.domains[1].usable_range, None);
+    assert!(home.questions.is_empty());
+}
+
+#[test]
 fn composes_recognizable_complete_training_identity_and_one_recent_comparison() {
     let home = query_library_home(&representative_port(), LibraryHomeRequest::default())
         .expect("recognizable library home");
 
-    assert_eq!(home.version, 3);
+    assert_eq!(home.version, 4);
     assert_eq!(home.library_revision_ref, HOME_REVISION);
     let training = home.training.expect("complete training identity");
     assert_eq!(training.training_snapshot_ref, TRAINING_SNAPSHOT);
@@ -901,7 +1012,7 @@ fn preserves_each_unknown_profile_as_a_distinct_safe_home_identity() {
         .expect("distinct unresolved Home sports");
     let training = home.training.expect("training identity");
 
-    assert_eq!(home.version, 3);
+    assert_eq!(home.version, 4);
     assert_eq!(training.sport_profile_count, 4);
     assert_eq!(training.sports.len(), 4);
     assert_eq!(training.omitted_sport_profile_count, 0);
@@ -1002,6 +1113,7 @@ fn uses_historical_and_non_training_fallbacks_without_implying_current_performan
 
     let activity_only = ControlledLibraryHomePort {
         activity_bounds: Some(activity_range("2026-01-01", "2026-01-01")),
+        activity_step_bounds: Some(activity_range("2026-01-01", "2026-01-01")),
         activity_origins: vec!["origin-a".to_owned()],
         activities: vec![DailyActivity {
             origin_id: "origin-a".to_owned(),
@@ -1125,6 +1237,12 @@ fn returns_an_empty_home_without_querying_unavailable_facts_or_an_unrequested_ou
 
         fn query_activity(&self, _range: &ActivityDateRange) -> Result<Vec<DailyActivity>, String> {
             panic!("empty activity must not query facts")
+        }
+    }
+
+    impl LibraryHomeMeasurementRangePort for EmptyPort {
+        fn activity_step_bounds(&self) -> Result<Option<ActivityDateRange>, String> {
+            Ok(None)
         }
     }
 
@@ -1279,12 +1397,15 @@ fn returns_an_empty_home_without_querying_unavailable_facts_or_an_unrequested_ou
 
     let home = query_library_home(&EmptyPort, LibraryHomeRequest::default()).expect("empty home");
 
-    assert_eq!(home.version, 3);
+    assert_eq!(home.version, 4);
     assert_eq!(home.library_revision_ref, HOME_REVISION);
-    assert_eq!(home.available_range, None);
+    assert_eq!(home.recorded_range, None);
+    assert_eq!(home.usable_range, None);
+    assert_eq!(home.primary_range, None);
     assert_eq!(home.domains.len(), 4);
     assert!(home.domains.iter().all(|domain| {
-        domain.available_range.is_none()
+        domain.recorded_range.is_none()
+            && domain.usable_range.is_none()
             && domain.selected_range.is_none()
             && domain.origin_count == 0
             && domain.observed_record_count == 0

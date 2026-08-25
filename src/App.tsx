@@ -330,7 +330,7 @@ function App() {
     }
     if (libraryHomeProjectionRequest.current !== requestId) return undefined;
     setLibraryHome(home);
-    if (home.availableRange === null) {
+    if (home.usableRange === null) {
       setExploreDestination(undefined);
       if (homeNavigationRevision.current === navigationRevision) {
         activateApplicationHome("home", "start");
@@ -1091,7 +1091,7 @@ function App() {
     <ApplicationShell
       activeHome={activeHome}
       messages={messages.shell}
-      exploreDisabled={!libraryHome || libraryHome.availableRange === null}
+      exploreDisabled={!libraryHome || libraryHome.usableRange === null}
       onNavigate={navigateApplication}
     >
         <SportIconDefinitions />

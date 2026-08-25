@@ -37,6 +37,13 @@
     "title": "Your fitness history",
     "intro": "See what you have recorded, return to individual sessions, and explore only what your local data supports.",
     "availablePeriod": "Available period",
+    "primaryRanges": {
+      "training": "Training history",
+      "activity": "Activity history",
+      "sleep": "Sleep history",
+      "recovery": "Recovery history",
+      "combined": "Usable history"
+    },
     "rangeSeparator": "–",
     "questionsHeading": "What do you want to understand?",
     "questionsIntro": "Choose a question to open an answer based on your recorded data.",
@@ -153,6 +160,9 @@
     "emptyLocalBoundary": "No account. No upload. The archive and library stay on this device.",
     "emptyAction": "Choose an export ZIP",
     "emptyGuideAction": "How to obtain one",
+    "partialHeading": "Imported records need source review",
+    "partialIntro": "The archive added source evidence, but this version cannot yet build a usable history from it. Review the exact import coverage; the original records remain preserved.",
+    "partialAction": "Review import coverage",
     "emptyPreviewEyebrow": "Illustrative preview — your history appears after import",
     "emptyPreviewHeading": "One local history, across your sports",
     "emptyPreviewNote": "The available views adapt to the data recorded in your export.",

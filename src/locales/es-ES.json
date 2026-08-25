@@ -37,6 +37,13 @@
     "title": "Tu historial deportivo",
     "intro": "Consulta lo que has registrado, vuelve a cada sesión y explora únicamente lo que permiten tus datos locales.",
     "availablePeriod": "Periodo disponible",
+    "primaryRanges": {
+      "training": "Historial de entrenamiento",
+      "activity": "Historial de actividad",
+      "sleep": "Historial de sueño",
+      "recovery": "Historial de recuperación",
+      "combined": "Historial utilizable"
+    },
     "rangeSeparator": "–",
     "questionsHeading": "¿Qué quieres comprender?",
     "questionsIntro": "Elige una pregunta para obtener una respuesta basada en tus datos registrados.",
@@ -153,6 +160,9 @@
     "emptyLocalBoundary": "Sin cuenta. Sin subir datos. El archivo y la biblioteca permanecen en este dispositivo.",
     "emptyAction": "Elegir un ZIP de exportación",
     "emptyGuideAction": "Cómo obtener uno",
+    "partialHeading": "Los registros importados requieren revisión",
+    "partialIntro": "El archivo ha añadido evidencia del origen, pero esta versión todavía no puede construir con ella un historial utilizable. Revisa la cobertura exacta de la importación; los registros originales se conservan.",
+    "partialAction": "Revisar la cobertura de la importación",
     "emptyPreviewEyebrow": "Vista ilustrativa: tu historial aparecerá tras la importación",
     "emptyPreviewHeading": "Un historial local para todos tus deportes",
     "emptyPreviewNote": "Las vistas disponibles se adaptan a los datos registrados en tu exportación.",

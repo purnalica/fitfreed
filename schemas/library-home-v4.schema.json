@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/library-home-v4.schema.json",
+  "title": "FitFreed library home version 4",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "libraryRevisionRef",
+    "recordedRange",
+    "usableRange",
+    "primaryRange",
+    "domains",
+    "questions",
+    "training",
+    "highlight",
+    "postImport",
+    "resumableExploration"
+  ],
+  "properties": {
+    "version": { "const": 4 },
+    "libraryRevisionRef": { "$ref": "library-home-v2.schema.json#/$defs/libraryRevisionRef" },
+    "recordedRange": { "$ref": "library-home-v1.schema.json#/$defs/optionalRange" },
+    "usableRange": { "$ref": "library-home-v1.schema.json#/$defs/optionalRange" },
+    "primaryRange": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/primaryRange" }
+      ]
+    },
+    "domains": {
+      "type": "array",
+      "prefixItems": [
+        { "$ref": "#/$defs/trainingDomain" },
+        { "$ref": "#/$defs/activityDomain" },
+        { "$ref": "#/$defs/sleepDomain" },
+        { "$ref": "#/$defs/recoveryDomain" }
+      ],
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "questions": {
+      "type": "array",
+      "uniqueItems": true,
+      "maxItems": 5,
+      "items": { "$ref": "library-home-v1.schema.json#/$defs/question" }
+    },
+    "training": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "library-home-v3.schema.json#/$defs/training" }
+      ]
+    },
+    "highlight": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "library-home-v2.schema.json#/$defs/recentTrainingComparison" },
+        { "$ref": "library-home-v2.schema.json#/$defs/historicalTraining" },
+        { "$ref": "library-home-v2.schema.json#/$defs/libraryHistory" }
+      ]
+    },
+    "postImport": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "library-home-v2.schema.json#/$defs/postImport" }
+      ]
+    },
+    "resumableExploration": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "library-home-v1.schema.json#/$defs/explorationWorkspace" }
+      ]
+    }
+  },
+  "$defs": {
+    "primaryRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "range"],
+      "properties": {
+        "scope": { "enum": ["training", "activity", "sleep", "recovery", "combined"] },
+        "range": { "$ref": "library-home-v1.schema.json#/$defs/range" }
+      }
+    },
+    "emptyDomain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "domain",
+        "recordedRange",
+        "usableRange",
+        "selectedRange",
+        "originCount",
+        "observedRecordCount",
+        "measurements"
+      ],
+      "properties": {
+        "domain": { "enum": ["training", "activity", "sleep", "recovery"] },
+        "recordedRange": { "type": "null" },
+        "usableRange": { "type": "null" },
+        "selectedRange": { "type": "null" },
+        "originCount": { "const": 0 },
+        "observedRecordCount": { "const": 0 },
+        "measurements": { "type": "array", "maxItems": 0 }
+      }
+    },
+    "recordedDomain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "domain",
+        "recordedRange",
+        "usableRange",
+        "selectedRange",
+        "originCount",
+        "observedRecordCount",
+        "measurements"
+      ],
+      "properties": {
+        "domain": { "enum": ["training", "activity", "sleep", "recovery"] },
+        "recordedRange": { "$ref": "library-home-v1.schema.json#/$defs/range" },
+        "usableRange": { "$ref": "library-home-v1.schema.json#/$defs/optionalRange" },
+        "selectedRange": { "$ref": "library-home-v1.schema.json#/$defs/optionalRange" },
+        "originCount": { "type": "integer", "minimum": 1 },
+        "observedRecordCount": { "type": "integer", "minimum": 1 },
+        "measurements": { "type": "array", "minItems": 1 }
+      }
+    },
+    "trainingDomain": {
+      "oneOf": [
+        { "type": "object", "$ref": "#/$defs/emptyDomain", "properties": { "domain": { "const": "training" } } },
+        { "type": "object", "$ref": "#/$defs/recordedDomain", "properties": { "domain": { "const": "training" }, "measurements": { "$ref": "library-home-v1.schema.json#/$defs/trainingMeasurements" } } }
+      ]
+    },
+    "activityDomain": {
+      "oneOf": [
+        { "type": "object", "$ref": "#/$defs/emptyDomain", "properties": { "domain": { "const": "activity" } } },
+        { "type": "object", "$ref": "#/$defs/recordedDomain", "properties": { "domain": { "const": "activity" }, "measurements": { "$ref": "library-home-v1.schema.json#/$defs/activityMeasurements" } } }
+      ]
+    },
+    "sleepDomain": {
+      "oneOf": [
+        { "type": "object", "$ref": "#/$defs/emptyDomain", "properties": { "domain": { "const": "sleep" } } },
+        { "type": "object", "$ref": "#/$defs/recordedDomain", "properties": { "domain": { "const": "sleep" }, "measurements": { "$ref": "library-home-v1.schema.json#/$defs/sleepMeasurements" } } }
+      ]
+    },
+    "recoveryDomain": {
+      "oneOf": [
+        { "type": "object", "$ref": "#/$defs/emptyDomain", "properties": { "domain": { "const": "recovery" } } },
+        { "type": "object", "$ref": "#/$defs/recordedDomain", "properties": { "domain": { "const": "recovery" }, "measurements": { "$ref": "library-home-v1.schema.json#/$defs/recoveryMeasurements" } } }
+      ]
+    }
+  }
+}

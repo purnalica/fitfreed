@@ -244,7 +244,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X5-R9 | Complete locally — all six slices passed fast, packaged, restart, accessibility, visual, migration, and performance gates on 2026-08-23 | Reports open as results and leave FitFreed safely |
 | X5-R10 | Complete — exact local and hosted gates passed 2026-08-24; executable-input evidence marker retained | The complete release-shaped product is coherent and documented |
 | X6 | Rejected for source `41ffad2` — native profile and exact hosted campaign pass, but the valid human session found one critical and several major product defects | Independent audit has no unresolved material finding |
-| X6-C1 | Planned — data-identity diagnosis complete; provider-catalog acquisition boundary remains | Sports are recognizable from trustworthy evidence and Home ranges state what they measure |
+| X6-C1 | In progress — temporal projection implemented and locally verified; provider-catalog acquisition boundary remains | Sports are recognizable from trustworthy evidence and Home ranges state what they measure |
 | X6-C2 | Planned — acquisition and spatial-continuity causes traced | Every successful or failed acquisition action produces a visible, reachable result |
 | X6-C3 | Planned — archive classification and finalization causes traced | Import recovery is calm and specific, and long work remains perceptibly active |
 | X6-C4 | Planned — Home and navigation causes traced | Prominent Home summaries open useful evidence and temporary restrictions explain themselves |
@@ -2233,6 +2233,14 @@ unresolved values, keeps personal naming as an override, and states a date range
 5. Start with failing lower-layer tests for catalogue provenance, precedence, persistence, reimport, mapping-version
    enrichment, ambiguous/unknown behavior, and unavailable-only range boundaries. Finish with realistic multi-sport
    import, Home-to-History, filter, session, report/export, restart, and reimport journeys in both locales.
+
+**Execution state:** the temporal subincrement is implemented locally through Library Home version 4. Recorded
+evidence, usable measurement coverage, and the explicitly scoped primary range are separate contracts; activity days
+without step measurements no longer define usable history; training counts use the complete training range; and
+recorded-but-unusable evidence opens a source-review state rather than first run. Application, SQLite integration,
+transport, schema, React, localization, and documentation checks pass as part of the complete `npm run test:fast`
+gate. Trustworthy provider-catalogue sport identity and its complete propagation remain in progress before X6-C1 can
+close.
 
 **Rejection conditions:** inferred sport from route or measurements; an unexplained value table; provider taxonomy in
 the canonical domain; user choices overwritten by catalogue refresh; an early date suppressed without retaining its

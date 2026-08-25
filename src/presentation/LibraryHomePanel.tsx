@@ -133,7 +133,7 @@ export function LibraryHomePanel({
     }
   };
 
-  if (home.availableRange === null) {
+  if (home.recordedRange === null) {
     return (
       <section className="library-home library-home-empty" aria-labelledby="library-home-empty-heading">
         <div className="library-home-empty-copy">
@@ -177,7 +177,28 @@ export function LibraryHomePanel({
     );
   }
 
-  const range = `${formatDate(home.availableRange.from)} ${messages.rangeSeparator} ${formatDate(home.availableRange.through)}`;
+  if (home.usableRange === null || home.primaryRange === null) {
+    return (
+      <section className="library-home library-home-empty" aria-labelledby="library-home-partial-heading">
+        <div className="library-home-empty-copy">
+          <p className="eyebrow">{messages.eyebrow}</p>
+          <h1 id="library-home-partial-heading" ref={headingRef} tabIndex={-1}>
+            {messages.partialHeading}
+          </h1>
+          <p>{messages.partialIntro}</p>
+          <div className="library-home-empty-actions">
+            <button type="button" onClick={onOpenSources}>{messages.partialAction}</button>
+            <button type="button" className="secondary" onClick={onChooseArchive}>
+              {messages.emptyAction}
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const range = `${formatDate(home.primaryRange.range.from)} ${messages.rangeSeparator} ${formatDate(home.primaryRange.range.through)}`;
+  const rangeLabel = messages.primaryRanges[home.primaryRange.scope];
   const training = home.training;
   const highlight = home.highlight;
   const resumableExploration = home.resumableExploration;
@@ -193,14 +214,14 @@ export function LibraryHomePanel({
         <p className="eyebrow">{messages.eyebrow}</p>
         <h1 ref={headingRef} tabIndex={-1}>{messages.title}</h1>
         <p>{messages.intro}</p>
-        <div className="library-home-summary" aria-label={messages.availablePeriod}>
+        <div className="library-home-summary" aria-label={`${rangeLabel}: ${range}`}>
           {training && (
             <>
               <strong>{formatCount(training.sessionCount, messages.summarySessions)}</strong>
               <strong>{formatCount(training.sportProfileCount, messages.summarySports)}</strong>
             </>
           )}
-          <span>{range}</span>
+          <span><small>{rangeLabel}</small>{range}</span>
         </div>
       </header>
 
@@ -515,7 +536,7 @@ function DomainCoverage({ coverage, messages, formatCount }: DomainCoverageProps
   return (
     <li aria-label={messages.domains[coverage.domain]} data-domain={coverage.domain}>
       <strong>{messages.domains[coverage.domain]}</strong>
-      {coverage.availableRange === null ? (
+      {coverage.usableRange === null ? (
         <span>{messages.unavailable}</span>
       ) : (
         <>

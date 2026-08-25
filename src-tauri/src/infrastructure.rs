@@ -55,25 +55,26 @@ use fitfreed_application::{
     ActivityDateRange, ActivityLibraryPort, ApplicationPreferences, ApplicationPreferencesPort,
     ArchiveImportPort, DetectedTrainingSport, ExplorationWorkspace, ExplorationWorkspacePort,
     ExploreDestination, ImportOutcomeLibraryPort, ImportPhase, ImportPhaseTimings, ImportProgress,
-    LibraryHomeClockPort, LibraryHomeRevisionPort, PersistedTrainingExerciseSegmentation,
-    PersistedTrainingRangeCoordinateEvidence, PersistedTrainingRangeSummaryExercise,
-    PersistedTrainingRangeSummarySourceRange, PersistedTrainingRoutePoints,
-    PersistedTrainingSessionCalendar, PersistedTrainingSessionProvenance,
-    PersistedTrainingSessionRangeSummary, PersistedTrainingSessionRanges,
-    PersistedTrainingSessionRoutes, PersistedTrainingSessionSearchPage,
-    PersistedTrainingSessionSegmentation, PersistedTrainingSessionSelection,
-    PersistedTrainingSessionSignals, PersistedTrainingSessionStructure,
-    PersistedTrainingSessionZones, PersistedTrainingSignalSamples, ProfiledImport,
-    RecoveryDateRange, RecoveryLibraryNight, RecoveryLibraryPort, ReportDefinitionPort,
-    ReportDefinitionPortError, SegmentSignalEvidence, SegmentSignalKind, SegmentSignalSample,
-    SleepDateRange, SleepLibraryPeriod, SleepLibraryPort, StoredApplicationPreferences,
-    StoredExplorationWorkspace, TrainingDateRange, TrainingDiscoveryView,
-    TrainingDiscoveryWorkspace, TrainingDiscoveryWorkspacePort, TrainingExerciseRoutesView,
-    TrainingExerciseSignalsView, TrainingExerciseStructure, TrainingExerciseZonesView,
-    TrainingLapStructure, TrainingLibraryPort, TrainingMeasurementFilter, TrainingPauseStructure,
-    TrainingProvenanceCurrentView, TrainingProvenanceDecisionView, TrainingProvenanceEventView,
-    TrainingRangeEvidenceStreamItem, TrainingRangeSourceRangeKind, TrainingRouteCollectionView,
-    TrainingRouteKindView, TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
+    LibraryHomeClockPort, LibraryHomeMeasurementRangePort, LibraryHomeRevisionPort,
+    PersistedTrainingExerciseSegmentation, PersistedTrainingRangeCoordinateEvidence,
+    PersistedTrainingRangeSummaryExercise, PersistedTrainingRangeSummarySourceRange,
+    PersistedTrainingRoutePoints, PersistedTrainingSessionCalendar,
+    PersistedTrainingSessionProvenance, PersistedTrainingSessionRangeSummary,
+    PersistedTrainingSessionRanges, PersistedTrainingSessionRoutes,
+    PersistedTrainingSessionSearchPage, PersistedTrainingSessionSegmentation,
+    PersistedTrainingSessionSelection, PersistedTrainingSessionSignals,
+    PersistedTrainingSessionStructure, PersistedTrainingSessionZones,
+    PersistedTrainingSignalSamples, ProfiledImport, RecoveryDateRange, RecoveryLibraryNight,
+    RecoveryLibraryPort, ReportDefinitionPort, ReportDefinitionPortError, SegmentSignalEvidence,
+    SegmentSignalKind, SegmentSignalSample, SleepDateRange, SleepLibraryPeriod, SleepLibraryPort,
+    StoredApplicationPreferences, StoredExplorationWorkspace, TrainingDateRange,
+    TrainingDiscoveryView, TrainingDiscoveryWorkspace, TrainingDiscoveryWorkspacePort,
+    TrainingExerciseRoutesView, TrainingExerciseSignalsView, TrainingExerciseStructure,
+    TrainingExerciseZonesView, TrainingLapStructure, TrainingLibraryPort,
+    TrainingMeasurementFilter, TrainingPauseStructure, TrainingProvenanceCurrentView,
+    TrainingProvenanceDecisionView, TrainingProvenanceEventView, TrainingRangeEvidenceStreamItem,
+    TrainingRangeSourceRangeKind, TrainingRouteCollectionView, TrainingRouteKindView,
+    TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
     TrainingSegmentCriterionDirection, TrainingSegmentationPort, TrainingSegmentationPortError,
     TrainingSessionCalendarDay, TrainingSessionCalendarRequest, TrainingSessionDiscoveryPort,
     TrainingSessionDiscoveryPortError, TrainingSessionProvenancePort,
@@ -7014,6 +7015,30 @@ pub fn query_activity_bounds(database_path: &Path) -> Result<Option<ActivityDate
         (Some(from), Some(through)) => Ok(Some(ActivityDateRange { from, through })),
         _ => Err(ImportError::InvalidActivityLibrary(
             "activity bounds are incomplete".to_owned(),
+        )),
+    }
+}
+
+pub fn query_activity_step_bounds(database_path: &Path) -> Result<Option<ActivityDateRange>> {
+    let connection = Connection::open(database_path)?;
+    ensure_schema(&connection)?;
+    let (from, through) = connection.query_row(
+        "SELECT MIN(local_date), MAX(local_date)
+         FROM daily_activity
+         WHERE step_count IS NOT NULL",
+        [],
+        |row| {
+            Ok((
+                row.get::<_, Option<String>>(0)?,
+                row.get::<_, Option<String>>(1)?,
+            ))
+        },
+    )?;
+    match (from, through) {
+        (None, None) => Ok(None),
+        (Some(from), Some(through)) => Ok(Some(ActivityDateRange { from, through })),
+        _ => Err(ImportError::InvalidActivityLibrary(
+            "activity step bounds are incomplete".to_owned(),
         )),
     }
 }
@@ -14406,6 +14431,12 @@ impl ActivityLibraryPort for SqliteLibraryHome {
     }
 }
 
+impl LibraryHomeMeasurementRangePort for SqliteLibraryHome {
+    fn activity_step_bounds(&self) -> StandardResult<Option<ActivityDateRange>, String> {
+        query_activity_step_bounds(&self.database_path).map_err(|error| error.to_string())
+    }
+}
+
 impl TrainingLibraryPort for SqliteLibraryHome {
     fn training_bounds(&self) -> StandardResult<Option<TrainingDateRange>, String> {
         SqliteTrainingLibrary::new(self.database_path.clone()).training_bounds()
@@ -15623,10 +15654,18 @@ mod tests {
         .expect("library home");
 
         assert_eq!(
-            home.available_range,
+            home.recorded_range,
             Some(LibraryHomeDateRange {
                 from: "2026-01-01".to_owned(),
                 through: "2026-01-04".to_owned(),
+            })
+        );
+        assert_eq!(home.usable_range, home.recorded_range);
+        assert_eq!(
+            home.primary_range.as_ref().map(|primary| &primary.range),
+            Some(&LibraryHomeDateRange {
+                from: "2026-01-02".to_owned(),
+                through: "2026-01-02".to_owned(),
             })
         );
         assert_eq!(
@@ -15641,7 +15680,7 @@ mod tests {
                 LibraryDomain::Recovery,
             ]
         );
-        assert_eq!(home.version, 3);
+        assert_eq!(home.version, 4);
         assert!(home
             .library_revision_ref
             .starts_with("library-home-revision-"));
@@ -20900,6 +20939,38 @@ mod tests {
             )
             .expect("activity range query plan");
         assert!(query_plan.contains("daily_activity_local_date_origin"));
+    }
+
+    #[test]
+    fn bounds_usable_activity_by_days_with_step_measurements() {
+        let harness = Harness::new();
+        let archive = harness.archive(
+            "activity-step-bounds.zip",
+            &[
+                (
+                    "activity-2014-01-01-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"date":"2014-01-01"}"#,
+                ),
+                (
+                    "activity-2026-06-02-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    r#"{"date":"2026-06-02","summary":{"stepCount":3100}}"#,
+                ),
+                (
+                    "activity-2026-06-03-12345678-90ab-4cde-8f01-234567890abc.json",
+                    r#"{"date":"2026-06-03"}"#,
+                ),
+            ],
+        );
+        import_archive(&harness.database(), &archive, "polar:synthetic")
+            .expect("activity step bounds import");
+
+        assert_eq!(
+            query_activity_step_bounds(&harness.database()).expect("activity step bounds"),
+            Some(ActivityDateRange {
+                from: "2026-06-02".to_owned(),
+                through: "2026-06-02".to_owned(),
+            })
+        );
     }
 
     #[derive(Deserialize)]

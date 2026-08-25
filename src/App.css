@@ -139,6 +139,8 @@ button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visibl
 .library-home-summary { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 18px; }
 .library-home-summary > * { padding: 7px 11px; color: var(--ink-soft); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; font-size: .8rem; }
 .library-home-summary strong { color: var(--ink); }
+.library-home-summary span { display: inline-flex; gap: 6px; align-items: baseline; }
+.library-home-summary span small { color: var(--ink); font-size: inherit; font-weight: 700; }
 .library-home-reveal { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 16px; align-items: baseline; padding: 13px 16px; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--success); border-radius: 12px; }
 .library-home-reveal h2 { margin: 0; font-size: .9rem; letter-spacing: -.01em; }
 .library-home-reveal > p { max-width: 68ch; margin: 0; color: var(--ink-soft); font-size: .82rem; }

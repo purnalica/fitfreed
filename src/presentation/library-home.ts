@@ -26,11 +26,19 @@ export interface LibraryMeasurementCoverage {
 
 export interface LibraryDomainCoverage {
   domain: LibraryDomain;
-  availableRange: LibraryHomeDateRange | null;
+  recordedRange: LibraryHomeDateRange | null;
+  usableRange: LibraryHomeDateRange | null;
   selectedRange: LibraryHomeDateRange | null;
   originCount: number;
   observedRecordCount: number;
   measurements: LibraryMeasurementCoverage[];
+}
+
+export type LibraryHomeRangeScope = LibraryDomain | "combined";
+
+export interface LibraryHomePrimaryRange {
+  scope: LibraryHomeRangeScope;
+  range: LibraryHomeDateRange;
 }
 
 export interface LibraryQuestion {
@@ -116,9 +124,11 @@ export interface ExplorationWorkspace {
 }
 
 export interface LibraryHome {
-  version: 3;
+  version: 4;
   libraryRevisionRef: string;
-  availableRange: LibraryHomeDateRange | null;
+  recordedRange: LibraryHomeDateRange | null;
+  usableRange: LibraryHomeDateRange | null;
+  primaryRange: LibraryHomePrimaryRange | null;
   domains: LibraryDomainCoverage[];
   questions: LibraryQuestion[];
   training: LibraryHomeTraining | null;
@@ -132,6 +142,7 @@ export interface LibraryHomeMessages {
   title: string;
   intro: string;
   availablePeriod: string;
+  primaryRanges: Record<LibraryHomeRangeScope, string>;
   rangeSeparator: string;
   questionsHeading: string;
   questionsIntro: string;
@@ -188,6 +199,9 @@ export interface LibraryHomeMessages {
   emptyLocalBoundary: string;
   emptyAction: string;
   emptyGuideAction: string;
+  partialHeading: string;
+  partialIntro: string;
+  partialAction: string;
   emptyPreviewEyebrow: string;
   emptyPreviewHeading: string;
   emptyPreviewNote: string;

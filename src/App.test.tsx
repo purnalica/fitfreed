@@ -447,12 +447,15 @@ function longitudinalOverviewWithTrainingDay() {
 
 function emptyLibraryHome() {
   return {
-    version: 3,
+    version: 4,
     libraryRevisionRef: "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    availableRange: null,
+    recordedRange: null,
+    usableRange: null,
+    primaryRange: null,
     domains: ["training", "activity", "sleep", "recovery"].map((domain) => ({
       domain,
-      availableRange: null,
+      recordedRange: null,
+      usableRange: null,
       selectedRange: null,
       originCount: 0,
       observedRecordCount: 0,
@@ -469,13 +472,16 @@ function emptyLibraryHome() {
 function populatedLibraryHome(overrides: Record<string, unknown> = {}) {
   const range = { from: "2025-01-01", through: "2026-08-17" };
   return {
-    version: 3,
+    version: 4,
     libraryRevisionRef: "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    availableRange: range,
+    recordedRange: range,
+    usableRange: range,
+    primaryRange: { scope: "training", range },
     domains: [
       {
         domain: "training",
-        availableRange: range,
+        recordedRange: range,
+        usableRange: range,
         selectedRange: { from: "2026-07-19", through: "2026-08-17" },
         originCount: 1,
         observedRecordCount: 24,
