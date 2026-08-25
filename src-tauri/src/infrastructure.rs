@@ -26,6 +26,7 @@ use serde::{
 };
 use sha2::{Digest, Sha256};
 use thiserror::Error;
+use url::Url;
 use zip::ZipArchive;
 
 #[cfg(test)]
@@ -48,33 +49,33 @@ use fitfreed_application::{
     RemoveTrainingSessionRangeRequest, RenameTrainingSessionRangeRequest, ReportLibraryMetricValue,
     ReportLibraryRequest, ReportLibraryResult, SaveSportClassificationRequest,
     SegmentApplicabilityView, SportClassificationSaveOutcome, TrainingRangeBoundaryEvidenceState,
-    TrainingRangeSummaryCoverageState, TrainingSegmentCriterionMutationRequest,
+    TrainingRangeSummaryCoverageState, TrainingSegmentCriterionMutationRequest, TrainingSportState,
     UpdateTrainingSegmentCriterionRequest,
 };
 use fitfreed_application::{
-    ActivityDateRange, ActivityLibraryPort, ApplicationPreferences, ApplicationPreferencesPort,
-    ArchiveImportPort, DetectedTrainingSport, ExplorationWorkspace, ExplorationWorkspacePort,
-    ExploreDestination, ImportOutcomeLibraryPort, ImportPhase, ImportPhaseTimings, ImportProgress,
-    LibraryHomeClockPort, LibraryHomeMeasurementRangePort, LibraryHomeRevisionPort,
-    PersistedTrainingExerciseSegmentation, PersistedTrainingRangeCoordinateEvidence,
-    PersistedTrainingRangeSummaryExercise, PersistedTrainingRangeSummarySourceRange,
-    PersistedTrainingRoutePoints, PersistedTrainingSessionCalendar,
-    PersistedTrainingSessionProvenance, PersistedTrainingSessionRangeSummary,
-    PersistedTrainingSessionRanges, PersistedTrainingSessionRoutes,
-    PersistedTrainingSessionSearchPage, PersistedTrainingSessionSegmentation,
-    PersistedTrainingSessionSelection, PersistedTrainingSessionSignals,
-    PersistedTrainingSessionStructure, PersistedTrainingSessionZones,
-    PersistedTrainingSignalSamples, ProfiledImport, RecoveryDateRange, RecoveryLibraryNight,
-    RecoveryLibraryPort, ReportDefinitionPort, ReportDefinitionPortError, SegmentSignalEvidence,
-    SegmentSignalKind, SegmentSignalSample, SleepDateRange, SleepLibraryPeriod, SleepLibraryPort,
-    StoredApplicationPreferences, StoredExplorationWorkspace, TrainingDateRange,
-    TrainingDiscoveryView, TrainingDiscoveryWorkspace, TrainingDiscoveryWorkspacePort,
-    TrainingExerciseRoutesView, TrainingExerciseSignalsView, TrainingExerciseStructure,
-    TrainingExerciseZonesView, TrainingLapStructure, TrainingLibraryPort,
-    TrainingMeasurementFilter, TrainingPauseStructure, TrainingProvenanceCurrentView,
-    TrainingProvenanceDecisionView, TrainingProvenanceEventView, TrainingRangeEvidenceStreamItem,
-    TrainingRangeSourceRangeKind, TrainingRouteCollectionView, TrainingRouteKindView,
-    TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
+    resolve_training_session_sport, ActivityDateRange, ActivityLibraryPort, ApplicationPreferences,
+    ApplicationPreferencesPort, ArchiveImportPort, DetectedTrainingSport, ExplorationWorkspace,
+    ExplorationWorkspacePort, ExploreDestination, ImportOutcomeLibraryPort, ImportPhase,
+    ImportPhaseTimings, ImportProgress, LibraryHomeClockPort, LibraryHomeMeasurementRangePort,
+    LibraryHomeRevisionPort, PersistedTrainingExerciseSegmentation,
+    PersistedTrainingRangeCoordinateEvidence, PersistedTrainingRangeSummaryExercise,
+    PersistedTrainingRangeSummarySourceRange, PersistedTrainingRoutePoints,
+    PersistedTrainingSessionCalendar, PersistedTrainingSessionProvenance,
+    PersistedTrainingSessionRangeSummary, PersistedTrainingSessionRanges,
+    PersistedTrainingSessionRoutes, PersistedTrainingSessionSearchPage,
+    PersistedTrainingSessionSegmentation, PersistedTrainingSessionSelection,
+    PersistedTrainingSessionSignals, PersistedTrainingSessionStructure,
+    PersistedTrainingSessionZones, PersistedTrainingSignalSamples, ProfiledImport,
+    RecoveryDateRange, RecoveryLibraryNight, RecoveryLibraryPort, ReportDefinitionPort,
+    ReportDefinitionPortError, SegmentSignalEvidence, SegmentSignalKind, SegmentSignalSample,
+    SleepDateRange, SleepLibraryPeriod, SleepLibraryPort, StoredApplicationPreferences,
+    StoredExplorationWorkspace, TrainingDateRange, TrainingDiscoveryView,
+    TrainingDiscoveryWorkspace, TrainingDiscoveryWorkspacePort, TrainingExerciseRoutesView,
+    TrainingExerciseSignalsView, TrainingExerciseStructure, TrainingExerciseZonesView,
+    TrainingLapStructure, TrainingLibraryPort, TrainingMeasurementFilter, TrainingPauseStructure,
+    TrainingProvenanceCurrentView, TrainingProvenanceDecisionView, TrainingProvenanceEventView,
+    TrainingRangeEvidenceStreamItem, TrainingRangeSourceRangeKind, TrainingRouteCollectionView,
+    TrainingRouteKindView, TrainingRouteOverview, TrainingRoutePointView, TrainingRoutePointsQuery,
     TrainingSegmentCriterionDirection, TrainingSegmentationPort, TrainingSegmentationPortError,
     TrainingSessionCalendarDay, TrainingSessionCalendarRequest, TrainingSessionDiscoveryPort,
     TrainingSessionDiscoveryPortError, TrainingSessionProvenancePort,
@@ -92,34 +93,34 @@ use fitfreed_application::{
     TrainingSessionZonesQuery, TrainingSessionZonesView, TrainingSignalCollectionView,
     TrainingSignalKindView, TrainingSignalRoleView, TrainingSignalSampleView,
     TrainingSignalSamplesQuery, TrainingSignalSeriesOverview, TrainingSignalUnitView,
-    TrainingSignalVisualSampleView, TrainingSourceProviderView, TrainingSportClassification,
-    TrainingSportState, TrainingSportsPort, TrainingStructure, TrainingZoneCollectionView,
-    TrainingZoneGroupView, TrainingZoneKindView, TrainingZoneUnitView, TrainingZoneView,
+    TrainingSignalVisualSampleView, TrainingSourceProviderView, TrainingSportsPort,
+    TrainingStructure, TrainingZoneCollectionView, TrainingZoneGroupView, TrainingZoneKindView,
+    TrainingZoneUnitView, TrainingZoneView,
 };
 use fitfreed_domain::{
     decide_nightly_recovery_reconciliation, decide_reconciliation,
     decide_sleep_period_reconciliation, decide_training_session_record_reconciliation,
     reconcile_training_session_range, ArtifactClassification, ArtifactCoverageSummary,
     ArtifactFamilyCoverage, DailyActivity, ExistingObservation, ImportOperationState,
-    ImportOutcome, ImportReport, NightlyRecovery, ReconciliationDecision,
-    RemovedTrainingSessionRange, ReportAuthorship, ReportBlock, ReportBlockContent,
-    ReportDateRange, ReportDefinition, ReportLocale, ReportOrigin, ReportProvenancePolicy,
-    ReportQuestion, ReportTrainingComparisonQuery, ReportTrainingMetric, RevisionOrder,
-    SegmentCriterion, SegmentCriterionAuthorship, SegmentCriterionDefinition, SleepPeriod,
-    SleepPhaseSummary, SleepScore, SleepStage, SleepStageTransition,
+    ImportOutcome, ImportReport, NightlyRecovery, ProviderNeutralSportSuggestion,
+    ReconciliationDecision, RemovedTrainingSessionRange, ReportAuthorship, ReportBlock,
+    ReportBlockContent, ReportDateRange, ReportDefinition, ReportLocale, ReportOrigin,
+    ReportProvenancePolicy, ReportQuestion, ReportTrainingComparisonQuery, ReportTrainingMetric,
+    RevisionOrder, SegmentCriterion, SegmentCriterionAuthorship, SegmentCriterionDefinition,
+    SleepPeriod, SleepPhaseSummary, SleepScore, SleepStage, SleepStageTransition,
     SourceSpecificRecoveryAssessment, SourceSpecificRecoveryBaseline,
     SourceSpecificRecoveryGuidance, SportClassification, SportClassificationAuthorship,
-    SportClassificationKey, SportClassificationState, SportFamily, TrainingExercise,
-    TrainingExerciseRouteAssessment, TrainingExerciseSignalAssessment,
-    TrainingExerciseZoneAssessment, TrainingLap, TrainingLapKind, TrainingPause, TrainingRoute,
-    TrainingRouteKind, TrainingRoutePoint, TrainingRoutes, TrainingSession, TrainingSessionRange,
-    TrainingSessionRangeAuthorship, TrainingSessionRangeCoordinate,
-    TrainingSessionRangeCoordinateScope, TrainingSessionRangeEvidenceCompatibility,
-    TrainingSessionRangeState, TrainingSessionRecord, TrainingSessionRouteAssessment,
-    TrainingSessionSignalAssessment, TrainingSessionStructure, TrainingSessionZoneAssessment,
-    TrainingSignalKind, TrainingSignalSample, TrainingSignalSeries, TrainingSignalUnit,
-    TrainingSignals, TrainingZone, TrainingZoneGroup, TrainingZoneKind, TrainingZoneUnit,
-    TrainingZones,
+    SportClassificationKey, SportClassificationState, SportFamily, SportLocalizedName,
+    SportRecognitionProvenance, TrainingExercise, TrainingExerciseRouteAssessment,
+    TrainingExerciseSignalAssessment, TrainingExerciseZoneAssessment, TrainingLap, TrainingLapKind,
+    TrainingPause, TrainingRoute, TrainingRouteKind, TrainingRoutePoint, TrainingRoutes,
+    TrainingSession, TrainingSessionRange, TrainingSessionRangeAuthorship,
+    TrainingSessionRangeCoordinate, TrainingSessionRangeCoordinateScope,
+    TrainingSessionRangeEvidenceCompatibility, TrainingSessionRangeState, TrainingSessionRecord,
+    TrainingSessionRouteAssessment, TrainingSessionSignalAssessment, TrainingSessionStructure,
+    TrainingSessionZoneAssessment, TrainingSignalKind, TrainingSignalSample, TrainingSignalSeries,
+    TrainingSignalUnit, TrainingSignals, TrainingZone, TrainingZoneGroup, TrainingZoneKind,
+    TrainingZoneUnit, TrainingZones,
 };
 
 mod local_file;
@@ -178,7 +179,7 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 27;
+const SCHEMA_VERSION: i64 = 28;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
@@ -206,6 +207,7 @@ const SCHEMA_V24: &str = include_str!("../migrations/0024_compact_training_signa
 const SCHEMA_V25: &str = include_str!("../migrations/0025_training_session_ranges.sql");
 const SCHEMA_V26: &str = include_str!("../migrations/0026_training_session_range_exercises.sql");
 const SCHEMA_V27: &str = include_str!("../migrations/0027_training_session_range_coordinates.sql");
+const SCHEMA_V28: &str = include_str!("../migrations/0028_provider_sport_catalogue.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
 const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@11";
 const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@6";
@@ -214,6 +216,26 @@ const TRAINING_SESSION_MAPPING_VERSION: &str = "polar-flow-training-session@6";
 const SLEEP_MAPPING_VERSION: &str = "polar-flow-sleep@1";
 const NIGHTLY_RECOVERY_MAPPING_VERSION: &str = "polar-flow-nightly-recovery@1";
 const NIGHTLY_RECOVERY_SCHEME: &str = "polar-nightly-recharge@1";
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProviderSportCatalogueEntryEvidence {
+    pub source_identifier: String,
+    pub provider_name_key: String,
+    pub localized_names: BTreeMap<String, String>,
+    pub parent_identifier: Option<String>,
+    pub canonical_family_suggestion: Option<SportFamily>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProviderSportCatalogueEvidence {
+    pub source_provider: String,
+    pub catalogue_revision: String,
+    pub retrieved_at_utc: String,
+    pub provenance_uri: String,
+    pub provenance_sha256: String,
+    pub mapping_version: String,
+    pub entries: Vec<ProviderSportCatalogueEntryEvidence>,
+}
 
 pub const fn library_schema_version() -> u32 {
     SCHEMA_VERSION as u32
@@ -6398,22 +6420,151 @@ fn query_training_bounds_on(connection: &Connection) -> Result<Option<TrainingDa
     }
 }
 
+type ProviderSportSuggestionLookup = HashMap<(String, String), Vec<ProviderNeutralSportSuggestion>>;
+
+fn query_active_provider_sport_suggestions(
+    connection: &Connection,
+) -> Result<ProviderSportSuggestionLookup> {
+    let selected_providers = connection
+        .prepare(
+            "SELECT source_provider
+             FROM provider_sport_catalogue_selection
+             ORDER BY source_provider",
+        )?
+        .query_map([], |row| row.get::<_, String>(0))?
+        .collect::<std::result::Result<BTreeSet<_>, _>>()?;
+    let mut statement = connection.prepare(
+        "SELECT selection.source_provider,
+                entry.source_identifier,
+                entry.candidate_ordinal,
+                entry.provider_name_key,
+                entry.localized_names_json,
+                entry.parent_identifier,
+                entry.canonical_family_suggestion,
+                snapshot.catalogue_revision,
+                snapshot.retrieved_at_utc,
+                snapshot.mapping_version,
+                entry.evidence_ref
+         FROM provider_sport_catalogue_selection AS selection
+         JOIN provider_sport_catalogue_snapshot AS snapshot
+           ON snapshot.source_provider = selection.source_provider
+          AND snapshot.catalogue_revision = selection.catalogue_revision
+          AND snapshot.mapping_version = selection.mapping_version
+         JOIN provider_sport_catalogue_entry AS entry
+           ON entry.source_provider = snapshot.source_provider
+          AND entry.catalogue_revision = snapshot.catalogue_revision
+          AND entry.mapping_version = snapshot.mapping_version
+         ORDER BY selection.source_provider, entry.source_identifier,
+                  entry.candidate_ordinal",
+    )?;
+    let rows = statement.query_map([], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, i64>(2)?,
+            row.get::<_, String>(3)?,
+            row.get::<_, String>(4)?,
+            row.get::<_, Option<String>>(5)?,
+            row.get::<_, Option<String>>(6)?,
+            row.get::<_, String>(7)?,
+            row.get::<_, String>(8)?,
+            row.get::<_, String>(9)?,
+            row.get::<_, String>(10)?,
+        ))
+    })?;
+    let mut suggestions = ProviderSportSuggestionLookup::new();
+    let mut encountered_providers = BTreeSet::new();
+    for row in rows {
+        let (
+            source_provider,
+            source_identifier,
+            candidate_ordinal,
+            provider_name_key,
+            localized_names_json,
+            parent_identifier,
+            canonical_family,
+            catalogue_revision,
+            retrieved_at_utc,
+            mapping_version,
+            evidence_ref,
+        ) = row?;
+        validate_catalogue_text(&source_provider, 128, "stored source provider")?;
+        validate_catalogue_text(&source_identifier, 256, "stored source identifier")?;
+        validate_catalogue_text(&provider_name_key, 256, "stored provider name key")?;
+        if let Some(parent_identifier) = &parent_identifier {
+            validate_catalogue_text(parent_identifier, 256, "stored parent identifier")?;
+        }
+        let candidate_ordinal = usize::try_from(candidate_ordinal).map_err(|_| {
+            ImportError::InvalidTrainingLibrary(
+                "stored provider sport candidate ordinal is invalid".to_owned(),
+            )
+        })?;
+        let key = (source_provider.clone(), source_identifier);
+        let expected_ordinal = suggestions.get(&key).map_or(0, Vec::len);
+        if candidate_ordinal != expected_ordinal {
+            return Err(ImportError::InvalidTrainingLibrary(
+                "stored provider sport candidate ordinals are not contiguous".to_owned(),
+            ));
+        }
+        let localized_names =
+            serde_json::from_str::<BTreeMap<String, String>>(&localized_names_json)
+                .map_err(|error| {
+                    ImportError::InvalidTrainingLibrary(format!(
+                        "stored provider sport localized names are invalid: {error}"
+                    ))
+                })?
+                .into_iter()
+                .map(|(language_tag, value)| {
+                    SportLocalizedName::new(language_tag, value)
+                        .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))
+                })
+                .collect::<Result<Vec<_>>>()?;
+        let canonical_family = canonical_family
+            .as_deref()
+            .map(SportFamily::from_code)
+            .transpose()
+            .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
+        let provenance = SportRecognitionProvenance::new(
+            catalogue_revision,
+            retrieved_at_utc,
+            mapping_version,
+            evidence_ref,
+        )
+        .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
+        let suggestion =
+            ProviderNeutralSportSuggestion::new(canonical_family, localized_names, provenance)
+                .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
+        suggestions.entry(key).or_default().push(suggestion);
+        encountered_providers.insert(source_provider);
+    }
+    if selected_providers != encountered_providers {
+        return Err(ImportError::InvalidTrainingLibrary(
+            "selected provider sport catalogue has no entries".to_owned(),
+        ));
+    }
+    Ok(suggestions)
+}
+
 fn query_training_discovery_sports(
     connection: &Connection,
 ) -> Result<Vec<TrainingDiscoverySportEntry>> {
+    let catalogue = query_active_provider_sport_suggestions(connection)?;
     let mut statement = connection.prepare(
         "WITH source_sport AS (
              SELECT origin_id, sport_ref FROM training_session
              UNION
              SELECT origin_id, sport_ref FROM training_exercise
          )
-         SELECT source_sport.origin_id, source_sport.sport_ref,
+         SELECT source_sport.origin_id, origin.source_provider,
+                source_sport.sport_ref,
                 classification.classification_state,
                 classification.canonical_family,
                 classification.display_label,
                 classification.authorship,
                 classification.revision
          FROM source_sport
+         JOIN observation_origin AS origin
+           ON origin.id = source_sport.origin_id
          LEFT JOIN sport_classification AS classification
            ON classification.origin_id = source_sport.origin_id
           AND classification.source_sport_ref = source_sport.sport_ref
@@ -6422,16 +6573,26 @@ fn query_training_discovery_sports(
     let rows = statement.query_map([], |row| {
         Ok((
             row.get::<_, String>(0)?,
-            row.get::<_, Option<String>>(1)?,
+            row.get::<_, String>(1)?,
             row.get::<_, Option<String>>(2)?,
             row.get::<_, Option<String>>(3)?,
             row.get::<_, Option<String>>(4)?,
             row.get::<_, Option<String>>(5)?,
-            row.get::<_, Option<i64>>(6)?,
+            row.get::<_, Option<String>>(6)?,
+            row.get::<_, Option<i64>>(7)?,
         ))
     })?;
     rows.map(|row| {
-        let (origin_id, source_sport_ref, state, family, label, authorship, revision) = row?;
+        let (
+            origin_id,
+            source_provider,
+            source_sport_ref,
+            state,
+            family,
+            label,
+            authorship,
+            revision,
+        ) = row?;
         let public_sport = match source_sport_ref.as_deref() {
             None => {
                 if state.is_some()
@@ -6444,11 +6605,8 @@ fn query_training_discovery_sports(
                         "unavailable sport contains a classification".to_owned(),
                     ));
                 }
-                TrainingSessionSport {
-                    sport_ref: None,
-                    state: TrainingSportState::Unavailable,
-                    classification: None,
-                }
+                resolve_training_session_sport(None, None, Vec::new())
+                    .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?
             }
             Some(source_sport_ref) => {
                 let key =
@@ -6456,25 +6614,16 @@ fn query_training_discovery_sports(
                         .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
                 let classification =
                     restore_sport_classification(key, state, family, label, authorship, revision)?;
-                let public_classification = TrainingSportClassification {
-                    canonical_family: classification
-                        .canonical_family()
-                        .map(|value| value.as_code().to_owned()),
-                    display_label: classification.display_label().map(str::to_owned),
-                    authorship: classification.authorship().map(|value| match value {
-                        SportClassificationAuthorship::User => "user".to_owned(),
-                    }),
-                    revision: classification.revision(),
-                };
-                let public_state = match classification.state() {
-                    SportClassificationState::Unknown => TrainingSportState::Unknown,
-                    SportClassificationState::Classified => TrainingSportState::Classified,
-                };
-                TrainingSessionSport {
-                    sport_ref: Some(detected_sport_ref(classification.key())),
-                    state: public_state,
-                    classification: Some(public_classification),
-                }
+                let recognition_candidates = catalogue
+                    .get(&(source_provider, source_sport_ref.to_owned()))
+                    .cloned()
+                    .unwrap_or_default();
+                resolve_training_session_sport(
+                    Some(detected_sport_ref(classification.key())),
+                    Some(classification),
+                    recognition_candidates,
+                )
+                .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?
             }
         };
         Ok(TrainingDiscoverySportEntry {
@@ -6574,12 +6723,28 @@ fn select_training_discovery_sports<'a>(
             })
             .filter(|entry| {
                 normalized_text.as_ref().is_none_or(|text| {
-                    entry
+                    let classification_matches = entry
                         .public_sport
                         .classification
                         .as_ref()
                         .and_then(|classification| classification.display_label.as_ref())
-                        .is_some_and(|label| label.to_lowercase().contains(text))
+                        .is_some_and(|label| label.to_lowercase().contains(text));
+                    let recognition_matches =
+                        entry
+                            .public_sport
+                            .recognition
+                            .as_ref()
+                            .is_some_and(|recognition| {
+                                recognition
+                                    .localized_names
+                                    .values()
+                                    .any(|name| name.to_lowercase().contains(text))
+                                    || recognition
+                                        .canonical_family
+                                        .as_ref()
+                                        .is_some_and(|family| family.contains(text))
+                            });
+                    classification_matches || recognition_matches
                 })
             })
             .collect(),
@@ -6762,8 +6927,9 @@ fn training_provenance_failure(
 pub fn query_detected_training_sports(database_path: &Path) -> Result<Vec<DetectedTrainingSport>> {
     let connection = Connection::open(database_path)?;
     ensure_schema(&connection)?;
+    let catalogue = query_active_provider_sport_suggestions(&connection)?;
     let mut statement = connection.prepare(
-        "SELECT session.origin_id, session.sport_ref,
+        "SELECT session.origin_id, origin.source_provider, session.sport_ref,
                 substr(MIN(session.started_at_local), 1, 10),
                 substr(MAX(session.started_at_local), 1, 10),
                 COUNT(*), SUM(session.duration_milliseconds),
@@ -6776,6 +6942,7 @@ pub fn query_detected_training_sports(database_path: &Path) -> Result<Vec<Detect
                 classification.authorship,
                 classification.revision
          FROM training_session AS session
+         JOIN observation_origin AS origin ON origin.id = session.origin_id
          LEFT JOIN sport_classification AS classification
            ON classification.origin_id = session.origin_id
           AND classification.source_sport_ref = session.sport_ref
@@ -6785,26 +6952,28 @@ pub fn query_detected_training_sports(database_path: &Path) -> Result<Vec<Detect
     let rows = statement.query_map([], |row| {
         Ok(PersistedTrainingSport {
             origin_id: row.get(0)?,
-            source_sport_ref: row.get(1)?,
-            first_local_date: row.get(2)?,
-            last_local_date: row.get(3)?,
-            session_count: row.get(4)?,
-            total_duration_milliseconds: row.get(5)?,
-            distance_session_count: row.get(6)?,
-            heart_rate_session_count: row.get(7)?,
-            state: row.get(8)?,
-            canonical_family: row.get(9)?,
-            display_label: row.get(10)?,
-            authorship: row.get(11)?,
-            revision: row.get(12)?,
+            source_provider: row.get(1)?,
+            source_sport_ref: row.get(2)?,
+            first_local_date: row.get(3)?,
+            last_local_date: row.get(4)?,
+            session_count: row.get(5)?,
+            total_duration_milliseconds: row.get(6)?,
+            distance_session_count: row.get(7)?,
+            heart_rate_session_count: row.get(8)?,
+            state: row.get(9)?,
+            canonical_family: row.get(10)?,
+            display_label: row.get(11)?,
+            authorship: row.get(12)?,
+            revision: row.get(13)?,
         })
     })?;
-    rows.map(|row| decode_detected_training_sport(row?))
+    rows.map(|row| decode_detected_training_sport(row?, &catalogue))
         .collect()
 }
 
 struct PersistedTrainingSport {
     origin_id: String,
+    source_provider: String,
     source_sport_ref: Option<String>,
     first_local_date: String,
     last_local_date: String,
@@ -6821,9 +6990,11 @@ struct PersistedTrainingSport {
 
 fn decode_detected_training_sport(
     persisted: PersistedTrainingSport,
+    catalogue: &ProviderSportSuggestionLookup,
 ) -> Result<DetectedTrainingSport> {
     let PersistedTrainingSport {
         origin_id,
+        source_provider,
         source_sport_ref,
         first_local_date,
         last_local_date,
@@ -6857,6 +7028,7 @@ fn decode_detected_training_sport(
             sport_ref: None,
             origin_id,
             classification: None,
+            recognition_candidates: Vec::new(),
             first_local_date,
             last_local_date,
             session_count,
@@ -6875,10 +7047,15 @@ fn decode_detected_training_sport(
         authorship,
         revision,
     )?;
+    let recognition_candidates = catalogue
+        .get(&(source_provider, key.source_sport_ref().to_owned()))
+        .cloned()
+        .unwrap_or_default();
     Ok(DetectedTrainingSport {
         sport_ref: Some(detected_sport_ref(&key)),
         origin_id,
         classification: Some(classification),
+        recognition_candidates,
         first_local_date,
         last_local_date,
         session_count,
@@ -6895,6 +7072,367 @@ fn detected_sport_ref(key: &SportClassificationKey) -> String {
     digest.update(b"\0");
     digest.update(key.source_sport_ref().as_bytes());
     format!("sport-{:x}", digest.finalize())
+}
+
+#[derive(Debug)]
+struct ValidatedProviderSportCatalogue {
+    source_provider: String,
+    catalogue_revision: String,
+    retrieved_at_utc: String,
+    provenance_uri: String,
+    provenance_sha256: String,
+    mapping_version: String,
+    content_sha256: String,
+    entries: Vec<ValidatedProviderSportCatalogueEntry>,
+}
+
+#[derive(Debug)]
+struct ValidatedProviderSportCatalogueEntry {
+    source_identifier: String,
+    candidate_ordinal: usize,
+    provider_name_key: String,
+    localized_names_json: String,
+    parent_identifier: Option<String>,
+    canonical_family_suggestion: Option<SportFamily>,
+    evidence_ref: String,
+}
+
+pub fn install_provider_sport_catalogue(
+    database_path: &Path,
+    evidence: &ProviderSportCatalogueEvidence,
+) -> Result<bool> {
+    let validated = validate_provider_sport_catalogue(evidence)?;
+    let mut connection = Connection::open(database_path)?;
+    ensure_schema(&connection)?;
+    let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+    let existing_content = transaction
+        .query_row(
+            "SELECT content_sha256
+             FROM provider_sport_catalogue_snapshot
+             WHERE source_provider = ?1
+               AND catalogue_revision = ?2
+               AND mapping_version = ?3",
+            params![
+                validated.source_provider,
+                validated.catalogue_revision,
+                validated.mapping_version
+            ],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()?;
+    match existing_content {
+        Some(content_sha256) if content_sha256 != validated.content_sha256 => {
+            return Err(ImportError::InvalidTrainingLibrary(
+                "provider sport catalogue revision has conflicting evidence".to_owned(),
+            ));
+        }
+        None => {
+            transaction.execute(
+                "INSERT INTO provider_sport_catalogue_snapshot (
+                     source_provider, catalogue_revision, mapping_version,
+                     retrieved_at_utc, provenance_uri, provenance_sha256,
+                     content_sha256, installed_at_utc
+                 ) VALUES (
+                     ?1, ?2, ?3, ?4, ?5, ?6, ?7,
+                     strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+                 )",
+                params![
+                    validated.source_provider,
+                    validated.catalogue_revision,
+                    validated.mapping_version,
+                    validated.retrieved_at_utc,
+                    validated.provenance_uri,
+                    validated.provenance_sha256,
+                    validated.content_sha256,
+                ],
+            )?;
+            for entry in &validated.entries {
+                transaction.execute(
+                    "INSERT INTO provider_sport_catalogue_entry (
+                         source_provider, catalogue_revision, mapping_version,
+                         source_identifier, candidate_ordinal, provider_name_key,
+                         localized_names_json, parent_identifier,
+                         canonical_family_suggestion, evidence_ref
+                     ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                    params![
+                        validated.source_provider,
+                        validated.catalogue_revision,
+                        validated.mapping_version,
+                        entry.source_identifier,
+                        i64::try_from(entry.candidate_ordinal).map_err(|_| {
+                            ImportError::InvalidTrainingLibrary(
+                                "provider sport candidate ordinal is too large".to_owned(),
+                            )
+                        })?,
+                        entry.provider_name_key,
+                        entry.localized_names_json,
+                        entry.parent_identifier,
+                        entry.canonical_family_suggestion.map(SportFamily::as_code),
+                        entry.evidence_ref,
+                    ],
+                )?;
+            }
+        }
+        Some(_) => {}
+    }
+    let current_selection = transaction
+        .query_row(
+            "SELECT catalogue_revision, mapping_version
+             FROM provider_sport_catalogue_selection
+             WHERE source_provider = ?1",
+            [&validated.source_provider],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+        )
+        .optional()?;
+    if current_selection.as_ref()
+        == Some(&(
+            validated.catalogue_revision.clone(),
+            validated.mapping_version.clone(),
+        ))
+    {
+        transaction.commit()?;
+        return Ok(false);
+    }
+    transaction.execute(
+        "INSERT INTO provider_sport_catalogue_selection (
+             source_provider, catalogue_revision, mapping_version, selected_at_utc
+         ) VALUES (
+             ?1, ?2, ?3, strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+         )
+         ON CONFLICT (source_provider) DO UPDATE SET
+             catalogue_revision = excluded.catalogue_revision,
+             mapping_version = excluded.mapping_version,
+             selected_at_utc = excluded.selected_at_utc",
+        params![
+            validated.source_provider,
+            validated.catalogue_revision,
+            validated.mapping_version,
+        ],
+    )?;
+    transaction.commit()?;
+    Ok(true)
+}
+
+fn validate_provider_sport_catalogue(
+    evidence: &ProviderSportCatalogueEvidence,
+) -> Result<ValidatedProviderSportCatalogue> {
+    validate_catalogue_text(&evidence.source_provider, 128, "source provider")?;
+    validate_catalogue_text(&evidence.catalogue_revision, 256, "catalogue revision")?;
+    validate_catalogue_text(&evidence.mapping_version, 256, "mapping version")?;
+    validate_catalogue_text(&evidence.provenance_uri, 2_048, "provenance URI")?;
+    if Url::parse(&evidence.provenance_uri).is_err() {
+        return Err(ImportError::InvalidTrainingLibrary(
+            "provider sport catalogue provenance URI is invalid".to_owned(),
+        ));
+    }
+    if !valid_lowercase_sha256(&evidence.provenance_sha256) {
+        return Err(ImportError::InvalidTrainingLibrary(
+            "provider sport catalogue provenance digest is invalid".to_owned(),
+        ));
+    }
+    if !evidence.retrieved_at_utc.ends_with('Z')
+        || DateTime::parse_from_rfc3339(&evidence.retrieved_at_utc).is_err()
+    {
+        return Err(ImportError::InvalidTrainingLibrary(
+            "provider sport catalogue retrieval instant is invalid".to_owned(),
+        ));
+    }
+    if evidence.entries.is_empty() || evidence.entries.len() > 10_000 {
+        return Err(ImportError::InvalidTrainingLibrary(
+            "provider sport catalogue entry count is invalid".to_owned(),
+        ));
+    }
+
+    let mut entries = evidence
+        .entries
+        .iter()
+        .map(validate_provider_sport_catalogue_entry)
+        .collect::<Result<Vec<_>>>()?;
+    entries.sort_by(|left, right| {
+        (
+            left.source_identifier.as_str(),
+            left.provider_name_key.as_str(),
+            left.localized_names_json.as_str(),
+            left.parent_identifier.as_deref(),
+            left.canonical_family_suggestion.map(SportFamily::as_code),
+        )
+            .cmp(&(
+                right.source_identifier.as_str(),
+                right.provider_name_key.as_str(),
+                right.localized_names_json.as_str(),
+                right.parent_identifier.as_deref(),
+                right.canonical_family_suggestion.map(SportFamily::as_code),
+            ))
+    });
+    if entries.windows(2).any(|pair| {
+        pair[0].source_identifier == pair[1].source_identifier
+            && pair[0].provider_name_key == pair[1].provider_name_key
+            && pair[0].localized_names_json == pair[1].localized_names_json
+            && pair[0].parent_identifier == pair[1].parent_identifier
+            && pair[0].canonical_family_suggestion == pair[1].canonical_family_suggestion
+    }) {
+        return Err(ImportError::InvalidTrainingLibrary(
+            "provider sport catalogue contains a duplicate candidate".to_owned(),
+        ));
+    }
+    let mut previous_source = None::<String>;
+    let mut candidate_ordinal = 0_usize;
+    for entry in &mut entries {
+        if previous_source.as_deref() == Some(entry.source_identifier.as_str()) {
+            candidate_ordinal = candidate_ordinal.checked_add(1).ok_or_else(|| {
+                ImportError::InvalidTrainingLibrary(
+                    "provider sport catalogue candidate count overflowed".to_owned(),
+                )
+            })?;
+        } else {
+            previous_source = Some(entry.source_identifier.clone());
+            candidate_ordinal = 0;
+        }
+        entry.candidate_ordinal = candidate_ordinal;
+        entry.evidence_ref = sport_catalogue_evidence_ref(evidence, entry);
+    }
+    let content_sha256 = provider_sport_catalogue_content_sha256(evidence, &entries);
+    Ok(ValidatedProviderSportCatalogue {
+        source_provider: evidence.source_provider.clone(),
+        catalogue_revision: evidence.catalogue_revision.clone(),
+        retrieved_at_utc: evidence.retrieved_at_utc.clone(),
+        provenance_uri: evidence.provenance_uri.clone(),
+        provenance_sha256: evidence.provenance_sha256.clone(),
+        mapping_version: evidence.mapping_version.clone(),
+        content_sha256,
+        entries,
+    })
+}
+
+fn validate_provider_sport_catalogue_entry(
+    entry: &ProviderSportCatalogueEntryEvidence,
+) -> Result<ValidatedProviderSportCatalogueEntry> {
+    validate_catalogue_text(&entry.source_identifier, 256, "source identifier")?;
+    validate_catalogue_text(&entry.provider_name_key, 256, "provider name key")?;
+    if let Some(parent_identifier) = &entry.parent_identifier {
+        validate_catalogue_text(parent_identifier, 256, "parent identifier")?;
+    }
+    let localized_names = entry
+        .localized_names
+        .iter()
+        .map(|(language_tag, value)| {
+            SportLocalizedName::new(language_tag.clone(), value.clone())
+                .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let validation_provenance = SportRecognitionProvenance::new(
+        "validation",
+        "2000-01-01T00:00:00Z",
+        "validation",
+        "sport-evidence-0000000000000000000000000000000000000000000000000000000000000000",
+    )
+    .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
+    ProviderNeutralSportSuggestion::new(
+        entry.canonical_family_suggestion,
+        localized_names,
+        validation_provenance,
+    )
+    .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
+    let localized_names_json = serde_json::to_string(&entry.localized_names).map_err(|error| {
+        ImportError::InvalidTrainingLibrary(format!(
+            "provider sport localized names cannot be serialized: {error}"
+        ))
+    })?;
+    Ok(ValidatedProviderSportCatalogueEntry {
+        source_identifier: entry.source_identifier.clone(),
+        candidate_ordinal: 0,
+        provider_name_key: entry.provider_name_key.clone(),
+        localized_names_json,
+        parent_identifier: entry.parent_identifier.clone(),
+        canonical_family_suggestion: entry.canonical_family_suggestion,
+        evidence_ref: String::new(),
+    })
+}
+
+fn validate_catalogue_text(value: &str, maximum: usize, label: &str) -> Result<()> {
+    if value.is_empty()
+        || value.chars().count() > maximum
+        || value.trim() != value
+        || value.chars().any(char::is_control)
+    {
+        return Err(ImportError::InvalidTrainingLibrary(format!(
+            "provider sport catalogue {label} is invalid"
+        )));
+    }
+    Ok(())
+}
+
+fn valid_lowercase_sha256(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+}
+
+fn sport_catalogue_evidence_ref(
+    catalogue: &ProviderSportCatalogueEvidence,
+    entry: &ValidatedProviderSportCatalogueEntry,
+) -> String {
+    let mut digest = Sha256::new();
+    update_catalogue_digest(&mut digest, "fitfreed:provider-sport-evidence:v1");
+    update_catalogue_digest(&mut digest, &catalogue.source_provider);
+    update_catalogue_digest(&mut digest, &catalogue.catalogue_revision);
+    update_catalogue_digest(&mut digest, &catalogue.mapping_version);
+    update_catalogue_digest(&mut digest, &catalogue.provenance_sha256);
+    update_catalogue_digest(&mut digest, &entry.source_identifier);
+    update_catalogue_digest(&mut digest, &entry.candidate_ordinal.to_string());
+    update_catalogue_digest(&mut digest, &entry.provider_name_key);
+    update_catalogue_digest(&mut digest, &entry.localized_names_json);
+    update_catalogue_digest(
+        &mut digest,
+        entry.parent_identifier.as_deref().unwrap_or_default(),
+    );
+    update_catalogue_digest(
+        &mut digest,
+        entry
+            .canonical_family_suggestion
+            .map(SportFamily::as_code)
+            .unwrap_or_default(),
+    );
+    format!("sport-evidence-{:x}", digest.finalize())
+}
+
+fn provider_sport_catalogue_content_sha256(
+    catalogue: &ProviderSportCatalogueEvidence,
+    entries: &[ValidatedProviderSportCatalogueEntry],
+) -> String {
+    let mut digest = Sha256::new();
+    update_catalogue_digest(&mut digest, "fitfreed:provider-sport-catalogue:v1");
+    update_catalogue_digest(&mut digest, &catalogue.source_provider);
+    update_catalogue_digest(&mut digest, &catalogue.catalogue_revision);
+    update_catalogue_digest(&mut digest, &catalogue.retrieved_at_utc);
+    update_catalogue_digest(&mut digest, &catalogue.provenance_uri);
+    update_catalogue_digest(&mut digest, &catalogue.provenance_sha256);
+    update_catalogue_digest(&mut digest, &catalogue.mapping_version);
+    for entry in entries {
+        update_catalogue_digest(&mut digest, &entry.source_identifier);
+        update_catalogue_digest(&mut digest, &entry.candidate_ordinal.to_string());
+        update_catalogue_digest(&mut digest, &entry.provider_name_key);
+        update_catalogue_digest(&mut digest, &entry.localized_names_json);
+        update_catalogue_digest(
+            &mut digest,
+            entry.parent_identifier.as_deref().unwrap_or_default(),
+        );
+        update_catalogue_digest(
+            &mut digest,
+            entry
+                .canonical_family_suggestion
+                .map(SportFamily::as_code)
+                .unwrap_or_default(),
+        );
+        update_catalogue_digest(&mut digest, &entry.evidence_ref);
+    }
+    format!("{:x}", digest.finalize())
+}
+
+fn update_catalogue_digest(digest: &mut Sha256, value: &str) {
+    digest.update(value.len().to_be_bytes());
+    digest.update(value.as_bytes());
 }
 
 fn compare_and_save_sport_classification(
@@ -7777,6 +8315,9 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         }
         if version < 27 {
             connection.execute_batch(SCHEMA_V27)?;
+        }
+        if version < 28 {
+            connection.execute_batch(SCHEMA_V28)?;
         }
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
@@ -15680,7 +16221,7 @@ mod tests {
                 LibraryDomain::Recovery,
             ]
         );
-        assert_eq!(home.version, 4);
+        assert_eq!(home.version, 5);
         assert!(home
             .library_revision_ref
             .starts_with("library-home-revision-"));
@@ -17652,6 +18193,406 @@ mod tests {
             )
             .expect("sport discovery query plan");
         assert!(query_plan.contains("training_session_origin_sport_start"));
+    }
+
+    fn provider_sport_entry(
+        source_identifier: &str,
+        provider_name_key: &str,
+        english_name: &str,
+        spanish_name: &str,
+        canonical_family_suggestion: Option<SportFamily>,
+    ) -> ProviderSportCatalogueEntryEvidence {
+        ProviderSportCatalogueEntryEvidence {
+            source_identifier: source_identifier.to_owned(),
+            provider_name_key: provider_name_key.to_owned(),
+            localized_names: BTreeMap::from([
+                ("en".to_owned(), english_name.to_owned()),
+                ("es".to_owned(), spanish_name.to_owned()),
+            ]),
+            parent_identifier: Some("outdoor".to_owned()),
+            canonical_family_suggestion,
+        }
+    }
+
+    #[test]
+    fn persists_catalogue_recognition_across_reimport_restart_and_mapping_enrichment() {
+        let harness = Harness::new();
+        let archive = harness.archive(
+            "catalogue-sports.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-catalogue-claim"}"#,
+                ),
+                (
+                    "training-session_2026-01-02T10-30-00_42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                    "identifier":{"id":"catalogue-session-a"},
+                    "created":"2026-01-02T12:00:00.000",
+                    "modified":"2026-01-02T12:05:00.000",
+                    "startTime":"2026-01-02T10:30:00",
+                    "stopTime":"2026-01-02T11:30:00",
+                    "durationMillis":3600000,
+                    "sport":{"id":"source-running"}
+                    }"#,
+                ),
+                (
+                    "training-session_2026-02-03T07-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                    "identifier":{"id":"catalogue-session-b"},
+                    "created":"2026-02-03T08:00:00.000",
+                    "modified":"2026-02-03T08:05:00.000",
+                    "startTime":"2026-02-03T07:00:00",
+                    "stopTime":"2026-02-03T07:45:00",
+                    "durationMillis":2700000,
+                    "sport":{"id":"source-ambiguous"}
+                    }"#,
+                ),
+                (
+                    "training-session_2026-03-04T18-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                    "identifier":{"id":"catalogue-session-c"},
+                    "created":"2026-03-04T19:00:00.000",
+                    "modified":"2026-03-04T19:05:00.000",
+                    "startTime":"2026-03-04T18:00:00",
+                    "stopTime":"2026-03-04T18:30:00",
+                    "durationMillis":1800000,
+                    "sport":{"id":"source-unknown"}
+                    }"#,
+                ),
+            ],
+        );
+        import_polar_archive(&harness.database(), &archive).expect("training import");
+        let library = SqliteTrainingSports::new(harness.database());
+        assert!(query_training_sports(&library)
+            .expect("sports before catalogue")
+            .sports
+            .iter()
+            .all(|sport| sport.state == TrainingSportState::Unknown));
+        let discovery = SqliteTrainingLibrary::new(harness.database());
+        let search_request = TrainingSessionSearchRequest {
+            from: None,
+            through: None,
+            sport_refs: Vec::new(),
+            required_measurements: Vec::new(),
+            text: None,
+            sort: TrainingSessionSort::StartedDescending,
+            offset: 0,
+            limit: 25,
+            snapshot_ref: None,
+        };
+        let before_catalogue =
+            fitfreed_application::query_training_sessions(&discovery, search_request.clone())
+                .expect("sessions before catalogue");
+
+        let first_catalogue = ProviderSportCatalogueEvidence {
+            source_provider: SOURCE_PROVIDER.to_owned(),
+            catalogue_revision: "polar-catalogue-2026-08-25".to_owned(),
+            retrieved_at_utc: "2026-08-25T10:00:00Z".to_owned(),
+            provenance_uri: "https://www.polar.com/polar-api-v4/".to_owned(),
+            provenance_sha256: "a".repeat(64),
+            mapping_version: "polar-flow-sport-suggestion@1".to_owned(),
+            entries: vec![
+                provider_sport_entry(
+                    "source-running",
+                    "RUNNING",
+                    "Running",
+                    "Carrera",
+                    Some(SportFamily::Running),
+                ),
+                provider_sport_entry(
+                    "source-ambiguous",
+                    "PADDLING",
+                    "Paddling",
+                    "Piragüismo",
+                    Some(SportFamily::WaterSport),
+                ),
+                provider_sport_entry(
+                    "source-ambiguous",
+                    "ROWING",
+                    "Rowing",
+                    "Remo",
+                    Some(SportFamily::WaterSport),
+                ),
+            ],
+        };
+        assert!(
+            install_provider_sport_catalogue(&harness.database(), &first_catalogue)
+                .expect("installed first catalogue")
+        );
+        assert!(
+            !install_provider_sport_catalogue(&harness.database(), &first_catalogue)
+                .expect("idempotent catalogue install")
+        );
+        assert!(matches!(
+            fitfreed_application::query_training_sessions(
+                &discovery,
+                TrainingSessionSearchRequest {
+                    snapshot_ref: Some(before_catalogue.snapshot_ref),
+                    ..search_request.clone()
+                }
+            ),
+            Err(ApplicationError::TrainingSessionSearchChanged)
+        ));
+
+        let recognized = query_training_sports(&library).expect("recognized sports");
+        for expected_state in [
+            TrainingSportState::Recognized,
+            TrainingSportState::Ambiguous,
+            TrainingSportState::Unknown,
+        ] {
+            assert_eq!(
+                recognized
+                    .sports
+                    .iter()
+                    .filter(|sport| sport.state == expected_state)
+                    .count(),
+                1
+            );
+        }
+        let running = recognized
+            .sports
+            .iter()
+            .find(|sport| sport.first_local_date == "2026-01-02")
+            .expect("recognized running");
+        assert_eq!(running.recognition_candidate_count, 1);
+        assert_eq!(
+            running
+                .recognition
+                .as_ref()
+                .expect("running recognition")
+                .localized_names["es"],
+            "Carrera"
+        );
+        assert!(running
+            .recognition
+            .as_ref()
+            .expect("running provenance")
+            .evidence_ref
+            .starts_with("sport-evidence-"));
+        assert!(!format!("{running:?}").contains("source-running"));
+        let running_ref = running.sport_ref.clone().expect("editable running");
+        let filtered = fitfreed_application::query_training_sessions(
+            &discovery,
+            TrainingSessionSearchRequest {
+                text: Some("carrera".to_owned()),
+                ..search_request.clone()
+            },
+        )
+        .expect("recognized-name filter");
+        assert_eq!(filtered.total_count, 1);
+        assert_eq!(
+            filtered.sessions[0].sport.state,
+            TrainingSportState::Recognized
+        );
+        assert_eq!(
+            filtered.sessions[0]
+                .sport
+                .recognition
+                .as_ref()
+                .expect("session recognition")
+                .localized_names["en"],
+            "Running"
+        );
+        let home = query_library_home(
+            &SqliteLibraryHome::new(harness.database()),
+            LibraryHomeRequest::default(),
+        )
+        .expect("recognized Home");
+        let home_running = home
+            .training
+            .expect("Home training")
+            .sports
+            .into_iter()
+            .find(|sport| sport.sport_ref.as_deref() == Some(running_ref.as_str()))
+            .expect("Home recognized running");
+        assert_eq!(home_running.state, TrainingSportState::Recognized);
+        assert_eq!(home_running.localized_names["es"], "Carrera");
+
+        save_training_sport_classification(
+            &library,
+            SaveSportClassificationRequest {
+                sport_ref: running_ref.clone(),
+                expected_revision: 0,
+                canonical_family: Some("running".to_owned()),
+                display_label: Some("My running".to_owned()),
+            },
+        )
+        .expect("personal sport override");
+
+        let enriched_catalogue = ProviderSportCatalogueEvidence {
+            mapping_version: "polar-flow-sport-suggestion@2".to_owned(),
+            entries: vec![provider_sport_entry(
+                "source-running",
+                "ROAD_RUNNING",
+                "Road running",
+                "Carrera en asfalto",
+                Some(SportFamily::Running),
+            )],
+            ..first_catalogue
+        };
+        assert!(
+            install_provider_sport_catalogue(&harness.database(), &enriched_catalogue)
+                .expect("installed enriched mapping")
+        );
+        assert!(
+            import_polar_archive(&harness.database(), &archive)
+                .expect("exact reimport")
+                .exact_repeat
+        );
+
+        let reopened = SqliteTrainingSports::new(harness.database());
+        let after_enrichment = query_training_sports(&reopened).expect("reopened enriched sports");
+        let personal = after_enrichment
+            .sports
+            .iter()
+            .find(|sport| sport.sport_ref.as_deref() == Some(running_ref.as_str()))
+            .expect("personally named running");
+        assert_eq!(personal.state, TrainingSportState::PersonallyOverridden);
+        assert_eq!(
+            personal
+                .classification
+                .as_ref()
+                .and_then(|classification| classification.display_label.as_deref()),
+            Some("My running")
+        );
+        assert_eq!(
+            personal
+                .recognition
+                .as_ref()
+                .expect("updated retained recognition")
+                .localized_names["en"],
+            "Road running"
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_duplicate_and_conflicting_catalogue_evidence_atomically() {
+        let harness = Harness::new();
+        let catalogue = ProviderSportCatalogueEvidence {
+            source_provider: SOURCE_PROVIDER.to_owned(),
+            catalogue_revision: "catalogue-v1".to_owned(),
+            retrieved_at_utc: "2026-08-25T10:00:00Z".to_owned(),
+            provenance_uri: "https://example.invalid/provider-sports".to_owned(),
+            provenance_sha256: "a".repeat(64),
+            mapping_version: "sport-mapping@1".to_owned(),
+            entries: vec![provider_sport_entry(
+                "source-running",
+                "RUNNING",
+                "Running",
+                "Carrera",
+                Some(SportFamily::Running),
+            )],
+        };
+        assert!(
+            install_provider_sport_catalogue(&harness.database(), &catalogue)
+                .expect("initial catalogue")
+        );
+
+        let conflicting = ProviderSportCatalogueEvidence {
+            entries: vec![provider_sport_entry(
+                "source-running",
+                "ROAD_RUNNING",
+                "Road running",
+                "Carrera en asfalto",
+                Some(SportFamily::Running),
+            )],
+            ..catalogue.clone()
+        };
+        assert!(matches!(
+            install_provider_sport_catalogue(&harness.database(), &conflicting),
+            Err(ImportError::InvalidTrainingLibrary(reason))
+                if reason == "provider sport catalogue revision has conflicting evidence"
+        ));
+
+        let duplicate_entry = provider_sport_entry(
+            "source-cycling",
+            "CYCLING",
+            "Cycling",
+            "Ciclismo",
+            Some(SportFamily::Cycling),
+        );
+        let duplicate = ProviderSportCatalogueEvidence {
+            catalogue_revision: "catalogue-v2".to_owned(),
+            entries: vec![duplicate_entry.clone(), duplicate_entry],
+            ..catalogue.clone()
+        };
+        assert!(matches!(
+            install_provider_sport_catalogue(&harness.database(), &duplicate),
+            Err(ImportError::InvalidTrainingLibrary(reason))
+                if reason == "provider sport catalogue contains a duplicate candidate"
+        ));
+
+        let invalid_time = ProviderSportCatalogueEvidence {
+            catalogue_revision: "catalogue-v3".to_owned(),
+            retrieved_at_utc: "2026-02-30T10:00:00Z".to_owned(),
+            ..catalogue.clone()
+        };
+        assert!(matches!(
+            install_provider_sport_catalogue(&harness.database(), &invalid_time),
+            Err(ImportError::InvalidTrainingLibrary(reason))
+                if reason == "provider sport catalogue retrieval instant is invalid"
+        ));
+
+        let invalid_provenance = ProviderSportCatalogueEvidence {
+            catalogue_revision: "catalogue-v4".to_owned(),
+            provenance_uri: "not a URI".to_owned(),
+            ..catalogue.clone()
+        };
+        assert!(matches!(
+            install_provider_sport_catalogue(&harness.database(), &invalid_provenance),
+            Err(ImportError::InvalidTrainingLibrary(reason))
+                if reason == "provider sport catalogue provenance URI is invalid"
+        ));
+
+        let connection = Connection::open(harness.database()).expect("database after rejection");
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT catalogue_revision, mapping_version
+                     FROM provider_sport_catalogue_selection
+                     WHERE source_provider = ?1",
+                    [SOURCE_PROVIDER],
+                    |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+                )
+                .expect("unchanged active catalogue"),
+            ("catalogue-v1".to_owned(), "sport-mapping@1".to_owned())
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM provider_sport_catalogue_snapshot",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("only accepted immutable snapshot"),
+            1
+        );
+    }
+
+    #[test]
+    fn applies_catalogue_character_limits_to_unicode_scalars() {
+        let harness = Harness::new();
+        let catalogue = ProviderSportCatalogueEvidence {
+            source_provider: SOURCE_PROVIDER.to_owned(),
+            catalogue_revision: "é".repeat(256),
+            retrieved_at_utc: "2026-08-25T10:00:00Z".to_owned(),
+            provenance_uri: "https://example.invalid/provider-sports".to_owned(),
+            provenance_sha256: "a".repeat(64),
+            mapping_version: "sport-mapping@1".to_owned(),
+            entries: vec![provider_sport_entry(
+                "source-running",
+                "RUNNING",
+                "Running",
+                "Carrera",
+                Some(SportFamily::Running),
+            )],
+        };
+
+        assert!(
+            install_provider_sport_catalogue(&harness.database(), &catalogue)
+                .expect("256-character catalogue revision")
+        );
     }
 
     #[test]
@@ -20991,7 +21932,7 @@ mod tests {
             SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8,
             SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15,
             SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22,
-            SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27,
+            SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27, SCHEMA_V28,
         ];
         for migration in migrations
             .iter()
@@ -22965,6 +23906,136 @@ mod tests {
                 [],
             )
             .is_err());
+    }
+
+    #[test]
+    fn upgrades_version_twenty_seven_with_atomic_provider_sport_catalogue_evidence() {
+        let harness = Harness::new();
+        let connection = Connection::open(harness.database()).expect("database");
+        connection
+            .execute_batch("PRAGMA foreign_keys = ON;")
+            .expect("foreign keys");
+        create_schema_baseline(&connection, 27);
+
+        let error =
+            migrate_schema(&connection, true).expect_err("interrupted version twenty-eight");
+        assert!(matches!(error, ImportError::InjectedMigrationInterruption));
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("retained schema version"),
+            27
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_schema
+                     WHERE type = 'table'
+                       AND name = 'provider_sport_catalogue_snapshot'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("rolled-back catalogue table"),
+            0
+        );
+
+        migrate_schema(&connection, false).expect("version twenty-eight migration");
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("current schema version"),
+            SCHEMA_VERSION
+        );
+        for table in [
+            "provider_sport_catalogue_snapshot",
+            "provider_sport_catalogue_entry",
+            "provider_sport_catalogue_selection",
+        ] {
+            assert_eq!(
+                connection
+                    .query_row(
+                        "SELECT COUNT(*) FROM sqlite_schema
+                         WHERE type = 'table' AND name = ?1",
+                        [table],
+                        |row| row.get::<_, i64>(0),
+                    )
+                    .expect("catalogue table"),
+                1
+            );
+        }
+        let revision_before = connection
+            .query_row(
+                "SELECT revision FROM training_discovery_revision WHERE id = 1",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .expect("initial training revision");
+        connection
+            .execute(
+                "INSERT INTO provider_sport_catalogue_snapshot (
+                     source_provider, catalogue_revision, mapping_version,
+                     retrieved_at_utc, provenance_uri, provenance_sha256,
+                     content_sha256, installed_at_utc
+                 ) VALUES (
+                     'synthetic-provider', 'catalogue-v1', 'mapping-v1',
+                     '2026-08-25T10:00:00Z', 'https://example.invalid/catalogue',
+                     ?1, ?2, '2026-08-25T10:01:00Z'
+                 )",
+                params!["a".repeat(64), "b".repeat(64)],
+            )
+            .expect("valid catalogue snapshot");
+        connection
+            .execute(
+                "INSERT INTO provider_sport_catalogue_entry (
+                     source_provider, catalogue_revision, mapping_version,
+                     source_identifier, candidate_ordinal, provider_name_key,
+                     localized_names_json, parent_identifier,
+                     canonical_family_suggestion, evidence_ref
+                 ) VALUES (
+                     'synthetic-provider', 'catalogue-v1', 'mapping-v1',
+                     'source-running', 0, 'RUNNING',
+                     '{\"en\":\"Running\"}', 'outdoor', 'running', ?1
+                 )",
+                [format!("sport-evidence-{}", "c".repeat(64))],
+            )
+            .expect("valid catalogue entry");
+        assert!(connection
+            .execute(
+                "INSERT INTO provider_sport_catalogue_entry (
+                     source_provider, catalogue_revision, mapping_version,
+                     source_identifier, candidate_ordinal, provider_name_key,
+                     localized_names_json, parent_identifier,
+                     canonical_family_suggestion, evidence_ref
+                 ) VALUES (
+                     'synthetic-provider', 'catalogue-v1', 'mapping-v1',
+                     'source-invalid', -1, 'INVALID', '{}', NULL,
+                     'provider-family', ?1
+                 )",
+                [format!("sport-evidence-{}", "d".repeat(64))],
+            )
+            .is_err());
+        connection
+            .execute(
+                "INSERT INTO provider_sport_catalogue_selection (
+                     source_provider, catalogue_revision, mapping_version, selected_at_utc
+                 ) VALUES (
+                     'synthetic-provider', 'catalogue-v1', 'mapping-v1',
+                     '2026-08-25T10:02:00Z'
+                 )",
+                [],
+            )
+            .expect("active catalogue selection");
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT revision FROM training_discovery_revision WHERE id = 1",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("catalogue-aware training revision"),
+            revision_before + 1
+        );
+        assert_integrity(&connection);
     }
 
     #[test]

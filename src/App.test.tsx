@@ -206,6 +206,8 @@ function trainingSessionSearchPage(
         sportRef: session.sportRef,
         state: session.sportRef === null ? "unavailable" : "unknown",
         classification: null,
+        recognition: null,
+        recognitionCandidateCount: 0,
       },
     })),
   };
@@ -300,7 +302,7 @@ function testSessionStory(
   };
 
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     snapshotRef,
     session,
     structure: { exercises: exercise ? [exercise] : null },
@@ -504,7 +506,7 @@ function populatedLibraryHome(overrides: Record<string, unknown> = {}) {
       omittedSportProfileCount: 0,
       sports: [{
         sportRef: `sport-${"1".repeat(64)}`,
-        state: "classified",
+        state: "personally-overridden",
         canonicalFamily: "running",
         displayLabel: "Road running",
         profileCount: 1,
@@ -516,7 +518,7 @@ function populatedLibraryHome(overrides: Record<string, unknown> = {}) {
         startedAtLocal: "2026-08-17T18:30:00.000",
         durationMilliseconds: "3723000",
         distanceMeters: 12340,
-        sportState: "classified",
+        sportState: "personally-overridden",
         canonicalFamily: "running",
         displayLabel: "Road running",
       }],
@@ -1126,13 +1128,15 @@ describe("FitFreed import interface", () => {
       ...recentPage.sessions[0],
       sport: {
         sportRef: recentSession.sportRef,
-        state: "classified" as const,
+        state: "personally-overridden" as const,
         classification: {
           canonicalFamily: "running" as const,
           displayLabel: "Road running",
           authorship: "user" as const,
           revision: 1,
         },
+        recognition: null,
+        recognitionCandidateCount: 0,
       },
     };
     mocks.homeInvoke.mockImplementation((command, arguments_) => {
@@ -3790,6 +3794,8 @@ describe("FitFreed import interface", () => {
         authorship: null,
         revision: 0,
       },
+      recognition: null,
+      recognitionCandidateCount: 0,
       firstLocalDate: "2026-01-20",
       lastLocalDate: "2026-01-20",
       coverage: {
@@ -3801,7 +3807,7 @@ describe("FitFreed import interface", () => {
     };
     const namedSport = {
       ...unknownSport,
-      state: "classified" as const,
+      state: "personally-overridden" as const,
       classification: {
         canonicalFamily: "water-sport" as const,
         displayLabel: "River paddling",
@@ -3830,9 +3836,11 @@ describe("FitFreed import interface", () => {
             omittedSportProfileCount: 0,
             sports: [{
               sportRef,
-              state: homeNamed ? "classified" : "unknown",
+              state: homeNamed ? "personally-overridden" : "unknown",
               canonicalFamily: homeNamed ? "water-sport" : null,
               displayLabel: homeNamed ? "River paddling" : null,
+              localizedNames: {},
+              recognitionCandidateCount: 0,
               profileCount: 1,
               sessionCount: 1,
             }],
@@ -3842,9 +3850,11 @@ describe("FitFreed import interface", () => {
               startedAtLocal: session.startedAtLocal,
               durationMilliseconds: session.durationMilliseconds,
               distanceMeters: session.distanceMeters,
-              sportState: homeNamed ? "classified" : "unknown",
+              sportState: homeNamed ? "personally-overridden" : "unknown",
               canonicalFamily: homeNamed ? "water-sport" : null,
               displayLabel: homeNamed ? "River paddling" : null,
+              localizedNames: {},
+              recognitionCandidateCount: 0,
             }],
           },
         }));
@@ -3881,13 +3891,17 @@ describe("FitFreed import interface", () => {
             sport: homeNamed
               ? {
                   sportRef,
-                  state: "classified",
+                  state: "personally-overridden",
                   classification: namedSport.classification,
+                  recognition: null,
+                  recognitionCandidateCount: 0,
                 }
               : {
                   sportRef,
                   state: "unknown",
                   classification: unknownSport.classification,
+                  recognition: null,
+                  recognitionCandidateCount: 0,
                 },
           })),
         });
@@ -3900,7 +3914,7 @@ describe("FitFreed import interface", () => {
     render(<App />);
     const homeSports = await screen.findByRole("region", { name: "Your sports" });
     await user.click(within(homeSports).getByRole("button", {
-      name: "Name Unclassified sport",
+      name: "Name Unknown sport",
     }));
     const training = await screen.findByRole("region", { name: "Training history" });
     expect(within(training).getByRole("button", { name: "Sports" }))

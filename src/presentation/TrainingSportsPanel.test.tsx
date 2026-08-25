@@ -24,6 +24,8 @@ const unknownSport: TrainingSport = {
     authorship: null,
     revision: 0,
   },
+  recognition: null,
+  recognitionCandidateCount: 0,
   firstLocalDate: "2024-01-02",
   lastLocalDate: "2026-08-17",
   coverage: {
@@ -37,13 +39,15 @@ const unknownSport: TrainingSport = {
 const classifiedSport: TrainingSport = {
   sportRef: "sport-local-running",
   sourceIndex: 1,
-  state: "classified",
+  state: "personally-overridden",
   classification: {
     canonicalFamily: "running",
     displayLabel: "Trail running",
     authorship: "user",
     revision: 3,
   },
+  recognition: null,
+  recognitionCandidateCount: 0,
   firstLocalDate: "2025-02-03",
   lastLocalDate: "2026-08-12",
   coverage: {
@@ -59,6 +63,8 @@ const unavailableSport: TrainingSport = {
   sourceIndex: 1,
   state: "unavailable",
   classification: null,
+  recognition: null,
+  recognitionCandidateCount: 0,
   firstLocalDate: "2026-03-04",
   lastLocalDate: "2026-03-04",
   coverage: {
@@ -67,6 +73,30 @@ const unavailableSport: TrainingSport = {
     distanceSessionCount: 0,
     heartRateSessionCount: 0,
   },
+};
+
+const recognizedSport: TrainingSport = {
+  ...unknownSport,
+  sportRef: "sport-local-kayaking",
+  sourceIndex: 1,
+  state: "recognized",
+  recognition: {
+    canonicalFamily: "water-sport",
+    localizedNames: { en: "Kayaking", "es-ES": "Piragüismo" },
+    catalogueRevision: "catalogue-2026-08-01",
+    retrievedAtUtc: "2026-08-01T10:00:00Z",
+    mappingVersion: "polar-flow-sports-v1",
+    evidenceRef: `sport-evidence-${"a".repeat(64)}`,
+  },
+  recognitionCandidateCount: 1,
+};
+
+const ambiguousSport: TrainingSport = {
+  ...unknownSport,
+  sportRef: "sport-local-ambiguous",
+  sourceIndex: 1,
+  state: "ambiguous",
+  recognitionCandidateCount: 2,
 };
 
 function overview(sports: TrainingSport[] = [classifiedSport, unknownSport, unavailableSport]): TrainingSportsOverview {
@@ -84,6 +114,37 @@ beforeEach(() => {
 });
 
 describe("TrainingSportsPanel", () => {
+  it("distinguishes localized catalogue recognition from ambiguous evidence", async () => {
+    mocks.invoke.mockResolvedValueOnce(overview([recognizedSport, ambiguousSport]));
+
+    render(
+      <TrainingSportsPanel
+        locale="es-ES"
+        messages={catalogs["es-ES"]}
+        refreshToken={0}
+        onError={vi.fn()}
+      />,
+    );
+
+    const recognizedCard = (await screen.findByRole("heading", { name: "Piragüismo" }))
+      .closest("li");
+    expect(recognizedCard).not.toBeNull();
+    expect(within(recognizedCard!).getByTestId("sport-family-icon"))
+      .toHaveAttribute("data-sport-icon", "water-sport");
+    expect(within(recognizedCard!).getByText(
+      "Reconocido a partir de evidencias documentadas del catálogo del proveedor.",
+    )).toBeVisible();
+
+    const ambiguousCard = screen.getByRole("heading", {
+      name: "Deporte pendiente de revisión 1",
+    }).closest("li");
+    expect(ambiguousCard).not.toBeNull();
+    expect(within(ambiguousCard!).getByTestId("sport-family-icon"))
+      .toHaveAttribute("data-sport-icon", "unknown");
+    expect(within(ambiguousCard!).getByRole("button", { name: "Nombrar este deporte" }))
+      .toBeEnabled();
+  });
+
   it("reveals and focuses the shared editor for an exact contextual sport request", async () => {
     mocks.invoke.mockResolvedValueOnce(overview());
 
@@ -143,7 +204,7 @@ describe("TrainingSportsPanel", () => {
           ...existing,
           state: request.canonicalFamily === null && request.displayLabel === null
             ? "unknown"
-            : "classified",
+            : "personally-overridden",
           classification: {
             canonicalFamily: request.canonicalFamily,
             displayLabel: request.displayLabel,
@@ -154,10 +215,10 @@ describe("TrainingSportsPanel", () => {
         const updatedSports = current.sports.map((sport) => (
           sport.sportRef === changed.sportRef ? changed : sport
         ));
-        current = overview(changed.state === "classified"
+        current = overview(changed.state === "personally-overridden"
           ? [changed, ...updatedSports.filter((sport) => sport.sportRef !== changed.sportRef)]
           : [
-              ...updatedSports.filter((sport) => sport.state === "classified"),
+              ...updatedSports.filter((sport) => sport.state === "personally-overridden"),
               changed,
               ...updatedSports.filter((sport) => sport.state === "unavailable"),
             ]);
@@ -246,7 +307,7 @@ describe("TrainingSportsPanel", () => {
       .closest("li");
     expect(changedCard).not.toBeNull();
     await user.click(within(changedCard!).getByRole("button", { name: "Edit sport name" }));
-    await user.click(within(changedCard!).getByRole("button", { name: "Return to unknown" }));
+    await user.click(within(changedCard!).getByRole("button", { name: "Mark as unknown" }));
     await waitFor(() => expect(mocks.invoke).toHaveBeenLastCalledWith(
       "save_training_sport_classification",
       {
@@ -271,7 +332,7 @@ describe("TrainingSportsPanel", () => {
       if (command === "save_training_sport_classification") {
         current = overview([{
           ...unknownSport,
-          state: "classified",
+          state: "personally-overridden",
           classification: {
             canonicalFamily: "running",
             displayLabel: "Concurrent running",
@@ -310,7 +371,7 @@ describe("TrainingSportsPanel", () => {
     mocks.invoke.mockResolvedValueOnce(overview([unknownSport]));
     const concurrent = {
       ...unknownSport,
-      state: "classified" as const,
+      state: "personally-overridden" as const,
       classification: {
         canonicalFamily: "water-sport" as const,
         displayLabel: "River paddling",
@@ -390,7 +451,7 @@ describe("TrainingSportsPanel", () => {
 
     const classified = {
       ...unknownSport,
-      state: "classified" as const,
+      state: "personally-overridden" as const,
       classification: {
         canonicalFamily: null,
         displayLabel: "Gravel cycling",
@@ -404,7 +465,7 @@ describe("TrainingSportsPanel", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Sport classification saved.");
   });
 
-  it("keeps classification actions stable and announces returning a sport to unknown", async () => {
+  it("keeps classification actions stable and announces marking a sport as unknown", async () => {
     let completeReset: (value: SavedTrainingSportClassification) => void = () => undefined;
     mocks.invoke.mockImplementation((command) => {
       if (command === "query_training_sports") {
@@ -428,15 +489,15 @@ describe("TrainingSportsPanel", () => {
     );
 
     await user.click(await screen.findByRole("button", { name: "Edit sport name" }));
-    await user.click(screen.getByRole("button", { name: "Return to unknown" }));
+    await user.click(screen.getByRole("button", { name: "Mark as unknown" }));
 
     const editor = screen.getByRole("form", { name: "Classify Trail running" });
     expect(editor).toHaveAttribute("aria-busy", "true");
-    expect(within(editor).getByRole("button", { name: "Return to unknown" })).toBeDisabled();
+    expect(within(editor).getByRole("button", { name: "Mark as unknown" })).toBeDisabled();
     expect(within(editor).getByRole("button", { name: "Save sport classification" }))
       .toBeDisabled();
     expect(within(editor).getByRole("status")).toHaveTextContent(
-      "Returning sport to unknown…",
+      "Marking sport as unknown…",
     );
     expect(within(editor).queryByText("Saving sport classification…"))
       .not.toBeInTheDocument();

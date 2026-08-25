@@ -53,11 +53,20 @@ the optional facts that were recorded. Exact timestamps, unrounded quantities, s
 remain available when the person opens the session, comparison, result summary, or source evidence. A calendar
 date contributed by more than one separated history says so directly instead of presenting an unexplained source
 number.
-Home keeps distinct unresolved sport profiles separate, gives them stable localized ordinal names, and uses the
-same ordinal for their recent sessions. **Name this sport** opens the existing Sports classification task for
-that exact profile; it never reveals a provider value or creates a second editor. Saving a broad family, a
-personal name, or both refreshes every affected visible identity, while returning restores the originating Home
-control when it still exists.
+When verifiable catalogue evidence is installed, Home, History, sessions, and reports use its localized sport
+name and provider-neutral icon. One matching candidate is recognized; multiple candidates remain visibly
+ambiguous; no candidate remains unknown; missing source sport evidence remains unavailable. FitFreed never
+chooses among ambiguous names or infers a sport from routes or measurements. Home keeps each unresolved profile
+separate, gives it a stable localized ordinal, and uses that ordinal for recent sessions. **Name this sport**
+opens the existing Sports classification task for that exact profile; it never reveals a provider value or
+creates a second editor. Saving a broad family, a personal name, or both creates a personal override that
+refreshes every affected visible identity without deleting recognition evidence, while returning restores the
+originating Home control when it still exists.
+
+The current development preview does not bundle a real Polar sport catalogue. The official complete catalogue
+requires authenticated access, and no redistribution basis has yet been established. Consequently real Polar
+source identifiers remain honestly unknown until the person names them or the documented catalogue gate closes;
+FitFreed does not substitute a guess. Synthetic development evidence exercises every recognition state.
 Applied refinements remain visible after the editor closes, report the exact result count, and can be removed
 one at a time or cleared together. An empty refined result confirms that the imported history has not changed
 and provides a direct reset. Session detail progressively

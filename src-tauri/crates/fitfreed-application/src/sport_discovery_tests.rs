@@ -1,8 +1,9 @@
 use std::sync::Mutex;
 
 use fitfreed_domain::{
-    SportClassification, SportClassificationAuthorship, SportClassificationKey,
-    SportClassificationState, SportFamily,
+    author_sport_classification, ProviderNeutralSportSuggestion, SportClassification,
+    SportClassificationAuthorship, SportClassificationKey, SportClassificationState, SportFamily,
+    SportLocalizedName, SportRecognitionProvenance,
 };
 
 use super::{
@@ -23,6 +24,7 @@ fn detected_sport(
         classification: Some(SportClassification::unresolved(
             SportClassificationKey::new(origin_id, source_sport_ref).expect("classification key"),
         )),
+        recognition_candidates: Vec::new(),
         first_local_date: "2025-01-02".to_owned(),
         last_local_date: "2026-08-17".to_owned(),
         session_count,
@@ -37,6 +39,7 @@ fn unavailable_sport(origin_id: &str) -> DetectedTrainingSport {
         sport_ref: None,
         origin_id: origin_id.to_owned(),
         classification: None,
+        recognition_candidates: Vec::new(),
         first_local_date: "2026-03-01".to_owned(),
         last_local_date: "2026-03-01".to_owned(),
         session_count: 1,
@@ -44,6 +47,27 @@ fn unavailable_sport(origin_id: &str) -> DetectedTrainingSport {
         distance_session_count: 0,
         heart_rate_session_count: 0,
     }
+}
+
+fn recognized_suggestion(
+    label: &str,
+    family: Option<SportFamily>,
+) -> ProviderNeutralSportSuggestion {
+    ProviderNeutralSportSuggestion::new(
+        family,
+        vec![
+            SportLocalizedName::new("en", label).expect("English sport name"),
+            SportLocalizedName::new("es", "Nombre reconocido").expect("Spanish sport name"),
+        ],
+        SportRecognitionProvenance::new(
+            "catalogue-2026-08-25",
+            "2026-08-25T10:00:00Z",
+            "provider-sport-suggestion@1",
+            "sport-evidence-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        )
+        .expect("recognition provenance"),
+    )
+    .expect("recognized suggestion")
 }
 
 #[derive(Default)]
@@ -136,7 +160,10 @@ fn composes_classified_unknown_and_unavailable_sports_without_source_references(
     assert_eq!(overview.origin_count, 2);
     assert_eq!(overview.session_count, 8);
     assert_eq!(overview.sports.len(), 3);
-    assert_eq!(overview.sports[0].state, TrainingSportState::Classified);
+    assert_eq!(
+        overview.sports[0].state,
+        TrainingSportState::PersonallyOverridden
+    );
     assert_eq!(overview.sports[0].source_index, 1);
     assert_eq!(
         overview.sports[0].sport_ref.as_deref(),
@@ -153,6 +180,102 @@ fn composes_classified_unknown_and_unavailable_sports_without_source_references(
     assert_eq!(overview.sports[1].source_index, 2);
     assert_eq!(overview.sports[2].state, TrainingSportState::Unavailable);
     assert_eq!(overview.sports[2].source_index, 1);
+}
+
+#[test]
+fn composes_recognized_ambiguous_unknown_and_personally_overridden_sports() {
+    let mut recognized = detected_sport("sport-running", "origin-a", "opaque-1", 4);
+    recognized.recognition_candidates =
+        vec![recognized_suggestion("Running", Some(SportFamily::Running))];
+    let mut ambiguous = detected_sport("sport-ambiguous", "origin-a", "opaque-2", 2);
+    ambiguous.recognition_candidates = vec![
+        recognized_suggestion("Paddling", Some(SportFamily::WaterSport)),
+        recognized_suggestion("Rowing", Some(SportFamily::WaterSport)),
+    ];
+    let unknown = detected_sport("sport-unknown", "origin-a", "opaque-3", 1);
+    let mut personal = detected_sport("sport-personal", "origin-a", "opaque-4", 3);
+    personal.recognition_candidates =
+        vec![recognized_suggestion("Running", Some(SportFamily::Running))];
+    personal.classification = Some(
+        author_sport_classification(
+            personal.classification.as_ref().expect("classification"),
+            Some(SportFamily::Running),
+            Some("My intervals"),
+        )
+        .expect("personal override"),
+    );
+
+    let overview = query_training_sports(&ControlledTrainingSportsPort::with(vec![
+        unknown, ambiguous, personal, recognized,
+    ]))
+    .expect("resolved training sports");
+
+    assert_eq!(
+        overview.sports[0].state,
+        TrainingSportState::PersonallyOverridden
+    );
+    assert_eq!(
+        overview.sports[0]
+            .recognition
+            .as_ref()
+            .expect("retained recognition")
+            .localized_names["en"],
+        "Running"
+    );
+    assert_eq!(overview.sports[1].state, TrainingSportState::Recognized);
+    assert_eq!(
+        overview.sports[1]
+            .recognition
+            .as_ref()
+            .expect("recognition")
+            .canonical_family
+            .as_deref(),
+        Some("running")
+    );
+    assert_eq!(overview.sports[2].state, TrainingSportState::Ambiguous);
+    assert_eq!(overview.sports[2].recognition_candidate_count, 2);
+    assert_eq!(overview.sports[2].recognition, None);
+    assert_eq!(overview.sports[3].state, TrainingSportState::Unknown);
+}
+
+#[test]
+fn orders_recognized_sports_by_provider_neutral_family_and_localized_names() {
+    let mut zulu_running = detected_sport("sport-a", "origin-a", "opaque-1", 1);
+    zulu_running.recognition_candidates = vec![recognized_suggestion(
+        "Zulu running",
+        Some(SportFamily::Running),
+    )];
+    let mut cycling = detected_sport("sport-m", "origin-a", "opaque-2", 1);
+    cycling.recognition_candidates = vec![recognized_suggestion(
+        "Road cycling",
+        Some(SportFamily::Cycling),
+    )];
+    let mut alpha_running = detected_sport("sport-z", "origin-a", "opaque-3", 1);
+    alpha_running.recognition_candidates = vec![recognized_suggestion(
+        "Alpha running",
+        Some(SportFamily::Running),
+    )];
+
+    let overview = query_training_sports(&ControlledTrainingSportsPort::with(vec![
+        zulu_running,
+        cycling,
+        alpha_running,
+    ]))
+    .expect("ordered recognized sports");
+
+    let names = overview
+        .sports
+        .iter()
+        .map(|sport| {
+            sport
+                .recognition
+                .as_ref()
+                .expect("recognized sport")
+                .localized_names["en"]
+                .as_str()
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(names, vec!["Road cycling", "Alpha running", "Zulu running"]);
 }
 
 #[test]
@@ -176,7 +299,7 @@ fn saves_idempotent_amended_and_explicit_unknown_classifications_with_revision_c
     assert_eq!(saved.outcome, SportClassificationSaveOutcome::Changed);
     assert_eq!(
         saved.overview.sports[0].state,
-        TrainingSportState::Classified
+        TrainingSportState::PersonallyOverridden
     );
     assert_eq!(
         saved.overview.sports[0]
@@ -210,7 +333,10 @@ fn saves_idempotent_amended_and_explicit_unknown_classifications_with_revision_c
     )
     .expect("authored unknown");
     assert_eq!(reset.outcome, SportClassificationSaveOutcome::Changed);
-    assert_eq!(reset.overview.sports[0].state, TrainingSportState::Unknown);
+    assert_eq!(
+        reset.overview.sports[0].state,
+        TrainingSportState::PersonallyOverridden
+    );
     assert_eq!(
         reset.overview.sports[0]
             .classification

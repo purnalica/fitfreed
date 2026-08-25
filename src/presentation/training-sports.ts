@@ -1,4 +1,9 @@
-export type TrainingSportState = "unknown" | "classified" | "unavailable";
+export type TrainingSportState =
+  | "recognized"
+  | "ambiguous"
+  | "unknown"
+  | "personally-overridden"
+  | "unavailable";
 
 export type SportFamily =
   | "running"
@@ -36,6 +41,74 @@ export interface TrainingSportClassification {
   revision: number;
 }
 
+export interface TrainingSportRecognition {
+  canonicalFamily: SportFamily | null;
+  localizedNames: Record<string, string>;
+  catalogueRevision: string;
+  retrievedAtUtc: string;
+  mappingVersion: string;
+  evidenceRef: string;
+}
+
+export interface TrainingSportIdentity {
+  state: TrainingSportState;
+  classification: TrainingSportClassification | null;
+  recognition: TrainingSportRecognition | null;
+  recognitionCandidateCount: number;
+}
+
+export function recognizedSportName(
+  sport: TrainingSportIdentity,
+  locale: string,
+): string | null {
+  const names = sport.recognition?.localizedNames;
+  return names ? localizedName(names, locale) : null;
+}
+
+export function localizedName(
+  names: Record<string, string>,
+  locale: string,
+): string | null {
+  const exact = Object.entries(names).find(
+    ([languageTag]) => languageTag.toLowerCase() === locale.toLowerCase(),
+  )?.[1];
+  if (exact) return exact;
+  const baseLocale = locale.split("-")[0]?.toLowerCase();
+  const base = Object.entries(names).find(
+    ([languageTag]) => languageTag.toLowerCase() === baseLocale,
+  )?.[1];
+  return base ?? names.en ?? Object.values(names)[0] ?? null;
+}
+
+export function sportCanonicalFamily(sport: TrainingSportIdentity): SportFamily | null {
+  if (sport.state === "personally-overridden") {
+    return sport.classification?.canonicalFamily ?? null;
+  }
+  return sport.state === "recognized"
+    ? sport.recognition?.canonicalFamily ?? null
+    : null;
+}
+
+export function resolvedSportName(
+  sport: TrainingSportIdentity,
+  locale: string,
+  familyNames: Record<SportFamily, string>,
+): string | null {
+  if (sport.state === "personally-overridden") {
+    return sport.classification?.displayLabel
+      ?? (sport.classification?.canonicalFamily
+        ? familyNames[sport.classification.canonicalFamily]
+        : null);
+  }
+  if (sport.state === "recognized") {
+    return recognizedSportName(sport, locale)
+      ?? (sport.recognition?.canonicalFamily
+        ? familyNames[sport.recognition.canonicalFamily]
+        : null);
+  }
+  return null;
+}
+
 export interface TrainingSportCoverage {
   sessionCount: number;
   totalDurationMilliseconds: string;
@@ -48,6 +121,8 @@ export interface TrainingSport {
   sourceIndex: number;
   state: TrainingSportState;
   classification: TrainingSportClassification | null;
+  recognition: TrainingSportRecognition | null;
+  recognitionCandidateCount: number;
   firstLocalDate: string;
   lastLocalDate: string;
   coverage: TrainingSportCoverage;

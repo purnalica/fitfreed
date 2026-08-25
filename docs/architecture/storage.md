@@ -4,7 +4,7 @@
 
 Current architecture after [ADR 0002](decisions/0002-select-sqlite-storage.md). SQLite is the only storage engine in the application and the authoritative local-library format. It does not replace the documented portable FitFreed data contract.
 
-The current implemented schema and compatibility boundary are documented in the [SQLite version 27 persistence specification](../data-formats/persistence/sqlite-v27.md). It preserves the complete provider-neutral fitness library through version 8, authenticated-update state from version 9, application preferences from version 10, a resumable exploration destination from version 11, user-authored sport classifications from version 12, coherent full-history training discovery evidence from version 13, the disposable training-discovery workspace from version 14, mapped training exercises, laps, and pauses from version 15, primary and transition route assessments with exact points from version 16, regular temporal training signals with exact unavailable slots from version 17, reusable personal segmentation criteria from version 18, provider-recorded training-zone assessments from version 19, durable versioned report definitions from version 20, composable route-report intent from version 21, user-selected training-period report queries from version 22, question-, exploration-, session-, and blank-origin reports from version 23, compact exact-signal storage from version 24, durable user-authored training-session ranges from version 25, exercise-owned range coordinates with lossless legacy preservation from version 26, and exact exercise, route, or signal coordinate authority from version 27. Earlier specifications remain immutable migration history.
+The current implemented schema and compatibility boundary are documented in the [SQLite version 28 persistence specification](../data-formats/persistence/sqlite-v28.md). It preserves the complete provider-neutral fitness library through version 8, authenticated-update state from version 9, application preferences from version 10, a resumable exploration destination from version 11, user-authored sport classifications from version 12, coherent full-history training discovery evidence from version 13, the disposable training-discovery workspace from version 14, mapped training exercises, laps, and pauses from version 15, primary and transition route assessments with exact points from version 16, regular temporal training signals with exact unavailable slots from version 17, reusable personal segmentation criteria from version 18, provider-recorded training-zone assessments from version 19, durable versioned report definitions from version 20, composable route-report intent from version 21, user-selected training-period report queries from version 22, question-, exploration-, session-, and blank-origin reports from version 23, compact exact-signal storage from version 24, durable user-authored training-session ranges from version 25, exercise-owned range coordinates with lossless legacy preservation from version 26, exact exercise, route, or signal coordinate authority from version 27, and immutable provider-sport catalogue evidence plus active selection from version 28. Earlier specifications remain immutable migration history.
 
 ## Ownership
 
@@ -122,6 +122,19 @@ signal intervals, and local timestamps do not prove a lossless transformation. E
 that retained object to one current exercise with a complete validated replacement pair. Once established,
 exercise ownership cannot change. Import reconciliation preserves a missing or shortened exercise for review
 rather than selecting another exercise, clamping boundaries, or deleting authored meaning.
+
+Schema version 27 assigns every authored range one explicit `exercise-elapsed`, `route-elapsed`,
+`signal-elapsed`, or retained `legacy-session-elapsed` coordinate. It preserves the exact evidence identity
+that established the coordinate and advances the range revision only through explicit authored commands or
+evidence reconciliation.
+
+Schema version 28 adds immutable `provider_sport_catalogue_snapshot` and
+`provider_sport_catalogue_entry` evidence plus one `provider_sport_catalogue_selection` per provider. Snapshot
+identity includes provider, catalogue revision, and mapping version; normalized content and source provenance
+digests detect conflicting reuse. Entries retain exact adapter identifiers and deterministic candidate order
+inside persistence only. Selecting a different snapshot advances `training_discovery_state`; imported sessions
+and `sport_classification` rows remain unchanged. Reimport cannot mutate catalogue evidence or personal meaning,
+and a failed installation or selection leaves the prior active snapshot intact.
 
 New origin and evidence rows become durable only inside the same visibility transaction as canonical history and operation completion. Existing development origins migrate as unverified origins without invented evidence. Exact-repeat lookup may inherit an origin only from a completed operation whose correlation state is verified; an old package fingerprint alone cannot authorize subject resolution.
 

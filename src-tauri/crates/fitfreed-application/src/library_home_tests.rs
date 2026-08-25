@@ -1,7 +1,8 @@
 use fitfreed_domain::{
     ArtifactCoverageSummary, DailyActivity, ImportOperationState, ImportOutcome, ImportReport,
-    NightlyRecovery, SleepPeriod, SleepPhaseSummary, SleepScore, SportClassification,
-    SportClassificationAuthorship, SportClassificationKey, SportClassificationState, SportFamily,
+    NightlyRecovery, ProviderNeutralSportSuggestion, SleepPeriod, SleepPhaseSummary, SleepScore,
+    SportClassification, SportClassificationAuthorship, SportClassificationKey,
+    SportClassificationState, SportFamily, SportLocalizedName, SportRecognitionProvenance,
     TrainingSession,
 };
 use std::{
@@ -214,6 +215,7 @@ impl TrainingSportsPort for ControlledLibraryHomePort {
                 sport_ref: None,
                 origin_id,
                 classification: None,
+                recognition_candidates: Vec::new(),
                 first_local_date: sessions
                     .iter()
                     .map(|session| session.started_at_local[..10].to_owned())
@@ -398,26 +400,19 @@ fn controlled_search_item(
                 .classification
                 .as_ref()
                 .expect("controlled sport classification");
-            TrainingSessionSport {
-                sport_ref: sport.sport_ref.clone(),
-                state: match classification.state() {
-                    SportClassificationState::Unknown => TrainingSportState::Unknown,
-                    SportClassificationState::Classified => TrainingSportState::Classified,
-                },
-                classification: Some(TrainingSportClassification {
-                    canonical_family: classification
-                        .canonical_family()
-                        .map(|family| family.as_code().to_owned()),
-                    display_label: classification.display_label().map(str::to_owned),
-                    authorship: classification.authorship().map(|_| "user".to_owned()),
-                    revision: classification.revision(),
-                }),
-            }
+            resolve_training_session_sport(
+                sport.sport_ref.clone(),
+                Some(classification.clone()),
+                sport.recognition_candidates.clone(),
+            )
+            .expect("controlled sport identity")
         })
         .unwrap_or(TrainingSessionSport {
             sport_ref: None,
             state: TrainingSportState::Unavailable,
             classification: None,
+            recognition: None,
+            recognition_candidate_count: 0,
         });
     TrainingSessionSearchItem {
         session_ref: format!("session-{:064x}", hasher.finish()),
@@ -609,6 +604,7 @@ fn classified_detected_sport_named(
             )
             .expect("controlled sport classification"),
         ),
+        recognition_candidates: Vec::new(),
         first_local_date: "2020-01-01".to_owned(),
         last_local_date: "2026-01-05".to_owned(),
         session_count,
@@ -636,6 +632,7 @@ fn unknown_detected_sport(index: usize, session_count: usize) -> DetectedTrainin
             )
             .expect("controlled unknown sport classification"),
         ),
+        recognition_candidates: Vec::new(),
         first_local_date: "2020-01-01".to_owned(),
         last_local_date: "2026-01-05".to_owned(),
         session_count,
@@ -643,6 +640,33 @@ fn unknown_detected_sport(index: usize, session_count: usize) -> DetectedTrainin
         distance_session_count: session_count,
         heart_rate_session_count: session_count,
     }
+}
+
+fn recognition_suggestion(
+    name: &str,
+    family: Option<SportFamily>,
+) -> ProviderNeutralSportSuggestion {
+    ProviderNeutralSportSuggestion::new(
+        family,
+        vec![SportLocalizedName::new("en", name).expect("controlled localized sport name")],
+        SportRecognitionProvenance::new(
+            "catalogue-2026-08-25",
+            "2026-08-25T10:00:00Z",
+            "sport-mapping@1",
+            format!("sport-evidence-{}", "a".repeat(64)),
+        )
+        .expect("controlled recognition provenance"),
+    )
+    .expect("controlled recognition suggestion")
+}
+
+fn recognized_detected_sport(index: usize, session_count: usize) -> DetectedTrainingSport {
+    let mut sport = unknown_detected_sport(index, session_count);
+    sport.recognition_candidates = vec![recognition_suggestion(
+        "Road running",
+        Some(SportFamily::Running),
+    )];
+    sport
 }
 
 fn revision_ref(digit: char) -> String {
@@ -906,7 +930,7 @@ fn composes_recognizable_complete_training_identity_and_one_recent_comparison() 
     let home = query_library_home(&representative_port(), LibraryHomeRequest::default())
         .expect("recognizable library home");
 
-    assert_eq!(home.version, 4);
+    assert_eq!(home.version, 5);
     assert_eq!(home.library_revision_ref, HOME_REVISION);
     let training = home.training.expect("complete training identity");
     assert_eq!(training.training_snapshot_ref, TRAINING_SNAPSHOT);
@@ -1012,7 +1036,7 @@ fn preserves_each_unknown_profile_as_a_distinct_safe_home_identity() {
         .expect("distinct unresolved Home sports");
     let training = home.training.expect("training identity");
 
-    assert_eq!(home.version, 4);
+    assert_eq!(home.version, 5);
     assert_eq!(training.sport_profile_count, 4);
     assert_eq!(training.sports.len(), 4);
     assert_eq!(training.omitted_sport_profile_count, 0);
@@ -1038,6 +1062,74 @@ fn preserves_each_unknown_profile_as_a_distinct_safe_home_identity() {
             .filter_map(|session| session.sport_ref.as_ref())
             .collect::<BTreeSet<_>>(),
         expected_refs.iter().collect::<BTreeSet<_>>()
+    );
+}
+
+#[test]
+fn projects_recognized_sport_identity_into_home_and_recent_sessions() {
+    let mut port = representative_port();
+    port.sessions[0].sport_ref = Some("source-sport-0".to_owned());
+    port.sessions[1].sport_ref = Some("source-sport-0".to_owned());
+    port.detected_sports = vec![recognized_detected_sport(0, 2)];
+
+    let training = query_library_home(&port, LibraryHomeRequest::default())
+        .expect("recognized sport Home")
+        .training
+        .expect("training identity");
+
+    assert_eq!(training.sports.len(), 1);
+    assert_eq!(training.sports[0].state, TrainingSportState::Recognized);
+    assert_eq!(
+        training.sports[0].canonical_family.as_deref(),
+        Some("running")
+    );
+    assert_eq!(training.sports[0].localized_names["en"], "Road running");
+    assert_eq!(training.sports[0].recognition_candidate_count, 1);
+    assert!(training.recent_sessions.iter().all(|session| {
+        session.sport_state == TrainingSportState::Recognized
+            && session.localized_names["en"] == "Road running"
+            && session.recognition_candidate_count == 1
+    }));
+}
+
+#[test]
+fn combines_personally_identical_profiles_without_using_hidden_recognition_as_identity() {
+    let mut port = representative_port();
+    port.sessions[0].sport_ref = Some("source-sport-0".to_owned());
+    port.sessions[1].sport_ref = Some("source-sport-1".to_owned());
+    let mut first = classified_detected_sport_named(0, 1, "My running");
+    first.recognition_candidates = vec![recognition_suggestion(
+        "Road running",
+        Some(SportFamily::Running),
+    )];
+    let mut second = classified_detected_sport_named(1, 1, "My running");
+    second.recognition_candidates = vec![recognition_suggestion(
+        "Trail running",
+        Some(SportFamily::Running),
+    )];
+    port.detected_sports = vec![first, second];
+
+    let training = query_library_home(&port, LibraryHomeRequest::default())
+        .expect("personally grouped Home")
+        .training
+        .expect("training identity");
+
+    assert_eq!(training.sports.len(), 1);
+    assert_eq!(training.sports[0].profile_count, 2);
+    assert_eq!(training.sports[0].sport_ref, None);
+    assert_eq!(
+        training.sports[0].display_label.as_deref(),
+        Some("My running")
+    );
+    assert!(training.sports[0].localized_names.is_empty());
+    assert_eq!(training.sports[0].recognition_candidate_count, 0);
+    assert_eq!(
+        training
+            .recent_sessions
+            .iter()
+            .map(|session| session.localized_names["en"].as_str())
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["Road running", "Trail running"])
     );
 }
 
@@ -1397,7 +1489,7 @@ fn returns_an_empty_home_without_querying_unavailable_facts_or_an_unrequested_ou
 
     let home = query_library_home(&EmptyPort, LibraryHomeRequest::default()).expect("empty home");
 
-    assert_eq!(home.version, 4);
+    assert_eq!(home.version, 5);
     assert_eq!(home.library_revision_ref, HOME_REVISION);
     assert_eq!(home.recorded_range, None);
     assert_eq!(home.usable_range, None);

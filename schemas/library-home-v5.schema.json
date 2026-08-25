@@ -1,0 +1,334 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/library-home-v5.schema.json",
+  "title": "FitFreed library home version 5",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "libraryRevisionRef",
+    "recordedRange",
+    "usableRange",
+    "primaryRange",
+    "domains",
+    "questions",
+    "training",
+    "highlight",
+    "postImport",
+    "resumableExploration"
+  ],
+  "properties": {
+    "version": { "const": 5 },
+    "libraryRevisionRef": { "$ref": "library-home-v2.schema.json#/$defs/libraryRevisionRef" },
+    "recordedRange": { "$ref": "library-home-v1.schema.json#/$defs/optionalRange" },
+    "usableRange": { "$ref": "library-home-v1.schema.json#/$defs/optionalRange" },
+    "primaryRange": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "library-home-v4.schema.json#/$defs/primaryRange" }
+      ]
+    },
+    "domains": {
+      "type": "array",
+      "prefixItems": [
+        { "$ref": "library-home-v4.schema.json#/$defs/trainingDomain" },
+        { "$ref": "library-home-v4.schema.json#/$defs/activityDomain" },
+        { "$ref": "library-home-v4.schema.json#/$defs/sleepDomain" },
+        { "$ref": "library-home-v4.schema.json#/$defs/recoveryDomain" }
+      ],
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "questions": {
+      "type": "array",
+      "uniqueItems": true,
+      "maxItems": 5,
+      "items": { "$ref": "library-home-v1.schema.json#/$defs/question" }
+    },
+    "training": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/training" }
+      ]
+    },
+    "highlight": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "library-home-v2.schema.json#/$defs/recentTrainingComparison" },
+        { "$ref": "library-home-v2.schema.json#/$defs/historicalTraining" },
+        { "$ref": "library-home-v2.schema.json#/$defs/libraryHistory" }
+      ]
+    },
+    "postImport": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "library-home-v2.schema.json#/$defs/postImport" }
+      ]
+    },
+    "resumableExploration": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "library-home-v1.schema.json#/$defs/explorationWorkspace" }
+      ]
+    }
+  },
+  "$defs": {
+    "nullableSportRef": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "training-sport-identity-v1.schema.json#/$defs/sportRef" }
+      ]
+    },
+    "localizedNames": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120
+      }
+    },
+    "emptyLocalizedNames": {
+      "type": "object",
+      "maxProperties": 0
+    },
+    "sportSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sportRef",
+        "state",
+        "canonicalFamily",
+        "displayLabel",
+        "localizedNames",
+        "recognitionCandidateCount",
+        "profileCount",
+        "sessionCount"
+      ],
+      "properties": {
+        "sportRef": { "$ref": "#/$defs/nullableSportRef" },
+        "state": {
+          "enum": [
+            "recognized",
+            "ambiguous",
+            "unknown",
+            "personally-overridden",
+            "unavailable"
+          ]
+        },
+        "canonicalFamily": { "$ref": "training-sport-identity-v1.schema.json#/$defs/optionalFamily" },
+        "displayLabel": { "$ref": "training-sport-identity-v1.schema.json#/$defs/optionalDisplayLabel" },
+        "localizedNames": { "$ref": "#/$defs/localizedNames" },
+        "recognitionCandidateCount": { "type": "integer", "minimum": 0 },
+        "profileCount": { "type": "integer", "minimum": 1 },
+        "sessionCount": { "type": "integer", "minimum": 1 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "state": { "const": "recognized" } } },
+          "then": {
+            "properties": {
+              "displayLabel": { "type": "null" },
+              "localizedNames": { "type": "object", "minProperties": 1 },
+              "recognitionCandidateCount": { "const": 1 }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "state": { "const": "ambiguous" } } },
+          "then": {
+            "properties": {
+              "sportRef": { "$ref": "training-sport-identity-v1.schema.json#/$defs/sportRef" },
+              "canonicalFamily": { "type": "null" },
+              "displayLabel": { "type": "null" },
+              "localizedNames": { "$ref": "#/$defs/emptyLocalizedNames" },
+              "recognitionCandidateCount": { "type": "integer", "minimum": 2 },
+              "profileCount": { "const": 1 }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "state": { "const": "unknown" } } },
+          "then": {
+            "properties": {
+              "sportRef": { "$ref": "training-sport-identity-v1.schema.json#/$defs/sportRef" },
+              "canonicalFamily": { "type": "null" },
+              "displayLabel": { "type": "null" },
+              "localizedNames": { "$ref": "#/$defs/emptyLocalizedNames" },
+              "recognitionCandidateCount": { "const": 0 },
+              "profileCount": { "const": 1 }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "state": { "const": "personally-overridden" } } },
+          "then": {
+            "properties": {
+              "localizedNames": { "$ref": "#/$defs/emptyLocalizedNames" },
+              "recognitionCandidateCount": { "const": 0 }
+            },
+            "allOf": [
+              {
+                "if": { "properties": { "profileCount": { "const": 1 } } },
+                "then": {
+                  "properties": {
+                    "sportRef": { "$ref": "training-sport-identity-v1.schema.json#/$defs/sportRef" }
+                  }
+                },
+                "else": { "properties": { "sportRef": { "type": "null" } } }
+              }
+            ]
+          }
+        },
+        {
+          "if": { "properties": { "state": { "const": "unavailable" } } },
+          "then": {
+            "properties": {
+              "sportRef": { "type": "null" },
+              "canonicalFamily": { "type": "null" },
+              "displayLabel": { "type": "null" },
+              "localizedNames": { "$ref": "#/$defs/emptyLocalizedNames" },
+              "recognitionCandidateCount": { "const": 0 }
+            }
+          }
+        }
+      ]
+    },
+    "recentSession": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sessionRef",
+        "sportRef",
+        "startedAtLocal",
+        "durationMilliseconds",
+        "distanceMeters",
+        "sportState",
+        "canonicalFamily",
+        "displayLabel",
+        "localizedNames",
+        "recognitionCandidateCount"
+      ],
+      "properties": {
+        "sessionRef": { "$ref": "library-home-v2.schema.json#/$defs/sessionRef" },
+        "sportRef": { "$ref": "#/$defs/nullableSportRef" },
+        "startedAtLocal": { "$ref": "library-home-v2.schema.json#/$defs/localDateTime" },
+        "durationMilliseconds": { "$ref": "library-home-v2.schema.json#/$defs/nonNegativeIntegerString" },
+        "distanceMeters": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "number", "minimum": 0 }
+          ]
+        },
+        "sportState": {
+          "enum": [
+            "recognized",
+            "ambiguous",
+            "unknown",
+            "personally-overridden",
+            "unavailable"
+          ]
+        },
+        "canonicalFamily": { "$ref": "training-sport-identity-v1.schema.json#/$defs/optionalFamily" },
+        "displayLabel": { "$ref": "training-sport-identity-v1.schema.json#/$defs/optionalDisplayLabel" },
+        "localizedNames": { "$ref": "#/$defs/localizedNames" },
+        "recognitionCandidateCount": { "type": "integer", "minimum": 0 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "sportState": { "const": "recognized" } } },
+          "then": {
+            "properties": {
+              "sportRef": { "$ref": "training-sport-identity-v1.schema.json#/$defs/sportRef" },
+              "displayLabel": { "type": "null" },
+              "localizedNames": { "type": "object", "minProperties": 1 },
+              "recognitionCandidateCount": { "const": 1 }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "sportState": { "enum": ["ambiguous", "unknown"] } } },
+          "then": {
+            "properties": {
+              "sportRef": { "$ref": "training-sport-identity-v1.schema.json#/$defs/sportRef" },
+              "canonicalFamily": { "type": "null" },
+              "displayLabel": { "type": "null" },
+              "localizedNames": { "$ref": "#/$defs/emptyLocalizedNames" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "sportState": { "const": "ambiguous" } } },
+          "then": { "properties": { "recognitionCandidateCount": { "type": "integer", "minimum": 2 } } }
+        },
+        {
+          "if": { "properties": { "sportState": { "const": "unknown" } } },
+          "then": { "properties": { "recognitionCandidateCount": { "const": 0 } } }
+        },
+        {
+          "if": { "properties": { "sportState": { "const": "personally-overridden" } } },
+          "then": {
+            "properties": {
+              "sportRef": { "$ref": "training-sport-identity-v1.schema.json#/$defs/sportRef" }
+            },
+            "allOf": [
+              {
+                "if": { "properties": { "recognitionCandidateCount": { "const": 1 } } },
+                "then": {
+                  "properties": {
+                    "localizedNames": { "type": "object", "minProperties": 1 }
+                  }
+                },
+                "else": { "properties": { "localizedNames": { "$ref": "#/$defs/emptyLocalizedNames" } } }
+              }
+            ]
+          }
+        },
+        {
+          "if": { "properties": { "sportState": { "const": "unavailable" } } },
+          "then": {
+            "properties": {
+              "sportRef": { "type": "null" },
+              "canonicalFamily": { "type": "null" },
+              "displayLabel": { "type": "null" },
+              "localizedNames": { "$ref": "#/$defs/emptyLocalizedNames" },
+              "recognitionCandidateCount": { "const": 0 }
+            }
+          }
+        }
+      ]
+    },
+    "training": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trainingSnapshotRef",
+        "sessionCount",
+        "sportProfileCount",
+        "omittedSportProfileCount",
+        "sports",
+        "recentSessions"
+      ],
+      "properties": {
+        "trainingSnapshotRef": { "$ref": "library-home-v2.schema.json#/$defs/trainingSnapshotRef" },
+        "sessionCount": { "type": "integer", "minimum": 1 },
+        "sportProfileCount": { "type": "integer", "minimum": 1 },
+        "omittedSportProfileCount": { "type": "integer", "minimum": 0 },
+        "sports": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 6,
+          "items": { "$ref": "#/$defs/sportSummary" }
+        },
+        "recentSessions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": { "$ref": "#/$defs/recentSession" }
+        }
+      }
+    }
+  }
+}

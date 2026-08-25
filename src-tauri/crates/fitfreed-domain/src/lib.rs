@@ -7,6 +7,15 @@ pub use sport_classification::{
 #[cfg(test)]
 mod sport_classification_tests;
 
+mod sport_identity;
+pub use sport_identity::{
+    resolve_sport_identity, ProviderNeutralSportSuggestion, SportIdentityResolution,
+    SportIdentityState, SportLocalizedName, SportRecognitionProvenance, SportSuggestionError,
+};
+
+#[cfg(test)]
+mod sport_identity_tests;
+
 mod report_definition;
 pub use report_definition::{
     author_session_report, authorize_report_removal, refresh_report_definition, revise_report,

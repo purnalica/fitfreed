@@ -73,7 +73,7 @@ const story = {
     ordinal: 0,
     sport: {
       sportRef: `sport-${"3".repeat(64)}`,
-      state: "classified",
+      state: "personally-overridden",
       classification: {
         canonicalFamily: "running",
         displayLabel: "Canal run",

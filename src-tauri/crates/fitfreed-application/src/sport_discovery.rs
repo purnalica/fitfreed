@@ -2,17 +2,19 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use chrono::NaiveDate;
 use fitfreed_domain::{
-    author_sport_classification, SportClassification, SportClassificationAuthorship,
-    SportClassificationError, SportClassificationState, SportFamily,
+    author_sport_classification, resolve_sport_identity, ProviderNeutralSportSuggestion,
+    SportClassification, SportClassificationAuthorship, SportClassificationError, SportFamily,
+    SportIdentityState,
 };
 
-use crate::ApplicationError;
+use crate::{ApplicationError, TrainingSessionSport};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DetectedTrainingSport {
     pub sport_ref: Option<String>,
     pub origin_id: String,
     pub classification: Option<SportClassification>,
+    pub recognition_candidates: Vec<ProviderNeutralSportSuggestion>,
     pub first_local_date: String,
     pub last_local_date: String,
     pub session_count: usize,
@@ -38,8 +40,10 @@ pub trait TrainingSportsPort {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TrainingSportState {
+    Recognized,
+    Ambiguous,
     Unknown,
-    Classified,
+    PersonallyOverridden,
     Unavailable,
 }
 
@@ -49,6 +53,16 @@ pub struct TrainingSportClassification {
     pub display_label: Option<String>,
     pub authorship: Option<String>,
     pub revision: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TrainingSportRecognition {
+    pub canonical_family: Option<String>,
+    pub localized_names: BTreeMap<String, String>,
+    pub catalogue_revision: String,
+    pub retrieved_at_utc: String,
+    pub mapping_version: String,
+    pub evidence_ref: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -65,6 +79,8 @@ pub struct TrainingSport {
     pub source_index: usize,
     pub state: TrainingSportState,
     pub classification: Option<TrainingSportClassification>,
+    pub recognition: Option<TrainingSportRecognition>,
+    pub recognition_candidate_count: usize,
     pub first_local_date: String,
     pub last_local_date: String,
     pub coverage: TrainingSportCoverage,
@@ -280,6 +296,11 @@ fn validate_detected_sport(
             }
         }
         (None, None) => {
+            if !record.recognition_candidates.is_empty() {
+                return Err(ApplicationError::SportClassificationQuery(
+                    "unavailable sport contains recognition candidates".to_owned(),
+                ));
+            }
             if !seen_unavailable_origins.insert(record.origin_id.clone()) {
                 return Err(ApplicationError::SportClassificationQuery(
                     "unavailable sport group is duplicated for its origin".to_owned(),
@@ -308,61 +329,174 @@ fn parse_local_date(value: &str) -> Result<NaiveDate, ApplicationError> {
 }
 
 fn map_detected_sport(record: DetectedTrainingSport, source_index: usize) -> TrainingSport {
-    let (state, classification) =
-        record
-            .classification
-            .map_or((TrainingSportState::Unavailable, None), |classification| {
-                let state = match classification.state() {
-                    SportClassificationState::Unknown => TrainingSportState::Unknown,
-                    SportClassificationState::Classified => TrainingSportState::Classified,
-                };
-                let classification = TrainingSportClassification {
-                    canonical_family: classification
-                        .canonical_family()
-                        .map(SportFamily::as_code)
-                        .map(str::to_owned),
-                    display_label: classification.display_label().map(str::to_owned),
-                    authorship: classification
-                        .authorship()
-                        .map(|authorship| match authorship {
-                            SportClassificationAuthorship::User => "user".to_owned(),
-                        }),
-                    revision: classification.revision(),
-                };
-                (state, Some(classification))
-            });
+    let DetectedTrainingSport {
+        sport_ref,
+        classification,
+        recognition_candidates,
+        first_local_date,
+        last_local_date,
+        session_count,
+        total_duration_milliseconds,
+        distance_session_count,
+        heart_rate_session_count,
+        ..
+    } = record;
+    let (state, classification, recognition, recognition_candidate_count) = classification.map_or(
+        (TrainingSportState::Unavailable, None, None, 0),
+        |classification| {
+            let resolved = resolve_sport_identity(&classification, recognition_candidates);
+            let state = map_identity_state(resolved.state());
+            let recognition = resolved.recognized_suggestion().map(map_recognition);
+            let candidate_count = resolved.candidate_count();
+            (
+                state,
+                Some(map_classification(&classification)),
+                recognition,
+                candidate_count,
+            )
+        },
+    );
     TrainingSport {
-        sport_ref: record.sport_ref,
+        sport_ref,
         source_index,
         state,
         classification,
-        first_local_date: record.first_local_date,
-        last_local_date: record.last_local_date,
+        recognition,
+        recognition_candidate_count,
+        first_local_date,
+        last_local_date,
         coverage: TrainingSportCoverage {
-            session_count: record.session_count,
-            total_duration_milliseconds: record.total_duration_milliseconds,
-            distance_session_count: record.distance_session_count,
-            heart_rate_session_count: record.heart_rate_session_count,
+            session_count,
+            total_duration_milliseconds,
+            distance_session_count,
+            heart_rate_session_count,
         },
+    }
+}
+
+pub fn resolve_training_session_sport(
+    sport_ref: Option<String>,
+    classification: Option<SportClassification>,
+    recognition_candidates: Vec<ProviderNeutralSportSuggestion>,
+) -> Result<TrainingSessionSport, ApplicationError> {
+    match (sport_ref, classification) {
+        (None, None) if recognition_candidates.is_empty() => Ok(TrainingSessionSport {
+            sport_ref: None,
+            state: TrainingSportState::Unavailable,
+            classification: None,
+            recognition: None,
+            recognition_candidate_count: 0,
+        }),
+        (Some(sport_ref), Some(classification)) => {
+            let resolved = resolve_sport_identity(&classification, recognition_candidates);
+            let state = map_identity_state(resolved.state());
+            let recognition = resolved.recognized_suggestion().map(map_recognition);
+            let recognition_candidate_count = resolved.candidate_count();
+            Ok(TrainingSessionSport {
+                sport_ref: Some(sport_ref),
+                state,
+                classification: Some(map_classification(&classification)),
+                recognition,
+                recognition_candidate_count,
+            })
+        }
+        _ => Err(ApplicationError::SportClassificationQuery(
+            "sport identity evidence is inconsistent".to_owned(),
+        )),
+    }
+}
+
+fn map_identity_state(state: SportIdentityState) -> TrainingSportState {
+    match state {
+        SportIdentityState::Recognized => TrainingSportState::Recognized,
+        SportIdentityState::Ambiguous => TrainingSportState::Ambiguous,
+        SportIdentityState::Unknown => TrainingSportState::Unknown,
+        SportIdentityState::PersonallyOverridden => TrainingSportState::PersonallyOverridden,
+    }
+}
+
+fn map_classification(classification: &SportClassification) -> TrainingSportClassification {
+    TrainingSportClassification {
+        canonical_family: classification
+            .canonical_family()
+            .map(SportFamily::as_code)
+            .map(str::to_owned),
+        display_label: classification.display_label().map(str::to_owned),
+        authorship: classification
+            .authorship()
+            .map(|authorship| match authorship {
+                SportClassificationAuthorship::User => "user".to_owned(),
+            }),
+        revision: classification.revision(),
+    }
+}
+
+fn map_recognition(suggestion: &ProviderNeutralSportSuggestion) -> TrainingSportRecognition {
+    TrainingSportRecognition {
+        canonical_family: suggestion
+            .canonical_family()
+            .map(SportFamily::as_code)
+            .map(str::to_owned),
+        localized_names: suggestion
+            .localized_names()
+            .iter()
+            .map(|name| (name.language_tag().to_owned(), name.value().to_owned()))
+            .collect(),
+        catalogue_revision: suggestion.provenance().catalogue_revision().to_owned(),
+        retrieved_at_utc: suggestion.provenance().retrieved_at_utc().to_owned(),
+        mapping_version: suggestion.provenance().mapping_version().to_owned(),
+        evidence_ref: suggestion.provenance().evidence_ref().to_owned(),
     }
 }
 
 fn sport_sort_key(sport: &TrainingSport) -> (u8, String, String, usize, String) {
     let state = match sport.state {
-        TrainingSportState::Classified => 0,
-        TrainingSportState::Unknown => 1,
-        TrainingSportState::Unavailable => 2,
+        TrainingSportState::PersonallyOverridden => 0,
+        TrainingSportState::Recognized => 1,
+        TrainingSportState::Ambiguous => 2,
+        TrainingSportState::Unknown => 3,
+        TrainingSportState::Unavailable => 4,
     };
-    let family = sport
-        .classification
-        .as_ref()
-        .and_then(|classification| classification.canonical_family.clone())
-        .unwrap_or_default();
-    let label = sport
-        .classification
-        .as_ref()
-        .and_then(|classification| classification.display_label.clone())
-        .unwrap_or_default();
+    let (family, label) = match sport.state {
+        TrainingSportState::PersonallyOverridden => (
+            sport
+                .classification
+                .as_ref()
+                .and_then(|classification| classification.canonical_family.clone())
+                .unwrap_or_default(),
+            sport
+                .classification
+                .as_ref()
+                .and_then(|classification| classification.display_label.clone())
+                .unwrap_or_default(),
+        ),
+        TrainingSportState::Recognized => (
+            sport
+                .recognition
+                .as_ref()
+                .and_then(|recognition| recognition.canonical_family.clone())
+                .unwrap_or_default(),
+            sport
+                .recognition
+                .as_ref()
+                .map(|recognition| {
+                    recognition.localized_names.iter().fold(
+                        String::new(),
+                        |mut key, (language_tag, name)| {
+                            key.push_str(language_tag);
+                            key.push('\0');
+                            key.push_str(name);
+                            key.push('\0');
+                            key
+                        },
+                    )
+                })
+                .unwrap_or_default(),
+        ),
+        TrainingSportState::Ambiguous
+        | TrainingSportState::Unknown
+        | TrainingSportState::Unavailable => (String::new(), String::new()),
+    };
     (
         state,
         family,

@@ -29,7 +29,7 @@ function structureStory(): SessionStory {
     energyKilocalories: null,
     sport: {
       sportRef: `sport-${"e".repeat(64)}`,
-      state: "classified" as const,
+      state: "personally-overridden" as const,
       classification: {
         canonicalFamily: "running" as const,
         displayLabel: "Intervals",

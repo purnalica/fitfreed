@@ -158,13 +158,15 @@ const sports: TrainingSportsOverview = {
     {
       sportRef: `sport-${"c".repeat(64)}`,
       sourceIndex: 1,
-      state: "classified",
+      state: "personally-overridden",
       classification: {
         canonicalFamily: "running",
         displayLabel: "Trail running",
         authorship: "user",
         revision: 1,
       },
+      recognition: null,
+      recognitionCandidateCount: 0,
       firstLocalDate: "2024-01-01",
       lastLocalDate: "2026-08-18",
       coverage: {
@@ -184,6 +186,8 @@ const sports: TrainingSportsOverview = {
         authorship: null,
         revision: 0,
       },
+      recognition: null,
+      recognitionCandidateCount: 0,
       firstLocalDate: "2025-01-01",
       lastLocalDate: "2026-01-01",
       coverage: {
@@ -215,8 +219,10 @@ function session(
     exerciseCount: 2,
     sport: {
       sportRef: sports.sports[0].sportRef,
-      state: "classified",
+      state: "personally-overridden",
       classification: sports.sports[0].classification,
+      recognition: sports.sports[0].recognition,
+      recognitionCandidateCount: sports.sports[0].recognitionCandidateCount,
     },
   };
 }
@@ -230,6 +236,8 @@ const unknownSession: TrainingSessionSearchItem = {
     sportRef: sports.sports[1].sportRef,
     state: "unknown",
     classification: sports.sports[1].classification,
+    recognition: sports.sports[1].recognition,
+    recognitionCandidateCount: sports.sports[1].recognitionCandidateCount,
   },
 };
 
@@ -249,13 +257,15 @@ function trainingStructure(sessionRef: string): TrainingSessionStructureResult {
         energyKilocalories: "650",
         sport: {
           sportRef: `sport-${"9".repeat(64)}`,
-          state: "unknown",
+          state: "personally-overridden",
           classification: {
             canonicalFamily: null,
             displayLabel: "Intervals",
             authorship: "user",
             revision: 1,
           },
+          recognition: null,
+          recognitionCandidateCount: 0,
         },
         manualLaps: [{
           lapRef: `lap-${"2".repeat(64)}`,
@@ -284,6 +294,8 @@ function trainingStructure(sessionRef: string): TrainingSessionStructureResult {
           sportRef: sports.sports[1].sportRef,
           state: "unknown",
           classification: sports.sports[1].classification,
+          recognition: sports.sports[1].recognition,
+          recognitionCandidateCount: sports.sports[1].recognitionCandidateCount,
         },
         manualLaps: null,
         automaticLaps: null,
@@ -658,7 +670,7 @@ function trainingStory(
   }));
 
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     snapshotRef: acceptedSnapshotRef,
     session: storySession(sessionRef),
     structure,
@@ -1044,7 +1056,7 @@ describe("TrainingSessionLibraryPanel", () => {
   it("names one unresolved sport in context through the shared classification task", async () => {
     const namedSport = {
       ...sports.sports[1],
-      state: "classified" as const,
+      state: "personally-overridden" as const,
       classification: {
         canonicalFamily: "water-sport" as const,
         displayLabel: "River paddling",
@@ -1122,7 +1134,7 @@ describe("TrainingSessionLibraryPanel", () => {
     const nextSnapshotRef = `training-snapshot-${"e".repeat(64)}`;
     const namedSport = {
       ...sports.sports[1],
-      state: "classified" as const,
+      state: "personally-overridden" as const,
       classification: {
         canonicalFamily: "water-sport" as const,
         displayLabel: "River paddling",
@@ -1140,6 +1152,8 @@ describe("TrainingSessionLibraryPanel", () => {
         sportRef: namedSport.sportRef,
         state: namedSport.state,
         classification: namedSport.classification,
+        recognition: namedSport.recognition,
+        recognitionCandidateCount: namedSport.recognitionCandidateCount,
       },
     };
     const restoredWorkspace: TrainingDiscoveryWorkspace = {
@@ -1306,7 +1320,7 @@ describe("TrainingSessionLibraryPanel", () => {
   it("keeps the saved identity and offers recovery when its snapshot refresh fails", async () => {
     const namedSport = {
       ...sports.sports[1],
-      state: "classified" as const,
+      state: "personally-overridden" as const,
       classification: {
         canonicalFamily: "water-sport" as const,
         displayLabel: "River paddling",
@@ -1324,6 +1338,8 @@ describe("TrainingSessionLibraryPanel", () => {
         sportRef: namedSport.sportRef,
         state: namedSport.state,
         classification: namedSport.classification,
+        recognition: namedSport.recognition,
+        recognitionCandidateCount: namedSport.recognitionCandidateCount,
       },
     };
     let classificationSaved = false;
@@ -1532,6 +1548,8 @@ describe("TrainingSessionLibraryPanel", () => {
         sportRef: null,
         state: "unavailable",
         classification: null,
+        recognition: null,
+        recognitionCandidateCount: 0,
       },
     };
     mocks.invoke.mockImplementation((command, arguments_) => {

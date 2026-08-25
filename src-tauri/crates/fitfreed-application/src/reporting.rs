@@ -224,7 +224,7 @@ pub enum ReportLibraryEvidenceState {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ReportLibrarySubject {
-    Session { sport: TrainingSessionSport },
+    Session { sport: Box<TrainingSessionSport> },
     TrainingComparison,
     AuthoredNote,
 }
@@ -1009,7 +1009,7 @@ fn report_library_item(
             return Ok(base(
                 ReportLibraryEvidenceState::Unavailable,
                 ReportLibrarySubject::Session {
-                    sport: unavailable_report_sport(),
+                    sport: Box::new(unavailable_report_sport()),
                 },
                 None,
                 None,
@@ -1025,7 +1025,7 @@ fn report_library_item(
                 return Ok(base(
                     ReportLibraryEvidenceState::Unavailable,
                     ReportLibrarySubject::Session {
-                        sport: unavailable_report_sport(),
+                        sport: Box::new(unavailable_report_sport()),
                     },
                     None,
                     None,
@@ -1052,7 +1052,7 @@ fn report_library_item(
         return Ok(base(
             report_library_evidence_state(definition, current_snapshot_ref),
             ReportLibrarySubject::Session {
-                sport: session.sport,
+                sport: Box::new(session.sport),
             },
             Some(ReportLibraryPeriod::Session {
                 started_at_local: session.started_at_local,
@@ -2127,6 +2127,8 @@ fn unavailable_report_sport() -> TrainingSessionSport {
         sport_ref: None,
         state: TrainingSportState::Unavailable,
         classification: None,
+        recognition: None,
+        recognition_candidate_count: 0,
     }
 }
 
@@ -2354,9 +2356,11 @@ fn report_limitations(session: &TrainingSessionSearchItem) -> Vec<ReportLimitati
         limitations.push(ReportLimitation::HeartRateUnavailable);
     }
     match session.sport.state {
-        TrainingSportState::Unknown => limitations.push(ReportLimitation::SportUnclassified),
+        TrainingSportState::Unknown | TrainingSportState::Ambiguous => {
+            limitations.push(ReportLimitation::SportUnclassified)
+        }
         TrainingSportState::Unavailable => limitations.push(ReportLimitation::SportUnavailable),
-        TrainingSportState::Classified => {}
+        TrainingSportState::Recognized | TrainingSportState::PersonallyOverridden => {}
     }
     limitations
 }

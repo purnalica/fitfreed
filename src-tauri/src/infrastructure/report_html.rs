@@ -11,6 +11,7 @@ use fitfreed_domain::{ReportBlockContent, ReportLocale, ReportTrainingMetric};
 use super::local_file::PrivateStagingFile;
 
 const SPORT_ICON_SPRITE: &str = include_str!("../../../assets/sport/sport-icons.svg");
+const REPORT_HTML_OUTPUT_VERSION: u32 = 5;
 const SVG_NAMESPACE_DECLARATION: &str = " xmlns=\"http://www.w3.org/2000/svg\"";
 const EMBEDDED_STYLE: &str = "\
 :root{color-scheme:light dark;font-family:system-ui,-apple-system,sans-serif;line-height:1.5}\
@@ -106,7 +107,9 @@ fn render_report(
     html.push_str(EMBEDDED_STYLE);
     html.push_str("</style></head><body>");
     html.push_str(&SPORT_ICON_SPRITE.replacen(SVG_NAMESPACE_DECLARATION, "", 1));
-    html.push_str("<main data-fitfreed-report-version=\"");
+    html.push_str("<main data-fitfreed-output-version=\"");
+    html.push_str(&REPORT_HTML_OUTPUT_VERSION.to_string());
+    html.push_str("\" data-fitfreed-report-version=\"");
     html.push_str(&report.definition.definition_version().to_string());
     html.push_str("\"><header><p class=\"attribution\">");
     html.push_str(labels.personal_report);
@@ -1262,7 +1265,7 @@ fn sport_family_identity(family: &str, labels: &Labels) -> Option<(&'static str,
 
 fn sport_identity(sport: &TrainingSessionSport, labels: &Labels) -> SportIdentity {
     match sport.state {
-        TrainingSportState::Classified => {
+        TrainingSportState::PersonallyOverridden => {
             let classification = sport.classification.as_ref();
             let family = classification
                 .and_then(|value| value.canonical_family.as_deref())
@@ -1272,18 +1275,54 @@ fn sport_identity(sport: &TrainingSessionSport, labels: &Labels) -> SportIdentit
                 label: classification
                     .and_then(|value| value.display_label.clone())
                     .or_else(|| family.map(|(_, label)| label.to_owned()))
-                    .unwrap_or_else(|| labels.sport_unavailable.to_owned()),
+                    .unwrap_or_else(|| labels.sport_unknown.to_owned()),
             }
         }
+        TrainingSportState::Recognized => {
+            let recognition = sport.recognition.as_ref();
+            let family = recognition
+                .and_then(|value| value.canonical_family.as_deref())
+                .and_then(|value| sport_family_identity(value, labels));
+            SportIdentity {
+                icon: family.map_or("other", |(icon, _)| icon),
+                label: recognition
+                    .and_then(|value| {
+                        localized_sport_name(&value.localized_names, labels.recognition_locale)
+                    })
+                    .map(str::to_owned)
+                    .or_else(|| family.map(|(_, label)| label.to_owned()))
+                    .unwrap_or_else(|| labels.sport_unknown.to_owned()),
+            }
+        }
+        TrainingSportState::Ambiguous => SportIdentity {
+            icon: "unknown",
+            label: labels.sport_ambiguous.to_owned(),
+        },
         TrainingSportState::Unknown => SportIdentity {
             icon: "unknown",
-            label: labels.sport_unclassified.to_owned(),
+            label: labels.sport_unknown.to_owned(),
         },
         TrainingSportState::Unavailable => SportIdentity {
             icon: "unavailable",
             label: labels.sport_unavailable.to_owned(),
         },
     }
+}
+
+fn localized_sport_name<'a>(
+    localized_names: &'a BTreeMap<String, String>,
+    locale: &str,
+) -> Option<&'a str> {
+    localized_names
+        .get(locale)
+        .or_else(|| {
+            locale
+                .split_once('-')
+                .and_then(|(language, _)| localized_names.get(language))
+        })
+        .or_else(|| localized_names.get("en"))
+        .or_else(|| localized_names.values().next())
+        .map(String::as_str)
 }
 
 fn push_sport_term(html: &mut String, term: &str, identity: &SportIdentity) {
@@ -1343,6 +1382,7 @@ struct SportFamilyLabels {
 }
 
 struct Labels {
+    recognition_locale: &'static str,
     personal_report: &'static str,
     definition_version: &'static str,
     definition_revision: &'static str,
@@ -1416,7 +1456,8 @@ struct Labels {
     distance_unavailable: &'static str,
     energy_unavailable: &'static str,
     heart_rate_unavailable: &'static str,
-    sport_unclassified: &'static str,
+    sport_unknown: &'static str,
+    sport_ambiguous: &'static str,
     sport_unavailable: &'static str,
     sport_unclassified_limitation: &'static str,
     sport_unavailable_limitation: &'static str,
@@ -1447,6 +1488,7 @@ static EN_US_SPORT_FAMILIES: SportFamilyLabels = SportFamilyLabels {
 };
 
 static EN_US: Labels = Labels {
+    recognition_locale: "en-US",
     personal_report: "Personal evidence report",
     definition_version: "Definition version",
     definition_revision: "Definition revision",
@@ -1524,9 +1566,11 @@ static EN_US: Labels = Labels {
     distance_unavailable: "Distance was not available in the source evidence.",
     energy_unavailable: "Energy was not available in the source evidence.",
     heart_rate_unavailable: "Heart rate was not available in the source evidence.",
-    sport_unclassified: "Unclassified sport",
+    sport_unknown: "Unknown sport",
+    sport_ambiguous: "Sport identity needs review",
     sport_unavailable: "Sport unavailable",
-    sport_unclassified_limitation: "The recorded sport has not been classified by the user.",
+    sport_unclassified_limitation:
+        "The recorded sport could not be identified unambiguously from the available evidence.",
     sport_unavailable_limitation: "The source did not provide a sport reference.",
 };
 
@@ -1546,6 +1590,7 @@ static ES_ES_SPORT_FAMILIES: SportFamilyLabels = SportFamilyLabels {
 };
 
 static ES_ES: Labels = Labels {
+    recognition_locale: "es-ES",
     personal_report: "Informe personal de evidencias",
     definition_version: "Versión de la definición",
     definition_revision: "Revisión de la definición",
@@ -1626,21 +1671,23 @@ static ES_ES: Labels = Labels {
     energy_unavailable: "La energía no estaba disponible en las evidencias de origen.",
     heart_rate_unavailable:
         "La frecuencia cardíaca no estaba disponible en las evidencias de origen.",
-    sport_unclassified: "Deporte sin clasificar",
+    sport_unknown: "Deporte desconocido",
+    sport_ambiguous: "La identidad del deporte necesita revisión",
     sport_unavailable: "Deporte no disponible",
-    sport_unclassified_limitation: "El usuario todavía no ha clasificado el deporte registrado.",
+    sport_unclassified_limitation:
+        "No se pudo identificar inequívocamente el deporte registrado con las evidencias disponibles.",
     sport_unavailable_limitation: "El origen no proporcionó una referencia de deporte.",
 };
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
+    use std::{collections::BTreeMap, fs};
 
     use fitfreed_application::{
         ReportSessionEvidence, TrainingComparison, TrainingDateRange,
         TrainingProvenanceCurrentView, TrainingRoutePointView, TrainingSeriesComparison,
         TrainingSeriesSummary, TrainingSessionSport, TrainingSourceProviderView,
-        TrainingSportClassification,
+        TrainingSportClassification, TrainingSportRecognition,
     };
     use fitfreed_domain::{
         ReportBlock, ReportDateRange, ReportDefinition, ReportOrigin, ReportQuestion,
@@ -1692,6 +1739,8 @@ mod tests {
                     sport_ref: None,
                     state: TrainingSportState::Unavailable,
                     classification: None,
+                    recognition: None,
+                    recognition_candidate_count: 0,
                 },
             }),
             routes: vec![],
@@ -1961,18 +2010,53 @@ mod tests {
 
     #[test]
     fn renders_localized_and_authored_sport_identities_with_semantic_icons() {
+        let mut recognized_report = report(ReportLocale::EsEs, false);
+        recognized_report.session.as_mut().expect("session").sport = TrainingSessionSport {
+            sport_ref: Some(
+                "sport-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef".to_owned(),
+            ),
+            state: TrainingSportState::Recognized,
+            classification: Some(TrainingSportClassification {
+                canonical_family: None,
+                display_label: None,
+                authorship: None,
+                revision: 0,
+            }),
+            recognition: Some(TrainingSportRecognition {
+                canonical_family: Some("running".to_owned()),
+                localized_names: BTreeMap::from([
+                    ("en".to_owned(), "Road running".to_owned()),
+                    ("es".to_owned(), "Carrera en asfalto".to_owned()),
+                ]),
+                catalogue_revision: "catalogue-2026-08-25".to_owned(),
+                retrieved_at_utc: "2026-08-25T10:00:00Z".to_owned(),
+                mapping_version: "sport-mapping@1".to_owned(),
+                evidence_ref:
+                    "sport-evidence-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                        .to_owned(),
+            }),
+            recognition_candidate_count: 1,
+        };
+        let recognized_html = render_report(&recognized_report, &ReportExportCancellation::new())
+            .expect("recognized report");
+        assert!(recognized_html.contains("href=\"#sport-icon-running\""));
+        assert!(recognized_html.contains(">Carrera en asfalto<"));
+        assert!(!recognized_html.contains(">Road running<"));
+
         let mut family_report = report(ReportLocale::EsEs, false);
         family_report.session.as_mut().expect("session").sport = TrainingSessionSport {
             sport_ref: Some(
                 "sport-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef".to_owned(),
             ),
-            state: TrainingSportState::Classified,
+            state: TrainingSportState::PersonallyOverridden,
             classification: Some(TrainingSportClassification {
                 canonical_family: Some("water-sport".to_owned()),
                 display_label: None,
                 authorship: Some("user".to_owned()),
                 revision: 1,
             }),
+            recognition: None,
+            recognition_candidate_count: 0,
         };
         let family_html =
             render_report(&family_report, &ReportExportCancellation::new()).expect("family report");
@@ -1985,13 +2069,15 @@ mod tests {
             sport_ref: Some(
                 "sport-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef".to_owned(),
             ),
-            state: TrainingSportState::Classified,
+            state: TrainingSportState::PersonallyOverridden,
             classification: Some(TrainingSportClassification {
                 canonical_family: None,
                 display_label: Some("River paddling".to_owned()),
                 authorship: Some("user".to_owned()),
                 revision: 1,
             }),
+            recognition: None,
+            recognition_candidate_count: 0,
         };
         let authored_html = render_report(&authored_report, &ReportExportCancellation::new())
             .expect("authored report");
@@ -2007,6 +2093,7 @@ mod tests {
         assert!(html.contains(&format!(
             "data-fitfreed-report-version=\"{REPORT_DEFINITION_VERSION}\""
         )));
+        assert!(html.contains("data-fitfreed-output-version=\"5\""));
         assert!(html.contains("<svg class=\"route-visual\""));
         assert!(
             html.find(">Route</h2>").expect("route section")

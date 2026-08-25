@@ -6,7 +6,9 @@ Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-a
 
 ## Ownership
 
-- The domain owns provider-neutral session, exercise, lap, pause, zone, route, numeric-series, sport-classification, personal-range, and segment-criterion identities and invariants.
+- The domain owns provider-neutral session, exercise, lap, pause, zone, route, numeric-series,
+  sport-classification, sport-recognition suggestion, personal-range, and segment-criterion identities and
+  invariants.
 - Source Translation owns Polar Flow decoding, enumeration and unit interpretation, source identity, mapping versions, and anti-corruption mapping into typed canonical evidence.
 - The application owns discovery, classification, criterion evaluation, bounded session-detail queries, downsampled views, exact pagination, coverage, and provenance use cases.
 - Persistence owns atomic canonical storage, indexes, mapping-aware reconciliation, and bounded projections. It does not invent sport meaning, align unknown series, or evaluate presentation rules.
@@ -16,28 +18,40 @@ Accepted target architecture under [ADR 0021](decisions/0021-model-training-as-a
 
 One canonical session can expose three non-interchangeable layers:
 
-1. Source evidence: exercises, source laps, automatic laps, pauses, zones, routes, and supported series mapped from a provider artifact.
+1. Source evidence: exercises, source laps, automatic laps, pauses, zones, routes, supported series, and
+   separately acquired provider catalogue candidates with exact provenance.
 2. FitFreed-derived evidence: downsampled visual projections and deterministic segments produced by a versioned calculation.
 3. User-authored evidence: sport classification, session-owned personal ranges, and reusable segment criteria with explicit authorship and revision.
 
 Every read model retains layer attribution and provenance. Reimport or recalculation may enrich or regenerate the applicable layer but cannot rewrite another layer silently.
 
-## Sport-classification boundary
+## Sport-identity and classification boundary
 
-The [canonical sport-classification contract](../data-formats/canonical/sport-classification.md) resolves
-meaning without changing source evidence. Application and persistence may handle the exact
-`(originId, sourceSportRef)` key, but presentation receives only an opaque stable `sportRef`, explicit
-unknown or unavailable state, localized family code, optional user label, authorship, revision, and
-aggregate coverage. Source references and origin identities never become labels.
+The [training sport identity contract](../data-formats/insights/training-sport-identity-v1.md) resolves
+provider evidence and the independent
+[canonical sport-classification contract](../data-formats/canonical/sport-classification.md) without changing
+either. Application and persistence may handle the exact `(originId, sourceSportRef)` key, but presentation
+receives only an opaque stable `sportRef`, exact identity state, optional personal classification,
+provider-neutral recognition, candidate count, and aggregate coverage. Source identifiers, provider name
+keys, catalogue hierarchy, and origin identities never become labels.
 
-An absent authored value is revision-zero unknown. Resetting a value writes a new user-authored unknown
+One active catalogue candidate produces `recognized`; multiple candidates produce `ambiguous`; no candidate
+produces `unknown`; absent source sport evidence produces `unavailable`. Candidate order is not authority.
+Recognition carries localized provider names, an optional provider-neutral family suggestion, catalogue and
+mapping version, retrieval instant, and opaque evidence reference.
+[ADR 0027](decisions/0027-resolve-sport-identity-from-versioned-provider-evidence.md) owns the immutable
+catalogue and activation boundary. No sport is inferred from session measurements.
+
+An absent authored value leaves recognition authoritative or retains revision-zero unresolved state. Saving
+a classification produces `personally-overridden`; its personal label or family wins without deleting
+recognition. Resetting a value writes a new user-authored unknown
 revision rather than deleting the history of user intent. Compare-and-save revision checks reject stale
 editors. Import and reimport can reveal a new source reference but cannot create or overwrite its meaning.
 
 `SportClassificationTask` is the sole presentation mutation boundary for family, personal label, validation,
 save, reset, cancellation, operation progress, and optimistic-conflict recovery. The Sports workspace composes
 it as the complete management surface; the Sessions sport summary composes the same task only for an
-unresolved identity encountered in context. Library Home version 3 also preserves every unresolved profile as
+unresolved identity encountered in context. Library Home version 5 also preserves every unresolved profile as
 a separate summary, associates recent sessions through the same opaque presentation capability, and routes its
 contextual naming action to that exact task in Sports. It never aggregates unresolved profiles, displays the
 capability, or owns another mutation path. A conflict reloads the authoritative overview and revision but retains
@@ -68,9 +82,11 @@ otherwise equal labels would create ambiguity.
 
 Session identity and lightweight structure load independently from large routes and series. Visual queries request bounded windows and an explicit resolution; exact queries are stable and paginated. A downsampled point never masquerades as a recorded sample, and every visual offers an exact accessible path.
 
-The [training-session search contract](../data-formats/insights/training-session-search-v1.md) is the
+The [training-session search version 2 contract](../data-formats/insights/training-session-search-v2.md) is the
 complete-history discovery path. It combines optional local-date bounds, opaque sports, required-measurement
-coverage, and user-label text without loading detail evidence. Each result carries exact source-separated
+coverage, and identity text without loading detail evidence. Text matches personal labels plus recognized
+localized names and provider-neutral family codes, but never provider identifiers or ambiguous candidates.
+Each result carries exact source-separated
 summaries over the complete filtered set rather than reconstructing aggregates from the visible page. Offset
 pages share an opaque mutation snapshot; session or classification changes invalidate later pages instead of
 shifting them silently. Period-comparison windows remain a separate read model and cannot limit discovery.
@@ -81,7 +97,7 @@ against that snapshot rather than searching the currently visible page. Presenta
 versioned applied query, page, view, calendar origin, comparison order, and open session. A stale snapshot
 retains still-valid query intent but clears session-specific evidence; explicit return to Home clears the
 detailed workspace. The normative contracts are the
-[training-session search](../data-formats/insights/training-session-search-v1.md) and
+[training-session search](../data-formats/insights/training-session-search-v2.md) and
 [training-discovery workspace](../data-formats/insights/training-discovery-workspace-v1.md) specifications.
 
 Training-period comparison remains a distinct bounded calendar read model. Its `availableRange` reports the
@@ -158,7 +174,7 @@ then session and optional-measurement coverage. Exact values remain available in
 and report creation carries the authoritative query rather than copying rendered values. Validation and
 contextual retrieval failures preserve the last valid answer, periods, and source separation.
 
-The [training-session structure read model](../data-formats/insights/training-session-structure-v1.md)
+The [training-session structure read model](../data-formats/insights/training-session-structure-v2.md)
 loads separately for one opaque session capability under the same discovery snapshot. It preserves
 not-yet-evaluated, absent, present-empty, and populated structure as different states. Application validation
 requires unique domain-separated child capabilities, contiguous source order, valid local timestamps, and
@@ -182,7 +198,7 @@ The exact query returns stable contiguous pages of at most 250 slots. Exercise a
 kind, unit, interval, source ordinal, and sample ordinal remain explicit, and no signal query loads a complete
 series merely to draw a bounded chart.
 
-The [Session Story v3 composition](../data-formats/insights/session-story-v3.md) is the application
+The [Session Story v4 composition](../data-formats/insights/session-story-v4.md) is the application
 boundary for a single-session workbench. It resolves discovery first and requires every structure,
 route, signal, zone, and provenance port to answer at that accepted snapshot. The application then
 matches exercise identities and primary/transition roles and exposes exact-page capabilities. SQLite remains a set of
@@ -194,12 +210,13 @@ The story also carries application-owned assessment states and exact supported-e
 composed exercise and role. Those summaries distinguish source absence, source emptiness, empty series,
 fully unavailable series, partial series, unsupported series, zone bands without recorded time, and
 multi-exercise composition without turning presentation into a second evidence interpreter. The immutable
-[version-2 contract](../data-formats/insights/session-story-v2.md) and
-[version-1 contract](../data-formats/insights/session-story-v1.md) remain the preceding transport shapes.
+[version-3 contract](../data-formats/insights/session-story-v3.md),
+[version-2 contract](../data-formats/insights/session-story-v2.md), and
+[version-1 contract](../data-formats/insights/session-story-v1.md) remain preceding transport shapes.
 Production requests the same bounded 400-item source-ordinal budget for route geometry and signal lanes for
 predictable workbench cost, not as alignment authority.
 
-Version 3 makes coordinate authority explicit on every eligible overlay. Route waypoint elapsed values are
+Version 3, retained by version 4, makes coordinate authority explicit on every eligible overlay. Route waypoint elapsed values are
 route-relative; regular signal values are series-relative unless the source supplies an explicit shared
 origin. Equal or nearby numbers, compatible cardinality, and subtraction of separate local civil timestamps
 cannot establish a relationship. `alignmentState: unavailable` requires an empty aligned-sample collection

@@ -58,6 +58,7 @@ import type {
   TrainingSport,
   TrainingSportsOverview,
 } from "./training-sports";
+import { resolvedSportName, sportCanonicalFamily } from "./training-sports";
 import { TrainingCrossSignalPanel } from "./TrainingCrossSignalPanel";
 import { TrainingSegmentationPanel } from "./TrainingSegmentationPanel";
 import { TrainingSessionEvidenceSummary } from "./TrainingSessionEvidenceSummary";
@@ -1061,11 +1062,11 @@ export function TrainingSessionLibraryPanel({
 
   function sportTitle(sport: TrainingSport): string {
     if (sport.state === "unavailable") return copy.notRecorded;
-    if (sport.classification?.displayLabel) return sport.classification.displayLabel;
-    if (sport.classification?.canonicalFamily) {
-      return messages.training.sports.families[sport.classification.canonicalFamily];
-    }
-    const unknownSports = sports?.sports.filter((candidate) => candidate.state === "unknown") ?? [];
+    const resolved = resolvedSportName(sport, locale, messages.training.sports.families);
+    if (resolved) return resolved;
+    const unknownSports = sports?.sports.filter((candidate) =>
+      candidate.state === sport.state
+    ) ?? [];
     return interpolate(copy.unknownSport, {
       index: number.format(Math.max(unknownSports.indexOf(sport) + 1, 1)),
     });
@@ -1076,17 +1077,18 @@ export function TrainingSessionLibraryPanel({
     contextualUnknownRefs?: string[],
   ): string {
     if (sport.state === "unavailable") return copy.notRecordedType;
-    if (sport.classification?.displayLabel) {
-      return sport.classification.displayLabel;
-    }
-    if (sport.classification?.canonicalFamily) {
-      return messages.training.sports.families[sport.classification.canonicalFamily];
-    }
-    if (sport.state === "unknown" && sport.sportRef && contextualUnknownRefs) {
+    const resolved = resolvedSportName(sport, locale, messages.training.sports.families);
+    if (resolved) return resolved;
+    if (
+      (sport.state === "unknown" || sport.state === "ambiguous")
+      && sport.sportRef
+      && contextualUnknownRefs
+    ) {
       return interpolate(copy.unknownSport, {
         index: number.format(contextualUnknownRefs.indexOf(sport.sportRef) + 1),
       });
     }
+    if (sport.state === "ambiguous") return copy.ambiguousType;
     return sport.state === "unknown" ? copy.unknownType : copy.recordedType;
   }
 
@@ -1097,7 +1099,7 @@ export function TrainingSessionLibraryPanel({
   function sportFamily(
     sport: TrainingSport | TrainingSessionSport,
   ): SportFamily | null {
-    return sport.classification?.canonicalFamily ?? null;
+    return sportCanonicalFamily(sport);
   }
 
   function sessionSportFromOverview(
@@ -1112,6 +1114,8 @@ export function TrainingSessionLibraryPanel({
           sportRef: replacement.sportRef,
           state: replacement.state,
           classification: replacement.classification,
+          recognition: replacement.recognition,
+          recognitionCandidateCount: replacement.recognitionCandidateCount,
         }
       : current;
   }
@@ -2008,7 +2012,7 @@ export function TrainingSessionLibraryPanel({
   ));
   const detailUnknownSportRefs = detailStory?.exercises.reduce<string[]>(
     (refs, exercise) => {
-      if (exercise.sport?.state === "unknown"
+      if ((exercise.sport?.state === "unknown" || exercise.sport?.state === "ambiguous")
         && exercise.sport.sportRef
         && !exercise.sport.classification?.displayLabel
         && !exercise.sport.classification?.canonicalFamily
@@ -2132,7 +2136,8 @@ export function TrainingSessionLibraryPanel({
                       )}
                     </small>
                   </span>
-                  {sport.state === "unknown" && sport.sportRef && (
+                  {(sport.state === "unknown" || sport.state === "ambiguous")
+                    && sport.sportRef && (
                     <button
                       type="button"
                       className="secondary training-history-sport-classify"

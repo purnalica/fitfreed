@@ -1,8 +1,11 @@
 use std::collections::BTreeSet;
 
-use chrono::{NaiveDate, NaiveDateTime};
+use chrono::{DateTime, NaiveDate, NaiveDateTime};
 
-use crate::{ApplicationError, TrainingDateRange, TrainingSportClassification, TrainingSportState};
+use crate::{
+    ApplicationError, TrainingDateRange, TrainingSportClassification, TrainingSportRecognition,
+    TrainingSportState,
+};
 
 const MAX_PAGE_SIZE: usize = 100;
 const MAX_SPORT_FILTERS: usize = 64;
@@ -90,6 +93,8 @@ pub struct TrainingSessionSport {
     pub sport_ref: Option<String>,
     pub state: TrainingSportState,
     pub classification: Option<TrainingSportClassification>,
+    pub recognition: Option<TrainingSportRecognition>,
+    pub recognition_candidate_count: usize,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -774,13 +779,28 @@ fn validate_session(
     }
     validate_sport(&session.sport)?;
     if let Some(text) = request.text.as_deref() {
-        let matches = session
+        let normalized = text.to_lowercase();
+        let classification_matches = session
             .sport
             .classification
             .as_ref()
             .and_then(|classification| classification.display_label.as_deref())
-            .is_some_and(|label| label.to_lowercase().contains(&text.to_lowercase()));
-        if !matches {
+            .is_some_and(|label| label.to_lowercase().contains(&normalized));
+        let recognition_matches = session
+            .sport
+            .recognition
+            .as_ref()
+            .is_some_and(|recognition| {
+                recognition
+                    .localized_names
+                    .values()
+                    .any(|name| name.to_lowercase().contains(&normalized))
+                    || recognition
+                        .canonical_family
+                        .as_ref()
+                        .is_some_and(|family| family.contains(&normalized))
+            });
+        if !classification_matches && !recognition_matches {
             return query_failure("training-session page violates its text filter");
         }
     }
@@ -796,37 +816,135 @@ fn validate_sport(sport: &TrainingSessionSport) -> Result<(), ApplicationError> 
 }
 
 pub(crate) fn training_session_sport_is_valid(sport: &TrainingSessionSport) -> bool {
-    match (sport.state, &sport.sport_ref, &sport.classification) {
-        (TrainingSportState::Unavailable, None, None) => true,
-        (TrainingSportState::Unknown, Some(sport_ref), Some(classification))
+    match (
+        sport.state,
+        &sport.sport_ref,
+        &sport.classification,
+        &sport.recognition,
+        sport.recognition_candidate_count,
+    ) {
+        (TrainingSportState::Unavailable, None, None, None, 0) => true,
+        (TrainingSportState::Unknown, Some(sport_ref), Some(classification), None, 0)
             if valid_opaque_ref(sport_ref, SPORT_PREFIX)
                 && classification.canonical_family.is_none()
                 && classification.display_label.is_none()
-                && ((classification.authorship.is_none() && classification.revision == 0)
-                    || (classification.authorship.as_deref() == Some("user")
-                        && classification.revision > 0)) =>
+                && classification.authorship.is_none()
+                && classification.revision == 0 =>
         {
             true
         }
-        (TrainingSportState::Classified, Some(sport_ref), Some(classification))
-            if valid_opaque_ref(sport_ref, SPORT_PREFIX)
-                && (classification.canonical_family.is_some()
-                    || classification.display_label.is_some())
-                && classification.authorship.as_deref() == Some("user")
-                && classification.revision > 0
-                && classification
-                    .canonical_family
-                    .as_deref()
-                    .is_none_or(valid_family)
-                && classification
-                    .display_label
-                    .as_deref()
-                    .is_none_or(valid_display_label) =>
+        (
+            TrainingSportState::Recognized,
+            Some(sport_ref),
+            Some(classification),
+            Some(recognition),
+            1,
+        ) if valid_opaque_ref(sport_ref, SPORT_PREFIX)
+            && unresolved_classification(classification)
+            && valid_recognition(recognition) =>
+        {
+            true
+        }
+        (
+            TrainingSportState::Ambiguous,
+            Some(sport_ref),
+            Some(classification),
+            None,
+            candidate_count,
+        ) if candidate_count > 1
+            && valid_opaque_ref(sport_ref, SPORT_PREFIX)
+            && unresolved_classification(classification) =>
+        {
+            true
+        }
+        (
+            TrainingSportState::PersonallyOverridden,
+            Some(sport_ref),
+            Some(classification),
+            recognition,
+            candidate_count,
+        ) if valid_opaque_ref(sport_ref, SPORT_PREFIX)
+            && classification.authorship.as_deref() == Some("user")
+            && classification.revision > 0
+            && classification
+                .canonical_family
+                .as_deref()
+                .is_none_or(valid_family)
+            && classification
+                .display_label
+                .as_deref()
+                .is_none_or(valid_display_label)
+            && recognition_count_is_consistent(recognition, candidate_count)
+            && recognition.as_ref().is_none_or(valid_recognition) =>
         {
             true
         }
         _ => false,
     }
+}
+
+fn unresolved_classification(classification: &TrainingSportClassification) -> bool {
+    classification.canonical_family.is_none()
+        && classification.display_label.is_none()
+        && classification.authorship.is_none()
+        && classification.revision == 0
+}
+
+fn recognition_count_is_consistent(
+    recognition: &Option<TrainingSportRecognition>,
+    candidate_count: usize,
+) -> bool {
+    matches!(
+        (recognition, candidate_count),
+        (Some(_), 1) | (None, 0 | 2..)
+    )
+}
+
+fn valid_recognition(recognition: &TrainingSportRecognition) -> bool {
+    let mut language_tags = BTreeSet::new();
+    recognition
+        .canonical_family
+        .as_deref()
+        .is_none_or(valid_family)
+        && !recognition.localized_names.is_empty()
+        && recognition.localized_names.iter().all(|(locale, name)| {
+            valid_language_tag(locale)
+                && language_tags.insert(locale.to_ascii_lowercase())
+                && valid_recognition_name(name)
+        })
+        && canonical_recognition_text(&recognition.catalogue_revision, 256)
+        && recognition.retrieved_at_utc.ends_with('Z')
+        && recognition.retrieved_at_utc.len() <= 64
+        && DateTime::parse_from_rfc3339(&recognition.retrieved_at_utc).is_ok()
+        && canonical_recognition_text(&recognition.mapping_version, 256)
+        && valid_opaque_ref(&recognition.evidence_ref, "sport-evidence-")
+}
+
+fn valid_language_tag(value: &str) -> bool {
+    if value.is_empty() || value.len() > 35 || value.trim() != value || value.contains('_') {
+        return false;
+    }
+    let mut subtags = value.split('-');
+    let Some(language) = subtags.next() else {
+        return false;
+    };
+    (2..=8).contains(&language.len())
+        && language.bytes().all(|byte| byte.is_ascii_alphabetic())
+        && subtags.all(|subtag| {
+            (1..=8).contains(&subtag.len())
+                && subtag.bytes().all(|byte| byte.is_ascii_alphanumeric())
+        })
+}
+
+fn valid_recognition_name(value: &str) -> bool {
+    canonical_recognition_text(value, 120)
+}
+
+fn canonical_recognition_text(value: &str, maximum_characters: usize) -> bool {
+    !value.is_empty()
+        && value.trim() == value
+        && value.chars().count() <= maximum_characters
+        && !value.chars().any(char::is_control)
 }
 
 fn sessions_are_ordered(

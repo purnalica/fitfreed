@@ -44,10 +44,11 @@ mod reporting_tests;
 
 mod sport_discovery;
 pub use sport_discovery::{
-    query_training_sports, save_training_sport_classification, DetectedTrainingSport,
-    SaveSportClassificationRequest, SavedTrainingSportClassification,
+    query_training_sports, resolve_training_session_sport, save_training_sport_classification,
+    DetectedTrainingSport, SaveSportClassificationRequest, SavedTrainingSportClassification,
     SportClassificationSaveOutcome, TrainingSport, TrainingSportClassification,
-    TrainingSportCoverage, TrainingSportState, TrainingSportsOverview, TrainingSportsPort,
+    TrainingSportCoverage, TrainingSportRecognition, TrainingSportState, TrainingSportsOverview,
+    TrainingSportsPort,
 };
 
 mod training_discovery;

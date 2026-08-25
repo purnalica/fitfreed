@@ -142,7 +142,8 @@ exact table; values from different imported sources remain separate, missing mea
 descriptive findings do not claim causation or advice. Route blocks contain only a normalized local SVG shape
 and declared privacy metadata: recorded latitude, longitude, altitude, and elapsed point values are not
 written to the HTML. Session sport identity keeps the same provider-neutral symbol and visible personal or
-localized label shown in FitFreed; no technical family code replaces that label. The file can be opened
+recognized localized label shown in FitFreed; ambiguous candidates are never selected and no technical family
+code or opaque provider identifier replaces a trustworthy label. The file can be opened
 independently in an ordinary browser, printed, or shared at the
 user's discretion. The destination path is never stored in the report or returned in export metadata.
 

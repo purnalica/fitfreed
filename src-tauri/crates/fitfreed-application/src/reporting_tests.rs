@@ -459,6 +459,8 @@ fn session() -> TrainingSessionSearchItem {
             sport_ref: None,
             state: TrainingSportState::Unavailable,
             classification: None,
+            recognition: None,
+            recognition_candidate_count: 0,
         },
     }
 }

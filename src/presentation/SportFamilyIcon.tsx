@@ -9,7 +9,9 @@ interface SportFamilyIconProps {
 
 function iconName(family: SportFamily | null, state: TrainingSportState): string {
   if (family) return family;
-  if (state === "classified") return "custom";
+  if (state === "personally-overridden") return "custom";
+  if (state === "recognized") return "other";
+  if (state === "ambiguous") return "unknown";
   return state;
 }
 

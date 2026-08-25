@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { type catalogs, type Locale } from "../locales/catalogs";
 import type { SessionStory, SessionStoryExercise } from "./session-story";
 import { SportFamilyIcon } from "./SportFamilyIcon";
+import { sportCanonicalFamily } from "./training-sports";
 import { parseElapsedEditorValue } from "./training-range-editor-model";
 import { formatDuration, formatSessionCardDistance } from "./training-format";
 import { TrainingRangeEvidenceEditor } from "./TrainingRangeEvidenceEditor";
@@ -195,7 +196,7 @@ export function TrainingStructureWorkbench({
       </header>
       <div className="training-structure-workbench-identity">
         <SportFamilyIcon
-          family={exercise.sport?.classification?.canonicalFamily ?? null}
+          family={exercise.sport ? sportCanonicalFamily(exercise.sport) : null}
           state={exercise.sport?.state ?? "unavailable"}
         />
         <div>

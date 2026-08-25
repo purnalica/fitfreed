@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "updated": "2026-08-23",
+  "updated": "2026-08-25",
   "statuses": [
     {
       "key": "available",
@@ -12,7 +12,7 @@
         { "key": "safeReimport", "text": "Safe exact and cumulative reimport" },
         { "key": "providerNeutralHistory", "text": "Provider-neutral SQLite history for activity, training summaries, structure, routes, signals, sleep, and recovery" },
         { "key": "dailyActivityAnswers", "text": "Immediate coverage-aware daily activity answers and bounded visual comparisons" },
-        { "key": "sportClassification", "text": "User-authored sport classification and complete-history session search" },
+        { "key": "sportClassification", "text": "Personal sport naming and complete-history session search without exposing provider identifiers" },
         { "key": "historyDiscovery", "text": "Chronology, source-separated calendar discovery, session comparison, and restart restoration" },
         { "key": "sessionStructure", "text": "Recorded exercise, mixed-sport, source-lap, automatic-lap, and pause inspection" },
         { "key": "routeTraces", "text": "Interactive local primary and transition route workbench with route-point selection, local map navigation, and exact route evidence" },
@@ -46,7 +46,8 @@
       "title": "MVP release preparation and independent audit",
       "items": [
         { "key": "wholeProductHardening", "text": "Whole-product presentation, documentation, installation, update, and recovery validation" },
-        { "key": "independentAudit", "text": "Independent pre-release product-experience audit" }
+        { "key": "independentAudit", "text": "Independent pre-release product-experience audit" },
+        { "key": "polarSportCatalogue", "text": "Trustworthy automatic Polar sport recognition after official catalogue retrieval and lawful redistribution or reviewed local-only acquisition" }
       ],
       "source": {
         "label": "Active production migration plan",

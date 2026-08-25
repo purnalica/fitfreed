@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{collections::BTreeMap, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
 
@@ -75,12 +75,12 @@ use fitfreed_application::{
     TrainingSignalRoleView, TrainingSignalSampleView, TrainingSignalSamplesQuery,
     TrainingSignalSeriesOverview, TrainingSignalUnitView, TrainingSignalVisualSampleView,
     TrainingSourceProviderView, TrainingSport, TrainingSportClassification, TrainingSportCoverage,
-    TrainingSportState, TrainingSportsOverview, TrainingStructure, TrainingZoneCollectionView,
-    TrainingZoneGroupView, TrainingZoneKindView, TrainingZoneUnitView, TrainingZoneView,
-    UpdateCheckOutcome, UpdateCheckStatus, UpdateComposedSessionReportRequest, UpdateError,
-    UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind, UpdateReleaseSummary, UpdateReportRequest,
-    UpdateSessionReportRequest, UpdateTrainingSegmentCriterionRequest, UpdateTrustFailure,
-    UpdateWithdrawalReason, UpdateWithdrawalSummary,
+    TrainingSportRecognition, TrainingSportState, TrainingSportsOverview, TrainingStructure,
+    TrainingZoneCollectionView, TrainingZoneGroupView, TrainingZoneKindView, TrainingZoneUnitView,
+    TrainingZoneView, UpdateCheckOutcome, UpdateCheckStatus, UpdateComposedSessionReportRequest,
+    UpdateError, UpdateRecoveryOutcome, UpdateRecoveryOutcomeKind, UpdateReleaseSummary,
+    UpdateReportRequest, UpdateSessionReportRequest, UpdateTrainingSegmentCriterionRequest,
+    UpdateTrustFailure, UpdateWithdrawalReason, UpdateWithdrawalSummary,
 };
 
 #[derive(Debug, Deserialize)]
@@ -373,6 +373,8 @@ pub struct LibraryHomeSportSummaryDto {
     state: &'static str,
     canonical_family: Option<String>,
     display_label: Option<String>,
+    localized_names: BTreeMap<String, String>,
+    recognition_candidate_count: usize,
     profile_count: usize,
     session_count: usize,
 }
@@ -384,6 +386,8 @@ impl From<LibraryHomeSportSummary> for LibraryHomeSportSummaryDto {
             state: training_sport_state_code(sport.state),
             canonical_family: sport.canonical_family,
             display_label: sport.display_label,
+            localized_names: sport.localized_names,
+            recognition_candidate_count: sport.recognition_candidate_count,
             profile_count: sport.profile_count,
             session_count: sport.session_count,
         }
@@ -401,6 +405,8 @@ pub struct LibraryHomeRecentSessionDto {
     sport_state: &'static str,
     canonical_family: Option<String>,
     display_label: Option<String>,
+    localized_names: BTreeMap<String, String>,
+    recognition_candidate_count: usize,
 }
 
 impl From<LibraryHomeRecentSession> for LibraryHomeRecentSessionDto {
@@ -414,6 +420,8 @@ impl From<LibraryHomeRecentSession> for LibraryHomeRecentSessionDto {
             sport_state: training_sport_state_code(session.sport_state),
             canonical_family: session.canonical_family,
             display_label: session.display_label,
+            localized_names: session.localized_names,
+            recognition_candidate_count: session.recognition_candidate_count,
         }
     }
 }
@@ -1827,6 +1835,8 @@ pub struct TrainingSessionSportDto {
     sport_ref: Option<String>,
     state: &'static str,
     classification: Option<TrainingSportClassificationDto>,
+    recognition: Option<TrainingSportRecognitionDto>,
+    recognition_candidate_count: usize,
 }
 
 impl From<TrainingSessionSport> for TrainingSessionSportDto {
@@ -1835,14 +1845,42 @@ impl From<TrainingSessionSport> for TrainingSessionSportDto {
             sport_ref: sport.sport_ref,
             state: training_sport_state_code(sport.state),
             classification: sport.classification.map(Into::into),
+            recognition: sport.recognition.map(Into::into),
+            recognition_candidate_count: sport.recognition_candidate_count,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingSportRecognitionDto {
+    canonical_family: Option<String>,
+    localized_names: BTreeMap<String, String>,
+    catalogue_revision: String,
+    retrieved_at_utc: String,
+    mapping_version: String,
+    evidence_ref: String,
+}
+
+impl From<TrainingSportRecognition> for TrainingSportRecognitionDto {
+    fn from(recognition: TrainingSportRecognition) -> Self {
+        Self {
+            canonical_family: recognition.canonical_family,
+            localized_names: recognition.localized_names,
+            catalogue_revision: recognition.catalogue_revision,
+            retrieved_at_utc: recognition.retrieved_at_utc,
+            mapping_version: recognition.mapping_version,
+            evidence_ref: recognition.evidence_ref,
         }
     }
 }
 
 fn training_sport_state_code(state: TrainingSportState) -> &'static str {
     match state {
+        TrainingSportState::Recognized => "recognized",
+        TrainingSportState::Ambiguous => "ambiguous",
         TrainingSportState::Unknown => "unknown",
-        TrainingSportState::Classified => "classified",
+        TrainingSportState::PersonallyOverridden => "personally-overridden",
         TrainingSportState::Unavailable => "unavailable",
     }
 }
@@ -1874,6 +1912,8 @@ pub struct TrainingSportDto {
     source_index: usize,
     state: &'static str,
     classification: Option<TrainingSportClassificationDto>,
+    recognition: Option<TrainingSportRecognitionDto>,
+    recognition_candidate_count: usize,
     first_local_date: String,
     last_local_date: String,
     coverage: TrainingSportCoverageDto,
@@ -1886,6 +1926,8 @@ impl From<TrainingSport> for TrainingSportDto {
             source_index: sport.source_index,
             state: training_sport_state_code(sport.state),
             classification: sport.classification.map(Into::into),
+            recognition: sport.recognition.map(Into::into),
+            recognition_candidate_count: sport.recognition_candidate_count,
             first_local_date: sport.first_local_date,
             last_local_date: sport.last_local_date,
             coverage: sport.coverage.into(),
@@ -3804,7 +3846,7 @@ impl From<ReportLibraryRequestDto> for ReportLibraryRequest {
 #[derive(Debug, Serialize)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
 enum ReportLibrarySubjectDto {
-    Session { sport: TrainingSessionSportDto },
+    Session { sport: Box<TrainingSessionSportDto> },
     TrainingComparison,
     AuthoredNote,
 }
@@ -3813,7 +3855,7 @@ impl From<ReportLibrarySubject> for ReportLibrarySubjectDto {
     fn from(subject: ReportLibrarySubject) -> Self {
         match subject {
             ReportLibrarySubject::Session { sport } => Self::Session {
-                sport: sport.into(),
+                sport: Box::new((*sport).into()),
             },
             ReportLibrarySubject::TrainingComparison => Self::TrainingComparison,
             ReportLibrarySubject::AuthoredNote => Self::AuthoredNote,
@@ -7151,16 +7193,61 @@ mod tests {
             .is_err()
         );
 
+        let recognized_json = serde_json::to_value(TrainingSportDto::from(TrainingSport {
+            sport_ref: Some(format!("sport-{}", "c".repeat(64))),
+            source_index: 1,
+            state: TrainingSportState::Recognized,
+            classification: Some(TrainingSportClassification {
+                canonical_family: None,
+                display_label: None,
+                authorship: None,
+                revision: 0,
+            }),
+            recognition: Some(TrainingSportRecognition {
+                canonical_family: Some("running".to_owned()),
+                localized_names: BTreeMap::from([
+                    ("en".to_owned(), "Road running".to_owned()),
+                    ("es".to_owned(), "Carrera en asfalto".to_owned()),
+                ]),
+                catalogue_revision: "catalogue-2026-08-25".to_owned(),
+                retrieved_at_utc: "2026-08-25T10:00:00Z".to_owned(),
+                mapping_version: "sport-mapping@1".to_owned(),
+                evidence_ref: format!("sport-evidence-{}", "a".repeat(64)),
+            }),
+            recognition_candidate_count: 1,
+            first_local_date: "2025-01-02".to_owned(),
+            last_local_date: "2026-08-17".to_owned(),
+            coverage: TrainingSportCoverage {
+                session_count: 7,
+                total_duration_milliseconds: 25_200_000,
+                distance_session_count: 6,
+                heart_rate_session_count: 5,
+            },
+        }))
+        .expect("recognized training sport JSON");
+        assert_eq!(recognized_json["state"], "recognized");
+        assert_eq!(
+            recognized_json["recognition"]["localizedNames"]["es"],
+            "Carrera en asfalto"
+        );
+        assert_eq!(recognized_json["recognitionCandidateCount"], 1);
+        assert!(recognized_json.get("sourceIdentifier").is_none());
+        assert!(recognized_json["recognition"]
+            .get("sourceProvider")
+            .is_none());
+
         let classified = TrainingSport {
             sport_ref: Some("sport-synthetic".to_owned()),
             source_index: 2,
-            state: TrainingSportState::Classified,
+            state: TrainingSportState::PersonallyOverridden,
             classification: Some(TrainingSportClassification {
                 canonical_family: Some("cycling".to_owned()),
                 display_label: Some("Gravel cycling".to_owned()),
                 authorship: Some("user".to_owned()),
                 revision: 5,
             }),
+            recognition: None,
+            recognition_candidate_count: 0,
             first_local_date: "2025-01-02".to_owned(),
             last_local_date: "2026-08-17".to_owned(),
             coverage: TrainingSportCoverage {
@@ -7180,6 +7267,8 @@ mod tests {
                     source_index: 1,
                     state: TrainingSportState::Unavailable,
                     classification: None,
+                    recognition: None,
+                    recognition_candidate_count: 0,
                     first_local_date: "2026-03-04".to_owned(),
                     last_local_date: "2026-03-04".to_owned(),
                     coverage: TrainingSportCoverage {
@@ -7200,13 +7289,15 @@ mod tests {
                 "sports": [{
                     "sportRef": "sport-synthetic",
                     "sourceIndex": 2,
-                    "state": "classified",
+                    "state": "personally-overridden",
                     "classification": {
                         "canonicalFamily": "cycling",
                         "displayLabel": "Gravel cycling",
                         "authorship": "user",
                         "revision": 5
                     },
+                    "recognition": null,
+                    "recognitionCandidateCount": 0,
                     "firstLocalDate": "2025-01-02",
                     "lastLocalDate": "2026-08-17",
                     "coverage": {
@@ -7220,6 +7311,8 @@ mod tests {
                     "sourceIndex": 1,
                     "state": "unavailable",
                     "classification": null,
+                    "recognition": null,
+                    "recognitionCandidateCount": 0,
                     "firstLocalDate": "2026-03-04",
                     "lastLocalDate": "2026-03-04",
                     "coverage": {
@@ -7376,13 +7469,15 @@ mod tests {
                 exercise_count: Some(1),
                 sport: TrainingSessionSport {
                     sport_ref: Some("sport-synthetic".to_owned()),
-                    state: TrainingSportState::Classified,
+                    state: TrainingSportState::PersonallyOverridden,
                     classification: Some(TrainingSportClassification {
                         canonical_family: Some("running".to_owned()),
                         display_label: Some("Trail running".to_owned()),
                         authorship: Some("user".to_owned()),
                         revision: 1,
                     }),
+                    recognition: None,
+                    recognition_candidate_count: 0,
                 },
             }],
         };
@@ -7406,7 +7501,10 @@ mod tests {
             json["sessions"][0]["energyKilocalories"],
             i64::MAX.to_string()
         );
-        assert_eq!(json["sessions"][0]["sport"]["state"], "classified");
+        assert_eq!(
+            json["sessions"][0]["sport"]["state"],
+            "personally-overridden"
+        );
         assert_eq!(
             json["sessions"][0]["sport"]["classification"]["displayLabel"],
             "Trail running"
@@ -7605,13 +7703,15 @@ mod tests {
                             "sport-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
                                 .to_owned(),
                         ),
-                        state: TrainingSportState::Classified,
+                        state: TrainingSportState::PersonallyOverridden,
                         classification: Some(TrainingSportClassification {
                             canonical_family: Some("running".to_owned()),
                             display_label: Some("Trail running".to_owned()),
                             authorship: Some("user".to_owned()),
                             revision: 1,
                         }),
+                        recognition: None,
+                        recognition_candidate_count: 0,
                     },
                     manual_laps: Some(vec![TrainingLapStructure {
                         lap_ref:
@@ -7948,17 +8048,19 @@ mod tests {
                     "sport-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
                         .to_owned(),
                 ),
-                state: TrainingSportState::Classified,
+                state: TrainingSportState::PersonallyOverridden,
                 classification: Some(TrainingSportClassification {
                     canonical_family: Some("running".to_owned()),
                     display_label: Some("Trail running".to_owned()),
                     authorship: Some("user".to_owned()),
                     revision: 1,
                 }),
+                recognition: None,
+                recognition_candidate_count: 0,
             },
         };
         let story = SessionStory {
-            schema_version: 3,
+            schema_version: 4,
             snapshot_ref:
                 "training-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
                     .to_owned(),
@@ -8071,7 +8173,7 @@ mod tests {
 
         let json =
             serde_json::to_value(SessionStoryDto::from(story)).expect("session story response");
-        assert_eq!(json["schemaVersion"], 3);
+        assert_eq!(json["schemaVersion"], 4);
         assert_eq!(
             json["session"]["durationMilliseconds"],
             i64::MAX.to_string()
@@ -8816,6 +8918,8 @@ mod tests {
                     sport_ref: None,
                     state: TrainingSportState::Unavailable,
                     classification: None,
+                    recognition: None,
+                    recognition_candidate_count: 0,
                 },
                 source_ranges: Vec::new(),
                 route_coordinate_count: 1,
@@ -9175,7 +9279,7 @@ mod tests {
     #[test]
     fn serializes_the_library_home_as_stable_provider_neutral_codes() {
         let home = LibraryHome {
-            version: 4,
+            version: 5,
             library_revision_ref: "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
             recorded_range: Some(LibraryHomeDateRange {
                 from: "2025-12-31".to_owned(),
@@ -9225,9 +9329,11 @@ mod tests {
                 omitted_sport_profile_count: 0,
                 sports: vec![LibraryHomeSportSummary {
                     sport_ref: Some("sport-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd".to_owned()),
-                    state: TrainingSportState::Classified,
+                    state: TrainingSportState::PersonallyOverridden,
                     canonical_family: Some("running".to_owned()),
                     display_label: Some("Trail running".to_owned()),
+                    localized_names: BTreeMap::new(),
+                    recognition_candidate_count: 0,
                     profile_count: 1,
                     session_count: 2,
                 }],
@@ -9237,9 +9343,11 @@ mod tests {
                     started_at_local: "2026-01-05T08:00:00".to_owned(),
                     duration_milliseconds: 3_600_000,
                     distance_meters: Some(10_000.5),
-                    sport_state: TrainingSportState::Classified,
+                    sport_state: TrainingSportState::PersonallyOverridden,
                     canonical_family: Some("running".to_owned()),
                     display_label: Some("Trail running".to_owned()),
+                    localized_names: BTreeMap::new(),
+                    recognition_candidate_count: 0,
                 }],
             }),
             highlight: Some(LibraryHomeHighlight::RecentTrainingComparison(
@@ -9285,7 +9393,7 @@ mod tests {
         assert_eq!(
             json,
             serde_json::json!({
-                "version": 4,
+                "version": 5,
                 "libraryRevisionRef": "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                 "recordedRange": { "from": "2025-12-31", "through": "2026-01-06" },
                 "usableRange": { "from": "2025-12-31", "through": "2026-01-06" },
@@ -9317,9 +9425,11 @@ mod tests {
                     "omittedSportProfileCount": 0,
                     "sports": [{
                         "sportRef": "sport-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-                        "state": "classified",
+                        "state": "personally-overridden",
                         "canonicalFamily": "running",
                         "displayLabel": "Trail running",
+                        "localizedNames": {},
+                        "recognitionCandidateCount": 0,
                         "profileCount": 1,
                         "sessionCount": 2
                     }],
@@ -9329,9 +9439,11 @@ mod tests {
                         "startedAtLocal": "2026-01-05T08:00:00",
                         "durationMilliseconds": "3600000",
                         "distanceMeters": 10000.5,
-                        "sportState": "classified",
+                        "sportState": "personally-overridden",
                         "canonicalFamily": "running",
-                        "displayLabel": "Trail running"
+                        "displayLabel": "Trail running",
+                        "localizedNames": {},
+                        "recognitionCandidateCount": 0
                     }]
                 },
                 "highlight": {
@@ -9426,11 +9538,13 @@ mod tests {
                 revision: 2,
                 evidence_state: ReportLibraryEvidenceState::Current,
                 subject: ReportLibrarySubject::Session {
-                    sport: TrainingSessionSport {
+                    sport: Box::new(TrainingSessionSport {
                         sport_ref: None,
                         state: TrainingSportState::Unavailable,
                         classification: None,
-                    },
+                        recognition: None,
+                        recognition_candidate_count: 0,
+                    }),
                 },
                 period: Some(ReportLibraryPeriod::Session {
                     started_at_local: "2026-08-18T07:30:00.000".to_owned(),

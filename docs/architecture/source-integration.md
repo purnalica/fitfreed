@@ -13,6 +13,7 @@ Polar Flow is the only MVP source, but its importer will use the same boundary i
 ```mermaid
 flowchart LR
     PF[Polar Flow export] --> PFA[Polar Flow importer]
+    PC[Provider sport catalogue evidence] --> PFA
     GA[Future Garmin export] --> GAA[Future Garmin importer]
     OS[Other future source] --> OSA[Other importer]
 
@@ -39,6 +40,8 @@ Each source adapter owns:
 - External identifiers and provider terminology.
 - Mapping from source records into application import inputs.
 - Compatibility reporting and synthetic contract fixtures.
+- Provider-catalogue retrieval shape, provenance, identifiers, name keys, hierarchy, and mapping into
+  provider-neutral sport-recognition suggestions.
 
 Source adapters do not own domain reconciliation, persistence policy, reports, or user-interface navigation beyond source-specific import guidance.
 
@@ -69,6 +72,28 @@ The desktop bundle contains the concise procedure and both initial locale catalo
 Opening an official page is always a separate user action through an infrastructure adapter. The desktop capability allowlists only the documented HTTPS destinations; it does not grant generic URL, path, credential, account, or download access. FitFreed never enters credentials, signs in, requests an export, polls provider delivery, or downloads the archive on the person's behalf.
 
 The normative version 1 application-to-presentation contract is documented in [`../data-formats/guidance/source-acquisition-guide-v1.md`](../data-formats/guidance/source-acquisition-guide-v1.md). An adapter guide change increments its own `guideVersion` when the procedure, archive expectation, constraint meaning, troubleshooting meaning, or official destination changes. A verification-only review updates `verifiedOn` without changing the contract schema version.
+
+### Sport-catalogue evidence
+
+[ADR 0027](decisions/0027-resolve-sport-identity-from-versioned-provider-evidence.md) separates provider
+recognition from both canonical training facts and user-authored classification. An adapter may install an
+immutable evidence snapshot containing exact provider identifiers, localized names, provider hierarchy,
+retrieval provenance, source digest, catalogue revision, and mapping version. Those provider fields remain
+inside infrastructure. The application receives deterministic candidates containing only localized names,
+an optional provider-neutral family suggestion, opaque evidence identity, and candidate cardinality.
+
+Activation selects one snapshot per provider and advances training-discovery revision. One candidate becomes
+`recognized`; multiple candidates remain `ambiguous`; no candidate remains `unknown`; absence of source sport
+evidence remains `unavailable`. Input order never chooses a candidate. A `personally-overridden` family or
+label has presentation precedence without deleting source recognition. Exact archive reimport does not overwrite
+either evidence class.
+
+The normative input and output fragments are the
+[provider sport catalogue evidence](../data-formats/providers/provider-sport-catalogue-v1.md) and
+[training sport identity](../data-formats/insights/training-sport-identity-v1.md) contracts. No real catalogue
+is bundled until its official retrieval provenance, update procedure, and lawful redistribution basis are
+established. Route, speed, distance, heart rate, device, and other session evidence are never recognition
+substitutes.
 
 ### No lowest-common-denominator model
 
@@ -111,6 +136,9 @@ A runtime plug-in system is not required to prove importer independence. The MVP
 - Architecture checks reject provider dependencies and provider terminology in core modules.
 - Reimport and reconciliation tests distinguish parsing identity from domain identity.
 - Adding a synthetic second importer in an architecture test does not require changes to existing domain use cases.
+- Synthetic catalogue tests prove validation, immutable installation, activation, ambiguity, personal
+  precedence, reimport stability, revision invalidation, and the absence of provider identifiers from public
+  projections.
 
 ## Pending decisions
 

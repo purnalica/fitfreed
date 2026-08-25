@@ -47,6 +47,8 @@ fn persisted() -> PersistedTrainingSessionStructure {
                         authorship: None,
                         revision: 0,
                     }),
+                    recognition: None,
+                    recognition_candidate_count: 0,
                 },
                 manual_laps: Some(vec![TrainingLapStructure {
                     lap_ref: opaque("lap-", 'd'),
@@ -196,6 +198,8 @@ fn rejects_an_inconsistent_exercise_sport_context() {
         sport_ref: Some(opaque("sport-", 'f')),
         state: TrainingSportState::Unavailable,
         classification: None,
+        recognition: None,
+        recognition_candidate_count: 0,
     };
 
     assert!(matches!(

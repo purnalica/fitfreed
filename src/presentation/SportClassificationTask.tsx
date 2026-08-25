@@ -194,7 +194,7 @@ export function SportClassificationTask({
         <button type="button" className="secondary" disabled={busy} onClick={onCancel}>
           {messages.cancel}
         </button>
-        {sport.state === "classified" && (
+        {sport.state === "personally-overridden" && (
           <button
             type="button"
             className="secondary"

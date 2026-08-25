@@ -75,13 +75,15 @@ function story(options: {
     energyKilocalories: null,
     sport: {
       sportRef: "sport-1",
-      state: "classified" as const,
+      state: "personally-overridden" as const,
       classification: {
         canonicalFamily: "running" as const,
         displayLabel: "Running",
         authorship: "user" as const,
         revision: 1,
       },
+      recognition: null,
+      recognitionCandidateCount: 0,
     },
     manualLaps: [],
     automaticLaps: [],
@@ -108,7 +110,7 @@ function story(options: {
   const unsupportedSignals = options.signal === "unsupported" ? 1 : 0;
 
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     snapshotRef: "snapshot-1",
     session: {
       sessionRef: "session-1",
@@ -126,6 +128,8 @@ function story(options: {
         sportRef: null,
         state: "unavailable",
         classification: null,
+        recognition: null,
+        recognitionCandidateCount: 0,
       },
     },
     structure: { exercises: structure ? [structure] : null },

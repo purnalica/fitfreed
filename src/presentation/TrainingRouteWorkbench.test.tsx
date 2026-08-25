@@ -117,7 +117,7 @@ function story(withElapsed = true): SessionStory {
     exactSignals: [],
   };
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     snapshotRef: "snapshot-current",
     session: {
       sessionRef: `session-${"d".repeat(64)}`,
@@ -133,13 +133,15 @@ function story(withElapsed = true): SessionStory {
       exerciseCount: 1,
       sport: {
         sportRef: `sport-${"e".repeat(64)}`,
-        state: "classified",
+        state: "personally-overridden",
         classification: {
           canonicalFamily: "running",
           displayLabel: "Trail running",
           authorship: "user",
           revision: 1,
         },
+        recognition: null,
+        recognitionCandidateCount: 0,
       },
     },
     structure: { exercises: null },

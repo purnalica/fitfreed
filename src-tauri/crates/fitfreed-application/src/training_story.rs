@@ -23,7 +23,7 @@ use crate::{
 const SNAPSHOT_PREFIX: &str = "training-snapshot-";
 const SESSION_PREFIX: &str = "session-";
 
-pub const TRAINING_SESSION_STORY_SCHEMA_VERSION: u32 = 3;
+pub const TRAINING_SESSION_STORY_SCHEMA_VERSION: u32 = 4;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SessionStoryQuery {

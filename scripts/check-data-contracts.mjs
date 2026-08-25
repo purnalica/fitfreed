@@ -6987,6 +6987,543 @@ if (validateReportExportReceipt({ byteCount: "04" })) {
   throw new Error(`${reportExportReceiptSchemaPath} accepted a non-canonical byte count`);
 }
 
+const providerSportCataloguePath =
+  "docs/data-formats/providers/provider-sport-catalogue-v1.md";
+const trainingSportIdentityPath =
+  "docs/data-formats/insights/training-sport-identity-v1.md";
+const trainingSportsV2Path = "docs/data-formats/insights/training-sports-v2.md";
+const trainingSessionSearchV2Path =
+  "docs/data-formats/insights/training-session-search-v2.md";
+const trainingSessionStructureV2Path =
+  "docs/data-formats/insights/training-session-structure-v2.md";
+const trainingSessionRangeSummaryV2Path =
+  "docs/data-formats/insights/training-session-range-summary-v2.md";
+const sessionStoryV4Path = "docs/data-formats/insights/session-story-v4.md";
+const libraryHomeV5Path = "docs/data-formats/insights/library-home-v5.md";
+const sessionReportV4Path = "docs/data-formats/insights/session-report-v4.md";
+const reportV5Path = "docs/data-formats/insights/report-v5.md";
+const reportHtmlV5Path = "docs/data-formats/portable/report-html-v5.md";
+
+for (const [documentPath, fields] of [
+  [providerSportCataloguePath, [
+    "sourceProvider", "catalogueRevision", "retrievedAtUtc", "provenanceUri",
+    "provenanceSha256", "mappingVersion", "sourceIdentifier", "providerNameKey",
+    "localizedNames", "parentIdentifier", "canonicalFamilySuggestion", "sports:read",
+  ]],
+  [trainingSportIdentityPath, [
+    "sportRef", "state", "classification", "recognition", "recognitionCandidateCount",
+    "recognized", "ambiguous", "unknown", "personally-overridden", "unavailable",
+    "catalogueRevision", "retrievedAtUtc", "mappingVersion", "evidenceRef",
+  ]],
+  [trainingSportsV2Path, [
+    "query_training_sports", "save_training_sport_classification", "originCount",
+    "sessionCount", "sports", "sourceIndex", "firstLocalDate", "lastLocalDate",
+    "coverage", "recognition", "recognitionCandidateCount", "personally-overridden",
+  ]],
+  [trainingSessionSearchV2Path, [
+    "query_training_sessions", "query_training_session_selection", "sport",
+    "recognized", "ambiguous", "unknown", "personally-overridden", "unavailable",
+    "recognitionCandidateCount",
+  ]],
+  [trainingSessionStructureV2Path, [
+    "query_training_session_structure", "structure", "exercises", "sport",
+    "recognitionCandidateCount",
+  ]],
+  [trainingSessionRangeSummaryV2Path, [
+    "query_training_session_range_summary", "range", "exercise", "sport",
+    "recognitionCandidateCount",
+  ]],
+  [sessionStoryV4Path, [
+    "schemaVersion", "session", "structure", "exercises", "sport",
+    "recognitionCandidateCount",
+  ]],
+  [libraryHomeV5Path, [
+    "version", "training.sports", "recentSessions", "localizedNames",
+    "recognitionCandidateCount", "recognized", "ambiguous", "unknown",
+    "personally-overridden", "unavailable",
+  ]],
+  [sessionReportV4Path, [
+    "session-report-resolution-v4.schema.json", "training-session-search-v2.schema.json",
+    "sport", "recognitionCandidateCount",
+  ]],
+  [reportV5Path, [
+    "report-library-v2.schema.json", "report-resolution-v5.schema.json", "subject.sport",
+    "recognitionCandidateCount",
+  ]],
+  [reportHtmlV5Path, [
+    "text/html", "data-fitfreed-output-version=\"5\"", "data-fitfreed-report-version",
+  ]],
+]) {
+  const document = read(documentPath);
+  for (const field of fields) requireMention(document, field, documentPath);
+}
+
+function addContractSchema(schemaPath) {
+  const schema = JSON.parse(read(schemaPath));
+  if (!ajv.getSchema(schema.$id)) ajv.addSchema(schema);
+  return schema;
+}
+
+function compileContractSchema(schemaPath) {
+  const schema = JSON.parse(read(schemaPath));
+  return ajv.getSchema(schema.$id) ?? ajv.compile(schema);
+}
+
+function assertContract(validate, schemaPath, value) {
+  if (!validate(value)) {
+    throw new Error(
+      `${schemaPath} rejected its synthetic value: ${ajv.errorsText(validate.errors)}`,
+    );
+  }
+}
+
+const providerSportCatalogueSchemaPath =
+  "schemas/provider-sport-catalogue-v1.schema.json";
+const trainingSportIdentitySchemaPath =
+  "schemas/training-sport-identity-v1.schema.json";
+const trainingSportsV2SchemaPath = "schemas/training-sports-v2.schema.json";
+const savedSportClassificationV2SchemaPath =
+  "schemas/saved-sport-classification-v2.schema.json";
+const trainingSessionSearchV2SchemaPath =
+  "schemas/training-session-search-v2.schema.json";
+const trainingSessionSelectionV2SchemaPath =
+  "schemas/training-session-selection-v2.schema.json";
+const trainingSessionStructureV2SchemaPath =
+  "schemas/training-session-structure-v2.schema.json";
+const trainingSessionRangeSummaryV2SchemaPath =
+  "schemas/training-session-range-summary-v2.schema.json";
+const sessionStoryV4SchemaPath = "schemas/session-story-v4.schema.json";
+const libraryHomeV5SchemaPath = "schemas/library-home-v5.schema.json";
+const reportLibraryV2SchemaPath = "schemas/report-library-v2.schema.json";
+const sessionReportResolutionV4SchemaPath =
+  "schemas/session-report-resolution-v4.schema.json";
+const reportResolutionV5SchemaPath = "schemas/report-resolution-v5.schema.json";
+
+const validateProviderSportCatalogue = compileContractSchema(
+  providerSportCatalogueSchemaPath,
+);
+const syntheticProviderSportCatalogue = {
+  sourceProvider: "synthetic-provider",
+  catalogueRevision: "synthetic-catalogue-2026-08-25",
+  retrievedAtUtc: "2026-08-25T09:30:00Z",
+  provenanceUri: "https://example.invalid/synthetic-sport-catalogue",
+  provenanceSha256: "1".repeat(64),
+  mappingVersion: "synthetic-provider-sports@1",
+  entries: [{
+    sourceIdentifier: "synthetic-running",
+    providerNameKey: "sport.running",
+    localizedNames: { "en-US": "Running", "es-ES": "Carrera" },
+    parentIdentifier: null,
+    canonicalFamilySuggestion: "running",
+  }],
+};
+assertContract(
+  validateProviderSportCatalogue,
+  providerSportCatalogueSchemaPath,
+  syntheticProviderSportCatalogue,
+);
+for (const invalidCatalogue of [
+  { ...structuredClone(syntheticProviderSportCatalogue), retrievedAtUtc: "2026-08-25" },
+  { ...structuredClone(syntheticProviderSportCatalogue), provenanceSha256: "not-a-digest" },
+  (() => {
+    const value = structuredClone(syntheticProviderSportCatalogue);
+    value.entries[0].localizedNames = { "en_US": "Running" };
+    return value;
+  })(),
+  { ...structuredClone(syntheticProviderSportCatalogue), accountId: "private" },
+]) {
+  if (validateProviderSportCatalogue(invalidCatalogue)) {
+    throw new Error(`${providerSportCatalogueSchemaPath} accepted invalid catalogue evidence`);
+  }
+}
+
+addContractSchema(trainingSportIdentitySchemaPath);
+const validateTrainingSportIdentity = compileContractSchema(trainingSportIdentitySchemaPath);
+const recognizedSportRef = `sport-${"9".repeat(64)}`;
+const syntheticRecognition = {
+  canonicalFamily: "running",
+  localizedNames: { "en-US": "Running", "es-ES": "Carrera" },
+  catalogueRevision: "synthetic-catalogue-2026-08-25",
+  retrievedAtUtc: "2026-08-25T09:30:00Z",
+  mappingVersion: "synthetic-provider-sports@1",
+  evidenceRef: `sport-evidence-${"8".repeat(64)}`,
+};
+const unresolvedClassification = {
+  canonicalFamily: null,
+  displayLabel: null,
+  authorship: null,
+  revision: 0,
+};
+const syntheticRecognizedSport = {
+  sportRef: recognizedSportRef,
+  state: "recognized",
+  classification: unresolvedClassification,
+  recognition: syntheticRecognition,
+  recognitionCandidateCount: 1,
+};
+const syntheticAmbiguousSport = {
+  sportRef: `sport-${"7".repeat(64)}`,
+  state: "ambiguous",
+  classification: structuredClone(unresolvedClassification),
+  recognition: null,
+  recognitionCandidateCount: 2,
+};
+const syntheticUnknownSportV2 = {
+  sportRef: `sport-${"6".repeat(64)}`,
+  state: "unknown",
+  classification: structuredClone(unresolvedClassification),
+  recognition: null,
+  recognitionCandidateCount: 0,
+};
+const syntheticPersonallyOverriddenSport = {
+  sportRef: `sport-${"5".repeat(64)}`,
+  state: "personally-overridden",
+  classification: {
+    canonicalFamily: "water-sport",
+    displayLabel: "Evening paddle",
+    authorship: "user",
+    revision: 3,
+  },
+  recognition: structuredClone(syntheticRecognition),
+  recognitionCandidateCount: 1,
+};
+const syntheticUnavailableSportV2 = {
+  sportRef: null,
+  state: "unavailable",
+  classification: null,
+  recognition: null,
+  recognitionCandidateCount: 0,
+};
+for (const identity of [
+  syntheticRecognizedSport,
+  syntheticAmbiguousSport,
+  syntheticUnknownSportV2,
+  syntheticPersonallyOverriddenSport,
+  syntheticUnavailableSportV2,
+]) {
+  assertContract(validateTrainingSportIdentity, trainingSportIdentitySchemaPath, identity);
+}
+for (const invalidIdentity of [
+  { ...structuredClone(syntheticRecognizedSport), recognitionCandidateCount: 2 },
+  { ...structuredClone(syntheticAmbiguousSport), recognition: syntheticRecognition },
+  { ...structuredClone(syntheticUnknownSportV2), sourceIdentifier: "private" },
+  { ...structuredClone(syntheticUnavailableSportV2), sportRef: recognizedSportRef },
+]) {
+  if (validateTrainingSportIdentity(invalidIdentity)) {
+    throw new Error(`${trainingSportIdentitySchemaPath} accepted an invalid identity`);
+  }
+}
+
+const sportCoverage = (sessionCount) => ({
+  sessionCount,
+  totalDurationMilliseconds: String(sessionCount * 3_600_000),
+  distanceSessionCount: sessionCount,
+  heartRateSessionCount: Math.max(0, sessionCount - 1),
+});
+const sportProfile = (identity, sourceIndex, sessionCount) => ({
+  ...structuredClone(identity),
+  sourceIndex,
+  firstLocalDate: "2025-01-02",
+  lastLocalDate: "2026-08-17",
+  coverage: sportCoverage(sessionCount),
+});
+const syntheticTrainingSportsV2 = {
+  originCount: 2,
+  sessionCount: 9,
+  sports: [
+    sportProfile(syntheticRecognizedSport, 1, 3),
+    sportProfile(syntheticAmbiguousSport, 1, 2),
+    sportProfile(syntheticUnknownSportV2, 2, 1),
+    sportProfile(syntheticPersonallyOverriddenSport, 2, 2),
+    sportProfile(syntheticUnavailableSportV2, 2, 1),
+  ],
+};
+const trainingSportsV2Schema = addContractSchema(trainingSportsV2SchemaPath);
+if (JSON.stringify(trainingSportsV2Schema.$defs.sport.properties.state.enum)
+  !== JSON.stringify([
+    "recognized", "ambiguous", "unknown", "personally-overridden", "unavailable",
+  ])) {
+  throw new Error(`${trainingSportsV2SchemaPath} does not expose the exact identity states`);
+}
+const validateTrainingSportsV2 = compileContractSchema(trainingSportsV2SchemaPath);
+assertContract(validateTrainingSportsV2, trainingSportsV2SchemaPath, syntheticTrainingSportsV2);
+if (validateTrainingSportsV2({
+  ...structuredClone(syntheticTrainingSportsV2),
+  sports: [{ ...sportProfile(syntheticRecognizedSport, 1, 1), provider: "private" }],
+})) {
+  throw new Error(`${trainingSportsV2SchemaPath} accepted provider identity`);
+}
+
+const validateSavedSportClassificationV2 = compileContractSchema(
+  savedSportClassificationV2SchemaPath,
+);
+assertContract(
+  validateSavedSportClassificationV2,
+  savedSportClassificationV2SchemaPath,
+  { outcome: "changed", overview: syntheticTrainingSportsV2 },
+);
+if (validateSavedSportClassificationV2({
+  outcome: "saved",
+  overview: syntheticTrainingSportsV2,
+})) {
+  throw new Error(`${savedSportClassificationV2SchemaPath} accepted an invalid outcome`);
+}
+
+addContractSchema(trainingSessionSearchV2SchemaPath);
+const validateTrainingSessionSearchV2 = compileContractSchema(
+  trainingSessionSearchV2SchemaPath,
+);
+const syntheticTrainingSessionSearchV2 = structuredClone(syntheticTrainingSessionSearch);
+syntheticTrainingSessionSearchV2.sessions[0].sport = structuredClone(syntheticRecognizedSport);
+assertContract(
+  validateTrainingSessionSearchV2,
+  trainingSessionSearchV2SchemaPath,
+  syntheticTrainingSessionSearchV2,
+);
+if (validateTrainingSessionSearchV2({
+  ...structuredClone(syntheticTrainingSessionSearchV2),
+  sessions: [{
+    ...structuredClone(syntheticTrainingSessionSearchV2.sessions[0]),
+    sport: { ...structuredClone(syntheticRecognizedSport), sourceIdentifier: "private" },
+  }],
+})) {
+  throw new Error(`${trainingSessionSearchV2SchemaPath} accepted provider identity`);
+}
+
+const validateTrainingSessionSelectionV2 = compileContractSchema(
+  trainingSessionSelectionV2SchemaPath,
+);
+const syntheticTrainingSessionSelectionV2 = {
+  snapshotRef: snapshotRefDigest,
+  sessions: [structuredClone(syntheticTrainingSessionSearchV2.sessions[0])],
+};
+assertContract(
+  validateTrainingSessionSelectionV2,
+  trainingSessionSelectionV2SchemaPath,
+  syntheticTrainingSessionSelectionV2,
+);
+if (validateTrainingSessionSelectionV2({
+  ...syntheticTrainingSessionSelectionV2,
+  sessions: [],
+})) {
+  throw new Error(`${trainingSessionSelectionV2SchemaPath} accepted an empty selection`);
+}
+
+addContractSchema(trainingSessionStructureV2SchemaPath);
+const validateTrainingSessionStructureV2 = compileContractSchema(
+  trainingSessionStructureV2SchemaPath,
+);
+const syntheticTrainingSessionStructureV2 = structuredClone(syntheticTrainingSessionStructure);
+syntheticTrainingSessionStructureV2.structure.exercises[0].sport =
+  structuredClone(syntheticRecognizedSport);
+assertContract(
+  validateTrainingSessionStructureV2,
+  trainingSessionStructureV2SchemaPath,
+  syntheticTrainingSessionStructureV2,
+);
+if (validateTrainingSessionStructureV2({
+  ...structuredClone(syntheticTrainingSessionStructureV2),
+  structure: {
+    exercises: [{
+      ...structuredClone(syntheticTrainingSessionStructureV2.structure.exercises[0]),
+      sport: { ...structuredClone(syntheticRecognizedSport), providerNameKey: "private" },
+    }],
+  },
+})) {
+  throw new Error(`${trainingSessionStructureV2SchemaPath} accepted provider identity`);
+}
+
+addContractSchema(trainingSessionRangeSummaryV2SchemaPath);
+const validateTrainingSessionRangeSummaryV2 = compileContractSchema(
+  trainingSessionRangeSummaryV2SchemaPath,
+);
+const syntheticTrainingSessionRangeSummaryV2 =
+  structuredClone(syntheticTrainingSessionRangeSummary);
+syntheticTrainingSessionRangeSummaryV2.exercise.sport =
+  structuredClone(syntheticRecognizedSport);
+assertContract(
+  validateTrainingSessionRangeSummaryV2,
+  trainingSessionRangeSummaryV2SchemaPath,
+  syntheticTrainingSessionRangeSummaryV2,
+);
+if (validateTrainingSessionRangeSummaryV2({
+  ...structuredClone(syntheticTrainingSessionRangeSummaryV2),
+  exercise: {
+    ...structuredClone(syntheticTrainingSessionRangeSummaryV2.exercise),
+    sport: { ...structuredClone(syntheticRecognizedSport), provider: "private" },
+  },
+})) {
+  throw new Error(`${trainingSessionRangeSummaryV2SchemaPath} accepted provider identity`);
+}
+
+addContractSchema(sessionStoryV4SchemaPath);
+const validateSessionStoryV4 = compileContractSchema(sessionStoryV4SchemaPath);
+const syntheticSessionStoryV4 = structuredClone(syntheticSessionStoryV3);
+syntheticSessionStoryV4.schemaVersion = 4;
+syntheticSessionStoryV4.session.sport = structuredClone(syntheticRecognizedSport);
+syntheticSessionStoryV4.structure.exercises[0].sport =
+  structuredClone(syntheticRecognizedSport);
+syntheticSessionStoryV4.exercises[0].sport = structuredClone(syntheticRecognizedSport);
+assertContract(validateSessionStoryV4, sessionStoryV4SchemaPath, syntheticSessionStoryV4);
+if (validateSessionStoryV4({ ...structuredClone(syntheticSessionStoryV4), schemaVersion: 3 })) {
+  throw new Error(`${sessionStoryV4SchemaPath} accepted an earlier response version`);
+}
+
+addContractSchema(libraryHomeV5SchemaPath);
+const validateLibraryHomeV5 = compileContractSchema(libraryHomeV5SchemaPath);
+const syntheticLibraryHomeV5 = structuredClone(syntheticLibraryHomeV4);
+syntheticLibraryHomeV5.version = 5;
+syntheticLibraryHomeV5.training.sports[0] = {
+  ...syntheticLibraryHomeV5.training.sports[0],
+  state: "recognized",
+  displayLabel: null,
+  localizedNames: structuredClone(syntheticRecognition.localizedNames),
+  recognitionCandidateCount: 1,
+};
+syntheticLibraryHomeV5.training.sports[1] = {
+  ...syntheticLibraryHomeV5.training.sports[1],
+  localizedNames: {},
+  recognitionCandidateCount: 0,
+};
+syntheticLibraryHomeV5.training.recentSessions[0] = {
+  ...syntheticLibraryHomeV5.training.recentSessions[0],
+  sportState: "recognized",
+  displayLabel: null,
+  localizedNames: structuredClone(syntheticRecognition.localizedNames),
+  recognitionCandidateCount: 1,
+};
+const emptyLibraryHomeV5 = { ...structuredClone(emptyLibraryHomeV4), version: 5 };
+const personallyOverriddenLibraryHomeV5 = structuredClone(syntheticLibraryHomeV5);
+personallyOverriddenLibraryHomeV5.training.sports[0] = {
+  ...personallyOverriddenLibraryHomeV5.training.sports[0],
+  state: "personally-overridden",
+  canonicalFamily: "running",
+  displayLabel: "My running",
+  localizedNames: {},
+  recognitionCandidateCount: 0,
+};
+personallyOverriddenLibraryHomeV5.training.recentSessions[0] = {
+  ...personallyOverriddenLibraryHomeV5.training.recentSessions[0],
+  sportState: "personally-overridden",
+  canonicalFamily: "running",
+  displayLabel: "My running",
+  localizedNames: structuredClone(syntheticRecognition.localizedNames),
+  recognitionCandidateCount: 1,
+};
+for (const home of [
+  emptyLibraryHomeV5,
+  syntheticLibraryHomeV5,
+  personallyOverriddenLibraryHomeV5,
+]) {
+  assertContract(validateLibraryHomeV5, libraryHomeV5SchemaPath, home);
+}
+if (validateLibraryHomeV5({
+  ...structuredClone(syntheticLibraryHomeV5),
+  training: {
+    ...structuredClone(syntheticLibraryHomeV5.training),
+    sports: [{
+      ...structuredClone(syntheticLibraryHomeV5.training.sports[0]),
+      recognitionCandidateCount: 2,
+    }],
+  },
+})) {
+  throw new Error(`${libraryHomeV5SchemaPath} accepted inconsistent recognition evidence`);
+}
+if (validateLibraryHomeV5({
+  ...structuredClone(personallyOverriddenLibraryHomeV5),
+  training: {
+    ...structuredClone(personallyOverriddenLibraryHomeV5.training),
+    sports: [{
+      ...structuredClone(personallyOverriddenLibraryHomeV5.training.sports[0]),
+      localizedNames: structuredClone(syntheticRecognition.localizedNames),
+      recognitionCandidateCount: 1,
+    }],
+  },
+})) {
+  throw new Error(`${libraryHomeV5SchemaPath} grouped personal identity by hidden recognition`);
+}
+
+const reportDependencyPaths = [
+  reportDefinitionSchemaPath,
+  reportDefinitionV2SchemaPath,
+  reportDefinitionV3SchemaPath,
+  reportDefinitionV4SchemaPath,
+  trainingComparisonSchemaPath,
+  trainingSessionProvenanceSchemaPath,
+  trainingSessionRouteSchemaPath,
+  sessionReportResolutionV3SchemaPath,
+];
+for (const dependencyPath of reportDependencyPaths) addContractSchema(dependencyPath);
+
+const validateReportLibraryV2 = compileContractSchema(reportLibraryV2SchemaPath);
+const syntheticReportLibraryV2 = structuredClone(syntheticReportLibrary);
+syntheticReportLibraryV2.items[0].subject.sport = structuredClone(syntheticRecognizedSport);
+assertContract(validateReportLibraryV2, reportLibraryV2SchemaPath, syntheticReportLibraryV2);
+if (validateReportLibraryV2({
+  ...structuredClone(syntheticReportLibraryV2),
+  items: [{
+    ...structuredClone(syntheticReportLibraryV2.items[0]),
+    subject: {
+      kind: "session",
+      sport: { ...structuredClone(syntheticRecognizedSport), sourceIdentifier: "private" },
+    },
+  }],
+})) {
+  throw new Error(`${reportLibraryV2SchemaPath} accepted provider identity`);
+}
+
+const validateSessionReportResolutionV4 = compileContractSchema(
+  sessionReportResolutionV4SchemaPath,
+);
+const syntheticSessionReportResolutionV4 =
+  structuredClone(syntheticSessionReportResolutionV3);
+syntheticSessionReportResolutionV4.session.sport =
+  structuredClone(syntheticRecognizedSport);
+assertContract(
+  validateSessionReportResolutionV4,
+  sessionReportResolutionV4SchemaPath,
+  syntheticSessionReportResolutionV4,
+);
+if (validateSessionReportResolutionV4({
+  ...structuredClone(syntheticSessionReportResolutionV4),
+  session: {
+    ...structuredClone(syntheticSessionReportResolutionV4.session),
+    sport: { ...structuredClone(syntheticRecognizedSport), provider: "private" },
+  },
+})) {
+  throw new Error(`${sessionReportResolutionV4SchemaPath} accepted provider identity`);
+}
+
+const validateReportResolutionV5 = compileContractSchema(reportResolutionV5SchemaPath);
+const syntheticReportResolutionV5 = {
+  definition: structuredClone(syntheticSessionDefinitionV4),
+  resolvedSnapshotRef: snapshotRefDigest,
+  status: "current",
+  session: structuredClone(syntheticTrainingSessionSearchV2.sessions[0]),
+  routes: structuredClone(syntheticSessionReportResolutionV3.routes),
+  trainingComparison: null,
+  provenance: {
+    kind: "session",
+    current: structuredClone(syntheticTrainingSessionProvenance.current),
+  },
+  sensitiveContents: structuredClone(syntheticSessionReportResolutionV3.sensitiveContents),
+  limitations: [],
+};
+assertContract(
+  validateReportResolutionV5,
+  reportResolutionV5SchemaPath,
+  syntheticReportResolutionV5,
+);
+if (validateReportResolutionV5({
+  ...structuredClone(syntheticReportResolutionV5),
+  session: {
+    ...structuredClone(syntheticReportResolutionV5.session),
+    sport: { ...structuredClone(syntheticRecognizedSport), provider: "private" },
+  },
+})) {
+  throw new Error(`${reportResolutionV5SchemaPath} accepted provider identity`);
+}
+
 const indexPath = "docs/data-formats/README.md";
 const index = read(indexPath);
 for (const contractPath of [
@@ -6998,6 +7535,7 @@ for (const contractPath of [
   trainingSessionRangeCanonicalPath,
   sportClassificationCanonicalPath,
   sleepCanonicalPath,
+  providerSportCataloguePath,
   mappingPath,
   sleepMappingPath,
   activityOverviewPath,
@@ -7005,13 +7543,18 @@ for (const contractPath of [
   activityComparisonPath,
   trainingOverviewPath,
   trainingSportsPath,
+  trainingSportIdentityPath,
+  trainingSportsV2Path,
   trainingSessionSearchPath,
+  trainingSessionSearchV2Path,
   trainingSessionStructurePath,
+  trainingSessionStructureV2Path,
   trainingSessionRoutePath,
   trainingSessionSignalPath,
   trainingSessionZonePath,
   trainingSessionProvenancePath,
   trainingSessionRangeReadModelPath,
+  trainingSessionRangeSummaryV2Path,
   trainingDiscoveryWorkspacePath,
   trainingComparisonPath,
   sleepOverviewPath,
@@ -7020,6 +7563,7 @@ for (const contractPath of [
   recoveryComparisonPath,
   longitudinalPath,
   libraryHomePath,
+  libraryHomeV5Path,
   updateChannelPath,
   stableUpdateChannelPath,
   publicUpdateConfigurationPath,
@@ -7040,6 +7584,10 @@ for (const contractPath of [
   reportDefinitionPortableV4Path,
   reportV4Path,
   reportHtmlV4Path,
+  sessionStoryV4Path,
+  sessionReportV4Path,
+  reportV5Path,
+  reportHtmlV5Path,
   ...persistencePaths,
 ]) {
   const relativeContract = path.relative(path.dirname(indexPath), contractPath);
@@ -7069,18 +7617,25 @@ process.stdout.write(
     ],
     trainingSportsSchemas: [
       trainingSportsSchemaPath,
+      providerSportCatalogueSchemaPath,
+      trainingSportIdentitySchemaPath,
+      trainingSportsV2SchemaPath,
       sportClassificationSaveSchemaPath,
       savedSportClassificationSchemaPath,
+      savedSportClassificationV2SchemaPath,
     ],
     trainingSessionSearchSchemas: [
       trainingSessionSearchQuerySchemaPath,
       trainingSessionSearchSchemaPath,
+      trainingSessionSearchV2SchemaPath,
       trainingSessionCalendarQuerySchemaPath,
       trainingSessionCalendarSchemaPath,
       trainingSessionSelectionQuerySchemaPath,
       trainingSessionSelectionSchemaPath,
+      trainingSessionSelectionV2SchemaPath,
       trainingSessionStructureQuerySchemaPath,
       trainingSessionStructureSchemaPath,
+      trainingSessionStructureV2SchemaPath,
       trainingSessionRouteQuerySchemaPath,
       trainingSessionRouteSchemaPath,
       trainingRoutePointsQuerySchemaPath,
@@ -7104,6 +7659,7 @@ process.stdout.write(
       sessionStorySchemaPath,
       sessionStoryV2SchemaPath,
       sessionStoryV3SchemaPath,
+      sessionStoryV4SchemaPath,
     ],
     trainingComparisonSchemas: [
       trainingComparisonQuerySchemaPath,
@@ -7118,6 +7674,7 @@ process.stdout.write(
       ...trainingSessionRangeCommandContracts.map(([schemaPath]) => schemaPath),
       trainingSessionRangeSummaryQuerySchemaPath,
       trainingSessionRangeSummarySchemaPath,
+      trainingSessionRangeSummaryV2SchemaPath,
     ],
     sleepOverviewSchemas: [
       sleepOverviewQuerySchemaPath,
@@ -7153,6 +7710,7 @@ process.stdout.write(
       libraryHomeV2SchemaPath,
       libraryHomeV3SchemaPath,
       libraryHomeV4SchemaPath,
+      libraryHomeV5SchemaPath,
       explorationWorkspaceSaveSchemaPath,
     ],
     updateChannelSchemas: [
@@ -7178,6 +7736,7 @@ process.stdout.write(
       removedReportSchemaPath,
       reportLibraryQuerySchemaPath,
       reportLibrarySchemaPath,
+      reportLibraryV2SchemaPath,
       sessionReportCreateSchemaPath,
       sessionReportCreateV2SchemaPath,
       sessionReportCreateV3SchemaPath,
@@ -7188,7 +7747,9 @@ process.stdout.write(
       sessionReportResolutionSchemaPath,
       sessionReportResolutionV2SchemaPath,
       sessionReportResolutionV3SchemaPath,
+      sessionReportResolutionV4SchemaPath,
       reportResolutionV4SchemaPath,
+      reportResolutionV5SchemaPath,
       sessionReportExportSchemaPath,
       sessionReportExportV2SchemaPath,
       reportExportV4SchemaPath,

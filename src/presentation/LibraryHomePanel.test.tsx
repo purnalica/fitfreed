@@ -10,7 +10,7 @@ const messages = catalogs["en-US"].home;
 
 function populatedHome(overrides: Partial<LibraryHome> = {}): LibraryHome {
   return {
-    version: 4,
+    version: 5,
     libraryRevisionRef: "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     recordedRange: { from: "2024-01-02", through: "2026-08-17" },
     usableRange: { from: "2024-01-02", through: "2026-08-17" },
@@ -84,17 +84,21 @@ function populatedHome(overrides: Partial<LibraryHome> = {}): LibraryHome {
       sports: [
         {
           sportRef: "sport-local-running",
-          state: "classified",
+          state: "personally-overridden",
           canonicalFamily: "running",
           displayLabel: "Road running",
+          localizedNames: {},
+          recognitionCandidateCount: 0,
           profileCount: 1,
           sessionCount: 22,
         },
         {
           sportRef: "sport-local-kayaking",
-          state: "classified",
+          state: "personally-overridden",
           canonicalFamily: "water-sport",
           displayLabel: "Kayaking",
+          localizedNames: {},
+          recognitionCandidateCount: 0,
           profileCount: 1,
           sessionCount: 12,
         },
@@ -103,6 +107,8 @@ function populatedHome(overrides: Partial<LibraryHome> = {}): LibraryHome {
           state: "unknown",
           canonicalFamily: null,
           displayLabel: null,
+          localizedNames: {},
+          recognitionCandidateCount: 0,
           profileCount: 1,
           sessionCount: 5,
         },
@@ -111,6 +117,8 @@ function populatedHome(overrides: Partial<LibraryHome> = {}): LibraryHome {
           state: "unknown",
           canonicalFamily: null,
           displayLabel: null,
+          localizedNames: {},
+          recognitionCandidateCount: 0,
           profileCount: 1,
           sessionCount: 3,
         },
@@ -122,9 +130,11 @@ function populatedHome(overrides: Partial<LibraryHome> = {}): LibraryHome {
           startedAtLocal: "2026-08-17T18:30:00.000",
           durationMilliseconds: "3723000",
           distanceMeters: 12340,
-          sportState: "classified",
+          sportState: "personally-overridden",
           canonicalFamily: "running",
           displayLabel: "Road running",
+          localizedNames: {},
+          recognitionCandidateCount: 0,
         },
         {
           sessionRef: "training-session-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
@@ -135,6 +145,8 @@ function populatedHome(overrides: Partial<LibraryHome> = {}): LibraryHome {
           sportState: "unknown",
           canonicalFamily: null,
           displayLabel: null,
+          localizedNames: {},
+          recognitionCandidateCount: 0,
         },
       ],
     },
@@ -163,6 +175,55 @@ function populatedHome(overrides: Partial<LibraryHome> = {}): LibraryHome {
 afterEach(cleanup);
 
 describe("LibraryHomePanel", () => {
+  it("uses localized provider recognition on Home and recent sessions", () => {
+    const home = populatedHome();
+    home.training = {
+      ...home.training!,
+      sportProfileCount: 1,
+      sports: [{
+        sportRef: "sport-local-kayaking",
+        state: "recognized",
+        canonicalFamily: "water-sport",
+        displayLabel: null,
+        localizedNames: { en: "Kayaking", "es-ES": "Piragüismo" },
+        recognitionCandidateCount: 1,
+        profileCount: 1,
+        sessionCount: 12,
+      }],
+      recentSessions: [{
+        sessionRef: "training-session-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        sportRef: "sport-local-kayaking",
+        startedAtLocal: "2026-08-17T18:30:00.000",
+        durationMilliseconds: "3723000",
+        distanceMeters: 12340,
+        sportState: "recognized",
+        canonicalFamily: "water-sport",
+        displayLabel: null,
+        localizedNames: { en: "Kayaking", "es-ES": "Piragüismo" },
+        recognitionCandidateCount: 1,
+      }],
+    };
+
+    render(
+      <LibraryHomePanel
+        home={home}
+        locale="es-ES"
+        messages={catalogs["es-ES"].home}
+        onExplore={vi.fn()}
+        onOpenComparison={vi.fn()}
+        onOpenSession={vi.fn()}
+        onOpenSources={vi.fn()}
+      />,
+    );
+
+    expect(screen.getAllByText("Piragüismo")).toHaveLength(2);
+    const icons = screen.getAllByTestId("sport-family-icon");
+    expect(icons.every((icon) => icon.getAttribute("data-sport-icon") === "water-sport"))
+      .toBe(true);
+    expect(screen.queryByRole("button", { name: /Nombrar Piragüismo/ }))
+      .not.toBeInTheDocument();
+  });
+
   it("leads with recognizable sports, a bounded recent comparison, and exact sessions", async () => {
     const user = userEvent.setup();
     const onOpenComparison = vi.fn();
@@ -187,8 +248,8 @@ describe("LibraryHomePanel", () => {
     const sports = screen.getByRole("region", { name: "Your sports" });
     expect(within(sports).getByText("Road running")).toBeVisible();
     expect(within(sports).getByText("Kayaking")).toBeVisible();
-    expect(within(sports).getByText("Unclassified sport 1")).toBeVisible();
-    expect(within(sports).getByText("Unclassified sport 2")).toBeVisible();
+    expect(within(sports).getByText("Unknown sport 1")).toBeVisible();
+    expect(within(sports).getByText("Unknown sport 2")).toBeVisible();
     expect(within(sports).getAllByTestId("sport-family-icon")).toHaveLength(4);
 
     const comparison = screen.getByRole("region", { name: "Last 7 days" });
@@ -203,7 +264,7 @@ describe("LibraryHomePanel", () => {
     expect(roadRun).toHaveTextContent("Aug 17, 2026");
     expect(roadRun).toHaveTextContent("1 hr 2 min");
     expect(roadRun).toHaveTextContent("12.3 km");
-    const unknown = within(recent).getByRole("button", { name: /Open Unclassified sport 2/ });
+    const unknown = within(recent).getByRole("button", { name: /Open Unknown sport 2/ });
     expect(unknown).toHaveTextContent("45 min");
     expect(unknown).not.toHaveTextContent("km");
     await user.click(roadRun);
@@ -227,8 +288,8 @@ describe("LibraryHomePanel", () => {
     );
 
     const sports = screen.getByRole("region", { name: "Your sports" });
-    const first = within(sports).getByRole("button", { name: "Name Unclassified sport 1" });
-    const second = within(sports).getByRole("button", { name: "Name Unclassified sport 2" });
+    const first = within(sports).getByRole("button", { name: "Name Unknown sport 1" });
+    const second = within(sports).getByRole("button", { name: "Name Unknown sport 2" });
     expect(first).toHaveTextContent("Name this sport");
     expect(second).toHaveTextContent("Name this sport");
 
@@ -529,7 +590,7 @@ describe("LibraryHomePanel", () => {
     render(
       <LibraryHomePanel
         home={{
-          version: 4,
+          version: 5,
           libraryRevisionRef: "library-home-revision-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           recordedRange: null,
           usableRange: null,

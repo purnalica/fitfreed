@@ -61,6 +61,8 @@ export interface LibraryHomeSportSummary {
   state: TrainingSportState;
   canonicalFamily: SportFamily | null;
   displayLabel: string | null;
+  localizedNames: Record<string, string>;
+  recognitionCandidateCount: number;
   profileCount: number;
   sessionCount: number;
 }
@@ -74,6 +76,8 @@ export interface LibraryHomeRecentSession {
   sportState: TrainingSportState;
   canonicalFamily: SportFamily | null;
   displayLabel: string | null;
+  localizedNames: Record<string, string>;
+  recognitionCandidateCount: number;
 }
 
 export interface LibraryHomeTraining {
@@ -124,7 +128,7 @@ export interface ExplorationWorkspace {
 }
 
 export interface LibraryHome {
-  version: 4;
+  version: 5;
   libraryRevisionRef: string;
   recordedRange: LibraryHomeDateRange | null;
   usableRange: LibraryHomeDateRange | null;
@@ -165,6 +169,8 @@ export interface LibraryHomeMessages {
   sportFamilies: Record<SportFamily, string>;
   sportUnknown: string;
   sportUnknownIndexed: string;
+  sportAmbiguous: string;
+  sportAmbiguousIndexed: string;
   sportUnavailable: string;
   classifySport: string;
   classifySportAccessible: string;

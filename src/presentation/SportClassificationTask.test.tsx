@@ -25,6 +25,8 @@ const unknownSport: TrainingSport = {
     authorship: null,
     revision: 0,
   },
+  recognition: null,
+  recognitionCandidateCount: 0,
   firstLocalDate: "2025-01-01",
   lastLocalDate: "2026-08-18",
   coverage: {
@@ -49,7 +51,7 @@ describe("SportClassificationTask", () => {
   it("preserves the authored draft when a conflict reloads newer evidence and retries its revision", async () => {
     const concurrentSport: TrainingSport = {
       ...unknownSport,
-      state: "classified",
+      state: "personally-overridden",
       classification: {
         canonicalFamily: "running",
         displayLabel: "Concurrent running",

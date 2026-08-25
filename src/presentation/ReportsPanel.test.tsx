@@ -57,13 +57,15 @@ const origin: SessionReportOrigin = {
     exerciseCount: 1,
     sport: {
       sportRef: `sport-${digest("4")}`,
-      state: "classified",
+      state: "personally-overridden",
       classification: {
         canonicalFamily: "running",
         displayLabel: "Trail running",
         authorship: "user",
         revision: 1,
       },
+      recognition: null,
+      recognitionCandidateCount: 0,
     },
   },
 };
@@ -530,6 +532,48 @@ afterEach(() => {
 });
 
 describe("ReportsPanel", () => {
+  it("uses localized provider recognition in the report library", async () => {
+    const recognizedSport = {
+      sportRef: `sport-${digest("9")}`,
+      state: "recognized" as const,
+      classification: {
+        canonicalFamily: null,
+        displayLabel: null,
+        authorship: null,
+        revision: 0,
+      },
+      recognition: {
+        canonicalFamily: "water-sport" as const,
+        localizedNames: { en: "Kayaking", "es-ES": "Piragüismo" },
+        catalogueRevision: "catalogue-2026-08-01",
+        retrievedAtUtc: "2026-08-01T10:00:00Z",
+        mappingVersion: "polar-flow-sports-v1",
+        evidenceRef: `sport-evidence-${digest("a")}`,
+      },
+      recognitionCandidateCount: 1,
+    };
+    mocks.invoke.mockImplementation((command) => {
+      if (command === "list_report_library") {
+        return Promise.resolve(reportLibraryPage([
+          sessionLibraryItem({ subject: { kind: "session", sport: recognizedSport } }),
+        ]));
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    renderPanel({
+      locale: "es-ES",
+      messages: catalogs["es-ES"],
+      origin: undefined,
+      originRequestId: 0,
+    });
+
+    const reportCard = await screen.findByRole("button", { name: /Abrir Ridge progression/ });
+    expect(within(reportCard).getByText("Piragüismo")).toBeVisible();
+    expect(within(reportCard).getByTestId("sport-family-icon"))
+      .toHaveAttribute("data-sport-icon", "water-sport");
+  });
+
   it("opens factual result cards without exposing technical report metadata", async () => {
     mocks.invoke.mockImplementation((command, arguments_) => {
       if (command === "list_report_library") {

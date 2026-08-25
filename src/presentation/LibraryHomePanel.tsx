@@ -13,6 +13,7 @@ import type {
 } from "./library-home";
 import { restoreFocusAfterReveal } from "./focus-restoration";
 import { SportFamilyIcon } from "./SportFamilyIcon";
+import { localizedName } from "./training-sports";
 
 interface LibraryHomePanelProps {
   home: LibraryHome;
@@ -69,8 +70,9 @@ export function LibraryHomePanel({
     () => new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }),
     [locale],
   );
-  const unknownSportRefs = home.training?.sports
-    .flatMap((sport) => sport.state === "unknown" && sport.sportRef !== null
+  const unresolvedSportRefs = home.training?.sports
+    .flatMap((sport) => (sport.state === "unknown" || sport.state === "ambiguous")
+      && sport.sportRef !== null
       ? [sport.sportRef]
       : []) ?? [];
   const plural = useMemo(() => new Intl.PluralRules(locale), [locale]);
@@ -105,16 +107,34 @@ export function LibraryHomePanel({
     state?: LibraryHomeSportSummary["state"];
     canonicalFamily: LibraryHomeRecentSession["canonicalFamily"];
     displayLabel: string | null;
+    localizedNames: Record<string, string>;
   }) => {
     if (sport.displayLabel) return sport.displayLabel;
     const state = sport.sportState ?? sport.state;
-    if (state === "classified" && sport.canonicalFamily) {
+    if (state === "recognized") {
+      const recognizedName = localizedName(sport.localizedNames, locale);
+      if (recognizedName) return recognizedName;
+    }
+    if (
+      (state === "recognized" || state === "personally-overridden")
+      && sport.canonicalFamily
+    ) {
       return messages.sportFamilies[sport.canonicalFamily];
     }
     if (state === "unavailable") return messages.sportUnavailable;
-    const unknownIndex = sport.sportRef ? unknownSportRefs.indexOf(sport.sportRef) : -1;
-    return unknownSportRefs.length > 1 && unknownIndex >= 0
-      ? messages.sportUnknownIndexed.replace("{index}", number.format(unknownIndex + 1))
+    const unresolvedIndex = sport.sportRef
+      ? unresolvedSportRefs.indexOf(sport.sportRef)
+      : -1;
+    if (state === "ambiguous") {
+      return unresolvedSportRefs.length > 1 && unresolvedIndex >= 0
+        ? messages.sportAmbiguousIndexed.replace(
+          "{index}",
+          number.format(unresolvedIndex + 1),
+        )
+        : messages.sportAmbiguous;
+    }
+    return unresolvedSportRefs.length > 1 && unresolvedIndex >= 0
+      ? messages.sportUnknownIndexed.replace("{index}", number.format(unresolvedIndex + 1))
       : messages.sportUnknown;
   };
 
@@ -245,7 +265,8 @@ export function LibraryHomePanel({
                       <small>{formatCount(sport.profileCount, messages.sportProfiles)}</small>
                     )}
                   </div>
-                  {sport.state === "unknown" && sportRef && (
+                  {(sport.state === "unknown" || sport.state === "ambiguous")
+                    && sportRef && (
                     <button
                       type="button"
                       className="secondary library-home-sport-classify"

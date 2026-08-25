@@ -918,8 +918,8 @@ async function resetSportClassification(catalog, currentTitle) {
   await card.$("button").click();
   await card.$(`aria/${catalog.training.sports.reset}`).click();
   await browser.waitUntil(
-    async () => (await card.getAttribute("data-state")) === "unknown",
-    { timeout: 10_000, timeoutMsg: "sport classification did not return to unknown" },
+    async () => (await card.getAttribute("data-state")) === "personally-overridden",
+    { timeout: 10_000, timeoutMsg: "sport classification did not preserve explicit personal unknown" },
   );
 }
 
@@ -1658,13 +1658,13 @@ describe("packaged FitFreed import journey", () => {
     await goToHome("explore");
     await openTrainingWorkspace(english, "sports");
     expect(await $$(".training-sport-list > li")).toHaveLength(2);
-    await expect($(".training-sport-list > li[data-state='classified'] h3")).toHaveText(
+    await expect($(".training-sport-list > li[data-state='personally-overridden'] h3")).toHaveText(
       "Trail running",
     );
     await expect($(".training-sport-list > li[data-state='unavailable'] h3")).toHaveText(
       "Sport not recorded",
     );
-    await expect($(".training-sport-list > li[data-state='classified']")).toHaveText(
+    await expect($(".training-sport-list > li[data-state='personally-overridden']")).toHaveText(
       expect.stringContaining("Named by you"),
     );
     await openTrainingWorkspace(english, "sessions");
@@ -3125,10 +3125,10 @@ describe("packaged FitFreed import journey", () => {
       ".training-insights",
     );
     await openTrainingWorkspace(spanish, "sports");
-    await expect($(".training-sport-list > li[data-state='classified'] h3")).toHaveText(
+    await expect($(".training-sport-list > li[data-state='personally-overridden'] h3")).toHaveText(
       "Trail running",
     );
-    await expect($(".training-sport-list > li[data-state='classified']")).toHaveText(
+    await expect($(".training-sport-list > li[data-state='personally-overridden']")).toHaveText(
       expect.stringContaining(spanish.training.sports.classifiedByYou),
     );
     await saveSportClassification(
@@ -3277,7 +3277,7 @@ describe("packaged FitFreed import journey", () => {
       ".training-insights",
     );
     await openTrainingWorkspace(english, "sports");
-    await expect($(".training-sport-list > li[data-state='classified'] h3")).toHaveText(
+    await expect($(".training-sport-list > li[data-state='personally-overridden'] h3")).toHaveText(
       "Carrera de montaña",
     );
     await openTrainingWorkspace(english, "sessions");
@@ -3319,7 +3319,7 @@ describe("packaged FitFreed import journey", () => {
       ".training-insights",
     );
     await openTrainingWorkspace(english, "sports");
-    await expect($(".training-sport-list > li[data-state='classified'] h3")).toHaveText(
+    await expect($(".training-sport-list > li[data-state='personally-overridden'] h3")).toHaveText(
       "Carrera de montaña",
     );
     await openTrainingWorkspace(english, "sessions");
@@ -3977,7 +3977,7 @@ describe("packaged FitFreed import journey", () => {
     );
     await openTrainingWorkspace(spanish, "sports");
     await resetSportClassification(spanish, "Carrera de montaña");
-    await expect($(".training-sport-list > li[data-state='unknown'] h3")).toHaveText(
+    await expect($(".training-sport-list > li[data-state='personally-overridden'] h3")).toHaveText(
       spanish.training.sports.unknown.replace("{index}", "1"),
     );
     await saveSportClassification(
@@ -4339,7 +4339,7 @@ describe("packaged FitFreed import journey", () => {
       ".training-insights",
     );
     await openTrainingWorkspace(spanish, "sports");
-    await expect($(".training-sport-list > li[data-state='classified'] h3")).toHaveText(
+    await expect($(".training-sport-list > li[data-state='personally-overridden'] h3")).toHaveText(
       "Carrera de montaña",
     );
     await openTrainingWorkspace(spanish, "sessions");
@@ -4380,7 +4380,7 @@ describe("packaged FitFreed import journey", () => {
     await browser.reloadSession();
     await $(".training-insights").waitForDisplayed({ timeout: 10_000 });
     await openTrainingWorkspace(spanish, "sports");
-    await expect($(".training-sport-list > li[data-state='classified'] h3")).toHaveText(
+    await expect($(".training-sport-list > li[data-state='personally-overridden'] h3")).toHaveText(
       "Carrera de montaña",
     );
     await openTrainingWorkspace(spanish, "sessions");

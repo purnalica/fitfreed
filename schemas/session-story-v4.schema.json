@@ -1,0 +1,253 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/session-story-v4.schema.json",
+  "title": "FitFreed composed session story version 4",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "snapshotRef",
+    "session",
+    "structure",
+    "routes",
+    "signals",
+    "zones",
+    "provenance",
+    "composition",
+    "exercises"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "snapshotRef": { "$ref": "session-story-v1.schema.json#/$defs/snapshotRef" },
+    "session": {
+      "$ref": "training-session-search-v2.schema.json#/$defs/session"
+    },
+    "structure": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "training-session-structure-v2.schema.json#/$defs/structure" }
+      ]
+    },
+    "routes": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "training-session-route-v1.schema.json#/$defs/assessment" }
+      ]
+    },
+    "signals": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "training-session-signals-v1.schema.json#/$defs/assessment" }
+      ]
+    },
+    "zones": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "training-session-zones-v1.schema.json#/$defs/assessment" }
+      ]
+    },
+    "provenance": { "$ref": "session-story-v1.schema.json#/$defs/provenance" },
+    "composition": { "$ref": "#/$defs/composition" },
+    "exercises": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/exercise" }
+    }
+  },
+  "$defs": {
+    "assessmentState": {
+      "enum": [
+        "not-evaluated",
+        "source-absent",
+        "source-empty",
+        "source-present"
+      ]
+    },
+    "composition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "structureState",
+        "routeState",
+        "signalState",
+        "zoneState",
+        "exerciseCount"
+      ],
+      "properties": {
+        "structureState": { "$ref": "#/$defs/assessmentState" },
+        "routeState": { "$ref": "#/$defs/assessmentState" },
+        "signalState": { "$ref": "#/$defs/assessmentState" },
+        "zoneState": { "$ref": "#/$defs/assessmentState" },
+        "exerciseCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "roleEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "routePointCount",
+        "signalSeriesCount",
+        "signalSeriesWithValuesCount",
+        "partialSignalSeriesCount",
+        "unavailableSignalSeriesCount",
+        "emptySignalSeriesCount",
+        "unsupportedSignalSeriesCount",
+        "signalSampleCount",
+        "availableSignalSampleCount",
+        "unavailableSignalSampleCount"
+      ],
+      "properties": {
+        "routePointCount": { "type": "integer", "minimum": 0 },
+        "signalSeriesCount": { "type": "integer", "minimum": 0 },
+        "signalSeriesWithValuesCount": { "type": "integer", "minimum": 0 },
+        "partialSignalSeriesCount": { "type": "integer", "minimum": 0 },
+        "unavailableSignalSeriesCount": { "type": "integer", "minimum": 0 },
+        "emptySignalSeriesCount": { "type": "integer", "minimum": 0 },
+        "unsupportedSignalSeriesCount": { "type": "integer", "minimum": 0 },
+        "signalSampleCount": { "type": "integer", "minimum": 0 },
+        "availableSignalSampleCount": { "type": "integer", "minimum": 0 },
+        "unavailableSignalSampleCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "overlay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "signalRef",
+        "metric",
+        "sourceKind",
+        "sourceUnit",
+        "valueTransform",
+        "alignmentState",
+        "alignedSamples"
+      ],
+      "properties": {
+        "signalRef": { "$ref": "session-story-v1.schema.json#/$defs/signalRef" },
+        "metric": { "$ref": "session-story-v1.schema.json#/$defs/metric" },
+        "sourceKind": { "$ref": "session-story-v1.schema.json#/$defs/signalKind" },
+        "sourceUnit": { "$ref": "session-story-v1.schema.json#/$defs/signalUnit" },
+        "valueTransform": { "$ref": "session-story-v1.schema.json#/$defs/valueTransform" },
+        "alignmentState": { "enum": ["exact-recorded", "unavailable"] },
+        "alignedSamples": {
+          "type": "array",
+          "maxItems": 500,
+          "items": { "$ref": "session-story-v1.schema.json#/$defs/alignedSample" }
+        }
+      },
+      "allOf": [{
+        "if": {
+          "properties": { "alignmentState": { "const": "unavailable" } },
+          "required": ["alignmentState"]
+        },
+        "then": {
+          "properties": {
+            "alignedSamples": { "type": "array", "maxItems": 0 }
+          }
+        }
+      }]
+    },
+    "role": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "route",
+        "signals",
+        "evidence",
+        "primaryMetric",
+        "eligibleOverlays",
+        "exactRoute",
+        "exactSignals"
+      ],
+      "properties": {
+        "route": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "training-session-route-v1.schema.json#/$defs/route" }
+          ]
+        },
+        "signals": {
+          "type": "array",
+          "items": {
+            "$ref": "training-session-signals-v1.schema.json#/$defs/series"
+          }
+        },
+        "evidence": { "$ref": "#/$defs/roleEvidence" },
+        "primaryMetric": { "$ref": "session-story-v1.schema.json#/$defs/optionalMetric" },
+        "eligibleOverlays": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/overlay" }
+        },
+        "exactRoute": { "$ref": "session-story-v1.schema.json#/$defs/optionalExactRoute" },
+        "exactSignals": {
+          "type": "array",
+          "items": { "$ref": "session-story-v1.schema.json#/$defs/exactSignal" }
+        }
+      }
+    },
+    "exerciseEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hasStructure",
+        "manualLapCount",
+        "automaticLapCount",
+        "pauseCount",
+        "zoneGroupCount",
+        "zoneCount",
+        "timedZoneCount",
+        "unsupportedZoneGroupCount"
+      ],
+      "properties": {
+        "hasStructure": { "type": "boolean" },
+        "manualLapCount": { "type": "integer", "minimum": 0 },
+        "automaticLapCount": { "type": "integer", "minimum": 0 },
+        "pauseCount": { "type": "integer", "minimum": 0 },
+        "zoneGroupCount": { "type": "integer", "minimum": 0 },
+        "zoneCount": { "type": "integer", "minimum": 0 },
+        "timedZoneCount": { "type": "integer", "minimum": 0 },
+        "unsupportedZoneGroupCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "optionalSport": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "training-session-search-v2.schema.json#/$defs/sport" }
+      ]
+    },
+    "optionalStructure": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "training-session-structure-v2.schema.json#/$defs/exercise" }
+      ]
+    },
+    "optionalZones": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "training-session-zones-v1.schema.json#/$defs/zoneEvidence" }
+      ]
+    },
+    "exercise": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exerciseRef",
+        "ordinal",
+        "sport",
+        "structure",
+        "zones",
+        "evidence",
+        "primary",
+        "transition"
+      ],
+      "properties": {
+        "exerciseRef": { "$ref": "session-story-v1.schema.json#/$defs/exerciseRef" },
+        "ordinal": { "type": "integer", "minimum": 0 },
+        "sport": { "$ref": "#/$defs/optionalSport" },
+        "structure": { "$ref": "#/$defs/optionalStructure" },
+        "zones": { "$ref": "#/$defs/optionalZones" },
+        "evidence": { "$ref": "#/$defs/exerciseEvidence" },
+        "primary": { "$ref": "#/$defs/role" },
+        "transition": { "$ref": "#/$defs/role" }
+      }
+    }
+  }
+}

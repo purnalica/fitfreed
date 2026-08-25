@@ -50,6 +50,7 @@ import type {
   TrainingSessionRoutesResult,
 } from "./training-session-route";
 import type { TrainingSessionSport } from "./training-session-search";
+import { resolvedSportName, sportCanonicalFamily } from "./training-sports";
 
 const REPORT_ROUTE_VISUAL_POINT_LIMIT = 400;
 const REPORT_LIBRARY_PAGE_SIZE = 12;
@@ -971,11 +972,8 @@ export function ReportsPanel({
   }
 
   function sportLabel(sport: TrainingSessionSport): string {
-    if (sport.classification?.displayLabel) return sport.classification.displayLabel;
-    if (sport.classification?.canonicalFamily) {
-      return messages.training.sports.families[sport.classification.canonicalFamily];
-    }
-    return sport.state === "unknown" ? copy.sportUnclassified : copy.sportUnavailable;
+    return resolvedSportName(sport, locale, messages.training.sports.families)
+      ?? (sport.state === "unavailable" ? copy.sportUnavailable : copy.sportUnclassified);
   }
 
   function countWithUnit(
@@ -1484,7 +1482,7 @@ export function ReportsPanel({
               <dt>{messages.training.trainingType}</dt>
               <dd className="report-sport-identity">
                 <SportFamilyIcon
-                  family={resolved.session.sport.classification?.canonicalFamily ?? null}
+                  family={sportCanonicalFamily(resolved.session.sport)}
                   state={resolved.session.sport.state}
                 />
                 <span>{sportLabel(resolved.session.sport)}</span>
@@ -1678,7 +1676,7 @@ export function ReportsPanel({
                       {report.subject.kind === "session" && (
                         <>
                           <SportFamilyIcon
-                            family={report.subject.sport.classification?.canonicalFamily ?? null}
+                            family={sportCanonicalFamily(report.subject.sport)}
                             state={report.subject.sport.state}
                           />
                           <span>{sportLabel(report.subject.sport)}</span>

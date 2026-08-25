@@ -24,10 +24,18 @@ when that source is still available.
   resolved candidate but removes every inactive stage from visual and assistive-technology exposure.
 - A replaceable outer adapter renders one resolved report into deterministic self-contained HTML and atomically promotes the completed file.
 - Session sport identity uses the same canonical provider-neutral SVG sprite as the application. The adapter
-  embeds that local sprite, chooses a semantic family or state symbol, and renders either the escaped authored
-  label or the report locale's family label; technical family codes never become report copy.
+  embeds that local sprite, chooses a semantic family or state symbol, and applies the shared personal-label,
+  personal-family, recognized localized-name, recognized-family, ambiguous, unknown, and unavailable
+  precedence. Technical family codes, provider identifiers, evidence references, and ambiguous candidate names
+  never become report copy.
 
 ## Definition and resolved output
+
+Current disposable results follow [report workflow version 5](../data-formats/insights/report-v5.md): report
+definitions remain version 4, while the result-first library and resolved report embed training sport identity
+version 1. Catalogue activation makes prior resolved evidence stale and still requires the existing deliberate
+refresh review. Self-contained HTML uses [output version 5](../data-formats/portable/report-html-v5.md) and
+records its output version independently from the unchanged definition version.
 
 `ReportDefinition` is durable user-authored information. Version 1 remains readable as one fixed session
 block followed by one narrative. Version 2 contains 2–32 semantic positions, requires exactly one session

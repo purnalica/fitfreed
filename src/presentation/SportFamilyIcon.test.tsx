@@ -29,7 +29,7 @@ describe("SportFamilyIcon", () => {
       const view = render(
         <>
           <SportIconDefinitions />
-          <SportFamilyIcon family={family} state="classified" />
+          <SportFamilyIcon family={family} state="personally-overridden" />
         </>,
       );
       expect(view.container.querySelector(`#sport-icon-${family}`)).not.toBeNull();
@@ -42,7 +42,7 @@ describe("SportFamilyIcon", () => {
   });
 
   it.each([
-    ["classified", "custom"],
+    ["personally-overridden", "custom"],
     ["unknown", "unknown"],
     ["unavailable", "unavailable"],
   ] as const)("renders a non-empty %s identity", (state, icon) => {

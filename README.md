@@ -69,7 +69,7 @@ is governed independently by the [current ledger](docs/testing/public-release-re
 <li>Safe exact and cumulative reimport</li>
 <li>Provider-neutral SQLite history for activity, training summaries, structure, routes, signals, sleep, and recovery</li>
 <li>Immediate coverage-aware daily activity answers and bounded visual comparisons</li>
-<li>User-authored sport classification and complete-history session search</li>
+<li>Personal sport naming and complete-history session search without exposing provider identifiers</li>
 <li>Chronology, source-separated calendar discovery, session comparison, and restart restoration</li>
 <li>Recorded exercise, mixed-sport, source-lap, automatic-lap, and pause inspection</li>
 <li>Interactive local primary and transition route workbench with route-point selection, local map navigation, and exact route evidence</li>
@@ -100,6 +100,7 @@ is governed independently by the [current ledger](docs/testing/public-release-re
 <ul>
 <li>Whole-product presentation, documentation, installation, update, and recovery validation</li>
 <li>Independent pre-release product-experience audit</li>
+<li>Trustworthy automatic Polar sport recognition after official catalogue retrieval and lawful redistribution or reviewed local-only acquisition</li>
 </ul>
 <p><a href="docs/plans/mvp-redesign-production-migration.md">Active production migration plan →</a></p>
 </details>

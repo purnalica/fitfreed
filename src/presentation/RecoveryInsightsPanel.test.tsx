@@ -197,8 +197,8 @@ describe("RecoveryInsightsPanel", () => {
     mocks.invoke.mockResolvedValue(overview());
     renderPanel();
 
-    const recovery = await screen.findByRole("region", { name: "Nightly recovery" });
-    const answer = within(recovery).getByRole("region", { name: "Recovery pattern answer" });
+    const answer = await screen.findByRole("region", { name: "Recovery pattern answer" });
+    const recovery = screen.getByRole("region", { name: "Nightly recovery" });
     const heading = within(answer).getByRole("heading", { name: "2 recovery histories shown" });
     expect(heading).toBeVisible();
     await waitFor(() => expect(heading).toHaveFocus());

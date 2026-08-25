@@ -254,6 +254,33 @@ The optional top-level `sport.id` is present for the evaluated single- and multi
 
 Polar documents an authenticated `/v4/data/sports/list` catalogue that resolves sport identifiers to names and parent sports. That catalogue is not present in the evaluated takeout, and the observed `sport-profiles` artifact contains user settings keyed by a different source field rather than the required identifier-to-name catalogue. Training-summary version 1 preserves the aggregate sport reference as opaque source classification evidence. It does not publish, guess, or present a sport name from that value.
 
+### Sport-catalogue acquisition boundary
+
+**Evidence: Official, verified 2026-08-25.** The Dynamic API defines
+`GET https://www.polaraccesslink.com/v4/data/sports/list` as the Polar-managed catalogue and requires OAuth with the
+`sports:read` scope. Its response carries the exact identifier, provider name key, localized long names, parent
+identifier, modification time, sport type, defaults, and supported features required to interpret takeout `sport.id`
+without guessing. The endpoint is not an anonymous static resource and its example values are illustrative rather
+than a usable catalogue.
+
+The current [Polar API Limited License Agreement](https://www.polar.com/en/legal/polar-api-agreement) permits API use
+under its own terms, constrains automated collection to an authorized application, governs redistribution, and
+requires destruction of API Data when the agreement terminates. No official statement found in this review grants a
+GPL-compatible right to publish the retrieved catalogue as source data. FitFreed therefore does not scrape Polar
+sites, commit an unauthenticated reconstruction, or bundle an API response until both retrieval authority and a
+redistribution basis are recorded. This is a missing permission boundary, not a claim that redistribution is legally
+forbidden.
+
+Polar's official BLE SDK exposes only the live/offline recording identifiers `0` unknown, `1` running, `2` cycling,
+and `16` other outdoor. The SDK does not establish that this limited device-recording enumeration is the complete
+Dynamic API catalogue or that each value has the same identity contract as takeout `sport.id`. Those values may test
+the adapter contract but cannot be installed as production takeout recognition evidence without that relationship.
+
+The implementation can proceed independently with a versioned catalogue-evidence boundary, deterministic
+provider-neutral suggestions, personal-override precedence, persistence, and synthetic contract fixtures. Closing
+automatic Polar recognition requires either an official redistributable catalogue source or a product-owner-approved
+authenticated acquisition whose local-only or distributable use is compatible with FitFreed's release model.
+
 ### Identity, revision, time, and loss implications
 
 **Evidence: Interpretation.** The supported source identity candidate is the resolved source subject plus exact `identifier.id`. The delivery filename UUID, filename timestamp, artifact hash, import order, and nested exercise identifiers are not session identity. Reimport safety treats a later record with the same identity and equivalent content as equivalent. Source `modified` ordering is revision evidence: a newer differing record is an amendment, an older differing record is preserved without rollback, and equal or unorderable revision evidence with differing canonical content is a conflict.

@@ -77,7 +77,13 @@ function resolution(origin: ReportDefinition["origin"]): ResolvedReport {
           averageHeartRateBpm: "145",
           maximumHeartRateBpm: "172",
           exerciseCount: 1,
-          sport: { sportRef: null, state: "unavailable", classification: null },
+          sport: {
+            sportRef: null,
+            state: "unavailable",
+            classification: null,
+            recognition: null,
+            recognitionCandidateCount: 0,
+          },
         }
       : null,
     routes: [],

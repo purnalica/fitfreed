@@ -61,6 +61,7 @@ Directories are created with their first real contract; empty specifications are
 ## Current references
 
 - [Polar Flow personal data export](providers/polar-flow.md)
+- [Provider sport catalogue evidence version 1](providers/provider-sport-catalogue-v1.md)
 - [Canonical daily activity](canonical/daily-activity.md)
 - [Canonical training session summary](canonical/training-session.md)
 - [Canonical training-session structure](canonical/training-session-structure.md)
@@ -88,25 +89,33 @@ Directories are created with their first real contract; empty specifications are
 - [Daily activity comparison read model version 1](insights/daily-activity-comparison-v1.md)
 - [Training overview read model version 1](insights/training-overview-v1.md)
 - [Training comparison read model version 1](insights/training-comparison-v1.md)
-- [Training sports read model version 1](insights/training-sports-v1.md)
-- [Training-session search read model version 1](insights/training-session-search-v1.md)
-- [Training-session structure read model version 1](insights/training-session-structure-v1.md)
+- [Training sport identity version 1](insights/training-sport-identity-v1.md)
+- [Training sports read model version 2](insights/training-sports-v2.md)
+- [Training sports read model version 1](insights/training-sports-v1.md) — preceding contract
+- [Training-session search read model version 2](insights/training-session-search-v2.md)
+- [Training-session search read model version 1](insights/training-session-search-v1.md) — preceding contract
+- [Training-session structure read model version 2](insights/training-session-structure-v2.md)
+- [Training-session structure read model version 1](insights/training-session-structure-v1.md) — preceding contract
 - [Training-session route read models version 1](insights/training-session-route-v1.md)
 - [Training-session signal read models version 1](insights/training-session-signal-v1.md)
 - [Training-session zone read model version 1](insights/training-session-zone-v1.md)
 - [Training-session provenance read model version 1](insights/training-session-provenance-v1.md)
-- [Composed session story version 3](insights/session-story-v3.md)
+- [Composed session story version 4](insights/session-story-v4.md)
+- [Composed session story version 3](insights/session-story-v3.md) — preceding response contract
 - [Composed session story version 2](insights/session-story-v2.md) — preceding response contract
 - [Composed session story version 1](insights/session-story-v1.md) — initial response contract
 - [Training-session segmentation read model version 1](insights/training-session-segmentation-v1.md)
 - [Training-session range read model version 3](insights/training-session-range-v3.md)
 - [Training-session range read model version 2](insights/training-session-range-v2.md) — preceding contract
 - [Training-session range read model version 1](insights/training-session-range-v1.md) — initial contract
-- [Training-session range summary read model version 1](insights/training-session-range-summary-v1.md)
+- [Training-session range summary read model version 2](insights/training-session-range-summary-v2.md)
+- [Training-session range summary read model version 1](insights/training-session-range-summary-v1.md) — preceding contract
 - [Session report read models version 1](insights/session-report-v1.md)
 - [Session report read models version 2](insights/session-report-v2.md)
 - [Session report read models version 3](insights/session-report-v3.md)
-- [Report workflow version 4](insights/report-v4.md)
+- [Session report read models version 4](insights/session-report-v4.md)
+- [Report workflow version 5](insights/report-v5.md)
+- [Report workflow version 4](insights/report-v4.md) — preceding contract
 - [Training-discovery workspace version 1](insights/training-discovery-workspace-v1.md)
 - [Sleep overview and detail read model version 1](insights/sleep-overview-v1.md)
 - [Sleep comparison read model version 1](insights/sleep-comparison-v1.md)
@@ -116,7 +125,8 @@ Directories are created with their first real contract; empty specifications are
 - [Library Home read model version 1](insights/library-home-v1.md)
 - [Library Home read model version 2](insights/library-home-v2.md)
 - [Library Home read model version 3](insights/library-home-v3.md)
-- [Library Home read model version 4](insights/library-home-v4.md)
+- [Library Home read model version 5](insights/library-home-v5.md)
+- [Library Home read model version 4](insights/library-home-v4.md) — preceding contract
 - [Portable report definition version 1](portable/report-definition-v1.md)
 - [Portable report definition version 2](portable/report-definition-v2.md)
 - [Portable report definition version 3](portable/report-definition-v3.md)
@@ -124,7 +134,8 @@ Directories are created with their first real contract; empty specifications are
 - [Self-contained report HTML version 1](portable/report-html-v1.md)
 - [Self-contained report HTML version 2](portable/report-html-v2.md)
 - [Self-contained report HTML version 3](portable/report-html-v3.md)
-- [Self-contained report HTML version 4](portable/report-html-v4.md)
+- [Self-contained report HTML version 5](portable/report-html-v5.md)
+- [Self-contained report HTML version 4](portable/report-html-v4.md) — preceding contract
 - [SQLite schema version 1](persistence/sqlite-v1.md)
 - [SQLite schema version 2](persistence/sqlite-v2.md)
 - [SQLite schema version 3](persistence/sqlite-v3.md)
@@ -152,6 +163,7 @@ Directories are created with their first real contract; empty specifications are
 - [SQLite schema version 25](persistence/sqlite-v25.md)
 - [SQLite schema version 26](persistence/sqlite-v26.md)
 - [SQLite schema version 27](persistence/sqlite-v27.md)
+- [SQLite schema version 28](persistence/sqlite-v28.md)
 - [Release manifest version 1](release/release-manifest-v1.md)
 - [Release manifest version 2](release/release-manifest-v2.md)
 - [Public release manifest version 3](release/release-manifest-v3.md)

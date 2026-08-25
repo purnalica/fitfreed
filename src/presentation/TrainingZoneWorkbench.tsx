@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { type catalogs, type Locale } from "../locales/catalogs";
 import type { SessionStory, SessionStoryExercise } from "./session-story";
 import { SportFamilyIcon } from "./SportFamilyIcon";
+import { sportCanonicalFamily } from "./training-sports";
 import { formatDistance, formatDuration } from "./training-format";
 import type { TrainingZone, TrainingZoneGroup } from "./training-session-zone";
 
@@ -206,7 +207,7 @@ export function TrainingZoneWorkbench({
       </header>
       <div className="training-zone-workbench-identity">
         <SportFamilyIcon
-          family={exercise.sport?.classification?.canonicalFamily ?? null}
+          family={exercise.sport ? sportCanonicalFamily(exercise.sport) : null}
           state={exercise.sport?.state ?? "unavailable"}
         />
         <div>

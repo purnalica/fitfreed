@@ -1,4 +1,8 @@
-import type { TrainingSportClassification, TrainingSportState } from "./training-sports";
+import type {
+  TrainingSportClassification,
+  TrainingSportRecognition,
+  TrainingSportState,
+} from "./training-sports";
 
 export type TrainingMeasurementFilter = "distance" | "energy" | "heart-rate";
 
@@ -36,6 +40,8 @@ export interface TrainingSessionSport {
   sportRef: string | null;
   state: TrainingSportState;
   classification: TrainingSportClassification | null;
+  recognition: TrainingSportRecognition | null;
+  recognitionCandidateCount: number;
 }
 
 export interface TrainingSessionSearchItem {

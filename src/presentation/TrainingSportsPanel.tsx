@@ -9,6 +9,8 @@ import { SportFamilyIcon } from "./SportFamilyIcon";
 import { formatDuration } from "./training-format";
 import {
   type SavedTrainingSportClassification,
+  resolvedSportName,
+  sportCanonicalFamily,
   type TrainingSportClassificationChange,
   type TrainingSport,
   type TrainingSportsOverview,
@@ -43,13 +45,15 @@ function sportTitle(
   sport: TrainingSport,
   unknownIndex: number,
   messages: TrainingSportsMessages,
+  locale: string,
 ): string {
   if (sport.state === "unavailable") return messages.notRecorded;
-  if (sport.classification?.displayLabel) return sport.classification.displayLabel;
-  if (sport.classification?.canonicalFamily) {
-    return messages.families[sport.classification.canonicalFamily];
-  }
-  return interpolate(messages.unknown, { index: String(unknownIndex) });
+  const resolved = resolvedSportName(sport, locale, messages.families);
+  if (resolved) return resolved;
+  return interpolate(
+    sport.state === "ambiguous" ? messages.ambiguous : messages.unknown,
+    { index: String(unknownIndex) },
+  );
 }
 
 export function TrainingSportsPanel({
@@ -127,9 +131,11 @@ export function TrainingSportsPanel({
   }, [navigationRequestId, openSportRef, overview]);
 
   function titleFor(sport: TrainingSport): string {
-    const unknownSports = overview?.sports.filter((candidate) => candidate.state === "unknown") ?? [];
+    const unknownSports = overview?.sports.filter((candidate) =>
+      candidate.state === sport.state
+    ) ?? [];
     const unknownIndex = Math.max(unknownSports.indexOf(sport) + 1, 1);
-    return sportTitle(sport, unknownIndex, copy);
+    return sportTitle(sport, unknownIndex, copy, locale);
   }
 
   function beginEditing(sport: TrainingSport) {
@@ -200,12 +206,12 @@ export function TrainingSportsPanel({
               <li
                 key={sport.sportRef ?? `unavailable-${index}`}
                 data-state={sport.state}
-                data-sport-family={sport.classification?.canonicalFamily ?? sport.state}
+                data-sport-family={sportCanonicalFamily(sport) ?? sport.state}
               >
                 <div className="training-sport-card-heading">
                   <div className="training-sport-identity">
                     <SportFamilyIcon
-                      family={sport.classification?.canonicalFamily ?? null}
+                      family={sportCanonicalFamily(sport)}
                       state={sport.state}
                     />
                     <div>
@@ -235,14 +241,16 @@ export function TrainingSportsPanel({
                       disabled={taskBusy}
                       onClick={() => beginEditing(sport)}
                     >
-                      {sport.state === "classified" ? copy.editNamed : copy.edit}
+                      {sport.state === "personally-overridden" ? copy.editNamed : copy.edit}
                     </button>
                   )}
                 </div>
 
-                {sport.state === "classified" && (
+                {sport.state === "personally-overridden" && (
                   <p className="training-sport-authorship">{copy.classifiedByYou}</p>
                 )}
+                {sport.state === "recognized" && <p>{copy.recognizedExplanation}</p>}
+                {sport.state === "ambiguous" && <p>{copy.ambiguousExplanation}</p>}
                 {sport.state === "unknown" && <p>{copy.unknownExplanation}</p>}
                 {sport.state === "unavailable" && <p>{copy.notRecordedExplanation}</p>}
 

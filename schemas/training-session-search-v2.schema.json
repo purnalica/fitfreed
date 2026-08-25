@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/purnalica/fitfreed/main/schemas/training-session-search-v2.schema.json",
+  "title": "FitFreed training-session search version 2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "availableRange",
+    "snapshotRef",
+    "totalCount",
+    "offset",
+    "limit",
+    "nextOffset",
+    "summaries",
+    "sessions"
+  ],
+  "properties": {
+    "availableRange": { "$ref": "#/$defs/optionalRange" },
+    "snapshotRef": { "$ref": "#/$defs/snapshotRef" },
+    "totalCount": { "type": "integer", "minimum": 0 },
+    "offset": { "type": "integer", "minimum": 0 },
+    "limit": { "type": "integer", "minimum": 1, "maximum": 100 },
+    "nextOffset": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "integer", "minimum": 1 }
+      ]
+    },
+    "summaries": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/summary" }
+    },
+    "sessions": {
+      "type": "array",
+      "maxItems": 100,
+      "items": { "$ref": "#/$defs/session" }
+    }
+  },
+  "$defs": {
+    "localDate": { "$ref": "training-session-search-v1.schema.json#/$defs/localDate" },
+    "localDateTime": { "$ref": "training-session-search-v1.schema.json#/$defs/localDateTime" },
+    "optionalRange": { "$ref": "training-session-search-v1.schema.json#/$defs/optionalRange" },
+    "snapshotRef": { "$ref": "training-session-search-v1.schema.json#/$defs/snapshotRef" },
+    "sessionRef": { "$ref": "training-session-search-v1.schema.json#/$defs/sessionRef" },
+    "optionalOffset": { "$ref": "training-session-search-v1.schema.json#/$defs/optionalOffset" },
+    "optionalUnsignedDecimal": { "$ref": "training-session-search-v1.schema.json#/$defs/optionalUnsignedDecimal" },
+    "optionalDistance": { "$ref": "training-session-search-v1.schema.json#/$defs/optionalDistance" },
+    "optionalCount": { "$ref": "training-session-search-v1.schema.json#/$defs/optionalCount" },
+    "summary": { "$ref": "training-session-search-v1.schema.json#/$defs/summary" },
+    "sport": { "$ref": "training-sport-identity-v1.schema.json#/$defs/sportIdentity" },
+    "session": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sessionRef",
+        "sourceIndex",
+        "startedAtLocal",
+        "stoppedAtLocal",
+        "utcOffsetMinutes",
+        "durationMilliseconds",
+        "distanceMeters",
+        "energyKilocalories",
+        "averageHeartRateBpm",
+        "maximumHeartRateBpm",
+        "exerciseCount",
+        "sport"
+      ],
+      "properties": {
+        "sessionRef": { "$ref": "#/$defs/sessionRef" },
+        "sourceIndex": { "type": "integer", "minimum": 1 },
+        "startedAtLocal": { "$ref": "#/$defs/localDateTime" },
+        "stoppedAtLocal": { "$ref": "#/$defs/localDateTime" },
+        "utcOffsetMinutes": { "$ref": "#/$defs/optionalOffset" },
+        "durationMilliseconds": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "distanceMeters": { "$ref": "#/$defs/optionalDistance" },
+        "energyKilocalories": { "$ref": "#/$defs/optionalUnsignedDecimal" },
+        "averageHeartRateBpm": { "$ref": "#/$defs/optionalUnsignedDecimal" },
+        "maximumHeartRateBpm": { "$ref": "#/$defs/optionalUnsignedDecimal" },
+        "exerciseCount": { "$ref": "#/$defs/optionalCount" },
+        "sport": { "$ref": "#/$defs/sport" }
+      }
+    }
+  }
+}

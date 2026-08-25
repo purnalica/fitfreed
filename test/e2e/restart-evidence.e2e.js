@@ -88,7 +88,7 @@ describe("packaged FitFreed application-process restart", () => {
     );
 
     await openTrainingWorkspace("sports");
-    await expect($(".training-sport-list > li[data-state='classified'] h3"))
+    await expect($(".training-sport-list > li[data-state='personally-overridden'] h3"))
       .toHaveText("Carrera de montaña");
     await openTrainingWorkspace("sessions");
     await openTrainingDetailSection("structure");

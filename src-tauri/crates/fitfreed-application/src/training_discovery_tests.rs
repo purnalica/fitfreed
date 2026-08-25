@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use super::*;
 
 const SNAPSHOT: &str =
@@ -76,13 +78,41 @@ fn classified_sport() -> TrainingSessionSport {
         sport_ref: Some(
             "sport-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_owned(),
         ),
-        state: TrainingSportState::Classified,
+        state: TrainingSportState::PersonallyOverridden,
         classification: Some(TrainingSportClassification {
             canonical_family: Some("running".to_owned()),
             display_label: Some("Trail running".to_owned()),
             authorship: Some("user".to_owned()),
             revision: 1,
         }),
+        recognition: None,
+        recognition_candidate_count: 0,
+    }
+}
+
+fn recognized_sport(localized_name: String) -> TrainingSessionSport {
+    TrainingSessionSport {
+        sport_ref: Some(
+            "sport-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_owned(),
+        ),
+        state: TrainingSportState::Recognized,
+        classification: Some(TrainingSportClassification {
+            canonical_family: None,
+            display_label: None,
+            authorship: None,
+            revision: 0,
+        }),
+        recognition: Some(TrainingSportRecognition {
+            canonical_family: Some("running".to_owned()),
+            localized_names: BTreeMap::from([("en".to_owned(), localized_name)]),
+            catalogue_revision: "catalogue-2026-08-25".to_owned(),
+            retrieved_at_utc: "2026-08-25T10:00:00Z".to_owned(),
+            mapping_version: "sport-mapping@1".to_owned(),
+            evidence_ref:
+                "sport-evidence-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    .to_owned(),
+        }),
+        recognition_candidate_count: 1,
     }
 }
 
@@ -473,6 +503,47 @@ fn accepts_combinable_filters_and_the_last_page() {
 
     assert_eq!(result.next_offset, None);
     assert_eq!(result.sessions.len(), 1);
+}
+
+#[test]
+fn validates_recognition_against_the_domain_contract_without_personal_label_limits() {
+    let mut recognized = item();
+    recognized.sport = recognized_sport("r".repeat(120));
+    let accepted = query_training_sessions(
+        &ControlledDiscoveryPort {
+            result: Ok(page(vec![recognized.clone()], 1)),
+        },
+        request(),
+    )
+    .expect("120-character provider name remains valid");
+    assert_eq!(
+        accepted.sessions[0]
+            .sport
+            .recognition
+            .as_ref()
+            .expect("recognized identity")
+            .localized_names["en"]
+            .chars()
+            .count(),
+        120
+    );
+
+    recognized
+        .sport
+        .recognition
+        .as_mut()
+        .expect("recognized identity")
+        .localized_names = BTreeMap::from([("e".to_owned(), "Running".to_owned())]);
+    let rejected = query_training_sessions(
+        &ControlledDiscoveryPort {
+            result: Ok(page(vec![recognized], 1)),
+        },
+        request(),
+    );
+    assert!(matches!(
+        rejected,
+        Err(ApplicationError::TrainingSessionSearch(_))
+    ));
 }
 
 #[test]

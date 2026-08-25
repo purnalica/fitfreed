@@ -13,7 +13,7 @@ use super::{
     TrainingSportsPort,
 };
 
-const LIBRARY_HOME_VERSION: u32 = 4;
+const LIBRARY_HOME_VERSION: u32 = 5;
 const RECENT_SESSION_LIMIT: usize = 4;
 const SPORT_SUMMARY_LIMIT: usize = 6;
 const COMPARISON_PERIOD_DAYS: u64 = 7;
@@ -169,6 +169,8 @@ pub struct LibraryHomeSportSummary {
     pub state: TrainingSportState,
     pub canonical_family: Option<String>,
     pub display_label: Option<String>,
+    pub localized_names: BTreeMap<String, String>,
+    pub recognition_candidate_count: usize,
     pub profile_count: usize,
     pub session_count: usize,
 }
@@ -183,6 +185,8 @@ pub struct LibraryHomeRecentSession {
     pub sport_state: TrainingSportState,
     pub canonical_family: Option<String>,
     pub display_label: Option<String>,
+    pub localized_names: BTreeMap<String, String>,
+    pub recognition_candidate_count: usize,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -542,6 +546,7 @@ struct SportSummaryKey {
     state_rank: u8,
     canonical_family: Option<String>,
     display_label: Option<String>,
+    localized_names: BTreeMap<String, String>,
     unresolved_sport_ref: Option<String>,
 }
 
@@ -551,13 +556,37 @@ fn summarized_sports(
     let mut groups = BTreeMap::<SportSummaryKey, LibraryHomeSportSummary>::new();
     for sport in &overview.sports {
         let classification = sport.classification.as_ref();
+        let recognition = sport.recognition.as_ref();
+        let (canonical_family, display_label, localized_names, recognition_candidate_count) =
+            match sport.state {
+                TrainingSportState::PersonallyOverridden => (
+                    classification
+                        .and_then(|classification| classification.canonical_family.clone()),
+                    classification.and_then(|classification| classification.display_label.clone()),
+                    BTreeMap::new(),
+                    0,
+                ),
+                TrainingSportState::Recognized => (
+                    recognition.and_then(|recognition| recognition.canonical_family.clone()),
+                    None,
+                    recognition
+                        .map(|recognition| recognition.localized_names.clone())
+                        .unwrap_or_default(),
+                    sport.recognition_candidate_count,
+                ),
+                TrainingSportState::Ambiguous
+                | TrainingSportState::Unknown
+                | TrainingSportState::Unavailable => (None, None, BTreeMap::new(), 0),
+            };
         let key = SportSummaryKey {
             state_rank: sport_state_rank(sport.state),
-            canonical_family: classification
-                .and_then(|classification| classification.canonical_family.clone()),
-            display_label: classification
-                .and_then(|classification| classification.display_label.clone()),
-            unresolved_sport_ref: if sport.state == TrainingSportState::Unknown {
+            canonical_family: canonical_family.clone(),
+            display_label: display_label.clone(),
+            localized_names: localized_names.clone(),
+            unresolved_sport_ref: if matches!(
+                sport.state,
+                TrainingSportState::Unknown | TrainingSportState::Ambiguous
+            ) {
                 sport.sport_ref.clone()
             } else {
                 None
@@ -566,10 +595,10 @@ fn summarized_sports(
         let summary = groups.entry(key).or_insert(LibraryHomeSportSummary {
             sport_ref: sport.sport_ref.clone(),
             state: sport.state,
-            canonical_family: classification
-                .and_then(|classification| classification.canonical_family.clone()),
-            display_label: classification
-                .and_then(|classification| classification.display_label.clone()),
+            canonical_family,
+            display_label,
+            localized_names,
+            recognition_candidate_count,
             profile_count: 0,
             session_count: 0,
         });
@@ -602,14 +631,17 @@ fn summarized_sports(
 
 const fn sport_state_rank(state: TrainingSportState) -> u8 {
     match state {
-        TrainingSportState::Classified => 0,
-        TrainingSportState::Unknown => 1,
-        TrainingSportState::Unavailable => 2,
+        TrainingSportState::PersonallyOverridden => 0,
+        TrainingSportState::Recognized => 1,
+        TrainingSportState::Ambiguous => 2,
+        TrainingSportState::Unknown => 3,
+        TrainingSportState::Unavailable => 4,
     }
 }
 
 fn recent_session(session: TrainingSessionSearchItem) -> LibraryHomeRecentSession {
     let classification = session.sport.classification;
+    let recognition = session.sport.recognition;
     LibraryHomeRecentSession {
         session_ref: session.session_ref,
         sport_ref: session.sport.sport_ref,
@@ -619,8 +651,18 @@ fn recent_session(session: TrainingSessionSearchItem) -> LibraryHomeRecentSessio
         sport_state: session.sport.state,
         canonical_family: classification
             .as_ref()
-            .and_then(|classification| classification.canonical_family.clone()),
+            .and_then(|classification| classification.canonical_family.clone())
+            .or_else(|| {
+                recognition
+                    .as_ref()
+                    .and_then(|recognition| recognition.canonical_family.clone())
+            }),
         display_label: classification.and_then(|classification| classification.display_label),
+        localized_names: recognition
+            .as_ref()
+            .map(|recognition| recognition.localized_names.clone())
+            .unwrap_or_default(),
+        recognition_candidate_count: session.sport.recognition_candidate_count,
     }
 }
 
