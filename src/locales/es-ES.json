@@ -985,6 +985,8 @@
       "crossSignalMeaning": "Cada franja conserva su propia escala rotulada. Las líneas solo muestran coincidencia registrada; FitFreed no interpola valores ni infiere que una señal haya causado otra.",
       "signalEmpty": "La serie de señales no contiene muestras.",
       "signalNoRecordedValues": "La serie contiene muestras, pero ninguna tiene un valor registrado.",
+      "analyticalChartLoading": "Representando la evidencia registrada…",
+      "analyticalChartUnavailable": "No se ha podido dibujar el gráfico. Los valores registrados exactos siguen disponibles.",
       "unsupportedSignalSeries": {
         "one": "Esta vista no muestra {count} serie de señales registrada. Permanece en el ZIP original.",
         "other": "Esta vista no muestra {count} series de señales registradas. Permanecen en el ZIP original."

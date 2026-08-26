@@ -678,6 +678,33 @@ requireRule(
 );
 requireRule(
   stylesheet,
+  ".analytical-chart-canvas",
+  [/width:\s*100%/, /min-width:\s*0/],
+  "a width-safe analytical renderer host",
+);
+requireRule(
+  stylesheet,
+  ".training-signal-visual > .analytical-chart-canvas",
+  [/height:\s*clamp\(240px,\s*32vh,\s*340px\)/],
+  "a readable but bounded session-detail chart",
+);
+requireRule(
+  stylesheet,
+  ".training-signal-workbench-plot > .analytical-chart-canvas",
+  [/height:\s*clamp\(300px,\s*42vh,\s*480px\)/],
+  "a prominent but laptop-bounded signal workbench chart",
+);
+for (const obsoleteRendererSelector of [
+  ".training-signal-visual svg",
+  ".training-signal-workbench-plot svg",
+  ".training-signal-workbench-plot polyline",
+]) {
+  if (stylesheet.includes(obsoleteRendererSelector)) {
+    throw new Error(`analytical chart CSS must not depend on renderer internals: ${obsoleteRendererSelector}`);
+  }
+}
+requireRule(
+  stylesheet,
   ".training-range-evidence-picker",
   [/display:\s*grid/, /grid-template-columns:/],
   "a compact exact-evidence boundary picker",
@@ -691,6 +718,13 @@ for (const zoom of ["175", "200"]) {
   }
   if (!stylesheet.includes(`:root[data-content-zoom="${zoom}"] .training-signal-range-layout`)) {
     throw new Error(`signal-range work must stack at ${zoom}% content zoom`);
+  }
+  if (!stylesheet.includes(
+    `:root[data-content-zoom="${zoom}"] .training-signal-visual > .analytical-chart-canvas`,
+  ) || !stylesheet.includes(
+    `:root[data-content-zoom="${zoom}"] .training-signal-workbench-plot > .analytical-chart-canvas`,
+  )) {
+    throw new Error(`analytical charts must reserve zoom-responsive height at ${zoom}% content zoom`);
   }
   if (!stylesheet.includes(`:root[data-content-zoom="${zoom}"] .training-range-evidence-picker`)) {
     throw new Error(`exact-evidence boundary picking must stack at ${zoom}% content zoom`);

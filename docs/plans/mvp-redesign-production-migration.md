@@ -2827,6 +2827,22 @@ and selected Apache ECharts 6.1.0 for live analytical views. The subsequent repo
 feature-limited Plotters 0.3.7 for authorized static SVG. [ADR 0032](../architecture/decisions/0032-use-specialized-analytical-visualization-engines.md)
 records the accepted mixed rendering boundary; dependency introduction and production migration remain.
 
+**Current implementation checkpoint (2026-08-26):** the exact ECharts dependency, renderer-neutral presentation
+model, validated adapter, lazy React boundary, localized failure states, and first `TrainingSignalPlot` migration are
+implemented in the working tree. The migrated chart inherits the application palette, typography, and content zoom;
+keeps exact values available through the existing semantic alternatives; retains authoritative range, selection, and
+gap meaning; and enables point selection only where the surrounding workflow can act on it. The former structural
+tests now verify those contracts through the renderer-neutral model and the compiled adapter after their original
+purposes were traced through repository history. The focused chart and training integration suites pass with 55
+tests, as do TypeScript compilation, dependency audit, localization, presentation inventory, architecture, and UI
+contract checks. Obsolete renderer-internal CSS selectors have been removed, and the automated architecture guard
+enforces ECharts as a single presentation-adapter dependency. A separate timing defect found by the complete suite
+was fixed and committed as `77101cc`; its outgoing push remains pending after SSH signing was unavailable. The fresh
+complete presentation suite passes with 409 tests across 62 files, and the production build keeps ECharts outside
+the initial graph in one lazily loaded 204.94-kilobyte gzip chunk. The live boundary and first signal migration are
+documented in the current architecture, developer, and user guides. The remaining live analytical migrations,
+static report rendering, route-relative zoom bounds, and the complete X7-R4 acceptance gates remain.
+
 1. Supersede ADR 0013 only after a focused production-shaped comparison of Apache ECharts, uPlot, Observable Plot,
    and Vega-Lite, or a better candidate discovered during the review. Use official source, licence, release, security,
    and maintenance evidence. Verify GPL-3.0 compatibility, offline bundling, tree-shaking, contributor ergonomics,

@@ -1,14 +1,26 @@
+import type { Locale } from "../locales/catalogs";
+import type { AnalyticalChartModel } from "./analytical-chart";
+import { AnalyticalChart } from "./AnalyticalChart";
 import type { TrainingSignalVisualSample } from "./training-session-signal";
 
 interface TrainingSignalPlotProps {
   samples: TrainingSignalVisualSample[];
   summary: string;
+  coordinateRef: string;
+  seriesId: string;
+  xAxisLabel: string;
+  yAxisLabel: string;
+  unit: string;
+  locale: Locale;
   emptyMessage: string;
   noRecordedValuesMessage: string;
+  loadingMessage: string;
+  chartUnavailableMessage: string;
   sampleCount: number;
   lowerValuesAtTop?: boolean;
   selectedSampleOrdinal?: number | null;
   rangeSelection?: TrainingSignalPlotRangeSelection | null;
+  onSelectSampleOrdinal?: (ordinal: number) => void;
 }
 
 export interface TrainingSignalPlotRangeSelection {
@@ -16,123 +28,179 @@ export interface TrainingSignalPlotRangeSelection {
   endedAtSampleOrdinal: number | null;
 }
 
-function sampleX(samples: TrainingSignalVisualSample[], ordinal: number | null): number | null {
-  if (ordinal === null || !samples.some((sample) => sample.ordinal === ordinal)) return null;
-  const ordinals = samples.map((sample) => sample.ordinal);
-  const minimumOrdinal = Math.min(...ordinals);
-  const maximumOrdinal = Math.max(...ordinals);
-  const ordinalSpan = maximumOrdinal - minimumOrdinal;
-  return ordinalSpan === 0 ? 320 : 36 + (ordinal - minimumOrdinal) / ordinalSpan * 568;
+export interface TrainingSignalChartModelInput {
+  samples: TrainingSignalVisualSample[];
+  summary: string;
+  coordinateRef: string;
+  seriesId: string;
+  xAxisLabel: string;
+  yAxisLabel: string;
+  unit: string;
+  locale: Locale;
+  lowerValuesAtTop: boolean;
+  pointSelection: boolean;
+  selectedSampleOrdinal: number | null;
+  rangeSelection: TrainingSignalPlotRangeSelection | null;
 }
 
-function signalSvgSegments(
+function elapsedCoordinate(value: string): number | null {
+  try {
+    const elapsed = BigInt(value);
+    if (elapsed < 0n || elapsed > BigInt(Number.MAX_SAFE_INTEGER)) return null;
+    return Number(elapsed);
+  } catch {
+    return null;
+  }
+}
+
+function coordinateForOrdinal(
   samples: TrainingSignalVisualSample[],
-  lowerValuesAtTop: boolean,
-): string[] {
-  const available = samples.filter(
-    (sample): sample is TrainingSignalVisualSample & { value: number } => sample.value !== null,
-  );
-  if (available.length === 0) return [];
-  const ordinals = samples.map((sample) => sample.ordinal);
-  const values = available.map((sample) => sample.value);
-  const minimumOrdinal = Math.min(...ordinals);
-  const maximumOrdinal = Math.max(...ordinals);
-  const minimumValue = Math.min(...values);
-  const maximumValue = Math.max(...values);
-  const ordinalSpan = maximumOrdinal - minimumOrdinal;
-  const valueSpan = maximumValue - minimumValue;
-  const segments: string[] = [];
-  let current: string[] = [];
-  samples.forEach((sample) => {
-    if (sample.value === null || sample.gapBefore) {
-      if (current.length > 0) segments.push(current.join(" "));
-      current = [];
-    }
-    if (sample.value === null) return;
-    const x = ordinalSpan === 0
-      ? 320
-      : 36 + (sample.ordinal - minimumOrdinal) / ordinalSpan * 568;
-    const y = valueSpan === 0 ? 140 : lowerValuesAtTop
-      ? 20 + (sample.value - minimumValue) / valueSpan * 240
-      : 20 + (maximumValue - sample.value) / valueSpan * 240;
-    current.push(`${x.toFixed(2)},${y.toFixed(2)}`);
+  ordinal: number | null,
+): number | undefined {
+  if (ordinal === null) return undefined;
+  const sample = samples.find((candidate) => candidate.ordinal === ordinal);
+  if (!sample) return undefined;
+  return elapsedCoordinate(sample.elapsedMilliseconds) ?? undefined;
+}
+
+export function buildTrainingSignalChartModel({
+  samples,
+  summary,
+  coordinateRef,
+  seriesId,
+  xAxisLabel,
+  yAxisLabel,
+  unit,
+  locale,
+  lowerValuesAtTop,
+  pointSelection,
+  selectedSampleOrdinal,
+  rangeSelection,
+}: TrainingSignalChartModelInput): AnalyticalChartModel | null {
+  const points = samples.map((sample) => {
+    const coordinate = elapsedCoordinate(sample.elapsedMilliseconds);
+    return coordinate === null ? null : {
+      id: `sample-${sample.ordinal}`,
+      coordinate,
+      value: sample.value,
+      gapBefore: sample.gapBefore,
+    };
   });
-  if (current.length > 0) segments.push(current.join(" "));
-  return segments;
+  if (points.some((point) => point === null)) return null;
+  const validPoints = points.filter((point): point is NonNullable<typeof point> => point !== null);
+  const values = validPoints.flatMap((point) => point.value === null ? [] : [point.value]);
+  if (validPoints.length === 0 || values.length === 0) return null;
+  const coordinates = validPoints.map((point) => point.coordinate);
+  const rangeStart = coordinateForOrdinal(
+    samples,
+    rangeSelection?.startedAtSampleOrdinal ?? null,
+  );
+  const rangeEnd = coordinateForOrdinal(
+    samples,
+    rangeSelection?.endedAtSampleOrdinal ?? null,
+  );
+  const selectedCoordinate = coordinateForOrdinal(samples, selectedSampleOrdinal);
+
+  return {
+    accessibleName: summary,
+    accessibleDescription: summary,
+    locale,
+    renderer: samples.length > 1_000 ? "canvas" : "svg",
+    coordinate: {
+      ref: coordinateRef,
+      label: xAxisLabel,
+      unit: "",
+      domain: {
+        minimum: Math.min(...coordinates),
+        maximum: Math.max(...coordinates),
+      },
+      format: { kind: "duration-milliseconds" },
+    },
+    axes: [{
+      id: `${seriesId}:axis`,
+      label: yAxisLabel,
+      unit,
+      domain: {
+        minimum: Math.min(...values),
+        maximum: Math.max(...values),
+      },
+      direction: lowerValuesAtTop ? "lower-at-top" : "higher-at-top",
+      format: { kind: "number", maximumFractionDigits: 1 },
+    }],
+    series: [{
+      id: seriesId,
+      label: yAxisLabel,
+      coordinateRef,
+      axisId: `${seriesId}:axis`,
+      points: validPoints,
+    }],
+    annotations: selectedCoordinate === undefined && rangeStart === undefined && rangeEnd === undefined
+      ? undefined
+      : {
+          ...(selectedCoordinate === undefined ? {} : { selectedCoordinate }),
+          ...(rangeStart === undefined && rangeEnd === undefined ? {} : {
+            range: {
+              ...(rangeStart === undefined ? {} : { startCoordinate: rangeStart }),
+              ...(rangeEnd === undefined ? {} : { endCoordinate: rangeEnd }),
+            },
+          }),
+        },
+    interaction: {
+      zoom: samples.length > 80,
+      pointSelection,
+    },
+  };
 }
 
 export function TrainingSignalPlot({
   samples,
   summary,
+  coordinateRef,
+  seriesId,
+  xAxisLabel,
+  yAxisLabel,
+  unit,
+  locale,
   emptyMessage,
   noRecordedValuesMessage,
+  loadingMessage,
+  chartUnavailableMessage,
   sampleCount,
   lowerValuesAtTop = false,
   selectedSampleOrdinal = null,
   rangeSelection = null,
+  onSelectSampleOrdinal,
 }: TrainingSignalPlotProps) {
-  const segments = signalSvgSegments(samples, lowerValuesAtTop);
+  if (samples.length === 0) return <p>{sampleCount === 0 ? emptyMessage : noRecordedValuesMessage}</p>;
+  if (!samples.some((sample) => sample.value !== null)) return <p>{noRecordedValuesMessage}</p>;
 
-  if (samples.length === 0 || segments.length === 0) {
-    return <p>{sampleCount === 0 ? emptyMessage : noRecordedValuesMessage}</p>;
-  }
-
-  const selectedX = sampleX(samples, selectedSampleOrdinal);
-  const rangeStartX = sampleX(samples, rangeSelection?.startedAtSampleOrdinal ?? null);
-  const rangeEndX = sampleX(samples, rangeSelection?.endedAtSampleOrdinal ?? null);
-  const rangeLeft = rangeStartX !== null && rangeEndX !== null
-    ? Math.min(rangeStartX, rangeEndX)
-    : null;
-  const rangeWidth = rangeStartX !== null && rangeEndX !== null
-    ? Math.abs(rangeEndX - rangeStartX)
-    : null;
+  const model = buildTrainingSignalChartModel({
+    samples,
+    summary,
+    coordinateRef,
+    seriesId,
+    xAxisLabel,
+    yAxisLabel,
+    unit,
+    locale,
+    lowerValuesAtTop,
+    pointSelection: onSelectSampleOrdinal !== undefined,
+    selectedSampleOrdinal,
+    rangeSelection,
+  });
+  if (!model) return <p role="status">{chartUnavailableMessage}</p>;
 
   return (
-    <svg viewBox="0 0 640 280" role="img" aria-label={summary}>
-      <title>{summary}</title>
-      <rect x="1" y="1" width="638" height="278" rx="18" />
-      {rangeLeft !== null && rangeWidth !== null && (
-        <rect
-          className="training-signal-range-band"
-          x={rangeLeft}
-          y="2"
-          width={Math.max(rangeWidth, 2)}
-          height="276"
-        />
-      )}
-      {segments.map((points, index) => points.includes(" ")
-        ? <polyline key={index} points={points} />
-        : (() => {
-          const [cx, cy] = points.split(",");
-          return <circle key={index} cx={cx} cy={cy} r="4" />;
-        })())}
-      {rangeStartX !== null && (
-        <line
-          className="training-signal-range-start"
-          x1={rangeStartX}
-          x2={rangeStartX}
-          y1="2"
-          y2="278"
-        />
-      )}
-      {rangeEndX !== null && (
-        <line
-          className="training-signal-range-end"
-          x1={rangeEndX}
-          x2={rangeEndX}
-          y1="2"
-          y2="278"
-        />
-      )}
-      {selectedX !== null && (
-        <line
-          className="training-signal-selected-sample"
-          x1={selectedX}
-          x2={selectedX}
-          y1="2"
-          y2="278"
-        />
-      )}
-    </svg>
+    <AnalyticalChart
+      model={model}
+      loadingMessage={loadingMessage}
+      unavailableMessage={chartUnavailableMessage}
+      onSelection={onSelectSampleOrdinal ? (selection) => {
+        const point = model.series[0].points.find((candidate) => candidate.id === selection.pointId);
+        if (!point) return;
+        const sample = samples.find((candidate) => `sample-${candidate.ordinal}` === point.id);
+        if (sample) onSelectSampleOrdinal(sample.ordinal);
+      } : undefined}
+    />
   );
 }

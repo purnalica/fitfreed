@@ -13,7 +13,7 @@ Current architecture after [ADR 0001](decisions/0001-select-tauri-application-st
 | Source and infrastructure adapters | Rust | Provider decoding, ZIP and JSON access, persistence, migrations, backup, update service, and operating-system integrations |
 | Storage | Bundled SQLite through a Rust adapter | Authoritative local library, migrations, backup, indexes, and rebuildable projections |
 | Desktop host | Tauri 2 | Process lifecycle, windowing, native dialogs, capabilities, command registration, packaging, and update integration |
-| Presentation | TypeScript and React with semantic HTML and the Leaflet route adapter; ECharts is the accepted analytical migration target | Localized interaction, accessible visualization, view state, and command invocation |
+| Presentation | TypeScript and React with semantic HTML, one Leaflet route adapter, and one lazily loaded ECharts analytical adapter | Localized interaction, accessible visualization, view state, and command invocation |
 
 The current physical modules and compile-time boundaries are documented in the [module map](module-map.md).
 
@@ -84,7 +84,9 @@ React owns one provider-neutral presentation-format boundary for locale grouping
 detail, and exact-evidence precision. Feature panels select the role that matches the current
 information hierarchy; they do not round canonical values, mutate exports, or construct a competing
 duration policy. Exact elapsed coordinates retain milliseconds, ordinary session and structural
-detail rounds to seconds, and aggregate summaries use magnitude-aware precision.
+detail rounds to seconds, and aggregate summaries use magnitude-aware precision. Analytical axes and
+tooltips enter the same named boundary; a renderer adapter does not construct its own locale or duration
+policy.
 
 The host writes only a closed JSON object containing its fixed event contract, application version, source revision, clean-tree state, and bounded monotonic startup durations. The durations cover host setup completion and host receipt of the signal plus renderer locale readiness and signal invocation. They contain no wall-clock timestamps, paths, host identity, application data, or operation values. The benchmark combines them with its outer process timer to report aggregate phase distributions while retaining the application-owned process-to-painted-shell boundary without WebDriver, WebView reloads, personal data, filesystem paths, or test-only package capabilities. Failure to write or validate the diagnostic signal never blocks ordinary deferred startup; a benchmark that cannot observe it fails closed.
 

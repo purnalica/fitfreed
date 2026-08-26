@@ -4,6 +4,7 @@ import { type ComponentProps, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { catalogs } from "../locales/catalogs";
+import type { AnalyticalChartModel } from "./analytical-chart";
 import type {
   TrainingDiscoveryWorkspace,
   TrainingSessionCalendar,
@@ -40,6 +41,7 @@ import type {
 } from "./training-sports";
 
 const mocks = vi.hoisted(() => ({ invoke: vi.fn() }));
+const analyticalChartProbe = vi.hoisted(() => ({ models: [] as unknown[] }));
 const routeViewport = vi.hoisted(() => ({
   create: vi.fn(),
   controller: {
@@ -55,6 +57,12 @@ const routeViewport = vi.hoisted(() => ({
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: mocks.invoke }));
+vi.mock("./AnalyticalChart", () => ({
+  AnalyticalChart: ({ model }: { model: AnalyticalChartModel }) => {
+    analyticalChartProbe.models.push(model);
+    return <div role="img" aria-label={model.accessibleName} />;
+  },
+}));
 vi.mock("./leaflet-route-adapter", () => ({
   createLocalRouteViewport: routeViewport.create,
 }));
@@ -1050,6 +1058,7 @@ afterEach(cleanup);
 
 beforeEach(() => {
   mocks.invoke.mockReset();
+  analyticalChartProbe.models.length = 0;
   Object.values(routeViewport.controller).forEach((mock) => mock.mockReset());
   routeViewport.create.mockReset().mockResolvedValue(routeViewport.controller);
 });
@@ -2524,9 +2533,14 @@ describe("TrainingSessionLibraryPanel", () => {
     expect(within(signalExercise!).getByRole("img", {
       name: /Heart rate chart with 600 recorded values out of 601 samples/,
     })).toBeVisible();
-    expect(within(signalExercise!).getByRole("img", {
-      name: /Heart rate chart/,
-    }).querySelectorAll("polyline")).toHaveLength(2);
+    const heartRateChart = analyticalChartProbe.models
+      .slice()
+      .reverse()
+      .find((candidate) => (
+        (candidate as AnalyticalChartModel).accessibleName.startsWith("Heart rate chart")
+      )) as AnalyticalChartModel | undefined;
+    expect(heartRateChart).toBeDefined();
+    expect(heartRateChart?.series[0].points.filter((point) => point.gapBefore)).toHaveLength(1);
     const crossSignal = within(signalExercise!).getByRole("region", {
       name: "Explore signals together",
     });

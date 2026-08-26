@@ -3,14 +3,33 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { catalogs } from "../locales/catalogs";
+import type { AnalyticalChartModel } from "./analytical-chart";
 import type { SessionStory } from "./session-story";
 import type { TrainingSessionRange, TrainingSessionRangesResult } from "./training-session-range";
 import { TrainingRangeInteractionProvider } from "./TrainingRangeInteractionProvider";
 import { TrainingSignalWorkbench } from "./TrainingSignalWorkbench";
 
 const commands = vi.hoisted(() => ({ invoke: vi.fn() }));
+const analyticalChartProbe = vi.hoisted(() => ({ models: [] as unknown[] }));
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: commands.invoke }));
+vi.mock("./AnalyticalChart", () => ({
+  AnalyticalChart: ({ model }: { model: AnalyticalChartModel }) => {
+    analyticalChartProbe.models.push(model);
+    return <div role="img" aria-label={model.accessibleName} />;
+  },
+}));
+
+function latestChartModel(seriesId: string): AnalyticalChartModel {
+  const model = analyticalChartProbe.models
+    .slice()
+    .reverse()
+    .find((candidate) => (
+      (candidate as AnalyticalChartModel).series.some((series) => series.id === seriesId)
+    )) as AnalyticalChartModel | undefined;
+  expect(model).toBeDefined();
+  return model!;
+}
 
 function signalStory(): SessionStory {
   const signalRef = `signal-${"b".repeat(64)}`;
@@ -158,6 +177,7 @@ function signalStory(): SessionStory {
 
 beforeEach(() => {
   commands.invoke.mockReset();
+  analyticalChartProbe.models.length = 0;
 });
 afterEach(cleanup);
 
@@ -245,9 +265,10 @@ describe("TrainingSignalWorkbench", () => {
     endHandle.focus();
     await user.keyboard("{ArrowRight}");
     expect(screen.getByLabelText("End")).toHaveValue("0:00:03");
-    expect(document.querySelectorAll(".training-signal-range-start")).toHaveLength(1);
-    expect(document.querySelectorAll(".training-signal-range-end")).toHaveLength(1);
-    expect(document.querySelectorAll(".training-signal-range-band")).toHaveLength(1);
+    expect(latestChartModel(signalRef).annotations?.range).toEqual({
+      startCoordinate: 1_000,
+      endCoordinate: 3_000,
+    });
 
     await user.type(screen.getByLabelText("Range name"), "Steady pulse");
     await user.click(screen.getByRole("button", { name: "Save range" }));
@@ -361,14 +382,17 @@ describe("TrainingSignalWorkbench", () => {
 
     expect(savedRange).toBeDisabled();
     fireEvent.change(screen.getByLabelText("Start"), { target: { value: "0:00:01.500" } });
-    expect(document.querySelectorAll(".training-signal-range-start")).toHaveLength(0);
-    expect(document.querySelectorAll(".training-signal-range-end")).toHaveLength(1);
+    expect(latestChartModel(signalRef).annotations?.range).toEqual({
+      endCoordinate: 3_000,
+    });
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(savedRange).toBeEnabled();
     expect(document.querySelector(".training-signal-saved-range strong"))
       .toHaveTextContent("Steady pulse");
-    expect(document.querySelectorAll(".training-signal-range-start")).toHaveLength(1);
-    expect(document.querySelectorAll(".training-signal-range-end")).toHaveLength(1);
+    expect(latestChartModel(signalRef).annotations?.range).toEqual({
+      startCoordinate: 1_000,
+      endCoordinate: 3_000,
+    });
 
     await user.click(screen.getByRole("button", { name: "Adjust on the chart" }));
     fireEvent.change(screen.getByRole("slider", { name: "Range end on signal" }), {

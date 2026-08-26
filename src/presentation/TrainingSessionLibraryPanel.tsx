@@ -1853,9 +1853,17 @@ export function TrainingSessionLibraryPanel({
           <TrainingSignalPlot
             samples={signal.visualSamples}
             summary={chartSummary}
+            coordinateRef={`${exerciseRef}:${signal.role}:${signal.signalRef}:elapsed`}
+            seriesId={signal.signalRef}
+            xAxisLabel={copy.signalElapsed}
+            yAxisLabel={kind}
+            unit={unit}
+            locale={locale}
             sampleCount={signal.sampleCount}
             emptyMessage={copy.signalEmpty}
             noRecordedValuesMessage={copy.signalNoRecordedValues}
+            loadingMessage={copy.analyticalChartLoading}
+            chartUnavailableMessage={copy.analyticalChartUnavailable}
           />
         </div>
         <div role="group" aria-label={kind}>

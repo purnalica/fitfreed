@@ -88,6 +88,16 @@ export function coordinateDecimalFormatter(locale: Locale): Intl.NumberFormat {
   });
 }
 
+export function analyticalAxisNumberFormatter(
+  locale: Locale,
+  maximumFractionDigits: number,
+): Intl.NumberFormat {
+  return new Intl.NumberFormat(locale, {
+    maximumFractionDigits,
+    useGrouping: true,
+  });
+}
+
 export function pluralRules(locale: Locale): Intl.PluralRules {
   return new Intl.PluralRules(locale);
 }
@@ -302,6 +312,22 @@ export function formatPace(
   const minutes = Math.floor(roundedSeconds / 60);
   const seconds = roundedSeconds % 60;
   return `${integerCountFormatter(locale).format(minutes)}:${seconds.toString().padStart(2, "0")} ${unit}`;
+}
+
+export function formatAnalyticalDuration(value: number, locale: Locale): string {
+  const rounded = Math.max(0, Math.round(value));
+  const totalSeconds = Math.floor(rounded / 1_000);
+  const hours = Math.floor(totalSeconds / 3_600);
+  const minutes = Math.floor(totalSeconds % 3_600 / 60);
+  const seconds = totalSeconds % 60;
+  const number = integerCountFormatter(locale);
+  const twoDigits = new Intl.NumberFormat(locale, {
+    minimumIntegerDigits: 2,
+    useGrouping: false,
+  });
+  return hours > 0
+    ? `${number.format(hours)}:${twoDigits.format(minutes)}:${twoDigits.format(seconds)}`
+    : `${number.format(minutes)}:${twoDigits.format(seconds)}`;
 }
 
 export function formatEnergy(value: number, locale: Locale, unit: string): string {

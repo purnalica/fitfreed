@@ -907,16 +907,7 @@ th, td { padding: 9px 4px; border-bottom: 1px solid #e0e5e1; text-align: left; }
 .training-signal-workbench-heading select { width: 100%; min-width: 0; height: max(44px, 1.5em); padding-inline: 12px; }
 .training-signal-range-layout[data-has-range="true"] { display: grid; grid-template-columns: minmax(0, 3fr) minmax(240px, 1fr); gap: 14px; align-items: stretch; min-width: 0; }
 .training-signal-visual { display: grid; gap: 11px; min-width: 0; }
-.training-signal-workbench-plot { min-width: 0; padding: 4px; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; }
-.training-signal-workbench-plot svg { display: block; width: 100%; height: clamp(280px, 42vh, 460px); }
-.training-signal-workbench-plot rect { fill: var(--surface-soft); stroke: var(--line); }
-.training-signal-workbench-plot .training-signal-range-band { fill: color-mix(in srgb, var(--accent) 22%, transparent); stroke: none; pointer-events: none; }
-.training-signal-workbench-plot :is(.training-signal-range-start, .training-signal-range-end, .training-signal-selected-sample) { vector-effect: non-scaling-stroke; pointer-events: none; }
-.training-signal-workbench-plot .training-signal-range-start { stroke: var(--accent-deep); stroke-width: 3; stroke-dasharray: 9 5; }
-.training-signal-workbench-plot .training-signal-range-end { stroke: var(--accent-deep); stroke-width: 4; }
-.training-signal-workbench-plot .training-signal-selected-sample { stroke: var(--ink); stroke-width: 2; stroke-dasharray: 3 5; }
-.training-signal-workbench-plot polyline { fill: none; stroke: var(--accent-deep); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-.training-signal-workbench-plot circle { fill: var(--accent-deep); stroke: var(--surface); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.training-signal-workbench-plot { min-width: 0; overflow: hidden; padding: 4px; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; }
 .training-signal-workbench-plot > p { margin: 18px; color: var(--muted); }
 .training-signal-position-control { display: grid; grid-template-columns: minmax(150px, auto) minmax(0, 1fr); gap: 14px; align-items: center; min-width: 0; }
 .training-signal-position-control > span { color: var(--ink-soft); font-size: .76rem; font-weight: 800; }
@@ -1093,10 +1084,10 @@ th, td { padding: 9px 4px; border-bottom: 1px solid #e0e5e1; text-align: left; }
 .training-cross-signal-axis { margin: 10px 0 0; color: var(--ink-soft); font-size: .76rem; font-weight: 750; text-align: right; }
 .training-cross-signal-meaning { margin: 8px 0 0; color: var(--muted); font-size: .76rem; }
 .training-signal-visual { margin-top: 12px; }
-.training-signal-visual svg { display: block; width: 100%; min-height: 170px; max-height: 300px; }
-.training-signal-visual rect { fill: var(--surface-soft); stroke: var(--line); }
-.training-signal-visual polyline { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-.training-signal-visual circle { fill: var(--accent); stroke: var(--surface); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.analytical-chart-canvas { width: 100%; min-width: 0; }
+.training-signal-visual > .analytical-chart-canvas { height: clamp(240px, 32vh, 340px); }
+.training-signal-workbench-plot > .analytical-chart-canvas { height: clamp(300px, 42vh, 480px); }
+.analytical-chart-status { margin: 18px; color: var(--muted); }
 .training-signal-visual > p { color: var(--muted); }
 .training-signal dl { margin: 12px 0; }
 .training-signal-projection { margin: 12px 0; color: var(--muted); font-size: .78rem; }
@@ -1795,6 +1786,10 @@ button.danger-action { color: var(--danger-ink); background: var(--danger-soft);
 :root[data-content-zoom="200"] .training-signal-range-layout[data-has-range="true"] { grid-template-columns: 1fr; }
 :root[data-content-zoom="175"] .training-signal-range-inspector,
 :root[data-content-zoom="200"] .training-signal-range-inspector { max-height: none; }
+:root[data-content-zoom="175"] .training-signal-visual > .analytical-chart-canvas,
+:root[data-content-zoom="200"] .training-signal-visual > .analytical-chart-canvas { height: clamp(320px, 38vh, 480px); }
+:root[data-content-zoom="175"] .training-signal-workbench-plot > .analytical-chart-canvas,
+:root[data-content-zoom="200"] .training-signal-workbench-plot > .analytical-chart-canvas { height: clamp(420px, 48vh, 620px); }
 :root[data-content-zoom="175"] .training-signal-workbench-heading,
 :root[data-content-zoom="200"] .training-signal-workbench-heading,
 :root[data-content-zoom="175"] .training-structure-workbench-heading,

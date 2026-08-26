@@ -273,7 +273,17 @@ always available.
 
 [ADR 0026](decisions/0026-use-leaflet-for-the-local-route-workbench.md) defines the spatial rendering boundary,
 while [ADR 0032](decisions/0032-use-specialized-analytical-visualization-engines.md) defines the sibling analytical
-boundary. A lazily loaded presentation adapter uses stable Leaflet 1.x
+boundary. `analytical-chart.ts` owns the renderer-neutral live-chart model, validation, axes, series, gaps,
+annotations, and restrained interaction contract. `AnalyticalChart` validates that meaning and lazily loads
+`EChartsAnalyticalChart`; `echarts-analytical-chart-adapter.ts` is the sole ECharts import boundary and translates
+only that model into a locally bundled renderer. ECharts option objects do not cross the adapter. The adapter uses
+the inherited application palette, font family, and content-zoom scale; disables animation; formats axes through the
+shared presentation boundary; preserves explicit source gaps; and renders selection or range annotations only when
+the model carries authoritative coordinates. A localized error boundary fails closed without logging private
+evidence. Every live chart retains its semantic heading, controls, explanation, and exact tabular or structured
+alternative outside the renderer, so canvas pixels never become the sole meaning or interaction path.
+
+A separately lazily loaded presentation adapter uses stable Leaflet 1.x
 only for a local vector viewport: projection, pan, zoom, fit, resize, pointer coordinates, and metric scale.
 It receives one bounded `SessionStory`, creates no independent query, and exposes no Leaflet type outside
 presentation. FitFreed continues to own selected source ordinal, elapsed traversal, route roles and gaps,
@@ -428,11 +438,15 @@ the map at compact width or high content zoom.
 
 `TrainingSignalWorkbench` composes the same controller and editor for one regular signal's own elapsed
 coordinate. Its selected-sample control and two boundary controls traverse exact bounded visual samples with
-pointer or the same explicit keyboard policy, while its plot receives only exact sample ordinals for the selection line, boundary lines,
-and range band. A typed boundary that is not one of those returned visual samples remains unmarked. The chart
+pointer or the same explicit keyboard policy. `TrainingSignalPlot` creates a validated analytical model from that
+one series: exact elapsed milliseconds form the labelled horizontal coordinate, the recorded measurement owns its
+labelled value axis and unit, nulls and source gaps remain disconnected, and exact sample ordinals alone can become
+the selection line, boundary lines, and range band. A typed boundary that is not one of those returned visual samples remains unmarked. The chart
 keeps approximately three quarters of the wide workspace and stacks above its inspector at compact width or
-high content zoom. The exact-sample action retains the selected source ordinal and focuses its containing table
-row. While either representation owns the active draft, its evidence and saved-range selectors remain locked so
+high content zoom. Dense series expose local horizontal chart zoom, while the native slider, explicit inputs, and
+paginated exact-sample table remain the authoritative keyboard and assistive-technology paths. Point selection is
+enabled only when the containing workflow exposes an exact action. The exact-sample action retains the selected
+source ordinal and focuses its containing table row. While either representation owns the active draft, its evidence and saved-range selectors remain locked so
 the single editor cannot silently change or lose its coordinate context. None of these interactions aligns the
 signal with route offsets or another signal.
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  analyticalAxisNumberFormatter,
   coordinateDecimalFormatter,
   decimalSeparator,
   formatCount,
@@ -12,6 +13,7 @@ import {
   formatFractionAsPercentage,
   formatLocalDate,
   formatPace,
+  formatAnalyticalDuration,
   formatSummaryDecimal,
   formatSummaryDistance,
   formatSummaryDuration,
@@ -103,6 +105,13 @@ describe("shared presentation formatting", () => {
         new Date("2026-08-26T10:11:12Z"),
       ),
     ).toContain("12");
+  });
+
+  it("centralizes compact analytical-axis duration and number policies", () => {
+    expect(formatAnalyticalDuration(65_000, "en-US")).toBe("1:05");
+    expect(formatAnalyticalDuration(3_665_000, "en-US")).toBe("1:01:05");
+    expect(analyticalAxisNumberFormatter("en-US", 1).format(1_234.56)).toBe("1,234.6");
+    expect(analyticalAxisNumberFormatter("es-ES", 2).format(1_234.56)).toBe("1.234,56");
   });
 
   it("centralizes the calendar and UTC date-time variants used by the product", () => {

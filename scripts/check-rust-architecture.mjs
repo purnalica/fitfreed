@@ -81,6 +81,8 @@ const forbiddenAdapterTerms = [
   "chrono",
   "polar",
   "garmin",
+  "echarts",
+  "plotters",
 ];
 rejectBoundaryTerms(
   "src-tauri/crates/fitfreed-domain/src",
@@ -125,6 +127,30 @@ if (obsoleteTrainingOverviewConsumers.length > 0) {
   );
 }
 
+const echartsAdapterPath = path.join(
+  "src",
+  "presentation",
+  "echarts-analytical-chart-adapter.ts",
+);
+const echartsConsumers = frontendSources("src").filter((relativePath) => {
+  const source = readFileSync(path.join(repositoryRoot, relativePath), "utf8");
+  return /(?:from\s+|import\s+)["']echarts(?:\/|["'])/.test(source);
+});
+if (echartsConsumers.length !== 1 || echartsConsumers[0] !== echartsAdapterPath) {
+  throw new Error(
+    `ECharts imports must remain confined to ${echartsAdapterPath}; found ${echartsConsumers.join(", ") || "none"}`,
+  );
+}
+
+const plottersConsumers = metadata.packages
+  .filter((candidate) => candidate.dependencies.some((dependency) => dependency.name === "plotters"))
+  .map((candidate) => candidate.name);
+if (plottersConsumers.some((packageName) => packageName !== "fitfreed")) {
+  throw new Error(
+    `Plotters may only enter through the desktop infrastructure package; found ${plottersConsumers.join(", ")}`,
+  );
+}
+
 process.stdout.write(
-  `${JSON.stringify({ domainDependencies: [], applicationDependencies: ["chrono", "fitfreed-domain", "semver", "thiserror", "url"], updateEvent: hostUpdateEvent })}\n`,
+  `${JSON.stringify({ domainDependencies: [], applicationDependencies: ["chrono", "fitfreed-domain", "semver", "thiserror", "url"], updateEvent: hostUpdateEvent, analyticalChartAdapter: echartsAdapterPath, staticChartPackages: plottersConsumers })}\n`,
 );

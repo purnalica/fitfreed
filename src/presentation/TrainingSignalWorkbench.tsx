@@ -472,12 +472,24 @@ export function TrainingSignalWorkbench({
             <TrainingSignalPlot
               samples={samples}
               summary={chartSummary}
+              coordinateRef={`${choice.exerciseRef}:${choice.role}:${choice.signal.signalRef}:elapsed`}
+              seriesId={choice.signal.signalRef}
+              xAxisLabel={sessionCopy.signalElapsed}
+              yAxisLabel={metricLabel}
+              unit={metricUnits[metric]}
+              locale={locale}
               sampleCount={choice.signal.sampleCount}
               emptyMessage={sessionCopy.signalEmpty}
               noRecordedValuesMessage={sessionCopy.signalNoRecordedValues}
+              loadingMessage={sessionCopy.analyticalChartLoading}
+              chartUnavailableMessage={sessionCopy.analyticalChartUnavailable}
               lowerValuesAtTop={metric === "pace"}
               selectedSampleOrdinal={selectedSample?.ordinal}
               rangeSelection={rangeSelection}
+              onSelectSampleOrdinal={(ordinal) => {
+                const sampleIndex = samples.findIndex((sample) => sample.ordinal === ordinal);
+                if (sampleIndex >= 0) setSelectedSampleIndex(sampleIndex);
+              }}
             />
           </div>
           {selectedSample && (
