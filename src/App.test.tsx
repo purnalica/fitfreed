@@ -4050,7 +4050,7 @@ describe("FitFreed import interface", () => {
     expect(screen.getByText("Every file in the ZIP was classified.")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "History" }));
     expect(await screen.findByRole("heading", { name: "Daily activity overview" })).toBeVisible();
-    expect(screen.getByRole("table", { name: "Daily activity overview" })).not.toBeVisible();
+    expect(await screen.findByRole("table", { name: "Daily activity overview" })).not.toBeVisible();
     await user.click(screen.getByText("Review exact daily values"));
     const rows = within(screen.getByRole("table", { name: "Daily activity overview" }))
       .getAllByRole("row");
@@ -4070,15 +4070,15 @@ describe("FitFreed import interface", () => {
     expect(mocks.sleepInvoke).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "History" }));
     expect(await screen.findByRole("heading", { name: "Daily activity overview" })).toBeVisible();
-    await user.click(screen.getByText("Review exact daily values"));
+    await user.click(await screen.findByText("Review exact daily values"));
     expect(within(screen.getByRole("table", { name: "Daily activity overview" }))
       .getAllByRole("row")).toHaveLength(4);
 
     view.unmount();
     render(<App />);
     expect(await screen.findByRole("heading", { name: "Daily activity overview" })).toBeVisible();
-    expect(screen.getByRole("table", { name: "Daily activity overview" })).not.toBeVisible();
-    await user.click(screen.getByText("Review exact daily values"));
+    expect(await screen.findByRole("table", { name: "Daily activity overview" })).not.toBeVisible();
+    await user.click(await screen.findByText("Review exact daily values"));
     await waitFor(() => expect(within(screen.getByRole("table", {
       name: "Daily activity overview",
     })).getAllByRole("row")).toHaveLength(4));
