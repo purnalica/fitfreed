@@ -752,6 +752,8 @@
         "mapControls": "Map controls",
         "zoomIn": "Zoom in",
         "zoomOut": "Zoom out",
+        "mapZoomLabel": "Map zoom",
+        "mapZoom": "Map zoom {level} of {levels}",
         "completeTrack": "Show the complete track",
         "focusMap": "Focus the map",
         "returnToSession": "Return to the session",

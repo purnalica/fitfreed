@@ -2326,6 +2326,57 @@ describe("packaged FitFreed import journey", () => {
     await routeWorkbench.$(
       `aria/${english.training.sessionLibrary.routeWorkbench.completeTrack}`,
     ).click();
+    const routeZoomStatus = await routeWorkbench.$(
+      `aria/${english.training.sessionLibrary.routeWorkbench.mapZoomLabel}`,
+    );
+    const routeZoomIn = await routeWorkbench.$(
+      `aria/${english.training.sessionLibrary.routeWorkbench.zoomIn}`,
+    );
+    const routeZoomOut = await routeWorkbench.$(
+      `aria/${english.training.sessionLibrary.routeWorkbench.zoomOut}`,
+    );
+    await expect(routeZoomStatus).toHaveText(expect.stringMatching(/^Map zoom \d+ of \d+$/));
+    for (let step = 0; step < 24 && await routeZoomOut.isEnabled(); step += 1) {
+      const previousStatus = await routeZoomStatus.getText();
+      await routeZoomOut.click();
+      await browser.waitUntil(
+        async () => await routeZoomStatus.getText() !== previousStatus,
+        { timeout: 10_000, timeoutMsg: "the route-relative zoom level did not decrease" },
+      );
+    }
+    await expect(routeZoomOut).toBeDisabled();
+    const minimumZoomStatus = await routeZoomStatus.getText();
+    const minimumRouteExtent = await browser.execute(() => {
+      const map = document.querySelector(".training-route-workbench .training-route-map");
+      const route = document.querySelector(".training-route-workbench .fitfreed-route-track");
+      const mapBox = map.getBoundingClientRect();
+      const routeBox = route.getBoundingClientRect();
+      return Math.max(routeBox.width / mapBox.width, routeBox.height / mapBox.height);
+    });
+    expect(minimumRouteExtent).toBeGreaterThan(0.08);
+    await routeMap.click();
+    await browser.keys(["-"]);
+    await expect(routeZoomStatus).toHaveText(minimumZoomStatus);
+
+    await routeWorkbench.$(
+      `aria/${english.training.sessionLibrary.routeWorkbench.completeTrack}`,
+    ).click();
+    for (let step = 0; step < 24 && await routeZoomIn.isEnabled(); step += 1) {
+      const previousStatus = await routeZoomStatus.getText();
+      await routeZoomIn.click();
+      await browser.waitUntil(
+        async () => await routeZoomStatus.getText() !== previousStatus,
+        { timeout: 10_000, timeoutMsg: "the bounded route zoom level did not increase" },
+      );
+    }
+    await expect(routeZoomIn).toBeDisabled();
+    const maximumZoomStatus = await routeZoomStatus.getText();
+    await routeMap.click();
+    await browser.keys(["+"]);
+    await expect(routeZoomStatus).toHaveText(maximumZoomStatus);
+    await routeWorkbench.$(
+      `aria/${english.training.sessionLibrary.routeWorkbench.completeTrack}`,
+    ).click();
     const focusMap = await routeWorkbench.$(
       `aria/${english.training.sessionLibrary.routeWorkbench.focusMap}`,
     );
@@ -4416,6 +4467,9 @@ describe("packaged FitFreed import journey", () => {
     );
     const localizedRouteWorkbench = await $(".training-route-workbench");
     await localizedRouteWorkbench.$(".fitfreed-route-track").waitForDisplayed({ timeout: 10_000 });
+    await expect(localizedRouteWorkbench.$(
+      `aria/${spanish.training.sessionLibrary.routeWorkbench.mapZoomLabel}`,
+    )).toHaveText(expect.stringMatching(/^Ampliación del mapa \d+ de \d+$/));
     await expect(localizedRouteWorkbench.$(".training-route-range-inspector h4")).toHaveText(
       spanish.training.sessionLibrary.routeWorkbench.rangeHeading,
     );

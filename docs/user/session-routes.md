@@ -24,14 +24,18 @@ from equal offsets, similar sample counts, or visual proximity.
 - Use **Recorded position** with a pointer or keyboard to traverse every returned route point. The map
   marker, elapsed time, and altitude move together. A measurement value moves with them only when an importer
   supplied an exact recorded relationship.
-- Use **Zoom in**, **Zoom out**, and **Show the complete track** without changing the selected evidence.
+- Use **Zoom in**, **Zoom out**, and **Show the complete track** without changing the selected evidence. The
+  displayed **Map zoom** level is relative to this route, not a technical map scale. Zoom out stops while the
+  recorded shape still has useful context, and zoom in stops before the view implies unsupported GPS precision.
+  The corresponding action becomes unavailable at either limit.
 - Choose **Focus the map** for a larger workspace. **Return to the session** or `Escape` restores the
   ordinary session view and the focus action without discarding the route, overlay, or selected point.
   While this workspace is open, background content and page scrolling are unavailable so keyboard and
   assistive-technology navigation remain inside the current map task.
 - Focus the map itself to pan it with the arrow keys or zoom it with `+`, `-`, or the scroll wheel. The
   wheel remains inactive while the map is not focused so ordinary page scrolling cannot become trapped.
-  Map keys navigate the viewport; the separate recorded-position control navigates evidence points.
+  Map keys navigate the viewport; the separate recorded-position control navigates evidence points. Buttons,
+  keys, wheel, touch gestures, and the complete-track reset all obey the same route-relative limits.
 
 An overlay's color scale is accompanied by its named recorded range and by the value strip at the
 selected point. A missing value remains **Not recorded** or an explicit unavailable statement. FitFreed

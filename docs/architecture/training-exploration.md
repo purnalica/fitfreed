@@ -320,6 +320,14 @@ names. It leaves ordinary DOM keys unchanged and maps only the standard WebDrive
 that the embedded macOS automation driver exposes literally. Timeline and viewport mappings consume the
 normalized names; feature components contain no driver branch, environment switch, or synthetic event path.
 
+The adapter derives its minimum zoom from the current complete-track fit and permits only two additional
+context levels below that fit. Zoom 19 is the upper precision boundary; a single-point or spatially degenerate
+route uses fit level 16 and therefore levels 14 through 19. The bounds are recalculated after viewport resize,
+and Leaflet receives them directly, so buttons, element-scoped keys, wheel, touch, double-click, reset, and
+programmatic requests cannot diverge. React receives only a renderer-neutral relative level, level count, and
+availability of each direction. It localizes and announces that state and disables the corresponding named
+control at each boundary without exposing Leaflet zoom numbers.
+
 Route workbench, map, and deliberate reveals into independent signal, structure, and exact-evidence detail
 use the application shell's single responsive reveal offset. The offset follows the persistent desktop,
 compact, and 175%–200% navigation geometry, so programmatic or keyboard-driven scrolling places the requested

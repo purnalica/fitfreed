@@ -298,7 +298,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X7-R1 | Pending | Import guidance, rejection, progress, navigation, and completion remain truthful and responsive |
 | X7-R2 | Complete locally — exact represented-sport identity, comparison presets, and the complete natural-drill-down campaign passed 2026-08-26 | Sports are evidence-backed and every represented collection opens its exact sessions |
 | X7-R3 | Complete locally — independent density review and exact fast, packaged, accessibility, restart, localization, visual, and performance gates passed 2026-08-26 | Settings and data presentation use clear transactions, meaningful precision, alignment, and disclosure |
-| X7-R4 | In progress — production-shaped decision spike passed and ADR 0032 accepted 2026-08-26; production migration remains | Analytical charts and route navigation provide a mature, accessible, bounded visual foundation |
+| X7-R4 | Complete locally — mixed-renderer migration, route-relative zoom, exact packaged, adaptive, accessibility, visual, restart, and performance gates passed 2026-08-27 | Analytical charts and route navigation provide a mature, accessible, bounded visual foundation |
 | X7-R5 | Pending | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
 | X7-R6 | Pending | Relevant built-in examples and duplication make reports understandable and reusable |
 | X7-R7 | Pending | Exact local and hosted evidence plus independent falsification leave no material finding |
@@ -2825,7 +2825,7 @@ planetary context.
 The [production-shaped chart evaluation](../research/x7-r4-chart-foundation-evaluation.md) completed on 2026-08-26
 and selected Apache ECharts 6.1.0 for live analytical views. The subsequent report-boundary review selected
 feature-limited Plotters 0.3.7 for authorized static SVG. [ADR 0032](../architecture/decisions/0032-use-specialized-analytical-visualization-engines.md)
-records the accepted mixed rendering boundary; dependency introduction and production migration remain.
+records the accepted mixed rendering boundary now implemented in production.
 
 **Current implementation checkpoint (2026-08-26):** the exact ECharts dependency, renderer-neutral presentation
 model, validated adapter, lazy React boundary, localized failure states, and the `TrainingSignalPlot`, cross-signal,
@@ -2857,7 +2857,22 @@ no executable script or external request, and architecture automation keeps Plot
 boundary. Focused Rust tests, the complete fast suite, strict linting, formatting, dependency audit, production build,
 and the exact packaged macOS journey pass. The packaged journey completed in 3 minutes 3.5 seconds and verified the
 new output after reimport and application-process restart; inspected synthetic report artifacts were 14,234 and
-16,324 bytes. Route-relative zoom bounds and the complete X7-R4 acceptance gates remain.
+16,324 bytes.
+
+The route boundary completed on 2026-08-27. The Leaflet adapter now derives its minimum from the current
+complete-track fit, retains only two lower context levels, caps unsupported GPS detail at zoom 19, and gives
+single-point or spatially degenerate geometry a stable fit at zoom 16. Leaflet itself enforces the bounds, so
+buttons, element-scoped keyboard input, wheel, touch, double-click, reset, resize, and programmatic zoom cannot
+diverge. React exposes only a localized relative level and disables each named action at its limit. Pure zoom-model
+tests cover ordinary, world-scale, single-point, degenerate, non-finite, clamped, and relative-state cases; component
+tests cover localized state and control availability. The exact packaged journey proves both limits, keyboard
+requests at each limit, a useful minimum visible route extent, both locales, dark appearance, 200% content zoom,
+accessibility, reimport, and process restart. Wide and compact screenshots passed independent visual review without
+map occlusion or horizontal overflow. The functional journey completed in 2 minutes 15.2 seconds, evidence-adaptive
+composition in 8.7 seconds, and range restart in 1.3 seconds. The isolated 20,001-point route opened at 75
+milliseconds p95 and selection remained at 1 millisecond p95; every analytical and domain performance budget also
+passed. The complete fast suite, production build, packaged campaign, documentation, privacy, dependency, and
+architecture gates close X7-R4.
 
 The exact instrumented macOS package passed the complete functional journey, application-process restart,
 evidence-adaptive composition, independent-signal range restart, and isolated two-year performance scenario. The

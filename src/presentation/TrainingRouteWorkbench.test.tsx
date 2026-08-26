@@ -19,6 +19,12 @@ const analyticalChartProbe = vi.hoisted(() => ({
 const viewport = vi.hoisted(() => ({
   create: vi.fn(),
   selectPoint: undefined as ((pointIndex: number) => void) | undefined,
+  updateZoomState: undefined as ((state: {
+    level: number;
+    levelCount: number;
+    canZoomIn: boolean;
+    canZoomOut: boolean;
+  }) => void) | undefined,
   controller: {
     updateSelection: vi.fn(),
     updateOverlay: vi.fn(),
@@ -238,9 +244,11 @@ beforeEach(() => {
   commands.invoke.mockReset();
   analyticalChartProbe.renderings.length = 0;
   viewport.selectPoint = undefined;
+  viewport.updateZoomState = undefined;
   Object.values(viewport.controller).forEach((mock) => mock.mockReset());
   viewport.create.mockReset().mockImplementation((_element, options) => {
     viewport.selectPoint = options.onSelectPoint;
+    viewport.updateZoomState = options.onZoomStateChange;
     return Promise.resolve(viewport.controller);
   });
 });
@@ -591,12 +599,42 @@ describe("TrainingRouteWorkbench", () => {
     );
     expect(workbench).toHaveTextContent("Pace on the recorded track");
 
-    await user.click(within(workbench).getByRole("button", { name: "Zoom in" }));
-    await user.click(within(workbench).getByRole("button", { name: "Zoom out" }));
+    act(() => viewport.updateZoomState?.({
+      level: 3,
+      levelCount: 10,
+      canZoomIn: true,
+      canZoomOut: true,
+    }));
+    const zoomIn = within(workbench).getByRole("button", { name: "Zoom in" });
+    const zoomOut = within(workbench).getByRole("button", { name: "Zoom out" });
+    expect(within(workbench).getByRole("status", { name: "Map zoom" }))
+      .toHaveTextContent("Map zoom 3 of 10");
+    await user.click(zoomIn);
+    await user.click(zoomOut);
     await user.click(within(workbench).getByRole("button", { name: "Show the complete track" }));
     expect(viewport.controller.zoomIn).toHaveBeenCalledOnce();
     expect(viewport.controller.zoomOut).toHaveBeenCalledOnce();
     expect(viewport.controller.fitTrack).toHaveBeenCalledOnce();
+
+    act(() => viewport.updateZoomState?.({
+      level: 1,
+      levelCount: 10,
+      canZoomIn: true,
+      canZoomOut: false,
+    }));
+    expect(zoomOut).toBeDisabled();
+    expect(zoomIn).toBeEnabled();
+    expect(within(workbench).getByRole("status", { name: "Map zoom" }))
+      .toHaveTextContent("Map zoom 1 of 10");
+
+    act(() => viewport.updateZoomState?.({
+      level: 10,
+      levelCount: 10,
+      canZoomIn: false,
+      canZoomOut: true,
+    }));
+    expect(zoomIn).toBeDisabled();
+    expect(zoomOut).toBeEnabled();
 
     await user.click(within(workbench).getByRole("button", { name: "Focus the map" }));
     expect(workbench).toHaveAttribute("data-focused", "true");

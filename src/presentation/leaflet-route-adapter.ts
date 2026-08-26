@@ -8,8 +8,14 @@ import {
   type LocalRouteViewportOverlay,
   type LocalRouteViewportRangeSelection,
 } from "./route-viewport";
+import {
+  describeLocalRouteZoom,
+  deriveLocalRouteZoomBounds,
+  type LocalRouteZoomBounds,
+} from "./route-zoom";
 
-const SINGLE_POINT_ZOOM = 16;
+const COMPLETE_TRACK_PADDING = L.point(56, 56);
+const VIEWPORT_ZOOM_CEILING = deriveLocalRouteZoomBounds(null).maximumZoom;
 
 function routeLatLng(
   point: LocalRouteViewportOptions["points"][number],
@@ -22,6 +28,12 @@ export async function createLocalRouteViewport(
   options: LocalRouteViewportOptions,
 ): Promise<LocalRouteViewport> {
   const latLngs = options.points.map(routeLatLng);
+  const trackBounds = L.latLngBounds(latLngs);
+  const firstPoint = options.points[0];
+  const hasSpatialExtent = options.points.some((point) => (
+    point.viewportLatitudeDegrees !== firstPoint.viewportLatitudeDegrees
+    || point.viewportLongitudeDegrees !== firstPoint.viewportLongitudeDegrees
+  ));
   const map = L.map(element, {
     attributionControl: false,
     boxZoom: true,
@@ -29,6 +41,8 @@ export async function createLocalRouteViewport(
     dragging: true,
     keyboard: false,
     preferCanvas: false,
+    minZoom: 0,
+    maxZoom: VIEWPORT_ZOOM_CEILING,
     scrollWheelZoom: false,
     touchZoom: true,
     zoomControl: false,
@@ -100,16 +114,51 @@ export async function createLocalRouteViewport(
   }).addTo(map);
   let overlayLayer: L.LayerGroup | undefined;
   let rangeLayer: L.LayerGroup | undefined;
+  let zoomBounds: LocalRouteZoomBounds = deriveLocalRouteZoomBounds(null);
+  let publishedZoomState = "";
+
+  function publishZoomState() {
+    const currentZoom = map.getZoom();
+    if (!Number.isFinite(currentZoom)) return;
+    const state = describeLocalRouteZoom(currentZoom, zoomBounds);
+    const identity = `${state.level}:${state.levelCount}:${state.canZoomIn}:${state.canZoomOut}`;
+    if (identity === publishedZoomState) return;
+    publishedZoomState = identity;
+    options.onZoomStateChange(state);
+  }
+
+  function fittedZoomForCurrentSize(): number | null {
+    if (!hasSpatialExtent) return null;
+    map.setMinZoom(0);
+    map.setMaxZoom(VIEWPORT_ZOOM_CEILING);
+    return map.getBoundsZoom(trackBounds, false, COMPLETE_TRACK_PADDING);
+  }
+
+  function applyZoomBounds(bounds: LocalRouteZoomBounds) {
+    zoomBounds = bounds;
+    map.setMaxZoom(bounds.maximumZoom);
+    map.setMinZoom(bounds.minimumZoom);
+    publishZoomState();
+  }
 
   function fitTrack() {
-    if (latLngs.length === 1) {
-      map.setView(latLngs[0], SINGLE_POINT_ZOOM, { animate: false });
+    const bounds = deriveLocalRouteZoomBounds(fittedZoomForCurrentSize());
+    applyZoomBounds(bounds);
+    if (!hasSpatialExtent) {
+      map.setView(latLngs[0], bounds.fittedZoom, { animate: false });
+      publishZoomState();
       return;
     }
-    map.fitBounds(L.latLngBounds(latLngs), {
+    map.fitBounds(trackBounds, {
       animate: false,
       padding: [28, 28],
+      maxZoom: bounds.maximumZoom,
     });
+    publishZoomState();
+  }
+
+  function reconcileZoomBoundsAfterResize() {
+    applyZoomBounds(deriveLocalRouteZoomBounds(fittedZoomForCurrentSize()));
   }
 
   function updateOverlay(overlay: LocalRouteViewportOverlay | null) {
@@ -181,6 +230,7 @@ export async function createLocalRouteViewport(
   }
 
   track.on("click", selectNearest);
+  map.on("zoomend", publishZoomState);
   fitTrack();
   updateOverlay(options.overlay);
   updateRangeSelection(options.rangeSelection);
@@ -201,9 +251,11 @@ export async function createLocalRouteViewport(
     fitTrack,
     invalidateSize() {
       map.invalidateSize({ animate: false, pan: false });
+      reconcileZoomBoundsAfterResize();
     },
     destroy() {
       track.off("click", selectNearest);
+      map.off("zoomend", publishZoomState);
       element.removeEventListener("focus", enableDeliberateWheelZoom);
       element.removeEventListener("blur", disableIncidentalWheelZoom);
       element.removeEventListener("keydown", navigateByKeyboard);

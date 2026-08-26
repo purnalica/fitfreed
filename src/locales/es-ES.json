@@ -752,6 +752,8 @@
         "mapControls": "Controles del mapa",
         "zoomIn": "Ampliar",
         "zoomOut": "Reducir",
+        "mapZoomLabel": "Ampliación del mapa",
+        "mapZoom": "Ampliación del mapa {level} de {levels}",
         "completeTrack": "Mostrar el trazado completo",
         "focusMap": "Centrarse en el mapa",
         "returnToSession": "Volver a la sesión",

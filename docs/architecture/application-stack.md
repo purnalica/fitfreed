@@ -84,7 +84,10 @@ route-and-signal coordinate. One through four independently scaled measurement l
 retain source gaps, and synchronize their selected coordinate with the map. Chart point selection navigates returned
 route evidence; exact signal disclosure remains tied to the application-supplied aligned sample ordinal. A native
 shared-position control and semantic lane summaries keep keyboard, current-value, provenance, range, and exact-source
-meaning outside the renderer. Selection updates reuse the mounted chart instance instead of replacing it.
+meaning outside the renderer. Selection updates reuse the mounted chart instance instead of replacing it. The local
+Leaflet adapter also derives one route-relative minimum zoom from the current complete-track fit, caps maximum GPS
+detail, and supplies only a relative localized level state to React. The same native limits govern named controls,
+keyboard, wheel, touch, reset, resize, and programmatic zoom.
 
 Reports uses the same current-location semantics for a separate staged workflow. Library owns saved definitions and new starts, Compose owns the complete ordered editor and its evidence tools, and Preview owns resolved output plus mutually exclusive stale-evidence or export review. The mounted draft and resolved candidate survive temporary stage changes, while a successful save and a saved-report selection lead to Preview. The stage never becomes durable report data; only the existing versioned definition and its application-owned evidence reference cross the transport and persistence boundaries.
 

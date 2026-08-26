@@ -12,8 +12,8 @@ unresolved material finding, but the completed repeated [production-native human
 evaluation](research/x6-product-experience-human-evaluation.md) rejects the product experience. The review reopened
 first-use trust, import responsiveness, sport recognition, natural drill-down, comparison defaults, data precision
 and density, tabular alignment, charting, route zoom, structured training intent, Settings actions, and reusable
-report starts. X7 in the active migration plan owns their ordered correction. X7-R2 and X7-R3 are complete locally;
-X7-R4 is the next corrective increment. External-tile cartography, additional
+report starts. X7 in the active migration plan owns their ordered correction. X7-R2 through X7-R4 are complete
+locally; X7-R5 is the next corrective increment. External-tile cartography, additional
 providers, public-candidate preparation, and advanced personalization remain outside that loop. The production
 application remains the only implementation and the [MVP experience delivery
 plan](plans/mvp-experience-delivery.md) remains its engineering evidence baseline. Milestone 3 resumes only after the

@@ -62,6 +62,10 @@ Automated testing is the primary source of evidence that the product behaves cor
   stable full-domain selection, shared map movement, absence without alignment, exact-sample disclosure only
   from supplied overlay ordinals, one native accessible position alternative, high-zoom sizing, and in-place chart
   updates rather than renderer replacement.
+- Route-relative map zoom derives from the complete-track fit, retains a bounded useful context, caps unsupported
+  GPS detail, handles single-point and degenerate geometry, recalculates after resize, and exposes one localized
+  relative state. Component and packaged WebView tests prove identical limits for buttons, keyboard, and the
+  underlying Leaflet viewport, plus a minimum visible route extent at the lowest permitted level.
 - History starts with visible chronological results while its complete sport index is closed. Deliberate opening
   retains every sport identity and contextual classification action; choosing a sport closes the index, exposes the
   exact applied refinement, and focuses its result count without a second discovery contract.

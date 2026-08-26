@@ -44,6 +44,13 @@ export interface LocalRouteViewportRangeSelection {
   endedAtPointIndex: number | null;
 }
 
+export interface LocalRouteViewportZoomState {
+  level: number;
+  levelCount: number;
+  canZoomIn: boolean;
+  canZoomOut: boolean;
+}
+
 export interface LocalRouteViewportOptions {
   points: RouteWorkbenchPoint[];
   directionMarkers: RouteDirectionMarker[];
@@ -51,6 +58,7 @@ export interface LocalRouteViewportOptions {
   overlay: LocalRouteViewportOverlay | null;
   rangeSelection: LocalRouteViewportRangeSelection | null;
   onSelectPoint: (pointIndex: number) => void;
+  onZoomStateChange: (state: LocalRouteViewportZoomState) => void;
 }
 
 export interface LocalRouteViewport {

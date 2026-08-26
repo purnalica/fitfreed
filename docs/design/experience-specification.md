@@ -127,7 +127,11 @@ recorded and missing geometry, relates route position to elapsed evidence when s
 hidden external request, and has a structured distance/coordinate alternative. Exact samples and
 provenance remain closed until requested.
 
-The map supports pan and zoom without losing the complete-track reset. When the evidence contract certifies
+The map supports pan and zoom without losing the complete-track reset. Its minimum scale is derived from the
+complete recorded-track fit, so the route cannot shrink into meaningless continental or planetary context;
+its maximum does not imply detail beyond ordinary recorded GPS evidence. One relative level indicator and
+the enabled state of the named controls expose the same limits used by pointer, touch, wheel, keyboard, and
+programmatic navigation. When the evidence contract certifies
 an exact recorded relationship, track traversal and attached signal lanes share one selected elapsed instant.
 Pointer hover, click, keyboard traversal, or an exact-evidence row then highlights the corresponding map
 position and every related signal value; moving through a signal highlights the mapped point when geometry

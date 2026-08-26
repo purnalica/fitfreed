@@ -836,6 +836,7 @@ th, td { padding: 9px 4px; border-bottom: 1px solid #e0e5e1; text-align: left; }
 .training-route-map-tools { position: absolute; z-index: 500; top: 12px; left: 12px; display: flex; flex-wrap: wrap; gap: 6px; max-width: calc(100% - 72px); padding: 6px; background: color-mix(in srgb, var(--surface) 94%, transparent); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 8px 24px rgb(23 32 25 / 14%); }
 .training-route-map-tools button { min-height: 38px; padding: 7px 11px; color: var(--ink); background: var(--surface); border-color: var(--line); font-size: .76rem; }
 .training-route-map-tools button:hover:not(:disabled) { color: var(--surface); background: var(--accent-deep); border-color: var(--accent-deep); }
+.training-route-map-zoom { display: inline-flex; min-height: 38px; padding-inline: 8px; color: var(--muted); align-items: center; font-size: .7rem; font-variant-numeric: tabular-nums; font-weight: 750; white-space: nowrap; }
 .training-route-north { position: absolute; z-index: 500; top: 14px; right: 14px; display: grid; width: 42px; height: 42px; color: var(--ink); background: color-mix(in srgb, var(--surface) 94%, transparent); border: 1px solid var(--line); border-radius: 50%; place-items: center; font-size: .72rem; font-weight: 850; box-shadow: 0 8px 24px rgb(23 32 25 / 12%); }
 .training-route-map-status { position: absolute; z-index: 510; inset: auto 12px 12px; width: fit-content; max-width: calc(100% - 24px); margin: 0; padding: 8px 11px; color: var(--ink-soft); background: color-mix(in srgb, var(--surface) 94%, transparent); border: 1px solid var(--line); border-radius: 9px; font-size: .78rem; }
 .training-route-map-status.error { color: var(--danger-ink); background: var(--danger-soft); border-color: var(--danger); border-left-width: 4px; }
@@ -2000,6 +2001,7 @@ button.danger-action { color: var(--danger-ink); background: var(--danger-soft);
   .training-route-map-frame { height: clamp(300px, 50vh, 440px); }
   .training-route-map-tools { right: 10px; left: 10px; max-width: none; }
   .training-route-map-tools button { flex: 1 1 auto; }
+  .training-route-map-zoom { flex: 1 1 100%; min-height: auto; justify-content: center; }
   .training-route-north { top: auto; bottom: 12px; }
   .training-route-position-control, .training-route-signal-position-control, .training-route-overlay-legend { grid-template-columns: 1fr; }
   .training-route-position-control, .training-route-signal-position-control { gap: 4px; }

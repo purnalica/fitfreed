@@ -13,6 +13,7 @@ import {
 import type {
   LocalRouteViewport,
   LocalRouteViewportRangeSelection,
+  LocalRouteViewportZoomState,
 } from "./route-viewport";
 import type { SessionStory, SessionStoryMetric, SessionStoryRole } from "./session-story";
 import { formatSessionStoryMetricValue } from "./session-story-metric";
@@ -185,6 +186,7 @@ export function TrainingRouteWorkbench({
   latestSelectedPointIndex.current = selectedPointIndex;
   latestSelectedOverlayRef.current = selectedOverlayRef;
   const [viewportState, setViewportState] = useState<"loading" | "ready" | "failed">("loading");
+  const [zoomState, setZoomState] = useState<LocalRouteViewportZoomState | null>(null);
   const [focused, setFocused] = useState(false);
   const workbenchRef = useRef<HTMLElement>(null);
   const mapElementRef = useRef<HTMLDivElement>(null);
@@ -255,6 +257,7 @@ export function TrainingRouteWorkbench({
     if (!choice || !mapElementRef.current) return;
     let active = true;
     setViewportState("loading");
+    setZoomState(null);
     const element = mapElementRef.current;
     void import("./leaflet-route-adapter")
       .then(({ createLocalRouteViewport }) => createLocalRouteViewport(element, {
@@ -267,6 +270,9 @@ export function TrainingRouteWorkbench({
         overlay: overlayForViewport(choice.model, selectedOverlayRef),
         rangeSelection,
         onSelectPoint: (pointIndex) => mapSelectionHandlerRef.current(pointIndex),
+        onZoomStateChange: (state) => {
+          if (active) setZoomState(state);
+        },
       }))
       .then((viewport) => {
         if (!active) {
@@ -668,9 +674,30 @@ export function TrainingRouteWorkbench({
       >
         <div className="training-route-map-frame">
         <div className="training-route-map-tools" aria-label={copy.mapControls}>
-          <button type="button" onClick={() => viewportRef.current?.zoomIn()}>{copy.zoomIn}</button>
-          <button type="button" onClick={() => viewportRef.current?.zoomOut()}>{copy.zoomOut}</button>
-          <button type="button" onClick={() => viewportRef.current?.fitTrack()}>{copy.completeTrack}</button>
+          <button
+            type="button"
+            disabled={viewportState !== "ready" || !zoomState?.canZoomIn}
+            onClick={() => viewportRef.current?.zoomIn()}
+          >{copy.zoomIn}</button>
+          <button
+            type="button"
+            disabled={viewportState !== "ready" || !zoomState?.canZoomOut}
+            onClick={() => viewportRef.current?.zoomOut()}
+          >{copy.zoomOut}</button>
+          <button
+            type="button"
+            disabled={viewportState !== "ready"}
+            onClick={() => viewportRef.current?.fitTrack()}
+          >{copy.completeTrack}</button>
+          {zoomState && <span
+            className="training-route-map-zoom"
+            role="status"
+            aria-label={copy.mapZoomLabel}
+            aria-live="polite"
+          >{interpolate(copy.mapZoom, {
+              level: number.format(zoomState.level),
+              levels: number.format(zoomState.levelCount),
+            })}</span>}
           <button
             ref={focused ? returnButtonRef : focusButtonRef}
             type="button"
