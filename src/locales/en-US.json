@@ -989,6 +989,7 @@
         "one": "{count} recorded signal series is not shown in this view. It remains in the original ZIP.",
         "other": "{count} recorded signal series are not shown in this view. They remain in the original ZIP."
       },
+      "unsupportedSignalSeriesSummary": "Review signal compatibility",
       "viewExactSignalSamples": "Inspect exact {kind} samples",
       "hideExactSignalSamples": "Hide exact {kind} samples",
       "exactSignalHeading": "Exact {kind} samples",
@@ -1042,6 +1043,7 @@
         "one": "{count} recorded zone group is not shown in this view. It remains in the original ZIP.",
         "other": "{count} recorded zone groups are not shown in this view. They remain in the original ZIP."
       },
+      "unsupportedZoneGroupsSummary": "Review zone compatibility",
       "provenanceAction": "How did this session get here?",
       "provenanceHide": "Hide session provenance",
       "provenanceHeading": "Session provenance",
@@ -1295,7 +1297,7 @@
     "rangeHelp": "Choose up to 366 inclusive nights inside the available sleep history.",
     "answerLabel": "Sleep pattern answer",
     "answerMultiple": "{count} sleep histories shown",
-    "answerObserved": "Recorded sleep is available for {observed} of {total} nights",
+    "answerObserved": "Recorded sleep is available for {observed} of {total} {nightUnit}",
     "answerNone": "No recorded sleep is available in this period",
     "answerAverage": "Average recorded sleep: {value}",
     "answerExact": "Review measurements and exact nights",
@@ -1317,6 +1319,10 @@
     "powerLoss": "ended after power loss",
     "of": "of",
     "nights": "nights",
+    "nightUnit": {
+      "one": "night",
+      "other": "nights"
+    },
     "emptyRange": "There are no observed sleep periods in this range. Missing nights are not treated as zero sleep.",
     "visual": "Time asleep and interruptions by night",
     "nightsTable": "Sleep nights",
@@ -1447,7 +1453,7 @@
     "rangeHelp": "Choose up to 366 inclusive nights inside the available recovery history.",
     "answerLabel": "Recovery pattern answer",
     "answerMultiple": "{count} recovery histories shown",
-    "answerObserved": "Recovery intervals are recorded for {observed} of {total} nights",
+    "answerObserved": "Recovery intervals are recorded for {observed} of {total} {nightUnit}",
     "answerNone": "No recorded recovery intervals in this period",
     "answerAverage": "Average recorded beat-to-beat interval: {value}",
     "answerMissing": "Nights without recorded recovery: {count}.",
@@ -1467,6 +1473,10 @@
     "guidanceCoverage": "Nights with source guidance",
     "of": "of",
     "nights": "nights",
+    "nightUnit": {
+      "one": "night",
+      "other": "nights"
+    },
     "emptyRange": "There are no observed recovery summaries in this range. Missing nights are not treated as zero recovery.",
     "visual": "Beat-to-beat interval by night",
     "nightsTable": "Nightly recovery observations",

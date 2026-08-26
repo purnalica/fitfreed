@@ -280,20 +280,82 @@ async function expectSportClassificationComposition(expectedColumns) {
     const controls = fields.map((field) => field.querySelector("input, select"));
     const labels = fields.map((field) => field.querySelector("label"));
     const actionRegion = editor.querySelector(".training-sport-editor-actions");
+    const preview = editor.querySelector(".training-sport-editor-preview");
+    const previewTitle = preview.querySelector("strong");
     const navigation = document.querySelector(".app-sidebar");
+    const workspace = document.querySelector(".app-content");
+    const editorContainer = editor.closest(".training-history-sport-editor");
+    const sportIndex = editor.closest(".training-history-sports");
     const editorBounds = editor.getBoundingClientRect();
+    const editorContainerBounds = editorContainer.getBoundingClientRect();
+    const previewTitleBounds = previewTitle.getBoundingClientRect();
     const navigationBounds = navigation.getBoundingClientRect();
+    const sportIndexBounds = sportIndex.getBoundingClientRect();
+    const workspaceBounds = workspace.getBoundingClientRect();
     const fieldBounds = fields.map((field) => field.getBoundingClientRect());
     const controlBounds = controls.map((control) => control.getBoundingClientRect());
     const labelBounds = labels.map((label) => label.getBoundingClientRect());
     const actionBounds = actionRegion.getBoundingClientRect();
     const readingCopy = document.querySelector(".training-workspace-heading > p:last-child");
     const help = editor.querySelector(".training-sport-editor-field small");
+    const previewTitleStyle = getComputedStyle(previewTitle);
+    const previewTitleLineHeight = Number.parseFloat(previewTitleStyle.lineHeight)
+      || Number.parseFloat(previewTitleStyle.fontSize) * 1.2;
+    const ancestors = [];
+    for (let element = editor.parentElement; element; element = element.parentElement) {
+      const bounds = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      ancestors.push({
+        tag: element.tagName,
+        className: element.className,
+        width: bounds.width,
+        display: style.display,
+        columns: style.gridTemplateColumns,
+      });
+      if (element === workspace) break;
+    }
     return {
+      ancestors,
       columnDefinition: getComputedStyle(editor).gridTemplateColumns,
       columns: getComputedStyle(editor).gridTemplateColumns.split(" ").length,
       contentZoom: root.dataset.contentZoom,
+      editorBounds: {
+        left: editorBounds.left,
+        right: editorBounds.right,
+        width: editorBounds.width,
+      },
+      editorContainerBounds: {
+        left: editorContainerBounds.left,
+        right: editorContainerBounds.right,
+        width: editorContainerBounds.width,
+      },
       editorTop: editorBounds.top,
+      editorUsesAvailableWidth: editorBounds.width >= workspaceBounds.width * 0.75,
+      previewTitleLineCount: Math.round(
+        previewTitleBounds.height / previewTitleLineHeight,
+      ),
+      sportIndexBounds: {
+        left: sportIndexBounds.left,
+        right: sportIndexBounds.right,
+        width: sportIndexBounds.width,
+        columns: getComputedStyle(sportIndex).gridTemplateColumns,
+      },
+      workspaceWidth: workspaceBounds.width,
+      fieldBounds: fieldBounds.map((field) => ({
+        left: field.left,
+        right: field.right,
+        width: field.width,
+      })),
+      controlBounds: controlBounds.map((control) => ({
+        left: control.left,
+        right: control.right,
+        width: control.width,
+      })),
+      actionBounds: {
+        left: actionBounds.left,
+        right: actionBounds.right,
+        width: actionBounds.width,
+      },
       navigationBottom: navigationBounds.bottom,
       viewportWidth: root.clientWidth,
       hasHorizontalOverflow: root.scrollWidth > root.clientWidth,
@@ -316,12 +378,21 @@ async function expectSportClassificationComposition(expectedColumns) {
       controlHelpUsesAllocation: getComputedStyle(help).maxWidth === "none",
     };
   });
-  if (!geometry.controlsEqualHeight || !geometry.editorOutsideNavigation) {
+  if (
+    !geometry.controlsEqualHeight
+    || !geometry.editorOutsideNavigation
+    || !geometry.editorUsesAvailableWidth
+    || !geometry.fieldsInsideEditor
+    || !geometry.actionsInsideEditor
+    || geometry.previewTitleLineCount > 5
+  ) {
     process.stderr.write(`${JSON.stringify({ sportClassificationGeometry: geometry })}\n`);
   }
   expect(geometry.hasHorizontalOverflow).toBe(false);
   expect(geometry.editorInsideWorkspace).toBe(true);
   expect(geometry.editorOutsideNavigation).toBe(true);
+  expect(geometry.editorUsesAvailableWidth).toBe(true);
+  expect(geometry.previewTitleLineCount).toBeLessThanOrEqual(5);
   expect(geometry.fieldsInsideEditor).toBe(true);
   expect(geometry.controlsEqualHeight).toBe(true);
   expect(geometry.actionsAfterFields).toBe(true);
@@ -1901,6 +1972,9 @@ describe("packaged FitFreed import journey", () => {
       "review-activity-steps",
       "#activity-heading",
     );
+    await $("#activity-comparison-heading").waitForDisplayed({ timeout: 10_000 });
+    await expectUsefulComparisonDefault(".activity-comparison", english);
+    await openDomainWorkspace(english, "activity", "history");
     await expectHistory([
       ["Jan 1, 2026", "3,100", "Step total available"],
       ["Jan 2, 2026", "4,200", "Step total available"],
@@ -2434,7 +2508,15 @@ describe("packaged FitFreed import journey", () => {
     );
     await recordedSignals[1].$("button").click();
     expect(await recordedSignals[1].$$(".training-signal-exact")).toHaveLength(0);
-    await expect($(".training-signal-unsupported")).toHaveText(
+    const signalCompatibility = await $(
+      ".training-signal-collection .training-compatibility-details",
+    );
+    const unsupportedSignal = await signalCompatibility.$(".training-signal-unsupported");
+    expect(await signalCompatibility.getAttribute("open")).toBeNull();
+    expect(await unsupportedSignal.isDisplayed()).toBe(false);
+    await signalCompatibility.$("summary").click();
+    await expect(unsupportedSignal).toBeDisplayed();
+    await expect(unsupportedSignal).toHaveText(
       expect.stringContaining("1 recorded signal series is not shown in this view"),
     );
     const exactSignalToggle = await recordedSignals[0].$("button");
@@ -2478,7 +2560,15 @@ describe("packaged FitFreed import journey", () => {
     );
     await expect(recordedZoneGroups[1]).toHaveText(expect.stringContaining("2,500.5 m"));
     await expect(recordedZoneGroups[2]).toHaveText(expect.stringContaining("42.5"));
-    await expect($(".training-zone-unsupported")).toHaveText(
+    const zoneCompatibility = await $(
+      ".training-exercise-zones > .training-compatibility-details",
+    );
+    const unsupportedZoneGroup = await zoneCompatibility.$(".training-zone-unsupported");
+    expect(await zoneCompatibility.getAttribute("open")).toBeNull();
+    expect(await unsupportedZoneGroup.isDisplayed()).toBe(false);
+    await zoneCompatibility.$("summary").click();
+    await expect(unsupportedZoneGroup).toBeDisplayed();
+    await expect(unsupportedZoneGroup).toHaveText(
       expect.stringContaining("1 recorded zone group is not shown in this view"),
     );
     await expect($(".training-exercise-zones")).not.toHaveText(
@@ -3018,14 +3108,14 @@ describe("packaged FitFreed import journey", () => {
       ["Jan 6, 2026", "7 h 30 min", "93.8%", "82", "Details"],
     ]);
     await expectSleepSummary([
-      ["1", "Observed nights · 1 of 1 nights"],
-      ["7 h 30 min", "Average time asleep · 1 of 1 nights"],
-      ["93.8%", "Average efficiency · 1 of 1 nights"],
-      ["82", "Average sleep score · 1 of 1 nights"],
+      ["1", "Observed nights · 1 of 1 night"],
+      ["7 h 30 min", "Average time asleep · 1 of 1 night"],
+      ["93.8%", "Average efficiency · 1 of 1 night"],
+      ["82", "Average sleep score · 1 of 1 night"],
       ["0 / 1", "Sleep goal met"],
-      ["1 of 1 nights", "Nights with sleep phases"],
-      ["1 of 1 nights", "Nights with a stage timeline"],
-      ["1 of 1 nights", "Nights with recording status · 0 ended after power loss"],
+      ["1 of 1 night", "Nights with sleep phases"],
+      ["1 of 1 night", "Nights with a stage timeline"],
+      ["1 of 1 night", "Nights with recording status · 0 ended after power loss"],
     ]);
     await expectAnswerMeasurementOnOneLine(
       ".sleep-answer-heading .answer-measurement",
@@ -3040,13 +3130,13 @@ describe("packaged FitFreed import journey", () => {
       ["Jan 6, 2026", "900 ms", "42 ms", "Overall status 5 / 6", "Details"],
     ]);
     await expectRecoverySummary([
-      ["1", "Observed nights · 1 of 1 nights"],
-      ["900 ms", "Average beat-to-beat interval · 1 of 1 nights"],
-      ["42 ms", "Average HRV RMSSD · 1 of 1 nights"],
-      ["4,100 ms", "Average breathing interval · 1 of 1 nights"],
-      ["1 of 1 nights", "Nights with source assessment"],
-      ["1 of 1 nights", "Nights with source baseline"],
-      ["1 of 1 nights", "Nights with source guidance"],
+      ["1", "Observed nights · 1 of 1 night"],
+      ["900 ms", "Average beat-to-beat interval · 1 of 1 night"],
+      ["42 ms", "Average HRV RMSSD · 1 of 1 night"],
+      ["4,100 ms", "Average breathing interval · 1 of 1 night"],
+      ["1 of 1 night", "Nights with source assessment"],
+      ["1 of 1 night", "Nights with source baseline"],
+      ["1 of 1 night", "Nights with source guidance"],
       ["0", "Missing nights"],
     ]);
     await expectAnswerMeasurementOnOneLine(
@@ -3471,14 +3561,14 @@ describe("packaged FitFreed import journey", () => {
       [formatLocalDate("es-ES", "2026-01-06"), "7 h 30 min", "93,8%", "82", spanish.sleep.details],
     ]);
     await expectSleepSummary([
-      ["1", `${spanish.sleep.observedNights} · 1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`],
-      ["7 h 30 min", `${spanish.sleep.averageAsleep} · 1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`],
-      ["93,8%", `${spanish.sleep.averageEfficiency} · 1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`],
-      ["82", `${spanish.sleep.averageScore} · 1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`],
+      ["1", `${spanish.sleep.observedNights} · 1 ${spanish.sleep.of} 1 ${spanish.sleep.nightUnit.one}`],
+      ["7 h 30 min", `${spanish.sleep.averageAsleep} · 1 ${spanish.sleep.of} 1 ${spanish.sleep.nightUnit.one}`],
+      ["93,8%", `${spanish.sleep.averageEfficiency} · 1 ${spanish.sleep.of} 1 ${spanish.sleep.nightUnit.one}`],
+      ["82", `${spanish.sleep.averageScore} · 1 ${spanish.sleep.of} 1 ${spanish.sleep.nightUnit.one}`],
       ["0 / 1", spanish.sleep.goalMet],
-      [`1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`, spanish.sleep.phaseCoverage],
-      [`1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`, spanish.sleep.timelineCoverage],
-      [`1 ${spanish.sleep.of} 1 ${spanish.sleep.nights}`, `${spanish.sleep.powerCoverage} · 0 ${spanish.sleep.powerLoss}`],
+      [`1 ${spanish.sleep.of} 1 ${spanish.sleep.nightUnit.one}`, spanish.sleep.phaseCoverage],
+      [`1 ${spanish.sleep.of} 1 ${spanish.sleep.nightUnit.one}`, spanish.sleep.timelineCoverage],
+      [`1 ${spanish.sleep.of} 1 ${spanish.sleep.nightUnit.one}`, `${spanish.sleep.powerCoverage} · 0 ${spanish.sleep.powerLoss}`],
     ]);
     await openHomeQuestion(
       spanish,
@@ -3495,13 +3585,13 @@ describe("packaged FitFreed import journey", () => {
       ],
     ]);
     await expectRecoverySummary([
-      ["1", `${spanish.recovery.observedNights} · 1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`],
-      ["900 ms", `${spanish.recovery.averageBeatToBeat} · 1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`],
-      ["42 ms", `${spanish.recovery.averageRmssd} · 1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`],
-      ["4100 ms", `${spanish.recovery.averageBreathing} · 1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`],
-      [`1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`, spanish.recovery.assessmentCoverage],
-      [`1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`, spanish.recovery.baselineCoverage],
-      [`1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`, spanish.recovery.guidanceCoverage],
+      ["1", `${spanish.recovery.observedNights} · 1 ${spanish.recovery.of} 1 ${spanish.recovery.nightUnit.one}`],
+      ["900 ms", `${spanish.recovery.averageBeatToBeat} · 1 ${spanish.recovery.of} 1 ${spanish.recovery.nightUnit.one}`],
+      ["42 ms", `${spanish.recovery.averageRmssd} · 1 ${spanish.recovery.of} 1 ${spanish.recovery.nightUnit.one}`],
+      ["4.100 ms", `${spanish.recovery.averageBreathing} · 1 ${spanish.recovery.of} 1 ${spanish.recovery.nightUnit.one}`],
+      [`1 ${spanish.recovery.of} 1 ${spanish.recovery.nightUnit.one}`, spanish.recovery.assessmentCoverage],
+      [`1 ${spanish.recovery.of} 1 ${spanish.recovery.nightUnit.one}`, spanish.recovery.baselineCoverage],
+      [`1 ${spanish.recovery.of} 1 ${spanish.recovery.nightUnit.one}`, spanish.recovery.guidanceCoverage],
       ["0", spanish.recovery.missingNights],
     ]);
     await expect($("html")).toHaveAttribute("data-appearance", "dark");
@@ -3577,6 +3667,8 @@ describe("packaged FitFreed import journey", () => {
       "review-activity-steps",
       "#activity-heading",
     );
+    await $("#activity-comparison-heading").waitForDisplayed({ timeout: 10_000 });
+    await openDomainWorkspace(english, "activity", "history");
     await expectHistory([
       ["Jan 1, 2026", "3,100", "Step total available"],
       ["Jan 2, 2026", "4,200", "Step total available"],
@@ -3611,6 +3703,8 @@ describe("packaged FitFreed import journey", () => {
       "review-activity-steps",
       "#activity-heading",
     );
+    await $("#activity-comparison-heading").waitForDisplayed({ timeout: 10_000 });
+    await openDomainWorkspace(english, "activity", "history");
     await expectHistory([
       ["Jan 1, 2026", "3,100", "Step total available"],
       ["Jan 2, 2026", "4,200", "Step total available"],
@@ -4183,7 +4277,7 @@ describe("packaged FitFreed import journey", () => {
     );
     await expectComparisonHeading(
       "#activity-comparison-heading",
-      spanish.activity.comparison.answerHigher.replace("{value}", "1100"),
+      spanish.activity.comparison.answerHigher.replace("{value}", "1.100"),
     );
     await expectResultBelowCompactNavigation("#activity-comparison-heading");
     await openDomainWorkspace(spanish, "activity", "history");
@@ -4207,7 +4301,7 @@ describe("packaged FitFreed import journey", () => {
     await $(".activity-comparison button[type='submit']").click();
     await expectComparisonHeading(
       "#activity-comparison-heading",
-      spanish.activity.comparison.answerHigher.replace("{value}", "1650"),
+      spanish.activity.comparison.answerHigher.replace("{value}", "1.650"),
     );
     await $(".activity-comparison-result button.secondary").click();
     await openHomeQuestion(
@@ -4274,11 +4368,11 @@ describe("packaged FitFreed import journey", () => {
       ["900 ms", `${spanish.longitudinal.averageRecovery} · 1 ${spanish.longitudinal.of} 6 ${spanish.longitudinal.days}`],
     ]);
     await expectLongitudinalRows([
-      [formatLocalDate("es-ES", "2026-01-01"), "3100", "0 s", spanish.longitudinal.missing, spanish.longitudinal.missing],
-      [formatLocalDate("es-ES", "2026-01-02"), "4200", "0 s", spanish.longitudinal.missing, spanish.longitudinal.missing],
+      [formatLocalDate("es-ES", "2026-01-01"), "3.100", "0 s", spanish.longitudinal.missing, spanish.longitudinal.missing],
+      [formatLocalDate("es-ES", "2026-01-02"), "4.200", "0 s", spanish.longitudinal.missing, spanish.longitudinal.missing],
       [formatLocalDate("es-ES", "2026-01-03"), spanish.activity.unavailable, "0 s", spanish.longitudinal.missing, spanish.longitudinal.missing],
       [formatLocalDate("es-ES", "2026-01-04"), spanish.activity.missing, "1 h", spanish.longitudinal.missing, spanish.longitudinal.missing],
-      [formatLocalDate("es-ES", "2026-01-05"), "5300", "30 min", spanish.longitudinal.missing, spanish.longitudinal.missing],
+      [formatLocalDate("es-ES", "2026-01-05"), "5.300", "30 min", spanish.longitudinal.missing, spanish.longitudinal.missing],
       [formatLocalDate("es-ES", "2026-01-06"), spanish.activity.missing, "45 min", "7 h 30 min", "900 ms"],
     ]);
     await openDomainWorkspace(spanish, "longitudinal", "comparison");
@@ -4400,7 +4494,7 @@ describe("packaged FitFreed import journey", () => {
       break;
     }
     expect(spanishSourceLapCells).toHaveLength(4);
-    await expect(spanishSourceLapCells[3]).toHaveText("5250 m");
+    await expect(spanishSourceLapCells[3]).toHaveText("5.250 m");
     await openTrainingDetailSection(spanish, "routes");
     await browser.waitUntil(async () => (await $$(".training-route")).length === 2, {
       timeout: 10_000,
@@ -4574,7 +4668,7 @@ describe("packaged FitFreed import journey", () => {
     await $(`button[aria-label="${spanish.recovery.viewDetails} ${spanishRecoveryDate}"]`).click();
     await expect($("#recovery-detail-heading")).toHaveText(spanish.recovery.detailHeading);
     const spanishRecoveryDetailValues = await $$(".recovery-detail-metrics dd");
-    await expect(spanishRecoveryDetailValues[2]).toHaveText("4100 ms");
+    await expect(spanishRecoveryDetailValues[2]).toHaveText("4.100 ms");
     await expect(spanishRecoveryDetailValues[4]).toHaveText("1,5");
     await expect($(".recovery-source-notice")).toHaveText(
       spanish.recovery.sourceNotice,
@@ -4634,13 +4728,13 @@ describe("packaged FitFreed import journey", () => {
       ],
     ]);
     await expectRecoverySummary([
-      ["1", `${spanish.recovery.observedNights} · 1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`],
-      ["900 ms", `${spanish.recovery.averageBeatToBeat} · 1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`],
-      ["42 ms", `${spanish.recovery.averageRmssd} · 1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`],
-      ["4100 ms", `${spanish.recovery.averageBreathing} · 1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`],
-      [`1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`, spanish.recovery.assessmentCoverage],
-      [`1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`, spanish.recovery.baselineCoverage],
-      [`1 ${spanish.recovery.of} 1 ${spanish.recovery.nights}`, spanish.recovery.guidanceCoverage],
+      ["1", `${spanish.recovery.observedNights} · 1 ${spanish.recovery.of} 1 ${spanish.recovery.nightUnit.one}`],
+      ["900 ms", `${spanish.recovery.averageBeatToBeat} · 1 ${spanish.recovery.of} 1 ${spanish.recovery.nightUnit.one}`],
+      ["42 ms", `${spanish.recovery.averageRmssd} · 1 ${spanish.recovery.of} 1 ${spanish.recovery.nightUnit.one}`],
+      ["4.100 ms", `${spanish.recovery.averageBreathing} · 1 ${spanish.recovery.of} 1 ${spanish.recovery.nightUnit.one}`],
+      [`1 ${spanish.recovery.of} 1 ${spanish.recovery.nightUnit.one}`, spanish.recovery.assessmentCoverage],
+      [`1 ${spanish.recovery.of} 1 ${spanish.recovery.nightUnit.one}`, spanish.recovery.baselineCoverage],
+      [`1 ${spanish.recovery.of} 1 ${spanish.recovery.nightUnit.one}`, spanish.recovery.guidanceCoverage],
       ["0", spanish.recovery.missingNights],
     ]);
     await returnToLibraryHome(spanish);

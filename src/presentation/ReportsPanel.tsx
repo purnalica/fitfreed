@@ -1228,16 +1228,22 @@ export function ReportsPanel({
     series: TrainingSeriesComparison,
     metrics: ReportTrainingMetric[],
     sourceIndex: number,
+    blockHeading: string,
     compact = false,
   ) {
     const sourceLabel = interpolate(copy.analysis.sourceLabel, {
       number: number.format(sourceIndex + 1),
     });
+    const exactHeading = copy.analysis.blocks["training-exact-table"].heading;
+    const tableHeading = blockHeading === exactHeading
+      ? exactHeading
+      : `${blockHeading} · ${exactHeading}`;
+    const accessibleName = `${tableHeading} · ${sourceLabel}`;
     return (
       <DataTable
-        accessibleName={copy.analysis.blocks["training-exact-table"].heading}
+        accessibleName={accessibleName}
         className={compact ? "report-analysis-table compact" : "report-analysis-table"}
-        scrollAccessibleName={`${copy.analysis.blocks["training-exact-table"].heading} · ${sourceLabel}`}
+        scrollAccessibleName={accessibleName}
         scrollClassName="table-scroll"
       >
           <thead>
@@ -1266,13 +1272,14 @@ export function ReportsPanel({
     series: TrainingSeriesComparison,
     metrics: ReportTrainingMetric[],
     sourceIndex: number,
+    blockHeading: string,
   ) {
     return (
       <div className="report-analysis-series" key={series.seriesRef}>
         <h4>{interpolate(copy.analysis.sourceLabel, {
           number: number.format(sourceIndex + 1),
         })}</h4>
-        {renderExactComparisonTable(series, metrics, sourceIndex)}
+        {renderExactComparisonTable(series, metrics, sourceIndex, blockHeading)}
       </div>
     );
   }
@@ -1352,7 +1359,13 @@ export function ReportsPanel({
                     </div>
                   ))}
                 </div>
-                {renderExactComparisonTable(series, [block.metric], index, true)}
+                {renderExactComparisonTable(
+                  series,
+                  [block.metric],
+                  index,
+                  labels.heading,
+                  true,
+                )}
               </div>
             );
           })}
@@ -1401,6 +1414,7 @@ export function ReportsPanel({
           series,
           metrics,
           index,
+          labels.heading,
         ))}
       </article>
     );

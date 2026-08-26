@@ -989,6 +989,7 @@
         "one": "Esta vista no muestra {count} serie de señales registrada. Permanece en el ZIP original.",
         "other": "Esta vista no muestra {count} series de señales registradas. Permanecen en el ZIP original."
       },
+      "unsupportedSignalSeriesSummary": "Revisar compatibilidad de señales",
       "viewExactSignalSamples": "Consultar las muestras exactas de {kind}",
       "hideExactSignalSamples": "Ocultar las muestras exactas de {kind}",
       "exactSignalHeading": "Muestras exactas de {kind}",
@@ -1042,6 +1043,7 @@
         "one": "Esta vista no muestra {count} grupo de zonas registrado. Permanece en el ZIP original.",
         "other": "Esta vista no muestra {count} grupos de zonas registrados. Permanecen en el ZIP original."
       },
+      "unsupportedZoneGroupsSummary": "Revisar compatibilidad de zonas",
       "provenanceAction": "¿Cómo llegó esta sesión hasta aquí?",
       "provenanceHide": "Ocultar la procedencia de la sesión",
       "provenanceHeading": "Procedencia de la sesión",
@@ -1295,7 +1297,7 @@
     "rangeHelp": "Elige hasta 366 noches, ambas incluidas, dentro del historial del sueño disponible.",
     "answerLabel": "Respuesta sobre los patrones de sueño",
     "answerMultiple": "Se muestran {count} historiales de sueño",
-    "answerObserved": "Hay sueño registrado en {observed} de {total} noches",
+    "answerObserved": "Hay sueño registrado en {observed} de {total} {nightUnit}",
     "answerNone": "No hay sueño registrado en este periodo",
     "answerAverage": "Sueño medio registrado: {value}",
     "answerExact": "Revisar mediciones y noches exactas",
@@ -1317,6 +1319,10 @@
     "powerLoss": "terminadas por pérdida de energía",
     "of": "de",
     "nights": "noches",
+    "nightUnit": {
+      "one": "noche",
+      "other": "noches"
+    },
     "emptyRange": "No hay periodos de sueño observados en este intervalo. Las noches sin datos no se consideran noches sin dormir.",
     "visual": "Tiempo dormido e interrupciones por noche",
     "nightsTable": "Noches de sueño",
@@ -1447,7 +1453,7 @@
     "rangeHelp": "Elige hasta 366 noches, ambas inclusive, dentro del historial de recuperación disponible.",
     "answerLabel": "Respuesta del patrón de recuperación",
     "answerMultiple": "Se muestran {count} historiales de recuperación",
-    "answerObserved": "Hay intervalos de recuperación registrados para {observed} de {total} noches",
+    "answerObserved": "Hay intervalos de recuperación registrados para {observed} de {total} {nightUnit}",
     "answerNone": "No hay intervalos de recuperación registrados en este periodo",
     "answerAverage": "Intervalo medio entre latidos registrado: {value}",
     "answerMissing": "Noches sin recuperación registrada: {count}.",
@@ -1467,6 +1473,10 @@
     "guidanceCoverage": "Noches con recomendaciones del origen",
     "of": "de",
     "nights": "noches",
+    "nightUnit": {
+      "one": "noche",
+      "other": "noches"
+    },
     "emptyRange": "No hay resúmenes de recuperación observados en este periodo. Las noches sin datos no se consideran recuperación cero.",
     "visual": "Intervalo entre latidos por noche",
     "nightsTable": "Observaciones de recuperación nocturna",

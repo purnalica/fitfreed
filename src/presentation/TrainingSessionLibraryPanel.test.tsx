@@ -2576,7 +2576,12 @@ describe("TrainingSessionLibraryPanel", () => {
     await user.click(within(signalExercise!).getByRole("button", {
       name: "Hide exact Speed samples",
     }));
-    expect(signalExercise).toHaveTextContent("1 recorded signal series is not shown in this view");
+    const unsupportedSignal = within(signalExercise!).getByText(
+      "1 recorded signal series is not shown in this view. It remains in the original ZIP.",
+    );
+    expect(unsupportedSignal).not.toBeVisible();
+    await user.click(within(signalExercise!).getByText("Review signal compatibility"));
+    expect(unsupportedSignal).toBeVisible();
     await user.click(within(signalExercise!).getByRole("button", {
       name: "Inspect exact Heart rate samples",
     }));
@@ -2626,9 +2631,12 @@ describe("TrainingSessionLibraryPanel", () => {
       .toHaveTextContent("120–139 bpm");
     expect(zones).toHaveTextContent("15 min");
     expect(zones).toHaveTextContent("Not recorded");
-    expect(zones).toHaveTextContent(
+    const unsupportedZoneGroup = within(zones).getByText(
       "1 recorded zone group is not shown in this view. It remains in the original ZIP.",
     );
+    expect(unsupportedZoneGroup).not.toBeVisible();
+    await user.click(within(zones).getByText("Review zone compatibility"));
+    expect(unsupportedZoneGroup).toBeVisible();
     expect(mocks.invoke.mock.calls.filter(
       ([command]) => command === "query_training_session_provenance",
     )).toHaveLength(0);

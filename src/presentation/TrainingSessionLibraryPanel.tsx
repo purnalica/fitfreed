@@ -1986,12 +1986,15 @@ export function TrainingSessionLibraryPanel({
   function unsupportedSignalSeries(count: number) {
     if (count === 0) return null;
     return (
-      <p className="training-signal-unsupported">
-        {interpolate(
-          count === 1 ? copy.unsupportedSignalSeries.one : copy.unsupportedSignalSeries.other,
-          { count: number.format(count) },
-        )}
-      </p>
+      <details className="answer-exact-values training-compatibility-details">
+        <summary>{copy.unsupportedSignalSeriesSummary}</summary>
+        <p className="training-signal-unsupported">
+          {interpolate(
+            count === 1 ? copy.unsupportedSignalSeries.one : copy.unsupportedSignalSeries.other,
+            { count: number.format(count) },
+          )}
+        </p>
+      </details>
     );
   }
 

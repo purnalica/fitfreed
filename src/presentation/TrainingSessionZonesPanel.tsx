@@ -42,12 +42,15 @@ export function TrainingSessionZonesPanel({
   function unsupportedGroups(count: number) {
     if (count === 0) return null;
     return (
-      <p className="training-zone-unsupported">
-        {interpolate(
-          count === 1 ? copy.unsupportedZoneGroups.one : copy.unsupportedZoneGroups.other,
-          { count: number.format(count) },
-        )}
-      </p>
+      <details className="answer-exact-values training-compatibility-details">
+        <summary>{copy.unsupportedZoneGroupsSummary}</summary>
+        <p className="training-zone-unsupported">
+          {interpolate(
+            count === 1 ? copy.unsupportedZoneGroups.one : copy.unsupportedZoneGroups.other,
+            { count: number.format(count) },
+          )}
+        </p>
+      </details>
     );
   }
 

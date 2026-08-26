@@ -297,7 +297,7 @@ non-runtime artifacts and does not obscure the executable-input fingerprint.
 | X7-P0 | Complete in working tree — post-review requirements, causes, boundaries, sequence, and gates consolidated | One executable corrective plan owns every accepted finding |
 | X7-R1 | Pending | Import guidance, rejection, progress, navigation, and completion remain truthful and responsive |
 | X7-R2 | Complete locally — exact represented-sport identity, comparison presets, and the complete natural-drill-down campaign passed 2026-08-26 | Sports are evidence-backed and every represented collection opens its exact sessions |
-| X7-R3 | In progress — shared presentation and Settings contracts are the active corrective boundary | Settings and data presentation use clear transactions, meaningful precision, alignment, and disclosure |
+| X7-R3 | Complete locally — independent density review and exact fast, packaged, accessibility, restart, localization, visual, and performance gates passed 2026-08-26 | Settings and data presentation use clear transactions, meaningful precision, alignment, and disclosure |
 | X7-R4 | Pending | Analytical charts and route navigation provide a mature, accessible, bounded visual foundation |
 | X7-R5 | Pending | Exported objectives, phases, blocks, repetitions, and constraints survive and become useful |
 | X7-R6 | Pending | Relevant built-in examples and duplication make reports understandable and reusable |
@@ -2778,6 +2778,39 @@ inside one labelled native disclosure. Opening it performs no query and retains 
 gap, lap, pause, zone, and unsupported-evidence statement in both locales. Adaptive leadership and every exact-detail
 path remain unchanged; compatibility limitations no longer interrupt the visual answer by default. The remaining
 primary screens and the independent density review remain open within X7-R3.
+
+**Execution checkpoint — independent density review and X7-R3 closure:** the rebuilt packaged review found two
+material defects after the primary-screen hierarchy audit. At compact 200% zoom, WebKit sized the open sport-index
+disclosure content to its min-content width; this reduced a 680-pixel workspace to a 268-pixel sport section and made
+the 80-character classification preview wrap almost one character per line. A failing packaged geometry assertion now
+protects a readable editor measure and bounded preview line count across the existing 40-combination locale, theme,
+viewport, and zoom matrix. The sport section, editor container, and form now occupy their available width; the rebuilt
+targeted journey passed and the generated compact evidence shows readable three-line copy with contained, aligned
+fields. Analytical reports also repeated the same accessible landmark name for exact tables belonging to different
+report blocks; each table and scroll region now derives a unique contextual name from its block heading and source,
+with component coverage. Packaged evidence also protects the closed-by-default session inventory and its complete
+exact account.
+
+The screen-by-screen review now covers Home, Activity, History, the training workspace, the sport editor, Sleep,
+Recovery, Longitudinal, all three comparison views, Settings, Source, import outcomes, Reports, route, signal,
+structure, zones, and personal ranges at representative wide and compact 200% states. It found two further material
+presentation defects. One-night Sleep and Recovery evidence used the plural noun in both locales; the panels now
+select the localized singular or plural form through the shared plural-rules boundary, with coverage for the main
+answer and exact-coverage disclosure. Signal and zone workbenches also repeated unsupported-evidence warnings in the
+primary composition even though the closed session inventory already retained the complete compatibility account.
+Those local warnings now remain available in labelled, closed native disclosures; tests and packaged journeys protect
+both their quiet default state and their complete on-demand content. No unsupported count or compatibility evidence
+was removed.
+
+The report tests, focused disclosure and plural tests, localization contract, UI-contract scan, production build,
+rebuilt E2E package, targeted adaptive journey, and targeted main journey passed. The complete fast contributor lane
+then passed with 399 presentation tests and 521 Rust tests after the final review changes. A fresh package subsequently
+passed the complete functional journey, real-process restart, evidence-adaptive session journey, independent-range
+restart, Axe checks, and dense-history performance journey on 2026-08-26. The functional journey completed in 2
+minutes 3 seconds; every measured p95 remained inside its documented budget. Inspection of the regenerated synthetic
+evidence confirmed the corrected compact editor measure, singular one-night copy, ordinary `0 s` precision, quiet
+closed compatibility state, complete on-demand warnings, and intact result-first hierarchy. Strict Rust lint, Rust
+formatting, the production build, documentation contracts, and repository diff checks passed. X7-R3 is complete.
 
 ### X7-R4 — Adopt a mature analytical visualization foundation
 

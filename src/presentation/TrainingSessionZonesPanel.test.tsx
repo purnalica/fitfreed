@@ -97,9 +97,15 @@ describe("TrainingSessionZonesPanel", () => {
     expect(panel).toHaveTextContent("2,500.5 m");
     expect(panel).toHaveTextContent("180–219 W");
     expect(panel).toHaveTextContent("42.5");
-    expect(panel).toHaveTextContent(
+    const compatibility = within(panel).getByText("Review zone compatibility")
+      .closest("details");
+    const unsupported = within(panel).getByText(
       "1 recorded zone group is not shown in this view. It remains in the original ZIP.",
     );
+    expect(compatibility).not.toHaveAttribute("open");
+    expect(unsupported).not.toBeVisible();
+    await userEvent.click(within(panel).getByText("Review zone compatibility"));
+    expect(unsupported).toBeVisible();
     expect(panel).not.toHaveTextContent("zone-");
     expect(panel).not.toHaveTextContent("exercise-");
   });

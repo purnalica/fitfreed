@@ -217,6 +217,30 @@ describe("packaged evidence-adaptive session composition", () => {
     expect(await $$(".training-route-workbench")).toHaveLength(0);
     expect(await $$(".training-structure-workbench")).toHaveLength(0);
     expect(await $$(".training-zone-workbench")).toHaveLength(0);
+    const evidenceDisclosure = await $(".training-session-evidence-disclosure");
+    const evidenceRegion = await evidenceDisclosure.$(
+      ".training-session-evidence-summary",
+    );
+    expect(await evidenceDisclosure.getAttribute("open")).toBeNull();
+    expect(await evidenceRegion.isDisplayed()).toBe(false);
+    await evidenceDisclosure.$("summary").click();
+    await expect(evidenceDisclosure).toHaveAttribute("open");
+    await expect(evidenceRegion).toBeDisplayed();
+    await expect(evidenceRegion).toHaveAttribute(
+      "aria-label",
+      english.training.sessionLibrary.evidenceSummary.regionLabel,
+    );
+    await expect(evidenceRegion).toHaveText(expect.stringContaining("1 exercise"));
+    await expect(evidenceRegion).toHaveText(expect.stringContaining("3 signal series"));
+    await expect(evidenceRegion).toHaveText(expect.stringContaining(
+      "1 sample without a recorded value",
+    ));
+    await expect(evidenceRegion).toHaveText(expect.stringContaining(
+      "1 recorded series not shown here",
+    ));
+    await evidenceDisclosure.$("summary").click();
+    expect(await evidenceDisclosure.getAttribute("open")).toBeNull();
+    expect(await evidenceRegion.isDisplayed()).toBe(false);
     const signalNavigation = await $$(".training-detail-navigation button");
     const signalNavigationLabels = [];
     for (const button of signalNavigation) signalNavigationLabels.push(await button.getText());
@@ -490,7 +514,15 @@ describe("packaged evidence-adaptive session composition", () => {
       timeout: 10_000,
       timeoutMsg: "recorded zone groups were not displayed",
     });
-    await expect($(".training-zone-unsupported")).toHaveText(
+    const zoneCompatibility = await $(
+      ".training-exercise-zones > .training-compatibility-details",
+    );
+    const unsupportedZoneGroup = await zoneCompatibility.$(".training-zone-unsupported");
+    expect(await zoneCompatibility.getAttribute("open")).toBeNull();
+    expect(await unsupportedZoneGroup.isDisplayed()).toBe(false);
+    await zoneCompatibility.$("summary").click();
+    await expect(unsupportedZoneGroup).toBeDisplayed();
+    await expect(unsupportedZoneGroup).toHaveText(
       expect.stringContaining("1 recorded zone group is not shown in this view"),
     );
     const zoneGroup = await $(".training-zone-group:first-of-type");

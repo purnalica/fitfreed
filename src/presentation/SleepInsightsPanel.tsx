@@ -35,7 +35,11 @@ import type {
 } from "./sleep-insights";
 import { useInvalidForm } from "./useInvalidForm";
 import { useResultFocus } from "./useResultFocus";
-import { integerCountFormatter, mediumDateFormatter } from "./presentation-format";
+import {
+  integerCountFormatter,
+  mediumDateFormatter,
+  pluralRules,
+} from "./presentation-format";
 
 interface SleepInsightsPanelProps {
   locale: Locale;
@@ -76,6 +80,7 @@ export function SleepInsightsPanel({
   const detailHeadingRef = useRef<HTMLHeadingElement>(null);
   const detailOriginRef = useRef<HTMLButtonElement | null>(null);
   const number = useMemo(() => integerCountFormatter(locale), [locale]);
+  const plural = useMemo(() => pluralRules(locale), [locale]);
   const date = useMemo(
     () => mediumDateFormatter(locale),
     [locale],
@@ -237,14 +242,19 @@ export function SleepInsightsPanel({
   }
 
   function coverage(available: number, total: number): string {
-    return `${number.format(available)} ${copy.of} ${number.format(total)} ${copy.nights}`;
+    const nightUnit = copy.nightUnit[plural.select(total) === "one" ? "one" : "other"];
+    return `${number.format(available)} ${copy.of} ${number.format(total)} ${nightUnit}`;
   }
 
   function observationConclusion(observed: number, total: number): string {
     if (observed === 0) return copy.answerNone;
     return copy.answerObserved
       .replace("{observed}", number.format(observed))
-      .replace("{total}", number.format(total));
+      .replace("{total}", number.format(total))
+      .replace(
+        "{nightUnit}",
+        copy.nightUnit[plural.select(total) === "one" ? "one" : "other"],
+      );
   }
 
   function averageEvidence(value: string | null): ReactNode {

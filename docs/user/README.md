@@ -96,7 +96,9 @@ position and personal-range controls use only that regular signal's own exact el
 boundary outside the bounded chart stays exact and is never snapped or aligned to a route by equal offsets. A compact
 evidence account remains available through **Review recorded session evidence** and states once what the session
 contains; it starts closed so the strongest recorded visual remains primary. Deeper sections remain for requested
-detail rather than repeating general absence notices.
+detail rather than repeating general absence notices. Unsupported signal and zone counts remain in that complete
+account; their section-specific compatibility explanations open only on request instead of repeating warnings beside
+the primary visual.
 Personal ranges have a dedicated [session-range guide](session-ranges.md). A person can create, reopen, rename,
 adjust, review after reimport, and remove a session-owned range on one explicit exercise, route, or measurement
 timeline. The result leads with a concise revision-coherent summary and reveals exact boundary quality, source

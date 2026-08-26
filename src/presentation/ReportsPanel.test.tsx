@@ -1874,6 +1874,15 @@ describe("ReportsPanel", () => {
       name: "Coverage and missing data",
       level: 3,
     })).toBeVisible();
+    expect(screen.getByRole("region", {
+      name: "Period comparison · Exact values · Imported source 1",
+    })).toBeVisible();
+    expect(screen.getByRole("region", {
+      name: "Comparison chart · Exact values · Imported source 1",
+    })).toBeVisible();
+    expect(screen.getByRole("region", {
+      name: "Exact values · Imported source 1",
+    })).toBeVisible();
     expect(screen.getAllByText("68,500.75 m").length).toBeGreaterThan(0);
     expect(document.body.innerHTML).not.toContain("opaque-origin-that-must-not-be-rendered");
     const reviewOrigin = screen.getByRole("button", { name: "Review and export" });

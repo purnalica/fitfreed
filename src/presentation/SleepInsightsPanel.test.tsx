@@ -287,6 +287,33 @@ describe("SleepInsightsPanel", () => {
       .toBeVisible();
   });
 
+  it.each([
+    ["en-US", "Recorded sleep is available for 1 of 1 night", "Observed nights · 1 of 1 night"],
+    ["es-ES", "Hay sueño registrado en 1 de 1 noche", "Noches observadas · 1 de 1 noche"],
+  ] as const)("pluralizes one-night sleep coverage in %s", async (
+    locale,
+    expectedAnswer,
+    expectedCoverage,
+  ) => {
+    const result = overview({ from: "2026-03-28", through: "2026-03-28" });
+    result.availableRange = { from: "2026-03-28", through: "2026-03-28" };
+    result.series = [{
+      ...result.series[0],
+      summary: summary({ calendarDays: 1, observedNights: 1, missingNights: 0 }),
+      days: result.series[0].days.slice(0, 1),
+    }];
+    mocks.invoke.mockResolvedValue(result);
+    const user = userEvent.setup();
+    renderPanel({ locale });
+
+    const answer = await screen.findByRole("region", {
+      name: catalogs[locale].sleep.answerLabel,
+    });
+    expect(within(answer).getByText(expectedAnswer)).toBeVisible();
+    await user.click(within(answer).getByText(catalogs[locale].sleep.answerExact));
+    expect(within(answer).getByText(expectedCoverage)).toBeVisible();
+  });
+
   it("announces the exact latest-window operation without replacing the current history", async () => {
     let requestCount = 0;
     let completeReset: (value: SleepOverview) => void = () => undefined;

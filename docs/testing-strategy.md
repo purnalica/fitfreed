@@ -62,8 +62,10 @@ Automated testing is the primary source of evidence that the product behaves cor
   exact applied refinement, and focuses its result count without a second discovery contract.
 - Shared production-table naming, distinct nested scroll-region labels, keyboard-scroll boundaries, explicit
   numeric-column semantics, and closed-by-default segment and zone tables without row-level attribution
-  duplication. The UI contract rejects direct production `<table>` ownership outside `DataTable` and CSS that
-  assigns table alignment from first, last, or ordinal column position.
+  duplication. Report exact tables derive distinct names from their analytical block and source, so repeated
+  evidence never creates duplicate table or scroll-region landmarks. The UI contract rejects direct production
+  `<table>` ownership outside `DataTable` and CSS that assigns table alignment from first, last, or ordinal column
+  position.
 - Personal-range creation, selection, exact elapsed validation, rename, immutable-coordinate adjustment, legacy anchoring, reimport review, optimistic-conflict draft retention, guarded removal, remount restoration, concise summary disclosure, both locales, and opaque-capability exclusion.
 - Shared activity, sleep, recovery, and aligned-history workspace navigation, current-location state, exact-detail
   replacement, and progressive-disclosure boundaries. Activity retains its visual and day actions while its exact
@@ -71,6 +73,11 @@ Automated testing is the primary source of evidence that the product behaves cor
   through locale and range changes. Its period form follows the answer, opens deliberately, retains the current
   answer during a pending operation, and closes after a successful replacement while focus returns to the Activity
   heading instead of remaining in hidden controls.
+- Sleep and recovery select singular or plural night units through the shared locale boundary for conclusions and
+  exact coverage. Both locales protect one-night and multiple-night evidence rather than accepting a fixed plural.
+- Compact sport classification measures are asserted across the 40-combination locale, appearance, viewport, and
+  zoom matrix. The open native disclosure, editor, fields, preview, and actions must occupy the available WebKit
+  width without min-content collapse, clipping, or one-character-per-line copy.
 - Report Library, Compose, Preview, stale-evidence review, and export-review boundaries, including preserved mounted drafts and inaccessible inactive stages.
 - Value-first empty startup before Sources, plus one persistently mounted Settings workspace with distinct preference and update categories, a concrete preference preview, and one continuous update lifecycle.
 - Ordered same-process Home publication across deferred startup, mapping-aware reimport, and sport-classification refreshes, including suppression of stale exploration destinations and a Sessions request that settles after deliberate entry.
@@ -102,6 +109,9 @@ Automated testing is the primary source of evidence that the product behaves cor
 - Full-history training discovery with combined filters, deterministic sorting, coherent forward and backward pagination, source-separated calendar traversal, two-through-four-session comparison, exact chronology or calendar return, complete application-process restart restoration, library-change recovery, exact results, and lightweight detail.
 - Explicit traversal among Sessions, Sports, and Compare periods and among every session evidence section, proving that hidden views are inaccessible while their disposable state survives temporary navigation.
 - Evidence-adaptive session leadership for routed, signal-only, structure-only, zone-only, and summary-only sessions, including a closed-by-default complete evidence account, deliberate evidence reveal, exact-detail focus, missing-versus-zero aggregates, both locales, compact width, 200% zoom, and restart.
+- Unsupported signal and zone counts remain in that complete session account. Section-specific compatibility
+  explanations start closed, remain keyboard and assistive-technology reachable, and reveal their complete text on
+  request without repeating warning copy across the primary visual composition.
 - Personal-range creation, cancellation, validation, reopening, renaming, exact-timeline boundary adjustment,
   guarded removal, concise revision-coherent summary, disclosed exact evidence and limitations, reimport review,
   stale revision recovery, packaged-process restart, accessibility, adaptive layout, and dense-session response
