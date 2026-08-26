@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 
-import { e2eBuildEnvironment } from "./build-e2e.mjs";
+import { e2eBuildArguments, e2eBuildEnvironment } from "./build-e2e.mjs";
 import { packagedE2eScenarioPlan } from "./packaged-e2e-plan.mjs";
 import {
   e2eTargetDirectory,
@@ -55,6 +55,28 @@ test("binds the isolated E2E package to its exact source", () => {
   assert.equal(environment.FITFREED_PUBLIC_UPDATE_CONTRACT, undefined);
   assert.equal(environment.FITFREED_PUBLIC_UPDATE_ENDPOINT, undefined);
   assert.equal(environment.FITFREED_PUBLIC_UPDATE_TRUST, undefined);
+});
+
+test("builds only the instrumented application consumed by the packaged journey", () => {
+  assert.deepEqual(e2eBuildArguments(), [
+    "build",
+    "--features",
+    "e2e",
+    "--bundles",
+    "app",
+    "--config",
+    "src-tauri/tauri.e2e.conf.json",
+  ]);
+  assert.deepEqual(e2eBuildArguments(["--verbose"]), [
+    "build",
+    "--features",
+    "e2e",
+    "--bundles",
+    "app",
+    "--config",
+    "src-tauri/tauri.e2e.conf.json",
+    "--verbose",
+  ]);
 });
 
 test("keeps packaged update fixtures outside both retained application targets", () => {

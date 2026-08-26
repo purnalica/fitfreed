@@ -27,6 +27,19 @@ export function e2eBuildEnvironment(inheritedEnvironment, revision, status) {
   };
 }
 
+export function e2eBuildArguments(arguments_ = []) {
+  return [
+    "build",
+    "--features",
+    "e2e",
+    "--bundles",
+    "app",
+    "--config",
+    "src-tauri/tauri.e2e.conf.json",
+    ...arguments_,
+  ];
+}
+
 export function buildE2ePackage({
   arguments_ = process.argv.slice(2),
   execute = execFileSync,
@@ -36,14 +49,7 @@ export function buildE2ePackage({
   const status = git(["status", "--porcelain=v1", "--untracked-files=all"]);
   execute(
     path.join(repositoryRoot, "node_modules/.bin/tauri"),
-    [
-      "build",
-      "--features",
-      "e2e",
-      "--config",
-      "src-tauri/tauri.e2e.conf.json",
-      ...arguments_,
-    ],
+    e2eBuildArguments(arguments_),
     {
       cwd: repositoryRoot,
       env: e2eBuildEnvironment(inheritedEnvironment, revision, status),
