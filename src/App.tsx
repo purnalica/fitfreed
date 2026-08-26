@@ -27,6 +27,7 @@ import type {
   ActivityOverview,
 } from "./presentation/activity-insights";
 import { commandErrorCode } from "./presentation/command-error";
+import { integerCountFormatter } from "./presentation/number-format";
 import type {
   ExplorerNavigationRequest,
   TrainingNavigationRequest,
@@ -267,7 +268,7 @@ function App() {
   const [errorCode, setErrorCode] = useState<string>();
   const [sourceErrorCode, setSourceErrorCode] = useState<string>();
   const activityRangeValidation = useInvalidForm(setErrorCode);
-  const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const number = useMemo(() => integerCountFormatter(locale), [locale]);
   const date = useMemo(
     () => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }),
     [locale],
@@ -1109,16 +1110,19 @@ function App() {
           : historyUnavailable
             ? { message: messages.shell.historyEmpty }
             : undefined;
+  const shellImportDetail = cancelRequested
+    ? messages.cancelling
+    : projectingCommittedImport
+      ? messages.sources.activeRefreshing
+      : progress
+        ? progressDetail
+          ? `${messages.phases[progress.phase]} · ${progressDetail}`
+          : messages.phases[progress.phase]
+        : messages.importing;
   const shellImportOperation = busy && activeHome !== "sources"
     ? {
         label: messages.shell.activeImport,
-        detail: cancelRequested
-          ? messages.cancelling
-          : projectingCommittedImport
-            ? messages.sources.activeRefreshing
-            : progress
-              ? messages.phases[progress.phase]
-              : messages.importing,
+        detail: shellImportDetail,
         actionLabel: messages.shell.viewImport,
         onAction: () => openSources("start"),
       }

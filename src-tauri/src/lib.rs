@@ -68,9 +68,10 @@ use fitfreed_application::{
     update_report as update_report_through_port,
     update_session_report as update_session_report_through_port,
     update_training_segment_criterion as update_segment_criterion_through_port, ApplicationError,
-    ApplicationPreferences, ImportCoordinator, ImportProgress, InvalidApplicationPreferences,
-    LocalePreference, ReportExportCancellation, SessionStoryPorts, UpdateChannelPort,
-    UpdateCheckContext, UpdateCheckTrigger, UpdateInstallationAuthorization, UpdateRecoveryOutcome,
+    ApplicationPreferences, ImportCoordinator, ImportPhase, ImportProgress,
+    InvalidApplicationPreferences, LocalePreference, ReportExportCancellation, SessionStoryPorts,
+    UpdateChannelPort, UpdateCheckContext, UpdateCheckTrigger, UpdateInstallationAuthorization,
+    UpdateRecoveryOutcome,
 };
 use infrastructure::{
     acknowledge_update_recovery_outcome as acknowledge_retained_update_recovery_outcome,
@@ -371,6 +372,88 @@ impl Drop for ReportExportOperation {
     }
 }
 
+const IMPORT_PROGRESS_MAX_INTERVAL: Duration = Duration::from_millis(100);
+const IMPORT_PROGRESS_ARTIFACT_STEP: usize = 250;
+const IMPORT_PROGRESS_BYTE_STEP: u64 = 8 * 1024 * 1024;
+
+struct ImportProgressCoalescer {
+    last_emitted: Option<ImportProgress>,
+    last_emitted_at: Option<Instant>,
+    observed_events: usize,
+    emitted_events: usize,
+}
+
+impl ImportProgressCoalescer {
+    fn new() -> Self {
+        Self {
+            last_emitted: None,
+            last_emitted_at: None,
+            observed_events: 0,
+            emitted_events: 0,
+        }
+    }
+
+    fn should_emit(&mut self, progress: &ImportProgress) -> bool {
+        self.should_emit_at(progress, Instant::now())
+    }
+
+    fn should_emit_at(&mut self, progress: &ImportProgress, observed_at: Instant) -> bool {
+        self.observed_events += 1;
+        let should_emit = match (&self.last_emitted, self.last_emitted_at) {
+            (None, _) => true,
+            (Some(previous), Some(previous_at)) => {
+                if progress.phase == previous.phase
+                    && (progress.completed_artifacts < previous.completed_artifacts
+                        || progress.completed_bytes < previous.completed_bytes)
+                {
+                    false
+                } else {
+                    progress.phase != previous.phase
+                        || progress.cancellable != previous.cancellable
+                        || matches!(
+                            progress.phase,
+                            ImportPhase::Completed | ImportPhase::Cancelled
+                        )
+                        || progress.total_artifacts.is_some_and(|total| {
+                            progress.completed_artifacts >= total
+                                && previous.completed_artifacts < total
+                        })
+                        || progress.total_bytes.is_some_and(|total| {
+                            progress.completed_bytes >= total && previous.completed_bytes < total
+                        })
+                        || progress
+                            .completed_artifacts
+                            .saturating_sub(previous.completed_artifacts)
+                            >= IMPORT_PROGRESS_ARTIFACT_STEP
+                        || progress
+                            .completed_bytes
+                            .saturating_sub(previous.completed_bytes)
+                            >= IMPORT_PROGRESS_BYTE_STEP
+                        || observed_at.saturating_duration_since(previous_at)
+                            >= IMPORT_PROGRESS_MAX_INTERVAL
+                }
+            }
+            (Some(_), None) => true,
+        };
+        if should_emit {
+            self.last_emitted = Some(progress.clone());
+            self.last_emitted_at = Some(observed_at);
+            self.emitted_events += 1;
+        }
+        should_emit
+    }
+
+    #[cfg(test)]
+    fn observed_events(&self) -> usize {
+        self.observed_events
+    }
+
+    #[cfg(test)]
+    fn emitted_events(&self) -> usize {
+        self.emitted_events
+    }
+}
+
 #[tauri::command]
 async fn import_archive(
     app: AppHandle,
@@ -388,8 +471,11 @@ async fn import_archive(
     let coordinator = coordinator.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         let importer = SqlitePolarFlowArchiveImporter::new(database_path);
+        let mut progress_coalescer = ImportProgressCoalescer::new();
         let mut report_progress = |progress: ImportProgress| {
-            let _ = on_progress.send(progress.into());
+            if progress_coalescer.should_emit(&progress) {
+                let _ = on_progress.send(progress.into());
+            }
         };
         fitfreed_application::import_archive(
             &importer,
@@ -2140,6 +2226,104 @@ mod tests {
         fn fetch_update_snapshot(&self) -> Result<UpdateChannelRead, String> {
             Ok(self.0.clone())
         }
+    }
+
+    #[test]
+    fn import_progress_coalescing_keeps_boundaries_completion_and_time_updates() {
+        let started = Instant::now();
+        let mut coalescer = ImportProgressCoalescer::new();
+
+        assert!(coalescer.should_emit_at(
+            &ImportProgress::artifacts(ImportPhase::Reconciling, 0, 1_000),
+            started,
+        ));
+        assert!(!coalescer.should_emit_at(
+            &ImportProgress::artifacts(ImportPhase::Reconciling, 1, 1_000),
+            started,
+        ));
+        assert!(coalescer.should_emit_at(
+            &ImportProgress::artifacts(
+                ImportPhase::Reconciling,
+                IMPORT_PROGRESS_ARTIFACT_STEP,
+                1_000,
+            ),
+            started,
+        ));
+        assert!(coalescer.should_emit_at(
+            &ImportProgress::artifacts(
+                ImportPhase::Reconciling,
+                IMPORT_PROGRESS_ARTIFACT_STEP + 1,
+                1_000,
+            ),
+            started + IMPORT_PROGRESS_MAX_INTERVAL,
+        ));
+        assert!(coalescer.should_emit_at(
+            &ImportProgress::artifacts(ImportPhase::Reconciling, 1_000, 1_000),
+            started + IMPORT_PROGRESS_MAX_INTERVAL,
+        ));
+        assert!(coalescer.should_emit_at(
+            &ImportProgress::phase(ImportPhase::Committing),
+            started + IMPORT_PROGRESS_MAX_INTERVAL,
+        ));
+        assert!(coalescer.should_emit_at(
+            &ImportProgress::phase(ImportPhase::Completed),
+            started + IMPORT_PROGRESS_MAX_INTERVAL,
+        ));
+    }
+
+    #[test]
+    fn dense_reconciliation_has_a_bounded_channel_event_budget() {
+        let total = 12_000;
+        let started = Instant::now();
+        let mut coalescer = ImportProgressCoalescer::new();
+
+        for completed in 0..=total {
+            coalescer.should_emit_at(
+                &ImportProgress::artifacts(ImportPhase::Reconciling, completed, total),
+                started,
+            );
+        }
+
+        assert_eq!(coalescer.observed_events(), total + 1);
+        assert!(coalescer.emitted_events() <= 50);
+        assert!(coalescer.emitted_events() < coalescer.observed_events() / 200);
+    }
+
+    #[test]
+    fn import_progress_coalescing_drops_regressive_same_phase_updates() {
+        let started = Instant::now();
+        let mut coalescer = ImportProgressCoalescer::new();
+
+        assert!(coalescer.should_emit_at(
+            &ImportProgress::artifacts(ImportPhase::Reconciling, 300, 1_000),
+            started,
+        ));
+        assert!(!coalescer.should_emit_at(
+            &ImportProgress::artifacts(ImportPhase::Reconciling, 200, 1_000),
+            started + IMPORT_PROGRESS_MAX_INTERVAL,
+        ));
+        assert!(coalescer.should_emit_at(
+            &ImportProgress::phase(ImportPhase::Cancelled),
+            started + IMPORT_PROGRESS_MAX_INTERVAL,
+        ));
+    }
+
+    #[test]
+    fn fingerprint_progress_uses_the_bounded_byte_threshold() {
+        let started = Instant::now();
+        let total = IMPORT_PROGRESS_BYTE_STEP * 3;
+        let mut coalescer = ImportProgressCoalescer::new();
+
+        assert!(coalescer.should_emit_at(&ImportProgress::fingerprinting(0, total), started));
+        assert!(!coalescer.should_emit_at(
+            &ImportProgress::fingerprinting(IMPORT_PROGRESS_BYTE_STEP - 1, total),
+            started,
+        ));
+        assert!(coalescer.should_emit_at(
+            &ImportProgress::fingerprinting(IMPORT_PROGRESS_BYTE_STEP, total),
+            started,
+        ));
+        assert!(coalescer.should_emit_at(&ImportProgress::fingerprinting(total, total), started,));
     }
 
     fn synthetic_public_update_key() -> String {

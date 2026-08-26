@@ -2547,6 +2547,11 @@ captures process output locally, waits for the launcher exit status, and returns
 size, compression ratio, and bounded read exhaustion now remain distinct through rejection persistence and localized
 presentation. Bounded reads stop before allocating beyond the limit; terminal outcomes retain stable categories and
 never expose member paths. Historical aggregate codes remain readable but are no longer emitted.
+**Execution checkpoint — bounded import progress delivery:** the desktop host now coalesces progress before IPC by
+item, byte, and time thresholds while always preserving first, phase, cancellation, exact-completion, and terminal
+events. Same-phase regressions are not delivered. A dense 12,000-item synthetic reconciliation is bounded to 50
+channel events in the no-time-advance profile, and the shell now displays the localized phase and grouped numeric
+progress while the user works outside Sources.
 Process creation still maps permission, missing-launcher, and operating-system failures to stable application
 categories; a non-successful exit maps to delegation failure. Focused tests cover the exact invocation and every
 result without granting presentation arbitrary URL authority. Actual default-browser appearance remains the

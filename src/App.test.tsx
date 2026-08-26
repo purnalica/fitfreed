@@ -2045,6 +2045,7 @@ describe("FitFreed import interface", () => {
     await user.click(screen.getByRole("button", { name: "Home" }));
     const operation = screen.getByRole("status", { name: "Import in progress" });
     expect(operation).toHaveTextContent("Reconciling supported records with your library");
+    expect(operation).toHaveTextContent("2 of 8 library items");
     expect(screen.getByRole("button", { name: "Choose an export ZIP" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "How to obtain one" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "History" })).toHaveAccessibleDescription(

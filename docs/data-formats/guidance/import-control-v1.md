@@ -31,6 +31,13 @@ factual indeterminate boundary, not a disguised reconciliation phase. Presentati
 progress message is taking longer than usual, but the watchdog cannot terminate the operation, invent a duration, or
 claim that it is stalled.
 
+The desktop transport coalesces producer updates before they cross into the WebView. It always emits the first update,
+phase and cancellation-boundary changes, exact bounded completion, and terminal updates. Within a phase it emits at
+least every 250 completed artifacts, every 8 MiB of fingerprinted input, or every 100 milliseconds of continuing work,
+whichever boundary is reached first. Regressive same-phase updates are rejected. These delivery bounds reduce render
+work without changing the authoritative producer count, cancellation polling, transaction boundary, or exact terminal
+state.
+
 ## Package classification
 
 Package inventory is inspected before a user-facing compatibility category is assigned. No member content is decoded

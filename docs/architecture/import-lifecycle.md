@@ -126,6 +126,12 @@ phase starts its own monotonic count. Committing is explicitly indeterminate and
 file count. If no authoritative progress changes for the presentation watchdog interval, the interface may explain
 that local work is taking longer than usual, but it cannot invent a duration or percentage, terminate the work, or
 change its persisted result.
+The desktop host coalesces dense producer progress before IPC using bounded item, byte, and time thresholds. First,
+phase-boundary, cancellation-boundary, exact-completion, and terminal events always cross the boundary; same-phase
+regressions never do. The producer still performs every cancellation check and reconciliation step, while one dense
+12,000-item synthetic stream produces no more than 50 channel events when no time boundary intervenes. The shell
+shows the current phase and localized processed/total count outside Sources, so navigation does not hide countable
+work.
 The Sources presentation replaces competing acquisition choices with one dominant operation surface,
 keeps cancellation explicit, and states that the existing library remains unchanged until commit. It
 announces immediate localized importing or cancellation-requested feedback while the detailed phase stream
