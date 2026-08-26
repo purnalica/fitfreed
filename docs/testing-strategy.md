@@ -62,7 +62,12 @@ Automated testing is the primary source of evidence that the product behaves cor
   duplication. The UI contract rejects direct production `<table>` ownership outside `DataTable` and CSS that
   assigns table alignment from first, last, or ordinal column position.
 - Personal-range creation, selection, exact elapsed validation, rename, immutable-coordinate adjustment, legacy anchoring, reimport review, optimistic-conflict draft retention, guarded removal, remount restoration, concise summary disclosure, both locales, and opaque-capability exclusion.
-- Shared activity, sleep, recovery, and aligned-history workspace navigation, current-location state, exact-detail replacement, and progressive-disclosure boundaries.
+- Shared activity, sleep, recovery, and aligned-history workspace navigation, current-location state, exact-detail
+  replacement, and progressive-disclosure boundaries. Activity retains its visual and day actions while its exact
+  table is closed, then reveals the same gap-aware rows without another application query and remains coherent
+  through locale and range changes. Its period form follows the answer, opens deliberately, retains the current
+  answer during a pending operation, and closes after a successful replacement while focus returns to the Activity
+  heading instead of remaining in hidden controls.
 - Report Library, Compose, Preview, stale-evidence review, and export-review boundaries, including preserved mounted drafts and inaccessible inactive stages.
 - Value-first empty startup before Sources, plus one persistently mounted Settings workspace with distinct preference and update categories, a concrete preference preview, and one continuous update lifecycle.
 - Ordered same-process Home publication across deferred startup, mapping-aware reimport, and sport-classification refreshes, including suppression of stale exploration destinations and a Sessions request that settles after deliberate entry.

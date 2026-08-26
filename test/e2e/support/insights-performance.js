@@ -122,6 +122,7 @@ function evidence(measurements) {
 }
 
 async function applyActivityRange(from, through) {
+  await openDisclosure(".activity-history-controls");
   const input = {
     from,
     through,
@@ -1182,6 +1183,7 @@ export async function runInsightsPerformanceJourney({
   await openHomeQuestion("review-activity-steps", "#activity-heading");
   await $("#activity-comparison-heading").waitForDisplayed({ timeout: 10_000 });
   await $(".workspace-navigation button[data-workspace='history']").click();
+  await openDisclosure(".activity-history-controls");
   await $(".activity-filter").waitForDisplayed({ timeout: 10_000 });
 
   const commonRanges = [

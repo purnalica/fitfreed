@@ -28,6 +28,9 @@ details, or comparisons. The
 longitudinal dashboard aligns domains without merging sources or implying causation. Activity, sleep,
 recovery, and aligned history each separate their history from **Compare periods**; an exact day or night
 temporarily replaces the history list, and returning restores the point from which it was opened.
+Daily Activity shows its visual history and day actions first. **Review exact daily values** opens the complete
+gap-aware table only when needed. **Change activity period** follows the answer rather than preceding it and closes
+after applying a new period; changing language or the selected period keeps an open exact-value review coherent.
 
 Current builds also demonstrate import safety, source-subject correlation, reconciliation, and localized
 family coverage. Settings separates **Appearance & language** from **Updates**, so maintenance does not

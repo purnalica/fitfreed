@@ -630,6 +630,7 @@ async function resetSettings(destination = "explore") {
 }
 
 async function setActivityRange(from, through) {
+  await openDisclosure(".activity-history-controls");
   await browser.execute((values) => {
     const inputs = document.querySelectorAll(".activity-filter input[type='date']");
     const setValue = Object.getOwnPropertyDescriptor(
@@ -780,7 +781,13 @@ async function formatBrowserSleepLocalDateTime(locale, value) {
   }, { requestedLocale: locale, offsetDateTime: value });
 }
 
-async function expectHistory(expectedRows) {
+async function expectHistory(expectedRows, { initiallyClosed = false } = {}) {
+  const disclosure = await $(".activity-exact-evidence");
+  await disclosure.waitForExist({ timeout: 10_000 });
+  if (initiallyClosed) {
+    expect(await disclosure.getAttribute("open")).toBeNull();
+  }
+  await openDisclosure(".activity-exact-evidence");
   const historyRows = ".history-grid table tbody tr";
   await browser.waitUntil(async () => (await $$(historyRows)).length === expectedRows.length, {
     timeout: 10_000,
@@ -788,6 +795,7 @@ async function expectHistory(expectedRows) {
   });
   const rows = await $$(historyRows);
   for (let index = 0; index < expectedRows.length; index += 1) {
+    await expect(rows[index]).toBeDisplayed();
     const cells = await rows[index].$$("td");
     await expect(cells[0]).toHaveText(expectedRows[index][0]);
     await expect(cells[1]).toHaveText(expectedRows[index][1]);
@@ -1896,7 +1904,7 @@ describe("packaged FitFreed import journey", () => {
       ["Jan 1, 2026", "3,100", "Step total available"],
       ["Jan 2, 2026", "4,200", "Step total available"],
       ["Jan 3, 2026", "Not available", "Observation available; step total unavailable"],
-    ]);
+    ], { initiallyClosed: true });
     await expectActivitySummary([
       ["7,300", "Total steps"],
       ["3,650", "Average per day with steps"],
@@ -3138,6 +3146,7 @@ describe("packaged FitFreed import journey", () => {
     await expectFilterRange(".activity-filter", "2026-01-01", "2026-01-01");
     await expect($("#activity-detail-heading")).toHaveText("Daily detail");
     await $("aria/Close detail").click();
+    await openDisclosure(".activity-history-controls");
     await $(".activity-filter button.secondary").click();
     await expectHistory([
       ["Jan 1, 2026", "3,100", "Step total available"],

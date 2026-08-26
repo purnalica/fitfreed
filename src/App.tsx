@@ -72,6 +72,7 @@ import {
   type RangeOperation,
 } from "./presentation/RangeFilterActions";
 import { restoreFocusAfterReveal } from "./presentation/focus-restoration";
+import { submissionOrigin } from "./presentation/submission-origin";
 import { APPLICATION_ERROR_ID, useInvalidForm } from "./presentation/useInvalidForm";
 
 const rendererStartedAt = performance.now();
@@ -248,6 +249,7 @@ function App() {
   const [rangeOperation, setRangeOperation] = useState<RangeOperation>();
   const [selectedActivityDate, setSelectedActivityDate] = useState<string>();
   const [activityWorkspace, setActivityWorkspace] = useState<ActivityWorkspace>("history");
+  const [activityHistoryControlsOpen, setActivityHistoryControlsOpen] = useState(false);
   const [activityAnswerRequestId, setActivityAnswerRequestId] = useState<number>();
   const activityHeadingRef = useRef<HTMLHeadingElement>(null);
   const activityDetailHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -335,6 +337,7 @@ function App() {
     setActivityFailed(false);
     setRangeFrom(overview.selectedRange?.from ?? "");
     setRangeThrough(overview.selectedRange?.through ?? "");
+    setActivityHistoryControlsOpen(false);
     setSelectedActivityDate(undefined);
     activityDetailOriginRef.current = null;
   }
@@ -1056,8 +1059,10 @@ function App() {
     activityRangeValidation.accept();
     setRangeOperation("apply");
     setErrorCode(undefined);
+    const initiatingElement = submissionOrigin(event.nativeEvent);
     try {
       await refresh({ from: rangeFrom, through: rangeThrough });
+      restoreFocusAfterReveal(activityHeadingRef.current, initiatingElement, { align: "start" });
     } catch (reason) {
       setErrorCode(commandErrorCode(reason));
     } finally {
@@ -1065,12 +1070,13 @@ function App() {
     }
   }
 
-  async function resetActivityRange() {
+  async function resetActivityRange(initiatingElement: HTMLButtonElement) {
     activityRangeValidation.accept();
     setRangeOperation("reset");
     setErrorCode(undefined);
     try {
       await refresh();
+      restoreFocusAfterReveal(activityHeadingRef.current, initiatingElement, { align: "start" });
     } catch (reason) {
       setErrorCode(commandErrorCode(reason));
     } finally {
@@ -1543,62 +1549,6 @@ function App() {
               className="explorer-history-workspace"
               hidden={activityWorkspace !== "history" || selectedActivityDate !== undefined}
             >
-            {activityOverview.availableRange && activityOverview.selectedRange && (
-              <form
-                className="activity-filter"
-                aria-labelledby="activity-filter-heading"
-                aria-busy={rangeLoading}
-                onSubmit={(event) => void applyActivityRange(event)}
-              >
-                <div>
-                  <h2 id="activity-filter-heading">{messages.activity.filterHeading}</h2>
-                  <p>{messages.activity.rangeHelp}</p>
-                </div>
-                <label>
-                  <span>{messages.activity.from}</span>
-                  <input
-                    type="date"
-                    min={activityOverview.availableRange.from}
-                    max={activityOverview.availableRange.through}
-                    value={rangeFrom}
-                    aria-invalid={activityRangeValidation.invalid || undefined}
-                    aria-describedby={activityRangeValidation.errorElementId}
-                    onChange={(event) => {
-                      activityRangeValidation.edit();
-                      setRangeFrom(event.target.value);
-                    }}
-                    disabled={rangeLoading}
-                    required
-                  />
-                </label>
-                <label>
-                  <span>{messages.activity.through}</span>
-                  <input
-                    type="date"
-                    min={activityOverview.availableRange.from}
-                    max={activityOverview.availableRange.through}
-                    value={rangeThrough}
-                    aria-invalid={activityRangeValidation.invalid || undefined}
-                    aria-describedby={activityRangeValidation.errorElementId}
-                    onChange={(event) => {
-                      activityRangeValidation.edit();
-                      setRangeThrough(event.target.value);
-                    }}
-                    disabled={rangeLoading}
-                    required
-                  />
-                </label>
-                <RangeFilterActions
-                  className="activity-filter-actions"
-                  operation={rangeOperation}
-                  applyLabel={messages.activity.applyRange}
-                  applyingLabel={messages.activity.applyingRange}
-                  resetLabel={messages.activity.latestWindow}
-                  resettingLabel={messages.activity.loadingLatestWindow}
-                  onReset={() => void resetActivityRange()}
-                />
-              </form>
-            )}
             {activityOverview.selectedRange && (
               <p className="activity-range">
                 <strong>{messages.activity.selectedRange}:</strong>{" "}
@@ -1678,42 +1628,108 @@ function App() {
                       ))}
                     </ol>
                   </figure>
-                  <DataTable
-                    accessibleName={messages.activity.heading}
-                    scrollAccessibleName={messages.activity.exactTable}
-                  >
-                    <thead>
-                      <tr>
-                        <th scope="col">{messages.date}</th>
-                        <NumericTableHeader scope="col">{messages.steps}</NumericTableHeader>
-                        <th scope="col">{messages.activity.availability}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {series.days.map((day) => (
-                        <tr key={day.localDate}>
-                          <td>
-                            <button
-                              type="button"
-                              className="detail-button"
-                              aria-label={detailButtonLabel(day.localDate)}
-                              onClick={(event) => openActivityDetail(
-                                day.localDate,
-                                event.currentTarget,
-                              )}
-                            >
-                              <time dateTime={day.localDate}>{date.format(localDate(day.localDate))}</time>
-                            </button>
-                          </td>
-                          <NumericTableCell>{formatStepCount(day.stepCount)}</NumericTableCell>
-                          <td>{activityAvailability(day.availability)}</td>
+                  <details className="answer-exact-values activity-exact-evidence">
+                    <summary>{messages.activity.exactValues}</summary>
+                    <DataTable
+                      accessibleName={messages.activity.heading}
+                      scrollAccessibleName={messages.activity.exactTable}
+                    >
+                      <thead>
+                        <tr>
+                          <th scope="col">{messages.date}</th>
+                          <NumericTableHeader scope="col">{messages.steps}</NumericTableHeader>
+                          <th scope="col">{messages.activity.availability}</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </DataTable>
+                      </thead>
+                      <tbody>
+                        {series.days.map((day) => (
+                          <tr key={day.localDate}>
+                            <td>
+                              <button
+                                type="button"
+                                className="detail-button"
+                                aria-label={detailButtonLabel(day.localDate)}
+                                onClick={(event) => openActivityDetail(
+                                  day.localDate,
+                                  event.currentTarget,
+                                )}
+                              >
+                                <time dateTime={day.localDate}>{date.format(localDate(day.localDate))}</time>
+                              </button>
+                            </td>
+                            <NumericTableCell>{formatStepCount(day.stepCount)}</NumericTableCell>
+                            <td>{activityAvailability(day.availability)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </DataTable>
+                  </details>
                 </div>
               </section>
             ))}
+            {activityOverview.availableRange && activityOverview.selectedRange && (
+              <details
+                className="answer-controls activity-history-controls"
+                open={activityHistoryControlsOpen}
+                onToggle={(event) => setActivityHistoryControlsOpen(event.currentTarget.open)}
+              >
+                <summary>{messages.activity.changePeriod}</summary>
+                <form
+                  className="activity-filter"
+                  aria-labelledby="activity-filter-heading"
+                  aria-busy={rangeLoading}
+                  onSubmit={(event) => void applyActivityRange(event)}
+                >
+                  <div>
+                    <h2 id="activity-filter-heading">{messages.activity.filterHeading}</h2>
+                    <p>{messages.activity.rangeHelp}</p>
+                  </div>
+                  <label>
+                    <span>{messages.activity.from}</span>
+                    <input
+                      type="date"
+                      min={activityOverview.availableRange.from}
+                      max={activityOverview.availableRange.through}
+                      value={rangeFrom}
+                      aria-invalid={activityRangeValidation.invalid || undefined}
+                      aria-describedby={activityRangeValidation.errorElementId}
+                      onChange={(event) => {
+                        activityRangeValidation.edit();
+                        setRangeFrom(event.target.value);
+                      }}
+                      disabled={rangeLoading}
+                      required
+                    />
+                  </label>
+                  <label>
+                    <span>{messages.activity.through}</span>
+                    <input
+                      type="date"
+                      min={activityOverview.availableRange.from}
+                      max={activityOverview.availableRange.through}
+                      value={rangeThrough}
+                      aria-invalid={activityRangeValidation.invalid || undefined}
+                      aria-describedby={activityRangeValidation.errorElementId}
+                      onChange={(event) => {
+                        activityRangeValidation.edit();
+                        setRangeThrough(event.target.value);
+                      }}
+                      disabled={rangeLoading}
+                      required
+                    />
+                  </label>
+                  <RangeFilterActions
+                    className="activity-filter-actions"
+                    operation={rangeOperation}
+                    applyLabel={messages.activity.applyRange}
+                    applyingLabel={messages.activity.applyingRange}
+                    resetLabel={messages.activity.latestWindow}
+                    resettingLabel={messages.activity.loadingLatestWindow}
+                    onReset={(initiatingElement) => void resetActivityRange(initiatingElement)}
+                  />
+                </form>
+              </details>
+            )}
             </div>
             <div
               className="explorer-detail-workspace"

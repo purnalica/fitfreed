@@ -3348,6 +3348,9 @@ describe("FitFreed import interface", () => {
     expect(within(average!).getByText("9,007,199,254,740,993")).toBeVisible();
     expect(within(missing!).getByText("1")).toBeVisible();
 
+    expect(screen.getByRole("table", { name: "Daily activity overview" }))
+      .not.toBeVisible();
+    await user.click(screen.getByText("Review exact daily values"));
     const history = screen.getByRole("table", { name: "Daily activity overview" });
     const rows = within(history).getAllByRole("row");
     expect(rows).toHaveLength(4);
@@ -3355,6 +3358,7 @@ describe("FitFreed import interface", () => {
     expect(within(rows[3]).getByText("Observation available; step total unavailable")).toBeVisible();
 
     await changeLanguageToSpanish(user);
+    expect(screen.getByText(spanish.activity.exactValues)).toBeVisible();
     const spanishHistory = screen.getByRole("table", { name: spanish.activity.heading });
     const spanishRows = within(spanishHistory).getAllByRole("row");
     expect(within(spanishRows[2]).getByText(spanish.activity.missing)).toBeVisible();
@@ -3430,6 +3434,10 @@ describe("FitFreed import interface", () => {
     await enterExploration(user, "activity");
     const region = screen.getByRole("region", { name: "Daily activity overview" });
     const form = await within(region).findByRole("form", { name: "Explore a date range" });
+    expect(form).not.toBeVisible();
+    await user.click(within(region).getByText("Change activity period"));
+    expect(form).toBeVisible();
+    await user.click(within(region).getByText("Review exact daily values"));
 
     await user.click(within(form).getByRole("button", { name: "Latest 30 days" }));
 
@@ -3442,6 +3450,10 @@ describe("FitFreed import interface", () => {
 
     act(() => completeReset(current));
     await waitFor(() => expect(form).toHaveAttribute("aria-busy", "false"));
+    expect(form).not.toBeVisible();
+    await waitFor(() => expect(within(region).getByRole("heading", {
+      name: "Daily activity overview",
+    })).toHaveFocus());
   });
 
   it("filters an inclusive range, rejects invalid input, resets it, and opens daily detail", async () => {
@@ -3470,6 +3482,8 @@ describe("FitFreed import interface", () => {
     render(<App />);
 
     await enterExploration(user, "activity");
+    await user.click(await screen.findByText("Review exact daily values"));
+    await user.click(await screen.findByText("Change activity period"));
     const from = await screen.findByLabelText("From");
     const through = screen.getByLabelText("Through");
     expect(from).toHaveValue("2026-01-01");
@@ -3503,6 +3517,7 @@ describe("FitFreed import interface", () => {
     expect(screen.queryByRole("region", { name: "Daily detail" })).not.toBeInTheDocument();
     await waitFor(() => expect(detailOrigin).toHaveFocus());
 
+    await user.click(screen.getByText("Change activity period"));
     const rangeQueryCount = mocks.invoke.mock.calls.filter(
       ([command]) => command === "query_activity_overview",
     ).length;
@@ -4035,7 +4050,10 @@ describe("FitFreed import interface", () => {
     expect(screen.getByText("Every file in the ZIP was classified.")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "History" }));
     expect(await screen.findByRole("heading", { name: "Daily activity overview" })).toBeVisible();
-    const rows = await screen.findAllByRole("row");
+    expect(screen.getByRole("table", { name: "Daily activity overview" })).not.toBeVisible();
+    await user.click(screen.getByText("Review exact daily values"));
+    const rows = within(screen.getByRole("table", { name: "Daily activity overview" }))
+      .getAllByRole("row");
     expect(rows).toHaveLength(4);
     expect(within(rows[1]).getByText("Jan 1, 2026")).toBeVisible();
     expect(within(rows[1]).getByText("3,100")).toBeVisible();
@@ -4052,11 +4070,18 @@ describe("FitFreed import interface", () => {
     expect(mocks.sleepInvoke).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "History" }));
     expect(await screen.findByRole("heading", { name: "Daily activity overview" })).toBeVisible();
-    expect(await screen.findAllByRole("row")).toHaveLength(4);
+    await user.click(screen.getByText("Review exact daily values"));
+    expect(within(screen.getByRole("table", { name: "Daily activity overview" }))
+      .getAllByRole("row")).toHaveLength(4);
 
     view.unmount();
     render(<App />);
-    await waitFor(() => expect(screen.getAllByRole("row")).toHaveLength(4));
+    expect(await screen.findByRole("heading", { name: "Daily activity overview" })).toBeVisible();
+    expect(screen.getByRole("table", { name: "Daily activity overview" })).not.toBeVisible();
+    await user.click(screen.getByText("Review exact daily values"));
+    await waitFor(() => expect(within(screen.getByRole("table", {
+      name: "Daily activity overview",
+    })).getAllByRole("row")).toHaveLength(4));
     expect(screen.queryByText("5,300")).not.toBeInTheDocument();
   });
 

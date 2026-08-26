@@ -2757,6 +2757,14 @@ Nested task regions and their scroll boundaries have distinct localized names. T
 production table ownership and positional CSS alignment, while component tests preserve the established table names
 and task landmarks. Primary-screen disclosure and the independent density review remain open within X7-R3.
 
+**Execution checkpoint — Activity answers before exact enumeration:** the selected range now retains its summary,
+daily visual, and direct day actions in the primary composition while the complete gap-aware table starts inside one
+labelled native disclosure. Period controls follow the answer in a separate disclosure and close after a successful
+replacement while the prior answer remains visible during pending work; focus returns to the Activity heading rather
+than remaining in hidden controls. Opening either control performs no second query, and the exact rows remain coherent
+through locale changes and range replacement. The remaining primary screens and the independent density review remain
+open within X7-R3.
+
 ### X7-R4 — Adopt a mature analytical visualization foundation
 
 **Findings:** XH-16 and XH-22.
