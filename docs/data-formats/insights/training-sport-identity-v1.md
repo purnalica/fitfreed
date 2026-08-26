@@ -11,8 +11,9 @@ evidence without exposing `sourceProvider`, `sourceIdentifier`, provider name ke
 `sportRef` is an opaque `sport-` capability with 64 lowercase hexadecimal characters. It supports later
 local commands and is never a visible sport name. `classification` is the independent
 [user-authored sport classification](../canonical/sport-classification.md). `recognition` is a disposable
-provider-neutral projection derived from an activated
-[provider catalogue](../providers/provider-sport-catalogue-v1.md). `recognitionCandidateCount` preserves the
+provider-neutral projection derived from versioned provider evidence: an activated
+[provider catalogue](../providers/provider-sport-catalogue-v1.md) or a documented exact
+[training-target relationship](../mappings/polar-flow-training-target-sport.md). `recognitionCandidateCount` preserves the
 resolution cardinality even when no single candidate can be exposed.
 
 ## Exact `state` values
@@ -47,10 +48,11 @@ all recognition. Ambiguous and unknown identities receive localized generic labe
 
 ## Snapshot, reimport, and compatibility
 
-Catalogue activation or mapping enrichment increments training discovery revision. Earlier snapshots fail
+Catalogue activation, exact session-evidence insertion, or mapping enrichment increments training discovery revision. Earlier snapshots fail
 as stale rather than combining old grouping with new identity. Exact archive reimport does not erase
-recognition or a personal override. A later activated catalogue can change recognized, ambiguous, and
-unknown resolution, while personal identity remains authoritative and source evidence remains inspectable.
+recognition or a personal override. Exact session candidates take precedence over less-specific catalogue candidates
+for that session. A later activated catalogue or mapping set can change recognized, ambiguous, and unknown
+resolution, while personal identity remains authoritative and source evidence remains inspectable.
 
 Provider identifiers, raw catalogue entries, inferred sport names, and opaque capability values are never
 rendered in Home, History, session, report, or HTML output. Changing state meaning, precedence, candidate

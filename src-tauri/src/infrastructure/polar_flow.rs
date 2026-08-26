@@ -18,7 +18,9 @@ pub(super) enum SupportedArtifact {
     NightlyRecovery,
     SleepResult,
     SleepScore,
+    SportProfiles,
     TrainingSession,
+    TrainingTarget,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -237,10 +239,11 @@ static ARTIFACT_RULES: LazyLock<Vec<ArtifactRule>> = LazyLock::new(|| {
             SupportedArtifact::SleepScore,
             "mapped-sleep-scores",
         ),
-        rule(
+        supported_rule(
             format!(r"^sport-profiles-{NUMERIC_PATTERN}-{UUID_PATTERN}\.json$"),
             "polar-flow-sport-profiles",
-            Unsupported,
+            SupportedArtifact::SportProfiles,
+            "mapped-sport-vocabulary-evidence",
         ),
         supported_rule(
             format!(
@@ -250,10 +253,11 @@ static ARTIFACT_RULES: LazyLock<Vec<ArtifactRule>> = LazyLock::new(|| {
             SupportedArtifact::TrainingSession,
             "mapped-training-evidence",
         ),
-        rule(
+        supported_rule(
             format!(r"^training-target-{DATE_PATTERN}-{NUMERIC_PATTERN}-{UUID_PATTERN}\.json$"),
             "polar-flow-training-target",
-            Unsupported,
+            SupportedArtifact::TrainingTarget,
+            "mapped-completed-target-sport-evidence",
         ),
     ]
 });
@@ -411,6 +415,32 @@ mod tests {
     }
 
     #[test]
+    fn classifies_sport_vocabulary_and_training_target_evidence_as_supported() {
+        let cases = [
+            (
+                format!("sport-profiles-42-{UUID_A}.json"),
+                "polar-flow-sport-profiles",
+                SupportedArtifact::SportProfiles,
+                "mapped-sport-vocabulary-evidence",
+            ),
+            (
+                format!("training-target-2026-01-02-42-{UUID_A}.json"),
+                "polar-flow-training-target",
+                SupportedArtifact::TrainingTarget,
+                "mapped-completed-target-sport-evidence",
+            ),
+        ];
+
+        for (name, family, supported_artifact, reason_code) in cases {
+            let assessment = assess_artifact(&name);
+            assert_eq!(assessment.family, Some(family), "{name}");
+            assert_eq!(assessment.classification, ArtifactClassification::Supported);
+            assert_eq!(assessment.supported_artifact, Some(supported_artifact));
+            assert_eq!(assessment.reason_code, reason_code);
+        }
+    }
+
+    #[test]
     fn deliberately_excludes_unidentifiable_nightly_recovery_samples() {
         let name = format!("nightly_recovery_blob_42-{UUID_A}.json");
         let assessment = assess_artifact(&name);
@@ -459,8 +489,6 @@ mod tests {
             format!("programs-fitnesslevelsnapshots-42-{UUID_A}.json"),
             format!("programs-generaltrainingprograms-42-{UUID_A}.json"),
             format!("programs-personalevents-42-{UUID_A}.json"),
-            format!("sport-profiles-42-{UUID_A}.json"),
-            format!("training-target-2026-01-02-42-{UUID_A}.json"),
         ];
 
         for name in cases {

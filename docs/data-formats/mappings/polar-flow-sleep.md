@@ -6,9 +6,9 @@ This is the normative anti-corruption-layer contract for joining compatible Pola
 
 - Source provider: `polar-flow`
 - Source adapter version introducing support: `polar-flow-archive@5`
-- Current source adapter version: `polar-flow-archive@11`
+- Current source adapter version: `polar-flow-archive@12`
 - Mapping version: `polar-flow-sleep@1`
-- Current operation mapping set: `polar-flow-mapping-set@6`; historical operations may retain `polar-flow-mapping-set@1`, `polar-flow-mapping-set@2`, `polar-flow-mapping-set@3`, `polar-flow-mapping-set@4`, or `polar-flow-mapping-set@5`
+- Current operation mapping set: `polar-flow-mapping-set@7`; historical operations may retain `polar-flow-mapping-set@1` through `polar-flow-mapping-set@6`
 - Source evidence: [Polar Flow personal data export reference](../providers/polar-flow.md)
 
 ## Supported artifact boundary

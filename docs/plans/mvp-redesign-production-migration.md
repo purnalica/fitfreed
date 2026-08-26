@@ -2608,6 +2608,14 @@ export identity projections.
 from measurements; collapsing several unknown values; a whole-card click that traps the nested edit control; a preset
 whose labels misdescribe stale evidence; or losing a person's mounted discovery state.
 
+**Execution checkpoint — exact completed-target sport evidence:** adapter version 12 now parses sport-profile
+vocabulary shape and completed training-target sport codes. A normalized target start contributes only when it
+identifies one current session in the same origin; incomplete, unmatched, and multiply matched targets contribute
+nothing, while several distinct exact codes remain ambiguous. The provider code and target provenance remain inside
+SQLite schema 29; session search and ordered selection expose only provider-neutral localized recognition and can
+find that recognized name. Exact reimport is version-scoped and idempotent. The source-profile summary split,
+filtered-session destination, complete natural-drill-down audit, and shared comparison presets remain in X7-R2.
+
 ### X7-R3 — Establish one coherent data-presentation and Settings system
 
 **Findings:** XH-05, XH-11, XH-12, XH-14, XH-15, XH-19, and XH-20.

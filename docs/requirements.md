@@ -462,7 +462,11 @@ All user-facing features included in the first release will be available in Engl
 - An unresolved source sport reference will remain explicitly unknown until trustworthy evidence or the user supplies a classification; the application will never invent a sport name from an opaque provider value.
 - A provider-neutral classification will be scoped by observation origin and exact source sport reference and may contain a canonical sport family and user display label with authorship and revision.
 - Classification will survive restart, reimport, migration, and portable backup without overwriting source evidence.
-- Automatic recognition will use only an explicitly installed, activated, versioned, and provenance-bearing provider catalogue. One exact candidate is recognized, multiple candidates remain ambiguous, no candidate remains unknown, and absence of a recorded source sport remains unavailable; candidate order never selects a winner.
+- Automatic recognition will use only versioned, provenance-bearing provider evidence. This may be an explicitly
+  installed and activated provider catalogue or a source-authored detailed code related to exactly one session by a
+  documented export relationship. A session-scoped candidate never labels every record sharing an opaque source
+  reference. One exact candidate is recognized, multiple candidates remain ambiguous, no candidate remains unknown,
+  and absence of recorded sport evidence remains unavailable; candidate order never selects a winner.
 - Provider identifiers, catalogue keys, and provider hierarchy remain inside the source adapter. Home, History, session, report, filter, and export projections receive only localized names, an optional provider-neutral family suggestion, candidate cardinality, and opaque local evidence capabilities.
 - User-authored meaning produces a personally overridden identity and always wins in presentation without deleting recognition evidence. Reimport or catalogue enrichment may update the retained source recognition but may not silently replace the personal choice.
 - Activating another catalogue or mapping revision invalidates earlier training-discovery snapshots before any new identity is projected.

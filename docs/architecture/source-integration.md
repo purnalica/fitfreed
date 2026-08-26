@@ -116,6 +116,14 @@ is bundled until its official retrieval provenance, update procedure, and lawful
 established. Route, speed, distance, heart rate, device, and other session evidence are never recognition
 substitutes.
 
+[ADR 0031](decisions/0031-scope-training-target-sport-evidence-to-one-session.md) adds a narrower source
+relationship that does not require the missing opaque-identifier catalogue. A completed training target may
+contribute its exact detailed-sport code only when its normalized local start identifies one and only one current
+session in the same resolved origin. Sport-profile order and content do not join to session `sport.id`; neither do
+shared opaque values, frequency, measurements, routes, or device context. The adapter persists attributed private
+source evidence and exposes only its provider-neutral suggestion. Distinct exact codes remain ambiguous, and
+personal meaning still wins without erasing recognition.
+
 ### No lowest-common-denominator model
 
 Vendor neutrality does not mean flattening every observation into generic key-value data. The model will distinguish:

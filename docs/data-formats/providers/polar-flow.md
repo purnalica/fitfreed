@@ -2,7 +2,7 @@
 
 ## Status
 
-Discovery baseline, last verified on 2026-08-19. Polar Flow is the only provider export in MVP scope.
+Discovery baseline, last verified on 2026-08-26. Polar Flow is the only provider export in MVP scope.
 
 This reference describes the personal-data export archive, not the Polar AccessLink API and not the separate export of an individual training session. It contains no copied personal record, personal value, exact source path, archive count, archive size, timestamp sequence, route, identifier, or other private data-set fingerprint.
 
@@ -56,13 +56,13 @@ This registry is the public coverage index. Detailed shapes, fields, identities,
 | Daily activity | Daily summaries, activity samples, and inactivity events | Filename grammar, source-subject correlation, filename/content date consistency, duplicate-date rejection, and the documented shape-based canonical step-count mapping are supported; compatibility is limited to the evaluated structural matrix |
 | Continuous heart rate | Partitioned high-resolution daily heart-rate samples | Recognized and deliberately ignored because full-resolution physiological exploration is excluded from the MVP |
 | Beat-to-beat samples | Partitioned high-resolution physiological samples | Recognized and deliberately ignored because full-resolution physiological exploration is excluded from the MVP |
-| Training | Sessions, exercises, laps, zones, routes, and sample series | Session summaries, exercise/lap/pause structure, primary and transition routes, documented regular signal series, and heart-rate, speed, and power zone distributions are supported through training mapping version 5; RR values, irregular samples, unknown series, and unsupported zone kinds remain deliberately unmapped |
-| Planning | Calendar entries, targets, favorites, programs, and personal events | Recognized and unsupported |
+| Training | Sessions, exercises, laps, zones, routes, and sample series | Session summaries, exercise/lap/pause structure, primary and transition routes, documented regular signal series, and heart-rate, speed, and power zone distributions are supported through training mapping version 6; exact completed-target sport evidence is supported separately; RR values, irregular samples, unknown series, and unsupported zone kinds remain deliberately unmapped |
+| Planning | Calendar entries, targets, favorites, programs, and personal events | Training targets are supported only for validated completed-target sport evidence; every other target field and the remaining planning families are recognized and unsupported |
 | Sleep | Sleep timing, phases, interruptions, continuity, and scores | Result and score arrays are supported by mapping version 1; compatibility remains limited to the evaluated split-artifact structure and documented API correspondence |
 | Recovery | Nightly recovery measurements, recommendations, and related physiological observations | Dated nightly-recovery summaries are specified for mapping version 1; the undated sample blob is deliberately excluded because no safe record relationship is established |
 | Tests | Fitness and orthostatic test results | Recognized and unsupported |
 | Physical evolution | Historical physical measurements and thresholds | Recognized inside unsupported account, activity, calendar, and training structures; no separate artifact grammar is claimed |
-| Sport configuration | Sport profiles, zones, units, and reminders | Recognized and unsupported |
+| Sport configuration | Sport profiles, zones, units, and reminders | Sport-profile identity and detailed-sport code shape are supported as vocabulary evidence; settings remain unsupported and no relationship to session `sport.id` is inferred |
 
 An artifact that is recognized but unsupported will remain visible as unsupported. An unfamiliar artifact will be reported as unrecognized. Recognized content that fails its structural contract is invalid, while a deliberately excluded family retains its explicit policy reason. None of these states is equivalent to a successful import. The desktop groups these results by family, classification, and reason and provides localized next actions without displaying archive filenames or personal values.
 
@@ -254,6 +254,24 @@ The optional top-level `sport.id` is present for the evaluated single- and multi
 
 Polar documents an authenticated `/v4/data/sports/list` catalogue that resolves sport identifiers to names and parent sports. That catalogue is not present in the evaluated takeout, and the observed `sport-profiles` artifact contains user settings keyed by a different source field rather than the required identifier-to-name catalogue. Training-summary version 1 preserves the aggregate sport reference as opaque source classification evidence. It does not publish, guess, or present a sport name from that value.
 
+### Training-target and sport-profile evidence
+
+**Evidence: Observed with official detailed-sport vocabulary correspondence.** Each evaluated sport-profile item
+contains `exportVersion` and a `sport` string alongside provider settings. Each evaluated training target contains
+`exportVersion`, local `startTime`, Boolean `done`, and an `exercises` array whose items may carry the same
+detailed-sport string vocabulary. The profile contains no takeout session identifier or documented relationship to
+training-session `sport.id`.
+
+A completed target can have a narrower relationship: its normalized local `startTime` may equal one current
+session's `startTime` in the same resolved source subject. FitFreed accepts that relationship only when exactly one
+session matches. An incomplete target, no match, or multiple session matches contributes no sport candidate.
+Distinct codes on one exact target remain ambiguous. This does not establish a global code-to-`sport.id` mapping,
+and it never labels other sessions that share the same opaque value.
+
+The exact parser, vocabulary subset, relationship, attribution, and reimport rules are normative in the
+[training-target sport-evidence mapping](../mappings/polar-flow-training-target-sport.md). Target names,
+descriptions, phases, objectives, and other planning content are not imported by this mapping.
+
 ### Sport-catalogue acquisition boundary
 
 **Evidence: Official, verified 2026-08-25.** The Dynamic API defines
@@ -277,18 +295,22 @@ between those strings and the numeric identifiers returned by the Dynamic API ca
 training session carries only `sport.id`; its separate sport-profile settings carry a `sport` string but no catalogue
 identifier. Evaluated non-empty training-session `name` values do not match the sport-profile vocabulary and cannot
 act as a hidden join. Neither source therefore supplies an authoritative relationship. The public vocabulary can
-support compatibility research and independently authored fixtures, but it cannot resolve takeout identifiers in
-production.
+support compatibility research, independently authored fixtures, and an exact target-to-session suggestion, but it
+cannot resolve takeout identifiers globally. The source was retrieved on 2026-08-26 at `11:25:54Z`; the complete
+retrieved representation had SHA-256
+`013489c030a02d8b0017c97e8d0e9e6671096db6e75a91440f9079f7c207b018` and reported `Last-Modified: Wed, 06 May
+2026 08:28:54 GMT`.
 
 Polar's official BLE SDK exposes only the live/offline recording identifiers `0` unknown, `1` running, `2` cycling,
 and `16` other outdoor. The SDK does not establish that this limited device-recording enumeration is the complete
 Dynamic API catalogue or that each value has the same identity contract as takeout `sport.id`. Those values may test
 the adapter contract but cannot be installed as production takeout recognition evidence without that relationship.
 
-The implementation can proceed independently with a versioned catalogue-evidence boundary, deterministic
-provider-neutral suggestions, personal-override precedence, persistence, and synthetic contract fixtures. Closing
-automatic Polar recognition requires either an official redistributable catalogue source or a product-owner-approved
-authenticated acquisition whose local-only or distributable use is compatible with FitFreed's release model.
+The implementation provides versioned session-scoped target evidence, a separate catalogue-evidence boundary,
+deterministic provider-neutral suggestions, personal-override precedence, persistence, and synthetic contract
+fixtures. Closing automatic recognition for sessions without exact target evidence still requires either an
+official redistributable catalogue source or a product-owner-approved authenticated acquisition whose local-only or
+distributable use is compatible with FitFreed's release model.
 
 ### Identity, revision, time, and loss implications
 

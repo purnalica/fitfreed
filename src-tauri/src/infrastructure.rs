@@ -179,7 +179,7 @@ const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_COMPRESSION_RATIO: u64 = 1_000;
-const SCHEMA_VERSION: i64 = 28;
+const SCHEMA_VERSION: i64 = 29;
 const SCHEMA_V1: &str = include_str!("../migrations/0001_initial.sql");
 const SCHEMA_V2: &str = include_str!("../migrations/0002_import_ledger.sql");
 const SCHEMA_V3: &str = include_str!("../migrations/0003_locale_preference.sql");
@@ -208,14 +208,19 @@ const SCHEMA_V25: &str = include_str!("../migrations/0025_training_session_range
 const SCHEMA_V26: &str = include_str!("../migrations/0026_training_session_range_exercises.sql");
 const SCHEMA_V27: &str = include_str!("../migrations/0027_training_session_range_coordinates.sql");
 const SCHEMA_V28: &str = include_str!("../migrations/0028_provider_sport_catalogue.sql");
+const SCHEMA_V29: &str = include_str!("../migrations/0029_training_session_sport_evidence.sql");
 const SOURCE_PROVIDER: &str = "polar-flow";
-const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@11";
-const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@6";
+const SOURCE_ADAPTER_VERSION: &str = "polar-flow-archive@12";
+const MAPPING_SET_VERSION: &str = "polar-flow-mapping-set@7";
 const DAILY_ACTIVITY_MAPPING_VERSION: &str = "polar-flow-daily-activity@1";
 const TRAINING_SESSION_MAPPING_VERSION: &str = "polar-flow-training-session@6";
 const SLEEP_MAPPING_VERSION: &str = "polar-flow-sleep@1";
 const NIGHTLY_RECOVERY_MAPPING_VERSION: &str = "polar-flow-nightly-recovery@1";
 const NIGHTLY_RECOVERY_SCHEME: &str = "polar-nightly-recharge@1";
+const POLAR_DETAILED_SPORT_CATALOGUE_REVISION: &str =
+    "polar-accesslink-detailed-sport-info@2026-05-06";
+const POLAR_DETAILED_SPORT_CATALOGUE_RETRIEVED_AT_UTC: &str = "2026-08-26T11:25:54Z";
+const POLAR_TRAINING_TARGET_SPORT_MAPPING_VERSION: &str = "polar-training-target-sport@1";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProviderSportCatalogueEntryEvidence {
@@ -434,6 +439,27 @@ struct PolarTrainingSession {
     sport: SourceOptional<PolarReference>,
     #[serde(default)]
     exercises: SourceOptional<Vec<PolarTrainingExercise>>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PolarSportProfile {
+    export_version: String,
+    sport: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PolarTrainingTarget {
+    export_version: String,
+    start_time: String,
+    done: bool,
+    exercises: Vec<PolarTrainingTargetExercise>,
+}
+
+#[derive(Debug, Deserialize)]
+struct PolarTrainingTargetExercise {
+    sport: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -739,6 +765,18 @@ struct ValidatedTrainingArtifact {
     sha256: String,
     origin_id: String,
     session_id: String,
+}
+
+#[derive(Debug)]
+struct MappedTrainingTargetSportEvidence {
+    locator: String,
+    sha256: String,
+    source_record_locator: String,
+    export_version: String,
+    started_at_local: String,
+    source_sport_code: String,
+    canonical_family: Option<SportFamily>,
+    localized_names: BTreeMap<String, String>,
 }
 
 impl From<MappedTrainingArtifact> for ValidatedTrainingArtifact {
@@ -1144,6 +1182,7 @@ fn execute_import(
     let mut mapped_sleep_result_artifacts = Vec::new();
     let mut mapped_sleep_score_artifacts = Vec::new();
     let mut mapped_nightly_recoveries = Vec::new();
+    let mut mapped_training_target_sport_evidence = Vec::new();
     let mut first_invalid = None;
     let mut processed_artifacts = 0;
     for index in 0..archive.len() {
@@ -1277,6 +1316,38 @@ fn execute_import(
                     }
                 }
             }
+            SupportedArtifact::SportProfiles => {
+                let decode_started = Instant::now();
+                let bytes = read_bytes(&mut member, &locator, cancellation)?;
+                let artifact_sha256 = sha256_bytes(&bytes);
+                let decoded = decode_sport_profiles(&locator, &bytes);
+                timings.read_decode_map_milliseconds += milliseconds(decode_started.elapsed());
+                match decoded {
+                    Ok(()) => record_artifact_coverage(
+                        connection,
+                        operation_id,
+                        &locator,
+                        assessment.family,
+                        assessment.classification,
+                        Some(&artifact_sha256),
+                        assessment.reason_code,
+                    )?,
+                    Err(error) => {
+                        record_artifact_coverage(
+                            connection,
+                            operation_id,
+                            &locator,
+                            assessment.family,
+                            ArtifactClassification::Invalid,
+                            Some(&artifact_sha256),
+                            "invalid-supported-artifact",
+                        )?;
+                        if first_invalid.is_none() {
+                            first_invalid = Some(error);
+                        }
+                    }
+                }
+            }
             SupportedArtifact::TrainingSession => {
                 let decode_started = Instant::now();
                 let bytes = read_bytes(&mut member, &locator, cancellation)?;
@@ -1309,6 +1380,42 @@ fn execute_import(
                             ArtifactClassification::Invalid,
                             Some(&artifact_sha256),
                             reason_code,
+                        )?;
+                        if first_invalid.is_none() {
+                            first_invalid = Some(error);
+                        }
+                    }
+                }
+            }
+            SupportedArtifact::TrainingTarget => {
+                let decode_started = Instant::now();
+                let bytes = read_bytes(&mut member, &locator, cancellation)?;
+                let artifact_sha256 = sha256_bytes(&bytes);
+                let mapped =
+                    decode_training_target_sport_evidence(&locator, &artifact_sha256, &bytes);
+                timings.read_decode_map_milliseconds += milliseconds(decode_started.elapsed());
+                match mapped {
+                    Ok(mapped) => {
+                        record_artifact_coverage(
+                            connection,
+                            operation_id,
+                            &locator,
+                            assessment.family,
+                            assessment.classification,
+                            Some(&artifact_sha256),
+                            assessment.reason_code,
+                        )?;
+                        mapped_training_target_sport_evidence.extend(mapped);
+                    }
+                    Err(error) => {
+                        record_artifact_coverage(
+                            connection,
+                            operation_id,
+                            &locator,
+                            assessment.family,
+                            ArtifactClassification::Invalid,
+                            Some(&artifact_sha256),
+                            "invalid-supported-artifact",
                         )?;
                         if first_invalid.is_none() {
                             first_invalid = Some(error);
@@ -1448,6 +1555,7 @@ fn execute_import(
     ensure_not_cancelled(cancellation)?;
     let reconciliation_units = mapped_artifacts.len()
         + validated_training_artifacts.len()
+        + mapped_training_target_sport_evidence.len()
         + mapped_sleep_periods.len()
         + mapped_nightly_recoveries.len();
     let mut reconciled_units = 0_usize;
@@ -1522,6 +1630,25 @@ fn execute_import(
             ));
         }
     }
+    for (target_index, evidence) in mapped_training_target_sport_evidence.iter().enumerate() {
+        ensure_not_cancelled(cancellation)?;
+        let reconciliation_started = Instant::now();
+        reconcile_training_target_sport_evidence(&transaction, operation_id, origin_id, evidence)?;
+        timings.reconciliation_milliseconds += milliseconds(reconciliation_started.elapsed());
+        reconciled_units += 1;
+        on_progress(ImportProgress::artifacts(
+            ImportPhase::Reconciling,
+            reconciled_units,
+            reconciliation_units,
+        ));
+        if interrupt_after
+            == Some(mapped_artifacts.len() + validated_training_artifacts.len() + target_index + 1)
+        {
+            return Err(ImportError::InjectedInterruption(
+                mapped_artifacts.len() + validated_training_artifacts.len() + target_index + 1,
+            ));
+        }
+    }
     for (sleep_index, period) in mapped_sleep_periods.iter().enumerate() {
         ensure_not_cancelled(cancellation)?;
         let reconciliation_started = Instant::now();
@@ -1534,10 +1661,20 @@ fn execute_import(
             reconciliation_units,
         ));
         if interrupt_after
-            == Some(mapped_artifacts.len() + validated_training_artifacts.len() + sleep_index + 1)
+            == Some(
+                mapped_artifacts.len()
+                    + validated_training_artifacts.len()
+                    + mapped_training_target_sport_evidence.len()
+                    + sleep_index
+                    + 1,
+            )
         {
             return Err(ImportError::InjectedInterruption(
-                mapped_artifacts.len() + validated_training_artifacts.len() + sleep_index + 1,
+                mapped_artifacts.len()
+                    + validated_training_artifacts.len()
+                    + mapped_training_target_sport_evidence.len()
+                    + sleep_index
+                    + 1,
             ));
         }
     }
@@ -1556,6 +1693,7 @@ fn execute_import(
             == Some(
                 mapped_artifacts.len()
                     + validated_training_artifacts.len()
+                    + mapped_training_target_sport_evidence.len()
                     + mapped_sleep_periods.len()
                     + recovery_index
                     + 1,
@@ -1564,6 +1702,7 @@ fn execute_import(
             return Err(ImportError::InjectedInterruption(
                 mapped_artifacts.len()
                     + validated_training_artifacts.len()
+                    + mapped_training_target_sport_evidence.len()
                     + mapped_sleep_periods.len()
                     + recovery_index
                     + 1,
@@ -2021,6 +2160,8 @@ pub fn query_training_between(
 struct TrainingDiscoverySportEntry {
     origin_id: String,
     source_sport_ref: Option<String>,
+    classification: Option<SportClassification>,
+    recognition_candidates: Vec<ProviderNeutralSportSuggestion>,
     public_sport: TrainingSessionSport,
 }
 
@@ -2028,7 +2169,7 @@ fn training_discovery_filter(
     sport_entries: &[TrainingDiscoverySportEntry],
     request: &TrainingSessionSearchRequest,
 ) -> std::result::Result<(String, Vec<Value>), TrainingSessionDiscoveryPortError> {
-    let selected_entries = select_training_discovery_sports(sport_entries, request)?;
+    validate_training_discovery_sport_refs(sport_entries, request)?;
     let mut values = vec![
         request.from.clone().map_or(Value::Null, Value::Text),
         request.through.clone().map_or(Value::Null, Value::Text),
@@ -2047,29 +2188,84 @@ fn training_discovery_filter(
         }
         .to_owned());
     }
-    if let Some(selected_entries) = selected_entries {
-        if selected_entries.is_empty() {
-            predicates.push("0".to_owned());
-        } else {
-            let mut sport_predicates = Vec::with_capacity(selected_entries.len());
-            for entry in selected_entries {
-                let origin_parameter = values.len() + 1;
-                values.push(Value::Text(entry.origin_id.clone()));
-                let sport_parameter = values.len() + 1;
-                values.push(
-                    entry
-                        .source_sport_ref
-                        .clone()
-                        .map_or(Value::Null, Value::Text),
-                );
-                sport_predicates.push(format!(
-                    "(session.origin_id = ?{origin_parameter} AND session.sport_ref IS ?{sport_parameter})"
-                ));
-            }
-            predicates.push(format!("({})", sport_predicates.join(" OR ")));
+    if !request.sport_refs.is_empty() {
+        let selected_entries = sport_entries.iter().filter(|entry| {
+            entry
+                .public_sport
+                .sport_ref
+                .as_ref()
+                .is_some_and(|sport_ref| request.sport_refs.contains(sport_ref))
+        });
+        let mut sport_predicates = Vec::new();
+        for entry in selected_entries {
+            let origin_parameter = values.len() + 1;
+            values.push(Value::Text(entry.origin_id.clone()));
+            let sport_parameter = values.len() + 1;
+            values.push(
+                entry
+                    .source_sport_ref
+                    .clone()
+                    .map_or(Value::Null, Value::Text),
+            );
+            sport_predicates.push(format!(
+                "(session.origin_id = ?{origin_parameter} AND session.sport_ref IS ?{sport_parameter})"
+            ));
         }
+        predicates.push(format!("({})", sport_predicates.join(" OR ")));
+    }
+    if let Some(text) = request.text.as_ref().map(|text| text.to_lowercase()) {
+        let matching_entries = sport_entries
+            .iter()
+            .filter(|entry| training_discovery_sport_matches_text(entry, &text));
+        let mut text_predicates = Vec::new();
+        for entry in matching_entries {
+            let origin_parameter = values.len() + 1;
+            values.push(Value::Text(entry.origin_id.clone()));
+            let sport_parameter = values.len() + 1;
+            values.push(
+                entry
+                    .source_sport_ref
+                    .clone()
+                    .map_or(Value::Null, Value::Text),
+            );
+            text_predicates.push(format!(
+                "(session.origin_id = ?{origin_parameter} AND session.sport_ref IS ?{sport_parameter})"
+            ));
+        }
+        let provider_parameter = values.len() + 1;
+        values.push(Value::Text(SOURCE_PROVIDER.to_owned()));
+        let mapping_parameter = values.len() + 1;
+        values.push(Value::Text(
+            POLAR_TRAINING_TARGET_SPORT_MAPPING_VERSION.to_owned(),
+        ));
+        let text_parameter = values.len() + 1;
+        values.push(Value::Text(format!("%{}%", escape_sql_like_pattern(&text))));
+        text_predicates.push(format!(
+            "EXISTS (
+                 SELECT 1
+                 FROM training_session_sport_evidence AS exact_sport,
+                      json_each(exact_sport.localized_names_json) AS localized_name
+                 WHERE exact_sport.origin_id = session.origin_id
+                   AND exact_sport.session_id = session.session_id
+                   AND exact_sport.source_provider = ?{provider_parameter}
+                   AND exact_sport.mapping_version = ?{mapping_parameter}
+                   AND (
+                       lower(localized_name.value) LIKE ?{text_parameter} ESCAPE '\\'
+                       OR lower(coalesce(exact_sport.canonical_family_suggestion, ''))
+                          LIKE ?{text_parameter} ESCAPE '\\'
+                   )
+             )"
+        ));
+        predicates.push(format!("({})", text_predicates.join(" OR ")));
     }
     Ok((predicates.join(" AND "), values))
+}
+
+fn escape_sql_like_pattern(value: &str) -> String {
+    value
+        .replace('\\', "\\\\")
+        .replace('%', "\\%")
+        .replace('_', "\\_")
 }
 
 fn query_training_session_discovery(
@@ -2115,7 +2311,7 @@ fn query_training_session_discovery(
         .map(|entry| {
             (
                 (entry.origin_id.clone(), entry.source_sport_ref.clone()),
-                entry.public_sport.clone(),
+                entry,
             )
         })
         .collect::<HashMap<_, _>>();
@@ -2292,14 +2488,19 @@ fn query_training_session_discovery(
                 "training-session origin has no source index".to_owned(),
             )
         })?;
-        let sport = sport_by_identity
+        let sport_entry = sport_by_identity
             .get(&(origin_id.clone(), source_sport_ref.clone()))
-            .cloned()
             .ok_or_else(|| {
                 TrainingSessionDiscoveryPortError::Failure(
                     "training-session sport context is unavailable".to_owned(),
                 )
             })?;
+        let sport = resolve_training_session_sport_with_exact_evidence(
+            &transaction,
+            sport_entry,
+            &session_id,
+        )
+        .map_err(discovery_failure)?;
         sessions.push(TrainingSessionSearchItem {
             session_ref: training_session_ref(&origin_id, &session_id),
             source_index,
@@ -2506,11 +2707,11 @@ fn query_training_session_selection_discovery(
         .map(|(index, origin)| (origin, index + 1))
         .collect::<BTreeMap<_, _>>();
     let sport_by_identity = sport_entries
-        .into_iter()
+        .iter()
         .map(|entry| {
             (
-                (entry.origin_id, entry.source_sport_ref),
-                entry.public_sport,
+                (entry.origin_id.clone(), entry.source_sport_ref.clone()),
+                entry,
             )
         })
         .collect::<HashMap<_, _>>();
@@ -2572,14 +2773,19 @@ fn query_training_session_selection_discovery(
                 "selected training session origin has no source index".to_owned(),
             )
         })?;
-        let sport = sport_by_identity
-            .get(&(origin_id, source_sport_ref))
-            .cloned()
+        let sport_entry = sport_by_identity
+            .get(&(origin_id.clone(), source_sport_ref))
             .ok_or_else(|| {
                 TrainingSessionDiscoveryPortError::Failure(
                     "selected training session sport context is unavailable".to_owned(),
                 )
             })?;
+        let sport = resolve_training_session_sport_with_exact_evidence(
+            &transaction,
+            sport_entry,
+            &session_id,
+        )
+        .map_err(discovery_failure)?;
         selected_by_ref.insert(
             session_ref.clone(),
             TrainingSessionSearchItem {
@@ -6626,6 +6832,106 @@ fn query_active_provider_sport_suggestions(
     Ok(suggestions)
 }
 
+fn query_training_session_sport_suggestions(
+    connection: &Connection,
+    origin_id: &str,
+    session_id: &str,
+) -> Result<Vec<ProviderNeutralSportSuggestion>> {
+    let mut statement = connection.prepare(
+        "SELECT canonical_family_suggestion, localized_names_json,
+                catalogue_revision, retrieved_at_utc, mapping_version, evidence_ref
+         FROM training_session_sport_evidence
+         WHERE origin_id = ?1 AND session_id = ?2
+           AND source_provider = ?3 AND mapping_version = ?4
+         ORDER BY source_sport_code",
+    )?;
+    let rows = statement.query_map(
+        params![
+            origin_id,
+            session_id,
+            SOURCE_PROVIDER,
+            POLAR_TRAINING_TARGET_SPORT_MAPPING_VERSION
+        ],
+        |row| {
+            Ok((
+                row.get::<_, Option<String>>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, String>(5)?,
+            ))
+        },
+    )?;
+    let mut suggestions = Vec::new();
+    let mut evidence_refs = HashSet::new();
+    for row in rows {
+        let (
+            canonical_family,
+            localized_names_json,
+            catalogue_revision,
+            retrieved_at_utc,
+            mapping_version,
+            evidence_ref,
+        ) = row?;
+        if !evidence_refs.insert(evidence_ref.clone()) {
+            return Err(ImportError::InvalidTrainingLibrary(
+                "stored training-session sport evidence is duplicated".to_owned(),
+            ));
+        }
+        let localized_names =
+            serde_json::from_str::<BTreeMap<String, String>>(&localized_names_json)
+                .map_err(|error| {
+                    ImportError::InvalidTrainingLibrary(format!(
+                        "stored training-session sport names are invalid: {error}"
+                    ))
+                })?
+                .into_iter()
+                .map(|(language_tag, value)| {
+                    SportLocalizedName::new(language_tag, value)
+                        .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))
+                })
+                .collect::<Result<Vec<_>>>()?;
+        let canonical_family = canonical_family
+            .as_deref()
+            .map(SportFamily::from_code)
+            .transpose()
+            .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
+        let provenance = SportRecognitionProvenance::new(
+            catalogue_revision,
+            retrieved_at_utc,
+            mapping_version,
+            evidence_ref,
+        )
+        .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
+        suggestions.push(
+            ProviderNeutralSportSuggestion::new(canonical_family, localized_names, provenance)
+                .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?,
+        );
+    }
+    Ok(suggestions)
+}
+
+fn resolve_training_session_sport_with_exact_evidence(
+    connection: &Connection,
+    entry: &TrainingDiscoverySportEntry,
+    session_id: &str,
+) -> Result<TrainingSessionSport> {
+    let exact_candidates =
+        query_training_session_sport_suggestions(connection, &entry.origin_id, session_id)?;
+    let recognition_candidates = if exact_candidates.is_empty() {
+        entry.recognition_candidates.clone()
+    } else {
+        exact_candidates
+    };
+    resolve_training_session_sport(
+        entry.public_sport.sport_ref.clone(),
+        entry.classification.clone(),
+        recognition_candidates,
+    )
+    .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))
+}
+
 fn query_training_discovery_sports(
     connection: &Connection,
 ) -> Result<Vec<TrainingDiscoverySportEntry>> {
@@ -6674,7 +6980,9 @@ fn query_training_discovery_sports(
             authorship,
             revision,
         ) = row?;
-        let public_sport = match source_sport_ref.as_deref() {
+        let (classification, recognition_candidates, public_sport) = match source_sport_ref
+            .as_deref()
+        {
             None => {
                 if state.is_some()
                     || family.is_some()
@@ -6686,8 +6994,9 @@ fn query_training_discovery_sports(
                         "unavailable sport contains a classification".to_owned(),
                     ));
                 }
-                resolve_training_session_sport(None, None, Vec::new())
-                    .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?
+                let public_sport = resolve_training_session_sport(None, None, Vec::new())
+                    .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
+                (None, Vec::new(), public_sport)
             }
             Some(source_sport_ref) => {
                 let key =
@@ -6699,17 +7008,20 @@ fn query_training_discovery_sports(
                     .get(&(source_provider, source_sport_ref.to_owned()))
                     .cloned()
                     .unwrap_or_default();
-                resolve_training_session_sport(
+                let public_sport = resolve_training_session_sport(
                     Some(detected_sport_ref(classification.key())),
-                    Some(classification),
-                    recognition_candidates,
+                    Some(classification.clone()),
+                    recognition_candidates.clone(),
                 )
-                .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?
+                .map_err(|error| ImportError::InvalidTrainingLibrary(error.to_string()))?;
+                (Some(classification), recognition_candidates, public_sport)
             }
         };
         Ok(TrainingDiscoverySportEntry {
             origin_id,
             source_sport_ref,
+            classification,
+            recognition_candidates,
             public_sport,
         })
     })
@@ -6772,16 +7084,10 @@ fn restore_sport_classification(
     }
 }
 
-fn select_training_discovery_sports<'a>(
-    entries: &'a [TrainingDiscoverySportEntry],
+fn validate_training_discovery_sport_refs(
+    entries: &[TrainingDiscoverySportEntry],
     request: &TrainingSessionSearchRequest,
-) -> std::result::Result<
-    Option<Vec<&'a TrainingDiscoverySportEntry>>,
-    TrainingSessionDiscoveryPortError,
-> {
-    if request.sport_refs.is_empty() && request.text.is_none() {
-        return Ok(None);
-    }
+) -> std::result::Result<(), TrainingSessionDiscoveryPortError> {
     for sport_ref in &request.sport_refs {
         if !entries
             .iter()
@@ -6790,46 +7096,31 @@ fn select_training_discovery_sports<'a>(
             return Err(TrainingSessionDiscoveryPortError::UnknownSportReference);
         }
     }
-    let normalized_text = request.text.as_ref().map(|text| text.to_lowercase());
-    Ok(Some(
-        entries
-            .iter()
-            .filter(|entry| {
-                request.sport_refs.is_empty()
-                    || entry
-                        .public_sport
-                        .sport_ref
-                        .as_ref()
-                        .is_some_and(|sport_ref| request.sport_refs.contains(sport_ref))
-            })
-            .filter(|entry| {
-                normalized_text.as_ref().is_none_or(|text| {
-                    let classification_matches = entry
-                        .public_sport
-                        .classification
-                        .as_ref()
-                        .and_then(|classification| classification.display_label.as_ref())
-                        .is_some_and(|label| label.to_lowercase().contains(text));
-                    let recognition_matches =
-                        entry
-                            .public_sport
-                            .recognition
-                            .as_ref()
-                            .is_some_and(|recognition| {
-                                recognition
-                                    .localized_names
-                                    .values()
-                                    .any(|name| name.to_lowercase().contains(text))
-                                    || recognition
-                                        .canonical_family
-                                        .as_ref()
-                                        .is_some_and(|family| family.contains(text))
-                            });
-                    classification_matches || recognition_matches
-                })
-            })
-            .collect(),
-    ))
+    Ok(())
+}
+
+fn training_discovery_sport_matches_text(entry: &TrainingDiscoverySportEntry, text: &str) -> bool {
+    let classification_matches = entry
+        .public_sport
+        .classification
+        .as_ref()
+        .and_then(|classification| classification.display_label.as_ref())
+        .is_some_and(|label| label.to_lowercase().contains(text));
+    let recognition_matches = entry
+        .public_sport
+        .recognition
+        .as_ref()
+        .is_some_and(|recognition| {
+            recognition
+                .localized_names
+                .values()
+                .any(|name| name.to_lowercase().contains(text))
+                || recognition
+                    .canonical_family
+                    .as_ref()
+                    .is_some_and(|family| family.contains(text))
+        });
+    classification_matches || recognition_matches
 }
 
 fn training_snapshot_ref(revision: i64) -> String {
@@ -8400,6 +8691,9 @@ fn migrate_schema(connection: &Connection, interrupt_before_commit: bool) -> Res
         if version < 28 {
             connection.execute_batch(SCHEMA_V28)?;
         }
+        if version < 29 {
+            connection.execute_batch(SCHEMA_V29)?;
+        }
         if interrupt_before_commit {
             return Err(ImportError::InjectedMigrationInterruption);
         }
@@ -9319,6 +9613,177 @@ fn decode_activity(
         sha256: artifact_sha256.to_owned(),
         observation,
     })
+}
+
+fn valid_polar_sport_code(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 128
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_uppercase() || byte == b'_' || byte.is_ascii_digit())
+}
+
+fn valid_source_export_version(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 64
+        && value.trim() == value
+        && !value.chars().any(char::is_control)
+}
+
+fn polar_sport_mapping(
+    source_sport_code: &str,
+) -> Option<(Option<SportFamily>, &'static str, &'static str)> {
+    match source_sport_code {
+        "RUNNING" => Some((Some(SportFamily::Running), "Running", "Carrera")),
+        "ROAD_RUNNING" => Some((
+            Some(SportFamily::Running),
+            "Road running",
+            "Carrera en asfalto",
+        )),
+        "TRAIL_RUNNING" => Some((
+            Some(SportFamily::Running),
+            "Trail running",
+            "Carrera por montaña",
+        )),
+        "TREADMILL_RUNNING" => Some((
+            Some(SportFamily::Running),
+            "Treadmill running",
+            "Carrera en cinta",
+        )),
+        "CYCLING" => Some((Some(SportFamily::Cycling), "Cycling", "Ciclismo")),
+        "ROAD_CYCLING" => Some((
+            Some(SportFamily::Cycling),
+            "Road cycling",
+            "Ciclismo en carretera",
+        )),
+        "MOUNTAIN_BIKING" => Some((
+            Some(SportFamily::Cycling),
+            "Mountain biking",
+            "Ciclismo de montaña",
+        )),
+        "INDOOR_CYCLING" => Some((
+            Some(SportFamily::Cycling),
+            "Indoor cycling",
+            "Ciclismo indoor",
+        )),
+        "WALKING" => Some((Some(SportFamily::Walking), "Walking", "Caminar")),
+        "HIKING" => Some((Some(SportFamily::Hiking), "Hiking", "Senderismo")),
+        "SWIMMING" => Some((Some(SportFamily::Swimming), "Swimming", "Natación")),
+        "POOL_SWIMMING" => Some((
+            Some(SportFamily::Swimming),
+            "Pool swimming",
+            "Natación en piscina",
+        )),
+        "OPEN_WATER_SWIMMING" => Some((
+            Some(SportFamily::Swimming),
+            "Open-water swimming",
+            "Natación en aguas abiertas",
+        )),
+        "STRENGTH_TRAINING" => Some((
+            Some(SportFamily::Strength),
+            "Strength training",
+            "Entrenamiento de fuerza",
+        )),
+        "MOBILITY_STATIC" => Some((
+            Some(SportFamily::Mobility),
+            "Static mobility",
+            "Movilidad estática",
+        )),
+        "CROSS_TRAINER" => Some((
+            Some(SportFamily::Other),
+            "Cross trainer",
+            "Bicicleta elíptica",
+        )),
+        "INDOOR_ROWING" => Some((Some(SportFamily::Other), "Indoor rowing", "Remo indoor")),
+        "WATERSPORTS_CANOEING" => Some((
+            Some(SportFamily::WaterSport),
+            "Canoeing",
+            "Piragüismo en canoa",
+        )),
+        "WATERSPORTS_KAYAKING" => Some((
+            Some(SportFamily::WaterSport),
+            "Kayaking",
+            "Piragüismo en kayak",
+        )),
+        "OTHER_OUTDOOR" => Some((
+            Some(SportFamily::Other),
+            "Other outdoor activity",
+            "Otro deporte al aire libre",
+        )),
+        _ => None,
+    }
+}
+
+fn decode_sport_profiles(artifact: &str, bytes: &[u8]) -> Result<()> {
+    let profiles = serde_json::from_slice::<Vec<PolarSportProfile>>(bytes).map_err(|error| {
+        invalid_training_artifact(artifact, format!("invalid sport profiles: {error}"))
+    })?;
+    if profiles.len() > 10_000 {
+        return Err(invalid_training_artifact(
+            artifact,
+            "sport profile count exceeds the supported bound",
+        ));
+    }
+    for profile in profiles {
+        if !valid_source_export_version(&profile.export_version)
+            || !valid_polar_sport_code(&profile.sport)
+        {
+            return Err(invalid_training_artifact(
+                artifact,
+                "sport profile identity evidence is invalid",
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn decode_training_target_sport_evidence(
+    artifact: &str,
+    artifact_sha256: &str,
+    bytes: &[u8],
+) -> Result<Vec<MappedTrainingTargetSportEvidence>> {
+    let target = serde_json::from_slice::<PolarTrainingTarget>(bytes).map_err(|error| {
+        invalid_training_artifact(artifact, format!("invalid training target: {error}"))
+    })?;
+    if !valid_source_export_version(&target.export_version) || target.exercises.len() > 256 {
+        return Err(invalid_training_artifact(
+            artifact,
+            "training target metadata is invalid",
+        ));
+    }
+    let (_, started_at_local) = parse_source_datetime(&target.start_time, "startTime", artifact)?;
+    let mut encountered_codes = BTreeSet::new();
+    let mut mapped = Vec::new();
+    for (ordinal, exercise) in target.exercises.into_iter().enumerate() {
+        if !valid_polar_sport_code(&exercise.sport) {
+            return Err(invalid_training_artifact(
+                artifact,
+                "training target sport evidence is invalid",
+            ));
+        }
+        if !target.done || !encountered_codes.insert(exercise.sport.clone()) {
+            continue;
+        }
+        let Some((canonical_family, english_name, spanish_name)) =
+            polar_sport_mapping(&exercise.sport)
+        else {
+            continue;
+        };
+        mapped.push(MappedTrainingTargetSportEvidence {
+            locator: artifact.to_owned(),
+            sha256: artifact_sha256.to_owned(),
+            source_record_locator: format!("exercises/{ordinal}/sport"),
+            export_version: target.export_version.clone(),
+            started_at_local: started_at_local.clone(),
+            source_sport_code: exercise.sport,
+            canonical_family,
+            localized_names: BTreeMap::from([
+                ("en".to_owned(), english_name.to_owned()),
+                ("es".to_owned(), spanish_name.to_owned()),
+            ]),
+        });
+    }
+    Ok(mapped)
 }
 
 fn parse_source_datetime(
@@ -12685,6 +13150,99 @@ fn reconcile_training_session(
     Ok(())
 }
 
+fn training_target_sport_evidence_ref(
+    origin_id: &str,
+    session_id: &str,
+    evidence: &MappedTrainingTargetSportEvidence,
+) -> String {
+    let mut digest = Sha256::new();
+    update_catalogue_digest(&mut digest, "fitfreed:training-target-sport-evidence:v1");
+    update_catalogue_digest(&mut digest, origin_id);
+    update_catalogue_digest(&mut digest, session_id);
+    update_catalogue_digest(&mut digest, SOURCE_PROVIDER);
+    update_catalogue_digest(&mut digest, &evidence.source_sport_code);
+    update_catalogue_digest(&mut digest, POLAR_TRAINING_TARGET_SPORT_MAPPING_VERSION);
+    format!("sport-evidence-{:x}", digest.finalize())
+}
+
+fn reconcile_training_target_sport_evidence(
+    transaction: &Transaction<'_>,
+    operation_id: i64,
+    origin_id: &str,
+    evidence: &MappedTrainingTargetSportEvidence,
+) -> Result<()> {
+    let mut statement = transaction.prepare(
+        "SELECT session_id
+         FROM training_session
+         WHERE origin_id = ?1 AND started_at_local = ?2
+         ORDER BY session_id
+         LIMIT 2",
+    )?;
+    let session_ids = statement
+        .query_map(params![origin_id, evidence.started_at_local], |row| {
+            row.get::<_, String>(0)
+        })?
+        .collect::<std::result::Result<Vec<_>, _>>()?;
+    let [session_id] = session_ids.as_slice() else {
+        return Ok(());
+    };
+    let localized_names_json =
+        serde_json::to_string(&evidence.localized_names).map_err(|error| {
+            ImportError::InvalidTrainingLibrary(format!(
+                "training target sport names cannot be serialized: {error}"
+            ))
+        })?;
+    let evidence_ref = training_target_sport_evidence_ref(origin_id, session_id, evidence);
+    transaction.execute(
+        "INSERT INTO training_session_sport_evidence (
+             origin_id, session_id, source_provider, source_sport_code,
+             canonical_family_suggestion, localized_names_json,
+             catalogue_revision, retrieved_at_utc, mapping_version, evidence_ref
+         ) VALUES (
+             ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10
+         )
+         ON CONFLICT (origin_id, session_id, source_provider, source_sport_code, mapping_version)
+         DO NOTHING",
+        params![
+            origin_id,
+            session_id,
+            SOURCE_PROVIDER,
+            evidence.source_sport_code,
+            evidence.canonical_family.map(SportFamily::as_code),
+            localized_names_json,
+            POLAR_DETAILED_SPORT_CATALOGUE_REVISION,
+            POLAR_DETAILED_SPORT_CATALOGUE_RETRIEVED_AT_UTC,
+            POLAR_TRAINING_TARGET_SPORT_MAPPING_VERSION,
+            evidence_ref,
+        ],
+    )?;
+    transaction.execute(
+        "INSERT INTO training_session_sport_evidence_source (
+             origin_id, session_id, source_provider, source_sport_code, mapping_version,
+             source_artifact_locator, source_artifact_sha256, source_record_locator,
+             source_started_at_local, source_export_version, import_operation_id
+         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+         ON CONFLICT (
+             origin_id, session_id, source_provider, source_sport_code, mapping_version,
+             source_artifact_sha256, source_record_locator
+         ) DO NOTHING",
+        params![
+            origin_id,
+            session_id,
+            SOURCE_PROVIDER,
+            evidence.source_sport_code,
+            POLAR_TRAINING_TARGET_SPORT_MAPPING_VERSION,
+            evidence.locator,
+            evidence.sha256,
+            evidence.source_record_locator,
+            evidence.started_at_local,
+            evidence.export_version,
+            operation_id,
+        ],
+    )?;
+    Ok(())
+}
+
 #[derive(Debug)]
 struct PersistedSleepPeriod {
     origin_id: String,
@@ -15349,6 +15907,26 @@ mod tests {
             writer.finish().expect("complete ZIP");
             path
         }
+    }
+
+    fn training_session_json(
+        session_id: &str,
+        start_time: &str,
+        stop_time: &str,
+        duration_milliseconds: i64,
+        sport_ref: &str,
+    ) -> String {
+        format!(
+            r#"{{
+            "identifier":{{"id":"{session_id}"}},
+            "created":"2026-02-04T12:00:00.000",
+            "modified":"2026-02-04T12:05:00.000",
+            "startTime":"{start_time}",
+            "stopTime":"{stop_time}",
+            "durationMillis":{duration_milliseconds},
+            "sport":{{"id":"{sport_ref}"}}
+            }}"#
+        )
     }
 
     fn persisted_report_definition() -> ReportDefinition {
@@ -18623,6 +19201,354 @@ mod tests {
                 .expect("updated retained recognition")
                 .localized_names["en"],
             "Road running"
+        );
+    }
+
+    #[test]
+    fn scopes_training_target_sport_recognition_to_the_exact_completed_session() {
+        let harness = Harness::new();
+        let recognized_session = training_session_json(
+            "target-recognized-session",
+            "2026-01-02T10:30:00",
+            "2026-01-02T11:30:00",
+            3_600_000,
+            "shared-opaque-sport",
+        );
+        let unresolved_session = training_session_json(
+            "target-unresolved-session",
+            "2026-01-03T10:30:00",
+            "2026-01-03T11:15:00",
+            2_700_000,
+            "shared-opaque-sport",
+        );
+        let archive = harness.archive(
+            "target-sport-evidence.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-target-sport-claim"}"#,
+                ),
+                (
+                    "sport-profiles-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"[{"exportVersion":"1.0","sport":"WATERSPORTS_KAYAKING"}]"#,
+                ),
+                (
+                    "training-session_2026-01-02T10-30-00_42-11111111-2222-4333-8444-555555555555.json",
+                    &recognized_session,
+                ),
+                (
+                    "training-session_2026-01-03T10-30-00_42-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    &unresolved_session,
+                ),
+                (
+                    "training-target-2026-01-02-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                    "exportVersion":"1.0",
+                    "name":"River technique",
+                    "description":"",
+                    "startTime":"2026-01-02T10:30:00.000",
+                    "done":true,
+                    "exercises":[{"type":"FREE","sport":"WATERSPORTS_KAYAKING","phases":[]}]
+                    }"#,
+                ),
+            ],
+        );
+
+        import_polar_archive(&harness.database(), &archive).expect("target sport import");
+        let library = SqliteTrainingLibrary::new(harness.database());
+        let request = TrainingSessionSearchRequest {
+            from: None,
+            through: None,
+            sport_refs: Vec::new(),
+            required_measurements: Vec::new(),
+            text: None,
+            sort: TrainingSessionSort::StartedAscending,
+            offset: 0,
+            limit: 25,
+            snapshot_ref: None,
+        };
+        let imported = fitfreed_application::query_training_sessions(&library, request.clone())
+            .expect("sessions with target evidence");
+
+        assert_eq!(imported.sessions.len(), 2);
+        let recognized = &imported.sessions[0].sport;
+        assert_eq!(recognized.state, TrainingSportState::Recognized);
+        assert_eq!(recognized.recognition_candidate_count, 1);
+        let recognition = recognized
+            .recognition
+            .as_ref()
+            .expect("exact target recognition");
+        assert_eq!(recognition.canonical_family.as_deref(), Some("water-sport"));
+        assert_eq!(recognition.localized_names["en"], "Kayaking");
+        assert_eq!(recognition.localized_names["es"], "Piragüismo en kayak");
+        assert!(!format!("{recognized:?}").contains("WATERSPORTS_KAYAKING"));
+
+        let selected = fitfreed_application::query_training_session_selection(
+            &library,
+            TrainingSessionSelectionRequest {
+                session_refs: vec![imported.sessions[0].session_ref.clone()],
+                snapshot_ref: Some(imported.snapshot_ref.clone()),
+            },
+        )
+        .expect("selected session with target evidence");
+        assert_eq!(
+            selected.sessions[0].sport.state,
+            TrainingSportState::Recognized
+        );
+
+        let matching = fitfreed_application::query_training_sessions(
+            &library,
+            TrainingSessionSearchRequest {
+                text: Some("kayak".to_owned()),
+                ..request.clone()
+            },
+        )
+        .expect("target-recognized sport search");
+        assert_eq!(matching.total_count, 1);
+        assert_eq!(
+            matching.sessions[0].session_ref,
+            imported.sessions[0].session_ref
+        );
+
+        let unresolved = &imported.sessions[1].sport;
+        assert_eq!(unresolved.state, TrainingSportState::Unknown);
+        assert_eq!(unresolved.recognition_candidate_count, 0);
+        assert_eq!(recognized.sport_ref, unresolved.sport_ref);
+
+        let repeated = import_polar_archive(&harness.database(), &archive).expect("exact reimport");
+        assert!(repeated.exact_repeat);
+        let extended = harness.archive(
+            "target-sport-evidence-extended.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-target-sport-claim"}"#,
+                ),
+                (
+                    "training-session_2026-01-02T10-30-00_42-11111111-2222-4333-8444-555555555555.json",
+                    &recognized_session,
+                ),
+                (
+                    "training-target-2026-01-02-42-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    r#"{
+                    "exportVersion":"1.0",
+                    "name":"Revised river technique",
+                    "description":"A later export of the same target evidence",
+                    "startTime":"2026-01-02T10:30:00.000",
+                    "done":true,
+                    "exercises":[{"type":"FREE","sport":"WATERSPORTS_KAYAKING","phases":[]}]
+                    }"#,
+                ),
+            ],
+        );
+        assert!(
+            !import_polar_archive(&harness.database(), &extended)
+                .expect("extended reimport")
+                .exact_repeat
+        );
+        let after_repeat = fitfreed_application::query_training_sessions(&library, request)
+            .expect("target recognition after reimport");
+        assert_eq!(
+            after_repeat.sessions[0].sport.recognition_candidate_count,
+            1
+        );
+        let connection = Connection::open(harness.database()).expect("database");
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM training_session_sport_evidence",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("one idempotent target recognition row"),
+            1
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM training_session_sport_evidence_source",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("both attributed target sources retained"),
+            2
+        );
+    }
+
+    #[test]
+    fn rejects_non_unique_or_incomplete_target_relations_and_preserves_real_ambiguity() {
+        let harness = Harness::new();
+        let incomplete_session = training_session_json(
+            "incomplete-target-session",
+            "2026-02-01T10:00:00",
+            "2026-02-01T11:00:00",
+            3_600_000,
+            "opaque-sport",
+        );
+        let duplicate_start_a = training_session_json(
+            "duplicate-start-a",
+            "2026-02-02T10:00:00",
+            "2026-02-02T11:00:00",
+            3_600_000,
+            "opaque-sport",
+        );
+        let duplicate_start_b = training_session_json(
+            "duplicate-start-b",
+            "2026-02-02T10:00:00",
+            "2026-02-02T10:45:00",
+            2_700_000,
+            "opaque-sport",
+        );
+        let ambiguous_session = training_session_json(
+            "ambiguous-target-session",
+            "2026-02-03T10:00:00",
+            "2026-02-03T11:00:00",
+            3_600_000,
+            "opaque-sport",
+        );
+        let archive = harness.archive(
+            "bounded-target-sport-evidence.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-bounded-target-sport-claim"}"#,
+                ),
+                (
+                    "training-session_2026-02-01T10-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    &incomplete_session,
+                ),
+                (
+                    "training-session_2026-02-02T10-00-00_42-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    &duplicate_start_a,
+                ),
+                (
+                    "training-session_2026-02-02T10-00-00_43-01234567-89ab-4cde-8f01-23456789abcd.json",
+                    &duplicate_start_b,
+                ),
+                (
+                    "training-session_2026-02-03T10-00-00_42-fedcba98-7654-4321-8fed-cba987654321.json",
+                    &ambiguous_session,
+                ),
+                (
+                    "training-target-2026-02-01-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{
+                    "exportVersion":"1.0","startTime":"2026-02-01T10:00:00.000","done":false,
+                    "exercises":[{"sport":"WATERSPORTS_KAYAKING"}]
+                    }"#,
+                ),
+                (
+                    "training-target-2026-02-02-42-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.json",
+                    r#"{
+                    "exportVersion":"1.0","startTime":"2026-02-02T10:00:00.000","done":true,
+                    "exercises":[{"sport":"WATERSPORTS_KAYAKING"}]
+                    }"#,
+                ),
+                (
+                    "training-target-2026-02-03-42-fedcba98-7654-4321-8fed-cba987654321.json",
+                    r#"{
+                    "exportVersion":"1.0","startTime":"2026-02-03T10:00:00.000","done":true,
+                    "exercises":[
+                        {"sport":"WATERSPORTS_KAYAKING"},
+                        {"sport":"WATERSPORTS_CANOEING"}
+                    ]
+                    }"#,
+                ),
+            ],
+        );
+
+        import_polar_archive(&harness.database(), &archive).expect("bounded target import");
+        let library = SqliteTrainingLibrary::new(harness.database());
+        let imported = fitfreed_application::query_training_sessions(
+            &library,
+            TrainingSessionSearchRequest {
+                from: None,
+                through: None,
+                sport_refs: Vec::new(),
+                required_measurements: Vec::new(),
+                text: None,
+                sort: TrainingSessionSort::StartedAscending,
+                offset: 0,
+                limit: 25,
+                snapshot_ref: None,
+            },
+        )
+        .expect("sessions with bounded target evidence");
+
+        assert_eq!(imported.sessions.len(), 4);
+        for unresolved in &imported.sessions[..3] {
+            assert_eq!(unresolved.sport.state, TrainingSportState::Unknown);
+            assert_eq!(unresolved.sport.recognition_candidate_count, 0);
+        }
+        assert_eq!(
+            imported.sessions[3].sport.state,
+            TrainingSportState::Ambiguous
+        );
+        assert_eq!(imported.sessions[3].sport.recognition_candidate_count, 2);
+        assert!(imported.sessions[3].sport.recognition.is_none());
+
+        let connection = Connection::open(harness.database()).expect("database");
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM training_session_sport_evidence",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("only exact ambiguous candidates persisted"),
+            2
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_sport_vocabulary_evidence_before_training_visibility_changes() {
+        let harness = Harness::new();
+        let session = training_session_json(
+            "invalid-vocabulary-session",
+            "2026-02-05T10:00:00",
+            "2026-02-05T11:00:00",
+            3_600_000,
+            "opaque-sport",
+        );
+        let archive = harness.archive(
+            "invalid-sport-vocabulary.zip",
+            &[
+                (
+                    "account-data-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"{"username":"fixture-invalid-sport-vocabulary-claim"}"#,
+                ),
+                (
+                    "training-session_2026-02-05T10-00-00_42-11111111-2222-4333-8444-555555555555.json",
+                    &session,
+                ),
+                (
+                    "sport-profiles-42-11111111-2222-4333-8444-555555555555.json",
+                    r#"[{"exportVersion":"1.0","sport":"lowercase-is-not-a-code"}]"#,
+                ),
+            ],
+        );
+
+        assert!(matches!(
+            import_polar_archive(&harness.database(), &archive),
+            Err(ImportError::InvalidArtifact { .. })
+        ));
+        let connection = Connection::open(harness.database()).expect("database");
+        assert_eq!(
+            connection
+                .query_row("SELECT COUNT(*) FROM training_session", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .expect("no visible training session"),
+            0
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT state FROM import_operation ORDER BY id DESC LIMIT 1",
+                    [],
+                    |row| row.get::<_, String>(0),
+                )
+                .expect("failed operation state"),
+            "rejected"
         );
     }
 
@@ -22419,7 +23345,7 @@ mod tests {
             SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8,
             SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15,
             SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22,
-            SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27, SCHEMA_V28,
+            SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27, SCHEMA_V28, SCHEMA_V29,
         ];
         for migration in migrations
             .iter()

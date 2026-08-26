@@ -20,8 +20,8 @@ test("accepts current documentation derived from the release compatibility sourc
     validateCurrentDocumentation(loadCurrentDocumentation(repositoryRoot)),
     {
       releaseVersion: "0.1.0",
-      currentLibrarySchemaVersion: 28,
-      supportedLibrarySchemaVersions: Array.from({ length: 28 }, (_, index) => index + 1),
+      currentLibrarySchemaVersion: 29,
+      supportedLibrarySchemaVersions: Array.from({ length: 29 }, (_, index) => index + 1),
       checkedDocuments: 11,
     },
   );
@@ -66,8 +66,8 @@ test("rejects stale storage, report, and release-readiness claims together", () 
   const candidate = structuredClone(loadCurrentDocumentation(repositoryRoot));
   candidate.sources["docs/architecture/storage.md"] = replaceRequired(
     candidate.sources["docs/architecture/storage.md"],
+    "SQLite version 29",
     "SQLite version 28",
-    "SQLite version 27",
   );
   candidate.sources["docs/user/public-macos-0.1.0.md"] = replaceRequired(
     candidate.sources["docs/user/public-macos-0.1.0.md"],
@@ -83,7 +83,7 @@ test("rejects stale storage, report, and release-readiness claims together", () 
   assert.throws(
     () => validateCurrentDocumentation(candidate),
     (error) => {
-      assert.match(error.message, /storage architecture does not identify SQLite schema 28/);
+      assert.match(error.message, /storage architecture does not identify SQLite schema 29/);
       assert.match(error.message, /public guide does not describe every implemented report start/);
       assert.match(error.message, /release readiness still presents the implemented experience as absent/);
       return true;
