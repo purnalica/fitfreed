@@ -8,10 +8,13 @@ use fitfreed_application::{
 };
 use fitfreed_domain::{ReportBlockContent, ReportLocale, ReportTrainingMetric};
 
-use super::local_file::PrivateStagingFile;
+use super::{
+    local_file::PrivateStagingFile,
+    report_chart::{render_static_comparison_chart, StaticComparisonChart},
+};
 
 const SPORT_ICON_SPRITE: &str = include_str!("../../../assets/sport/sport-icons.svg");
-const REPORT_HTML_OUTPUT_VERSION: u32 = 5;
+const REPORT_HTML_OUTPUT_VERSION: u32 = 6;
 const SVG_NAMESPACE_DECLARATION: &str = " xmlns=\"http://www.w3.org/2000/svg\"";
 const EMBEDDED_STYLE: &str = "\
 :root{color-scheme:light dark;font-family:system-ui,-apple-system,sans-serif;line-height:1.5}\
@@ -21,7 +24,7 @@ main{background:#fff;border:1px solid #cad3cc;border-radius:1rem;padding:clamp(1
 h1,h2{line-height:1.15}section{margin-block:2rem}dl{display:grid;grid-template-columns:minmax(10rem,1fr) 2fr;gap:.5rem 1rem}\
 dt{font-weight:700}dd{margin:0}.narrative{white-space:pre-wrap}.attribution,.limitation{color:#425149}\
 .sport-identity{display:inline-flex;align-items:center;gap:.5rem}.sport-icon{width:1.75rem;height:1.75rem;padding:.3rem;color:#276749;background:#eef3ef;border-radius:50%;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;fill:none}\
-.comparison-series{border:1px solid #cad3cc;border-radius:.75rem;padding:1rem;margin-block:1rem}.comparison-bars{display:grid;gap:.75rem}.comparison-bar{display:grid;grid-template-columns:minmax(7rem,auto) 1fr auto;gap:.75rem;align-items:center}.comparison-bar i{display:block;min-width:.2rem;height:1rem;border-radius:999px;background:#276749}.table-scroll{overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{padding:.6rem;text-align:left;border-bottom:1px solid #cad3cc}caption{font-weight:700;text-align:left;margin-bottom:.5rem}\
+.comparison-series{border:1px solid #cad3cc;border-radius:.75rem;padding:1rem;margin-block:1rem}.comparison-chart{display:block;max-width:100%;height:auto;margin-block:1rem}.table-scroll{overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{padding:.6rem;text-align:left;border-bottom:1px solid #cad3cc}caption{font-weight:700;text-align:left;margin-bottom:.5rem}\
 .route-visual{background:#eef3ef;border:1px solid #cad3cc;border-radius:.75rem;max-width:100%;height:auto}.route-visual rect{fill:#eef3ef}.route-visual polyline{fill:none;stroke:#276749;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}.route-visual circle{fill:#17211c;stroke:#fff;stroke-width:2}\
 @media(max-width:40rem){body{padding:.5rem}main{border-radius:.5rem}dl{grid-template-columns:1fr}dd{margin-bottom:.75rem}}\
 @media(prefers-color-scheme:dark){body{color:#e7eee9;background:#121713}main{background:#1b231d;border-color:#445047}.attribution,.limitation{color:#b8c5bc}}\
@@ -188,7 +191,8 @@ fn render_report(
                     labels,
                     report.definition.locale(),
                     block.block_ref(),
-                );
+                    cancellation,
+                )?;
             }
             ReportBlockContent::TrainingExactTable { .. } => {
                 render_training_exact_table(
@@ -463,42 +467,55 @@ fn render_training_chart(
     labels: &Labels,
     locale: ReportLocale,
     block_ref: &str,
-) {
+    cancellation: &ReportExportCancellation,
+) -> Result<(), ReportExportPortError> {
     open_analytical_section(html, block_ref, labels.training_chart, labels);
     for (index, series) in comparison.series.iter().enumerate() {
-        html.push_str("<figure class=\"comparison-series\"><figcaption>");
-        push_series_label(html, index, comparison.series.len(), labels);
-        html.push_str(" — ");
-        html.push_str(training_metric_label(metric, labels));
-        html.push_str("</figcaption>");
-        let values = [
-            (&series.baseline, labels.baseline),
-            (&series.comparison, labels.comparison),
-        ];
-        let maximum = values
-            .iter()
-            .filter_map(|(summary, _)| training_metric_magnitude(summary, metric))
-            .fold(0.0_f64, f64::max);
-        html.push_str("<div class=\"comparison-bars\" aria-hidden=\"true\">");
-        for (summary, label) in values {
-            let width = training_metric_magnitude(summary, metric)
-                .filter(|_| maximum > 0.0)
-                .map_or(0.0, |value| value / maximum * 100.0);
-            let display = training_metric_display(summary, metric, labels, locale)
+        ensure_active(cancellation)?;
+        let series_label = training_series_label(index, comparison.series.len(), labels);
+        let metric_label = training_metric_label(metric, labels);
+        let title = format!("{series_label} — {metric_label}");
+        let baseline_display = training_metric_display(&series.baseline, metric, labels, locale)
+            .unwrap_or_else(|| labels.unavailable.to_owned());
+        let comparison_display =
+            training_metric_display(&series.comparison, metric, labels, locale)
                 .unwrap_or_else(|| labels.unavailable.to_owned());
-            html.push_str("<div class=\"comparison-bar\"><span>");
-            html.push_str(label);
-            html.push_str("</span><span><i style=\"width:");
-            html.push_str(&format!("{width:.2}%"));
-            html.push_str("\"></i></span><strong>");
-            push_escaped(html, &display);
-            html.push_str("</strong></div>");
-        }
-        html.push_str("</div>");
+        let description = format!(
+            "{}: {}; {}: {}.",
+            labels.baseline, baseline_display, labels.comparison, comparison_display
+        );
+        let axis_label = training_metric_chart_axis_label(metric, labels);
+        let chart_id = format!("{block_ref}-chart-{}", index + 1);
+        let chart = render_static_comparison_chart(&StaticComparisonChart {
+            id: &chart_id,
+            title: &title,
+            description: &description,
+            axis_label: &axis_label,
+            baseline_label: labels.baseline,
+            comparison_label: labels.comparison,
+            unavailable_label: labels.unavailable,
+            baseline_value: training_metric_chart_value(&series.baseline, metric),
+            comparison_value: training_metric_chart_value(&series.comparison, metric),
+            decimal_separator: match locale {
+                ReportLocale::EnUs => '.',
+                ReportLocale::EsEs => ',',
+            },
+        })
+        .map_err(|error| {
+            ReportExportPortError::Failure(format!("static report chart rendering failed: {error}"))
+        })?;
+        html.push_str("<figure class=\"comparison-series\"><figcaption>");
+        push_escaped(html, &series_label);
+        html.push_str(" — ");
+        html.push_str(metric_label);
+        html.push_str("</figcaption>");
+        html.push_str(&chart);
         render_metric_table(html, series, &[metric], labels, locale);
         html.push_str("</figure>");
+        ensure_active(cancellation)?;
     }
     close_analytical_section(html, comparison, labels);
+    Ok(())
 }
 
 fn render_training_exact_table(
@@ -680,12 +697,14 @@ fn close_analytical_section(html: &mut String, comparison: &TrainingComparison, 
 }
 
 fn push_series_label(html: &mut String, index: usize, count: usize, labels: &Labels) {
+    html.push_str(&training_series_label(index, count, labels));
+}
+
+fn training_series_label(index: usize, count: usize, labels: &Labels) -> String {
     if count == 1 {
-        html.push_str(labels.training_history);
+        labels.training_history.to_owned()
     } else {
-        html.push_str(labels.source_series);
-        html.push(' ');
-        html.push_str(&(index + 1).to_string());
+        format!("{} {}", labels.source_series, index + 1)
     }
 }
 
@@ -811,16 +830,30 @@ fn training_metric_change_display(
     }
 }
 
-fn training_metric_magnitude(
+fn training_metric_chart_value(
     summary: &TrainingSeriesSummary,
     metric: ReportTrainingMetric,
 ) -> Option<f64> {
     match metric {
         ReportTrainingMetric::SessionCount => Some(summary.session_count as f64),
         ReportTrainingMetric::TrainingDays => Some(summary.training_days as f64),
-        ReportTrainingMetric::Duration => Some(summary.total_duration_milliseconds as f64),
-        ReportTrainingMetric::Distance => summary.total_distance_meters,
+        ReportTrainingMetric::Duration => {
+            Some(summary.total_duration_milliseconds as f64 / 3_600_000.0)
+        }
+        ReportTrainingMetric::Distance => {
+            summary.total_distance_meters.map(|value| value / 1_000.0)
+        }
         ReportTrainingMetric::Energy => summary.total_energy_kilocalories.map(|value| value as f64),
+    }
+}
+
+fn training_metric_chart_axis_label(metric: ReportTrainingMetric, labels: &Labels) -> String {
+    match metric {
+        ReportTrainingMetric::SessionCount => labels.sessions.to_owned(),
+        ReportTrainingMetric::TrainingDays => labels.training_days.to_owned(),
+        ReportTrainingMetric::Duration => format!("{} ({})", labels.duration, labels.hours),
+        ReportTrainingMetric::Distance => format!("{} ({})", labels.distance, labels.kilometres),
+        ReportTrainingMetric::Energy => format!("{} ({})", labels.energy, labels.kilocalories),
     }
 }
 
@@ -2093,7 +2126,7 @@ mod tests {
         assert!(html.contains(&format!(
             "data-fitfreed-report-version=\"{REPORT_DEFINITION_VERSION}\""
         )));
-        assert!(html.contains("data-fitfreed-output-version=\"5\""));
+        assert!(html.contains("data-fitfreed-output-version=\"6\""));
         assert!(html.contains("<svg class=\"route-visual\""));
         assert!(
             html.find(">Route</h2>").expect("route section")
@@ -2132,13 +2165,19 @@ mod tests {
                 .expect("deterministic analytical report");
             assert_eq!(first, second);
             assert!(first.contains(expected_heading));
-            assert!(first.contains("class=\"comparison-bars\""));
+            assert!(first.contains("<svg class=\"comparison-chart\""));
+            assert!(first.contains("role=\"img\""));
+            assert!(first.contains(match locale {
+                ReportLocale::EnUs => ">Training history — Duration</title>",
+                ReportLocale::EsEs => ">Historial de entrenamiento — Duración</title>",
+            }));
             assert!(first.contains("<table>"));
             assert!(first.contains("data-unit=\"ms\""));
             assert!(first.contains("2026-01-01 – 2026-01-31"));
             assert!(first.contains("2026-02-01 – 2026-02-28"));
             assert!(!first.contains("opaque-series-must-not-leave"));
             assert!(!first.contains("<script"));
+            assert!(!first.contains("class=\"comparison-bars\""));
             assert!(!first.contains("http://"));
             assert!(!first.contains("https://"));
             let finding = first.find(expected_heading).expect("finding order");

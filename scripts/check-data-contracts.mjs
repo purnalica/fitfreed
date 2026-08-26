@@ -7191,6 +7191,7 @@ const libraryHomeV5Path = "docs/data-formats/insights/library-home-v5.md";
 const sessionReportV4Path = "docs/data-formats/insights/session-report-v4.md";
 const reportV5Path = "docs/data-formats/insights/report-v5.md";
 const reportHtmlV5Path = "docs/data-formats/portable/report-html-v5.md";
+const reportHtmlV6Path = "docs/data-formats/portable/report-html-v6.md";
 const trainingSportIdentityV2Path =
   "docs/data-formats/insights/training-sport-identity-v2.md";
 const trainingSportsV3Path = "docs/data-formats/insights/training-sports-v3.md";
@@ -7251,6 +7252,10 @@ for (const [documentPath, fields] of [
   ]],
   [reportHtmlV5Path, [
     "text/html", "data-fitfreed-output-version=\"5\"", "data-fitfreed-report-version",
+  ]],
+  [reportHtmlV6Path, [
+    "text/html", "data-fitfreed-output-version=\"6\"", "data-fitfreed-report-version",
+    "static SVG", "96 KiB", "milliseconds", "metres", "kilocalories",
   ]],
   [trainingSportIdentityV2Path, [
     "sportRef", "classification", "recognized", "ambiguous",

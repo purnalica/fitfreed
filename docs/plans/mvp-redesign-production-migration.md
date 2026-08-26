@@ -2848,8 +2848,16 @@ uses the same stacked-lane port for one through four independently scaled measur
 application-authorized route elapsed coordinate. It preserves gaps, formats pace as `M:SS`, synchronizes chart,
 native keyboard control, and map selection without inventing an exact sample relationship, and updates the mounted
 renderer in place during traversal. The live boundary and all live analytical migrations are documented in the
-current architecture, developer, testing, performance, and user guides. Static report rendering, route-relative
-zoom bounds, and the complete X7-R4 acceptance gates remain.
+current architecture, developer, testing, performance, and user guides.
+
+On 2026-08-27, deterministic static report rendering migrated to the feature-limited Plotters adapter. Portable
+report output version 6 now carries bounded vector charts with labelled units, localized accessible descriptions,
+explicit missing-value gaps, and exact semantic tables derived from the same resolved evidence. The adapter admits
+no executable script or external request, and architecture automation keeps Plotters inside its sole infrastructure
+boundary. Focused Rust tests, the complete fast suite, strict linting, formatting, dependency audit, production build,
+and the exact packaged macOS journey pass. The packaged journey completed in 3 minutes 3.5 seconds and verified the
+new output after reimport and application-process restart; inspected synthetic report artifacts were 14,234 and
+16,324 bytes. Route-relative zoom bounds and the complete X7-R4 acceptance gates remain.
 
 The exact instrumented macOS package passed the complete functional journey, application-process restart,
 evidence-adaptive composition, independent-signal range restart, and isolated two-year performance scenario. The

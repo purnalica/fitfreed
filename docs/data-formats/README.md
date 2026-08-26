@@ -142,7 +142,8 @@ Directories are created with their first real contract; empty specifications are
 - [Portable report definition version 2](portable/report-definition-v2.md)
 - [Portable report definition version 3](portable/report-definition-v3.md)
 - [Portable report definition version 4](portable/report-definition-v4.md)
-- [Self-contained report HTML version 5](portable/report-html-v5.md)
+- [Self-contained report HTML version 6](portable/report-html-v6.md)
+- [Self-contained report HTML version 5](portable/report-html-v5.md) — preceding contract
 - [Self-contained report HTML version 4](portable/report-html-v4.md) — preceding contract
 - [Self-contained report HTML version 3](portable/report-html-v3.md) — preceding contract
 - [Self-contained report HTML version 2](portable/report-html-v2.md) — preceding contract

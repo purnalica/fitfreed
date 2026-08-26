@@ -34,7 +34,7 @@ when that source is still available.
 Current disposable results follow [report workflow version 5](../data-formats/insights/report-v5.md): report
 definitions remain version 4, while the result-first library and resolved report embed training sport identity
 version 1. Catalogue activation makes prior resolved evidence stale and still requires the existing deliberate
-refresh review. Self-contained HTML uses [output version 5](../data-formats/portable/report-html-v5.md) and
+refresh review. Self-contained HTML uses [output version 6](../data-formats/portable/report-html-v6.md) and
 records its output version independently from the unchanged definition version.
 
 `ReportDefinition` is durable user-authored information. Version 1 remains readable as one fixed session
@@ -166,7 +166,7 @@ revisions.
 
 ## Export boundary
 
-The first normative output is a self-contained semantic HTML document with embedded styles and graphics, no script, and no external request. Export is local, cancellable across paginated resolution and staged output, deterministic for the same resolved input, and atomic. Failure or cancellation leaves no file that can be mistaken for a completed report. [ADR 0032](decisions/0032-use-specialized-analytical-visualization-engines.md) requires the current CSS analytical bars to migrate to feature-limited Plotters SVG rendered from the already authorized projection inside this infrastructure adapter; React will supply neither markup nor renderer state.
+The first normative output is a self-contained semantic HTML document with embedded styles and graphics, no script, and no external request. Export is local, cancellable across paginated resolution and staged output, deterministic for the same resolved input, and atomic. Failure or cancellation leaves no file that can be mistaken for a completed report. Under [ADR 0032](decisions/0032-use-specialized-analytical-visualization-engines.md), the infrastructure adapter renders feature-limited Plotters SVG from the already authorized projection; React supplies neither markup nor renderer state.
 
 Sensitive-content review is an application decision before rendering. Review can remove physiological context allowed by the saved definition, omit each route, or increase its endpoint redaction. It cannot add excluded physiology, introduce another route, or reduce the saved location protection. Exact choices are bound to block identities before the adapter runs.
 
@@ -174,8 +174,8 @@ The review always lists the report title and lists authored commentary only when
 that block. This disclosure mirrors the generated content; a factual report cannot claim an interpretation
 that the user never supplied.
 
-Version-2 through version-4 HTML render selected route blocks as normalized local SVG shapes in definition
-order. Version-3 and version-4 analytical blocks use exact visible tables and CSS-only bars from one
+Version-2 through version-6 HTML render selected route blocks as normalized local SVG shapes in definition
+order. Version-6 analytical blocks use deterministic static SVG plots and exact visible tables from one
 authorized comparison. Version-4 provenance is discriminated: session attribution includes the current
 source, analytical non-session output names the local-library revision, and narrative-only output explicitly
 states that it contains no imported evidence. Recorded latitude, longitude, altitude, elapsed point values,

@@ -150,7 +150,37 @@ if (plottersConsumers.some((packageName) => packageName !== "fitfreed")) {
     `Plotters may only enter through the desktop infrastructure package; found ${plottersConsumers.join(", ")}`,
   );
 }
+const plottersDependency = packages
+  .get("fitfreed")
+  ?.dependencies.find((dependency) => dependency.name === "plotters");
+if (
+  !plottersDependency
+  || plottersDependency.req !== "=0.3.7"
+  || plottersDependency.uses_default_features
+  || JSON.stringify(plottersDependency.features) !== JSON.stringify(["svg_backend"])
+) {
+  throw new Error(
+    "the desktop static-chart adapter must use exact Plotters 0.3.7 with only svg_backend enabled",
+  );
+}
+const plottersAdapterPath = path.join(
+  "src-tauri",
+  "src",
+  "infrastructure",
+  "report_chart.rs",
+);
+const plottersSourceConsumers = rustSources("src-tauri/src").filter((relativePath) => (
+  readFileSync(path.join(repositoryRoot, relativePath), "utf8").includes("plotters::")
+));
+if (
+  plottersSourceConsumers.length !== 1
+  || plottersSourceConsumers[0] !== plottersAdapterPath
+) {
+  throw new Error(
+    `Plotters imports must remain confined to ${plottersAdapterPath}; found ${plottersSourceConsumers.join(", ") || "none"}`,
+  );
+}
 
 process.stdout.write(
-  `${JSON.stringify({ domainDependencies: [], applicationDependencies: ["chrono", "fitfreed-domain", "semver", "thiserror", "url"], updateEvent: hostUpdateEvent, analyticalChartAdapter: echartsAdapterPath, staticChartPackages: plottersConsumers })}\n`,
+  `${JSON.stringify({ domainDependencies: [], applicationDependencies: ["chrono", "fitfreed-domain", "semver", "thiserror", "url"], updateEvent: hostUpdateEvent, analyticalChartAdapter: echartsAdapterPath, staticChartAdapter: plottersAdapterPath, staticChartPackages: plottersConsumers })}\n`,
 );

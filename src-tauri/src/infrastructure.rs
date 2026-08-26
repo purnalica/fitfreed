@@ -125,6 +125,7 @@ use fitfreed_domain::{
 
 mod local_file;
 mod polar_flow;
+mod report_chart;
 mod report_html;
 mod source_acquisition;
 mod source_subject;

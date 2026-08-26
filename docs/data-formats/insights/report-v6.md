@@ -13,7 +13,8 @@ capability.
 
 Recognition is still resolved at the reviewed `resolvedSnapshotRef`. Personal identity wins, ambiguous
 evidence is not selected, and raw provider identifiers or opaque capabilities are not rendered. HTML output
-remains self-contained report HTML version 5 because its visible and privacy contract does not change.
+uses [self-contained report HTML version 6](../portable/report-html-v6.md); its independent output version
+adds bounded static analytical SVG without changing workflow or definition semantics.
 
 Changing workflow behavior, identity projection, refresh authority, or privacy requires a new report
 workflow version.

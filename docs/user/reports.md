@@ -137,7 +137,7 @@ this export; you cannot reduce the protection saved in the definition.
 5. Select **Choose destination and export**, then choose a local HTML file through the operating-system dialog. After a destination is accepted, that action keeps its name and the review announces export progress while **Cancel export** remains available.
 
 The result is one deterministic, self-contained HTML file with embedded styling and no script, external
-image, font, stylesheet, telemetry, or network request. Analytical charts use CSS-only shapes with a visible
+image, font, stylesheet, telemetry, or network request. Analytical charts use static SVG with labelled axes and a visible
 exact table; values from different imported sources remain separate, missing measurements stay explicit, and
 descriptive findings do not claim causation or advice. Route blocks contain only a normalized local SVG shape
 and declared privacy metadata: recorded latitude, longitude, altitude, and elapsed point values are not

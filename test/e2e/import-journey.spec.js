@@ -3036,6 +3036,7 @@ describe("packaged FitFreed import journey", () => {
     );
     const exportedReport = fs.readFileSync(reportOutput, "utf8");
     expect(exportedReport).toContain('data-fitfreed-report-version="4"');
+    expect(exportedReport).toContain('data-fitfreed-output-version="6"');
     expect(exportedReport).toContain('id="sport-icon-running"');
     expect(exportedReport).toContain('href="#sport-icon-running"');
     expect(exportedReport).toContain(">Trail running<");
@@ -3056,6 +3057,9 @@ describe("packaged FitFreed import journey", () => {
       "Energy: The selected metric is unavailable for one or both periods.",
     );
     expect(exportedReport).toContain("Training history — Distance");
+    expect(exportedReport).toContain('<svg class="comparison-chart" role="img"');
+    expect(exportedReport).toContain(">Training history — Distance</title>");
+    expect(exportedReport).not.toContain('class="comparison-bars"');
     expect(exportedReport).not.toContain("series-");
     expect(exportedReport).not.toContain("40.01");
     expect(exportedReport).not.toContain("-3.01");
